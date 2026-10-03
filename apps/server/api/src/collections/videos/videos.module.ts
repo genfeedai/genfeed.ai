@@ -16,6 +16,7 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
@@ -93,6 +94,7 @@ import { Module } from '@nestjs/common';
     VideosCoreModule,
   ],
   imports: [
+    PlatformSettingsModule,
     CrunCoreModule,
     EvaluationReadModule,
     MediaPromptEnhancementModule,

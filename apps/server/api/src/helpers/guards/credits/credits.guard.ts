@@ -12,6 +12,7 @@ import {
   isTrainerKey,
   isTrainingKey,
 } from '@api/collections/models/utils/model-key.util';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import {
   BusinessLogicException,
   InsufficientCreditsException,
@@ -46,7 +47,6 @@ import {
   isTopazVideoUpscaleResolution,
   quoteTopazVideoUpscaleCredits,
 } from '@genfeedai/pricing';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -87,11 +87,10 @@ interface CreditsRequestBody {
 @Injectable()
 export class CreditsGuard implements CanActivate {
   // Credit calculation constants
-  private readonly TRAINING_MODEL_FLAT_COST = 5;
   private readonly DEFAULT_TRAINING_STEPS = 1000;
-  private readonly TRAINING_CREDITS_PER_THOUSAND_STEPS = 500;
 
   constructor(
+    private readonly platformSettingsService: PlatformSettingsService,
     private reflector: Reflector,
 
     private creditsUtilsService: CreditsUtilsService,
@@ -99,7 +98,6 @@ export class CreditsGuard implements CanActivate {
     private byokService: ByokService,
 
     private loggerService: LoggerService,
-    private configService: ConfigService,
     private readonly modelCreditQuote: ModelCreditQuoteService,
   ) {}
 
@@ -270,7 +268,7 @@ export class CreditsGuard implements CanActivate {
         const normalized = baseModelKey(modelKey);
         // Special handling for Replicate training model (trainer): credits scale with steps
         if (isTrainerKey(normalized)) {
-          requiredCredits = this.calculateTrainingCredits(body?.steps);
+          requiredCredits = await this.calculateTrainingCredits(body?.steps);
           this.loggerService.debug(
             'Credits guard: Training credits calculated',
             {
@@ -292,7 +290,7 @@ export class CreditsGuard implements CanActivate {
           // Continue to balance check below
         } else if (isTrainingKey(modelKey)) {
           // Trained model (genfeedai/<id>): use custom model cost
-          requiredCredits = this.getCustomModelCost();
+          requiredCredits = await this.getCustomModelCost();
           this.loggerService.debug(
             'Credits guard: Trained model detected, applying custom model cost',
             { modelKey, requiredCredits },
@@ -331,7 +329,7 @@ export class CreditsGuard implements CanActivate {
 
             // If model label indicates training, override cost to flat training cost
             if (model.label?.toLowerCase().includes('training')) {
-              requiredCredits = this.TRAINING_MODEL_FLAT_COST;
+              requiredCredits = await this.getCustomModelCost();
               this.loggerService.debug(
                 'Credits guard: Training model label detected, flat credits applied',
                 { label: model.label, modelKey: normalized, requiredCredits },
@@ -373,7 +371,7 @@ export class CreditsGuard implements CanActivate {
               });
             }
             // Legacy non-media custom/training tariffs retain their separate contract.
-            requiredCredits = this.getCustomModelCost();
+            requiredCredits = await this.getCustomModelCost();
             this.loggerService.warn(
               'Credits guard: Model not found in database, using custom model cost fallback',
               {
@@ -701,11 +699,11 @@ export class CreditsGuard implements CanActivate {
    * @param steps Number of training steps
    * @returns Required credits for training
    */
-  private calculateTrainingCredits(steps?: number): number {
+  private async calculateTrainingCredits(steps?: number): Promise<number> {
     const actualSteps = Number(steps) || this.DEFAULT_TRAINING_STEPS;
-    const basePerThousand =
-      Number(this.configService.get('TRAINING_TRAINING_CREDITS_COST')) ||
-      this.TRAINING_CREDITS_PER_THOUSAND_STEPS;
+    const basePerThousand = (
+      await this.platformSettingsService.getFeatureSettings()
+    ).trainingCreditsCost;
 
     return Math.max(
       basePerThousand,
@@ -717,10 +715,8 @@ export class CreditsGuard implements CanActivate {
    * Get the cost for custom models
    * @returns Custom model cost
    */
-  private getCustomModelCost(): number {
-    return (
-      Number(this.configService.get('TRAINING_CUSTOM_MODEL_CREDITS_COST')) ||
-      this.TRAINING_MODEL_FLAT_COST
-    );
+  private async getCustomModelCost(): Promise<number> {
+    return (await this.platformSettingsService.getFeatureSettings())
+      .customModelCreditsCost;
   }
 }

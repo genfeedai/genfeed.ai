@@ -2,6 +2,7 @@ import path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
+import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
 import { UploadService } from '@files/services/upload/upload.service';
 import type { StorageProvider } from '@genfeedai/storage';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -126,6 +127,16 @@ describe('UploadService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        {
+          provide: FileRuntimeSettingsService,
+          useValue: {
+            get: async () => ({
+              imageCompressionQuality: Number(
+                mockConfigService.get('AWS_IMAGE_COMPRESSION') || 50,
+              ),
+            }),
+          },
+        },
         UploadService,
         { provide: ConfigService, useValue: mockConfigService },
         { provide: FFmpegService, useValue: mockFfmpegService },
@@ -669,7 +680,7 @@ describe('UploadService', () => {
       expect(mockSharpInstance.jpeg).toHaveBeenCalledWith({ quality: 85 });
     });
 
-    it('should default to 90 quality if not configured', async () => {
+    it('should use default admin quality if not configured', async () => {
       mockConfigService.get.mockReturnValue(undefined);
 
       await service.uploadToS3('test-key', 'images', {
@@ -677,7 +688,7 @@ describe('UploadService', () => {
         type: 'file',
       });
 
-      expect(mockSharpInstance.jpeg).toHaveBeenCalledWith({ quality: 90 });
+      expect(mockSharpInstance.jpeg).toHaveBeenCalledWith({ quality: 50 });
     });
   });
 

@@ -1,3 +1,4 @@
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 /**
  * Optimizers Module
  * AI-powered content optimization: analyze quality, score content (0-100), suggest improvements,
@@ -19,6 +20,7 @@ import { Module } from '@nestjs/common';
   controllers: [OptimizersController],
   exports: [OptimizersService],
   imports: [
+    PlatformSettingsModule,
     ByokModule,
     ConfigModule,
     CreditsModule,

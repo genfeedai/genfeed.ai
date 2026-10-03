@@ -19,6 +19,7 @@ import { NullModerationProvider } from '@api/services/moderation/providers/null-
 import { NullTypedDecisionProvider } from '@api/services/typed-decisions/providers/null-typed-decision.provider';
 import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import type { TypedDecisionProviderResolver } from '@api/services/typed-decisions/typed-decision-provider.resolver';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { AgentPublishDecision, CredentialPlatform } from '@genfeedai/contracts';
 import {
   AGENT_PUBLISH_POLICY_NAME,
@@ -314,10 +315,10 @@ describe.each<Outage>(['none', 'timeout'])(
       const w = writes();
       const provider = decisionProvider(outage);
       const typedDecisions = new TypedDecisionService(
+        runtimeSettingsMock(config(outage)),
         {
           resolve: vi.fn(async () => provider),
         } as unknown as TypedDecisionProviderResolver,
-        config(outage),
         logger(),
       );
       const service = new MediaTextDecisionService(
@@ -390,10 +391,10 @@ describe.each<Outage>(['none', 'timeout'])(
           readiness as unknown as MediaReadinessService,
           config(outage),
           new TypedDecisionService(
+            runtimeSettingsMock(config(outage)),
             {
               resolve: vi.fn(async () => provider),
             } as unknown as TypedDecisionProviderResolver,
-            config(outage),
             logger(),
           ),
           platformSettings(outage, overrides),

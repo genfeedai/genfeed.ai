@@ -8,14 +8,13 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { SystemEvent } from '@libs/interfaces/system-event.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { discordWebhookUrl } from '@libs/security/discord-webhook-url';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@notifications/config/config.service';
 import { DiscordBotService } from '@notifications/services/discord/discord-bot.service';
-import {
-  discordMessage,
-  discordWebhookUrl,
-} from '@notifications/services/discord/system-notification.util';
+import { discordMessage } from '@notifications/services/discord/system-notification.util';
+import { NotificationRuntimeSettingsService } from '@notifications/services/runtime-settings/notification-runtime-settings.service';
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -29,6 +28,7 @@ export class DiscordService {
   private readonly constructorName = DiscordService.name;
 
   constructor(
+    private readonly runtimeSettings: NotificationRuntimeSettingsService,
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly discordBotService: DiscordBotService,
@@ -41,21 +41,11 @@ export class DiscordService {
     }
   }
 
-  systemNotificationStatus() {
-    return {
-      webhookConfigured: Boolean(
-        discordWebhookUrl(
-          this.configService.get('SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL') ||
-            '',
-        ),
-      ),
-    };
-  }
-
-  async sendSystemNotification(event: SystemEvent): Promise<void> {
-    const url = discordWebhookUrl(
-      this.configService.get('SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL') || '',
-    );
+  async sendSystemNotification(
+    event: SystemEvent,
+    webhookUrl: string,
+  ): Promise<void> {
+    const url = discordWebhookUrl(webhookUrl);
     if (!url)
       throw new ServiceUnavailableException(
         'System notification destination is not configured',
@@ -126,7 +116,8 @@ export class DiscordService {
           }
         }
 
-        const avatarUrl = this.configService.get('DISCORD_BOT_AVATAR_URL');
+        const avatarUrl =
+          (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined;
 
         // A separate video URL message lets Discord embed the video before its details.
         if (category === IngredientCategory.VIDEO) {
@@ -168,7 +159,8 @@ export class DiscordService {
       url,
       async (webhookClient) => {
         await webhookClient.send({
-          avatarURL: this.configService.get('DISCORD_BOT_AVATAR_URL'),
+          avatarURL:
+            (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined,
           embeds: [embed],
           username: 'Genfeed.ai Deployments',
         });
@@ -187,7 +179,8 @@ export class DiscordService {
       url,
       async (webhookClient) => {
         await webhookClient.send({
-          avatarURL: this.configService.get('DISCORD_BOT_AVATAR_URL'),
+          avatarURL:
+            (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined,
           embeds: [
             {
               color: input.color ?? 0xf97316,
@@ -399,7 +392,8 @@ export class DiscordService {
           title: `New Model Discovered: ${payload.modelKey}`,
         };
 
-        const avatarUrl = this.configService.get('DISCORD_BOT_AVATAR_URL');
+        const avatarUrl =
+          (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined;
 
         await webhookClient.send({
           avatarURL: avatarUrl,
@@ -516,7 +510,8 @@ export class DiscordService {
             .setURL(billingUrl),
         );
 
-        const avatarUrl = this.configService.get('DISCORD_BOT_AVATAR_URL');
+        const avatarUrl =
+          (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined;
 
         await webhookClient.send({
           avatarURL: avatarUrl,
@@ -723,7 +718,8 @@ export class DiscordService {
         };
 
         await webhookClient.send({
-          avatarURL: this.configService.get('DISCORD_BOT_AVATAR_URL'),
+          avatarURL:
+            (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined,
           embeds: [embed],
           username: 'Genfeed.ai',
         });

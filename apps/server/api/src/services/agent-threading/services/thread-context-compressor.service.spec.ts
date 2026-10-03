@@ -5,7 +5,6 @@ import type { CacheService } from '@api/services/cache/cache.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
-import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -28,7 +27,6 @@ function buildService(isAgentContextCompressionEnabled: boolean) {
     agentMessagesService as unknown as AgentMessagesService,
     {} as LlmDispatcherService,
     cacheService as unknown as CacheService,
-    { get: vi.fn(() => undefined) } as unknown as ConfigService,
     platformSettingsService as unknown as PlatformSettingsService,
     { error: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
   );

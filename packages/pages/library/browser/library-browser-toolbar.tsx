@@ -90,14 +90,14 @@ export default function LibraryBrowserToolbar({
   sort,
   sortOptions,
   viewMode,
-  isRefreshing,
   onCategoriesChange,
   onClearCategories,
   onSortChange,
   onViewModeChange,
-  onRefresh,
-  onUpload,
-}: LibraryBrowserToolbarProps) {
+}: Omit<
+  LibraryBrowserToolbarProps,
+  'onRefresh' | 'onUpload' | 'isRefreshing'
+>) {
   const translate = useTranslations('pages.library.browser.toolbar');
   const hasTypeFilter = categories.length > 0;
   const selectedTypeIds = selectedAssetTypeIds(categories);
@@ -163,23 +163,35 @@ export default function LibraryBrowserToolbar({
         options={viewOptions}
         size={ComponentSize.SM}
       />
+    </div>
+  );
+}
 
-      <div
-        className="flex items-center gap-1"
-        data-testid="library-toolbar-icon-actions"
-      >
-        <ButtonRefresh isRefreshing={isRefreshing} onClick={onRefresh} />
-        <Button
-          ariaLabel={translate('upload')}
-          className={SHELL_ICON_BUTTON_CLASS}
-          icon={<Upload className={SHELL_ICON_CLASS} />}
-          onClick={onUpload}
-          size={ButtonSize.ICON}
-          tooltip={translate('upload')}
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
-        />
-      </div>
+export function LibraryBrowserIconActions({
+  isRefreshing,
+  onRefresh,
+  onUpload,
+}: Pick<
+  LibraryBrowserToolbarProps,
+  'isRefreshing' | 'onRefresh' | 'onUpload'
+>) {
+  const translate = useTranslations('pages.library.browser.toolbar');
+  return (
+    <div
+      className="flex items-center gap-1"
+      data-testid="library-toolbar-icon-actions"
+    >
+      <ButtonRefresh isRefreshing={isRefreshing} onClick={onRefresh} />
+      <Button
+        ariaLabel={translate('upload')}
+        className={SHELL_ICON_BUTTON_CLASS}
+        icon={<Upload className={SHELL_ICON_CLASS} />}
+        onClick={onUpload}
+        size={ButtonSize.ICON}
+        tooltip={translate('upload')}
+        variant={ButtonVariant.GHOST}
+        withWrapper={false}
+      />
     </div>
   );
 }

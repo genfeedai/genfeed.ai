@@ -4,6 +4,7 @@ import {
   NotificationsService,
 } from '@api/services/notifications/notifications.service';
 import { ConfigService } from '@libs/config/config.service';
+import type { SystemNotificationTarget } from '@libs/interfaces/system-event.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -68,10 +69,15 @@ describe('NotificationsService', () => {
       occurredAt: new Date().toISOString(),
       data: { objectId: 'u1' },
     };
+    const target: SystemNotificationTarget = {
+      provider: 'email',
+      address: 'operator@example.test',
+    };
+    const idempotencyKey = 'system/delivery-1';
     mockSafeFetch.mockResolvedValue(
       new Response(JSON.stringify({ delivered: true }), { status: 200 }),
     );
-    await service.deliverSystemNotification(event);
+    await service.deliverSystemNotification(event, target, idempotencyKey);
     expect(mockSafeFetch).toHaveBeenCalledWith(
       new URL('http://notifications:3011/v1/internal/system-notifications'),
       expect.objectContaining({
@@ -79,7 +85,7 @@ describe('NotificationsService', () => {
           Authorization: 'Bearer internal-api-key',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(event),
+        body: JSON.stringify({ event, target, idempotencyKey }),
       }),
       expect.objectContaining({
         maxRedirects: 0,
@@ -87,9 +93,9 @@ describe('NotificationsService', () => {
       }),
     );
     mockSafeFetch.mockResolvedValue(new Response('{}', { status: 200 }));
-    await expect(service.deliverSystemNotification(event)).rejects.toThrow(
-      'not acknowledged',
-    );
+    await expect(
+      service.deliverSystemNotification(event, target, idempotencyKey),
+    ).rejects.toThrow('not acknowledged');
   });
 
   describe('deliverChannelMessage', () => {

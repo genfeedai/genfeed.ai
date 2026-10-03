@@ -28,6 +28,33 @@ export type IPlatformFlags = Readonly<Record<PlatformFlagKey, boolean>>;
  * infrastructure (`BETTER_AUTH_ENABLED`, `SENTRY_ENABLED`) stay in env.
  */
 export interface IPlatformFeatureSettings {
+  imageCompressionQuality: number;
+  paygFallbackCredits: number;
+  linkedinTrendSourceUrls: string | null;
+  agentContextCompressionModel: string | null;
+  agentContextWindowSize: number;
+  generationMaxTokens: number;
+  typedDecisionTimeoutMs: number;
+  trainingCreditsCost: number;
+  customModelCreditsCost: number;
+  replicateModelHardware: string;
+  replicateModelVisibility: 'private' | 'public';
+  replicateTrainerModel: string;
+  replicateTargetFps: number;
+  replicateTargetResolution: string;
+  klingModel: string;
+  elevenlabsModel: string | null;
+  murekaModel: string;
+  discordChannelIdDeployments: string | null;
+  discordChannelIdPosts: string | null;
+  discordChannelIdStudio: string | null;
+  discordChannelIdUsers: string | null;
+  discordChannelIdModels: string | null;
+  discordBotAvatarUrl: string | null;
+  discordWebhookNamePrefix: string | null;
+  discordWebhookReason: string | null;
+  emailFromAddress: string | null;
+  emailReplyToAddress: string | null;
   /** Media perception sweep (#4879). `false` stops the workers enqueuing assets. */
   isMediaPerceptionEnabled: boolean;
   /** Evenly spaced stills sampled per video, 1..24. */

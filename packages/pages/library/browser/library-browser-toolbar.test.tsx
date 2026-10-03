@@ -2,7 +2,9 @@ import { IngredientCategory } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import LibraryBrowserToolbar from './library-browser-toolbar';
+import LibraryBrowserToolbar, {
+  LibraryBrowserIconActions,
+} from './library-browser-toolbar';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -99,12 +101,9 @@ function renderToolbar(
   render(
     <LibraryBrowserToolbar
       categories={[]}
-      isRefreshing={false}
       onCategoriesChange={vi.fn()}
       onClearCategories={vi.fn()}
-      onRefresh={vi.fn()}
       onSortChange={vi.fn()}
-      onUpload={vi.fn()}
       onViewModeChange={vi.fn()}
       sort="createdAt: -1"
       sortOptions={[{ label: 'Newest first', value: 'createdAt: -1' }]}
@@ -125,12 +124,9 @@ describe('LibraryBrowserToolbar', () => {
     render(
       <LibraryBrowserToolbar
         categories={[IngredientCategory.VIDEO, IngredientCategory.VIDEO_EDIT]}
-        isRefreshing={false}
         onCategoriesChange={onCategoriesChange}
         onClearCategories={vi.fn()}
-        onRefresh={vi.fn()}
         onSortChange={vi.fn()}
-        onUpload={vi.fn()}
         onViewModeChange={vi.fn()}
         sort="createdAt: -1"
         sortOptions={[{ label: 'Newest first', value: 'createdAt: -1' }]}
@@ -158,32 +154,22 @@ describe('LibraryBrowserToolbar', () => {
     ]);
   });
 
-  it('keeps ghost icon actions together after the bordered controls', () => {
+  it('groups Refresh and Upload for the shared ghost action slot', () => {
+    const onUpload = vi.fn();
     render(
-      <LibraryBrowserToolbar
-        categories={[]}
+      <LibraryBrowserIconActions
         isRefreshing={false}
-        onCategoriesChange={vi.fn()}
-        onClearCategories={vi.fn()}
         onRefresh={vi.fn()}
-        onSortChange={vi.fn()}
-        onUpload={vi.fn()}
-        onViewModeChange={vi.fn()}
-        sort="createdAt: -1"
-        sortOptions={[{ label: 'Newest first', value: 'createdAt: -1' }]}
-        viewMode="list"
+        onUpload={onUpload}
       />,
     );
-
     const iconActions = screen.getByTestId('library-toolbar-icon-actions');
-    const rightCluster = iconActions.parentElement;
-
     expect(iconActions).toContainElement(screen.getByTestId('refresh-button'));
     expect(iconActions).toContainElement(
       screen.getByRole('button', { name: 'Upload' }),
     );
-    expect(rightCluster?.lastElementChild).toBe(iconActions);
-    expect(screen.queryByTestId('searchbar')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+    expect(onUpload).toHaveBeenCalledTimes(1);
   });
 
   it('arranges the same result set three ways, canvas included', () => {

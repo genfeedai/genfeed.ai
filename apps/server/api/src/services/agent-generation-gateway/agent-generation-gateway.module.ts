@@ -6,6 +6,7 @@ import { MembersModule } from '@api/collections/members/members.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
@@ -42,6 +43,7 @@ import { Module } from '@nestjs/common';
     AgentGenerationGatewayService,
   ],
   imports: [
+    PlatformSettingsModule,
     ActivitiesModule,
     ArticlesModule,
     ByokModule,

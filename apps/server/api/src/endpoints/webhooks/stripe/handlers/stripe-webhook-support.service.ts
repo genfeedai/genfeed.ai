@@ -1,5 +1,6 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -105,6 +106,7 @@ export class StripeWebhookSupportService {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
+    private readonly platformSettings: PlatformSettingsService,
     private readonly configService: ConfigService,
     private readonly cacheService: CacheService,
     private readonly loggerService: LoggerService,
@@ -123,15 +125,16 @@ export class StripeWebhookSupportService {
 
   /**
    * Resolve the credit amount for a checkout session: session metadata wins,
-   * then the STRIPE_PAYG_CREDITS config value, then the caller's fallback.
+   * then the admin fallback credit default, then the caller's fallback.
    * Without a fallback this preserves the historical NaN when neither
    * metadata nor config provide a value.
    */
-  resolveCheckoutCredits(
+  async resolveCheckoutCredits(
     metadata: StripeMetadata | null | undefined,
     fallback?: number,
-  ): number {
-    const configured = this.configService.get('STRIPE_PAYG_CREDITS');
+  ): Promise<number> {
+    const configured = (await this.platformSettings.getFeatureSettings())
+      .paygFallbackCredits;
 
     if (fallback === undefined) {
       return Number(metadata?.credits || configured);

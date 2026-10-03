@@ -50,6 +50,8 @@ export default function KPISection({
       {items.map((item) => (
         <MetricCard
           key={item.label}
+          analyticsMetric={item.analyticsMetric}
+          analyticsMetricVariant={item.analyticsMetricVariant}
           className={item.className}
           description={item.description}
           icon={item.icon}

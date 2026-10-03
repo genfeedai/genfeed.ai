@@ -16,6 +16,7 @@ export default function HookStatCards({
       <MetricCard
         icon={Eye}
         isLoading={isLoading}
+        analyticsMetric="posts"
         label="Posts Analyzed"
         size="md"
         value={String(analysisData.totalVideos)}

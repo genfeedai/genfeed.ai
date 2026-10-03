@@ -1,5 +1,6 @@
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { MCPController } from '@api/endpoints/mcp/mcp.controller';
@@ -12,6 +13,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [MCPController],
   imports: [
+    PlatformSettingsModule,
     AnalyticsModule,
     ByokModule,
     CreditsModule,

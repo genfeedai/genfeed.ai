@@ -8,6 +8,7 @@ import type {
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { Props } from '@props/analytics/cross-platform-leaderboard-section.props';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
@@ -139,7 +140,11 @@ export default function CrossPlatformLeaderboardSection({
               },
               {
                 className: 'min-w-32',
-                header: 'Engagement',
+                header: (
+                  <AnalyticsMetricLabel metric="engagementRate">
+                    Engagement
+                  </AnalyticsMetricLabel>
+                ),
                 key: 'engagementRate',
                 render: (video) => (
                   <span className="font-semibold text-foreground">

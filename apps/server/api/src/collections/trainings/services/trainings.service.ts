@@ -3,6 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
 import type { UpdateTrainingDto } from '@api/collections/trainings/dto/update-training.dto';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
@@ -62,6 +63,7 @@ export class TrainingsService extends BaseService<
   private readonly constructorName = this.constructor.name;
 
   constructor(
+    private readonly platformSettingsService: PlatformSettingsService,
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly configService: ConfigService,
@@ -228,7 +230,9 @@ export class TrainingsService extends BaseService<
       config: {
         category: createDto.category || 'subject',
         model:
-          resolvedModel || this.configService.get('REPLICATE_MODELS_TRAINER'),
+          resolvedModel ||
+          (await this.platformSettingsService.getFeatureSettings())
+            .replicateTrainerModel,
         provider: createDto.provider || 'replicate',
         seed: createDto.seed ? Number(createDto.seed) : -1,
         status: IngredientStatus.PROCESSING,
@@ -360,7 +364,8 @@ export class TrainingsService extends BaseService<
         category: (existingConfig.category as string | undefined) || 'subject',
         model:
           (existingConfig.model as string | undefined) ||
-          this.configService.get('REPLICATE_MODELS_TRAINER'),
+          (await this.platformSettingsService.getFeatureSettings())
+            .replicateTrainerModel,
         provider:
           (existingConfig.provider as string | undefined) || 'replicate',
         seed:
@@ -573,7 +578,8 @@ export class TrainingsService extends BaseService<
         trigger_word: launchConfig.trigger,
       },
 
-      this.configService.get('REPLICATE_MODELS_TRAINER'),
+      (await this.platformSettingsService.getFeatureSettings())
+        .replicateTrainerModel,
     );
 
     // Update training with external training ID

@@ -80,3 +80,13 @@ describe('PlatformAnalyticsBreakdown', () => {
     expect(screen.getByTestId('card')).toHaveClass('custom-class');
   });
 });
+
+vi.mock('next-intl', async () => {
+  const { createTranslateFromCatalog } = await import(
+    '@ui/tests/next-intl.stub'
+  );
+  const { default: pages } = await import(
+    '../../../../../../apps/app/messages/en/pages.json'
+  );
+  return { useTranslations: createTranslateFromCatalog({ pages }) };
+});

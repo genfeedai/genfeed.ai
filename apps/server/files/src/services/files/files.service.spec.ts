@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
 import { FilesService } from '@files/services/files/files.service';
+import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -56,6 +57,10 @@ describe('FilesService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        {
+          provide: FileRuntimeSettingsService,
+          useValue: { get: async () => ({ imageCompressionQuality: 50 }) },
+        },
         FilesService,
         {
           provide: ConfigService,

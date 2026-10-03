@@ -6,6 +6,7 @@ import { Button } from '@ui/primitives/button';
 import { MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import SkillDetailCard from './SkillDetailCard';
+import SkillVersionsPanel from './skill-versions-panel';
 
 export default function SkillDetailSheet({
   customizing,
@@ -23,6 +24,7 @@ export default function SkillDetailSheet({
   savingSkill,
   selectedSkill,
   skillDraft,
+  versions,
 }: SkillDetailSheetProps) {
   const translate = useTranslations('common.settings.skills');
 
@@ -112,6 +114,9 @@ export default function SkillDetailSheet({
         selectedSkill={selectedSkill}
         skillDraft={skillDraft}
       />
+      {selectedSkill?.canRead === true && versions ? (
+        <SkillVersionsPanel {...versions} />
+      ) : null}
     </EntityOverlayShell>
   );
 }

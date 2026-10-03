@@ -2,16 +2,26 @@ import { createHash } from 'node:crypto';
 import { TextDecoder } from 'node:util';
 import { crc32, inflateRawSync } from 'node:zlib';
 
-const MAX_ARCHIVE_BYTES = 1_000_000;
-const MAX_ENTRIES = 128;
-const MAX_ENTRY_BYTES = 128_000;
-const MAX_TOTAL_BYTES = 512_000;
+export const SKILL_PACKAGE_LIMITS = Object.freeze({
+  archiveBytes: 1_000_000,
+  entries: 128,
+  entryBytes: 128_000,
+  totalBytes: 512_000,
+});
 const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 
-export interface ParsedSkillPackageArchive {
-  archiveSha256: string;
-  files: Array<{ content: string; path: string }>;
+export interface SkillPackageFile {
+  content: string;
+  path: string;
+}
+
+export interface ValidatedSkillPackageFiles {
+  files: SkillPackageFile[];
   packageChecksum: string;
+}
+
+export interface ParsedSkillPackageArchive extends ValidatedSkillPackageFiles {
+  archiveSha256: string;
 }
 
 interface InflatedEntry {
@@ -58,6 +68,7 @@ function assertPath(path: string): void {
   const plain = path.endsWith('/') ? path.slice(0, -1) : path;
   if (
     !plain ||
+    Buffer.byteLength(path, 'utf8') > 65_535 ||
     /[\\:]/.test(path) ||
     [...path].some(
       (char) =>
@@ -80,6 +91,20 @@ function assertPath(path: string): void {
   }
 }
 
+function assertUnicode(value: string): void {
+  if (value.includes('\0')) invalid('NUL character');
+  if (
+    [...value].some(
+      (char) =>
+        char.length === 1 &&
+        char.charCodeAt(0) >= 0xd800 &&
+        char.charCodeAt(0) <= 0xdfff,
+    )
+  ) {
+    invalid('unpaired surrogate');
+  }
+}
+
 function assertFileParents(paths: string[]): void {
   const keys = paths.map((path) => path.normalize('NFC').toLowerCase()).sort();
   for (const key of keys) {
@@ -95,6 +120,55 @@ function assertFileParents(paths: string[]): void {
     }
     if (keys[low]?.startsWith(prefix)) invalid('file used as directory');
   }
+}
+
+/** One byte/path/checksum policy for JSON file packages and decoded ZIP files. */
+export function validateSkillPackageFiles(
+  input: unknown,
+): ValidatedSkillPackageFiles {
+  if (!Array.isArray(input) || input.length > SKILL_PACKAGE_LIMITS.entries)
+    invalid('file count');
+  const files: SkillPackageFile[] = [];
+  const names = new Set<string>();
+  let total = 0;
+  for (const file of input) {
+    if (
+      !file ||
+      typeof file !== 'object' ||
+      Array.isArray(file) ||
+      Object.keys(file).length !== 2 ||
+      !Object.hasOwn(file, 'path') ||
+      !Object.hasOwn(file, 'content')
+    )
+      invalid('file shape');
+    const record = file as Record<string, unknown>;
+    if (typeof record.path !== 'string' || typeof record.content !== 'string')
+      invalid('file strings');
+    const { path, content } = record as unknown as SkillPackageFile;
+    assertUnicode(path);
+    assertUnicode(content);
+    assertPath(path);
+    if (path.endsWith('/')) invalid('directory in file list');
+    const size = Buffer.byteLength(content, 'utf8');
+    total += size;
+    if (
+      size > SKILL_PACKAGE_LIMITS.entryBytes ||
+      total > SKILL_PACKAGE_LIMITS.totalBytes
+    )
+      invalid('decoded size');
+    const key = path.normalize('NFC').toLowerCase();
+    if (names.has(key)) invalid('duplicate path');
+    names.add(key);
+    files.push({ content, path });
+  }
+  assertFileParents(files.map((file) => file.path));
+  files.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  return {
+    files,
+    packageChecksum: createHash('sha256')
+      .update(JSON.stringify(files))
+      .digest('hex'),
+  };
 }
 
 function readEntries(archive: Buffer): {
@@ -123,7 +197,7 @@ function readEntries(archive: Buffer): {
     archive.readUInt16LE(end + 4) !== 0 ||
     archive.readUInt16LE(end + 6) !== 0 ||
     archive.readUInt16LE(end + 8) !== count ||
-    count > MAX_ENTRIES ||
+    count > SKILL_PACKAGE_LIMITS.entries ||
     count === 0 ||
     centralOffset + centralSize !== end
   )
@@ -152,7 +226,7 @@ function readEntries(archive: Buffer): {
       (method === 0 && flags & 6) ||
       archive.readUInt16LE(offset + 34) !== 0 ||
       compressedSize === 0xffffffff ||
-      size > MAX_ENTRY_BYTES
+      size > SKILL_PACKAGE_LIMITS.entryBytes
     )
       invalid('unsupported entry or size');
     const name = archive.subarray(offset + 46, offset + 46 + nameSize);
@@ -182,7 +256,7 @@ function readEntries(archive: Buffer): {
       ),
     );
     total += size;
-    if (total > MAX_TOTAL_BYTES) invalid('total decoded size');
+    if (total > SKILL_PACKAGE_LIMITS.totalBytes) invalid('total decoded size');
     entries.push({
       compressedSize,
       crc: archive.readUInt32LE(offset + 16),
@@ -210,7 +284,7 @@ function readEntries(archive: Buffer): {
 export function parseSkillPackageArchive(
   archive: Buffer,
 ): ParsedSkillPackageArchive {
-  if (archive.length > MAX_ARCHIVE_BYTES || archive.length < 22)
+  if (archive.length > SKILL_PACKAGE_LIMITS.archiveBytes || archive.length < 22)
     invalid('archive size');
   const { centralOffset, entries } = readEntries(archive);
   const files: ParsedSkillPackageArchive['files'] = [];
@@ -257,7 +331,7 @@ export function parseSkillPackageArchive(
     if (entry.method === 8) {
       // Node's declarations omit the documented `info: true` result shape.
       const result = inflateRawSync(compressed, {
-        maxOutputLength: MAX_ENTRY_BYTES,
+        maxOutputLength: SKILL_PACKAGE_LIMITS.entryBytes,
         info: true,
       }) as unknown as InflatedEntry;
       bytes = result.buffer;
@@ -284,12 +358,8 @@ export function parseSkillPackageArchive(
       files.push({ content: decoder.decode(bytes), path: entry.path });
   }
   if (previousEnd !== centralOffset) invalid('unlisted local data');
-  files.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   return {
+    ...validateSkillPackageFiles(files),
     archiveSha256: createHash('sha256').update(archive).digest('hex'),
-    files,
-    packageChecksum: createHash('sha256')
-      .update(JSON.stringify(files))
-      .digest('hex'),
   };
 }

@@ -2,6 +2,7 @@ import path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { FilesService } from '@files/services/files/files.service';
+import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -9,12 +10,13 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class FilesGifService extends FilesService {
   constructor(
+    runtimeSettings: FileRuntimeSettingsService,
     public readonly configService: ConfigService,
     public readonly loggerService: LoggerService,
     public readonly httpService: HttpService,
     private readonly ffmpegService: FFmpegService,
   ) {
-    super(configService, loggerService, httpService);
+    super(runtimeSettings, configService, loggerService, httpService);
   }
 
   public async videoToGif(videoId: string): Promise<string> {

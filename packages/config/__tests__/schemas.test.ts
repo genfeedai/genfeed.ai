@@ -1,3 +1,4 @@
+import * as aiSchemas from '@config/schemas/ai.schema';
 import {
   argilSchema,
   elevenlabsSchema,
@@ -12,7 +13,6 @@ import {
   murekaSchema,
   newsApiSchema,
   replicateSchema,
-  trainingPricingSchema,
 } from '@config/schemas/ai.schema';
 import { awsOptionalSchema, awsSchema } from '@config/schemas/aws.schema';
 import { baseSchema } from '@config/schemas/base.schema';
@@ -490,28 +490,17 @@ describe('Config Schemas', () => {
       const { error, value } = schema.validate({}, { allowUnknown: true });
       expect(error).toBeUndefined();
       expect(value.MUREKA_API_BASE_URL).toBe('https://api.mureka.ai');
-      expect(value.MUREKA_MODEL).toBe('mureka-9');
+      expect(murekaSchema).not.toHaveProperty('MUREKA_MODEL');
+      expect(value).not.toHaveProperty('MUREKA_MODEL');
     });
   });
 
-  describe('trainingPricingSchema', () => {
-    it('should be a non-empty object of Joi schemas', () => {
-      expect(typeof trainingPricingSchema).toBe('object');
-      const keys = Object.keys(trainingPricingSchema);
-      expect(keys.length).toBeGreaterThan(0);
-      for (const key of keys) {
-        expect(
-          Joi.isSchema((trainingPricingSchema as Record<string, unknown>)[key]),
-        ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(trainingPricingSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
+  describe('retired training pricing environment schema', () => {
+    it('does not export pricing product settings or include them in AI env collections', () => {
+      expect(aiSchemas).not.toHaveProperty('trainingPricingSchema');
+      for (const schema of Object.values(aiSchemas)) {
+        expect(schema).not.toHaveProperty('TRAINING_TRAINING_CREDITS_COST');
+        expect(schema).not.toHaveProperty('TRAINING_CUSTOM_MODEL_CREDITS_COST');
       }
     });
   });

@@ -18,6 +18,7 @@ import {
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Table from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -236,12 +237,16 @@ export default function AnalyticsAccounts() {
       },
       {
         key: 'posts',
-        header: 'Posts',
+        header: (
+          <AnalyticsMetricLabel metric="posts">Posts</AnalyticsMetricLabel>
+        ),
         render: (row) => String(row.publishedPosts),
       },
       {
         key: 'metric',
-        header: 'Metric',
+        header: (
+          <AnalyticsMetricLabel metric={metric}>Metric</AnalyticsMetricLabel>
+        ),
         render: (row) => metricLabel(row, metric),
       },
       {

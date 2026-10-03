@@ -10,6 +10,7 @@ import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper'
 import { useTopPosts } from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import type { TableColumn } from '@props/ui/display/table.props';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Table from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -179,7 +180,9 @@ export default function AnalyticsPostsList() {
       },
       {
         className: 'text-right',
-        header: 'Views',
+        header: (
+          <AnalyticsMetricLabel metric="views">Views</AnalyticsMetricLabel>
+        ),
         key: 'totalViews',
         render: (item) => (
           <span className="font-mono">{item.totalViews.toLocaleString()}</span>
@@ -187,7 +190,11 @@ export default function AnalyticsPostsList() {
       },
       {
         className: 'text-right',
-        header: 'Engagement',
+        header: (
+          <AnalyticsMetricLabel metric="engagement">
+            Engagement
+          </AnalyticsMetricLabel>
+        ),
         key: 'totalEngagement',
         render: (item) => (
           <span className="font-mono">
@@ -197,7 +204,11 @@ export default function AnalyticsPostsList() {
       },
       {
         className: 'text-right',
-        header: 'Eng. Rate',
+        header: (
+          <AnalyticsMetricLabel metric="engagementRate">
+            Eng. Rate
+          </AnalyticsMetricLabel>
+        ),
         key: 'engagementRate',
         render: (item) => (
           <span className="font-mono">{item.engagementRate.toFixed(2)}%</span>

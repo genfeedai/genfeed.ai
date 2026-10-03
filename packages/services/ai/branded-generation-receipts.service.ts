@@ -1,8 +1,13 @@
+import { brandIdentitySnapshotV1Schema } from '@genfeedai/contracts/api-types/contracts/branded-generation.contract';
 import {
   brandedGenerationPromptInspectionV1Schema,
   brandedGenerationReceiptReadV1Schema,
   brandedGenerationReceiptRevisionReadV1Schema,
 } from '@genfeedai/contracts/api-types/contracts/branded-generation-receipt-read.contract';
+import {
+  learningContractHashSchema,
+  learningContractIdSchema,
+} from '@genfeedai/contracts/api-types/contracts/content-learning-generation.contract';
 import type {
   BrandedGenerationPromptInspectionV1,
   BrandedGenerationReceiptHistoryQueryV1,
@@ -20,6 +25,15 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 import { z } from 'zod';
+
+const identityPreviewAttributesSchema = z.strictObject({
+  snapshot: brandIdentitySnapshotV1Schema,
+  source: z.enum(['current_approved_revision', 'receipt_snapshot']),
+});
+const identityPreviewSchema = identityPreviewAttributesSchema.extend({
+  id: learningContractHashSchema,
+});
+export type BrandIdentityPreviewResult = z.infer<typeof identityPreviewSchema>;
 
 const cursorSchema = z
   .object({
@@ -59,6 +73,44 @@ export class BrandedGenerationReceiptsService extends HTTPBaseService {
   }
   private route(brandId: string, receiptId?: string) {
     return `${encodeURIComponent(brandId)}/generation-receipts${receiptId === undefined ? '' : `/${encodeURIComponent(receiptId)}`}`;
+  }
+  async getIdentityPreview(
+    organizationId: string,
+    brandId: string,
+    receiptId?: string,
+    signal?: AbortSignal,
+  ): Promise<BrandIdentityPreviewResult> {
+    validated(() => {
+      learningContractIdSchema.parse(organizationId);
+      learningContractIdSchema.parse(brandId);
+      if (receiptId !== undefined) learningContractIdSchema.parse(receiptId);
+    });
+    const { data } = await this.instance.get<JsonApiResponseDocument>(
+      `${this.route(brandId)}/identity-preview`,
+      receiptId === undefined ? { signal } : { params: { receiptId }, signal },
+    );
+    return validated(() => {
+      resourceTypes(data, 'brand-identity-preview', false);
+      const resource = data.data;
+      if (!resource || Array.isArray(resource)) throw new Error();
+      identityPreviewAttributesSchema.parse(resource.attributes);
+      const value = identityPreviewSchema.parse(
+        deserializeResource<unknown>(data),
+      );
+      if (
+        resource.id !== value.id ||
+        value.id !== value.snapshot.contentHash ||
+        value.snapshot.organizationId !== organizationId ||
+        value.snapshot.brandId !== brandId ||
+        value.source !==
+          (receiptId === undefined
+            ? 'current_approved_revision'
+            : 'receipt_snapshot') ||
+        (receiptId === undefined && value.snapshot.approval !== 'approved')
+      )
+        throw new Error();
+      return value;
+    });
   }
   async list(
     brandId: string,

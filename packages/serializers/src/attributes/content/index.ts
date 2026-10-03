@@ -23,6 +23,7 @@ export * from '@serializers/attributes/content/content-plan.attributes';
 export * from '@serializers/attributes/content/content-plan-item.attributes';
 export * from '@serializers/attributes/content/content-run.attributes';
 export * from '@serializers/attributes/content/content-skill.attributes';
+export * from '@serializers/attributes/content/content-skill-version.attributes';
 export * from '@serializers/attributes/content/context-base.attributes';
 export * from '@serializers/attributes/content/context-entry.attributes';
 export * from '@serializers/attributes/content/dashboard-layout.attributes';

@@ -1,6 +1,10 @@
 import { createHash } from 'node:crypto';
 import { crc32, deflateRawSync } from 'node:zlib';
-import { parseSkillPackageArchive } from '@api/collections/skills/utils/skill-package-archive.util';
+import {
+  parseSkillPackageArchive,
+  SKILL_PACKAGE_LIMITS,
+  validateSkillPackageFiles,
+} from '@api/collections/skills/utils/skill-package-archive.util';
 
 function createSkillZip(
   entries: Array<{
@@ -355,5 +359,149 @@ describe('parseSkillPackageArchive', () => {
     zip.writeUInt32LE(1, 22);
     zip.writeUInt32LE(1, centralOffset(zip) + 24);
     expect(() => parseSkillPackageArchive(zip)).toThrow();
+  });
+});
+
+describe('validateSkillPackageFiles', () => {
+  it('rejects NUL in decoded or direct file content before JSON persistence', () => {
+    const file = { path: 'SKILL.md', content: 'raw\0content' };
+    expect(() => validateSkillPackageFiles([file])).toThrow('NUL character');
+    expect(() => parseSkillPackageArchive(createSkillZip([file]))).toThrow(
+      'NUL character',
+    );
+  });
+  it('exports frozen bounds and returns sorted fresh files without modifying content/path', () => {
+    expect(SKILL_PACKAGE_LIMITS).toEqual({
+      archiveBytes: 1_000_000,
+      entries: 128,
+      entryBytes: 128_000,
+      totalBytes: 512_000,
+    });
+    const input = [
+      { path: 'z.md', content: '  Original\r\n' },
+      { path: 'a.md', content: '' },
+    ];
+    const result = validateSkillPackageFiles(input);
+    expect(result.files).toEqual([input[1], input[0]]);
+    expect(result.files[0]).not.toBe(input[1]);
+    expect(input[0].path).toBe('z.md');
+    expect(result.packageChecksum).toBe(
+      createHash('sha256').update(JSON.stringify(result.files)).digest('hex'),
+    );
+    expect(validateSkillPackageFiles([]).files).toEqual([]);
+  });
+  it.each([
+    null,
+    {},
+    'files',
+    [null],
+    [{ path: 'a.md', content: 1 }],
+    [{ path: 'a.md' }],
+    [{ path: 'a.md', content: '', ownerId: 'trusted' }],
+    [{ path: 'refs/', content: '' }],
+    [{ path: 'script.sh', content: '' }],
+    [{ path: '../a.md', content: '' }],
+    [{ path: 'a.md', content: '\ud800' }],
+    [{ path: '\udfff.md', content: '' }],
+  ])('rejects malformed file input %j', (input) => {
+    expect(() => validateSkillPackageFiles(input)).toThrow();
+  });
+  it('enforces byte/count limits, surrogate correctness and normalized collisions', () => {
+    expect(
+      validateSkillPackageFiles([
+        { path: 'a.md', content: '😀'.repeat(32_000) },
+      ]).files,
+    ).toHaveLength(1);
+    expect(() =>
+      validateSkillPackageFiles([
+        { path: 'a.md', content: '😀'.repeat(32_001) },
+      ]),
+    ).toThrow();
+    const four = Array.from({ length: 4 }, (_, i) => ({
+      path: `${i}.md`,
+      content: 'x'.repeat(128_000),
+    }));
+    expect(validateSkillPackageFiles(four).files).toHaveLength(4);
+    expect(() =>
+      validateSkillPackageFiles([...four, { path: 'extra.md', content: 'x' }]),
+    ).toThrow();
+    const count = Array.from({ length: 128 }, (_, i) => ({
+      path: `${i}.md`,
+      content: '',
+    }));
+    expect(validateSkillPackageFiles(count).files).toHaveLength(128);
+    expect(() =>
+      validateSkillPackageFiles([...count, { path: 'extra.md', content: '' }]),
+    ).toThrow();
+    expect(
+      validateSkillPackageFiles([
+        { path: `${'x'.repeat(65_532)}.md`, content: '' },
+      ]).files,
+    ).toHaveLength(1);
+    expect(() =>
+      validateSkillPackageFiles([
+        { path: `${'x'.repeat(65_533)}.md`, content: '' },
+      ]),
+    ).toThrow();
+    expect(() =>
+      validateSkillPackageFiles([
+        { path: 'é.md', content: '' },
+        { path: 'e\u0301.md', content: '' },
+      ]),
+    ).toThrow();
+    expect(() =>
+      validateSkillPackageFiles([
+        { path: 'a.md', content: '' },
+        { path: 'A.md/b.md', content: '' },
+      ]),
+    ).toThrow();
+  });
+  it('counts ZIP directory entries toward the entry ceiling before shared file validation', () => {
+    const directories = Array.from({ length: 128 }, (_, i) => ({
+      path: `directory${i}/`,
+      content: '',
+    }));
+    expect(() =>
+      parseSkillPackageArchive(createSkillZip([...directories, skill])),
+    ).toThrow();
+  });
+  it('accepts very deep valid paths in both ZIP and direct packages without a depth policy', () => {
+    const deep = {
+      path: `${'a/'.repeat(30_000)}reference.md`,
+      content: 'Deep reference',
+    };
+    expect(validateSkillPackageFiles([deep]).files).toEqual([deep]);
+    expect(parseSkillPackageArchive(createSkillZip([deep])).files).toEqual([
+      deep,
+    ]);
+  });
+  it('rejects deep file parents and ZIP directory descendants', () => {
+    const parent = {
+      path: `${'a/'.repeat(30_000)}parent.md`,
+      content: 'Parent',
+    };
+    const child = { path: `${parent.path}/child.md`, content: 'Child' };
+    expect(() => validateSkillPackageFiles([parent, child])).toThrow();
+    expect(() =>
+      parseSkillPackageArchive(createSkillZip([parent, child])),
+    ).toThrow();
+    expect(() =>
+      parseSkillPackageArchive(
+        createSkillZip([
+          parent,
+          { path: `${parent.path}/nested/`, content: '' },
+        ]),
+      ),
+    ).toThrow();
+  });
+  it('finds descendants despite intervening lexical neighbors', () => {
+    const files = [
+      { path: 'a.md', content: '' },
+      { path: 'a.md-copy.md', content: '' },
+      { path: 'a.md/child.md', content: '' },
+    ];
+    expect(() => validateSkillPackageFiles(files)).toThrow();
+    expect(() => parseSkillPackageArchive(createSkillZip(files))).toThrow();
+    expect(validateSkillPackageFiles(files.slice(0, 2)).files).toHaveLength(2);
   });
 });

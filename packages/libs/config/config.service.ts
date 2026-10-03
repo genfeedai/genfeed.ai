@@ -32,7 +32,6 @@ import {
   replicateSchema,
   sentrySchema,
   stripeSchema,
-  trainingPricingSchema,
   webhooksSchema,
 } from '@genfeedai/config';
 import type { MediaUrlConfig } from '@libs/media/media-url.util';
@@ -174,7 +173,6 @@ const apiSchema = Joi.object({
   ...hedraSchema,
   ...newsApiSchema,
   ...fleetSchema,
-  ...trainingPricingSchema,
   ...allSocialSchema,
   ...apiSpecificSchema,
   ELEVENLABS_API_KEY: conditionalRequired(),

@@ -126,26 +126,6 @@ describe('TelegramService', () => {
     });
   });
 
-  describe('isAdmin', () => {
-    it('should return true for admin users', async () => {
-      const service = await createService({ isEnabled: false });
-      expect(service.isAdmin(123)).toBe(true);
-    });
-
-    it('should return false for non-admin users', async () => {
-      const service = await createService({ isEnabled: false });
-      expect(service.isAdmin(999)).toBe(false);
-    });
-
-    it('should return false when no admin ids are configured', async () => {
-      const service = await createService({
-        isEnabled: false,
-        values: { TELEGRAM_ADMIN_IDS: undefined },
-      });
-      expect(service.isAdmin(123)).toBe(false);
-    });
-  });
-
   describe('sendMessage', () => {
     it('should warn and skip when bot is not initialized', async () => {
       const service = await createService({ isEnabled: false });

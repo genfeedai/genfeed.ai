@@ -131,11 +131,21 @@ export function TrendingHashtags({
             <Card
               key={hashtag.id}
               variant={CardVariant.DEFAULT}
-              onClick={
-                onHashtagClick ? () => onHashtagClick(hashtag) : undefined
+              className={
+                onHashtagClick ? 'hover:shadow-border-strong' : undefined
               }
               bodyClassName="p-4"
             >
+              {onHashtagClick ? (
+                <Button
+                  ariaLabel={`#${hashtag.hashtag}`}
+                  className="absolute inset-0 z-10 rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  onClick={() => onHashtagClick(hashtag)}
+                  type="button"
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                />
+              ) : null}
               <div className="flex items-start justify-between mb-2">
                 <span
                   className="text-lg font-bold truncate"

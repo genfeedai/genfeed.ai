@@ -3,6 +3,7 @@
 import type { IPlatformStats } from '@genfeedai/contracts/interfaces';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { PlatformAnalyticsBreakdownProps } from '@genfeedai/props/analytics/analytics.props';
+import { AnalyticsMetricLabel } from '@ui/analytics/metric-definition/AnalyticsMetricInfo';
 import Card from '@ui/card/Card';
 
 export default function PlatformAnalyticsBreakdown({
@@ -46,31 +47,51 @@ export default function PlatformAnalyticsBreakdown({
               <h4 className="font-semibold capitalize mb-2">{platform}</h4>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                 <div>
-                  <span className="text-muted-foreground">Views</span>{' '}
+                  <span className="text-muted-foreground">
+                    <AnalyticsMetricLabel metric="views">
+                      Views
+                    </AnalyticsMetricLabel>
+                  </span>{' '}
                   <span className="font-medium tabular-nums">
                     {formatCompactNumber(stats.totalViews)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Likes</span>{' '}
+                  <span className="text-muted-foreground">
+                    <AnalyticsMetricLabel metric="likes">
+                      Likes
+                    </AnalyticsMetricLabel>
+                  </span>{' '}
                   <span className="font-medium tabular-nums">
                     {formatCompactNumber(stats.totalLikes)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Comments</span>{' '}
+                  <span className="text-muted-foreground">
+                    <AnalyticsMetricLabel metric="comments">
+                      Comments
+                    </AnalyticsMetricLabel>
+                  </span>{' '}
                   <span className="font-medium tabular-nums">
                     {formatCompactNumber(stats.totalComments)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Shares</span>{' '}
+                  <span className="text-muted-foreground">
+                    <AnalyticsMetricLabel metric="shares">
+                      Shares
+                    </AnalyticsMetricLabel>
+                  </span>{' '}
                   <span className="font-medium tabular-nums">
                     {formatCompactNumber(stats.totalShares)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Engagement</span>{' '}
+                  <span className="text-muted-foreground">
+                    <AnalyticsMetricLabel metric="engagementRate">
+                      Engagement
+                    </AnalyticsMetricLabel>
+                  </span>{' '}
                   <span className="font-medium tabular-nums">
                     {stats.engagementRate.toFixed(2)}%
                   </span>

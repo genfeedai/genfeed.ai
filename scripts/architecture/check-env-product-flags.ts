@@ -19,6 +19,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
+import { PLATFORM_RUNTIME_ENV_MIGRATIONS } from '../migrations/platform-runtime-config.util';
 
 /** Every place an env schema (Joi keys) is declared. */
 const DEFAULT_SCHEMA_GLOBS = [
@@ -75,7 +76,11 @@ export type EnvProductFlagOptions = {
 };
 
 export function isProductFlagKey(key: string): boolean {
-  return PRODUCT_FLAG_PATTERNS.some((pattern) => pattern.test(key));
+  return (
+    key === 'SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL' ||
+    Object.hasOwn(PLATFORM_RUNTIME_ENV_MIGRATIONS, key) ||
+    PRODUCT_FLAG_PATTERNS.some((pattern) => pattern.test(key))
+  );
 }
 
 function lineForOffset(source: string, offset: number): number {

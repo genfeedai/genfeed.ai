@@ -5,7 +5,6 @@ import type { StudioGenerateResultsProps } from '@genfeedai/props/studio/studio-
 import StudioGenerateCard from '@pages/studio/generate/components/StudioGenerateCard';
 import type { StudioGenerateJob } from '@pages/studio/generate/types';
 import { groupStudioGenerateJobsByRun } from '@pages/studio/generate/utils/studio-generate-recipe';
-import Masonry from '@ui/display/masonry/Masonry';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, type ReactNode, useMemo } from 'react';
@@ -21,12 +20,12 @@ const RESULTS_SKELETON_SLOTS = [
   'h',
 ] as const;
 
+const RESULTS_GRID_CLASS =
+  'grid w-full grid-cols-1 items-start gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4';
+
 function ResultsSkeleton(): ReactElement {
   return (
-    <div
-      className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4"
-      data-testid="studio-results-skeleton"
-    >
+    <div className={RESULTS_GRID_CLASS} data-testid="studio-results-skeleton">
       {RESULTS_SKELETON_SLOTS.map((slot) => (
         <Skeleton
           className="aspect-[4/5] w-full rounded-card"
@@ -54,13 +53,9 @@ function ResultsSheet({
   }
 
   return (
-    <Masonry
-      className="w-full"
-      columns={{ default: 1, lg: 3, md: 3, sm: 2, xl: 4 }}
-      gap={12}
-    >
+    <div className={RESULTS_GRID_CLASS} data-testid="studio-grid">
       {children}
-    </Masonry>
+    </div>
   );
 }
 

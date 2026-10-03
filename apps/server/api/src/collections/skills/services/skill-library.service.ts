@@ -10,9 +10,7 @@ import {
   readOptionalAudience,
 } from '@api/collections/skills/dto/skill-library.dto';
 import {
-  CLOSED_SKILL_SOURCE_POLICY,
   grantMatchesActor,
-  PUBLIC_FREE_SOURCE_POLICY,
   resolveSkillCapabilities,
   type SkillAudience,
   type SkillCapabilityActor,
@@ -22,7 +20,14 @@ import {
   type SkillSourcePolicy,
   skillGrantRecipientClauses,
 } from '@api/collections/skills/policy/skill-capabilities';
+import { resolveSkillSourcePolicy } from '@api/collections/skills/policy/skill-source-policy';
 import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
+import type {
+  PinnedSkillExecution,
+  SkillLibraryActor,
+  SkillRow,
+} from '@api/collections/skills/services/skill-library.types';
+import { importValidatedSkillPackage } from '@api/collections/skills/services/skill-package-import';
 import {
   type RecordedSkillExclusion,
   type RecordedSkillVersion,
@@ -32,10 +37,16 @@ import {
   applyAuthorizedVersionBody,
   loadAuthorizedSkillVersions,
 } from '@api/collections/skills/services/skill-version-loader';
+import { SkillVersionReader } from '@api/collections/skills/services/skill-version-reader';
 import { withSkillWriteSession } from '@api/collections/skills/services/skill-write-session';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type {
+  SkillVersionListQueryV1,
+  SkillVersionReadPageV1,
+  SkillVersionReadV1,
+} from '@genfeedai/contracts/interfaces/ai/skill-version-read.interface';
 import type { Prisma } from '@genfeedai/prisma';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
@@ -44,51 +55,57 @@ import {
   Injectable,
 } from '@nestjs/common';
 
-export interface SkillLibraryActor {
-  brandId?: string | null;
-  organizationId: string;
-  userId: string;
-}
-
-export interface PinnedSkillExecution {
-  contentHash: string;
-  skillId: string;
-  skillVersionId: string;
-}
+export type {
+  PinnedSkillExecution,
+  SkillLibraryActor,
+} from '@api/collections/skills/services/skill-library.types';
 
 export type {
   RecordedSkillExclusion,
   RecordedSkillVersion,
 } from '@api/collections/skills/services/skill-resolution-evidence';
-
-interface SkillRow {
-  audience: string | null;
-  brandId: string | null;
-  config: Prisma.JsonValue;
-  currentVersionId: string | null;
-  id: string;
-  isDeleted: boolean;
-  isQuarantined: boolean;
-  label: string | null;
-  organizationId: string | null;
-  ownerKind: string | null;
-  ownerUserId: string | null;
-  publishedVersionId: string | null;
-  revision: number;
-  sharedVersionId: string | null;
-}
-
-const AUTHORED_POLICY: SkillSourcePolicy = {
-  allowsDerivatives: true,
-  allowsExport: true,
-  allowsPublicPublication: true,
-  allowsRead: true,
-  allowsShare: true,
-};
+export { isVerifiedOrdinaryUploadVersionReadV1 } from '@api/collections/skills/services/skill-version-reader';
 
 @Injectable()
 export class SkillLibraryService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly versionReader: SkillVersionReader;
+
+  constructor(private readonly prisma: PrismaService) {
+    this.versionReader = new SkillVersionReader(prisma, {
+      decide: (actor, skill) => this.decide(actor, skill),
+      toDocument: (skill) => this.toDocument(skill),
+      loadAuthorizedVersions: (actor, documents, options) =>
+        this.loadAuthorizedVersions(actor, documents, options),
+    });
+  }
+
+  async listVersions(
+    actor: SkillLibraryActor,
+    skillId: string,
+    query: SkillVersionListQueryV1,
+  ): Promise<SkillVersionReadPageV1> {
+    return this.versionReader.listVersions(actor, skillId, query);
+  }
+
+  async getVersion(
+    actor: SkillLibraryActor,
+    skillId: string,
+    versionId: string,
+  ): Promise<SkillVersionReadV1> {
+    return this.versionReader.getVersion(actor, skillId, versionId);
+  }
+
+  async importValidatedPackage(
+    actor: SkillLibraryActor,
+    input: unknown,
+  ): Promise<SkillDocument> {
+    const created = await importValidatedSkillPackage(
+      this.prisma,
+      actor,
+      input,
+    );
+    return this.toDocument(created as unknown as SkillRow);
+  }
 
   async create(
     actor: SkillLibraryActor,
@@ -893,17 +910,7 @@ export class SkillLibraryService {
     subject: SkillCapabilitySubject,
     document: SkillDocument,
   ): SkillSourcePolicy {
-    if (subject.ownerKind === 'system' || document.isBuiltIn === true) {
-      return {
-        ...PUBLIC_FREE_SOURCE_POLICY,
-        allowsDerivatives: true,
-        allowsExport: subject.ownerKind === 'system',
-        allowsPublicPublication: false,
-        allowsShare: false,
-      };
-    }
-    if (document.source === 'imported') return CLOSED_SKILL_SOURCE_POLICY;
-    return AUTHORED_POLICY;
+    return resolveSkillSourcePolicy(subject, document);
   }
 
   private withCapabilities(

@@ -10,6 +10,7 @@ import { GifsService } from '@api/collections/gifs/services/gifs.service';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { VotesModule } from '@api/collections/votes/votes.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -21,6 +22,7 @@ import { Module } from '@nestjs/common';
   controllers: [GifsController],
   exports: [GifsService],
   imports: [
+    PlatformSettingsModule,
     BrandsModule,
     ByokModule,
     ConfigModule,
