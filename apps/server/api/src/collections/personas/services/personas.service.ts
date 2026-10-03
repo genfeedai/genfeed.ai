@@ -3,6 +3,11 @@ import { CreatePersonaDto } from '@api/collections/personas/dto/create-persona.d
 import { UpdatePersonaDto } from '@api/collections/personas/dto/update-persona.dto';
 import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import {
+  type CharacterAdmission,
+  type CharacterAdmissionPath,
+  noCharacterAdmission,
+} from '@api/collections/personas/utils/character-admission.util';
+import {
   brandAvailabilityWhere,
   isPersonaAvailableToBrand,
   isPersonaSharedAcrossBrands,
@@ -39,7 +44,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
 type ApiKeyRoleContext = Pick<AuthenticatedUser, 'isApiKey' | 'scopes'>;
-type PersonaClient = Pick<
+export type PersonaClient = Pick<
   PrismaService,
   '$queryRaw' | 'brand' | 'persona' | 'personaAvailabilityAudit'
 >;
@@ -374,6 +379,7 @@ export class PersonasService extends BaseService<
     brandId?: string | null;
     handles: readonly string[];
     organizationId: string;
+    path?: CharacterAdmissionPath;
   }): Promise<CharacterHandleResolution> {
     const requested = params.handles
       .map((handle) => handle.trim())
@@ -393,19 +399,20 @@ export class PersonasService extends BaseService<
       uniqueNormalized.push(normalized);
     }
 
-    const rows = await this.prisma.persona.findMany({
-      select: {
-        avatarIngredientId: true,
-        handle: true,
-      },
-      where: scopedWhere(params.organizationId, {
-        handle: { in: uniqueNormalized },
-        status: PersonaStatus.ACTIVE,
-        ...(params.brandId
-          ? { AND: [brandAvailabilityWhere(params.brandId)] }
-          : {}),
-      }),
-    });
+    // A handle only resolves relative to a brand; with none, nothing does.
+    const rows = params.brandId
+      ? await this.prisma.persona.findMany({
+          select: {
+            avatarIngredientId: true,
+            handle: true,
+          },
+          where: scopedWhere(params.organizationId, {
+            handle: { in: uniqueNormalized },
+            status: PersonaStatus.ACTIVE,
+            AND: [brandAvailabilityWhere(params.brandId)],
+          }),
+        })
+      : [];
 
     const byHandle = new Map<string, string | null>();
     for (const row of rows) {
@@ -436,22 +443,37 @@ export class PersonasService extends BaseService<
       resolvedIngredientIds.push(ingredientId);
     }
 
+    if (unresolvedHandles.length > 0) {
+      this.logger.warn('Character handle refused', {
+        brandId: params.brandId ?? null,
+        handles: unresolvedHandles,
+        organizationId: params.organizationId,
+        path: params.path ?? 'agent-handles',
+      });
+    }
     return { resolvedIngredientIds, unresolvedHandles };
   }
 
   /**
-   * Generation references that are a character's reference image. Rejects one
-   * whose character the active brand can no longer use (revocation applies on
-   * the next request), and returns the avatar ids the brand may use across
-   * brands plus the character to link the output to (FR10).
+   * The one character admission check every generation path runs. `assetIds`
+   * are the library assets a request feeds into a generation: reference
+   * images, frames and source media. An id is a character input when it is a
+   * character's reference image, or an output already linked to a character.
+   * Rejects the request (not-found, before any output or charge) when the
+   * character is not available to the active brand, so revoking availability
+   * stops new use on the next request. Returns the avatar ids the brand may
+   * use across brands plus the character to link the output to. One indexed
+   * query per request; refusals are logged with path, brand and character.
    */
   async resolveCharacterReferences(params: {
-    brandId: string;
+    brandId: string | null | undefined;
     ingredientIds: readonly string[];
     organizationId: string;
-  }): Promise<{ availableAvatarIds: Set<string>; personaId: string | null }> {
-    if (params.ingredientIds.length === 0) {
-      return { availableAvatarIds: new Set(), personaId: null };
+    path: CharacterAdmissionPath;
+  }): Promise<CharacterAdmission> {
+    const ids = [...new Set(params.ingredientIds)];
+    if (ids.length === 0) {
+      return noCharacterAdmission();
     }
     const rows = await this.prisma.persona.findMany({
       select: {
@@ -460,28 +482,57 @@ export class PersonasService extends BaseService<
         avatarIngredientId: true,
         brandId: true,
         id: true,
+        ingredients: {
+          select: { id: true },
+          where: { id: { in: ids } },
+        },
       },
       where: scopedWhere(params.organizationId, {
-        avatarIngredientId: { in: [...params.ingredientIds] },
+        OR: [
+          { avatarIngredientId: { in: ids } },
+          { ingredients: { some: { id: { in: ids } } } },
+        ],
       }),
     });
     const availableAvatarIds = new Set<string>();
+    const personaIdByAssetId = new Map<string, string>();
     let personaId: string | null = null;
-    for (const id of params.ingredientIds) {
-      const owners = rows.filter((row) => row.avatarIngredientId === id);
-      if (owners.length === 0) {
-        continue;
-      }
-      const usable = owners.find((row) =>
-        isPersonaAvailableToBrand(row, params.brandId),
+    for (const id of ids) {
+      const avatarOwners = rows.filter((row) => row.avatarIngredientId === id);
+      // An output linked to a character with no owning brand was never
+      // brand-scoped, so only avatars of such characters are refused.
+      const outputOwners = rows.filter(
+        (row) =>
+          row.brandId !== null &&
+          row.ingredients.some((ingredient) => ingredient.id === id),
       );
-      if (!usable) {
-        throw new NotFoundException('Reference image');
+      for (const owners of [avatarOwners, outputOwners]) {
+        if (owners.length === 0) {
+          continue;
+        }
+        const usable = owners.find((row) =>
+          isPersonaAvailableToBrand(row, params.brandId),
+        );
+        if (!usable) {
+          this.logger.warn('Character reference refused', {
+            assetId: id,
+            brandId: params.brandId ?? null,
+            organizationId: params.organizationId,
+            path: params.path,
+            personaIds: owners.map((row) => row.id),
+          });
+          throw new NotFoundException('Reference image');
+        }
+        if (owners === avatarOwners) {
+          availableAvatarIds.add(id);
+        }
+        personaId ??= usable.id;
+        if (!personaIdByAssetId.has(id)) {
+          personaIdByAssetId.set(id, usable.id);
+        }
       }
-      availableAvatarIds.add(id);
-      personaId ??= usable.id;
     }
-    return { availableAvatarIds, personaId };
+    return { availableAvatarIds, personaId, personaIdByAssetId };
   }
 
   async createFromApprovedSheet(params: {
@@ -641,7 +692,7 @@ export class PersonasService extends BaseService<
    * sharing, create or rename requests cannot both pass validation against
    * the old state.
    */
-  private withHandleLock<T>(
+  withHandleLock<T>(
     organizationId: string,
     work: (tx: PersonaClient) => Promise<T>,
   ): Promise<T> {
@@ -658,7 +709,7 @@ export class PersonasService extends BaseService<
    * to, any brand the character will be available to, naming the handle and
    * the brand.
    */
-  private async assertNoHandleCollision(params: {
+  async assertNoHandleCollision(params: {
     availability: PersonaAvailabilityFields;
     client?: PersonaClient;
     excludePersonaId?: string;

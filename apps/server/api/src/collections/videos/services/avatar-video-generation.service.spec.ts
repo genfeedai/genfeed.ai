@@ -4,8 +4,10 @@ import { AvatarVideoBillingService } from '@api/collections/videos/services/avat
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { AvatarVideoLifecycleService } from '@api/collections/videos/services/avatar-video-lifecycle.service';
 import { AvatarVideoReferenceService } from '@api/collections/videos/services/avatar-video-reference.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { ByokProvider, VoiceProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -150,6 +152,7 @@ describe('AvatarVideoGenerationService', () => {
       } as never,
     );
     const mediaIssuer = { issueServerPublish: vi.fn() };
+    const personas = personasServiceStub();
     const service = new AvatarVideoGenerationService(
       brandsService as never,
       byokService as never,
@@ -176,10 +179,12 @@ describe('AvatarVideoGenerationService', () => {
         mediaIssuer as never,
         byokService as never,
         heygenService as never,
+        personas,
       ),
     );
 
     return {
+      personas,
       configService,
       mediaIssuer,
       brandsService,
@@ -344,6 +349,73 @@ describe('AvatarVideoGenerationService', () => {
       );
     },
   );
+
+  describe('character admission (#6040)', () => {
+    it('refuses a photo that is a character the brand lost before funding or any output', async () => {
+      const {
+        brandsService,
+        creditsUtilsService,
+        personas,
+        service,
+        sharedService,
+      } = createService();
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        id: 'brand-1',
+      });
+      vi.mocked(personas.resolveCharacterReferences).mockRejectedValueOnce(
+        new NotFoundException('Reference image'),
+      );
+
+      await expect(
+        service.generateAvatarVideo(
+          {
+            heygenVoiceId: 'voice-1',
+            photoIngredientId: 'avatar-1',
+            text: 'Speech',
+          },
+          context,
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(personas.resolveCharacterReferences).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: 'brand-1',
+          ingredientIds: ['avatar-1'],
+          path: 'avatar-video',
+        }),
+      );
+      expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+      expect(sharedService.createMediaDocumentsInternal).not.toHaveBeenCalled();
+    });
+
+    it('links the admitted character to the avatar output', async () => {
+      const { brandsService, personas, service, sharedService } =
+        createService();
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        id: 'brand-1',
+      });
+      vi.mocked(personas.resolveCharacterReferences).mockResolvedValueOnce({
+        availableAvatarIds: new Set(['avatar-1']),
+        personaId: 'persona-1',
+        personaIdByAssetId: new Map(),
+      });
+
+      await service.generateAvatarVideo(
+        {
+          heygenVoiceId: 'voice-1',
+          photoIngredientId: 'avatar-1',
+          text: 'Speech',
+        },
+        context,
+      );
+
+      expect(sharedService.createMediaDocumentsInternal).toHaveBeenCalledWith(
+        expect.objectContaining({ personaId: 'persona-1' }),
+      );
+    });
+  });
 
   it('holds, binds and never deducts for an unguarded platform caller', async () => {
     const { service, brandsService, creditsUtilsService, sharedService } =

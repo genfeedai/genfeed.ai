@@ -1,5 +1,8 @@
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: {
@@ -101,7 +104,10 @@ describe('VideosLipSyncController', () => {
     publishVideoProgress: ReturnType<typeof vi.fn>;
   };
 
+  let personas: PersonasService;
+
   beforeEach(async () => {
+    personas = personasServiceStub();
     byokService = { resolveApiKey: vi.fn().mockResolvedValue(null) };
     failedGenerationService = {
       handleFailedVideoGeneration: vi.fn().mockResolvedValue(undefined),
@@ -166,6 +172,7 @@ describe('VideosLipSyncController', () => {
           useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
         },
         { provide: MetadataService, useValue: metadataService },
+        { provide: PersonasService, useValue: personas },
         { provide: SharedService, useValue: sharedService },
         {
           provide: VideosService,
@@ -207,6 +214,36 @@ describe('VideosLipSyncController', () => {
     expect(config).toBeDefined();
     expect(config.amount).toBe(1);
     expect(config.modelKey).toBeUndefined();
+  });
+
+  describe('character admission (#6040)', () => {
+    it('refuses a character the brand lost before any output exists', async () => {
+      vi.mocked(personas.resolveCharacterReferences).mockRejectedValueOnce(
+        new NotFoundException('Reference image'),
+      );
+
+      await expect(
+        controller.createLipSyncVideo(mockReq, mockUser, mockDto),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+      expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
+    });
+
+    it('links the admitted character to the output', async () => {
+      vi.mocked(personas.resolveCharacterReferences).mockResolvedValueOnce({
+        availableAvatarIds: new Set([mockDto.parent]),
+        personaId: 'persona-1',
+        personaIdByAssetId: new Map(),
+      });
+
+      await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        mockUser,
+        expect.objectContaining({ personaId: 'persona-1' }),
+      );
+    });
   });
 
   describe('createLipSyncVideo', () => {

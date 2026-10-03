@@ -17,6 +17,7 @@ import { ENGINE_VERIFIED_TEMPLATE_IDS } from '@api/collections/workflows/templat
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { isWorkflowInputNodeType } from '@api/collections/workflows/workflow-node-predicates';
 import { isKnowledgeWorkflowAction } from '@api/services/agent-orchestrator/tools/knowledge-workflow-execution.util';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import {
   GENFEED_ACTION_NODE_TYPE,
   getActionDefinition,
@@ -170,6 +171,7 @@ function createProductionEngine(): WorkflowEngine {
       new WorkflowMediaProviderPlanService(
         helper,
         presentDependency(),
+        personasServiceStub(),
         presentDependency(),
         presentDependency(),
       ),

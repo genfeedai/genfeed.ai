@@ -198,6 +198,7 @@ type HandlerArgs = ConstructorParameters<typeof AgentWorkspaceToolHandler>;
 
 function buildHandler(overrides: {
   brands?: unknown;
+  characterFilter?: unknown;
   credits?: unknown;
   ingredients?: unknown;
   members?: unknown;
@@ -223,6 +224,7 @@ function buildHandler(overrides: {
     {} as HandlerArgs[5],
     (overrides.transactions ?? {}) as HandlerArgs[6],
     (overrides.ingredients ?? {}) as HandlerArgs[7],
+    overrides.characterFilter as HandlerArgs[8],
   );
 }
 
@@ -273,6 +275,69 @@ describe('AgentWorkspaceToolHandler.listAssets characters (#6009)', () => {
     );
     expect(result.success).toBe(false);
     expect(result.error).toContain('origin');
+  });
+});
+
+describe('AgentWorkspaceToolHandler.listAssets characterIds (#6039 MCP, #6040)', () => {
+  const personaId = 'ckabcdefghijklmnopqrstuvw';
+  const fragment = { personaId: { in: [personaId] } };
+
+  it('forwards the character filter built by the Library filter service', async () => {
+    const ingredients = { listLibraryAssets: vi.fn().mockResolvedValue([]) };
+    const characterFilter = {
+      buildFilter: vi.fn().mockResolvedValue(fragment),
+    };
+
+    const result = await buildHandler({
+      characterFilter,
+      ingredients,
+    }).listAssets({ characterIds: [personaId], type: 'image' }, baseCtx);
+
+    expect(result.success).toBe(true);
+    expect(characterFilter.buildFilter).toHaveBeenCalledWith({
+      brandId: 'brand-b',
+      characterIds: [personaId],
+      organizationId: 'org-1',
+    });
+    expect(ingredients.listLibraryAssets).toHaveBeenCalledWith(
+      expect.objectContaining({ characterFilter: fragment }),
+    );
+  });
+
+  it('matches nothing when the filter service is unavailable', async () => {
+    const ingredients = { listLibraryAssets: vi.fn().mockResolvedValue([]) };
+
+    await buildHandler({ ingredients }).listAssets(
+      { characterIds: [personaId], type: 'video' },
+      baseCtx,
+    );
+
+    const { characterFilter } =
+      ingredients.listLibraryAssets.mock.calls[0]?.[0] ?? {};
+    expect(JSON.stringify(characterFilter)).not.toContain(personaId);
+    expect(characterFilter).not.toEqual({});
+  });
+
+  it('rejects more than 25 ids, non-ids, and use with type character', async () => {
+    const handler = buildHandler({ ingredients: {} });
+    for (const characterIds of [
+      Array.from({ length: 26 }, () => personaId),
+      ['not an id'],
+      'ckabc',
+    ]) {
+      const result = await handler.listAssets(
+        { characterIds, type: 'image' },
+        baseCtx,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('characterIds');
+    }
+    const misuse = await handler.listAssets(
+      { characterIds: [personaId], type: 'character' },
+      baseCtx,
+    );
+    expect(misuse.success).toBe(false);
+    expect(misuse.error).toContain('characterIds');
   });
 });
 

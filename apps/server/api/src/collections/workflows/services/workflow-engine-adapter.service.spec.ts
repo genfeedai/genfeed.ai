@@ -1,3 +1,4 @@
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 // @ts-nocheck
 
 import { WorkflowAutomationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-automation-executor-registrar.service';
@@ -66,6 +67,7 @@ function createWorkflowEngineAdapterForTest(
     new WorkflowMediaProviderPlanService(
       helper,
       dependency(1),
+      personasServiceStub(),
       dependency(20),
       dependency(6),
     ),

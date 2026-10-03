@@ -36,6 +36,7 @@ import { CrunTaskFinalizationService } from '@api/services/integrations/crun/cru
 import { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/media-vendor-cost-ledger.service';
 import { CrunPromptBuilder } from '@api/services/prompt-builder/builders/crun-prompt.builder';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import {
   CreditTransactionCategory,
   IngredientStatus,
@@ -579,6 +580,8 @@ describe('Crun image quote through durable owned output and accounting', () => {
         } as never,
         tasks,
         config as never,
+
+        personasServiceStub(),
       );
       const preview = new CrunPreviewQuoteService(
         input,

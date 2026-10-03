@@ -49,6 +49,8 @@ export interface ImageGenerationPersistenceParams {
   modelInputSchema?: Record<string, unknown>;
   promptBuilderBrand: ImageGenerationContext['promptBuilderBrand'];
   promptOriginalText: string;
+  /** Character admitted for this request; the output links to it. */
+  personaId?: string | null;
   referenceIds: string[];
   referenceImageUrls: string[];
   placeholderScope?: GenerationPlaceholderScope;
@@ -67,10 +69,6 @@ export interface ImageGenerationPersistenceDependencies {
   promptBuilderService: PromptBuilderService;
   sharedService: SharedService;
   imagesService: ImagesService;
-  /** Character whose reference image drives this generation (FR10), if any. */
-  resolveCharacterPersonaId?: (
-    referenceIds: string[],
-  ) => Promise<string | null>;
 }
 export async function resolveGenerationPrompt(
   promptsService: PromptsService,
@@ -266,9 +264,7 @@ export async function persistImageDocuments(
       width,
     });
 
-  const personaId = editing
-    ? null
-    : ((await dependencies.resolveCharacterPersonaId?.(referenceIds)) ?? null);
+  const personaId = params.personaId ?? null;
   await dependencies.imagesService.patch(ingredientData.id, {
     promptId: promptData.id,
     ...(personaId ? { personaId } : {}),

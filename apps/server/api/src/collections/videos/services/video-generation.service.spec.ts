@@ -12,8 +12,10 @@ import { VideoGenerationExecutionService } from '@api/collections/videos/service
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { assertRedactedVideoGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import {
   IngredientCategory,
   IngredientOrigin,
@@ -254,6 +256,7 @@ describe('VideoGenerationService', () => {
         ),
     };
 
+    const personas = personasServiceStub();
     const preparationService = new VideoGenerationPreparationService(
       assetsService as never,
       brandsService as never,
@@ -263,6 +266,7 @@ describe('VideoGenerationService', () => {
       loggerService,
       modelRegistrationService as never,
       organizationSettingsService as never,
+      personas,
       promptBuilderService as never,
       promptsService as never,
       routerService as never,
@@ -321,6 +325,7 @@ describe('VideoGenerationService', () => {
     );
 
     return {
+      personas,
       crun,
       assetsService,
       brandsService,
@@ -746,6 +751,54 @@ describe('VideoGenerationService', () => {
   });
 
   // Finding 3 — persist the prompt against the resolved brand.
+  describe('character admission (#6040)', () => {
+    it('refuses a character the brand lost before any output, prompt or dispatch exists', async () => {
+      const { personas, promptsService, sharedService, service } =
+        createService();
+      vi.mocked(personas.resolveCharacterReferences).mockRejectedValueOnce(
+        new NotFoundException('Reference image'),
+      );
+
+      await expect(
+        service.generateVideo(
+          buildUser(),
+          baseDto({ endFrame: 'frame-2', references: ['avatar-1'] }),
+          buildRequest(),
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(personas.resolveCharacterReferences).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: RESOLVED_BRAND,
+          ingredientIds: ['avatar-1', 'frame-2'],
+          path: 'video',
+        }),
+      );
+      expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+      expect(promptsService.create).not.toHaveBeenCalled();
+    });
+
+    it('records the admitted character on the output', async () => {
+      const { personas, sharedService, service } = createService();
+      vi.mocked(personas.resolveCharacterReferences).mockResolvedValueOnce({
+        availableAvatarIds: new Set(['avatar-1']),
+        personaId: 'persona-1',
+        personaIdByAssetId: new Map(),
+      });
+
+      await service.generateVideo(
+        buildUser(),
+        baseDto({ references: ['avatar-1'] }),
+        buildRequest(),
+      );
+
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ personaId: 'persona-1' }),
+      );
+    });
+  });
+
   it('persists the prompt against the resolved brand id (finding 3)', async () => {
     const { service, promptsService } = createService();
 

@@ -3,6 +3,7 @@ import { PersonasController } from '@api/collections/personas/controllers/person
 import { PersonasContentController } from '@api/collections/personas/controllers/personas-content.controller';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
 import { CharacterImageInspectionService } from '@api/collections/personas/services/character-image-inspection.service';
+import { CharacterOwnershipService } from '@api/collections/personas/services/character-ownership.service';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { PersonaContentModule } from '@api/services/persona-content/persona-content.module';
@@ -21,6 +22,6 @@ import { Module } from '@nestjs/common';
     PostsModule,
     OpenRouterModule,
   ],
-  providers: [CharacterImageInspectionService],
+  providers: [CharacterImageInspectionService, CharacterOwnershipService],
 })
 export class PersonasModule {}

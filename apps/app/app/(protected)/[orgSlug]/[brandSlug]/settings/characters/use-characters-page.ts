@@ -93,6 +93,7 @@ export function useCharactersPage(): CharactersPageState {
   const [availabilityDraft, setAvailabilityDraft] =
     useState<CharacterAvailabilityDraft>(OWNING_BRAND_ONLY);
   const [isSavingAvailability, setIsSavingAvailability] = useState(false);
+  const [isMovingOwnership, setIsMovingOwnership] = useState(false);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
   const cleanupSocket = useCallback(() => {
@@ -368,6 +369,36 @@ export function useCharactersPage(): CharactersPageState {
     translate,
   ]);
 
+  const moveOwnership = useCallback(
+    async (targetBrandId: string) => {
+      if (!availabilityCharacter || isMovingOwnership) {
+        return;
+      }
+      setIsMovingOwnership(true);
+      try {
+        const service = await getPersonasService();
+        await service.moveOwnership(availabilityCharacter.id, targetBrandId);
+        window.dispatchEvent(new Event(CHARACTERS_CHANGED_EVENT));
+        notificationsService.success(translate('ownership.success'));
+        setAvailabilityCharacter(null);
+        await refreshCharacters(new AbortController().signal);
+      } catch (error: unknown) {
+        logger.error('Failed to move character ownership', error);
+        notificationsService.error(translate('ownership.error'));
+      } finally {
+        setIsMovingOwnership(false);
+      }
+    },
+    [
+      availabilityCharacter,
+      getPersonasService,
+      isMovingOwnership,
+      notificationsService,
+      refreshCharacters,
+      translate,
+    ],
+  );
+
   const openCreateDialog = useCallback(() => {
     setIsCreateDialogOpen(true);
   }, []);
@@ -399,7 +430,9 @@ export function useCharactersPage(): CharactersPageState {
       character: availabilityCharacter,
       close: closeAvailability,
       draft: availabilityDraft,
+      isMoving: isMovingOwnership,
       isSaving: isSavingAvailability,
+      moveOwnership,
       open: openAvailability,
       save: saveAvailability,
       setDraft: setAvailabilityDraft,

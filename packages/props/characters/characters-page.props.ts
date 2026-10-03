@@ -23,11 +23,20 @@ export interface CharacterAvailabilityFieldsProps {
   owningBrandId: string;
 }
 
+export interface CharacterOwnershipFieldsProps {
+  brands: CharacterBrandOption[];
+  character: BrandCharacterListItem;
+  isMoving: boolean;
+  onMove: (brandId: string) => Promise<void>;
+}
+
 export interface CharacterAvailabilityControls {
   character: BrandCharacterListItem | null;
   close: () => void;
   draft: CharacterAvailabilityDraft;
+  isMoving: boolean;
   isSaving: boolean;
+  moveOwnership: (brandId: string) => Promise<void>;
   open: (character: BrandCharacterListItem) => void;
   save: () => Promise<void>;
   setDraft: (draft: CharacterAvailabilityDraft) => void;

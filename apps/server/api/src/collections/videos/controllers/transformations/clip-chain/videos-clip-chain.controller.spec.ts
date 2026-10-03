@@ -1,10 +1,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { PersonasService } from '@api/collections/personas/services/personas.service';
+import { noCharacterAdmission } from '@api/collections/personas/utils/character-admission.util';
 import { VideosClipChainController } from '@api/collections/videos/controllers/transformations/clip-chain/videos-clip-chain.controller';
 import type { WorkflowVisualNodeDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import type { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   CREDITS_DEFER_MODEL_RESOLUTION_KEY,
   CREDITS_KEY,
@@ -74,6 +76,9 @@ function createHarness() {
       resolvedIngredientIds: [],
       unresolvedHandles: [],
     }),
+    resolveCharacterReferences: vi
+      .fn()
+      .mockImplementation(async () => noCharacterAdmission()),
   };
   const videoGenerationCreditsService = {
     ensureClipChainCredits: vi.fn().mockResolvedValue(undefined),
@@ -315,6 +320,7 @@ describe('VideosClipChainController', () => {
       brandId: 'brand-1',
       handles: ['anna'],
       organizationId: 'org-1',
+      path: 'video-clip-chain',
     });
     const workflowDto = workflowsService.createWorkflow.mock.calls[0][2];
     expect(workflowDto.metadata.identity.characterIngredientIds).toEqual([
@@ -341,8 +347,46 @@ describe('VideosClipChainController', () => {
         characterHandles: ['ghost'],
         model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
       }),
-    ).rejects.toThrow('Unresolved character handles: ghost');
+    ).rejects.toBeInstanceOf(NotFoundException);
     expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
+  });
+
+  it('refuses an explicit character still the brand can no longer use (#6040)', async () => {
+    const { controller, personasService, workflowsService } = createHarness();
+    personasService.resolveCharacterReferences.mockRejectedValue(
+      new NotFoundException('Reference image'),
+    );
+
+    await expect(
+      controller.createClipChain({} as Request, user, {
+        characterIngredientIds: ['character-1'],
+        model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(personasService.resolveCharacterReferences).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        path: 'video-clip-chain',
+      }),
+    );
+    expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
+  });
+
+  it('accepts a shared character still that belongs to its owning brand', async () => {
+    const { controller, personasService, workflowsService } = createHarness();
+    personasService.resolveCharacterReferences.mockResolvedValue({
+      availableAvatarIds: new Set(['stranger-1']),
+      personaId: 'persona-1',
+      personaIdByAssetId: new Map(),
+    });
+
+    await controller.createClipChain({} as Request, user, {
+      characterIngredientIds: ['stranger-1'],
+      model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      segmentPrompts: ['Beat one', 'Beat two'],
+    });
+
+    expect(workflowsService.createWorkflow).toHaveBeenCalled();
   });
 
   it('merges a handle and the same explicit ingredient id into one still', async () => {

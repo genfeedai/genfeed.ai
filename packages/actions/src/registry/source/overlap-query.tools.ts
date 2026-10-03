@@ -129,6 +129,13 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
             'Brand to list. Defaults to the thread brand, then your current brand.',
           type: 'string',
         },
+        characterIds: {
+          description:
+            'Only assets made with these characters (at most 25 ids from type character). Characters the brand cannot use match nothing. Not used with type character.',
+          items: { type: 'string' },
+          maxItems: 25,
+          type: 'array',
+        },
         limit: {
           default: 10,
           description:

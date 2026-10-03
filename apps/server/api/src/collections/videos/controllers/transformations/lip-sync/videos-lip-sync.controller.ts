@@ -3,6 +3,7 @@ import type { IngredientDocument } from '@api/collections/ingredients/schemas/in
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { CreateLipSyncDto } from '@api/collections/videos/dto/create-lip-sync.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
@@ -63,6 +64,7 @@ export class VideosLipSyncController {
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
+    private readonly personasService: PersonasService,
     private readonly sharedService: SharedService,
     private readonly videosService: VideosService,
     private readonly websocketService: NotificationsPublisherService,
@@ -116,6 +118,15 @@ export class VideosLipSyncController {
         createLipSyncDto.parent,
         user.organizationId,
       );
+      // A character the active brand can no longer use is refused before any
+      // output exists (#6040).
+      const { personaId } =
+        await this.personasService.resolveCharacterReferences({
+          brandId: user.brandId ?? imageIngredient.brandId,
+          ingredientIds: [createLipSyncDto.parent],
+          organizationId: user.organizationId,
+          path: 'lip-sync',
+        });
       const audioIngredient = await this.resolveAudioIngredient(
         createLipSyncDto.voice,
         user.organizationId,
@@ -129,6 +140,7 @@ export class VideosLipSyncController {
           model: MODEL_KEYS.HEYGEN_AVATAR,
           organizationId: user.organizationId,
           parentId: createLipSyncDto.parent,
+          personaId,
           // Store references for traceability
           sourceIds: [createLipSyncDto.parent, createLipSyncDto.voice],
           status: IngredientStatus.PROCESSING,

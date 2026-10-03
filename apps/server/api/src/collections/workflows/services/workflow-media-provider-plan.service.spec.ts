@@ -1,9 +1,11 @@
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { runImageGenerationBrief } from '@api/services/generation-brief';
 import type { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
@@ -62,9 +64,11 @@ function fixture() {
     .mockResolvedValue('https://storage.test/source.mp4?signed=1');
   const config = { isAuthorizedMediaDeliveryEnabled: false };
   const mediaIssuer = { issueServerPublish: vi.fn() };
+  const personas = personasServiceStub();
   const service = new WorkflowMediaProviderPlanService(
     helper,
     { warn: vi.fn() } as unknown as LoggerService,
+    personas,
     { buildPrompt } as unknown as PromptBuilderService,
     { getPresignedDownloadUrl } as unknown as FilesClientService,
     config as unknown as ConfigService,
@@ -73,6 +77,7 @@ function fixture() {
   return {
     config,
     mediaIssuer,
+    personas,
     service,
     buildPrompt,
     getPresignedDownloadUrl,
@@ -91,6 +96,83 @@ function node(
     parameters: { brandId: 'brand-1', ...parameters },
   });
 }
+
+describe('WorkflowMediaProviderPlanService character admission (#6040)', () => {
+  const imageNode = node('imageGen', {
+    model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+    prompt: 'portrait',
+  });
+
+  it('refuses an image node whose character the brand lost, before any output exists', async () => {
+    const f = fixture();
+    vi.mocked(f.personas.resolveCharacterReferences).mockRejectedValueOnce(
+      new NotFoundException('Reference image'),
+    );
+
+    await expect(
+      f.service.prepareNode(
+        imageNode,
+        new Map([['image', 'https://api.test/images/avatar-1']]),
+        context,
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(f.personas.resolveCharacterReferences).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      ingredientIds: ['avatar-1'],
+      organizationId: 'org-1',
+      path: 'workflow',
+    });
+    for (const effect of Object.values(f.sideEffects))
+      expect(effect).not.toHaveBeenCalled();
+  });
+
+  it('links the admitted character to the image output', async () => {
+    const f = fixture();
+    vi.mocked(f.personas.resolveCharacterReferences).mockResolvedValueOnce({
+      availableAvatarIds: new Set(['avatar-1']),
+      personaId: 'persona-1',
+      personaIdByAssetId: new Map(),
+    });
+
+    const prepared = await f.service.prepareNode(
+      imageNode,
+      new Map([['image', 'https://api.test/images/avatar-1']]),
+      context,
+    );
+
+    expect(prepared.output.personaId).toBe('persona-1');
+  });
+
+  it('refuses a video node whose identity reference or source video is a lost character', async () => {
+    const f = fixture();
+    vi.mocked(f.personas.resolveCharacterReferences).mockRejectedValueOnce(
+      new NotFoundException('Reference image'),
+    );
+
+    await expect(
+      f.service.prepareVideo({
+        context,
+        model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+        node: node('videoGen', {}),
+        params: {
+          brandId: 'brand-1',
+          identityReferences: [{ assetId: 'avatar-1', role: 'character' }],
+          parentIngredientId: 'video-1',
+          prompt: 'extend',
+        },
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(f.personas.resolveCharacterReferences).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ingredientIds: expect.arrayContaining(['avatar-1', 'video-1']),
+        path: 'workflow',
+      }),
+    );
+    expect(f.requireMediaAsset).not.toHaveBeenCalled();
+  });
+});
 
 describe('WorkflowMediaProviderPlanService', () => {
   it('prepares the actual image envelope with upstream precedence and final reference/strength patches without creating output or dispatch', async () => {
@@ -288,6 +370,7 @@ describe('WorkflowMediaProviderPlanService', () => {
     const absent = new WorkflowMediaProviderPlanService(
       {} as WorkflowEngineExecutorHelperService,
       {} as LoggerService,
+      personasServiceStub(),
     );
     expect(absent.canPrepareImage).toBe(false);
     await expect(

@@ -3,6 +3,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import {
@@ -104,6 +105,7 @@ type InterpolationContext = {
   height: number;
   model: NonNullable<Awaited<ReturnType<ModelsService['findOne']>>>;
   pairs: InterpolationPairDto[];
+  personaIdByAssetId: ReadonlyMap<string, string>;
   user: User;
   width: number;
 };
@@ -121,6 +123,7 @@ export class BatchInterpolationController {
     private readonly loggerService: LoggerService,
     private readonly billing: BatchInterpolationBillingService,
     private readonly modelsService: ModelsService,
+    private readonly personasService: PersonasService,
     private readonly promptsService: PromptsService,
     private readonly promptBuilderService: PromptBuilderService,
     private readonly sharedService: SharedService,
@@ -196,27 +199,20 @@ export class BatchInterpolationController {
       );
     }
 
-    // Build pairs array - add loop pair if isLoopMode is enabled
-    const pairs: InterpolationPairDto[] = [...dto.pairs];
+    const pairs = this.buildPairs(dto);
 
-    if (dto.isLoopMode && pairs.length >= 2) {
-      // Get the last frame's endImageId and first frame's startImageId
-      const lastPair = pairs[pairs.length - 1];
-      const firstPair = pairs[0];
-
-      // Add loop-back pair: last frame's end to first frame's start.
-      pairs.push({
-        endImageId: firstPair.startImageId,
-        prompt: dto.cameraPrompt || 'smooth transition back to start',
-        startImageId: lastPair.endImageId,
+    // A character the brand can no longer use is refused before credits are
+    // touched or any output exists (#6040).
+    const { personaIdByAssetId } =
+      await this.personasService.resolveCharacterReferences({
+        brandId: brand.id,
+        ingredientIds: pairs.flatMap((pair) => [
+          pair.startImageId,
+          pair.endImageId,
+        ]),
+        organizationId: user.organizationId,
+        path: 'video-interpolation',
       });
-
-      this.loggerService.log('Added loop-back pair for seamless loop', {
-        loopPairEnd: firstPair.startImageId,
-        loopPairStart: lastPair.endImageId,
-        totalPairs: pairs.length,
-      });
-    }
 
     const { height, width } = this.resolveDimensions(
       dto.format || IngredientFormat.LANDSCAPE,
@@ -235,6 +231,7 @@ export class BatchInterpolationController {
       height,
       model,
       pairs,
+      personaIdByAssetId,
       user,
       width,
     };
@@ -276,6 +273,29 @@ export class BatchInterpolationController {
     };
 
     return serializeSingle(req, BatchInterpolationSerializer, result);
+  }
+
+  private buildPairs(dto: BatchInterpolationDto): InterpolationPairDto[] {
+    const pairs: InterpolationPairDto[] = [...dto.pairs];
+
+    if (dto.isLoopMode && pairs.length >= 2) {
+      const lastPair = pairs[pairs.length - 1];
+      const firstPair = pairs[0];
+
+      pairs.push({
+        endImageId: firstPair.startImageId,
+        prompt: dto.cameraPrompt || 'smooth transition back to start',
+        startImageId: lastPair.endImageId,
+      });
+
+      this.loggerService.log('Added loop-back pair for seamless loop', {
+        loopPairEnd: firstPair.startImageId,
+        loopPairStart: lastPair.endImageId,
+        totalPairs: pairs.length,
+      });
+    }
+
+    return pairs;
   }
 
   private resolveDuration(duration?: number): number {
@@ -374,6 +394,9 @@ export class BatchInterpolationController {
             : {}),
           model: context.dto.modelKey,
           organizationId: context.brand.organizationId,
+          personaId:
+            context.personaIdByAssetId.get(pair.startImageId) ??
+            context.personaIdByAssetId.get(pair.endImageId),
           promptId: promptData.id,
           promptTemplate: builtPrompt.templateUsed,
           // Frames that are Library assets are references: record them so the

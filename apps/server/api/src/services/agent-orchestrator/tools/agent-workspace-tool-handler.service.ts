@@ -3,10 +3,15 @@ import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-ge
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import {
+  type IngredientCharacterFilterService,
+  resolveCharacterFilter,
+} from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { resolvePublishValidationMedia } from '@api/services/agent-orchestrator/tools/agent-publish-target.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
@@ -26,7 +31,7 @@ import {
   serializeAgentBrands,
 } from '@genfeedai/serializers';
 import { readIngredientMediaUrlWithFallback } from '@libs/media/media-url.util';
-import { HttpException, Inject, Injectable } from '@nestjs/common';
+import { HttpException, Inject, Injectable, Optional } from '@nestjs/common';
 
 type AgentBrandsServiceLike = {
   findAll: (
@@ -58,6 +63,23 @@ function isMemberRole(value: string): value is MemberRole {
  * Workspace read tools: credits, brands, posts list, studio handoff.
  * Extracted from AgentToolExecutorService per #519.
  */
+const MAX_CHARACTER_IDS = 25;
+
+/** Character ids to filter by, or an error message for invalid input. */
+function readCharacterIds(value: unknown): string[] | string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (
+    !Array.isArray(value) ||
+    value.length > MAX_CHARACTER_IDS ||
+    value.some((id) => typeof id !== 'string' || !isEntityId(id))
+  ) {
+    return `characterIds must be at most ${MAX_CHARACTER_IDS} character ids.`;
+  }
+  return value;
+}
+
 @Injectable()
 export class AgentWorkspaceToolHandler {
   constructor(
@@ -71,6 +93,8 @@ export class AgentWorkspaceToolHandler {
     private readonly presignedUploadService: PresignedUploadService,
     private readonly creditTransactionsService: CreditTransactionsService,
     private readonly ingredientsService: IngredientsService,
+    @Optional()
+    private readonly characterFilter?: IngredientCharacterFilterService,
   ) {}
 
   /**
@@ -211,7 +235,7 @@ export class AgentWorkspaceToolHandler {
     }
 
     if (type === 'character') {
-      const misused = ['limit', 'offset', 'origin'].filter(
+      const misused = ['characterIds', 'limit', 'offset', 'origin'].filter(
         (key) => params[key] !== undefined && params[key] !== null,
       );
       if (misused.length > 0) {
@@ -231,6 +255,11 @@ export class AgentWorkspaceToolHandler {
       return toolFailure('q applies only to type character.');
     }
 
+    const characterIds = readCharacterIds(params.characterIds);
+    if (typeof characterIds === 'string') {
+      return toolFailure(characterIds);
+    }
+
     const rawOrigin = params.origin;
     const hasOrigin =
       rawOrigin !== undefined && rawOrigin !== null && rawOrigin !== '';
@@ -244,8 +273,16 @@ export class AgentWorkspaceToolHandler {
     const brandScope = await this.resolveAssetBrand(params, ctx);
     if ('error' in brandScope) return brandScope.error;
     const brandId = brandScope.brandId;
+    // The Library character filter decides availability; a character the
+    // brand cannot use matches nothing.
+    const characterFilter = await resolveCharacterFilter(this.characterFilter, {
+      characterIds,
+      explicitBrandId: brandId,
+      user: { brandId: ctx.brandId, organizationId: ctx.organizationId },
+    });
     const assets = await this.ingredientsService.listLibraryAssets({
       ...(brandId ? { brandId } : {}),
+      ...(characterIds ? { characterFilter } : {}),
       category: ASSET_TYPE_CATEGORY[type],
       limit: clampInteger(params.limit, 10, 1, 50),
       offset: clampInteger(params.offset, 0, 0, Number.MAX_SAFE_INTEGER),

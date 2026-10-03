@@ -108,6 +108,7 @@ export class WorkflowEngineExecutorHelperService {
     model?: string;
     negativePrompt?: string;
     parentIngredientId?: string;
+    personaId?: string | null;
     providerData?: Record<string, unknown>;
     references?: Array<string | undefined>;
     transformations?: TransformationCategory[];
@@ -135,6 +136,7 @@ export class WorkflowEngineExecutorHelperService {
         negativePrompt: args.negativePrompt,
         organizationId: args.organizationId,
         parentId: args.parentIngredientId || undefined,
+        personaId: args.personaId,
         providerData: args.providerData,
         sourceIds: (args.references ?? []).filter(
           (reference): reference is string => typeof reference === 'string',

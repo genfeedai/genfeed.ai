@@ -7,6 +7,7 @@ import {
 } from '@api/collections/images/dto/create-crun-image-quote.dto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import { resolveCrunReferences } from '@api/services/integrations/crun/crun-reference.util';
 import type { CrunQuotePreparation } from '@api/services/integrations/crun/crun-task.schema';
@@ -49,6 +50,7 @@ export class CrunImageInputService {
     private readonly builder: PromptBuilderService,
     private readonly tasks: CrunTaskService,
     private readonly config: ConfigService,
+    private readonly personas: PersonasService,
   ) {}
 
   normalize(raw: unknown, user: AuthenticatedUser): CrunImageQuoteIntent {
@@ -243,6 +245,13 @@ export class CrunImageInputService {
     user: AuthenticatedUser,
     brandId: string,
   ): Promise<string[]> {
+    // A character the brand can no longer use is refused here too (#6040).
+    await this.personas.resolveCharacterReferences({
+      brandId,
+      ingredientIds: intent.references,
+      organizationId: user.organizationId,
+      path: 'image',
+    });
     const references = await resolveCrunReferences({
       prisma: this.prisma,
       assets: this.assets,

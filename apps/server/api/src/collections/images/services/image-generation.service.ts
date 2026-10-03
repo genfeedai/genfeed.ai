@@ -252,6 +252,7 @@ export class ImageGenerationService {
       referenceImageUrls,
       referenceImageUrl,
       generationHarness,
+      personaId,
     } = await this.prepareImageGenerationInputs(
       user,
       createImageDto,
@@ -261,7 +262,6 @@ export class ImageGenerationService {
       promptOriginalText,
       editing,
     );
-
     const {
       brandPromptBranding,
       promptBuilderBrand,
@@ -276,7 +276,6 @@ export class ImageGenerationService {
       organizationId: user.organizationId,
       model,
     });
-
     const compiledBrief = editing
       ? {
           evidence: undefined,
@@ -313,6 +312,7 @@ export class ImageGenerationService {
         promptBuilderBrand,
         promptOriginalText,
         user,
+        personaId,
         referenceIds,
         referenceImageUrls,
         placeholderScope,
@@ -793,14 +793,6 @@ export class ImageGenerationService {
       promptBuilderService: this.promptBuilderService,
       sharedService: this.sharedService,
       imagesService: this.imagesService,
-      resolveCharacterPersonaId: async (referenceIds) =>
-        (
-          await this.admissionService.resolveCharacterLink(
-            params.user.organizationId,
-            params.brand.id,
-            referenceIds,
-          )
-        ).personaId,
     });
   }
 
@@ -815,15 +807,19 @@ export class ImageGenerationService {
   ): Promise<ImageGenerationPreparedInputs> {
     const referenceIds = (createImageDto.references ?? []).map(String);
 
-    if (!editing) {
-      // A character reference the active brand can no longer use is rejected
-      // here, so revoking availability stops new use in one request.
-      await this.admissionService.resolveCharacterLink(
-        user.organizationId,
-        brandId,
-        referenceIds,
-      );
-    }
+    // A character reference the active brand can no longer use is rejected
+    // here, so revoking availability stops new use in one request. An edit
+    // was already admitted with its sources.
+    const personaId = editing
+      ? (editing.personaId ?? null)
+      : (
+          await this.admissionService.resolveCharacterLink(
+            user.organizationId,
+            brandId,
+            referenceIds,
+            'image',
+          )
+        ).personaId;
 
     const referenceImageUrls =
       editing?.sourceUrls ??
@@ -863,6 +859,7 @@ export class ImageGenerationService {
       referenceImageUrls,
       referenceImageUrl,
       generationHarness,
+      personaId,
     };
   }
 

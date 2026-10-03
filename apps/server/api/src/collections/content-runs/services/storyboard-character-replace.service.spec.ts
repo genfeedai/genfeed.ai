@@ -1,6 +1,8 @@
 import { StoryboardCharacterReplaceService } from '@api/collections/content-runs/services/storyboard-character-replace.service';
 import type { CharacterOperation } from '@api/collections/content-runs/services/storyboard-character-replace-state';
 import { storyboardConfigHash } from '@api/collections/content-runs/services/storyboard-config-hash';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import {
   STORYBOARD_CHARACTER_REPLACE_LIMITATIONS,
   STORYBOARD_CHARACTER_REPLACE_MODEL_KEY,
@@ -55,6 +57,7 @@ function harness() {
     url: 'https://fixture.invalid/video',
   }));
   const mediaUrl = vi.fn((key: string) => `https://fixture.invalid/${key}`);
+  const personas = personasServiceStub();
   const service = new StoryboardCharacterReplaceService(
     { ingredient: { findMany } } as never,
     { read, save } as never,
@@ -68,8 +71,10 @@ function harness() {
       getBoundRequestStatus: status,
     } as never,
     { buildUrl: mediaUrl } as never,
+    personas,
   );
   return {
+    personas,
     service,
     credential,
     revalidate,
@@ -91,6 +96,24 @@ const replace = (
   body: object = { imageAssetIds: ['img-a'] },
 ) => h.service.replace('org', 'brand', 'run', 'shot-1', body);
 describe('durable character replacement', () => {
+  it('refuses a character the brand can no longer use before journaling anything (#6040)', async () => {
+    const h = harness();
+    vi.mocked(h.personas.resolveCharacterReferences).mockRejectedValueOnce(
+      new NotFoundException('Reference image'),
+    );
+
+    await expect(replace(h)).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(h.personas.resolveCharacterReferences).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand',
+        ingredientIds: ['img-a'],
+        path: 'storyboard',
+      }),
+    );
+    expect(h.generate).not.toHaveBeenCalled();
+    expect(h.save).not.toHaveBeenCalled();
+  });
   it('commits immutable identity before HTTP and deduplicates concurrent callers', async () => {
     const h = harness();
     let release: () => void = () => undefined;

@@ -84,12 +84,29 @@ export class AvatarVideoGenerationService {
   ): Promise<AvatarGenerationPrice> {
     const brand = await this.findBrandForContext(context);
     const identity = await this.resolveIdentityInputs(params, context, brand);
+    await this.admitCharacter(identity, brand.id, context);
     this.assertUsableVoiceSource(params, identity);
     const { billingMode, credits } = await this.resolveFunding(
       identity,
       context,
     );
     return { billingMode, credits };
+  }
+
+  /**
+   * The photo an avatar renders from may be a character's reference image.
+   * A character the brand can no longer use is refused before funding (#6040).
+   */
+  private admitCharacter(
+    identity: ResolvedIdentity,
+    brandId: string,
+    context: AvatarVideoGenerationContext,
+  ): Promise<string | null> {
+    return this.referenceService.admitCharacter(
+      identity.photoIngredientId,
+      brandId,
+      context.organizationId,
+    );
   }
 
   /** Pin provider keys before reserving, so a BYOK change cannot change who pays. */
@@ -149,6 +166,11 @@ export class AvatarVideoGenerationService {
         context,
         brand,
       );
+      const personaId = await this.admitCharacter(
+        resolvedIdentity,
+        brand.id,
+        context,
+      );
       this.assertUsableVoiceSource(params, resolvedIdentity);
       const funding = await this.resolveFunding(resolvedIdentity, context);
       billing =
@@ -166,6 +188,7 @@ export class AvatarVideoGenerationService {
         resolvedIdentity,
         context,
         placeholderScope,
+        personaId,
       );
 
       ingredientId = String(ingredientData.id);
@@ -324,6 +347,7 @@ export class AvatarVideoGenerationService {
     identity: ResolvedIdentity,
     context: AvatarVideoGenerationContext,
     placeholderScope?: GenerationPlaceholderScope,
+    personaId?: string | null,
   ): ReturnType<SharedService['createMediaDocumentsInternal']> {
     return this.sharedService.createMediaDocumentsInternal({
       origin: IngredientOrigin.GENERATED,
@@ -338,6 +362,7 @@ export class AvatarVideoGenerationService {
         identity.photoIngredientId != null
           ? identity.photoIngredientId
           : undefined,
+      personaId,
       status: IngredientStatus.PROCESSING,
       userId: context.userId,
     });

@@ -1,6 +1,9 @@
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { BatchInterpolationBillingService } from '@api/collections/videos/services/batch-interpolation-billing.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 
 vi.mock('@api/helpers/utils/reference/reference.util', () => ({
   buildReferenceImageUrls: vi.fn(),
@@ -190,7 +193,10 @@ describe('BatchInterpolationController', () => {
     publishVideoComplete: ReturnType<typeof vi.fn>;
   };
 
+  let personas: PersonasService;
+
   beforeEach(async () => {
+    personas = personasServiceStub();
     logger.error.mockReset();
     generationBilling.bindOutput.mockReset().mockResolvedValue(undefined);
     generationBilling.releaseOutput.mockReset().mockResolvedValue('released');
@@ -286,6 +292,7 @@ describe('BatchInterpolationController', () => {
         },
         { provide: MetadataService, useValue: metadataService },
         { provide: ModelsService, useValue: modelsService },
+        { provide: PersonasService, useValue: personas },
         { provide: PromptsService, useValue: promptsService },
         { provide: PromptBuilderService, useValue: promptBuilderService },
         {
@@ -588,6 +595,40 @@ describe('BatchInterpolationController', () => {
             organizationId,
             referenceIds: [endImageId1],
           }),
+        );
+      });
+
+      it('refuses a character frame the brand lost before credits or outputs', async () => {
+        vi.mocked(personas.resolveCharacterReferences).mockRejectedValueOnce(
+          new NotFoundException('Reference image'),
+        );
+
+        await expect(
+          controller.createBatchInterpolation(mockReq, mockDto, mockUser),
+        ).rejects.toBeInstanceOf(NotFoundException);
+
+        expect(personas.resolveCharacterReferences).toHaveBeenCalledWith(
+          expect.objectContaining({
+            ingredientIds: [startImageId1, endImageId1],
+            organizationId,
+            path: 'video-interpolation',
+          }),
+        );
+        expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+      });
+
+      it('links each output to the character of its frames', async () => {
+        vi.mocked(personas.resolveCharacterReferences).mockResolvedValueOnce({
+          availableAvatarIds: new Set(),
+          personaId: 'persona-1',
+          personaIdByAssetId: new Map([[endImageId1, 'persona-1']]),
+        });
+
+        await controller.createBatchInterpolation(mockReq, mockDto, mockUser);
+
+        expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+          mockUser,
+          expect.objectContaining({ personaId: 'persona-1' }),
         );
       });
 

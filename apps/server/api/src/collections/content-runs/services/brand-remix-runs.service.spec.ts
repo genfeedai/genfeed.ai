@@ -9,6 +9,7 @@ import type {
 } from '@api/collections/content-runs/services/brand-remix-source-media.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import {
   ActivitySource,
   ContentRunStatus,
@@ -252,6 +253,7 @@ describe('BrandRemixRunsService', () => {
       contentGeneratorService: contentGeneratorService as never,
       creditsUtilsService: creditsUtilsService as never,
       imageGenerationService: imageGenerationService as never,
+      personasService: personasServiceStub(),
       organizationSettingsService: organizationSettingsService as never,
       pausedMetaCampaignDraftService: pausedMetaCampaignDraftService as never,
       pausedXAdsCampaignDraftService: pausedXAdsCampaignDraftService as never,

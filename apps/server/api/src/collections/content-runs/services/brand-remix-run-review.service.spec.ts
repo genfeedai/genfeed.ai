@@ -2,6 +2,7 @@ import { BRAND_REMIX_DOWNSTREAM_ACTION_IDS } from '@api/collections/content-runs
 import { BrandRemixRunReviewService } from '@api/collections/content-runs/services/brand-remix-run-review.service';
 import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/services/brand-remix-runs.factory';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { ContentRunStatus, IngredientStatus } from '@genfeedai/contracts';
 import { brandRemixRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { ConflictException } from '@nestjs/common';
@@ -67,6 +68,7 @@ describe('BrandRemixRunReviewService', () => {
       contentGeneratorService: {} as never,
       creditsUtilsService: {} as never,
       imageGenerationService: {} as never,
+      personasService: personasServiceStub(),
       organizationSettingsService: {
         findOne: vi.fn().mockResolvedValue({ organizationId: 'org-1' }),
       } as never,

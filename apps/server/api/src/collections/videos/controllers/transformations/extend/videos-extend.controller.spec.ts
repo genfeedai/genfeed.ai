@@ -3,6 +3,7 @@ import { VideosExtendController } from '@api/collections/videos/controllers/tran
 import type { VideosService } from '@api/collections/videos/services/videos.service';
 import type { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   CREDITS_DEFER_MODEL_RESOLUTION_KEY,
   CREDITS_KEY,
@@ -11,6 +12,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import {
   ActivitySource,
   IngredientCategory,
@@ -48,18 +50,54 @@ function createHarness() {
   const workflowsService = {
     createWorkflow: vi.fn().mockResolvedValue({ id: 'workflow-1' }),
   };
+  const personas = personasServiceStub();
   const controller = new VideosExtendController(
     videoGenerationCreditsService as never,
+    personas,
     videosService as unknown as VideosService,
     workflowsService as unknown as WorkflowsService,
   );
   return {
     controller,
+    personas,
     videoGenerationCreditsService,
     videosService,
     workflowsService,
   };
 }
+
+describe('VideosExtendController character admission (#6040)', () => {
+  it('refuses to extend a video of a character the brand lost, before credits or a workflow', async () => {
+    const {
+      controller,
+      personas,
+      videoGenerationCreditsService,
+      workflowsService,
+    } = createHarness();
+    vi.mocked(personas.resolveCharacterReferences).mockRejectedValueOnce(
+      new NotFoundException('Reference image'),
+    );
+
+    await expect(
+      controller.extendVideo({} as Request, user, sourceVideo.id, {
+        duration: 8,
+        model: 'bytedance/seedance-2.5',
+        prompt: 'Continue into the next room',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(personas.resolveCharacterReferences).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      ingredientIds: ['video-1'],
+      organizationId: 'org-1',
+      path: 'video-extend',
+    });
+    expect(
+      videoGenerationCreditsService.ensureExtensionCredits,
+    ).not.toHaveBeenCalled();
+    expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
+  });
+});
 
 describe('VideosExtendController', () => {
   it('creates a native Seedance extension with source lineage', async () => {

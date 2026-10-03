@@ -494,6 +494,19 @@
         "success": "Availability updated.",
         "title": "Character availability"
       },
+      "deleteBlocked": {
+        "close": "Close",
+        "description": "{brand} owns characters that other brands use. Move their ownership to another brand, then delete {brand}.",
+        "manage": "Manage characters",
+        "title": "Move shared characters first"
+      },
+      "ownership": {
+        "description": "{brand} owns this character. Move ownership to another brand that can use it, for example before deleting {brand}.",
+        "error": "Could not move ownership. Check that the new owner has no character with the same @handle.",
+        "move": "Move ownership",
+        "success": "Ownership moved.",
+        "title": "Owning brand"
+      },
       "actions": {
         "approve": "Approve",
         "creating": "Creating\u2026",

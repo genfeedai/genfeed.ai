@@ -1,4 +1,5 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import type {
   AvatarVideoGenerationContext,
   AvatarVideoGenerationParams,
@@ -21,7 +22,25 @@ export class AvatarVideoReferenceService {
     private readonly mediaIssuer: AuthorizedMediaUrlService,
     private readonly byokService: ByokService,
     private readonly heygenService: HeyGenService,
+    private readonly personasService: PersonasService,
   ) {}
+
+  /** The character the photo belongs to; refuses one the brand lost. */
+  async admitCharacter(
+    photoIngredientId: string | undefined,
+    brandId: string,
+    organizationId: string,
+  ): Promise<string | null> {
+    const { personaId } = await this.personasService.resolveCharacterReferences(
+      {
+        brandId,
+        ingredientIds: photoIngredientId ? [photoIngredientId] : [],
+        organizationId,
+        path: 'avatar-video',
+      },
+    );
+    return personaId;
+  }
 
   async resolvePhotoUrl(
     params: AvatarVideoGenerationParams,

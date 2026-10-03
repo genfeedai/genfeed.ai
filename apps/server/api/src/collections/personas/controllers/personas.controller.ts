@@ -3,9 +3,11 @@ import { CharacterAvailabilityDto } from '@api/collections/personas/dto/characte
 import { ComposeCharacterSheetDto } from '@api/collections/personas/dto/compose-character-sheet.dto';
 import { CreatePersonaDto } from '@api/collections/personas/dto/create-persona.dto';
 import { CreatePersonaFromSheetDto } from '@api/collections/personas/dto/create-persona-from-sheet.dto';
+import { MoveCharacterOwnershipDto } from '@api/collections/personas/dto/move-character-ownership.dto';
 import { PersonasQueryDto } from '@api/collections/personas/dto/personas-query.dto';
 import { UpdatePersonaDto } from '@api/collections/personas/dto/update-persona.dto';
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
+import { CharacterOwnershipService } from '@api/collections/personas/services/character-ownership.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import {
   brandAvailabilityWhere,
@@ -83,6 +85,7 @@ export class PersonasController extends BaseCRUDController<
   constructor(
     public readonly personasService: PersonasService,
     public readonly loggerService: LoggerService,
+    private readonly ownershipService: CharacterOwnershipService,
   ) {
     super(loggerService, personasService, PersonaSerializer, 'Persona', [
       'user',
@@ -233,6 +236,30 @@ export class PersonasController extends BaseCRUDController<
     );
   }
 
+  @Patch(':id/owner')
+  async moveOwnership(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: MoveCharacterOwnershipDto,
+  ): Promise<JsonApiSingleResponse> {
+    const personaId = EntityIdUtil.validate(id, 'personaId');
+    const persona = await this.ownershipService.moveOwnership({
+      actorUserId: user.userId ?? user.id,
+      apiKeyContext: user,
+      brandId: user.brandId,
+      isSuperAdmin: getIsSuperAdmin(user, request),
+      organizationId: user.organizationId,
+      personaId,
+      targetBrandId: body.brandId,
+    });
+    return serializeSingle(
+      request,
+      PersonaSerializer,
+      await this.decorateForResponse(persona, user),
+    );
+  }
+
   public async decorateForResponse(
     data: PersonaDocument,
     user: User,
@@ -295,7 +322,7 @@ export class PersonasController extends BaseCRUDController<
     const nextBrandId = (updateDto as Record<string, unknown>).brandId;
     if (nextBrandId !== undefined && nextBrandId !== existing.brandId) {
       throw new ValidationException(
-        'A shared character cannot move to another owning brand',
+        'Move a shared character to another owning brand with the ownership action',
         'brandId',
       );
     }

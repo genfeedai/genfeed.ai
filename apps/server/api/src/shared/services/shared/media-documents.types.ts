@@ -49,6 +49,8 @@ export interface MediaDocumentsInput {
   origin: IngredientOrigin;
   organizationId?: string;
   parentId?: string;
+  /** Character this output was generated with (#6040). */
+  personaId?: string | null;
   promptId?: string;
   promptTemplate?: string;
   providerData?: Record<string, unknown>;
