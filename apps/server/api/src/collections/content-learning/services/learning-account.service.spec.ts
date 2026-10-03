@@ -164,10 +164,11 @@ describe('scoped rollback pins and control epochs', () => {
     const calls = f.tx.$queryRaw.mock.calls.map(([strings]) =>
       strings.join(''),
     );
-    expect(calls[0]).toContain('pg_advisory_xact_lock_shared');
-    expect(calls[1]).toContain('pg_advisory_xact_lock(');
-    expect(calls[2]).toContain('content_learning_accounts');
-    expect(calls[3]).toContain('content_learning_scope_states');
+    expect(calls[0]).toContain('pg_advisory_xact_lock_shared(5728, 1)');
+    expect(calls[1]).toContain('pg_advisory_xact_lock_shared(::int, hashtext(');
+    expect(calls[2]).toContain('pg_advisory_xact_lock(');
+    expect(calls[3]).toContain('content_learning_accounts');
+    expect(calls[4]).toContain('content_learning_scope_states');
     expect(f.tx.contentLearningAccount.updateMany).not.toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ activePolicyId: 'policy' }),
@@ -588,15 +589,16 @@ describe('canonical read-only account scope snapshots', () => {
       true,
     );
     const sql = f.tx.$queryRaw.mock.calls.map(([parts]) => parts.join(''));
-    expect(sql[0]).toContain('pg_advisory_xact_lock_shared');
-    expect(sql[1]).toContain('content_learning_accounts');
-    expect(sql[1]).toContain('FOR SHARE');
-    expect(sql[2]).toContain('content_learning_scope_states');
-    expect(sql[2]).toContain('ORDER BY "scopeKey", id FOR SHARE');
-    expect(f.tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(sql[0]).toContain('pg_advisory_xact_lock_shared(5728, 1)');
+    expect(sql[1]).toContain('pg_advisory_xact_lock_shared(::int, hashtext(');
+    expect(sql[2]).toContain('content_learning_accounts');
+    expect(sql[2]).toContain('FOR SHARE');
+    expect(sql[3]).toContain('content_learning_scope_states');
+    expect(sql[3]).toContain('ORDER BY "scopeKey", id FOR SHARE');
+    expect(f.tx.$queryRaw.mock.invocationCallOrder[1]).toBeLessThan(
       f.tx.contentLearningAccount.findFirst.mock.invocationCallOrder[0],
     );
-    expect(f.tx.$queryRaw.mock.invocationCallOrder[2]).toBeLessThan(
+    expect(f.tx.$queryRaw.mock.invocationCallOrder[3]).toBeLessThan(
       f.tx.contentLearningScopeState.findMany.mock.invocationCallOrder[0],
     );
     expect(f.policies.current).toHaveBeenCalledWith(
@@ -1011,11 +1013,14 @@ describe('ensure transaction ownership and source-scoped revocation', () => {
       expect(f.root.$transaction).toHaveBeenCalledTimes(1);
       expect(f.tx.$transaction).not.toHaveBeenCalled();
       expect(f.root.$queryRaw).not.toHaveBeenCalled();
-      expect(f.tx.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(f.tx.$queryRaw).toHaveBeenCalledTimes(2);
       expect(f.tx.$queryRaw.mock.calls[0][0].join('')).toContain(
-        'pg_advisory_xact_lock_shared',
+        'pg_advisory_xact_lock_shared(5728, 1)',
       );
-      expect(f.tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      expect(f.tx.$queryRaw.mock.calls[1][0].join('')).toContain(
+        'pg_advisory_xact_lock_shared(::int, hashtext(',
+      );
+      expect(f.tx.$queryRaw.mock.invocationCallOrder[1]).toBeLessThan(
         f.tx.credential.findFirst.mock.invocationCallOrder[0],
       );
       expect(
@@ -1091,11 +1096,14 @@ describe('ensure transaction ownership and source-scoped revocation', () => {
       expect(f.root.$transaction).toHaveBeenCalledTimes(1);
       expect(f.tx.$transaction).not.toHaveBeenCalled();
       expect(f.root.$queryRaw).not.toHaveBeenCalled();
-      expect(f.tx.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(f.tx.$queryRaw).toHaveBeenCalledTimes(2);
       expect(f.tx.$queryRaw.mock.calls[0][0].join('')).toContain(
-        'pg_advisory_xact_lock_shared',
+        'pg_advisory_xact_lock_shared(5728, 1)',
       );
-      expect(f.tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      expect(f.tx.$queryRaw.mock.calls[1][0].join('')).toContain(
+        'pg_advisory_xact_lock_shared(::int, hashtext(',
+      );
+      expect(f.tx.$queryRaw.mock.invocationCallOrder[1]).toBeLessThan(
         f.tx.credential.findFirst.mock.invocationCallOrder[0],
       );
       expect(
@@ -1197,9 +1205,10 @@ describe('ensure transaction ownership and source-scoped revocation', () => {
         ).toBeLessThan(f.dependencies.invalidate.mock.invocationCallOrder[0]);
       }
       const sql = f.tx.$queryRaw.mock.calls.map(([parts]) => parts.join(''));
-      expect(sql[0]).toContain('pg_advisory_xact_lock_shared');
-      expect(sql[1]).toContain('pg_advisory_xact_lock(');
-      expect(sql[2]).toContain('content_learning_accounts');
+      expect(sql[0]).toContain('pg_advisory_xact_lock_shared(5728, 1)');
+      expect(sql[1]).toContain('pg_advisory_xact_lock_shared(::int, hashtext(');
+      expect(sql[2]).toContain('pg_advisory_xact_lock(');
+      expect(sql[3]).toContain('content_learning_accounts');
       expect(f.tx.$transaction).not.toHaveBeenCalled();
       expect(f.tx.contentLearningConsent.create).toHaveBeenCalledTimes(1);
     },

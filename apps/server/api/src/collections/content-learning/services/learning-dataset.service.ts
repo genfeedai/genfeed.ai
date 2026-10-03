@@ -13,7 +13,7 @@ import {
 } from '@api/collections/content-learning/services/learning-dataset-graph.service';
 import {
   LearningDependencyService,
-  learningFence,
+  learningOrgFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -214,7 +214,17 @@ export class LearningDatasetService {
     const payloadHash = learningHash(['dataset-create', input]);
     return this.prisma.$transaction(
       async (tx) => {
-        await learningFence(tx, 'shared');
+        // Dataset sources span consenting organizations; fence every one.
+        await learningOrgFence(
+          tx,
+          [
+            input.organizationId,
+            ...(input.sourceAccounts ?? []).map(
+              (source) => source?.organizationId,
+            ),
+          ],
+          'shared',
+        );
         await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${learningHash([input.actorId, scope, input.requestId])}, 0))::text`;
         const previous = await tx.contentLearningOperation.findFirst({
           where: {

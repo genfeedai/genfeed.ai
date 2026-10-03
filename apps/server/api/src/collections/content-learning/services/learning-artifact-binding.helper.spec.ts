@@ -164,9 +164,11 @@ describe('bindLearningPublicationV1', () => {
     });
     const sql = f.tx.$queryRaw.mock.calls.map(([parts]) => parts.join(''));
     expect(sql[0]).toContain('pg_advisory_xact_lock_shared(5728, 1)');
-    expect(sql[1]).toContain('FROM content_learning_decisions');
-    expect(sql[2]).toContain('FROM posts');
-    expect(f.tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(sql[1]).toContain('pg_advisory_xact_lock_shared(::int, hashtext(');
+    expect(f.tx.$queryRaw.mock.calls[1].slice(1)).toEqual([5729, 'org']);
+    expect(sql[2]).toContain('FROM content_learning_decisions');
+    expect(sql[3]).toContain('FROM posts');
+    expect(f.tx.$queryRaw.mock.invocationCallOrder[1]).toBeLessThan(
       f.tx.post.findFirst.mock.invocationCallOrder[0],
     );
     expect(f.tx.contentLearningDecision.findMany).toHaveBeenCalledWith({

@@ -1,4 +1,4 @@
-import { learningFence } from '@api/collections/content-learning/services/learning-dependency.service';
+import { learningOrgFence } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { resolveLearningPublicationSourceV1 } from '@api/collections/content-learning/services/learning-publication-source.helper';
 import { PublishApprovalStatus } from '@genfeedai/contracts';
@@ -114,7 +114,7 @@ export async function bindLearningArtifactV1(
   generatedText: string,
 ): Promise<string> {
   return client.$transaction(async (tx) => {
-    await learningFence(tx, 'shared');
+    await learningOrgFence(tx, organizationId, 'shared');
     await tx.$queryRaw`SELECT id FROM content_learning_decisions WHERE id = ${decisionId} AND "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
     const decision = await tx.contentLearningDecision.findFirst({
       where: {
@@ -199,7 +199,7 @@ export async function bindLearningPublicationV1(
   });
   if (!candidate) return { status: 'not_applicable', reason: 'no_decision' };
   return client.$transaction(async (tx) => {
-    await learningFence(tx, 'shared');
+    await learningOrgFence(tx, organizationId, 'shared');
     const post = await tx.post.findFirst({
       where: { id: postId, organizationId, isDeleted: false },
       select: learningArtifactPostSelect,
