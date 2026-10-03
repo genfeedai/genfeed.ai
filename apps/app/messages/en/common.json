@@ -531,7 +531,10 @@
         "seed": "Seed (optional)"
       },
       "list": {
-        "title": "Characters"
+        "libraryColumn": "Library",
+        "title": "Characters",
+        "viewInLibrary": "View in Library",
+        "viewInLibraryFor": "View assets made with {name} in Library"
       },
       "subtitle": "Named characters for Studio and Agent @-mentions.",
       "success": "Character created.",

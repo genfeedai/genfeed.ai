@@ -21,6 +21,10 @@ vi.mock('next-intl', async () => {
   };
 });
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/main${path}` }),
+}));
+
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
     ingredientsEndpoint: 'https://cdn.test/ingredients',
@@ -64,5 +68,31 @@ describe('CharactersTable', () => {
 
     expect(screen.getAllByText('Anna').length).toBeGreaterThan(0);
     expect(screen.getByText('@anna')).toBeInTheDocument();
+  });
+
+  it('links each row to the Library filtered to that character', () => {
+    render(
+      <CharactersTable
+        canManageSharing={false}
+        characters={[
+          { id: 'p1', label: 'Anna' },
+          { id: 'p2', label: 'Vincent' },
+        ]}
+        isLoading={false}
+        onCreate={vi.fn()}
+        onManageAvailability={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('link', {
+        name: 'View assets made with Anna in Library',
+      }),
+    ).toHaveAttribute('href', '/acme/main/library/assets?characters=p1');
+    expect(
+      screen.getByRole('link', {
+        name: 'View assets made with Vincent in Library',
+      }),
+    ).toHaveAttribute('href', '/acme/main/library/assets?characters=p2');
   });
 });

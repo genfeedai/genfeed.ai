@@ -1,6 +1,10 @@
 import { Readable } from 'node:stream';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
+import {
+  IngredientCharacterFilterService,
+  resolveCharacterFilter,
+} from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
@@ -101,6 +105,8 @@ export class VideosController {
     @Optional()
     private readonly evaluationProjection?: ContentEvaluationProjectionService,
     @Optional() private readonly mediaIssuer?: AuthorizedMediaUrlService,
+    @Optional()
+    private readonly characterFilter?: IngredientCharacterFilterService,
   ) {}
 
   @Get()
@@ -200,6 +206,12 @@ export class VideosController {
     // Handle format filter based on metadata dimensions
     // Format is now filtered after metadata lookup
 
+    const characterFilter = await resolveCharacterFilter(this.characterFilter, {
+      characterIds: query.characters,
+      explicitBrandId: typeof brandId === 'string' ? brandId : undefined,
+      user,
+    });
+
     const aggregate = {
       where: {
         AND: [
@@ -220,6 +232,7 @@ export class VideosController {
           parentConditions,
           trainingFilter,
           IngredientFilterUtil.buildOriginFilter(query.origins),
+          characterFilter,
           searchFilter.where,
         ],
       },

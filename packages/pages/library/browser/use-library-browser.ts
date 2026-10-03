@@ -55,6 +55,12 @@ function parseOrigins(values: string[]): IngredientOrigin[] {
   return Array.from(new Set(parsed));
 }
 
+function parseCharacters(values: string[]): string[] {
+  return Array.from(
+    new Set(values.map((value) => value.trim()).filter(Boolean)),
+  );
+}
+
 function parseViewMode(value: string | null): LibraryViewMode {
   return LIBRARY_VIEW_MODES.find((mode) => mode === value) ?? 'grid';
 }
@@ -134,6 +140,15 @@ export function useLibraryBrowser({
     [searchParams],
   );
 
+  // Character is a filter like origin: URL-only, repeatable, no route of its own.
+  const characters = useMemo(
+    () =>
+      parseCharacters(
+        searchParams?.getAll(LIBRARY_QUERY_KEYS.CHARACTERS) ?? [],
+      ),
+    [searchParams],
+  );
+
   const folderId = searchParams?.get(LIBRARY_QUERY_KEYS.FOLDER) ?? '';
   const search = searchParams?.get(LIBRARY_QUERY_KEYS.SEARCH) ?? '';
   const viewMode = parseViewMode(
@@ -160,6 +175,7 @@ export function useLibraryBrowser({
   const pushAxes = useCallback(
     (next: {
       categories?: IngredientCategory[];
+      characters?: string[];
       folderId?: string;
       origins?: IngredientOrigin[];
       search?: string;
@@ -167,6 +183,7 @@ export function useLibraryBrowser({
       viewMode?: LibraryViewMode;
     }) => {
       const nextCategories = next.categories ?? categories;
+      const nextCharacters = next.characters ?? characters;
       const nextFolderId = next.folderId ?? folderId;
       const nextOrigins = next.origins ?? origins;
       const nextSearch = next.search ?? search;
@@ -176,6 +193,7 @@ export function useLibraryBrowser({
       const params = new URLSearchParams(searchParams?.toString() ?? '');
       for (const key of [
         'categories',
+        'characters',
         'folder',
         'origins',
         'search',
@@ -194,6 +212,10 @@ export function useLibraryBrowser({
       // like they refuse to clear.
       if (nextCategories.length === 0 && (seededCategories?.length ?? 0) > 0) {
         params.set(LIBRARY_QUERY_KEYS.CATEGORIES, '');
+      }
+
+      for (const character of nextCharacters) {
+        params.append(LIBRARY_QUERY_KEYS.CHARACTERS, character);
       }
 
       for (const origin of nextOrigins) {
@@ -224,6 +246,7 @@ export function useLibraryBrowser({
     },
     [
       categories,
+      characters,
       defaultSort,
       folderId,
       origins,
@@ -253,6 +276,17 @@ export function useLibraryBrowser({
 
   const handleClearCategories = useCallback(() => {
     pushAxes({ categories: [] });
+  }, [pushAxes]);
+
+  const handleCharactersChange = useCallback(
+    (nextCharacters: string[]) => {
+      pushAxes({ characters: parseCharacters(nextCharacters) });
+    },
+    [pushAxes],
+  );
+
+  const handleClearCharacters = useCallback(() => {
+    pushAxes({ characters: [] });
   }, [pushAxes]);
 
   const handleOriginsChange = useCallback(
@@ -338,6 +372,10 @@ export function useLibraryBrowser({
       next.origins = origins;
     }
 
+    if (characters.length > 0) {
+      next.characters = characters;
+    }
+
     if (folderId) {
       next.folder = folderId;
     }
@@ -355,7 +393,7 @@ export function useLibraryBrowser({
     }
 
     return next;
-  }, [categories, folderId, origins, place, search, shelf, sort]);
+  }, [categories, characters, folderId, origins, place, search, shelf, sort]);
 
   const contextValue: IIngredientsContextValue = useMemo(
     () => ({
@@ -381,10 +419,13 @@ export function useLibraryBrowser({
     place,
     shelf,
     categories,
+    characters,
     contextValue,
     folderId,
     handleCategoriesChange,
+    handleCharactersChange,
     handleClearCategories,
+    handleClearCharacters,
     handleClearOrigins,
     handleOriginsChange,
     handleRefresh,

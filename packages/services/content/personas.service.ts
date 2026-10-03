@@ -35,6 +35,21 @@ const personaSerializer: IServiceSerializer<Persona> = {
   serialize: (data) => data,
 };
 
+function toCharacterListItems(rows: Persona[]): BrandCharacterListItem[] {
+  return rows.map((row) => ({
+    availabilityMode: row.availabilityMode,
+    availableBrandCount: row.availableBrandCount,
+    availableBrandIds: row.availableBrandIds,
+    avatarIngredientId: row.avatarIngredientId,
+    handle: row.handle,
+    id: row.id,
+    isShared: row.isShared,
+    label: row.label,
+    owningBrandId: row.owningBrandId,
+    owningBrandName: row.owningBrandName,
+  }));
+}
+
 export class PersonasService extends BaseService<
   Persona,
   Partial<Persona>,
@@ -49,19 +64,18 @@ export class PersonasService extends BaseService<
   }
 
   async listCharacters(): Promise<BrandCharacterListItem[]> {
-    const rows = await this.findAll();
-    return rows.map((row) => ({
-      availabilityMode: row.availabilityMode,
-      availableBrandCount: row.availableBrandCount,
-      availableBrandIds: row.availableBrandIds,
-      avatarIngredientId: row.avatarIngredientId,
-      handle: row.handle,
-      id: row.id,
-      isShared: row.isShared,
-      label: row.label,
-      owningBrandId: row.owningBrandId,
-      owningBrandName: row.owningBrandName,
-    }));
+    return toCharacterListItems(await this.findAll());
+  }
+
+  /**
+   * Every character the active brand can use, across all server pages. The
+   * Library character filter lists them all, where `listCharacters` returns
+   * only the first page.
+   */
+  async listAllCharacters(
+    signal?: AbortSignal,
+  ): Promise<BrandCharacterListItem[]> {
+    return toCharacterListItems(await this.findAllPages({}, signal));
   }
 
   async updateAvailability(

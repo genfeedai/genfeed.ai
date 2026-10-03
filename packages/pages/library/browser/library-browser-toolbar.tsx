@@ -15,7 +15,11 @@ import {
 } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
-import type { LibraryBrowserToolbarProps } from '@props/pages/library-browser.props';
+import type {
+  LibraryBrowserToolbarProps,
+  LibraryCharacterOption,
+} from '@props/pages/library-browser.props';
+import { EnvironmentService } from '@services/core/environment.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
@@ -39,7 +43,8 @@ import {
   categoriesFromAssetTypeIds,
   selectedAssetTypeIds,
 } from '@utils/media/library-asset-type.util';
-import { Frame, LayoutGrid, Rows3, Upload, X } from 'lucide-react';
+import { Frame, LayoutGrid, Rows3, Upload, UserRound, X } from 'lucide-react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
@@ -87,21 +92,46 @@ const ORIGIN_OPTIONS = INGREDIENT_ORIGIN_ORDER.map((origin) => ({
   value: origin,
 }));
 
+function CharacterAvatar({ character }: { character: LibraryCharacterOption }) {
+  if (!character.avatarIngredientId) {
+    return (
+      <span className="flex size-5 items-center justify-center rounded-full bg-background-tertiary text-muted-foreground">
+        <UserRound className="size-3" />
+      </span>
+    );
+  }
+
+  return (
+    <Image
+      alt=""
+      className="size-5 rounded-full object-cover outline-media"
+      height={20}
+      src={`${EnvironmentService.ingredientsEndpoint}/images/${character.avatarIngredientId}`}
+      width={20}
+    />
+  );
+}
+
 /**
  * The Library's control plane: the type and origin filters as multi-select
  * dropdowns, plus search, sort and density. The shelf and folder axes are *not*
  * here — a shelf is the route and a folder is the sidebar, so putting either in
  * this row would re-collapse the three axes the redesign just separated. Origin
- * is a filter like type, not a destination: it never gets a nav entry.
+ * is a filter like type, not a destination: it never gets a nav entry, and
+ * neither does character.
  */
 export default function LibraryBrowserToolbar({
   categories,
+  characterOptions,
+  characters,
   origins,
   sort,
   sortOptions,
   viewMode,
   onCategoriesChange,
+  onCharactersChange,
   onClearCategories,
+  onClearCharacters,
   onClearOrigins,
   onOriginsChange,
   onSortChange,
@@ -113,8 +143,21 @@ export default function LibraryBrowserToolbar({
   const translate = useTranslations('pages.library.browser.toolbar');
   const hasTypeFilter = categories.length > 0;
   const hasOriginFilter = origins.length > 0;
+  const hasCharacterFilter = characters.length > 0;
+  const isCharacterFilterVisible =
+    characterOptions.length > 0 || hasCharacterFilter;
   const selectedTypeIds = selectedAssetTypeIds(categories);
   const isCanvasEnabled = useFeatureFlag(LIBRARY_CANVAS_FEATURE_FLAG);
+
+  const characterDropdownOptions = useMemo(
+    () =>
+      characterOptions.map((character) => ({
+        icon: <CharacterAvatar character={character} />,
+        label: character.label,
+        value: character.id,
+      })),
+    [characterOptions],
+  );
 
   const viewOptions = useMemo(() => {
     const options = [
@@ -190,6 +233,39 @@ export default function LibraryBrowserToolbar({
           />
         ) : null}
       </div>
+
+      {isCharacterFilterVisible ? (
+        <div className="flex min-w-0 items-center gap-1.5">
+          <DropdownMultiSelect
+            className={cn(
+              fieldControlClassName,
+              fieldControlTriggerClassName,
+              'w-32',
+            )}
+            isSearchEnabled
+            name="characters"
+            onChange={(_name, values) => {
+              onCharactersChange(values);
+            }}
+            options={characterDropdownOptions}
+            placeholder={translate('character')}
+            searchPlaceholder={translate('searchCharacters')}
+            values={characters}
+          />
+
+          {hasCharacterFilter ? (
+            <Button
+              ariaLabel={translate('clearCharacterFilter')}
+              className="h-7 rounded-full px-2 text-xs text-foreground/50 hover:text-foreground"
+              icon={<X className="size-3.5" />}
+              onClick={onClearCharacters}
+              tooltip={translate('clearCharacterFilter')}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+            />
+          ) : null}
+        </div>
+      ) : null}
 
       <Select value={sort} onValueChange={onSortChange}>
         <SelectTrigger aria-label={translate('sortAria')} className="w-40">

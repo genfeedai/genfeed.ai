@@ -29,6 +29,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
@@ -79,6 +80,7 @@ import {
   ModelCategory,
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, StreamableFile } from '@nestjs/common';
@@ -211,8 +213,13 @@ describe('VideosController', () => {
     key: MODEL_KEYS.KLINGAI_V2,
   };
 
+  const characterFilterService = {
+    buildFilter: vi.fn().mockResolvedValue({}),
+  };
+
   beforeEach(async () => {
     vi.clearAllMocks();
+    characterFilterService.buildFilter.mockResolvedValue({});
     mediaConfig.isAuthorizedMediaDeliveryEnabled = false;
     mediaIssuer.projectIngredients.mockReset();
 
@@ -220,6 +227,10 @@ describe('VideosController', () => {
       controllers: [VideosController],
       providers: [
         { provide: AuthorizedMediaUrlService, useValue: mediaIssuer },
+        {
+          provide: IngredientCharacterFilterService,
+          useValue: characterFilterService,
+        },
         {
           provide: ModelCreditQuoteService,
           inject: [ModelsService],
@@ -714,6 +725,45 @@ describe('VideosController', () => {
       expect(aggregate.where.AND[1]?.brandId).toBe(mockUser.brandId);
       expect(result).toBeDefined();
       expect(result.data).toBeDefined();
+    });
+
+    it('narrows the list to the characters the brand can use', async () => {
+      const characterId = testId('character');
+      const resolved = { personaId: { in: [characterId] } };
+      characterFilterService.buildFilter.mockResolvedValueOnce(resolved);
+      videosService.findAll.mockResolvedValue({
+        docs: [],
+        totalDocs: 0,
+      } as unknown as AggregatePaginateResult<IngredientDocument>);
+
+      await controller.findAll(mockRequest, mockUser, {
+        ...baseQuery,
+        characters: [characterId],
+      } as VideosQueryDto);
+
+      expect(characterFilterService.buildFilter).toHaveBeenCalledWith({
+        brandId: mockUser.brandId,
+        characterIds: [characterId],
+        organizationId: mockUser.organizationId,
+      });
+      const aggregate = videosService.findAll.mock.calls[0]?.[0] as {
+        where: { AND: Array<Record<string, unknown>> };
+      };
+      expect(aggregate.where.AND).toContainEqual(resolved);
+      expect(aggregate.where.AND[0]).toEqual({
+        organizationId: mockUser.organizationId,
+      });
+    });
+
+    it('does not resolve characters when none were asked for', async () => {
+      videosService.findAll.mockResolvedValue({
+        docs: [],
+        totalDocs: 0,
+      } as unknown as AggregatePaginateResult<IngredientDocument>);
+
+      await controller.findAll(mockRequest, mockUser, baseQuery);
+
+      expect(characterFilterService.buildFilter).not.toHaveBeenCalled();
     });
 
     it('should filter by search query', async () => {

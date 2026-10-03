@@ -1,4 +1,8 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import {
+  MAX_CHARACTER_FILTER_IDS,
+  normalizeIngredientCharacterIds,
+} from '@api/helpers/dto/ingredient-characters-query.transform';
 import { normalizeIngredientOrigins } from '@api/helpers/dto/ingredient-origins-query.transform';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
@@ -10,7 +14,13 @@ import {
 } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsEnum,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class IngredientsQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -144,4 +154,21 @@ export class IngredientsQueryDto extends BaseQueryDto {
   @IsArray()
   @IsEnum(IngredientOrigin, { each: true })
   origins?: IngredientOrigin[];
+
+  @ApiProperty({
+    description:
+      'Filter by the character an asset was generated with, using repeated ' +
+      'query keys (e.g., ?characters=<id>&characters=<id>). Any-match. Only ' +
+      'characters available to the active brand are honoured; an unavailable ' +
+      'id matches nothing. Composes with every other Library filter.',
+    isArray: true,
+    required: false,
+    type: String,
+  })
+  @Transform(({ value }) => normalizeIngredientCharacterIds(value))
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_CHARACTER_FILTER_IDS)
+  @IsEntityId({ each: true })
+  characters?: string[];
 }
