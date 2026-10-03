@@ -5,6 +5,7 @@ import type {
   IBrandOsRevision,
 } from '@genfeedai/contracts/interfaces';
 import type { BrandGenerationRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import type { BrandOsGuideReadiness } from '@props/pages/brand-os-settings.props';
 import type { BrandIdentityPreviewResult } from '@services/ai/branded-generation-receipts.service';
 import {
   act,
@@ -1549,4 +1550,142 @@ describe('mounted current approved identity preview', () => {
     expect(screen.queryByText(/PRIVATE/)).not.toBeInTheDocument();
     expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
   });
+});
+
+describe('opt-in auto-save and guide readiness', () => {
+  async function renderAutoSaving(
+    onReadinessChange: (readiness: BrandOsGuideReadiness) => void = vi.fn(),
+  ) {
+    render(
+      <BrandOsSettingsCard
+        brandId="brand-1"
+        isAutoSaveEnabled
+        onReadinessChange={onReadinessChange}
+        onRefreshBrand={mocks.refresh}
+        onRevisionSaved={mocks.saved}
+      />,
+    );
+    await screen.findByLabelText('Description');
+  }
+  function settle(ms = 1800) {
+    return act(() => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  }
+
+  it('saves settled edits once through the expected-updatedAt save and never approves', async () => {
+    mocks.updateBrandOsRevision.mockImplementation(
+      async (
+        _brandId: string,
+        _id: string,
+        body: { content: IBrandKitDraft },
+      ) =>
+        revision({
+          content: body.content,
+          updatedAt: '2026-09-14T11:00:00.000Z',
+        }),
+    );
+    await renderAutoSaving();
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: 'Edited' },
+    });
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: 'Edited voice' },
+    });
+    await waitFor(
+      () => expect(mocks.updateBrandOsRevision).toHaveBeenCalledTimes(1),
+      { timeout: 4000 },
+    );
+    expect(mocks.updateBrandOsRevision).toHaveBeenCalledWith(
+      'brand-1',
+      'revision-1',
+      expect.objectContaining({
+        updatedAt: '2026-09-14T10:00:00.000Z',
+        content: expect.objectContaining({
+          fields: expect.objectContaining({
+            description: expect.objectContaining({
+              proposedValue: 'Edited voice',
+            }),
+          }),
+        }),
+      }),
+    );
+    await waitFor(() => expect(mocks.saved).toHaveBeenCalledTimes(1));
+    await settle();
+    expect(mocks.updateBrandOsRevision).toHaveBeenCalledTimes(1);
+    expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
+  });
+
+  it('never auto-saves when the card is used without the opt-in', async () => {
+    await renderSettings();
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: 'Edited voice' },
+    });
+    await settle();
+    expect(mocks.updateBrandOsRevision).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Description')).toHaveValue('Edited voice');
+  });
+
+  it('keeps edits and does not retry the same content after a rejected auto-save', async () => {
+    mocks.updateBrandOsRevision.mockRejectedValue(
+      new Error('Conflict 409: this draft changed'),
+    );
+    await renderAutoSaving();
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: 'Edited voice' },
+    });
+    expect(
+      await screen.findByRole('alert', {}, { timeout: 4000 }),
+    ).toHaveTextContent('this draft changed');
+    await settle();
+    expect(mocks.updateBrandOsRevision).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText('Description')).toHaveValue('Edited voice');
+    expect(mocks.saved).not.toHaveBeenCalled();
+  });
+
+  it('reports loaded, dirty and approved state for the selected revision', async () => {
+    const readiness = vi.fn();
+    await renderAutoSaving(readiness);
+    await waitFor(() =>
+      expect(readiness).toHaveBeenLastCalledWith({
+        isLoaded: true,
+        canManage: true,
+        isApproved: false,
+        isDirty: false,
+        isBusy: false,
+      }),
+    );
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: 'Edited voice' },
+    });
+    expect(readiness).toHaveBeenLastCalledWith(
+      expect.objectContaining({ isDirty: true, isApproved: false }),
+    );
+  });
+
+  it.each([
+    [MemberRole.OWNER, true],
+    [MemberRole.USER, false],
+  ] as const)(
+    'reports an approved selected guide for %s',
+    async (role, canManage) => {
+      mocks.role = role;
+      mocks.listBrandOsRevisions.mockResolvedValue([
+        revision({
+          status: 'APPROVED',
+          approvedAt: '2026-09-14T10:00:00.000Z',
+          approvedById: 'user-1',
+        }),
+      ]);
+      const readiness = vi.fn();
+      await renderAutoSaving(readiness);
+      await waitFor(() =>
+        expect(readiness).toHaveBeenLastCalledWith({
+          isLoaded: true,
+          canManage,
+          isApproved: true,
+          isDirty: false,
+          isBusy: false,
+        }),
+      );
+    },
+  );
 });

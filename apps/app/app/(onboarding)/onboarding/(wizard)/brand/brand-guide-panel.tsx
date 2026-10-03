@@ -2,6 +2,7 @@
 import { BrandOsRevisionStatus, ButtonVariant } from '@genfeedai/contracts';
 import BrandOsSettingsCard from '@genfeedai/pages/brands/components/brand-kit/BrandOsSettingsCard';
 import type { BrandGuidePanelProps } from '@genfeedai/props/onboarding/brand-guide.props';
+import type { BrandOsGuideReadiness } from '@genfeedai/props/pages/brand-os-settings.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
@@ -22,10 +23,31 @@ export default function BrandGuidePanel({
   const scan = useBrandGuideScan({ brandId });
   const heading = useRef<HTMLHeadingElement>(null);
   const touched = useRef(false);
+  const autoStarted = useRef(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [readiness, setReadiness] = useState<BrandOsGuideReadiness | null>(
+    null,
+  );
   useEffect(() => {
     if (scan.scan?.url && !touched.current) onWebsiteUrlChange(scan.scan.url);
   }, [scan.scan?.url, onWebsiteUrlChange]);
+  // A known website is scanned once on first arrival. A stored scan, an
+  // in-flight request, a failure or a user-edited field never auto-starts.
+  const { phase, scan: storedScan, request, error, start } = scan;
+  useEffect(() => {
+    if (
+      autoStarted.current ||
+      touched.current ||
+      phase !== 'idle' ||
+      storedScan ||
+      request ||
+      error ||
+      !websiteUrl.trim()
+    )
+      return;
+    autoStarted.current = true;
+    void start(websiteUrl);
+  }, [phase, storedScan, request, error, websiteUrl, start]);
   const status = scan.scan?.status;
   const statusKey =
     status === 'failed' && scan.scan?.errorCode === 'brand_scan.timed_out'
@@ -36,6 +58,12 @@ export default function BrandGuidePanel({
     scan.phase === 'resolving' ||
     scan.phase === 'reconcile-error';
   const active = scan.phase === 'starting' || scan.phase === 'observing';
+  const canContinue = Boolean(
+    readiness?.isLoaded &&
+      !readiness.isBusy &&
+      !readiness.isDirty &&
+      (readiness.isApproved || !readiness.canManage),
+  );
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-semibold">{t('scan.title')}</h1>
@@ -54,7 +82,7 @@ export default function BrandGuidePanel({
       />
       <div className="flex flex-wrap gap-2">
         <Button
-          label={t('scan.rescan')}
+          label={t(scan.scan ? 'scan.rescan' : 'scan.start')}
           isDisabled={
             isExiting ||
             active ||
@@ -106,6 +134,8 @@ export default function BrandGuidePanel({
           key={brandId}
           brandId={brandId}
           refreshKey={scan.refreshKey}
+          isAutoSaveEnabled
+          onReadinessChange={setReadiness}
           onRefreshBrand={onRefreshBrand}
           onRevisionSaved={(revision) =>
             setNotice(
@@ -119,12 +149,15 @@ export default function BrandGuidePanel({
         />
       </section>
       {errorMessage && <p role="alert">{errorMessage}</p>}
+      {readiness?.isLoaded && readiness.canManage && !canContinue && (
+        <p>{t('review.approveToContinue')}</p>
+      )}
       <p>{t('preview.connectionOptional')}</p>
       <div className="flex flex-wrap gap-2">
         <Button
           label={t('actions.continue')}
           data-brand-os-navigation={brandId}
-          isDisabled={isExiting}
+          isDisabled={isExiting || !canContinue}
           onClick={onContinue}
         />
         <Button

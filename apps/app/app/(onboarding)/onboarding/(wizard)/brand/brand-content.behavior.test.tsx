@@ -300,9 +300,23 @@ async function show() {
   await screen.findByLabelText('Description');
   return view;
 }
-function assertNoAutomaticWrites() {
+function approvedGuide() {
+  mocks.listBrandOsRevisions.mockResolvedValue([
+    revision({
+      status: 'APPROVED',
+      approvedAt: '2026-10-01T00:00:00Z',
+      approvedById: 'user-1',
+    }),
+  ]);
+}
+async function enabledContinue() {
+  const button = screen.getByRole('button', { name: 'Continue' });
+  await waitFor(() => expect(button).toBeEnabled());
+  return button;
+}
+function assertNoAutomaticWrites({ isScanAllowed = false } = {}) {
+  if (!isScanAllowed) expect(mocks.startBrandOsScan).not.toHaveBeenCalled();
   for (const fn of [
-    mocks.startBrandOsScan,
     mocks.rename,
     mocks.scrape,
     mocks.starter,
@@ -323,7 +337,7 @@ beforeEach(() => {
   mocks.search = new URLSearchParams();
   mocks.user = {
     id: 'user-1',
-    email: 'owner@acme.com',
+    email: 'owner@gmail.com',
     onboardingStepsCompleted: [],
   };
   mocks.userLoading = false;
@@ -371,29 +385,55 @@ describe('membership-scoped saved guide wizard', () => {
     ['owner@acme.com', 'https://acme.com'],
     ['owner@gmail.com', ''],
   ] as const)(
-    'suggests website for %s with no automatic writes',
+    'suggests website for %s and scans only a known website, once',
     async (email, url) => {
       mocks.user.email = email;
+      mocks.startBrandOsScan.mockResolvedValue(marker({ url }));
       await show();
       expect(screen.getByLabelText('Website URL')).toHaveValue(url);
-      assertNoAutomaticWrites();
+      if (url)
+        await waitFor(() =>
+          expect(mocks.startBrandOsScan).toHaveBeenCalledExactlyOnceWith(
+            'brand-1',
+            { url, requestId: expect.any(String) },
+            expect.any(AbortSignal),
+          ),
+        );
+      await waitFor(() =>
+        expect(mocks.listBrandOsRevisions).toHaveBeenCalledTimes(url ? 2 : 1),
+      );
+      expect(mocks.startBrandOsScan).toHaveBeenCalledTimes(url ? 1 : 0);
+      assertNoAutomaticWrites({ isScanAllowed: true });
       expect(
         screen.getByText("Connect publishing accounts when you're ready."),
       ).toBeInTheDocument();
       expect(screen.queryByText('Your first content')).not.toBeInTheDocument();
     },
   );
-  it('uses query/stored domain only as a suggestion and never changes selected account type', async () => {
-    mocks.user.email = 'owner@gmail.com';
+  it('scans the query/stored domain suggestion and never changes selected account type', async () => {
     mocks.search.set('brandDomain', 'suggested.example');
     mocks.search.set('accountType', 'CREATOR');
     localStorage.setItem('gf_onboarding_account_type', 'CREATOR');
+    mocks.startBrandOsScan.mockResolvedValue(
+      marker({ url: 'https://suggested.example' }),
+    );
+    approvedGuide();
     await show();
     expect(screen.getByLabelText('Website URL')).toHaveValue(
       'https://suggested.example',
     );
-    assertNoAutomaticWrites();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await waitFor(() =>
+      expect(mocks.startBrandOsScan).toHaveBeenCalledExactlyOnceWith(
+        'brand-1',
+        { url: 'https://suggested.example', requestId: expect.any(String) },
+        expect.any(AbortSignal),
+      ),
+    );
+    await waitFor(() =>
+      expect(mocks.listBrandOsRevisions).toHaveBeenCalledTimes(2),
+    );
+    assertNoAutomaticWrites({ isScanAllowed: true });
+    fireEvent.click(await enabledContinue());
     await waitFor(() =>
       expect(mocks.push).toHaveBeenCalledExactlyOnceWith(
         '/onboarding/positioning',
@@ -421,6 +461,9 @@ describe('membership-scoped saved guide wizard', () => {
   it('explicitly scans trimmed input while retaining dirty saved-guide corrections', async () => {
     const pending = deferred<IBrandOnboardingScan>();
     mocks.startBrandOsScan.mockReturnValue(pending.promise);
+    mocks.updateBrandOsRevision.mockReturnValue(
+      deferred<IBrandOsRevision>().promise,
+    );
     await show();
     fireEvent.change(screen.getByLabelText('Description'), {
       target: { value: 'Unsaved correction' },
@@ -428,7 +471,7 @@ describe('membership-scoped saved guide wizard', () => {
     fireEvent.change(screen.getByLabelText('Website URL'), {
       target: { value: '  example.com:443/path  ' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Scan website again' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Scan website' }));
     await waitFor(() =>
       expect(mocks.startBrandOsScan).toHaveBeenCalledWith(
         'brand-1',
@@ -450,10 +493,8 @@ describe('membership-scoped saved guide wizard', () => {
     expect(screen.getByLabelText('Description')).toHaveValue(
       'Unsaved correction',
     );
-    expect(mocks.updateBrandOsRevision).not.toHaveBeenCalled();
   });
   it('allows manual review without a URL, then real-card save and separate approval notices', async () => {
-    mocks.user.email = 'owner@gmail.com';
     await show();
     fireEvent.click(
       screen.getByRole('button', { name: 'Add details manually' }),
@@ -497,9 +538,7 @@ describe('membership-scoped saved guide wizard', () => {
         name: 'Review and approve your brand guide',
       }),
     ).toHaveFocus();
-    expect(
-      screen.getByRole('button', { name: 'Scan website again' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Scan website' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Try scanning again' }));
     await waitFor(() => expect(mocks.getBrandOsScan).toHaveBeenCalledTimes(2));
     expect(mocks.startBrandOsScan).not.toHaveBeenCalled();
@@ -635,43 +674,81 @@ describe('membership-scoped saved guide wizard', () => {
       isOnboardingCompleted: true,
     });
   });
-  it.each(['Continue', 'Skip for now'] as const)(
-    'dirty cancel stops real %s gate dispatch before the handler',
-    async (name) => {
-      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
-      await show();
-      fireEvent.change(screen.getByLabelText('Description'), {
-        target: { value: 'Unsaved' },
-      });
-      fireEvent.click(screen.getByRole('button', { name }));
-      expect(confirm).toHaveBeenCalledTimes(1);
-      expect(mocks.getToken).not.toHaveBeenCalled();
-      expect(mocks.updateOnboarding).not.toHaveBeenCalled();
-      expect(mocks.patchSettings).not.toHaveBeenCalled();
-      expect(mocks.patchMe).not.toHaveBeenCalled();
-    },
-  );
-  it('accepted dirty Continue completes once without an implicit save or approval', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('dirty cancel stops the real Skip gate dispatch before the handler and keeps Continue closed', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    approvedGuide();
     await show();
+    await enabledContinue();
     fireEvent.change(screen.getByLabelText('Description'), {
       target: { value: 'Unsaved' },
     });
-    const button = screen.getByRole('button', {
-      name: 'Continue',
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(mocks.getToken).not.toHaveBeenCalled();
+    expect(mocks.updateOnboarding).not.toHaveBeenCalled();
+    expect(mocks.patchSettings).not.toHaveBeenCalled();
+    expect(mocks.patchMe).not.toHaveBeenCalled();
+  });
+  it('auto-saves corrections and unlocks Continue only after explicit approval', async () => {
+    await show();
+    const button = screen.getByRole('button', { name: 'Continue' });
+    await screen.findByText(
+      'Approve your brand guide to continue, or skip for now.',
+    );
+    expect(button).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: 'Auto-saved correction' },
     });
+    expect(button).toBeDisabled();
+    await waitFor(
+      () => expect(mocks.updateBrandOsRevision).toHaveBeenCalledTimes(1),
+      { timeout: 4000 },
+    );
+    expect(mocks.updateBrandOsRevision).toHaveBeenCalledWith(
+      'brand-1',
+      'revision-1',
+      expect.objectContaining({
+        updatedAt: '2026-10-01T00:00:00Z',
+        content: expect.objectContaining({
+          fields: expect.objectContaining({
+            description: expect.objectContaining({
+              proposedValue: 'Auto-saved correction',
+            }),
+          }),
+        }),
+      }),
+    );
+    await screen.findByText('Your brand guide has been saved.');
+    expect(button).toBeDisabled();
+    expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
+    await screen.findByText('Your brand guide is approved.');
+    await waitFor(() => expect(button).toBeEnabled());
     fireEvent.click(button);
     fireEvent.click(button);
     await waitFor(() =>
       expect(mocks.updateOnboarding).toHaveBeenCalledTimes(1),
     );
-    expect(mocks.updateBrandOsRevision).not.toHaveBeenCalled();
-    expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
+    expect(mocks.updateBrandOsRevision).toHaveBeenCalledTimes(1);
+    expect(mocks.approveBrandOsRevision).toHaveBeenCalledExactlyOnceWith(
+      'brand-1',
+      'revision-1',
+      '2026-10-01T00:01:00Z',
+    );
+  }, 10000);
+  it('shows a loading status instead of a blank step while scope resolves', async () => {
+    mocks.scope.isBrandScopeResolved = false;
+    render(tree());
+    expect(
+      await screen.findByRole('status', { name: 'Setting up your workspace' }),
+    ).toBeInTheDocument();
   });
   it.each(['auth', 'update', 'refetch'] as const)(
     'switch away and back fences Continue at actual shared %s boundary',
     async (stage) => {
       const gate = deferred<void>();
+      approvedGuide();
       const view = await show();
       if (stage === 'auth')
         mocks.getToken.mockReturnValueOnce(gate.promise.then(() => 'token'));
@@ -679,7 +756,7 @@ describe('membership-scoped saved guide wizard', () => {
         mocks.updateOnboarding.mockReturnValueOnce(gate.promise);
       if (stage === 'refetch')
         mocks.refetchUser.mockReturnValueOnce(gate.promise);
-      fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+      fireEvent.click(await enabledContinue());
       await waitFor(() =>
         expect(
           stage === 'auth'
@@ -707,9 +784,10 @@ describe('membership-scoped saved guide wizard', () => {
   );
   it('unmount suppresses navigation after an already-started user-wide progress update', async () => {
     const gate = deferred<void>();
+    approvedGuide();
     const view = await show();
     mocks.updateOnboarding.mockReturnValueOnce(gate.promise);
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(await enabledContinue());
     await waitFor(() =>
       expect(mocks.updateOnboarding).toHaveBeenCalledTimes(1),
     );

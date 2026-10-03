@@ -21,6 +21,7 @@ import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { UsersService } from '@services/organization/users.service';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
@@ -191,7 +192,8 @@ function BrandContentContent() {
     },
     [brandId],
   );
-  if (!context.isBrandScopeResolved || isLoading) return null;
+  if (!context.isBrandScopeResolved || isLoading)
+    return <Spinner ariaLabel={t('loading.title')} />;
   if (!scope)
     return (
       <div className="space-y-4">
