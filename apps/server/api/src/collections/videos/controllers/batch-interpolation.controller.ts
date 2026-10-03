@@ -199,27 +199,7 @@ export class BatchInterpolationController {
       );
     }
 
-    // Build pairs array - add loop pair if isLoopMode is enabled
-    const pairs: InterpolationPairDto[] = [...dto.pairs];
-
-    if (dto.isLoopMode && pairs.length >= 2) {
-      // Get the last frame's endImageId and first frame's startImageId
-      const lastPair = pairs[pairs.length - 1];
-      const firstPair = pairs[0];
-
-      // Add loop-back pair: last frame's end to first frame's start.
-      pairs.push({
-        endImageId: firstPair.startImageId,
-        prompt: dto.cameraPrompt || 'smooth transition back to start',
-        startImageId: lastPair.endImageId,
-      });
-
-      this.loggerService.log('Added loop-back pair for seamless loop', {
-        loopPairEnd: firstPair.startImageId,
-        loopPairStart: lastPair.endImageId,
-        totalPairs: pairs.length,
-      });
-    }
+    const pairs = this.buildPairs(dto);
 
     // A character the brand can no longer use is refused before credits are
     // touched or any output exists (#6040).
@@ -293,6 +273,31 @@ export class BatchInterpolationController {
     };
 
     return serializeSingle(req, BatchInterpolationSerializer, result);
+  }
+
+  /** The requested pairs, plus the loop-back pair when loop mode is on. */
+  private buildPairs(dto: BatchInterpolationDto): InterpolationPairDto[] {
+    const pairs: InterpolationPairDto[] = [...dto.pairs];
+
+    if (dto.isLoopMode && pairs.length >= 2) {
+      const lastPair = pairs[pairs.length - 1];
+      const firstPair = pairs[0];
+
+      // Last frame's end to first frame's start closes the loop.
+      pairs.push({
+        endImageId: firstPair.startImageId,
+        prompt: dto.cameraPrompt || 'smooth transition back to start',
+        startImageId: lastPair.endImageId,
+      });
+
+      this.loggerService.log('Added loop-back pair for seamless loop', {
+        loopPairEnd: firstPair.startImageId,
+        loopPairStart: lastPair.endImageId,
+        totalPairs: pairs.length,
+      });
+    }
+
+    return pairs;
   }
 
   private resolveDuration(duration?: number): number {

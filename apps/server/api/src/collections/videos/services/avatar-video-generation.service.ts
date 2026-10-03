@@ -19,7 +19,6 @@ import { type GenerationBillingRequest } from '@api/collections/credits/services
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
 import { AvatarVideoReferenceService } from '@api/collections/videos/services/avatar-video-reference.service';
 import { isMaterializableSavedVoice } from '@api/collections/videos/services/saved-voice-materialization';
@@ -71,7 +70,6 @@ export class AvatarVideoGenerationService {
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
     private readonly orgSettingsService: OrganizationSettingsService,
-    private readonly personasService: PersonasService,
     private readonly sharedService: SharedService,
     private readonly videosService: VideosService,
     private readonly voicesService: VoicesService,
@@ -99,22 +97,16 @@ export class AvatarVideoGenerationService {
    * The photo an avatar renders from may be a character's reference image.
    * A character the brand can no longer use is refused before funding (#6040).
    */
-  private async admitCharacter(
+  private admitCharacter(
     identity: ResolvedIdentity,
     brandId: string,
     context: AvatarVideoGenerationContext,
   ): Promise<string | null> {
-    const { personaId } = await this.personasService.resolveCharacterReferences(
-      {
-        brandId,
-        ingredientIds: identity.photoIngredientId
-          ? [identity.photoIngredientId]
-          : [],
-        organizationId: context.organizationId,
-        path: 'avatar-video',
-      },
+    return this.referenceService.admitCharacter(
+      identity.photoIngredientId,
+      brandId,
+      context.organizationId,
     );
-    return personaId;
   }
 
   /** Pin provider keys before reserving, so a BYOK change cannot change who pays. */

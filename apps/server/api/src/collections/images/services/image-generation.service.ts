@@ -262,7 +262,6 @@ export class ImageGenerationService {
       promptOriginalText,
       editing,
     );
-
     const {
       brandPromptBranding,
       promptBuilderBrand,
@@ -277,7 +276,6 @@ export class ImageGenerationService {
       organizationId: user.organizationId,
       model,
     });
-
     const compiledBrief = editing
       ? {
           evidence: undefined,

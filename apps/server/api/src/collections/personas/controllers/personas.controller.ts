@@ -7,6 +7,7 @@ import { MoveCharacterOwnershipDto } from '@api/collections/personas/dto/move-ch
 import { PersonasQueryDto } from '@api/collections/personas/dto/personas-query.dto';
 import { UpdatePersonaDto } from '@api/collections/personas/dto/update-persona.dto';
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
+import { CharacterOwnershipService } from '@api/collections/personas/services/character-ownership.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import {
   brandAvailabilityWhere,
@@ -84,6 +85,7 @@ export class PersonasController extends BaseCRUDController<
   constructor(
     public readonly personasService: PersonasService,
     public readonly loggerService: LoggerService,
+    private readonly ownershipService: CharacterOwnershipService,
   ) {
     super(loggerService, personasService, PersonaSerializer, 'Persona', [
       'user',
@@ -242,7 +244,7 @@ export class PersonasController extends BaseCRUDController<
     @Body() body: MoveCharacterOwnershipDto,
   ): Promise<JsonApiSingleResponse> {
     const personaId = EntityIdUtil.validate(id, 'personaId');
-    const persona = await this.personasService.moveOwnership({
+    const persona = await this.ownershipService.moveOwnership({
       actorUserId: user.userId ?? user.id,
       apiKeyContext: user,
       brandId: user.brandId,

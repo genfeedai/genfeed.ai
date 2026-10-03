@@ -169,7 +169,6 @@ describe('AvatarVideoGenerationService', () => {
       loggerService,
       metadataService as never,
       orgSettingsService as never,
-      personas,
       sharedService as never,
       videosService as never,
       voicesService as never,
@@ -180,6 +179,7 @@ describe('AvatarVideoGenerationService', () => {
         mediaIssuer as never,
         byokService as never,
         heygenService as never,
+        personas,
       ),
     );
 
