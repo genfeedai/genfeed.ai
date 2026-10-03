@@ -67,6 +67,7 @@ import { ScheduledPostProviderAttempts } from '@workers/services/scheduled-post-
 import {
   type ProviderPublishAttempt,
   type ProviderPublishAttemptRef,
+  ProviderPublishAttemptUnavailableError,
   ProviderPublishInFlightError,
   ProviderPublishPersistenceError,
 } from '@workers/services/scheduled-post-provider-receipt.util';
@@ -173,9 +174,10 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       try {
         attempt = await this.attempts.reserve(post, workflowExecutionId);
       } catch (error: unknown) {
+        // Without the receipt state an accepted publish could be failed or
+        // retried: never record an outcome before it is known.
         if (error instanceof ProviderPublishInFlightError) throw error;
-        // Nothing reached the provider, so the normal retry path is safe.
-        return await this.handlePublishError(post, error, workflowExecutionId);
+        throw new ProviderPublishAttemptUnavailableError(post.id.toString(), error);
       }
       if (attempt.kind === 'in_flight') {
         throw new ProviderPublishInFlightError(post.id.toString());
@@ -202,7 +204,8 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     } catch (error: unknown) {
       if (
         error instanceof ProviderPublishPersistenceError ||
-        error instanceof ProviderPublishInFlightError
+        error instanceof ProviderPublishInFlightError ||
+        error instanceof ProviderPublishAttemptUnavailableError
       )
         throw error;
       return await this.handlePublishError(post, error);
@@ -329,9 +332,21 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         url,
       );
     } catch (error: unknown) {
-      // Still before the provider call: free the reservation for a retry.
-      await release(createFailedPublishResult('', getErrorMessage(error)));
-      throw error;
+      if (
+        error instanceof ProviderPublishInFlightError ||
+        error instanceof ProviderPublishPersistenceError
+      )
+        throw error;
+      // An unheld (unconfirmed) occurrence may already be published.
+      if (!held)
+        throw new ProviderPublishAttemptUnavailableError(post.id.toString(), error);
+      // Before the provider call: record the error while still holding the
+      // occurrence, then free it, so no delivery can publish in between.
+      try {
+        return await this.handlePublishError(post, error);
+      } finally {
+        await release(createFailedPublishResult('', getErrorMessage(error)));
+      }
     }
   }
 
@@ -346,23 +361,8 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
     // Hold the occurrence while failing it, so no delivery can reserve it and
     // reach the provider between this check and the FAILED write.
-    const attempt = await this.attempts.holdForTerminalFailure(post);
-    if (attempt.kind === 'replay' || attempt.kind === 'in_flight') {
-      // The provider accepted this occurrence, or another delivery is
-      // publishing it: keep the target PUBLISHING for replay, never FAILED.
-      this.logger.warn('Kept provider publish attempt for replay', {
-        attempt: attempt.kind,
-        error: errorMessage,
-        postId: post.id,
-        receiptId: attempt.receiptId,
-      });
-      return attempt.kind === 'replay'
-        ? { ...attempt.result, executionState: TargetExecutionState.PUBLISHING }
-        : {
-            ...createFailedPublishResult('', errorMessage),
-            executionState: TargetExecutionState.PUBLISHING,
-          };
-    }
+    const hold = await this.attempts.holdForTerminalFailure(post, errorMessage);
+    if (hold.kind === 'kept') return hold.result;
 
     this.logger.error('Durable validation rejected queued publishing', {
       error: errorMessage,
@@ -376,14 +376,12 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         'publish_validation_failed',
       );
     } finally {
-      if (attempt.kind === 'publish') {
-        await this.attempts.settle(
-          post,
-          attempt,
-          'released',
-          `${this.constructorName} failTerminalValidation`,
-        );
-      }
+      await this.attempts.settle(
+        post,
+        hold.attempt,
+        'released',
+        `${this.constructorName} failTerminalValidation`,
+      );
     }
     this.emitPublishFailedWebhook(post, errorMessage);
 

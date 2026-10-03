@@ -595,9 +595,65 @@ describe('ScheduledPostDeliveryService', () => {
       new Error('database unavailable'),
     );
 
+    await expect(
+      executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep'),
+    ).rejects.toThrow('Provider publish attempt state is unavailable.');
+
+    expect(publish).not.toHaveBeenCalled();
+    const states =
+      mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+        (call) => call[1].executionState,
+      );
+    expect(states).toEqual([TargetExecutionState.PUBLISHING]);
+  });
+
+  it('never fails or retries an occurrence whose receipt lookup fails', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockRejectedValueOnce(
+      new Error('receipt store unavailable'),
+    );
+
+    await expect(
+      executeDelivery(
+        mocks,
+        createScheduledPost({ retryCount: 3 }),
+        'scheduled_sweep',
+      ),
+    ).rejects.toThrow('Provider publish attempt state is unavailable.');
+
+    expect(publish).not.toHaveBeenCalled();
+    const states =
+      mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+        (call) => call[1].executionState,
+      );
+    expect(states).not.toContain(TargetExecutionState.FAILED);
+    expect(states).not.toContain(TargetExecutionState.SCHEDULED);
+  });
+
+  it('records a thrown gate error before releasing the held reservation', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.quotaService.checkQuota.mockRejectedValue(
+      new Error('quota store exploded'),
+    );
+
     await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
 
     expect(publish).not.toHaveBeenCalled();
+    const transitions =
+      mocks.schedulerPublishStateService.transitionPost.mock;
+    const failureWrite = transitions.calls.findIndex(
+      (call) => call[1].executionState !== TargetExecutionState.PUBLISHING,
+    );
+    expect(failureWrite).toBeGreaterThan(-1);
+    const receipts = mocks.prisma.postProviderPublishReceipt;
+    const releaseCall = receipts.updateMany.mock.calls.findIndex(
+      ([args]: [{ data: { status?: string } }]) =>
+        args.data.status === 'released',
+    );
+    expect(releaseCall).toBeGreaterThan(-1);
+    expect(transitions.invocationCallOrder[failureWrite]).toBeLessThan(
+      receipts.updateMany.mock.invocationCallOrder[releaseCall],
+    );
   });
 
   it('never reschedules a provider-accepted publish whose state transition fails', async () => {
@@ -1091,6 +1147,23 @@ describe('ScheduledPostDeliveryService', () => {
     expect(receipts.updateMany.mock.invocationCallOrder[0]).toBeGreaterThan(
       failedWrite,
     );
+  });
+
+  it('keeps an unconfirmed occurrence publishing when the workflow fails', async () => {
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ status: 'uncertain' }),
+    );
+
+    const result = await service.failTerminalValidation(
+      createScheduledPost() as never,
+      new Error('workflow failed'),
+    );
+
+    expect(result.executionState).toBe(TargetExecutionState.PUBLISHING);
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).not.toHaveBeenCalled();
+    expect(mocks.prisma.postProviderPublishReceipt.updateMany).not.toHaveBeenCalled();
   });
 
   it('keeps a provider-accepted occurrence publishing when the workflow fails', async () => {

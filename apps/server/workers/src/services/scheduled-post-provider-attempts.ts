@@ -2,7 +2,9 @@ import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PublishResult } from '@api/index';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PrismaService } from '@libs/prisma/prisma.service';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
+import { createFailedPublishResult } from '@workers/crons/posts/post-publish-error.util';
 import type { PreparedPostDelivery } from '@workers/services/scheduled-post-delivery.types';
 import {
   acceptProviderPublishAttempt,
@@ -13,6 +15,7 @@ import {
   PROVIDER_PUBLISH_LEASE_RENEWAL_MS,
   type ProviderPublishAttempt,
   type ProviderPublishAttemptRef,
+  type ProviderPublishAttemptState,
   ProviderPublishInFlightError,
   releaseProviderPublishAttempt,
   renewProviderPublishAttempt,
@@ -21,6 +24,10 @@ import {
 
 /** Receipt owner recorded while a terminal failure holds the occurrence. */
 const TERMINAL_VALIDATION_EXECUTION_ID = 'terminal-validation';
+
+export type TerminalFailureHold =
+  | { kind: 'held'; attempt: ProviderPublishAttemptRef }
+  | { kind: 'kept'; result: PublishResult };
 
 /**
  * Provider-attempt lifecycle of a scheduled delivery, on top of the receipt
@@ -46,21 +53,44 @@ export class ScheduledPostProviderAttempts {
 
   /**
    * Hold the occurrence while a terminal failure is written, so no delivery
-   * can reserve it and reach the provider in between. An accepted or live
-   * attempt is returned instead, and the target must stay PUBLISHING.
+   * can reserve it and reach the provider in between. An occurrence that is
+   * accepted, in flight elsewhere or never confirmed may already be published:
+   * it is kept PUBLISHING instead, never failed.
    */
   async holdForTerminalFailure(
     post: PostEntity,
-  ): Promise<ProviderPublishAttempt> {
+    errorMessage: string,
+  ): Promise<TerminalFailureHold> {
+    let attempt: ProviderPublishAttempt | ProviderPublishAttemptState;
     try {
-      return await this.reserve(post, TERMINAL_VALIDATION_EXECUTION_ID);
+      attempt = await this.reserve(post, TERMINAL_VALIDATION_EXECUTION_ID);
     } catch (error: unknown) {
       if (!(error instanceof ProviderPublishInFlightError)) throw error;
-      const observed = await inspectProviderPublishAttempt(this.prisma, post);
-      if (observed.kind !== 'replay' && observed.kind !== 'in_flight')
-        throw error;
-      return observed;
+      attempt = await inspectProviderPublishAttempt(this.prisma, post);
+      if (attempt.kind === 'none' || attempt.kind === 'released') throw error;
     }
+    if (attempt.kind === 'publish') return { kind: 'held', attempt };
+    if (attempt.kind === 'none' || attempt.kind === 'released')
+      throw new ProviderPublishInFlightError(String(post.id));
+    this.logger.warn('Kept provider publish attempt for replay', {
+      attempt: attempt.kind,
+      error: errorMessage,
+      postId: post.id,
+      receiptId: attempt.receiptId,
+    });
+    return {
+      kind: 'kept',
+      result:
+        attempt.kind === 'replay'
+          ? {
+              ...attempt.result,
+              executionState: TargetExecutionState.PUBLISHING,
+            }
+          : {
+              ...createFailedPublishResult('', errorMessage),
+              executionState: TargetExecutionState.PUBLISHING,
+            },
+    };
   }
 
   /**

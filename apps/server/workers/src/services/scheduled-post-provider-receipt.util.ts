@@ -68,6 +68,20 @@ export class ProviderPublishPersistenceError extends Error {
   }
 }
 
+/**
+ * The occurrence's attempt state could not be read or held. It may already be
+ * published, so the target is neither failed nor retried until it can be.
+ */
+export class ProviderPublishAttemptUnavailableError extends Error {
+  constructor(
+    readonly postId: string,
+    cause: unknown,
+  ) {
+    super('Provider publish attempt state is unavailable.', { cause });
+    this.name = 'ProviderPublishAttemptUnavailableError';
+  }
+}
+
 /** Another delivery holds a live provider attempt for this occurrence. */
 export class ProviderPublishInFlightError extends Error {
   constructor(readonly postId: string) {
