@@ -282,7 +282,7 @@ export class AgentWorkspaceToolHandler {
     });
     const assets = await this.ingredientsService.listLibraryAssets({
       ...(brandId ? { brandId } : {}),
-      characterFilter,
+      ...(characterIds ? { characterFilter } : {}),
       category: ASSET_TYPE_CATEGORY[type],
       limit: clampInteger(params.limit, 10, 1, 50),
       offset: clampInteger(params.offset, 0, 0, Number.MAX_SAFE_INTEGER),
