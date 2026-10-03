@@ -155,6 +155,12 @@ function readVariationsCount(
 /** Flat charge for one social or newsletter draft (catalog `generate_content`). */
 const TEXT_GENERATION_CREDITS = 2;
 
+const EMPTY_TEXT_GENERATION_RESULT: AgentToolResult = {
+  creditsUsed: 0,
+  error: 'Content generation returned no draft. No credits were charged.',
+  success: false,
+};
+
 const INSUFFICIENT_TEXT_CREDITS_RESULT: AgentToolResult = {
   creditsUsed: 0,
   error: 'Not enough credits to generate content.',
@@ -319,13 +325,16 @@ export class AgentMediaTextGenerationService {
       organizationId: ctx.organizationId,
       userId: ctx.userId,
     });
+    const newsletterId = readOptionalString(newsletter.id);
+    const content = readOptionalString(newsletter.content) ?? '';
+    if (!content.trim()) {
+      return EMPTY_TEXT_GENERATION_RESULT;
+    }
     await this.chargeTextGeneration(
       ctx,
       brandId,
       'Agent tool: generate_content (newsletter)',
     );
-    const newsletterId = readOptionalString(newsletter.id);
-    const content = readOptionalString(newsletter.content) ?? '';
     const subject =
       readOptionalString(newsletter.label) ??
       readOptionalString(newsletter.topic) ??
@@ -493,12 +502,17 @@ export class AgentMediaTextGenerationService {
         variationsCount,
       } satisfies GenerateContentDto,
     );
+    const generated = results[0];
+    // The generator swallows LLM failures and returns no results; never bill
+    // a call that produced no draft.
+    if (!generated?.content?.trim()) {
+      return EMPTY_TEXT_GENERATION_RESULT;
+    }
     await this.chargeTextGeneration(
       ctx,
       String(brand.id),
       `Agent tool: generate_content (${normalizedType})`,
     );
-    const generated = results[0];
     const threadSegments =
       normalizedType === 'thread' && generated?.content
         ? splitThreadSegments(generated.content)
