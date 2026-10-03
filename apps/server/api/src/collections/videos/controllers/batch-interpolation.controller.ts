@@ -37,6 +37,7 @@ import {
   ActivitySource,
   IngredientCategory,
   IngredientFormat,
+  IngredientOrigin,
   IngredientStatus,
   MemberRole,
   MetadataExtension,
