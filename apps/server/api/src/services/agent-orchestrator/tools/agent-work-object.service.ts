@@ -746,11 +746,9 @@ export class AgentWorkObjectService {
     return true;
   }
 
-  async assertReady(
-    context: ToolExecutionContext,
-    toolName = 'generate_image',
-  ) {
+  async assertReady(context: ToolExecutionContext, toolName = 'generate') {
     if (
+      toolName !== 'generate' &&
       !toolName.startsWith('generate_') &&
       toolName !== 'execute_workflow' &&
       toolName !== 'replicate_top_ingredient'

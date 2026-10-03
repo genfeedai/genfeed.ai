@@ -1,9 +1,16 @@
-import type { CuratedActionName } from '@genfeedai/actions';
+import {
+  type CuratedActionName,
+  isMediaGenerationType,
+  MEDIA_GENERATION_TOOL_NAME,
+  type MediaGenerationType,
+  type VisualMediaGenerationType,
+} from '@genfeedai/actions';
 import {
   AgentGenerationMode,
   isExplicitAgentMediaGenerationMode,
 } from '@genfeedai/contracts';
 
+/** Per-kind visual names models still emit; recovered onto `generate`. */
 const DIRECT_VISUAL_GENERATION_TOOLS = new Set<string>([
   'generate_as_identity',
   'generate_image',
@@ -20,7 +27,7 @@ const NON_MEDIA_GENERATE_TOOLS = new Set<string>([
 ]);
 
 /**
- * Gemini/OpenAI-compat vendors prefix tool names (`default_api.generate_image`).
+ * Gemini/OpenAI-compat vendors prefix tool names (`default_api.generate`).
  * The last dotted segment is the catalog name we actually dispatch.
  */
 export function normalizeRequestedAgentToolName(toolName: string): string {
@@ -132,57 +139,89 @@ export function inferPrepareGenerationType(
 interface GenerationRedirectOptions {
   generationMode?: AgentGenerationMode | string;
   requestedGenerationType?: unknown;
+  /** `type` of a canonical `generate` call. */
+  requestedMediaType?: unknown;
 }
 
-function resolveVisualGenerationType(
+export interface GenerationRedirect {
+  toolName: CuratedActionName;
+  /** `type` to set when the redirect lands on `generate`. */
+  mediaType?: MediaGenerationType;
+}
+
+function toVisualMediaType(
+  mode: AgentGenerationMode.IMAGE | AgentGenerationMode.VIDEO,
+): VisualMediaGenerationType {
+  return mode === AgentGenerationMode.VIDEO ? 'video' : 'image';
+}
+
+export function resolveVisualGenerationType(
   toolName: string,
   options: GenerationRedirectOptions,
-): AgentGenerationMode.IMAGE | AgentGenerationMode.VIDEO | undefined {
+): VisualMediaGenerationType | undefined {
   if (isExplicitAgentMediaGenerationMode(options.generationMode)) {
-    return options.generationMode;
+    return toVisualMediaType(options.generationMode);
   }
   if (
     typeof options.requestedGenerationType === 'string' &&
     isExplicitAgentMediaGenerationMode(options.requestedGenerationType)
   ) {
-    return options.requestedGenerationType;
+    return toVisualMediaType(options.requestedGenerationType);
   }
-  return inferPrepareGenerationType(toolName);
+  const inferred = inferPrepareGenerationType(toolName);
+  return inferred ? toVisualMediaType(inferred) : undefined;
 }
 
 /**
  * The composer owns media review and settings now, so visual generation is a
- * direct action. Recover both prepare calls and vendor-prefixed direct calls to
- * the concrete executor tool while retaining voice clone's confirmation flow.
+ * direct `generate` call. Recover prepare calls, vendor-prefixed calls, and
+ * per-kind names models still emit (`generate_image`, `txt2video`) onto
+ * `generate` with the matching `type`, and keep voice on the voice-clone
+ * confirmation flow. An explicit composer mode wins over the model's type.
  */
 export function getGenerationPreparationRedirect(
   toolName: string,
   allowedTools: Set<CuratedActionName>,
   options: GenerationRedirectOptions = {},
-): CuratedActionName | null {
+): GenerationRedirect | null {
   const normalized = normalizeRequestedAgentToolName(toolName);
-  const isPrepareVisual = normalized === 'prepare_generation';
   const hasVisualGenerationSurface =
     allowedTools.has('prepare_generation') ||
-    allowedTools.has('generate_image') ||
-    allowedTools.has('generate_video');
+    allowedTools.has(MEDIA_GENERATION_TOOL_NAME);
+
+  if (normalized === MEDIA_GENERATION_TOOL_NAME) {
+    const requested = isMediaGenerationType(options.requestedMediaType)
+      ? options.requestedMediaType
+      : undefined;
+    if (requested === 'voice' && allowedTools.has('prepare_voice_clone')) {
+      return { toolName: 'prepare_voice_clone' };
+    }
+    if (
+      (requested === 'image' || requested === 'video') &&
+      hasVisualGenerationSurface
+    ) {
+      const resolved = isExplicitAgentMediaGenerationMode(
+        options.generationMode,
+      )
+        ? toVisualMediaType(options.generationMode)
+        : requested;
+      if (
+        resolved !== requested ||
+        !allowedTools.has(MEDIA_GENERATION_TOOL_NAME)
+      ) {
+        return { mediaType: resolved, toolName: MEDIA_GENERATION_TOOL_NAME };
+      }
+    }
+    return null;
+  }
 
   if (
     hasVisualGenerationSurface &&
-    (isPrepareVisual || isVisualGenerateLike(normalized))
+    (normalized === 'prepare_generation' || isVisualGenerateLike(normalized))
   ) {
-    const generationType = resolveVisualGenerationType(normalized, options);
-    const directTool =
-      generationType === AgentGenerationMode.VIDEO
-        ? 'generate_video'
-        : generationType === AgentGenerationMode.IMAGE
-          ? 'generate_image'
-          : null;
-    if (
-      directTool &&
-      (directTool !== normalized || !allowedTools.has(directTool))
-    ) {
-      return directTool;
+    const mediaType = resolveVisualGenerationType(normalized, options);
+    if (mediaType) {
+      return { mediaType, toolName: MEDIA_GENERATION_TOOL_NAME };
     }
   }
 
@@ -190,7 +229,16 @@ export function getGenerationPreparationRedirect(
     allowedTools.has('prepare_voice_clone') &&
     isVoiceGenerateLike(normalized)
   ) {
-    return 'prepare_voice_clone';
+    return { toolName: 'prepare_voice_clone' };
+  }
+
+  if (allowedTools.has(MEDIA_GENERATION_TOOL_NAME)) {
+    if (normalized === 'generate_music') {
+      return { mediaType: 'music', toolName: MEDIA_GENERATION_TOOL_NAME };
+    }
+    if (isVoiceGenerateLike(normalized)) {
+      return { mediaType: 'voice', toolName: MEDIA_GENERATION_TOOL_NAME };
+    }
   }
 
   return null;

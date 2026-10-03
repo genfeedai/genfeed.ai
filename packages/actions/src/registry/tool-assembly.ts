@@ -35,12 +35,9 @@ const UI_ACTION_MAP: Partial<
   create_brand: 'brand_identity_confirmation_card',
   create_outreach_sequence: 'outreach_sequence_create_card',
   discover_engagements: 'engagement_opportunity_card',
+  generate: 'generation_action_card',
   generate_as_identity: 'generation_action_card',
   generate_content_batch: 'batch_generation_card',
-  generate_image: 'generation_action_card',
-  generate_music: 'generation_action_card',
-  generate_video: 'generation_action_card',
-  generate_voice: 'voice_clone_card',
   get_analytics: 'analytics_snapshot_card',
   get_outreach_sequence_analytics: 'analytics_snapshot_card',
   get_content_calendar: 'content_calendar_card',
@@ -68,6 +65,7 @@ export function inferCategory(name: string): ToolCategory {
   if (name.includes('visual_code')) return 'generation';
   if (
     [
+      'generate',
       'get_generation_cost',
       'get_generation_settings',
       'set_generation_settings',

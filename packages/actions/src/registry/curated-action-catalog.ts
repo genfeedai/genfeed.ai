@@ -56,7 +56,7 @@ export const CURATED_ACTION_CATALOG = [
   {
     name: 'cancel_visual_code_project',
     surfaces: ['agent', 'mcp', 'workflow'],
-    toolset: 'generation',
+    toolset: 'visual-code',
   },
   {
     name: 'capture_knowledge',
@@ -90,7 +90,7 @@ export const CURATED_ACTION_CATALOG = [
   {
     name: 'control_remix_generation',
     surfaces: ['mcp'],
-    toolset: 'generation',
+    toolset: 'inspiration',
   },
   {
     isPublishingApprovalRequired: true,
@@ -148,7 +148,11 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['mcp'],
     toolset: 'social-inbox',
   },
-  { name: 'create_storyboard_remix', surfaces: ['mcp'], toolset: 'generation' },
+  {
+    name: 'create_storyboard_remix',
+    surfaces: ['mcp'],
+    toolset: 'inspiration',
+  },
   { name: 'create_workflow', surfaces: ['agent', 'mcp'], toolset: 'workflows' },
   { name: 'describe_tool', surfaces: ['mcp'], toolset: 'core' },
   { name: 'discover_engagements', surfaces: ['agent'], toolset: 'engagement' },
@@ -180,10 +184,11 @@ export const CURATED_ACTION_CATALOG = [
   {
     name: 'export_visual_code_project',
     surfaces: ['agent', 'mcp', 'workflow'],
-    toolset: 'generation',
+    toolset: 'visual-code',
   },
   { name: 'fetch_x_post', surfaces: ['agent', 'mcp'], toolset: 'content' },
   { name: 'fork_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
+  { name: 'generate', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   { name: 'generate_ad_pack', surfaces: ['agent'], toolset: 'ads' },
   { name: 'generate_as_identity', surfaces: ['agent'], toolset: 'generation' },
   { name: 'generate_clips', surfaces: ['mcp'], toolset: 'clips' },
@@ -193,22 +198,18 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'content',
   },
-  { name: 'generate_image', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   { name: 'generate_linkedin_content', surfaces: ['mcp'], toolset: 'content' },
   { name: 'generate_monthly_content', surfaces: ['agent'], toolset: 'content' },
-  { name: 'generate_music', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   {
     name: 'generate_onboarding_content',
     surfaces: ['agent'],
     toolset: 'onboarding',
   },
-  { name: 'generate_video', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   {
     name: 'generate_visual_code',
     surfaces: ['agent', 'mcp', 'workflow'],
-    toolset: 'generation',
+    toolset: 'visual-code',
   },
-  { name: 'generate_voice', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   { name: 'get_account_info', surfaces: ['mcp'], toolset: 'core' },
   {
     name: 'get_ad_research_detail',
@@ -319,12 +320,12 @@ export const CURATED_ACTION_CATALOG = [
   {
     name: 'get_visual_code_catalog',
     surfaces: ['agent', 'mcp', 'workflow'],
-    toolset: 'generation',
+    toolset: 'visual-code',
   },
   {
     name: 'get_visual_code_project',
     surfaces: ['agent', 'mcp', 'workflow'],
-    toolset: 'generation',
+    toolset: 'visual-code',
   },
   { name: 'get_workflow_inputs', surfaces: ['agent'], toolset: 'workflows' },
   {
@@ -467,11 +468,11 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'present_work_object', surfaces: ['agent'], toolset: 'ui' },
   { name: 'publish_article', surfaces: ['mcp'], toolset: 'articles' },
   { name: 'publish_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
-  { name: 'quote_remix_generation', surfaces: ['mcp'], toolset: 'generation' },
+  { name: 'quote_remix_generation', surfaces: ['mcp'], toolset: 'inspiration' },
   {
     name: 'quote_visual_code_generation',
     surfaces: ['agent', 'mcp', 'workflow'],
-    toolset: 'generation',
+    toolset: 'visual-code',
   },
   { name: 'rate_content', surfaces: ['agent'], toolset: 'content' },
   { name: 'rate_ingredient', surfaces: ['agent'], toolset: 'ui' },
@@ -492,7 +493,7 @@ export const CURATED_ACTION_CATALOG = [
   {
     name: 'replace_storyboard_character',
     surfaces: ['mcp'],
-    toolset: 'generation',
+    toolset: 'inspiration',
   },
   { name: 'replicate_top_ingredient', surfaces: ['agent'], toolset: 'ui' },
   { name: 'repurpose_post', surfaces: ['agent', 'mcp'], toolset: 'content' },
@@ -513,12 +514,12 @@ export const CURATED_ACTION_CATALOG = [
   {
     name: 'retry_visual_code_project',
     surfaces: ['agent', 'mcp', 'workflow'],
-    toolset: 'generation',
+    toolset: 'visual-code',
   },
   {
     name: 'revise_visual_code_project',
     surfaces: ['agent', 'mcp', 'workflow'],
-    toolset: 'generation',
+    toolset: 'visual-code',
   },
   { name: 'rollback_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
   { name: 'save_brand_voice_profile', surfaces: ['agent'], toolset: 'brand' },
@@ -563,7 +564,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'brand',
   },
   { name: 'start_outreach_sequence', surfaces: ['agent'], toolset: 'outreach' },
-  { name: 'start_remix_generation', surfaces: ['mcp'], toolset: 'generation' },
+  { name: 'start_remix_generation', surfaces: ['mcp'], toolset: 'inspiration' },
   {
     name: 'storyboard_run_capabilities',
     surfaces: ['mcp'],

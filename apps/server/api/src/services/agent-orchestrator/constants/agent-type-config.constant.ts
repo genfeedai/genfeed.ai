@@ -169,7 +169,7 @@ X-specific guidelines:
     defaultTools: [
       ...SHARED_READ_TOOLS,
       'edit_image',
-      'generate_image',
+      'generate',
       'reframe_image',
       'upscale_image',
       'generate_content',
@@ -206,10 +206,8 @@ Image guidelines:
     defaultModel: CREATIVE_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
-      'generate_video',
+      'generate',
       'edit_image',
-      'generate_image',
-      'generate_voice',
       'generate_content',
       'create_post',
       'schedule_post',
@@ -248,10 +246,8 @@ Video guidelines:
     defaultTools: [
       ...SHARED_READ_TOOLS,
       'generate_as_identity',
-      'generate_video',
+      'generate',
       'edit_image',
-      'generate_image',
-      'generate_voice',
       'generate_content',
       'create_post',
       'schedule_post',

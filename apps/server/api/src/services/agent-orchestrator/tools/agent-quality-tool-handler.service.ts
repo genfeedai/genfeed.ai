@@ -345,13 +345,13 @@ export class AgentQualityToolHandler {
       const category = String(ingredientData.category || '');
 
       // Return action card with ingredient metadata for the agent to use
-      // with existing generation tools (generate_image / generate_video)
+      // with existing generation tools (`generate` with type image or video)
       return {
         creditsUsed: 0,
         data: {
           category,
           ingredientId,
-          message: `Ready to replicate ingredient. Use generate_image or generate_video with the same parameters to create ${variations} variation(s).`,
+          message: `Ready to replicate ingredient. Use generate (type image or video) with the same parameters to create ${variations} variation(s).`,
           sourceMetadata: {
             brand: ingredientData.brandId
               ? String(ingredientData.brandId)

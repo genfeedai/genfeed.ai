@@ -13,7 +13,10 @@ import type {
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { CacheService } from '@api/services/cache/cache.service';
-import { type CuratedActionName } from '@genfeedai/actions';
+import {
+  type CuratedActionName,
+  MEDIA_GENERATION_TOOL_NAME,
+} from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 import { toRouterPriority } from '@genfeedai/contracts';
 import {
@@ -332,7 +335,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
           request.toolName,
           request.toolPayload,
           {
-            // #4672: generate_image/generate_video are gated (approval-
+            // #4672: visual `generate` calls are gated (approval-
             // required) in Manual mode so an unconfirmed agent tool call
             // docks the review card instead of spending credits. This
             // explicit "Generate" click IS that confirmation — without
@@ -520,6 +523,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     if (harness !== undefined && typeof harness !== 'boolean')
       throw new BadRequestException('harness must be a boolean');
     const commonToolPayload = {
+      type: generationType,
       ...(requestedSkillSlugs ? { requestedSkillSlugs } : {}),
       ...(harness !== undefined ? { harness } : {}),
       ...(aspectRatio ? { aspectRatio } : {}),
@@ -537,10 +541,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
             : undefined,
         ) ?? params.context.generationPriority,
       sourceActionId,
-      toolName:
-        generationType === 'video'
-          ? ('generate_video' as const)
-          : ('generate_image' as const),
+      toolName: MEDIA_GENERATION_TOOL_NAME,
       toolPayload:
         generationType === 'image'
           ? {

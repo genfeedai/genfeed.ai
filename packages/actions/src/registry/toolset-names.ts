@@ -41,6 +41,7 @@ export const TOOLSET_NAMES = [
   'skills-pro',
   'social-inbox',
   'ui',
+  'visual-code',
   'workflows',
 ] as const;
 
@@ -116,7 +117,7 @@ export const TOOLSETS: readonly ToolsetDefinition[] = [
   },
   {
     description:
-      'Image, video, music, voice, and avatar generation, plus listing generated media.',
+      'Image, video, voice, and music generation, editing, and listing generated media.',
     isAlwaysOn: false,
     name: 'generation',
   },
@@ -127,7 +128,7 @@ export const TOOLSETS: readonly ToolsetDefinition[] = [
   },
   {
     description:
-      'Instagram and TikTok inspiration and top-performer discovery.',
+      'Instagram and TikTok inspiration, top-performer discovery, and storyboard remixes.',
     isAlwaysOn: false,
     name: 'inspiration',
   },
@@ -175,6 +176,12 @@ export const TOOLSETS: readonly ToolsetDefinition[] = [
       'In-product UI action cards for generation, workflow triggers, ingredients, and content review prompts.',
     isAlwaysOn: false,
     name: 'ui',
+  },
+  {
+    description:
+      'Coded visual projects (designed images and motion): catalog, quote, generate, revise, and export.',
+    isAlwaysOn: false,
+    name: 'visual-code',
   },
   {
     description:
