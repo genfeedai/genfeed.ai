@@ -76,10 +76,7 @@ Get your API key at [app.genfeed.ai/settings/api-keys](https://app.genfeed.ai/se
 
 | Tool | Description |
 |------|-------------|
-| `list_videos` | List all videos |
-| `list_images` | List all images |
-| `list_avatars` | List all avatars |
-| `list_music` | List all music tracks |
+| `list_assets` | List images, videos, music, avatars or characters by `type` |
 | `get_articles` | Search articles or retrieve one |
 | `get_job_status` | Check generation progress |
 
@@ -88,7 +85,7 @@ Get your API key at [app.genfeed.ai/settings/api-keys](https://app.genfeed.ai/se
 | Tool | Description |
 |------|-------------|
 | `publish_content` | Publish to social platforms |
-| `list_posts` | List published posts |
+| `get_posts` | List posts, open one, or show the calendar |
 
 ### Analytics
 
@@ -98,7 +95,7 @@ Get your API key at [app.genfeed.ai/settings/api-keys](https://app.genfeed.ai/se
 | `get_content_analytics` | Content performance metrics |
 | `get_trending_topics` | Discover trending topics |
 | `get_credits` | Check credit balance |
-| `get_usage_stats` | Usage statistics |
+| `get_account` | Profile, credit balance and usage |
 
 ### Workflows
 

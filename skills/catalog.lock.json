@@ -669,19 +669,19 @@
       "files": [
         {
           "path": "README.md",
-          "sha256": "3b009a68fb549c62729fa2a6e45a3d37c62df1e128d586868cef4562f58c3317"
+          "sha256": "bbc9944b20c4ab6a6cabf639d5702a25a696e16f3582f33b3c1e6c66cf3d6ef4"
         },
         {
           "path": "SKILL.md",
-          "sha256": "9af805ae21b094fc4bf1afcfe3b6087ce279be2f1df2127f063c2e97dda54e12"
+          "sha256": "cd76faf5ef0f567b6d80328d4f960afffbfab723cdef3e6ba858ad00e2687a4b"
         },
         {
           "path": "metadata.json",
           "sha256": "0d46917cc6ce5a8635f49dd24b28c051d034e850a420e90113a02c9036e516d6"
         }
       ],
-      "packageHash": "96d901b070bceb8fb6514e82144c8852be6e153a0b4734360e71a8355530ee81",
-      "instructionsHash": "821bf777e4d27f2fcf9662d51f03f96633924132e6c64237fa6ae66542b2c9a4",
+      "packageHash": "20e531e0216e4601e8d1ca0dbd374a6cb64bafef06dc1ad921dab1332fd5a2fc",
+      "instructionsHash": "5bfdaf03fdfe4616dcf5ca10aa21a9950367067a311eea882507b77bd33375d7",
       "excludedReferences": []
     },
     {
