@@ -441,7 +441,7 @@ export default function StudioGenerateComposer({
         ariaLabel={translate('prompt')}
         className={cn(
           'min-h-6 min-w-0 [&_.ProseMirror]:min-h-6',
-          isExpanded ? 'w-full' : 'basis-full sm:basis-0',
+          isExpanded ? 'w-full' : 'basis-full lg:min-w-64 lg:basis-0',
         )}
         editorClassName="py-0.5"
         documentSeed={documentSeed}
@@ -625,7 +625,7 @@ export default function StudioGenerateComposer({
           ) : null}
         </div>
       ) : null}
-      {isExpanded ? (
+      <div className={isExpanded ? undefined : 'sr-only'}>
         <StudioGenerationSummary
           crunQuote={crunQuote}
           estimate={estimate}
@@ -634,7 +634,7 @@ export default function StudioGenerateComposer({
           settings={displaySettings}
           type={type}
         />
-      ) : null}
+      </div>
 
       {isFirstFrameMissing ||
       isReferenceCombinationInvalid ||
@@ -660,7 +660,7 @@ export default function StudioGenerateComposer({
         <div
           className={cn(
             'flex min-w-0 flex-wrap items-center gap-0.5',
-            isExpanded ? 'flex-1' : 'shrink-0',
+            isExpanded ? 'flex-1' : 'max-w-full flex-1 lg:flex-initial',
           )}
         >
           {inputControls?.mediaKind === 'image' ? (
