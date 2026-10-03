@@ -31,6 +31,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import BrandOsGenerationRulesReview from './BrandOsGenerationRulesReview';
+import BrandOsIdentityPreview from './BrandOsIdentityPreview';
 import BrandOsRevisionFields from './BrandOsRevisionFields';
 
 function errorMessage(error: unknown, fallback: string): string {
@@ -508,6 +509,18 @@ export default function BrandOsSettingsCard({
   }
 
   const busy = Boolean(pending);
+  const organizationId = revisions[0]?.organizationId ?? '';
+  // Any selection, save, approval or history change closes the current preview.
+  const identityPreviewKey = JSON.stringify([
+    epoch.current,
+    loadedEpoch,
+    refreshKey,
+    reload,
+    selectedId,
+    selected?.updatedAt ?? null,
+    selected?.status ?? null,
+    exportState?.revisionId ?? null,
+  ]);
   const currentApproved = revisions.find(
     (revision) => revision.id === exportState?.revisionId,
   );
@@ -691,6 +704,16 @@ export default function BrandOsSettingsCard({
               <p role="status" className="text-sm text-muted-foreground">
                 {t('unsaved')}
               </p>
+            )}
+            {organizationId && (
+              <div className="border-t border-border pt-4">
+                <BrandOsIdentityPreview
+                  organizationId={organizationId}
+                  brandId={brandId}
+                  refreshKey={identityPreviewKey}
+                  isDisabled={dirty || busy}
+                />
+              </div>
             )}
           </>
         )}
