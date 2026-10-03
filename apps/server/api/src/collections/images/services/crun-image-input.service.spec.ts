@@ -5,6 +5,7 @@ import {
   CRUN_IMAGE_MANIFEST,
   CRUN_PRICING_SNAPSHOT,
 } from '@api/services/integrations/crun/contracts/crun-manifest';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { ModelCategory } from '@genfeedai/contracts';
 
 const user = {
@@ -88,6 +89,7 @@ function fixture(index = 0) {
     ingredientsEndpoint: 'https://owned.fixture.test',
     cdnUrl: 'https://cdn.fixture.test',
   };
+  const personas = personasServiceStub();
   const service = new CrunImageInputService(
     prisma as never,
     models as never,
@@ -96,6 +98,7 @@ function fixture(index = 0) {
     builder as never,
     tasks as never,
     config as never,
+    personas,
   );
   const raw = {
     model: model.key,

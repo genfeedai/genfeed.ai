@@ -16,6 +16,7 @@ import type { CacheInvalidationService } from '@api/common/services/cache-invali
 import type { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import type { CacheService } from '@api/services/cache/cache.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PersonaAvailabilityMode } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException } from '@nestjs/common';
@@ -24,6 +25,7 @@ describe('BrandLifecycleService', () => {
   let service: BrandLifecycleService;
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
   let memberDelegate: Record<string, ReturnType<typeof vi.fn>>;
+  let personaDelegate: Record<string, ReturnType<typeof vi.fn>>;
   let txQueryRaw: ReturnType<typeof vi.fn>;
   let transactionMock: ReturnType<typeof vi.fn>;
   let learningAccounts: Record<string, ReturnType<typeof vi.fn>>;
@@ -50,6 +52,7 @@ describe('BrandLifecycleService', () => {
       findMany: vi.fn().mockResolvedValue([]),
       updateMany: vi.fn(),
     };
+    personaDelegate = { findMany: vi.fn().mockResolvedValue([]) };
     txQueryRaw = vi.fn().mockResolvedValue([{ id: 'locked' }]);
     cacheInvalidationService = {
       invalidate: vi.fn(),
@@ -83,6 +86,7 @@ describe('BrandLifecycleService', () => {
       $queryRaw: txQueryRaw,
       brand: delegate,
       member: memberDelegate,
+      persona: personaDelegate,
       contentLearningAccount: learningAccounts,
       contentLearningDependency: dependencies,
     };
@@ -232,6 +236,93 @@ describe('BrandLifecycleService', () => {
       // Each call is scoped to its own userId — neither write can touch the
       // other member's row, so selecting brandB never clobbers memberOne.
       expect(memberDelegate.updateMany).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('remove with shared characters (#6040)', () => {
+    const brandId = testId('brand', 1);
+    const otherBrandId = testId('brand', 2);
+    const organizationId = testId('org');
+
+    beforeEach(() => {
+      delegate.findFirst.mockResolvedValue({
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+      delegate.findMany.mockResolvedValue([
+        { id: brandId },
+        { id: otherBrandId },
+      ]);
+      memberDelegate.findMany.mockResolvedValue([]);
+      delegate.update.mockResolvedValue({ id: brandId, organizationId });
+    });
+
+    const sharedCharacter = (overrides: Record<string, unknown>) => ({
+      availabilityMode: PersonaAvailabilityMode.SELECTED_BRANDS,
+      availableBrandIds: [brandId, otherBrandId],
+      handle: 'anna',
+      id: 'persona-1',
+      label: 'Anna',
+      ...overrides,
+    });
+
+    it('refuses to delete a brand that owns a character other brands can use and names it', async () => {
+      personaDelegate.findMany.mockResolvedValue([sharedCharacter({})]);
+
+      const error = await service.remove(brandId).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(ConflictException);
+      expect((error as ConflictException).getResponse()).toMatchObject({
+        code: 'brand_owns_shared_characters',
+        source: {
+          characters: [{ handle: 'anna', id: 'persona-1', label: 'Anna' }],
+        },
+      });
+      expect(personaDelegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            availabilityMode: { not: PersonaAvailabilityMode.OWNING_BRAND },
+            brandId,
+            isDeleted: false,
+            organizationId,
+          },
+        }),
+      );
+      expect(delegate.update).not.toHaveBeenCalled();
+      expect(memberDelegate.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('refuses for a character available to all brands', async () => {
+      personaDelegate.findMany.mockResolvedValue([
+        sharedCharacter({
+          availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
+          availableBrandIds: [],
+        }),
+      ]);
+
+      await expect(service.remove(brandId)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+    });
+
+    it('deletes once the character is only available to deleted or the owning brand', async () => {
+      personaDelegate.findMany.mockResolvedValue([
+        sharedCharacter({ availableBrandIds: [brandId, 'deleted-brand'] }),
+      ]);
+
+      await expect(service.remove(brandId)).resolves.toMatchObject({
+        id: brandId,
+      });
+      expect(delegate.update).toHaveBeenCalled();
+    });
+
+    it('deletes a brand that owns no shared characters', async () => {
+      personaDelegate.findMany.mockResolvedValue([]);
+
+      await expect(service.remove(brandId)).resolves.toMatchObject({
+        id: brandId,
+      });
     });
   });
 

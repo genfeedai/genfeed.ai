@@ -1,7 +1,9 @@
 import type { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
 import type { BrandRemixSceneSourceService } from '@api/collections/content-runs/services/brand-remix-scene-source.service';
 import { StoryboardSourceService } from '@api/collections/content-runs/services/storyboard-source.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { describe, expect, it, vi } from 'vitest';
 
 function setup() {
@@ -30,7 +32,9 @@ function setup() {
       sizeBytes: 1234,
     })),
   };
+  const personas = personasServiceStub();
   return {
+    personas,
     prisma,
     planning,
     videos,
@@ -38,6 +42,7 @@ function setup() {
       prisma as unknown as PrismaService,
       planning as unknown as BrandRemixRunPlanningService,
       videos as unknown as BrandRemixSceneSourceService,
+      personas,
     ),
   };
 }
@@ -114,5 +119,55 @@ describe('Storyboard source snapshots', () => {
         }),
       }),
     );
+  });
+});
+
+describe('Storyboard plan character admission (#6040)', () => {
+  const plan = {
+    cast: [{ avatarAssetId: 'avatar-1', referenceAssetIds: [] }],
+    shots: [],
+    styleReferenceAssetIds: ['style-1'],
+  } as never;
+
+  it('refuses a plan whose character the brand can no longer use', async () => {
+    const { personas, prisma, service } = setup();
+    vi.mocked(personas.resolveCharacterReferences).mockRejectedValueOnce(
+      new NotFoundException('Reference image'),
+    );
+
+    await expect(
+      service.validatePlanAssets('org-1', 'brand-1', plan),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(personas.resolveCharacterReferences).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        ingredientIds: expect.arrayContaining(['avatar-1', 'style-1']),
+        organizationId: 'org-1',
+        path: 'storyboard',
+      }),
+    );
+    expect(prisma.ingredient.findMany).not.toHaveBeenCalled();
+  });
+
+  it('admits a shared character avatar that belongs to its owning brand', async () => {
+    const { personas, prisma, service } = setup();
+    vi.mocked(personas.resolveCharacterReferences).mockResolvedValueOnce({
+      availableAvatarIds: new Set(['avatar-1']),
+      personaId: 'persona-1',
+      personaIdByAssetId: new Map(),
+    });
+    prisma.ingredient.findMany.mockResolvedValue([
+      { category: 'IMAGE', id: 'avatar-1' },
+      { category: 'IMAGE', id: 'style-1' },
+    ]);
+    prisma.asset.findMany.mockResolvedValue([]);
+
+    await expect(
+      service.validatePlanAssets('org-1', 'brand-1', plan),
+    ).resolves.toBeUndefined();
+
+    const where = prisma.ingredient.findMany.mock.calls[0]?.[0]?.where;
+    expect(where.OR).toContainEqual({ id: { in: ['avatar-1'] } });
   });
 });

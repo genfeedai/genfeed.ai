@@ -2,6 +2,9 @@ import type { BrandRemixPersonaResolutionService } from '@api/collections/conten
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
 import type { ResolvedBrandContext } from '@api/collections/content-runs/services/brand-remix-runs.types';
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
+import type { PersonasService } from '@api/collections/personas/services/personas.service';
+import { noCharacterAdmission } from '@api/collections/personas/utils/character-admission.util';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import {
@@ -38,17 +41,22 @@ describe('BrandRemixRunPlanningService', () => {
     assertConnectedCredential: vi.fn(),
     resolveSource: vi.fn(),
   };
+  const personas = { resolveCharacterReferences: vi.fn() };
   const personaResolution = { resolve: vi.fn() };
   let planning: BrandRemixRunPlanningService;
 
   beforeEach(() => {
     vi.resetAllMocks();
+    personas.resolveCharacterReferences.mockResolvedValue(
+      noCharacterAdmission(),
+    );
     planning = new BrandRemixRunPlanningService(
       prisma,
       brandsService as never,
       organizationSettingsService as never,
       sourceResolver as unknown as BrandRemixSourceResolverService,
       personaResolution as unknown as BrandRemixPersonaResolutionService,
+      personas as unknown as PersonasService,
     );
   });
 
@@ -391,6 +399,56 @@ describe('BrandRemixRunPlanningService', () => {
         identity: { avatarAssetId: 'avatar-1', speechVoiceId: 'voice-1' },
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('refuses a draft whose character the brand can no longer use like any unavailable reference (#6040)', async () => {
+    personas.resolveCharacterReferences.mockRejectedValue(
+      new NotFoundException('Reference image'),
+    );
+
+    await expect(
+      planning.assertDraftAssetsAuthorized('org-1', 'brand-1', {
+        ...snapshotDraft,
+        identity: { avatarAssetId: 'avatar-1', speechVoiceId: 'voice-1' },
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(personas.resolveCharacterReferences).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        ingredientIds: expect.arrayContaining(['avatar-1']),
+        path: 'storyboard',
+      }),
+    );
+    expect(prisma.ingredient.findMany).not.toHaveBeenCalled();
+  });
+
+  it('accepts a shared character avatar owned by another brand', async () => {
+    personas.resolveCharacterReferences.mockResolvedValue({
+      availableAvatarIds: new Set(['avatar-1']),
+      personaId: 'persona-1',
+      personaIdByAssetId: new Map(),
+    });
+    vi.mocked(prisma.ingredient.findMany).mockResolvedValue([
+      {
+        id: 'avatar-1',
+        brandId: 'brand-2',
+        category: IngredientCategory.AVATAR,
+      },
+      {
+        id: 'voice-1',
+        brandId: 'brand-1',
+        category: IngredientCategory.VOICE,
+        externalVoiceId: 'voice-external-1',
+      },
+    ] as never);
+
+    await expect(
+      planning.assertDraftAssetsAuthorized('org-1', 'brand-1', {
+        ...snapshotDraft,
+        identity: { avatarAssetId: 'avatar-1', speechVoiceId: 'voice-1' },
+      }),
+    ).resolves.toBeUndefined();
   });
 
   it('rejects legacy imported source pixels as generation references', async () => {

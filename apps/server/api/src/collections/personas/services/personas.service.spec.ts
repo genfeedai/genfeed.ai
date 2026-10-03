@@ -11,11 +11,18 @@ import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('PersonasService', () => {
   let service: PersonasService;
+  const logger = {
+    debug: vi.fn(),
+    error: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
+  };
   let prisma: {
     $queryRaw: ReturnType<typeof vi.fn>;
     $transaction: ReturnType<typeof vi.fn>;
     brand: {
       count: ReturnType<typeof vi.fn>;
+      findFirst: ReturnType<typeof vi.fn>;
       findMany: ReturnType<typeof vi.fn>;
     };
     ingredient: { findFirst: ReturnType<typeof vi.fn> };
@@ -33,7 +40,11 @@ describe('PersonasService', () => {
     prisma = {
       $queryRaw: vi.fn().mockResolvedValue([]),
       $transaction: vi.fn(),
-      brand: { count: vi.fn(), findMany: vi.fn().mockResolvedValue([]) },
+      brand: {
+        count: vi.fn(),
+        findFirst: vi.fn(),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
       ingredient: { findFirst: vi.fn() },
       member: { findFirst: vi.fn() },
       persona: {
@@ -55,12 +66,7 @@ describe('PersonasService', () => {
         { provide: PrismaService, useValue: prisma },
         {
           provide: LoggerService,
-          useValue: {
-            debug: vi.fn(),
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
+          useValue: logger,
         },
       ],
     }).compile();
@@ -787,23 +793,41 @@ describe('PersonasService', () => {
         avatarIngredientId: 'img-1',
         brandId: 'brand-a',
         id: 'persona-1',
+        ingredients: [],
         ...overrides,
       });
+      const outputRow = (overrides: Record<string, unknown>) =>
+        avatarRow({
+          avatarIngredientId: 'avatar-x',
+          ingredients: [{ id: 'video-1' }],
+          ...overrides,
+        });
+      const admit = (
+        ingredientIds: string[],
+        brandId: string | null = 'brand-b',
+      ) =>
+        service.resolveCharacterReferences({
+          brandId,
+          ingredientIds,
+          organizationId: orgId,
+          path: 'video',
+        });
 
-      it('returns no character for ordinary references', async () => {
+      it('returns no character for ordinary references with one indexed query', async () => {
         prisma.persona.findMany.mockResolvedValue([]);
 
-        await expect(
-          service.resolveCharacterReferences({
-            brandId: 'brand-b',
-            ingredientIds: ['asset-1'],
-            organizationId: orgId,
-          }),
-        ).resolves.toEqual({ availableAvatarIds: new Set(), personaId: null });
+        const admission = await admit(['asset-1']);
+
+        expect(admission.availableAvatarIds).toEqual(new Set());
+        expect(admission.personaId).toBeNull();
+        expect(prisma.persona.findMany).toHaveBeenCalledTimes(1);
         expect(prisma.persona.findMany).toHaveBeenCalledWith(
           expect.objectContaining({
             where: expect.objectContaining({
-              avatarIngredientId: { in: ['asset-1'] },
+              OR: [
+                { avatarIngredientId: { in: ['asset-1'] } },
+                { ingredients: { some: { id: { in: ['asset-1'] } } } },
+              ],
               isDeleted: false,
               organizationId: orgId,
             }),
@@ -811,24 +835,23 @@ describe('PersonasService', () => {
         );
       });
 
+      it('skips the query when there is nothing to admit', async () => {
+        await expect(admit([])).resolves.toMatchObject({ personaId: null });
+        expect(prisma.persona.findMany).not.toHaveBeenCalled();
+      });
+
       it('allows a shared character reference and links its character', async () => {
         prisma.persona.findMany.mockResolvedValue([
           avatarRow({ availabilityMode: PersonaAvailabilityMode.ALL_BRANDS }),
         ]);
 
-        await expect(
-          service.resolveCharacterReferences({
-            brandId: 'brand-b',
-            ingredientIds: ['img-1'],
-            organizationId: orgId,
-          }),
-        ).resolves.toEqual({
-          availableAvatarIds: new Set(['img-1']),
-          personaId: 'persona-1',
-        });
+        const admission = await admit(['img-1']);
+
+        expect(admission.availableAvatarIds).toEqual(new Set(['img-1']));
+        expect(admission.personaId).toBe('persona-1');
       });
 
-      it('rejects a character reference once the brand lost access', async () => {
+      it('rejects a character reference once the brand lost access and logs it', async () => {
         prisma.persona.findMany.mockResolvedValue([
           avatarRow({
             availabilityMode: PersonaAvailabilityMode.SELECTED_BRANDS,
@@ -836,13 +859,174 @@ describe('PersonasService', () => {
           }),
         ]);
 
-        await expect(
-          service.resolveCharacterReferences({
+        await expect(admit(['img-1'])).rejects.toBeInstanceOf(
+          NotFoundException,
+        );
+        expect(logger.warn).toHaveBeenCalledWith(
+          'Character reference refused',
+          expect.objectContaining({
+            assetId: 'img-1',
             brandId: 'brand-b',
-            ingredientIds: ['img-1'],
+            path: 'video',
+            personaIds: ['persona-1'],
+          }),
+        );
+      });
+
+      it('refuses when there is no active brand', async () => {
+        prisma.persona.findMany.mockResolvedValue([
+          avatarRow({ availabilityMode: PersonaAvailabilityMode.ALL_BRANDS }),
+        ]);
+
+        await expect(admit(['img-1'], null)).rejects.toBeInstanceOf(
+          NotFoundException,
+        );
+      });
+
+      it('refuses an output linked to a character the brand lost', async () => {
+        prisma.persona.findMany.mockResolvedValue([outputRow({})]);
+
+        await expect(admit(['video-1'])).rejects.toBeInstanceOf(
+          NotFoundException,
+        );
+      });
+
+      it('links an output of a character the brand can still use', async () => {
+        prisma.persona.findMany.mockResolvedValue([
+          outputRow({ availabilityMode: PersonaAvailabilityMode.ALL_BRANDS }),
+        ]);
+
+        const admission = await admit(['video-1']);
+
+        expect(admission.personaId).toBe('persona-1');
+        expect(admission.personaIdByAssetId.get('video-1')).toBe('persona-1');
+        expect(admission.availableAvatarIds.size).toBe(0);
+      });
+
+      it('ignores outputs linked to a character with no owning brand', async () => {
+        prisma.persona.findMany.mockResolvedValue([
+          outputRow({ brandId: null }),
+        ]);
+
+        await expect(admit(['video-1'])).resolves.toMatchObject({
+          personaId: null,
+        });
+      });
+    });
+
+    describe('character handles fail closed', () => {
+      it('resolves nothing without an active brand', async () => {
+        await expect(
+          service.resolveCharacterHandles({
+            brandId: null,
+            handles: ['anna'],
             organizationId: orgId,
           }),
-        ).rejects.toBeInstanceOf(NotFoundException);
+        ).resolves.toEqual({
+          resolvedIngredientIds: [],
+          unresolvedHandles: ['anna'],
+        });
+        expect(prisma.persona.findMany).not.toHaveBeenCalled();
+      });
+
+      it('logs a refused handle with its path and brand', async () => {
+        prisma.persona.findMany.mockResolvedValue([]);
+
+        await service.resolveCharacterHandles({
+          brandId: 'brand-b',
+          handles: ['anna'],
+          organizationId: orgId,
+          path: 'video-clip-chain',
+        });
+
+        expect(logger.warn).toHaveBeenCalledWith(
+          'Character handle refused',
+          expect.objectContaining({
+            brandId: 'brand-b',
+            handles: ['anna'],
+            path: 'video-clip-chain',
+          }),
+        );
+      });
+    });
+
+    describe('moveOwnership', () => {
+      const shared = {
+        ...ownedPersona,
+        availabilityMode: PersonaAvailabilityMode.SELECTED_BRANDS,
+        availableBrandIds: ['brand-a', 'brand-b'],
+      };
+      const move = (overrides: Record<string, unknown> = {}) =>
+        service.moveOwnership({
+          actorUserId: 'actor-1',
+          brandId: 'brand-a',
+          organizationId: orgId,
+          personaId: 'persona-1',
+          targetBrandId: 'brand-b',
+          ...overrides,
+        });
+
+      beforeEach(() => {
+        prisma.persona.findFirst.mockResolvedValue(shared);
+        prisma.member.findFirst.mockResolvedValue(adminMember);
+        prisma.brand.findMany.mockResolvedValue([
+          { id: 'brand-a', label: 'A' },
+          { id: 'brand-b', label: 'B' },
+        ]);
+        vi.spyOn(service, 'findOne').mockResolvedValue({
+          id: 'persona-1',
+        } as Awaited<ReturnType<PersonasService['findOne']>>);
+      });
+
+      it('moves the owning brand, keeps availability and records the change', async () => {
+        prisma.brand.findFirst.mockResolvedValue({ id: 'brand-b' });
+
+        await move();
+
+        expect(prisma.persona.update).toHaveBeenCalledWith({
+          data: { brandId: 'brand-b' },
+          where: { id: 'persona-1', isDeleted: false, organizationId: orgId },
+        });
+        expect(prisma.personaAvailabilityAudit.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({
+            actorUserId: 'actor-1',
+            newMode: PersonaAvailabilityMode.SELECTED_BRANDS,
+            newOwningBrandId: 'brand-b',
+            previousOwningBrandId: 'brand-a',
+          }),
+        });
+      });
+
+      it('refuses a non-admin', async () => {
+        prisma.member.findFirst.mockResolvedValue({ role: { key: 'creator' } });
+
+        await expect(move()).rejects.toBeInstanceOf(ForbiddenException);
+        expect(prisma.persona.update).not.toHaveBeenCalled();
+      });
+
+      it('refuses a target outside the availability or organization', async () => {
+        prisma.brand.findFirst.mockResolvedValue({ id: 'brand-c' });
+
+        await expect(move({ targetBrandId: 'brand-c' })).rejects.toBeInstanceOf(
+          ValidationException,
+        );
+
+        prisma.brand.findFirst.mockResolvedValue(null);
+        await expect(move()).rejects.toBeInstanceOf(ValidationException);
+        expect(prisma.persona.update).not.toHaveBeenCalled();
+      });
+
+      it('leaves an owning-brand-only character to the edit flow', async () => {
+        prisma.persona.findFirst.mockResolvedValue(ownedPersona);
+        prisma.brand.findFirst.mockResolvedValue({ id: 'brand-b' });
+
+        await expect(move()).rejects.toBeInstanceOf(ValidationException);
+      });
+
+      it('is not found for a brand that cannot use the character', async () => {
+        await expect(move({ brandId: 'brand-z' })).rejects.toBeInstanceOf(
+          NotFoundException,
+        );
       });
     });
 
