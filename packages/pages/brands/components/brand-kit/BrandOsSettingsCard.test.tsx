@@ -5,6 +5,7 @@ import type {
   IBrandOsRevision,
 } from '@genfeedai/contracts/interfaces';
 import type { BrandGenerationRulesV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import type { BrandIdentityPreviewResult } from '@services/ai/branded-generation-receipts.service';
 import {
   act,
   fireEvent,
@@ -31,29 +32,42 @@ const mocks = vi.hoisted(() => ({
   downloadBrandOsDesign: vi.fn(),
   publishBrandOsDesign: vi.fn(),
   revokeBrandOsDesign: vi.fn(),
+  getIdentityPreview: vi.fn(),
+  getToken: vi.fn(),
   refresh: vi.fn(),
   saved: vi.fn(),
 }));
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   const t = translateFromCatalog('pages.brandOsSettings');
-  const common = translateFromCatalog('common.actions');
-  const review = translateFromCatalog(
-    'pages.brandOsSettings.generationRulesReview',
+  const catalogs = new Map(
+    [
+      'common.actions',
+      'pages.brandOsSettings.generationRulesReview',
+      'pages.brandOsSettings.identityPreview',
+      'pages.generationReceipts.identitySnapshot',
+    ].map((namespace) => [namespace, translateFromCatalog(namespace)]),
   );
   return {
-    useTranslations: (namespace: string) =>
-      namespace === 'common.actions'
-        ? common
-        : namespace === 'pages.brandOsSettings.generationRulesReview'
-          ? review
-          : t,
+    useTranslations: (namespace: string) => catalogs.get(namespace) ?? t,
   };
+});
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => {
+  const identity = {
+    getToken: mocks.getToken,
+    userId: 'user-1',
+    sessionId: 'session-1',
+    orgId: 'org-1',
+    isLoaded: true,
+    isSignedIn: true,
+  };
+  return { useAuthIdentity: () => identity };
 });
 vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => mocks.role,
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  AuthenticationTokenUnavailableError: class extends Error {},
   useAuthedService: () => mocks.getService,
 }));
 vi.mock('@services/social/brands.service', () => ({
@@ -1397,5 +1411,142 @@ describe('saved generation rules acknowledgement and authority fences', () => {
     expect(
       screen.getByRole('option', { name: 'Revision 1 · approved' }),
     ).toBeInTheDocument();
+  });
+});
+
+describe('mounted current approved identity preview', () => {
+  const identityHash = `sha256:${'d'.repeat(64)}`;
+  const openLabel = 'View current approved identity';
+  function approvedIdentity(): BrandIdentityPreviewResult {
+    return {
+      id: identityHash,
+      source: 'current_approved_revision',
+      snapshot: {
+        schemaVersion: 1,
+        organizationId: 'org-1',
+        brandId: 'brand-1',
+        revisionId: 'revision-1',
+        revisionVersion: 1,
+        approval: 'approved',
+        resolvedAt: '2026-09-14T10:00:00.000Z',
+        contentHash: identityHash,
+        identity: { name: 'Saved approved A' },
+        voice: { audience: [], values: [], messagingPillars: [], avoid: [] },
+        generationRules: {
+          schemaVersion: 1,
+          evidence: [],
+          facts: [],
+          palette: [],
+          typography: [],
+          mandatory: [],
+          avoid: [],
+          examples: [],
+          assets: [],
+        },
+        diagnostics: [],
+      },
+    };
+  }
+  function openPreview() {
+    fireEvent.click(screen.getByRole('button', { name: openLabel }));
+  }
+  beforeEach(() => {
+    mocks.getIdentityPreview.mockReset().mockResolvedValue(approvedIdentity());
+    mocks.listBrandOsRevisions.mockResolvedValue([
+      revision({ id: 'revision-2', version: 2 }),
+      revision({ status: 'APPROVED', approvedAt: '2026-09-14T10:00:00.000Z' }),
+    ]);
+    mocks.getBrandOsExport.mockResolvedValue(
+      exportState({ revisionId: 'revision-1' }),
+    );
+  });
+
+  it('opens only on request and shows server-approved A while clean draft B stays selected', async () => {
+    await renderSettings();
+    expect(mocks.getIdentityPreview).not.toHaveBeenCalled();
+    openPreview();
+    await screen.findByText('Saved approved A');
+    expect(mocks.getIdentityPreview).toHaveBeenCalledExactlyOnceWith(
+      'org-1',
+      'brand-1',
+      undefined,
+      expect.any(AbortSignal),
+    );
+    expect(
+      screen.getByRole('region', { name: 'Current approved identity' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: 'Revision history' }),
+    ).toHaveValue('revision-2');
+    expect(
+      screen.getByRole('option', { name: 'Revision 2 · draft' }),
+    ).toBeInTheDocument();
+    expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
+    expect(mocks.updateBrandOsRevision).not.toHaveBeenCalled();
+    expect(mocks.saved).not.toHaveBeenCalled();
+  });
+
+  it('aborts and closes on unsaved edits, explains the saved-version boundary and reopens only after discard', async () => {
+    const gate = cardDeferred<BrandIdentityPreviewResult>();
+    mocks.getIdentityPreview.mockReturnValueOnce(gate.promise);
+    await renderSettings();
+    openPreview();
+    await waitFor(() =>
+      expect(mocks.getIdentityPreview).toHaveBeenCalledTimes(1),
+    );
+    const signal = mocks.getIdentityPreview.mock.calls[0]?.[3] as AbortSignal;
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: 'Unsaved' },
+    });
+    expect(signal.aborted).toBe(true);
+    expect(screen.getByRole('button', { name: openLabel })).toBeDisabled();
+    expect(
+      screen.getByText(
+        'Save or discard your changes to view the current approved identity.',
+      ),
+    ).toBeInTheDocument();
+    await act(async () => gate.resolve(approvedIdentity()));
+    expect(screen.queryByText('Saved approved A')).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Discard unsaved edits' }),
+    );
+    expect(screen.getByRole('button', { name: openLabel })).toBeEnabled();
+    expect(screen.queryByText('Saved approved A')).not.toBeInTheDocument();
+    openPreview();
+    await screen.findByText('Saved approved A');
+    expect(mocks.getIdentityPreview).toHaveBeenCalledTimes(2);
+  });
+
+  it('closes on revision selection and explicit history refresh without reusing the old preview', async () => {
+    await renderSettings();
+    openPreview();
+    await screen.findByText('Saved approved A');
+    fireEvent.change(
+      screen.getByRole('combobox', { name: 'Revision history' }),
+      { target: { value: 'revision-1' } },
+    );
+    expect(screen.queryByText('Saved approved A')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: openLabel })).toBeEnabled();
+    openPreview();
+    await screen.findByText('Saved approved A');
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh history' }));
+    await screen.findByLabelText('Description');
+    expect(screen.queryByText('Saved approved A')).not.toBeInTheDocument();
+    expect(mocks.getIdentityPreview).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports access loss without claiming the guide is missing or exposing the response', async () => {
+    mocks.getIdentityPreview.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { status: 404, data: { detail: 'PRIVATE' } },
+      message: 'PRIVATE',
+    });
+    await renderSettings();
+    openPreview();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The current approved identity cannot be shown. This does not mean the brand guide is missing or unapproved.',
+    );
+    expect(screen.queryByText(/PRIVATE/)).not.toBeInTheDocument();
+    expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
   });
 });
