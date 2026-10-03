@@ -1,3 +1,4 @@
+import { bindLearningPublicationV1 } from '@api/collections/content-learning/services/learning-artifact-binding.helper';
 import {
   invalidateLearningDependencySource,
   learningFence,
@@ -26,6 +27,7 @@ import { PrismaService } from '@libs/prisma/prisma.service';
 import { ConflictException } from '@nestjs/common';
 
 const MAX_SERIALIZABLE_ATTEMPTS = 3;
+const NOT_APPLIED = { applied: false, finalizationCreated: false } as const;
 
 export type SchedulerPublishTargetUpdate = {
   error?: IChannelTargetError | null;
@@ -113,12 +115,13 @@ export class SchedulerPublishStateService {
   async transition(input: SchedulerPublishStateInput): Promise<boolean> {
     for (let attempt = 1; attempt <= MAX_SERIALIZABLE_ATTEMPTS; attempt++) {
       try {
-        const applied = await this.prisma.$transaction(
+        const { applied, finalizationCreated } = await this.prisma.$transaction(
           (tx) => this.applyTransition(input, tx),
           // Read after exclusive F is granted: a pre-fence snapshot can miss
           // a projection's newly committed dependencies during invalidation.
           { isolationLevel: 'ReadCommitted' },
         );
+        if (finalizationCreated) await this.bindLearningPublication(input);
         return applied;
       } catch (error: unknown) {
         if (
@@ -137,10 +140,34 @@ export class SchedulerPublishStateService {
     return false;
   }
 
+  /**
+   * Binds the generating learning decision after the publish transaction
+   * commits. Learning never aborts or retries a publish.
+   */
+  private async bindLearningPublication(
+    input: SchedulerPublishStateInput,
+  ): Promise<void> {
+    try {
+      await bindLearningPublicationV1(
+        this.prisma,
+        input.organizationId,
+        input.postId,
+      );
+    } catch (error: unknown) {
+      this.logger.warn(
+        `${this.logContext} learning publication binding skipped`,
+        {
+          error: error instanceof Error ? error.name : 'unknown',
+          postId: input.postId,
+        },
+      );
+    }
+  }
+
   private async applyTransition(
     input: SchedulerPublishStateInput,
     tx: Prisma.TransactionClient,
-  ): Promise<boolean> {
+  ): Promise<{ applied: boolean; finalizationCreated: boolean }> {
     await learningFence(tx, 'exclusive');
     const request = this.buildTransitionRequest(input);
 
@@ -158,10 +185,10 @@ export class SchedulerPublishStateService {
         request,
         tx,
       );
-      if (unavailable.kind === 'stale') return false;
+      if (unavailable.kind === 'stale') return NOT_APPLIED;
       if (input.groupId)
         await this.rollUpRelease({ ...input, groupId: input.groupId }, tx);
-      return true;
+      return { applied: true, finalizationCreated: false };
     }
     const { before, lockedAccounts, accountWhere } =
       await this.lockPublicationSource(input, tx, discovered);
@@ -181,7 +208,7 @@ export class SchedulerPublishStateService {
         postId: input.postId,
         ...input.guard,
       });
-      return false;
+      return NOT_APPLIED;
     }
     const transition = await this.postLifecycleService.transition(request, tx);
     if (transition.kind === 'stale') {
@@ -191,7 +218,7 @@ export class SchedulerPublishStateService {
         postId: input.postId,
         priorExecutionStates: input.guard?.priorExecutionStates,
       });
-      return false;
+      return NOT_APPLIED;
     }
 
     const after = await tx.post.findFirst({
@@ -210,6 +237,7 @@ export class SchedulerPublishStateService {
         before.visibility === PostVisibility.PUBLIC
       );
     let associationInserted = false;
+    let finalizationCreated = false;
     if (newPublic && input.finalization) {
       const result = this.publicationResult(input.finalization.result);
       const existing = await tx.postPublishFinalization.findUnique({
@@ -243,6 +271,7 @@ export class SchedulerPublishStateService {
           },
         });
         associationInserted = association !== null;
+        finalizationCreated = true;
       }
     }
     if (
@@ -270,7 +299,7 @@ export class SchedulerPublishStateService {
     if (input.groupId) {
       await this.rollUpRelease({ ...input, groupId: input.groupId }, tx);
     }
-    return true;
+    return { applied: true, finalizationCreated };
   }
 
   private buildTransitionRequest(
