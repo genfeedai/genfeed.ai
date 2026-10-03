@@ -6,6 +6,7 @@ import { VideoGenerationCreditsService } from '@api/collections/videos/services/
 import type { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -230,11 +231,13 @@ export class VideosClipChainController {
             brandId,
             handles,
             organizationId,
+            path: 'video-clip-chain',
           })
         : { resolvedIngredientIds: [], unresolvedHandles: [] };
     if (resolvedHandles.unresolvedHandles.length > 0) {
-      throw new BadRequestException(
-        `Unresolved character handles: ${resolvedHandles.unresolvedHandles.join(', ')}`,
+      throw new NotFoundException(
+        'Character',
+        resolvedHandles.unresolvedHandles.join(', '),
       );
     }
 
@@ -263,6 +266,15 @@ export class VideosClipChainController {
       ...(identity.productIngredientIds ?? []),
       ...(identity.environmentIngredientIds ?? []),
     ]);
+    // Characters the brand can no longer use are refused; a shared
+    // character's reference image belongs to its owning brand.
+    const { availableAvatarIds } =
+      await this.personasService.resolveCharacterReferences({
+        brandId,
+        ingredientIds: [...ids],
+        organizationId,
+        path: 'video-clip-chain',
+      });
     for (const id of ids) {
       const asset = await this.ingredientsService.findOne({
         id,
@@ -282,7 +294,7 @@ export class VideosClipChainController {
           `Identity ingredient ${id} is unavailable for this organization`,
         );
       }
-      if (asset.brandId !== brandId) {
+      if (asset.brandId !== brandId && !availableAvatarIds.has(id)) {
         throw new BadRequestException(
           `Identity ingredient ${id} does not belong to the selected brand`,
         );

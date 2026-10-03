@@ -13,6 +13,7 @@ import { storyboardConfigHash } from '@api/collections/content-runs/services/sto
 import type { StoryboardStoredRunConfig } from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import { StoryboardSourceService } from '@api/collections/content-runs/services/storyboard-source.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { HIGGSFIELD_GENJUTSU_DEFAULT_RESOLUTION } from '@api/services/integrations/higgsfield/helpers/higgsfield.catalog';
@@ -47,6 +48,7 @@ export class StoryboardCharacterReplaceService {
     private readonly videos: BrandRemixSceneSourceService,
     private readonly higgsField: HiggsFieldService,
     private readonly mediaUrls: MediaUrlService,
+    private readonly personasService: PersonasService,
   ) {}
   private async read(org: string, brand: string, run: string) {
     return (await this.store.read(org, brand, run)).config;
@@ -544,6 +546,14 @@ export class StoryboardCharacterReplaceService {
       [videoAssetId],
       'VIDEO',
     );
+    // A character the brand can no longer use is refused before any media is
+    // read or the operation is journaled (#6040).
+    await this.personasService.resolveCharacterReferences({
+      brandId: brand,
+      ingredientIds: input.imageAssetIds,
+      organizationId: org,
+      path: 'storyboard',
+    });
     const refs = await this.versions(org, brand, input.imageAssetIds, 'IMAGE');
     const identity = {
       organizationId: org,

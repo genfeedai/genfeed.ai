@@ -1,3 +1,4 @@
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import type {
   WorkflowImageProviderPlan,
@@ -106,6 +107,7 @@ export class WorkflowMediaProviderPlanService {
   constructor(
     private readonly helper: WorkflowEngineExecutorHelperService,
     private readonly loggerService: LoggerService,
+    private readonly personasService: PersonasService,
     @Optional() private readonly promptBuilderService?: PromptBuilderService,
     @Optional() private readonly filesClientService?: FilesClientService,
     @Optional() private readonly configService?: ConfigService,
@@ -134,6 +136,32 @@ export class WorkflowMediaProviderPlanService {
     throw new Error(
       `No direct Replicate media preparation contract for ${executable.type}`,
     );
+  }
+
+  /**
+   * Admits the characters a node feeds into a generation (#6040): a revoked
+   * character fails the node before any output or provider dispatch exists.
+   * Returns the character to link the output to.
+   */
+  private async admitCharacters(args: {
+    brandId: string;
+    organizationId: string;
+    values: readonly unknown[];
+  }) {
+    const ingredientIds = args.values.flatMap((value) => {
+      const id =
+        this.helper.extractIngredientId(value) ??
+        (typeof value === 'string' && value && !value.includes('/')
+          ? value
+          : undefined);
+      return id ? [id] : [];
+    });
+    return this.personasService.resolveCharacterReferences({
+      brandId: args.brandId,
+      ingredientIds,
+      organizationId: args.organizationId,
+      path: 'workflow',
+    });
   }
 
   async prepareImage({
@@ -195,6 +223,11 @@ export class WorkflowMediaProviderPlanService {
           undefined,
         );
     const brandId = this.helper.requireBrandId(params.brandId, 'imageGen');
+    const { personaId } = await this.admitCharacters({
+      brandId,
+      organizationId: context.organizationId,
+      values: references ?? [],
+    });
     return {
       actionId: 'imageGen',
       preparationVersion: 1,
@@ -214,6 +247,7 @@ export class WorkflowMediaProviderPlanService {
         model,
         negativePrompt,
         organizationId: context.organizationId,
+        personaId,
         providerData: toRedactedGenerationBriefProviderData(compiled.evidence),
         userId: context.userId,
       },
@@ -248,9 +282,21 @@ export class WorkflowMediaProviderPlanService {
     const identityReferences = readIdentityReferences(
       params.identityReferences,
     );
+    const { availableAvatarIds, personaId } = await this.admitCharacters({
+      brandId,
+      organizationId: context.organizationId,
+      values: [
+        ...(referenceAssetIds ?? []),
+        endFrameId,
+        ...videoReferenceAssetIds,
+        ...identityReferences.map((reference) => reference.assetId),
+        params.parentIngredientId,
+      ],
+    });
     const identityPlan =
       identityReferences.length > 0
         ? await this.resolveIdentityReferencePlan({
+            availableAvatarIds,
             brandId,
             firstFrameAssetId: referenceAssetIds?.[0],
             identityReferences,
@@ -321,6 +367,7 @@ export class WorkflowMediaProviderPlanService {
         generationSource: compiled.generationSource,
         model,
         organizationId: context.organizationId,
+        personaId,
         parentIngredientId:
           typeof params.parentIngredientId === 'string'
             ? params.parentIngredientId
@@ -419,6 +466,7 @@ export class WorkflowMediaProviderPlanService {
    * conflict rule (identity stills win over a conflicting frame role).
    */
   private async resolveIdentityReferencePlan(args: {
+    availableAvatarIds: ReadonlySet<string>;
     brandId: string;
     firstFrameAssetId?: string;
     identityReferences: readonly ClipChainIdentityReference[];
@@ -447,7 +495,10 @@ export class WorkflowMediaProviderPlanService {
           `Identity ${reference.role} reference ${reference.assetId} is unavailable for this organization`,
         );
       }
-      if (asset.brandId !== args.brandId) {
+      if (
+        asset.brandId !== args.brandId &&
+        !args.availableAvatarIds.has(reference.assetId)
+      ) {
         throw new Error(
           `Identity ${reference.role} reference ${reference.assetId} does not belong to the run brand`,
         );

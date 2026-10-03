@@ -1,4 +1,5 @@
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import {
   currentWorkflowGenerationDispatch,
   runWithWorkflowGenerationDispatch,
@@ -61,6 +62,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     @Optional() private readonly configService?: ConfigService,
     @Optional()
     private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
+    @Optional() private readonly personasService?: PersonasService,
   ) {}
 
   private async processingMediaUrl(
@@ -276,6 +278,15 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
             'Lip-sync source media and audio must belong to the same brand',
           );
         }
+        // A character the brand can no longer use is refused before dispatch.
+        const personaId = (
+          await this.personasService?.resolveCharacterReferences({
+            brandId: media.brandId,
+            ingredientIds: [media.id],
+            organizationId: context.organizationId,
+            path: 'lip-sync',
+          })
+        )?.personaId;
         const isVideo = media.category === IngredientCategory.VIDEO;
         const mode = isVideo ? 'video' : 'image';
         if (options.mode && options.mode !== mode) {
@@ -316,6 +327,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
             organizationId: context.organizationId,
             userId: context.userId,
             parentIngredientId: media.id,
+            personaId,
             references: [media.id, audio.id],
             transformations: [TransformationCategory.LIP_SYNCED],
           },

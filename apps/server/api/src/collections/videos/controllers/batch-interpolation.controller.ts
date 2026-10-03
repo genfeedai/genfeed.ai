@@ -3,6 +3,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import {
@@ -104,6 +105,7 @@ type InterpolationContext = {
   height: number;
   model: NonNullable<Awaited<ReturnType<ModelsService['findOne']>>>;
   pairs: InterpolationPairDto[];
+  personaIdByAssetId: ReadonlyMap<string, string>;
   user: User;
   width: number;
 };
@@ -121,6 +123,7 @@ export class BatchInterpolationController {
     private readonly loggerService: LoggerService,
     private readonly billing: BatchInterpolationBillingService,
     private readonly modelsService: ModelsService,
+    private readonly personasService: PersonasService,
     private readonly promptsService: PromptsService,
     private readonly promptBuilderService: PromptBuilderService,
     private readonly sharedService: SharedService,
@@ -218,6 +221,19 @@ export class BatchInterpolationController {
       });
     }
 
+    // A character the brand can no longer use is refused before credits are
+    // touched or any output exists (#6040).
+    const { personaIdByAssetId } =
+      await this.personasService.resolveCharacterReferences({
+        brandId: brand.id,
+        ingredientIds: pairs.flatMap((pair) => [
+          pair.startImageId,
+          pair.endImageId,
+        ]),
+        organizationId: user.organizationId,
+        path: 'video-interpolation',
+      });
+
     const { height, width } = this.resolveDimensions(
       dto.format || IngredientFormat.LANDSCAPE,
     );
@@ -235,6 +251,7 @@ export class BatchInterpolationController {
       height,
       model,
       pairs,
+      personaIdByAssetId,
       user,
       width,
     };
@@ -374,6 +391,9 @@ export class BatchInterpolationController {
             : {}),
           model: context.dto.modelKey,
           organizationId: context.brand.organizationId,
+          personaId:
+            context.personaIdByAssetId.get(pair.startImageId) ??
+            context.personaIdByAssetId.get(pair.endImageId),
           promptId: promptData.id,
           promptTemplate: builtPrompt.templateUsed,
           // Frames that are Library assets are references: record them so the

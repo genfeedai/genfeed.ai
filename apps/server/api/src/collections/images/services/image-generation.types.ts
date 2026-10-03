@@ -23,6 +23,8 @@ export interface ImageEditingContext {
   size: ImageEditSize;
   width: number;
   height: number;
+  /** Character the sources belong to, when one was admitted (#6040). */
+  personaId?: string | null;
   recipe: ImageEditingRecipe;
 }
 
@@ -177,4 +179,6 @@ export interface ImageGenerationPreparedInputs {
   referenceImageUrls: string[];
   referenceImageUrl: string | null;
   generationHarness: GenerationHarnessReceipt;
+  /** Character admitted for this request; outputs link to it. */
+  personaId: string | null;
 }

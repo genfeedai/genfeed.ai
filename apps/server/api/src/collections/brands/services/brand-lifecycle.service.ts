@@ -15,6 +15,7 @@ import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
+import { PersonaAvailabilityMode } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';
@@ -90,6 +91,50 @@ export class BrandLifecycleService {
           throw new ConflictException(
             "Cannot delete an organization's last brand. Create another brand first.",
           );
+        }
+
+        // A brand that owns characters other brands can use cannot be
+        // deleted: those brands would lose them (#6040). Ownership must move
+        // first. Re-read under the lock so a concurrent share cannot slip by.
+        const sharedCharacters = await tx.persona.findMany({
+          orderBy: { label: 'asc' },
+          select: {
+            availabilityMode: true,
+            availableBrandIds: true,
+            handle: true,
+            id: true,
+            label: true,
+          },
+          where: scopedWhere(organizationId, {
+            availabilityMode: { not: PersonaAvailabilityMode.OWNING_BRAND },
+            brandId: id,
+          }),
+        });
+        const liveBrandIds = new Set(liveBrands.map((brand) => brand.id));
+        const blockingCharacters = sharedCharacters.filter((character) =>
+          character.availabilityMode === PersonaAvailabilityMode.ALL_BRANDS
+            ? liveBrandIds.size > 1
+            : (character.availableBrandIds ?? []).some(
+                (brandId) => brandId !== id && liveBrandIds.has(brandId),
+              ),
+        );
+        if (blockingCharacters.length > 0) {
+          throw new ConflictException({
+            code: 'brand_owns_shared_characters',
+            detail: `This brand owns characters other brands use: ${blockingCharacters
+              .map((character) => character.label)
+              .join(', ')}. Move their ownership to another brand first.`,
+            // JSON:API `source` is the one free-form member the HTTP filter
+            // forwards; the client reads the characters to link to.
+            source: {
+              characters: blockingCharacters.map((character) => ({
+                handle: character.handle,
+                id: character.id,
+                label: character.label,
+              })),
+            },
+            title: 'Brand owns shared characters',
+          });
         }
 
         // Capture affected members before the move so their caches can be

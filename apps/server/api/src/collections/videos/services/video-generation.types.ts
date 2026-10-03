@@ -85,6 +85,8 @@ export interface ResolvedVideoGenerationRequest {
   modelInputSchema?: Record<string, unknown>;
   modelProvider?: ModelProvider | string;
   modelSchemaFamily?: string;
+  /** Character admitted for this request; the output links to it (#6040). */
+  personaId?: string | null;
   referenceIds: string[];
   request: RequestWithSelectedModel<Request>;
   user: User;

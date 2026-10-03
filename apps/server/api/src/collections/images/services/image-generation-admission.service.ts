@@ -8,6 +8,10 @@ import { ImagesService } from '@api/collections/images/services/images.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import type {
+  CharacterAdmission,
+  CharacterAdmissionPath,
+} from '@api/collections/personas/utils/character-admission.util';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
@@ -55,11 +59,13 @@ export class ImageGenerationAdmissionService {
     organizationId: string,
     brandId: string,
     referenceIds: string[],
-  ): Promise<{ availableAvatarIds: Set<string>; personaId: string | null }> {
+    path: CharacterAdmissionPath = 'image',
+  ): Promise<CharacterAdmission> {
     return this.personasService.resolveCharacterReferences({
       brandId,
       ingredientIds: referenceIds,
       organizationId,
+      path,
     });
   }
 
@@ -92,6 +98,14 @@ export class ImageGenerationAdmissionService {
           : 'Provide an instruction, one to five distinct source images, a valid size and one to eight outputs.',
       );
     }
+    // A character the active brand can no longer use is refused before any
+    // image is read, so no output or charge follows.
+    const { personaId } = await this.resolveCharacterLink(
+      organizationId,
+      brandId,
+      sourceIds,
+      'image-edit',
+    );
     const findReadyImage = async (id: string) => {
       const image = await this.imagesService.findOne(
         {
@@ -147,6 +161,7 @@ export class ImageGenerationAdmissionService {
         ? [sourceWidth, sourceHeight]
         : size.split('x').map(Number);
     return {
+      personaId,
       sourceIds,
       sourceUrls: sourceIds.map(
         (id) => `${this.configService.ingredientsEndpoint}/images/${id}`,
@@ -245,6 +260,7 @@ export class ImageGenerationAdmissionService {
       organizationId,
       brandId,
       sourceIds,
+      'image',
     );
     for (const id of sourceIds) {
       const image = await this.imagesService.findOne(

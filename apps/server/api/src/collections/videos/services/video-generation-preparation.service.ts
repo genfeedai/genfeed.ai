@@ -5,6 +5,7 @@ import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/bran
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
@@ -120,6 +121,7 @@ export class VideoGenerationPreparationService {
     private readonly loggerService: LoggerService,
     private readonly modelRegistrationService: ModelRegistrationService,
     private readonly organizationSettingsService: OrganizationSettingsService,
+    private readonly personasService: PersonasService,
     private readonly promptBuilderService: PromptBuilderService,
     private readonly promptsService: PromptsService,
     private readonly routerService: RouterService,
@@ -160,6 +162,20 @@ export class VideoGenerationPreparationService {
     const referenceIds = Array.isArray(createVideoDto.references)
       ? createVideoDto.references.map((id) => id.toString())
       : [];
+    // A character the active brand can no longer use is refused here, before
+    // any output or credit charge (#6040).
+    const { personaId } = await this.personasService.resolveCharacterReferences(
+      {
+        brandId: brand.id,
+        ingredientIds: [
+          ...referenceIds,
+          ...(createVideoDto.endFrame ? [String(createVideoDto.endFrame)] : []),
+          ...(createVideoDto.videoReferences ?? []).map(String),
+        ],
+        organizationId: user.organizationId,
+        path: 'video',
+      },
+    );
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
         organizationId: user.organizationId,
@@ -216,6 +232,7 @@ export class VideoGenerationPreparationService {
       modelInputSchema,
       modelProvider: registeredModel?.provider,
       modelSchemaFamily: registeredModel?.providerSchemaFamily ?? undefined,
+      personaId,
       referenceIds,
       request,
       user,
@@ -325,6 +342,7 @@ export class VideoGenerationPreparationService {
         model,
         negativePrompt: createVideoDto.negativePrompt,
         organizationId: brand.organizationId,
+        personaId: resolved.personaId,
         promptId: promptData.id,
         promptTemplate: templateUsed,
         providerData: toRedactedVideoGenerationBriefProviderData(briefEvidence),

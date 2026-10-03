@@ -4370,6 +4370,9 @@ model PersonaAvailabilityAudit {
   previousBrandIds String[]                @default([])
   newMode          PersonaAvailabilityMode
   newBrandIds      String[]                @default([])
+  /// Set only when the change moved the owning brand (#6040).
+  previousOwningBrandId String?
+  newOwningBrandId      String?
   createdAt        DateTime                @default(now())
 
   @@index([personaId, createdAt(sort: Desc)])

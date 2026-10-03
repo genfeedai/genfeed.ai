@@ -20,6 +20,7 @@ import {
 import type { RemixSourceMediaIngestResult } from '@api/collections/content-runs/services/brand-remix-source-media.service';
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { isMaterializableSavedVoice } from '@api/collections/videos/services/saved-voice-materialization';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
@@ -58,6 +59,7 @@ export class BrandRemixRunPlanningService {
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly sourceResolver: BrandRemixSourceResolverService,
     private readonly personaResolution: BrandRemixPersonaResolutionService,
+    private readonly personasService: PersonasService,
   ) {}
 
   resolveSource(
@@ -535,6 +537,11 @@ export class BrandRemixRunPlanningService {
         ? [draft.identity.avatarAssetId, draft.identity.speechVoiceId]
         : [];
     const ingredientIds = [...new Set([...referenceIds, ...identityIds])];
+    const availableAvatarIds = await this.admitCharacters(
+      organizationId,
+      brandId,
+      ingredientIds,
+    );
     const [ingredients, assets] = await Promise.all([
       ingredientIds.length
         ? this.prisma.ingredient.findMany({
@@ -551,7 +558,12 @@ export class BrandRemixRunPlanningService {
             },
             where: scopedWhere(organizationId, {
               id: { in: ingredientIds },
-              OR: [{ brandId }, { brandId: null }],
+              OR: [
+                { brandId },
+                { brandId: null },
+                // A shared character's reference image belongs to its owner.
+                { id: { in: [...availableAvatarIds] } },
+              ],
               status: {
                 in: [...GENERATION_READY_STATUSES] as IngredientStatus[],
               },
@@ -594,7 +606,41 @@ export class BrandRemixRunPlanningService {
         title: 'Invalid remix references',
       });
     }
-    this.assertAvatarIdentity(draft, ingredientById, brandId);
+    this.assertAvatarIdentity(
+      draft,
+      ingredientById,
+      brandId,
+      availableAvatarIds,
+    );
+  }
+
+  /**
+   * Characters the brand can no longer use are refused like any other
+   * unavailable remix reference, so a saved draft degrades to a blocked
+   * readiness issue instead of failing to load (#6040).
+   */
+  private async admitCharacters(
+    organizationId: string,
+    brandId: string,
+    ingredientIds: readonly string[],
+  ): Promise<ReadonlySet<string>> {
+    try {
+      const { availableAvatarIds } =
+        await this.personasService.resolveCharacterReferences({
+          brandId,
+          ingredientIds,
+          organizationId,
+          path: 'storyboard',
+        });
+      return availableAvatarIds;
+    } catch (error) {
+      if (!(error instanceof NotFoundException)) throw error;
+      throw new BadRequestException({
+        detail:
+          'One or more remix references are unavailable to this brand or are not generation-ready.',
+        title: 'Invalid remix references',
+      });
+    }
   }
 
   async assertGeneratedAssetsAuthorized(
@@ -850,13 +896,15 @@ export class BrandRemixRunPlanningService {
       }
     >,
     brandId: string,
+    availableAvatarIds: ReadonlySet<string>,
   ): void {
     if (!('avatarAssetId' in draft.identity)) return;
     const avatar = ingredientById.get(draft.identity.avatarAssetId);
     const voice = ingredientById.get(draft.identity.speechVoiceId);
     if (
       avatar?.category !== IngredientCategory.AVATAR ||
-      avatar.brandId !== brandId
+      (avatar.brandId !== brandId &&
+        !availableAvatarIds.has(draft.identity.avatarAssetId))
     ) {
       throw new BadRequestException({
         detail: 'The selected avatar must be a generation-ready brand avatar.',

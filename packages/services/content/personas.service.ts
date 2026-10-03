@@ -75,6 +75,14 @@ export class PersonasService extends BaseService<
     return deserializeResource<Persona>(response.data);
   }
 
+  async moveOwnership(id: string, brandId: string): Promise<Persona> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${id}/owner`,
+      { brandId },
+    );
+    return deserializeResource<Persona>(response.data);
+  }
+
   async inspectImage(assetId: string): Promise<CharacterImageInspection> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       '/inspect-image',

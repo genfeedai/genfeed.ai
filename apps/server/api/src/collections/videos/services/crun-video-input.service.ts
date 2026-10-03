@@ -3,6 +3,7 @@ import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import {
   type CrunVideoQuoteIntent,
   crunVideoQuoteIntentSchema,
@@ -53,6 +54,7 @@ export class CrunVideoInputService {
     private readonly builder: PromptBuilderService,
     private readonly tasks: CrunTaskService,
     private readonly config: ConfigService,
+    private readonly personas: PersonasService,
   ) {}
 
   normalize(raw: unknown, user: AuthenticatedUser): CrunVideoQuoteIntent {
@@ -266,6 +268,16 @@ export class CrunVideoInputService {
     user: AuthenticatedUser,
     brandId: string,
   ): Promise<string[]> {
+    // A character the brand can no longer use is refused here too (#6040).
+    await this.personas.resolveCharacterReferences({
+      brandId,
+      ingredientIds: [
+        ...intent.references,
+        ...(intent.endFrame ? [intent.endFrame] : []),
+      ],
+      organizationId: user.organizationId,
+      path: 'video',
+    });
     const references = await resolveCrunReferences({
       prisma: this.prisma,
       assets: this.assets,

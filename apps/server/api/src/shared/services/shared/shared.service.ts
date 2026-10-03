@@ -194,6 +194,7 @@ const buildIngredientCreateDto = (
     ? { organizationId: ownership.organizationId }
     : {}),
   ...(parentId ? { parentId } : {}),
+  ...(input.personaId ? { personaId: input.personaId } : {}),
   ...(promptId ? { promptId } : {}),
   ...(input.providerData !== undefined
     ? { providerData: input.providerData }

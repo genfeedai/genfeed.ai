@@ -28,8 +28,13 @@ import { Button } from '@ui/primitives/button';
 import { Building2, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useMemo } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import {
+  type BlockedCharacter,
+  readBlockedCharacters,
+} from './blocked-characters.util';
+import BrandDeleteBlockedDialog from './brand-delete-blocked-dialog';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -118,6 +123,11 @@ function BrandsListContent() {
     }
   }, [brandsError, notificationsService]);
 
+  const [blocked, setBlocked] = useState<{
+    brand: Brand;
+    characters: BlockedCharacter[];
+  } | null>(null);
+
   const refresh = useCallback(async () => {
     await refetch();
   }, [refetch]);
@@ -132,6 +142,11 @@ function BrandsListContent() {
         await refresh();
       } catch (error) {
         logger.error('Failed to delete brand', error);
+        const characters = readBlockedCharacters(error);
+        if (characters.length > 0) {
+          setBlocked({ brand, characters });
+          return;
+        }
         notificationsService.error('Failed to delete brand');
       }
     },
@@ -260,6 +275,14 @@ function BrandsListContent() {
       />
 
       <AutoPagination showTotal totalLabel="brands" />
+
+      <BrandDeleteBlockedDialog
+        brandLabel={blocked?.brand.label ?? ''}
+        brandSlug={blocked?.brand.slug}
+        characters={blocked?.characters ?? []}
+        onClose={() => setBlocked(null)}
+        orgSlug={orgSlug}
+      />
     </Container>
   );
 }

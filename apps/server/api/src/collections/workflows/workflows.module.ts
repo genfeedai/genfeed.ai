@@ -1,5 +1,6 @@
 import { AgentStrategyPerformanceModule } from '@api/collections/agent-strategies/agent-strategy-performance.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
 import { DailyPublishingService } from '@api/collections/workflows/services/daily-publishing.service';
 import { WorkflowGenerationAdmissionPlanService } from '@api/collections/workflows/services/workflow-generation-admission-plan.service';
 import { WorkflowMediaBillingPlanService } from '@api/collections/workflows/services/workflow-media-billing-plan.service';
@@ -164,6 +165,7 @@ import { Module } from '@nestjs/common';
     YoutubeLongFormWorkflowService,
   ],
   imports: [
+    PersonasCoreModule,
     MediaUrlsModule,
     AgentStrategyPerformanceModule,
     WorkflowsCoreModule,

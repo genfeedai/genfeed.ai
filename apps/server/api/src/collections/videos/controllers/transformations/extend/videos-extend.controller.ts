@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { VideoExtendDto } from '@api/collections/videos/dto/video-extend.dto';
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
@@ -52,6 +53,7 @@ export class VideosExtendController {
 
   constructor(
     private readonly videoGenerationCreditsService: VideoGenerationCreditsService,
+    private readonly personasService: PersonasService,
     private readonly videosService: VideosService,
     private readonly workflowsService: WorkflowsService,
   ) {}
@@ -95,6 +97,14 @@ export class VideosExtendController {
     if (!brandId) {
       throw new BadRequestException('A brand is required to extend a video');
     }
+    // The source video's character must still be available to the brand, or
+    // the extension is refused before any credit is reserved (#6040).
+    await this.personasService.resolveCharacterReferences({
+      brandId,
+      ingredientIds: [videoId],
+      organizationId: user.organizationId,
+      path: 'video-extend',
+    });
     const model = dto.model;
     const dispatchMode = hasNativeExtend(model) ? 'native' : 'fabricated';
     const sourceDuration = source.metadata?.duration;

@@ -19,6 +19,7 @@ import { type GenerationBillingRequest } from '@api/collections/credits/services
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
 import { AvatarVideoReferenceService } from '@api/collections/videos/services/avatar-video-reference.service';
 import { isMaterializableSavedVoice } from '@api/collections/videos/services/saved-voice-materialization';
@@ -70,6 +71,7 @@ export class AvatarVideoGenerationService {
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
     private readonly orgSettingsService: OrganizationSettingsService,
+    private readonly personasService: PersonasService,
     private readonly sharedService: SharedService,
     private readonly videosService: VideosService,
     private readonly voicesService: VoicesService,
@@ -84,12 +86,35 @@ export class AvatarVideoGenerationService {
   ): Promise<AvatarGenerationPrice> {
     const brand = await this.findBrandForContext(context);
     const identity = await this.resolveIdentityInputs(params, context, brand);
+    await this.admitCharacter(identity, brand.id, context);
     this.assertUsableVoiceSource(params, identity);
     const { billingMode, credits } = await this.resolveFunding(
       identity,
       context,
     );
     return { billingMode, credits };
+  }
+
+  /**
+   * The photo an avatar renders from may be a character's reference image.
+   * A character the brand can no longer use is refused before funding (#6040).
+   */
+  private async admitCharacter(
+    identity: ResolvedIdentity,
+    brandId: string,
+    context: AvatarVideoGenerationContext,
+  ): Promise<string | null> {
+    const { personaId } = await this.personasService.resolveCharacterReferences(
+      {
+        brandId,
+        ingredientIds: identity.photoIngredientId
+          ? [identity.photoIngredientId]
+          : [],
+        organizationId: context.organizationId,
+        path: 'avatar-video',
+      },
+    );
+    return personaId;
   }
 
   /** Pin provider keys before reserving, so a BYOK change cannot change who pays. */
@@ -149,6 +174,11 @@ export class AvatarVideoGenerationService {
         context,
         brand,
       );
+      const personaId = await this.admitCharacter(
+        resolvedIdentity,
+        brand.id,
+        context,
+      );
       this.assertUsableVoiceSource(params, resolvedIdentity);
       const funding = await this.resolveFunding(resolvedIdentity, context);
       billing =
@@ -166,6 +196,7 @@ export class AvatarVideoGenerationService {
         resolvedIdentity,
         context,
         placeholderScope,
+        personaId,
       );
 
       ingredientId = String(ingredientData.id);
@@ -324,6 +355,7 @@ export class AvatarVideoGenerationService {
     identity: ResolvedIdentity,
     context: AvatarVideoGenerationContext,
     placeholderScope?: GenerationPlaceholderScope,
+    personaId?: string | null,
   ): ReturnType<SharedService['createMediaDocumentsInternal']> {
     return this.sharedService.createMediaDocumentsInternal({
       origin: IngredientOrigin.GENERATED,
@@ -338,6 +370,7 @@ export class AvatarVideoGenerationService {
         identity.photoIngredientId != null
           ? identity.photoIngredientId
           : undefined,
+      personaId,
       status: IngredientStatus.PROCESSING,
       userId: context.userId,
     });
