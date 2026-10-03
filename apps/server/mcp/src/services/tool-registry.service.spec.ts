@@ -787,8 +787,8 @@ describe('ToolRegistryService', () => {
     ).toEqual([
       ['current Balance', '88'],
       ['trend Percentage', '5'],
-      ['usage7 Days', '12'],
       ['usage30 Days', '40'],
+      ['usage7 Days', '12'],
     ]);
   });
 
