@@ -1,3 +1,4 @@
+import { PersonaGrantReadService } from '@api/collections/personas/services/persona-grant-read.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { brandAvailabilityWhere } from '@api/collections/personas/utils/persona-availability.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -11,6 +12,12 @@ import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('PersonasService', () => {
   let service: PersonasService;
+  const grantReads = {
+    findForBrand: vi.fn(),
+    findHandleGrants: vi.fn(),
+    findReferenceGrants: vi.fn(),
+    listForBrand: vi.fn(),
+  };
   const logger = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -34,9 +41,14 @@ describe('PersonasService', () => {
       update: ReturnType<typeof vi.fn>;
     };
     personaAvailabilityAudit: { create: ReturnType<typeof vi.fn> };
+    personaGrant: { findMany: ReturnType<typeof vi.fn> };
   };
 
   beforeEach(async () => {
+    grantReads.findForBrand.mockReset().mockResolvedValue(null);
+    grantReads.findHandleGrants.mockReset().mockResolvedValue([]);
+    grantReads.findReferenceGrants.mockReset().mockResolvedValue([]);
+    grantReads.listForBrand.mockReset().mockResolvedValue([]);
     prisma = {
       $queryRaw: vi.fn().mockResolvedValue([]),
       $transaction: vi.fn(),
@@ -54,6 +66,7 @@ describe('PersonasService', () => {
         update: vi.fn(),
       },
       personaAvailabilityAudit: { create: vi.fn() },
+      personaGrant: { findMany: vi.fn().mockResolvedValue([]) },
     };
     prisma.$transaction.mockImplementation(
       async (callback: (tx: typeof prisma) => Promise<unknown>) =>
@@ -63,6 +76,7 @@ describe('PersonasService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PersonasService,
+        { provide: PersonaGrantReadService, useValue: grantReads },
         { provide: PrismaService, useValue: prisma },
         {
           provide: LoggerService,
@@ -947,6 +961,175 @@ describe('PersonasService', () => {
             path: 'video-clip-chain',
           }),
         );
+      });
+    });
+
+    describe('characters granted by another organization (#6037)', () => {
+      const grantedRow = (overrides: Record<string, unknown> = {}) => ({
+        availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
+        availableBrandIds: [] as string[],
+        ownerOrganizationId: 'org-owner',
+        persona: {
+          avatarIngredientId: 'avatar-g',
+          id: 'persona-g',
+          ingredients: [] as Array<{ id: string }>,
+        },
+        ...overrides,
+      });
+      const admit = (ids: string[]) =>
+        service.resolveCharacterReferences({
+          brandId: 'brand-b',
+          ingredientIds: ids,
+          organizationId: orgId,
+          path: 'image',
+        });
+
+      it('admits a granted character reference and names its owning organization', async () => {
+        grantReads.findReferenceGrants.mockResolvedValue([grantedRow()]);
+
+        const admission = await admit(['avatar-g']);
+
+        expect(admission.personaId).toBe('persona-g');
+        expect(admission.availableAvatarIds).toEqual(new Set(['avatar-g']));
+        expect(admission.grantedAvatarOwners.get('avatar-g')).toBe('org-owner');
+        expect(grantReads.findReferenceGrants).toHaveBeenCalledWith({
+          ingredientIds: ['avatar-g'],
+          organizationId: orgId,
+        });
+      });
+
+      it('refuses a granted character the receiving brand was not granted', async () => {
+        grantReads.findReferenceGrants.mockResolvedValue([
+          grantedRow({
+            availabilityMode: PersonaAvailabilityMode.SELECTED_BRANDS,
+            availableBrandIds: ['brand-other'],
+          }),
+        ]);
+
+        await expect(admit(['avatar-g'])).rejects.toBeInstanceOf(
+          NotFoundException,
+        );
+      });
+
+      it('treats a revoked or missing grant like any other asset and keeps old output links', async () => {
+        grantReads.findReferenceGrants.mockResolvedValue([]);
+
+        const admission = await admit(['avatar-g', 'old-output']);
+
+        expect(admission.personaId).toBeNull();
+        expect(admission.grantedAvatarOwners.size).toBe(0);
+      });
+
+      it('links an output of a granted character the brand can use', async () => {
+        grantReads.findReferenceGrants.mockResolvedValue([
+          grantedRow({
+            persona: {
+              avatarIngredientId: 'avatar-g',
+              id: 'persona-g',
+              ingredients: [{ id: 'out-1' }],
+            },
+          }),
+        ]);
+
+        const admission = await admit(['out-1']);
+
+        expect(admission.personaIdByAssetId.get('out-1')).toBe('persona-g');
+        expect(admission.availableAvatarIds.size).toBe(0);
+      });
+
+      it('resolves a granted handle to its reference image', async () => {
+        prisma.persona.findMany.mockResolvedValue([]);
+        grantReads.findHandleGrants.mockResolvedValue([
+          { persona: { avatarIngredientId: 'avatar-g', handle: 'Anna' } },
+        ]);
+
+        await expect(
+          service.resolveCharacterHandles({
+            brandId: 'brand-b',
+            handles: ['anna'],
+            organizationId: orgId,
+          }),
+        ).resolves.toEqual({
+          resolvedIngredientIds: ['avatar-g'],
+          unresolvedHandles: [],
+        });
+      });
+
+      it('lists granted characters in mentions with the granting organization', async () => {
+        prisma.persona.findMany.mockResolvedValue([]);
+        grantReads.listForBrand.mockResolvedValue([
+          {
+            ownerOrganization: { label: 'Vincent' },
+            persona: {
+              avatarIngredientId: 'avatar-g',
+              handle: 'anna',
+              id: 'persona-g',
+              label: 'Anna',
+            },
+          },
+        ]);
+
+        const mentions = await service.listCharacterMentions({
+          brandId: 'brand-b',
+          organizationId: orgId,
+        });
+
+        expect(mentions).toEqual([
+          expect.objectContaining({
+            grantedByOrganizationName: 'Vincent',
+            handle: 'anna',
+            hasReferenceImage: true,
+            isGranted: true,
+          }),
+        ]);
+      });
+
+      it('resolves a granted character for the Library filter only through its grant', async () => {
+        prisma.persona.findFirst.mockResolvedValue(null);
+        grantReads.findForBrand.mockResolvedValue({ id: 'persona-g' });
+
+        await expect(
+          service.findAvailableToBrand({
+            brandId: 'brand-b',
+            organizationId: orgId,
+            personaId: 'persona-g',
+          }),
+        ).resolves.toMatchObject({ id: 'persona-g' });
+
+        grantReads.findForBrand.mockResolvedValue(null);
+        await expect(
+          service.findAvailableToBrand({
+            brandId: 'brand-b',
+            organizationId: orgId,
+            personaId: 'persona-g',
+          }),
+        ).resolves.toBeNull();
+      });
+
+      it('rejects a handle that collides with a character granted into the target brand', async () => {
+        prisma.persona.findMany.mockResolvedValue([]);
+        prisma.personaGrant.findMany.mockResolvedValue([
+          {
+            availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
+            availableBrandIds: [],
+          },
+        ]);
+        prisma.brand.findMany.mockResolvedValue([
+          { id: 'brand-b', label: 'Podcast' },
+        ]);
+
+        await expect(
+          service.assertNoHandleCollision({
+            availability: {
+              availabilityMode: PersonaAvailabilityMode.OWNING_BRAND,
+              availableBrandIds: [],
+              brandId: 'brand-b',
+            },
+            handle: 'anna',
+            organizationId: orgId,
+            owningBrandId: 'brand-b',
+          }),
+        ).rejects.toThrow('@anna');
       });
     });
 

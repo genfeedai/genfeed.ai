@@ -9,6 +9,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { PersonasController } from '@api/collections/personas/controllers/personas.controller';
 import { CharacterOwnershipService } from '@api/collections/personas/services/character-ownership.service';
+import { PersonaGrantsService } from '@api/collections/personas/services/persona-grants.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { brandAvailabilityWhere } from '@api/collections/personas/utils/persona-availability.util';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -52,6 +53,12 @@ describe('PersonasController', () => {
   };
 
   const ownershipMethods = { moveOwnership: vi.fn() };
+  const grantMethods = {
+    grant: vi.fn(),
+    listForPersona: vi.fn(),
+    listGrantableOrganizations: vi.fn(),
+    revoke: vi.fn(),
+  };
 
   beforeEach(async () => {
     mockServiceMethods.withAvailabilitySummary.mockImplementation(
@@ -63,6 +70,7 @@ describe('PersonasController', () => {
       providers: [
         { provide: PersonasService, useValue: mockServiceMethods },
         { provide: CharacterOwnershipService, useValue: ownershipMethods },
+        { provide: PersonaGrantsService, useValue: grantMethods },
         {
           provide: LoggerService,
           useValue: {
@@ -427,6 +435,47 @@ describe('PersonasController', () => {
         organizationId,
         personaId,
       });
+    });
+
+    it('grants a character to another organization as the acting user', async () => {
+      grantMethods.grant.mockResolvedValue({ id: 'grant-1' });
+
+      await controller.grant(mockUser, personaId, {
+        brandIds: [otherBrandId],
+        mode: PersonaAvailabilityMode.SELECTED_BRANDS,
+        organizationId: 'org-2',
+      });
+
+      expect(grantMethods.grant).toHaveBeenCalledWith({
+        actorUserId: userId,
+        apiKeyContext: mockUser,
+        brandId,
+        brandIds: [otherBrandId],
+        mode: PersonaAvailabilityMode.SELECTED_BRANDS,
+        organizationId,
+        personaId,
+        recipientOrganizationId: 'org-2',
+      });
+    });
+
+    it('revokes a grant and lists grants for the owning organization', async () => {
+      grantMethods.listForPersona.mockResolvedValue([{ id: 'grant-1' }]);
+
+      await expect(controller.listGrants(mockUser, personaId)).resolves.toEqual(
+        {
+          grants: [{ id: 'grant-1' }],
+        },
+      );
+      await controller.revokeGrant(mockUser, personaId, testId('grant'));
+
+      expect(grantMethods.revoke).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorUserId: userId,
+          brandId,
+          organizationId,
+          personaId,
+        }),
+      );
     });
 
     it('moves ownership for the active brand and organization', async () => {
