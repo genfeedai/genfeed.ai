@@ -372,6 +372,48 @@ describe('scoped authenticated send and replay fence', () => {
       ),
     ).toHaveLength(1);
   });
+  it('reuses the verified identity for the same token and re-checks after the TTL', async () => {
+    vi.useFakeTimers();
+    mocks.values.set('genfeed_token', 'token-1');
+    mocks.fetch.mockImplementation(async (url: string) =>
+      String(url).endsWith('/auth/whoami')
+        ? response({ data: context })
+        : response({ success: true }),
+    );
+    const guard = vi.fn();
+    const { authService } = await import('../src/services/auth.service');
+    const whoamiCalls = () =>
+      mocks.fetch.mock.calls.filter((call) =>
+        String(call[0]).endsWith('/auth/whoami'),
+      ).length;
+    await authService.makeAuthenticatedRequest(`${endpoint}a`, {}, guard);
+    await authService.makeAuthenticatedRequest(`${endpoint}b`, {}, guard);
+    expect(whoamiCalls()).toBe(1);
+    expect(guard).toHaveBeenCalledTimes(2);
+    vi.advanceTimersByTime(31_000);
+    await authService.makeAuthenticatedRequest(`${endpoint}c`, {}, guard);
+    expect(whoamiCalls()).toBe(2);
+  });
+  it('re-verifies identity when the credential changes', async () => {
+    mocks.values.set('genfeed_token', 'token-1');
+    mocks.fetch.mockImplementation(async (url: string) =>
+      String(url).endsWith('/auth/whoami')
+        ? response({ data: context })
+        : response({ success: true }),
+    );
+    const { authService } = await import('../src/services/auth.service');
+    await authService.makeAuthenticatedRequest(`${endpoint}a`, {}, vi.fn());
+    mocks.values.set('genfeed_token', 'token-2');
+    await authService.makeAuthenticatedRequest(`${endpoint}b`, {}, vi.fn());
+    await authService.clearToken();
+    mocks.values.set('genfeed_token', 'token-2');
+    await authService.makeAuthenticatedRequest(`${endpoint}c`, {}, vi.fn());
+    expect(
+      mocks.fetch.mock.calls.filter((call) =>
+        String(call[0]).endsWith('/auth/whoami'),
+      ),
+    ).toHaveLength(3);
+  });
   it('does not cookie-refresh an initial identity403', async () => {
     mocks.values.set('genfeed_token', 'old');
     mocks.fetch.mockResolvedValueOnce(response({}, 403));

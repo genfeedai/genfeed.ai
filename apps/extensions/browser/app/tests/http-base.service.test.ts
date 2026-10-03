@@ -56,6 +56,22 @@ describe('scoped Axios adapter', () => {
     await expect(service.get()).rejects.toThrow('workspace changed');
     expect(mocks.request).toHaveBeenCalledTimes(1);
   });
+  it('enforces the request timeout in the custom adapter', async () => {
+    mocks.request.mockImplementation(
+      (_url: string, options: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          const signal = options.signal as AbortSignal;
+          if (signal.aborted) return reject(signal.reason);
+          signal.addEventListener('abort', () => reject(signal.reason));
+        }),
+    );
+    const timeout = vi
+      .spyOn(AbortSignal, 'timeout')
+      .mockImplementation(() => AbortSignal.abort(new Error('timed out')));
+    await expect(new Service().get()).rejects.toThrow('Request timed out');
+    expect(timeout).toHaveBeenCalledWith(30_000);
+    timeout.mockRestore();
+  });
   it('passes 403 through without retrying or selecting another workspace', async () => {
     mocks.request.mockResolvedValue(
       new Response('{"message":"Forbidden"}', { status: 403 }),

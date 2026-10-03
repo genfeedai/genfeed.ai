@@ -5,6 +5,7 @@ import { logger } from '~utils/logger.util';
 const storage = new Storage();
 const TOKEN_STORAGE_KEY = 'genfeed_token';
 const AUTH_CONTEXT_STORAGE_KEY = 'genfeed_auth_context';
+const AUTH_CONTEXT_TTL_MS = 30_000;
 
 export async function getJWTToken(
   getToken: (options?: { template?: string }) => Promise<string | null>,
@@ -67,6 +68,14 @@ class AuthService {
   private refreshPromise: Promise<string | null> | null = null;
   private authContextCache: AuthContext | null = null;
   private authContextCheckedAt = 0;
+  // Identity verified for one exact credential. Keying by the token string
+  // keeps the guard's guarantee while sparing a /auth/whoami round trip on
+  // every scoped request (for example each chat poll).
+  private verifiedByToken: {
+    token: string;
+    context: AuthContext;
+    checkedAt: number;
+  } | null = null;
 
   private constructor() {}
 
@@ -94,6 +103,7 @@ class AuthService {
     if (storedToken !== this.tokenCache) {
       this.tokenCache = storedToken;
       this.authContextCache = null;
+      this.verifiedByToken = null;
     }
     if (storedToken && !this.isExpiringJwt(storedToken)) return storedToken;
     return (await this.exchangeSessionToken()) ?? storedToken;
@@ -146,6 +156,7 @@ class AuthService {
   invalidateAuthContext(): void {
     this.authContextCache = null;
     this.authContextCheckedAt = 0;
+    this.verifiedByToken = null;
   }
 
   async refreshSessionToken(signal?: AbortSignal): Promise<string | null> {
@@ -162,6 +173,7 @@ class AuthService {
       await storage.set(TOKEN_STORAGE_KEY, token);
       this.tokenCache = token;
       this.authContextCache = null;
+      this.verifiedByToken = null;
       await storage.remove(AUTH_CONTEXT_STORAGE_KEY);
     } catch (error) {
       logger.error('Error storing token', error);
@@ -174,6 +186,7 @@ class AuthService {
       await storage.remove(AUTH_CONTEXT_STORAGE_KEY);
       this.tokenCache = null;
       this.authContextCache = null;
+      this.verifiedByToken = null;
     } catch (error) {
       logger.error('Error clearing token', error);
     }
@@ -207,7 +220,7 @@ class AuthService {
     if (beforeAuthenticatedSend) {
       let context: AuthContext;
       try {
-        context = await this.readAuthContextWithToken(
+        context = await this.verifiedContext(
           token,
           options.signal ?? undefined,
         );
@@ -229,7 +242,7 @@ class AuthService {
           );
         }
         token = renewed;
-        context = await this.readAuthContextWithToken(
+        context = await this.verifiedContext(
           token,
           options.signal ?? undefined,
         );
@@ -265,10 +278,7 @@ class AuthService {
       if (refreshed) {
         if (beforeAuthenticatedSend)
           await beforeAuthenticatedSend(
-            await this.readAuthContextWithToken(
-              refreshed,
-              options.signal ?? undefined,
-            ),
+            await this.verifiedContext(refreshed, options.signal ?? undefined),
           );
         response = await request(refreshed);
       }
@@ -280,6 +290,22 @@ class AuthService {
       }
     }
     return response;
+  }
+
+  private async verifiedContext(
+    token: string,
+    signal?: AbortSignal,
+  ): Promise<AuthContext> {
+    const cached = this.verifiedByToken;
+    if (
+      cached &&
+      cached.token === token &&
+      Date.now() - cached.checkedAt < AUTH_CONTEXT_TTL_MS
+    )
+      return cached.context;
+    const context = await this.readAuthContextWithToken(token, signal);
+    this.verifiedByToken = { token, context, checkedAt: Date.now() };
+    return context;
   }
 
   private async readAuthContextWithToken(
@@ -342,7 +368,7 @@ class AuthService {
     if (
       this.authContextCache &&
       !forceRefresh &&
-      Date.now() - this.authContextCheckedAt < 30_000
+      Date.now() - this.authContextCheckedAt < AUTH_CONTEXT_TTL_MS
     ) {
       return this.authContextCache;
     }
