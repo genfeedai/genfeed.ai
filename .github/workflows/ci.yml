@@ -4,13 +4,13 @@ name: CI
 #   - pull_request: the affected tier. Draft pull requests run nothing; CI runs
 #     once when the PR is marked ready (`ready_for_review`) and on every push
 #     after that.
-#   - workflow_call: full-suite.yml (master validation on push and the release
-#     QA path) and pr-heavy-ci.yml (the `full-suite` PR label) pass
+#   - workflow_call: full-suite.yml (manual dispatch and the release QA path)
+#     and pr-heavy-ci.yml (the `full-suite` PR label) pass
 #     `run_heavy_tests: true` for the complete matrix.
 #
-# Merge groups validate their combined source. Master is validated by
-# the Full Suite on every push (never cancelled mid-run), which inherits the
-# `push` event here; the master failure tracker keys off that event.
+# Merge groups validate their combined source. The Full Suite no longer runs on
+# a master push (on demand and at release only), so the `push` event never
+# reaches this workflow and the master failure tracker below stays inert.
 on:
   pull_request:
     branches: [master]
@@ -119,8 +119,8 @@ jobs:
             }
 
       # Trust-tiered heavy matrix (open-source PR policy). Maintainer and
-      # same-repo PRs run the affected tier; the master Full Suite runs the
-      # complete matrix on master. A fork PR from an external contributor gets
+      # same-repo PRs run the affected tier; the on-demand Full Suite runs the
+      # complete matrix. A fork PR from an external contributor gets
       # the full heavy matrix on the PR itself. `run_heavy_tests` (full-suite /
       # release path) and the `full-suite` label escalate for anyone.
       - name: Resolve heavy test tier
@@ -346,7 +346,7 @@ jobs:
         with:
           fetch-depth: 0
       # Pull requests scan their own commits; the release path scans history.
-      # The master Full Suite skips it: every master commit arrived through a
+      # The Full Suite skips it: every master commit arrived through a
       # scanned pull request. Dependabot runs read the Dependabot secret store,
       # where GITLEAKS_LICENSE is empty and the action hard-fails; their
       # manifest/lockfile diffs still pass through secretlint below.
@@ -565,6 +565,19 @@ jobs:
           else
             TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run test --continue --affected ${WORKSPACE_FILTERS}
           fi
+      # Workers cron specs run under their own Vitest config
+      # (apps/server/workers/vitest.cron.config.ts), outside `test`.
+      - name: Run workers cron specs
+        if: ${{ !cancelled() && matrix.group == 'server' }}
+        env:
+          FORCE_FULL: ${{ needs.plan.outputs.force_full }}
+        run: |
+          set -euo pipefail
+          if [ "${FORCE_FULL}" = "true" ] || [ -z "${CI_BASE_SHA}" ]; then
+            bunx turbo run test:cron --filter=@genfeedai/workers
+          else
+            TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run test:cron --affected --filter=@genfeedai/workers
+          fi
 
   # App tests. The planner emits the shard matrix: on the affected tier it
   # counts the exact Vitest changed graph and picks one, two, or four shards;
@@ -741,9 +754,11 @@ jobs:
   # skipped cannot produce a false-green gate; plan-filtered skips are accepted
   # only when the exact plan marked them non-applicable.
   #
-  # Runs on ready pull requests and on the master Full Suite (`push`,
-  # inherited through workflow_call), whose verdict drives the master failure
-  # tracker below. The release path (workflow_dispatch) is gated by its caller.
+  # Runs on ready pull requests and merge groups. The `push` arm is dormant
+  # since the Full Suite stopped running on master pushes: it would only match a
+  # Full Suite called from a push, and the master failure tracker below keys off
+  # it. The Full Suite paths (workflow_dispatch, release) are gated by the Master
+  # SHA Verdict job in full-suite.yml.
   tests-gate:
     name: Tests Gate
     runs-on: ubuntu-latest
@@ -805,11 +820,12 @@ jobs:
   # ── Master failure tracker (#2510) ──────────────────────────────────────────
   #
   # A red trunk must not depend on someone opening the Actions tab. When the
-  # master Full Suite's Tests Gate fails, file (or update) ONE
+  # Tests Gate fails on a master push, file (or update) ONE
   # `master-ci-failure` tracking issue at native issue Priority P0; when a later
-  # run is green, close every open tracker. `push` reaches this workflow only
-  # through full-suite.yml's call; pull requests surface a red gate on the PR
-  # itself, and the release path (workflow_dispatch) never matches.
+  # run is green, close every open tracker. Dormant: full-suite.yml no longer
+  # runs on push, so no `push` event reaches this workflow. Pull requests
+  # surface a red gate on the PR itself, and manual or release Full Suite runs
+  # (workflow_dispatch) never match; their verdict is the Master SHA Verdict.
   #
   # `!cancelled()` is load-bearing: an `if:` without a status function
   # implicitly ANDs `success()` over the (routinely partly skipped) graph, and

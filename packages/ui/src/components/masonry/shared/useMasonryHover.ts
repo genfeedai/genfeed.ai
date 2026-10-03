@@ -1,5 +1,6 @@
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { downloadIngredient } from '@genfeedai/helpers/media/download/download.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import type { MouseEvent } from 'react';
@@ -195,14 +196,21 @@ export function useMasonryHover({
  * Helper to create download handler for ingredients
  * Uses fetch + blob to properly handle cross-origin URLs
  */
-export function createDownloadHandler() {
-  return async (ingredient: IIngredient): Promise<undefined> => {
-    try {
-      await downloadIngredient(ingredient);
-    } catch (error) {
-      logger.error('Download failed', error);
-      NotificationsService.getInstance().error('Failed to download file');
-    }
-    return undefined;
-  };
+export function useIngredientDownloadHandler() {
+  const getService = useAuthedService((token) =>
+    IngredientsService.getInstance(token),
+  );
+  return useCallback(
+    async (ingredient: IIngredient): Promise<undefined> => {
+      try {
+        const service = await getService();
+        await service.downloadOriginal(ingredient);
+      } catch (error) {
+        logger.error('Download failed', error);
+        NotificationsService.getInstance().error('Failed to download file');
+      }
+      return undefined;
+    },
+    [getService],
+  );
 }

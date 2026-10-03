@@ -1684,7 +1684,20 @@
     "retryAriaLabel": "Retry generation"
   },
   "articleDetail": {
-    "loadingTitle": "Loading article\u2026"
+    "loadingTitle": "Loading article\u2026",
+    "publicPage": {
+      "title": "Public page",
+      "notHosted": "Not hosted on genfeed.ai. The genfeed.ai blog only carries Genfeed's own articles, so publishing marks this article done in your workspace. Share it through posts on your connected accounts.",
+      "live": "Live on genfeed.ai",
+      "notLive": "Not live yet",
+      "previewHint": "Private preview link. Anyone with it can read this draft until it expires.",
+      "publishHint": "Publishing puts the article at this address and on the genfeed.ai blog.",
+      "open": "Open",
+      "copyLink": "Copy link",
+      "previewLink": "Preview link",
+      "shareDomain": "genfeed.ai",
+      "untitled": "Untitled Article"
+    }
   },
   "newsletterEditor": {
     "content": "Newsletter content"
@@ -1801,7 +1814,8 @@
       "loading": "Loading the Desk\u2026",
       "emptyState": {
         "connectAccounts": "Connect accounts",
-        "followCreators": "Follow creators"
+        "followCreators": "Follow creators",
+        "checkSourceHealth": "Check source health"
       },
       "selectionBar": {
         "count": "{count} selected",
@@ -2064,5 +2078,9 @@
       "label": "Admin",
       "description": "Platform management."
     }
+  },
+  "windowChrome": {
+    "back": "Back",
+    "forward": "Forward"
   }
 }

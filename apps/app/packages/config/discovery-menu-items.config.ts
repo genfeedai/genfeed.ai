@@ -1,9 +1,9 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { AtSign, Megaphone, TrendingUp } from 'lucide-react';
+import { AtSign, Flame, Megaphone, Repeat, TrendingUp } from 'lucide-react';
 
 /**
- * Discovery sidebar: Overview, Following, Ads.
+ * Discovery sidebar: Overview, Following, Trends, Trend Turnover, Ads.
  *
  * Following is not its own route — it's the same Overview surface filtered
  * to followed sources via `?source=following`. Overview itself is only
@@ -32,6 +32,22 @@ export const DISCOVERY_MENU_ITEMS: MenuItemConfig[] = [
     matchSearchParams: { source: 'following' },
     outline: AtSign,
     solid: AtSign,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.DISCOVERY.TRENDS,
+    label: 'Trends',
+    matchPaths: [APP_ROUTES.DISCOVERY.TRENDS],
+    outline: Flame,
+    solid: Flame,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.DISCOVERY.TREND_TURNOVER,
+    label: 'Trend Turnover',
+    matchPaths: [APP_ROUTES.DISCOVERY.TREND_TURNOVER],
+    outline: Repeat,
+    solid: Repeat,
   },
   {
     group: '',

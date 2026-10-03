@@ -56,6 +56,83 @@ describe('VideoStitchService', () => {
     fixture.addClip({ category: 'MUSIC', id: 'music-1', s3Key: null });
   });
 
+  describe('authorized storage sources', () => {
+    const activatedFixture = () => {
+      const active = new VideoStitchFixture(true);
+      active.addClip({
+        id: 'clip-1',
+        s3Key: 'ingredients/videos/random-clip-one',
+      });
+      active.addClip({
+        id: 'clip-2',
+        s3Key: 'ingredients/videos/random-clip-two',
+      });
+      active.addClip({
+        category: 'MUSIC',
+        id: 'music-1',
+        s3Key: 'ingredients/musics/random-track',
+      });
+      return active;
+    };
+
+    it('preserves literal whitespace and reserved characters in activated source identities', async () => {
+      const active = activatedFixture();
+      const clipKey = 'ingredients/videos/clip %2F?#.mp4';
+      const musicKey = 'ingredients/musics/track %2F?#.wav';
+      active.row('clip-1').s3Key = clipKey;
+      active.row('music-1').s3Key = musicKey;
+      await active.service.stitch(request({ settings: { music: 'music-1' } }));
+      expect(active.queued[0]?.params).toMatchObject({
+        sourceStorageKeys: [clipKey, 'ingredients/videos/random-clip-two'],
+        musicStorageKey: musicKey,
+      });
+    });
+
+    it('passes canonical ordered source and music keys from scoped records to the worker', async () => {
+      const active = activatedFixture();
+      await active.service.stitch(
+        request({
+          clipIds: ['clip-2', 'clip-1', 'clip-2'],
+          settings: { music: 'music-1' },
+        }),
+      );
+      expect(active.queued[0]?.params).toMatchObject({
+        sourceStorageKeys: [
+          'ingredients/videos/random-clip-two',
+          'ingredients/videos/random-clip-one',
+          'ingredients/videos/random-clip-two',
+        ],
+        musicStorageKey: 'ingredients/musics/random-track',
+      });
+    });
+
+    it('rejects keyless clips before creating output or enqueueing work', async () => {
+      const active = activatedFixture();
+      active.row('clip-1').s3Key = null;
+      expect(await failingField(active.service.stitch(request()))).toBe(
+        'clipIds',
+      );
+      expect(active.outputs()).toHaveLength(0);
+      expect(active.queued).toHaveLength(0);
+    });
+
+    it.each(['keyless', 'cross-organization'] as const)(
+      'rejects %s music before enqueueing work',
+      async (kind) => {
+        const active = activatedFixture();
+        if (kind === 'keyless') active.row('music-1').s3Key = null;
+        else active.row('music-1').organizationId = 'org-2';
+        expect(
+          await failingField(
+            active.service.stitch(request({ settings: { music: 'music-1' } })),
+          ),
+        ).toBe('music');
+        expect(active.outputs()).toHaveLength(0);
+        expect(active.queued).toHaveLength(0);
+      },
+    );
+  });
+
   describe('contract', () => {
     it('creates one processing output with lineage and queues its deterministic merge job', async () => {
       const handle = await fixture.service.stitch(

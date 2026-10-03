@@ -45,6 +45,13 @@ describe('VideoMergeJobService', () => {
   };
   const s3Service = {
     downloadFile: vi.fn().mockResolvedValue(undefined),
+    downloadFromUrl: vi.fn().mockResolvedValue(undefined),
+    getPresignedDownloadUrlForStoredKey: vi
+      .fn()
+      .mockImplementation(
+        async (key: string) =>
+          `https://s3.example/${encodeURIComponent(key)}?Signature=fresh`,
+      ),
     generateS3Key: vi.fn((folder: string, id: string) => `${folder}/${id}.mp4`),
     getPublicUrl: vi.fn((key: string) => `https://cdn.example.com/${key}`),
     uploadFile: vi.fn().mockResolvedValue(undefined),
@@ -71,6 +78,74 @@ describe('VideoMergeJobService', () => {
       redisService as never,
       logger as never,
     );
+  });
+
+  const activatedService = () =>
+    new VideoMergeJobService(
+      ffmpegService as never,
+      s3Service as never,
+      webSocketService as never,
+      redisService as never,
+      logger as never,
+      { isAuthorizedMediaDeliveryEnabled: true } as never,
+    );
+
+  it('uses supplied canonical source and music keys and returns the actual random output object when activated', async () => {
+    s3Service.uploadFile.mockResolvedValueOnce({
+      Key: 'ingredients/videos/actual-merged-object',
+    });
+    const result = await activatedService().process(
+      createJob(
+        createJobData({
+          params: {
+            sourceIds: ['source-1'],
+            sourceStorageKeys: ['ingredients/videos/random-source'],
+            music: 'music-1',
+            musicStorageKey: 'ingredients/musics/random-track',
+          },
+        }),
+      ),
+    );
+    expect(s3Service.getPresignedDownloadUrlForStoredKey).toHaveBeenCalledWith(
+      'ingredients/videos/random-source',
+      300,
+    );
+    expect(s3Service.getPresignedDownloadUrlForStoredKey).toHaveBeenCalledWith(
+      'ingredients/musics/random-track',
+      300,
+    );
+    expect(s3Service.generateS3Key).toHaveBeenCalledTimes(1);
+    expect(s3Service.generateS3Key).toHaveBeenCalledWith(
+      'videos',
+      expect.stringMatching(/^[a-f0-9-]{36}$/),
+    );
+    expect(result.s3Key).toBe('ingredients/videos/actual-merged-object');
+  });
+
+  it('fails before downloading when activated source keys are absent', async () => {
+    await expect(
+      activatedService().process(createJob(createJobData())),
+    ).rejects.toThrow('canonical source storage keys');
+    expect(s3Service.downloadFile).not.toHaveBeenCalled();
+    expect(s3Service.uploadFile).not.toHaveBeenCalled();
+  });
+
+  it('fails instead of reconstructing a selected music object from its ID when activated', async () => {
+    await expect(
+      activatedService().process(
+        createJob(
+          createJobData({
+            params: {
+              sourceIds: ['source-1'],
+              sourceStorageKeys: ['ingredients/videos/random-source'],
+              music: 'music-1',
+            },
+          }),
+        ),
+      ),
+    ).rejects.toThrow('canonical music storage key');
+    expect(s3Service.generateS3Key).not.toHaveBeenCalled();
+    expect(s3Service.uploadFile).not.toHaveBeenCalled();
   });
 
   it('preserves the standard merge completion contract', async () => {
@@ -292,4 +367,64 @@ describe('VideoMergeJobService', () => {
       expect.objectContaining({ error: 'Merge failed', status: 'failed' }),
     );
   });
+
+  it('signs exact whitespace and reserved-character video and music keys before bounded downloads', async () => {
+    const videoKey = 'ingredients/videos/clip %2F?#.mp4';
+    const musicKey = 'ingredients/musics/track %2F?#.wav';
+    s3Service.uploadFile.mockResolvedValueOnce({
+      Key: 'ingredients/videos/random-output.mp4',
+    });
+    await activatedService().process(
+      createJob(
+        createJobData({
+          params: {
+            sourceIds: ['source-1'],
+            sourceStorageKeys: [videoKey],
+            music: 'music-1',
+            musicStorageKey: musicKey,
+          },
+        }),
+      ),
+    );
+    expect(s3Service.getPresignedDownloadUrlForStoredKey.mock.calls).toEqual([
+      [videoKey, 300],
+      [musicKey, 300],
+    ]);
+    expect(
+      s3Service.downloadFromUrl.mock.calls.map((call) => [call[0], call[2]]),
+    ).toEqual([
+      [
+        `https://s3.example/${encodeURIComponent(videoKey)}?Signature=fresh`,
+        1024 * 1024 * 1024,
+      ],
+      [
+        `https://s3.example/${encodeURIComponent(musicKey)}?Signature=fresh`,
+        1024 * 1024 * 1024,
+      ],
+    ]);
+    expect(s3Service.downloadFile).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'ingredients/videos/../secret',
+    'ingredients/audios/foreign.wav',
+    'ingredients/videos/bad\\key.mp4',
+  ])(
+    'rejects invalid active canonical source %s before signing or fetching',
+    async (key) => {
+      await expect(
+        activatedService().process(
+          createJob(
+            createJobData({
+              params: { sourceIds: ['source-1'], sourceStorageKeys: [key] },
+            }),
+          ),
+        ),
+      ).rejects.toThrow();
+      expect(
+        s3Service.getPresignedDownloadUrlForStoredKey,
+      ).not.toHaveBeenCalled();
+      expect(s3Service.downloadFromUrl).not.toHaveBeenCalled();
+    },
+  );
 });

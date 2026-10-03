@@ -17,8 +17,9 @@ const { FilesClientService } = await import('./files-client.service');
 
 const BASE = 'https://files.test';
 
-function createHarness(filesUrl: string | null = BASE) {
+function createHarness(filesUrl: string | null = BASE, isIssuerEnabled = true) {
   const configService = {
+    isAuthorizedMediaDeliveryEnabled: isIssuerEnabled,
     get: vi.fn((key: string) =>
       key === 'GENFEEDAI_MICROSERVICES_FILES_URL' ? filesUrl : undefined,
     ),
@@ -480,9 +481,118 @@ describe('FilesClientService', () => {
     });
   });
 
+  describe('private media storage allocation', () => {
+    it.each([
+      'images',
+      'videos',
+      'musics',
+      'gifs',
+      'audio',
+      'audios',
+      'voices',
+    ])(
+      'allocates fresh cloud %s identities for generated URL uploads',
+      async (type) => {
+        const { post, service } = createHarness();
+        const storedResult = { s3Key: `ingredients/${type}/stored-token` };
+        post.mockReturnValue(of({ data: storedResult }));
+        const source = {
+          type: FileInputType.URL,
+          url: 'https://provider.test/media',
+        } as const;
+
+        await expect(
+          service.uploadToS3('ingredient-id', type, source),
+        ).resolves.toEqual(storedResult);
+        await service.uploadToS3('ingredient-id', type, source);
+
+        const firstKey = post.mock.calls[0]?.[1].key;
+        const secondKey = post.mock.calls[1]?.[1].key;
+        expect(firstKey).toMatch(/^[a-f0-9-]{36}$/);
+        expect(secondKey).toMatch(/^[a-f0-9-]{36}$/);
+        expect(firstKey).not.toBe(secondKey);
+        expect(firstKey).not.toContain('ingredient-id');
+      },
+    );
+
+    it('allocates a random object key for buffer and streaming multipart uploads', async () => {
+      const { post, service } = createHarness();
+      post.mockReturnValue(
+        of({ data: { s3Key: 'ingredients/images/random' } }),
+      );
+      await service.uploadToS3('ingredient-id.png', 'images', {
+        type: FileInputType.BUFFER,
+        data: Buffer.from('image'),
+        contentType: 'image/png',
+      });
+      await service.uploadStreamToS3('ingredient-id.png', 'images', {
+        data: Buffer.from('image'),
+        contentType: 'image/png',
+      });
+      const keys = post.mock.calls.map(
+        (call) =>
+          (call[1] as FormData)
+            .getBuffer()
+            .toString()
+            .match(/name="key"\r\n\r\n([^\r]+)/)?.[1],
+      );
+      expect(keys).toHaveLength(2);
+      for (const key of keys) expect(key).toMatch(/^[a-f0-9-]{36}\.png$/);
+      expect(keys[0]).not.toBe(keys[1]);
+    });
+
+    it.each(['disabled', 'self-hosted'] as const)(
+      'keeps existing allocation for %s delivery',
+      async (mode) => {
+        const { post, service } = createHarness(BASE, mode !== 'disabled');
+        isSelfHostedDeployment.mockReturnValue(mode === 'self-hosted');
+        post.mockReturnValue(of({ data: {} }));
+        await service.uploadToS3('ingredient-id', 'images', {
+          type: FileInputType.URL,
+          url: 'https://provider.test/media',
+        });
+        expect(post.mock.calls[0]?.[1].key).toBe('ingredient-id');
+      },
+    );
+
+    it('preserves the exact canonical stored identity only through the explicit server method', async () => {
+      const { post, service } = createHarness();
+      post.mockReturnValue(
+        of({ data: { s3Key: 'ingredients/images/stored-token.png' } }),
+      );
+      const source = {
+        type: FileInputType.URL,
+        url: 'https://s3.test/signed-existing',
+      } as const;
+      await service.uploadToExistingObject(
+        'ingredients/images/stored-token.png',
+        'images',
+        source,
+      );
+      expect(post).toHaveBeenCalledWith(`${BASE}/v1/files/upload`, {
+        key: 'stored-token.png',
+        source,
+        type: 'images',
+      });
+      await service.uploadToS3('stored-token.png', 'images', source);
+      expect(post.mock.calls[1]?.[1].key).not.toBe('stored-token.png');
+    });
+
+    it('rejects a stored key from another category before the files request', async () => {
+      const { post, service } = createHarness();
+      await expect(
+        service.uploadToExistingObject('ingredients/videos/stored', 'images', {
+          type: FileInputType.URL,
+          url: 'https://s3.test/signed-existing',
+        }),
+      ).rejects.toThrow('does not match the media category');
+      expect(post).not.toHaveBeenCalled();
+    });
+  });
+
   describe('uploadToS3', () => {
     it('sends a buffer source as multipart, not base64 JSON', async () => {
-      const { post, service } = createHarness();
+      const { post, service } = createHarness(BASE, false);
       post.mockReturnValue(of({ data: { publicUrl: 'https://cdn/a.mp3' } }));
 
       await expect(
@@ -506,7 +616,7 @@ describe('FilesClientService', () => {
     });
 
     it('streams a readable to the multipart upload route', async () => {
-      const { post, service } = createHarness();
+      const { post, service } = createHarness(BASE, false);
       post.mockReturnValue(of({ data: { publicUrl: 'https://cdn/a.mp4' } }));
       const stream = Readable.from(Buffer.from('video-bytes'));
 
@@ -526,7 +636,7 @@ describe('FilesClientService', () => {
     });
 
     it('puts a stream at a presigned URL', async () => {
-      const { put, service } = createHarness();
+      const { put, service } = createHarness(BASE, false);
       put.mockReturnValue(of({ data: {} }));
       const body = Buffer.from('object-bytes');
 
@@ -546,7 +656,7 @@ describe('FilesClientService', () => {
     });
 
     it('logs and rethrows when the presigned put fails', async () => {
-      const { loggerService, put, service } = createHarness();
+      const { loggerService, put, service } = createHarness(BASE, false);
       put.mockReturnValue(throwError(() => new Error('403')));
 
       await expect(
@@ -563,7 +673,7 @@ describe('FilesClientService', () => {
     });
 
     it('passes a non-buffer source through unchanged', async () => {
-      const { post, service } = createHarness();
+      const { post, service } = createHarness(BASE, false);
       post.mockReturnValue(of({ data: {} }));
       const source = {
         type: FileInputType.URL,
@@ -579,7 +689,7 @@ describe('FilesClientService', () => {
     });
 
     it('logs and rethrows a transport failure', async () => {
-      const { loggerService, post, service } = createHarness();
+      const { loggerService, post, service } = createHarness(BASE, false);
       post.mockReturnValue(throwError(() => new Error('502')));
 
       await expect(
@@ -655,6 +765,22 @@ describe('FilesClientService', () => {
       expect(post).not.toHaveBeenCalled();
     });
 
+    it('preserves the cloud public URL until authorized delivery is activated', async () => {
+      const { post, service } = createHarness(BASE, false);
+      post.mockReturnValue(
+        of({
+          data: {
+            key: 's3/key-1',
+            publicUrl: 'https://cdn/key-1',
+            uploadUrl: 'https://s3/put',
+          },
+        }),
+      );
+      await expect(
+        service.getPresignedUploadUrl('key-1', 'images'),
+      ).resolves.toMatchObject({ publicUrl: 'https://cdn/key-1' });
+    });
+
     it('requests a presigned PUT target in cloud mode', async () => {
       const { post, service } = createHarness();
       post.mockReturnValue(
@@ -670,14 +796,14 @@ describe('FilesClientService', () => {
       await expect(
         service.getPresignedUploadUrl('key-1', 'musics', 'audio/mpeg'),
       ).resolves.toEqual({
-        publicUrl: 'https://cdn/key-1',
+        publicUrl: '',
         s3Key: 's3/key-1',
         uploadMethod: 'PUT',
         uploadUrl: 'https://s3/put',
       });
       expect(post).toHaveBeenCalledWith(`${BASE}/v1/files/presigned-upload`, {
         contentType: 'audio/mpeg',
-        filename: 'key-1',
+        filename: expect.stringMatching(/^[a-f0-9-]{36}$/),
         type: 'musics',
       });
     });
@@ -732,6 +858,23 @@ describe('FilesClientService', () => {
         'Failed to get presigned download URL',
         expect.any(Error),
       );
+    });
+  });
+
+  describe('getPresignedDownloadUrlForObjectKey', () => {
+    it('posts the stored key byte-for-byte, including reserved URL characters', async () => {
+      const { get, post, service } = createHarness();
+      const storageKey = 'ingredients/images/random key?part=#preview%2F.png';
+      post.mockReturnValue(
+        of({ data: { downloadUrl: 'https://s3/get?signature=grant' } }),
+      );
+      await expect(
+        service.getPresignedDownloadUrlForObjectKey(storageKey),
+      ).resolves.toBe('https://s3/get?signature=grant');
+      expect(post).toHaveBeenCalledWith(`${BASE}/v1/files/presigned-download`, {
+        storageKey,
+      });
+      expect(get).not.toHaveBeenCalled();
     });
   });
 
@@ -858,6 +1001,65 @@ describe('FilesClientService', () => {
         'Failed to split image',
         expect.any(Error),
       );
+    });
+  });
+
+  describe('validated upload metadata', () => {
+    it.each([undefined, '', 42, null, {}])(
+      'rejects an invalid canonical key in enabled cloud delivery: %s',
+      async (s3Key) => {
+        const { post, service } = createHarness();
+        post.mockReturnValue(of({ data: { s3Key } }));
+        await expect(
+          service.uploadToS3('ingredient-id', 'images', {
+            type: FileInputType.URL,
+            url: 'https://provider.test/source.png',
+          }),
+        ).rejects.toThrow();
+      },
+    );
+
+    it('preserves numeric metadata, literal key bytes, and extension fields', async () => {
+      const { post, service } = createHarness();
+      const payload = {
+        s3Key: 'ingredients/images/raw%2F?#.png',
+        width: 1080,
+        height: 1920,
+        size: 4096,
+        extension: 'png',
+        providerMetadata: { source: 'fixture' },
+      };
+      post.mockReturnValue(of({ data: payload }));
+      await expect(
+        service.uploadToS3('ingredient-id', 'images', {
+          type: FileInputType.URL,
+          url: 'https://provider.test/source.png',
+        }),
+      ).resolves.toEqual(payload);
+    });
+
+    it('validates multipart metadata before returning it for persistence', async () => {
+      const { post, service } = createHarness();
+      post.mockReturnValue(of({ data: { s3Key: 42 } }));
+      await expect(
+        service.uploadToS3('ingredient-id', 'images', {
+          type: FileInputType.BUFFER,
+          data: Buffer.from('image'),
+          contentType: 'image/png',
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('validates canonical confirmation responses before returning them', async () => {
+      const { post, service } = createHarness();
+      post.mockReturnValue(of({ data: { s3Key: '' } }));
+      await expect(
+        service.uploadToExistingObject(
+          'ingredients/images/canonical',
+          'images',
+          { type: FileInputType.URL, url: 'https://provider.test/source.png' },
+        ),
+      ).rejects.toThrow();
     });
   });
 });

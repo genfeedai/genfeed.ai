@@ -1,5 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import path from 'node:path';
+import { ConfigService } from '@files/config/config.service';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import type {
@@ -15,7 +17,7 @@ import {
   resolveContainedPath,
 } from '@libs/security';
 import { safeFetch } from '@libs/security/destination-guard';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const createBadRequest = (message: string) => new BadRequestException(message);
 
@@ -26,6 +28,7 @@ export class HookRemixService {
     private readonly ffmpegService: FFmpegService,
     private readonly uploadService: UploadService,
     private readonly logger: LoggerService,
+    @Optional() private readonly configService?: ConfigService,
   ) {}
 
   async processHookRemix(data: HookRemixJobData): Promise<HookRemixResult> {
@@ -79,7 +82,7 @@ export class HookRemixService {
       // Step 5: Upload to S3
       const s3Key = resolveContainedObjectKey(
         `${organizationId}/hook-remix`,
-        `${jobId}.mp4`,
+        `${this.configService?.isAuthorizedMediaDeliveryEnabled ? randomUUID() : jobId}.mp4`,
         createBadRequest,
       );
       this.logger.log(`[HookRemix] Uploading to S3: ${s3Key}`);
@@ -94,10 +97,15 @@ export class HookRemixService {
 
       this.logger.log(`[HookRemix] Complete: ${uploadResult.publicUrl}`);
 
+      if (
+        this.configService?.isAuthorizedMediaDeliveryEnabled &&
+        !uploadResult.s3Key
+      )
+        throw new Error('Hook remix upload returned no stored key');
       return {
         duration: uploadResult.duration,
         height: uploadResult.height,
-        s3Key,
+        s3Key: uploadResult.s3Key || s3Key,
         s3Url: uploadResult.publicUrl,
         size: uploadResult.size,
         success: true,

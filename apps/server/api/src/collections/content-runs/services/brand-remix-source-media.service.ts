@@ -131,7 +131,7 @@ export class BrandRemixSourceMediaService {
         },
       );
       createdAssetId = ingredientData.id;
-      await this.files.uploadToS3(
+      const uploaded = await this.files.uploadToS3(
         ingredientData.id,
         categoryToPlural(category),
         { type: FileInputType.URL, url },
@@ -142,7 +142,10 @@ export class BrandRemixSourceMediaService {
           id: ingredientData.id,
           status: IngredientStatus.PROCESSING,
         }),
-        data: { status: IngredientStatus.UPLOADED },
+        data: {
+          ...(uploaded.s3Key ? { s3Key: uploaded.s3Key } : {}),
+          status: IngredientStatus.UPLOADED,
+        },
       });
       if (updated.count !== 1) {
         throw new Error('Source ingredient is no longer available');

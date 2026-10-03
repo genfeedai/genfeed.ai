@@ -25,7 +25,7 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/discovery/overview',
+  usePathname: () => '/discovery/trends',
   useRouter: () => ({
     prefetch: vi.fn(),
     push: vi.fn(),
@@ -36,43 +36,43 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('SocialsNavigation', () => {
-  it('renders platform menu items only (Following is a Discovery sidebar peer)', () => {
+  it('links every platform to its Discovery trends drilldown', () => {
     render(<SocialsNavigation active="overview" />);
 
     expect(screen.getByRole('link', { name: 'All platforms' })).toHaveAttribute(
       'href',
-      '/discovery/overview',
+      '/discovery/trends',
     );
     expect(
       screen.queryByRole('link', { name: 'Following' }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
       'href',
-      '/discovery/twitter',
+      '/discovery/trends/platforms/twitter',
     );
     expect(screen.getByRole('link', { name: 'Instagram' })).toHaveAttribute(
       'href',
-      '/discovery/instagram',
+      '/discovery/trends/platforms/instagram',
     );
     expect(screen.getByRole('link', { name: 'YouTube' })).toHaveAttribute(
       'href',
-      '/discovery/youtube',
+      '/discovery/trends/platforms/youtube',
     );
     expect(screen.getByRole('link', { name: 'TikTok' })).toHaveAttribute(
       'href',
-      '/discovery/tiktok',
+      '/discovery/trends/platforms/tiktok',
     );
     expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute(
       'href',
-      '/discovery/linkedin',
+      '/discovery/trends/platforms/linkedin',
     );
     expect(screen.getByRole('link', { name: 'Reddit' })).toHaveAttribute(
       'href',
-      '/discovery/reddit',
+      '/discovery/trends/platforms/reddit',
     );
     expect(screen.getByRole('link', { name: 'Pinterest' })).toHaveAttribute(
       'href',
-      '/discovery/pinterest',
+      '/discovery/trends/platforms/pinterest',
     );
   });
 
@@ -85,7 +85,7 @@ describe('SocialsNavigation', () => {
     expect(allPlatforms.className).not.toMatch(/border-input/);
   });
 
-  it('marks the all-platforms item as active on the discover overview page', () => {
+  it('marks the all-platforms item as active on the trends page', () => {
     render(<SocialsNavigation active="overview" />);
 
     expect(screen.getByRole('link', { name: 'All platforms' })).toHaveAttribute(

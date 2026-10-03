@@ -176,6 +176,19 @@ gf whoami
 a hidden prompt. See [Agent Surface](./agent-surface.md) for scopes, the
 approval gate, and why `posts:approve` is not `resolve_approval`.
 
+## Reverse Proxy and Client IPs
+
+Self-hosted services ignore `X-Forwarded-For` by default: the published ports
+are reachable directly, so any client could claim another address and pass
+`ADMIN_ALLOWED_IPS`. Behind a reverse proxy, set `TRUST_PROXY` in `.env` to an
+Express trust-proxy value naming that proxy, for example `loopback`,
+`172.18.0.0/16` or a proxy address. Prefer an address or subnet over a hop
+count (`1`): a hop count trusts whoever connects, so only use it when the proxy
+is the sole path to every published port. The web app cannot see the
+connecting peer, so a configured `TRUST_PROXY` also asserts that the web port
+is reachable only through the proxy. Genfeed Cloud trusts one hop (its load
+balancer) unless `TRUST_PROXY` says otherwise.
+
 ## Optional Services
 
 The published Community compose starts the bundled web/API/workers/files/

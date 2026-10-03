@@ -10,7 +10,7 @@ import type { MasonryActionStates } from '@genfeedai/contracts/interfaces/hooks/
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { MasonryImageProps } from '@genfeedai/props/content/masonry.props';
-import type { createDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
+import type { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import { ThumbsUp } from 'lucide-react';
@@ -27,7 +27,7 @@ type MasonryImageActionsBarProps = {
   handlers: ImageActionHandlers;
   availableTags?: ITag[];
   isLoadingTags?: boolean;
-  handleDownload: ReturnType<typeof createDownloadHandler>;
+  handleDownload: ReturnType<typeof useIngredientDownloadHandler>;
   handleQuickActionsMouseEnter: () => void;
   handleQuickActionsMouseLeave: (e: MouseEvent) => void;
   onVoteIngredient?: MasonryImageProps['onVoteIngredient'];

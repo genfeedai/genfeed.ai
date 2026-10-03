@@ -1,3 +1,4 @@
+import { ConfigService } from '@files/config/config.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnail.service';
@@ -21,11 +22,13 @@ async function writeStubJpeg(outputPath: string): Promise<void> {
 }
 
 describe('VideoThumbnailService', () => {
+  const config = { isAuthorizedMediaDeliveryEnabled: false };
   let service: VideoThumbnailService;
   let ffmpegService: Mocked<FFmpegService>;
   let s3Service: Mocked<S3Service>;
 
   beforeEach(async () => {
+    config.isAuthorizedMediaDeliveryEnabled = false;
     const mockFFmpegService = {
       cleanupTempFiles: vi.fn(),
       executeFFmpeg: vi.fn().mockResolvedValue(undefined),
@@ -39,6 +42,9 @@ describe('VideoThumbnailService', () => {
 
     const mockS3Service = {
       downloadFile: vi.fn().mockResolvedValue(undefined),
+      getPresignedDownloadUrlForStoredKey: vi.fn(
+        (key: string) => `https://s3.test/${key}?signature=grant`,
+      ),
       downloadFromUrl: vi.fn().mockResolvedValue(undefined),
       generateS3Key: vi.fn((type: string, id: string) => `${type}/${id}`),
       getPublicUrl: vi.fn(
@@ -65,6 +71,7 @@ describe('VideoThumbnailService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: ConfigService, useValue: config },
         VideoThumbnailService,
         {
           provide: FFmpegService,
@@ -84,6 +91,30 @@ describe('VideoThumbnailService', () => {
     service = module.get<VideoThumbnailService>(VideoThumbnailService);
     ffmpegService = module.get(FFmpegService);
     s3Service = module.get(S3Service);
+  });
+
+  it('randomizes thumbnail identity and returns the URL of the actual stored object when activated', async () => {
+    config.isAuthorizedMediaDeliveryEnabled = true;
+    s3Service.uploadFile.mockResolvedValueOnce({
+      ETag: 'etag',
+      Key: 'thumbnails/actual-stored-object.jpg',
+      Location: 'https://cdn.test/thumb',
+    });
+    const result = await service.generateThumbnail(
+      'https://example.com/video.mp4',
+      'ingredient-id',
+    );
+    expect(s3Service.generateS3Key).toHaveBeenCalledWith(
+      'thumbnails',
+      expect.stringMatching(/^[a-f0-9-]{36}$/),
+    );
+    expect(result).toContain(
+      'thumbnails/actual-stored-object.jpg?signature=grant',
+    );
+    expect(s3Service.getPresignedDownloadUrlForStoredKey).toHaveBeenCalledWith(
+      'thumbnails/actual-stored-object.jpg',
+      300,
+    );
   });
 
   it('should be defined', () => {

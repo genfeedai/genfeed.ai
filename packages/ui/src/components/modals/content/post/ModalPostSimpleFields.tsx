@@ -3,7 +3,6 @@
 import {
   AlertCategory,
   Platform,
-  PostFormat,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { CHANNEL_CAPABILITIES } from '@genfeedai/contracts/api-types/contracts';
@@ -18,11 +17,13 @@ import {
 import type { ModalPostSimpleFieldsProps } from '@genfeedai/props/modals/modal.props';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import Alert from '@ui/feedback/alert/Alert';
+import ModalPostDestinations from '@ui/modals/content/post/ModalPostDestinations';
 import PostDraftGenerator from '@ui/modals/content/post/PostDraftGenerator';
 import FormDateTimePicker from '@ui/primitives/date-time-picker';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
+import { Switch } from '@ui/primitives/switch';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 
@@ -39,8 +40,10 @@ export default function ModalPostSimpleFields({
   isTitleError,
   hasIngredients,
   browserTimezone,
+  composer,
 }: ModalPostSimpleFieldsProps) {
   const translate = useTranslations('ui.postDraft');
+  const composerTranslate = useTranslations('ui.postComposer');
   return (
     <div className="space-y-4">
       {hasFormErrors(form.formState.errors) && (
@@ -53,14 +56,27 @@ export default function ModalPostSimpleFields({
         </Alert>
       )}
 
-      {!isEditMode && (
+      {composer ? (
+        <ModalPostDestinations
+          credentials={composer.credentials}
+          selectedCredentialIds={composer.selectedCredentialIds}
+          destination={composer.destination}
+          isDisabled={isSubmitting}
+          onToggleCredential={composer.onToggleCredential}
+          onSelectDestination={composer.onSelectDestination}
+        />
+      ) : null}
+      {composer?.destination ? (
+        <p className="text-sm text-foreground/70">
+          {composerTranslate('handoff')}
+        </p>
+      ) : null}
+      {!isEditMode && !composer && (
         <FormControl label={translate('platform')}>
           <SelectField
             name="platform"
             control={form.control}
-            isDisabled={
-              isSubmitting || form.watch('format') === PostFormat.LONG_FORM
-            }
+            isDisabled={isSubmitting}
             onChange={() => {
               form.setValue('credentialId', '');
               form.setValue('scheduledDate', '');
@@ -75,7 +91,7 @@ export default function ModalPostSimpleFields({
           </SelectField>
         </FormControl>
       )}
-      {(!isEditMode || !form.watch('credentialId')) && (
+      {!composer && (!isEditMode || !form.watch('credentialId')) && (
         <FormControl
           label={translate('account')}
           error={form.formState.errors.credentialId?.message}
@@ -104,130 +120,163 @@ export default function ModalPostSimpleFields({
           </SelectField>
         </FormControl>
       )}
-      <PostDraftGenerator
-        key={`${selectedPlatform}-${form.watch('format')}`}
-        platform={form.watch('platform') ?? Platform.TWITTER}
-        format={form.watch('format')}
-        isDisabled={isSubmitting}
-        onGenerate={(description) =>
-          form.setValue('description', description, {
-            shouldDirty: true,
-            shouldValidate: true,
-          })
-        }
-      />
-
-      {selectedPlatform !== Platform.TWITTER && (
-        <FormControl
-          label="Title"
-          error={
-            isTitleError
-              ? 'Title is required for YouTube'
-              : form.formState.errors.label?.message
-          }
-        >
-          <Input
-            name="label"
-            control={form.control}
-            placeholder={
-              isTitleRequired ? 'Enter YouTube video title' : 'Optional'
+      {composer?.destination ? null : (
+        <>
+          <PostDraftGenerator
+            key={`${selectedPlatform}-${form.watch('format')}`}
+            platform={form.watch('platform') ?? Platform.TWITTER}
+            format={form.watch('format')}
+            isDisabled={isSubmitting}
+            onGenerate={(description) =>
+              form.setValue('description', description, {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
             }
           />
-        </FormControl>
-      )}
 
-      <FormControl
-        error={form.formState.errors.description?.message}
-        label={
-          <div className="flex items-center justify-between w-full gap-2">
-            <span>
-              {selectedPlatform === Platform.TWITTER ? 'Post' : 'Description'}
-            </span>
-            <span
-              className={`text-xs ${isOverLimit ? 'text-error' : 'text-foreground/60'}`}
-            >
-              {currentLength} / {charLimit}
-            </span>
-          </div>
-        }
-      >
-        {selectedPlatform === Platform.TWITTER ? (
-          <Textarea
-            name="description"
-            aria-label={translate('postContent')}
-            value={form.watch('description') || ''}
-            onChange={(event) => {
-              form.setValue('description', event.target.value, {
-                shouldDirty: true,
-                shouldValidate: true,
-              });
-            }}
-            placeholder={translate('tweetPlaceholder')}
-          />
-        ) : (
-          <LazyRichTextEditor
-            value={form.watch('description') || ''}
-            onChange={(value) => {
-              form.setValue('description', value, {
-                shouldDirty: true,
-                shouldValidate: true,
-              });
-            }}
-            placeholder="Enter post caption"
-            minHeight={{ desktop: 300, mobile: 200 }}
-          />
-        )}
-      </FormControl>
-
-      {form.watch('credentialId') &&
-        (hasIngredients || selectedPlatform === Platform.TWITTER) && (
-          <>
+          {selectedPlatform !== Platform.TWITTER && (
             <FormControl
-              label="Scheduled Date (Optional)"
-              error={form.formState.errors.scheduledDate?.message}
-              helpText="Set when content is ready to publish"
+              label="Title"
+              error={
+                isTitleError
+                  ? 'Title is required for YouTube'
+                  : form.formState.errors.label?.message
+              }
             >
-              <FormDateTimePicker
-                value={form.watch('scheduledDate')}
-                timezone={browserTimezone}
-                onChange={(value) =>
-                  form.setValue(
-                    'scheduledDate',
-                    value ? value.toISOString() : '',
-                  )
+              <Input
+                name="label"
+                control={form.control}
+                placeholder={
+                  isTitleRequired ? 'Enter YouTube video title' : 'Optional'
                 }
               />
             </FormControl>
+          )}
 
-            <FormControl
-              label="Lifecycle"
-              error={form.formState.errors.targetExecutionState?.message}
-            >
-              <SelectField name="targetExecutionState" control={form.control}>
-                {getPostLifecycleOptions().map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </SelectField>
-            </FormControl>
-
-            {selectedPlatform === Platform.YOUTUBE && (
-              <FormControl
-                label="Visibility"
-                error={form.formState.errors.visibility?.message}
-              >
-                <SelectField name="visibility" control={form.control}>
-                  {getPostVisibilityOptions().map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </SelectField>
-              </FormControl>
+          <FormControl
+            error={form.formState.errors.description?.message}
+            label={
+              <div className="flex items-center justify-between w-full gap-2">
+                <span>
+                  {selectedPlatform === Platform.TWITTER
+                    ? 'Post'
+                    : 'Description'}
+                </span>
+                <span
+                  className={`text-xs ${isOverLimit ? 'text-error' : 'text-foreground/60'}`}
+                >
+                  {currentLength} / {charLimit}
+                </span>
+              </div>
+            }
+          >
+            {selectedPlatform === Platform.TWITTER ? (
+              <Textarea
+                name="description"
+                aria-label={translate('postContent')}
+                value={form.watch('description') || ''}
+                onChange={(event) => {
+                  form.setValue('description', event.target.value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
+                placeholder={translate('tweetPlaceholder')}
+              />
+            ) : (
+              <LazyRichTextEditor
+                value={form.watch('description') || ''}
+                onChange={(value) => {
+                  form.setValue('description', value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
+                placeholder="Enter post caption"
+                minHeight={{ desktop: 300, mobile: 200 }}
+              />
             )}
-          </>
-        )}
+          </FormControl>
+
+          {composer?.hasXTarget ? (
+            <div className="space-y-1">
+              <Switch
+                aria-label={composerTranslate('splitIntoThread')}
+                label={composerTranslate('splitIntoThread')}
+                isChecked={composer.isThread}
+                isDisabled={isSubmitting}
+                onCheckedChange={composer.onThreadChange}
+              />
+              <p className="text-xs text-foreground/60">
+                {composer.isThread
+                  ? composerTranslate('threadCount', {
+                      count: composer.threadItemCount,
+                    })
+                  : composerTranslate('splitIntoThreadHelp')}
+              </p>
+              {composer.isLongPost ? (
+                <p className="text-xs text-foreground/60">
+                  {composerTranslate('longPostHelp')}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {form.watch('credentialId') &&
+            (hasIngredients || selectedPlatform === Platform.TWITTER) && (
+              <>
+                <FormControl
+                  label="Scheduled Date (Optional)"
+                  error={form.formState.errors.scheduledDate?.message}
+                  helpText="Set when content is ready to publish"
+                >
+                  <FormDateTimePicker
+                    value={form.watch('scheduledDate')}
+                    timezone={browserTimezone}
+                    onChange={(value) =>
+                      form.setValue(
+                        'scheduledDate',
+                        value ? value.toISOString() : '',
+                      )
+                    }
+                  />
+                </FormControl>
+
+                <FormControl
+                  label="Lifecycle"
+                  error={form.formState.errors.targetExecutionState?.message}
+                >
+                  <SelectField
+                    name="targetExecutionState"
+                    control={form.control}
+                  >
+                    {getPostLifecycleOptions().map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </SelectField>
+                </FormControl>
+
+                {selectedPlatform === Platform.YOUTUBE && (
+                  <FormControl
+                    label="Visibility"
+                    error={form.formState.errors.visibility?.message}
+                  >
+                    <SelectField name="visibility" control={form.control}>
+                      {getPostVisibilityOptions().map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </SelectField>
+                  </FormControl>
+                )}
+              </>
+            )}
+        </>
+      )}
     </div>
   );
 }

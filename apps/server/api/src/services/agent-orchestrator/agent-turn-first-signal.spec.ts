@@ -110,6 +110,7 @@ function setup() {
     },
     {
       addMessage: vi.fn(),
+      countMessages: vi.fn().mockResolvedValue(0),
       getMessagesByRoom: vi
         .fn()
         .mockResolvedValue([{ content: 'Hello back', role: 'assistant' }]),

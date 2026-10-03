@@ -111,9 +111,12 @@ async function lockBrandSources(
   scope: BrandLearningScope,
   input: BrandMutationInput,
 ): Promise<void> {
+  // NO KEY UPDATE still excludes other mutations and FOR SHARE publication capture, but admits
+  // the FOR KEY SHARE that every org-scoped insert takes, so a writer already holding a brand
+  // key-share lock cannot deadlock against the brand FOR UPDATE below.
   for (const id of scope.organizationIds) {
     const rows = await tx.$queryRaw<{ id: string }[]>(
-      Prisma.sql`SELECT "id" FROM "organizations" WHERE "id" = ${id} AND "isDeleted" = false FOR UPDATE`,
+      Prisma.sql`SELECT "id" FROM "organizations" WHERE "id" = ${id} AND "isDeleted" = false FOR NO KEY UPDATE`,
     );
     if (rows.length !== 1)
       throw new ConflictException(

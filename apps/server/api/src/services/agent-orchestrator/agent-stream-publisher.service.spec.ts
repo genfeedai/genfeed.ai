@@ -1024,3 +1024,66 @@ describe('AgentStreamPublisherService', () => {
     });
   });
 });
+
+describe('authorized media stream projection', () => {
+  it('does not broadcast provider originals in typed media cards and tool records', async () => {
+    const id = testId('ingredient');
+    const threadId = testId('thread');
+    const organizationId = testId('org');
+    const userId = testId('user');
+    const redis = { publish: vi.fn().mockResolvedValue(undefined) };
+    const issuer = {
+      projectIngredients: vi.fn().mockResolvedValue([
+        {
+          ingredientId: id,
+          metadataId: null,
+          grant: {
+            id,
+            purpose: 'preview',
+            state: 'PENDING',
+            url: null,
+            expiresAt: null,
+          },
+        },
+      ]),
+      hasCleanAccess: vi.fn().mockResolvedValue(false),
+      projectAssets: vi.fn().mockResolvedValue([]),
+    };
+    const threads = {
+      findOne: vi.fn().mockResolvedValue({ organizationId, userId }),
+    };
+    const publisher = new AgentStreamPublisherService(
+      redis as never,
+      mockLoggerService as never,
+      threads as never,
+      undefined,
+      { isAuthorizedMediaDeliveryEnabled: true } as never,
+      issuer as never,
+    );
+    await publisher.publishUIBlocks({
+      threadId,
+      userId,
+      operation: 'append' as never,
+      blocks: [
+        {
+          type: 'content_preview_card',
+          assetKind: 'image',
+          assetId: id,
+          images: ['https://provider.test/original'],
+        },
+      ] as never,
+    });
+    expect(threads.findOne).toHaveBeenCalledWith({
+      id: threadId,
+      userId,
+      isDeleted: false,
+    });
+    expect(JSON.stringify(redis.publish.mock.calls)).not.toContain(
+      'provider.test',
+    );
+    expect(issuer.projectIngredients).toHaveBeenCalledWith(
+      { organizationId, userId, brandId: undefined },
+      [id],
+    );
+  });
+});

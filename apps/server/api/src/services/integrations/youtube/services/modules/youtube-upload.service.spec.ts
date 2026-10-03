@@ -397,4 +397,39 @@ describe('YoutubeUploadService', () => {
       expect(loggerService.error).toHaveBeenCalled();
     });
   });
+
+  it('queues the scoped canonical video key without storing a signed URL', async () => {
+    const key = 'ingredients/videos/random%2Fsource?.mp4';
+    const readSources = vi
+      .fn()
+      .mockResolvedValue([{ id: videoId, category: 'VIDEO', s3Key: key }]);
+    Object.defineProperty(service, 'configService', {
+      value: { isAuthorizedMediaDeliveryEnabled: true },
+    });
+    Object.defineProperty(service, 'authorizedMediaUrls', {
+      value: { readSources },
+    });
+    await service.uploadVideo(orgId, brandId, videoId, createPost());
+    expect(readSources).toHaveBeenCalledWith(orgId, [videoId]);
+    expect(fileQueueService.processFile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: orgId,
+        params: { type: 'videos', sourceStorageKey: key },
+      }),
+    );
+  });
+
+  it('fails before queueing or publishing a missing enabled source', async () => {
+    Object.defineProperty(service, 'configService', {
+      value: { isAuthorizedMediaDeliveryEnabled: true },
+    });
+    Object.defineProperty(service, 'authorizedMediaUrls', {
+      value: { readSources: vi.fn().mockResolvedValue([]) },
+    });
+    await expect(
+      service.uploadVideo(orgId, brandId, videoId, createPost()),
+    ).rejects.toThrow();
+    expect(fileQueueService.processFile).not.toHaveBeenCalled();
+    expect(mockVideosInsert).not.toHaveBeenCalled();
+  });
 });

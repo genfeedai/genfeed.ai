@@ -285,7 +285,8 @@ describe('LearningReleaseService shared create entry', () => {
     expect(
       await f.service.create({ ...f.input, artifactIds: ['B', 'A'] }),
     ).toBe(original);
-    expect(f.tx.$queryRaw).toHaveBeenCalledTimes(3);
+    // Each create takes the global shared and the organization shared fence.
+    expect(f.tx.$queryRaw).toHaveBeenCalledTimes(6);
     expect(f.tx.contentLearningRun.findFirst).toHaveBeenCalledTimes(3);
     expect(f.tx.contentLearningSharedPolicy.findMany).toHaveBeenCalledTimes(3);
     expect(f.dependencies.valid).toHaveBeenCalledTimes(3);

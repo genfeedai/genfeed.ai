@@ -8,20 +8,19 @@ import {
   Flame,
   FlaskConical,
   Magnet,
-  Repeat,
   ScanSearch,
   Sparkles,
-  TrendingUp,
 } from 'lucide-react';
 
 /**
- * Analytics is the single home for measurement — the Publishing module no longer
- * carries its own analytics page.
+ * Analytics is the single home for measuring the brand's own content — the
+ * Publishing module no longer carries its own analytics page. Market trends
+ * (Trends, Trend Turnover) are research, so they live in Discovery.
  *
  * Shell already labels the module Analytics. What-happened destinations sit
  * ungrouped under that header (Overview, Posts, Brands, Streaks) so the
  * sidebar does not stack ANALYTICS + PERFORMANCE. Intelligence stays a group
- * (Insights, Hooks, Lab, Trends).
+ * (Insights, Hooks, Outliers, Lab).
  *
  * Org-level routes (`/:org/~/analytics/*`) ship Overview and Accounts. Items with
  * `hrefScope: 'brand'` are brand-route only — hide them on org scope or they 404.
@@ -111,24 +110,6 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.ANALYTICS.PERFORMANCE_LAB],
     outline: FlaskConical,
     solid: FlaskConical,
-  },
-  {
-    group: 'Intelligence',
-    href: APP_ROUTES.ANALYTICS.TRENDS,
-    hrefScope: 'brand',
-    label: 'Trends',
-    matchPaths: [APP_ROUTES.ANALYTICS.TRENDS],
-    outline: TrendingUp,
-    solid: TrendingUp,
-  },
-  {
-    group: 'Intelligence',
-    href: APP_ROUTES.ANALYTICS.TREND_TURNOVER,
-    hrefScope: 'brand',
-    label: 'Trend Turnover',
-    matchPaths: [APP_ROUTES.ANALYTICS.TREND_TURNOVER],
-    outline: Repeat,
-    solid: Repeat,
   },
 ];
 

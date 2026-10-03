@@ -51,13 +51,9 @@ describe('page semantic theme surfaces', () => {
     // Delegates its surface to `@ui/kpi/kpi-section`; only the forbidden token
     // is still this file's concern.
     ['analytics/brand-overview/BrandKPISection.tsx', 'bg-white/10', null],
+    ['trends/detail/trend-detail.tsx', 'border-white', 'border-border'],
     [
-      'analytics/trends/trend-detail/trend-detail.tsx',
-      'border-white',
-      'border-border',
-    ],
-    [
-      'analytics/trends/trend-detail/trend-detail-analysis-card.tsx',
+      'trends/detail/trend-detail-analysis-card.tsx',
       'border-white',
       'border-border',
     ],

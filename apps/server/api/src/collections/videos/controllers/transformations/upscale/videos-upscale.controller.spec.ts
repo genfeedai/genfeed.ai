@@ -119,12 +119,16 @@ describe('VideosUpscaleController', () => {
       record: vi.fn().mockResolvedValue({ id: activityId }),
     },
     configService: {
+      isAuthorizedMediaDeliveryEnabled: false,
       get: vi.fn().mockReturnValue('https://api.example.com'),
       isDevelopment: false,
     },
     creditsUtilsService: { deductCreditsFromOrganization: vi.fn() },
     failedGenerationService: { handleFailedVideoGeneration: vi.fn() },
     filesClientService: {
+      getPresignedDownloadUrlForObjectKey: vi
+        .fn()
+        .mockResolvedValue('https://s3.example.com/opaque?sig=fresh'),
       getPresignedDownloadUrl: vi
         .fn()
         .mockResolvedValue('https://s3.example.com/videos/signed?sig=abc'),
@@ -159,6 +163,7 @@ describe('VideosUpscaleController', () => {
   };
 
   beforeEach(async () => {
+    mockServices.configService.isAuthorizedMediaDeliveryEnabled = false;
     const module: TestingModule = await Test.createTestingModule({
       controllers: [VideosUpscaleController],
       providers: [
@@ -343,6 +348,21 @@ describe('VideosUpscaleController', () => {
     });
 
     expect(mockServices.replicateService.runModel).toHaveBeenCalled();
+  });
+
+  it('reads the canonical random key for an activated upscale instead of deriving it from the video ID', async () => {
+    mockServices.configService.isAuthorizedMediaDeliveryEnabled = true;
+    mockServices.videosService.findOne.mockResolvedValue({
+      ...mockVideo,
+      s3Key: 'ingredients/videos/opaque%2F?#token.mp4',
+    });
+    await controller.upscaleVideo(mockReq, mockUser, videoId, {});
+    expect(
+      mockServices.filesClientService.getPresignedDownloadUrlForObjectKey,
+    ).toHaveBeenCalledWith('ingredients/videos/opaque%2F?#token.mp4');
+    expect(
+      mockServices.filesClientService.getPresignedDownloadUrl,
+    ).not.toHaveBeenCalled();
   });
 
   it('should hand the model a presigned URL, not the public stream route', async () => {

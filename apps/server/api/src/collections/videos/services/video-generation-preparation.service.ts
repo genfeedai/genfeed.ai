@@ -762,12 +762,26 @@ export class VideoGenerationPreparationService {
         HttpStatus.BAD_REQUEST,
       );
     }
+    if (
+      this.configService.isAuthorizedMediaDeliveryEnabled &&
+      !ingredient.s3Key
+    ) {
+      throw new HttpException(
+        'The source video has no stored media key',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
     return {
       duration,
-      url: await this.filesClientService.getPresignedDownloadUrl(
-        String(ingredient.id),
-        'videos',
-      ),
+      url:
+        this.configService.isAuthorizedMediaDeliveryEnabled && ingredient.s3Key
+          ? await this.filesClientService.getPresignedDownloadUrlForObjectKey(
+              ingredient.s3Key,
+            )
+          : await this.filesClientService.getPresignedDownloadUrl(
+              String(ingredient.id),
+              'videos',
+            ),
     };
   }
 

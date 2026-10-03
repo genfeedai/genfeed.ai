@@ -84,7 +84,6 @@ export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/publishing',
   '/:orgSlug/~/publishing/overview',
   '/:orgSlug/~/publishing/posts',
-  '/:orgSlug/~/publishing/posts/new',
   '/:orgSlug/~/publishing/posts/:id',
   '/:orgSlug/~/publishing/content',
   '/:orgSlug/~/publishing/review',

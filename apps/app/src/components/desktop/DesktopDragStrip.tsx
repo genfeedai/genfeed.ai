@@ -1,12 +1,7 @@
 'use client';
 
-import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
+import { useDesktopWindowChrome } from '@hooks/ui/use-desktop-window-chrome/use-desktop-window-chrome';
 import { usePathname } from 'next/navigation';
-import { useSyncExternalStore } from 'react';
-
-type UserAgentDataCapable = Navigator & {
-  userAgentData?: { platform?: string };
-};
 
 const AUTH_FULL_BLEED_PREFIXES = [
   '/login',
@@ -17,23 +12,6 @@ const AUTH_FULL_BLEED_PREFIXES = [
   '/oauth',
 ] as const;
 
-function detectMac(): boolean {
-  if (typeof navigator === 'undefined') {
-    return false;
-  }
-
-  const platform =
-    (navigator as UserAgentDataCapable).userAgentData?.platform ??
-    navigator.platform ??
-    '';
-
-  return /mac/i.test(platform);
-}
-
-function subscribe(): () => void {
-  return () => {};
-}
-
 export function isDesktopAuthFullBleedPath(pathname: string): boolean {
   return AUTH_FULL_BLEED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
@@ -42,10 +20,9 @@ export function isDesktopAuthFullBleedPath(pathname: string): boolean {
 
 function DesktopDragStripContent() {
   const pathname = usePathname();
-  const isMac = useSyncExternalStore(subscribe, detectMac, () => false);
-  const isDesktop = useIsDesktopClient();
+  const { isMacDesktop } = useDesktopWindowChrome();
 
-  if (!isDesktop || !isMac || isDesktopAuthFullBleedPath(pathname ?? '')) {
+  if (!isMacDesktop || isDesktopAuthFullBleedPath(pathname ?? '')) {
     return null;
   }
 
@@ -55,8 +32,9 @@ function DesktopDragStripContent() {
       data-desktop-drag="true"
       // Merged with the shell: no border, no blur, no alpha. The chrome shell
       // (rail + sidebar + the root behind this strip) paints gray-100; a page
-      // with no chrome paints background.
-      className="bg-background [body:has([data-shell-chrome=true])_&]:bg-gray-100"
+      // with no chrome paints background. When the shell topbar is the
+      // titlebar it owns dragging and the traffic lights, so the strip yields.
+      className="bg-background [body:has([data-desktop-titlebar=topbar])_&]:hidden [body:has([data-shell-chrome=true])_&]:bg-gray-100"
       style={{
         height: 32,
         left: 0,

@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import {
   LearningDependencyService,
-  learningFence,
+  learningOrgFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -37,7 +37,7 @@ export class LearningReleaseService {
     organizationId: string;
   }) {
     return this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'shared');
+      await learningOrgFence(tx, input.organizationId, 'shared');
       const report = await tx.contentLearningRun.findFirst({
         where: {
           id: input.reportId,

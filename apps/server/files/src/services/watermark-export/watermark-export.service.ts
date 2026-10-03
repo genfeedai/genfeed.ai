@@ -4,12 +4,15 @@ import { mkdir, mkdtemp, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
+import { S3Service } from '@files/services/s3/s3.service';
+import { isCloudDeployment } from '@genfeedai/config';
 import type {
   IWatermarkExportRequest,
   IWatermarkExportResult,
   IWatermarkLayer,
 } from '@genfeedai/contracts/interfaces';
 import { assertSafeObjectKey, type StorageProvider } from '@genfeedai/storage';
+import { assertStoredObjectKey } from '@libs/security/stored-object-key';
 import {
   BadRequestException,
   HttpException,
@@ -49,6 +52,7 @@ export class WatermarkExportService {
   constructor(
     @Inject('STORAGE_PROVIDER') private readonly storage: StorageProvider,
     private readonly ffmpeg: FFmpegService,
+    private readonly s3: S3Service,
   ) {}
 
   async render(
@@ -78,7 +82,7 @@ export class WatermarkExportService {
         directory,
         request.category === 'images' ? 'input.png' : 'input.mp4',
       );
-      await this.storage.download(request.storageKey, input, FILES_TMP_ROOT);
+      await this.downloadStoredSource(request.storageKey, input);
       if ((await stat(input)).size > 1024 * 1024 * 1024)
         throw invalid('Media exceeds the 1 GB export limit');
       let width: number;
@@ -207,10 +211,25 @@ export class WatermarkExportService {
     }
   }
 
+  private async downloadStoredSource(
+    key: string,
+    target: string,
+  ): Promise<void> {
+    if (isCloudDeployment()) {
+      const url = await this.s3.getPresignedDownloadUrlForStoredKey(key, 300);
+      await this.s3.downloadFromUrl(url, target, 1024 * 1024 * 1024);
+    } else await this.storage.download(key, target, FILES_TMP_ROOT);
+  }
+
+  private validateStoredSource(key: string): void {
+    if (isCloudDeployment()) assertStoredObjectKey(key, invalid);
+    else assertSafeObjectKey(key, invalid);
+  }
+
   private validate(request: IWatermarkExportRequest): void {
     if (!request || !['images', 'videos'].includes(request.category))
       throw invalid('Expected an image or video export');
-    assertSafeObjectKey(request.storageKey, invalid);
+    this.validateStoredSource(request.storageKey);
     if (
       !Array.isArray(request.layers) ||
       request.layers.length < 1 ||
@@ -238,8 +257,7 @@ export class WatermarkExportService {
         throw invalid('Watermark text must contain 1–120 printable characters');
       if (!layer.text && !layer.logoStorageKey)
         throw invalid('A watermark needs text or a logo');
-      if (layer.logoStorageKey)
-        assertSafeObjectKey(layer.logoStorageKey, invalid);
+      if (layer.logoStorageKey) this.validateStoredSource(layer.logoStorageKey);
     }
   }
 
@@ -255,9 +273,12 @@ export class WatermarkExportService {
     const parts: Buffer[] = [];
     if (layer.logoStorageKey) {
       const logo = path.join(directory, `logo-${index}.png`);
-      if (!(await this.storage.exists(layer.logoStorageKey)))
+      if (
+        !isCloudDeployment() &&
+        !(await this.storage.exists(layer.logoStorageKey))
+      )
         throw invalid('Upload the brand watermark logo before exporting');
-      await this.storage.download(layer.logoStorageKey, logo, FILES_TMP_ROOT);
+      await this.downloadStoredSource(layer.logoStorageKey, logo);
       if ((await stat(logo)).size > 20 * 1024 * 1024)
         throw invalid('Watermark logo exceeds 20 MB');
       const metadata = await sharp(logo, {

@@ -5,6 +5,7 @@ import { type ArticleCategory, ArticleStatus } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createArtifactEditorRoute,
+  normalizeArticleSlug,
 } from '@genfeedai/contracts/constants';
 import type { Article } from '@genfeedai/models/content/article.model';
 import type { ArticleFormState } from '@genfeedai/props/content/article-editor.props';
@@ -51,16 +52,6 @@ const DEFAULT_FORM_STATE: ArticleFormState = {
   summary: '',
   tags: '',
 };
-
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-}
 
 export function useArticleDetail({
   articleId,
@@ -144,7 +135,7 @@ export function useArticleDetail({
         const next = { ...prev, [key]: value };
         // Auto-generate slug from title for new articles
         if (key === 'label' && !resolvedId) {
-          next.slug = generateSlug(value as string);
+          next.slug = normalizeArticleSlug(value as string);
         }
         return next;
       });

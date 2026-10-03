@@ -12,6 +12,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import {
   AssetScope,
   IngredientCategory,
@@ -22,6 +23,7 @@ import type {
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
 import { VideoSerializer } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -42,6 +44,8 @@ export class PublicVideosController {
     private readonly filesClientService: FilesClientService,
     private readonly videosService: VideosService,
     private readonly logger: LoggerService,
+    private readonly mediaIssuer: AuthorizedMediaUrlService,
+    private readonly config: ConfigService,
   ) {}
 
   @Get()
@@ -134,6 +138,21 @@ export class PublicVideosController {
     @Param('videoId') videoId: string,
     @Res() res: ExpressResponse,
   ): Promise<void> {
+    if (this.config.isAuthorizedMediaDeliveryEnabled) {
+      const [projection] = await this.mediaIssuer.projectPublicIngredients([
+        videoId,
+      ]);
+      if (!projection?.grant.url) {
+        res
+          .status(404)
+          .json({ error: 'Protected public media is unavailable' });
+        return;
+      }
+      res.set('Cache-Control', 'no-store');
+      res.redirect(302, projection.grant.url);
+      return;
+    }
+
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(url, { params: { videoId } });
 

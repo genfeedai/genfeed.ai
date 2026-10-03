@@ -5,7 +5,9 @@ import {
 } from '@api/agent-artifacts/agent-artifact-material.util';
 import {
   invalidateLearningDependencySource,
-  learningFence,
+  LearningFenceEscalationError,
+  type LearningMutationFenceScope,
+  learningMutationFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   learningPublicationApprovalSelect,
@@ -353,7 +355,7 @@ async function lockPostMutationSources(
   createScope?: Scope,
 ): Promise<void> {
   await tx.$queryRaw(
-    Prisma.sql`SELECT "id" FROM "organizations" WHERE "id" = ${plan.organizationId} AND "isDeleted" = false FOR UPDATE`,
+    Prisma.sql`SELECT "id" FROM "organizations" WHERE "id" = ${plan.organizationId} AND "isDeleted" = false FOR NO KEY UPDATE`,
   );
   for (const id of [
     ...new Set(
@@ -503,10 +505,34 @@ async function preparePostMutation(
   id: string,
   dto: PostUpdateInput,
   remove: boolean,
+  fenceScope: LearningMutationFenceScope,
 ): Promise<PostPlan | null> {
-  await learningFence(tx, 'exclusive');
-  const plan = await discoverPostMutation(tx, id, dto, remove);
-  if (!plan) return null;
+  const tenantOrganizationId = isCrossOrgUnsafe()
+    ? undefined
+    : getTenantContext()?.organizationId;
+  // tenant-scope-ignore: the pre-fence read only resolves the owning organization for its fence; discovery below re-reads under the fence.
+  const owner = await tx.post.findFirst({
+    where: {
+      id,
+      isDeleted: false,
+      ...(tenantOrganizationId ? { organizationId: tenantOrganizationId } : {}),
+    },
+    select: { organizationId: true },
+  });
+  if (!owner) return null;
+  await learningMutationFence(tx, owner.organizationId, fenceScope);
+  const plan = await discoverPostMutation(
+    tx,
+    id,
+    dto,
+    remove,
+    owner.organizationId,
+  );
+  if (!plan) {
+    // The post moved organizations or was removed before the fence was granted.
+    if (fenceScope === 'organization') throw new LearningFenceEscalationError();
+    return null;
+  }
   await lockPostMutationAccounts(tx, plan);
   await lockPostMutationSources(tx, plan, dto, remove);
   return plan;
@@ -517,8 +543,9 @@ export async function patchPostWithLearning(
   id: string,
   dto: PostUpdateInput,
   populate: PopulateInput,
+  fenceScope: LearningMutationFenceScope,
 ): Promise<PostLearningPatchResult> {
-  const plan = await preparePostMutation(tx, id, dto, false);
+  const plan = await preparePostMutation(tx, id, dto, false, fenceScope);
   if (!plan) throw new NotFoundException('Post', id);
   const before = await readPostMutationSnapshots(tx, plan),
     logs: PostLearningPatchResult['logs'] = [],
@@ -608,8 +635,9 @@ export async function removePostWithLearning(
   tx: Prisma.TransactionClient,
   context: PostLearningMutationContext,
   id: string,
+  fenceScope: LearningMutationFenceScope,
 ): Promise<PostLearningRemoveResult | null> {
-  const plan = await preparePostMutation(tx, id, {}, true);
+  const plan = await preparePostMutation(tx, id, {}, true, fenceScope);
   if (!plan) return null;
   const before = await readPostMutationSnapshots(tx, plan);
   const children = await tx.post.updateMany({
@@ -638,8 +666,8 @@ export async function createPostChildWithLearning(
   context: PostLearningMutationContext,
   preparedData: Record<string, unknown>,
   populate: PopulateInput,
+  fenceScope: LearningMutationFenceScope,
 ): Promise<{ createdPost: PostDocument; afterCommit: (() => void)[] }> {
-  await learningFence(tx, 'exclusive');
   const { parentId, organizationId, brandId, credentialId } = preparedData;
   if (
     typeof parentId !== 'string' ||
@@ -650,6 +678,7 @@ export async function createPostChildWithLearning(
     throw new BadRequestException(
       'Child creation requires an exact parent and organization.',
     );
+  await learningMutationFence(tx, organizationId, fenceScope);
   if (
     (brandId !== undefined &&
       brandId !== null &&

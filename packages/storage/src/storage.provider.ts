@@ -74,3 +74,10 @@ export interface StorageReadOptions {
 export interface BoundedStorageProvider extends StorageProvider {
   readBytes(path: string, options: StorageReadOptions): Promise<Buffer>;
 }
+
+export interface VersionedStorageProvider extends BoundedStorageProvider {
+  readVersionedBytes(
+    path: string,
+    options: StorageReadOptions & { expectedVersion?: string },
+  ): Promise<{ bytes: Buffer; version: string }>;
+}

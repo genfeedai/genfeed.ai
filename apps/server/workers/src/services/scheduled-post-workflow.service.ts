@@ -100,6 +100,17 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
           throw new Error('Publish execution claim did not return a lease.');
         }
         await this.executionGuard.assertPublishVersionPin(post, versionPinId);
+        // The runner links the post to this execution only after the whole
+        // graph returns, but delivery guards its PUBLISHED write with this
+        // execution id: link it while this run holds the approval lease.
+        await this.prisma.post.updateMany({
+          data: { workflowExecutionId: action.provenance.executionId },
+          where: {
+            id: request.postId,
+            isDeleted: false,
+            organizationId: request.organizationId,
+          },
+        });
       }
       return {
         executionStartedAt,
@@ -298,6 +309,20 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     const request = this.readRequest(action.input);
     const post = await this.discoveryService.findEligiblePost(request);
     if (!post) {
+      return { reason: 'not_eligible', skipped: true };
+    }
+    // A run whose approval was superseded (e.g. by Publish Now) or already
+    // published must not fail the post another run owns.
+    if (
+      post.publishApproval?.id !== request.approvalId ||
+      post.publishApproval?.status === PublishApprovalStatus.PUBLISHED
+    ) {
+      this.logger.warn('Skipped failing a post owned by another approval', {
+        activeApprovalId: post.publishApproval?.id ?? null,
+        activeApprovalStatus: post.publishApproval?.status ?? null,
+        failedApprovalId: request.approvalId ?? null,
+        postId: request.postId,
+      });
       return { reason: 'not_eligible', skipped: true };
     }
     const workflowError =

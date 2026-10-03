@@ -4,6 +4,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type { ModalPostSimpleActionsProps } from '@genfeedai/props/modals/modal.props';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';
+import { useTranslations } from 'next-intl';
 
 export default function ModalPostSimpleActions({
   isSubmitting,
@@ -12,11 +13,15 @@ export default function ModalPostSimpleActions({
   isFormValid,
   isEditMode,
   isThreadReply,
+  isHandoff = false,
+  isThread = false,
+  onContinue,
   showViewDetailsButton,
   onViewDetails,
   onViewDetailsClick,
   onCancel,
 }: ModalPostSimpleActionsProps) {
+  const translate = useTranslations('ui.postComposer');
   const submitLabel = (() => {
     if (isSubmitting) {
       return 'Saving…';
@@ -26,6 +31,9 @@ export default function ModalPostSimpleActions({
     }
     if (isThreadReply) {
       return 'Add Reply';
+    }
+    if (isThread) {
+      return translate('createThread');
     }
     return 'Create Post';
   })();
@@ -54,14 +62,23 @@ export default function ModalPostSimpleActions({
             isDisabled={isSubmitting}
           />
 
-          <Button
-            type="submit"
-            label={submitLabel}
-            variant={ButtonVariant.DEFAULT}
-            isDisabled={
-              isSubmitting || isOverLimit || isTitleError || !isFormValid
-            }
-          />
+          {isHandoff ? (
+            <Button
+              type="button"
+              label={translate('continue')}
+              variant={ButtonVariant.DEFAULT}
+              onClick={onContinue}
+            />
+          ) : (
+            <Button
+              type="submit"
+              label={submitLabel}
+              variant={ButtonVariant.DEFAULT}
+              isDisabled={
+                isSubmitting || isOverLimit || isTitleError || !isFormValid
+              }
+            />
+          )}
         </div>
       </div>
     </ModalActions>

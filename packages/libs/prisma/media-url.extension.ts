@@ -89,7 +89,10 @@ export function createMediaUrlExtension(
       ingredient: {
         cdnUrl: {
           needs: { s3Key: true },
-          compute: (ingredient) => ingredientMediaUrl(ingredient, config),
+          compute: (ingredient) =>
+            config.isAuthorizationRequired
+              ? null
+              : ingredientMediaUrl(ingredient, config),
         },
       },
     },

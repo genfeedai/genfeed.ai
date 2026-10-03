@@ -25,6 +25,31 @@ describe('LocalStorageProvider', () => {
     await fs.rm(scratchDir, { force: true, recursive: true });
   });
 
+  it('returns a local pin and rejects it after a rewrite', async () => {
+    const options = { maxBytes: 100, timeoutMs: 1000 };
+    await provider.upload(Buffer.from('first'), 'image.png');
+    const first = await provider.readVersionedBytes('image.png', options);
+    expect(first.bytes).toEqual(Buffer.from('first'));
+    expect(first.version).toMatch(/^local:\d+:\d+:5:\d+$/);
+    await provider.upload(Buffer.from('rewritten'), 'image.png');
+    const second = await provider.readVersionedBytes('image.png', options);
+    expect(second.version).not.toBe(first.version);
+    await expect(
+      provider.readVersionedBytes('image.png', {
+        ...options,
+        expectedVersion: first.version,
+      }),
+    ).rejects.toThrow('storage_read_changed');
+  });
+  it('rejects an oversized versioned file', async () => {
+    await provider.upload(Buffer.alloc(21), 'image.png');
+    await expect(
+      provider.readVersionedBytes('image.png', {
+        maxBytes: 20,
+        timeoutMs: 1000,
+      }),
+    ).rejects.toThrow('storage_read_limit_exceeded');
+  });
   describe('upload', () => {
     it('writes buffer under base dir and returns the path', async () => {
       const result = await provider.upload(

@@ -1,10 +1,17 @@
-import { ArticleCategory, Platform, PostStatus } from '@genfeedai/contracts';
+import {
+  ArticleCategory,
+  IngredientCategory,
+  Platform,
+  PostFormat,
+  PostStatus,
+} from '@genfeedai/contracts';
 import type { IPost, IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
 import {
   createPublishingContentLibraryItems,
   filterPublishingContentLibraryItems,
+  formatPublishingContentFormat,
 } from '@pages/posts/library/publishing-content-library.helpers';
 import { describe, expect, it } from 'vitest';
 
@@ -171,5 +178,85 @@ describe('publishing content library federation', () => {
         type: 'newsletter',
       }),
     ).toEqual([]);
+  });
+
+  it('tags only non-plain formats and leaves plain posts untagged', () => {
+    const items = createPublishingContentLibraryItems({
+      articles: collections.articles,
+      newsletters: collections.newsletters,
+      posts: [
+        {
+          createdAt: '2026-08-08T10:00:00.000Z',
+          description: 'Plain',
+          format: PostFormat.STANDARD,
+          id: 'plain',
+          platform: Platform.TWITTER,
+        },
+        {
+          createdAt: '2026-08-08T09:00:00.000Z',
+          description: 'Thread',
+          format: PostFormat.THREAD,
+          id: 'thread',
+          platform: Platform.TWITTER,
+        },
+        {
+          createdAt: '2026-08-08T08:00:00.000Z',
+          description: 'Long',
+          format: PostFormat.LONG_FORM,
+          id: 'long',
+          platform: Platform.TWITTER,
+        },
+        {
+          createdAt: '2026-08-08T07:00:00.000Z',
+          description: 'Clip',
+          id: 'clip',
+          ingredients: [{ category: IngredientCategory.VIDEO }],
+          platform: Platform.INSTAGRAM,
+        },
+      ] as unknown as IPost[],
+    });
+    const formats = Object.fromEntries(
+      items.map((item) => [item.id, item.format]),
+    );
+
+    expect(formats).toMatchObject({
+      'article-1': 'article',
+      clip: 'video',
+      long: 'long-post',
+      'newsletter-1': 'newsletter',
+      thread: 'thread',
+    });
+    expect(formats.plain).toBeUndefined();
+    expect(formatPublishingContentFormat('long-post')).toBe('Long post');
+  });
+
+  it('carries the target account of a post for the avatar stack', () => {
+    const items = createPublishingContentLibraryItems({
+      articles: [],
+      newsletters: [],
+      posts: [
+        {
+          createdAt: '2026-08-08T10:00:00.000Z',
+          credential: {
+            externalAvatar: 'https://cdn.example/avatar.png',
+            externalHandle: 'acme',
+            id: 'cred-1',
+            platform: Platform.TWITTER,
+          },
+          description: 'Hello',
+          id: 'post-1',
+          platform: Platform.TWITTER,
+        },
+      ] as unknown as IPost[],
+    });
+
+    expect(items[0]?.accounts).toEqual([
+      {
+        avatarUrl: 'https://cdn.example/avatar.png',
+        id: 'cred-1',
+        label: 'acme',
+        platform: Platform.TWITTER,
+      },
+    ]);
   });
 });

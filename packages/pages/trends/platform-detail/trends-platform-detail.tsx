@@ -26,10 +26,7 @@ import {
   toTrendSoundFinding,
   toTrendVideoFinding,
 } from '@pages/research/work-surface/research-work-surface.types';
-import {
-  SocialsNavigation,
-  type SocialsNavigationBasePath,
-} from '@pages/trends/shared/socials-navigation';
+import { SocialsNavigation } from '@pages/trends/shared/socials-navigation';
 import TrendContentCard from '@pages/trends/shared/trend-content-card';
 import {
   getTrendPlatformLabel,
@@ -82,16 +79,13 @@ function EmptyBlock({ children }: { children: ReactNode }) {
 
 export default function TrendsPlatformDetail({
   platform,
-  basePath = '/discovery',
 }: {
   platform: TrendPlatform;
-  basePath?: SocialsNavigationBasePath;
 }) {
   const brandId = useBrandId();
   const surface = useOptionalResearchWorkSurface();
   const label = getTrendPlatformLabel(platform);
   const relatedContent = PLATFORM_RELATED_CONTENT[platform];
-  const isDiscovery = basePath === '/discovery';
   const unsupportedContentFeed = ![
     Platform.TWITTER,
     Platform.INSTAGRAM,
@@ -230,17 +224,10 @@ export default function TrendsPlatformDetail({
         title={`${label} Trends`}
         subtitle="Platform-specific trending posts and videos."
         icon={TrendingUp}
-        titleVisibility={isDiscovery ? 'sr-only' : 'auto'}
         actions={
           <ButtonRefresh isRefreshing={isRefreshing} onClick={handleRefresh} />
         }
-        tabs={
-          // Discovery platforms are sidebar menu items. Analytics still needs
-          // local surface switching in the section topbar.
-          basePath === '/analytics/trends' ? (
-            <SocialsNavigation active={platform} basePath={basePath} />
-          ) : undefined
-        }
+        tabs={<SocialsNavigation active={platform} />}
       />
 
       <Container>

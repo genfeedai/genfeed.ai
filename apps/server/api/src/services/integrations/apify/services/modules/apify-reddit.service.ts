@@ -41,7 +41,7 @@ export class ApifyRedditService {
         `${this.constructorName}.getRedditTrends failed`,
         error,
       );
-      return [];
+      throw error;
     }
   }
 
@@ -67,7 +67,7 @@ export class ApifyRedditService {
         `${this.constructorName}.getRedditVideos failed`,
         error,
       );
-      return [];
+      throw error;
     }
   }
 

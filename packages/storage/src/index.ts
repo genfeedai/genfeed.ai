@@ -23,6 +23,7 @@ export type {
   StorageProvider,
   StorageProviderOptions,
   StorageReadOptions,
+  VersionedStorageProvider,
 } from './storage.provider';
 export { resolveLocalStorageBaseDir } from './storage-base-dir';
 export { createStorageProvider } from './storage-provider.factory';

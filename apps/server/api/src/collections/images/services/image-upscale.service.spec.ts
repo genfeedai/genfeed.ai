@@ -189,6 +189,8 @@ describe('ImageUpscaleService', () => {
           IngredientCategory.IMAGE,
         ),
         id: imageId,
+        isDeleted: false,
+        organizationId: user.organizationId,
       },
       [PopulatePatterns.metadataFull],
     );
@@ -366,6 +368,52 @@ describe('ImageUpscaleService', () => {
       getUserRoomName(user.id),
       'provider failed',
     );
+    expect(replicateService.runModel).not.toHaveBeenCalled();
+  });
+
+  it('resolves a fresh canonical source URL for enabled processing', async () => {
+    const grantedUrl =
+      'https://cdn.example/ingredients/images/random-source.png?Signature=fresh';
+    const issueServerPublish = vi
+      .fn()
+      .mockResolvedValue(new Map([[imageId, grantedUrl]]));
+    Object.defineProperty(service, 'configService', {
+      value: {
+        ingredientsEndpoint: 'https://legacy.example',
+        isAuthorizedMediaDeliveryEnabled: true,
+      },
+    });
+    Object.defineProperty(service, 'authorizedMediaUrls', {
+      value: { issueServerPublish },
+    });
+    await service.upscaleImage(request, imageId, user, body);
+    expect(issueServerPublish).toHaveBeenCalledWith(user.organizationId, [
+      imageId,
+    ]);
+    expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ references: [grantedUrl] }),
+      user.organizationId,
+    );
+  });
+
+  it('never dispatches an ID fallback when enabled source authorization fails', async () => {
+    Object.defineProperty(service, 'configService', {
+      value: {
+        ingredientsEndpoint: 'https://legacy.example',
+        isAuthorizedMediaDeliveryEnabled: true,
+      },
+    });
+    Object.defineProperty(service, 'authorizedMediaUrls', {
+      value: {
+        issueServerPublish: vi
+          .fn()
+          .mockRejectedValue(new Error('Source denied')),
+      },
+    });
+    await expect(
+      service.upscaleImage(request, imageId, user, body),
+    ).rejects.toThrow('Source denied');
     expect(replicateService.runModel).not.toHaveBeenCalled();
   });
 });

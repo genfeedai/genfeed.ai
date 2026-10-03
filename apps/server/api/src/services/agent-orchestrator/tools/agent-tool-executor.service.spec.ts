@@ -4931,12 +4931,12 @@ describe('AgentToolExecutorService', () => {
           'Behind-the-scenes product build · score 78',
         ],
         primaryCta: {
-          href: '/analytics/trends',
-          label: 'Open trends analytics',
+          href: '/discovery/trends',
+          label: 'Open trends',
         },
         status: 'completed',
         summaryText:
-          'Loaded 2 TikTok trends from the cached corpus. Open trends analytics to review the strongest hooks and decide what to remix.',
+          'Loaded 2 TikTok trends from the cached corpus. Open Discovery trends to review the strongest hooks and decide what to remix.',
         title: 'TikTok trends loaded',
         type: 'completion_summary_card',
       }),
@@ -4984,7 +4984,7 @@ describe('AgentToolExecutorService', () => {
           'Live fetch fallback is disabled for this tool',
         ],
         summaryText:
-          'No YouTube trends are available in the cached corpus right now. Open trends analytics to confirm source coverage before retrying this task.',
+          'No YouTube trends are available in the cached corpus right now. Open Discovery trends to confirm source coverage before retrying this task.',
         title: 'YouTube trends unavailable',
         type: 'completion_summary_card',
       }),
@@ -5025,12 +5025,12 @@ describe('AgentToolExecutorService', () => {
           'Live fetch fallback is disabled for this tool',
         ],
         primaryCta: {
-          href: '/analytics/trends',
-          label: 'Open trends analytics',
+          href: '/discovery/trends',
+          label: 'Open trends',
         },
         status: 'completed',
         summaryText:
-          'No TikTok trends are available in the cached corpus right now. Open trends analytics to confirm source coverage before retrying this task.',
+          'No TikTok trends are available in the cached corpus right now. Open Discovery trends to confirm source coverage before retrying this task.',
         title: 'TikTok trends unavailable',
         type: 'completion_summary_card',
       }),

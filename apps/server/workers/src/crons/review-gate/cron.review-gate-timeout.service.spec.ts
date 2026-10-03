@@ -7,7 +7,7 @@ describe('review gate timeout workflows', () => {
   it('discovers timed-out gates and fans into the resolver workflow', () => {
     const sweep = buildReviewGateTimeoutSweepDefinition();
     expect(sweep.definition.nodes[1]?.data.config.actionId).toBe(
-      'workflow.for-each',
+      'workflow.for-each-tenant',
     );
     expect(
       buildReviewGateTimeoutResolveDefinition().definition.nodes,

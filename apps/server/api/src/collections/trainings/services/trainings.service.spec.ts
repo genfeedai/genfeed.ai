@@ -343,4 +343,40 @@ describe('TrainingsService', () => {
       expect(pipelineArg.where).not.toHaveProperty('OR');
     });
   });
+
+  it('requires the training organization before preparing enabled source downloads', async () => {
+    Object.defineProperty(service, 'configService', {
+      value: { isAuthorizedMediaDeliveryEnabled: true },
+    });
+    const readSources = vi.fn();
+    Object.defineProperty(service, 'authorizedMediaUrls', {
+      value: { readSources },
+    });
+    await expect(
+      service.createTrainingZip(trainingId, [
+        { id: sourceImageId, metadata: { extension: 'jpg' } },
+      ]),
+    ).rejects.toThrow('organization');
+    expect(readSources).not.toHaveBeenCalled();
+  });
+
+  it('rejects a foreign or deleted source before creating a training archive', async () => {
+    Object.defineProperty(service, 'configService', {
+      value: { isAuthorizedMediaDeliveryEnabled: true },
+    });
+    const readSources = vi.fn().mockResolvedValue([]);
+    Object.defineProperty(service, 'authorizedMediaUrls', {
+      value: { readSources },
+    });
+    await expect(
+      service.createTrainingZip(
+        trainingId,
+        [{ id: sourceImageId, metadata: { extension: 'jpg' } }],
+        identity.organizationId,
+      ),
+    ).rejects.toThrow('unavailable');
+    expect(readSources).toHaveBeenCalledWith(identity.organizationId, [
+      sourceImageId,
+    ]);
+  });
 });

@@ -1,3 +1,5 @@
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+
 const deployment = vi.hoisted(() => ({ selfHosted: false }));
 vi.mock('@genfeedai/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/config')>();
@@ -34,13 +36,18 @@ describe('IngredientExportService', () => {
     asset: { findFirst: vi.fn() },
   };
   const files = { watermarkExport: vi.fn() };
-  const config = { cdnUrl: 'https://cdn.example', get: vi.fn() };
+  const config = {
+    isAuthorizedMediaDeliveryEnabled: false,
+    cdnUrl: 'https://cdn.example',
+    get: vi.fn(),
+  };
   const mediaUrls = { buildUrlFromAbsolute: vi.fn() };
   let service: IngredientExportService;
 
   beforeEach(async () => {
     vi.resetAllMocks();
     deployment.selfHosted = false;
+    config.isAuthorizedMediaDeliveryEnabled = false;
     config.get.mockReturnValue('https://media.example');
     mediaUrls.buildUrlFromAbsolute.mockImplementation((url: string) => url);
     prisma.ingredient.findFirst.mockResolvedValue(ingredient);
@@ -52,6 +59,10 @@ describe('IngredientExportService', () => {
     const module = await Test.createTestingModule({
       providers: [
         IngredientExportService,
+        {
+          provide: AuthorizedMediaUrlService,
+          useValue: { hasCleanAccess: vi.fn().mockResolvedValue(false) },
+        },
         { provide: PrismaService, useValue: prisma },
         {
           provide: ConfigService,
@@ -62,6 +73,18 @@ describe('IngredientExportService', () => {
       ],
     }).compile();
     service = module.get(IngredientExportService);
+  });
+
+  it('adds the platform watermark for free active exports regardless of custom branding', async () => {
+    config.isAuthorizedMediaDeliveryEnabled = true;
+    await service.export('image-1', 'org-1', true);
+    expect(files.watermarkExport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        layers: expect.arrayContaining([
+          { text: 'Genfeed.ai', position: 'bottom-right', opacity: 0.85 },
+        ]),
+      }),
+    );
   });
 
   it('never exposes an original through the preview endpoint', async () => {

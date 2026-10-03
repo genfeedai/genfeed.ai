@@ -17,11 +17,14 @@ export interface IEnvConfig {
   API_METRICS_LOGGING?: 'true' | 'false';
   API_SENTRY_PERFORMANCE_METRICS?: 'true' | 'false';
   GENFEED_CLOUD?: string;
+  TRUST_PROXY?: string;
 
   // === Genfeed Internal URLs ===
   GENFEEDAI_API_PUBLIC_URL?: string;
   GENFEEDAI_API_URL?: string;
   GENFEEDAI_CDN_URL?: string;
+  GENFEEDAI_MEDIA_ISSUER_ENABLED?: 'true' | 'false';
+  GENFEEDAI_MEDIA_PREPARATION_ENABLED?: 'true' | 'false';
   GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID?: string;
   GENFEEDAI_CDN_SIGNING_PRIVATE_KEY?: string;
   GENFEEDAI_CDN_SIGNED_URL_TTL_SECONDS?: string;

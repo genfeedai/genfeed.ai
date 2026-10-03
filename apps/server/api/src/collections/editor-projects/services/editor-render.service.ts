@@ -14,6 +14,8 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { requireStoredMediaKey } from '@api/services/media-urls/media-delivery-policy.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
@@ -37,6 +39,7 @@ import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   ConflictException,
   Injectable,
+  Optional,
   UnprocessableEntityException,
 } from '@nestjs/common';
 
@@ -84,6 +87,8 @@ export class EditorRenderService {
     private readonly notificationsPublisher: NotificationsPublisherService,
     private readonly cacheInvalidationService: CacheInvalidationService,
     private readonly sharedService: SharedService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
 
   private async invalidateCancelledRenderCaches(
@@ -209,7 +214,9 @@ export class EditorRenderService {
       id,
       orgId,
       {
-        ...contract,
+        assetManifest: contract.assetManifest,
+        rendererVersion: contract.rendererVersion,
+        snapshot: contract.snapshot,
         queuedAt: new Date().toISOString(),
       },
       ...(allowedStatuses ? [allowedStatuses] : []),
@@ -261,7 +268,15 @@ export class EditorRenderService {
         id: jobId,
         ingredientId,
         organizationId: orgId,
-        params: { ...contract, editorRender: renderJob },
+        params: {
+          assetManifest: contract.assetManifest,
+          snapshot: contract.snapshot,
+          rendererVersion: contract.rendererVersion,
+          ...(contract.sourceStorageKeys
+            ? { editorSourceStorageKeys: contract.sourceStorageKeys }
+            : {}),
+          editorRender: renderJob,
+        },
         room,
         type: 'render-editor-composition',
         userId: user.userId ?? user.id,
@@ -326,6 +341,20 @@ export class EditorRenderService {
     const ingredientById = new Map(
       result.docs.map((ingredient) => [ingredient.id.toString(), ingredient]),
     );
+    const storedKeysById = new Map<string, string>();
+    if (this.configService.isAuthorizedMediaDeliveryEnabled) {
+      if (!this.authorizedMediaUrls)
+        throw new Error('Authorized media issuer is unavailable');
+      const sources = await this.authorizedMediaUrls.readSources(
+        organizationId,
+        assetIds,
+      );
+      if (sources.length !== assetIds.length)
+        throw new NotFoundException('Source asset');
+      for (const source of sources)
+        storedKeysById.set(source.id, requireStoredMediaKey(source));
+    }
+    const sourceStorageKeys: Record<string, string> = {};
     const trustedUrlByClipId = new Map<string, string>();
     let brandId: string | undefined;
 
@@ -345,9 +374,16 @@ export class EditorRenderService {
         );
       }
 
+      if (this.configService.isAuthorizedMediaDeliveryEnabled) {
+        const key = storedKeysById.get(asset.ingredientId);
+        if (!key) throw new NotFoundException('Source asset');
+        sourceStorageKeys[asset.clipId] = key;
+      }
       trustedUrlByClipId.set(
         asset.clipId,
-        `${this.configService.ingredientsEndpoint}/${categoryToPlural(category)}/${asset.ingredientId}`,
+        this.configService.isAuthorizedMediaDeliveryEnabled
+          ? ''
+          : `${this.configService.ingredientsEndpoint}/${categoryToPlural(category)}/${asset.ingredientId}`,
       );
 
       if (asset.type === EditorTrackType.VIDEO && !brandId) {
@@ -359,7 +395,7 @@ export class EditorRenderService {
 
     const trustedUrl = (clipId: string): string => {
       const url = trustedUrlByClipId.get(clipId);
-      if (!url) {
+      if (url === undefined) {
         throw new UnprocessableEntityException(
           `Asset URL for clip ${clipId} could not be trusted.`,
         );
@@ -376,6 +412,9 @@ export class EditorRenderService {
     return {
       brandId,
       contract: {
+        ...(this.configService.isAuthorizedMediaDeliveryEnabled
+          ? { sourceStorageKeys }
+          : {}),
         assetManifest: validatedContract.assetManifest.map(trustAsset),
         rendererVersion: EDITOR_RENDERER_VERSION,
         snapshot: {

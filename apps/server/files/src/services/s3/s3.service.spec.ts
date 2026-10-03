@@ -481,6 +481,32 @@ describe('S3Service', () => {
     });
   });
 
+  describe('exact stored-key download signing', () => {
+    it('passes raw reserved bytes unchanged to the SDK command', async () => {
+      vi.mocked(getSignedUrl).mockResolvedValue('https://signed.test');
+      const key = 'ingredients/images/ space ?#%2F.png ';
+      await service.getPresignedDownloadUrlForStoredKey(key);
+      expect(getSignedUrl).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ input: { Bucket: 'test-bucket', Key: key } }),
+        { expiresIn: 300 },
+      );
+    });
+    it.each([
+      '../secret',
+      'images/../secret',
+      '/images/x',
+      'images//x',
+      'images/\\x',
+      'images/\u0000x',
+      'https://attacker.test/x',
+    ])('rejects structural key attacks %s', async (key) => {
+      await expect(
+        service.getPresignedDownloadUrlForStoredKey(key),
+      ).rejects.toThrow('Invalid stored object key');
+    });
+  });
+
   describe('getPresignedDownloadUrl', () => {
     it('returns a presigned download URL', async () => {
       (getSignedUrl as Mock).mockResolvedValue(

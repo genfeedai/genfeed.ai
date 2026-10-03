@@ -2,7 +2,7 @@ import { AgentTurnWorkflowExecutionService } from '@api/services/agent-orchestra
 import { AgentAutonomyMode, AgentMessageRole } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-function setup(source = 'proactive') {
+function setup(source = 'proactive', priorMessageCount = 0) {
   const prisma = {
     agentThread: {
       findFirst: vi.fn().mockResolvedValue({
@@ -45,6 +45,7 @@ function setup(source = 'proactive') {
     { findOne: vi.fn().mockResolvedValue({ title: 'Agent' }) },
     {
       addMessage: vi.fn(),
+      countMessages: vi.fn().mockResolvedValue(priorMessageCount),
       getMessagesByRoom: vi.fn().mockResolvedValue([
         {
           role: AgentMessageRole.ASSISTANT,
@@ -209,6 +210,34 @@ describe('trusted proactive turn limits and memory routing', () => {
     expect(call?.[3]).toBe('deepseek/deepseek-v4-flash-0731');
     expect(call?.[5]).toEqual(
       expect.objectContaining({ thinkingModelOverride: null }),
+    );
+  });
+});
+
+describe('thread title seeding', () => {
+  const interactive = {
+    content: 'Try again',
+    source: 'agent',
+    threadId: 'thread',
+  };
+
+  it('seeds the title from the first message of a new thread', async () => {
+    const { service, stream } = setup('api', 0);
+    const prepared = await service.prepare(interactive, workflowContext);
+    await service.execute(prepared.state);
+
+    expect(stream.runStreamLoop.mock.calls[0]?.[10]).toBe('Agent');
+  });
+
+  it('never retitles the thread on follow-up messages', async () => {
+    const { service, stream, plan } = setup('api', 2);
+    const prepared = await service.prepare(interactive, workflowContext);
+    await service.execute(prepared.state);
+
+    expect(stream.runStreamLoop.mock.calls[0]?.[10]).toBe('');
+    expect(plan.tryHandlePlanModeTurnStream).toHaveBeenCalledWith(
+      expect.objectContaining({ seedTitle: '' }),
+      expect.anything(),
     );
   });
 });

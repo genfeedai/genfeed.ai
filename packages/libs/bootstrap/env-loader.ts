@@ -1,5 +1,9 @@
 import { EventEmitter } from 'node:events';
 import * as fs from 'node:fs';
+import {
+  resolveTrustProxyFromReader,
+  type TrustProxySetting,
+} from '@genfeedai/config/deployment';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import * as dotenv from 'dotenv';
 import type { Request, Response } from 'express';
@@ -28,7 +32,8 @@ export interface BootstrapOptions {
 export interface ServiceShellOptions {
   redirectTarget?: string;
   redirectPaths?: string[];
-  trustProxy?: number;
+  /** Defaults to the deployment-aware `TRUST_PROXY` resolution. */
+  trustProxy?: TrustProxySetting;
 }
 
 /**
@@ -117,7 +122,11 @@ export function setupServiceShell(
   app: NestExpressApplication,
   options: ServiceShellOptions = {},
 ): void {
-  const { redirectPaths = ['/'], redirectTarget, trustProxy = 1 } = options;
+  const {
+    redirectPaths = ['/'],
+    redirectTarget,
+    trustProxy = resolveTrustProxyFromReader((key) => process.env[key]),
+  } = options;
 
   app.set('trust proxy', trustProxy);
   app.enableShutdownHooks();

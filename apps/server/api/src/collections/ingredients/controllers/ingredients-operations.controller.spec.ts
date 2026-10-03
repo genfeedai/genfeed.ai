@@ -69,8 +69,12 @@ describe('IngredientsOperationsController', () => {
   const mockServices = {
     configService: {
       ingredientsEndpoint: 'https://api.example.com/ingredients',
+      isAuthorizedMediaDeliveryEnabled: false,
     },
     filesClientService: {
+      getPresignedDownloadUrlForObjectKey: vi
+        .fn()
+        .mockResolvedValue('https://s3.test/random-source?signature=grant'),
       extractMetadataFromUrl: vi.fn().mockResolvedValue({
         duration: null,
         hasAudio: false,
@@ -115,6 +119,7 @@ describe('IngredientsOperationsController', () => {
   };
 
   beforeEach(async () => {
+    mockServices.configService.isAuthorizedMediaDeliveryEnabled = false;
     const module: TestingModule = await Test.createTestingModule({
       controllers: [IngredientsOperationsController],
       providers: [
@@ -181,6 +186,62 @@ describe('IngredientsOperationsController', () => {
   });
 
   describe('cloneIngredient', () => {
+    it('uses the scoped original stored key and persists the new randomized clone key when activated', async () => {
+      mockServices.configService.isAuthorizedMediaDeliveryEnabled = true;
+      mockServices.ingredientsService.findOne.mockResolvedValueOnce({
+        ...mockIngredient,
+        s3Key: 'ingredients/images/random-original',
+      });
+      mockServices.filesClientService.uploadToS3.mockResolvedValueOnce({
+        duration: null,
+        hasAudio: false,
+        height: 1080,
+        size: 12,
+        width: 1920,
+        s3Key: 'ingredients/images/random-clone',
+      });
+      await controller.cloneIngredient(mockRequest, mockUser, ingredientId);
+      await vi.waitFor(() => {
+        expect(mockServices.ingredientsService.patch).toHaveBeenCalledWith(
+          clonedIngredientId,
+          {
+            s3Key: 'ingredients/images/random-clone',
+            status: 'GENERATED',
+          },
+        );
+      });
+      expect(mockServices.ingredientsService.findOne).toHaveBeenCalledWith(
+        { id: ingredientId, organizationId },
+        expect.any(Array),
+      );
+      expect(
+        mockServices.filesClientService.getPresignedDownloadUrlForObjectKey,
+      ).toHaveBeenCalledWith('ingredients/images/random-original');
+      expect(mockServices.filesClientService.uploadToS3).toHaveBeenCalledWith(
+        clonedIngredientId,
+        'images',
+        {
+          type: 'url',
+          url: 'https://s3.test/random-source?signature=grant',
+        },
+      );
+    });
+
+    it('fails cloning a keyless original before any media fetch when activated', async () => {
+      mockServices.configService.isAuthorizedMediaDeliveryEnabled = true;
+      await controller.cloneIngredient(mockRequest, mockUser, ingredientId);
+      await vi.waitFor(() => {
+        expect(mockServices.ingredientsService.patch).toHaveBeenCalledWith(
+          clonedIngredientId,
+          { status: 'FAILED' },
+        );
+      });
+      expect(
+        mockServices.filesClientService.getPresignedDownloadUrlForObjectKey,
+      ).not.toHaveBeenCalled();
+      expect(mockServices.filesClientService.uploadToS3).not.toHaveBeenCalled();
+    });
+
     it('should clone an ingredient successfully', async () => {
       const result = await controller.cloneIngredient(
         mockRequest,

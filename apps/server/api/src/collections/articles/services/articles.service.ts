@@ -64,6 +64,7 @@ import {
   assertPublishedSlugTransition,
   mapPublicSlugConflict,
 } from '@api/collections/articles/utils/article-slug.util';
+import { PublicArticleScope } from '@api/collections/articles/utils/public-article-scope.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -130,6 +131,9 @@ export class ArticlesService
   implements OnModuleInit
 {
   private readonly constructorName = this.constructor.name;
+  readonly publicArticleScope = new PublicArticleScope(
+    () => this.organizationsService,
+  );
 
   constructor(
     public readonly prisma: PrismaService,
@@ -506,6 +510,7 @@ export class ArticlesService
         {
           activityRecorder: this.activityRecorder,
           configService: this.configService,
+          publicArticleScope: this.publicArticleScope,
           logger: this.logger,
           organizationSettingsService: this.organizationSettingsService,
           source: this.constructorName,
@@ -617,7 +622,7 @@ export class ArticlesService
 
     const where: Record<string, unknown> = {
       isDeleted: false,
-      ...ArticleFilterUtil.buildPublicArticleVisibilityFilter(),
+      ...(await this.publicArticleScope.buildWhere()),
     };
 
     if (search) {
@@ -665,19 +670,10 @@ export class ArticlesService
     slug: string,
     previewArticleId: string | null = null,
   ): Promise<Article | null> {
-    const where: Record<string, unknown> = {
-      isDeleted: false,
+    const where = await this.publicArticleScope.buildSlugWhere(
       slug,
-    };
-    // A verified preview names an exact record; slugs can overlap across tenants.
-    if (previewArticleId) {
-      where.id = previewArticleId;
-    } else {
-      Object.assign(
-        where,
-        ArticleFilterUtil.buildPublicArticleVisibilityFilter(),
-      );
-    }
+      previewArticleId,
+    );
 
     // The partial unique index guarantees one published article per slug; the
     // explicit order keeps the answer deterministic (earliest release first)
@@ -928,7 +924,10 @@ export class ArticlesService
       throw new NotFoundException('Article');
     }
 
-    return this.articlesContentService.convertToTwitterThread(article);
+    return this.articlesContentService.convertToTwitterThread(
+      article,
+      this.publicArticleScope,
+    );
   }
 
   /** Analyze article virality potential using AI */

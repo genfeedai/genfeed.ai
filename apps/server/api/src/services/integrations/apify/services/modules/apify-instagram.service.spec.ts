@@ -118,10 +118,9 @@ describe('ApifyInstagramService', () => {
     expect(result.map((item) => item.topic)).toEqual(['seed-2', 'seed-3']);
   });
 
-  it('getInstagramTrends returns empty on error', async () => {
+  it('getInstagramTrends rethrows provider failures', async () => {
     baseService.runActor.mockRejectedValue(new Error('API error'));
-    const result = await service.getInstagramTrends();
-    expect(result).toEqual([]);
+    await expect(service.getInstagramTrends()).rejects.toThrow('API error');
   });
 
   it('getInstagramVideos normalizes posts with video data', async () => {
@@ -144,10 +143,9 @@ describe('ApifyInstagramService', () => {
     expect(result).toHaveLength(0);
   });
 
-  it('getInstagramVideos returns empty on error', async () => {
+  it('getInstagramVideos rethrows provider failures', async () => {
     baseService.runActor.mockRejectedValue(new Error('fail'));
-    const result = await service.getInstagramVideos();
-    expect(result).toEqual([]);
+    await expect(service.getInstagramVideos()).rejects.toThrow('fail');
   });
 
   it('getInstagramPostComments normalizes comments', async () => {

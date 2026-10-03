@@ -16,7 +16,7 @@ describe('engagement sweep workflows', () => {
     const child = buildEngagementRuleWorkflowDefinition();
     expect(
       child.definition.nodes.filter((node) => node.type === 'condition'),
-    ).toHaveLength(5);
+    ).toHaveLength(4);
     expect(child.definition.edges).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ sourceHandle: 'true' }),

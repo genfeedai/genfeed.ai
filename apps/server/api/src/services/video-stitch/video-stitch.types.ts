@@ -71,6 +71,7 @@ export interface VideoStitchOutcome {
 /** A validated request resolved to the clips' stored objects. */
 export interface VideoStitchPlan {
   clipIds: string[];
+  musicStorageKey?: string;
   output?: VideoStitchOutput;
   settings: IVideoMergeSettings;
   sourceStorageKeys: string[];
@@ -82,6 +83,7 @@ export interface VideoStitchJobParams {
   isPersistedOutputOnly: true;
   isResizeEnabled?: boolean;
   music?: string;
+  musicStorageKey?: string;
   /** Worker gain, 0–1. */
   musicVolume?: number;
   normalizeClips?: boolean;

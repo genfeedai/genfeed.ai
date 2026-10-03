@@ -9,8 +9,6 @@ import {
   postMetadataSchema,
   postModalSchema,
   postSchema,
-  threadModalSchema,
-  threadPostSchema,
 } from '@genfeedai/client/schemas/content/post.schema';
 import {
   type PromptTextareaSchema,
@@ -216,64 +214,6 @@ describe('content schemas', () => {
           variantId: 'variant-1',
         }).success,
       ).toBe(true);
-    });
-  });
-
-  describe('threadPostSchema', () => {
-    it('accepts valid', () => {
-      expect(
-        threadPostSchema.safeParse({ description: 'Content' }).success,
-      ).toBe(true);
-    });
-
-    it('rejects empty', () => {
-      expect(threadPostSchema.safeParse({ description: '' }).success).toBe(
-        false,
-      );
-    });
-  });
-
-  describe('threadModalSchema', () => {
-    it('accepts valid thread', () => {
-      expect(
-        threadModalSchema.safeParse({
-          credentialId: 'c',
-          ingredient: 'i',
-          posts: [{ description: 'P' }],
-          scheduledDate: '2024-01-01',
-        }).success,
-      ).toBe(true);
-    });
-
-    it('accepts a text-only draft before scheduling', () => {
-      expect(
-        threadModalSchema.safeParse({
-          credentialId: 'c',
-          posts: [{ description: 'Root' }, { description: 'Reply' }],
-          status: 'draft',
-        }).success,
-      ).toBe(true);
-    });
-
-    it('rejects empty posts', () => {
-      expect(
-        threadModalSchema.safeParse({
-          credentialId: 'c',
-          ingredient: 'i',
-          posts: [],
-          scheduledDate: '2024-01-01',
-        }).success,
-      ).toBe(false);
-    });
-
-    it('requires a date before scheduling a thread', () => {
-      expect(
-        threadModalSchema.safeParse({
-          credentialId: 'c',
-          posts: [{ description: 'Root' }, { description: 'Reply' }],
-          targetExecutionState: 'scheduled',
-        }).success,
-      ).toBe(false);
     });
   });
 

@@ -31,6 +31,30 @@ describe('AudioOverlayService', () => {
       publicUrl: 'https://cdn.example.com/result.mp4',
     });
   });
+  it('ignores supplied output identity and returns the actual overlay key when activated', async () => {
+    upload.uploadToS3.mockResolvedValueOnce({
+      publicUrl: 'https://cdn.test/result',
+      s3Key: 'ingredients/videos/actual-overlay-object',
+    });
+    const activated = new AudioOverlayService(
+      ffmpeg as never,
+      { log: vi.fn(), error: vi.fn(), warn: vi.fn() } as never,
+      upload as never,
+      { isAuthorizedMediaDeliveryEnabled: true } as never,
+    );
+    const result = await activated.processAudioOverlay({
+      videoUrl: 'https://cdn.test/video',
+      audioUrl: 'https://cdn.test/audio',
+      outputKey: 'ingredient-id',
+    });
+    expect(upload.uploadToS3).toHaveBeenCalledWith(
+      expect.stringMatching(/^audio-overlay\/[a-f0-9-]{36}\.mp4$/),
+      'videos',
+      expect.any(Object),
+    );
+    expect(result.s3Key).toBe('ingredients/videos/actual-overlay-object');
+  });
+
   it('returns the client public URL and duration while keeping legacy outputUrl', async () => {
     const result = await service.processAudioOverlay({
       videoUrl: 'https://cdn.example.com/video.mp4',

@@ -4,12 +4,14 @@ import { PublicMusicsController } from '@api/endpoints/public/controllers/musics
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import {
   createIngredientDocumentFixture,
   createPaginatedFixture,
 } from '@api-test/fixtures/ingredient-document.fixture';
 import { AssetScope, IngredientStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type {
@@ -67,6 +69,14 @@ describe('PublicMusicsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PublicMusicsController],
       providers: [
+        {
+          provide: AuthorizedMediaUrlService,
+          useValue: { projectPublicIngredients: vi.fn().mockResolvedValue([]) },
+        },
+        {
+          provide: ConfigService,
+          useValue: { isAuthorizedMediaDeliveryEnabled: false },
+        },
         {
           provide: FilesClientService,
           useValue: {

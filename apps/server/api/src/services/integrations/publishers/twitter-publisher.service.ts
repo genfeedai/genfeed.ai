@@ -321,10 +321,8 @@ export class TwitterPublisherService extends BasePublisherService {
       (child.category === PostCategory.TEXT && childIngredientIds.length > 0);
 
     // Prepare media URLs for child
-    const childMediaUrls = childIngredientIds.map((id: string) =>
-      childIsImagePost
-        ? `${this.configService.ingredientsEndpoint}/images/${id}`
-        : `${this.configService.ingredientsEndpoint}/videos/${id}`,
+    const childMediaUrls = (child.ingredients || []).map((ingredient) =>
+      this.requireAuthorizedMediaUrl(ingredient, !childIsImagePost),
     );
 
     // Convert HTML description to plain text

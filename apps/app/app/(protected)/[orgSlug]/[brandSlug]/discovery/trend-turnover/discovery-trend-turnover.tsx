@@ -1,0 +1,276 @@
+'use client';
+
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { logger } from '@services/core/logger.service';
+import type {
+  TrendTurnoverPlatformStats,
+  TrendTurnoverResponse,
+} from '@services/social/trends.service';
+import { TrendsService } from '@services/social/trends.service';
+import Card from '@ui/card/Card';
+import Table from '@ui/display/table/Table';
+import KPISection from '@ui/kpi/kpi-section/KPISection';
+import { Button } from '@ui/primitives/button';
+import { Heading } from '@ui/typography/heading';
+import { Text } from '@ui/typography/text';
+import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
+import { Clock, Flame, TrendingDown, TrendingUp } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react';
+
+const TrendFlowChart = dynamic(() => import('./TrendFlowChart'), {
+  loading: () => <div className="h-72 w-full bg-muted/40 animate-pulse" />,
+  ssr: false,
+});
+
+const PERIOD_OPTIONS = [
+  { days: 7 as const, labelKey: 'd7' },
+  { days: 30 as const, labelKey: 'd30' },
+  { days: 90 as const, labelKey: 'd90' },
+];
+
+export default function DiscoveryTrendTurnover() {
+  const translate = useTranslations('pages.analytics.trendTurnover');
+  const getTrendsService = useAuthedService((token: string) =>
+    TrendsService.getInstance(token),
+  );
+
+  const [period, setPeriod] = useState<7 | 30 | 90>(30);
+  const [data, setData] = useState<TrendTurnoverResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const service = await getTrendsService();
+        const response = await service.getTurnoverStats(period);
+        setData(response);
+      } catch (error) {
+        if ((error as Error).name === 'AbortError') {
+          return;
+        }
+        logger.error('Failed to fetch trend turnover data', { error });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+    return () => controller.abort();
+  }, [getTrendsService, period]);
+
+  const totals = data?.totals;
+
+  return (
+    <div className="space-y-8 pb-12">
+      <header>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex gap-1">
+              {PERIOD_OPTIONS.map((opt) => (
+                <Button
+                  key={opt.days}
+                  withWrapper={false}
+                  size={ButtonSize.XS}
+                  variant={
+                    period === opt.days
+                      ? ButtonVariant.DEFAULT
+                      : ButtonVariant.GHOST
+                  }
+                  onClick={() => setPeriod(opt.days)}
+                  className="uppercase tracking-wide"
+                >
+                  {translate(`periods.${opt.labelKey}`)}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <Heading size="2xl" as="h1" className="sr-only">
+            {translate('heading')}
+          </Heading>
+        </div>
+      </header>
+
+      <KPISection
+        gridCols={{ desktop: 4, mobile: 1 }}
+        className="bg-background"
+        isLoading={isLoading}
+        items={[
+          {
+            description: translate('kpi.appeared.description', {
+              days: period,
+            }),
+            icon: TrendingUp,
+            label: translate('kpi.appeared.label'),
+            value: totals?.appeared ?? 0,
+          },
+          {
+            description: translate('kpi.died.description', { days: period }),
+            icon: TrendingDown,
+            label: translate('kpi.died.label'),
+            value: totals?.died ?? 0,
+          },
+          {
+            description: translate('kpi.avgLifespan.description'),
+            icon: Clock,
+            label: translate('kpi.avgLifespan.label'),
+            value: totals
+              ? translate('lifespanDays', {
+                  value: totals.avgLifespanDays.toFixed(1),
+                })
+              : ':',
+          },
+          {
+            description: translate('kpi.turnoverRate.description'),
+            icon: Flame,
+            label: translate('kpi.turnoverRate.label'),
+            value: totals ? `${totals.turnoverRate}%` : ':',
+          },
+        ]}
+      />
+
+      <Card
+        className="backdrop-blur"
+        bodyClassName="space-y-4"
+        label={translate('flow.title')}
+      >
+        <Text size="sm" color="subtle-60">
+          {translate('flow.description')}
+        </Text>
+        <TrendFlowChart data={data?.timeline ?? []} isLoading={isLoading} />
+      </Card>
+
+      <Card
+        className="backdrop-blur"
+        bodyClassName="space-y-4"
+        label={translate('breakdown.title')}
+      >
+        <Table<TrendTurnoverPlatformStats>
+          items={data?.byPlatform ?? []}
+          isLoading={isLoading}
+          getRowKey={(item) => item.platform}
+          emptyLabel={translate('breakdown.empty')}
+          columns={[
+            {
+              header: translate('breakdown.columns.platform'),
+              key: 'platform',
+              render: (item) => {
+                const config = PLATFORM_CONFIGS[item.platform];
+                const Icon = config?.icon;
+                return (
+                  <div className="flex items-center gap-2">
+                    {Icon && (
+                      <Icon
+                        className="size-4"
+                        style={{ color: config?.color }}
+                      />
+                    )}
+                    <span className="font-medium capitalize">
+                      {config?.label ?? item.platform}
+                    </span>
+                  </div>
+                );
+              },
+            },
+            {
+              className: 'text-right',
+              header: translate('breakdown.columns.appeared'),
+              key: 'appeared',
+              render: (item) => (
+                <span className="font-mono">{item.appeared}</span>
+              ),
+            },
+            {
+              className: 'text-right',
+              header: translate('breakdown.columns.died'),
+              key: 'died',
+              render: (item) => <span className="font-mono">{item.died}</span>,
+            },
+            {
+              className: 'text-right',
+              header: translate('breakdown.columns.alive'),
+              key: 'alive',
+              render: (item) => <span className="font-mono">{item.alive}</span>,
+            },
+            {
+              className: 'text-right',
+              header: translate('breakdown.columns.avgLifespan'),
+              key: 'avgLifespanDays',
+              render: (item) => (
+                <span className="font-mono">
+                  {translate('lifespanDays', {
+                    value: item.avgLifespanDays.toFixed(1),
+                  })}
+                </span>
+              ),
+            },
+            {
+              className: 'text-right',
+              header: translate('breakdown.columns.turnoverRate'),
+              key: 'turnoverRate',
+              render: (item) => (
+                <span
+                  className={`font-mono font-semibold ${item.turnoverRate >= 70 ? 'text-error' : item.turnoverRate >= 40 ? 'text-warning' : 'text-success'}`}
+                >
+                  {item.turnoverRate}%
+                </span>
+              ),
+            },
+          ]}
+        />
+      </Card>
+
+      <Card
+        className="backdrop-blur"
+        bodyClassName="space-y-4"
+        label={translate('volatility.title')}
+      >
+        <Text size="sm" color="subtle-60">
+          {translate('volatility.description')}
+        </Text>
+        <div className="space-y-3">
+          {(data?.byPlatform ?? []).map((item) => {
+            const config = PLATFORM_CONFIGS[item.platform];
+            const Icon = config?.icon;
+            return (
+              <div key={item.platform} className="space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    {Icon && (
+                      <Icon
+                        className="size-3.5"
+                        style={{ color: config?.color }}
+                      />
+                    )}
+                    <span className="font-medium capitalize">
+                      {config?.label ?? item.platform}
+                    </span>
+                  </div>
+                  <span className="font-mono text-xs text-foreground/60">
+                    {item.turnoverRate}%
+                  </span>
+                </div>
+                <div className="h-1.5 w-full bg-tertiary overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-[width] duration-500"
+                    style={{ width: `${item.turnoverRate}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+          {!isLoading && !data?.byPlatform?.length && (
+            <Text size="sm" color="subtle-60">
+              {translate('volatility.empty')}
+            </Text>
+          )}
+        </div>
+      </Card>
+    </div>
+  );
+}

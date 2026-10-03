@@ -13,6 +13,7 @@ import {
 export default function ArticleDetailHeader({
   state,
   permissions,
+  destination,
   formLabel,
   plainTextContent,
   openConfirm,
@@ -25,6 +26,7 @@ export default function ArticleDetailHeader({
 }: ArticleDetailHeaderProps) {
   const { isNew, hasXArticleSections, isDirty, isSaving } = state;
   const { canPublish, canArchive } = permissions;
+  const { isHostedOnWebsite, publicUrl } = destination;
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div>
@@ -40,16 +42,23 @@ export default function ArticleDetailHeader({
         {/* Publish */}
         {canPublish && (
           <Button
-            label="Publish"
+            label={
+              isHostedOnWebsite ? 'Publish to genfeed.ai' : 'Mark published'
+            }
             variant={ButtonVariant.DEFAULT}
             icon={<Rocket className="size-4" />}
             onClick={() =>
               openConfirm({
                 cancelLabel: 'Cancel',
-                confirmLabel: 'Publish',
-                label: 'Publish Article',
-                message:
-                  'Are you sure you want to publish this article? It will be visible to the public.',
+                confirmLabel: isHostedOnWebsite
+                  ? 'Publish to genfeed.ai'
+                  : 'Mark published',
+                label: isHostedOnWebsite
+                  ? 'Publish to genfeed.ai'
+                  : 'Mark article published',
+                message: isHostedOnWebsite
+                  ? `This article goes live for anyone at ${publicUrl?.replace(/^https?:\/\//, '') ?? 'genfeed.ai/articles'} and appears on the genfeed.ai blog, RSS feed and sitemap.`
+                  : 'This marks the article published in your workspace only. It is not posted anywhere and is not hosted on genfeed.ai. Share it through posts on your connected accounts.',
                 onConfirm: onPublish,
               })
             }
@@ -67,8 +76,9 @@ export default function ArticleDetailHeader({
                 cancelLabel: 'Cancel',
                 confirmLabel: 'Archive',
                 label: 'Archive Article',
-                message:
-                  'Are you sure you want to archive this article? It will be hidden from public view.',
+                message: isHostedOnWebsite
+                  ? 'Archiving takes this article off genfeed.ai, the blog, RSS feed and sitemap.'
+                  : 'Are you sure you want to archive this article?',
                 onConfirm: onArchive,
               })
             }

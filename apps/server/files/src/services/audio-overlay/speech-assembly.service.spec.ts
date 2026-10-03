@@ -35,6 +35,29 @@ describe('SpeechAssemblyService', () => {
       publicUrl: 'https://cdn.example.com/assembled.wav',
     });
   });
+  it('ignores a supplied output identity and returns the actual stored speech key when activated', async () => {
+    upload.uploadToS3.mockResolvedValueOnce({
+      publicUrl: 'https://cdn.test/speech',
+      s3Key: 'ingredients/audios/actual-speech-object',
+    });
+    const activated = new SpeechAssemblyService(
+      ffmpeg as never,
+      upload as never,
+      { isAuthorizedMediaDeliveryEnabled: true } as never,
+    );
+    const result = await activated.assemble({
+      segments: [segment],
+      durationSeconds: 30,
+      outputKey: 'ingredient-id.wav',
+    });
+    expect(upload.uploadToS3).toHaveBeenCalledWith(
+      expect.stringMatching(/^speech-assembly\/[a-f0-9-]{36}\.wav$/),
+      'audios',
+      expect.any(Object),
+    );
+    expect(result.s3Key).toBe('ingredients/audios/actual-speech-object');
+  });
+
   it('keeps the delayed onset and pads the full requested timeline', async () => {
     const result = await service.assemble({
       segments: [segment],

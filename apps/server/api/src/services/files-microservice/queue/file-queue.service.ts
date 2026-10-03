@@ -1,6 +1,8 @@
 import type { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { requireStoredMediaKey } from '@api/services/media-urls/media-delivery-policy.util';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
 import { JobState } from '@genfeedai/contracts';
 import type {
@@ -17,7 +19,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, Optional } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 type FileProcessingJob = IFileProcessingJob;
@@ -40,6 +42,8 @@ export class FileQueueService {
     private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
     private readonly credentialsService: CredentialsService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {
     this.filesServiceUrl =
       this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL') ??
@@ -365,9 +369,26 @@ export class FileQueueService {
 
   async uploadYoutube(data: IYoutubeUploadData): Promise<IJobResponse> {
     try {
+      let sourceStorageKey: string | undefined;
+      if (this.configService.isAuthorizedMediaDeliveryEnabled) {
+        if (!this.authorizedMediaUrls)
+          throw new Error('Authorized media issuer is unavailable');
+        const [source] = await this.authorizedMediaUrls.readSources(
+          data.organizationId,
+          [data.ingredientId],
+        );
+        if (
+          !source ||
+          !['VIDEO', 'VIDEO_EDIT', 'AVATAR'].includes(source.category)
+        )
+          throw new Error('YouTube source video is unavailable');
+        sourceStorageKey = requireStoredMediaKey(source);
+      }
       // Fetch credential from database
       const credential = await this.credentialsService.findOne({
         id: data.credentialId,
+        organizationId: data.organizationId,
+        isDeleted: false,
         isConnected: true,
       });
 
@@ -388,6 +409,8 @@ export class FileQueueService {
       // Re-fetch credential to get the refreshed token
       const refreshedCredential = await this.credentialsService.findOne({
         id: data.credentialId,
+        organizationId: data.organizationId,
+        isDeleted: false,
       });
 
       if (!refreshedCredential) {
@@ -425,6 +448,7 @@ export class FileQueueService {
             description: data.description,
             id: data.postId,
             ingredientId: data.ingredientId,
+            ...(sourceStorageKey ? { sourceStorageKey } : {}),
             metadata: {
               websocketUrl: data.websocketUrl || '',
             },

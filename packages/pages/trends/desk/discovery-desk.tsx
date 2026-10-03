@@ -295,6 +295,7 @@ export default function DiscoveryDesk() {
     `${APP_ROUTES.DISCOVERY.OVERVIEW}?source=following`,
   );
   const publishingHref = orgHref(APP_ROUTES.SETTINGS.PUBLISHING);
+  const sourceHealthHref = href(APP_ROUTES.DISCOVERY.TRENDS);
 
   const handleRefresh = useCallback(() => {
     refresh().catch(() => {
@@ -473,6 +474,7 @@ export default function DiscoveryDesk() {
               onClearSearch={() => setSearch('')}
               onRefresh={handleRefresh}
               publishingHref={publishingHref}
+              sourceHealthHref={sourceHealthHref}
             />
           </>
         ) : null}
@@ -504,6 +506,7 @@ export default function DiscoveryDesk() {
               onClearSearch={() => setSearch('')}
               onRefresh={handleRefresh}
               publishingHref={publishingHref}
+              sourceHealthHref={sourceHealthHref}
             />
           ) : view === ViewType.GRID ? (
             <DeskLightTableView

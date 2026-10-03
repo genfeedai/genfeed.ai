@@ -51,7 +51,7 @@ describe('WhatsappPublisherService', () => {
       ...overrides,
     }) as unknown as PostEntity;
 
-  const makeContext = (post: PostEntity): PublishContext => ({
+  const makeContext = (post: PublishContext['post']): PublishContext => ({
     brandId: brandId.toString(),
     credential: mockCredential,
     organization: mockOrganization,
@@ -70,6 +70,7 @@ describe('WhatsappPublisherService', () => {
           useValue: {
             get: vi.fn().mockReturnValue('test-value'),
             ingredientsEndpoint: 'https://api.test.com/ingredients',
+            isAuthorizedMediaDeliveryEnabled: true,
           },
         },
         {
@@ -162,10 +163,16 @@ describe('WhatsappPublisherService', () => {
   });
 
   describe('publish — image posts', () => {
-    const imagePost = makePost({
-      category: PostCategory.IMAGE,
-      ingredients: [ingredientId],
-    });
+    const imagePost = {
+      ...makePost({ category: PostCategory.IMAGE }),
+      ingredients: [
+        {
+          id: ingredientId,
+          mediaUrl:
+            'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+        },
+      ],
+    };
 
     it('should send a media message for image posts', async () => {
       whatsappService.sendMediaMessage.mockResolvedValue({ sid: 'SM-img-001' });

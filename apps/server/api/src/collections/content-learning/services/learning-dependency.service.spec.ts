@@ -5,7 +5,13 @@ import {
 } from '@api/agent-artifacts/agent-artifact-material.util';
 import {
   invalidateLearningDependencySource,
+  LEARNING_FENCE_WAIT_ALERT_MS,
   LearningDependencyService,
+  LearningFenceEscalationError,
+  learningFence,
+  learningMutationFence,
+  learningOrgFence,
+  withLearningFenceEscalation,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import {
@@ -43,6 +49,7 @@ import type {
   Post,
   Prisma,
 } from '@genfeedai/prisma';
+import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -1235,5 +1242,178 @@ describe('C1 current pinned publication and parent consumers', () => {
     expect(
       await f.service.valid('checkpoint', f.checkpoint.id, f.tx, 'org'),
     ).toBe(false);
+  });
+});
+
+describe('per-organization learning fence (#5882)', () => {
+  function fenceClient(
+    edges: Array<{
+      derivedKind: string;
+      derivedOrganizationId: string | null;
+      sourceOrganizationId: string | null;
+    }> = [],
+  ) {
+    const sql: string[] = [];
+    const queue = [...edges];
+    const tx = {
+      $queryRaw: vi.fn(
+        async (strings: TemplateStringsArray, ...values: unknown[]) => {
+          sql.push(
+            strings.reduce(
+              (text, part, index) =>
+                `${text}${part}${index < values.length ? String(values[index]) : ''}`,
+              '',
+            ),
+          );
+          return [];
+        },
+      ),
+      contentLearningDependency: {
+        findMany: vi.fn(async () =>
+          queue.splice(0).map((edge, index) => ({
+            id: `edge-${index}`,
+            derivedId: `derived-${index}`,
+            ...edge,
+          })),
+        ),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      contentLearningDataset: { updateMany: vi.fn() },
+      contentLearningRun: { updateMany: vi.fn() },
+      contentLearningSharedPolicy: { updateMany: vi.fn() },
+      contentLearningRelease: { updateMany: vi.fn() },
+      contentLearningBaseline: { updateMany: vi.fn() },
+      contentLearningReward: { updateMany: vi.fn() },
+      contentLearningPolicyVersion: { updateMany: vi.fn() },
+    };
+    return { sql, tx: tx as unknown as Prisma.TransactionClient, raw: tx };
+  }
+
+  it('takes the global shared fence before deduplicated organization keys in ascending order', async () => {
+    const { sql, tx } = fenceClient();
+    await learningOrgFence(tx, ['org-b', 'org-a', 'org-b', ' '], 'shared');
+    expect(sql).toEqual([
+      'SELECT pg_advisory_xact_lock_shared(5728, 1)::text',
+      'SELECT pg_advisory_xact_lock_shared(5729::int, hashtext(org-a))::text',
+      'SELECT pg_advisory_xact_lock_shared(5729::int, hashtext(org-b))::text',
+    ]);
+  });
+
+  it('takes an exclusive organization key under the shared global fence', async () => {
+    const { sql, tx } = fenceClient();
+    await learningMutationFence(tx, 'org-a', 'organization');
+    expect(sql).toEqual([
+      'SELECT pg_advisory_xact_lock_shared(5728, 1)::text',
+      'SELECT pg_advisory_xact_lock(5729::int, hashtext(org-a))::text',
+    ]);
+    const global = fenceClient();
+    await learningMutationFence(global.tx, 'org-a', 'global');
+    expect(global.sql).toEqual(['SELECT pg_advisory_xact_lock(5728, 1)::text']);
+  });
+
+  it('refuses an organization fence without an organization', async () => {
+    const { sql, tx } = fenceClient();
+    await expect(learningOrgFence(tx, [], 'shared')).rejects.toThrow(
+      'Learning organization fence scope required',
+    );
+    expect(sql).toEqual([]);
+  });
+
+  it.each([
+    {
+      label: 'a global learning kind',
+      edge: {
+        derivedKind: 'dataset',
+        derivedOrganizationId: null,
+        sourceOrganizationId: 'org-a',
+      },
+    },
+    {
+      label: 'another organization',
+      edge: {
+        derivedKind: 'decision',
+        derivedOrganizationId: 'org-b',
+        sourceOrganizationId: 'org-a',
+      },
+    },
+  ])(
+    'escalates an organization-fenced invalidation that reaches $label before writing',
+    async ({ edge }) => {
+      const { tx, raw } = fenceClient([edge]);
+      await learningMutationFence(tx, 'org-a', 'organization');
+      await expect(
+        invalidateLearningDependencySource(tx, 'post', 'post-1', 'org-a'),
+      ).rejects.toBeInstanceOf(LearningFenceEscalationError);
+      expect(raw.contentLearningDependency.updateMany).not.toHaveBeenCalled();
+    },
+  );
+
+  it('lets the global fence invalidate global and same-organization descendants', async () => {
+    const { tx, raw } = fenceClient([
+      {
+        derivedKind: 'dataset',
+        derivedOrganizationId: null,
+        sourceOrganizationId: 'org-a',
+      },
+    ]);
+    await learningFence(tx, 'exclusive');
+    await expect(
+      invalidateLearningDependencySource(tx, 'post', 'post-1', 'org-a'),
+    ).resolves.toBeGreaterThan(0);
+    expect(raw.contentLearningDataset.updateMany).toHaveBeenCalled();
+    const sameOrganization = fenceClient([
+      {
+        derivedKind: 'decision',
+        derivedOrganizationId: 'org-a',
+        sourceOrganizationId: 'org-a',
+      },
+    ]);
+    await learningMutationFence(sameOrganization.tx, 'org-a', 'organization');
+    await expect(
+      invalidateLearningDependencySource(
+        sameOrganization.tx,
+        'post',
+        'post-1',
+        'org-a',
+      ),
+    ).resolves.toBeGreaterThan(0);
+  });
+
+  it('reruns an escalated mutation once under the global fence', async () => {
+    const scopes: string[] = [];
+    await expect(
+      withLearningFenceEscalation(async (scope) => {
+        scopes.push(scope);
+        if (scope === 'organization') throw new LearningFenceEscalationError();
+        return 'done';
+      }),
+    ).resolves.toBe('done');
+    expect(scopes).toEqual(['organization', 'global']);
+    const failure = new Error('unrelated');
+    await expect(
+      withLearningFenceEscalation(async () => {
+        throw failure;
+      }),
+    ).rejects.toBe(failure);
+  });
+
+  it('warns when a fence wait reaches the alert threshold', async () => {
+    const warn = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => {});
+    const now = vi
+      .spyOn(performance, 'now')
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(LEARNING_FENCE_WAIT_ALERT_MS + 5);
+    try {
+      await learningOrgFence(fenceClient().tx, 'org-a', 'exclusive');
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('learning fence wait'),
+        expect.objectContaining({ mode: 'exclusive', scope: 'organization' }),
+      );
+    } finally {
+      now.mockRestore();
+      warn.mockRestore();
+    }
   });
 });

@@ -35,7 +35,6 @@ import {
   filterPublishingContentLibraryItems,
   formatPublishingContentChannel,
   formatPublishingContentStatus,
-  formatPublishingContentType,
   type PublishingContentLibraryItem,
   parsePublishingContentType,
 } from '@pages/posts/library/publishing-content-library.helpers';
@@ -477,13 +476,14 @@ export default function PublishingContentLibrary({
           release={item.release}
         >
           <PublishingContentIdentity
+            accounts={item.accounts}
             channels={item.channels ?? [item.channel]}
+            format={item.format}
             title={item.title}
             summary={item.summary}
             titleHref={getDetailHref(item)}
           />
           <div className="mt-2 flex flex-wrap items-center gap-2 md:hidden">
-            <Badge>{formatPublishingContentType(item.type)}</Badge>
             <Badge status={item.status}>
               {formatPublishingContentStatus(item.status)}
             </Badge>
@@ -495,12 +495,6 @@ export default function PublishingContentLibrary({
           </div>
         </PublishingPostHoverPreview>
       ),
-    },
-    {
-      className: 'hidden md:table-cell',
-      header: 'Type',
-      key: 'type',
-      render: (item) => <Badge>{formatPublishingContentType(item.type)}</Badge>,
     },
     {
       className: 'hidden md:table-cell',
@@ -677,14 +671,15 @@ export default function PublishingContentLibrary({
           release={item.release}
         >
           <PublishingContentIdentity
+            accounts={item.accounts}
             channels={item.channels ?? [item.channel]}
+            format={item.format}
             title={item.title}
             summary={item.summary}
             titleHref={getDetailHref(item)}
           />
         </PublishingPostHoverPreview>
         <div className="flex items-center justify-between gap-2">
-          <Badge>{formatPublishingContentType(item.type)}</Badge>
           <Badge status={item.status}>
             {formatPublishingContentStatus(item.status)}
           </Badge>

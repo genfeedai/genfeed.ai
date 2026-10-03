@@ -3,6 +3,17 @@ import type { IAgentThreadExternalRuntime } from '../interfaces/ai/agent-externa
 
 /* ─── Desktop IPC Channel Names ─── */
 
+/**
+ * Build-time switch for the local/offline runtime mode (PGlite workspace).
+ * Genfeed Desktop is cloud-only while this is `false`: the renderer hides every
+ * entry point into local mode and the main process neither restores a
+ * persisted local mode nor accepts `appEnableOfflineMode`. The local runtime
+ * code and any existing local data stay in place; flip this back to `true` to
+ * re-expose them. The Admin `desktop_local_workspace` flag only narrows this
+ * further, it cannot enable local mode when this is `false`.
+ */
+export const IS_DESKTOP_LOCAL_MODE_ENABLED = false;
+
 export const DESKTOP_ASSET_PROTOCOL_HOST = 'local';
 export const DESKTOP_ASSET_PROTOCOL_SCHEME = 'genfeed-asset';
 
@@ -170,6 +181,8 @@ export const DESKTOP_IPC_CHANNELS = {
   terminalResize: 'desktop:terminal:resize',
   terminalWrite: 'desktop:terminal:write',
   toggleSidebar: 'desktop:view:toggleSidebar',
+  windowChromeChanged: 'desktop:window:chromeChanged',
+  windowChromeState: 'desktop:window:chromeState',
   workspaceLinkCloudContext: 'desktop:workspace:linkCloudContext',
   workspaceLinkProject: 'desktop:workspace:linkProject',
   workspaceOpen: 'desktop:workspace:open',
@@ -203,6 +216,11 @@ export interface IDesktopEnvironment {
 export interface IDesktopRuntimeLocalProvider {
   provider: DesktopGenerationProviderKind;
   networkAccess: 'local' | 'remote' | 'unknown';
+}
+
+/** Native window state the renderer needs to lay out its own titlebar. */
+export interface IDesktopWindowChromeState {
+  isFullScreen: boolean;
 }
 
 /** Nonsecret, authoritative selected-account and generation execution context. */
@@ -1159,6 +1177,10 @@ export interface IGenfeedDesktopBridge {
       callback: (bootstrap: IDesktopBootstrap) => void,
     ) => () => void;
     onToggleSidebar: (callback: () => void) => () => void;
+    getWindowChrome: () => Promise<IDesktopWindowChromeState>;
+    onDidChangeWindowChrome: (
+      callback: (state: IDesktopWindowChromeState) => void,
+    ) => () => void;
     openExternalPath: (pathname: string) => Promise<void>;
     revealLogs: () => Promise<void>;
     switchToCloudMode: () => Promise<void>;

@@ -10,12 +10,19 @@ import type { Organization } from '@genfeedai/prisma';
 
 type PublisherRecordId = { toString(): string } | string;
 
+/** Ephemeral provider media grant populated at the server execution boundary. */
+export interface ServerPublisherIngredientInput {
+  id?: PublisherRecordId;
+  category?: string;
+  mediaUrl?: string;
+}
+
 /** API-owned post fields read by the shared publisher contract and base. */
 export interface PublisherPostInput {
   category: PostCategory;
   description: string;
   id: PublisherRecordId;
-  ingredients: Array<{ id?: PublisherRecordId } | string>;
+  ingredients: Array<ServerPublisherIngredientInput | string>;
   isShareToFeedSelected?: boolean;
   label: string;
   quoteTweetId?: string;
@@ -115,7 +122,7 @@ export type ThreadChild = {
   id: { toString(): string } | string;
   category?: PostCategory | string;
   description?: string | null;
-  ingredients?: Array<{ id?: { toString(): string } | string } | string>;
+  ingredients?: Array<ServerPublisherIngredientInput | string>;
   order?: number;
 };
 
@@ -160,6 +167,20 @@ export interface IPublisher {
    * @returns The result of the publish operation
    */
   publish(context: PublishContext): Promise<PublishResult>;
+
+  /**
+   * Optional: whether an earlier publish of this context, whose provider
+   * outcome was never confirmed (timeout, reset, crash), landed on the
+   * platform. Resolve with its result when found and null when the platform
+   * confirms it is absent; throw when the platform cannot answer yet.
+   * Publishers without it are retried as before.
+   * @param context The publishing context of the unconfirmed attempt
+   * @param attemptStartedAt When the unconfirmed attempt began
+   */
+  verifyPublished?(
+    context: PublishContext,
+    attemptStartedAt: Date,
+  ): Promise<PublishResult | null>;
 
   /**
    * Publish thread children (for platforms that support threads)

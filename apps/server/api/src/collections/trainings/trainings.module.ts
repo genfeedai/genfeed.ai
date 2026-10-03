@@ -18,6 +18,7 @@ import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { Module } from '@nestjs/common';
 
@@ -25,6 +26,7 @@ import { Module } from '@nestjs/common';
   controllers: [TrainingsController, TrainingsOperationsController],
   exports: [TrainingsService],
   imports: [
+    MediaUrlsModule,
     PlatformSettingsModule,
     ByokModule,
     CreditsModule,

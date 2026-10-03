@@ -16,6 +16,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -39,6 +40,7 @@ import {
   Controller,
   HttpException,
   HttpStatus,
+  Optional,
   Post,
   Req,
   UseGuards,
@@ -63,7 +65,27 @@ export class VideosLipSyncController {
     private readonly sharedService: SharedService,
     private readonly videosService: VideosService,
     private readonly websocketService: NotificationsPublisherService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
+
+  private async processingMediaUrl(
+    organizationId: string,
+    ingredientId: string,
+    category: string,
+  ): Promise<string> {
+    if (!this.configService.isAuthorizedMediaDeliveryEnabled)
+      return `${this.configService.ingredientsEndpoint}/${category}/${ingredientId}`;
+    if (!this.authorizedMediaUrls)
+      throw new Error('Authorized media issuer is unavailable');
+    const urls = await this.authorizedMediaUrls.issueServerPublish(
+      organizationId,
+      [ingredientId],
+    );
+    const url = urls.get(ingredientId);
+    if (!url) throw new Error('The source has no authorized media URL');
+    return url;
+  }
 
   @Post('lip-sync')
   // Fixed 1-credit charge, matching the sibling HeyGen route POST /videos/avatar.
@@ -113,7 +135,6 @@ export class VideosLipSyncController {
       ingredientId = String(ingredientData.id);
       await this.dispatchLipSyncGeneration(
         user,
-        createLipSyncDto,
         imageIngredient,
         audioIngredient,
         ingredientId,
@@ -161,6 +182,7 @@ export class VideosLipSyncController {
     const ingredient = await this.ingredientsService.findOne({
       id: ingredientId,
       organizationId,
+      isDeleted: false,
     });
     if (!ingredient) {
       throw new HttpException(
@@ -191,6 +213,7 @@ export class VideosLipSyncController {
     const ingredient = await this.ingredientsService.findOne({
       id: ingredientId,
       organizationId,
+      isDeleted: false,
     });
     if (!ingredient) {
       throw new HttpException(
@@ -237,15 +260,22 @@ export class VideosLipSyncController {
 
   private async dispatchLipSyncGeneration(
     user: User,
-    dto: CreateLipSyncDto,
     imageIngredient: IngredientDocument,
     audioIngredient: IngredientDocument,
     ingredientId: string,
     metadataId: string,
     url: string,
   ): Promise<void> {
-    const photoUrl = `${this.configService.ingredientsEndpoint}/images/${dto.parent}`;
-    const audioUrl = `${this.configService.ingredientsEndpoint}/${categoryToPlural(audioIngredient.category)}/${dto.voice}`;
+    const photoUrl = await this.processingMediaUrl(
+      user.organizationId,
+      String(imageIngredient.id),
+      'images',
+    );
+    const audioUrl = await this.processingMediaUrl(
+      user.organizationId,
+      String(audioIngredient.id),
+      categoryToPlural(audioIngredient.category),
+    );
     this.loggerService.log(`${url} resolved URLs`, {
       audioCategory: audioIngredient.category,
       audioUrl,

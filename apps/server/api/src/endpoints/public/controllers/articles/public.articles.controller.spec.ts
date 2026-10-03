@@ -85,10 +85,18 @@ describe('PublicArticlesController', () => {
     },
   };
 
+  const genfeedOrganizationId = testId('organization', 1);
   const mockArticlesService = {
     findAll: vi.fn(),
     findOne: vi.fn(),
     findPublicArticleBySlug: vi.fn(),
+    publicArticleScope: {
+      buildWhere: vi.fn(async () => ({
+        organizationId: genfeedOrganizationId,
+        publishedAt: { lte: new Date() },
+        status: 'PUBLISHED',
+      })),
+    },
   };
 
   const mockLoggerService = {
@@ -159,6 +167,7 @@ describe('PublicArticlesController', () => {
       expect(articlesService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
+            organizationId: genfeedOrganizationId,
             publishedAt: { lte: expect.any(Date) },
             status: 'PUBLISHED',
           }),
@@ -372,6 +381,7 @@ describe('PublicArticlesController', () => {
       expect(articlesService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           id,
+          organizationId: genfeedOrganizationId,
           publishedAt: { lte: expect.any(Date) },
           status: 'PUBLISHED',
         }),

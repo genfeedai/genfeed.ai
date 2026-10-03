@@ -7,12 +7,22 @@ const platformFlags = vi.hoisted(() => ({
   state: { flags: {} as Record<string, boolean>, isReady: true },
 }));
 
+const buildFlag = vi.hoisted(() => ({ isLocalModeEnabled: true }));
+
 vi.mock('@/lib/platform-flags/use-platform-flags', () => ({
   usePlatformFlags: () => platformFlags.state,
 }));
 
+vi.mock('@genfeedai/contracts/desktop', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/contracts/desktop')>()),
+  get IS_DESKTOP_LOCAL_MODE_ENABLED() {
+    return buildFlag.isLocalModeEnabled;
+  },
+}));
+
 describe('useDesktopLocalWorkspaceFlag (#5468)', () => {
   beforeEach(() => {
+    buildFlag.isLocalModeEnabled = true;
     platformFlags.state = {
       flags: { ...DEFAULT_PLATFORM_FLAGS },
       isReady: true,
@@ -24,7 +34,11 @@ describe('useDesktopLocalWorkspaceFlag (#5468)', () => {
 
     const { result } = renderHook(() => useDesktopLocalWorkspaceFlag());
 
-    expect(result.current).toEqual({ isEnabled: false, isReady: true });
+    expect(result.current).toEqual({
+      isAvailable: true,
+      isEnabled: false,
+      isReady: true,
+    });
   });
 
   it('reports not ready until the flags load', () => {
@@ -32,6 +46,22 @@ describe('useDesktopLocalWorkspaceFlag (#5468)', () => {
 
     const { result } = renderHook(() => useDesktopLocalWorkspaceFlag());
 
-    expect(result.current).toEqual({ isEnabled: true, isReady: false });
+    expect(result.current).toEqual({
+      isAvailable: true,
+      isEnabled: true,
+      isReady: false,
+    });
+  });
+
+  it('is unavailable and disabled when the cloud-only build flag is off, whatever the Admin flag says', () => {
+    buildFlag.isLocalModeEnabled = false;
+
+    const { result } = renderHook(() => useDesktopLocalWorkspaceFlag());
+
+    expect(result.current).toEqual({
+      isAvailable: false,
+      isEnabled: false,
+      isReady: true,
+    });
   });
 });

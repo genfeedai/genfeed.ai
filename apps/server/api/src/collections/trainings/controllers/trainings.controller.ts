@@ -296,6 +296,7 @@ export class TrainingsController extends BaseCRUDController<
       uploadedUrl = await this.trainingsService.createTrainingZip(
         training.id.toString(),
         minimal,
+        training.organizationId,
       );
     } catch (error: unknown) {
       await this.trainingsService.patch(training.id, {

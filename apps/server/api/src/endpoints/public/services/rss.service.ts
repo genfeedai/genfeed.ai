@@ -1,5 +1,4 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
-import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import { ArticleScope } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
@@ -47,7 +46,7 @@ export class RssService {
         where: {
           isDeleted: false,
           scope: ArticleScope.PUBLIC,
-          ...ArticleFilterUtil.buildPublicArticleVisibilityFilter(),
+          ...(await this.articlesService.publicArticleScope.buildWhere()),
         },
         orderBy: { createdAt: -1, publishedAt: -1 },
       },
@@ -90,7 +89,7 @@ export class RssService {
         where: {
           isDeleted: false,
           scope: ArticleScope.PUBLIC,
-          ...ArticleFilterUtil.buildPublicArticleVisibilityFilter(),
+          ...(await this.articlesService.publicArticleScope.buildWhere()),
           userId: userId,
         },
         orderBy: { createdAt: -1, publishedAt: -1 },
@@ -135,7 +134,7 @@ export class RssService {
           brandId: brandId,
           isDeleted: false,
           scope: ArticleScope.PUBLIC,
-          ...ArticleFilterUtil.buildPublicArticleVisibilityFilter(),
+          ...(await this.articlesService.publicArticleScope.buildWhere()),
         },
         orderBy: { createdAt: -1, publishedAt: -1 },
       },
@@ -179,7 +178,7 @@ export class RssService {
           isDeleted: false,
           organizationId: organizationId,
           scope: ArticleScope.PUBLIC,
-          ...ArticleFilterUtil.buildPublicArticleVisibilityFilter(),
+          ...(await this.articlesService.publicArticleScope.buildWhere()),
         },
         orderBy: { createdAt: -1, publishedAt: -1 },
       },

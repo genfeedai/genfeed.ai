@@ -183,16 +183,9 @@ test.describe('Automation & Messages surfaces', () => {
         waitUntil: 'domcontentloaded',
       });
 
-      // At the Inbox root, the conversation list owns the nav column and the
-      // module's other destinations (Outreach sequences, Replies, Reply
-      // drip) move into the "Message automations" dropdown in its header —
-      // see MessageAutomationsMenu / messages-conversation-sidebar.tsx. The
-      // link only mounts once the menu is opened.
-      await authenticatedPage
-        .getByRole('button', { name: 'Message automations' })
-        .click();
-
-      const outreachLink = authenticatedPage.getByRole('menuitem', {
+      // At the Inbox root, the conversation list owns the nav column body
+      // while the module's primary destinations stay listed above it.
+      const outreachLink = authenticatedPage.getByRole('link', {
         name: 'Outreach sequences',
       });
       await expect(outreachLink).toBeVisible();

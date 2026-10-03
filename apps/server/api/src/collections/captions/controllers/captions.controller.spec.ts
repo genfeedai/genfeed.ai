@@ -234,6 +234,7 @@ describe('CaptionsController', () => {
           metadata: undefined,
           s3Key: 'ingredients/videos/clip.mp4',
         },
+        organizationId,
       );
       expect(deps.captionsService.create).toHaveBeenCalledWith(
         expect.objectContaining({

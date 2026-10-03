@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
@@ -111,8 +112,9 @@ export class AudioOverlayService {
       );
       this.logger.log(`Audio overlay complete: ${paths.output}`);
 
-      const finalKey =
-        outputKey || `audio-overlay/${timestamp}_${randomSuffix}.mp4`;
+      const finalKey = this.configService?.isAuthorizedMediaDeliveryEnabled
+        ? `audio-overlay/${randomUUID()}.mp4`
+        : outputKey || `audio-overlay/${timestamp}_${randomSuffix}.mp4`;
       this.logger.log(`Uploading result to S3: ${finalKey}`);
       const uploadResult = await this.uploadService.uploadToS3(
         finalKey,
@@ -121,6 +123,11 @@ export class AudioOverlayService {
       );
       this.logger.log(`Upload complete: ${uploadResult.publicUrl}`);
 
+      if (
+        this.configService?.isAuthorizedMediaDeliveryEnabled &&
+        !uploadResult.s3Key
+      )
+        throw new Error('Audio overlay upload returned no stored key');
       return {
         audioUrl: body.audioUrl,
         mixMode,
@@ -129,7 +136,7 @@ export class AudioOverlayService {
         duration: Number(
           (await this.ffmpegService.probe(paths.output)).format.duration,
         ),
-        s3Key: `ingredients/videos/${finalKey}`,
+        s3Key: uploadResult.s3Key || `ingredients/videos/${finalKey}`,
         success: true,
         videoUrl: body.videoUrl,
       };

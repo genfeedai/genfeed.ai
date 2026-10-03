@@ -106,6 +106,7 @@ export class VideosUploadController {
       })
       .then(async (res) => {
         await this.ingredientsService.patch(ingredientData.id, {
+          ...(res.s3Key ? { s3Key: res.s3Key } : {}),
           status: IngredientStatus.UPLOADED,
         });
 

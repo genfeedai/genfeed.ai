@@ -211,6 +211,54 @@ describe('SwitcherDropdown', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
+  it('renders href trailing actions as real anchors without selecting the row', () => {
+    const onSelect = vi.fn();
+
+    renderDropdown({
+      items: [
+        {
+          id: '1',
+          isActive: false,
+          label: 'Alpha',
+          trailingAction: {
+            ariaLabel: 'Open Alpha settings',
+            href: '/org/alpha/settings',
+            icon: Settings,
+            onAction: vi.fn(),
+          },
+          extraTrailingActions: [
+            {
+              ariaLabel: 'Open Alpha public profile',
+              href: 'https://genfeed.ai/u/alpha',
+              icon: Settings,
+              onAction: vi.fn(),
+              target: '_blank',
+            },
+          ],
+        },
+      ],
+      onSelect,
+    });
+
+    fireEvent.click(screen.getByText('Open'));
+
+    const settings = screen.getByRole('link', { name: 'Open Alpha settings' });
+    const profile = screen.getByRole('link', {
+      name: 'Open Alpha public profile',
+    });
+
+    expect(settings).toHaveAttribute('href', '/org/alpha/settings');
+    expect(settings).not.toHaveAttribute('target');
+    expect(profile).toHaveAttribute('href', 'https://genfeed.ai/u/alpha');
+    expect(profile).toHaveAttribute('target', '_blank');
+    expect(profile).toHaveAttribute('rel', 'noopener noreferrer');
+
+    fireEvent.click(profile, { ctrlKey: true });
+    fireEvent.click(settings, { metaKey: true });
+
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
   it('gives the active item the selected wash; inactive rows get a lighter hover wash', () => {
     renderDropdown({
       items: [

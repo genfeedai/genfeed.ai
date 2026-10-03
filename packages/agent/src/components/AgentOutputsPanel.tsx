@@ -196,11 +196,10 @@ export function AgentOutputsPanel({
         )}
       >
         <div className="flex items-start justify-between gap-3">
+          {/* Every host (context sidebar, dock tab, mobile drawer) already
+              titles this panel "Outputs"; lead with the selected group. */}
           <div className="min-w-0">
-            <p className="text-2xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-              Outputs
-            </p>
-            <h2 className="mt-1 truncate text-base font-semibold text-foreground">
+            <h2 className="truncate text-base font-semibold text-foreground">
               {selectedGroup?.title}
             </h2>
             {selectedGroup?.description ? (
@@ -230,6 +229,7 @@ export function AgentOutputsPanel({
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
                 onClick={() => setSelectedVariantId(variant.id)}
+                textTransform="none"
                 className="gen-shell-control inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold"
                 data-active={
                   variant.id === selectedVariantId ? 'true' : 'false'
@@ -247,8 +247,7 @@ export function AgentOutputsPanel({
             <Button
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
-              className="gen-shell-control h-9 rounded-xl px-3 text-xs font-semibold"
-              data-tone="accent"
+              className="gen-shell-control inline-flex h-9 items-center rounded-xl px-3 text-xs font-semibold"
               onClick={() =>
                 seedComposer(
                   buildAttachContent(selectedGroup, selectedVariant),
@@ -301,7 +300,7 @@ export function AgentOutputsPanel({
         ) : null}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto px-4 py-3">
         <div className="space-y-2.5">
           {outputs.map((group) => {
             const previewVariant = group.variants[0];
@@ -314,6 +313,7 @@ export function AgentOutputsPanel({
                   setSelectedGroupId(group.id);
                   setSelectedVariantId(group.variants[0]?.id ?? null);
                 }}
+                textTransform="none"
                 className="gen-shell-surface flex w-full items-start gap-3 rounded-2xl p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                 data-active={group.id === selectedGroupId ? 'true' : 'false'}
               >
