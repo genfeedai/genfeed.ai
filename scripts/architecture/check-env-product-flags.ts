@@ -52,6 +52,9 @@ export const INFRASTRUCTURE_ENV_ALLOW_LIST: ReadonlySet<string> = new Set([
   'VISUAL_CODE_RENDERER_ENABLED',
   // Deployment transport admission; reviewed model registry owns product activation.
   'CRUN_ENABLED',
+  // Authorized tenant media rollout gates: API, Files and workers must agree on one deployment-wide value (#5981, migration tracked in #6016).
+  'GENFEEDAI_MEDIA_ISSUER_ENABLED',
+  'GENFEEDAI_MEDIA_PREPARATION_ENABLED',
 ]);
 
 /** A Joi schema key: `  KEY: Joi…` / `  KEY: conditionalRequired(…)`. */

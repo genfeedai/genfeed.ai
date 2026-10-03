@@ -17,6 +17,7 @@ import {
   type SystemWorkflowGraphDefinition,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import { createVersionedWorkflow } from '@api/collections/workflows/workflow-version-definition';
 import {
   AgentArtifactReferenceService,
   AgentScopeContextService,
@@ -230,6 +231,51 @@ export async function seedIsolatedPublishFixture(
   return { brandId, credentialId, organizationId, userId };
 }
 
+// The real system workflow runner persists a WorkflowExecution row before any
+// action runs, and `claim` links the post to it (posts_workflowExecutionId_fkey,
+// #5971). The lane drives actions directly, so it persists the same row.
+async function ensureWorkflowExecution(
+  prisma: PrismaService,
+  input: { executionId: string; organizationId: string; userId: string },
+): Promise<void> {
+  const existing = await prisma.workflowExecution.findUnique({
+    where: { id: input.executionId },
+  });
+  if (existing) {
+    return;
+  }
+  await prisma.user.upsert({
+    create: {
+      email: `${input.userId}@example.com`,
+      handle: input.userId,
+      id: input.userId,
+    },
+    update: {},
+    where: { id: input.userId },
+  });
+  await prisma.$transaction(async (transaction) => {
+    const workflow = await createVersionedWorkflow(
+      transaction,
+      {
+        isDeleted: false,
+        label: 'Isolated scheduled post publish',
+        organizationId: input.organizationId,
+        userId: input.userId,
+      },
+      {},
+    );
+    await transaction.workflowExecution.create({
+      data: {
+        id: input.executionId,
+        organizationId: input.organizationId,
+        userId: input.userId,
+        workflowId: workflow.id,
+        workflowVersionId: workflow.currentVersionId,
+      },
+    });
+  });
+}
+
 export type IsolatedPublishHarness = {
   cronPostsService: CronPostsService;
   dbHelper: TestDatabaseHelper;
@@ -384,23 +430,31 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
     );
   }
 
+  const prismaService = moduleRef.get(PrismaService);
   const executeWorkflow = async (
     input: ScheduledPostWorkflowInput,
   ): Promise<PublishResult> => {
+    const executionId = `execution-${input.postId}`;
+    const userId = input.userId ?? SYSTEM_WORKFLOW_PRINCIPAL_ID;
+    await ensureWorkflowExecution(prismaService, {
+      executionId,
+      organizationId: input.organizationId,
+      userId,
+    });
     const request = (
       actionInput: Record<string, unknown>,
     ): SystemWorkflowActionRequest => ({
       context: {
-        executionId: `execution-${input.postId}`,
+        executionId,
         organizationId: input.organizationId,
         runId: `run-${input.postId}`,
-        userId: input.userId ?? SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        userId,
         workflowId: 'scheduled-post.publish',
         workflowVersionId: `version-${input.postId}`,
       },
       input: actionInput,
       provenance: {
-        executionId: `execution-${input.postId}`,
+        executionId,
         workflowId: 'scheduled-post.publish',
         workflowLabel: 'Scheduled Post Publishing',
       },
