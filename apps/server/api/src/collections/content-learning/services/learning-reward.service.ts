@@ -165,7 +165,7 @@ export class LearningRewardService {
     const measurement = this.profileMeasurement(checkpoint, decision);
     if (!measurement) return unavailable('profile_unavailable');
     const frozen = await this.frozenBaseline(tx, organizationId, decision);
-    if ('reason' in frozen) return frozen;
+    if ('reason' in frozen) return unavailable(frozen.reason);
     const { baseline, samples } = frozen;
     const objective = descriptor.objective;
     const result = computeLearningReward(measurement, samples, objective);
