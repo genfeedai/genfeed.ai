@@ -1,4 +1,3 @@
-import { isPersonaAvailableToBrand } from '@api/collections/personas/utils/persona-availability.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   hasMediaRecordAccess,
@@ -11,7 +10,7 @@ import {
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
-import { PostVisibility } from '@genfeedai/contracts';
+import { PersonaAvailabilityMode, PostVisibility } from '@genfeedai/contracts';
 import type {
   MediaAssetProjection,
   MediaDeliveryGrant,
@@ -443,10 +442,11 @@ export class AuthorizedMediaUrlService {
     const idsByOwner = new Map<string, string[]>();
     for (const grant of grants) {
       const avatarId = grant.persona.avatarIngredientId;
-      if (
-        avatarId &&
-        isPersonaAvailableToBrand({ ...grant, brandId: null }, scope.brandId)
-      ) {
+      const isGrantedToBrand =
+        grant.availabilityMode === PersonaAvailabilityMode.ALL_BRANDS ||
+        (grant.availabilityMode === PersonaAvailabilityMode.SELECTED_BRANDS &&
+          (grant.availableBrandIds ?? []).includes(scope.brandId));
+      if (avatarId && isGrantedToBrand) {
         idsByOwner.set(grant.ownerOrganizationId, [
           ...(idsByOwner.get(grant.ownerOrganizationId) ?? []),
           avatarId,
