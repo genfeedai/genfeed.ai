@@ -102,6 +102,16 @@ describe('PlansCard', () => {
     expect(screen.queryByText('was $499/mo')).not.toBeInTheDocument();
   });
 
+  it('renders every upgrade call to action as the primary (white) button', () => {
+    useBrandMock.mockReturnValue({ settings: { subscriptionTier: 'pro' } });
+
+    render(<PlansCard />);
+
+    const upgrade = screen.getByRole('button', { name: /Upgrade to Scale/i });
+    expect(upgrade.className).toMatch(/\bbg-primary\b/);
+    expect(upgrade.className).not.toMatch(/\bbg-tertiary\b/);
+  });
+
   it('badges the current plan and drops its call to action', () => {
     useBrandMock.mockReturnValue({ settings: { subscriptionTier: 'pro' } });
 

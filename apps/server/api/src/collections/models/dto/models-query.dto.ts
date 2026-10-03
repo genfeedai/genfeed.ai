@@ -47,6 +47,26 @@ export class ModelsQueryDto extends BaseQueryDto {
 
   @ApiProperty({
     description:
+      'Filter by any of several categories (comma-separated). Takes precedence over `category` — a catalog group such as Image spans image, image-edit and image-upscale.',
+    enum: ModelCategory,
+    enumName: 'ModelCategory',
+    isArray: true,
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string'
+      ? value
+          .split(',')
+          .map((entry) => entry.trim())
+          .filter(Boolean)
+      : value,
+  )
+  @IsEnum(ModelCategory, { each: true })
+  categories?: ModelCategory[];
+
+  @ApiProperty({
+    description:
       'Filter by organization - only return models enabled for this organization',
     required: false,
   })

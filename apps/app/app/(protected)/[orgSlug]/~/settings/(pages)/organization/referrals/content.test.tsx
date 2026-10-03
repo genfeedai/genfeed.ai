@@ -4,7 +4,7 @@ import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import ReferralHubCard from './referral-hub-card';
+import SettingsReferralsPage from './content';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -49,7 +49,7 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn() },
 }));
 
-describe('ReferralHubCard', () => {
+describe('SettingsReferralsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getMineMock.mockResolvedValue({
@@ -88,7 +88,7 @@ describe('ReferralHubCard', () => {
     });
     render(
       <QueryClientProvider client={queryClient}>
-        <ReferralHubCard />
+        <SettingsReferralsPage />
       </QueryClientProvider>,
     );
 
@@ -103,6 +103,11 @@ describe('ReferralHubCard', () => {
       }),
     ).toBeDefined();
     expect(screen.getByText('500')).toBeInTheDocument();
+    // Headline and description are separate blocks, never one run-on line.
+    expect(screen.getByText('Earn 10% in credits').tagName).toBe('P');
+    expect(screen.getByText(/Share your link\. You earn 10%/).tagName).toBe(
+      'P',
+    );
     expect(screen.getByText('Granted')).toBeInTheDocument();
     expect(screen.getByText('Reversed')).toBeInTheDocument();
 
@@ -121,7 +126,7 @@ describe('ReferralHubCard', () => {
     });
     render(
       <QueryClientProvider client={queryClient}>
-        <ReferralHubCard />
+        <SettingsReferralsPage />
       </QueryClientProvider>,
     );
 

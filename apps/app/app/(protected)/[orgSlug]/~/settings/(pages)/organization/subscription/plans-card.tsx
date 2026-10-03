@@ -1,6 +1,7 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { SubscriptionChangePreview } from '@genfeedai/contracts/interfaces';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   formatPlanIncludedCredits,
   formatPlanLaunchPriceLabel,
@@ -285,7 +286,13 @@ export default function PlansCard() {
   const proration = preview ? describeProration(preview) : null;
 
   return (
-    <Card label="Plans" bodyClassName="gap-4 p-4">
+    <section
+      aria-labelledby="subscription-plans-heading"
+      className="flex flex-col gap-3"
+    >
+      <Text as="h2" id="subscription-plans-heading" size="sm" weight="semibold">
+        Plans
+      </Text>
       <div className="grid gap-3 md:grid-cols-2">
         {SELLABLE_TIERS.map((tier) => {
           const plan = getPlanByTier(tier);
@@ -294,9 +301,10 @@ export default function PlansCard() {
           const launchPriceLabel = formatPlanLaunchPriceLabel(tier);
 
           return (
-            <div
+            <Card
               key={tier}
-              className="flex flex-col gap-3 rounded border border-border p-4"
+              className={cn(isCurrentPlan && 'border-success/40')}
+              bodyClassName="flex h-full flex-col gap-4 p-5"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex flex-col gap-1">
@@ -334,7 +342,7 @@ export default function PlansCard() {
                 ) : null}
               </div>
 
-              <ul className="flex flex-col gap-1">
+              <ul className="flex flex-1 flex-col gap-1.5">
                 {plan.features.slice(0, FEATURES_SHOWN).map((feature) => (
                   <li key={feature} className="flex items-start gap-2">
                     <Check className="mt-0.5 size-4 shrink-0 text-success" />
@@ -347,11 +355,8 @@ export default function PlansCard() {
 
               {isCurrentPlan ? null : (
                 <Button
-                  variant={
-                    tier === 'pro'
-                      ? ButtonVariant.DEFAULT
-                      : ButtonVariant.SECONDARY
-                  }
+                  className="w-full"
+                  variant={ButtonVariant.DEFAULT}
                   isDisabled={isUnavailable || busyTier !== null}
                   isLoading={busyTier === tier}
                   onClick={() => handleSelectPlan(tier)}
@@ -371,13 +376,13 @@ export default function PlansCard() {
                   {translate('subscription.plans.unavailable')}
                 </Text>
               ) : null}
-            </div>
+            </Card>
           );
         })}
       </div>
 
       {pendingTier && proration ? (
-        <div className="flex flex-col gap-3 rounded bg-muted/50 p-4">
+        <Card bodyClassName="flex flex-col gap-3 p-4">
           <Text as="p" size="sm" weight="medium">
             {translate('subscription.plans.confirmTitle', {
               plan: getPlanByTier(pendingTier).label,
@@ -403,12 +408,12 @@ export default function PlansCard() {
               {translate('actions.cancel')}
             </Button>
           </div>
-        </div>
+        </Card>
       ) : null}
 
       <Text as="p" size="xs" color="muted">
         {translate('subscription.plans.salesContact', { email: SALES_EMAIL })}
       </Text>
-    </Card>
+    </section>
   );
 }

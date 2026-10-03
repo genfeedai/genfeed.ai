@@ -286,6 +286,8 @@ export const APP_ROUTES = {
      * Kit, not in the asset library. `/library/knowledge` redirects here.
      */
     KNOWLEDGE: '/settings/knowledge',
+    /** Referral link, rewards and history (billing-enabled deployments). */
+    REFERRALS: '/settings/referrals',
     SUBSCRIPTION: '/settings/subscription',
     ELEMENTS_SCENES: '/settings/elements/scenes',
     CHARACTERS: '/settings/characters',

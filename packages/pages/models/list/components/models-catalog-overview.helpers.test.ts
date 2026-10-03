@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 import {
   buildModelCatalogOverviewCards,
   getModelCategoryBadgeClass,
+  getModelCategoryGroupCategories,
+  resolveModelCategoryGroupKey,
 } from './models-catalog-overview.helpers';
 
 function buildModel(overrides: Partial<IModel>): IModel {
@@ -74,5 +76,40 @@ describe('model catalog overview helpers', () => {
         (card) => card.label === 'Image',
       )?.count,
     ).toBe(2);
+  });
+
+  it('resolves group keys and legacy plural route values', () => {
+    expect(resolveModelCategoryGroupKey('image')).toBe('image');
+    expect(resolveModelCategoryGroupKey('images')).toBe('image');
+    expect(resolveModelCategoryGroupKey('videos')).toBe('video');
+    expect(resolveModelCategoryGroupKey('embedding')).toBe('embedding');
+    expect(resolveModelCategoryGroupKey('all')).toBeNull();
+    expect(resolveModelCategoryGroupKey('trainings')).toBeNull();
+    expect(resolveModelCategoryGroupKey(undefined)).toBeNull();
+  });
+
+  it('filters a group by every category it counts', () => {
+    expect(getModelCategoryGroupCategories('image')).toEqual([
+      ModelCategory.IMAGE,
+      ModelCategory.IMAGE_EDIT,
+      ModelCategory.IMAGE_UPSCALE,
+    ]);
+    expect(getModelCategoryGroupCategories('voice')).toEqual([
+      ModelCategory.VOICE,
+    ]);
+  });
+
+  it('marks only the selected group active', () => {
+    const cards = buildModelCatalogOverviewCards(
+      [buildModel({ category: ModelCategory.TEXT })],
+      'text',
+    );
+
+    expect(
+      cards.filter((card) => card.isActive).map((card) => card.key),
+    ).toEqual(['text']);
+    expect(
+      buildModelCatalogOverviewCards([], 'all').every((card) => card.isActive),
+    ).toBe(true);
   });
 });

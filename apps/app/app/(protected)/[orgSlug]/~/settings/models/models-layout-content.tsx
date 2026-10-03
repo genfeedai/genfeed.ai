@@ -23,11 +23,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useCallback } from 'react';
 
+// Category filtering lives in the catalog's own chip row; the header only
+// switches between the catalog and the organization's trainings.
 const MODEL_TYPE_OPTIONS = [
-  { value: 'all', label: 'All' },
-  { value: 'images', label: 'Images' },
-  { value: 'videos', label: 'Videos' },
-  { value: 'text', label: 'Text' },
+  { value: 'all', label: 'Catalog' },
   { value: 'trainings', label: 'Trainings' },
 ] as const;
 
@@ -101,7 +100,7 @@ export default function ModelsLayoutContent({
               className="h-8 w-36 shrink-0"
               aria-label="Model type"
             >
-              <SelectValue placeholder="All" />
+              <SelectValue placeholder="Catalog" />
             </SelectTrigger>
             <SelectContent>
               {MODEL_TYPE_OPTIONS.map((option) => (

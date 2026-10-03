@@ -1,7 +1,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ModalEnum,
-  ModelCategory,
   type ModelLifecycle,
   PageScope,
 } from '@genfeedai/contracts';
@@ -25,7 +24,12 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildModelsTableColumns } from './components/ModelsTableColumns';
-import { buildModelCatalogOverviewCards } from './components/models-catalog-overview.helpers';
+import {
+  buildModelCatalogOverviewCards,
+  getModelCategoryGroupCategories,
+  type ModelCategoryGroupKey,
+  resolveModelCategoryGroupKey,
+} from './components/models-catalog-overview.helpers';
 
 export function useModelsList({
   type,
@@ -124,31 +128,25 @@ export function useModelsList({
     }
   }, [settingsError, organizationId]);
 
-  // Map route type to category filter
-  const categoryFromType = useMemo(() => {
-    if (!type || type === 'all') {
-      return null;
-    }
-    if (type === 'images') {
-      return ModelCategory.IMAGE;
-    }
-    if (type === 'videos') {
-      return ModelCategory.VIDEO;
-    }
-    if (type === 'text') {
-      return ModelCategory.TEXT;
-    }
+  // Org scope filters by catalog group (Image spans image, image-edit and
+  // image-upscale) so the list always agrees with the group counts.
+  const selectedGroupKey = useMemo(
+    () => (isAdminScope ? null : resolveModelCategoryGroupKey(type)),
+    [isAdminScope, type],
+  );
+  const groupCategories = useMemo(
+    () =>
+      selectedGroupKey ? getModelCategoryGroupCategories(selectedGroupKey) : [],
+    [selectedGroupKey],
+  );
 
-    return null;
-  }, [type]);
-
-  // Determine category filter (admin uses category prop, others use type/filters)
+  // Admin uses the exact category prop.
   const categoryFilter = useMemo(() => {
     if (isAdminScope && category) {
       return category === 'all' || category === 'active' ? null : category;
     }
-    return categoryFromType;
-  }, [isAdminScope, category, categoryFromType]);
+    return null;
+  }, [isAdminScope, category]);
 
   const includeRetired = isAdminScope && category === 'all';
 
@@ -156,6 +154,7 @@ export function useModelsList({
   const modelsQueryKey = [
     'studio-models',
     categoryFilter,
+    selectedGroupKey,
     category ?? type ?? 'active',
     includeRetired,
     currentPage,
@@ -187,7 +186,9 @@ export function useModelsList({
       }
 
       // Add category filter
-      if (categoryFilter && categoryFilter !== 'all') {
+      if (groupCategories.length > 0) {
+        query.categories = groupCategories.join(',');
+      } else if (categoryFilter && categoryFilter !== 'all') {
         query.category = categoryFilter;
       }
 
@@ -327,6 +328,23 @@ export function useModelsList({
       });
     },
     [isAdminScope, models, settings],
+  );
+
+  const handleCategorySelect = useCallback(
+    (key: ModelCategoryGroupKey | 'all') => {
+      const params = new URLSearchParams(searchParamsString);
+      params.delete('page');
+      if (key === 'all') {
+        params.delete('type');
+      } else {
+        params.set('type', key);
+      }
+      const queryString = params.toString();
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, replace, searchParamsString],
   );
 
   const handleSearchChange = useCallback(
@@ -622,8 +640,11 @@ export function useModelsList({
     adminOrg,
     adminBrand,
     catalogOverviewCards,
+    catalogTotal: catalogModels.length,
+    handleCategorySelect,
     isLoadingCatalog,
     isLoading,
+    selectedGroupKey,
     columns,
     models,
     searchTerm,

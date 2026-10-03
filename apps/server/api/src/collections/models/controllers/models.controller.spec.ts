@@ -259,6 +259,30 @@ describe('ModelsController', () => {
       });
     });
 
+    it('filters a catalog group by any of its categories, ahead of category', () => {
+      const query: ModelsQueryDto = {
+        categories: [
+          ModelCategory.IMAGE,
+          ModelCategory.IMAGE_EDIT,
+          ModelCategory.IMAGE_UPSCALE,
+        ],
+        category: ModelCategory.TEXT,
+      };
+
+      const result = controller.buildFindAllQuery(mockRegularUser, query);
+
+      expect(result.where).toEqual({
+        category: {
+          in: [
+            ModelCategory.IMAGE,
+            ModelCategory.IMAGE_EDIT,
+            ModelCategory.IMAGE_UPSCALE,
+          ],
+        },
+        isDeleted: false,
+      });
+    });
+
     it('should build query with custom sort', () => {
       const query: ModelsQueryDto = {
         isDeleted: true,

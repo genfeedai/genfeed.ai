@@ -9,13 +9,9 @@ export default async function FilteredListPage({
   searchParams,
 }: FilterPageProps) {
   const { type: value } = await searchParams;
-  const selected =
-    value === 'images' ||
-    value === 'videos' ||
-    value === 'text' ||
-    value === 'trainings'
-      ? value
-      : 'all';
+  // Catalog group keys (image, video, …) and `trainings`; the list resolves
+  // anything else to the unfiltered catalog.
+  const selected = typeof value === 'string' && value ? value : 'all';
   return (
     <Suspense fallback={null}>
       <ModelsTypePageClientContent type={selected} />
