@@ -43,7 +43,11 @@ function summarizeToolName(toolName: string): string {
     return 'Reviewing';
   }
 
-  if (toolName.startsWith('generate_') || toolName === 'create_post') {
+  if (
+    toolName === 'generate' ||
+    toolName.startsWith('generate_') ||
+    toolName === 'create_post'
+  ) {
     return 'Generating';
   }
 

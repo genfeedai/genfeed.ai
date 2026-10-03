@@ -194,7 +194,7 @@ describe('getToolsForToolsets', () => {
       expect(['content', CORE_TOOLSET_NAME]).toContain(tool.toolset);
     }
     // A tool from an unrelated toolset must not leak in.
-    expect(resultNames.has('generate_image')).toBe(false);
+    expect(resultNames.has('generate')).toBe(false);
     // Core is always present even when not explicitly requested.
     expect(resultNames.has('list_toolsets')).toBe(true);
   });

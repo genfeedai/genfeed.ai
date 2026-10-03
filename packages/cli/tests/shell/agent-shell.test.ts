@@ -161,11 +161,11 @@ describe('shell/agent-shell', () => {
         threadId: 'thread-2',
       });
       mockGetThreadEvents.mockResolvedValueOnce([]).mockResolvedValueOnce([
-        makeEvent('tool.started', 9, { toolName: 'generate_image' }),
+        makeEvent('tool.started', 9, { toolName: 'generate' }),
         makeEvent('tool.completed', 10, {
           error: 'quota hit',
           status: 'failed',
-          toolName: 'generate_image',
+          toolName: 'generate',
         }),
         makeEvent('tool.completed', 11, {}),
         makeEvent('some.unknown.event', 12, {}),
@@ -215,8 +215,8 @@ describe('shell/agent-shell', () => {
       expect(output).toContain('Resumed thread: thread-2');
       expect(output).toContain('Continuing thread thread-2');
       expect(output).toContain('Hi there');
-      expect(output).toContain('[tool:start] generate_image');
-      expect(output).toContain('[tool:failed] generate_image - quota hit');
+      expect(output).toContain('[tool:start] generate');
+      expect(output).toContain('[tool:failed] generate - quota hit');
       expect(output).toContain('[tool:completed] unknown_tool');
       expect(output).toContain('UI Actions');
       expect(output).toContain('Try: gf workflow show wf-1');

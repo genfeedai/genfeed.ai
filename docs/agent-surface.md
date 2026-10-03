@@ -21,8 +21,8 @@ Four surfaces, one REST API underneath.
 Agents are not restricted to reads. `create_post` returns a publish confirmation
 card and, once confirmed, publishes an existing content item or ingredient to the
 selected platforms — optionally at a `scheduledAt` time. Combined with the
-generation tools (`generate_image`, `generate_video`, `generate_music`,
-`generate_voice`, `generate_content_batch`) and the scheduler tools, one
+generation tools (`generate` for image, video, voice and music, and
+`generate_content_batch`) and the scheduler tools, one
 connection covers generate → draft → schedule → approve → publish. Two things
 bound it: the scopes on the API key, and the MCP approval gate below.
 

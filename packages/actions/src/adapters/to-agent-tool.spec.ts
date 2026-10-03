@@ -10,7 +10,7 @@ function buildTool(
     category: 'generation',
     creditCost: 5,
     description: 'Generate an image',
-    name: 'generate_image',
+    name: 'generate',
     parameters: {
       properties: { prompt: { type: 'string' } },
       required: ['prompt'],
@@ -33,7 +33,7 @@ describe('toAgentTools', () => {
       }),
     ]);
 
-    expect(tools.map((tool) => tool.name)).toEqual(['generate_image']);
+    expect(tools.map((tool) => tool.name)).toEqual(['generate']);
   });
 
   it('maps the canonical definition onto the agent output shape', () => {
@@ -42,7 +42,7 @@ describe('toAgentTools', () => {
     expect(tool).toEqual({
       creditCost: 5,
       description: 'Generate an image',
-      name: 'generate_image',
+      name: 'generate',
       parameters: {
         properties: { prompt: { type: 'string' } },
         required: ['prompt'],

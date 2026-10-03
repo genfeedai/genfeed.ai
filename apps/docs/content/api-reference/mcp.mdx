@@ -175,7 +175,7 @@ on that row immediately (`denied` / `failed`); do not wait for the 15-minute
 expiry. Replay the same id after a client restart; it does not create another
 credential.
 
-`generate_image` returns structured artifact metadata plus a native image part when
+An image `generate` call returns structured artifact metadata plus a native image part when
 the client supports it, with a text fallback. Video results are downloadable files
 or open links — they do not claim inline playback. `selectedContext` is task-only
 and is not saved as Knowledge.
@@ -264,7 +264,7 @@ The bare endpoint uses the `default` profile. Profiles shape the advertised
 
 | Endpoint selector | Advertised toolsets |
 | --- | --- |
-| No selector or `?profile=default` | `core`, `scheduler`, and `content`, capped at 31 tools. |
+| No selector or `?profile=default` | `core`, `generation`, `content`, and `scheduler`, capped at 46 tools. |
 | `?profile=directory` | The same bounded selection, with `generation`, `clips`, and `ui` excluded. This profile does not imply directory approval. |
 | `?profile=full` | All toolsets, subject to the caller's permissions. |
 

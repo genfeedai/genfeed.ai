@@ -17,8 +17,7 @@ describe('MCP Apps card contract', () => {
       'list_posts',
       'list_images',
       'list_videos',
-      'generate_image',
-      'generate_video',
+      'generate',
       'get_article',
       'get_usage_stats',
     ]) {
@@ -88,14 +87,15 @@ describe('MCP Apps card contract', () => {
   });
 
   it.each([
-    ['generate_image', 'image'],
-    ['generate_video', 'video'],
-    ['generate_music', 'audio'],
-    ['generate_voice', 'audio'],
-  ])('preserves %s media and status', (name, kind) => {
+    ['image', 'image'],
+    ['video', 'video'],
+    ['music', 'audio'],
+    ['voice', 'audio'],
+  ])('preserves generate %s media and status', (assetKind, kind) => {
     expect(
-      buildCardView(name, {
+      buildCardView('generate', {
         id: 'asset',
+        assetKind,
         cdnUrl: 'https://cdn.genfeed.ai/file',
         status: 'PROCESSING',
       })?.cards[0],
@@ -105,6 +105,22 @@ describe('MCP Apps card contract', () => {
       status: 'PROCESSING',
       url: 'https://cdn.genfeed.ai/file',
     });
+  });
+
+  it('keeps a generic media card when a generate result names no asset kind', () => {
+    expect(
+      buildCardView('generate', { id: 'asset', status: 'PROCESSING' })?.cards[0]
+        .kind,
+    ).toBe('media');
+  });
+
+  it.each([
+    'generate_image',
+    'generate_video',
+    'generate_music',
+    'generate_voice',
+  ])('no longer builds cards for the removed %s tool', (name) => {
+    expect(buildCardView(name, { id: 'asset' })).toBeUndefined();
   });
 
   it('maps job category and usage zeroes; bounds lists and user text', () => {
@@ -140,14 +156,14 @@ describe('MCP Apps card contract', () => {
         artifact: { id: 'image' },
       },
     };
-    const decorated = withCardResult('generate_image', result);
+    const decorated = withCardResult('generate', result);
     expect(decorated).toMatchObject(result);
     expect(decorated).toHaveProperty(
       'structuredContent.genfeedCards.cards.0.id',
       'image',
     );
     expect(
-      withCardResult('generate_image', { ...result, isError: true }),
+      withCardResult('generate', { ...result, isError: true }),
     ).not.toHaveProperty('structuredContent.genfeedCards');
     expect(
       withCardResult('create_post', {

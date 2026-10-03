@@ -113,7 +113,7 @@ describe('mutation policy map', () => {
     ).toBeUndefined();
     expect(getToolByName('resolve_approval')?.mutationPolicy).toBeUndefined();
     expect(getActionDefinition('create_post')?.approval).toBe('required');
-    expect(getActionDefinition('generate_image')?.approval).toBe('none');
+    expect(getActionDefinition('generate')?.approval).toBe('none');
   });
 
   it('keeps the MCP queued write set approval-required', () => {

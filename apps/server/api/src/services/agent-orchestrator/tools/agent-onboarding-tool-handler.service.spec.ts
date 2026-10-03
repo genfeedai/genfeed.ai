@@ -370,7 +370,7 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
       (step) => step.id === 'generate_first_image',
     );
 
-    // A configured text-only key satisfies `isReady`, but `generate_image` has
+    // A configured text-only key satisfies `isReady`, but an image `generate` call has
     // nothing to call — the checklist must still route to the API-key CTA.
     expect(result.data?.providerReadiness).toMatchObject({
       isImageReady: false,

@@ -120,7 +120,7 @@ describe('AgentPrepareToolHandler.prepareVoiceClone', () => {
     expect(card?.description).toMatch(/catalog is empty/i);
   });
 
-  it('keeps generate_voice text on the catalog-backed card', async () => {
+  it('keeps voice generate text on the catalog-backed card', async () => {
     const catalogFindAll = vi.fn().mockResolvedValue([
       {
         createdAt: new Date('2026-01-01'),

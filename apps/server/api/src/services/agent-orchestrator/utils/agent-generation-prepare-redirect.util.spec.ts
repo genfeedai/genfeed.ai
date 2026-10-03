@@ -41,29 +41,39 @@ describe('isIdentityGenerationToolName', () => {
   });
 });
 
+const IMAGE = { mediaType: 'image', toolName: 'generate' } as const;
+const VIDEO = { mediaType: 'video', toolName: 'generate' } as const;
+const VOICE_CLONE = { toolName: 'prepare_voice_clone' } as const;
+
 describe('getGenerationPreparationRedirect', () => {
-  it('remaps prepare_generation to the concrete composer-selected tool', () => {
+  it('remaps prepare_generation to generate with the composer-selected type', () => {
     const allowed = new Set<CuratedActionName>(['prepare_generation']);
 
     expect(
       getGenerationPreparationRedirect('prepare_generation', allowed, {
         generationMode: 'image',
       }),
-    ).toBe('generate_image');
+    ).toEqual(IMAGE);
     expect(
       getGenerationPreparationRedirect('prepare_generation', allowed, {
         requestedGenerationType: 'video',
       }),
-    ).toBe('generate_video');
+    ).toEqual(VIDEO);
   });
 
-  it('admits a concrete visual tool when only prepare_generation was exposed', () => {
+  it('admits generate when only prepare_generation was exposed', () => {
     expect(
       getGenerationPreparationRedirect(
         'generate_image',
         new Set(['prepare_generation']),
       ),
-    ).toBe('generate_image');
+    ).toEqual(IMAGE);
+  });
+
+  it('redirects a legacy per-kind visual name even when generate is allowed', () => {
+    expect(
+      getGenerationPreparationRedirect('generate_video', new Set(['generate'])),
+    ).toEqual(VIDEO);
   });
 
   it('strips default_api prefixes before recovering voice', () => {
@@ -75,40 +85,40 @@ describe('getGenerationPreparationRedirect', () => {
         'default_api.generate_image',
         visualAllowed,
       ),
-    ).toBe('generate_image');
+    ).toEqual(IMAGE);
     expect(
       getGenerationPreparationRedirect(
         'default_api.generate_video',
         visualAllowed,
       ),
-    ).toBe('generate_video');
+    ).toEqual(VIDEO);
     expect(
       getGenerationPreparationRedirect(
         'default_api.generate_voice',
         voiceAllowed,
       ),
-    ).toBe('prepare_voice_clone');
+    ).toEqual(VOICE_CLONE);
   });
 
-  it('recovers unknown generate-like names onto concrete generation tools', () => {
+  it('recovers unknown generate-like names onto generate', () => {
     expect(
       getGenerationPreparationRedirect(
         'default_api.image_generation',
         new Set(['prepare_generation']),
       ),
-    ).toBe('generate_image');
+    ).toEqual(IMAGE);
     expect(
       getGenerationPreparationRedirect(
         'txt2video',
         new Set(['prepare_generation']),
       ),
-    ).toBe('generate_video');
+    ).toEqual(VIDEO);
     expect(
       getGenerationPreparationRedirect(
         'default_api.tts_voiceover',
         new Set(['prepare_voice_clone']),
       ),
-    ).toBe('prepare_voice_clone');
+    ).toEqual(VOICE_CLONE);
   });
 
   it('does not treat open_studio_handoff as a generate tool', () => {
@@ -148,22 +158,137 @@ describe('getGenerationPreparationRedirect', () => {
     ).toBeNull();
   });
 
-  it('remaps generate_voice to the voice-clone card when that prepare tool is allowed', () => {
+  it('remaps legacy generate_voice to the voice-clone card when that prepare tool is allowed', () => {
     expect(
       getGenerationPreparationRedirect(
         'generate_voice',
         new Set(['prepare_voice_clone']),
       ),
-    ).toBe('prepare_voice_clone');
+    ).toEqual(VOICE_CLONE);
   });
 
-  it('leaves generate_voice alone when prepare_voice_clone is not in the run', () => {
+  it('leaves legacy generate_voice alone when neither prepare_voice_clone nor generate is in the run', () => {
     expect(
       getGenerationPreparationRedirect(
         'generate_voice',
         new Set(['prepare_generation']),
       ),
     ).toBeNull();
+  });
+
+  it('recovers legacy generate_voice onto generate with type voice when generate is allowed', () => {
+    expect(
+      getGenerationPreparationRedirect('generate_voice', new Set(['generate'])),
+    ).toEqual({ mediaType: 'voice', toolName: 'generate' });
+  });
+
+  it('recovers legacy generate_music onto generate with type music', () => {
+    expect(
+      getGenerationPreparationRedirect('generate_music', new Set(['generate'])),
+    ).toEqual({ mediaType: 'music', toolName: 'generate' });
+    expect(
+      getGenerationPreparationRedirect(
+        'default_api.generate_music',
+        new Set(['generate', 'prepare_voice_clone']),
+      ),
+    ).toEqual({ mediaType: 'music', toolName: 'generate' });
+  });
+
+  it('does not recover generate_music when generate is not allowed', () => {
+    expect(
+      getGenerationPreparationRedirect(
+        'generate_music',
+        new Set(['prepare_generation']),
+      ),
+    ).toBeNull();
+  });
+
+  describe('canonical generate', () => {
+    const allowed = new Set<CuratedActionName>(['generate']);
+
+    it('leaves a visual call alone when it matches the composer mode', () => {
+      expect(
+        getGenerationPreparationRedirect('generate', allowed, {
+          generationMode: 'video',
+          requestedMediaType: 'video',
+        }),
+      ).toBeNull();
+    });
+
+    it('leaves a visual call alone when no explicit composer mode is set', () => {
+      expect(
+        getGenerationPreparationRedirect('generate', allowed, {
+          requestedMediaType: 'image',
+        }),
+      ).toBeNull();
+    });
+
+    it('overrides the model type with an explicit composer mode', () => {
+      expect(
+        getGenerationPreparationRedirect('generate', allowed, {
+          generationMode: 'image',
+          requestedMediaType: 'video',
+        }),
+      ).toEqual(IMAGE);
+      expect(
+        getGenerationPreparationRedirect('generate', allowed, {
+          generationMode: 'video',
+          requestedMediaType: 'image',
+        }),
+      ).toEqual(VIDEO);
+    });
+
+    it('admits generate when only prepare_generation is exposed', () => {
+      expect(
+        getGenerationPreparationRedirect(
+          'generate',
+          new Set(['prepare_generation']),
+          { requestedMediaType: 'video' },
+        ),
+      ).toEqual(VIDEO);
+    });
+
+    it('routes type voice to the voice-clone card when allowed', () => {
+      expect(
+        getGenerationPreparationRedirect(
+          'generate',
+          new Set(['generate', 'prepare_voice_clone']),
+          { requestedMediaType: 'voice' },
+        ),
+      ).toEqual(VOICE_CLONE);
+    });
+
+    it('leaves voice and music alone when no voice-clone card applies', () => {
+      expect(
+        getGenerationPreparationRedirect('generate', allowed, {
+          requestedMediaType: 'voice',
+        }),
+      ).toBeNull();
+      expect(
+        getGenerationPreparationRedirect('generate', allowed, {
+          requestedMediaType: 'music',
+        }),
+      ).toBeNull();
+    });
+
+    it('ignores an invalid or missing type', () => {
+      expect(
+        getGenerationPreparationRedirect('generate', allowed, {
+          generationMode: 'image',
+          requestedMediaType: 'hologram',
+        }),
+      ).toBeNull();
+      expect(getGenerationPreparationRedirect('generate', allowed)).toBeNull();
+    });
+
+    it('normalizes vendor prefixes on the canonical name', () => {
+      expect(
+        getGenerationPreparationRedirect('default_api.generate', allowed, {
+          generationMode: 'image',
+          requestedMediaType: 'video',
+        }),
+      ).toEqual(IMAGE);
+    });
   });
 });
 

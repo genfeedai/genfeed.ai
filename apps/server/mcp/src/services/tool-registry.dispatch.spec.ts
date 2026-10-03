@@ -46,7 +46,7 @@ describe('ToolRegistryService.classify', () => {
     // they are also CuratedActionName members.
     ['list_system_workflow_catalog', 'workflow-control'],
     ['install_system_workflow', 'workflow-control'],
-    ['generate_image', 'agent-executor'],
+    ['generate', 'agent-executor'],
     ['create_brand_from_url', 'agent-executor'],
     ['get_brand_scan_status', 'agent-executor'],
     ['generate_visual_code', 'agent-executor'],
@@ -134,7 +134,7 @@ describe('ToolRegistryService.classify', () => {
 describe('ToolRegistryService.validateDispatchCoverage', () => {
   it('passes when every surfaced tool routes (resolve_approval excepted)', () => {
     mockState.tools = [
-      { name: 'generate_image' },
+      { name: 'generate' },
       { name: 'create_brand_from_url' },
       { name: 'get_brand_scan_status' },
       { name: 'get_video_status' },
@@ -148,7 +148,7 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
 
   it('throws when a surfaced tool has no executor', () => {
     mockState.tools = [
-      { name: 'generate_image' },
+      { name: 'generate' },
       { name: 'create_brand_from_url' },
       { name: 'get_brand_scan_status' },
       { name: 'totally_unrouted_tool' },

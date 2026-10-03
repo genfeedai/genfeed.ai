@@ -33,17 +33,17 @@ describe('published action catalog', () => {
     expect(failures).toEqual([]);
   });
 
-  it('accepts an in-flight generate_image result without a CDN url', () => {
-    const action = getActionDefinition('generate_image');
+  it('accepts an in-flight generate image result without a CDN url', () => {
+    const action = getActionDefinition('generate');
     expect(action).toBeDefined();
-    const contract = compileActionContract('generate_image', {
+    const contract = compileActionContract('generate', {
       inputSchema: (action?.inputSchema ?? {}) as ActionContractJsonSchema,
       outputSchema: (action?.outputSchema ?? {}) as ActionContractJsonSchema,
     });
     const provenance = {
       nodeId: 'execute-tool',
       runId: 'run-1',
-      workflowId: 'agent.tool.generate_image',
+      workflowId: 'agent.tool.generate',
       workflowVersionId: 'v1',
     };
 

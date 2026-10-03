@@ -153,7 +153,7 @@ describe('curated action catalog', () => {
   it('exposes the reviewed generation, edit, and analytics actions on both surfaces', () => {
     for (const name of [
       'analyze_performance',
-      'generate_voice',
+      'generate',
       'get_analytics',
       'get_content_calendar',
       'reframe_image',
@@ -335,8 +335,9 @@ describe('curated action catalog', () => {
       ['create_post', 'content'],
       ['repurpose_post', 'content'],
       ['generate_content_batch', 'content'],
-      ['generate_image', 'generation'],
-      ['generate_video', 'generation'],
+      ['generate', 'generation'],
+      ['generate_visual_code', 'visual-code'],
+      ['create_storyboard_remix', 'inspiration'],
       ['create_workflow', 'workflows'],
       ['create_ad_remix_workflow', 'workflows'],
       ['analyze_performance', 'analytics'],

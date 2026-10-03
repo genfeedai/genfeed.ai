@@ -22,8 +22,8 @@ vi.mock('@ui/buttons/base/Button', () => ({
 
 vi.mock('./agent-tool-call-display.helpers', () => ({
   getAgentToolLabel: (name: string) =>
-    name === 'generate_image' ? 'Generate Image' : name,
-  TOOL_LABELS: { generate_image: 'Generate Image' } as Record<string, string>,
+    name === 'generate' ? 'Generate Media' : name,
+  TOOL_LABELS: { generate: 'Generate Media' } as Record<string, string>,
 }));
 
 vi.mock('./ToolCallDetailPanel', () => ({
@@ -50,10 +50,10 @@ function buildEvent(overrides?: Partial<EnrichedWorkEvent>): EnrichedWorkEvent {
     createdAt: '2026-03-18T10:00:00.000Z',
     event: AgentWorkEventType.TOOL_COMPLETED,
     id: 'ev-1',
-    label: 'Generate Image',
+    label: 'Generate Media',
     status: AgentWorkEventStatus.COMPLETED,
     threadId: 't1',
-    toolName: 'generate_image',
+    toolName: 'generate',
     ...overrides,
   };
 }
@@ -61,7 +61,7 @@ function buildEvent(overrides?: Partial<EnrichedWorkEvent>): EnrichedWorkEvent {
 describe('TimelineWorkEntry', () => {
   it('renders label from TOOL_LABELS', () => {
     render(<TimelineWorkEntry event={buildEvent()} />);
-    expect(screen.getByText('Generate Image')).toBeTruthy();
+    expect(screen.getByText('Generate Media')).toBeTruthy();
   });
 
   it('shows status icons', () => {
