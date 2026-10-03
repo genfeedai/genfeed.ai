@@ -34,16 +34,18 @@ describe('isProductFlagKey', () => {
     'TASK_ROUTING_MIN_CONFIDENCE',
     'MODERATION_THRESHOLDS',
     'FEATURE_FLAG_DEFAULTS',
+    'TYPED_DECISION_TIMEOUT_MS',
+    'SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL',
+    'AWS_IMAGE_COMPRESSION',
+    'RESEND_FROM_EMAIL',
+    'DISCORD_CHANNEL_ID_USERS',
   ])('flags %s', (key) => {
     expect(isProductFlagKey(key)).toBe(true);
   });
 
-  it.each(['TYPESAFE_API_KEY', 'TYPED_DECISION_TIMEOUT_MS', 'REDIS_URL'])(
-    'ignores %s',
-    (key) => {
-      expect(isProductFlagKey(key)).toBe(false);
-    },
-  );
+  it.each(['TYPESAFE_API_KEY', 'REDIS_URL'])('ignores %s', (key) => {
+    expect(isProductFlagKey(key)).toBe(false);
+  });
 });
 
 describe('runCheckEnvProductFlags', () => {

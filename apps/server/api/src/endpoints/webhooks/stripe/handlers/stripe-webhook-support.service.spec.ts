@@ -1,5 +1,6 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -9,6 +10,7 @@ import { ActivityRecorderService } from '@api/services/activity-recording/activi
 import { CacheService } from '@api/services/cache/cache.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import {
   ActivityKey,
   ActivitySource,
@@ -115,6 +117,10 @@ describe('StripeWebhookSupportService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StripeWebhookSupportService,
+        {
+          provide: PlatformSettingsService,
+          useValue: runtimeSettingsMock(configService),
+        },
         { provide: ConfigService, useValue: configService },
         { provide: CacheService, useValue: cacheService },
         { provide: LoggerService, useValue: loggerService },
@@ -146,22 +152,24 @@ describe('StripeWebhookSupportService', () => {
   });
 
   describe('resolveCheckoutCredits', () => {
-    it('prefers the session metadata credits', () => {
-      expect(service.resolveCheckoutCredits({ credits: '250' }, 0)).toBe(250);
+    it('prefers the session metadata credits', async () => {
+      expect(await service.resolveCheckoutCredits({ credits: '250' }, 0)).toBe(
+        250,
+      );
     });
 
-    it('falls back to the STRIPE_PAYG_CREDITS config value', () => {
+    it('falls back to admin-configured checkout credits', async () => {
       configService.get.mockReturnValue('500');
 
-      expect(service.resolveCheckoutCredits({}, 0)).toBe(500);
+      expect(await service.resolveCheckoutCredits({}, 0)).toBe(500);
     });
 
-    it('uses the caller fallback when metadata and config are empty', () => {
-      expect(service.resolveCheckoutCredits({}, 1)).toBe(1);
+    it('uses the persisted default without session credits', async () => {
+      expect(await service.resolveCheckoutCredits({}, 1)).toBe(1000);
     });
 
-    it('preserves the historical NaN when no fallback is given', () => {
-      expect(service.resolveCheckoutCredits({})).toBeNaN();
+    it('has a valid persisted fallback even without a caller fallback', async () => {
+      expect(await service.resolveCheckoutCredits({})).toBe(1000);
     });
   });
 

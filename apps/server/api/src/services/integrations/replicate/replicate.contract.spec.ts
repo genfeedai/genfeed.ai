@@ -1,3 +1,6 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
+
 // Pin cloud deployment so the request contract (webhook + events filter)
 // is exercised deterministically regardless of the test host's env.
 vi.mock('@genfeedai/config', async (importOriginal) => {
@@ -60,6 +63,10 @@ describe('ReplicateService (contract)', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ReplicateService,
+        {
+          provide: PlatformSettingsService,
+          useValue: runtimeSettingsMock(configMock),
+        },
         { provide: ConfigService, useValue: configMock },
         { provide: LoggerService, useValue: loggerMock },
       ],

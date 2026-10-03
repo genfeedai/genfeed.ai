@@ -1,5 +1,6 @@
 import type { AddressInfo } from 'node:net';
 import { LoggerService } from '@libs/logger/logger.service';
+import { discordWebhookUrl } from '@libs/security/discord-webhook-url';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ConfigService } from '@notifications/config/config.service';
@@ -7,10 +8,12 @@ import { DiscordService } from '@notifications/services/discord/discord.service'
 import type { DiscordBotService } from '@notifications/services/discord/discord-bot.service';
 import {
   discordMessage,
-  discordWebhookUrl,
   validateSystemEvent,
 } from '@notifications/services/discord/system-notification.util';
 import { SystemNotificationsController } from '@notifications/services/discord/system-notifications.controller';
+import { ResendService } from '@notifications/services/resend/resend.service';
+import type { NotificationRuntimeSettingsService } from '@notifications/services/runtime-settings/notification-runtime-settings.service';
+import { TelegramService } from '@notifications/services/telegram/telegram.service';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const event = {
@@ -20,10 +23,11 @@ const event = {
   occurredAt: '2026-09-23T12:00:00Z',
   data: { objectId: 'u1', email: '@everyone@example.com' },
 };
-function service(webhook = 'https://discord.com/api/webhooks/123/secret') {
+function service() {
   return new DiscordService(
+    {} as NotificationRuntimeSettingsService,
     {
-      get: () => webhook,
+      get: () => undefined,
       isDiscordEnabled: () => false,
     } as unknown as ConfigService,
     { log: vi.fn() } as unknown as LoggerService,
@@ -61,11 +65,8 @@ describe('standalone system notification delivery', () => {
     ])
       expect(discordWebhookUrl(url)).toBeNull();
     vi.stubGlobal('fetch', vi.fn());
-    expect(service('').systemNotificationStatus()).toEqual({
-      webhookConfigured: false,
-    });
     await expect(
-      service('').sendSystemNotification(validateSystemEvent(event)),
+      service().sendSystemNotification(validateSystemEvent(event), ''),
     ).rejects.toThrow('not configured');
     expect(fetch).not.toHaveBeenCalled();
   });
@@ -74,7 +75,10 @@ describe('standalone system notification delivery', () => {
       'fetch',
       vi.fn().mockResolvedValue(new Response('', { status: 200 })),
     );
-    await service().sendSystemNotification(validateSystemEvent(event));
+    await service().sendSystemNotification(
+      validateSystemEvent(event),
+      'https://discord.com/api/webhooks/123/secret',
+    );
     expect(fetch).toHaveBeenCalledWith(
       expect.objectContaining({
         hostname: 'discord.com',
@@ -86,7 +90,10 @@ describe('standalone system notification delivery', () => {
       new Error('https://discord.com/api/webhooks/123/secret'),
     );
     await expect(
-      service().sendSystemNotification(validateSystemEvent(event)),
+      service().sendSystemNotification(
+        validateSystemEvent(event),
+        'https://discord.com/api/webhooks/123/secret',
+      ),
     ).rejects.toThrow('System notification delivery failed');
   });
   it('requires the deployment internal credential for status and delivery', async () => {
@@ -94,6 +101,8 @@ describe('standalone system notification delivery', () => {
     const module = await Test.createTestingModule({
       controllers: [SystemNotificationsController],
       providers: [
+        { provide: TelegramService, useValue: { sendSystemMessage: vi.fn() } },
+        { provide: ResendService, useValue: { sendEmail: vi.fn() } },
         {
           provide: DiscordService,
           useValue: {
@@ -118,7 +127,14 @@ describe('standalone system notification delivery', () => {
           await fetch(base, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(event),
+            body: JSON.stringify({
+              event,
+              target: {
+                provider: 'discord',
+                webhookUrl: 'https://discord.com/api/webhooks/123/secret',
+              },
+              idempotencyKey: 'system/test',
+            }),
           })
         ).status,
       ).toBe(401);
@@ -130,7 +146,14 @@ describe('standalone system notification delivery', () => {
               'Content-Type': 'application/json',
               Authorization: 'Bearer deployment-key',
             },
-            body: JSON.stringify(event),
+            body: JSON.stringify({
+              event,
+              target: {
+                provider: 'discord',
+                webhookUrl: 'https://discord.com/api/webhooks/123/secret',
+              },
+              idempotencyKey: 'system/test',
+            }),
           })
         ).status,
       ).toBe(200);

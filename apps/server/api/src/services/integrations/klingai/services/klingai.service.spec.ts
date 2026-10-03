@@ -1,3 +1,4 @@
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
@@ -35,7 +36,12 @@ function createHarness(
     httpService,
     loggerService,
     post,
-    service: new KlingAIService(configService, loggerService, httpService),
+    service: new KlingAIService(
+      runtimeSettingsMock(configService),
+      configService,
+      loggerService,
+      httpService,
+    ),
   };
 }
 

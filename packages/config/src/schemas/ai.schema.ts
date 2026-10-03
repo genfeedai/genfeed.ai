@@ -45,29 +45,13 @@ export const generalAiSchema = {
       otherwise: Joi.optional(),
     }),
 
-  // Optional override. Unset falls back to LLM_DEFAULTS.volumeAgent in
-  // ThreadContextCompressorService — do not copy a model id here.
-  AGENT_CONTEXT_COMPRESSION_MODEL: Joi.string().optional().allow(''),
-  AGENT_CONTEXT_WINDOW_SIZE: Joi.number().integer().min(1).default(5),
-  // Coalescing window (#2517): live `agent:token` deltas are buffered per
-  // run and flushed as one larger Redis publish either when this window
-  // elapses or AGENT_STREAM_COALESCE_MAX_BYTES is hit, whichever is first.
-  // Keeps perceived latency low (25-100ms) while collapsing what would
-  // otherwise be one Redis publish + socket.io emit per LLM token into a
-  // handful of publishes per response.
+  // Redis token streaming transport buffer; product defaults live in admin.
   AGENT_STREAM_COALESCE_MAX_BYTES: Joi.number().integer().min(1).default(2048),
   AGENT_STREAM_COALESCE_WINDOW_MS: Joi.number().integer().min(1).default(50),
-  MAX_TOKENS: Joi.number().default(4000),
-  // OpenRouter is the primary text-model gateway for agent chat. Must stay on
-  // the validated schema so ConfigService.get('OPENROUTER_API_KEY') resolves
-  // after Joi validation (unknown keys alone are not enough for typed access).
   OPENROUTER_API_KEY: Joi.string().optional().allow(''),
   // Typed decisions (#4864). Which provider is bound, and every decision
   // point's mode and threshold, are Admin platform settings (#4908, #5407) —
   // the key here is only the credential that makes a hosted provider available.
-  // Hard per-call budget. The agent turn path needs the 800ms default; async
-  // paths pass their own budget through the call context instead.
-  TYPED_DECISION_TIMEOUT_MS: Joi.number().integer().min(1).default(800),
   TYPESAFE_API_KEY: Joi.string().optional().allow(''),
   CONTENT_EVAL_GENFEED_API_KEY: Joi.string().optional().allow(''),
 };
@@ -77,16 +61,7 @@ export const generalAiSchema = {
  */
 export const replicateSchema = {
   REPLICATE_KEY: conditionalRequired(),
-  REPLICATE_MODEL_HARDWARE: Joi.string().default('gpu-t4'),
-  REPLICATE_MODEL_VISIBILITY: Joi.string()
-    .valid('public', 'private')
-    .default('private'),
-  REPLICATE_MODELS_TRAINER: Joi.string().default(
-    'replicate/fast-flux-trainer:f463fbfc97389e10a2f443a8a84b6953b1058eafbf0c9af4d84457ff07cb04db',
-  ),
   REPLICATE_OWNER: Joi.string().default('genfeedai'),
-  REPLICATE_TARGET_FPS: Joi.number().default(30),
-  REPLICATE_TARGET_RESOLUTION: Joi.string().default('1080p'),
   REPLICATE_WEBHOOK_SIGNING_SECRET: conditionalRequired(),
 };
 
@@ -95,7 +70,6 @@ export const replicateSchema = {
  */
 export const klingaiSchema = {
   KLINGAI_KEY: conditionalRequired(),
-  KLINGAI_MODEL: Joi.string().default('kling-v2'),
   KLINGAI_SECRET: conditionalRequired(),
   KLINGAI_WEBHOOK_SECRET: Joi.string()
     .optional()
@@ -110,7 +84,6 @@ export const klingaiSchema = {
  */
 export const elevenlabsSchema = {
   ELEVENLABS_API_KEY: Joi.string().optional().allow(''),
-  ELEVENLABS_MODEL: conditionalRequired(),
 };
 
 /**
@@ -224,10 +197,4 @@ export const murekaSchema = {
     .optional()
     .default('https://api.mureka.ai'),
   MUREKA_API_KEY: Joi.string().optional().allow(''),
-  MUREKA_MODEL: Joi.string().optional().default('mureka-9'),
-};
-
-export const trainingPricingSchema = {
-  TRAINING_CUSTOM_MODEL_CREDITS_COST: Joi.number().default(5),
-  TRAINING_TRAINING_CREDITS_COST: Joi.number().default(500),
 };

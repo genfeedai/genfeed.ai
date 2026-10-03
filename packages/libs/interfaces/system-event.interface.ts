@@ -32,3 +32,14 @@ export interface SystemEvent {
     cancelAtPeriodEnd?: boolean;
   };
 }
+
+export type SystemNotificationTarget =
+  | { provider: 'discord'; webhookUrl: string }
+  | { provider: 'telegram'; chatId: string }
+  | { provider: 'email'; address: string };
+
+export interface SystemNotificationDeliveryRequest {
+  event: SystemEvent;
+  target: SystemNotificationTarget;
+  idempotencyKey: string;
+}

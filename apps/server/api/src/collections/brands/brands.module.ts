@@ -26,6 +26,7 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { SkillsModule } from '@api/collections/skills/skills.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
@@ -59,6 +60,7 @@ import { Module } from '@nestjs/common';
     MasterPromptGeneratorService,
   ],
   imports: [
+    PlatformSettingsModule,
     BrandsCoreModule,
     CommonModule,
     ActivitiesModule,

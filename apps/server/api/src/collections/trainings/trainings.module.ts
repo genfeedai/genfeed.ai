@@ -7,6 +7,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { TrainingsOperationsController } from '@api/collections/trainings/controllers/operations/trainings-operations.controller';
 import { TrainingsController } from '@api/collections/trainings/controllers/trainings.controller';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
@@ -24,6 +25,7 @@ import { Module } from '@nestjs/common';
   controllers: [TrainingsController, TrainingsOperationsController],
   exports: [TrainingsService],
   imports: [
+    PlatformSettingsModule,
     ByokModule,
     CreditsModule,
     FileQueueModule,

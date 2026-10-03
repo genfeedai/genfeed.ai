@@ -1,7 +1,9 @@
 import fs from 'node:fs';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -69,6 +71,13 @@ describe('ElevenLabsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ElevenLabsService,
+        {
+          provide: PlatformSettingsService,
+          useValue: runtimeSettingsMock({
+            get: (key: string) =>
+              key === 'ELEVENLABS_MODEL' ? 'eleven_monolingual_v1' : undefined,
+          }),
+        },
         {
           provide: ConfigService,
           useValue: { get: vi.fn().mockReturnValue('eleven_monolingual_v1') },

@@ -11,6 +11,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { AvatarVideoController } from '@api/collections/videos/controllers/avatar-video.controller';
 import { BatchInterpolationController } from '@api/collections/videos/controllers/batch-interpolation.controller';
@@ -40,6 +41,7 @@ import { Module } from '@nestjs/common';
   controllers: [AvatarVideoController, BatchInterpolationController],
   exports: [AvatarVideoGenerationService],
   imports: [
+    PlatformSettingsModule,
     // Core video module for VideosService
     VideosCoreModule,
 

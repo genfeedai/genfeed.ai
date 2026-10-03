@@ -17,12 +17,6 @@ export class TelegramService {
     this.initBot();
   }
 
-  public isAdmin(userId: number): boolean {
-    const adminIds =
-      this.configService.get('TELEGRAM_ADMIN_IDS')?.split(',') || [];
-    return adminIds.includes(userId.toString());
-  }
-
   private initBot(): void {
     if (!this.configService.isTelegramEnabled()) {
       this.loggerService.log(
@@ -41,7 +35,7 @@ export class TelegramService {
         );
         return;
       }
-      this.bot = new Bot(token);
+      this.bot = new Bot(token, { client: { timeoutSeconds: 10 } });
       this.loggerService.log(
         'Telegram notification bot initialized (API-only mode)',
         this.context,
@@ -52,6 +46,15 @@ export class TelegramService {
         error,
         this.context,
       );
+    }
+  }
+
+  public async sendSystemMessage(chatId: string, text: string): Promise<void> {
+    if (!this.bot) throw new Error('Telegram is not configured');
+    try {
+      await this.bot.api.sendMessage(chatId, text);
+    } catch {
+      throw new Error('Telegram system notification failed');
     }
   }
 

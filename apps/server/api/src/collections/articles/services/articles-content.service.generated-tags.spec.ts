@@ -10,6 +10,7 @@ import type { ArticleCreateFn } from '@api/collections/articles/services/article
 import type { TagsService } from '@api/collections/tags/services/tags.service';
 import type { TemplatesService } from '@api/collections/templates/services/templates.service';
 import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
 import { ArticleCategory, TagCategory } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -93,17 +94,18 @@ describe('ArticlesContentService generated tags', () => {
       new ArticleContentPersistenceService(logger, tagsService);
 
     const service = new ArticlesContentService(
+      runtimeSettingsMock(configService),
       logger,
       configService,
       articleTextGenerationService,
       articleReviewService,
       articleContentPersistenceService,
       templatesService,
-      undefined, // brandsService
-      undefined, // personasService
-      undefined, // contentHarnessService
-      undefined, // harnessProfilesService
-      undefined, // accountPublishingContextService
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
       replicateService,
     );
 

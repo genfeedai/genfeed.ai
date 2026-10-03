@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/articles/services/articles-content.types';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import {
   type TextByokDispatch,
@@ -14,13 +15,12 @@ import { ReplicateService } from '@api/services/integrations/replicate/services/
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { ModelCategory, SystemPromptKey } from '@genfeedai/contracts';
-import { ConfigService } from '@libs/config/config.service';
 import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
 export class ArticleTextGenerationService {
   constructor(
-    private readonly configService: ConfigService,
+    private readonly platformSettingsService: PlatformSettingsService,
     @Optional() private readonly modelsService?: ModelsService,
     @Optional() private readonly replicateService?: ReplicateService,
     @Optional() private readonly promptBuilderService?: PromptBuilderService,
@@ -106,7 +106,9 @@ export class ArticleTextGenerationService {
     const { input } = (await this.promptBuilderService?.buildPrompt(
       model as string,
       {
-        maxTokens: this.configService.get('MAX_TOKENS'),
+        maxTokens: (
+          await this.platformSettingsService.getFeatureSettings()
+        ).generationMaxTokens,
         modelCategory: ModelCategory.TEXT,
         prompt,
         systemPromptTemplate: SystemPromptKey.ARTICLE,

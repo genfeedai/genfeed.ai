@@ -1,5 +1,6 @@
 import { ConfigService } from '@files/config/config.service';
 import { FilesCaptionsService } from '@files/services/files/captions/files-captions.service';
+import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
 import type {
   SlideText,
   Word,
@@ -67,6 +68,10 @@ describe('FilesCaptionsService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        {
+          provide: FileRuntimeSettingsService,
+          useValue: { get: async () => ({ imageCompressionQuality: 50 }) },
+        },
         FilesCaptionsService,
         { provide: ConfigService, useValue: { get: vi.fn() } },
         {

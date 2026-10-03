@@ -131,11 +131,7 @@ export class ConfigService extends createServiceConfig<NotificationsEnvConfig>({
   }
 
   public isDiscordEnabled(): boolean {
-    const isConfigured = !!(
-      this.envConfig.DISCORD_BOT_TOKEN &&
-      this.envConfig.DISCORD_CLIENT_ID &&
-      this.envConfig.DISCORD_GUILD_ID
-    );
+    const isConfigured = !!this.envConfig.DISCORD_BOT_TOKEN;
     if (!isConfigured || !this.isDevelopment) {
       return isConfigured;
     }
