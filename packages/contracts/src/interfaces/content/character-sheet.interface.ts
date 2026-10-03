@@ -7,8 +7,9 @@ export interface CharacterAvailability {
   availableBrandIds: string[];
 }
 
+/** Accepts both the contract enum and Prisma's persisted label union. */
 export interface PersonaAvailabilityFields {
-  availabilityMode?: PersonaAvailabilityMode | null;
+  availabilityMode?: `${PersonaAvailabilityMode}` | null;
   availableBrandIds?: readonly string[] | null;
   brandId?: string | null;
 }
