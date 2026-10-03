@@ -183,6 +183,7 @@
     "activeHelp": "Inactive elements are hidden from pickers.",
     "activeLabel": "Active",
     "inactive": "Inactive",
+    "scopeHeader": "Scope",
     "scopeOrganization": "Organization",
     "scopePlatform": "Default",
     "sortOrderHelp": "Lowest first. Platform defaults sort ahead of organization elements.",

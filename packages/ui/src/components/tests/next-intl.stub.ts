@@ -339,6 +339,7 @@ const UI_TEST_MESSAGES = {
       activeHelp: 'Inactive elements are hidden from pickers.',
       activeLabel: 'Active',
       inactive: 'Inactive',
+      scopeHeader: 'Scope',
       scopeOrganization: 'Organization',
       scopePlatform: 'Default',
       sortOrderHelp:

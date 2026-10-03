@@ -13,6 +13,7 @@ export function buildSoundsColumns({
   scope,
   onToggleActive,
   onToggleDefault,
+  scopeLabel,
 }: BuildSoundsColumnsParams): TableColumn<Sound>[] {
   return [
     {
@@ -22,7 +23,7 @@ export function buildSoundsColumns({
     },
     { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
-      header: 'Scope',
+      header: scopeLabel,
       key: 'isPlatformDefault',
       render: (sound: Sound) => (
         <ElementScopeBadge isPlatformDefault={sound.isPlatformDefault} />

@@ -24,6 +24,7 @@ import { LazyModalCameraMovement } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Pencil, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   Suspense,
   useCallback,
@@ -154,6 +155,7 @@ function CameraMovementsListContent({
     onRefreshingChangeRef.current = onRefreshingChange;
   });
 
+  const scopeTranslate = useTranslations('ui.elementPlatformFields');
   const columns: TableColumn<ElementCameraMovement>[] = [
     {
       header: 'Label',
@@ -162,7 +164,7 @@ function CameraMovementsListContent({
     },
     { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
-      header: 'Scope',
+      header: scopeTranslate('scopeHeader'),
       key: 'isPlatformDefault',
       render: (element: ElementCameraMovement) => (
         <ElementScopeBadge
