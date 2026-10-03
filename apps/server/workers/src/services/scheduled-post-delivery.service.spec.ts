@@ -91,6 +91,11 @@ function createDeliveryMocks() {
         findFirst: vi.fn(),
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
+      postProviderPublishReceipt: {
+        create: vi.fn().mockResolvedValue({ id: 'receipt-1' }),
+        findFirst: vi.fn().mockResolvedValue(null),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
     },
     publisherFactory: { getPublisher: vi.fn() },
     publishEventWebhookService: {
@@ -436,6 +441,549 @@ describe('ScheduledPostDeliveryService', () => {
         }),
       }),
     );
+  });
+
+  const acceptedTweet = {
+    executionState: TargetExecutionState.PUBLISHED,
+    externalId: 'tweet-1',
+    platform: CredentialPlatform.TWITTER,
+    success: true,
+    url: 'https://x.com/example/status/tweet-1',
+  };
+  const receiptRow = (overrides: Record<string, unknown>) => ({
+    attemptStartedAt: new Date(Date.now() - 60 * 60_000),
+    attemptToken: 'token-0',
+    id: 'receipt-1',
+    result: null,
+    status: 'attempting',
+    workflowExecutionId: 'execution-0',
+    ...overrides,
+  });
+  const receiptWhere = {
+    attemptToken: expect.any(String),
+    id: 'receipt-1',
+    isDeleted: false,
+    organizationId: 'org-1',
+    postId: 'post-1',
+  };
+
+  it('reserves the occurrence before the provider call and resolves it after persistence', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    const receipts = mocks.prisma.postProviderPublishReceipt;
+    expect(receipts.create).toHaveBeenCalledWith({
+      data: {
+        attemptStartedAt: expect.any(Date),
+        attemptToken: expect.any(String),
+        occurrenceKey: expect.stringMatching(/^[0-9a-f]{64}$/),
+        organizationId: 'org-1',
+        postId: 'post-1',
+        status: 'attempting',
+        workflowExecutionId: 'execution-1',
+      },
+      select: { id: true },
+    });
+    expect(receipts.create.mock.invocationCallOrder[0]).toBeLessThan(
+      publish.mock.invocationCallOrder[0],
+    );
+    expect(receipts.updateMany).toHaveBeenNthCalledWith(1, {
+      data: expect.objectContaining({
+        externalId: 'tweet-1',
+        status: 'accepted',
+      }),
+      where: receiptWhere,
+    });
+    expect(receipts.updateMany).toHaveBeenNthCalledWith(2, {
+      data: { persistedAt: expect.any(Date) },
+      where: receiptWhere,
+    });
+  });
+
+  it('never calls the provider when the occurrence cannot be reserved', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.prisma.postProviderPublishReceipt.create.mockRejectedValue(
+      new Error('database unavailable'),
+    );
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it('never reschedules a provider-accepted publish whose state transition fails', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.schedulerPublishStateService.transitionPost.mockImplementation(
+      async (_post: unknown, update: { executionState: string }) => {
+        if (update.executionState === TargetExecutionState.PUBLISHED)
+          throw new Error('Transaction already closed: timeout');
+        return true;
+      },
+    );
+
+    await expect(
+      executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep'),
+    ).rejects.toThrow(
+      'Provider publish succeeded but its state transition failed.',
+    );
+
+    expect(publish).toHaveBeenCalledTimes(1);
+    const states =
+      mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+        (call) => call[1].executionState,
+      );
+    expect(states).not.toContain(TargetExecutionState.SCHEDULED);
+    expect(states).not.toContain(TargetExecutionState.FAILED);
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'accepted' }),
+      }),
+    );
+  });
+
+  it('replays an accepted occurrence instead of publishing again', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ result: acceptedTweet, status: 'accepted' }),
+    );
+
+    const result = await executeDelivery(
+      mocks,
+      createScheduledPost(),
+      'scheduled_sweep',
+    );
+
+    expect(publish).not.toHaveBeenCalled();
+    expect(result).toEqual(
+      expect.objectContaining({ externalId: 'tweet-1', success: true }),
+    );
+    expect(
+      mocks.prisma.postProviderPublishReceipt.findFirst,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          isDeleted: false,
+          occurrenceKey: expect.stringMatching(/^[0-9a-f]{64}$/),
+          organizationId: 'org-1',
+          postId: 'post-1',
+        },
+      }),
+    );
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        executionState: TargetExecutionState.PUBLISHED,
+        externalId: 'tweet-1',
+      }),
+      undefined,
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(
+      mocks.prisma.postProviderPublishReceipt.create,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('replays an accepted occurrence even when quota is now exhausted', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.quotaService.checkQuota.mockResolvedValue({
+      allowed: false,
+      currentCount: 10,
+      dailyLimit: 10,
+    });
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ result: acceptedTweet, status: 'accepted' }),
+    );
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(publish).not.toHaveBeenCalled();
+    expect(mocks.quotaService.checkQuota).not.toHaveBeenCalled();
+    const states =
+      mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+        (call) => call[1].executionState,
+      );
+    expect(states).toContain(TargetExecutionState.PUBLISHED);
+    expect(states).not.toContain(TargetExecutionState.FAILED);
+  });
+
+  it('refuses to publish while another delivery holds a live attempt', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({
+        attemptStartedAt: new Date(),
+        workflowExecutionId: 'other',
+      }),
+    );
+
+    await expect(
+      executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep'),
+    ).rejects.toThrow('Another delivery is publishing this post occurrence.');
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it('keeps a timed-out attempt for verification and soft-retries it', async () => {
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockRejectedValue(new Error('ETIMEDOUT')),
+      supportsThreads: false,
+    });
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).toHaveBeenCalledWith({
+      data: { status: 'uncertain' },
+      where: receiptWhere,
+    });
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        executionState: TargetExecutionState.SCHEDULED,
+      }),
+      expect.any(String),
+      expect.anything(),
+    );
+  });
+
+  it('releases the attempt when the provider rejects the publish', async () => {
+    mockSuccessfulPublisher(mocks, {
+      error: 'rejected',
+      executionState: TargetExecutionState.FAILED,
+      success: false,
+    });
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).toHaveBeenCalledWith({
+      data: { status: 'released' },
+      where: receiptWhere,
+    });
+  });
+
+  it('marks an unconfirmed attempt published when the provider verifies it landed', async () => {
+    const publish = vi.fn();
+    const verifyPublished = vi.fn().mockResolvedValue(acceptedTweet);
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish,
+      supportsThreads: false,
+      verifyPublished,
+    });
+    const startedAt = new Date(Date.now() - 60 * 60_000);
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ attemptStartedAt: startedAt, status: 'uncertain' }),
+    );
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(verifyPublished).toHaveBeenCalledWith(expect.anything(), startedAt);
+    expect(publish).not.toHaveBeenCalled();
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'accepted' }),
+      }),
+    );
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        executionState: TargetExecutionState.PUBLISHED,
+      }),
+      undefined,
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it.each([
+    {
+      label: 'the provider confirms it is absent',
+      verify: vi.fn().mockResolvedValue(null),
+    },
+    { label: 'the publisher cannot verify', verify: undefined },
+  ])('retries an unconfirmed attempt when $label', async ({ verify }) => {
+    const publish = vi.fn().mockResolvedValue(acceptedTweet);
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish,
+      supportsThreads: false,
+      ...(verify ? { verifyPublished: verify } : {}),
+    });
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ status: 'uncertain' }),
+    );
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        status: 'attempting',
+        workflowExecutionId: 'execution-1',
+      }),
+      where: { ...receiptWhere, attemptToken: 'token-0', status: 'uncertain' },
+    });
+    expect(publish).toHaveBeenCalledTimes(1);
+  });
+
+  it('soft-retries without publishing when verification is unavailable', async () => {
+    const publish = vi.fn();
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish,
+      supportsThreads: false,
+      verifyPublished: vi.fn().mockRejectedValue(new Error('provider 503')),
+    });
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ status: 'uncertain' }),
+    );
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(publish).not.toHaveBeenCalled();
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        executionState: TargetExecutionState.SCHEDULED,
+      }),
+      expect.any(String),
+      expect.anything(),
+    );
+  });
+
+  it('keeps a returned timeout uncertain instead of releasing it', async () => {
+    mockSuccessfulPublisher(mocks, {
+      error: 'ETIMEDOUT while publishing',
+      executionState: TargetExecutionState.FAILED,
+      success: false,
+    });
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).toHaveBeenCalledWith({
+      data: { status: 'uncertain' },
+      where: receiptWhere,
+    });
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        executionState: TargetExecutionState.SCHEDULED,
+      }),
+      expect.any(String),
+      expect.anything(),
+    );
+  });
+
+  it('verifies an uncertain attempt before quota or readiness can fail it', async () => {
+    const publish = vi.fn();
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish,
+      supportsThreads: false,
+      verifyPublished: vi.fn().mockResolvedValue(acceptedTweet),
+    });
+    mocks.quotaService.checkQuota.mockResolvedValue({
+      allowed: false,
+      currentCount: 10,
+      dailyLimit: 10,
+    });
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ status: 'uncertain' }),
+    );
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(publish).not.toHaveBeenCalled();
+    expect(mocks.quotaService.checkQuota).not.toHaveBeenCalled();
+    const states =
+      mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+        (call) => call[1].executionState,
+      );
+    expect(states).toContain(TargetExecutionState.PUBLISHED);
+    expect(states).not.toContain(TargetExecutionState.FAILED);
+  });
+
+  it('releases a fresh reservation when a pre-publish gate fails', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.quotaService.checkQuota.mockResolvedValue({
+      allowed: false,
+      currentCount: 10,
+      dailyLimit: 10,
+    });
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(publish).not.toHaveBeenCalled();
+    const receipts = mocks.prisma.postProviderPublishReceipt;
+    expect(receipts.create.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.quotaService.checkQuota.mock.invocationCallOrder[0],
+    );
+    expect(receipts.updateMany).toHaveBeenCalledWith({
+      data: { status: 'released' },
+      where: receiptWhere,
+    });
+  });
+
+  it('never fails the target while another delivery holds the occurrence', async () => {
+    mockSuccessfulPublisher(mocks);
+    mocks.quotaService.checkQuota.mockResolvedValue({
+      allowed: false,
+      currentCount: 10,
+      dailyLimit: 10,
+    });
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({
+        attemptStartedAt: new Date(),
+        workflowExecutionId: 'other',
+      }),
+    );
+
+    await expect(
+      executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep'),
+    ).rejects.toThrow('Another delivery is publishing this post occurrence.');
+    expect(mocks.quotaService.checkQuota).not.toHaveBeenCalled();
+    const states =
+      mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+        (call) => call[1].executionState,
+      );
+    expect(states).not.toContain(TargetExecutionState.FAILED);
+  });
+
+  it('persists an accepted occurrence when its recovery lookups fail', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.credentialsService.findOne.mockRejectedValue(
+      new Error('credential store unavailable'),
+    );
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ result: acceptedTweet, status: 'accepted' }),
+    );
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(publish).not.toHaveBeenCalled();
+    const states =
+      mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+        (call) => call[1].executionState,
+      );
+    expect(states).toContain(TargetExecutionState.PUBLISHED);
+    expect(states).not.toContain(TargetExecutionState.FAILED);
+  });
+
+  it('releases a taken-over attempt when a gate fails after its absence is confirmed', async () => {
+    const publish = vi.fn();
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish,
+      supportsThreads: false,
+      verifyPublished: vi.fn().mockResolvedValue(null),
+    });
+    mocks.quotaService.checkQuota.mockResolvedValue({
+      allowed: false,
+      currentCount: 10,
+      dailyLimit: 10,
+    });
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ status: 'uncertain' }),
+    );
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(publish).not.toHaveBeenCalled();
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).toHaveBeenLastCalledWith({
+      data: { status: 'released' },
+      where: receiptWhere,
+    });
+  });
+
+  it('lets only the delivery that wins the takeover publish an unconfirmed attempt', async () => {
+    const publish = vi.fn().mockResolvedValue(acceptedTweet);
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish,
+      supportsThreads: false,
+    });
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ status: 'uncertain' }),
+    );
+    mocks.prisma.postProviderPublishReceipt.updateMany.mockResolvedValueOnce({
+      count: 0,
+    });
+
+    await expect(
+      executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep'),
+    ).rejects.toThrow('Another delivery is publishing this post occurrence.');
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it('treats a live attempt of the same execution as in flight', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({
+        attemptStartedAt: new Date(),
+        workflowExecutionId: 'execution-1',
+      }),
+    );
+
+    await expect(
+      executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep'),
+    ).rejects.toThrow('Another delivery is publishing this post occurrence.');
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it('persists an accepted occurrence even after its credential was removed', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.credentialsService.findOne.mockResolvedValue(null);
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ result: acceptedTweet, status: 'accepted' }),
+    );
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(publish).not.toHaveBeenCalled();
+    const states =
+      mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+        (call) => call[1].executionState,
+      );
+    expect(states).toContain(TargetExecutionState.PUBLISHED);
+    expect(states).not.toContain(TargetExecutionState.FAILED);
+  });
+
+  it('keeps a provider-accepted occurrence publishing when the workflow fails', async () => {
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ result: acceptedTweet, status: 'accepted' }),
+    );
+
+    const result = await service.failTerminalValidation(
+      createScheduledPost() as never,
+      new Error('Provider publish succeeded but its state transition failed.'),
+    );
+
+    expect(result.executionState).toBe(TargetExecutionState.PUBLISHING);
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).not.toHaveBeenCalled();
+    expect(
+      mocks.publishEventWebhookService.emitLegacyPostFailed,
+    ).not.toHaveBeenCalled();
   });
 
   it('carries the provider shortcode into the publish webhook', async () => {
