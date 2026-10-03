@@ -6,9 +6,10 @@ account (GitHub user ID `1998775`) in `genfeedai/genfeed.ai` (repository ID
 forks or triggering actors. GitHub's repository-wide auto-merge switch alone
 does not enforce an author allowlist; this controller supplies that restriction.
 
-`OWNER_MERGE_MODE` is absent or `off` by default. `strict` is the operating mode.
-Native `queue` mode is deliberately rejected until Socket, CLA and PR title
-validation report authentic results for real combined merge-group commits.
+The controller runs in strict mode only. It is inactive until the Genfeed bot
+GitHub App secrets exist (see below). GitHub's native merge queue stays unused
+until Socket, CLA and PR title validation report authentic results for real
+combined merge-group commits.
 CI validates merge groups at the full tier until member escalation is authenticated, but that alone
 does not make these external integrations queue-compatible.
 
@@ -61,30 +62,37 @@ with Actions; the scheduled reconciliation remains necessary for those events.
 
 The workflow always checks out trusted master with persisted credentials off.
 It executes no PR code or artifacts and does not interpolate PR text into shell
-commands. `CONSOLE_DEPLOY_TOKEN` must permit repository reads, branch updates,
-PR merges, Actions read/write (including cancel and force-cancel), and complete
-ruleset reads. An absent, expired or insufficient token
-fails closed. PAT updates/merges emit ordinary PR/push events; no GITHUB_TOKEN
-fallback is allowed because that could suppress required follow-up validation.
+commands. It authenticates as the Genfeed bot GitHub App through
+`actions/create-github-app-token`, which mints a short-lived installation token
+scoped to this repository with: Actions write (cancel and force-cancel),
+Administration read (complete ruleset reads, including bypass actors), Checks
+read, Contents write (branch updates and merges), Pull requests write, Commit
+statuses read and Workflows write (branch updates that carry workflow changes
+from master). App-token updates and merges emit ordinary PR and push events. No
+GITHUB_TOKEN fallback is allowed, because GITHUB_TOKEN would suppress the
+required follow-up validation. Without both secrets the job does nothing; an
+invalid or under-permissioned App fails closed.
 
-## Staged activation and rollback
+The strict ruleset ID is pinned as `STRICT_RULESET_ID` in
+`scripts/ci/owner-merge-queue.mjs`, next to the pinned repository and owner IDs.
+Before each mutation the controller verifies that rule's full contents.
 
-1. Land this source PR with automation off and its current-head required CI green.
-2. Create an additional rule using `scripts/ci/owner-merge-ruleset.json`:
-   `gh api --method POST repos/genfeedai/genfeed.ai/rulesets --input scripts/ci/owner-merge-ruleset.json`.
-   Read the created rule with an authorized credential and verify its full
-   contents, including `bypass_actors: []`. Preserve the original rulesets.
-   Confirm the retained zero-approval/code-owner policy does not request a
-   self-approval from the sole code owner on an owner-authored PR. Do not enable
-   automation or silently remove review protections if that prerequisite fails.
-3. Set `OWNER_MERGE_RULESET_ID` to the new rule ID, then set
-   `OWNER_MERGE_MODE=strict`. Dispatch `owner-merge-queue.yml` and inspect the run.
+## Activation and rollback
+
+1. Create a GitHub App owned by `genfeedai` with webhooks off and the repository
+   permissions listed above. Install it on `genfeedai/genfeed.ai` only.
+2. Add repository secrets `GENFEED_BOT_CLIENT_ID` (the App's client ID) and
+   `GENFEED_BOT_PRIVATE_KEY` (a generated private key, PEM).
+3. Dispatch `owner-merge-queue.yml` and inspect the run.
 4. Observe a real branch update, fresh exact-head required checks, merge, and
    native master Full Suite/Master SHA Verdict before declaring rollout verified.
 
-To stop automatic mutations set `OWNER_MERGE_MODE=off`. Keep the stricter rule
-unless intentionally reverting the protection policy; removing it restores
-the earlier administrator-bypass and stale-base behavior. Do not enable native
+Pause one PR with the `hold-merge` label. To stop all automatic mutations,
+disable the workflow (`gh workflow disable owner-merge-queue.yml`) or suspend
+the App installation. If the ruleset is recreated, update `STRICT_RULESET_ID`
+from `scripts/ci/owner-merge-ruleset.json`'s new rule. Keep the stricter rule
+unless intentionally reverting the protection policy; removing it restores the
+earlier administrator-bypass and stale-base behavior. Do not enable native
 queue mode or replace external checks with synthetic successes.
 
 ## Timing evidence and limits

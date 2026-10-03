@@ -344,7 +344,6 @@ test('controller serializes expected-head mutations, revalidates, paginates and 
       mock = client(f, options);
     await reconcile({
       github: mock.github,
-      mode: 'strict',
       rulesetId: '123',
       log: () => {},
     });
@@ -365,19 +364,9 @@ test('controller serializes expected-head mutations, revalidates, paginates and 
   }
   const f = fixture(),
     mock = client(f);
-  await reconcile({ github: mock.github, mode: 'off', log: () => {} });
-  assert.equal(mock.calls.length, 0);
-  await assert.rejects(
-    reconcile({ github: mock.github, mode: 'queue' }),
-    /authentic group/,
-  );
-  await assert.rejects(
-    reconcile({ github: mock.github, mode: 'strict' }),
-    /ruleset ID/,
-  );
   f.rule.bypass_actors = [{ actor_id: 5 }];
   await assert.rejects(
-    reconcile({ github: mock.github, mode: 'strict', rulesetId: '123' }),
+    reconcile({ github: mock.github, rulesetId: '123' }),
     /not verified/,
   );
   assert.equal(
@@ -394,7 +383,6 @@ test('refuses unconfirmed merge responses', async () => {
   await assert.rejects(
     reconcile({
       github: mock.github,
-      mode: 'strict',
       rulesetId: '123',
       log: () => {},
     }),
@@ -406,7 +394,6 @@ test('refuses unconfirmed merge responses', async () => {
   await assert.rejects(
     reconcile({
       github: mock.github,
-      mode: 'strict',
       rulesetId: '123',
       log: () => {},
     }),
@@ -421,7 +408,6 @@ test('does not update a conflicting or unknown branch', async () => {
     const mock = client(f, { behind: true });
     await reconcile({
       github: mock.github,
-      mode: 'strict',
       rulesetId: '123',
       log: () => {},
     });
@@ -461,7 +447,6 @@ test('waits for an active current-base CI lane before updating another green beh
   for (let sweep = 0; sweep < 2; sweep++)
     await reconcile({
       github: mock.github,
-      mode: 'strict',
       rulesetId: '123',
       log: () => {},
     });
@@ -727,7 +712,6 @@ test('unstable metadata permits merging only when actual validation and review g
     const mock = client(f);
     await reconcile({
       github: mock.github,
-      mode: 'strict',
       rulesetId: '123',
       log: () => {},
     });
@@ -742,7 +726,6 @@ test('unstable metadata permits merging only when actual validation and review g
     const mock = client(f);
     await reconcile({
       github: mock.github,
-      mode: 'strict',
       rulesetId: '123',
       log: () => {},
     });
@@ -850,7 +833,6 @@ test('newer controller metadata cannot hide failing PR checks sharing its workfl
     const mock = client(f);
     await reconcile({
       github: mock.github,
-      mode: 'strict',
       rulesetId: '123',
       log: () => {},
     });
