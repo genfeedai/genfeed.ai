@@ -74,6 +74,10 @@ describe('committed synthetic golden fixtures', () => {
       for (const row of rows) {
         expect(row.source.visibility).toBe('synthetic');
         expect([...brandFixtureIds.values()]).toContain(row.brandFixtureId);
+        if (typeof row.input.output !== 'string')
+          throw new Error(
+            'Every synthetic fixture row must have a string output',
+          );
         expect(findResidualIdentifiers(row.input.output, context)).toEqual([]);
         expect(findResidualIdentifiers(row.input.prompt, context)).toEqual([]);
       }
