@@ -257,6 +257,8 @@ describe('PersonasController', () => {
   });
 
   describe('createFromSheet', () => {
+    const request = { headers: {} } as unknown as Request;
+
     it('creates a persona from an approved sheet', async () => {
       mockServiceMethods.createFromApprovedSheet.mockResolvedValue({
         handle: 'anna',
@@ -264,7 +266,7 @@ describe('PersonasController', () => {
         label: 'Anna',
       });
 
-      const result = await controller.createFromSheet(mockUser, {
+      const result = await controller.createFromSheet(request, mockUser, {
         assetId: testId('asset'),
         handle: 'anna',
         label: 'Anna',
@@ -275,7 +277,7 @@ describe('PersonasController', () => {
         apiKeyContext: mockUser,
         availability: undefined,
         brandId,
-        isSuperAdmin: undefined,
+        isSuperAdmin: false,
         handle: 'anna',
         label: 'Anna',
         organizationId,
@@ -392,7 +394,7 @@ describe('PersonasController', () => {
         mode: PersonaAvailabilityMode.SELECTED_BRANDS,
       };
 
-      await controller.createFromSheet(mockUser, {
+      await controller.createFromSheet(request, mockUser, {
         assetId: testId('asset'),
         availability,
         handle: 'anna',
@@ -416,7 +418,7 @@ describe('PersonasController', () => {
         apiKeyContext: mockUser,
         brandId,
         brandIds: undefined,
-        isSuperAdmin: undefined,
+        isSuperAdmin: false,
         mode: PersonaAvailabilityMode.ALL_BRANDS,
         organizationId,
         personaId,
@@ -475,7 +477,7 @@ describe('PersonasController', () => {
 
       expect(mockServiceMethods.assertCanManageSharing).toHaveBeenCalledWith({
         apiKeyContext: mockUser,
-        isSuperAdmin: undefined,
+        isSuperAdmin: false,
         organizationId,
         userId,
       });

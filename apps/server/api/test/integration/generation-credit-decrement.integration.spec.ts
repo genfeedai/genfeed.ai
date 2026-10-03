@@ -311,6 +311,12 @@ const createImageGenerationService = () => {
     imagesService as never,
     ingredientsService as never,
     loggerService,
+    {
+      resolveCharacterReferences: vi.fn().mockResolvedValue({
+        availableAvatarIds: new Set(),
+        personaId: null,
+      }),
+    } as never,
   );
 
   const service = new ImageGenerationService(

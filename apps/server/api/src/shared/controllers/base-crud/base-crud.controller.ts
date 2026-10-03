@@ -134,7 +134,7 @@ export abstract class BaseCRUDController<
     }
 
     const data = await this.service.findOne(
-      this.buildFindOneQuery(user, id),
+      this.buildFindOneQuery(user, id, request),
       this.getPopulateFields(),
     );
 
@@ -213,7 +213,7 @@ export abstract class BaseCRUDController<
       ErrorResponse.notFound(this.entityName, id);
     }
 
-    await this.assertPatchAllowed(user, existing, updateDto);
+    await this.assertPatchAllowed(user, existing, updateDto, request);
 
     // Add user context to create data
     const enrichedDto = await this.enrichUpdateDto(updateDto, user);
@@ -272,6 +272,7 @@ export abstract class BaseCRUDController<
     _user: User,
     _existing: T,
     _updateDto: Partial<UpdateDto>,
+    _request?: Request,
   ): Promise<void> | void {}
 
   /**
@@ -290,7 +291,7 @@ export abstract class BaseCRUDController<
 
     // Check ownership before deletion
     const existing = await this.service.findOne(
-      this.buildFindOneQuery(user, id),
+      this.buildFindOneQuery(user, id, request),
     );
     if (!existing) {
       ErrorResponse.notFound(this.entityName, id);
@@ -344,7 +345,11 @@ export abstract class BaseCRUDController<
    * runs no unknown-field audit. Soft deletes are safe to filter because
    * processSearchParams drops `isDeleted` for models without the field.
    */
-  public buildFindOneQuery(_user: User, id: string): Record<string, unknown> {
+  public buildFindOneQuery(
+    _user: User,
+    id: string,
+    _request?: Request,
+  ): Record<string, unknown> {
     return { id, isDeleted: false };
   }
 
