@@ -508,7 +508,7 @@ Always structure your prompt output as:
 
 ## Genfeed Integration
 
-- Use `generate_image` with the recommended model key from the platform's available models
+- Use `generate` with `type: image` and the recommended model key from the platform's available models
 - Reference model capabilities from MODEL_OUTPUT_CAPABILITIES for supported features
 - Aspect ratios should match platform constants from model-aspect-ratios
 - For PuLID workflows, ensure reference image is uploaded first via the asset pipeline
