@@ -736,7 +736,7 @@ describe('ScheduledPostDeliveryService', () => {
         status: 'attempting',
         workflowExecutionId: 'execution-1',
       }),
-      where: { ...receiptWhere, attemptToken: 'token-0' },
+      where: { ...receiptWhere, attemptToken: 'token-0', status: 'uncertain' },
     });
     expect(publish).toHaveBeenCalledTimes(1);
   });
@@ -822,7 +822,7 @@ describe('ScheduledPostDeliveryService', () => {
     expect(states).not.toContain(TargetExecutionState.FAILED);
   });
 
-  it('runs gates before reserving a fresh occurrence', async () => {
+  it('releases a fresh reservation when a pre-publish gate fails', async () => {
     const publish = mockSuccessfulPublisher(mocks);
     mocks.quotaService.checkQuota.mockResolvedValue({
       allowed: false,
@@ -833,9 +833,59 @@ describe('ScheduledPostDeliveryService', () => {
     await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
 
     expect(publish).not.toHaveBeenCalled();
-    expect(
-      mocks.prisma.postProviderPublishReceipt.create,
-    ).not.toHaveBeenCalled();
+    const receipts = mocks.prisma.postProviderPublishReceipt;
+    expect(receipts.create.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.quotaService.checkQuota.mock.invocationCallOrder[0],
+    );
+    expect(receipts.updateMany).toHaveBeenCalledWith({
+      data: { status: 'released' },
+      where: receiptWhere,
+    });
+  });
+
+  it('never fails the target while another delivery holds the occurrence', async () => {
+    mockSuccessfulPublisher(mocks);
+    mocks.quotaService.checkQuota.mockResolvedValue({
+      allowed: false,
+      currentCount: 10,
+      dailyLimit: 10,
+    });
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({
+        attemptStartedAt: new Date(),
+        workflowExecutionId: 'other',
+      }),
+    );
+
+    await expect(
+      executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep'),
+    ).rejects.toThrow('Another delivery is publishing this post occurrence.');
+    expect(mocks.quotaService.checkQuota).not.toHaveBeenCalled();
+    const states =
+      mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+        (call) => call[1].executionState,
+      );
+    expect(states).not.toContain(TargetExecutionState.FAILED);
+  });
+
+  it('persists an accepted occurrence when its recovery lookups fail', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.credentialsService.findOne.mockRejectedValue(
+      new Error('credential store unavailable'),
+    );
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ result: acceptedTweet, status: 'accepted' }),
+    );
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(publish).not.toHaveBeenCalled();
+    const states =
+      mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+        (call) => call[1].executionState,
+      );
+    expect(states).toContain(TargetExecutionState.PUBLISHED);
+    expect(states).not.toContain(TargetExecutionState.FAILED);
   });
 
   it('releases a taken-over attempt when a gate fails after its absence is confirmed', async () => {

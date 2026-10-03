@@ -183,36 +183,90 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     const ids = this.readDeliveryIds(post);
 
     try {
-      // A provider-accepted occurrence only needs its state persisted: no
-      // credential, readiness, quota or media gate may fail it.
-      const state = await inspectProviderPublishAttempt(this.prisma, post);
-      if (state.kind === 'replay') {
+      // Reserve the occurrence before any gate: only the holder of a fresh
+      // reservation may fail the target, so a gate can never race another
+      // delivery's provider call or fail an already-published post.
+      let attempt: ProviderPublishAttempt;
+      try {
+        attempt = await reserveProviderPublishAttempt(
+          this.prisma,
+          post,
+          workflowExecutionId,
+        );
+      } catch (error: unknown) {
+        if (error instanceof ProviderPublishInFlightError) throw error;
+        // Nothing reached the provider, so the normal retry path is safe.
+        return await this.handlePublishError(post, error, workflowExecutionId);
+      }
+      if (attempt.kind === 'in_flight') {
+        throw new ProviderPublishInFlightError(post.id.toString());
+      }
+      if (attempt.kind === 'replay') {
+        // Accepted by the provider: persist it without any credential or gate.
         return await this.persistAcceptedPublish(
           post,
-          state,
-          state.result,
-          await this.loadRecoveryDelivery(post, source, ids),
+          attempt,
+          attempt.result,
+          await this.loadRecoveryDelivery(post, source, ids, url),
           workflowExecutionId,
           url,
         );
       }
+      return await this.publishReservedAttempt(
+        post,
+        source,
+        ids,
+        attempt,
+        workflowExecutionId,
+        url,
+      );
+    } catch (error: unknown) {
+      if (
+        error instanceof ProviderPublishPersistenceError ||
+        error instanceof ProviderPublishInFlightError
+      )
+        throw error;
+      return await this.handlePublishError(post, error);
+    }
+  }
 
-      // A fresh occurrence runs the gates first; an unconfirmed earlier
-      // attempt is verified before any gate can fail a post that may have
-      // been published.
-      const isFresh = state.kind === 'none' || state.kind === 'released';
+  /**
+   * Gate and publish a reserved attempt. A fresh reservation is released on
+   * every exit before the provider call; an unconfirmed attempt is verified
+   * before any gate runs.
+   */
+  private async publishReservedAttempt(
+    post: PostEntity,
+    source: ScheduledPostWorkflowInput['source'],
+    ids: PostDeliveryIds,
+    attempt: Extract<
+      ProviderPublishAttempt,
+      { kind: 'publish' | 'unconfirmed' }
+    >,
+    workflowExecutionId: string,
+    url: string,
+  ): Promise<PublishResult> {
+    let held: ProviderPublishAttemptRef | null =
+      attempt.kind === 'publish' ? attempt : null;
+    const release = async (result: PublishResult): Promise<PublishResult> => {
+      if (held) await this.settleProviderAttempt(post, held, 'released', url);
+      return result;
+    };
+    try {
       const loaded = await this.loadPublishResources(post, ids, url);
       if (!loaded.ok) {
-        return loaded.result;
+        return await release(loaded.result);
       }
       const { credential, organization } = loaded.value;
-      const credentialGate = () =>
-        this.runCredentialGates(post, ids, credential, organization, url);
-      if (isFresh) {
-        const failure = await credentialGate();
-        if (failure) {
-          return failure;
-        }
+      if (held) {
+        const failure = await this.runCredentialGates(
+          post,
+          ids,
+          credential,
+          organization,
+          url,
+        );
+        if (failure) return await release(failure);
       }
 
       const prepared = await this.preparePublisherAndContext(
@@ -224,33 +278,76 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         url,
       );
       if (!prepared.ok) {
-        return prepared.result;
-      }
-      const contentGate = () =>
-        this.runContentGates(post, ids, prepared.value, url);
-      if (isFresh) {
-        const failure = await contentGate();
-        if (failure) {
-          return failure;
-        }
+        return await release(prepared.result);
       }
 
-      return await this.executeProviderPublish(
+      if (attempt.kind === 'unconfirmed') {
+        const resolved = await this.resolveUnconfirmedAttempt(
+          post,
+          prepared.value,
+          attempt,
+          workflowExecutionId,
+          url,
+        );
+        if (resolved.kind === 'in_flight') {
+          throw new ProviderPublishInFlightError(post.id.toString());
+        }
+        if (resolved.kind === 'unconfirmed') {
+          // The provider could not confirm the earlier outcome yet.
+          return await this.handlePublishError(
+            post,
+            new Error(
+              'Provider publish outcome is not confirmed yet (timeout)',
+            ),
+            workflowExecutionId,
+          );
+        }
+        if (resolved.kind === 'replay') {
+          return await this.persistAcceptedPublish(
+            post,
+            resolved,
+            resolved.result,
+            prepared.value,
+            workflowExecutionId,
+            url,
+          );
+        }
+        held = resolved;
+        const failure =
+          (await this.runCredentialGates(
+            post,
+            ids,
+            credential,
+            organization,
+            url,
+          )) ?? (await this.runContentGates(post, ids, prepared.value, url));
+        if (failure) return await release(failure);
+      } else {
+        const failure = await this.runContentGates(
+          post,
+          ids,
+          prepared.value,
+          url,
+        );
+        if (failure) return await release(failure);
+      }
+
+      const providerAttempt = held;
+      if (!providerAttempt) {
+        throw new Error('Provider publish requires a reserved attempt.');
+      }
+      held = null;
+      return await this.callProvider(
         post,
         prepared.value,
+        providerAttempt,
         workflowExecutionId,
         url,
-        isFresh
-          ? async () => null
-          : async () => (await credentialGate()) ?? contentGate(),
       );
     } catch (error: unknown) {
-      if (
-        error instanceof ProviderPublishPersistenceError ||
-        error instanceof ProviderPublishInFlightError
-      )
-        throw error;
-      return await this.handlePublishError(post, error);
+      // Still before the provider call: free the reservation for a retry.
+      await release(createFailedPublishResult('', getErrorMessage(error)));
+      throw error;
     }
   }
 
@@ -395,24 +492,33 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     post: PostEntity,
     source: ScheduledPostWorkflowInput['source'],
     ids: PostDeliveryIds,
+    url: string,
   ): Promise<PreparedPostDelivery | null> {
-    const credential = (await this.credentialsService.findOne({
-      id: ids.credentialId,
-      isDeleted: false,
-      ...(ids.organizationId ? { organizationId: ids.organizationId } : {}),
-    })) as CredentialDocument | null;
-    const organization = (await this.organizationsService.findOne({
-      id: ids.organizationId,
-      isDeleted: false,
-    })) as OrganizationDocument | null;
-    if (!credential || !organization) return null;
-    return this.buildPreparedDelivery(
-      post,
-      source,
-      ids,
-      credential,
-      organization,
-    );
+    try {
+      const credential = (await this.credentialsService.findOne({
+        id: ids.credentialId,
+        isDeleted: false,
+        ...(ids.organizationId ? { organizationId: ids.organizationId } : {}),
+      })) as CredentialDocument | null;
+      const organization = (await this.organizationsService.findOne({
+        id: ids.organizationId,
+        isDeleted: false,
+      })) as OrganizationDocument | null;
+      if (!credential || !organization) return null;
+      return this.buildPreparedDelivery(
+        post,
+        source,
+        ids,
+        credential,
+        organization,
+      );
+    } catch (error: unknown) {
+      this.logger.warn(`${url} recovery delivery context unavailable`, {
+        error: getErrorMessage(error),
+        postId: post.id.toString(),
+      });
+      return null;
+    }
   }
 
   private async loadCredential(
@@ -639,7 +745,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
   /**
    * Deterministic media readiness gate (#4878).
    *
-   * The last check before `executeProviderPublish`, so an asset that breaks
+   * The last check before `callProvider`, so an asset that breaks
    * the target platform's published media spec is reported as a channel
    * failure instead of bouncing back as a provider error. `warning`
    * diagnostics are recorded and let the publish proceed.
@@ -686,70 +792,13 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     );
   }
 
-  private async executeProviderPublish(
+  private async callProvider(
     post: PostEntity,
     prepared: PreparedPostDelivery,
+    attempt: ProviderPublishAttemptRef,
     workflowExecutionId: string,
     url: string,
-    runGates: () => Promise<PublishResult | null>,
   ): Promise<PublishResult> {
-    let attempt: ProviderPublishAttempt;
-    try {
-      attempt = await reserveProviderPublishAttempt(
-        this.prisma,
-        post,
-        workflowExecutionId,
-      );
-      if (attempt.kind === 'unconfirmed') {
-        attempt = await this.resolveUnconfirmedAttempt(
-          post,
-          prepared,
-          attempt,
-          workflowExecutionId,
-          url,
-        );
-      }
-    } catch (error: unknown) {
-      if (error instanceof ProviderPublishInFlightError) throw error;
-      // Nothing reached the provider, so the normal retry path is safe.
-      return await this.handlePublishError(post, error, workflowExecutionId);
-    }
-    if (attempt.kind === 'in_flight') {
-      throw new ProviderPublishInFlightError(post.id.toString());
-    }
-    if (attempt.kind === 'unconfirmed') {
-      // The provider could not confirm the earlier outcome yet: retry later.
-      return await this.handlePublishError(
-        post,
-        new Error('Provider publish outcome is not confirmed yet (timeout)'),
-        workflowExecutionId,
-      );
-    }
-    if (attempt.kind === 'replay') {
-      this.logger.warn(`${url} replaying recorded provider publish`, {
-        externalId: attempt.result.externalId,
-        postId: post.id.toString(),
-        receiptId: attempt.receiptId,
-      });
-      return this.persistAcceptedPublish(
-        post,
-        attempt,
-        attempt.result,
-        prepared,
-        workflowExecutionId,
-        url,
-      );
-    }
-
-    const gateFailure = await runGates().catch(async (error: unknown) => {
-      await this.settleProviderAttempt(post, attempt, 'released', url);
-      throw error;
-    });
-    if (gateFailure) {
-      await this.settleProviderAttempt(post, attempt, 'released', url);
-      return gateFailure;
-    }
-
     let result: PublishResult;
     try {
       result = await prepared.publisher.publish(prepared.context);

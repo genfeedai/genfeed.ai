@@ -209,7 +209,7 @@ export async function inspectProviderPublishAttempt(
 export async function claimProviderPublishAttempt(
   prisma: ReceiptClient,
   post: PostEntity,
-  observed: AttemptRef,
+  observed: AttemptRef & { status: ReceiptStatus },
   workflowExecutionId: string,
   now: Date = new Date(),
 ): Promise<AttemptRef | null> {
@@ -221,6 +221,9 @@ export async function claimProviderPublishAttempt(
       organizationId,
       postId,
       attemptToken: observed.attemptToken,
+      // An attempt accepted meanwhile keeps its token; the status check stops
+      // a stale takeover from erasing its result.
+      status: observed.status,
       isDeleted: false,
     },
     data: {
@@ -274,7 +277,7 @@ export async function reserveProviderPublishAttempt(
       const claimed = await claimProviderPublishAttempt(
         prisma,
         post,
-        state,
+        { ...state, status: 'released' },
         workflowExecutionId,
         now,
       );
