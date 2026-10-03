@@ -9,6 +9,7 @@ import type { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   FileInputType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import { BrandRemixAdPlatform } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
@@ -115,6 +116,7 @@ describe('BrandRemixSourceMediaService', () => {
       brandId: 'brand-1',
       category: IngredientCategory.VIDEO,
       organizationId: 'org-1',
+      origin: IngredientOrigin.IMPORTED,
       scope: 'USER',
       sourceActionId: 'remix-source:brand-1:saved_ad:saved-ad-1',
       status: IngredientStatus.PROCESSING,

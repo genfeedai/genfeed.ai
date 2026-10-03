@@ -1,10 +1,11 @@
-import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
+import type { IngredientServerCreate } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AssetScope,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -91,9 +92,10 @@ describe('IngredientsService', () => {
 
   describe('create', () => {
     it('should create an ingredient successfully', async () => {
-      const createDto: CreateIngredientDto = {
+      const createDto: IngredientServerCreate = {
         brandId,
         category: IngredientCategory.IMAGE,
+        origin: IngredientOrigin.GENERATED,
         status: IngredientStatus.PROCESSING,
       };
 
@@ -104,9 +106,10 @@ describe('IngredientsService', () => {
     });
 
     it('should handle creation errors', async () => {
-      const createDto: CreateIngredientDto = {
+      const createDto: IngredientServerCreate = {
         brandId,
         category: IngredientCategory.IMAGE,
+        origin: IngredientOrigin.GENERATED,
         status: IngredientStatus.PROCESSING,
       };
 
@@ -126,6 +129,7 @@ describe('IngredientsService', () => {
         generationPrompt: 'A boxer in a dark arena',
         generationSeed: 42,
         modelUsed: 'black-forest-labs/flux-schnell',
+        origin: IngredientOrigin.GENERATED,
         sources: [sourceId],
       });
 
@@ -139,6 +143,39 @@ describe('IngredientsService', () => {
           }),
         }),
       );
+    });
+  });
+
+  describe('origin', () => {
+    it.each([
+      IngredientOrigin.UPLOADED,
+      IngredientOrigin.GENERATED,
+      IngredientOrigin.IMPORTED,
+    ])('persists %s on create', async (origin) => {
+      await service.create({
+        category: IngredientCategory.IMAGE,
+        origin,
+        status: IngredientStatus.PROCESSING,
+      });
+
+      expect(ingredientDelegate.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ origin }),
+        }),
+      );
+    });
+
+    it('never writes origin on a patch, even when asked', async () => {
+      await service.patch(ingredientId, {
+        origin: IngredientOrigin.IMPORTED,
+        status: IngredientStatus.VALIDATED,
+      } as Parameters<IngredientsService['patch']>[1]);
+
+      const [{ data }] = ingredientDelegate.update.mock.calls[0] as [
+        { data: Record<string, unknown> },
+      ];
+      expect(data).not.toHaveProperty('origin');
+      expect(data).toHaveProperty('status');
     });
   });
 

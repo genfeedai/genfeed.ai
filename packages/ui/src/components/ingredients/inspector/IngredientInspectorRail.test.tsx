@@ -1,4 +1,4 @@
-import { IngredientCategory } from '@genfeedai/contracts';
+import { IngredientCategory, IngredientOrigin } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -160,5 +160,22 @@ describe('IngredientInspectorRail', () => {
       'asset-1',
     );
     expect(screen.getByTestId('lineage-used-in')).toHaveTextContent('asset-1');
+  });
+
+  it.each([
+    [IngredientOrigin.UPLOADED, 'Uploaded'],
+    [IngredientOrigin.GENERATED, 'Generated'],
+    [IngredientOrigin.IMPORTED, 'Imported'],
+  ])('labels a %s asset in the detail panel', (origin, label) => {
+    render(<IngredientInspectorRail ingredient={{ ...ingredient, origin }} />);
+
+    expect(screen.getByText('Origin')).toBeInTheDocument();
+    expect(screen.getByText(label)).toBeInTheDocument();
+  });
+
+  it('omits the origin row when the asset carries none', () => {
+    render(<IngredientInspectorRail ingredient={ingredient} />);
+
+    expect(screen.queryByText('Origin')).not.toBeInTheDocument();
   });
 });

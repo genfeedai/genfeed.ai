@@ -19,6 +19,7 @@ import {
 import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import IngredientOriginBadge from '@ui/ingredients/ingredient-origin-badge';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
@@ -214,6 +215,16 @@ export default function IngredientInspectorRail({
             <LibraryAssetTypeBadge category={ingredient.category} />
           </dd>
         </div>
+        {ingredient.origin ? (
+          <div className="flex items-baseline justify-between gap-3 py-1.5">
+            <dt className="shrink-0 text-2xs uppercase tracking-[0.12em] text-foreground/35">
+              {translate('origin')}
+            </dt>
+            <dd className="min-w-0">
+              <IngredientOriginBadge origin={ingredient.origin} />
+            </dd>
+          </div>
+        ) : null}
         <InspectorField label="Size" value={dimensions} />
         <InspectorField
           label="File"

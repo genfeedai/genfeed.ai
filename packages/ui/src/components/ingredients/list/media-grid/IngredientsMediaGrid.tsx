@@ -11,6 +11,7 @@ import type { IngredientsMediaGridProps } from '@genfeedai/props/content/ingredi
 import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
+import IngredientOriginBadge from '@ui/ingredients/ingredient-origin-badge';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
@@ -21,6 +22,10 @@ import IngredientTimeGroupHeading from './ingredient-time-group-heading';
 import { groupIngredientsByTime } from './ingredient-time-groups.util';
 
 const COLUMN_GAP = '4px';
+
+/** The origin label sits on every card and never intercepts a click. */
+const ORIGIN_BADGE_CLASS =
+  'pointer-events-none absolute bottom-1.5 left-1.5 z-10';
 
 function getColumnsConfig(format?: IngredientFormat): {
   mobile: number;
@@ -181,6 +186,10 @@ export default function IngredientsMediaGrid({
             onPortraitVideo={onConvertToPortrait}
             onGenerateCaptions={onGenerateCaptions}
           />
+          <IngredientOriginBadge
+            className={ORIGIN_BADGE_CLASS}
+            origin={ingredient.origin}
+          />
         </div>
       );
     }
@@ -208,6 +217,10 @@ export default function IngredientsMediaGrid({
           onToggleSelection={onToggleSelection}
           onScopeChange={onScopeChange}
           onConvertToVideo={onConvertToVideo}
+        />
+        <IngredientOriginBadge
+          className={ORIGIN_BADGE_CLASS}
+          origin={ingredient.origin}
         />
       </div>
     );

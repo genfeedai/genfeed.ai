@@ -2395,9 +2395,11 @@
     "browser": {
       "toolbar": {
         "canvas": "Canvas",
+        "clearOriginFilter": "Clear origin filter",
         "clearTypeFilter": "Clear type filter",
         "contactSheet": "Contact sheet",
         "list": "List",
+        "origin": "Origin",
         "sortAria": "Sort",
         "type": "Type",
         "upload": "Upload"
@@ -2409,6 +2411,7 @@
       "lineageError": "This could not be loaded right now.",
       "madeFrom": "Made from",
       "openPreview": "Open full-size preview",
+      "origin": "Origin",
       "showMore": "Show more",
       "surface": "Library",
       "type": "Type",

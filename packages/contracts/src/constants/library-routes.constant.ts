@@ -1,4 +1,4 @@
-import type { IngredientCategory, LibraryShelf } from '..';
+import type { IngredientCategory, IngredientOrigin, LibraryShelf } from '..';
 
 import { APP_ROUTES } from './routes.constant';
 
@@ -8,6 +8,11 @@ export const LIBRARY_QUERY_KEYS = {
   CATEGORIES: 'categories',
   /** Folder axis. Absent means "any folder"; the Unsorted shelf means "none". */
   FOLDER: 'folder',
+  /**
+   * Repeated key — the origin filter (`?origins=UPLOADED&origins=IMPORTED`).
+   * A filter beside type, shelf and folder, never a navigation destination.
+   */
+  ORIGINS: 'origins',
   PLACE: 'place',
   SHELF: 'shelf',
   SEARCH: 'search',
@@ -23,6 +28,7 @@ export type LibraryViewMode = (typeof LIBRARY_VIEW_MODES)[number];
 export interface LibraryBrowserRouteOptions {
   categories?: readonly IngredientCategory[];
   folderId?: string;
+  origins?: readonly IngredientOrigin[];
   search?: string;
   view?: LibraryViewMode;
 }
@@ -44,7 +50,13 @@ export function createLibraryShelfRoute(shelf: LibraryShelf): string {
  */
 export function createLibraryBrowserRoute(
   route: string = APP_ROUTES.LIBRARY.ASSETS,
-  { categories, folderId, search, view }: LibraryBrowserRouteOptions = {},
+  {
+    categories,
+    folderId,
+    origins,
+    search,
+    view,
+  }: LibraryBrowserRouteOptions = {},
 ): string {
   const [pathname, existingSearch = ''] = route.split('?');
   const params = new URLSearchParams(existingSearch);
@@ -52,6 +64,12 @@ export function createLibraryBrowserRoute(
 
   for (const category of categories ?? []) {
     params.append(LIBRARY_QUERY_KEYS.CATEGORIES, category);
+  }
+
+  if (origins) params.delete(LIBRARY_QUERY_KEYS.ORIGINS);
+
+  for (const origin of origins ?? []) {
+    params.append(LIBRARY_QUERY_KEYS.ORIGINS, origin);
   }
 
   if (folderId) {

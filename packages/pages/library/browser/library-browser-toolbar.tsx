@@ -4,6 +4,9 @@ import {
   ButtonSize,
   ButtonVariant,
   ComponentSize,
+  INGREDIENT_ORIGIN_LABELS,
+  INGREDIENT_ORIGIN_ORDER,
+  parseIngredientOrigin,
   ViewType,
 } from '@genfeedai/contracts';
 import {
@@ -79,19 +82,28 @@ const TYPE_OPTIONS = LIBRARY_TYPE_CHIPS.map((chip) => ({
   value: chip.id,
 }));
 
+const ORIGIN_OPTIONS = INGREDIENT_ORIGIN_ORDER.map((origin) => ({
+  label: INGREDIENT_ORIGIN_LABELS[origin],
+  value: origin,
+}));
+
 /**
- * The Library's control plane: the type axis as a multi-select dropdown, plus
- * search, sort and density. The shelf and folder axes are *not* here — a shelf
- * is the route and a folder is the sidebar, so putting either in this row would
- * re-collapse the three axes the redesign just separated.
+ * The Library's control plane: the type and origin filters as multi-select
+ * dropdowns, plus search, sort and density. The shelf and folder axes are *not*
+ * here — a shelf is the route and a folder is the sidebar, so putting either in
+ * this row would re-collapse the three axes the redesign just separated. Origin
+ * is a filter like type, not a destination: it never gets a nav entry.
  */
 export default function LibraryBrowserToolbar({
   categories,
+  origins,
   sort,
   sortOptions,
   viewMode,
   onCategoriesChange,
   onClearCategories,
+  onClearOrigins,
+  onOriginsChange,
   onSortChange,
   onViewModeChange,
 }: Omit<
@@ -100,6 +112,7 @@ export default function LibraryBrowserToolbar({
 >) {
   const translate = useTranslations('pages.library.browser.toolbar');
   const hasTypeFilter = categories.length > 0;
+  const hasOriginFilter = origins.length > 0;
   const selectedTypeIds = selectedAssetTypeIds(categories);
   const isCanvasEnabled = useFeatureFlag(LIBRARY_CANVAS_FEATURE_FLAG);
 
@@ -138,6 +151,39 @@ export default function LibraryBrowserToolbar({
             icon={<X className="size-3.5" />}
             onClick={onClearCategories}
             tooltip={translate('clearTypeFilter')}
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
+          />
+        ) : null}
+      </div>
+
+      <div className="flex min-w-0 items-center gap-1.5">
+        <DropdownMultiSelect
+          className={cn(
+            fieldControlClassName,
+            fieldControlTriggerClassName,
+            'w-32',
+          )}
+          name="origins"
+          onChange={(_name, values) => {
+            onOriginsChange(
+              values.flatMap((value) => {
+                const origin = parseIngredientOrigin(value);
+                return origin ? [origin] : [];
+              }),
+            );
+          }}
+          options={ORIGIN_OPTIONS}
+          placeholder={translate('origin')}
+          values={origins}
+        />
+
+        {hasOriginFilter ? (
+          <Button
+            className="h-7 rounded-full px-2 text-xs text-foreground/50 hover:text-foreground"
+            icon={<X className="size-3.5" />}
+            onClick={onClearOrigins}
+            tooltip={translate('clearOriginFilter')}
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
           />

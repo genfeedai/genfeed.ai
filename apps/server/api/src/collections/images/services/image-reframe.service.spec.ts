@@ -18,6 +18,7 @@ import {
   ActivityKey,
   ActivitySource,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
@@ -221,6 +222,7 @@ describe('ImageReframeService', () => {
       }),
     );
     expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(user, {
+      origin: IngredientOrigin.GENERATED,
       brandId: parent.brandId,
       category: CategoryPrismaUtil.toIngredientCategory(
         IngredientCategory.IMAGE,

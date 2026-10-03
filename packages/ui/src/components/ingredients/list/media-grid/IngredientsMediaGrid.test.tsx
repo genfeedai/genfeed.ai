@@ -1,4 +1,8 @@
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  IngredientOrigin,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
@@ -80,6 +84,36 @@ describe('IngredientsMediaGrid', () => {
 
     expect(screen.getByTestId('image-tile-image-1')).toBeInTheDocument();
     expect(screen.getByTestId('video-tile-video-1')).toBeInTheDocument();
+  });
+
+  it('labels every card with its origin in words, never intercepting a click', () => {
+    render(
+      <IngredientsMediaGrid
+        {...baseProps}
+        items={[
+          { ...items[0], origin: IngredientOrigin.UPLOADED },
+          { ...items[1], origin: IngredientOrigin.GENERATED },
+        ]}
+      />,
+    );
+
+    const uploaded = screen.getByText('Uploaded');
+    const generated = screen.getByText('Generated');
+    expect(uploaded.parentElement).toContainElement(
+      screen.getByTestId('image-tile-image-1'),
+    );
+    expect(generated.parentElement).toContainElement(
+      screen.getByTestId('video-tile-video-1'),
+    );
+    expect(uploaded).toHaveClass('pointer-events-none');
+    expect(generated).toHaveClass('pointer-events-none');
+  });
+
+  it('adds no label to a legacy card that has no origin yet', () => {
+    render(<IngredientsMediaGrid {...baseProps} items={items} />);
+
+    expect(screen.queryByText('Uploaded')).not.toBeInTheDocument();
+    expect(screen.queryByText('Generated')).not.toBeInTheDocument();
   });
 
   it('deals tiles across columns left to right so newest-first order reads across', () => {

@@ -351,6 +351,21 @@ describe('IngredientsListContent', () => {
     ).not.toBeNull();
   });
 
+  it('shows the origin of every list row in its own column', () => {
+    renderContent({
+      filteredIngredients: [
+        { ...videoIngredient, origin: 'IMPORTED' } as unknown as IIngredient,
+      ],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+    });
+
+    expect(
+      screen.getByRole('columnheader', { name: 'Origin' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Imported')).toBeInTheDocument();
+  });
+
   it('falls back to a video placeholder when there is no poster', () => {
     renderContent({
       filteredIngredients: [

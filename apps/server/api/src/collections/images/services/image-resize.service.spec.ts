@@ -8,6 +8,7 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   FileInputType,
   IngredientCategory,
+  IngredientOrigin,
   IngredientStatus,
   MetadataExtension,
   TransformationCategory,
@@ -101,6 +102,7 @@ describe('ImageResizeService', () => {
       userId: user.userId,
     });
     expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(user, {
+      origin: IngredientOrigin.GENERATED,
       brandId: user.brandId,
       category: CategoryPrismaUtil.toIngredientCategory(
         IngredientCategory.IMAGE,

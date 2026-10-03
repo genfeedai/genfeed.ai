@@ -1,4 +1,4 @@
-import { IngredientCategory } from '@genfeedai/contracts';
+import { IngredientCategory, IngredientOrigin } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -103,7 +103,10 @@ function renderToolbar(
       categories={[]}
       onCategoriesChange={vi.fn()}
       onClearCategories={vi.fn()}
+      onClearOrigins={vi.fn()}
+      onOriginsChange={vi.fn()}
       onSortChange={vi.fn()}
+      origins={[]}
       onViewModeChange={vi.fn()}
       sort="createdAt: -1"
       sortOptions={[{ label: 'Newest first', value: 'createdAt: -1' }]}
@@ -126,7 +129,10 @@ describe('LibraryBrowserToolbar', () => {
         categories={[IngredientCategory.VIDEO, IngredientCategory.VIDEO_EDIT]}
         onCategoriesChange={onCategoriesChange}
         onClearCategories={vi.fn()}
+        onClearOrigins={vi.fn()}
+        onOriginsChange={vi.fn()}
         onSortChange={vi.fn()}
+        origins={[]}
         onViewModeChange={vi.fn()}
         sort="createdAt: -1"
         sortOptions={[{ label: 'Newest first', value: 'createdAt: -1' }]}
@@ -152,6 +158,64 @@ describe('LibraryBrowserToolbar', () => {
       IngredientCategory.VIDEO,
       IngredientCategory.VIDEO_EDIT,
     ]);
+  });
+
+  it('filters origin from its own multi-select, beside type', () => {
+    const onOriginsChange = vi.fn();
+
+    renderToolbar({
+      onOriginsChange,
+      origins: [IngredientOrigin.UPLOADED],
+    });
+
+    expect(screen.getByText('Origin')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Uploaded' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Generated' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Imported' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Imported' }));
+
+    expect(onOriginsChange).toHaveBeenCalledWith([
+      IngredientOrigin.UPLOADED,
+      IngredientOrigin.IMPORTED,
+    ]);
+  });
+
+  it('keeps origin out of the type filter and clears only itself', () => {
+    const onClearOrigins = vi.fn();
+    const onClearCategories = vi.fn();
+
+    renderToolbar({
+      onClearCategories,
+      onClearOrigins,
+      origins: [IngredientOrigin.GENERATED],
+    });
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Clear origin filter' }),
+    );
+
+    expect(onClearOrigins).toHaveBeenCalledOnce();
+    expect(onClearCategories).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('button', { name: 'Clear type filter' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides the clear control when no origin is selected', () => {
+    renderToolbar();
+
+    expect(
+      screen.queryByRole('button', { name: 'Clear origin filter' }),
+    ).not.toBeInTheDocument();
   });
 
   it('groups Refresh and Upload for the shared ghost action slot', () => {

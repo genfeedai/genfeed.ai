@@ -1,6 +1,22 @@
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
+import { IngredientOrigin } from '@genfeedai/contracts';
 
 describe('IngredientFilterUtil', () => {
+  describe('buildOriginFilter', () => {
+    it('matches any of the requested origins', () => {
+      expect(
+        IngredientFilterUtil.buildOriginFilter([
+          IngredientOrigin.UPLOADED,
+          IngredientOrigin.IMPORTED,
+        ]),
+      ).toEqual({ origin: { in: ['UPLOADED', 'IMPORTED'] } });
+    });
+
+    it.each([undefined, []])('adds no predicate for %p', (origins) => {
+      expect(IngredientFilterUtil.buildOriginFilter(origins)).toEqual({});
+    });
+  });
+
   describe('buildParentFilter', () => {
     it('should filter root ingredients when parent is null', () => {
       const result = IngredientFilterUtil.buildParentFilter(null);

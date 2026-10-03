@@ -41,6 +41,7 @@ vi.mock('@api/helpers/utils/collection-filter/collection-filter.util', () => ({
 vi.mock('@api/helpers/utils/ingredient-filter/ingredient-filter.util', () => ({
   IngredientFilterUtil: {
     buildFolderFilter: vi.fn(() => ({})),
+    buildOriginFilter: vi.fn(() => ({})),
     buildParentFilter: vi.fn(() => ({})),
     buildTrainingFilter: vi.fn(() => ({})),
   },
@@ -53,6 +54,7 @@ import type { ImagesQueryDto } from '@api/collections/images/dto/images-query.dt
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -246,6 +248,31 @@ describe('ImagesController', () => {
         IngredientSerializer,
         expect.objectContaining({ docs: [mockImage] }),
       );
+    });
+  });
+
+  describe('findAll origin filter', () => {
+    it('narrows the whole list, brand-default images included', async () => {
+      const originFilter = { origin: { in: ['UPLOADED'] } };
+      vi.mocked(IngredientFilterUtil.buildOriginFilter).mockReturnValueOnce(
+        originFilter,
+      );
+      const query = {
+        limit: 10,
+        origins: ['UPLOADED'],
+        page: 1,
+      } as unknown as ImagesQueryDto;
+
+      await controller.findAll(mockRequest, mockUser, query);
+
+      expect(IngredientFilterUtil.buildOriginFilter).toHaveBeenCalledWith([
+        'UPLOADED',
+      ]);
+      const aggregate = imagesService.findAll.mock.calls[0][0] as {
+        where: { AND: unknown[] };
+      };
+      // A sibling of the OR (user-owned | brand defaults), not inside one branch.
+      expect(aggregate.where.AND).toContainEqual(originFilter);
     });
   });
 
