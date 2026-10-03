@@ -59,6 +59,7 @@ vi.mock('fs', () => ({
 
 import * as fs from 'node:fs';
 import { Readable } from 'node:stream';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 function asyncIterableOf(chunks: Buffer[]) {
@@ -428,6 +429,47 @@ describe('S3Service', () => {
         publicUrl: 'https://cdn.example.com/videos/new.mp4',
         uploadUrl: 'https://s3.amazonaws.com/presigned-upload',
       });
+    });
+
+    it('signs the declared content length into the upload command', async () => {
+      (getSignedUrl as Mock).mockResolvedValue('https://s3/presigned');
+
+      await service.getPresignedUploadUrl(
+        'videos/new.mp4',
+        'video/mp4',
+        3600,
+        2048,
+      );
+
+      expect(PutObjectCommand).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          ContentLength: 2048,
+          ContentType: 'video/mp4',
+        }),
+      );
+    });
+
+    it('signs the content-type header so the allowlist binds the PUT', async () => {
+      (getSignedUrl as Mock).mockResolvedValue('https://s3/presigned');
+
+      await service.getPresignedUploadUrl('videos/new.mp4', 'video/mp4');
+
+      expect(getSignedUrl).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          signableHeaders: new Set(['content-type']),
+        }),
+      );
+    });
+
+    it('omits the content length when none is declared', async () => {
+      (getSignedUrl as Mock).mockResolvedValue('https://s3/presigned');
+
+      await service.getPresignedUploadUrl('videos/new.mp4', 'video/mp4');
+
+      const input = (PutObjectCommand as unknown as Mock).mock.lastCall?.[0];
+      expect(input).not.toHaveProperty('ContentLength');
     });
 
     it('logs and rethrows when signing fails', async () => {

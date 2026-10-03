@@ -590,6 +590,7 @@ export class FilesClientService {
     type: string,
     contentType: string = 'application/octet-stream',
     _expiresIn: number = 3600,
+    contentLength?: number,
   ): Promise<{
     uploadMethod?: 'POST_JSON' | 'PUT';
     uploadUrl: string;
@@ -613,6 +614,7 @@ export class FilesClientService {
         this.httpService.post(
           `${this.filesServiceUrl}/v1/files/presigned-upload`,
           {
+            ...(contentLength !== undefined ? { contentLength } : {}),
             contentType,
             filename: key,
             type,

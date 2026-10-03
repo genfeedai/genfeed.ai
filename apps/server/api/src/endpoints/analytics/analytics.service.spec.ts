@@ -418,6 +418,8 @@ describe('AnalyticsService', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].label).toBe('Top Video');
+      expect(result[0].description).toBe('Best performing');
+      expect(result[0].brandName).toBe('Brand A');
       expect(result[0].totalViews).toBe(10000);
       // genfeedai/genfeed.ai#5424: Prisma label in, domain id out.
       expect(result[0].platform).toBe(CredentialPlatform.YOUTUBE);
@@ -434,6 +436,76 @@ describe('AnalyticsService', () => {
       );
 
       expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
+    });
+
+    it('retains original unfiltered joins and bound analytics scope', async () => {
+      const queries = captureQueryRawCalls();
+      await service.getTopContent(
+        '2026-01-01',
+        '2026-01-31',
+        7,
+        AnalyticsMetric.VIEWS,
+        'brand',
+        CredentialPlatform.TWITTER,
+        'org',
+      );
+      expect(queries[0].sql).toContain(
+        'LEFT JOIN "posts" p ON p.id = pa."postId"',
+      );
+      expect(queries[0].sql).toContain(
+        'LEFT JOIN "brands" b ON b.id = pa."brandId"',
+      );
+      expect(queries[0].sql).not.toContain('p."organizationId"');
+      expect(queries[0].sql).not.toContain('b."organizationId"');
+      expect(queries[0].sql).not.toContain('p."isDeleted"');
+      expect(queries[0].sql).not.toContain('b."isDeleted"');
+      expect(queries[0].sql).not.toContain('p.source');
+      expect(queries[0].sql).toContain('pa."isDeleted" = false');
+      expect(queries[0].values).toEqual(
+        expect.arrayContaining([
+          'brand',
+          'TWITTER',
+          'org',
+          7,
+          expect.any(Date),
+        ]),
+      );
+    });
+
+    it('binds source on the canonical tenant-matched active Post join', async () => {
+      const queries = captureQueryRawCalls();
+      await service.getTopContent(
+        undefined,
+        undefined,
+        10,
+        AnalyticsMetric.VIEWS,
+        'brand',
+        CredentialPlatform.TWITTER,
+        'org',
+        'extension',
+      );
+      expect(queries[0].sql).toContain('INNER JOIN "posts"');
+      expect(queries[0].sql).toContain('INNER JOIN "brands"');
+      expect(queries[0].sql).toContain(
+        'b."organizationId" = pa."organizationId"',
+      );
+      expect(queries[0].sql).toContain('b."isDeleted" = false');
+      expect(queries[0].values).toEqual(
+        expect.arrayContaining([
+          'brand',
+          'TWITTER',
+          'org',
+          10,
+          expect.any(Date),
+        ]),
+      );
+      expect(queries[0].sql).toContain('p.source = ?');
+      expect(queries[0].values).toContain('extension');
+      expect(queries[0].sql).toContain(
+        'p."organizationId" = pa."organizationId"',
+      );
+      expect(queries[0].sql).toContain('p."brandId" = pa."brandId"');
+      expect(queries[0].sql).toContain('p."isDeleted" = false');
     });
 
     it('should enforce max limit of 100', async () => {

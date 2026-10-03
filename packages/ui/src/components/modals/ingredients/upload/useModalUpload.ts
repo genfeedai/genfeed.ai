@@ -103,6 +103,7 @@ export function useModalUpload({
     cancelDimensionProbeRef.current = null;
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: isOpen/openKey intentionally reset the probe whenever the modal opens or re-opens
   useEffect(() => {
     cancelDimensionProbe();
     setDimensionWarning(null);
@@ -477,6 +478,7 @@ export function useModalUpload({
               selectedFile.name,
               selectedFile.type,
               category,
+              selectedFile.size,
             );
             await mediaService.uploadDirectToS3(
               selectedFile,

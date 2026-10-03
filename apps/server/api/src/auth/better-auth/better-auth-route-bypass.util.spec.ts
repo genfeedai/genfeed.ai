@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { shouldBypassBetterAuthHandler } from './better-auth-route-bypass.util';
+import {
+  isBetterAuthAdminPath,
+  shouldBypassBetterAuthHandler,
+} from './better-auth-route-bypass.util';
 
 describe('shouldBypassBetterAuthHandler', () => {
   it.each([
@@ -35,4 +38,24 @@ describe('shouldBypassBetterAuthHandler', () => {
   ])('keeps Better Auth route ownership for %s %s', (method, path) => {
     expect(shouldBypassBetterAuthHandler(method, path)).toBe(false);
   });
+});
+
+describe('isBetterAuthAdminPath', () => {
+  it.each([
+    '/admin',
+    '/admin/impersonate-user',
+    '/admin/set-role/',
+    '//admin//impersonate-user',
+    '/ADMIN/Impersonate-User',
+    'admin/list-users?limit=1',
+  ])('treats %s as an admin plugin path', (path) => {
+    expect(isBetterAuthAdminPath(path)).toBe(true);
+  });
+
+  it.each(['/session', '/administrator', '/sign-in/magic-link', '/'])(
+    'leaves %s alone',
+    (path) => {
+      expect(isBetterAuthAdminPath(path)).toBe(false);
+    },
+  );
 });

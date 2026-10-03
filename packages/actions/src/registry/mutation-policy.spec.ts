@@ -37,6 +37,16 @@ const MCP_QUEUED_WRITES = [
 ] as const;
 
 describe('mutation policy map', () => {
+  it('creates brands directly and reads scan status without mutation', () => {
+    expect(getToolByName('create_brand_from_url')).toMatchObject({
+      creditCost: 1,
+      mutationPolicy: 'direct',
+    });
+    expect(getToolByName('get_brand_scan_status')).toMatchObject({
+      creditCost: 0,
+    });
+    expect(toolRequiresMutationPolicy('get_brand_scan_status')).toBe(false);
+  });
   it('opens existing videos in the Editor as a free direct write', () => {
     expect(getToolByName('open_in_editor')).toMatchObject({
       creditCost: 0,
@@ -235,5 +245,22 @@ describe('evaluateMutationPolicy', () => {
         policy: 'direct',
       }),
     ).toEqual({ kind: 'execute' });
+  });
+});
+
+it('records external publication directly', () => {
+  expect(getDeclaredMutationPolicy('record_external_publication')).toBe(
+    'direct',
+  );
+});
+
+it('declares account recovery a free direct mutation', () => {
+  expect(
+    getDeclaredMutationPolicy('link_external_publication_credential'),
+  ).toBe('direct');
+  expect(getToolByName('link_external_publication_credential')).toMatchObject({
+    creditCost: 0,
+    mutationPolicy: 'direct',
+    toolset: 'content',
   });
 });

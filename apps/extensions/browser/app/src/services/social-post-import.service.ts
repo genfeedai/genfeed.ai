@@ -8,8 +8,12 @@ import type {
   ImportedSourcePost,
   SocialPostImportOutcome,
 } from '~models/imported-source-post.model';
-import { authService } from '~services/auth.service';
-import { apiEndpoint, appDomain } from '~services/environment.service';
+import { appDomain } from '~services/environment.service';
+import {
+  assertWorkspace,
+  requireWorkspace,
+  scopedWorkspaceRequest,
+} from '~services/workspace.service';
 
 export const UNSUPPORTED_POST_URL_MESSAGE =
   'URL is not a recognizable X, Instagram, or TikTok post link';
@@ -79,19 +83,30 @@ async function requestImportApi(
   fallback: string,
   body?: unknown,
 ): Promise<unknown> {
-  const token = await authService.getToken();
-  if (!token) {
-    throw new SocialPostImportError('Not authenticated');
-  }
-  const response = await fetch(`${apiEndpoint}${path}`, {
-    body: body ? JSON.stringify(body) : undefined,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+  const workspace = await requireWorkspace();
+  const url = new URL(path, appDomain);
+  const requestedBrand =
+    url.searchParams.get('brandId') ??
+    (url.pathname.startsWith('/brands/')
+      ? decodeURIComponent(url.pathname.split('/')[2])
+      : null);
+  if (requestedBrand && requestedBrand !== workspace.brandId)
+    throw new SocialPostImportError(
+      'Select the original brand before importing or opening this post.',
+    );
+  const response = await scopedWorkspaceRequest(
+    path,
+    {
+      body: body ? JSON.stringify(body) : undefined,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      method,
     },
-    method,
-  });
+    workspace,
+  );
   const payload = await readBody(response);
+  assertWorkspace(workspace);
   if (response.status === 401) {
     throw new SocialPostImportError('Not authenticated');
   }

@@ -4,6 +4,17 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-tool-workflow-definition';
 
 describe('agent tool workflow definitions', () => {
+  it('derives the recording workflow from its catalog entry', () => {
+    const definition = findAgentToolWorkflowDefinition(
+      'record_external_publication',
+    );
+    expect(definition.canonicalId).toBe(
+      'agent.tool.record_external_publication',
+    );
+    expect(definition.definition.nodes[0]?.data.config.actionId).toBe(
+      'record_external_publication',
+    );
+  });
   it('materializes one immutable registered graph for every workflow-enabled tool', () => {
     const canonicalIds = AGENT_TOOL_WORKFLOW_DEFINITIONS.map(
       (definition) => definition.canonicalId,

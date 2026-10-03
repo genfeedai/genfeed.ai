@@ -82,6 +82,10 @@ export const PAGE_MARKETING_ASSETS = {
     alt: 'Photoreal refined creative studio set with an unmarked camera, a cinema light and coral still-life scene ready to shoot, deep black surroundings and warm light',
     src: cdnAsset('/assets/branding/website/editorial/page-studio-v1.webp'),
   },
+  '/turbo': {
+    alt: 'Photoreal refined creative studio set with an unmarked camera, a cinema light and coral still-life scene ready to shoot, deep black surroundings and warm light',
+    src: cdnAsset('/assets/branding/website/editorial/page-studio-v1.webp'),
+  },
   '/tools': {
     alt: 'A precision brushed-aluminum creative tool chest opened on a black workbench, camera lens, microphone and tactile media frames fitted into distinct compartments',
     src: cdnAsset('/assets/branding/website/editorial/page-tools-v1.webp'),

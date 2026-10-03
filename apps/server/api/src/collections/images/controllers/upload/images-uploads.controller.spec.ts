@@ -477,6 +477,7 @@ describe('ImagesUploadsController', () => {
         category: IngredientCategory.IMAGE,
         contentType: 'image/jpeg',
         filename: 'test.jpg',
+        sizeBytes: 2048,
       };
 
       const mockResult = {
@@ -498,6 +499,9 @@ describe('ImagesUploadsController', () => {
       );
 
       expect(result).toBeDefined();
+      expect(
+        mockServices.presignedUploadService.getPresignedUploadUrl,
+      ).toHaveBeenCalledWith(mockUser, body);
     });
   });
 

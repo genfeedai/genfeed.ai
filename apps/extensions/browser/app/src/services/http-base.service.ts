@@ -1,21 +1,89 @@
+import type { ExtensionWorkspaceSnapshot } from '@genfeedai/contracts/interfaces';
 import axios, {
-  type AxiosError,
+  AxiosError,
   type AxiosInstance,
   type InternalAxiosRequestConfig,
 } from 'axios';
+import {
+  assertWorkspace,
+  requireWorkspace,
+  scopedWorkspaceRequest,
+} from '~services/workspace.service';
 import { logger } from '~utils/logger.util';
 import { ServiceInstanceManager } from '~utils/service-instance-manager.util';
+
+const REQUEST_TIMEOUT_MS = 30_000;
 
 export abstract class HTTPBaseService {
   protected instance: AxiosInstance;
   protected token: string;
   protected readonly baseURL: string;
+  private workspace: ExtensionWorkspaceSnapshot | null = null;
   private abortController: AbortController | null = null;
 
   public constructor(baseURL: string, token: string) {
     this.baseURL = baseURL;
     this.instance = axios.create({
       baseURL,
+      adapter: async (config) => {
+        const workspace = this.workspace ?? (await requireWorkspace());
+        this.workspace = workspace;
+        assertWorkspace(workspace);
+        const url = this.instance.getUri(config);
+        // Axios applies `timeout` only inside its built-in adapters, so this
+        // custom adapter must enforce it itself.
+        const timeoutMs = config.timeout || REQUEST_TIMEOUT_MS;
+        const timeoutSignal = AbortSignal.timeout(timeoutMs);
+        const cancelSignal = this.abortController?.signal;
+        let response: Response;
+        let text: string;
+        try {
+          response = await scopedWorkspaceRequest(
+            url,
+            {
+              method: config.method?.toUpperCase(),
+              headers: config.headers.toJSON() as Record<string, string>,
+              body: config.data,
+              signal: cancelSignal
+                ? AbortSignal.any([cancelSignal, timeoutSignal])
+                : timeoutSignal,
+            },
+            workspace,
+          );
+          text = await response.text();
+        } catch (error) {
+          if (timeoutSignal.aborted && !cancelSignal?.aborted)
+            throw new AxiosError(
+              `timeout of ${timeoutMs}ms exceeded`,
+              AxiosError.ECONNABORTED,
+              config,
+            );
+          throw error;
+        }
+        assertWorkspace(workspace);
+        let data: unknown = text;
+        try {
+          data = text ? JSON.parse(text) : null;
+        } catch {
+          /* Preserve text error responses. */
+        }
+        const result = {
+          data,
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers),
+          config,
+        };
+        if (!response.ok)
+          throw new AxiosError(
+            `Request failed with status code ${response.status}`,
+            undefined,
+            config,
+            undefined,
+            result,
+          );
+        return result;
+      },
       paramsSerializer: (params) => {
         const searchParams = new URLSearchParams();
         for (const [key, value] of Object.entries(params)) {
@@ -38,7 +106,7 @@ export abstract class HTTPBaseService {
 
         return searchParams.toString();
       },
-      timeout: 30_000,
+      timeout: REQUEST_TIMEOUT_MS,
     });
 
     this.token = token;
@@ -96,8 +164,6 @@ export abstract class HTTPBaseService {
   };
 
   private handleRequest = (config: InternalAxiosRequestConfig) => {
-    config.headers.Authorization = `Bearer ${this.token}`;
-
     if (!this.abortController) {
       this.abortController = new AbortController();
     }
@@ -107,6 +173,7 @@ export abstract class HTTPBaseService {
   };
 
   private handleError = (error: AxiosError) => {
+    if (!(error instanceof AxiosError)) throw error;
     if (
       error.code === 'ERR_CANCELED' ||
       error.message === 'canceled' ||

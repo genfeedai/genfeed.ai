@@ -1,7 +1,10 @@
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
-import { ANALYTICS_TENANT_FORBIDDEN } from '@api/endpoints/analytics/analytics-tenant-scope';
+import {
+  ANALYTICS_TENANT_FORBIDDEN,
+  buildTopContentAnalyticsCacheKey,
+} from '@api/endpoints/analytics/analytics-tenant-scope';
 import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import {
   AnalyticsDateRangeDto,
@@ -273,6 +276,17 @@ describe('AnalyticsController', () => {
       expect(result).toBeDefined();
     });
 
+    it('forwards the exact persisted source independently of analytics ingestion', async () => {
+      analyticsService.getTopContent.mockResolvedValueOnce([]);
+      await controller.getTopContent(mockRequest.user as never, mockRequest, {
+        brandId: 'brand_1',
+        source: 'extension',
+      } as TopContentQueryDto);
+      expect(analyticsService.getTopContent.mock.calls[0].at(-1)).toBe(
+        'extension',
+      );
+    });
+
     it('should return top content', async () => {
       analyticsService.getTopContent.mockResolvedValueOnce([]);
 
@@ -299,6 +313,7 @@ describe('AnalyticsController', () => {
         'brand_1',
         'twitter',
         'org_123',
+        undefined,
       );
       expect(result).toBeDefined();
     });
@@ -668,5 +683,15 @@ describe('AnalyticsController', () => {
       ).rejects.toEqual(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
       expect(analyticsExportService.exportData).not.toHaveBeenCalled();
     });
+  });
+});
+
+it('uses the exact extracted top-content key in actual Cache metadata', () => {
+  expect(
+    Reflect.getMetadata('cache', AnalyticsController.prototype.getTopContent),
+  ).toMatchObject({
+    keyGenerator: buildTopContentAnalyticsCacheKey,
+    tags: ['analytics', 'top-content'],
+    ttl: 300,
   });
 });

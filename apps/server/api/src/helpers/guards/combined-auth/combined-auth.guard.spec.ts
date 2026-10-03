@@ -12,7 +12,15 @@ import {
 } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import { of } from 'rxjs';
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 const mockedMode = vi.hoisted(() => ({
   betterAuthEnabled: true,
@@ -102,9 +110,12 @@ describe('CombinedAuthGuard', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   afterAll(() => {
     mockedMode.betterAuthEnabled = true;
-    vi.unstubAllEnvs();
   });
 
   it('is defined', () => {
@@ -430,7 +441,7 @@ describe('CombinedAuthGuard', () => {
     expect(requestContextMiddleware.hydrate).toHaveBeenCalledWith(mockRequest);
   });
 
-  it('leaves an already hydrated request.context untouched', async () => {
+  it('re-runs hydrate on an already hydrated request so the admin IP binding reaches request.user', async () => {
     const existingContext = { organizationId: 'org_1', userId: 'user_1' };
     const mockRequest: { headers: object; user?: object; context: object } = {
       context: existingContext,
@@ -446,7 +457,7 @@ describe('CombinedAuthGuard', () => {
 
     await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
 
-    expect(requestContextMiddleware.hydrate).not.toHaveBeenCalled();
+    expect(requestContextMiddleware.hydrate).toHaveBeenCalledWith(mockRequest);
     expect(mockRequest.context).toBe(existingContext);
   });
 
@@ -596,9 +607,15 @@ describe('CombinedAuthGuard', () => {
   });
 
   it('injects default local identity in local mode', async () => {
+    vi.stubEnv('ADMIN_ALLOWED_IPS', '127.0.0.1');
     guard = await instantiateGuard('local');
-    const mockRequest: { user?: Record<string, unknown>; headers: object } = {
+    const mockRequest: {
+      user?: Record<string, unknown>;
+      headers: object;
+      ip: string;
+    } = {
       headers: {},
+      ip: '127.0.0.1',
     };
     (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
       mockRequest,
@@ -615,6 +632,28 @@ describe('CombinedAuthGuard', () => {
         organizationId: 'org_1',
         userId: 'user_1',
       }),
+    );
+  });
+
+  it('injects the local identity without super-admin outside ADMIN_ALLOWED_IPS', async () => {
+    vi.stubEnv('ADMIN_ALLOWED_IPS', '127.0.0.1');
+    guard = await instantiateGuard('local');
+    const mockRequest: {
+      user?: Record<string, unknown>;
+      headers: object;
+      ip: string;
+    } = {
+      headers: {},
+      ip: '198.51.100.9',
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+
+    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+
+    expect(mockRequest.user).toEqual(
+      expect.objectContaining({ id: 'user_1', isSuperAdmin: false }),
     );
   });
 

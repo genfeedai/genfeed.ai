@@ -342,8 +342,23 @@ export class FilesStorageController {
   @Post('presigned-upload')
   async getPresignedUploadUrl(
     @Body()
-    body: { filename: string; contentType: string; type: string },
+    body: {
+      filename: string;
+      contentType: string;
+      type: string;
+      contentLength?: number;
+    },
   ) {
+    if (
+      body.contentLength !== undefined &&
+      (!Number.isSafeInteger(body.contentLength) || body.contentLength <= 0)
+    ) {
+      throw new HttpException(
+        'contentLength must be a positive integer',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     try {
       const key = this.s3Service.generateS3Key(body.type, body.filename);
 
@@ -352,6 +367,7 @@ export class FilesStorageController {
           key,
           body.contentType,
           3600, // 1 hour expiry
+          body.contentLength,
         );
 
       return {

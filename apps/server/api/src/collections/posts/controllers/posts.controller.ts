@@ -234,6 +234,8 @@ export class PostsController extends BaseCRUDController<
       }
     }
 
+    if (query.source) matchFilter.source = query.source;
+
     if (query.platform) {
       matchFilter.platform = query.platform;
     }

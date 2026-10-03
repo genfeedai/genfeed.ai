@@ -15,6 +15,7 @@ import { SignupPrefillModule } from '@api/services/signup-prefill/signup-prefill
 import { SystemEventsModule } from '@api/services/system-events/system-events.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
+import { envFlag, isSelfHostedDeployment } from '@genfeedai/config';
 import { ConfigService } from '@libs/config/config.service';
 // Value import: consumed through the `inject` array below, not just as a type.
 import { LoggerService } from '@libs/logger/logger.service';
@@ -33,7 +34,10 @@ import {
   createBetterAuthInstance,
 } from './better-auth.factory';
 import { BetterAuthService } from './better-auth.service';
-import { resolveIsEmailVerificationEnforced } from './better-auth-email-verification.util';
+import {
+  listMissingMailerSettings,
+  resolveIsEmailVerificationEnforced,
+} from './better-auth-email-verification.util';
 import { buildRedisRateLimitStore } from './better-auth-rate-limit.util';
 import { UserProvisioningListener } from './listeners/user-provisioning.listener';
 import { BetterAuthStrategy } from './passport/better-auth.strategy';
@@ -123,6 +127,26 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
           PORT: config.get('PORT'),
         });
 
+        // A mailer is optional only for self-hosted installs or when a developer
+        // opts out explicitly. Hosted deployments fail closed (#5888).
+        const isMailerOptional = () =>
+          isSelfHostedDeployment() ||
+          envFlag(config.get('ALLOW_EMAIL_VERIFICATION_WITHOUT_MAILER'));
+        const missingMailerSettings = listMissingMailerSettings({
+          GENFEEDAI_API_KEY: config.get('GENFEEDAI_API_KEY'),
+          GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL: config.get(
+            'GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL',
+          ),
+        });
+        if (!isMailerOptional() && missingMailerSettings.length > 0) {
+          logger.error(
+            `Email verification cannot deliver mail: ${missingMailerSettings.join(', ')} not set on a hosted deployment. Verification stays required and new email/password accounts cannot verify until this is fixed.`,
+            undefined,
+            { service: 'better-auth-email-verification' },
+          );
+        }
+        let lastMailerMissingLogMs = 0;
+
         // Isolated Redis KV for rate-limit counters (#1186) — its own logical DB
         // (or dedicated instance) so a queue backlog or cache-invalidation storm
         // can't add latency to the hot auth path. Fails open — a Redis outage
@@ -172,6 +196,19 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
             resolveIsEmailVerificationEnforced({
               isMailerConfigured: () =>
                 notifications.isEmailDeliveryConfigured(),
+              isMailerOptional,
+              onMailerMissing: () => {
+                const nowMs = Date.now();
+                if (nowMs - lastMailerMissingLogMs < 60_000) {
+                  return;
+                }
+                lastMailerMissingLogMs = nowMs;
+                logger.error(
+                  'Email verification is required but no mailer is configured on this hosted deployment: failing closed. Set GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL, GENFEEDAI_API_KEY and an email provider on the notifications service.',
+                  undefined,
+                  { service: 'better-auth-email-verification' },
+                );
+              },
               isRequired: async () =>
                 (await platformSettings.getFeatureSettings())
                   .isEmailVerificationRequired,

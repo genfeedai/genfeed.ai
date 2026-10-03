@@ -328,17 +328,26 @@ export class S3Service {
     key: string,
     contentType: string = 'application/octet-stream',
     expiresIn: number = 3600,
+    contentLength?: number,
   ): Promise<{ uploadUrl: string; publicUrl: string }> {
     const safeKey = assertSafeObjectKey(key, createBadRequest);
     try {
       const command = new PutObjectCommand({
         Bucket: this.bucket,
+        // Signed into the URL: S3 rejects a PUT whose body length differs.
+        ...(contentLength !== undefined
+          ? { ContentLength: contentLength }
+          : {}),
         ContentType: contentType,
         Key: safeKey,
       });
 
       const uploadUrl = await getSignedUrl(this.s3Client, command, {
         expiresIn,
+        // The presigner leaves content-type unsigned by default, which would
+        // let a client request an allowed type and PUT any other. Content-Length
+        // is already signed whenever it is set on the command.
+        signableHeaders: new Set(['content-type']),
       });
 
       const publicUrl = this.getPublicUrl(safeKey);

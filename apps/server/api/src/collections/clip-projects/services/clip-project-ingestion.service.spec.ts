@@ -1,4 +1,5 @@
 import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import { MAX_CLIP_SOURCE_SIZE_BYTES } from '@api/collections/clip-projects/dto/prepare-clip-upload.dto';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import type { ClipAnalysisWorkflowQueueService } from '@api/collections/clip-projects/services/clip-analysis-workflow-queue.service';
 import type { ClipFactoryWorkflowQueueService } from '@api/collections/clip-projects/services/clip-factory-workflow-queue.service';
@@ -584,6 +585,14 @@ describe('ClipProjectIngestionService', () => {
       sizeBytes: 4_000_000_000,
     });
 
+    expect(presignedUploadService.getPresignedUploadUrl).toHaveBeenCalledWith(
+      currentUser,
+      expect.objectContaining({
+        contentType: 'video/mp4',
+        sizeBytes: 4_000_000_000,
+      }),
+      { maxBytes: MAX_CLIP_SOURCE_SIZE_BYTES },
+    );
     expect(clipProjectsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         organizationId: 'org-1',
@@ -659,6 +668,7 @@ describe('ClipProjectIngestionService', () => {
     expect(presignedUploadService.confirmUpload).toHaveBeenCalledWith(
       currentUser,
       'ingredient-1',
+      { maxBytes: MAX_CLIP_SOURCE_SIZE_BYTES },
     );
     expect(clipAnalysisWorkflowQueue.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -2,6 +2,7 @@
 
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import type { ContentLibraryPickerProps } from '@genfeedai/props/agent/content-library-picker.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
@@ -14,24 +15,9 @@ import {
 import FormSearchbar from '@ui/primitives/searchbar';
 import { FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
-import {
-  type ReactElement,
-  type ReactNode,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { type ReactElement, useEffect, useMemo, useState } from 'react';
 
-export interface ContentLibraryPickerProps {
-  isOpen: boolean;
-  isLoading?: boolean;
-  items?: readonly ContentMentionItem[];
-  selectedIds?: ReadonlySet<string>;
-  /** Brand Knowledge grounding, shown above the content grid. */
-  knowledgeSection?: ReactNode;
-  onOpenChange: (open: boolean) => void;
-  onSelect: (item: ContentMentionItem) => void;
-}
+export type { ContentLibraryPickerProps } from '@genfeedai/props/agent/content-library-picker.props';
 
 const EMPTY_ITEMS: readonly ContentMentionItem[] = [];
 
@@ -49,14 +35,20 @@ function contentTypeIcon(contentType: string): ReactElement {
 
 export function ContentLibraryPicker({
   isOpen,
+  title = 'Reference library content',
+  description = 'Pick posts or assets to attach as visual references, and choose the brand knowledge that grounds your message.',
+  footer,
   isLoading = false,
   items = EMPTY_ITEMS,
   selectedIds,
   knowledgeSection,
   onOpenChange,
   onSelect,
+  ...search
 }: ContentLibraryPickerProps): ReactElement {
-  const [query, setQuery] = useState('');
+  const [localQuery, setQuery] = useState('');
+  const query =
+    search.searchMode === 'remote' ? search.searchQuery : localQuery;
 
   useEffect(() => {
     if (!isOpen) {
@@ -65,6 +57,7 @@ export function ContentLibraryPicker({
   }, [isOpen]);
 
   const filteredItems = useMemo(() => {
+    if (search.searchMode === 'remote') return items;
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) {
       return items;
@@ -75,17 +68,14 @@ export function ContentLibraryPicker({
         item.contentTitle.toLowerCase().includes(normalizedQuery) ||
         item.contentType.toLowerCase().includes(normalizedQuery),
     );
-  }, [items, query]);
+  }, [items, query, search.searchMode]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[min(80dvh,560px)] w-full max-w-lg flex-col gap-0 overflow-hidden border-border bg-popover p-0">
         <DialogHeader className="border-b border-border px-4 py-3">
-          <DialogTitle>Reference library content</DialogTitle>
-          <DialogDescription>
-            Pick posts or assets to attach as visual references, and choose the
-            brand knowledge that grounds your message.
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         {knowledgeSection ? (
@@ -97,8 +87,16 @@ export function ContentLibraryPicker({
         <div className="border-b border-border px-4 py-3">
           <FormSearchbar
             ariaLabel="Search library content"
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by title or type…"
+            onChange={(event) =>
+              search.searchMode === 'remote'
+                ? search.onSearchQueryChange(event.target.value)
+                : setQuery(event.target.value)
+            }
+            placeholder={
+              search.searchMode === 'remote'
+                ? 'Search your Library…'
+                : 'Search by title or type…'
+            }
             size={ComponentSize.SM}
             value={query}
           />
@@ -116,7 +114,8 @@ export function ContentLibraryPicker({
             </p>
           ) : filteredItems.length === 0 ? (
             <p className="px-2 py-8 text-center text-sm text-muted-foreground">
-              {items.length === 0
+              {items.length === 0 &&
+              !(search.searchMode === 'remote' && query.trim())
                 ? 'No library content available yet.'
                 : 'No matching content.'}
             </p>
@@ -174,6 +173,9 @@ export function ContentLibraryPicker({
             </div>
           )}
         </div>
+        {footer ? (
+          <div className="border-t border-border px-4 py-3">{footer}</div>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

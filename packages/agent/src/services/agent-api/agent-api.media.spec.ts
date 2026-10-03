@@ -362,6 +362,35 @@ class FakeXMLHttpRequest {
 describe('uploadAttachment', () => {
   const realXhr = global.XMLHttpRequest;
 
+  it.each([
+    ['clip.mp4', 'video/mp4', 'VIDEO'],
+    ['song.mp3', 'audio/mpeg', 'AUDIO'],
+    ['photo.heic', 'image/heic', 'IMAGE'],
+  ])('presigns %s as the %s category', async (name, type, category) => {
+    global.XMLHttpRequest =
+      FakeXMLHttpRequest as unknown as typeof XMLHttpRequest;
+    mockOk({
+      data: {
+        attributes: {
+          publicUrl: 'https://cdn.test/x',
+          uploadUrl: 'https://s3.test/upload',
+        },
+        id: 'ing-2',
+      },
+    });
+    mockOk({ ok: true });
+
+    try {
+      await uploadAttachment(makeApi(), new File(['x'], name, { type }));
+    } finally {
+      global.XMLHttpRequest = realXhr;
+    }
+
+    expect(JSON.parse(mockFetch.mock.calls[0]?.[1]?.body as string)).toEqual(
+      expect.objectContaining({ category, contentType: type }),
+    );
+  });
+
   beforeEach(() => {
     mockFetch.mockReset();
     FakeXMLHttpRequest.instances = [];
@@ -393,6 +422,12 @@ describe('uploadAttachment', () => {
     expect(result).toEqual({
       ingredientId: 'ing-1',
       url: 'https://cdn.test/image.png',
+    });
+    expect(JSON.parse(mockFetch.mock.calls[0]?.[1]?.body as string)).toEqual({
+      category: 'IMAGE',
+      contentType: 'image/png',
+      filename: 'image.png',
+      sizeBytes: 6,
     });
     expect(FakeXMLHttpRequest.instances[0]?.url).toBe('https://s3.test/upload');
     expect(onProgress).toHaveBeenCalledWith(50);

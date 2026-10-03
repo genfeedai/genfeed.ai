@@ -1,4 +1,5 @@
 import {
+  assertApiKeyAgentPublishingScope,
   assertApiKeyPublishingScope,
   isPublishingMcpApprovalTool,
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
@@ -6,6 +7,32 @@ import { ApiKeyScope } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
 
 describe('API key publishing scope policy', () => {
+  it.each([ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE])(
+    'accepts %s for recording without publish capability',
+    (scope) => {
+      expect(() =>
+        assertApiKeyAgentPublishingScope(
+          { isApiKey: true, scopes: [scope] },
+          'record_external_publication',
+          {},
+        ),
+      ).not.toThrow();
+    },
+  );
+  it.each([
+    { scopes: [] },
+    { scopes: [ApiKeyScope.ANALYTICS_READ] },
+    { scopes: [ApiKeyScope.POSTS_PUBLISH] },
+    { scopes: [ApiKeyScope.POSTS_SCHEDULE] },
+  ])('rejects recording without draft capability: %j', ({ scopes }) => {
+    expect(() =>
+      assertApiKeyAgentPublishingScope(
+        { isApiKey: true, scopes },
+        'record_external_publication',
+        {},
+      ),
+    ).toThrow(ForbiddenException);
+  });
   it('accepts the canonical draft scope', () => {
     expect(() =>
       assertApiKeyPublishingScope(
@@ -88,5 +115,34 @@ describe('API key publishing scope policy', () => {
     expect(isPublishingMcpApprovalTool('create_article')).toBe(false);
     expect(isPublishingMcpApprovalTool('generate_image')).toBe(false);
     expect(isPublishingMcpApprovalTool('schedule_post')).toBe(false);
+  });
+});
+
+describe('publication credential link API-key policy', () => {
+  it.each([ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE])(
+    'accepts %s for linking without publish capability',
+    (scope) => {
+      expect(() =>
+        assertApiKeyAgentPublishingScope(
+          { isApiKey: true, scopes: [scope] },
+          'link_external_publication_credential',
+          {},
+        ),
+      ).not.toThrow();
+    },
+  );
+  it.each([
+    { scopes: [] },
+    { scopes: [ApiKeyScope.ANALYTICS_READ] },
+    { scopes: [ApiKeyScope.POSTS_PUBLISH] },
+    { scopes: [ApiKeyScope.POSTS_SCHEDULE] },
+  ])('rejects linking without draft capability: %j', ({ scopes }) => {
+    expect(() =>
+      assertApiKeyAgentPublishingScope(
+        { isApiKey: true, scopes },
+        'link_external_publication_credential',
+        {},
+      ),
+    ).toThrow(ForbiddenException);
   });
 });

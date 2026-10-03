@@ -332,7 +332,6 @@ export interface IEnvConfig {
    */
   APIFY_MAX_RUNS_PER_DAY?: string;
   APIFY_MAX_RUNS_PER_HOUR?: string;
-  APIFY_MAX_BILLING_PERIOD_USD?: string;
   APIFY_MAX_TOTAL_CHARGE_USD_PER_RUN?: string;
   DISCORD_PUBLIC_KEY?: string;
   THREADS_REDIRECT_URI?: string;
@@ -347,6 +346,8 @@ export interface IEnvConfig {
   TELEGRAM_BOT_MODE?: string;
   TELEGRAM_ALLOWED_USER_IDS?: string;
   RESEND_API_KEY?: string;
+  /** Explicit dev opt-out: hosted-mode API may enforce email verification without a mailer. */
+  ALLOW_EMAIL_VERIFICATION_WITHOUT_MAILER?: string;
   RESEND_WEBHOOK_SECRET?: string;
   TWITCH_CLIENT_ID?: string;
   API_BASE_URL?: string;

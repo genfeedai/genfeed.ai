@@ -147,6 +147,23 @@ configuration. Codex reads the named environment variable. Do not paste credenti
 into chats, commits, or shared logs. Inspect and update an existing Genfeed server
 entry before switching authentication methods; preserve unrelated servers.
 
+## Create a brand from a URL
+
+Organization owners and admins can call `create_brand_from_url` with an HTTP or
+HTTPS `url`, an optional `label`, and optional `approve` (default `false`). A
+successful scan costs one credit and returns the brand id, revision id, draft or
+approved revision status, completeness score, incomplete fields, and `reviewUrl`.
+Review the guide at that URL before generating content. Set `approve: true` only
+when you want to approve the guide in the same call.
+
+URL checks time out after eight seconds and reject blocked destinations before
+creating a brand. If processing takes more than twenty seconds after creation,
+the response includes `brandId`, `reviewUrl`, and `scanStatus: running`. Poll
+`get_brand_scan_status` with that `brandId` for the current guide and completeness.
+A failed scan keeps the brand and releases its reserved credit. If voice analysis
+is unavailable, the completed response includes `voiceAnalysis: unavailable`.
+Both tools are available in the `brand` toolset and in agent chat.
+
 ## Social accounts, brand scope, and media
 
 Use `list_brands` then pass `brandId` into generation and connection tools. Genfeed
@@ -282,7 +299,7 @@ https://mcp.genfeed.ai/mcp?toolsets=content,generation,analytics,brand,scheduler
 | `workflows` | Workflow creation, execution, scheduling, and template management. |
 | `analytics` | Performance, content, video, and LinkedIn analytics plus trend discovery. |
 | `social-inbox` | Social conversation triage: replies, approvals, direct messages, and account activity. |
-| `brand` | Brand identity, completeness, publishing readiness, the brand interview flow, and the `get_brand_context` snapshot. |
+| `brand` | `create_brand_from_url`, `get_brand_scan_status`, brand identity, completeness, publishing readiness, the brand interview flow, and the `get_brand_context` snapshot. |
 | `ads` | Meta, Google, and TikTok ad account, campaign, and insight tools. |
 | `inspiration` | Instagram and TikTok inspiration and top-performer discovery. |
 | `clips` | Clip project creation, analysis, and highlight extraction from source video. |

@@ -27,6 +27,15 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
+export const DEFAULT_BRAND_VOICE_ANALYSIS = {
+  audience: 'General audience',
+  hashtags: [],
+  taglines: [],
+  tone: 'Professional',
+  values: [],
+  voice: 'Friendly and informative',
+};
+
 /**
  * System prompts for generating brand master prompts
  */
@@ -133,15 +142,7 @@ export class MasterPromptGeneratorService {
         throw error;
       }
 
-      // Return default values on failure
-      return {
-        audience: 'General audience',
-        hashtags: [],
-        taglines: [],
-        tone: 'Professional',
-        values: [],
-        voice: 'Friendly and informative',
-      };
+      return structuredClone(DEFAULT_BRAND_VOICE_ANALYSIS);
     }
   }
 

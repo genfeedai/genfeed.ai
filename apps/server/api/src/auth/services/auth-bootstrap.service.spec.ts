@@ -196,6 +196,41 @@ describe('AuthBootstrapService', () => {
     expect(accessBootstrapCacheService.set).not.toHaveBeenCalled();
   });
 
+  it('judges super-admin on the current request, not the cached payload', async () => {
+    const cached = {
+      access: {
+        brandId: 'brand_1',
+        creditsBalance: 0,
+        hasEverHadCredits: false,
+        isOnboardingCompleted: true,
+        isSuperAdmin: true,
+        organizationId: 'org_1',
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
+        subscriptionTier: SubscriptionTier.PRO,
+        userId: 'user_1',
+      },
+      brands: [],
+      currentUser: { id: 'user_1' } as never,
+      fleetCapabilities: null,
+      settings: null,
+      streak: null,
+    } as unknown as AccessBootstrapCachePayload;
+    accessBootstrapCacheService.get.mockResolvedValue(cached);
+    mockGetIsSuperAdmin.mockReturnValue(false);
+
+    const result = await service.getBootstrap({
+      context: {
+        isSuperAdmin: false,
+        organizationId: 'org_1',
+        userId: 'user_1',
+      },
+      user: { id: 'user_1', isSuperAdmin: false },
+    } as never);
+
+    expect(result.access.isSuperAdmin).toBe(false);
+    expect(cached.access.isSuperAdmin).toBe(true);
+  });
+
   it('normalizes stale cached bootstrap fleet capabilities', async () => {
     const cached: AccessBootstrapCachePayload = {
       access: {

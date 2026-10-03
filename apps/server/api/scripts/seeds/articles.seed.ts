@@ -759,6 +759,34 @@ export async function runArticlesSeed(): Promise<void> {
     );
 
     for (const article of SEO_ARTICLES) {
+      // Platform slugs win: a published article from another organization that
+      // holds this slug would shadow the canonical page and block the unique
+      // index (#5904), so archive it before publishing ours.
+      const shadowWhere = {
+        isDeleted: false,
+        organizationId: { not: owner.organizationId },
+        slug: article.slug,
+        status: ArticleStatus.PUBLISHED,
+      };
+      if (args.dryRun) {
+        const shadows = await prisma.article.count({ where: shadowWhere });
+        if (shadows > 0) {
+          logger.warn(
+            `[DRY RUN] would archive ${shadows} foreign published article(s) shadowing ${article.slug}`,
+          );
+        }
+      } else {
+        const { count } = await prisma.article.updateMany({
+          data: { status: ArticleStatus.ARCHIVED },
+          where: shadowWhere,
+        });
+        if (count > 0) {
+          logger.warn(
+            `Archived ${count} foreign published article(s) shadowing ${article.slug}`,
+          );
+        }
+      }
+
       const existing = await prisma.article.findFirst({
         select: { brandId: true, id: true, publishedAt: true },
         where: {

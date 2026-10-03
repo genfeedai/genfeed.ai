@@ -497,6 +497,7 @@ describe('actual upload service transport delegation and completion', () => {
           'phone.heic',
           'image/heic',
           IngredientCategory.IMAGE,
+          expect.any(Number),
         );
         expect(boundary.servicePost).toHaveBeenCalledWith(
           'upload/confirm/ingress-id',
@@ -569,6 +570,7 @@ describe('actual upload service transport delegation and completion', () => {
       'Phone.heif',
       'image/heif',
       IngredientCategory.IMAGE,
+      expect.any(Number),
     );
     expect(boundary.put.mock.calls[0][1]).toMatchObject({
       name: 'Phone.heif',

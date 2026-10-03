@@ -6,6 +6,7 @@ describe('useSettingsStore theme preference', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useSettingsStore.setState({
+      recordOwnPublications: true,
       autoFill: false,
       autoPost: false,
       isLoaded: false,
@@ -57,6 +58,7 @@ describe('useSettingsStore theme preference', () => {
         autoFill: true,
         autoPost: false,
         theme: 'dark',
+        recordOwnPublications: true,
       },
     });
   });
@@ -91,4 +93,35 @@ describe('useSettingsStore theme preference', () => {
 
     expect(useSettingsStore.getState().theme).toBe('light');
   });
+});
+
+it('defaults recording on while preserving explicitfalse and unrelated writes', async () => {
+  const store = useSettingsStore.getState();
+  store.applyStoredSettings({ recordOwnPublications: false });
+  store.setAutoFill(true);
+  store.setAutoPost(false);
+  store.setTheme('light');
+  store.applyAccountTheme('dark');
+  expect(useSettingsStore.getState().recordOwnPublications).toBe(false);
+  expect(chrome.storage.local.set).toHaveBeenLastCalledWith({
+    'genfeed-settings': expect.objectContaining({
+      recordOwnPublications: false,
+    }),
+  });
+  store.applyStoredSettings({ recordOwnPublications: 'invalid' });
+  expect(useSettingsStore.getState().recordOwnPublications).toBe(true);
+});
+it('late storage hydration cannot overwrite a newer recording preference', async () => {
+  let finish!: (value: Record<string, unknown>) => void;
+  vi.mocked(chrome.storage.local.get).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const pending = useSettingsStore.getState().loadSettings();
+  useSettingsStore.getState().setRecordOwnPublications(false);
+  finish({ 'genfeed-settings': { recordOwnPublications: true } });
+  await pending;
+  expect(useSettingsStore.getState().recordOwnPublications).toBe(false);
 });

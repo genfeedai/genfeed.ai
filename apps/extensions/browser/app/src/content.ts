@@ -1,3 +1,7 @@
+import {
+  attachXPublicationObserver,
+  isXPublicationPage,
+} from '~platforms/x-publication-observer';
 // Multi-platform content script for Genfeed Extension
 
 import {
@@ -25,6 +29,7 @@ const DEBOUNCE_DELAY_MS = 300;
 const NAVIGATION_DELAY_MS = 100;
 const TOAST_DURATION_MS = 3200;
 
+let stopPublicationObserver: (() => void) | null = null;
 let currentPlatform: PlatformConfig | null = null;
 let observer: MutationObserver | null = null;
 let injectTimeout: NodeJS.Timeout | null = null;
@@ -184,7 +189,19 @@ function cleanup(): void {
   // They'll be replaced when new buttons are injected
 }
 
+function synchronizePublicationObserver(): void {
+  if (isXPublicationPage(location.href)) {
+    if (!stopPublicationObserver)
+      stopPublicationObserver = attachXPublicationObserver();
+  } else if (stopPublicationObserver) {
+    stopPublicationObserver();
+    stopPublicationObserver = null;
+  }
+}
+
 function checkAndReinitialize(): void {
+  window.dispatchEvent(new Event('genfeed-publication-navigation'));
+  synchronizePublicationObserver();
   const newPlatform = getCurrentPlatform();
   // Re-initialize if platform changed or if we need to re-check
   if (newPlatform !== currentPlatform) {
@@ -196,6 +213,7 @@ function checkAndReinitialize(): void {
 
 function setupNavigationListeners(): void {
   window.addEventListener('popstate', () => {
+    synchronizePublicationObserver();
     setTimeout(checkAndReinitialize, NAVIGATION_DELAY_MS);
   });
 
@@ -373,6 +391,16 @@ document.addEventListener('keydown', (event: KeyboardEvent) => {
 });
 
 // Initial setup
+synchronizePublicationObserver();
+window.addEventListener('pagehide', () => {
+  stopPublicationObserver?.();
+  stopPublicationObserver = null;
+});
+// A page restored from the back/forward cache keeps its content script alive
+// but pagehide already detached the observer.
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) synchronizePublicationObserver();
+});
 watchContentTheme();
 setupNavigationListeners();
 initializePlatformIntegration();
