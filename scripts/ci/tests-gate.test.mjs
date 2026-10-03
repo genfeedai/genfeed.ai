@@ -289,9 +289,9 @@ test('keeps the workflow contract stable', () => {
 
   assert.match(workflow, /^ {2}tests-gate:\n/m);
   assert.match(workflow, /^ {4}name: Tests Gate\n/m);
-  // Ready pull requests and the master Full Suite (`push`, inherited through
-  // workflow_call) reach a conclusive gate (#2510), as do merge groups; drafts and the release
-  // path (workflow_dispatch) do not.
+  // Ready pull requests and merge groups reach a conclusive gate. The `push`
+  // arm is dormant (the Full Suite no longer runs on master pushes); drafts and
+  // the Full Suite dispatch/release path (workflow_dispatch) do not.
   assert.match(
     workflow,
     /^ {4}if: >-\n {6}\$\{\{ always\(\)\n {6}&& !github\.event\.pull_request\.draft\n {6}&& \(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group' \|\| github\.event_name == 'push'\) \}\}\n/m,

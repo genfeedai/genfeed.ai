@@ -133,7 +133,7 @@ against two providers:
 The spec asserts the behaviour in the table below.
 
 The PR tier runs the spec through Vitest `--changed` whenever a gate module it
-imports changes. The Full Suite runs it on every push to `master`.
+imports changes. The Full Suite runs it on demand and at release.
 
 ### Manual drill (staging)
 

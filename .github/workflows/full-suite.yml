@@ -1,21 +1,23 @@
-# Full Suite — THE master validation pipeline, and the caller for release
+# Full Suite — the complete validation pipeline, and the caller for release
 # verification.
 #
-# Runs on every push to master, plus on demand: Actions → "Full Suite (CI +
-# Release Gates + E2E)" → Run workflow → pick the branch.
+# On demand only: Actions → "Full Suite (CI + Release Gates + E2E)" → Run
+# workflow → pick the branch. release.yml also calls it (workflow_call) for the
+# exact release SHA when no green exact-SHA run exists to reuse.
 #
-# Pull requests run the affected tier only. The complete heavy tier (full
-# API/app shards, full spec typecheck, workspace tests, build & boot, E2E)
-# validates master here. It used to cancel the running suite on every merge:
-# a ~60-minute suite against a merge every ~23 minutes meant 51 of 60 runs
-# were cancelled and master saw ~5 verdicts a day (2026-09-27 audit). Now a
-# running suite always finishes; merges that land meanwhile collapse into one
-# pending run for the newest head, which validates everything they added. An
-# hourly cron was tried instead and dropped: this repository's scheduled
-# workflows start hours late.
+# It does NOT run on a push to master. The complete heavy tier (full API/app
+# shards, full spec typecheck, workspace tests, build & boot, E2E, ~40 jobs)
+# competed with pull-request CI for the same runner pool, and on a day with
+# dozens of merges the PR checks queued behind master runs that rarely
+# finished (2026-10-03). Pull requests run the affected tier; deploys are
+# manual at an exact SHA, and the release workflow verifies its own SHA here.
 #
-# The nested CI Gate carries ci.yml's master failure tracker (#2510), which
-# keys off the `push` event this workflow passes down.
+# A running suite is never cancelled: a newer dispatch only replaces the
+# *pending* run for the same ref and event.
+#
+# ci.yml's master failure tracker (#2510) keys off the `push` event, which this
+# workflow no longer produces, so it stays inert here; a red run is reported by
+# the Master SHA Verdict job below and by the release workflow.
 #
 # Reuses existing workflows via workflow_call — no job logic is duplicated here;
 # this file only orders the public release-prep gates. Community self-hosted image
@@ -25,8 +27,6 @@ name: Full Suite (CI + Release Gates + E2E)
 run-name: Master SHA · ${{ github.sha }}
 
 on:
-  push:
-    branches: [master]
   workflow_dispatch:
     inputs:
       run_runtime_acceptance:
@@ -45,11 +45,11 @@ on:
 concurrency:
   # Include the workflow name so a workflow_call invocation (where github.workflow
   # is the caller's name, e.g. the stable release) does not share a group with a
-  # manual workflow_dispatch on the same ref, and the event name so a master
-  # push never shares a group with a release verifying that same ref.
+  # manual workflow_dispatch on the same ref, and the event name so a manual
+  # run never shares a group with a release verifying that same ref.
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
-  # Never cancel a running suite: a newer push only replaces the *pending*
-  # run, and it validates a superset of what that pending run would have.
+  # Never cancel a running suite: a newer dispatch only replaces the *pending*
+  # run for the same ref and event.
   cancel-in-progress: false
 
 # Least-privilege default token; jobs that need more request it explicitly.
