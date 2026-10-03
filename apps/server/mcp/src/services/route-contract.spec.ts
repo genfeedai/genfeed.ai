@@ -64,25 +64,9 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/mcp-approvals/controllers/mcp-approvals.controller.ts',
     prefix: 'mcp-approvals',
   },
-  videos: {
-    file: 'collections/videos/controllers/videos.controller.ts',
-    prefix: 'videos',
-  },
   videosMerge: {
     file: 'collections/videos/controllers/relationships/videos-merge.controller.ts',
     prefix: 'videos',
-  },
-  images: {
-    file: 'collections/images/controllers/images.controller.ts',
-    prefix: 'images',
-  },
-  avatars: {
-    file: 'collections/avatars/controllers/avatars.controller.ts',
-    prefix: 'avatars',
-  },
-  musics: {
-    file: 'collections/musics/controllers/musics.controller.ts',
-    prefix: 'musics',
   },
   articles: {
     file: 'collections/articles/controllers/articles.controller.ts',
@@ -91,10 +75,6 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
   articleOperations: {
     file: 'collections/articles/controllers/operations/articles-operations.controller.ts',
     prefix: 'articles',
-  },
-  credits: {
-    file: 'collections/credits/controllers/credits.controller.ts',
-    prefix: 'credits',
   },
   credentials: {
     file: 'collections/credentials/controllers/credentials.controller.ts',
@@ -111,14 +91,6 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
   contentPerformance: {
     file: 'collections/content-performance/controllers/content-performance.controller.ts',
     prefix: 'content-performance',
-  },
-  brands: {
-    file: 'collections/brands/controllers/brands.controller.ts',
-    prefix: 'brands',
-  },
-  authWhoami: {
-    file: 'auth/controllers/auth-whoami.controller.ts',
-    prefix: 'auth',
   },
   ingredients: {
     file: 'collections/ingredients/controllers/ingredients-relationships.controller.ts',
@@ -387,16 +359,12 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   { method: 'Post', sub: ':id/result', controller: 'approvals', tools: [] },
 
   // ── Legacy media / content ──
-  { method: 'Get', sub: '', controller: 'videos', tools: ['list_videos'] },
   {
     method: 'Post',
     sub: 'merge',
     controller: 'videosMerge',
     tools: ['merge_videos'],
   },
-  { method: 'Get', sub: '', controller: 'images', tools: ['list_images'] },
-  { method: 'Get', sub: '', controller: 'avatars', tools: ['list_avatars'] },
-  { method: 'Get', sub: '', controller: 'musics', tools: ['list_music'] },
   {
     method: 'Post',
     sub: 'generations',
@@ -432,12 +400,6 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     sub: ':articleId',
     controller: 'articles',
     tools: ['publish_article'],
-  },
-  {
-    method: 'Get',
-    sub: 'usage',
-    controller: 'credits',
-    tools: ['get_usage_stats'],
   },
 
   // ── Analytics → content-performance (video/content analytics) ──
@@ -475,18 +437,6 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   },
 
   // ── Account management ──
-  {
-    method: 'Get',
-    sub: 'whoami',
-    controller: 'authWhoami',
-    tools: ['get_account_info'],
-  },
-  {
-    method: 'Get',
-    sub: '',
-    controller: 'brands',
-    tools: ['list_brands', 'get_brand'],
-  },
   {
     method: 'Get',
     sub: ':ingredientId/metadata',

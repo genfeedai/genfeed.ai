@@ -18,7 +18,7 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
         },
         brandId: {
           description:
-            'Search only. Brand whose connected X account searches. Required when the session has no brand. Use an id from list_brands.',
+            'Search only. Brand whose connected X account searches. Required when the session has no brand. Use an id from get_brands.',
           type: 'string',
         },
         limit: {

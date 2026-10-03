@@ -62,13 +62,18 @@ describe('ToolRegistryService.classify', () => {
     ['get_job_status', 'account-management'],
     // Removed in favour of get_job_status: no executor claims it any more.
     ['get_video_status', 'unknown'],
-    ['list_videos', 'generation'],
-    ['list_images', 'generation'],
+    ['list_assets', 'agent-executor'],
+    ['get_account', 'agent-executor'],
+    ['get_brands', 'agent-executor'],
+    ['get_posts', 'agent-executor'],
+    // Merged into get_account / get_brands / get_posts / list_assets.
+    ['get_usage_stats', 'unknown'],
+    ['list_videos', 'unknown'],
+    ['list_images', 'unknown'],
     ['merge_videos', 'merge-videos'],
     ['create_article', 'content'],
     ['get_articles', 'content'],
     ['get_video_analytics', 'analytics'],
-    ['get_usage_stats', 'analytics'],
     ['get_workflow_status', 'workflow-status'],
     ['list_workflow_templates', 'workflow-status'],
     ['list_meta_campaigns', 'meta-ads'],
@@ -80,7 +85,8 @@ describe('ToolRegistryService.classify', () => {
     // per-platform prefixes are checked first so they cannot be captured here.
     ['get_ads_adset_insights', 'ads-gateway'],
     ['get_ads_ad_insights', 'ads-gateway'],
-    ['get_account_info', 'account-management'],
+    ['get_account_info', 'unknown'],
+    ['list_brands', 'unknown'],
     ['post_social_reply', 'social-messages'],
     // generate_content_batch is an CuratedActionName, so it routes through the
     // agent-executor to /agent-tools/:name/execute (re-surfaced in PR 5/6).

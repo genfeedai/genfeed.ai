@@ -55,7 +55,7 @@ describe('agent-final-content.util', () => {
         [
           {
             status: 'completed',
-            toolName: 'list_brands',
+            toolName: 'get_brands',
           } as never,
         ],
         [],

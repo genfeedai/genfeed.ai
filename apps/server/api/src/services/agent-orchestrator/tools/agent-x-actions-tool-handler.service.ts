@@ -125,7 +125,7 @@ export class AgentXActionsToolHandler {
       return {
         creditsUsed: 0,
         error:
-          "Pass brandId from list_brands. Search uses that brand's connected X account.",
+          "Pass brandId from get_brands. Search uses that brand's connected X account.",
         success: false,
       };
     }

@@ -13,7 +13,7 @@ describe('mapToolCallResponse', () => {
       parameters: { query: 'launch' },
       resultSummary: '3 posts',
       status: 'failed',
-      toolName: 'list_posts',
+      toolName: 'get_posts',
     };
 
     expect(mapToolCallResponse(summary)).toEqual({
@@ -21,8 +21,8 @@ describe('mapToolCallResponse', () => {
       creditsUsed: 4,
       durationMs: 120,
       error: 'timeout',
-      id: 'tc-1700000000000-list_posts',
-      name: 'list_posts',
+      id: 'tc-1700000000000-get_posts',
+      name: 'get_posts',
       parameters: { query: 'launch' },
       resultSummary: '3 posts',
       status: 'failed',

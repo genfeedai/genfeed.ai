@@ -3,14 +3,13 @@ import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 
 /**
- * Covers the MCP catalog REST handlers (generation, content, analytics,
+ * Covers the MCP catalog REST handlers (content, analytics,
  * workflow-status, merge-videos). Each case is exercised through the public
  * `handleToolCall` path so the classifier, the role check and the response
  * formatting all run together. `create_article` is approval-gated, so it is
  * reached through the `resolve_approval` execution path instead.
  */
 const CATALOG_REST_NAMES = [
-  'list_videos',
   'merge_videos',
   'get_video_analytics',
   'create_article',
@@ -18,13 +17,9 @@ const CATALOG_REST_NAMES = [
   'get_article_preview',
   'publish_article',
   'get_articles',
-  'list_images',
-  'list_avatars',
-  'list_music',
   'get_workflow_status',
   'list_workflow_templates',
   'get_content_analytics',
-  'get_usage_stats',
   'generate_linkedin_content',
   'get_linkedin_connection_status',
   'get_linkedin_analytics',
@@ -142,19 +137,6 @@ function build() {
     getLinkedInConnectionStatus: vi
       .fn()
       .mockResolvedValue({ connected: true, profile: 'in/genfeed' }),
-    getUsageStats: vi.fn().mockResolvedValue({
-      contentCreated: {
-        articles: 4,
-        avatars: 1,
-        images: 12,
-        music: 2,
-        videos: 7,
-      },
-      creditsUsed: 340,
-      postsPublished: 9,
-      timeRange: '30d',
-      totalEngagement: 5100,
-    }),
     getVideoAnalytics: vi
       .fn()
       .mockResolvedValue({ views: 1200, watchTime: 90 }),
@@ -167,9 +149,6 @@ function build() {
       status: 'RUNNING',
       version: 4,
     }),
-    listAvatars: vi.fn().mockResolvedValue([{ id: 'avatar-1' }]),
-    listImages: vi.fn().mockResolvedValue([{ id: 'image-1' }]),
-    listMusic: vi.fn().mockResolvedValue([{ id: 'track-1' }]),
     mergeVideos: vi.fn().mockResolvedValue({
       id: 'merged-1',
       status: 'PROCESSING',
@@ -464,55 +443,7 @@ describe('catalog REST handlers — articles', () => {
   });
 });
 
-describe('catalog REST handlers — media libraries', () => {
-  it('lists images with pagination forwarded', async () => {
-    const { client, registry } = build();
-
-    const result = await callTool(registry, 'list_images', {
-      limit: 10,
-      offset: 20,
-    });
-
-    expect(client.listImages).toHaveBeenCalledWith({ limit: 10, offset: 20 });
-    expect(result.content[0].text).toContain('Found 1 images');
-  });
-
-  it('reports an empty image library', async () => {
-    const { client, registry } = build();
-    client.listImages.mockResolvedValue([]);
-
-    const result = await callTool(registry, 'list_images', {});
-
-    expect(result.content[0].text).toBe('No images found.');
-  });
-
-  it('lists avatars', async () => {
-    const { client, registry } = build();
-
-    const result = await callTool(registry, 'list_avatars', { limit: 5 });
-
-    expect(client.listAvatars).toHaveBeenCalledWith({ limit: 5 });
-    expect(result.content[0].text).toContain('Found 1 avatars');
-  });
-
-  it('reports an empty avatar library', async () => {
-    const { client, registry } = build();
-    client.listAvatars.mockResolvedValue([]);
-
-    const result = await callTool(registry, 'list_avatars', {});
-
-    expect(result.content[0].text).toBe('No avatars found.');
-  });
-
-  it('lists music tracks', async () => {
-    const { client, registry } = build();
-
-    const result = await callTool(registry, 'list_music', { limit: 3 });
-
-    expect(client.listMusic).toHaveBeenCalledWith({ limit: 3 });
-    expect(result.content[0].text).toContain('Found 1 music tracks');
-  });
-
+describe('catalog REST handlers — media', () => {
   it('starts a merge and forwards supported options', async () => {
     const { client, registry } = build();
 
@@ -545,15 +476,6 @@ describe('catalog REST handlers — media libraries', () => {
       'Zoom effects are not supported when merging videos',
     );
     expect(client.mergeVideos).not.toHaveBeenCalled();
-  });
-
-  it('reports an empty music library', async () => {
-    const { client, registry } = build();
-    client.listMusic.mockResolvedValue([]);
-
-    const result = await callTool(registry, 'list_music', {});
-
-    expect(result.content[0].text).toBe('No music tracks found.');
   });
 });
 
@@ -634,29 +556,7 @@ describe('catalog REST handlers — workflows', () => {
   });
 });
 
-describe('catalog REST handlers — usage and LinkedIn', () => {
-  it('defaults usage stats to a 30d window', async () => {
-    const { client, registry } = build();
-
-    const result = await callTool(registry, 'get_usage_stats', {});
-
-    expect(client.getUsageStats).toHaveBeenCalledWith('30d');
-    expect(result.content[0].text).toContain('Usage Statistics (30d)');
-    expect(result.content[0].text).toContain('Credits Used: 340');
-    expect(result.structuredContent?.genfeedCards?.title).toBe('Usage · 30d');
-  });
-
-  it('forwards the requested usage range and displays the server-reported range', async () => {
-    const { client, registry } = build();
-
-    const result = await callTool(registry, 'get_usage_stats', {
-      timeRange: '7d',
-    });
-
-    expect(client.getUsageStats).toHaveBeenCalledWith('7d');
-    expect(result.structuredContent?.genfeedCards?.title).toBe('Usage · 30d');
-  });
-
+describe('catalog REST handlers — LinkedIn', () => {
   it('generates LinkedIn variations with a default count of 3', async () => {
     const { client, registry } = build();
 

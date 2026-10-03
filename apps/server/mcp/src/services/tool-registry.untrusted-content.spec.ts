@@ -15,7 +15,6 @@ const routes = [
     args: { query: 'article' },
     method: 'searchArticles',
   },
-  { name: 'get_account_info', args: {}, method: 'getAccountInfo' },
   {
     name: 'get_social_conversation',
     args: { conversationId: 'conversation' },
@@ -38,7 +37,6 @@ describe('native MCP untrusted-result integration', () => {
     evaluateMcpToolResult: vi.fn(),
     executeAgentTool: vi.fn(),
     searchArticles: vi.fn(),
-    getAccountInfo: vi.fn(),
     getSocialConversation: vi.fn(),
     listSocialConversations: vi.fn(),
     createClipProjectFromYoutube: vi.fn(),
@@ -70,7 +68,6 @@ describe('native MCP untrusted-result integration', () => {
       data: raw,
     });
     client.searchArticles.mockResolvedValue([raw]);
-    client.getAccountInfo.mockResolvedValue(raw);
     client.getSocialConversation.mockResolvedValue(raw);
     client.listSocialConversations.mockResolvedValue({ conversations: [raw] });
     client.createClipProjectFromYoutube.mockResolvedValue(raw);
@@ -78,13 +75,13 @@ describe('native MCP untrusted-result integration', () => {
       id: 'approval',
       toolName: 'create_clip_project_from_youtube',
       status: 'PENDING',
-      arguments: routes[4].args,
+      arguments: routes[3].args,
     });
     client.resolveApproval.mockResolvedValue({
       id: 'approval',
       toolName: 'create_clip_project_from_youtube',
       status: 'APPROVED',
-      arguments: routes[4].args,
+      arguments: routes[3].args,
     });
     client.attachApprovalResult.mockResolvedValue({});
   });
@@ -165,25 +162,27 @@ describe('native MCP untrusted-result integration', () => {
     expect(JSON.stringify(logger.warn.mock.calls)).not.toContain('RAW_SECRET');
   });
   it('classifies a bounded flagged sample of an oversize result and retains the output when allowed', async () => {
-    client.getAccountInfo.mockResolvedValue({ text: 'é'.repeat(550000) });
+    client.getSocialConversation.mockResolvedValue({
+      text: 'é'.repeat(550000),
+    });
     const result = await registry().handleToolCall({
-      name: 'get_account_info',
-      arguments: {},
+      name: 'get_social_conversation',
+      arguments: { conversationId: 'conversation' },
     });
     expect(JSON.stringify(result).length).toBeGreaterThan(550000);
     expect(client.evaluateMcpToolResult).toHaveBeenCalledExactlyOnceWith(
-      'get_account_info',
+      'get_social_conversation',
       expect.stringContaining('middle of oversize result omitted'),
       true,
     );
-    expect(client.getAccountInfo).toHaveBeenCalledTimes(1);
+    expect(client.getSocialConversation).toHaveBeenCalledTimes(1);
     expect(logger.warn).not.toHaveBeenCalled();
   });
   it('does not classify pending or declined approvals and executes an approved native write only once', async () => {
     const service = registry();
     await service.handleToolCall({
-      name: routes[4].name,
-      arguments: routes[4].args,
+      name: routes[3].name,
+      arguments: routes[3].args,
     });
     expect(client.createClipProjectFromYoutube).not.toHaveBeenCalled();
     expect(client.evaluateMcpToolResult).not.toHaveBeenCalled();
@@ -196,9 +195,9 @@ describe('native MCP untrusted-result integration', () => {
     client.resolveApproval
       .mockResolvedValueOnce({
         id: 'approval',
-        toolName: routes[4].name,
+        toolName: routes[3].name,
         status: 'APPROVED',
-        arguments: routes[4].args,
+        arguments: routes[3].args,
       })
       .mockRejectedValueOnce(new Error('already resolved'));
     await Promise.all([

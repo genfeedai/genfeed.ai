@@ -190,7 +190,7 @@ describe('curated action catalog', () => {
       'analyze_performance',
       'generate',
       'get_analytics',
-      'get_content_calendar',
+      'get_posts',
       'reframe_image',
       'upscale_image',
     ]) {
@@ -360,8 +360,10 @@ describe('curated action catalog', () => {
 
   it('groups representative actions into the expected toolsets', () => {
     const expected: ReadonlyArray<readonly [string, string]> = [
-      ['get_account_info', 'core'],
-      ['get_credits_balance', 'core'],
+      ['get_account', 'core'],
+      ['get_brands', 'core'],
+      ['get_posts', 'content'],
+      ['list_assets', 'generation'],
       ['resolve_approval', 'core'],
       ['create_post', 'content'],
       ['repurpose_post', 'content'],

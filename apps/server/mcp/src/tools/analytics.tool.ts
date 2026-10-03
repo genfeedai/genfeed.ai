@@ -3,7 +3,6 @@ import type { ClientService } from '@mcp/services/client.service';
 export const ANALYTICS_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'get_video_analytics',
   'get_content_analytics',
-  'get_usage_stats',
   'get_linkedin_connection_status',
   'get_linkedin_analytics',
 ]);
@@ -71,20 +70,6 @@ export async function handleAnalyticsTool(
         content: [
           {
             text: `Analytics for ${contentType} ${contentId} (lifetime totals):\n\n${JSON.stringify(result.data, null, 2)}`,
-            type: 'text' as const,
-          },
-        ],
-      };
-    }
-    case 'get_usage_stats': {
-      const stats = await client.getUsageStats(
-        (args?.timeRange as string) || '30d',
-      );
-      return {
-        structuredContent: { data: stats },
-        content: [
-          {
-            text: `Usage Statistics (${stats.timeRange}):\n\nContent Created:\n- Videos: ${stats.contentCreated.videos}\n- Articles: ${stats.contentCreated.articles}\n- Images: ${stats.contentCreated.images}\n- Music: ${stats.contentCreated.music}\n- Avatars: ${stats.contentCreated.avatars}\n\nCredits Used: ${stats.creditsUsed}\nPosts Published: ${stats.postsPublished}\nTotal Engagement: ${stats.totalEngagement}`,
             type: 'text' as const,
           },
         ],

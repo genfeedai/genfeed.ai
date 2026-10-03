@@ -51,11 +51,11 @@ describe('McpConnectionVerificationService', () => {
       data: {
         id: 'connect-genfeed-verification',
         jsonrpc: '2.0',
-        result: { tools: [{ name: 'list_brands' }] },
+        result: { tools: [{ name: 'get_brands' }] },
       },
     });
     get.mockResolvedValue({
-      data: { tools: [{ name: 'list_brands' }] },
+      data: { tools: [{ name: 'get_brands' }] },
     });
 
     service = new McpConnectionVerificationService(

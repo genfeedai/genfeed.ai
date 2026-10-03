@@ -11,25 +11,9 @@ function textOf(part: McpMediaContentPart | undefined): string {
 
 function buildClient() {
   return {
-    executeAgentTool: vi.fn().mockResolvedValue({
-      data: {
-        brands: [
-          { id: 'brand-1', name: 'Genfeed', slug: 'genfeed' },
-          { id: 'brand-2', name: 'Second', slug: 'second' },
-        ],
-      },
-      success: true,
-    }),
-    getAccountInfo: vi
-      .fn()
-      .mockResolvedValue({ email: 'owner@example.com', id: 'user-1' }),
     getJobStatus: vi
       .fn()
       .mockResolvedValue({ id: 'job-1', status: 'COMPLETED' }),
-    listBrands: vi.fn().mockResolvedValue([
-      { id: 'brand-1', name: 'Genfeed' },
-      { id: 'brand-2', name: 'Second' },
-    ]),
   };
 }
 
@@ -46,16 +30,6 @@ function call(
 }
 
 describe('handleAccountManagementTool', () => {
-  it('returns the account info', async () => {
-    const client = buildClient();
-
-    const result = await call(client, 'get_account_info', {});
-
-    expect(client.getAccountInfo).toHaveBeenCalled();
-    expect(textOf(result.content[0])).toContain('Account Info');
-    expect(textOf(result.content[0])).toContain('owner@example.com');
-  });
-
   it('reports the job status for a job id', async () => {
     const client = buildClient();
 
@@ -66,89 +40,6 @@ describe('handleAccountManagementTool', () => {
     expect(textOf(result.content[0])).toContain('COMPLETED');
   });
 
-  it('lists every brand', async () => {
-    const client = buildClient();
-
-    const result = await call(client, 'list_brands', {});
-
-    expect(textOf(result.content[0])).toContain('Found 2 brands');
-    expect(textOf(result.content[0])).toContain('brand-2');
-  });
-
-  it('reports an empty brand list', async () => {
-    const client = buildClient();
-    client.listBrands.mockResolvedValue([]);
-
-    const result = await call(client, 'list_brands', {});
-
-    expect(textOf(result.content[0])).toBe('No brands found.');
-  });
-
-  it('treats a non-array brand payload as an empty list', async () => {
-    const client = buildClient();
-    client.listBrands.mockResolvedValue({ id: 'brand-1' });
-
-    const result = await call(client, 'list_brands', {});
-
-    expect(textOf(result.content[0])).toBe('No brands found.');
-  });
-
-  it('asks for an explicit brand when more than one exists', async () => {
-    const client = buildClient();
-
-    const result = await call(client, 'get_brand', {});
-
-    expect(client.executeAgentTool).toHaveBeenCalledWith('list_brands', {});
-    expect(textOf(result.content[0])).toContain('Select a brand');
-    expect(textOf(result.content[0])).toContain('brand-1');
-    expect(textOf(result.content[0])).toContain('brand-2');
-  });
-
-  it('returns the requested brand rather than the first organization brand', async () => {
-    const client = buildClient();
-
-    const result = await call(client, 'get_brand', { brandId: 'brand-2' });
-
-    expect(textOf(result.content[0])).toContain('Selected Brand');
-    expect(textOf(result.content[0])).toContain('brand-2');
-    expect(textOf(result.content[0])).not.toContain('brand-1');
-  });
-
-  it('resolves a brand by slug from the same list list_brands returns', async () => {
-    const client = buildClient();
-
-    const result = await call(client, 'get_brand', { brandId: 'genfeed' });
-
-    expect(textOf(result.content[0])).toContain('Selected Brand');
-    expect(textOf(result.content[0])).toContain('brand-1');
-    expect(textOf(result.content[0])).not.toContain('brand-2');
-  });
-
-  it('returns the only organization brand when no id is passed', async () => {
-    const client = buildClient();
-    client.executeAgentTool.mockResolvedValue({
-      data: { brands: [{ id: 'brand-9', name: 'Solo' }] },
-      success: true,
-    });
-
-    const result = await call(client, 'get_brand', {});
-
-    expect(textOf(result.content[0])).toContain('Active Brand');
-    expect(textOf(result.content[0])).toContain('brand-9');
-  });
-
-  it('reports no active brand when the organization list is empty', async () => {
-    const client = buildClient();
-    client.executeAgentTool.mockResolvedValue({
-      data: { brands: [] },
-      success: true,
-    });
-
-    const result = await call(client, 'get_brand', {});
-
-    expect(textOf(result.content[0])).toBe('No active brand found.');
-  });
-
   it('rejects an unknown account management tool name', () => {
     const client = buildClient();
 
@@ -156,4 +47,13 @@ describe('handleAccountManagementTool', () => {
       /Unknown account management tool: delete_account/,
     );
   });
+
+  it.each(['get_account_info', 'list_brands', 'get_brand'])(
+    'no longer handles the merged %s tool',
+    (name) => {
+      expect(() => call(buildClient(), name, {})).toThrow(
+        /Unknown account management tool/,
+      );
+    },
+  );
 });

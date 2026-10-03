@@ -166,7 +166,7 @@ Both tools are available in the `brand` toolset and in agent chat.
 
 ## Social accounts, brand scope, and media
 
-Use `list_brands` then pass `brandId` into generation and connection tools. Genfeed
+Use `get_brands` then pass `brandId` into generation and connection tools. Genfeed
 does not silently pick the first organization brand.
 
 `connect_social_account` returns a `connectionId` and a browser authorization URL.
@@ -264,7 +264,7 @@ The bare endpoint uses the `default` profile. Profiles shape the advertised
 
 | Endpoint selector | Advertised toolsets |
 | --- | --- |
-| No selector or `?profile=default` | `core`, `generation`, `content`, and `scheduler`, capped at 40 tools. |
+| No selector or `?profile=default` | `core`, `generation`, `content`, and `scheduler`, capped at 31 tools. |
 | `?profile=directory` | The same bounded selection, with `generation`, `clips`, and `ui` excluded. This profile does not imply directory approval. |
 | `?profile=full` | All toolsets, subject to the caller's permissions. |
 
@@ -423,7 +423,7 @@ https://mcp.genfeed.ai/mcp
 ## Uploading local media
 
 The default MCP profile includes `request_media_upload`, `complete_media_upload`,
-and `get_post`. Select a brand before reserving an upload.
+and `get_posts`. Select a brand before reserving an upload.
 
 1. Call `request_media_upload` with `filename`, `contentType`, and `category`.
 2. Upload to the returned `uploadUrl` before it expires. For `method: PUT`, send
@@ -433,10 +433,10 @@ and `get_post`. Select a brand before reserving an upload.
 3. Call `complete_media_upload` with the returned `assetId`. Its `media` entries
    can be passed to `create_scheduled_release`; a returned hosted `url` can also
    be used in `create_post` `mediaUrls`. Scheduling retains its approval checks.
-4. Use `get_post` with `postId` to read a post's targets, state, media, and timestamps.
+4. Use `get_posts` with `postId` to read a post's targets, state, media, and timestamps.
 
 Upload reservation creates a pending asset. Both upload tools are non-destructive
-writes; `get_post` is read-only. None of these tools publishes a post.
+writes; `get_posts` is read-only. None of these tools publishes a post.
 
 ## Interactive content cards
 

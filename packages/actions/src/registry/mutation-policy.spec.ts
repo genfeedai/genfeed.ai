@@ -108,9 +108,7 @@ describe('mutation policy map', () => {
     for (const [name, policy] of Object.entries(MUTATION_POLICY_BY_NAME)) {
       expect(getToolByName(name)?.mutationPolicy, name).toBe(policy);
     }
-    expect(
-      getToolByName('get_credits_balance')?.mutationPolicy,
-    ).toBeUndefined();
+    expect(getToolByName('get_account')?.mutationPolicy).toBeUndefined();
     expect(getToolByName('resolve_approval')?.mutationPolicy).toBeUndefined();
     expect(getActionDefinition('create_post')?.approval).toBe('required');
     expect(getActionDefinition('generate')?.approval).toBe('none');

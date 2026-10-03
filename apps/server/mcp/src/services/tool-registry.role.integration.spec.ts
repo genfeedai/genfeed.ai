@@ -9,14 +9,14 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
  * actually denies/permits a role-gated tool — the unit specs mock the guard, so
  * they only prove delegation, not enforcement.
  *
- * Only the canonical-tools registry is mocked. `get_account_info` is a real
+ * Only the canonical-tools registry is mocked. `get_job_status` is a real
  * account-management tool that classifies to a live executor (so dispatch
  * actually runs for the allowed case); here it is mocked as `admin`-gated purely
  * to exercise the guard — the tool's real tier is irrelevant to this test.
  */
 vi.mock('@genfeedai/actions', () => ({
   getToolByName: vi.fn((name: string) =>
-    name === 'get_account_info'
+    name === 'get_job_status'
       ? { name, requiredRole: 'admin', surfaces: { mcp: true } }
       : undefined,
   ),
@@ -26,9 +26,9 @@ vi.mock('@genfeedai/actions', () => ({
 
 function build(role: 'user' | 'admin') {
   const client = {
-    getAccountInfo: vi
+    getJobStatus: vi
       .fn()
-      .mockResolvedValue({ id: 'org_1', name: 'Acme Inc.' }),
+      .mockResolvedValue({ id: 'job_1', status: 'COMPLETED' }),
   };
   const logger = {
     debug: vi.fn(),
@@ -49,26 +49,26 @@ describe('ToolRegistryService role enforcement (real guard)', () => {
     const { client, registry } = build('user');
 
     const result = (await registry.handleToolCall({
-      arguments: {},
-      name: 'get_account_info',
+      arguments: { jobId: 'job_1' },
+      name: 'get_job_status',
     })) as { isError?: boolean; content: { text: string }[] };
 
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain("requires 'admin'");
     // The mutation/dispatch must never run when the gate denies.
-    expect(client.getAccountInfo).not.toHaveBeenCalled();
+    expect(client.getJobStatus).not.toHaveBeenCalled();
   });
 
   it('allows an admin caller the same admin-gated tool through to dispatch', async () => {
     const { client, registry } = build('admin');
 
     const result = (await registry.handleToolCall({
-      arguments: {},
-      name: 'get_account_info',
+      arguments: { jobId: 'job_1' },
+      name: 'get_job_status',
     })) as { isError?: boolean; content: { text: string }[] };
 
     expect(result.isError).toBeFalsy();
-    expect(client.getAccountInfo).toHaveBeenCalledOnce();
-    expect(result.content[0].text).toContain('Account Info');
+    expect(client.getJobStatus).toHaveBeenCalledOnce();
+    expect(result.content[0].text).toContain('Job Status');
   });
 });

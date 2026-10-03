@@ -9,10 +9,17 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Get available credits balance and usage information for your account',
-    name: 'get_credits_balance',
+      'Get account details in one call: profile (user, organization, scoped brand, role), credits (current balance) and usage (balance, 7 and 30 day credit spend, trend and spend breakdown by source). Defaults to all three; pass include to fetch fewer.',
+    name: 'get_account',
     parameters: {
-      properties: {},
+      properties: {
+        include: {
+          description:
+            'Sections to return. Defaults to profile, credits and usage.',
+          items: { enum: ['profile', 'credits', 'usage'], type: 'string' },
+          type: 'array',
+        },
+      },
       type: 'object',
     },
     requiredRole: 'user',
@@ -53,29 +60,13 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      "List the user's brands with their names, descriptions, and tone profiles.",
-    name: 'list_brands',
+      "Read the organization's brands. Without brandId it lists every brand with name, description and tone profile. With brandId it returns that one brand (matched by id, slug, name or label). When more than one brand exists, pass brandId; the first brand is never used implicitly.",
+    name: 'get_brands',
     parameters: {
       properties: {
-        limit: {
-          default: 20,
-          description: 'Maximum number of brands to return',
-          type: 'number',
-        },
-      },
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
-  {
-    creditCost: 0,
-    description:
-      'List the active named characters the current brand can use: characters it owns plus characters shared to it from other brands of the same organization (handle, label, description, whether a reference image exists). Tenant-scoped.',
-    name: 'list_characters',
-    parameters: {
-      properties: {
-        q: {
-          description: 'Optional handle or label prefix filter',
+        brandId: {
+          description:
+            'Return only this brand. Omit to list all brands in the organization.',
           type: 'string',
         },
       },
@@ -86,12 +77,18 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'List recent posts for the user. Can filter by target execution state (draft, scheduled, published).',
-    name: 'list_posts',
+      'Read posts. postId returns one post (exclusive with the other fields). days returns the content calendar for the coming days: scheduled and draft posts with gap analysis showing days without content. With neither, lists recent posts, optionally filtered by executionState and capped by limit. Post items carry channel target, execution state, media, and timestamps.',
+    name: 'get_posts',
     parameters: {
       properties: {
+        days: {
+          description:
+            'Content calendar mode: number of days ahead to look (for example 7).',
+          type: 'number',
+        },
         executionState: {
-          description: 'Filter by canonical target execution state',
+          description:
+            'List mode only. Filter by canonical target execution state.',
           enum: [
             'draft',
             'scheduled',
@@ -105,8 +102,14 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
           type: 'string',
         },
         limit: {
-          description: 'Maximum number of posts to return (default 10)',
+          description:
+            'List mode only. Maximum number of posts to return (default 10).',
           type: 'number',
+        },
+        postId: {
+          description:
+            'Return this one post. Use an id from get_posts or a scheduling tool. Cannot be combined with the other fields.',
+          type: 'string',
         },
       },
       required: [],
@@ -117,16 +120,39 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Get one post by id. Returns the same item shape as list_posts: channel target, execution state, media, and timestamps.',
-    name: 'get_post',
+      "List the organization's library assets of one type, newest first. Types image, video, music and avatar return id, category, status, url, label or prompt, origin and createdAt. Type character lists the active named characters the current brand can use (handle, label, description, whether a reference image exists). Tenant-scoped.",
+    name: 'list_assets',
     parameters: {
       properties: {
-        postId: {
-          description: 'Post id returned by list_posts or a scheduling tool.',
+        limit: {
+          default: 10,
+          description:
+            'Maximum number of assets to return (default 10, max 50). Not used with type character.',
+          type: 'number',
+        },
+        offset: {
+          default: 0,
+          description: 'Offset for pagination. Not used with type character.',
+          type: 'number',
+        },
+        origin: {
+          description:
+            'Only assets with this permanent origin: UPLOADED (a member added the file), GENERATED (Genfeed produced it), IMPORTED (saved from an external post or page) or UNKNOWN (legacy). Not used with type character.',
+          enum: ['UPLOADED', 'GENERATED', 'IMPORTED', 'UNKNOWN'],
+          type: 'string',
+        },
+        q: {
+          description:
+            'Type character only. Optional handle or label prefix filter.',
+          type: 'string',
+        },
+        type: {
+          description: 'Which kind of asset to list.',
+          enum: ['image', 'video', 'music', 'avatar', 'character'],
           type: 'string',
         },
       },
-      required: ['postId'],
+      required: ['type'],
       type: 'object',
     },
     requiredRole: 'user',

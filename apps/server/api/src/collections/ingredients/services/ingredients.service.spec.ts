@@ -471,6 +471,67 @@ describe('IngredientsService', () => {
     });
   });
 
+  describe('listLibraryAssets', () => {
+    it('always scopes by organizationId and isDeleted:false, newest first', async () => {
+      await service.listLibraryAssets({
+        category: IngredientCategory.IMAGE,
+        limit: 5,
+        offset: 10,
+        organizationId,
+        origin: IngredientOrigin.UPLOADED,
+      });
+
+      expect(ingredientDelegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { createdAt: 'desc' },
+          skip: 10,
+          take: 5,
+          where: {
+            category: IngredientCategory.IMAGE,
+            isDeleted: false,
+            organizationId,
+            origin: IngredientOrigin.UPLOADED,
+            trainingId: null,
+          },
+        }),
+      );
+    });
+
+    it('adds the brand filter for a brand-scoped caller', async () => {
+      await service.listLibraryAssets({
+        brandId: 'brand-1',
+        category: IngredientCategory.IMAGE,
+        limit: 10,
+        offset: 0,
+        organizationId,
+      });
+
+      const arg = ingredientDelegate.findMany.mock.calls.at(-1)?.[0] as {
+        where: Record<string, unknown>;
+      };
+      expect(arg.where).toMatchObject({
+        brandId: 'brand-1',
+        isDeleted: false,
+        organizationId,
+      });
+    });
+
+    it('omits the origin filter when none is given', async () => {
+      await service.listLibraryAssets({
+        category: IngredientCategory.VIDEO,
+        limit: 10,
+        offset: 0,
+        organizationId,
+      });
+
+      const arg = ingredientDelegate.findMany.mock.calls.at(-1)?.[0] as {
+        where: Record<string, unknown>;
+      };
+      expect(arg.where).not.toHaveProperty('origin');
+      expect(arg.where).toMatchObject({ isDeleted: false, organizationId });
+    });
+  });
+
   describe('findAll', () => {
     it('should find all ingredients with pagination', async () => {
       ingredientDelegate.findMany.mockResolvedValue([mockIngredient]);

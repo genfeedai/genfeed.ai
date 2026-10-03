@@ -75,7 +75,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     handles: vi.fn(() => false),
     execute: vi.fn(),
   };
-  const workspaceHandler = { getCreditsBalance: vi.fn() };
+  const workspaceHandler = { getAccount: vi.fn() };
   const instagramHandler = {
     handles: vi.fn(() => false),
     execute: vi.fn(),
@@ -255,16 +255,12 @@ describe('AgentToolExecutorService mutation policy', () => {
         kind: 'execute',
         constraint: 'proactive-text-draft-only',
       });
-    const result = await service.executeTool(
-      'get_credits_balance',
-      {},
-      context(),
-    );
+    const result = await service.executeTool('get_account', {}, context());
     expect(result.success).toBe(false);
     expect(result.error).toContain(
       'Draft-only authorization is limited to create_post',
     );
-    expect(workspaceHandler.getCreditsBalance).not.toHaveBeenCalled();
+    expect(workspaceHandler.getAccount).not.toHaveBeenCalled();
     authorize.mockRestore();
   });
 
@@ -316,13 +312,13 @@ describe('AgentToolExecutorService mutation policy', () => {
     expect(mcpApprovals.createPending).not.toHaveBeenCalled();
   });
 
-  it.each(['schedule_post', 'get_credits_balance'] as const)(
+  it.each(['schedule_post', 'get_account'] as const)(
     'executes %s without approval lookups when host capability is omitted',
     async (toolName) => {
       const handler =
         toolName === 'schedule_post'
           ? publishHandler.schedulePost
-          : workspaceHandler.getCreditsBalance;
+          : workspaceHandler.getAccount;
       handler.mockResolvedValue({ creditsUsed: 0, success: true });
       mcpApprovals.findActiveByIdempotencyKey.mockRejectedValue(
         new Error('Approval storage unavailable'),

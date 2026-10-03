@@ -43,10 +43,6 @@ import {
 } from '@mcp/tools/clip-projects.tool';
 import { CONTENT_TOOL_NAMES, handleContentTool } from '@mcp/tools/content.tool';
 import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
-import {
-  GENERATION_TOOL_NAMES,
-  handleGenerationTool,
-} from '@mcp/tools/generation.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import {
   approvalPendingToolResult,
@@ -126,9 +122,6 @@ const PRE_DISPATCH_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
 ]);
 
 const ACCOUNT_MANAGEMENT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'get_account_info',
-  'list_brands',
-  'get_brand',
   'get_job_status',
 ]);
 
@@ -167,7 +160,6 @@ type ExecutorKind =
   | 'workflow-control'
   | 'agent-executor'
   | 'merge-videos'
-  | 'generation'
   | 'content'
   | 'analytics'
   | 'workflow-status'
@@ -388,7 +380,6 @@ export class ToolRegistryService implements OnModuleInit {
     if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) return 'workflow-control';
     if (AGENT_EXECUTOR_TOOL_NAMES.has(name)) return 'agent-executor';
     if (MERGE_VIDEOS_TOOL_NAMES.has(name)) return 'merge-videos';
-    if (GENERATION_TOOL_NAMES.has(name)) return 'generation';
     if (CONTENT_TOOL_NAMES.has(name)) return 'content';
     if (ANALYTICS_TOOL_NAMES.has(name)) return 'analytics';
     if (WORKFLOW_STATUS_TOOL_NAMES.has(name)) return 'workflow-status';
@@ -448,8 +439,6 @@ export class ToolRegistryService implements OnModuleInit {
       }
       case 'merge-videos':
         return handleMergeVideosTool(this.clientService, args ?? {});
-      case 'generation':
-        return handleGenerationTool(this.clientService, name, args);
       case 'content':
         return handleContentTool(this.clientService, name, args);
       case 'analytics':

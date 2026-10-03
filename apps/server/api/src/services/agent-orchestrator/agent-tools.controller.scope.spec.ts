@@ -168,7 +168,7 @@ describe('AgentToolsController publishing scopes', () => {
       undefined,
     );
     await controller.execute(
-      'list_brands',
+      'get_brands',
       { context: { brandId: 'brand-1' }, parameters: {} },
       apiKeyUser([]),
       request,
@@ -190,7 +190,7 @@ describe('AgentToolsController publishing scopes', () => {
     );
     await expect(
       controller.execute(
-        'list_brands',
+        'get_brands',
         { context: { brandId: 'foreign-brand' }, parameters: {} },
         apiKeyUser([]),
         request,
@@ -202,7 +202,7 @@ describe('AgentToolsController publishing scopes', () => {
   it('never copies unlisted client context into the executor context even if validation is bypassed (#5898)', async () => {
     executor.executeTool.mockResolvedValue({ creditsUsed: 0, success: true });
     await controller.execute(
-      'list_brands',
+      'get_brands',
       {
         context: {
           agentMode: 'auto',

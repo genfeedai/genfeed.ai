@@ -66,17 +66,3 @@ export interface CreditsUsage {
   };
   resetDate?: string;
 }
-
-export interface UsageStats {
-  timeRange: string;
-  contentCreated: {
-    videos: number;
-    articles: number;
-    images: number;
-    music: number;
-    avatars: number;
-  };
-  creditsUsed: number;
-  postsPublished: number;
-  totalEngagement: number;
-}

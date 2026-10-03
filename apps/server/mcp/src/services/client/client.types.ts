@@ -27,13 +27,6 @@ export interface ApiError {
   message?: string;
 }
 
-export interface BrandResponse {
-  id: string;
-  name: string;
-  status?: string;
-  [key: string]: unknown;
-}
-
 export interface PersonaResponse {
   id: string;
   name: string;

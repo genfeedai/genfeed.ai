@@ -209,7 +209,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'visual-code',
   },
-  { name: 'get_account_info', surfaces: ['mcp'], toolset: 'core' },
+  { name: 'get_account', surfaces: ['agent', 'mcp'], toolset: 'core' },
   {
     name: 'get_ad_research_detail',
     surfaces: ['agent', 'mcp'],
@@ -221,7 +221,6 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'get_approval_summary', surfaces: ['agent'], toolset: 'engagement' },
   { name: 'get_article_preview', surfaces: ['mcp'], toolset: 'articles' },
   { name: 'get_articles', surfaces: ['mcp'], toolset: 'content' },
-  { name: 'get_brand', surfaces: ['mcp'], toolset: 'core' },
   {
     name: 'get_brand_completeness',
     surfaces: ['agent', 'mcp'],
@@ -233,6 +232,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'brand',
   },
+  { name: 'get_brands', surfaces: ['agent', 'mcp'], toolset: 'core' },
   { name: 'get_clip_highlights', surfaces: ['mcp'], toolset: 'clips' },
   { name: 'get_clip_project', surfaces: ['mcp'], toolset: 'clips' },
   {
@@ -241,12 +241,6 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'onboarding',
   },
   { name: 'get_content_analytics', surfaces: ['mcp'], toolset: 'analytics' },
-  {
-    name: 'get_content_calendar',
-    surfaces: ['agent', 'mcp'],
-    toolset: 'content',
-  },
-  { name: 'get_credits_balance', surfaces: ['agent', 'mcp'], toolset: 'core' },
   { name: 'get_current_brand', surfaces: ['agent'], toolset: 'brand' },
   { name: 'get_dashboard_layout', surfaces: ['agent'], toolset: 'ui' },
   {
@@ -296,7 +290,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent'],
     toolset: 'outreach',
   },
-  { name: 'get_post', surfaces: ['agent', 'mcp'], toolset: 'content' },
+  { name: 'get_posts', surfaces: ['agent', 'mcp'], toolset: 'content' },
   { name: 'get_remix_run', surfaces: ['mcp'], toolset: 'inspiration' },
   { name: 'get_scheduled_release', surfaces: ['mcp'], toolset: 'scheduler' },
   {
@@ -317,7 +311,6 @@ export const CURATED_ACTION_CATALOG = [
   },
   { name: 'get_top_ingredients', surfaces: ['agent'], toolset: 'ui' },
   { name: 'get_trends', surfaces: ['agent', 'mcp'], toolset: 'analytics' },
-  { name: 'get_usage_stats', surfaces: ['mcp'], toolset: 'core' },
   { name: 'get_video_analytics', surfaces: ['mcp'], toolset: 'analytics' },
   {
     name: 'get_visual_code_catalog',
@@ -375,23 +368,16 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent'],
     toolset: 'agent-chat',
   },
-  { name: 'list_avatars', surfaces: ['mcp'], toolset: 'generation' },
+  { name: 'list_assets', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   {
     name: 'list_brand_publishing_readiness',
     surfaces: ['mcp'],
     toolset: 'brand',
   },
-  { name: 'list_brands', surfaces: ['agent', 'mcp'], toolset: 'core' },
-  {
-    name: 'list_characters',
-    surfaces: ['agent', 'mcp'],
-    toolset: 'generation',
-  },
   { name: 'list_clip_projects', surfaces: ['mcp'], toolset: 'clips' },
   { name: 'list_genfeed_tools', surfaces: ['agent'], toolset: 'core' },
   { name: 'list_google_ads_campaigns', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'list_google_ads_customers', surfaces: ['mcp'], toolset: 'ads' },
-  { name: 'list_images', surfaces: ['mcp'], toolset: 'generation' },
   {
     name: 'list_instagram_inspiration',
     surfaces: ['agent', 'mcp'],
@@ -405,13 +391,11 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'list_meta_ad_accounts', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'list_meta_ad_creatives', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'list_meta_campaigns', surfaces: ['mcp'], toolset: 'ads' },
-  { name: 'list_music', surfaces: ['mcp'], toolset: 'generation' },
   {
     name: 'list_outlier_posts',
     surfaces: ['agent'],
     toolset: 'analytics',
   },
-  { name: 'list_posts', surfaces: ['agent', 'mcp'], toolset: 'content' },
   { name: 'list_review_queue', surfaces: ['agent'], toolset: 'content' },
   {
     name: 'list_social_conversations',
@@ -427,7 +411,6 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'list_tiktok_adgroups', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'list_tiktok_ads', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'list_tiktok_campaigns', surfaces: ['mcp'], toolset: 'ads' },
-  { name: 'list_videos', surfaces: ['mcp'], toolset: 'generation' },
   {
     name: 'list_workflow_runs',
     surfaces: ['agent', 'mcp'],
