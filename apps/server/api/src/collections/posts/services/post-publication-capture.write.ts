@@ -81,6 +81,25 @@ async function recordExternalPublicationInTransaction(
   if (normalized.externalId)
     identities.push({ externalId: normalized.externalId });
   if (normalized.url) identities.push({ url: normalized.url });
+  // Several URL forms (for example Instagram /p/ and /reel/) name one
+  // publication; the persisted URL identity catches those duplicates.
+  if (normalized.urlIdentity)
+    identities.push({
+      AND: [
+        {
+          targetSettings: {
+            path: ['extensionCapture', 'urlIdentity', 'kind'],
+            equals: normalized.urlIdentity.kind,
+          },
+        },
+        {
+          targetSettings: {
+            path: ['extensionCapture', 'urlIdentity', 'value'],
+            equals: normalized.urlIdentity.value,
+          },
+        },
+      ],
+    });
   const existing = await tx.post.findMany({
     where: {
       organizationId: scope.organizationId,

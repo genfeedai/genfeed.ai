@@ -103,6 +103,8 @@ export class AgentToolsController {
         ...(body.context ?? {}),
       } as Partial<ToolExecutionContext>;
       delete clientContext.confirmationOrigin;
+      // Scope validation is server-owned; a caller can never assert it.
+      delete clientContext.validatedScope;
       delete clientContext.approvalReviewerAuthorized;
       const approvedApprovalId = clientContext.approvedApprovalId;
       delete clientContext.hostSupportsApproval;

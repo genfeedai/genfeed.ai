@@ -3,6 +3,7 @@ import { OnboardingCreditGrantsService } from '@api/collections/credits/services
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { AgentScopeContextService } from '@api/index';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
 import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
@@ -138,6 +139,24 @@ describe('AgentToolsController publishing scopes', () => {
       }),
     );
   });
+  it('strips a client-asserted validated scope from direct tool execution', async () => {
+    await controller.execute(
+      'create_brand',
+      {
+        context: {
+          validatedScope: { brandId: 'brand-2', organizationId: 'org-1' },
+        } as never,
+        parameters: { confirmed: true, label: 'Brand' },
+      },
+      apiKeyUser([]),
+      request,
+    );
+    expect(executor.executeTool).toHaveBeenLastCalledWith(
+      'create_brand',
+      expect.anything(),
+      expect.not.objectContaining({ validatedScope: expect.anything() }),
+    );
+  });
   it('rejects client-injected reviewer authority for an ordinary user', async () => {
     await controller.execute(
       'create_post',
@@ -227,6 +246,13 @@ describe('AgentToolsController reported publication contract', () => {
       providers: [
         AgentPublishToolHandler,
         { provide: PostsService, useValue: posts },
+        {
+          provide: AgentScopeContextService,
+          useValue: {
+            assertBrandAuthorized: vi.fn().mockResolvedValue(undefined),
+            assertResourceBrand: vi.fn(),
+          },
+        },
         { provide: PostGroupsService, useValue: { scheduleTarget: vi.fn() } },
         {
           provide: LoggerService,
@@ -354,6 +380,13 @@ describe('POST /agent-tools/record_external_publication/execute', () => {
       providers: [
         AgentPublishToolHandler,
         PostsService,
+        {
+          provide: AgentScopeContextService,
+          useValue: {
+            assertBrandAuthorized: vi.fn().mockResolvedValue(undefined),
+            assertResourceBrand: vi.fn(),
+          },
+        },
         { provide: PrismaService, useValue: prisma },
         {
           provide: OnboardingCreditGrantsService,

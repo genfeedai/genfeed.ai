@@ -128,7 +128,12 @@ export class AgentPublishToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    return recordExternalPublicationAction(this.postsService, params, ctx);
+    return recordExternalPublicationAction(
+      this.postsService,
+      params,
+      ctx,
+      this.authorizeExternalPublicationBrand,
+    );
   }
 
   async linkExternalPublicationCredential(
@@ -139,8 +144,33 @@ export class AgentPublishToolHandler {
       this.postsService,
       params,
       ctx,
+      this.authorizeExternalPublicationBrand,
     );
   }
+
+  private readonly authorizeExternalPublicationBrand = async (
+    brandId: string,
+    ctx: ToolExecutionContext,
+  ): Promise<void> => {
+    if (!this.agentScopeContextService) {
+      throw new Error(
+        'Agent scope validation is required before recording external publications.',
+      );
+    }
+    // The organization comes from the authenticated principal. The brand is
+    // proven against it in the database, not trusted from the request context.
+    await this.agentScopeContextService.assertBrandAuthorized(
+      brandId,
+      ctx.organizationId,
+    );
+    if (ctx.validatedScope) {
+      this.agentScopeContextService.assertResourceBrand(
+        ctx.validatedScope,
+        brandId,
+        'External publication',
+      );
+    }
+  };
 
   async scheduleCanonicalPost(
     input: ScheduleCanonicalPostInput,

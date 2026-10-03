@@ -15,10 +15,21 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 
+/**
+ * Confirms, on the server, that the requested brand belongs to the
+ * authenticated organization. The request's own `context.brandId` is only a
+ * consistency check, never the authority.
+ */
+export type ExternalPublicationBrandAuthorizer = (
+  brandId: string,
+  ctx: ToolExecutionContext,
+) => Promise<void>;
+
 export async function recordExternalPublicationAction(
   postsService: Pick<PostsService, 'recordExternalPublication'>,
   params: Record<string, unknown>,
   ctx: ToolExecutionContext,
+  authorizeBrand: ExternalPublicationBrandAuthorizer,
 ): Promise<AgentToolResult> {
   const input = parseExtensionPublicationCaptureInput(params);
   if (!ctx.brandId || ctx.brandId !== input.brandId) {
@@ -26,8 +37,9 @@ export async function recordExternalPublicationAction(
       'Reported publication must match the authenticated brand context',
     );
   }
+  await authorizeBrand(input.brandId, ctx);
   const result = await postsService.recordExternalPublication(input, {
-    brandId: ctx.brandId,
+    brandId: input.brandId,
     organizationId: ctx.organizationId,
     userId: ctx.userId,
   });
@@ -96,6 +108,7 @@ export async function linkExternalPublicationCredentialAction(
   postsService: Pick<PostsService, 'linkExternalPublicationCredential'>,
   params: Record<string, unknown>,
   ctx: ToolExecutionContext,
+  authorizeBrand: ExternalPublicationBrandAuthorizer,
 ): Promise<AgentToolResult> {
   const parsed = linkPublicationSchema.safeParse(params);
   if (!parsed.success)
@@ -104,10 +117,11 @@ export async function linkExternalPublicationCredentialAction(
     throw new ForbiddenException(
       'Publication linking must match the authenticated brand context',
     );
+  await authorizeBrand(parsed.data.brandId, ctx);
   const result = await postsService.linkExternalPublicationCredential(
     parsed.data,
     {
-      brandId: ctx.brandId,
+      brandId: parsed.data.brandId,
       organizationId: ctx.organizationId,
       userId: ctx.userId,
     },

@@ -1,6 +1,7 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { AgentScopeContextService } from '@api/index';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import {
   type AgentToolDispatchHandlers,
@@ -10,6 +11,7 @@ import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tool
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import type { ExtensionPublicationCaptureResult } from '@genfeedai/contracts/interfaces/content/extension-publication.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
 const params = {
@@ -44,6 +46,10 @@ async function fixture() {
     recordExternalPublication: vi.fn().mockResolvedValue(result),
     create: vi.fn(),
   };
+  const scopeService = {
+    assertBrandAuthorized: vi.fn().mockResolvedValue(undefined),
+    assertResourceBrand: vi.fn(),
+  };
   const groups = { scheduleTarget: vi.fn(), publish: vi.fn() };
   const credits = { deduct: vi.fn() };
   const generation = { generate: vi.fn() };
@@ -52,6 +58,7 @@ async function fixture() {
       AgentPublishToolHandler,
       { provide: PostsService, useValue: posts },
       { provide: PostGroupsService, useValue: groups },
+      { provide: AgentScopeContextService, useValue: scopeService },
       {
         provide: LoggerService,
         useValue: {
@@ -68,6 +75,7 @@ async function fixture() {
   return {
     handler: module.get(AgentPublishToolHandler),
     posts,
+    scopeService,
     groups,
     credits,
     generation,
@@ -98,6 +106,37 @@ describe('record_external_publication execution', () => {
     expect(f.groups.publish).not.toHaveBeenCalled();
     expect(f.credits.deduct).not.toHaveBeenCalled();
     expect(f.generation.generate).not.toHaveBeenCalled();
+  });
+  it('authorizes the brand against the authenticated organization before persistence', async () => {
+    const f = await fixture();
+    await f.handler.recordExternalPublication(params, ctx);
+    expect(f.scopeService.assertBrandAuthorized).toHaveBeenCalledWith(
+      'brand-1',
+      'org-1',
+    );
+  });
+  it('rejects a brand the organization does not own before persistence', async () => {
+    const f = await fixture();
+    f.scopeService.assertBrandAuthorized.mockRejectedValue(
+      new ForbiddenException('Requested brand is not available'),
+    );
+    await expect(
+      f.handler.recordExternalPublication(params, ctx),
+    ).rejects.toThrow('not available');
+    expect(f.posts.recordExternalPublication).not.toHaveBeenCalled();
+  });
+  it('rejects a validated thread scope bound to another brand', async () => {
+    const f = await fixture();
+    f.scopeService.assertResourceBrand.mockImplementation(() => {
+      throw new ForbiddenException('outside the validated thread brand scope');
+    });
+    await expect(
+      f.handler.recordExternalPublication(params, {
+        ...ctx,
+        validatedScope: { brandId: 'other' } as never,
+      }),
+    ).rejects.toThrow('validated thread brand scope');
+    expect(f.posts.recordExternalPublication).not.toHaveBeenCalled();
   });
   it.each(['other', undefined])(
     'rejects context brand %s before persistence',

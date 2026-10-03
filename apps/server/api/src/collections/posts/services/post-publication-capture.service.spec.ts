@@ -298,7 +298,7 @@ describe('PostsService reported publication capture', () => {
     expect(f.credential.findMany).not.toHaveBeenCalled();
     expect(f.cache.invalidateByTags).not.toHaveBeenCalled();
   });
-  it('queries both real ID and normalized permalink with exact active scope and bounded ordering', async () => {
+  it('queries real ID, normalized permalink and persisted URL identity with exact active scope and bounded ordering', async () => {
     const f = await makeService();
     await f.service.recordExternalPublication(input, scope);
     expect(f.post.findMany).toHaveBeenCalledWith({
@@ -307,10 +307,57 @@ describe('PostsService reported publication capture', () => {
         brandId: 'brand-1',
         platform: 'twitter',
         isDeleted: false,
-        OR: [{ externalId: '123' }, { url: row.url }],
+        OR: [
+          { externalId: '123' },
+          { url: row.url },
+          {
+            AND: [
+              {
+                targetSettings: {
+                  path: ['extensionCapture', 'urlIdentity', 'kind'],
+                  equals: 'platform-publication-id',
+                },
+              },
+              {
+                targetSettings: {
+                  path: ['extensionCapture', 'urlIdentity', 'value'],
+                  equals: '123',
+                },
+              },
+            ],
+          },
+        ],
       },
       take: 2,
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+  });
+  it('matches another URL form of the same Instagram post by its persisted URL identity', async () => {
+    const f = await makeService();
+    await f.service.recordExternalPublication(
+      {
+        ...input,
+        platform: 'instagram',
+        url: 'https://instagram.com/reel/abc',
+      },
+      scope,
+    );
+    const where = f.post.findMany.mock.calls[0][0].where;
+    expect(where.OR).toContainEqual({
+      AND: [
+        {
+          targetSettings: {
+            path: ['extensionCapture', 'urlIdentity', 'kind'],
+            equals: 'instagram-shortcode',
+          },
+        },
+        {
+          targetSettings: {
+            path: ['extensionCapture', 'urlIdentity', 'value'],
+            equals: 'abc',
+          },
+        },
+      ],
     });
   });
   it.each([
