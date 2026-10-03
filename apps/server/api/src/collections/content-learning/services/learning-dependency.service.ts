@@ -156,6 +156,16 @@ function assertInvalidationWithinFence(
   )
     throw new LearningFenceEscalationError();
 }
+function scoped(
+  kind: LearningDependencyKindV1,
+  organizationId?: string | null,
+) {
+  if (isLearningGlobalDependencyKind(kind))
+    return organizationId == null ? { organizationId: null } : null;
+  return typeof organizationId === 'string' && organizationId.trim()
+    ? { organizationId }
+    : null;
+}
 export async function invalidateLearningDependencySource(
   tx: Prisma.TransactionClient,
   sourceKind: string,
