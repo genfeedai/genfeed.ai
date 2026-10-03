@@ -12,7 +12,7 @@ after the 2026-08-06 review. Pinned by `curated-action-catalog.spec.ts`.
 
 ## Both surfaces
 
-`analyze_performance`, `get_analytics`, `get_content_calendar`, `reframe_image`,
+`analyze_performance`, `get_analytics`, `get_posts`, `reframe_image`,
 `upscale_image`, `get_x_posts`, and `list_x_account_activity` are headless-safe:
 each returns data or an asset URL from a concrete `AgentToolExecutorService` case, so an MCP client
 reaches them through the existing `/agent-tools/:name/execute` proxy with no new handler. They match
@@ -27,7 +27,7 @@ because they create in-product review drafts rather than a headless publish.
   the callable half.
 - **`create_brand`** — brand creation is a guided in-product onboarding flow
   (`brand_create_card`, `check_onboarding_status`, `complete_onboarding`). MCP reaches brands
-  through `get_brand`, `list_brands`, `get_brand_completeness`, and the approval-gated interview
+  through `get_brands`, `get_brand_completeness`, and the approval-gated interview
   tools.
 - **`get_outreach_sequence_analytics`** (renamed from the generic `get_campaign_analytics`;
   `complete_campaign` / `create_campaign` / `get_campaign_analytics` / `pause_campaign` /

@@ -42,10 +42,10 @@ interface BuildCompletionSummaryCardParams {
  */
 const CONTEXT_ONLY_COMPLETION_TOOLS = new Set<string>([
   'get_current_brand',
-  'list_brands',
-  'get_credits_balance',
+  'get_brands',
+  'get_account',
   'get_connection_status',
-  'list_posts',
+  'get_posts',
   'list_workflows',
   'list_workflow_runs',
   'list_system_workflow_catalog',
@@ -56,7 +56,6 @@ const CONTEXT_ONLY_COMPLETION_TOOLS = new Set<string>([
   'get_brand_completeness',
   'get_brand_context',
   'get_dashboard_layout',
-  'get_content_calendar',
   'check_goal_progress',
   'inspect_workflow',
   'get_workflow_run',

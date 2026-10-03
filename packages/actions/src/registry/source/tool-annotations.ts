@@ -47,8 +47,6 @@ const DESTRUCTIVE_HINT_NAMES: ReadonlySet<string> = new Set([
 
 const READ_ONLY_HINT_NAMES: ReadonlySet<string> = new Set([
   'quote_visual_code_generation',
-  'get_account_info',
-  'list_brands',
   'validate_scheduler_target',
 ]);
 

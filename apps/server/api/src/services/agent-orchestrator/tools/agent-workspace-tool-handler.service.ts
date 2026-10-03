@@ -1,15 +1,19 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { resolveGenerationBrand } from '@api/collections/brands/utils/resolve-generation-brand.util';
+import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { resolvePublishValidationMedia } from '@api/services/agent-orchestrator/tools/agent-publish-target.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
+import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import {
   categoryToPlural,
   IngredientCategory,
+  parseIngredientOrigin,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
@@ -19,6 +23,7 @@ import {
   serializeAgentBrand,
   serializeAgentBrands,
 } from '@genfeedai/serializers';
+import { readIngredientMediaUrlWithFallback } from '@libs/media/media-url.util';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 
 type AgentBrandsServiceLike = {
@@ -34,7 +39,11 @@ type AgentBrandsServiceLike = {
 type AgentMembersServiceLike = {
   findOne: (
     query: Record<string, unknown>,
-  ) => Promise<{ currentBrandId?: unknown } | null>;
+    populate?: unknown[],
+  ) => Promise<{
+    currentBrandId?: unknown;
+    role?: { key?: unknown } | null;
+  } | null>;
 };
 
 /**
@@ -52,22 +61,95 @@ export class AgentWorkspaceToolHandler {
     private readonly postsService: PostsService,
     private readonly personasService: PersonasService,
     private readonly presignedUploadService: PresignedUploadService,
+    private readonly creditTransactionsService: CreditTransactionsService,
+    private readonly ingredientsService: IngredientsService,
   ) {}
 
-  async getCreditsBalance(ctx: ToolExecutionContext): Promise<AgentToolResult> {
-    const balance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
+  /**
+   * `get_account`: profile, credits and usage in one read. Sections default to
+   * all three; `include` narrows them.
+   */
+  async getAccount(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const sections = readAccountSections(params.include);
+    if (!sections) {
+      return toolFailure(
+        `include must be an array of: ${ACCOUNT_SECTIONS.join(', ')}.`,
+      );
+    }
+
+    const data: Record<string, unknown> = {};
+    if (sections.has('profile')) {
+      data.profile = await this.readAccountProfile(ctx);
+    }
+    if (sections.has('credits')) {
+      data.credits = {
+        balance: await this.creditsUtilsService.getOrganizationCreditsBalance(
+          ctx.organizationId,
+        ),
+      };
+    }
+    if (sections.has('usage')) {
+      // The daily/weekly/monthly series feed dashboard charts, not agents.
+      const metrics = await this.creditTransactionsService.getUsageMetrics(
         ctx.organizationId,
       );
+      data.usage = {
+        breakdown: metrics.breakdown,
+        currentBalance: metrics.currentBalance,
+        trendPercentage: metrics.trendPercentage,
+        usage7Days: metrics.usage7Days,
+        usage30Days: metrics.usage30Days,
+      };
+    }
 
+    return { creditsUsed: 0, data, success: true };
+  }
+
+  private async readAccountProfile(
+    ctx: ToolExecutionContext,
+  ): Promise<Record<string, unknown>> {
+    const brandId = ctx.brandId ?? ctx.validatedScope?.brandId;
     return {
-      creditsUsed: 0,
-      data: { balance },
-      success: true,
+      ...(brandId ? { brandId } : {}),
+      organizationId: ctx.organizationId,
+      role: await this.resolveOrganizationRole(ctx),
+      userId: ctx.userId,
     };
   }
 
-  async listBrands(ctx: ToolExecutionContext): Promise<AgentToolResult> {
+  /**
+   * The caller's organization role key from their active membership. Fails
+   * closed to `''` so an unresolved membership is never shown as a role.
+   */
+  private async resolveOrganizationRole(
+    ctx: ToolExecutionContext,
+  ): Promise<string> {
+    try {
+      const member = await this.membersService.findOne(
+        {
+          isActive: true,
+          organizationId: ctx.organizationId,
+          userId: ctx.userId,
+        },
+        [PopulateBuilder.withFields('role', ['id', 'key', 'label'])],
+      );
+      return typeof member?.role?.key === 'string' ? member.role.key : '';
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * `get_brands`: every brand in the organization, or the one matching
+   * `brandId` by id, slug, name or label.
+   */
+  async getBrands(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
     const brands = await this.brandsService.findAll(
       {
         where: {
@@ -77,19 +159,89 @@ export class AgentWorkspaceToolHandler {
       },
       {},
     );
+    const serialized = serializeAgentBrands(
+      (brands.docs as Record<string, unknown>[] | undefined) ?? [],
+    );
+
+    const requested = readRequiredString(params.brandId);
+    if (!requested) {
+      return { creditsUsed: 0, data: { brands: serialized }, success: true };
+    }
+
+    const needle = requested.toLowerCase();
+    const brand = serialized.find((entry) =>
+      [entry.id, entry.slug, entry.name, entry.label].some(
+        (value) => value.trim().toLowerCase() === needle,
+      ),
+    );
+    if (!brand) {
+      return toolFailure('Brand was not found in this organization.');
+    }
+
+    return { creditsUsed: 0, data: { brand }, success: true };
+  }
+
+  /**
+   * `list_assets`: library assets of one type for the organization, or the
+   * named characters the current brand can use.
+   */
+  async listAssets(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const type = readAssetType(params.type);
+    if (!type) {
+      return toolFailure(
+        `list_assets requires type: ${ASSET_TYPES.join(', ')}.`,
+      );
+    }
+
+    if (type === 'character') {
+      const misused = ['limit', 'offset', 'origin'].filter(
+        (key) => params[key] !== undefined && params[key] !== null,
+      );
+      if (misused.length > 0) {
+        return toolFailure(
+          `${misused.join(', ')} do not apply to type character.`,
+        );
+      }
+      return this.listCharacters(params, ctx);
+    }
+
+    if (params.q !== undefined && params.q !== null) {
+      return toolFailure('q applies only to type character.');
+    }
+
+    const rawOrigin = params.origin;
+    const hasOrigin =
+      rawOrigin !== undefined && rawOrigin !== null && rawOrigin !== '';
+    const origin = hasOrigin ? parseIngredientOrigin(rawOrigin) : undefined;
+    if (hasOrigin && !origin) {
+      return toolFailure(
+        'origin must be UPLOADED, GENERATED, IMPORTED or UNKNOWN.',
+      );
+    }
+
+    const assets = await this.ingredientsService.listLibraryAssets({
+      category: ASSET_TYPE_CATEGORY[type],
+      limit: clampInteger(params.limit, 10, 1, 50),
+      offset: clampInteger(params.offset, 0, 0, Number.MAX_SAFE_INTEGER),
+      organizationId: ctx.organizationId,
+      origin,
+    });
 
     return {
       creditsUsed: 0,
       data: {
-        brands: serializeAgentBrands(
-          (brands.docs as Record<string, unknown>[] | undefined) ?? [],
-        ),
+        assets: assets.map((asset) => toListedAsset(asset)),
+        count: assets.length,
+        type,
       },
       success: true,
     };
   }
 
-  async listCharacters(
+  private async listCharacters(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
@@ -207,7 +359,7 @@ export class AgentWorkspaceToolHandler {
   ): Promise<AgentToolResult> {
     const postId = readRequiredString(params.postId);
     if (!postId) {
-      return toolFailure('get_post requires postId.');
+      return toolFailure('get_posts requires postId.');
     }
 
     const post = await this.postsService.findOne({
@@ -396,6 +548,70 @@ export class AgentWorkspaceToolHandler {
       success: true,
     };
   }
+}
+
+const ACCOUNT_SECTIONS = ['profile', 'credits', 'usage'] as const;
+
+type AccountSection = (typeof ACCOUNT_SECTIONS)[number];
+
+function readAccountSections(value: unknown): Set<AccountSection> | undefined {
+  if (value === undefined || value === null) {
+    return new Set(ACCOUNT_SECTIONS);
+  }
+  if (!Array.isArray(value) || value.length === 0) {
+    return undefined;
+  }
+  const sections = new Set<AccountSection>();
+  for (const entry of value) {
+    const section = ACCOUNT_SECTIONS.find((name) => name === entry);
+    if (!section) {
+      return undefined;
+    }
+    sections.add(section);
+  }
+  return sections;
+}
+
+const ASSET_TYPES = ['image', 'video', 'music', 'avatar', 'character'] as const;
+
+type AssetType = (typeof ASSET_TYPES)[number];
+
+const ASSET_TYPE_CATEGORY = {
+  avatar: IngredientCategory.AVATAR,
+  image: IngredientCategory.IMAGE,
+  music: IngredientCategory.MUSIC,
+  video: IngredientCategory.VIDEO,
+} as const satisfies Record<
+  Exclude<AssetType, 'character'>,
+  IngredientCategory
+>;
+
+function readAssetType(value: unknown): AssetType | undefined {
+  return ASSET_TYPES.find((name) => name === value);
+}
+
+function clampInteger(
+  value: unknown,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return fallback;
+  }
+  return Math.min(Math.max(Math.trunc(value), min), max);
+}
+
+function toListedAsset(asset: IngredientDocument): Record<string, unknown> {
+  return {
+    category: asset.category,
+    createdAt: asset.createdAt ?? null,
+    id: String(asset.id),
+    origin: asset.origin ?? null,
+    prompt: asset.generationPrompt ?? null,
+    status: asset.status,
+    url: readIngredientMediaUrlWithFallback(asset) ?? null,
+  };
 }
 
 function studioHandoffCategory(type: string): IngredientCategory {

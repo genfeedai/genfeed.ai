@@ -133,7 +133,7 @@ export const WEB_FETCH_TOOLS: ReadonlySet<string> = new Set<string>([
  */
 export const CONNECTOR_TOOLS: ReadonlySet<string> = new Set<string>([
   'discover_engagements',
-  'get_account_info',
+  'get_account',
   'get_social_conversation',
   'list_agent_conversations',
   'list_social_conversations',

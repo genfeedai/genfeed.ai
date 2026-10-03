@@ -36,7 +36,7 @@ https://mcp.genfeed.ai/mcp?toolsets=content,generation
   a handful of always-needed account/status tools.
 - **Omitting the parameter (or passing an empty value) uses `?profile=`**, and
   a bare URL gets the `default` profile: `core`, `generation`, `content` and
-  `scheduler`, capped at 40 tools. Use `?profile=full` for every tool.
+  `scheduler`, capped at 31 tools. Use `?profile=full` for every tool.
 - **An unknown toolset name is rejected with an HTTP 400** and a JSON-RPC
   `-32602` error naming the valid toolsets, before authentication runs (so it
   also applies to the unauthenticated public `tools/list` discovery path).

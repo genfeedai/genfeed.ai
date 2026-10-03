@@ -38,10 +38,10 @@ const UI_ACTION_MAP: Partial<
   generate: 'generation_action_card',
   generate_as_identity: 'generation_action_card',
   generate_content_batch: 'batch_generation_card',
+  get_account: 'credits_balance_card',
   get_analytics: 'analytics_snapshot_card',
   get_outreach_sequence_analytics: 'analytics_snapshot_card',
-  get_content_calendar: 'content_calendar_card',
-  get_credits_balance: 'credits_balance_card',
+  get_posts: 'content_calendar_card',
   get_trends: 'trending_topics_card',
   initiate_oauth_connect: 'oauth_connect_card',
   list_review_queue: 'review_gate_card',
@@ -70,6 +70,7 @@ export function inferCategory(name: string): ToolCategory {
       'get_generation_settings',
       'set_generation_settings',
       'enhance_prompt',
+      'list_assets',
     ].includes(name)
   )
     return 'generation';
