@@ -74,6 +74,55 @@ describe('S3StorageProvider', () => {
     await fs.rm(scratchDir, { force: true, recursive: true });
   });
 
+  describe('readVersionedBytes', () => {
+    it.each([
+      ['version-1', 's3:v:version-1'],
+      [undefined, 's3:e:"etag"'],
+    ])(
+      'returns the pin captured by the read (%s)',
+      async (VersionId, token) => {
+        const metadata = { ContentLength: 5, ETag: '"etag"', VersionId };
+        mockSend.mockResolvedValueOnce(metadata).mockResolvedValueOnce({
+          ...metadata,
+          Body: Readable.from([Buffer.from('hello')]),
+        });
+        const provider = new S3StorageProvider({ bucket: 'bucket' });
+        expect(
+          await provider.readVersionedBytes('image.png', {
+            maxBytes: 20,
+            timeoutMs: 1000,
+            expectedVersion: token,
+          }),
+        ).toEqual({ bytes: Buffer.from('hello'), version: token });
+        expect(mockSend.mock.calls[1][0].params).toMatchObject({
+          IfMatch: '"etag"',
+        });
+      },
+    );
+    it('rejects an oversized versioned object before GET', async () => {
+      mockSend.mockResolvedValueOnce({ ContentLength: 21, ETag: '"etag"' });
+      const provider = new S3StorageProvider({ bucket: 'bucket' });
+      await expect(
+        provider.readVersionedBytes('image.png', {
+          maxBytes: 20,
+          timeoutMs: 1000,
+        }),
+      ).rejects.toThrow('storage_read_limit_exceeded');
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
+    it('rejects a stale pin before sending GET', async () => {
+      mockSend.mockResolvedValueOnce({ ContentLength: 5, ETag: '"etag"' });
+      const provider = new S3StorageProvider({ bucket: 'bucket' });
+      await expect(
+        provider.readVersionedBytes('image.png', {
+          maxBytes: 20,
+          timeoutMs: 1000,
+          expectedVersion: 's3:e:old',
+        }),
+      ).rejects.toThrow('storage_read_changed');
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
+  });
   describe('constructor options', () => {
     it('uses explicit options over environment', () => {
       const provider = new S3StorageProvider({

@@ -4,7 +4,10 @@ import { createHash, randomUUID } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
-import { hashBrandedGenerationTextV1 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import {
+  hashBrandedGenerationArtifactManifestV1,
+  hashBrandedGenerationTextV1,
+} from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { BrandedGenerationPromptStoreService } from '@api/services/branded-generation-receipts/branded-generation-prompt-store.service';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
@@ -1208,6 +1211,140 @@ describe('branded receipt full-migration service and relocation acceptance', () 
     expect(await readPrivateCompiled(s.actor, receipt)).toEqual({
       status: 'unavailable',
       reasonCode: 'prompt_snapshot_unavailable',
+    });
+  }, 60000);
+  it('accepts the completion chain, enforces provider uniqueness and recovers expired dispatch windows', async () => {
+    const s = await seed();
+    const post = await clients[0].post.create({
+      data: {
+        id: randomUUID(),
+        userId: s.owner,
+        organizationId: s.source,
+        brandId: s.brand,
+        description: 'Completed fixture text',
+      },
+    });
+    const current = (await services[0].create(input(s.actor))).receipt;
+    const resolved = (
+      await services[0].recordResolution(
+        s.actor,
+        current.id,
+        { operationKey: 'resolve', expectedRevision: 0 },
+        resolution(current),
+      )
+    ).receipt;
+    const providerAttemptRef = `fixture-attempt-${randomUUID()}`;
+    const dispatched = (
+      await services[0].recordDispatch(
+        s.actor,
+        current.id,
+        { operationKey: 'dispatch', expectedRevision: resolved.revision },
+        {
+          provider: 'fixture-provider',
+          model: 'fixture-model',
+          providerAttemptRef,
+          dispatchClaimedAt: resolved.updatedAt,
+          providerAcceptedAt: resolved.updatedAt,
+        },
+      )
+    ).receipt;
+    const textHash = hashBrandedGenerationTextV1(post.description);
+    const bound = (
+      await services[0].bindArtifact(
+        s.actor,
+        current.id,
+        { operationKey: 'bind', expectedRevision: dispatched.revision },
+        {
+          artifact: {
+            kind: 'post',
+            id: post.id,
+            mediaKind: 'text',
+            version: textHash,
+            parts: [],
+            contentHash: hashBrandedGenerationArtifactManifestV1({
+              mediaKind: 'text',
+              textHash,
+              parts: [],
+            }),
+          },
+          textHash,
+          completedAt: dispatched.updatedAt,
+        },
+      )
+    ).receipt;
+    const validated = (
+      await services[0].recordValidation(
+        s.actor,
+        current.id,
+        { operationKey: 'validate', expectedRevision: bound.revision },
+        'validate',
+        null,
+      )
+    ).receipt;
+    expect(validated).toMatchObject({
+      state: 'ready',
+      compliance: 'not_claimed',
+      revision: 4,
+    });
+    expect(
+      await clients[0].brandedGenerationReceiptEvent.count({
+        where: {
+          receiptId: current.id,
+          organizationId: s.source,
+          brandId: s.brand,
+          isDeleted: false,
+        },
+      }),
+    ).toBe(validated.revision + 1);
+    const stored = await clients[0].brandedGenerationReceipt.findFirstOrThrow({
+      where: {
+        id: current.id,
+        organizationId: s.source,
+        brandId: s.brand,
+        isDeleted: false,
+      },
+    });
+    expect(stored.providerAttemptRef).toBe(
+      validated.execution?.providerAttemptRef,
+    );
+    expect(stored.projection).toEqual(validated);
+    const second = (await services[0].create(input(s.actor))).receipt;
+    const secondResolved = (
+      await services[0].recordResolution(
+        s.actor,
+        second.id,
+        { operationKey: 'resolve', expectedRevision: 0 },
+        resolution(second),
+      )
+    ).receipt;
+    await expect(
+      services[0].recordDispatch(
+        s.actor,
+        second.id,
+        { operationKey: 'dispatch', expectedRevision: secondResolved.revision },
+        {
+          provider: 'fixture-provider',
+          model: 'fixture-model',
+          providerAttemptRef,
+          dispatchClaimedAt: secondResolved.updatedAt,
+          providerAcceptedAt: secondResolved.updatedAt,
+        },
+      ),
+    ).rejects.toMatchObject({
+      message: 'provider_attempt_ref_conflict',
+      status: 409,
+    });
+    expect((await services[0].get(s.actor, second.id)).state).toBe('resolved');
+    expect(
+      await services[0].recoverExpiredDispatches(s.actor, {
+        limit: 10,
+        now: new Date(Date.parse(secondResolved.updatedAt) + 900001),
+      }),
+    ).toEqual({ blocked: [second.id], skipped: [] });
+    expect(await services[0].get(s.actor, second.id)).toMatchObject({
+      state: 'blocked',
+      execution: null,
+      diagnostics: [{ code: 'dispatch_window_expired' }],
     });
   }, 60000);
   it('requires the active relocation history guard for live and tombstoned receipts', async () => {

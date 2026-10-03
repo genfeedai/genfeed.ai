@@ -6,6 +6,7 @@ import type {
   BrandArtifactValidationReportV1,
   BrandedGenerationReceiptV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+export const BRANDED_GENERATION_DISPATCH_WINDOW_MS = 15 * 60 * 1000;
 export type BrandedGenerationStateV1 = BrandedGenerationReceiptV1['state'];
 export type BrandedGenerationOperationKindV1 =
   | 'resolve'
