@@ -79,7 +79,13 @@ describe('PinterestPublisherService', () => {
     brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Test image post</p>',
-    ingredients: [mockIngredientId],
+    ingredients: [
+      {
+        id: mockIngredientId,
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
+    ],
     isDeleted: false,
     label: 'Pin Title',
     organizationId: mockOrganizationId,
@@ -93,7 +99,13 @@ describe('PinterestPublisherService', () => {
     brandId: mockBrandId,
     category: PostCategory.VIDEO,
     description: '<p>Test video post</p>',
-    ingredients: [mockIngredientId],
+    ingredients: [
+      {
+        id: mockIngredientId,
+        mediaUrl:
+          'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
+      },
+    ],
     isDeleted: false,
     organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
@@ -106,7 +118,18 @@ describe('PinterestPublisherService', () => {
     brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Carousel post</p>',
-    ingredients: [testId('ingredient', 2), testId('ingredient', 3)],
+    ingredients: [
+      {
+        id: testId('ingredient', 2),
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
+      {
+        id: testId('ingredient', 3),
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
+    ],
     isDeleted: false,
     organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
@@ -144,6 +167,7 @@ describe('PinterestPublisherService', () => {
           useValue: {
             get: vi.fn().mockReturnValue('test-value'),
             ingredientsEndpoint: 'https://api.test.com/ingredients',
+            isAuthorizedMediaDeliveryEnabled: true,
           },
         },
         {

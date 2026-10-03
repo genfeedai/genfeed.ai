@@ -60,7 +60,13 @@ describe('SnapchatPublisherService', () => {
     post: {
       category: PostCategory.IMAGE,
       description: 'Check this out!',
-      ingredients: ['test-object-id'],
+      ingredients: [
+        {
+          id: 'test-object-id',
+          mediaUrl:
+            'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+        },
+      ],
       label: 'My Snap',
       status: PostStatus.DRAFT,
     } as never,
@@ -83,6 +89,7 @@ describe('SnapchatPublisherService', () => {
           useValue: {
             get: vi.fn(),
             ingredientsEndpoint: 'https://cdn.genfeed.ai',
+            isAuthorizedMediaDeliveryEnabled: true,
           },
         },
         { provide: SnapchatService, useValue: snapchatService },

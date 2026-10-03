@@ -9,6 +9,7 @@ import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { VideoStitchService } from '@api/services/video-stitch/video-stitch.service';
 import type { VideoStitchRequest } from '@api/services/video-stitch/video-stitch.types';
 import { WhisperService } from '@api/services/whisper/whisper.service';
@@ -76,7 +77,41 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     @Optional()
     private readonly continuityResolver?: VideoQaContinuityResolverService,
     @Optional() private readonly videoStitchService?: VideoStitchService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
+
+  private async processingMediaUrl(
+    organizationId: string,
+    asset: {
+      id: string;
+      objectKey?: string;
+      storageKey: string;
+      storageType: string;
+    },
+  ): Promise<string> {
+    if (this.configService.isAuthorizedMediaDeliveryEnabled) {
+      if (!this.authorizedMediaUrls)
+        throw new Error('Authorized media issuer is unavailable');
+      const urls = await this.authorizedMediaUrls.issueServerPublish(
+        organizationId,
+        [asset.id],
+      );
+      const url = urls.get(asset.id);
+      if (!url) throw new Error('The source asset has no authorized media URL');
+      return url;
+    }
+    if (!this.filesClientService)
+      throw new Error('File storage service is unavailable');
+    return asset.objectKey
+      ? this.filesClientService.getPresignedDownloadUrlForObjectKey(
+          asset.objectKey,
+        )
+      : this.filesClientService.getPresignedDownloadUrl(
+          asset.storageKey,
+          asset.storageType,
+        );
+  }
 
   register(engine: WorkflowEngine): void {
     this.registerAvatarVideoExecutor(engine);
@@ -213,8 +248,25 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
           );
         }
 
-        const captionContent =
-          await whisperService.generateCaptions(sourceIngredientId);
+        let sourceVideoUrl = `${this.configService.ingredientsEndpoint}/videos/${sourceIngredientId}`;
+        if (this.configService.isAuthorizedMediaDeliveryEnabled) {
+          if (!this.authorizedMediaUrls)
+            throw new Error('Authorized media issuer is unavailable');
+          const urls = await this.authorizedMediaUrls.issueServerPublish(
+            context.organizationId,
+            [sourceIngredientId],
+          );
+          const authorizedUrl = urls.get(sourceIngredientId);
+          if (!authorizedUrl)
+            throw new Error('The source video has no authorized media URL');
+          sourceVideoUrl = authorizedUrl;
+        }
+
+        const captionContent = await whisperService.generateCaptions(
+          sourceIngredientId,
+          undefined,
+          context.organizationId,
+        );
 
         const captionInput = {
           content: captionContent,
@@ -244,7 +296,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
           organizationId: context.organizationId,
           params: {
             captionContent,
-            inputPath: `${this.configService.ingredientsEndpoint}/videos/${sourceIngredientId}`,
+            inputPath: sourceVideoUrl,
           },
           room: getUserRoomName(context.userId),
           type: 'add-captions',
@@ -264,6 +316,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
         );
 
         await ingredientsService.patch(ingredientId, {
+          ...(uploaded.s3Key ? { s3Key: uploaded.s3Key } : {}),
           status: IngredientStatus.GENERATED,
           transformations: [TransformationCategory.CAPTIONED],
         });
@@ -380,8 +433,8 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
       });
       try {
         const [videoUrl, audioUrl] = await Promise.all([
-          files.getPresignedDownloadUrl(video.storageKey, video.storageType),
-          files.getPresignedDownloadUrl(sound.storageKey, sound.storageType),
+          this.processingMediaUrl(context.organizationId, video),
+          this.processingMediaUrl(context.organizationId, sound),
         ]);
         const result = await files.audioOverlay({
           videoUrl,
@@ -514,12 +567,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
           );
           continue;
         }
-        resolved.push(
-          await filesClientService.getPresignedDownloadUrl(
-            asset.storageKey,
-            asset.storageType,
-          ),
-        );
+        resolved.push(await this.processingMediaUrl(organizationId, asset));
       } catch {
         // Omit the ref; empty results skip rather than fake consistent.
       }
@@ -534,57 +582,70 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
       return;
     }
 
-    engine.registerExecutor('videoFrameExtract', async (_node, inputs) => {
-      const source = inputs.get('video');
-      const videoUrl = this.helper.extractMediaUrl(source);
-      const ingredientId = this.helper.extractIngredientId(source);
-      if (!videoUrl || !ingredientId) {
-        throw new Error(
-          'videoFrameExtract requires a source video ingredient URL',
+    engine.registerExecutor(
+      'videoFrameExtract',
+      async (_node, inputs, context) => {
+        const source = inputs.get('video');
+        const videoUrl = this.helper.extractMediaUrl(source);
+        const ingredientId = this.helper.extractIngredientId(source);
+        if (!videoUrl || !ingredientId) {
+          throw new Error(
+            'videoFrameExtract requires a source video ingredient URL',
+          );
+        }
+
+        const providerVideoUrl = this.configService
+          .isAuthorizedMediaDeliveryEnabled
+          ? await this.processingMediaUrl(
+              context.organizationId,
+              await this.helper.requireMediaAsset(
+                ingredientId,
+                context.organizationId,
+                [IngredientCategory.VIDEO],
+              ),
+            )
+          : await filesClientService.getPresignedDownloadUrl(
+              ingredientId,
+              'videos',
+            );
+
+        const metadata =
+          await filesClientService.extractMetadataFromUrl(providerVideoUrl);
+        if (
+          typeof metadata.duration !== 'number' ||
+          !Number.isFinite(metadata.duration) ||
+          metadata.duration <= 0
+        ) {
+          throw new Error(
+            'videoFrameExtract requires a source video with a readable duration',
+          );
+        }
+        const selectionMode = this.helper.readConfigString(
+          _node.config,
+          'selectionMode',
         );
-      }
-
-      const providerVideoUrl = await filesClientService.getPresignedDownloadUrl(
-        ingredientId,
-        'videos',
-      );
-
-      const metadata =
-        await filesClientService.extractMetadataFromUrl(providerVideoUrl);
-      if (
-        typeof metadata.duration !== 'number' ||
-        !Number.isFinite(metadata.duration) ||
-        metadata.duration <= 0
-      ) {
-        throw new Error(
-          'videoFrameExtract requires a source video with a readable duration',
+        const requestedTimestamp = this.helper.getOptionalNumberConfig(
+          _node.config,
+          'timestampSeconds',
+          0,
         );
-      }
-      const selectionMode = this.helper.readConfigString(
-        _node.config,
-        'selectionMode',
-      );
-      const requestedTimestamp = this.helper.getOptionalNumberConfig(
-        _node.config,
-        'timestampSeconds',
-        0,
-      );
-      const timestamp =
-        selectionMode === 'last'
-          ? Math.max(0, metadata.duration - 0.05)
-          : requestedTimestamp;
-      const frameUrl = await filesClientService.generateThumbnail(
-        providerVideoUrl,
-        ingredientId,
-        timestamp,
-      );
+        const timestamp =
+          selectionMode === 'last'
+            ? Math.max(0, metadata.duration - 0.05)
+            : requestedTimestamp;
+        const frameUrl = await filesClientService.generateThumbnail(
+          providerVideoUrl,
+          ingredientId,
+          timestamp,
+        );
 
-      return {
-        image: frameUrl,
-        last_frame: frameUrl,
-        sourceVideo: videoUrl,
-      };
-    });
+        return {
+          image: frameUrl,
+          last_frame: frameUrl,
+          sourceVideo: videoUrl,
+        };
+      },
+    );
   }
 
   private registerVideoStitchExecutor(engine: WorkflowEngine): void {

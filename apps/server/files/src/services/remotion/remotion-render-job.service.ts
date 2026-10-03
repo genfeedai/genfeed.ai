@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { statSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
@@ -44,7 +45,9 @@ export class RemotionRenderJobService {
 
   async process(job: Job<VideoJobData>): Promise<EditorRenderResult> {
     const { ingredientId, metadata, organizationId, room, userId } = job.data;
-    const params = this.readParams(job.data);
+    const queuedParams = this.readParams(job.data);
+    const { params, authorizedUrls } =
+      await this.hydrateStoredAssets(queuedParams);
     const tempPath = this.ffmpegService.getTempPath(
       'editor-render',
       `${ingredientId}-${job.id}`,
@@ -53,7 +56,11 @@ export class RemotionRenderJobService {
     let lastLoggedProgress = -25;
 
     try {
-      this.assertTrustedAssets(params.assetManifest, params.snapshot);
+      this.assertTrustedAssets(
+        params.assetManifest,
+        params.snapshot,
+        authorizedUrls,
+      );
 
       if (params.editorRender.cancelRequestedAt) {
         throw new EditorRenderCancelledError();
@@ -95,8 +102,20 @@ export class RemotionRenderJobService {
         String(job.id),
       );
 
-      const s3Key = this.s3Service.generateS3Key('videos', ingredientId);
-      await this.s3Service.uploadFile(s3Key, outputPath, 'video/mp4');
+      const requestedKey = this.s3Service.generateS3Key(
+        'videos',
+        this.configService.isAuthorizedMediaDeliveryEnabled
+          ? randomUUID()
+          : ingredientId,
+      );
+      const uploaded = await this.s3Service.uploadFile(
+        requestedKey,
+        outputPath,
+        'video/mp4',
+      );
+      if (this.configService.isAuthorizedMediaDeliveryEnabled && !uploaded?.Key)
+        throw new Error('Rendered upload returned no stored key');
+      const s3Key = uploaded?.Key ?? requestedKey;
       const url = this.s3Service.getPublicUrl(s3Key);
       const result: EditorRenderResult = {
         durationFrames: params.snapshot.totalDurationFrames,
@@ -233,8 +252,13 @@ export class RemotionRenderJobService {
   }
 
   private readParams(data: VideoJobData): EditorRenderParams {
-    const { assetManifest, editorRender, rendererVersion, snapshot } =
-      data.params;
+    const {
+      assetManifest,
+      editorRender,
+      rendererVersion,
+      snapshot,
+      editorSourceStorageKeys,
+    } = data.params;
 
     if (
       !assetManifest ||
@@ -247,12 +271,72 @@ export class RemotionRenderJobService {
       );
     }
 
-    return { assetManifest, editorRender, rendererVersion, snapshot };
+    return {
+      assetManifest,
+      editorRender,
+      rendererVersion,
+      snapshot,
+      ...(editorSourceStorageKeys
+        ? { sourceStorageKeys: editorSourceStorageKeys }
+        : {}),
+    };
+  }
+
+  private async hydrateStoredAssets(queued: EditorRenderParams): Promise<{
+    params: EditorRenderParams;
+    authorizedUrls?: ReadonlyMap<string, string>;
+  }> {
+    if (!this.configService.isAuthorizedMediaDeliveryEnabled)
+      return { params: queued };
+    const urls = new Map<string, string>();
+    for (const asset of queued.assetManifest) {
+      const key = queued.sourceStorageKeys?.[asset.clipId];
+      if (!key)
+        throw new UnrecoverableError(
+          'Editor render asset has no canonical stored key.',
+        );
+      urls.set(
+        asset.clipId,
+        await this.s3Service.getPresignedDownloadUrlForStoredKey(key, 900),
+      );
+    }
+    const urlFor = (clipId: string): string => {
+      const url = urls.get(clipId);
+      if (!url)
+        throw new UnrecoverableError(
+          'Editor render snapshot contains an untrusted asset.',
+        );
+      return url;
+    };
+    return {
+      authorizedUrls: urls,
+      params: {
+        ...queued,
+        assetManifest: queued.assetManifest.map((asset) => ({
+          ...asset,
+          ingredientUrl: urlFor(asset.clipId),
+        })),
+        snapshot: {
+          ...queued.snapshot,
+          tracks: queued.snapshot.tracks.map((track) => ({
+            ...track,
+            clips:
+              track.type === 'text'
+                ? track.clips.map((clip) => ({ ...clip }))
+                : track.clips.map((clip) => ({
+                    ...clip,
+                    ingredientUrl: urlFor(clip.id),
+                  })),
+          })),
+        },
+      },
+    };
   }
 
   private assertTrustedAssets(
     assetManifest: IEditorRenderJobParams['assetManifest'],
     snapshot: IEditorRenderJobParams['snapshot'],
+    authorizedUrls?: ReadonlyMap<string, string>,
   ): void {
     const trustedBase = new URL(this.configService.ingredientsEndpoint);
     const trustedPath = trustedBase.pathname.replace(/\/$/, '');
@@ -261,6 +345,14 @@ export class RemotionRenderJobService {
     );
 
     for (const asset of assetManifest) {
+      // Only URLs freshly minted here from trusted scoped queue keys may carry signatures.
+      if (authorizedUrls) {
+        if (asset.ingredientUrl !== authorizedUrls.get(asset.clipId))
+          throw new UnrecoverableError(
+            'Editor render asset URL is not approved.',
+          );
+        continue;
+      }
       let url: URL;
       try {
         url = new URL(asset.ingredientUrl);

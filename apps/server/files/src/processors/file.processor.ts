@@ -65,9 +65,23 @@ export class FileProcessor extends WorkerHost {
       const filename = `file-${params.index || Date.now()}.${extension}`;
       const filePath = path.join(tempDir, filename);
 
+      let downloadUrl = params.url || '';
+      if (params.sourceStorageKey) {
+        downloadUrl = await this.s3Service.getPresignedDownloadUrlForStoredKey(
+          params.sourceStorageKey,
+          300,
+        );
+      } else if (
+        this.configService.isAuthorizedMediaDeliveryEnabled &&
+        downloadUrl.startsWith(
+          `${this.configService.ingredientsEndpoint.replace(/\/$/, '')}/`,
+        )
+      ) {
+        throw new Error('The queued media source has no canonical stored key');
+      }
       // Download file
       const response = await firstValueFrom(
-        this.httpService.get(params?.url || '', {
+        this.httpService.get(downloadUrl, {
           onDownloadProgress: (progressEvent) => {
             const percentCompleted = Math.round(
               (progressEvent.loaded * 100) / (progressEvent.total || 1),

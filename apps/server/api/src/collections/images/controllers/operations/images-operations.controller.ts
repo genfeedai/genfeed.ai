@@ -1,3 +1,4 @@
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { EditImageDto } from '@api/collections/images/dto/edit-image.dto';
@@ -75,6 +76,7 @@ export class ImagesOperationsController {
     private readonly sharedService: SharedService,
     private readonly tagsService: TagsService,
     private readonly imageGenerationService: ImageGenerationService,
+    private readonly mediaIssuer: AuthorizedMediaUrlService,
   ) {}
 
   @Post()
@@ -151,7 +153,7 @@ export class ImagesOperationsController {
     @Body() splitImageDto: SplitImageDto,
     @CurrentUser() user: User,
   ): Promise<{
-    data: { frames: Array<{ id: string; url: string; index: number }> };
+    data: { frames: Array<{ id: string; url: string | null; index: number }> };
   }> {
     if (!isEntityId(id)) {
       throw new HttpException(
@@ -188,7 +190,9 @@ export class ImagesOperationsController {
       sourceImage.metadata as IngredientMetadataDocument | null;
 
     // Get the image URL from CDN
-    const imageUrl = `${this.configService.ingredientsEndpoint}/images/${id}`;
+    const imageUrl = this.configService.isAuthorizedMediaDeliveryEnabled
+      ? (await this.mediaIssuer.issueServerPublish(user.organizationId, [id])).get(id) as string
+      : `${this.configService.ingredientsEndpoint}/images/${id}`;
 
     this.loggerService.log('Splitting contact sheet', {
       borderInset: splitImageDto.borderInset,
@@ -266,10 +270,10 @@ export class ImagesOperationsController {
     sourceMetadata: IngredientMetadataDocument | null;
     tagId: string;
     user: User;
-  }): Promise<Array<{ id: string; index: number; url: string }>> {
+  }): Promise<Array<{ id: string; ingredientId: string; index: number; url: string | null }>> {
     const { frames, parentId, sourceImage, sourceMetadata, tagId, user } =
       params;
-    const results: Array<{ id: string; index: number; url: string }> = [];
+    const results: Array<{ id: string; ingredientId: string; index: number; url: string | null }> = [];
     for (let index = 0; index < frames.length; index++) {
       const frameBuffer = frames[index];
       const frameMetadata = await sharp(frameBuffer).metadata();
@@ -308,18 +312,24 @@ export class ImagesOperationsController {
         },
       );
       const ingredientId = ingredientData.id.toString();
-      await this.filesClientService.uploadToS3(ingredientId, 'images', {
-        contentType: 'image/jpeg',
-        data: frameBuffer,
-        type: FileInputType.BUFFER,
-      });
+      const uploaded = await this.filesClientService.uploadToS3(
+        ingredientId,
+        'images',
+        {
+          contentType: 'image/jpeg',
+          data: frameBuffer,
+          type: FileInputType.BUFFER,
+        },
+      );
       await this.imagesService.patch(ingredientData.id, {
+        ...(uploaded.s3Key ? { s3Key: uploaded.s3Key } : {}),
         status: IngredientStatus.GENERATED,
       });
       results.push({
         id: ingredientId,
         index,
-        url: `${this.configService.ingredientsEndpoint}/images/${ingredientId}`,
+        ingredientId,
+        url: this.configService.isAuthorizedMediaDeliveryEnabled ? null : `${this.configService.ingredientsEndpoint}/images/${ingredientId}`,
       });
     }
     return results;

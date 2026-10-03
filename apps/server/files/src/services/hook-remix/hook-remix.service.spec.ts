@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { ConfigService } from '@files/config/config.service';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
@@ -29,6 +30,7 @@ vi.mock('node:fs', () => ({
 global.fetch = vi.fn();
 
 describe('HookRemixService', () => {
+  const config = { isAuthorizedMediaDeliveryEnabled: false };
   let service: HookRemixService;
   let ytDlpService: { downloadVideo: ReturnType<typeof vi.fn> };
   let ffmpegService: {
@@ -59,8 +61,10 @@ describe('HookRemixService', () => {
   };
 
   beforeEach(async () => {
+    config.isAuthorizedMediaDeliveryEnabled = false;
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: ConfigService, useValue: config },
         HookRemixService,
         {
           provide: YtDlpService,
@@ -106,6 +110,21 @@ describe('HookRemixService', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('randomizes the job output token and returns the actual stored key when activated', async () => {
+    config.isAuthorizedMediaDeliveryEnabled = true;
+    uploadService.uploadToS3.mockResolvedValueOnce({
+      ...mockUploadResult,
+      s3Key: 'ingredients/hook-remix/actual-hook-object',
+    });
+    const result = await service.processHookRemix(baseJobData);
+    expect(uploadService.uploadToS3).toHaveBeenCalledWith(
+      expect.stringMatching(/^org-1\/hook-remix\/[a-f0-9-]{36}\.mp4$/),
+      'hook-remix',
+      expect.any(Object),
+    );
+    expect(result.s3Key).toBe('ingredients/hook-remix/actual-hook-object');
   });
 
   it('should be defined', () => {

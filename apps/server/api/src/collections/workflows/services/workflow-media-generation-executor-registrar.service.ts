@@ -17,6 +17,7 @@ import { ElevenLabsService } from '@api/services/integrations/elevenlabs/service
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MediaLocalizationService } from '@api/services/media-localization/media-localization.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ByokProvider,
@@ -38,6 +39,7 @@ import {
   VideoGenExecutor,
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -56,7 +58,42 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     private readonly mediaLocalizationService?: MediaLocalizationService,
     @Optional() private readonly billingPlan?: WorkflowMediaBillingPlanService,
     @Optional() private readonly prisma?: PrismaService,
+    @Optional() private readonly configService?: ConfigService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
+
+  private async processingMediaUrl(
+    organizationId: string,
+    asset: {
+      id: string;
+      objectKey?: string;
+      storageKey: string;
+      storageType: string;
+    },
+  ): Promise<string> {
+    if (this.configService?.isAuthorizedMediaDeliveryEnabled) {
+      if (!this.authorizedMediaUrls)
+        throw new Error('Authorized media issuer is unavailable');
+      const urls = await this.authorizedMediaUrls.issueServerPublish(
+        organizationId,
+        [asset.id],
+      );
+      const url = urls.get(asset.id);
+      if (!url) throw new Error('The source asset has no authorized media URL');
+      return url;
+    }
+    if (!this.filesClientService)
+      throw new Error('File storage service is unavailable');
+    return asset.objectKey
+      ? this.filesClientService.getPresignedDownloadUrlForObjectKey(
+          asset.objectKey,
+        )
+      : this.filesClientService.getPresignedDownloadUrl(
+          asset.storageKey,
+          asset.storageType,
+        );
+  }
 
   register(engine: WorkflowEngine): void {
     this.registerImageGenExecutor(engine);
@@ -262,14 +299,8 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
           throw new Error('Selected lip-sync provider is unavailable');
         }
         const [mediaUrl, audioUrl] = await Promise.all([
-          this.filesClientService.getPresignedDownloadUrl(
-            media.storageKey,
-            media.storageType,
-          ),
-          this.filesClientService.getPresignedDownloadUrl(
-            audio.storageKey,
-            audio.storageType,
-          ),
+          this.processingMediaUrl(context.organizationId, media),
+          this.processingMediaUrl(context.organizationId, audio),
         ]);
         const provider = isVideo ? 'replicate' : 'heygen';
         const byok = await this.byokService?.resolveApiKey(

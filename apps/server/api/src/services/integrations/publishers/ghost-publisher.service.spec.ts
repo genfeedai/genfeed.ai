@@ -80,6 +80,7 @@ describe('GhostPublisherService', () => {
           useValue: {
             get: vi.fn(),
             ingredientsEndpoint: 'https://cdn.genfeed.ai',
+            isAuthorizedMediaDeliveryEnabled: true,
           },
         },
         { provide: GhostService, useValue: ghostService },
@@ -178,7 +179,13 @@ describe('GhostPublisherService', () => {
         post: {
           category: PostCategory.IMAGE,
           description: '<p>Image post</p>',
-          ingredients: ['test-object-id'],
+          ingredients: [
+            {
+              id: 'test-object-id',
+              mediaUrl:
+                'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+            },
+          ],
           label: 'Image Post',
           status: PostStatus.DRAFT,
         } as never,

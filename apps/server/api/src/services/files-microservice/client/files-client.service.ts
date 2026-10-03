@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import type { Readable } from 'node:stream';
 import { isSelfHostedDeployment } from '@genfeedai/config';
@@ -27,8 +28,21 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import FormData from 'form-data';
 import { firstValueFrom } from 'rxjs';
+import { z } from 'zod';
 
 const MULTIPART_MAX_BYTES = Number.POSITIVE_INFINITY;
+
+const uploadMetadataSchema = z
+  .object({
+    s3Key: z.string().min(1).optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    duration: z.number().optional(),
+    size: z.number().optional(),
+    hasAudio: z.boolean().optional(),
+    publicUrl: z.string().optional(),
+  })
+  .passthrough();
 
 /**
  * Perception downloads and hashes the whole asset, and extraction adds a seek,
@@ -492,17 +506,83 @@ export class FilesClientService {
       const apiSource: IApiUploadSource = source;
       const response = await firstValueFrom(
         this.httpService.post(`${this.filesServiceUrl}/v1/files/upload`, {
-          key,
+          key: this.allocateUploadKey(key, type),
           source: apiSource,
           type,
         }),
       );
 
-      return response.data;
+      return this.validateUploadMetadata(response.data);
     } catch (error: unknown) {
       this.loggerService.error('Failed to upload file to S3', error);
       throw error;
     }
+  }
+
+  /**
+   * Reprocess a canonical stored object without allocating another identity.
+   * Only server code holding the database storage key calls this method; ordinary
+   * upload entry points always allocate a fresh key when delivery is enabled.
+   */
+  async uploadToExistingObject(
+    storageKey: string,
+    type: string,
+    source: UploadSource,
+  ): Promise<IFileMetadata> {
+    const prefix = `ingredients/${type}/`;
+    if (!storageKey.startsWith(prefix) || storageKey === prefix) {
+      throw new Error('Stored upload key does not match the media category');
+    }
+    const key = storageKey.slice(prefix.length);
+    if (source.type === FileInputType.BUFFER) {
+      return this.postMultipartUpload(
+        key,
+        type,
+        source.data,
+        source.contentType,
+        undefined,
+        true,
+      );
+    }
+    const response = await firstValueFrom(
+      this.httpService.post(`${this.filesServiceUrl}/v1/files/upload`, {
+        key,
+        source,
+        type,
+      }),
+    );
+    return this.validateUploadMetadata(response.data);
+  }
+
+  private validateUploadMetadata(payload: unknown): IFileMetadata {
+    const metadata = uploadMetadataSchema.parse(payload);
+    if (
+      this.configService.isAuthorizedMediaDeliveryEnabled &&
+      !isSelfHostedDeployment() &&
+      !metadata.s3Key
+    ) {
+      throw new Error('Uploaded media has no canonical stored key');
+    }
+    return metadata;
+  }
+
+  private allocateUploadKey(key: string, type: string): string {
+    if (
+      this.configService.isAuthorizedMediaDeliveryEnabled &&
+      !isSelfHostedDeployment() &&
+      [
+        'images',
+        'videos',
+        'musics',
+        'gifs',
+        'audio',
+        'audios',
+        'voices',
+      ].includes(type)
+    ) {
+      return `${randomUUID()}${path.extname(key)}`;
+    }
+    return key;
   }
 
   /** Delete one full storage key through the configured storage provider. */
@@ -528,6 +608,7 @@ export class FilesClientService {
     file: Readable | Buffer,
     contentType: string,
     filename = 'upload',
+    isExistingObject = false,
   ): Promise<IFileMetadata> {
     const form = new FormData();
     form.append('contentType', contentType);
@@ -535,7 +616,10 @@ export class FilesClientService {
       contentType,
       filename: filenameForUpload(contentType, filename),
     });
-    form.append('key', key);
+    form.append(
+      'key',
+      isExistingObject ? key : this.allocateUploadKey(key, type),
+    );
     form.append('type', type);
 
     const response = await firstValueFrom(
@@ -550,7 +634,7 @@ export class FilesClientService {
       ),
     );
 
-    return response.data;
+    return this.validateUploadMetadata(response.data);
   }
 
   /**
@@ -616,14 +700,16 @@ export class FilesClientService {
           {
             ...(contentLength !== undefined ? { contentLength } : {}),
             contentType,
-            filename: key,
+            filename: this.allocateUploadKey(key, type),
             type,
           },
         ),
       );
 
       return {
-        publicUrl: response.data.publicUrl,
+        publicUrl: this.configService.isAuthorizedMediaDeliveryEnabled
+          ? ''
+          : response.data.publicUrl,
         s3Key: response.data.key,
         uploadMethod: 'PUT',
         uploadUrl: response.data.uploadUrl,
@@ -654,6 +740,19 @@ export class FilesClientService {
       this.loggerService.error('Failed to get presigned download URL', error);
       throw error;
     }
+  }
+
+  /** Sign the exact persisted object key without URL path reinterpretation. */
+  async getPresignedDownloadUrlForObjectKey(
+    storageKey: string,
+  ): Promise<string> {
+    const response = await firstValueFrom(
+      this.httpService.post(
+        `${this.filesServiceUrl}/v1/files/presigned-download`,
+        { storageKey },
+      ),
+    );
+    return response.data.downloadUrl;
   }
 
   /**

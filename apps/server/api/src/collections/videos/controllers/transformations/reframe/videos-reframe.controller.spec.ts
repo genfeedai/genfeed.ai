@@ -348,4 +348,49 @@ describe('VideosReframeController', () => {
       expect.objectContaining({ height: 1920, width: 1080 }),
     );
   });
+
+  it('hydrates the enabled video reference from the canonical source', async () => {
+    const grantedUrl = 'https://cdn.example/random-source.mp4?Signature=fresh';
+    const issueServerPublish = vi
+      .fn()
+      .mockResolvedValue(new Map([[videoId, grantedUrl]]));
+    Object.defineProperty(controller, 'configService', {
+      value: { isAuthorizedMediaDeliveryEnabled: true },
+    });
+    Object.defineProperty(controller, 'authorizedMediaUrls', {
+      value: { issueServerPublish },
+    });
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+    await controller.reframeVideo(mockReq, videoId, mockUser, {
+      format: 'portrait',
+    });
+    expect(issueServerPublish).toHaveBeenCalledWith(organizationId, [videoId]);
+    expect(mockServices.promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ references: [grantedUrl] }),
+    );
+  });
+
+  it('does not dispatch when the enabled source cannot be authorized', async () => {
+    Object.defineProperty(controller, 'configService', {
+      value: { isAuthorizedMediaDeliveryEnabled: true },
+    });
+    Object.defineProperty(controller, 'authorizedMediaUrls', {
+      value: {
+        issueServerPublish: vi
+          .fn()
+          .mockRejectedValue(new Error('Source denied')),
+      },
+    });
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+    await controller.reframeVideo(mockReq, videoId, mockUser, {
+      format: 'portrait',
+    });
+    expect(
+      mockServices.replicateService.generateTextToVideo,
+    ).not.toHaveBeenCalled();
+    expect(
+      mockServices.failedGenerationService.handleFailedVideoGeneration,
+    ).toHaveBeenCalled();
+  });
 });

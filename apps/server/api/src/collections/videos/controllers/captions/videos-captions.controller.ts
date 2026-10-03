@@ -24,6 +24,7 @@ import {
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
@@ -50,6 +51,7 @@ import {
   Body,
   Controller,
   Get,
+  Optional,
   Param,
   Post,
   Query,
@@ -83,7 +85,27 @@ export class VideosCaptionsController {
     private readonly sharedService: SharedService,
     private readonly videosService: VideosService,
     private readonly websocketService: NotificationsPublisherService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
+
+  private async processingVideoUrl(
+    organizationId: string,
+    videoId: string,
+  ): Promise<string> {
+    if (!this.configService.isAuthorizedMediaDeliveryEnabled) {
+      return `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
+    }
+    if (!this.authorizedMediaUrls)
+      throw new Error('Authorized media issuer is unavailable');
+    const urls = await this.authorizedMediaUrls.issueServerPublish(
+      organizationId,
+      [videoId],
+    );
+    const url = urls.get(videoId);
+    if (!url) throw new Error('The source video has no authorized media URL');
+    return url;
+  }
 
   @Get(':videoId/captions')
   @Cache({
@@ -182,7 +204,10 @@ export class VideosCaptionsController {
         params: {
           // @ts-expect-error TS2339
           captionContent: caption.content,
-          inputPath: `${this.configService.ingredientsEndpoint}/videos/${videoId}`,
+          inputPath: await this.processingVideoUrl(
+            user.organizationId.toString(),
+            videoId,
+          ),
         },
         room: getUserRoomName(user.id),
         type: 'add-captions',
@@ -201,6 +226,7 @@ export class VideosCaptionsController {
           })
           .then(async (res) => {
             await this.ingredientsService.patch(ingredientId, {
+              ...(res.s3Key ? { s3Key: res.s3Key } : {}),
               status: IngredientStatus.GENERATED,
               transformations: [TransformationCategory.CAPTIONED],
             });

@@ -50,6 +50,78 @@ function getActionExecutor(
 }
 
 describe('WorkflowMediaProcessingExecutorRegistrarService', () => {
+  it('rejects an activated overlay issuer denial before fetching media or invoking files processing', async () => {
+    const helper = {
+      requireMediaAsset: vi.fn(async (value: unknown) => ({
+        id: String(value),
+        brandId: 'brand-1',
+        category: 'video',
+        storageKey: 'stale-key',
+        storageType: 'videos',
+      })),
+      extractMusicIngredientId: () => undefined,
+      readConfigString: () => undefined,
+      createWorkflowOutputIngredient: vi
+        .fn()
+        .mockResolvedValue({
+          ingredientId: 'output-1',
+          metadataId: 'metadata-1',
+        }),
+      patchIngredient: vi.fn().mockResolvedValue(undefined),
+      wrapEngineExecutor,
+    } as unknown as WorkflowEngineExecutorHelperService;
+    const issuer = {
+      issueServerPublish: vi
+        .fn()
+        .mockRejectedValue(new Error('Scoped media unavailable')),
+    };
+    const files = { audioOverlay: vi.fn(), getPresignedDownloadUrl: vi.fn() };
+    const engine = new WorkflowEngine();
+    new WorkflowMediaProcessingExecutorRegistrarService(
+      helper,
+      { isAuthorizedMediaDeliveryEnabled: true } as never,
+      undefined,
+      undefined,
+      undefined,
+      files as never,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      issuer as never,
+    ).register(engine);
+    await expect(
+      getActionExecutor(engine, 'soundOverlay')?.(
+        {
+          config: {},
+          id: 'overlay-1',
+          inputs: [],
+          label: 'Overlay',
+          type: 'soundOverlay',
+        },
+        new Map([
+          ['videoUrl', 'video-asset'],
+          ['soundUrl', 'sound-asset'],
+        ]),
+        {
+          organizationId: 'org-1',
+          runId: 'run-1',
+          userId: 'user-1',
+          workflowId: 'workflow-1',
+          workflowVersionId: 'version-1',
+        },
+      ),
+    ).rejects.toThrow('Scoped media unavailable');
+    expect(files.getPresignedDownloadUrl).not.toHaveBeenCalled();
+    expect(files.audioOverlay).not.toHaveBeenCalled();
+    expect(issuer.issueServerPublish).toHaveBeenCalledWith('org-1', [
+      'video-asset',
+    ]);
+  });
+
   it('rejects a sound overlay whose soundtrack asset belongs to a different brand than the video', async () => {
     const requireMediaAsset = vi.fn(async (value: unknown) => {
       if (value === 'video-asset') {

@@ -6,6 +6,8 @@ import type {
 } from '@api/server.dependencies';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
+import { requireStoredMediaKey } from '@api/services/media-urls/media-delivery-policy.util';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import { PostVisibility } from '@genfeedai/contracts';
@@ -17,7 +19,7 @@ import {
 import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { google, type youtube_v3 } from 'googleapis';
 
 @Injectable()
@@ -31,6 +33,8 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
     private readonly authService: YoutubeAuthService,
     private readonly loggerService: LoggerService,
     private readonly configService: ConfigService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {
     // Create YouTube API client without default auth
     // Each upload will pass its own per-request auth
@@ -75,12 +79,31 @@ export class YoutubeUploadService implements ServerYoutubeUploader {
         credentialId,
       );
 
+      let sourceStorageKey: string | undefined;
+      if (this.configService.isAuthorizedMediaDeliveryEnabled) {
+        if (!this.authorizedMediaUrls)
+          throw new Error('Authorized media issuer is unavailable');
+        const [source] = await this.authorizedMediaUrls.readSources(
+          organizationId,
+          [videoId],
+        );
+        if (
+          !source ||
+          !['VIDEO', 'VIDEO_EDIT', 'AVATAR'].includes(source.category)
+        )
+          throw new Error('YouTube source video is unavailable');
+        sourceStorageKey = requireStoredMediaKey(source);
+      }
       const downloadJob = await this.fileQueueService.processFile({
         ingredientId: videoId,
         organizationId: organizationId || 'system',
         params: {
           type: 'videos',
-          url: `${this.configService.ingredientsEndpoint}/videos/${videoId}`,
+          ...(sourceStorageKey
+            ? { sourceStorageKey }
+            : {
+                url: `${this.configService.ingredientsEndpoint}/videos/${videoId}`,
+              }),
         },
         type: 'download-file',
         userId: 'system',

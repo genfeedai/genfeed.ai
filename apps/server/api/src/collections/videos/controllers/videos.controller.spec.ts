@@ -14,6 +14,7 @@ import {
   type MediaPromptEnhancementInput,
   MediaPromptEnhancementService,
 } from '@api/services/harness/media-prompt-enhancement.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { VideoGenerationSerializer } from '@genfeedai/serializers';
 
 vi.mock('@api/collections/templates/services/templates.service', () => ({
@@ -86,6 +87,11 @@ import type { Response as ExpressResponse } from 'express';
 
 describe('VideosController', () => {
   let controller: VideosController;
+  const mediaConfig = {
+    isAuthorizedMediaDeliveryEnabled: false,
+    ingredientsEndpoint: 'https://cdn.genfeed.ai',
+  };
+  const mediaIssuer = { projectIngredients: vi.fn() };
   let videosService: vi.Mocked<VideosService>;
   let brandsService: vi.Mocked<BrandsService>;
   let votesService: vi.Mocked<VotesService>;
@@ -207,10 +213,13 @@ describe('VideosController', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mediaConfig.isAuthorizedMediaDeliveryEnabled = false;
+    mediaIssuer.projectIngredients.mockReset();
 
     testingModule = await Test.createTestingModule({
       controllers: [VideosController],
       providers: [
+        { provide: AuthorizedMediaUrlService, useValue: mediaIssuer },
         {
           provide: ModelCreditQuoteService,
           inject: [ModelsService],
@@ -240,9 +249,7 @@ describe('VideosController', () => {
         },
         {
           provide: ConfigService,
-          useValue: {
-            ingredientsEndpoint: 'https://cdn.genfeed.ai',
-          },
+          useValue: mediaConfig,
         },
         {
           provide: ActivityRecorderService,
@@ -948,6 +955,45 @@ describe('VideosController', () => {
         body: new ReadableStream(),
         ok: true,
       });
+    });
+
+    it('extracts a free-tier thumbnail from the authorized protected preview', async () => {
+      mediaConfig.isAuthorizedMediaDeliveryEnabled = true;
+      mediaIssuer.projectIngredients.mockResolvedValue([
+        {
+          ingredientId: mockVideoId,
+          grant: {
+            state: 'READY',
+            url: 'https://cdn.example.com/watermarked-video?Signature=fresh',
+          },
+        },
+      ]);
+      await controller.getThumbnail(
+        mockVideoId,
+        mockUser,
+        mockResponse as never,
+      );
+      expect(mediaIssuer.projectIngredients).toHaveBeenCalledWith(
+        expect.objectContaining({ organizationId: mockOrgId }),
+        [mockVideoId],
+      );
+      expect(filesClientService.generateThumbnail).toHaveBeenCalledWith(
+        'https://cdn.example.com/watermarked-video?Signature=fresh',
+        mockVideoId,
+        undefined,
+        undefined,
+      );
+    });
+
+    it('does no thumbnail rendering while the protected preview is pending', async () => {
+      mediaConfig.isAuthorizedMediaDeliveryEnabled = true;
+      mediaIssuer.projectIngredients.mockResolvedValue([
+        { ingredientId: mockVideoId, grant: { state: 'PENDING', url: null } },
+      ]);
+      await expect(
+        controller.getThumbnail(mockVideoId, mockUser, mockResponse as never),
+      ).rejects.toThrow();
+      expect(filesClientService.generateThumbnail).not.toHaveBeenCalled();
     });
 
     it('should generate and return thumbnail', async () => {

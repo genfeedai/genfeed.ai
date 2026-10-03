@@ -220,21 +220,12 @@ export class MastodonPublisherService extends BasePublisherService {
           (child.ingredients as Array<{ id?: string }>) || [];
         if (childIngredients.length > 0) {
           mediaIds = [];
-          const childIngredientIds = childIngredients.map((ingredient) => {
-            return ingredient?.id
-              ? ingredient.id.toString()
-              : ingredient.toString();
-          });
-          const childCategory = child.category as PostCategory;
-          const isImagePost =
-            childCategory === PostCategory.IMAGE ||
-            (childCategory === PostCategory.TEXT &&
-              childIngredientIds.length > 0);
-
-          for (const id of childIngredientIds) {
-            const mediaUrl = isImagePost
-              ? `${this.configService.ingredientsEndpoint}/images/${id}`
-              : `${this.configService.ingredientsEndpoint}/videos/${id}`;
+          for (const ingredient of childIngredients) {
+            const mediaUrl = this.requireAuthorizedMediaUrl(
+              ingredient,
+              child.category === PostCategory.VIDEO ||
+                child.category === PostCategory.REEL,
+            );
 
             const attachment = await this.mastodonService.uploadMedia(
               instanceUrl,

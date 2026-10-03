@@ -125,14 +125,21 @@ export class SpeechAssemblyService {
         output,
       ]);
       if (result.code !== 0) throw new Error('Speech assembly failed');
-      const key = body.outputKey || `speech-assembly/${randomUUID()}.wav`;
+      const key = this.configService?.isAuthorizedMediaDeliveryEnabled
+        ? `speech-assembly/${randomUUID()}.wav`
+        : body.outputKey || `speech-assembly/${randomUUID()}.wav`;
       const uploaded = await this.upload.uploadToS3(key, 'audios', {
         path: output,
         type: 'file',
       });
+      if (
+        this.configService?.isAuthorizedMediaDeliveryEnabled &&
+        !uploaded.s3Key
+      )
+        throw new Error('Speech assembly upload returned no stored key');
       return {
         publicUrl: uploaded.publicUrl,
-        s3Key: `ingredients/audios/${key}`,
+        s3Key: uploaded.s3Key || `ingredients/audios/${key}`,
         duration: body.durationSeconds,
       };
     } finally {

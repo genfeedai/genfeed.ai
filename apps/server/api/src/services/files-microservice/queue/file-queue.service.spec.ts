@@ -5,6 +5,7 @@ import {
   FileQueueService,
   JobResponse,
 } from '@api/services/files-microservice/queue/file-queue.service';
+import { PostVisibility } from '@genfeedai/contracts';
 import type {
   IFrameInput,
   IJobStatusResponse,
@@ -12,6 +13,7 @@ import type {
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -532,5 +534,92 @@ describe('FileQueueService', () => {
         }),
       );
     });
+  });
+
+  it('never sends an enabled queued YouTube upload for an unavailable tenant source', async () => {
+    Object.defineProperty(service, 'configService', {
+      value: { isAuthorizedMediaDeliveryEnabled: true },
+    });
+    const readSources = vi.fn().mockResolvedValue([]);
+    Object.defineProperty(service, 'authorizedMediaUrls', {
+      value: { readSources },
+    });
+    await expect(
+      service.uploadYoutube({
+        postId: 'post',
+        credentialId: 'credential',
+        ingredientId: 'foreign-video',
+        organizationId: 'org',
+        brandId: 'brand',
+        userId: 'user',
+        title: 'Video',
+        description: '',
+        visibility: PostVisibility.PUBLIC,
+      } as never),
+    ).rejects.toThrow();
+    expect(readSources).toHaveBeenCalledWith('org', ['foreign-video']);
+    expect(httpService.post).not.toHaveBeenCalled();
+  });
+
+  it('derives queued YouTube identity from the scoped record, ignoring supplied key fields', async () => {
+    const canonicalKey = 'ingredients/videos/canonical%2F?.mp4';
+    const readSources = vi
+      .fn()
+      .mockResolvedValue([
+        { id: 'video', category: 'VIDEO', s3Key: canonicalKey },
+      ]);
+    const findOne = vi
+      .fn()
+      .mockResolvedValue({
+        id: 'credential',
+        refreshToken: 'encrypted-fixture',
+        accessToken: 'encrypted-fixture',
+      });
+    Object.defineProperty(service, 'configService', {
+      value: { isAuthorizedMediaDeliveryEnabled: true, get: vi.fn() },
+    });
+    Object.defineProperty(service, 'authorizedMediaUrls', {
+      value: { readSources },
+    });
+    Object.defineProperty(service, 'credentialsService', {
+      value: { findOne },
+    });
+    Object.defineProperty(service, 'refreshYoutubeToken', {
+      value: vi.fn().mockResolvedValue({}),
+    });
+    const decrypt = vi
+      .spyOn(EncryptionUtil, 'decrypt')
+      .mockReturnValue('fixture-token');
+    vi.mocked(httpService.post).mockReturnValue(httpResponse(mockJobResponse));
+    try {
+      await service.uploadYoutube({
+        postId: 'post',
+        credentialId: 'credential',
+        ingredientId: 'video',
+        organizationId: 'org',
+        brandId: 'brand',
+        userId: 'user',
+        title: 'Video',
+        description: '',
+        visibility: PostVisibility.PUBLIC,
+        sourceStorageKey: 'ingredients/videos/foreign-key.mp4',
+      } as never);
+      expect(readSources).toHaveBeenCalledWith('org', ['video']);
+      expect(findOne).toHaveBeenCalledWith({
+        id: 'credential',
+        organizationId: 'org',
+        isDeleted: false,
+        isConnected: true,
+      });
+      expect(httpService.post).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          organizationId: 'org',
+          sourceStorageKey: canonicalKey,
+        }),
+      );
+    } finally {
+      decrypt.mockRestore();
+    }
   });
 });

@@ -5,12 +5,13 @@ import type {
   IMetadata,
   IVideo,
 } from '@genfeedai/contracts/interfaces';
+import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
 import { stopAndResetVideo } from '@genfeedai/hooks/media/video-utils/video.utils';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { resolveIngredientReferenceUrl } from '@genfeedai/utils/media/reference.util';
 import { writeIngredientTransferData } from '@ui/drag-drop/shared/ingredient-transfer';
-import { createDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
+import { useIngredientDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
 import type { DragEvent, MouseEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -45,8 +46,15 @@ export function useMasonryVideo({
     return resolveIngredientReferenceUrl(video.references);
   }, [video]);
 
-  const ingredientUrl = video?.ingredientUrl ?? '';
-  const explicitThumbnail = 'thumbnailUrl' in video ? video.thumbnailUrl : null;
+  const mediaPreview = useAuthorizedMediaPreview(video);
+  const ingredientUrl = mediaPreview
+    ? (mediaPreview.url ?? '')
+    : (video?.ingredientUrl ?? '');
+  const explicitThumbnail = mediaPreview
+    ? null
+    : 'thumbnailUrl' in video
+      ? video.thumbnailUrl
+      : null;
   const isProcessing = video.status === IngredientStatus.PROCESSING;
   const isFailed = video.status === IngredientStatus.FAILED;
   const isUnavailable = isProcessing || isFailed;
@@ -86,7 +94,7 @@ export function useMasonryVideo({
       : null;
   const metadataLabel = metadata?.label;
 
-  const handleDownload = useMemo(() => createDownloadHandler(), []);
+  const handleDownload = useIngredientDownloadHandler();
 
   // Video playback control
   useEffect(() => {

@@ -479,4 +479,58 @@ describe('VideosLipSyncController', () => {
       });
     });
   });
+
+  it('uses authorized image and audio URLs when media delivery is enabled', async () => {
+    const imageUrl = 'https://cdn.example/random-image.png?Signature=image';
+    const audioUrl = 'https://cdn.example/random-audio.wav?Signature=audio';
+    const issueServerPublish = vi
+      .fn()
+      .mockImplementation(
+        async (_org: string, ids: string[]) =>
+          new Map(
+            ids.map((id) => [
+              id,
+              id === imageIngredientId ? imageUrl : audioUrl,
+            ]),
+          ),
+      );
+    Object.defineProperty(controller, 'configService', {
+      value: { isAuthorizedMediaDeliveryEnabled: true },
+    });
+    Object.defineProperty(controller, 'authorizedMediaUrls', {
+      value: { issueServerPublish },
+    });
+    await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+    expect(issueServerPublish).toHaveBeenCalledWith(organizationId, [
+      imageIngredientId,
+    ]);
+    expect(issueServerPublish).toHaveBeenCalledWith(organizationId, [
+      audioIngredientId,
+    ]);
+    expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalledWith(
+      ingredientDataId,
+      imageUrl,
+      audioUrl,
+      organizationId,
+      userId,
+      undefined,
+    );
+  });
+
+  it('fails closed before the provider when an enabled source is unauthorized', async () => {
+    Object.defineProperty(controller, 'configService', {
+      value: { isAuthorizedMediaDeliveryEnabled: true },
+    });
+    Object.defineProperty(controller, 'authorizedMediaUrls', {
+      value: {
+        issueServerPublish: vi
+          .fn()
+          .mockRejectedValue(new Error('Source denied')),
+      },
+    });
+    await expect(
+      controller.createLipSyncVideo(mockReq, mockUser, mockDto),
+    ).rejects.toThrow(HttpException);
+    expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
+  });
 });

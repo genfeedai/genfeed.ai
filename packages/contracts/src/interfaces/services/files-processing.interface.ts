@@ -114,6 +114,8 @@ export interface IFFprobeResult {
 }
 
 export interface IFileMetadata {
+  /** Canonical uploaded identity, validated at the files transport boundary. */
+  s3Key?: string;
   width?: number;
   height?: number;
   duration?: number;

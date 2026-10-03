@@ -470,4 +470,49 @@ describe('EditorRenderService', () => {
       CACHE_TAGS.INGREDIENTS,
     ]);
   });
+
+  it('queues canonical keys while keeping provenance free of keys and expiring URLs', async () => {
+    const key = 'ingredients/videos/random%2Fsource?.mp4';
+    const readSources = vi.fn().mockResolvedValue([
+      {
+        id: videoIngredientId,
+        category: IngredientCategory.VIDEO,
+        s3Key: key,
+      },
+    ]);
+    Object.defineProperty(service, 'configService', {
+      value: { isAuthorizedMediaDeliveryEnabled: true },
+    });
+    Object.defineProperty(service, 'authorizedMediaUrls', {
+      value: { readSources },
+    });
+    await service.render(projectId, organizationId, user);
+    expect(readSources).toHaveBeenCalledWith(organizationId, [
+      videoIngredientId,
+    ]);
+    const queued = fileQueueService.processVideo.mock.calls[0][0];
+    expect(queued.params.editorSourceStorageKeys).toEqual({
+      'video-clip': key,
+    });
+    expect(queued.params.assetManifest[0].ingredientUrl).toBe('');
+    expect(queued.params.snapshot.tracks[0].clips[0].ingredientUrl).toBe('');
+    const provenance = editorProjectsService.markAsRendering.mock.calls[0][2];
+    expect(provenance).not.toHaveProperty('sourceStorageKeys');
+    expect(provenance).not.toHaveProperty('editorSourceStorageKeys');
+    expect(JSON.stringify(provenance)).not.toContain(key);
+  });
+
+  it('does not create an output or queue an enabled render with unavailable sources', async () => {
+    Object.defineProperty(service, 'configService', {
+      value: { isAuthorizedMediaDeliveryEnabled: true },
+    });
+    Object.defineProperty(service, 'authorizedMediaUrls', {
+      value: { readSources: vi.fn().mockResolvedValue([]) },
+    });
+    await expect(
+      service.render(projectId, organizationId, user),
+    ).rejects.toThrow(NotFoundException);
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(fileQueueService.processVideo).not.toHaveBeenCalled();
+  });
 });

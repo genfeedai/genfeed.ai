@@ -14,6 +14,7 @@ import {
   toRedactedVideoGenerationBriefProviderData,
 } from '@api/services/generation-brief';
 import { resolvePredictionTarget } from '@api/services/integrations/replicate/helpers/replicate-prediction-target.util';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
   IngredientCategory,
@@ -32,6 +33,7 @@ import {
   type ExecutionContext,
   unwrapExecutableActionNode,
 } from '@genfeedai/workflows/engine';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -106,6 +108,8 @@ export class WorkflowMediaProviderPlanService {
     private readonly loggerService: LoggerService,
     @Optional() private readonly promptBuilderService?: PromptBuilderService,
     @Optional() private readonly filesClientService?: FilesClientService,
+    @Optional() private readonly configService?: ConfigService,
+    @Optional() private readonly mediaIssuer?: AuthorizedMediaUrlService,
   ) {}
 
   get canPrepareImage(): boolean {
@@ -227,7 +231,7 @@ export class WorkflowMediaProviderPlanService {
       referenceAssetIds,
       referenceReplacements,
       videoReferenceAssetIds,
-    } = await this.resolveVideoReferenceInputs(params);
+    } = await this.resolveVideoReferenceInputs(params, context.organizationId);
     const prompt = typeof params.prompt === 'string' ? params.prompt : '';
     const height = typeof params.height === 'number' ? params.height : 1080;
     const width = typeof params.width === 'number' ? params.width : 1920;
@@ -337,6 +341,7 @@ export class WorkflowMediaProviderPlanService {
    */
   private async resolveVideoReferenceInputs(
     params: Record<string, unknown>,
+    organizationId: string,
   ): Promise<{
     endFrameId?: string;
     referenceAssetIds?: string[];
@@ -374,13 +379,27 @@ export class WorkflowMediaProviderPlanService {
       (videoReferences ?? []).map(async (reference, index) => {
         const ingredientId = this.helper.extractIngredientId(reference);
         const assetId = ingredientId ?? `workflow-video-reference-${index + 1}`;
-        const providerUrl =
-          ingredientId && this.filesClientService
-            ? await this.filesClientService.getPresignedDownloadUrl(
-                ingredientId,
-                'videos',
-              )
-            : reference;
+        let providerUrl = reference;
+        if (
+          this.configService?.isAuthorizedMediaDeliveryEnabled &&
+          ingredientId
+        ) {
+          if (!this.mediaIssuer)
+            throw new Error('Authorized media delivery is unavailable');
+          const canonicalUrl = (
+            await this.mediaIssuer.issueServerPublish(organizationId, [
+              ingredientId,
+            ])
+          ).get(ingredientId);
+          if (!canonicalUrl)
+            throw new Error('The reference video is unavailable');
+          providerUrl = canonicalUrl;
+        } else if (ingredientId && this.filesClientService) {
+          providerUrl = await this.filesClientService.getPresignedDownloadUrl(
+            ingredientId,
+            'videos',
+          );
+        }
         referenceReplacements.set(assetId, providerUrl);
         return assetId;
       }),

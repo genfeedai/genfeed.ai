@@ -23,7 +23,6 @@ import { useRef, useState } from 'react';
 export default function IngredientDownloadButton({
   ingredientId,
   disabled,
-  onDownloadOriginal,
   isCompact = false,
   canDownloadOriginal = true,
 }: IngredientDownloadButtonProps) {
@@ -45,7 +44,9 @@ export default function IngredientDownloadButton({
         const result = await service.exportMedia(ingredientId, true);
         await downloadUrl(result.url, result.filename);
       } else {
-        await onDownloadOriginal();
+        const service = await getService();
+        const grant = await service.originalGrant(ingredientId);
+        await downloadUrl(grant.url as string);
       }
     } catch {
       NotificationsService.getInstance().error(translate('errorTitle'), {

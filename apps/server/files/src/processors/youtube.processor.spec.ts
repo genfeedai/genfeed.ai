@@ -58,4 +58,13 @@ describe('YoutubeProcessor', () => {
       expect.objectContaining({ postId: 'post-1', status: 'public' }),
     );
   });
+
+  it('passes the internal canonical source key to execution without a URL grant', async () => {
+    const job = uploadJob();
+    job.data.sourceStorageKey = 'ingredients/videos/random%2Fsource.mp4';
+    await buildProcessor().process(job);
+    expect(youtubeService.uploadVideo).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceStorageKey: job.data.sourceStorageKey }),
+    );
+  });
 });

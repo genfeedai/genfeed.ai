@@ -10,6 +10,7 @@ import type { InternalMediaDocumentsInput } from '@api/shared/services/shared/me
 import type { SharedService } from '@api/shared/services/shared/shared.service';
 import { IngredientStatus, JobState } from '@genfeedai/contracts';
 import type { IFileProcessingJob } from '@genfeedai/contracts/interfaces';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 /**
@@ -115,7 +116,7 @@ export class VideoStitchFixture {
   isCompletionEventFailing = false;
   private sequence = 0;
 
-  constructor() {
+  constructor(isAuthorizedMediaDeliveryEnabled = false) {
     this.service = new VideoStitchService(
       this.activityRecorder() as unknown as ActivityRecorderService,
       this.assetGate() as unknown as AssetGateService,
@@ -126,6 +127,7 @@ export class VideoStitchFixture {
       this.shared() as unknown as SharedService,
       this.publisher() as unknown as NotificationsPublisherService,
       this.whisper() as unknown as WhisperService,
+      { isAuthorizedMediaDeliveryEnabled } as ConfigService,
     );
   }
 

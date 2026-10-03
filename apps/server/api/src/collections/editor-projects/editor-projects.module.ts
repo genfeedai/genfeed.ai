@@ -8,6 +8,7 @@ import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { SharedModule } from '@api/shared/shared.module';
 import { Module } from '@nestjs/common';
@@ -16,6 +17,7 @@ import { Module } from '@nestjs/common';
   controllers: [EditorProjectsController, RemotionCompositionsController],
   exports: [EditorProjectsService],
   imports: [
+    MediaUrlsModule,
     WorkflowsCoreModule,
     IngredientsModule,
     MetadataModule,

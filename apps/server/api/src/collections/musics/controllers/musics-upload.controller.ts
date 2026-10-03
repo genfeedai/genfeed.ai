@@ -37,7 +37,7 @@ export class MusicsUploadController {
     private readonly filesClientService: FilesClientService,
     readonly _loggerService: LoggerService,
     readonly _metadataService: MetadataService,
-    readonly _musicsService: MusicsService,
+    private readonly musicsService: MusicsService,
     private readonly sharedService: SharedService,
   ) {}
 
@@ -81,11 +81,22 @@ export class MusicsUploadController {
       },
     );
 
-    await this.filesClientService.uploadToS3(ingredientData.id, `musics`, {
-      contentType: file.mimetype || 'audio/mpeg',
-      data: file.buffer,
-      type: FileInputType.BUFFER,
-    });
+    const uploaded = await this.filesClientService.uploadToS3(
+      ingredientData.id,
+      `musics`,
+      {
+        contentType: file.mimetype || 'audio/mpeg',
+        data: file.buffer,
+        type: FileInputType.BUFFER,
+      },
+    );
+
+    if (uploaded?.s3Key) {
+      await this.musicsService.patch(ingredientData.id, {
+        s3Key: uploaded.s3Key,
+      });
+      ingredientData.s3Key = uploaded.s3Key;
+    }
 
     return serializeSingle(request, IngredientUploadSerializer, ingredientData);
   }

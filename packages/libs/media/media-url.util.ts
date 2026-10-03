@@ -19,6 +19,8 @@ export interface MediaUrlSigningConfig {
 }
 
 export interface MediaUrlConfig {
+  /** Protected HTTP output must use an authorized record issuer. */
+  isAuthorizationRequired?: boolean;
   /** CDN origin without a trailing slash, e.g. `https://cdn.genfeed.ai`. */
   cdnUrl: string;
   /** Present only when this deployment signs media URLs. */
@@ -181,8 +183,8 @@ export function buildMediaUrl(
   config: MediaUrlConfig,
   options: MediaUrlOptions = {},
 ): string {
-  const normalizedKey = objectKey.trim().replace(/^\/+/, '');
-  if (!normalizedKey) {
+  const normalizedKey = objectKey.replace(/^\/+/, '');
+  if (!normalizedKey.trim()) {
     throw new Error('objectKey is required to build a media URL');
   }
 
@@ -310,6 +312,11 @@ export function readIngredientMediaUrlWithFallback(
  * startup, with a message that names the cause.
  */
 export function assertMediaUrlSigningConfig(config: MediaUrlConfig): void {
+  if (config.isAuthorizationRequired && !config.signing) {
+    throw new Error(
+      'Authorized media delivery requires configured CDN signing',
+    );
+  }
   if (!config.signing) {
     return;
   }

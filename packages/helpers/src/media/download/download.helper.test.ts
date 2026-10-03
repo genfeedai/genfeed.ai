@@ -106,9 +106,9 @@ describe('download.helper', () => {
     it('should throw error when no download URL', async () => {
       const ingredient = createMockIngredient({ ingredientUrl: undefined });
 
-      await expect(downloadIngredient(ingredient)).rejects.toThrow(
-        'No download URL available',
-      );
+      await expect(
+        downloadIngredient(ingredient, ingredient.ingredientUrl ?? ''),
+      ).rejects.toThrow('No download URL available');
     });
 
     it('should fallback to anchor element when fetch response is not ok', async () => {
@@ -116,7 +116,7 @@ describe('download.helper', () => {
 
       const ingredient = createMockIngredient();
 
-      await downloadIngredient(ingredient);
+      await downloadIngredient(ingredient, ingredient.ingredientUrl ?? '');
 
       expect(global.document.createElement).toHaveBeenCalledWith('a');
       expect(mockLink.click).toHaveBeenCalled();
@@ -131,7 +131,7 @@ describe('download.helper', () => {
 
       const ingredient = createMockIngredient();
 
-      await downloadIngredient(ingredient);
+      await downloadIngredient(ingredient, ingredient.ingredientUrl ?? '');
 
       expect(mockFetch).toHaveBeenCalledWith('https://example.com/image.png');
       expect(mockSaveAs).toHaveBeenCalledWith(
@@ -152,7 +152,7 @@ describe('download.helper', () => {
         metadata: { label: 'My Video' },
       });
 
-      await downloadIngredient(ingredient);
+      await downloadIngredient(ingredient, ingredient.ingredientUrl ?? '');
 
       expect(mockSaveAs).toHaveBeenCalledWith(
         mockBlob,
@@ -169,7 +169,7 @@ describe('download.helper', () => {
 
       const ingredient = createMockIngredient({ metadata: {} });
 
-      await downloadIngredient(ingredient);
+      await downloadIngredient(ingredient, ingredient.ingredientUrl ?? '');
 
       expect(mockSaveAs).toHaveBeenCalledWith(
         mockBlob,
@@ -186,7 +186,7 @@ describe('download.helper', () => {
 
       const ingredient = createMockIngredient({ metadata: undefined });
 
-      await downloadIngredient(ingredient);
+      await downloadIngredient(ingredient, ingredient.ingredientUrl ?? '');
 
       expect(mockSaveAs).toHaveBeenCalledWith(
         mockBlob,
@@ -206,7 +206,7 @@ describe('download.helper', () => {
         metadata: { label: 'Track' },
       });
 
-      await downloadIngredient(ingredient);
+      await downloadIngredient(ingredient, ingredient.ingredientUrl ?? '');
 
       expect(mockSaveAs).toHaveBeenCalledWith(
         mockBlob,

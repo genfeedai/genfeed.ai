@@ -28,6 +28,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ImagesUploadsController } from '@api/collections/images/controllers/upload/images-uploads.controller';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -79,10 +80,17 @@ describe('ImagesUploadsController', () => {
   const mockServices = {
     filesClientService: {
       getPresignedUploadUrl: vi.fn(),
+      getPresignedDownloadUrlForObjectKey: vi
+        .fn()
+        .mockResolvedValue('https://s3.test/actual-key?signature=grant'),
+      uploadToExistingObject: vi
+        .fn()
+        .mockResolvedValue({ s3Key: 'ingredients/videos/id' }),
       putStreamToUrl: vi.fn(),
       uploadStreamToS3: vi.fn(),
       uploadToS3: vi.fn(),
     },
+    ingredientsService: { patch: vi.fn() },
     httpService: { get: vi.fn() },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     presignedUploadService: {
@@ -114,6 +122,10 @@ describe('ImagesUploadsController', () => {
         {
           provide: FilesClientService,
           useValue: mockServices.filesClientService,
+        },
+        {
+          provide: IngredientsService,
+          useValue: mockServices.ingredientsService,
         },
         { provide: HttpService, useValue: mockServices.httpService },
         { provide: LoggerService, useValue: mockServices.loggerService },
@@ -217,6 +229,7 @@ describe('ImagesUploadsController', () => {
         ingredientData: mockIngredient,
       });
       mockServices.filesClientService.uploadStreamToS3.mockResolvedValue({
+        s3Key: 'ingredients/images/random-stream-token',
         url: 'https://s3.example.com/image.jpg',
       });
 
@@ -233,6 +246,10 @@ describe('ImagesUploadsController', () => {
         }),
       );
       expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
+      expect(mockServices.ingredientsService.patch).toHaveBeenCalledWith(
+        mockIngredient.id,
+        { s3Key: 'ingredients/images/random-stream-token' },
+      );
     });
 
     it.each([
@@ -323,10 +340,10 @@ describe('ImagesUploadsController', () => {
         mockFile.buffer,
         'video/mp4',
       );
-      expect(filesClientService.uploadToS3).toHaveBeenCalledWith(
-        mockIngredient.id,
+      expect(filesClientService.uploadToExistingObject).toHaveBeenCalledWith(
+        'ingredients/videos/id',
         'videos',
-        { type: 'url', url: 'https://cdn.example.com/videos/id' },
+        { type: 'url', url: 'https://s3.test/actual-key?signature=grant' },
       );
       expect(filesClientService.uploadStreamToS3).not.toHaveBeenCalled();
     });

@@ -4,6 +4,7 @@ import { PostRepurposeService } from '@api/collections/posts/services/post-repur
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   IngredientCategory,
@@ -57,12 +58,15 @@ describe('PostRepurposeService', () => {
   const contentGeneratorService = { generateContent: vi.fn() };
   const batchGenerationService = { createManualReviewBatch: vi.fn() };
   const postGroupPersistenceService = { hydrateWithDerivedStatus: vi.fn() };
+  const mediaIssuer = { isEnabled: false };
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mediaIssuer.isEnabled = false;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: AuthorizedMediaUrlService, useValue: mediaIssuer },
         PostRepurposeService,
         { provide: PostsService, useValue: postsService },
         { provide: PrismaService, useValue: prisma },
@@ -291,6 +295,48 @@ describe('PostRepurposeService', () => {
           reviewBatchId: 'batch_1',
           reviewItemId: 'item_1',
         });
+    });
+
+    it('persists the ingredient identity without a delivery URL when activated', async () => {
+      mediaIssuer.isEnabled = true;
+      postsService.findOne.mockReset();
+      postsService.findOne
+        .mockResolvedValueOnce({
+          ...baseSourcePost,
+          ingredients: [
+            { id: 'ingredient_1', category: IngredientCategory.IMAGE },
+          ],
+        })
+        .mockResolvedValueOnce({
+          id: 'draft_agent_1',
+          reviewBatchId: 'batch_1',
+          reviewItemId: 'item_1',
+        });
+      prisma.ingredient.findFirst.mockResolvedValue({
+        cdnUrl: 'https://cdn.example.com/original',
+      });
+      await service.repurpose({
+        mode: PostRepurposeMode.AGENT,
+        organizationId,
+        platform: Platform.TWITTER,
+        postId,
+        userId,
+      });
+      expect(
+        batchGenerationService.createManualReviewBatch,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          items: [
+            expect.objectContaining({
+              ingredientId: 'ingredient_1',
+              mediaUrl: undefined,
+            }),
+          ],
+        }),
+        userId,
+        organizationId,
+      );
+      expect(prisma.ingredient.findFirst).not.toHaveBeenCalled();
     });
 
     it('routes the rewrite through the manual review batch', async () => {

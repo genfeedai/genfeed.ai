@@ -451,4 +451,34 @@ describe('YoutubeService', () => {
       );
     });
   });
+
+  it('uses a fresh exact-key capability for an enabled YouTube upload', async () => {
+    const key = 'ingredients/videos/raw%2Fsource?#.mp4';
+    const sign = vi
+      .fn()
+      .mockResolvedValue('https://s3.example/source?Signature=fresh');
+    Object.defineProperty(service, 'configService', {
+      value: { isAuthorizedMediaDeliveryEnabled: true },
+    });
+    Object.defineProperty(service, 's3Service', {
+      value: { getPresignedDownloadUrlForStoredKey: sign },
+    });
+    await service.uploadVideo({ ...mockUploadParams, sourceStorageKey: key });
+    expect(sign).toHaveBeenCalledWith(key, 300);
+    expect(axios.get).toHaveBeenCalledWith(
+      'https://s3.example/source?Signature=fresh',
+      expect.objectContaining({ responseType: 'stream' }),
+    );
+  });
+
+  it('rejects an enabled upload without a canonical key before downloading', async () => {
+    Object.defineProperty(service, 'configService', {
+      value: { isAuthorizedMediaDeliveryEnabled: true },
+    });
+    await expect(service.uploadVideo(mockUploadParams)).rejects.toThrow(
+      'stored key',
+    );
+    expect(axios.get).not.toHaveBeenCalled();
+    expect(mockYoutubeAPI.videos.insert).not.toHaveBeenCalled();
+  });
 });

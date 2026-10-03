@@ -23,6 +23,7 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 
 type PublisherConfig = {
   ingredientsEndpoint: string;
+  isAuthorizedMediaDeliveryEnabled?: boolean;
 };
 
 type CommentPublishResult = {
@@ -141,10 +142,8 @@ export abstract class BasePublisherService implements IPublisher {
       (post.category === PostCategory.TEXT && hasIngredients);
 
     // Build media URLs
-    const mediaUrls = ingredientIds.map((id: string) =>
-      isImagePost
-        ? `${this.configService.ingredientsEndpoint}/images/${id}`
-        : `${this.configService.ingredientsEndpoint}/videos/${id}`,
+    const mediaUrls = ingredients.map((ingredient) =>
+      this.requireAuthorizedMediaUrl(ingredient, !isImagePost),
     );
 
     return {
@@ -154,6 +153,29 @@ export abstract class BasePublisherService implements IPublisher {
       isImagePost,
       mediaUrls,
     };
+  }
+
+  protected requireAuthorizedMediaUrl(
+    ingredient: unknown,
+    isVideo = false,
+  ): string {
+    if (!this.configService.isAuthorizedMediaDeliveryEnabled) {
+      return `${this.configService.ingredientsEndpoint}/${isVideo ? 'videos' : 'images'}/${this.getRecordId(ingredient)}`;
+    }
+    const mediaUrl =
+      ingredient !== null &&
+      typeof ingredient === 'object' &&
+      'mediaUrl' in ingredient
+        ? ingredient.mediaUrl
+        : undefined;
+    if (typeof mediaUrl !== 'string' || !mediaUrl.trim()) {
+      throw new Error('Publisher media has no authorized execution URL');
+    }
+    const parsed = new URL(mediaUrl);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      throw new Error('Publisher media URL uses an unsupported protocol');
+    }
+    return mediaUrl;
   }
 
   /**
@@ -346,11 +368,9 @@ export abstract class BasePublisherService implements IPublisher {
       return [];
     }
 
-    return ingredientIds.map((id) => ({
+    return (child.ingredients || []).map((ingredient) => ({
       kind: isVideo ? ('video' as const) : ('image' as const),
-      url: `${this.configService.ingredientsEndpoint}/${
-        isVideo ? 'videos' : 'images'
-      }/${id}`,
+      url: this.requireAuthorizedMediaUrl(ingredient, isVideo),
     }));
   }
 

@@ -38,6 +38,7 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
@@ -99,6 +100,7 @@ export class VideosController {
     private readonly videoGenerationService: VideoGenerationService,
     @Optional()
     private readonly evaluationProjection?: ContentEvaluationProjectionService,
+    @Optional() private readonly mediaIssuer?: AuthorizedMediaUrlService,
   ) {}
 
   @Get()
@@ -342,7 +344,22 @@ export class VideosController {
     }
 
     try {
-      const videoUrl = `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
+      let videoUrl = `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
+      if (this.configService.isAuthorizedMediaDeliveryEnabled) {
+        if (!this.mediaIssuer)
+          throw new Error('Authorized media delivery is unavailable');
+        const [projection] = await this.mediaIssuer.projectIngredients(
+          {
+            organizationId: user.organizationId,
+            userId: user.userId ?? user.id,
+            brandId: user.brandId,
+          },
+          [videoId],
+        );
+        if (!projection?.grant.url)
+          throw new Error('Protected preview is unavailable');
+        videoUrl = projection.grant.url;
+      }
 
       const thumbnailUrl = await this.filesClientService.generateThumbnail(
         videoUrl,

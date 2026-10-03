@@ -36,6 +36,7 @@ import { TwitterModule } from '@api/services/integrations/twitter/twitter.module
 import { WhatsappModule } from '@api/services/integrations/whatsapp/whatsapp.module';
 import { WordpressModule } from '@api/services/integrations/wordpress/wordpress.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
@@ -72,6 +73,7 @@ const SERVER_PUBLISHER_FACTORY_PROVIDER = {
   ],
   imports: [
     ConfigModule,
+    MediaUrlsModule,
     HttpModule,
     LoggerModule,
 

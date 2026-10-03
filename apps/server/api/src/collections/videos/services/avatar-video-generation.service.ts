@@ -16,11 +16,11 @@ import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { type GenerationBillingRequest } from '@api/collections/credits/services/generation-billing.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
+import { AvatarVideoReferenceService } from '@api/collections/videos/services/avatar-video-reference.service';
 import { isMaterializableSavedVoice } from '@api/collections/videos/services/saved-voice-materialization';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { type VoiceDocument } from '@api/collections/voices/schemas/voice.schema';
@@ -29,7 +29,6 @@ import type {
   GenerationPlaceholderCreatedCallback,
   GenerationPlaceholderScope,
 } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
-import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
@@ -49,9 +48,7 @@ import {
   VoiceProvider,
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { readIngredientMediaUrl } from '@libs/media/media-url.util';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -63,14 +60,12 @@ export class AvatarVideoGenerationService {
 
   constructor(
     private readonly brandsService: BrandsService,
-    private readonly configService: ConfigService,
     private readonly byokService: ByokService,
     private readonly avatarBilling: AvatarVideoBillingService,
     private readonly elevenlabsService: ElevenLabsService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly managedInferenceRuntimeService: ManagedInferenceRuntimeService,
     private readonly heygenService: HeyGenService,
-    private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
     private readonly orgSettingsService: OrganizationSettingsService,
@@ -78,6 +73,7 @@ export class AvatarVideoGenerationService {
     private readonly videosService: VideosService,
     private readonly voicesService: VoicesService,
     private readonly lifecycleService: AvatarVideoLifecycleService,
+    private readonly referenceService: AvatarVideoReferenceService,
   ) {}
 
   /** Quote the same resolved identity and funding sources generation will use. */
@@ -628,65 +624,12 @@ export class AvatarVideoGenerationService {
     resolvedPhotoIngredientId?: string,
     resolvedPhotoUrl?: string,
   ): Promise<string> {
-    if (resolvedPhotoUrl) {
-      return resolvedPhotoUrl;
-    }
-
-    if (resolvedPhotoIngredientId) {
-      const avatarIngredient =
-        await this.ingredientsService.findAvatarImageById(
-          resolvedPhotoIngredientId,
-          context.organizationId,
-        );
-
-      if (!avatarIngredient) {
-        throw new HttpException(
-          {
-            detail:
-              'Configured default avatar must reference an avatar image ingredient in this organization',
-            title: 'Validation failed',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      const avatarUrl = readIngredientMediaUrl(avatarIngredient);
-      if (avatarUrl) {
-        return avatarUrl;
-      }
-
-      return `${this.configService.ingredientsEndpoint}/avatars/${avatarIngredient.id}`;
-    }
-
-    if (!params.avatarId) {
-      throw new HttpException(
-        {
-          detail:
-            'Either photoUrl must be provided or identity defaults must resolve a default avatar image',
-          title: 'Validation failed',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    const heygenByokKey = await this.byokService.resolveApiKey(
-      context.organizationId,
-      ByokProvider.HEYGEN,
+    return this.referenceService.resolvePhotoUrl(
+      params,
+      context,
+      resolvedPhotoIngredientId,
+      resolvedPhotoUrl,
     );
-    const avatars = await this.heygenService.getAvatars(
-      context.organizationId,
-      undefined,
-      heygenByokKey?.apiKey,
-    );
-    const avatar = avatars.find(
-      (candidate) => candidate.avatarId === params.avatarId,
-    );
-
-    if (!avatar) {
-      throw new NotFoundException('Avatar', params.avatarId);
-    }
-
-    return avatar.preview;
   }
 
   private async resolveAudioSource(

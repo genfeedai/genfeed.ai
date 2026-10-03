@@ -79,7 +79,13 @@ describe('InstagramPublisherService', () => {
     brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Test image post</p>',
-    ingredients: [mockIngredientId],
+    ingredients: [
+      {
+        id: mockIngredientId,
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
+    ],
     isDeleted: false,
     organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
@@ -92,7 +98,13 @@ describe('InstagramPublisherService', () => {
     brandId: mockBrandId,
     category: PostCategory.VIDEO,
     description: '<p>Test video reel</p>',
-    ingredients: [mockIngredientId],
+    ingredients: [
+      {
+        id: mockIngredientId,
+        mediaUrl:
+          'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
+      },
+    ],
     isDeleted: false,
     isShareToFeedSelected: true,
     organizationId: mockOrganizationId,
@@ -107,9 +119,21 @@ describe('InstagramPublisherService', () => {
     category: PostCategory.IMAGE,
     description: '<p>Carousel post</p>',
     ingredients: [
-      testId('ingredient', 2),
-      testId('ingredient', 3),
-      testId('ingredient', 4),
+      {
+        id: testId('ingredient', 2),
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
+      {
+        id: testId('ingredient', 3),
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
+      {
+        id: testId('ingredient', 4),
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
     ],
     isDeleted: false,
     organizationId: mockOrganizationId,
@@ -142,6 +166,7 @@ describe('InstagramPublisherService', () => {
           useValue: {
             get: vi.fn().mockReturnValue('test-value'),
             ingredientsEndpoint: 'https://api.test.com/ingredients',
+            isAuthorizedMediaDeliveryEnabled: true,
           },
         },
         {
@@ -513,7 +538,13 @@ describe('InstagramPublisherService', () => {
         id: testId('child', 3),
         category: PostCategory.IMAGE,
         description: '<p>Image child - should be ignored</p>',
-        ingredients: [mockIngredientId],
+        ingredients: [
+          {
+            id: mockIngredientId,
+            mediaUrl:
+              'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+          },
+        ],
         order: 3,
       },
     ];
@@ -543,7 +574,13 @@ describe('InstagramPublisherService', () => {
           id: testId('child', 4),
           category: PostCategory.IMAGE,
           description: '<p>Image</p>',
-          ingredients: [mockIngredientId],
+          ingredients: [
+            {
+              id: mockIngredientId,
+              mediaUrl:
+                'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+            },
+          ],
           order: 1,
         },
       ];

@@ -12,6 +12,7 @@ import type { RequestWithSelectedModel } from '@api/helpers/guards/models/reques
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
@@ -33,7 +34,12 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 const LEGACY_CONTROLLER_NAME = 'ImagesTransformationsController';
 
@@ -52,7 +58,27 @@ export class ImageUpscaleService {
     private readonly sharedService: SharedService,
     private readonly websocketService: NotificationsPublisherService,
     private readonly generationBilling: GenerationBillingService,
+    @Optional()
+    private readonly authorizedMediaUrls?: AuthorizedMediaUrlService,
   ) {}
+
+  private async processingMediaUrl(
+    organizationId: string,
+    ingredientId: string,
+    category: string,
+  ): Promise<string> {
+    if (!this.configService.isAuthorizedMediaDeliveryEnabled)
+      return `${this.configService.ingredientsEndpoint}/${category}/${ingredientId}`;
+    if (!this.authorizedMediaUrls)
+      throw new Error('Authorized media issuer is unavailable');
+    const urls = await this.authorizedMediaUrls.issueServerPublish(
+      organizationId,
+      [ingredientId],
+    );
+    const url = urls.get(ingredientId);
+    if (!url) throw new Error('The source has no authorized media URL');
+    return url;
+  }
 
   async upscaleImage(
     request: RequestWithSelectedModel,
@@ -66,6 +92,8 @@ export class ImageUpscaleService {
     const parent = await this.imagesService.findOne(
       {
         id: imageId,
+        organizationId: user.organizationId,
+        isDeleted: false,
         OR: [
           { userId: user.userId ?? user.id },
           { organizationId: user.organizationId },
@@ -87,7 +115,11 @@ export class ImageUpscaleService {
       );
     }
 
-    const imageUrl = `${this.configService.ingredientsEndpoint}/images/${imageId}`;
+    const imageUrl = await this.processingMediaUrl(
+      user.organizationId,
+      imageId,
+      'images',
+    );
 
     const model =
       imageEditDto.model ||

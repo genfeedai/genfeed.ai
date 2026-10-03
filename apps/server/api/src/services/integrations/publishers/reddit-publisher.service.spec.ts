@@ -89,7 +89,13 @@ describe('RedditPublisherService', () => {
     brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Test image post</p>',
-    ingredients: [mockIngredientId],
+    ingredients: [
+      {
+        id: mockIngredientId,
+        mediaUrl:
+          'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      },
+    ],
     isDeleted: false,
     label: 'Image Post Title',
     organizationId: mockOrganizationId,
@@ -123,6 +129,7 @@ describe('RedditPublisherService', () => {
           useValue: {
             get: vi.fn().mockReturnValue('test-value'),
             ingredientsEndpoint: 'https://api.test.com/ingredients',
+            isAuthorizedMediaDeliveryEnabled: true,
           },
         },
         {
@@ -560,7 +567,13 @@ describe('RedditPublisherService', () => {
         id: testId('child', 3),
         category: PostCategory.IMAGE,
         description: '<p>Image child - should be ignored</p>',
-        ingredients: [mockIngredientId],
+        ingredients: [
+          {
+            id: mockIngredientId,
+            mediaUrl:
+              'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+          },
+        ],
         order: 3,
       },
     ];
@@ -590,7 +603,13 @@ describe('RedditPublisherService', () => {
           id: testId('child', 4),
           category: PostCategory.IMAGE,
           description: '<p>Image</p>',
-          ingredients: [mockIngredientId],
+          ingredients: [
+            {
+              id: mockIngredientId,
+              mediaUrl:
+                'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+            },
+          ],
           order: 1,
         },
       ];

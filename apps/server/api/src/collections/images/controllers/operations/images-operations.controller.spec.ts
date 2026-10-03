@@ -4,6 +4,7 @@ import {
   type MediaPromptEnhancementInput,
   MediaPromptEnhancementService,
 } from '@api/services/harness/media-prompt-enhancement.service';
+import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
 
 vi.mock('@api/services/integrations/klingai/services/klingai.service', () => ({
   KlingAIService: class {},
@@ -243,6 +244,10 @@ describe('ImagesOperationsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ImagesOperationsController],
       providers: [
+        {
+          provide: AuthorizedMediaUrlService,
+          useValue: { issueServerPublish: vi.fn() },
+        },
         {
           provide: ModelCreditQuoteService,
           inject: [ModelsService],
@@ -612,6 +617,7 @@ describe('ImagesOperationsController', () => {
       module.get(SharedService),
       module.get(TagsService),
       imageGenerationService,
+      module.get(AuthorizedMediaUrlService),
     );
     brandsService = module.get(BrandsService);
     imagesService = module.get(ImagesService);
@@ -1281,6 +1287,7 @@ describe('ImagesOperationsController', () => {
       );
 
       expect(imagesService.patch).toHaveBeenCalledWith(expect.any(String), {
+        s3Key: 'ingredients/images/test',
         status: IngredientStatus.GENERATED,
       });
     });

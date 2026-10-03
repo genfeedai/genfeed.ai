@@ -57,6 +57,7 @@ describe('MusicsUploadController', () => {
   const mockServices = {
     filesClientService: {
       uploadToS3: vi.fn().mockResolvedValue({
+        s3Key: 'ingredients/musics/random-music-token',
         duration: 120,
         height: null,
         size: 1024 * 1024,
@@ -70,6 +71,7 @@ describe('MusicsUploadController', () => {
       createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
           _id: ingredientId,
+          id: ingredientId,
           category: 'music',
         },
         metadataData: {
@@ -127,6 +129,10 @@ describe('MusicsUploadController', () => {
 
       expect(sharedService.createMediaDocuments).toHaveBeenCalled();
       expect(filesClientService.uploadToS3).toHaveBeenCalled();
+      expect(mockServices.musicsService.patch).toHaveBeenCalledWith(
+        ingredientId,
+        { s3Key: 'ingredients/musics/random-music-token' },
+      );
       expect(result).toBeDefined();
     });
 

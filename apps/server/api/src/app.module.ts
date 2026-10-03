@@ -27,6 +27,8 @@ import { ActionOriginInterceptor } from '@api/helpers/interceptors/action-origin
 import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
 import { OAuthModule } from '@api/oauth/oauth.module';
 import { CacheModule } from '@api/services/cache/cache.module';
+import { MediaDeliveryResponseInterceptor } from '@api/services/media-urls/media-delivery-response.interceptor';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { RateLimitModule } from '@api/shared/modules/rate-limit/rate-limit.module';
@@ -60,6 +62,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
       configService: ConfigService,
     }),
     SharedModule,
+    MediaUrlsModule,
     PrismaModule,
     OrganizationsCoreModule,
     ApiKeysModule,
@@ -109,6 +112,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
       provide: APP_INTERCEPTOR,
       useClass: TenantContextInterceptor,
     },
+    { provide: APP_INTERCEPTOR, useExisting: MediaDeliveryResponseInterceptor },
     {
       inject: [MicroservicesService],
       provide: HEALTH_CONTRIBUTOR,

@@ -135,3 +135,6 @@ export function hasQueueConsumer(queueName: string): boolean {
 }
 
 export const LLM_COST_SETTLEMENT_QUEUE = 'llm-cost-settlement';
+
+/** Protected media derivatives; the API produces and workers render. */
+export const MEDIA_DELIVERY_QUEUE = 'media-delivery';

@@ -98,6 +98,7 @@ describe('BrandRemixSourceMediaService', () => {
     });
     (files.uploadToS3 as ReturnType<typeof vi.fn>).mockResolvedValue({
       size: 12,
+      s3Key: 'ingredients/videos/random-source-token',
     });
 
     const result = await service.ingest({
@@ -132,7 +133,10 @@ describe('BrandRemixSourceMediaService', () => {
         isDeleted: false,
         status: IngredientStatus.PROCESSING,
       },
-      data: { status: IngredientStatus.UPLOADED },
+      data: {
+        s3Key: 'ingredients/videos/random-source-token',
+        status: IngredientStatus.UPLOADED,
+      },
     });
     expect(result).toEqual({
       assetId: 'ing-1',

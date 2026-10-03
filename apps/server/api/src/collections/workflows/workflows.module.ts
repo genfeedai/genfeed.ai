@@ -7,6 +7,7 @@ import { WorkflowMediaCredentialRouteService } from '@api/collections/workflows/
 import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { MediaLocalizationModule } from '@api/services/media-localization/media-localization.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 /**
  * Workflows Module
  * Automation templates: reusable multi-step workflows, triggers (manual/auto),
@@ -163,6 +164,7 @@ import { Module } from '@nestjs/common';
     YoutubeLongFormWorkflowService,
   ],
   imports: [
+    MediaUrlsModule,
     AgentStrategyPerformanceModule,
     WorkflowsCoreModule,
     FeaturedWorkflowsModule,

@@ -182,6 +182,7 @@ describe('ContentOrchestrationService', () => {
 
     mockFilesClientService = {
       uploadToS3: vi.fn().mockResolvedValue({
+        s3Key: 'ingredients/videos/random-orchestrated-token',
         duration: 5,
         height: 1920,
         size: 1024000,
@@ -287,6 +288,7 @@ describe('ContentOrchestrationService', () => {
       await service.generateAndPublish(baseConfig);
 
       expect(mockIngredientsService.patch).toHaveBeenCalledWith(ingredientId, {
+        s3Key: 'ingredients/videos/random-orchestrated-token',
         status: IngredientStatus.UPLOADED,
       });
     });

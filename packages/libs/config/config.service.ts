@@ -20,6 +20,7 @@ import {
   heygenSchema,
   type IEnvConfig,
   internalAuthSchema,
+  isCloudDeployment,
   klingaiSchema,
   leonardoSchema,
   microservicesSchema,
@@ -239,6 +240,27 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
     return Number.isFinite(configured) && configured > 0 ? configured : 900;
   }
 
+  /** Explicit pre-launch activation; code can ship before CDN enforcement. */
+  public get isAuthorizedMediaDeliveryEnabled(): boolean {
+    if (!isCloudDeployment()) return false;
+    const isEnabled = this.envConfig.GENFEEDAI_MEDIA_ISSUER_ENABLED === 'true';
+    if (isEnabled && !this.isCdnSigningEnabled) {
+      throw new Error(
+        'Authorized media delivery requires configured CDN signing',
+      );
+    }
+    return isEnabled;
+  }
+
+  /** Explicit staging/prewarm can run before delivery activation. */
+  public get isAuthorizedMediaPreparationEnabled(): boolean {
+    return (
+      isCloudDeployment() &&
+      (this.isAuthorizedMediaDeliveryEnabled ||
+        this.envConfig.GENFEEDAI_MEDIA_PREPARATION_ENABLED === 'true')
+    );
+  }
+
   /** Media URLs are signed only when both signing inputs are present. */
   public get isCdnSigningEnabled(): boolean {
     return Boolean(this.mediaUrlConfig.signing);
@@ -255,6 +277,10 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
     }
     return {
       cdnUrl: this.cdnUrl,
+      ...(this.envConfig.GENFEEDAI_MEDIA_ISSUER_ENABLED === 'true' &&
+      isCloudDeployment()
+        ? { isAuthorizationRequired: true }
+        : {}),
       ...(keyPairId && privateKey
         ? {
             signing: {

@@ -145,7 +145,10 @@ function makeContext(post: PublisherPostInput): PublishContext {
 describe('BasePublisherService', () => {
   let publisher: TestPublisher;
   let mockLogger: Mocked<ServerLogger>;
-  let mockConfig: { ingredientsEndpoint: string };
+  let mockConfig: {
+    ingredientsEndpoint: string;
+    isAuthorizedMediaDeliveryEnabled: boolean;
+  };
 
   beforeEach(() => {
     mockLogger = {
@@ -155,6 +158,7 @@ describe('BasePublisherService', () => {
     } as unknown as Mocked<ServerLogger>;
 
     mockConfig = {
+      isAuthorizedMediaDeliveryEnabled: true,
       ingredientsEndpoint: 'https://cdn.example.com',
     };
 
@@ -178,7 +182,15 @@ describe('BasePublisherService', () => {
 
     it('should return hasIngredients=true for a post with ingredients', () => {
       const media = publisher.testExtractMediaInfo(
-        makePost({ ingredients: [mockIngredientId1] as never }),
+        makePost({
+          ingredients: [
+            {
+              id: mockIngredientId1,
+              mediaUrl:
+                'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+            },
+          ] as never,
+        }),
       );
       expect(media.hasIngredients).toBe(true);
       expect(media.ingredientIds).toHaveLength(1);
@@ -187,7 +199,18 @@ describe('BasePublisherService', () => {
     it('should set isCarousel=true when more than one ingredient', () => {
       const media = publisher.testExtractMediaInfo(
         makePost({
-          ingredients: [mockIngredientId1, mockIngredientId2] as never,
+          ingredients: [
+            {
+              id: mockIngredientId1,
+              mediaUrl:
+                'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+            },
+            {
+              id: mockIngredientId2,
+              mediaUrl:
+                'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+            },
+          ] as never,
         }),
       );
       expect(media.isCarousel).toBe(true);
@@ -195,31 +218,70 @@ describe('BasePublisherService', () => {
 
     it('should set isCarousel=false when one ingredient', () => {
       const media = publisher.testExtractMediaInfo(
-        makePost({ ingredients: [mockIngredientId1] as never }),
+        makePost({
+          ingredients: [
+            {
+              id: mockIngredientId1,
+              mediaUrl:
+                'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+            },
+          ] as never,
+        }),
       );
       expect(media.isCarousel).toBe(false);
     });
 
-    it('should build correct image mediaUrls from config endpoint', () => {
+    it('uses the issued image media URL', () => {
       const media = publisher.testExtractMediaInfo(
         makePost({
           category: PostCategory.IMAGE,
-          ingredients: [mockIngredientId1] as never,
+          ingredients: [
+            {
+              id: mockIngredientId1,
+              mediaUrl:
+                'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+            },
+          ] as never,
         }),
       );
-      expect(media.mediaUrls[0]).toContain('https://cdn.example.com');
+      expect(media.mediaUrls[0]).toBe(
+        'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+      );
       expect(media.mediaUrls[0]).toContain('/images/');
     });
 
-    it('should build correct video mediaUrls for VIDEO category', () => {
+    it('uses the issued video media URL', () => {
       const media = publisher.testExtractMediaInfo(
         makePost({
           category: PostCategory.VIDEO,
-          ingredients: [mockIngredientId1] as never,
+          ingredients: [
+            {
+              id: mockIngredientId1,
+              mediaUrl:
+                'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
+            },
+          ] as never,
         }),
       );
       expect(media.mediaUrls[0]).toContain('/videos/');
     });
+  });
+
+  it('refuses ID-only ingredients instead of constructing a CDN URL', () => {
+    expect(() =>
+      publisher.testExtractMediaInfo(
+        makePost({ ingredients: ['ingredient-1'] }),
+      ),
+    ).toThrow('no authorized execution URL');
+  });
+
+  it('preserves the legacy path only until authorized delivery is activated', () => {
+    mockConfig.isAuthorizedMediaDeliveryEnabled = false;
+    expect(
+      publisher.testExtractMediaInfo(
+        makePost({ ingredients: ['ingredient-1'] }),
+      ).mediaUrls,
+    ).toEqual(['https://cdn.example.com/images/ingredient-1']);
   });
 
   // ─── validatePost() ────────────────────────────────────────────────────────
@@ -251,7 +313,13 @@ describe('BasePublisherService', () => {
       const noImage = new NoImagePublisher(mockConfig, mockLogger);
       const post = makePost({
         category: PostCategory.IMAGE,
-        ingredients: [mockIngredientId1] as never,
+        ingredients: [
+          {
+            id: mockIngredientId1,
+            mediaUrl:
+              'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+          },
+        ] as never,
       });
       const media = noImage.testExtractMediaInfo(post);
       const result = noImage.validatePost(makeContext(post), media);
@@ -266,7 +334,13 @@ describe('BasePublisherService', () => {
       const noVideo = new NoVideoPublisher(mockConfig, mockLogger);
       const post = makePost({
         category: PostCategory.VIDEO,
-        ingredients: [mockIngredientId1] as never,
+        ingredients: [
+          {
+            id: mockIngredientId1,
+            mediaUrl:
+              'https://authorized.test/ingredients/videos/random-storage-key?signature=fixture',
+          },
+        ] as never,
       });
       const media = noVideo.testExtractMediaInfo(post);
       const result = noVideo.validatePost(makeContext(post), media);
@@ -281,7 +355,18 @@ describe('BasePublisherService', () => {
       const noCarousel = new NoCarouselPublisher(mockConfig, mockLogger);
       const post = makePost({
         category: PostCategory.IMAGE,
-        ingredients: [mockIngredientId1, mockIngredientId2] as never,
+        ingredients: [
+          {
+            id: mockIngredientId1,
+            mediaUrl:
+              'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+          },
+          {
+            id: mockIngredientId2,
+            mediaUrl:
+              'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+          },
+        ] as never,
       });
       const media = noCarousel.testExtractMediaInfo(post);
       const result = noCarousel.validatePost(makeContext(post), media);
@@ -292,7 +377,13 @@ describe('BasePublisherService', () => {
     it('should pass validation for image post on fully-capable publisher', () => {
       const post = makePost({
         category: PostCategory.IMAGE,
-        ingredients: [mockIngredientId1] as never,
+        ingredients: [
+          {
+            id: mockIngredientId1,
+            mediaUrl:
+              'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+          },
+        ] as never,
       });
       const media = publisher.testExtractMediaInfo(post);
       expect(publisher.validatePost(makeContext(post), media).valid).toBe(true);
@@ -516,7 +607,13 @@ describe('BasePublisherService', () => {
             category: PostCategory.IMAGE,
             description: 'With a picture',
             id: 'child-1',
-            ingredients: [mockIngredientId1.toString()],
+            ingredients: [
+              {
+                id: mockIngredientId1.toString(),
+                mediaUrl:
+                  'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+              },
+            ],
             order: 1,
           },
         ],
@@ -526,7 +623,7 @@ describe('BasePublisherService', () => {
 
       expect(publishComment).toHaveBeenCalledWith('With a picture', {
         kind: 'image',
-        url: `https://cdn.example.com/images/${mockIngredientId1}`,
+        url: 'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
       });
     });
 
@@ -551,7 +648,13 @@ describe('BasePublisherService', () => {
             category: PostCategory.IMAGE,
             description: 'Caption only',
             id: 'child-1',
-            ingredients: [mockIngredientId1.toString()],
+            ingredients: [
+              {
+                id: mockIngredientId1.toString(),
+                mediaUrl:
+                  'https://authorized.test/ingredients/images/random-storage-key?signature=fixture',
+              },
+            ],
             order: 1,
           },
         ],

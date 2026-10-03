@@ -3,6 +3,7 @@ import { GenerationBillingService } from '@api/collections/credits/services/gene
 import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { AvatarVideoLifecycleService } from '@api/collections/videos/services/avatar-video-lifecycle.service';
+import { AvatarVideoReferenceService } from '@api/collections/videos/services/avatar-video-reference.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { ByokProvider, VoiceProvider } from '@genfeedai/contracts';
@@ -43,6 +44,7 @@ describe('AvatarVideoGenerationService', () => {
       findOne: vi.fn(),
     };
     const configService = {
+      isAuthorizedMediaDeliveryEnabled: false,
       ingredientsEndpoint: 'http://localhost:3010',
     };
     const byokService = {
@@ -147,9 +149,9 @@ describe('AvatarVideoGenerationService', () => {
         bindOutput: vi.fn(),
       } as never,
     );
+    const mediaIssuer = { issueServerPublish: vi.fn() };
     const service = new AvatarVideoGenerationService(
       brandsService as never,
-      configService as never,
       byokService as never,
       new AvatarVideoBillingService(
         creditsUtilsService as never,
@@ -161,7 +163,6 @@ describe('AvatarVideoGenerationService', () => {
       failedGenerationService as never,
       managedInferenceRuntimeService as never,
       heygenService as never,
-      ingredientsService as never,
       loggerService,
       metadataService as never,
       orgSettingsService as never,
@@ -169,9 +170,18 @@ describe('AvatarVideoGenerationService', () => {
       videosService as never,
       voicesService as never,
       lifecycleService,
+      new AvatarVideoReferenceService(
+        configService as never,
+        ingredientsService as never,
+        mediaIssuer as never,
+        byokService as never,
+        heygenService as never,
+      ),
     );
 
     return {
+      configService,
+      mediaIssuer,
       brandsService,
       byokService,
       creditDeductionQueueService,
@@ -196,6 +206,35 @@ describe('AvatarVideoGenerationService', () => {
     organizationId: 'test-object-id',
     userId: 'test-object-id',
   };
+
+  it('reissues the canonical avatar source instead of using its cached URL when activated', async () => {
+    const h = createService();
+    h.configService.isAuthorizedMediaDeliveryEnabled = true;
+    h.brandsService.findOne.mockResolvedValue({
+      agentConfig: {},
+      id: 'brand-1',
+    });
+    h.mediaIssuer.issueServerPublish.mockResolvedValue(
+      new Map([
+        ['avatar-1', 'https://cdn.example.com/opaque-avatar?Signature=fresh'],
+      ]),
+    );
+    await h.service.generateAvatarVideo(
+      {
+        photoIngredientId: 'avatar-1',
+        audioUrl: 'https://cdn.example.com/audio.mp3',
+        text: 'Speech',
+      },
+      context,
+    );
+    expect(h.mediaIssuer.issueServerPublish).toHaveBeenCalledWith(
+      context.organizationId,
+      ['avatar-1'],
+    );
+    expect(h.heygenService.generatePhotoAvatarVideo.mock.calls[0]?.[1]).toBe(
+      'https://cdn.example.com/opaque-avatar?Signature=fresh',
+    );
+  });
 
   async function resolveIdentityInputs(
     service: AvatarVideoGenerationService,

@@ -13,6 +13,17 @@ async function forwardedArgs(operation: string, args: unknown) {
 
 describe('createMediaUrlExtension', () => {
   describe('computed cdnUrl', () => {
+    it('does not mint originals without caller authorization in protected mode', () => {
+      const protectedRead = createMediaUrlExtension({
+        cdnUrl: 'https://cdn.genfeed.ai',
+        isAuthorizationRequired: true,
+      });
+      expect(
+        protectedRead.result.ingredient.cdnUrl.compute({
+          s3Key: 'ingredients/images/private.png',
+        }),
+      ).toBeNull();
+    });
     it('derives the URL from the row’s own key', () => {
       expect(compute({ s3Key: 'ingredients/images/a.png' })).toBe(
         'https://cdn.genfeed.ai/ingredients/images/a.png',
