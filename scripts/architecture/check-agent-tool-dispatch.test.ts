@@ -99,7 +99,7 @@ describe('check-agent-tool-dispatch', () => {
         { name: 'get_workflow_inputs', surfaces: ['agent'] },
         { name: 'get_brands', surfaces: ['agent', 'mcp'] },
       ],
-      dispatch: ['GENERATE_AD_PACK', 'GET_WORKFLOW_INPUTS', 'LIST_BRANDS'],
+      dispatch: ['GENERATE_AD_PACK', 'GET_WORKFLOW_INPUTS', 'GET_BRANDS'],
     });
 
     const result = runCheckAgentToolDispatch();
@@ -238,7 +238,7 @@ describe('check-agent-tool-dispatch', () => {
         { name: 'generate_ad_pack', surfaces: ['agent'] },
         { name: 'get_brands', surfaces: ['mcp'] },
       ],
-      dispatch: ['GENERATE_AD_PACK', 'LIST_BRANDS'],
+      dispatch: ['GENERATE_AD_PACK', 'GET_BRANDS'],
     });
 
     const result = runCheckAgentToolDispatch();
