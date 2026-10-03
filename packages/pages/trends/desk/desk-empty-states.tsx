@@ -106,7 +106,7 @@ export function DeskEmptyState({
           <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
             <Link href={sourceHealthHref}>
               <Activity className="size-3.5" />
-              Check source health
+              {translateDesk('emptyState.checkSourceHealth')}
             </Link>
           </Button>
           <Button

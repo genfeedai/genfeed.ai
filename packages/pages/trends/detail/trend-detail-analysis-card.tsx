@@ -1,5 +1,6 @@
 'use client';
 
+import { formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { TrendDetailData } from '@props/trends/trends-page.props';
 import Card from '@ui/card/Card';
@@ -67,7 +68,7 @@ export default function TrendDetailAnalysisCard({
         <div className="mt-4 pt-4 border-t border-border">
           <span className="text-sm text-foreground/60">
             Peak: {formatCompactNumber(analysis.peakMentions || 0)} mentions on{' '}
-            {new Date(analysis.peakDate).toLocaleDateString()}
+            {formatDate(analysis.peakDate)}
           </span>
         </div>
       )}

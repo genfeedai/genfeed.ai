@@ -69,6 +69,24 @@
     }
   },
   "analytics": {
+    "topVideos": {
+      "title": "Top videos",
+      "description": "Your recent videos ranked by evaluated score, with the persuasion signal behind each one.",
+      "timeframe": "Timeframe",
+      "timeframes": {
+        "24h": "Last 24 hours",
+        "72h": "Last 72 hours",
+        "7d": "Last 7 days"
+      },
+      "empty": "No published videos in this timeframe yet.",
+      "columns": {
+        "video": "Video",
+        "platform": "Platform",
+        "views": "Views",
+        "engagement": "Engagement",
+        "score": "Score"
+      }
+    },
     "metricDefinitions": {
       "comments": "Comments recorded across the selected published content.",
       "engagement": "Total recorded interactions across the selected content.",

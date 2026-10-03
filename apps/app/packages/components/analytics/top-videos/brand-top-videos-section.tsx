@@ -34,10 +34,10 @@ import {
   useBrandTopVideos,
 } from './use-brand-top-videos';
 
-const TIMEFRAME_OPTIONS: { label: string; value: TopVideosTimeframe }[] = [
-  { label: 'Last 24 hours', value: Timeframe.H24 },
-  { label: 'Last 72 hours', value: Timeframe.H72 },
-  { label: 'Last 7 days', value: Timeframe.D7 },
+const TIMEFRAME_OPTIONS: TopVideosTimeframe[] = [
+  Timeframe.H24,
+  Timeframe.H72,
+  Timeframe.D7,
 ];
 
 /**
@@ -47,6 +47,7 @@ const TIMEFRAME_OPTIONS: { label: string; value: TopVideosTimeframe }[] = [
 export default function BrandTopVideosSection() {
   const translate = useTranslations('ui.analyticsTrends');
   const translateCommon = useTranslations('common.errors');
+  const translateTopVideos = useTranslations('pages.analytics.topVideos');
   const {
     hasReadError,
     isBrandReady,
@@ -72,23 +73,25 @@ export default function BrandTopVideosSection() {
     <Card className="backdrop-blur" bodyClassName="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-2">
-          <Heading size="xl">Top videos</Heading>
+          <Heading size="xl">{translateTopVideos('title')}</Heading>
           <Text as="p" size="sm" color="subtle-60">
-            Your recent videos ranked by evaluated score, with the persuasion
-            signal behind each one.
+            {translateTopVideos('description')}
           </Text>
         </div>
         <Select
           value={timeframe}
           onValueChange={(value) => setTimeframe(value as TopVideosTimeframe)}
         >
-          <SelectTrigger className="w-44" aria-label="Timeframe">
-            <SelectValue placeholder="Timeframe" />
+          <SelectTrigger
+            className="w-44"
+            aria-label={translateTopVideos('timeframe')}
+          >
+            <SelectValue placeholder={translateTopVideos('timeframe')} />
           </SelectTrigger>
           <SelectContent>
             {TIMEFRAME_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
+              <SelectItem key={option} value={option}>
+                {translateTopVideos(`timeframes.${option}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -121,7 +124,7 @@ export default function BrandTopVideosSection() {
       <Table<ITrendVideo>
         items={rankedVideos}
         isLoading={isLoading}
-        emptyLabel="No published videos in this timeframe yet."
+        emptyLabel={translateTopVideos('empty')}
         onRowClick={(video) => {
           if (video.id) {
             setRemixVideo(video);
@@ -140,7 +143,7 @@ export default function BrandTopVideosSection() {
           },
           {
             className: 'min-w-56',
-            header: 'Video',
+            header: translateTopVideos('columns.video'),
             key: 'title',
             render: (video) => (
               <div className="flex flex-col gap-2">
@@ -157,7 +160,7 @@ export default function BrandTopVideosSection() {
           },
           {
             className: 'min-w-32',
-            header: 'Platform',
+            header: translateTopVideos('columns.platform'),
             key: 'platform',
             render: (video) => {
               const platform = PLATFORM_CONFIGS[video.platform];
@@ -180,7 +183,9 @@ export default function BrandTopVideosSection() {
           {
             className: 'min-w-24',
             header: (
-              <AnalyticsMetricLabel metric="views">Views</AnalyticsMetricLabel>
+              <AnalyticsMetricLabel metric="views">
+                {translateTopVideos('columns.views')}
+              </AnalyticsMetricLabel>
             ),
             key: 'views',
             render: (video) => (
@@ -193,7 +198,7 @@ export default function BrandTopVideosSection() {
             className: 'min-w-32',
             header: (
               <AnalyticsMetricLabel metric="engagementRate">
-                Engagement
+                {translateTopVideos('columns.engagement')}
               </AnalyticsMetricLabel>
             ),
             key: 'engagementRate',
@@ -205,7 +210,7 @@ export default function BrandTopVideosSection() {
           },
           {
             className: 'min-w-20 text-right',
-            header: 'Score',
+            header: translateTopVideos('columns.score'),
             key: 'viralScore',
             render: (video) => {
               const rank =
