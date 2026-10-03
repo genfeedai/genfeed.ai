@@ -362,7 +362,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          node --test scripts/ci/migration-safety.test.mjs
+          node --test --test-concurrency=1 scripts/ci/migration-safety.test.mjs scripts/deploy/hosted-saas/verify-serving-schema.test.mjs
           node scripts/ci/migration-safety.mjs --base "${CI_BASE_SHA:-HEAD^1}"
       - name: Check pinned product skill catalog
         run: bun run check:skills-catalog

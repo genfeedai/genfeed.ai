@@ -102,6 +102,17 @@ test('a marker cannot excuse any column still selected by the prior generated cl
   assert.ok(prismaTables(schema).get('examples').has('oldField'));
 });
 
+test('fails closed when the prior generated schema cannot be parsed', () => {
+  assert.throws(
+    () =>
+      validateContract(
+        `${marker}DROP TABLE "retired";`,
+        'generator client { provider = "prisma-client" }',
+      ),
+    /no parsed Prisma models/,
+  );
+});
+
 test('rejects dynamic SQL, unknown schemas, and malformed SQL rather than skipping them', () => {
   for (const sql of [
     'DO $$ BEGIN EXECUTE \'DROP TABLE "examples"\'; END $$;',

@@ -365,6 +365,19 @@ jobs:
             -target=aws_cloudwatch_log_group.harness_profile_seed \
             -target=aws_ecs_task_definition.harness_profile_seed
 
+      - name: Verify serving image schemas before live migrations
+        working-directory: ops/${{ env.TF_DIR }}
+        env:
+          CANDIDATE_DIGEST: ${{ steps.copy-image.outputs.image_digest }}
+        run: |
+          set -euo pipefail
+          CLUSTER=$(tofu output -raw cluster_name)
+          SERVICES=$(tofu output -json service_names)
+          REPOSITORY=$(aws ecr describe-repositories --repository-names "$ECR_REPOSITORY_NAME" --query 'repositories[0].repositoryUri' --output text)
+          node "${GITHUB_WORKSPACE}/ops/scripts/deploy/hosted-saas/verify-serving-schema.mjs" \
+            --cluster "$CLUSTER" --services "$SERVICES" --repository "$REPOSITORY" \
+            --candidate-digest "$CANDIDATE_DIGEST" --cwd "${GITHUB_WORKSPACE}/source"
+
       # Fail before live migrations: a rejected image must leave the serving
       # release's schema intact. Candidates must boot on the expanded schema;
       # schema-dependent startup changes require an earlier expand release.

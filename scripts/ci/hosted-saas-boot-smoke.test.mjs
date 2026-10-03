@@ -22,6 +22,9 @@ const script = step
   .join('\n');
 
 test('boot failures stop before the live migration task can change the serving schema', () => {
+  const compatibility = workflow.indexOf(
+    '      - name: Verify serving image schemas before live migrations',
+  );
   const boot = workflow.indexOf(
     '      - name: Boot API and workers before services roll',
   );
@@ -29,7 +32,12 @@ test('boot failures stop before the live migration task can change the serving s
   const roll = workflow.indexOf(
     '      - name: Tofu apply (roll services to new image)',
   );
-  assert.ok(boot > 0 && boot < migrate && migrate < roll);
+  assert.ok(
+    compatibility > 0 &&
+      compatibility < boot &&
+      boot < migrate &&
+      migrate < roll,
+  );
   const migrationStep = workflow.slice(migrate, roll);
   assert.doesNotMatch(
     migrationStep,

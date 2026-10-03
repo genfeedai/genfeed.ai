@@ -29,12 +29,21 @@ model. A marker cannot excuse a second incompatible operation in the same file.
 Schema-qualified operations support `public`; dynamic `EXECUTE` migrations fail
 closed because concatenated SQL cannot be proved by this guard. Review raw SQL
 application reads/writes separately; generated-schema checks cannot prove them.
-A published release does not prove all currently serving ECS revisions contain
-the retirement (for example, after an intentional rollback). This guard does not
-inspect active API/worker task revisions. Before contracting, verify every
-serving revision meets the marker; an automated deploy-time check of active
-revision compatibility remains follow-up work for #5881. Do not roll back to a
-release predating the retirement marker after contracting.
+A published release alone does not prove all currently serving ECS revisions
+contain the retirement (for example, after an intentional rollback). Before boot
+and live migrations, the deploy gate enumerates configured services, PRIMARY /
+ACTIVE deployments and task sets, and actual pending/running/draining tasks. It
+inspects each immutable image's OCI source revision without pulling the image,
+fetches that revision's Prisma schema, and checks candidate contracts against
+**every** serving client. Missing source metadata or unsupported migration
+history fails closed. A reverse check blocks rollback clients that select fields
+contracted by the active release. It uses read-only AWS/registry calls and starts
+no extra tasks or infrastructure. The canonical image builder generates Prisma
+from that source revision; custom images without that provenance cannot pass.
+
+The existing deploy concurrency group serializes hosted releases; external
+out-of-band ECS changes during the verification/migration window are unsupported.
+Do not roll back to a release predating the retirement marker after contracting.
 
 Applied migration files are immutable, including their comments: Prisma records
 checksums. CI rejects edits/deletions/renames to SQL present at the diff base.
@@ -50,7 +59,7 @@ application release, never by rewriting an applied file.
 | `20260929120000_drop_retired_fastlane_setting` | The intended contract after v0.1.77 was not enforced: #5766 recorded an old client selecting `isFastlaneEnabled`. Current production recovery is verified by the #5766 lane: the active API image maps to canonical Release v0.2.0 source `40c8392e`, the rollout completed on 2026-10-02, and no matching production schema errors were found since rollout. This confirms current recovery, not historical rollout compliance. | Verify every serving API/worker uses the no-reader release before applying the separate contract. |
 
 These applied migrations retain their original checksums. This audit records
-violations rather than certifying them retroactively. Production recovery and
-verification of the historical serving clients remain separate from the CI and
-deploy-order fix. No deployment, snapshot restore, or schema repair is performed
+violations rather than certifying them retroactively. Historical unsafe rollout cannot be certified retrospectively. The serving-image
+gate prevents future incompatible contracts without rewriting those files;
+production repair, when needed, remains a reviewed forward change. No deployment, snapshot restore, or schema repair is performed
 by adding this guard.

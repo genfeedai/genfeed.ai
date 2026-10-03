@@ -204,6 +204,10 @@ export function prismaTables(schema) {
     }
     tables.set(table, fields);
   }
+  if (!tables.size)
+    throw new Error(
+      'Cannot prove generated client schema: no parsed Prisma models',
+    );
   return tables;
 }
 
