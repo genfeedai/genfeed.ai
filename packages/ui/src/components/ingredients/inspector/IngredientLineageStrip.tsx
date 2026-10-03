@@ -15,7 +15,6 @@ import {
   getIngredientPreviewUrl,
   isRasterPreviewUrl,
 } from '@genfeedai/utils/media/ingredient-preview.util';
-import IngredientOriginBadge from '@ui/ingredients/ingredient-origin-badge';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import { Button } from '@ui/primitives/button';
 import { ImageOff } from 'lucide-react';
@@ -72,12 +71,11 @@ function IngredientLineageItem({ ingredient }: IngredientLineageItemProps) {
       >
         {label}
       </span>
-      <div className="flex flex-wrap items-center gap-1">
-        {isTrashed ? null : (
+      {isTrashed ? null : (
+        <div className="flex flex-wrap items-center gap-1">
           <LibraryAssetTypeBadge category={ingredient.category} />
-        )}
-        <IngredientOriginBadge origin={ingredient.origin} />
-      </div>
+        </div>
+      )}
     </li>
   );
 }

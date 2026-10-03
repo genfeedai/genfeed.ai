@@ -149,7 +149,7 @@ describe('IngredientsService', () => {
     it('GETs one lineage page with its pagination and hidden count', async () => {
       http.get.mockResolvedValue(
         axiosResponse({
-          ...collectionDocument([{ id: 'ref_1', origin: 'UPLOADED' }], {
+          ...collectionDocument([{ id: 'ref_1' }], {
             pagination: { limit: 24, page: 2, pages: 3, total: 55 },
           }),
           meta: { hiddenCount: 4 },

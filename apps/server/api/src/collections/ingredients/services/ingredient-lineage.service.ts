@@ -1,5 +1,5 @@
-import { classifyLegacyIngredientOrigin } from '@api/collections/ingredients/utils/ingredient-origin.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientLineageDirection } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
@@ -29,6 +29,14 @@ export interface IngredientLineageResult {
   totalPages: number;
 }
 
+interface LineageRow {
+  category: string;
+  createdAt: Date;
+  id: string;
+  isDeleted: boolean;
+  updatedAt: Date;
+}
+
 /**
  * Reads the `sources` / `sourceOf` relation of an asset: the references it was
  * made from, and the outputs that used it as a reference. It adds no version or
@@ -48,45 +56,32 @@ export class IngredientLineageService {
     const { direction, ingredientId, limit, page, viewer } = query;
     const brandId = viewer.brandId ? viewer.brandId : { not: null };
 
-    // The asset itself may sit in Trash (the Trash place opens the inspector),
-    // but it must be one the viewer could list in the Library.
-    const root = await this.prisma.ingredient.findFirst({
-      select: { id: true },
-      where: {
-        brandId,
-        id: ingredientId,
-        OR: [{ isDeleted: false }, { isDeleted: true }],
-        organizationId: viewer.organizationId,
-      },
-    });
-
-    if (!root) {
-      throw new NotFoundException('Asset');
-    }
-
+    // A reference that was trashed stays visible as a "Deleted reference", so
+    // that direction reads live and trashed rows together; an explicit
+    // `isDeleted: undefined` is how `scopedWhere` opts out of its live-only
+    // default. An output that was trashed is simply no longer a place the
+    // reference is used.
+    const isDeleted =
+      direction === IngredientLineageDirection.MADE_FROM ? undefined : false;
     const relation: Prisma.IngredientWhereInput =
       direction === IngredientLineageDirection.MADE_FROM
         ? { sourceOf: { some: { id: ingredientId } } }
         : { sources: { some: { id: ingredientId } } };
 
-    // A reference that was trashed stays visible as a "Deleted reference"; an
-    // output that was trashed is simply no longer a place the reference is used.
-    const softDelete: Prisma.IngredientWhereInput =
-      direction === IngredientLineageDirection.MADE_FROM
-        ? { OR: [{ isDeleted: false }, { isDeleted: true }] }
-        : { isDeleted: false };
+    // The asset itself may sit in Trash (the Trash place opens the inspector),
+    // but it must be one the viewer could list in the Library.
+    const root = await this.prisma.ingredient.findFirst({
+      select: { id: true },
+      where: scopedWhere(viewer.organizationId, {
+        brandId,
+        id: ingredientId,
+        isDeleted: undefined,
+      }),
+    });
 
-    const accessibleWhere: Prisma.IngredientWhereInput = {
-      ...relation,
-      ...softDelete,
-      brandId,
-      organizationId: viewer.organizationId,
-    };
-    const organizationWhere: Prisma.IngredientWhereInput = {
-      ...relation,
-      ...softDelete,
-      organizationId: viewer.organizationId,
-    };
+    if (!root) {
+      throw new NotFoundException('Asset');
+    }
 
     const [rows, totalDocs, organizationTotal] = await Promise.all([
       this.prisma.ingredient.findMany({
@@ -94,10 +89,22 @@ export class IngredientLineageService {
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         skip: (page - 1) * limit,
         take: limit,
-        where: accessibleWhere,
+        where: scopedWhere(viewer.organizationId, {
+          ...relation,
+          brandId,
+          isDeleted,
+        }),
       }),
-      this.prisma.ingredient.count({ where: accessibleWhere }),
-      this.prisma.ingredient.count({ where: organizationWhere }),
+      this.prisma.ingredient.count({
+        where: scopedWhere(viewer.organizationId, {
+          ...relation,
+          brandId,
+          isDeleted,
+        }),
+      }),
+      this.prisma.ingredient.count({
+        where: scopedWhere(viewer.organizationId, { ...relation, isDeleted }),
+      }),
     ]);
 
     return {
@@ -110,20 +117,7 @@ export class IngredientLineageService {
     };
   }
 
-  private toLineageDocument(row: {
-    bookmarkId: string | null;
-    category: string;
-    createdAt: Date;
-    generationPrompt: string | null;
-    generationSource: string | null;
-    id: string;
-    isDeleted: boolean;
-    modelUsed: string | null;
-    status: string;
-    updatedAt: Date;
-  }): Record<string, unknown> {
-    const origin = classifyLegacyIngredientOrigin(row);
-
+  private toLineageDocument(row: LineageRow): Record<string, unknown> {
     // A trashed reference keeps no media, name or prompt: only that it existed.
     if (row.isDeleted) {
       return {
@@ -131,14 +125,10 @@ export class IngredientLineageService {
         createdAt: row.createdAt,
         id: row.id,
         isDeleted: true,
-        origin,
         updatedAt: row.updatedAt,
       };
     }
 
-    return {
-      ...(withExternalMediaFallback(row) as Record<string, unknown>),
-      origin,
-    };
+    return withExternalMediaFallback(row) as Record<string, unknown>;
   }
 }

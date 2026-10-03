@@ -1,9 +1,6 @@
 import { IngredientLineageService } from '@api/collections/ingredients/services/ingredient-lineage.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import {
-  IngredientLineageDirection,
-  IngredientOrigin,
-} from '@genfeedai/contracts';
+import { IngredientLineageDirection } from '@genfeedai/contracts';
 
 interface Row {
   bookmarkId: string | null;
@@ -33,6 +30,11 @@ type Where = Record<string, unknown>;
 function createFakeIngredientTable(rows: Row[]) {
   const matches = (row: Row, where: Where): boolean =>
     Object.entries(where).every(([key, value]) => {
+      // Prisma ignores an `undefined` filter, which is how "live and trashed"
+      // is expressed.
+      if (value === undefined) {
+        return true;
+      }
       if (key === 'OR') {
         return (value as Where[]).some((branch) => matches(row, branch));
       }
@@ -124,7 +126,7 @@ describe('IngredientLineageService', () => {
     return { ingredient, service };
   }
 
-  it('lists every reference an output was made from, with its origin', async () => {
+  it('lists every reference an output was made from', async () => {
     const { service } = createService([sheet, logo, output]);
 
     const result = await service.findLineage({
@@ -138,9 +140,6 @@ describe('IngredientLineageService', () => {
     expect(result.docs.map((doc) => doc.id).sort()).toEqual(['logo', 'sheet']);
     expect(result.totalDocs).toBe(2);
     expect(result.hiddenCount).toBe(0);
-    expect(
-      result.docs.every((doc) => doc.origin === IngredientOrigin.UPLOADED),
-    ).toBe(true);
   });
 
   it('lists the outputs that used a reference, newest first', async () => {
@@ -161,9 +160,6 @@ describe('IngredientLineageService', () => {
     });
 
     expect(result.docs.map((doc) => doc.id)).toEqual(['output', 'older']);
-    expect(
-      result.docs.every((doc) => doc.origin === IngredientOrigin.GENERATED),
-    ).toBe(true);
   });
 
   it('counts references outside the viewer brand as hidden without naming them', async () => {

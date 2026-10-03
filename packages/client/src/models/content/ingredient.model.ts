@@ -73,7 +73,6 @@ export class Ingredient extends BaseEntity implements IIngredient {
   declare public isActive?: boolean;
   declare public isVoteAnimating: boolean;
   declare public personaSlug?: string;
-  declare public origin?: IIngredient['origin'];
   declare public reviewStatus?: string;
   declare public contentRating?: string;
   declare public campaign?: string;

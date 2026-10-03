@@ -51,7 +51,7 @@ describe('IngredientsRelationshipsController', () => {
     },
     lineageService: {
       findLineage: vi.fn().mockResolvedValue({
-        docs: [{ category: 'IMAGE', id: ingredientId, origin: 'UPLOADED' }],
+        docs: [{ category: 'IMAGE', id: ingredientId }],
         hiddenCount: 3,
         limit: 24,
         page: 1,
