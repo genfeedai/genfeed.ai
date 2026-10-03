@@ -209,13 +209,17 @@ export class ScheduledPostProviderAttempts {
     result: PublishResult,
     url: string,
   ): Promise<void> {
-    await markProviderReceiptPersisted(this.prisma, post, attempt, result).catch(
-      (error: unknown) =>
-        this.logger.warn(`${url} provider receipt persistence not marked`, {
-          error: getErrorMessage(error),
-          postId: post.id.toString(),
-          receiptId: attempt.receiptId,
-        }),
+    await markProviderReceiptPersisted(
+      this.prisma,
+      post,
+      attempt,
+      result,
+    ).catch((error: unknown) =>
+      this.logger.warn(`${url} provider receipt persistence not marked`, {
+        error: getErrorMessage(error),
+        postId: post.id.toString(),
+        receiptId: attempt.receiptId,
+      }),
     );
   }
 }
