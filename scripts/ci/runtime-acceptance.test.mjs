@@ -2896,7 +2896,7 @@ test('prepared owner revisions retain only the exact approved source hashes', ()
   );
   assert.equal(
     BRAND_SOURCE_CONTRACT.brand.sha256,
-    '6576e46cddcff5f1beb1b3765939e5bb6ee1759bdcf422adff1dcc40ae37fc2f',
+    'b79d6ffb8e84be00a6c6c7f610300641254c5f2b801901bca4911714964e239a',
   );
 });
 test('migration diagnostics helper is an exact frozen dependency for learning and brand', () => {
