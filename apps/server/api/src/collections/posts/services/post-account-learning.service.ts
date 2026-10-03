@@ -88,6 +88,7 @@ export class PostAccountLearningService {
     session: PostAccountLearningSession,
     index: number,
     postId: string,
+    generatedText: string,
   ): Promise<void> {
     const decisionId = session.decisionIds[index];
     if (!decisionId) return;
@@ -96,6 +97,7 @@ export class PostAccountLearningService {
         session.organizationId,
         decisionId,
         postId,
+        generatedText,
       );
     } catch (error) {
       this.logger.warn(`${this.logContext} artifact binding skipped`, {

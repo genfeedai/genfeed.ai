@@ -88,6 +88,7 @@ function publicationFixture() {
     format: 'standard',
     parentId: null as string | null,
     learningDecisionId: null as string | null,
+    publishApprovalId: 'approval' as string | null,
     ingredients: [{ id: 'ingredient', version: 2 }],
   };
   const account = { epoch: 2, revision: 4 };
@@ -122,6 +123,9 @@ function publicationFixture() {
       findFirst: vi.fn().mockResolvedValue({ id: 'finalization' }),
     },
     contentLearningAccount: { findFirst: vi.fn().mockResolvedValue(account) },
+    publishApproval: {
+      findFirst: vi.fn().mockResolvedValue({ status: 'published' }),
+    },
   };
   const client = {
     contentLearningDecision: {
@@ -244,6 +248,51 @@ describe('bindLearningPublicationV1', () => {
     });
     expect(f.tx.post.updateMany).not.toHaveBeenCalled();
   });
+  it.each(['approved', 'queued', 'executing'])(
+    'waits without writing while the approval is still %s',
+    async (status) => {
+      const f = publicationFixture();
+      resolveSource.mockResolvedValue(null);
+      f.tx.publishApproval.findFirst.mockResolvedValue({ status });
+      expect(await bindLearningPublicationV1(f.client, 'org', 'post')).toEqual({
+        status: 'not_applicable',
+        reason: 'approval_pending',
+      });
+      expect(f.tx.publishApproval.findFirst).toHaveBeenCalledWith({
+        where: { id: 'approval', organizationId: 'org', postId: 'post' },
+        select: { status: true },
+      });
+      expect(f.tx.contentLearningDecision.updateMany).not.toHaveBeenCalled();
+      expect(f.tx.post.updateMany).not.toHaveBeenCalled();
+    },
+  );
+  it('binds on the retry after the approval completes', async () => {
+    const f = publicationFixture();
+    resolveSource.mockResolvedValueOnce(null);
+    f.tx.publishApproval.findFirst.mockResolvedValueOnce({
+      status: 'executing',
+    });
+    expect(await bindLearningPublicationV1(f.client, 'org', 'post')).toEqual({
+      status: 'not_applicable',
+      reason: 'approval_pending',
+    });
+    expect(await bindLearningPublicationV1(f.client, 'org', 'post')).toEqual({
+      status: 'bound',
+    });
+    expect(f.decision.state).toBe('published');
+  });
+  it.each(['failed', 'cancelled', 'invalidated'])(
+    'censors a %s approval as unapproved',
+    async (status) => {
+      const f = publicationFixture();
+      resolveSource.mockResolvedValue(null);
+      f.tx.publishApproval.findFirst.mockResolvedValue({ status });
+      expect(await bindLearningPublicationV1(f.client, 'org', 'post')).toEqual({
+        status: 'censored',
+        reason: 'publication_unapproved',
+      });
+    },
+  );
   it('checks censor reasons in plan order', async () => {
     const f = publicationFixture();
     resolveSource.mockResolvedValue(null);

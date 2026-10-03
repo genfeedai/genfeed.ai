@@ -1,6 +1,7 @@
 import { learningFence } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { resolveLearningPublicationSourceV1 } from '@api/collections/content-learning/services/learning-publication-source.helper';
+import { PublishApprovalStatus } from '@genfeedai/contracts';
 import {
   learningDescriptorTuple,
   validLearningDescriptor,
@@ -20,7 +21,7 @@ export type LearningPublicationBindingV1 =
   | { status: 'censored'; reason: string }
   | {
       status: 'not_applicable';
-      reason: 'no_decision' | 'finalization_pending';
+      reason: 'no_decision' | 'finalization_pending' | 'approval_pending';
     };
 export interface LearningBindingClient {
   contentLearningDecision: Pick<
@@ -32,6 +33,12 @@ export interface LearningBindingClient {
   ): Promise<T>;
 }
 const BINDABLE_STATES = ['pending', 'generated'];
+/** Approval states that can still complete as PUBLISHED. */
+const IN_FLIGHT_APPROVAL_STATES: string[] = [
+  PublishApprovalStatus.APPROVED,
+  PublishApprovalStatus.QUEUED,
+  PublishApprovalStatus.EXECUTING,
+];
 export const learningArtifactPostSelect = {
   id: true,
   organizationId: true,
@@ -41,6 +48,7 @@ export const learningArtifactPostSelect = {
   format: true,
   parentId: true,
   learningDecisionId: true,
+  publishApprovalId: true,
   ingredients: {
     where: { isDeleted: false },
     select: { id: true, version: true },
@@ -103,6 +111,7 @@ export async function bindLearningArtifactV1(
   organizationId: string,
   decisionId: string,
   postId: string,
+  generatedText: string,
 ): Promise<string> {
   return client.$transaction(async (tx) => {
     await learningFence(tx, 'shared');
@@ -132,7 +141,15 @@ export async function bindLearningArtifactV1(
       select: learningArtifactPostSelect,
     });
     const hash = post ? learningPostArtifactHashV1(post, decision) : null;
-    if (!hash) throw new ConflictException('Decision artifact mismatch');
+    if (!post || !hash)
+      throw new ConflictException('Decision artifact mismatch');
+    // A user edit committed after the generated draft was saved must never be
+    // attributed to generation; leave the decision unbound instead.
+    if (
+      post.description.replace(/\r\n/g, '\n') !==
+      generatedText.replace(/\r\n/g, '\n')
+    )
+      throw new ConflictException('Draft changed before artifact binding');
     if (decision.finalArtifactHash && decision.finalArtifactHash !== hash)
       throw new ConflictException('Decision already bound to another artifact');
     if (!['pending', 'generated'].includes(decision.state))
@@ -237,8 +254,25 @@ export async function bindLearningPublicationV1(
       return { status: 'not_applicable', reason: 'finalization_pending' };
     const reject = (reason: string) =>
       censor(tx, organizationId, [decision.id], reason);
-    if (!(await resolveLearningPublicationSourceV1(tx, organizationId, postId)))
+    if (
+      !(await resolveLearningPublicationSourceV1(tx, organizationId, postId))
+    ) {
+      // Scheduled publishing completes the approval after the publish
+      // transition; binding is retried once the approval is PUBLISHED.
+      const approval = locked.publishApprovalId
+        ? await tx.publishApproval.findFirst({
+            where: {
+              id: locked.publishApprovalId,
+              organizationId,
+              postId,
+            },
+            select: { status: true },
+          })
+        : null;
+      if (approval && IN_FLIGHT_APPROVAL_STATES.includes(approval.status))
+        return { status: 'not_applicable', reason: 'approval_pending' };
       return reject('publication_unapproved');
+    }
     if (locked.format !== 'standard' || locked.parentId !== null)
       return reject('format_changed');
     if (!learningDecisionDescriptorValid(decision))

@@ -522,11 +522,13 @@ Tweet 3: Tech innovation is changing the world.`,
         organizationId,
         'decision-0',
         postId,
+        expect.any(String),
       );
       expect(mockLearningDecisionService.bindArtifact).toHaveBeenCalledWith(
         organizationId,
         'decision-1',
         secondPostId,
+        expect.any(String),
       );
     });
     it('emits a schema-valid learning receipt with the completed draft', async () => {

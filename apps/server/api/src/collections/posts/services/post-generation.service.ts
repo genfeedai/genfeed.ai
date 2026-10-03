@@ -594,6 +594,7 @@ export class PostGenerationService {
         learning.session,
         learning.index,
         postId,
+        postText,
       );
       await this.websocketService.emit(WebSocketPaths.post(postId), {
         result: updatedPost,

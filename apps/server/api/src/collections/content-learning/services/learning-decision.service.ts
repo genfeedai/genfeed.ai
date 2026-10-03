@@ -955,12 +955,18 @@ export class LearningDecisionService {
     }
     return results as LearningResolution[];
   }
-  bindArtifact(organizationId: string, decisionId: string, postId: string) {
+  bindArtifact(
+    organizationId: string,
+    decisionId: string,
+    postId: string,
+    generatedText: string,
+  ) {
     return bindLearningArtifactV1(
       this.prisma,
       organizationId,
       decisionId,
       postId,
+      generatedText,
     );
   }
   bindPublication(organizationId: string, postId: string) {

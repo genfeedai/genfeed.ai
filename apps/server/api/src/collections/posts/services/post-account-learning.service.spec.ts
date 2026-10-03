@@ -146,15 +146,16 @@ describe('PostAccountLearningService', () => {
   });
   it('binds the saved artifact for the matching decision and swallows failures', async () => {
     const session = await service.resolve(dto, posts, identity);
-    await service.bindArtifact(session, 1, 'post-1');
+    await service.bindArtifact(session, 1, 'post-1', 'Generated');
     expect(decisions.bindArtifact).toHaveBeenCalledWith(
       'org',
       'decision-1',
       'post-1',
+      'Generated',
     );
     decisions.bindArtifact.mockRejectedValue(new Error('conflict'));
     await expect(
-      service.bindArtifact(session, 0, 'post-0'),
+      service.bindArtifact(session, 0, 'post-0', 'Generated'),
     ).resolves.toBeUndefined();
     expect(logger.warn).toHaveBeenCalled();
   });
@@ -164,7 +165,7 @@ describe('PostAccountLearningService', () => {
       posts,
       identity,
     );
-    await service.bindArtifact(session, 0, 'post-0');
+    await service.bindArtifact(session, 0, 'post-0', 'Generated');
     expect(decisions.bindArtifact).not.toHaveBeenCalled();
   });
 });

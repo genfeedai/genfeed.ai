@@ -746,14 +746,22 @@ function bindingFixture() {
     {} as LearningScopeStateService,
     {} as LearningDependencyService,
   );
-  return { service, root, tx, decision, post, hash };
+  return {
+    service,
+    root,
+    tx,
+    decision,
+    post,
+    hash,
+    generatedText: 'First line\nSecond line',
+  };
 }
 describe('shared-fenced immutable artifact binding', () => {
   it('binds the persisted post artifact after shared entry and the exact decision lock', async () => {
     const f = bindingFixture();
-    expect(await f.service.bindArtifact('org', 'decision', 'post')).toBe(
-      f.hash,
-    );
+    expect(
+      await f.service.bindArtifact('org', 'decision', 'post', f.generatedText),
+    ).toBe(f.hash);
     const sql = f.tx.$queryRaw.mock.calls.map(([parts]) => parts.join(''));
     expect(sql[0]).toContain('pg_advisory_xact_lock_shared(5728, 1)');
     expect(sql[0]).not.toContain('pg_advisory_xact_lock(');
@@ -793,10 +801,10 @@ describe('shared-fenced immutable artifact binding', () => {
   });
   it('replays the same artifact without a second write', async () => {
     const f = bindingFixture();
-    await f.service.bindArtifact('org', 'decision', 'post');
-    expect(await f.service.bindArtifact('org', 'decision', 'post')).toBe(
-      f.hash,
-    );
+    await f.service.bindArtifact('org', 'decision', 'post', f.generatedText);
+    expect(
+      await f.service.bindArtifact('org', 'decision', 'post', f.generatedText),
+    ).toBe(f.hash);
     expect(
       f.tx.contentLearningDecision.updateMany.mock.results[1].value,
     ).toEqual({ count: 0 });
@@ -818,8 +826,16 @@ describe('shared-fenced immutable artifact binding', () => {
     if (kind === 'different artifact') f.decision.finalArtifactHash = 'other';
     if (kind === 'published') f.decision.state = 'published';
     await expect(
-      f.service.bindArtifact('org', 'decision', 'post'),
+      f.service.bindArtifact('org', 'decision', 'post', f.generatedText),
     ).rejects.toThrow(message);
+    expect(f.tx.contentLearningDecision.updateMany).not.toHaveBeenCalled();
+  });
+  it('leaves the decision unbound when the draft changed after generation', async () => {
+    const f = bindingFixture();
+    f.post.description = 'User edit landed first';
+    await expect(
+      f.service.bindArtifact('org', 'decision', 'post', f.generatedText),
+    ).rejects.toThrow('Draft changed before artifact binding');
     expect(f.tx.contentLearningDecision.updateMany).not.toHaveBeenCalled();
   });
   it('propagates fence failure before every row lock, read and write', async () => {
@@ -827,7 +843,7 @@ describe('shared-fenced immutable artifact binding', () => {
       failure = new Error('shared fence failed');
     f.tx.$queryRaw.mockRejectedValueOnce(failure);
     await expect(
-      f.service.bindArtifact('org', 'decision', 'post'),
+      f.service.bindArtifact('org', 'decision', 'post', f.generatedText),
     ).rejects.toBe(failure);
     expect(f.tx.$queryRaw).toHaveBeenCalledTimes(1);
     expect(f.tx.contentLearningDecision.findFirst).not.toHaveBeenCalled();
