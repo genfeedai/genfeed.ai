@@ -810,7 +810,6 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   campaignPaidActivations       CampaignPaidActivation[]
   posts                         Post[]
   postPublishFinalizations      PostPublishFinalization[]
-  postProviderPublishReceipts   PostProviderPublishReceipt[]
   postGroups                    PostGroup[]
   postingCadences               PostingCadence[]
   slotReservations              SlotReservation[]
@@ -2853,7 +2852,6 @@ learningCheckpoints ContentLearningCheckpoint[]
   // Reverse relations
   postAnalytics            PostAnalytics[]
   publishFinalizations     PostPublishFinalization[]
-  providerPublishReceipts  PostProviderPublishReceipt[]
   contentPerformances      ContentPerformance[]
   trendRemixLineages       TrendRemixLineage[]
   subscriptionAttributions SubscriptionAttribution[] @relation("attribution_content")
@@ -2910,34 +2908,6 @@ model PostPublishFinalization {
   @@unique([organizationId, postId], map: "post_publish_finalizations_org_post_key")
   @@index([completedAt, updatedAt], map: "post_publish_finalizations_pending_idx")
   @@map("post_publish_finalizations")
-}
-
-/// Durable provider publish attempt for one post occurrence. Reserved before
-/// the provider call and resolved after it, so a failed state transition
-/// replays an accepted result and concurrent deliveries never both publish.
-model PostProviderPublishReceipt {
-  id                  String       @id @default(cuid())
-  organizationId      String
-  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  postId              String
-  post                Post         @relation(fields: [postId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  /// Digest of the post id, active approval, approved version pin, schedule and content.
-  occurrenceKey       String
-  /// attempting | accepted | uncertain | released
-  status              String
-  workflowExecutionId String
-  /// Fresh per reservation; every takeover and settlement compares it.
-  attemptToken        String
-  attemptStartedAt    DateTime
-  externalId          String?
-  result              Json?
-  persistedAt         DateTime?
-  isDeleted           Boolean      @default(false)
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
-
-  @@unique([organizationId, postId, occurrenceKey], map: "post_provider_publish_receipts_occurrence_key")
-  @@map("post_provider_publish_receipts")
 }
 
 /// Explicit typed authority for publishing one exact canonical Post version.
