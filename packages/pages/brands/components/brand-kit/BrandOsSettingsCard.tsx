@@ -115,6 +115,9 @@ export default function BrandOsSettingsCard({
   const pendingRef = useRef(false);
   const dirtyRef = useRef(false);
   const autoSaveAttemptRef = useRef<string | null>(null);
+  // Bumped by every successful save or approval so a history read that
+  // started earlier never replaces newer persisted state.
+  const mutationRef = useRef(0);
   if (
     currentScope.current.brandId !== brandId ||
     currentScope.current.getService !== getService ||
@@ -247,6 +250,7 @@ export default function BrandOsSettingsCard({
   useEffect(() => {
     const controller = new AbortController();
     const operationEpoch = epoch.current;
+    const mutationAtStart = mutationRef.current;
     async function load() {
       clearAcknowledgement();
       setLoading(true);
@@ -259,6 +263,10 @@ export default function BrandOsSettingsCard({
           service.getBrandOsExport(brandId, controller.signal),
         ]);
         if (controller.signal.aborted || !isCurrent(operationEpoch)) return;
+        if (mutationRef.current !== mutationAtStart) {
+          setReload((value) => value + 1);
+          return;
+        }
         if (revisionResult.status === 'rejected') throw revisionResult.reason;
         const nextRevisions = revisionResult.value;
         const organizationId = nextRevisions[0]?.organizationId;
@@ -413,6 +421,7 @@ export default function BrandOsSettingsCard({
           saved.id === selected.id)
       )
         throw new Error(t('operationFailed'));
+      mutationRef.current += 1;
       clearAcknowledgement();
       setRevisions((current) => [
         saved,
@@ -478,6 +487,7 @@ export default function BrandOsSettingsCard({
         approved.status !== BrandOsRevisionStatus.APPROVED
       )
         throw new Error(t('operationFailed'));
+      mutationRef.current += 1;
       setRevisions((current) =>
         current.map((revision) =>
           revision.id === approved.id
@@ -515,15 +525,16 @@ export default function BrandOsSettingsCard({
   const busy = Boolean(pending);
   const isApproved = selected?.status === BrandOsRevisionStatus.APPROVED;
 
+  // An unresolved role must not read as a member who cannot approve.
   useEffect(() => {
     onReadinessChange?.({
-      isLoaded: !loading,
+      isLoaded: !loading && role !== undefined,
       canManage,
       isApproved,
       isDirty: dirty,
       isBusy: busy,
     });
-  }, [onReadinessChange, loading, canManage, isApproved, dirty, busy]);
+  }, [onReadinessChange, loading, role, canManage, isApproved, dirty, busy]);
 
   // Auto-save goes through the same expected-updatedAt save as the Save
   // button. Content that already failed to save is not retried until it
@@ -535,6 +546,7 @@ export default function BrandOsSettingsCard({
       !dirty ||
       !canManage ||
       busy ||
+      loading ||
       !contentKey ||
       selected?.status === BrandOsRevisionStatus.SUPERSEDED ||
       autoSaveAttemptRef.current === contentKey
@@ -550,6 +562,7 @@ export default function BrandOsSettingsCard({
     dirty,
     canManage,
     busy,
+    loading,
     contentKey,
     selected?.id,
     selected?.updatedAt,
