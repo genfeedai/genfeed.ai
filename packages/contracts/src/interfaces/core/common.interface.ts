@@ -72,10 +72,19 @@ export interface IElementBase {
 }
 
 /**
+ * Studio element that may be a platform default shared with every
+ * organization (no organization) instead of organization-owned.
+ */
+export interface IPlatformElement extends IElementBase {
+  isActive?: boolean;
+  isPlatformDefault?: boolean;
+  sortOrder?: number;
+}
+
+/**
  * Extended element with active/default flags
  */
-export interface IElementWithFlags extends IElementBase {
-  isActive?: boolean;
+export interface IElementWithFlags extends IPlatformElement {
   isDefault?: boolean;
 }
 

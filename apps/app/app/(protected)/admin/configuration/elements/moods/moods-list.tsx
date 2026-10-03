@@ -15,6 +15,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { MoodsService } from '@services/elements/moods.service';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
+import ElementScopeBadge from '@ui/display/element-scope-badge/ElementScopeBadge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalMood } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -134,6 +135,16 @@ function MoodsListContent({
       subtext: (mood: ElementMood) => mood.description,
     },
     { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+    {
+      header: 'Scope',
+      key: 'isPlatformDefault',
+      render: (element: ElementMood) => (
+        <ElementScopeBadge
+          isActive={element.isActive}
+          isPlatformDefault={element.isPlatformDefault}
+        />
+      ),
+    },
   ];
 
   const findAllMoods = useCallback(

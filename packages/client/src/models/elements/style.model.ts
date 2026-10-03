@@ -8,6 +8,9 @@ export class ElementStyle extends BaseEntity implements IElementStyle {
   declare public description?: string;
   declare public category?: ModelCategory;
   declare public models?: string[];
+  declare public isActive?: boolean;
+  declare public isPlatformDefault?: boolean;
+  declare public sortOrder?: number;
 
   constructor(data: Partial<IElementStyle> = {}) {
     super(data);

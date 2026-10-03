@@ -11,11 +11,13 @@ import { z } from 'zod';
 // Base element schema with common fields
 export const elementBaseSchema = z.object({
   description: z.string().optional(),
+  isActive: z.boolean().optional(),
   key: z
     .string()
     .min(1, 'Key is required')
     .regex(/^[a-z0-9-]+$/, 'Must be lowercase alphanumeric with hyphens'),
   label: z.string().min(1, 'Label is required'),
+  sortOrder: z.number().int().min(0).optional(),
 });
 
 // Schema for preset elements (collection of elements)

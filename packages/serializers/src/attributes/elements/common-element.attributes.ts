@@ -12,6 +12,8 @@ export const commonElementBaseAttributes = createEntityAttributes([
   'category',
   'isActive',
   'isDefault',
+  'isPlatformDefault',
+  'sortOrder',
 ]);
 
 /**
@@ -22,4 +24,7 @@ export const simpleElementAttributes = createEntityAttributes([
   'description',
   'key',
   'category',
+  'isActive',
+  'isPlatformDefault',
+  'sortOrder',
 ]);

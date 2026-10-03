@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 
 /**
  * Look tab: one Select row per look field the caller has options for. Empty
@@ -28,6 +29,7 @@ export default function GenerationSetupLookSection({
   reasons,
   setup,
 }: GenerationSetupLookSectionProps) {
+  const translate = useTranslations('agent.generationSetup');
   const fieldsWithOptions = GENERATION_SETUP_LOOK_FIELD_ORDER.filter(
     (key) => (lookOptions[key]?.length ?? 0) > 0,
   );
@@ -66,6 +68,11 @@ export default function GenerationSetupLookSection({
                 {options.map((option) => (
                   <SelectItem key={option.key} value={String(option.key)}>
                     {option.label}
+                    {option.isPlatformDefault ? (
+                      <span className="ml-2 text-xs text-foreground/60">
+                        {translate('platformDefault')}
+                      </span>
+                    ) : null}
                   </SelectItem>
                 ))}
               </SelectContent>

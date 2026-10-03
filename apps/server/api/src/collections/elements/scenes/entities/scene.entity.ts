@@ -3,7 +3,9 @@ import { ModelCategory } from '@genfeedai/contracts';
 import { type ElementScene } from '@genfeedai/prisma';
 
 export class ElementSceneEntity extends BaseEntity implements ElementScene {
-  declare readonly organizationId: string;
+  declare readonly organizationId: string | null;
+  declare readonly isActive: boolean;
+  declare readonly sortOrder: number;
 
   declare readonly key: string;
   declare readonly label: string;

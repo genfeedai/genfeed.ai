@@ -269,6 +269,7 @@ const UI_TEST_MESSAGES = {
       on: 'On',
       outputs: 'Outputs',
       pinned: 'Pinned: {label}',
+      platformDefault: 'Default',
       presets: 'Presets',
       promptEnhance: 'Prompt enhance',
       searchFields: 'Search fields…',
@@ -333,6 +334,16 @@ const UI_TEST_MESSAGES = {
         placeholder: 'A square portrait of…',
         title: 'Generate Profile Picture',
       },
+    },
+    elementPlatformFields: {
+      activeHelp: 'Inactive elements are hidden from pickers.',
+      activeLabel: 'Active',
+      inactive: 'Inactive',
+      scopeOrganization: 'Organization',
+      scopePlatform: 'Default',
+      sortOrderHelp:
+        'Lowest first. Platform defaults sort ahead of organization elements.',
+      sortOrderLabel: 'Sort order',
     },
     evaluationCard: {
       persuasion: 'Persuasion',

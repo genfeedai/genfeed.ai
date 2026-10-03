@@ -181,6 +181,8 @@ export interface ISound extends IIngredient {
   label?: string;
   description?: string;
   isActive?: boolean;
+  isPlatformDefault?: boolean;
+  sortOrder?: number;
 }
 
 export type IngredientModelMap = {

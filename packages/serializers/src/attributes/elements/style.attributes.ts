@@ -7,4 +7,7 @@ export const elementStyleAttributes = createEntityAttributes([
   'models',
   'category',
   'isFavorite',
+  'isActive',
+  'isPlatformDefault',
+  'sortOrder',
 ]);
