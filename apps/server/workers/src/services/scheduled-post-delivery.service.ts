@@ -197,21 +197,42 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         );
       }
 
+      // A fresh occurrence runs the gates first; an unconfirmed earlier
+      // attempt is verified before any gate can fail a post that may have
+      // been published.
+      const isFresh = state.kind === 'none' || state.kind === 'released';
       const loaded = await this.loadPublishResources(post, ids, url);
       if (!loaded.ok) {
         return loaded.result;
+      }
+      const { credential, organization } = loaded.value;
+      const credentialGate = () =>
+        this.runCredentialGates(post, ids, credential, organization, url);
+      if (isFresh) {
+        const failure = await credentialGate();
+        if (failure) {
+          return failure;
+        }
       }
 
       const prepared = await this.preparePublisherAndContext(
         post,
         source,
         ids,
-        loaded.value.credential,
-        loaded.value.organization,
+        credential,
+        organization,
         url,
       );
       if (!prepared.ok) {
         return prepared.result;
+      }
+      const contentGate = () =>
+        this.runContentGates(post, ids, prepared.value, url);
+      if (isFresh) {
+        const failure = await contentGate();
+        if (failure) {
+          return failure;
+        }
       }
 
       return await this.executeProviderPublish(
@@ -219,15 +240,9 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         prepared.value,
         workflowExecutionId,
         url,
-        () =>
-          this.runPublishGates(
-            post,
-            ids,
-            loaded.value.credential,
-            loaded.value.organization,
-            prepared.value,
-            url,
-          ),
+        isFresh
+          ? async () => null
+          : async () => (await credentialGate()) ?? contentGate(),
       );
     } catch (error: unknown) {
       if (
@@ -319,16 +334,12 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     };
   }
 
-  /**
-   * Gates for a fresh provider call only. They run after the occurrence's
-   * attempt is resolved, so they never fail an already-published post.
-   */
-  private async runPublishGates(
+  /** Credential gates before a provider call: channel readiness and quota. */
+  private async runCredentialGates(
     post: PostEntity,
     ids: PostDeliveryIds,
     credential: CredentialDocument,
     organization: OrganizationDocument,
-    prepared: PreparedPostDelivery,
     url: string,
   ): Promise<PublishResult | null> {
     const readinessFailure = await this.assertChannelReady(
@@ -340,17 +351,16 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     if (readinessFailure) {
       return readinessFailure;
     }
+    return this.assertQuotaAllowed(post, credential, organization, url);
+  }
 
-    const quotaFailure = await this.assertQuotaAllowed(
-      post,
-      credential,
-      organization,
-      url,
-    );
-    if (quotaFailure) {
-      return quotaFailure;
-    }
-
+  /** Content gates before a provider call: target settings and media. */
+  private async runContentGates(
+    post: PostEntity,
+    ids: PostDeliveryIds,
+    prepared: PreparedPostDelivery,
+    url: string,
+  ): Promise<PublishResult | null> {
     const targetValidation = validateChannelTargetSettings({
       caption: post.description,
       credentialId: ids.credentialId ?? undefined,

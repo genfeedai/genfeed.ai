@@ -822,7 +822,7 @@ describe('ScheduledPostDeliveryService', () => {
     expect(states).not.toContain(TargetExecutionState.FAILED);
   });
 
-  it('releases a fresh reservation when a pre-publish gate fails', async () => {
+  it('runs gates before reserving a fresh occurrence', async () => {
     const publish = mockSuccessfulPublisher(mocks);
     mocks.quotaService.checkQuota.mockResolvedValue({
       allowed: false,
@@ -834,8 +834,32 @@ describe('ScheduledPostDeliveryService', () => {
 
     expect(publish).not.toHaveBeenCalled();
     expect(
+      mocks.prisma.postProviderPublishReceipt.create,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('releases a taken-over attempt when a gate fails after its absence is confirmed', async () => {
+    const publish = vi.fn();
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish,
+      supportsThreads: false,
+      verifyPublished: vi.fn().mockResolvedValue(null),
+    });
+    mocks.quotaService.checkQuota.mockResolvedValue({
+      allowed: false,
+      currentCount: 10,
+      dailyLimit: 10,
+    });
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ status: 'uncertain' }),
+    );
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(publish).not.toHaveBeenCalled();
+    expect(
       mocks.prisma.postProviderPublishReceipt.updateMany,
-    ).toHaveBeenCalledWith({
+    ).toHaveBeenLastCalledWith({
       data: { status: 'released' },
       where: receiptWhere,
     });
