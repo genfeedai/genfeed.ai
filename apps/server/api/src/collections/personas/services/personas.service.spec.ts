@@ -1129,7 +1129,7 @@ describe('PersonasService', () => {
             organizationId: orgId,
             owningBrandId: 'brand-b',
           }),
-        ).rejects.toThrow('@anna');
+        ).rejects.toBeInstanceOf(ValidationException);
       });
     });
 

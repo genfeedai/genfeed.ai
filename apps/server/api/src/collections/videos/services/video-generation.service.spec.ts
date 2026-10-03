@@ -778,6 +778,36 @@ describe('VideoGenerationService', () => {
       expect(promptsService.create).not.toHaveBeenCalled();
     });
 
+    it('reads a granted character reference from its owning organization and bills the caller (#6037)', async () => {
+      const { ingredientsService, personas, sharedService, service } =
+        createService();
+      vi.mocked(personas.resolveCharacterReferences).mockResolvedValueOnce({
+        availableAvatarIds: new Set(['avatar-g']),
+        grantedAvatarOwners: new Map([['avatar-g', 'org-owner']]),
+        personaId: 'persona-g',
+        personaIdByAssetId: new Map(),
+      });
+      const user = buildUser();
+
+      await service.generateVideo(
+        user,
+        baseDto({ references: ['avatar-g'] }),
+        buildRequest(),
+      );
+
+      const lookups = ingredientsService.findOne.mock.calls.map(
+        ([query]: [{ id?: string; organizationId?: string }]) => query,
+      );
+      expect(
+        lookups.find((query) => query.id === 'avatar-g')?.organizationId,
+      ).toBe('org-owner');
+      // The output is created for the generating organization and linked.
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        expect.objectContaining({ organizationId: user.organizationId }),
+        expect.objectContaining({ personaId: 'persona-g' }),
+      );
+    });
+
     it('records the admitted character on the output', async () => {
       const { personas, sharedService, service } = createService();
       vi.mocked(personas.resolveCharacterReferences).mockResolvedValueOnce({
