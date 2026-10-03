@@ -1,0 +1,44 @@
+{
+  "brands": {
+    "brand-3aa6d07c59d7": {
+      "avoidExamples": [
+        "The best tray ever made!!! Buy now before it is gone!!!"
+      ],
+      "evaluationCriteria": [
+        "Names one concrete cooking use for the product.",
+        "Keeps a calm, practical tone without hype words.",
+        "Ends with a single low-pressure next step."
+      ],
+      "goodExamples": [
+        "Preheat the tray for ten minutes before the roots go in; the edges caramelise instead of steaming. Save this for Sunday."
+      ]
+    },
+    "brand-4ffb9333dcea": {
+      "avoidExamples": [
+        "This pack is perfect for every trail and every weather. Totally unbeatable!"
+      ],
+      "evaluationCriteria": [
+        "Grounds the post in one specific trail situation.",
+        "Gives a practical gear detail a walker can check.",
+        "Avoids absolute claims about safety or weather."
+      ],
+      "goodExamples": [
+        "On a wet woodland loop, the side pocket keeps the map dry and reachable without stopping. Check yours before Saturday."
+      ]
+    },
+    "brand-9f67307233a7": {
+      "avoidExamples": [
+        "Huge sale on notebooks, everything must go today, act fast!"
+      ],
+      "evaluationCriteria": [
+        "Describes one small writing habit the product supports.",
+        "Uses quiet, observational language.",
+        "Avoids urgency and discount language."
+      ],
+      "goodExamples": [
+        "Two lines each morning: what you noticed, what you will try. The dotted pages keep the habit small."
+      ]
+    }
+  },
+  "schemaVersion": 1
+}
