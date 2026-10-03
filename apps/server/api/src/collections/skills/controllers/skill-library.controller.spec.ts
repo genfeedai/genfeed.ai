@@ -28,7 +28,7 @@ const user = {
 const request = {
   originalUrl: '/v1/skills/skill/versions?limit=1',
   headers: { 'x-brand-id': 'client-brand' },
-} as Request;
+} as unknown as Request;
 describe('skill immutable versions controller', () => {
   const library = { listVersions: vi.fn(), getVersion: vi.fn() };
   const controller = new SkillLibraryController(
@@ -100,7 +100,7 @@ describe('skill immutable versions controller', () => {
   it('does not acquire an absent brand from request headers or route', async () => {
     await controller.listVersions(
       request,
-      { ...user, brandId: undefined },
+      { ...user, brandId: undefined } as unknown as AuthenticatedUser,
       'skill',
       {},
     );
