@@ -5,6 +5,8 @@ export const REPOSITORY = {
   id: 1201383909,
 };
 export const OWNER_ID = 1998775;
+// "Owner automation strict master" (scripts/ci/owner-merge-ruleset.json).
+export const STRICT_RULESET_ID = 24412006;
 export const REQUIRED = [
   { context: 'Tests Gate', integration_id: 15368 },
   { context: 'PR Title', integration_id: 15368 },
@@ -375,17 +377,9 @@ export async function cancelSuperseded({ github, pulls, log = console.log }) {
 
 export async function reconcile({
   github,
-  mode,
-  rulesetId,
+  rulesetId = STRICT_RULESET_ID,
   log = console.log,
 }) {
-  if (!mode || mode === 'off') return log('Owner merging is off');
-  if (mode !== 'strict')
-    throw new Error(
-      'Native queue requires authentic group checks; only strict mode is available',
-    );
-  if (!/^\d+$/.test(String(rulesetId)))
-    throw new Error('Missing strict ruleset ID');
   const args = { owner: REPOSITORY.owner, repo: REPOSITORY.repo };
   const verify = async () => {
     const { data: rule } = await github.rest.repos.getRepoRuleset({
