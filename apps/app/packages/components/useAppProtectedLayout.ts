@@ -28,6 +28,7 @@ import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useUserRole } from '@hooks/auth/use-user-role';
+import { useFeatureFlagContext } from '@hooks/feature-flags/provider';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useMenuItems } from '@hooks/ui/use-menu-items';
@@ -46,6 +47,7 @@ import {
   pickOperatorTaskContextSearchParams,
   withTaskContextHref,
 } from '@/lib/navigation/operator-shell';
+import { isStudioSurfaceEnabled } from '@/lib/platform-flags/studio-surface-flags';
 import { resolveWorkspaceShellRoute } from '@/lib/workspace-shell/workspace-shell-registry';
 
 import {
@@ -276,18 +278,20 @@ export function useAppProtectedLayout(
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [openTaskComposer]);
 
-  // Studio is production-only now — one-off generation moved to the Agent, so
-  // no menu item maps to a generation category. Idea batches enforce their own org flag.
+  // Studio surfaces an operator switched off in Admin → Flags drop out of the
+  // nav; idea batches enforce their own flag inside Batch.
+  const { flags: platformFlags } = useFeatureFlagContext();
   const studioMenuItems = useMemo(
     () =>
-      STUDIO_MENU_ITEMS.reduce<MenuItemConfig[]>((items, item) => {
-        items.push({
+      STUDIO_MENU_ITEMS.filter((item) =>
+        isStudioSurfaceEnabled(item.href, platformFlags),
+      ).map(
+        (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
-        });
-        return items;
-      }, []),
-    [taskContextSearchParams],
+        }),
+      ),
+    [platformFlags, taskContextSearchParams],
   );
 
   const publishingMenuItems = useMemo(

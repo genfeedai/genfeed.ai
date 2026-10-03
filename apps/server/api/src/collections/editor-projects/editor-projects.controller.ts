@@ -60,7 +60,7 @@ import { v4 as uuidv4 } from 'uuid';
 @AutoSwagger()
 @ApiTags('editor-projects')
 @ApiBearerAuth()
-@FeatureFlag('studio')
+@FeatureFlag('studio_editor')
 @Controller('editor-projects')
 @UseGuards(RolesGuard)
 export class EditorProjectsController {

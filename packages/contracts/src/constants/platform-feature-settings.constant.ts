@@ -8,6 +8,7 @@ import type {
 import {
   DEFAULT_PLATFORM_FLAGS,
   parsePlatformFlags,
+  resolvePlatformFlags,
 } from './feature-flags.constant';
 
 /** Every rollout mode a decision point can take. */
@@ -408,7 +409,7 @@ export function parsePlatformFeatureSettings(
       defaults.agentAutoRoutingDecisionMode,
     ),
     featuredWorkflowIds: parseFeaturedWorkflowIds(row.featuredWorkflowIds),
-    flags: parsePlatformFlags(row.flags),
+    flags: resolvePlatformFlags(parsePlatformFlags(row.flags)),
     isAgentContextCompressionEnabled: pickBoolean(
       row.isAgentContextCompressionEnabled,
       defaults.isAgentContextCompressionEnabled,

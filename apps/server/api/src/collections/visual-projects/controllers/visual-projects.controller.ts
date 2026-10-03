@@ -34,7 +34,7 @@ import type { Request, Response } from 'express';
 
 @ApiTags('visual-projects')
 @ApiBearerAuth()
-@FeatureFlag('studio')
+@FeatureFlag('studio_motion')
 @Controller('visual-projects')
 @UseGuards(RolesGuard)
 export class VisualProjectsController {
