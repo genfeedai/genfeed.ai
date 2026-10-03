@@ -10,7 +10,10 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
 import { attachBetterAuthRequestLog } from '@api/auth/better-auth/better-auth-request-log.util';
-import { shouldBypassBetterAuthHandler } from '@api/auth/better-auth/better-auth-route-bypass.util';
+import {
+  isBetterAuthAdminPath,
+  shouldBypassBetterAuthHandler,
+} from '@api/auth/better-auth/better-auth-route-bypass.util';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { BULL_BOARD_QUEUE_NAMES } from '@api/config/bull-board-queue-names';
 import { DocsService } from '@api/endpoints/docs/docs.service';
@@ -23,6 +26,10 @@ import {
 } from '@api/helpers/interceptors/performance/performance.interceptor';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import {
+  isAdminIpAllowed,
+  resolveAdminClientIp,
+} from '@api/helpers/utils/admin-ip-allowlist/admin-ip-allowlist.util';
 import {
   buildStableOpenApiDocument,
   createOpenApiBuilderOptions,
@@ -197,6 +204,14 @@ async function main() {
         (req: Request, res: Response, next: NextFunction) => {
           if (shouldBypassBetterAuthHandler(req.method, req.path)) {
             return next();
+          }
+
+          if (isBetterAuthAdminPath(req.path) && !isAdminIpAllowed(req)) {
+            res.status(403).json({
+              code: 'FORBIDDEN',
+              message: `Admin access is restricted to allowlisted IPs (your IP: ${resolveAdminClientIp(req) || 'unknown'})`,
+            });
+            return;
           }
 
           if (logger) {

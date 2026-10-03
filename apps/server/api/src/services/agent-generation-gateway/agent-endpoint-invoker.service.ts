@@ -1,4 +1,3 @@
-import { isPlatformSuperAdmin } from '@api/auth/better-auth/better-auth-access.util';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
@@ -192,7 +191,7 @@ export class AgentEndpointInvoker {
     }
 
     const user = await this.prisma.user.findFirst({
-      select: { id: true, platformRole: true },
+      select: { id: true },
       where: { id: userId, isDeleted: false },
     });
 
@@ -200,27 +199,25 @@ export class AgentEndpointInvoker {
       throw new ForbiddenException('Call principal is not a known user');
     }
 
-    const isSuperAdmin = isPlatformSuperAdmin(user.platformRole);
+    // In-process calls carry no client IP, so super-admin (bound to
+    // ADMIN_ALLOWED_IPS) never applies: every principal proves membership.
+    const member = await this.membersService.findOne({
+      isActive: true,
+      isDeleted: false,
+      organizationId,
+      userId: user.id,
+    });
 
-    if (!isSuperAdmin) {
-      const member = await this.membersService.findOne({
-        isActive: true,
-        isDeleted: false,
-        organizationId,
-        userId: user.id,
-      });
-
-      if (!member) {
-        throw new ForbiddenException(
-          `User is not a member of organization ${organizationId}`,
-        );
-      }
+    if (!member) {
+      throw new ForbiddenException(
+        `User is not a member of organization ${organizationId}`,
+      );
     }
 
     return {
       brandId: principal.brandId ?? '',
       id: user.id,
-      isSuperAdmin,
+      isSuperAdmin: false,
       organizationId,
       userId: user.id,
     };
