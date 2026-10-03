@@ -38,7 +38,7 @@ export function useLibraryCharacterOptions({
       try {
         const service = await getPersonasService();
         const characters = await service.listAllCharacters({
-          brandId,
+          brandId: brandId ?? undefined,
           signal: abortController.signal,
         });
 
