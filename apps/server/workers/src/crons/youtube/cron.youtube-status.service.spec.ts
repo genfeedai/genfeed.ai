@@ -1,3 +1,7 @@
+vi.mock('@workers/queues/queues.module', () => ({
+  WorkersQueuesModule: class WorkersQueuesModule {},
+}));
+
 import {
   buildYoutubeStatusReconcileDefinition,
   buildYoutubeStatusSweepDefinition,

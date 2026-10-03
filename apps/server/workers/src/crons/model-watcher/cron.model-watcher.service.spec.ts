@@ -567,11 +567,22 @@ describe('CronModelWatcherService', () => {
 
       expect(notificationsService.dispatch).toHaveBeenCalledWith(
         expect.objectContaining({
-          category: expect.any(String),
-          estimatedCost: expect.any(Number),
-          modelKey: 'meta/notif-model',
-          provider: 'replicate',
-          providerCostUsd: expect.any(Number),
+          deduplicationKey: 'message.model-discovery/meta/notif-model',
+          messages: [
+            expect.objectContaining({
+              message: expect.objectContaining({
+                action: 'model_discovery',
+                payload: expect.objectContaining({
+                  category: expect.any(String),
+                  estimatedCost: expect.any(Number),
+                  modelKey: 'meta/notif-model',
+                  provider: 'replicate',
+                  providerCostUsd: expect.any(Number),
+                }),
+              }),
+            }),
+          ],
+          organizationId: null,
         }),
       );
     });
