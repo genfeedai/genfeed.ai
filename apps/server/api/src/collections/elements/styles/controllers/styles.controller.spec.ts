@@ -49,6 +49,7 @@ describe('ElementsStylesController', () => {
     findAll: vi.fn(),
     findOne: vi.fn(),
     patch: vi.fn(),
+    patchOneWhere: vi.fn(),
     remove: vi.fn(),
     supportsField: vi.fn((field: string) => field === 'organizationId'),
   };
@@ -144,7 +145,7 @@ describe('ElementsStylesController', () => {
       const request = {} as Request;
       const updatedStyle = { ...mockStyle, ...updateDto };
       mockElementsStylesService.findOne.mockResolvedValue(mockStyle);
-      mockElementsStylesService.patch.mockResolvedValue(updatedStyle);
+      mockElementsStylesService.patchOneWhere.mockResolvedValue(updatedStyle);
 
       const result = await controller.update(
         request,
@@ -162,7 +163,7 @@ describe('ElementsStylesController', () => {
       const request = {} as Request;
 
       mockElementsStylesService.findOne.mockResolvedValue(mockStyle);
-      mockElementsStylesService.remove.mockResolvedValue(mockStyle);
+      mockElementsStylesService.patchOneWhere.mockResolvedValue(mockStyle);
 
       const result = await controller.remove(request, mockUser, styleId);
 

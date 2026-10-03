@@ -68,6 +68,7 @@ describe('ElementsScenesController', () => {
             findOne: vi.fn(),
             paginate: vi.fn(),
             patch: vi.fn(),
+            patchOneWhere: vi.fn(),
             remove: vi.fn(),
             supportsField: vi.fn((field: string) => field === 'organizationId'),
           },
@@ -170,7 +171,7 @@ describe('ElementsScenesController', () => {
       scenesService.findOne.mockResolvedValueOnce(
         mockExistingScene as unknown as never,
       );
-      scenesService.patch.mockResolvedValueOnce(
+      scenesService.patchOneWhere.mockResolvedValueOnce(
         mockUpdatedScene as unknown as never,
       );
 
@@ -182,7 +183,7 @@ describe('ElementsScenesController', () => {
       );
 
       expect(scenesService.findOne).toHaveBeenCalled();
-      expect(scenesService.patch).toHaveBeenCalled();
+      expect(scenesService.patchOneWhere).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
@@ -213,12 +214,17 @@ describe('ElementsScenesController', () => {
       scenesService.findOne.mockResolvedValueOnce(
         mockScene as unknown as never,
       );
-      scenesService.remove.mockResolvedValueOnce(mockScene as unknown as never);
+      scenesService.patchOneWhere.mockResolvedValueOnce(
+        mockScene as unknown as never,
+      );
 
       const result = await controller.remove(mockRequest, mockUser, sceneId);
 
       expect(scenesService.findOne).toHaveBeenCalled();
-      expect(scenesService.remove).toHaveBeenCalledWith(sceneId);
+      expect(scenesService.patchOneWhere).toHaveBeenCalledWith(
+        expect.objectContaining({ id: sceneId }),
+        { isDeleted: true },
+      );
       expect(result).toBeDefined();
     });
 
@@ -230,7 +236,7 @@ describe('ElementsScenesController', () => {
       await expect(
         controller.remove(mockRequest, mockUser, sceneId),
       ).rejects.toThrow();
-      expect(scenesService.remove).not.toHaveBeenCalled();
+      expect(scenesService.patchOneWhere).not.toHaveBeenCalled();
     });
   });
 

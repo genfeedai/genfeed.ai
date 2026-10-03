@@ -3,8 +3,8 @@ import type {
   IElementBlacklist,
   IElementMood,
   IElementStyle,
+  IPlatformElement,
   IPreset,
-  ISound,
 } from '@genfeedai/contracts/interfaces';
 import { z } from 'zod';
 
@@ -54,7 +54,7 @@ export const elementBlacklistSchema: z.ZodType<Partial<IElementBlacklist>> =
   });
 
 // Schema for sound elements
-export const elementSoundSchema: z.ZodType<Partial<ISound>> =
+export const elementSoundSchema: z.ZodType<Partial<IPlatformElement>> =
   elementBaseSchema.extend({
     isActive: z.boolean().optional(),
   });

@@ -17,9 +17,22 @@ interface BuildElementFindAllQueryOptions {
   searchableFields?: string[];
 }
 
+/**
+ * Platform defaults first, then the organization's own rows, so a page of
+ * defaults is never pushed out by organization rows (matches `/elements`).
+ * `organizationId` descending relies on PostgreSQL ordering NULLs first for
+ * DESC; the entries keep their order through `BaseService.normalizeSort`.
+ */
+export const DEFAULT_ELEMENT_SORT: Record<string, 1 | -1> = {
+  organizationId: -1,
+  sortOrder: 1,
+  createdAt: -1,
+  label: 1,
+};
+
 export function buildElementFindAllQuery({
   adminFilter,
-  defaultSort = { sortOrder: 1, label: 1, createdAt: -1 },
+  defaultSort = DEFAULT_ELEMENT_SORT,
   filters,
   includeStateFilters = false,
   metadata,
