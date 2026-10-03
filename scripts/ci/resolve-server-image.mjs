@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
-function imageRevisions(value) {
+export function imageRevisions(value) {
   if (!value || typeof value !== 'object') return [];
   const revisions = [];
   for (const [key, child] of Object.entries(value)) {
