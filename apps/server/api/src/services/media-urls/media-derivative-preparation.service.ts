@@ -208,7 +208,11 @@ export class MediaDerivativePreparationService {
     if (!category) return;
     await this.prisma.mediaDeliveryVariant.updateMany({
       data: { state: 'PENDING' },
-      where,
+      where: {
+        ...where,
+        isDeleted: false,
+        organizationId: data.organizationId,
+      },
     });
     try {
       const preparedPreview =
@@ -272,7 +276,11 @@ export class MediaDerivativePreparationService {
       }
       await this.prisma.mediaDeliveryVariant.updateMany({
         data: { failureCode: null, state: 'READY', storageKey },
-        where,
+        where: {
+          ...where,
+          isDeleted: false,
+          organizationId: data.organizationId,
+        },
       });
     } catch (error: unknown) {
       await this.prisma.mediaDeliveryVariant.updateMany({
@@ -281,7 +289,11 @@ export class MediaDerivativePreparationService {
           state: 'FAILED',
           storageKey: null,
         },
-        where,
+        where: {
+          ...where,
+          isDeleted: false,
+          organizationId: data.organizationId,
+        },
       });
       throw error;
     }

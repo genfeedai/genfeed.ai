@@ -222,4 +222,21 @@ describe('protected derivative preparation', () => {
       }),
     );
   });
+
+  it('scopes every variant bulk write to the job organization and live rows', async () => {
+    const { service, prisma, files } = await setup();
+    await service.process(data);
+    files.watermarkExport.mockResolvedValue({
+      storageKey: source.s3Key as string,
+    });
+    await expect(service.process(data)).rejects.toThrow();
+    const calls = prisma.mediaDeliveryVariant.updateMany.mock.calls;
+    expect(calls.length).toBeGreaterThanOrEqual(3);
+    for (const [args] of calls) {
+      expect(args.where).toMatchObject({
+        isDeleted: false,
+        organizationId: data.organizationId,
+      });
+    }
+  });
 });

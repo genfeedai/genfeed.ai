@@ -276,7 +276,7 @@ describe('IngredientsListContent', () => {
       screen.getByTestId('ingredient-preview-fallback'),
     ).toBeInTheDocument();
     expect(
-      screen.queryByAltText(videoIngredient.metadataLabel),
+      screen.queryByAltText(videoIngredient.metadataLabel as string),
     ).not.toBeInTheDocument();
   });
 
