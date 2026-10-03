@@ -223,7 +223,16 @@ export class PersonasService extends BaseService<
       if (!normalizedHandle) {
         return await super.patch(id, nextDto, populate);
       }
-      // tenant-scope-ignore: patch(id) runs after the controller's org access check; this read resolves the row's organizationId to scope the collision lock
+      // The controller stamps the caller's organization on the update; a
+      // handle change without it cannot be collision-checked.
+      const organizationId = (nextDto as { organizationId?: unknown })
+        .organizationId;
+      if (typeof organizationId !== 'string' || !organizationId) {
+        throw new ValidationException(
+          'Organization is required to change a handle',
+          'organizationId',
+        );
+      }
       const current = await this.prisma.persona.findFirst({
         select: {
           availabilityMode: true,
@@ -231,9 +240,12 @@ export class PersonasService extends BaseService<
           brandId: true,
           organizationId: true,
         },
-        where: { id, isDeleted: false },
+        where: scopedWhere(organizationId, { id }),
       });
-      if (!current?.brandId) {
+      if (!current) {
+        throw new NotFoundException('Persona', id);
+      }
+      if (!current.brandId) {
         return await super.patch(id, nextDto, populate);
       }
       const owningBrandId = current.brandId;

@@ -27,11 +27,11 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // BillingAccountMember role on the account, not by any organizationId.
     {
       file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
-      line: 494,
+      line: 498,
     },
     {
       file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
-      line: 896,
+      line: 900,
     },
     // #5511: admin-pinned Featured workflows are platform-curated and read by
     // every organization. The read is limited to the pinned ids, non-deleted
@@ -46,7 +46,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // findAll, delete, and merge stay organization-scoped.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 273,
+      line: 274,
     },
     // #5981: readPublicSources discovers only non-deleted ingredients that are
     // public (isPublic, scope PUBLIC, or on a visibility PUBLIC post) and keeps

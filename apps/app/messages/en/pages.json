@@ -2393,6 +2393,15 @@
   },
   "library": {
     "browser": {
+      "columns": {
+        "asset": "Asset",
+        "created": "Created",
+        "model": "Model",
+        "origin": "Origin",
+        "size": "Size",
+        "status": "Status",
+        "type": "Type"
+      },
       "toolbar": {
         "canvas": "Canvas",
         "clearOriginFilter": "Clear origin filter",

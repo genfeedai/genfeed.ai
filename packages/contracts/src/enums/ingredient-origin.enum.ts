@@ -44,3 +44,8 @@ export function parseIngredientOrigin(
 
   return INGREDIENT_ORIGIN_ORDER.find((origin) => origin === normalized);
 }
+
+/** The origin a copy inherits from its source asset; Unknown when unreadable. */
+export function inheritIngredientOrigin(value?: unknown): IngredientOrigin {
+  return parseIngredientOrigin(value) ?? IngredientOrigin.UNKNOWN;
+}

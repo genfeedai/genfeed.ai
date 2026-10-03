@@ -3,6 +3,7 @@ import {
   INGREDIENT_ORIGIN_LABELS,
   INGREDIENT_ORIGIN_ORDER,
   IngredientOrigin,
+  inheritIngredientOrigin,
   parseIngredientOrigin,
 } from '../../src';
 
@@ -30,5 +31,11 @@ describe('IngredientOrigin', () => {
 
   it.each([undefined, null, 3, '', 'mine'])('rejects %p', (value) => {
     expect(parseIngredientOrigin(value)).toBeUndefined();
+  });
+
+  it('inherits a readable origin and falls back to Unknown', () => {
+    expect(inheritIngredientOrigin('IMPORTED')).toBe(IngredientOrigin.IMPORTED);
+    expect(inheritIngredientOrigin(undefined)).toBe(IngredientOrigin.UNKNOWN);
+    expect(inheritIngredientOrigin('mine')).toBe(IngredientOrigin.UNKNOWN);
   });
 });
