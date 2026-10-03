@@ -12,6 +12,7 @@ import { createReadStream, existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { PresignedUploadDto } from '@api/collections/images/dto/presigned-upload.dto';
 import { UploadImageDto } from '@api/collections/images/dto/upload-image.dto';
 import { UploadNftDto } from '@api/collections/images/dto/upload-nft.dto';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -337,12 +338,7 @@ export class ImagesUploadsController {
   async generatePresignedUrl(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Body()
-    body: {
-      filename: string;
-      contentType: string;
-      category: IngredientCategory;
-    },
+    @Body() body: PresignedUploadDto,
   ): Promise<JsonApiSingleResponse> {
     const result = await this.presignedUploadService.getPresignedUploadUrl(
       user,

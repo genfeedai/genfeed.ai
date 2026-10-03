@@ -45,12 +45,18 @@ describe('ArticlesService publish-state transition', () => {
   function buildService() {
     const delegate = {
       create: vi.fn(),
-      findFirst: vi.fn().mockResolvedValue({
-        id: articleId,
-        organizationId,
-        publishedAt: null,
-        userId,
-      }),
+      findFirst: vi.fn(
+        async ({ where }: { where?: { slug?: string; status?: string } }) =>
+          // The public-slug availability probe finds no other holder.
+          where?.slug && where.status === 'PUBLISHED'
+            ? null
+            : {
+                id: articleId,
+                organizationId,
+                publishedAt: null,
+                userId,
+              },
+      ),
       update: vi.fn().mockResolvedValue({
         id: articleId,
         isDeleted: false,

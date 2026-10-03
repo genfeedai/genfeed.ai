@@ -107,13 +107,15 @@ describe('ArticlesService cache invalidation', () => {
     const { delegate, service } = buildService();
     delegate.findFirst.mockResolvedValue(null);
     await service.findPublicArticleBySlug('shared-slug', 'article_2');
-    expect(delegate.findFirst).toHaveBeenCalledWith({
-      where: {
-        id: 'article_2',
-        isDeleted: false,
-        slug: 'shared-slug',
-      },
-    });
+    expect(delegate.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'article_2',
+          isDeleted: false,
+          slug: 'shared-slug',
+        },
+      }),
+    );
   });
 
   it('keeps ordinary slug reads restricted to published articles', async () => {
@@ -121,6 +123,8 @@ describe('ArticlesService cache invalidation', () => {
     delegate.findFirst.mockResolvedValue(null);
     await service.findPublicArticleBySlug('shared-slug');
     expect(delegate.findFirst).toHaveBeenCalledWith({
+      // Deterministic: the earliest release wins if a legacy duplicate survives.
+      orderBy: [{ publishedAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
       where: expect.objectContaining({
         isDeleted: false,
         slug: 'shared-slug',

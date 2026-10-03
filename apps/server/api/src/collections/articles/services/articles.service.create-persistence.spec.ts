@@ -62,6 +62,8 @@ describe('ArticlesService create persistence', () => {
         summary: 'A practical guide.',
         userId,
       }),
+      // No other published article holds the slug.
+      findFirst: vi.fn().mockResolvedValue(null),
     };
 
     const prisma = {

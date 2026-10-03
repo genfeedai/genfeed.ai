@@ -3956,6 +3956,10 @@ model Article {
   // The columns were `title`/`excerpt` until #2767; nothing outside Prisma ever
   // used those spellings, so persistence now matches the rest of the stack.
   label          String
+  // Public slugs are one global namespace (`/articles/:slug`). At most one live
+  // published article per slug is enforced by the partial SQL index
+  // articles_public_slug_uidx (WHERE slug IS NOT NULL AND status = 'PUBLISHED'
+  // AND isDeleted = false); Prisma cannot represent its WHERE clause.
   slug           String?
   content        String?
   summary        String?

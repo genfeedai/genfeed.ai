@@ -308,6 +308,7 @@ export function useModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
             selectedFile.name,
             selectedFile.type,
             IngredientCategory.IMAGE,
+            selectedFile.size,
           );
 
           await mediaService.uploadDirectToS3(
