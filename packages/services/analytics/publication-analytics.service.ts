@@ -52,12 +52,18 @@ export class PostAnalyticsService extends HTTPBaseService {
       );
   }
 
-  public async postAnalytics(publicationId: string): Promise<{
+  public async postAnalytics(
+    publicationId: string,
+    brandId?: string,
+  ): Promise<{
     summary: IPostAnalyticsSummary;
     lastRefreshed: string;
   }> {
     return await this.instance
-      .post<JsonApiResponseDocument>(`/${publicationId}/analytics`)
+      .post<JsonApiResponseDocument>(
+        `/${publicationId}/refresh-analytics`,
+        ...(brandId ? [undefined, { params: { brandId } }] : []),
+      )
       .then((res: AxiosResponse<JsonApiResponseDocument>) =>
         deserializeResource<{
           summary: IPostAnalyticsSummary;

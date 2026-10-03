@@ -786,7 +786,6 @@ export class SocialReplyCampaignDispatchService implements OnModuleInit {
       {
         delayMs: delaySeconds * 1000,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
-        replaceTerminalJob: true,
       },
     );
   }

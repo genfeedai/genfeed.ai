@@ -295,7 +295,6 @@ describe('AnalyticsSyncWorkflowService', () => {
       {
         attempts: 1,
         dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
-        replaceTerminalJob: true,
       },
     );
   });

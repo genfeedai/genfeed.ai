@@ -210,7 +210,7 @@ export async function scheduleForEach(input: {
       userId: string;
     },
     jobId: string,
-    options: { delayMs: number; replaceTerminalJob: boolean },
+    options: { delayMs: number },
   ) => Promise<string>;
   request: SystemWorkflowActionRequest;
 }): Promise<{
@@ -254,7 +254,6 @@ export async function scheduleForEach(input: {
       {
         delayMs:
           input.options.initialDelayMs + index * input.options.interItemDelayMs,
-        replaceTerminalJob: true,
       },
     );
     jobs.push({ index, jobId });
