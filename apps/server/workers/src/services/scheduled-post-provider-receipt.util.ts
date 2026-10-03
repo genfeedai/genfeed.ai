@@ -73,12 +73,12 @@ export class ProviderPublishPersistenceError extends Error {
  * published, so the target is neither failed nor retried until it can be.
  */
 export class ProviderPublishAttemptUnavailableError extends Error {
-  constructor(
-    readonly postId: string,
-    cause: unknown,
-  ) {
+  readonly postId: string;
+
+  constructor(postId: unknown, cause: unknown) {
     super('Provider publish attempt state is unavailable.', { cause });
     this.name = 'ProviderPublishAttemptUnavailableError';
+    this.postId = String(postId);
   }
 }
 

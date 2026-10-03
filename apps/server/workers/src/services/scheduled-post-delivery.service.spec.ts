@@ -639,8 +639,7 @@ describe('ScheduledPostDeliveryService', () => {
     await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
 
     expect(publish).not.toHaveBeenCalled();
-    const transitions =
-      mocks.schedulerPublishStateService.transitionPost.mock;
+    const transitions = mocks.schedulerPublishStateService.transitionPost.mock;
     const failureWrite = transitions.calls.findIndex(
       (call) => call[1].executionState !== TargetExecutionState.PUBLISHING,
     );
@@ -1163,7 +1162,9 @@ describe('ScheduledPostDeliveryService', () => {
     expect(
       mocks.schedulerPublishStateService.transitionPost,
     ).not.toHaveBeenCalled();
-    expect(mocks.prisma.postProviderPublishReceipt.updateMany).not.toHaveBeenCalled();
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).not.toHaveBeenCalled();
   });
 
   it('keeps a provider-accepted occurrence publishing when the workflow fails', async () => {

@@ -1,8 +1,8 @@
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PublishResult } from '@api/index';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PrismaService } from '@libs/prisma/prisma.service';
-import { TargetExecutionState } from '@genfeedai/contracts';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { createFailedPublishResult } from '@workers/crons/posts/post-publish-error.util';
 import type { PreparedPostDelivery } from '@workers/services/scheduled-post-delivery.types';
@@ -70,8 +70,6 @@ export class ScheduledPostProviderAttempts {
       if (attempt.kind === 'none' || attempt.kind === 'released') throw error;
     }
     if (attempt.kind === 'publish') return { kind: 'held', attempt };
-    if (attempt.kind === 'none' || attempt.kind === 'released')
-      throw new ProviderPublishInFlightError(String(post.id));
     this.logger.warn('Kept provider publish attempt for replay', {
       attempt: attempt.kind,
       error: errorMessage,

@@ -174,10 +174,9 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       try {
         attempt = await this.attempts.reserve(post, workflowExecutionId);
       } catch (error: unknown) {
-        // Without the receipt state an accepted publish could be failed or
-        // retried: never record an outcome before it is known.
+        // Never record an outcome before the receipt state is known.
         if (error instanceof ProviderPublishInFlightError) throw error;
-        throw new ProviderPublishAttemptUnavailableError(post.id.toString(), error);
+        throw new ProviderPublishAttemptUnavailableError(post.id, error);
       }
       if (attempt.kind === 'in_flight') {
         throw new ProviderPublishInFlightError(post.id.toString());
@@ -339,9 +338,8 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         throw error;
       // An unheld (unconfirmed) occurrence may already be published.
       if (!held)
-        throw new ProviderPublishAttemptUnavailableError(post.id.toString(), error);
-      // Before the provider call: record the error while still holding the
-      // occurrence, then free it, so no delivery can publish in between.
+        throw new ProviderPublishAttemptUnavailableError(post.id, error);
+      // Record the error while still holding the occurrence, then free it.
       try {
         return await this.handlePublishError(post, error);
       } finally {
