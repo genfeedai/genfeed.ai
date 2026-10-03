@@ -14,7 +14,7 @@ Genfeed Core stores reviewed model records behind one generation-facing surface.
 | Replicate watcher  | `apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`  | Creates inactive review drafts for models from verified Replicate owners            |
 | Agent model filter | `packages/agent/src/hooks/use-agent-registry-models.ts`                      | Filters reviewed registry records for the shared agent model selector                |
 | BYOK access        | `apps/server/api/src/services/byok/*`                                        | Resolves organization provider keys before hosted/server fallback at execution time |
-| Generation tools   | `packages/actions/src/registry/source/index.ts`                                | Exposes stable agent-facing tools such as `generate_image` and `generate_video`      |
+| Generation tools   | `packages/actions/src/registry/source/index.ts`                                | Exposes stable agent-facing tools such as `generate` (image, video, voice and music by `type`)      |
 
 ## How Discovery Works
 

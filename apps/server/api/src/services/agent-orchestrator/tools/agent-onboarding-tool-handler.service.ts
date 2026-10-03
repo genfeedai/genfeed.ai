@@ -70,7 +70,7 @@ import {
 } from '@nestjs/common';
 
 /**
- * BYOK providers `generate_image` can actually reach, mirroring the branches in
+ * BYOK providers an image `generate` call can actually reach, mirroring the branches in
  * `ImageGenerationHandler`. Onboarding-scoped on purpose: a text-only key such
  * as OpenAI or Anthropic satisfies "a provider is configured" but cannot produce
  * the first onboarding image, so the prompt and checklist gate on this set
@@ -715,7 +715,7 @@ export class AgentOnboardingToolHandler {
       .sort();
 
     // A configured provider is not automatically an image provider: OpenAI or
-    // Anthropic keys make `isReady` true while `generate_image` still has
+    // Anthropic keys make `isReady` true while an image `generate` call still has
     // nothing to call.
     const configuredImageProviders = configuredProviders.filter((provider) =>
       IMAGE_CAPABLE_ONBOARDING_PROVIDERS.includes(provider),

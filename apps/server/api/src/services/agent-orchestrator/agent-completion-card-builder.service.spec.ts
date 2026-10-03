@@ -324,7 +324,7 @@ describe('AgentCompletionCardBuilderService', () => {
   it('suppresses suggestions during review and keeps one concrete preview', () => {
     const result = service.buildAssistantUiActions({
       reviewRequired: true,
-      toolCalls: [{ status: 'completed', toolName: 'generate_image' }],
+      toolCalls: [{ status: 'completed', toolName: 'generate' }],
       uiActions: [
         {
           id: 'content-preview-1',
@@ -349,7 +349,7 @@ describe('AgentCompletionCardBuilderService', () => {
       reviewRequired: false,
       toolCalls: [
         { status: 'completed', toolName: 'create_workflow' },
-        { status: 'completed', toolName: 'generate_image' },
+        { status: 'completed', toolName: 'generate' },
         { status: 'completed', toolName: 'get_analytics' },
       ],
       uiActions: [],

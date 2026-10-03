@@ -1,4 +1,8 @@
 import type { ToolMutationPolicy } from '../interfaces/tool-definition.interface';
+import {
+  getVisualMediaGenerationType,
+  type VisualMediaGenerationType,
+} from './media-generation';
 import { isApprovalRequiredToolName } from './mutation-policy';
 
 /**
@@ -51,34 +55,33 @@ const CREDIT_SPENDING_TOOL_NAMES = new Set<string>([
   'retry_visual_code_project',
 
   'edit_image',
+  'generate',
   'generate_ad_pack',
   'generate_as_identity',
   'generate_clips',
   'generate_content_batch',
-  'generate_image',
   'generate_monthly_content',
-  'generate_music',
   'generate_onboarding_content',
-  'generate_video',
-  'generate_voice',
   'reframe_image',
   'upscale_image',
   'execute_workflow',
 ]);
 
 /**
- * Visual-generation tools the docked `generation_action_card` reviews
- * directly (prompt, resolved model, credit estimate) rather than routing
- * through the generic `mutation_approval_card`. Both share the
+ * Visual `generate` calls (image or video) the docked `generation_action_card`
+ * reviews directly (prompt, resolved model, credit estimate) rather than
+ * routing through the generic `mutation_approval_card`. They share the
  * prompt/aspectRatio/duration shape `AgentPrepareToolHandler.prepareGeneration`
- * already builds a preview from — `generate_as_identity` (avatar `text`, no
- * `prompt`) does not, so it stays on the generic card even though it is also
- * `credit-spending`.
+ * already builds a preview from. Voice, music and `generate_as_identity`
+ * (avatar `text`, no `prompt`) stay on the generic card even though they are
+ * also `credit-spending`.
  */
-export const VISUAL_GENERATION_REVIEW_TOOL_NAMES = new Set<string>([
-  'generate_image',
-  'generate_video',
-]);
+export function getVisualGenerationReviewType(
+  toolName: string,
+  parameters: unknown,
+): VisualMediaGenerationType | undefined {
+  return getVisualMediaGenerationType(toolName, parameters);
+}
 
 /** Creates or rewrites brand context the Agent should not silently change. */
 const BRAND_CONTEXT_TOOL_NAMES = new Set<string>([

@@ -47,8 +47,8 @@ export type {
 export {
   AGENT_ACTION_CLASS,
   getAgentActionClass,
+  getVisualGenerationReviewType,
   resolveEffectiveMutationPolicy,
-  VISUAL_GENERATION_REVIEW_TOOL_NAMES,
 } from './registry/agent-action-class';
 export {
   getKnowledgeToolActionContract,
@@ -77,6 +77,19 @@ export {
   isCuratedActionName,
   isPublishingApprovalRequired,
 } from './registry/curated-action-catalog';
+export {
+  findInapplicableMediaGenerationParameters,
+  getMediaGenerationCreditFloor,
+  getMediaGenerationType,
+  getVisualMediaGenerationType,
+  isMediaGenerationType,
+  MEDIA_GENERATION_CREDIT_FLOORS,
+  MEDIA_GENERATION_TOOL_NAME,
+  MEDIA_GENERATION_TYPE_PARAMETERS,
+  MEDIA_GENERATION_TYPES,
+  type MediaGenerationType,
+  type VisualMediaGenerationType,
+} from './registry/media-generation';
 export type {
   MutationApprovalStatus,
   MutationPolicyDecision,

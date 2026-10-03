@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getVisualGenerationReviewType,
   resolveEffectiveMutationPolicy,
-  VISUAL_GENERATION_REVIEW_TOOL_NAMES,
 } from './agent-action-class';
 import { getToolByName } from './tool-registry';
 
@@ -19,6 +19,8 @@ describe('image editing surfaces and approval', () => {
     expect(resolveEffectiveMutationPolicy('edit_image', 'auto', 'direct')).toBe(
       'direct',
     );
-    expect(VISUAL_GENERATION_REVIEW_TOOL_NAMES.has('edit_image')).toBe(false);
+    expect(
+      getVisualGenerationReviewType('edit_image', { type: 'image' }),
+    ).toBeUndefined();
   });
 });

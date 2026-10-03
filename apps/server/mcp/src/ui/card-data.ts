@@ -12,10 +12,7 @@ export const MCP_APP_MIME_TYPE = 'text/html;profile=mcp-app';
 const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
   create_article: 'article',
   create_post: 'post',
-  generate_image: 'image',
-  generate_music: 'audio',
-  generate_video: 'video',
-  generate_voice: 'audio',
+  generate: 'media',
   get_article: 'article',
   get_job_status: 'media',
   get_post: 'post',

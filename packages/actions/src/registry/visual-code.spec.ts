@@ -49,7 +49,7 @@ describe('visual-code canonical actions', () => {
       additionalProperties: false,
     });
   });
-  it('exposes all valid aliases on agent, workflow, and the generation MCP toolset', () => {
+  it('exposes all valid aliases on agent, workflow, and the visual-code MCP toolset', () => {
     for (const [alias, operation] of Object.entries(
       VISUAL_CODE_ACTION_ALIASES,
     )) {
@@ -57,7 +57,7 @@ describe('visual-code canonical actions', () => {
       const tool = getToolByName(alias);
       expect(tool).toMatchObject({
         creditCost: 0,
-        toolset: 'generation',
+        toolset: 'visual-code',
         surfaces: { agent: true, mcp: true },
       });
       expect(

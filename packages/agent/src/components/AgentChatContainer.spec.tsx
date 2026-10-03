@@ -2262,7 +2262,7 @@ describe('AgentChatContainer', () => {
         runId: 'run-failed',
         status: AgentWorkEventStatus.FAILED,
         threadId: 'thread-1',
-        toolName: 'generate_image',
+        toolName: 'generate',
       },
     ];
 

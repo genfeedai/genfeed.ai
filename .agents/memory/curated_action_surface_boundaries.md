@@ -12,19 +12,19 @@ after the 2026-08-06 review. Pinned by `curated-action-catalog.spec.ts`.
 
 ## Both surfaces
 
-`analyze_performance`, `generate_voice`, `get_analytics`, `get_content_calendar`, `reframe_image`,
+`analyze_performance`, `get_analytics`, `get_content_calendar`, `reframe_image`,
 `upscale_image`, `search_x_posts`, `fetch_x_post`, and `list_x_account_activity` are headless-safe:
 each returns data or an asset URL from a concrete `AgentToolExecutorService` case, so an MCP client
 reaches them through the existing `/agent-tools/:name/execute` proxy with no new handler. They match
-peers already on both surfaces (`generate_image` / `generate_music` / `generate_video`), and none of
+peers already on both surfaces (`generate`, which covers image, video, voice and music by `type`), and none of
 them publishes, so they carry no approval gate. `draft_x_quote` and `draft_x_repost` stay agent-only
 because they create in-product review drafts rather than a headless publish.
 
 ## Agent only, by design
 
 - **`prepare_voice_clone`** — the `prepare_*` family produces in-app action cards whose value is
-  inline selection and upload. There is no headless semantic to expose; `generate_voice` is the
-  callable half.
+  inline selection and upload. There is no headless semantic to expose; `generate` with `type: voice` is
+  the callable half.
 - **`create_brand`** — brand creation is a guided in-product onboarding flow
   (`brand_create_card`, `check_onboarding_status`, `complete_onboarding`). MCP reaches brands
   through `get_brand`, `list_brands`, `get_brand_completeness`, and the approval-gated interview

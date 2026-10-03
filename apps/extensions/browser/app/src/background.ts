@@ -623,6 +623,7 @@ async function generateImageFromTweet(
     const token = await authService.getToken();
     if (!token) throw new Error('Not authenticated');
     const result = await new AgentToolsService(token).execute('image', {
+      type: 'image',
       prompt: tweetContent,
     });
     const imageUrl = result.data?.url;
@@ -679,6 +680,7 @@ async function generateImageFromPrompt(
     if (!token) throw new Error('Not authenticated');
     const reference = request.referenceImageUrl || request.referenceImage;
     const result = await new AgentToolsService(token).execute('image', {
+      type: 'image',
       prompt:
         request.prompt || 'Create an image inspired by the provided reference.',
       ...(reference ? { references: [reference] } : {}),

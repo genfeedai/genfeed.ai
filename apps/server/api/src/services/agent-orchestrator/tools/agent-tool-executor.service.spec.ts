@@ -5574,14 +5574,14 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('should return an incomplete result when generate_image endpoint fails', async () => {
+  it('should return an incomplete result when image generate endpoint fails', async () => {
     const { generationGateway, loggerService, service } = createService();
 
     generationGateway.generateImage.mockRejectedValue(new Error('timeout'));
 
     const result = await service.executeTool(
-      'generate_image',
-      { prompt: 'podcast host portrait' },
+      'generate',
+      { prompt: 'podcast host portrait', type: 'image' },
       {
         brandId: testId('brand'),
         organizationId: testId('org'),
@@ -5602,7 +5602,25 @@ describe('AgentToolExecutorService', () => {
     expect(loggerService.warn).toHaveBeenCalled();
   });
 
-  it('should normalize generate_image prompt from description when prompt is missing', async () => {
+  it('should reject an image generate call that only supplies description', async () => {
+    const { generationGateway, service } = createService();
+
+    const result = await service.executeTool(
+      'generate',
+      { description: 'podcast host portrait', type: 'image' },
+      {
+        brandId: testId('brand'),
+        organizationId: testId('org'),
+        userId: testId('user'),
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('description does not apply to type image');
+    expect(generationGateway.generateImage).not.toHaveBeenCalled();
+  });
+
+  it('should send the image prompt as both prompt and text', async () => {
     const { generationGateway, service } = createService();
 
     generationGateway.generateImage.mockResolvedValue({
@@ -5613,8 +5631,8 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'generate_image',
-      { description: 'podcast host portrait' },
+      'generate',
+      { prompt: 'podcast host portrait', type: 'image' },
       {
         brandId: testId('brand'),
         organizationId: testId('org'),
@@ -5638,7 +5656,7 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('should read generate_image id from a root response envelope', async () => {
+  it('should read image generate id from a root response envelope', async () => {
     const { generationGateway, service } = createService();
 
     generationGateway.generateImage.mockResolvedValue({
@@ -5647,8 +5665,8 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'generate_image',
-      { prompt: 'product photo' },
+      'generate',
+      { prompt: 'product photo', type: 'image' },
       {
         brandId: testId('brand'),
         organizationId: testId('org2'),
@@ -5684,8 +5702,12 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      'generate_voice',
-      { text: 'Read this in the brand voice', voiceId: 'voice-default' },
+      'generate',
+      {
+        prompt: 'Read this in the brand voice',
+        type: 'voice',
+        voiceId: 'voice-default',
+      },
       {
         brandId: testId('brand'),
         organizationId: testId('org2'),
@@ -7069,7 +7091,9 @@ describe('capped tool quote boundary', () => {
     expect(
       agentToolCreditEstimate('generate_content', { type: 'article' }),
     ).toBeUndefined();
-    expect(agentToolCreditEstimate('generate_image', {})).toBeUndefined();
+    expect(
+      agentToolCreditEstimate('generate', { type: 'image' }),
+    ).toBeUndefined();
     expect(agentToolCreditEstimate('generate_content_batch', {})).toBe(0);
     expect(agentToolCreditEstimate('unknown_tool', {})).toBeUndefined();
   });
@@ -7078,8 +7102,8 @@ describe('capped tool quote boundary', () => {
       AgentToolExecutorService.prototype,
     ) as AgentToolExecutorService;
     const result = await service.executeTool(
-      'generate_music',
-      {},
+      'generate',
+      { type: 'music' },
       { creditBudget: 10, organizationId: 'org', userId: 'user' },
     );
     expect(result).toMatchObject({

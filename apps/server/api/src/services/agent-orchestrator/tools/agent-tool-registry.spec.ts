@@ -1,5 +1,8 @@
 import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@api/collections/brands/constants/brand-profile.constant';
-import { AGENT_CREDIT_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
+import {
+  AGENT_CREDIT_COSTS,
+  agentToolCreditFloor,
+} from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import {
   getToolDefinitionByName,
   getToolDefinitions,
@@ -19,7 +22,8 @@ describe('agent-tool-registry', () => {
     expect(names).toContain('get_brand_scan_status');
     expect(names).toContain('resolve_handle');
     expect(names).toContain('get_current_brand');
-    expect(names).toContain('generate_image');
+    expect(names).toContain('generate');
+    expect(names).not.toContain('generate_image');
     expect(names).toContain('create_livestream_bot');
     expect(names).toContain('manage_livestream_bot');
     expect(names).toContain('list_ads_research');
@@ -126,11 +130,32 @@ describe('agent-tool-registry', () => {
 
   it('should set non-zero credit costs for generation tools', () => {
     expect(AGENT_CREDIT_COSTS.draft_brand_voice_profile).toBe(1);
-    expect(AGENT_CREDIT_COSTS.generate_image).toBe(50);
-    expect(AGENT_CREDIT_COSTS.generate_video).toBe(300);
-    expect(AGENT_CREDIT_COSTS.generate_music).toBe(10);
-    expect(AGENT_CREDIT_COSTS.generate_voice).toBe(17);
+    expect(agentToolCreditFloor('generate', { type: 'image' })).toBe(50);
+    expect(agentToolCreditFloor('generate', { type: 'video' })).toBe(300);
+    expect(agentToolCreditFloor('generate', { type: 'music' })).toBe(10);
+    expect(agentToolCreditFloor('generate', { type: 'voice' })).toBe(17);
     expect(AGENT_CREDIT_COSTS.generate_as_identity).toBe(100);
+  });
+
+  it('should floor an unknown or missing generate type at the highest price', () => {
+    expect(agentToolCreditFloor('generate', { type: 'hologram' })).toBe(300);
+    expect(agentToolCreditFloor('generate', {})).toBe(300);
+  });
+
+  it('should price every other tool by its catalog cost', () => {
+    expect(agentToolCreditFloor('generate_as_identity', {})).toBe(100);
+    expect(agentToolCreditFloor('unknown_tool', {})).toBe(0);
+  });
+
+  it('should no longer register the per-kind generation tools', () => {
+    for (const name of [
+      'generate_image',
+      'generate_video',
+      'generate_voice',
+      'generate_music',
+    ]) {
+      expect(AGENT_CREDIT_COSTS).not.toHaveProperty(name);
+    }
   });
 
   it('should set onboarding tool costs to zero', () => {

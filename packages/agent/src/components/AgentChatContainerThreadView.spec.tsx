@@ -97,7 +97,7 @@ describe('selectActiveWorkEvent', () => {
         id: 'tool',
         status: AgentWorkEventStatus.PENDING,
         toolCallId: 'call-1',
-        toolName: 'generate_image',
+        toolName: 'generate',
       }),
     ]);
 
@@ -111,7 +111,7 @@ describe('selectActiveWorkEvent', () => {
           makeWorkEvent({
             id: 'stuck',
             status: AgentWorkEventStatus.RUNNING,
-            toolName: 'generate_image',
+            toolName: 'generate',
           }),
         ],
         { isStreamActive: false },
@@ -125,17 +125,17 @@ describe('selectActiveWorkEvent', () => {
         makeWorkEvent({
           id: 'completed',
           status: AgentWorkEventStatus.COMPLETED,
-          toolName: 'generate_image',
+          toolName: 'generate',
         }),
         makeWorkEvent({
           id: 'failed',
           status: AgentWorkEventStatus.FAILED,
-          toolName: 'generate_image',
+          toolName: 'generate',
         }),
         makeWorkEvent({
           id: 'cancelled',
           status: AgentWorkEventStatus.CANCELLED,
-          toolName: 'generate_image',
+          toolName: 'generate',
         }),
       ]),
     ).toBeNull();

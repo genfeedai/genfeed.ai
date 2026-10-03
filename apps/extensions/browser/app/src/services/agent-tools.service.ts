@@ -10,7 +10,7 @@ export type ExtensionToolAction = 'analytics' | 'generate' | 'image' | 'post';
 const TOOL_NAME_BY_ACTION: Record<ExtensionToolAction, CuratedActionName> = {
   analytics: 'get_analytics',
   generate: 'generate_content',
-  image: 'generate_image',
+  image: 'generate',
   post: 'create_post',
 };
 

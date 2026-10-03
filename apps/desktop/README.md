@@ -44,8 +44,8 @@ Environment variables:
 - `GENFEED_DESKTOP_MCP_URL` (optional): Genfeed MCP endpoint used by the local
   Claude Code / Codex agent runtime. Defaults to `https://mcp.genfeed.ai/mcp`
   for Genfeed Cloud and is derived from the API URL for other servers. Agent
-  turns add `?profile=full` so brand-context, knowledge and generation tools
-  are listed (the bare URL only lists core, scheduler and content).
+  turns add `?profile=full` so brand-context and knowledge tools are listed
+  (the bare URL lists core, generation, content and scheduler).
 - `GENFEED_DESKTOP_SENTRY_DSN` (optional): enables desktop runtime and renderer telemetry
 - `GENFEED_DESKTOP_SENTRY_ENVIRONMENT` (optional): defaults to `NODE_ENV` or `development`
 - `GENFEED_DESKTOP_RELEASE` (optional): explicit release identifier for telemetry and packaged builds

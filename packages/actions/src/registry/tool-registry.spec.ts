@@ -20,7 +20,7 @@ describe('tool registry', () => {
   });
 
   it('resolves a cataloged action by name and misses unknown names', () => {
-    expect(getToolByName('generate_image')?.name).toBe('generate_image');
+    expect(getToolByName('generate')?.name).toBe('generate');
     expect(getToolByName('not_a_real_action')).toBeUndefined();
   });
 
@@ -56,7 +56,7 @@ describe('tool registry', () => {
       ['create_workflow', 'workflow'],
       ['create_post', 'content'],
       ['list_scheduler_capabilities', 'content'],
-      ['generate_image', 'generation'],
+      ['generate', 'generation'],
       ['initiate_oauth_connect', 'social'],
       ['get_meta_ad_insights', 'ads'],
       ['discover_engagements', 'proactive'],
@@ -73,12 +73,12 @@ describe('tool registry', () => {
     expect(getToolByName('create_post')?.mutationPolicy).toBe(
       'approval-required',
     );
-    expect(getToolByName('generate_image')?.mutationPolicy).toBe('direct');
+    expect(getToolByName('generate')?.mutationPolicy).toBe('direct');
     expect(getToolByName('list_posts')?.mutationPolicy).toBeUndefined();
   });
 
   it('attaches a UI action type only to mapped actions', () => {
-    expect(getToolByName('generate_image')?.uiActionType).toBe(
+    expect(getToolByName('generate')?.uiActionType).toBe(
       'generation_action_card',
     );
     expect(getToolByName('schedule_post')?.uiActionType).toBe(
@@ -205,7 +205,7 @@ describe('tool registry catalog validation', () => {
   it('rejects a default MCP profile that exceeds the bare-URL cap', async () => {
     vi.doMock('./toolsets', () => ({
       CORE_TOOLSET_NAME: 'core',
-      getToolsForToolsets: () => Array.from({ length: 32 }, () => ({})),
+      getToolsForToolsets: () => Array.from({ length: 47 }, () => ({})),
       isToolsetName: () => true,
       TOOLSETS: [{ description: 'core', isAlwaysOn: true, name: 'core' }],
     }));
@@ -226,7 +226,7 @@ describe('tool registry catalog validation', () => {
     vi.resetModules();
 
     await expect(import('./tool-registry')).rejects.toThrow(
-      /default MCP profile exceeds the 31-tool bare-URL cap: has 32/,
+      /default MCP profile exceeds the 46-tool bare-URL cap: has 47/,
     );
   });
 });

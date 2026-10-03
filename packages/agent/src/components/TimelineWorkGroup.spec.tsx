@@ -288,7 +288,7 @@ describe('TimelineWorkGroup', () => {
             ...buildSettledEntry(1).events,
             {
               createdAt: '2026-03-18T10:00:00.000Z',
-              detail: 'Nodes failed: generate_image',
+              detail: 'Nodes failed: generate',
               event: AgentWorkEventType.FAILED,
               id: 'e-failed',
               label: 'Run Failed',

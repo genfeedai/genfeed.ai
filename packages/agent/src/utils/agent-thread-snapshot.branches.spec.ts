@@ -205,7 +205,7 @@ describe('mapSnapshotWorkEvents event mapping', () => {
           resultSummary: 'done soon',
           startedAt: '2026-03-24T10:00:00.000Z',
           toolCallId: 'call-1',
-          toolName: 'generate_image',
+          toolName: 'generate',
         },
       }),
     );
@@ -221,7 +221,7 @@ describe('mapSnapshotWorkEvents event mapping', () => {
       startedAt: '2026-03-24T10:00:00.000Z',
       threadId: 'thread-1',
       toolCallId: 'call-1',
-      toolName: 'generate_image',
+      toolName: 'generate',
     });
   });
 

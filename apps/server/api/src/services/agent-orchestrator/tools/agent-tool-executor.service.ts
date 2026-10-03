@@ -67,6 +67,7 @@ import type {
 import {
   getToolByName,
   getToolsForSurface,
+  getVisualMediaGenerationType,
   VISUAL_CODE_ACTION_ALIASES,
 } from '@genfeedai/actions';
 import {
@@ -90,10 +91,7 @@ import {
 import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 
 const UNQUOTED_PAID_AGENT_TOOLS = new Set<string>([
-  'generate_image',
-  'generate_video',
-  'generate_music',
-  'generate_voice',
+  'generate',
   'generate_as_identity',
   'edit_image',
   'reframe_image',
@@ -211,8 +209,6 @@ const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
   'get_trends',
   'get_workflow_inputs',
   'get_workflow_run',
-  'generate_image',
-  'generate_video',
   'inspect_workflow',
   'list_ads_research',
   'list_agent_conversations',
@@ -389,12 +385,8 @@ export class AgentToolExecutorService implements OnModuleInit {
     context: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     if (
-      [
-        'generate_image',
-        'generate_video',
-        'enhance_prompt',
-        'prepare_generation',
-      ].includes(toolName)
+      getVisualMediaGenerationType(toolName, parameters) ||
+      ['enhance_prompt', 'prepare_generation'].includes(toolName)
     ) {
       const requestedSkillSlugs = mergeRequestedSkillSlugs(
         context.requestedSkillSlugs,
@@ -615,7 +607,12 @@ export class AgentToolExecutorService implements OnModuleInit {
       );
     }
 
-    if (!scope.brandId && !BRANDLESS_AGENT_TOOLS.has(toolName)) {
+    // Image and video resolve a brand themselves; voice and music need one.
+    if (
+      !scope.brandId &&
+      !BRANDLESS_AGENT_TOOLS.has(toolName) &&
+      !getVisualMediaGenerationType(toolName, parameters)
+    ) {
       throw new Error(
         `An explicit thread brand context is required for ${toolName}.`,
       );

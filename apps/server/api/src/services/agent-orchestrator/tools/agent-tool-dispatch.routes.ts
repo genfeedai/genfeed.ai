@@ -248,20 +248,14 @@ function dispatchMediaFamily(
       return handlers.mediaGenerationHandler.aiAction(params, ctx);
     case 'generate_content':
       return handlers.mediaGenerationHandler.generateContent(params, ctx);
-    case 'generate_image':
-      return handlers.mediaGenerationHandler.generateImage(params, ctx);
+    case 'generate':
+      return handlers.mediaGenerationHandler.generate(params, ctx);
     case 'edit_image':
       return handlers.mediaGenerationHandler.editImage(params, ctx);
     case 'reframe_image':
       return handlers.mediaGenerationHandler.reframeImage(params, ctx);
     case 'upscale_image':
       return handlers.mediaGenerationHandler.upscaleImage(params, ctx);
-    case 'generate_video':
-      return handlers.mediaGenerationHandler.generateVideo(params, ctx);
-    case 'generate_music':
-      return handlers.mediaGenerationHandler.generateMusic(params, ctx);
-    case 'generate_voice':
-      return handlers.mediaGenerationHandler.generateVoice(params, ctx);
     case 'generate_content_batch':
       return handlers.mediaGenerationHandler.generateContentBatch(params, ctx);
     case 'generate_as_identity':

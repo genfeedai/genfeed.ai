@@ -3,18 +3,13 @@ import { CURATED_ACTION_CATALOG } from './curated-action-catalog';
 import { OVERLAP_TOOLS } from './source/overlap.tools';
 
 describe('character generation tool params (#3441)', () => {
-  const generateImage = OVERLAP_TOOLS.find(
-    (tool) => tool.name === 'generate_image',
-  );
-  const generateVideo = OVERLAP_TOOLS.find(
-    (tool) => tool.name === 'generate_video',
-  );
+  const generate = OVERLAP_TOOLS.find((tool) => tool.name === 'generate');
   const listCharacters = OVERLAP_TOOLS.find(
     (tool) => tool.name === 'list_characters',
   );
 
   it('declares every image parameter consumed by confirmed generation', () => {
-    expect(generateImage?.parameters.properties).toMatchObject({
+    expect(generate?.parameters.properties).toMatchObject({
       aspectRatio: { type: 'string' },
       characterHandles: { maxItems: 4, type: 'array' },
       outputs: { maximum: 8, minimum: 1, type: 'integer' },
@@ -22,14 +17,14 @@ describe('character generation tool params (#3441)', () => {
     });
   });
 
-  it('adds references and characterHandles to generate_video without dropping imageUrl', () => {
-    expect(generateVideo?.parameters.properties).toMatchObject({
+  it('declares references, characterHandles and imageUrl for video on generate', () => {
+    expect(generate?.parameters.properties).toMatchObject({
       characterHandles: { maxItems: 4, type: 'array' },
       imageUrl: { type: 'string' },
-      references: { maxItems: 8, type: 'array' },
+      references: { maxItems: 10, type: 'array' },
     });
     expect(
-      String(generateVideo?.parameters.properties.imageUrl.description)
+      String(generate?.parameters.properties.imageUrl.description)
         .toLowerCase()
         .replaceAll('-', ' '),
     ).toContain('start frame');

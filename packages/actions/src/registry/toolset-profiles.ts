@@ -5,13 +5,11 @@ import type { ToolsetName } from './toolset-names';
  * existing toolsets — it does not move tools between toolsets, and it does
  * not add tools to `core` (that toolset is capped at 12 MCP tools).
  *
- * `default` is what the bare MCP URL loads. The intended set is core,
- * scheduler, content, generation, analytics, brand, and onboarding, but
- * those seven are 66 MCP tools and the bare URL is capped at
- * {@link BARE_MCP_URL_TOOL_CAP}. core + scheduler + content is 31, and
- * adding any of the remaining four (generation 19, analytics 7, brand 6,
- * onboarding 3) crosses the cap, so they stay off `default`. `?profile=full`
- * and an explicit `?toolsets=` still reach them.
+ * `default` is what the bare MCP URL loads: the make-then-post loop of
+ * core, generation, content, and scheduler. Generation is the product, so it
+ * is never left out to fit a cap; the cap tracks the default instead, and
+ * shrinks as related tools merge into parameterized ones.
+ * `?profile=full` and an explicit `?toolsets=` reach everything else.
  */
 export const MCP_PROFILE_NAMES = ['default', 'directory', 'full'] as const;
 
@@ -21,17 +19,19 @@ export type McpToolsetProfileName = (typeof MCP_PROFILE_NAMES)[number];
 export const BARE_URL_MCP_PROFILE: McpToolsetProfileName = 'default';
 
 /** Hard cap on tools advertised by the bare MCP URL (`tools/list`). */
-export const BARE_MCP_URL_TOOL_CAP = 31;
+export const BARE_MCP_URL_TOOL_CAP = 46;
 
 export const DEFAULT_MCP_PROFILE_TOOLSETS: readonly ToolsetName[] = [
   'core',
-  'scheduler',
+  'generation',
   'content',
+  'scheduler',
 ];
 
 /**
  * Toolsets the directory profile never exposes. `generation` and `clips`
- * are the image/video/audio tools directory review rejects. `ui` is the
+ * are the image/video/audio tools directory review rejects
+ * (https://claude.com/docs/connectors/building/review-criteria). `ui` is the
  * in-product widget and ticket card toolset (no MCP tools today); excluding
  * it keeps a later MCP widget off the directory URL.
  */

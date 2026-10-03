@@ -255,10 +255,11 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
       },
     });
     expect(executeTool).toHaveBeenLastCalledWith(
-      'generate_video',
+      'generate',
       expect.objectContaining({
         requestedSkillSlugs: ['cinema'],
         harness: true,
+        type: 'video',
       }),
       expect.anything(),
     );
@@ -313,7 +314,7 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
     );
     expect(finalizeStructuredAssistantTurn).not.toHaveBeenCalled();
   });
-  it('passes only image-supported parameters into the generate_image action', async () => {
+  it('passes only image-supported parameters into the generate action for type image', async () => {
     const executeTool = vi.fn().mockResolvedValue({
       creditsUsed: 0,
       nextActions: [],
@@ -365,15 +366,16 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
     });
 
     expect(executeTool).toHaveBeenCalledWith(
-      'generate_image',
+      'generate',
       {
         aspectRatio: '1:1',
         outputs: 1,
         prompt: 'A red apple on a white background',
         references: ['reference-1'],
+        type: 'image',
       },
       expect.objectContaining({
-        // #4672: generate_image/generate_video are gated (approval-required)
+        // #4672: visual `generate` calls are gated (approval-required)
         // in Manual mode — this explicit "Generate" click on the docked
         // review card IS the confirmation, so it must carry
         // `confirmationOrigin` or it would re-dock another card instead of

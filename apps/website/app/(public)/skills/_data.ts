@@ -587,7 +587,7 @@ export const HOW_IT_WORKS: HowItWorksStep[] = [
   },
   {
     description:
-      'Inside Genfeed, skills use platform tools like create_post, generate_image, and rate_content for even better output.',
+      'Inside Genfeed, skills use platform tools like create_post, generate, and rate_content for even better output.',
     icon: Package,
     number: '04',
     title: 'Better with Genfeed',

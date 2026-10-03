@@ -17,13 +17,13 @@ describe('storyboard MCP tools', () => {
       creditCost: 0,
       mutationPolicy: 'direct',
       surfaces: { agent: false, mcp: true },
-      toolset: 'generation',
+      toolset: 'inspiration',
     });
     expect(getToolByName('replace_storyboard_character')).toMatchObject({
       creditCost: 0,
       mutationPolicy: 'approval-required',
       surfaces: { agent: false, mcp: true },
-      toolset: 'generation',
+      toolset: 'inspiration',
     });
     expect(getToolByName('create_storyboard_remix')?.annotations).toMatchObject(
       {

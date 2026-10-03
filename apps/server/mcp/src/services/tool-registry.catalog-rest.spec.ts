@@ -61,7 +61,7 @@ const MOCK_TOOLS = new Map(
   [
     ...CATALOG_REST_NAMES,
     ...APPROVAL_GATED_NAMES,
-    'generate_image',
+    'generate',
     'create_brand_from_url',
     'get_brand_scan_status',
     'resolve_approval',
@@ -747,8 +747,9 @@ describe('ToolRegistryService — agent result mapping', () => {
       success: false,
     });
 
-    const result = await callTool(registry, 'generate_image', {
+    const result = await callTool(registry, 'generate', {
       prompt: 'a cat',
+      type: 'image',
     });
 
     expect(result.isError).toBe(true);
@@ -759,8 +760,9 @@ describe('ToolRegistryService — agent result mapping', () => {
     const { client, registry } = build();
     client.executeAgentTool.mockResolvedValue({ success: false });
 
-    const result = await callTool(registry, 'generate_image', {
+    const result = await callTool(registry, 'generate', {
       prompt: 'a cat',
+      type: 'image',
     });
 
     expect(result.isError).toBe(true);

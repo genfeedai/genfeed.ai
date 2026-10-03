@@ -526,3 +526,147 @@ describe('capped autonomous credit preflight', () => {
     expect(prepareToolCall).not.toHaveBeenCalled();
   });
 });
+
+describe('AgentTurnRoundRunnerService generate recovery', () => {
+  const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+  const executeTool = vi.fn();
+  const cacheService = { get: vi.fn().mockResolvedValue(null) };
+  const untrustedContentGateService = {
+    evaluateToolResult: vi.fn(async ({ content }: { content: string }) => ({
+      content,
+      outcome: 'allowed' as const,
+    })),
+  };
+  let runner: AgentTurnRoundRunnerService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    executeTool.mockResolvedValue({
+      creditsUsed: 0,
+      nextActions: [{ id: 'card', type: 'content_preview_card' }],
+      success: true,
+    });
+    runner = new AgentTurnRoundRunnerService(
+      loggerService as never,
+      {
+        checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
+        deductCreditsFromOrganization: vi.fn(),
+      } as never,
+      { executeTool } as never,
+      new AgentToolConfirmationService(
+        loggerService as never,
+        cacheService as never,
+      ),
+      untrustedContentGateService as never,
+    );
+  });
+
+  function round(params: {
+    allowed: CuratedActionName[];
+    args: Record<string, unknown>;
+    name: string;
+  }) {
+    return runner.executeToolRound({
+      allowedToolNames: new Set(params.allowed),
+      assistantContent: null,
+      context: {
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+      generationPriority: RouterPriority.BALANCED,
+      messages: [{ content: 'Make it', role: 'user' }],
+      model: 'test-model',
+      policy: { organizationId: 'org-1' } as never,
+      state: createState(),
+      threadId: 'thread-1',
+      toolCalls: [
+        {
+          function: {
+            arguments: JSON.stringify(params.args),
+            name: params.name,
+          },
+          id: 'tool-1',
+          type: 'function',
+        },
+      ],
+    });
+  }
+
+  it('recovers a legacy per-kind name onto generate with the type and prompt filled from aliases', async () => {
+    await round({
+      allowed: ['generate'],
+      args: {
+        description: 'a red car',
+        generationType: 'image',
+        useIdentity: false,
+      },
+      name: 'generate_image',
+    });
+
+    expect(executeTool).toHaveBeenCalledOnce();
+    const [toolName, toolParams] = executeTool.mock.calls[0];
+    expect(toolName).toBe('generate');
+    expect(toolParams).toEqual({ prompt: 'a red car', type: 'image' });
+  });
+
+  it('keeps an explicit prompt and fills one from text for legacy voice names', async () => {
+    await round({
+      allowed: ['generate'],
+      args: { prompt: 'a blue bike', text: 'ignored' },
+      name: 'default_api.generate_video',
+    });
+    await round({
+      allowed: ['generate'],
+      args: { text: 'Hello there', voiceId: 'voice-1' },
+      name: 'generate_voice',
+    });
+
+    expect(executeTool.mock.calls[0][1]).toEqual({
+      prompt: 'a blue bike',
+      type: 'video',
+    });
+    expect(executeTool.mock.calls[1][1]).toEqual({
+      prompt: 'Hello there',
+      type: 'voice',
+      voiceId: 'voice-1',
+    });
+  });
+
+  it('turns a visual generate call into a terminal accepted result', async () => {
+    const image = await round({
+      allowed: ['generate'],
+      args: { prompt: 'a coast', type: 'image' },
+      name: 'generate',
+    });
+    const video = await round({
+      allowed: ['generate'],
+      args: { prompt: 'a coast', type: 'video' },
+      name: 'generate',
+    });
+
+    expect(image).toMatchObject({
+      terminalContent: 'Image generation accepted.',
+      terminalToolName: 'generate',
+    });
+    expect(video).toMatchObject({
+      terminalContent: 'Video generation accepted.',
+      terminalToolName: 'generate',
+    });
+  });
+
+  it('does not end the turn after a voice or music generate call', async () => {
+    const voice = await round({
+      allowed: ['generate'],
+      args: { prompt: 'Hello', type: 'voice' },
+      name: 'generate',
+    });
+    const music = await round({
+      allowed: ['generate'],
+      args: { prompt: 'synthwave', type: 'music' },
+      name: 'generate',
+    });
+
+    expect(voice).not.toHaveProperty('terminalToolName');
+    expect(music).not.toHaveProperty('terminalToolName');
+  });
+});
