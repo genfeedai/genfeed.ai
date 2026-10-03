@@ -7,6 +7,7 @@ import {
 import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
 import { UNSUPPORTED_APPROVAL_ERROR } from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -720,7 +721,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     it('does not let an API key without the admin scope act as an org admin', async () => {
       mcpApprovals.findOwned.mockResolvedValue(queued());
       const result = await redeem({
-        apiKeyContext: { isApiKey: true, scopes: [] },
+        apiKeyContext: { isApiKey: true, scopes: [ApiKeyScope.POSTS_CREATE] },
       });
       expect(result.success).toBe(false);
       expect(mcpApprovals.claimExecution).not.toHaveBeenCalled();
