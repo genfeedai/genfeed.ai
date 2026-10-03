@@ -67,6 +67,12 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 
+// Plain functions so suite-level mock resets cannot turn admission off.
+const textGenerationCredits = {
+  checkOrganizationCreditsAvailable: async () => true,
+  deductCreditsFromOrganization: async () => undefined,
+};
+
 describe('AgentToolExecutorService', () => {
   const createWorkflowRunner = () => {
     const executors = new Map<string, SystemWorkflowActionExecutor>();
@@ -1100,6 +1106,7 @@ describe('AgentToolExecutorService', () => {
         generationGateway as never,
         brandsService as never,
         membersService as never,
+        textGenerationCredits as never,
       ),
       assetGenerationService,
       new AgentMediaBatchGenerationService(
@@ -6217,6 +6224,7 @@ describe('AgentToolExecutorService', () => {
           generationGatewayWithoutScorer as never,
           brandsService as never,
           membersService as never,
+          textGenerationCredits as never,
         ),
         new AgentMediaAssetGenerationService(
           loggerService,

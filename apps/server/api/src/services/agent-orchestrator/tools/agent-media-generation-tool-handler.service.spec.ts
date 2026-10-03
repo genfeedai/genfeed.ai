@@ -54,6 +54,7 @@ function createHandler() {
       gateway as never,
       brandsService as never,
       { findOne: vi.fn().mockResolvedValue(null) } as never,
+      textGenerationCredits as never,
     ),
     assetGeneration,
     new AgentMediaBatchGenerationService(
@@ -80,6 +81,12 @@ const context = {
   brandId: 'brand-1',
   organizationId: 'organization-1',
   userId: 'user-1',
+};
+
+// Plain functions so suite-level mock resets cannot turn admission off.
+const textGenerationCredits = {
+  checkOrganizationCreditsAvailable: async () => true,
+  deductCreditsFromOrganization: async () => undefined,
 };
 
 describe('FLUX generation source admission', () => {

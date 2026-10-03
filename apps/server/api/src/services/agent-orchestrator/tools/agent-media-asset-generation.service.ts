@@ -79,7 +79,7 @@ export class AgentMediaAssetGenerationService {
     };
   }
 
-  private async resolveMediaBrandContext(
+  async resolveMediaBrandContext(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<{ context: ToolExecutionContext } | { error: AgentToolResult }> {
