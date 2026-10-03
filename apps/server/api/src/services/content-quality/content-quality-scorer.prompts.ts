@@ -42,16 +42,55 @@ Rate the asset 1-10 with short feedback notes and concrete suggestions, and grad
 - hookStrength: strong | moderate | weak (would this stop someone from scrolling?)`;
 
 export function formatScorerHarnessCriteria(
-  _evaluationCriteria: readonly string[],
-  _goodExamples: readonly string[],
-  _avoidExamples: readonly string[],
+  evaluationCriteria: readonly string[],
+  goodExamples: readonly string[],
+  avoidExamples: readonly string[],
 ): string {
-  return '';
+  return [
+    formatScorerSection(
+      'Brand evaluation criteria (score against these as well):',
+      evaluationCriteria,
+      10,
+    ),
+    formatScorerSection(
+      'On-brand examples (content in this voice scores higher):',
+      goodExamples,
+      5,
+    ),
+    formatScorerSection(
+      'Off-brand examples (content like this scores lower):',
+      avoidExamples,
+      5,
+    ),
+  ]
+    .filter((section) => section.length > 0)
+    .join('\n\n');
 }
 
 export function buildTextScoringPrompt(
-  _text: string,
-  _harnessCriteria?: string,
+  text: string,
+  harnessCriteria?: string,
 ): string {
-  return '';
+  return harnessCriteria
+    ? `${TEXT_SCORING_PROMPT}\n\n${harnessCriteria}\n\nContent:\n${text}`
+    : `${TEXT_SCORING_PROMPT}\n\nContent:\n${text}`;
+}
+
+function formatScorerSection(
+  header: string,
+  items: readonly string[],
+  limit: number,
+): string {
+  const lines = items
+    .map((item) => {
+      const normalized = item.replace(/\s+/g, ' ').trim();
+      return normalized.length <= 280
+        ? normalized
+        : `${normalized.slice(0, 279).trimEnd()}…`;
+    })
+    .filter((item) => item.length > 0)
+    .slice(0, limit)
+    .map((item) => `- ${item}`);
+
+  return lines.length === 0 ? '' : `${header}\n${lines.join('\n')}`;
 }

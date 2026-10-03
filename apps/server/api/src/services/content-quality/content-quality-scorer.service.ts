@@ -2,6 +2,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import {
+  buildTextScoringPrompt,
   IMAGE_SCORING_PROMPT,
   TEXT_SCORING_PROMPT,
   VIDEO_SCORING_PROMPT,
@@ -112,9 +113,10 @@ export class ContentQualityScorerService {
   async scoreText(
     text: string,
     contentType: string,
+    harnessCriteria?: string,
   ): Promise<ContentQualityResult> {
     const result = await this.callTextModel(
-      `${TEXT_SCORING_PROMPT}\n\nContent:\n${text}`,
+      buildTextScoringPrompt(text, harnessCriteria),
     );
     return this.buildResult(result, contentType);
   }
