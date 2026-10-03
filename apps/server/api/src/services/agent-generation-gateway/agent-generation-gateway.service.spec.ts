@@ -4,7 +4,6 @@ import { ImagesReframeController } from '@api/collections/images/controllers/tra
 import { ImagesUpscaleController } from '@api/collections/images/controllers/transformations/images-upscale.controller';
 import { MusicsOperationsController } from '@api/collections/musics/controllers/musics-operations.controller';
 import { AvatarVideoController } from '@api/collections/videos/controllers/avatar-video.controller';
-import { VideosMergeController } from '@api/collections/videos/controllers/relationships/videos-merge.controller';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
 import { VoicesOperationsController } from '@api/collections/voices/controllers/voices-operations.controller';
 import {
@@ -97,11 +96,6 @@ const ROUTES: Record<string, RouteFixture> = {
     bodyParamIndex: 3,
     controller: ImagesUpscaleController,
     methodName: 'upscaleImage',
-  },
-  mergeVideos: {
-    bodyParamIndex: 2,
-    controller: VideosMergeController,
-    methodName: 'mergeVideos',
   },
 };
 
@@ -231,11 +225,10 @@ describe('AgentGenerationGatewayService decorator parity', () => {
       {} as never,
       {} as never,
       {} as never,
-      {} as never,
     );
   });
 
-  /** Calls all 10 gateway methods in the exact order `ROUTES` declares them. */
+  /** Calls all 9 gateway methods in the exact order `ROUTES` declares them. */
   async function runAllRoutes(): Promise<
     Map<string, AgentEndpoint<object, unknown>>
   > {
@@ -255,7 +248,6 @@ describe('AgentGenerationGatewayService decorator parity', () => {
     await service.generateVoice({ body: {}, principal });
     await service.reframeImage(resourceInput);
     await service.upscaleImage(resourceInput);
-    await service.mergeVideos({ body: {}, principal });
 
     return new Map(
       ROUTE_ENTRIES.map(([gatewayMethod], index) => [
@@ -265,7 +257,7 @@ describe('AgentGenerationGatewayService decorator parity', () => {
     );
   }
 
-  it('captures a descriptor for all 10 gateway methods', async () => {
+  it('captures a descriptor for all 9 gateway methods', async () => {
     const captured = await runAllRoutes();
     expect(invoke).toHaveBeenCalledTimes(ROUTE_ENTRIES.length);
     for (const [gatewayMethod] of ROUTE_ENTRIES) {
@@ -361,7 +353,6 @@ describe('AgentGenerationGatewayService decorator parity', () => {
       { findOne: vi.fn().mockResolvedValue({ id: 'ingredient-1' }) } as never,
       {} as never,
       {} as never,
-      {} as never,
     );
     await gateway.generateAvatarVideo({
       body: {},
@@ -409,86 +400,5 @@ describe('AgentGenerationGatewayService decorator parity', () => {
         `${gatewayMethod} originalUrl "${descriptor.originalUrl}" does not match ${controller.name}.${methodName}'s route ${pattern}`,
       ).toBe(true);
     }
-  });
-
-  describe('mergeVideos', () => {
-    const user = {
-      brandId: 'brand-1',
-      id: USER_ID,
-      organizationId: ORGANIZATION_ID,
-      userId: USER_ID,
-    };
-
-    function createMergeGateway(overrides: {
-      ingredient?: Record<string, unknown>;
-    }) {
-      const mergeVideos = vi
-        .fn()
-        .mockResolvedValue(overrides.ingredient ?? { id: 'merged-1' });
-      const gateway = new AgentGenerationGatewayService(
-        {} as never,
-        {} as never,
-        {} as never,
-        {} as never,
-        {} as never,
-        {} as never,
-        {} as never,
-        { invoke } as unknown as AgentEndpointInvoker,
-        {} as never,
-        {} as never,
-        {} as never,
-        {} as never,
-        {} as never,
-        {} as never,
-        {} as never,
-        { mergeVideos } as never,
-      );
-      return { gateway, mergeVideos };
-    }
-
-    it('merges as the authenticated principal through the shared orchestration', async () => {
-      const { gateway, mergeVideos } = createMergeGateway({});
-      await gateway.mergeVideos({
-        body: {},
-        principal: { organizationId: ORGANIZATION_ID, userId: USER_ID },
-      });
-      const descriptor = capturedInOrder[0];
-      const dto = { category: 'video', ids: ['clip-1', 'clip-2'] };
-
-      await descriptor.handle({
-        dto,
-        request: {},
-        user,
-      } as never);
-
-      expect(mergeVideos).toHaveBeenCalledWith(user, dto);
-    });
-
-    it('is not credited, matching the uncredited REST route', async () => {
-      const { gateway } = createMergeGateway({});
-      await gateway.mergeVideos({
-        body: {},
-        principal: { organizationId: ORGANIZATION_ID, userId: USER_ID },
-      });
-      const descriptor = capturedInOrder[0];
-
-      expect(descriptor.creditsConfig).toBeUndefined();
-      expect(descriptor.hasCreditsInterceptor).toBe(false);
-    });
-
-    it('skips the subscription check the merge controller does not declare', async () => {
-      const { gateway } = createMergeGateway({});
-      await gateway.mergeVideos({
-        body: {},
-        principal: { organizationId: ORGANIZATION_ID, userId: USER_ID },
-      });
-      const descriptor = capturedInOrder[0];
-      const controllerGuards = getClassGuards(VideosMergeController);
-
-      expect(descriptor.isSubscriptionCheckSkipped).toBe(true);
-      expect(
-        controllerGuards.map((guard) => (guard as Type).name),
-      ).not.toContain('SubscriptionGuard');
-    });
   });
 });

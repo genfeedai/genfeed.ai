@@ -264,8 +264,6 @@ export class ClientService {
     return this.media.createVideo(params);
   }
 
-  }
-
   createImage(params: ImageCreationParams): Promise<ImageResponse> {
     return this.media.createImage(params);
   }

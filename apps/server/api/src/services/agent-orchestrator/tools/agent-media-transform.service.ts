@@ -1,6 +1,6 @@
 import {
-  AGENT_GENERATION_GATEWAY,
-  type IAgentGenerationGateway,
+  AGENT_VIDEO_MERGE_GATEWAY,
+  type IAgentVideoMergeGateway,
 } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-asset-generation.service';
 import {
@@ -57,8 +57,8 @@ function isVideoIdList(value: unknown): value is string[] {
 export class AgentMediaTransformService {
   constructor(
     private readonly assetGeneration: AgentMediaAssetGenerationService,
-    @Inject(AGENT_GENERATION_GATEWAY)
-    private readonly generationGateway: IAgentGenerationGateway,
+    @Inject(AGENT_VIDEO_MERGE_GATEWAY)
+    private readonly mergeGateway: IAgentVideoMergeGateway,
   ) {}
 
   async transformMedia(
@@ -156,7 +156,7 @@ export class AgentMediaTransformService {
 
     try {
       const response = toMediaResponseRecord(
-        await this.generationGateway.mergeVideos({
+        await this.mergeGateway.mergeVideos({
           body,
           principal: {
             brandId: ctx.brandId,

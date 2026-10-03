@@ -69,8 +69,6 @@ export interface IAgentGenerationGateway {
   generateMusic(input: AgentGenerationInput): Promise<JsonApiSingleResponse>;
   generateVideo(input: AgentGenerationInput): Promise<JsonApiSingleResponse>;
   generateVoice(input: AgentGenerationInput): Promise<JsonApiSingleResponse>;
-  /** Joins existing clips. Not credited: it runs on the local files queue. */
-  mergeVideos(input: AgentGenerationInput): Promise<JsonApiSingleResponse>;
   editImage(
     input: AgentGenerationResourceInput,
   ): Promise<JsonApiSingleResponse>;
@@ -80,4 +78,15 @@ export interface IAgentGenerationGateway {
   upscaleImage(
     input: AgentGenerationResourceInput,
   ): Promise<JsonApiSingleResponse>;
+}
+
+/**
+ * DI token for the in-process video merge gateway. A merge is not a billable
+ * generation (local files queue, no provider call), so it has its own seam
+ * rather than a method on {@link IAgentGenerationGateway}.
+ */
+export const AGENT_VIDEO_MERGE_GATEWAY = Symbol('AGENT_VIDEO_MERGE_GATEWAY');
+
+export interface IAgentVideoMergeGateway {
+  mergeVideos(input: AgentGenerationInput): Promise<JsonApiSingleResponse>;
 }
