@@ -68,7 +68,7 @@ Get your API key at [app.genfeed.ai/settings/api-keys](https://app.genfeed.ai/se
 |------|-------------|
 | `create_video` | Generate AI videos |
 | `create_image` | Generate AI images |
-| `create_article` | Generate AI articles |
+| `generate_content` | Generate articles (`type: "article"`) and social copy |
 | `create_avatar` | Create digital avatars |
 | `create_music` | Generate AI music |
 
