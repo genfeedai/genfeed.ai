@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   anonymiseText,
+  buildAnonymisationContext,
   findResidualIdentifiers,
   prepareTerms,
 } from './anonymiser';
-import type { AnonymisationContext } from './golden-set.types';
+import type {
+  AnonymisationContext,
+  GoldenSetScopeSnapshot,
+} from './golden-set.types';
 
 const SPEC_CONTEXT: AnonymisationContext = {
   knownIds: [
@@ -175,5 +179,94 @@ describe('residual detector', () => {
     expect(
       findResidualIdentifiers('brand-0000000000a1 [person]', SPEC_CONTEXT),
     ).toEqual([]);
+  });
+});
+
+describe('buildAnonymisationContext', () => {
+  const snapshot: GoldenSetScopeSnapshot = {
+    scope: { organizationId: 'synthetic-org-golden', brandIds: [] },
+    organization: {
+      id: 'synthetic-org-golden',
+      label: 'Golden Synthetic Studio',
+      slug: 'golden-synthetic-studio',
+    },
+    brands: [{ id: 'synthetic-brand-kelder', label: 'KELDER', slug: 'kelder' }],
+    credentials: [
+      {
+        brandId: null,
+        externalHandle: '@golden_studio',
+        externalName: null,
+        username: null,
+      },
+      {
+        brandId: 'synthetic-brand-kelder',
+        externalHandle: '@kelder_studio',
+        externalName: null,
+        username: null,
+      },
+    ],
+    members: [
+      {
+        user: {
+          firstName: 'Mara',
+          lastName: 'Lindqvist',
+          name: null,
+          handle: 'mara_lindqvist',
+        },
+      },
+    ],
+    posts: [],
+    batchItems: [],
+    evaluations: [],
+    newsletters: [],
+    profiles: [
+      {
+        id: 'synthetic-profile-golden',
+        organizationId: 'synthetic-org-golden',
+        isDeleted: false,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        data: {},
+      },
+    ],
+    contextBases: [],
+    contextEntries: [],
+    linkedPosts: [],
+    linkedArticles: [],
+    linkedNewsletters: [],
+    linkedBatchItems: [],
+    threadChildren: [],
+  };
+  const context = buildAnonymisationContext(
+    snapshot,
+    new Map([['synthetic-brand-kelder', 'brand-0000000000a1']]),
+  );
+
+  it('puts credentials without a brand in organizationTerms', () => {
+    expect(context.organizationTerms).toContain('@golden_studio');
+    expect(context.brandTerms.map(({ term }) => term)).not.toContain(
+      '@golden_studio',
+    );
+  });
+
+  it('preserves a brand credential handle with its brand fixture id', () => {
+    expect(context.brandTerms).toContainEqual({
+      term: '@kelder_studio',
+      brandFixtureId: 'brand-0000000000a1',
+    });
+    expect(context.organizationTerms).not.toContain('@kelder_studio');
+  });
+
+  it('joins member firstName and lastName in personTerms', () => {
+    expect(context.personTerms).toContain('Mara Lindqvist');
+  });
+
+  it('includes organization, brand and record ids in knownIds', () => {
+    expect(context.knownIds).toEqual(
+      expect.arrayContaining([
+        'synthetic-org-golden',
+        'synthetic-brand-kelder',
+        'synthetic-profile-golden',
+      ]),
+    );
   });
 });
