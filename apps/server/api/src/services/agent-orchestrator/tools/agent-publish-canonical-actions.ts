@@ -1,6 +1,8 @@
+import type { AgentScopeContextService } from '@api/agent-context/agent-scope-context.service';
 import type { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { parseExtensionPublicationCaptureInput } from '@api/collections/posts/services/post-publication-capture.util';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
+import { authorizeExternalPublicationBrand } from '@api/services/agent-orchestrator/tools/agent-publish-scope.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import { isEntityId } from '@genfeedai/contracts/api-types/helpers/entity-id';
@@ -15,21 +17,11 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 
-/**
- * Confirms, on the server, that the requested brand belongs to the
- * authenticated organization. The request's own `context.brandId` is only a
- * consistency check, never the authority.
- */
-export type ExternalPublicationBrandAuthorizer = (
-  brandId: string,
-  ctx: ToolExecutionContext,
-) => Promise<void>;
-
 export async function recordExternalPublicationAction(
   postsService: Pick<PostsService, 'recordExternalPublication'>,
   params: Record<string, unknown>,
   ctx: ToolExecutionContext,
-  authorizeBrand: ExternalPublicationBrandAuthorizer,
+  agentScopeContextService: AgentScopeContextService | undefined,
 ): Promise<AgentToolResult> {
   const input = parseExtensionPublicationCaptureInput(params);
   if (!ctx.brandId || ctx.brandId !== input.brandId) {
@@ -37,7 +29,11 @@ export async function recordExternalPublicationAction(
       'Reported publication must match the authenticated brand context',
     );
   }
-  await authorizeBrand(input.brandId, ctx);
+  await authorizeExternalPublicationBrand(
+    agentScopeContextService,
+    input.brandId,
+    ctx,
+  );
   const result = await postsService.recordExternalPublication(input, {
     brandId: input.brandId,
     organizationId: ctx.organizationId,
@@ -108,7 +104,7 @@ export async function linkExternalPublicationCredentialAction(
   postsService: Pick<PostsService, 'linkExternalPublicationCredential'>,
   params: Record<string, unknown>,
   ctx: ToolExecutionContext,
-  authorizeBrand: ExternalPublicationBrandAuthorizer,
+  agentScopeContextService: AgentScopeContextService | undefined,
 ): Promise<AgentToolResult> {
   const parsed = linkPublicationSchema.safeParse(params);
   if (!parsed.success)
@@ -117,7 +113,11 @@ export async function linkExternalPublicationCredentialAction(
     throw new ForbiddenException(
       'Publication linking must match the authenticated brand context',
     );
-  await authorizeBrand(parsed.data.brandId, ctx);
+  await authorizeExternalPublicationBrand(
+    agentScopeContextService,
+    parsed.data.brandId,
+    ctx,
+  );
   const result = await postsService.linkExternalPublicationCredential(
     parsed.data,
     {

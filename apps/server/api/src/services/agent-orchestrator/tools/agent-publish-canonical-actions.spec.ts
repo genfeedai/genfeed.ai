@@ -190,7 +190,7 @@ describe('recordExternalPublicationAction', () => {
           publicationDate: '2026-01-01T00:00:00.000Z',
         },
         { organizationId: 'org-1', userId: 'user-1', brandId: 'other' },
-        vi.fn(),
+        undefined,
       ),
     ).rejects.toThrow(
       'Reported publication must match the authenticated brand context',

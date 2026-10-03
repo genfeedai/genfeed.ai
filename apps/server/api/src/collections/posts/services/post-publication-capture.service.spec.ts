@@ -342,23 +342,30 @@ describe('PostsService reported publication capture', () => {
       },
       scope,
     );
-    const where = f.post.findMany.mock.calls[0][0].where;
-    expect(where.OR).toContainEqual({
-      AND: [
-        {
-          targetSettings: {
-            path: ['extensionCapture', 'urlIdentity', 'kind'],
-            equals: 'instagram-shortcode',
-          },
-        },
-        {
-          targetSettings: {
-            path: ['extensionCapture', 'urlIdentity', 'value'],
-            equals: 'abc',
-          },
-        },
-      ],
-    });
+    expect(f.post.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            {
+              AND: [
+                {
+                  targetSettings: {
+                    path: ['extensionCapture', 'urlIdentity', 'kind'],
+                    equals: 'instagram-shortcode',
+                  },
+                },
+                {
+                  targetSettings: {
+                    path: ['extensionCapture', 'urlIdentity', 'value'],
+                    equals: 'abc',
+                  },
+                },
+              ],
+            },
+          ]),
+        }),
+      }),
+    );
   });
   it.each([
     [

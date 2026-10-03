@@ -28,6 +28,7 @@ import {
   resolveConfirmedFallbackPolicy,
   scheduleAgentPost,
 } from '@api/services/agent-orchestrator/tools/agent-publish-post-actions';
+import { assertAgentPublishingScope } from '@api/services/agent-orchestrator/tools/agent-publish-scope.util';
 import {
   buildAgentPublishTargetProposals,
   collectInvalidTargetBlockers,
@@ -132,7 +133,7 @@ export class AgentPublishToolHandler {
       this.postsService,
       params,
       ctx,
-      this.authorizeExternalPublicationBrand,
+      this.agentScopeContextService,
     );
   }
 
@@ -144,33 +145,9 @@ export class AgentPublishToolHandler {
       this.postsService,
       params,
       ctx,
-      this.authorizeExternalPublicationBrand,
+      this.agentScopeContextService,
     );
   }
-
-  private readonly authorizeExternalPublicationBrand = async (
-    brandId: string,
-    ctx: ToolExecutionContext,
-  ): Promise<void> => {
-    if (!this.agentScopeContextService) {
-      throw new Error(
-        'Agent scope validation is required before recording external publications.',
-      );
-    }
-    // The organization comes from the authenticated principal. The brand is
-    // proven against it in the database, not trusted from the request context.
-    await this.agentScopeContextService.assertBrandAuthorized(
-      brandId,
-      ctx.organizationId,
-    );
-    if (ctx.validatedScope) {
-      this.agentScopeContextService.assertResourceBrand(
-        ctx.validatedScope,
-        brandId,
-        'External publication',
-      );
-    }
-  };
 
   async scheduleCanonicalPost(
     input: ScheduleCanonicalPostInput,
@@ -765,23 +742,14 @@ export class AgentPublishToolHandler {
       success: true,
     };
   }
-  private async assertPublishingScope(
+  private assertPublishingScope(
     ctx: ToolExecutionContext,
     resourceBrandId: string | undefined,
     resourceLabel: string,
   ): Promise<void> {
-    if (!ctx.validatedScope || !this.agentScopeContextService) {
-      throw new Error(
-        'Validated agent scope is required before publishing side effects.',
-      );
-    }
-
-    await this.agentScopeContextService.assertConsequentialBoundary(
-      ctx.validatedScope,
-      'publish',
-    );
-    this.agentScopeContextService.assertResourceBrand(
-      ctx.validatedScope,
+    return assertAgentPublishingScope(
+      this.agentScopeContextService,
+      ctx,
       resourceBrandId,
       resourceLabel,
     );
