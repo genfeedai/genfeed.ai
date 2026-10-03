@@ -225,6 +225,17 @@ describe('shared wallet scope', () => {
     expect(state.getBalances).toHaveBeenCalledTimes(1);
   });
 
+  it('does not request a wallet without a verified organization id even if the route is confirmed', async () => {
+    state.confirmedOrganizationId = null;
+    const { result } = renderHook(() => useTopbarBalances(), {
+      wrapper: createQueryWrapper(),
+    });
+    await act(async () => result.current.refresh());
+    expect(state.getBalances).not.toHaveBeenCalled();
+    expect(result.current.genfeedBalance).toBeNull();
+    expect(result.current.isLoaded).toBe(false);
+  });
+
   it('hides cached values immediately after sign-out and refuses socket publication', async () => {
     const { result, rerender } = renderHook(() => useTopbarBalances(), {
       wrapper: createQueryWrapper(),
