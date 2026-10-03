@@ -1108,7 +1108,11 @@ describe('WorkflowEngineAdapterService', () => {
         await executionService.executeWorkflow(captionsWorkflow);
 
       expectCompleted(captionsResult);
-      expect(whisperService.generateCaptions).toHaveBeenCalledWith(avatarId);
+      expect(whisperService.generateCaptions).toHaveBeenCalledWith(
+        avatarId,
+        undefined,
+        organizationId,
+      );
       expect(captionsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           ingredientId: avatarId,
