@@ -17,6 +17,9 @@
     "./brand-validation-artifact.util.ts",
     "./brand-validation-artifact.util.spec.ts",
     "./brand-validation-literal-matcher.util.ts",
-    "./brand-validation-literal-matcher.util.spec.ts"
+    "./brand-validation-literal-matcher.util.spec.ts",
+    "./brand-validation-receipt.service.ts",
+    "./brand-validation-receipt.module.ts",
+    "./brand-validation-receipt.service.spec.ts"
   ]
 }
