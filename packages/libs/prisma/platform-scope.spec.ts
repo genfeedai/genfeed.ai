@@ -47,7 +47,7 @@ describe('platformOrTenantScope', () => {
     runWithTenantContext({ organizationId: TENANT }, () => {
       expect(() =>
         guard({ where: { isDeleted: false, organizationId: null } }),
-      ).toThrow('missing-organization-id');
+      ).toThrow('missing organizationId');
     });
   });
 });
