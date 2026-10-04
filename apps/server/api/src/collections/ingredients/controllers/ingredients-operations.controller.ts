@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BulkDeleteIngredientsDto } from '@api/collections/ingredients/dto/bulk-delete-ingredients.dto';
-import { UpdateTagsDto } from '@api/collections/ingredients/dto/update-tags.dto';
 import type { IngredientMetadataDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { UpdateMetadataDto } from '@api/collections/metadata/dto/update-metadata.dto';
@@ -414,38 +413,6 @@ export class IngredientsOperationsController {
     });
 
     return serializeSingle(request, MetadataSerializer, updatedMetadata);
-  }
-
-  @Patch(':ingredientId/tags')
-  @UseGuards(AssetAccessGuard)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async updateTags(
-    @Req() request: Request,
-    @Param('ingredientId') ingredientId: string,
-    @CurrentUser() user: User,
-    @Body() updateTagsDto: UpdateTagsDto,
-  ): Promise<JsonApiSingleResponse> {
-    // Find the ingredient first to ensure it exists and belongs to the user or organization
-    const ingredient = await this.ingredientsService.findOne({
-      id: ingredientId,
-      OR: [
-        { userId: user.userId ?? user.id },
-        { organizationId: user.organizationId },
-      ],
-    });
-
-    if (!ingredient) {
-      return returnNotFound(this.constructorName, ingredientId);
-    }
-
-    // Now set the new valid tags using service method
-    const data = await this.ingredientsService.patch(
-      ingredientId,
-      { tags: updateTagsDto.tags },
-      [{ path: 'tags' }],
-    );
-
-    return serializeSingle(request, IngredientSerializer, data);
   }
 
   /**

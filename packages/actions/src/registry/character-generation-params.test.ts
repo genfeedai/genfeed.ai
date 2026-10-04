@@ -43,4 +43,19 @@ describe('character generation tool params (#3441)', () => {
       'list_characters',
     );
   });
+
+  it('lets list_assets filter by tags, any or all, like characters and origin', () => {
+    expect(listAssets?.parameters.properties.tags).toMatchObject({
+      items: { type: 'string' },
+      maxItems: 25,
+      type: 'array',
+    });
+    expect(listAssets?.parameters.properties.tagMatch).toMatchObject({
+      default: 'any',
+      enum: ['any', 'all'],
+      type: 'string',
+    });
+    expect(listAssets?.parameters.required).toEqual(['type']);
+    expect(listAssets?.description).toContain('tags (id and label)');
+  });
 });

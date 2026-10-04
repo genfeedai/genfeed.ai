@@ -4,6 +4,11 @@ import {
   normalizeIngredientCharacterIds,
 } from '@api/helpers/dto/ingredient-characters-query.transform';
 import { normalizeIngredientOrigins } from '@api/helpers/dto/ingredient-origins-query.transform';
+import {
+  MAX_TAG_FILTER_IDS,
+  normalizeIngredientTagIds,
+  normalizeTagMatchMode,
+} from '@api/helpers/dto/ingredient-tags-query.transform';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   IngredientCategory,
@@ -11,6 +16,7 @@ import {
   IngredientStatus,
   LibraryShelf,
   MetadataExtension,
+  TagMatchMode,
 } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
@@ -171,4 +177,34 @@ export class IngredientsQueryDto extends BaseQueryDto {
   @ArrayMaxSize(MAX_CHARACTER_FILTER_IDS)
   @IsEntityId({ each: true })
   characters?: string[];
+
+  @ApiProperty({
+    description:
+      'Filter by tags using repeated query keys (e.g., ?tags=<id>&tags=<id>). ' +
+      'Combined by `tagMatch`. Tags carry human judgment (campaign, series, ' +
+      'episode); the filter composes with every other Library filter.',
+    isArray: true,
+    required: false,
+    type: String,
+  })
+  @Transform(({ value }) => normalizeIngredientTagIds(value))
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_TAG_FILTER_IDS)
+  @IsEntityId({ each: true })
+  tags?: string[];
+
+  @ApiProperty({
+    default: TagMatchMode.ANY,
+    description:
+      'How `tags` combine: `any` (default) returns assets with at least one ' +
+      'selected tag, `all` returns assets carrying every selected tag.',
+    enum: TagMatchMode,
+    enumName: 'TagMatchMode',
+    required: false,
+  })
+  @Transform(({ value }) => normalizeTagMatchMode(value))
+  @IsOptional()
+  @IsEnum(TagMatchMode)
+  tagMatch?: TagMatchMode;
 }

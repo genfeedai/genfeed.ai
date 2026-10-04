@@ -8,6 +8,7 @@ import {
   UpdateIngredientDto,
 } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { assertTagsVisibleToBrand } from '@api/collections/ingredients/utils/assert-tags-visible-to-brand.util';
 import {
   toIngredientCreateData,
   toIngredientUpdateData,
@@ -18,6 +19,7 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { persistQuoteGroupDisposition } from '@api/helpers/utils/credits/persist-quote-group-completion.util';
 import { persistSubmissionFailure } from '@api/helpers/utils/credits/persist-submission-failure.util';
+import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
 import { scopedWhere } from '@api/index';
 import { MediaDerivativePreparationService } from '@api/services/media-urls/media-derivative-preparation.service';
@@ -269,9 +271,13 @@ export class IngredientsService extends BaseService<
     offset: number;
     organizationId: string;
     origin?: IngredientOrigin;
+    tagFilter?: Record<string, unknown>;
   }): Promise<IngredientDocument[]> {
     const rows = await this.prisma.ingredient.findMany({
-      include: { metadata: { select: { result: true } } },
+      include: {
+        metadata: { select: { result: true } },
+        ...IngredientFilterUtil.buildLibraryTagsInclude(),
+      },
       orderBy: { createdAt: 'desc' },
       skip: params.offset,
       take: params.limit,
@@ -282,6 +288,7 @@ export class IngredientsService extends BaseService<
         trainingId: null,
         ...(params.origin ? { origin: params.origin } : {}),
         ...(params.characterFilter ?? {}),
+        ...(params.tagFilter ?? {}),
       }),
     });
 
@@ -364,26 +371,19 @@ export class IngredientsService extends BaseService<
     }
   }
 
+  /**
+   * Tags an asset may carry (#6011): its brand's tags, organization-wide tags
+   * and the legacy default tags, never another brand's or organization's.
+   */
   async assertClientTags(
     tagIds: string[],
     organizationId: string,
+    brandId?: string | null,
   ): Promise<void> {
-    const ids = [...new Set(tagIds)];
-    if (ids.length === 0) return;
-    if (!organizationId) {
-      throw new BadRequestException(
-        'An organization is required to assign tags',
-      );
-    }
-    const tags = await this.prisma.tag.findMany({
-      where: { id: { in: ids }, organizationId, isDeleted: false },
-      select: { id: true },
+    await assertTagsVisibleToBrand(this.prisma, tagIds, {
+      brandId,
+      organizationId,
     });
-    if (tags.length !== ids.length) {
-      throw new BadRequestException(
-        'Tags must belong to the current organization',
-      );
-    }
   }
 
   async patch(
