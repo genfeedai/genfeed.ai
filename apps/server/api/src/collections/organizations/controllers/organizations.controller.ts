@@ -154,6 +154,7 @@ export class OrganizationsController extends BaseCRUDController<
       {
         description: createDto.description,
         label: createDto.label,
+        websiteUrl: createDto.websiteUrl,
       },
       user,
     );

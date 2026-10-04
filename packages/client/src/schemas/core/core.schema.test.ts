@@ -12,9 +12,18 @@ import {
   inviteMemberSchema,
   memberEditSchema,
 } from '@genfeedai/client/schemas/core/member.schema';
-import { organizationSchema } from '@genfeedai/client/schemas/core/organization.schema';
+import {
+  createOrganizationSchema,
+  organizationSchema,
+} from '@genfeedai/client/schemas/core/organization.schema';
 import { roleSchema } from '@genfeedai/client/schemas/core/role.schema';
 import { subscriptionSchema } from '@genfeedai/client/schemas/core/subscription.schema';
+import {
+  ORGANIZATION_DESCRIPTION_MAX_LENGTH,
+  ORGANIZATION_DESCRIPTION_TOO_LONG_MESSAGE,
+  ORGANIZATION_NAME_REQUIRED_MESSAGE,
+  ORGANIZATION_WEBSITE_FORMAT_MESSAGE,
+} from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
 describe('core schemas', () => {
@@ -88,6 +97,57 @@ describe('core schemas', () => {
 
     it('rejects empty label', () => {
       expect(organizationSchema.safeParse({ label: '' }).success).toBe(false);
+    });
+  });
+
+  describe('createOrganizationSchema', () => {
+    it('needs only a name and drops blank optional fields', () => {
+      expect(
+        createOrganizationSchema.parse({
+          description: '   ',
+          label: '  Acme  ',
+          websiteUrl: '',
+        }),
+      ).toEqual({
+        description: undefined,
+        label: 'Acme',
+        websiteUrl: undefined,
+      });
+    });
+
+    it('keeps a description and a bare-domain website', () => {
+      expect(
+        createOrganizationSchema.parse({
+          description: 'We ship.',
+          label: 'Acme',
+          websiteUrl: 'acme.com',
+        }),
+      ).toEqual({
+        description: 'We ship.',
+        label: 'Acme',
+        websiteUrl: 'acme.com',
+      });
+    });
+
+    it('explains each invalid field', () => {
+      const result = createOrganizationSchema.safeParse({
+        description: 'x'.repeat(ORGANIZATION_DESCRIPTION_MAX_LENGTH + 1),
+        label: '   ',
+        websiteUrl: 'not a site',
+      });
+
+      expect(result.success).toBe(false);
+      const messages = Object.fromEntries(
+        (result.error?.issues ?? []).map((issue) => [
+          String(issue.path[0]),
+          issue.message,
+        ]),
+      );
+      expect(messages).toEqual({
+        description: ORGANIZATION_DESCRIPTION_TOO_LONG_MESSAGE,
+        label: ORGANIZATION_NAME_REQUIRED_MESSAGE,
+        websiteUrl: ORGANIZATION_WEBSITE_FORMAT_MESSAGE,
+      });
     });
   });
 
