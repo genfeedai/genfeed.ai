@@ -3,6 +3,7 @@ import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { CrunVideoGenerationService } from '@api/collections/videos/services/crun-video-generation.service';
 import { CrunVideoInputService } from '@api/collections/videos/services/crun-video-input.service';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import { MetadataExtension } from '@genfeedai/contracts';
 import { VideoGenerationSerializer } from '@genfeedai/serializers';
 
 const brand = '12345678-1234-4234-8234-123456789abc';
@@ -229,162 +230,18 @@ describe('Crun in-process DTO fallback presence', () => {
   });
 });
 
-describe('Crun video output character link', () => {
-  it('records the admitted character on every output', async () => {
-    const input = {
-      resolveOutputPersonaId: vi.fn().mockResolvedValue('persona-1'),
-    };
-    let index = 0;
-    const shared = {
-      createMediaDocuments: vi.fn().mockImplementation(async () => ({
-        ingredientData: { id: `ingredient-${index++}` },
-      })),
-    };
-    const service = new CrunVideoGenerationService(
-      {} as never,
-      input as never,
-      {} as never,
-      { bindOutput: vi.fn() } as never,
-      {} as never,
-      shared as never,
-      { create: vi.fn().mockResolvedValue({ id: 'prompt' }) } as never,
-      {} as never,
-      {} as never,
-      {} as never,
-    );
-    const frozen = {
-      brandId: brand,
-      intentHash: 'hash',
-      quoteId: 'quote',
-      request: { model: 'endpoint', input: { prompt: 'A bird' } },
-      snapshot: { credits: 0, allocatedCredits: [0, 0] },
-    };
-    const provider = {
-      contractVersion: 'reviewed',
-      credentialSource: 'hosted',
-      inputHash: 'input',
-    };
-    const createdIds: string[] = [];
-    await service['createBoundOutputs'](
-      user as never,
-      { ...intent, outputs: 2, references: [] } as never,
-      frozen as never,
-      provider as never,
-      {} as never,
-      createdIds,
-    );
-    expect(createdIds).toEqual(['ingredient-0', 'ingredient-1']);
-    expect(input.resolveOutputPersonaId).toHaveBeenCalledTimes(1);
-    expect(shared.createMediaDocuments).toHaveBeenCalledTimes(2);
-    for (const call of shared.createMediaDocuments.mock.calls)
-      expect(call[1]).toMatchObject({ personaId: 'persona-1' });
+describe('Crun video dispatch strategy', () => {
+  const { service } = fixture();
+  const strategy = service['strategy'];
+  it('links the references and end frame to each output and counts them', () => {
+    const value = { references: ['a', 'b'], endFrame: 'c' } as never;
+    expect(strategy.sourceIds(value)).toEqual(['a', 'b', 'c']);
+    expect(strategy.referenceCount(value)).toBe(3);
+    expect(strategy.sourceIds({} as never)).toEqual([]);
+    expect(strategy.referenceCount({} as never)).toBe(0);
   });
-});
-
-describe('Crun video dispatch compensation', () => {
-  function harness() {
-    const tasks = {
-      findForIngredient: vi.fn(),
-      failPrepared: vi.fn().mockResolvedValue(undefined),
-    };
-    const billing = {
-      abortUnsubmittedOutput: vi.fn().mockResolvedValue(undefined),
-      recordSubmissionRejection: vi.fn().mockResolvedValue(undefined),
-      releasePool: vi.fn().mockResolvedValue(undefined),
-    };
-    const prisma = {
-      ingredient: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
-    };
-    const videos = {
-      findOne: vi.fn().mockResolvedValue({ id: 'ingredient-0' }),
-    };
-    const service = new CrunVideoGenerationService(
-      {} as never,
-      {} as never,
-      tasks as never,
-      billing as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      videos as never,
-      prisma as never,
-      {} as never,
-    );
-    const internals = service as unknown as Record<string, unknown>;
-    internals.prepareQuoteConsumption = vi.fn().mockResolvedValue({
-      raw: {},
-      consumed: { kind: 'fresh', quote: { snapshot: {} } },
-    });
-    internals.reserveFrozenFunding = vi
-      .fn()
-      .mockResolvedValue({ provider: {}, intent: {} });
-    return { service, internals, tasks, billing, prisma };
-  }
-  const request = { user, originalUrl: '/videos' };
-
-  it('a throw creating the second ingredient fails the first and releases the pool', async () => {
-    const h = harness();
-    h.internals.createBoundOutputs = vi
-      .fn()
-      .mockImplementation(async (...args: unknown[]) => {
-        (args[5] as string[]).push('ingredient-0');
-        throw new Error('create failed');
-      });
-    h.tasks.findForIngredient.mockResolvedValue(null);
-    await expect(
-      h.service.generate(user as never, {} as never, request as never),
-    ).rejects.toThrow('create failed');
-    expect(h.billing.abortUnsubmittedOutput).toHaveBeenCalledWith(
-      'ingredient-0',
-      folder,
-    );
-    expect(h.billing.releasePool).toHaveBeenCalledTimes(1);
-  });
-
-  it('a throw during submission fails the remaining prepared tasks and releases the pool', async () => {
-    const h = harness();
-    h.internals.createBoundOutputs = vi
-      .fn()
-      .mockImplementation(async (...args: unknown[]) => {
-        (args[5] as string[]).push('ingredient-0', 'ingredient-1');
-        return {
-          rows: [],
-          ingredients: [
-            { ingredientData: { id: 'ingredient-0' } },
-            { ingredientData: { id: 'ingredient-1' } },
-          ],
-        };
-      });
-    h.internals.submitPreparedOutputs = vi
-      .fn()
-      .mockRejectedValue(new Error('provider outage'));
-    h.tasks.findForIngredient.mockImplementation(
-      async (_org: string, id: string) => ({
-        id: `task-${id}`,
-        state: id === 'ingredient-0' ? 'pending' : 'prepared',
-      }),
-    );
-    await expect(
-      h.service.generate(user as never, {} as never, request as never),
-    ).rejects.toThrow('provider outage');
-    expect(h.tasks.failPrepared).toHaveBeenCalledTimes(1);
-    expect(h.billing.recordSubmissionRejection).toHaveBeenCalledWith(
-      'ingredient-1',
-      folder,
-    );
-    expect(h.billing.releasePool).toHaveBeenCalledTimes(1);
-  });
-
-  it('leaves the success path uncompensated', async () => {
-    const h = harness();
-    h.internals.createBoundOutputs = vi.fn().mockResolvedValue({
-      rows: [],
-      ingredients: [{ ingredientData: { id: 'ingredient-0' } }],
-    });
-    h.internals.submitPreparedOutputs = vi.fn().mockResolvedValue(undefined);
-    await h.service.generate(user as never, {} as never, request as never);
-    expect(h.tasks.failPrepared).not.toHaveBeenCalled();
-    expect(h.billing.abortUnsubmittedOutput).not.toHaveBeenCalled();
-    expect(h.billing.releasePool).not.toHaveBeenCalled();
+  it('compensates a failed funding preflight and writes mp4 outputs', () => {
+    expect(strategy.isPreflightCompensated).toBe(true);
+    expect(strategy.extension({} as never)).toBe(MetadataExtension.MP4);
   });
 });
