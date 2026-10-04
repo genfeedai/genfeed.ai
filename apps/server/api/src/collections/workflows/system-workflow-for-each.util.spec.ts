@@ -21,6 +21,7 @@ describe('executeAwaitedForEach tenant isolation', () => {
           provenance: {
             executionId: `exec-${index}`,
             workflowId: 'scoped-task',
+            workflowLabel: 'Scoped task',
           },
           result: items[index],
         };

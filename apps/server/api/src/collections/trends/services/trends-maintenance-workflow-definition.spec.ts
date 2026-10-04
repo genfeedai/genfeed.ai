@@ -42,7 +42,7 @@ describe('trends maintenance workflow definitions', () => {
           data: expect.objectContaining({
             config: expect.objectContaining({
               actionId: 'workflow.for-each-tenant',
-              failureMode: 'collect',
+              parameters: expect.objectContaining({ failureMode: 'collect' }),
             }),
           }),
         }),
@@ -55,7 +55,9 @@ describe('trends maintenance workflow definitions', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             config: expect.objectContaining({
-              maxConcurrency: SCOPED_REFRESH_MAX_CONCURRENCY,
+              parameters: expect.objectContaining({
+                maxConcurrency: SCOPED_REFRESH_MAX_CONCURRENCY,
+              }),
             }),
           }),
         }),
