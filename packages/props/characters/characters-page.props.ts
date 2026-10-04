@@ -3,6 +3,8 @@ import type {
   BrandCharacterCandidate,
   BrandCharacterListItem,
   BrandCharacterSheetStep,
+  CharacterGrantItem,
+  GrantableOrganization,
 } from '@genfeedai/contracts/interfaces';
 
 export interface CharacterBrandOption {
@@ -107,4 +109,31 @@ export interface CharacterCreateDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   step: BrandCharacterSheetStep;
+}
+
+export interface CharacterGrantsState {
+  grant: (input: {
+    brandIds: string[];
+    mode: PersonaAvailabilityMode;
+    organizationId: string;
+  }) => Promise<void>;
+  grants: CharacterGrantItem[];
+  isLoading: boolean;
+  isWorking: boolean;
+  organizations: GrantableOrganization[];
+  revoke: (grantId: string) => Promise<void>;
+}
+
+export interface BlockedCharacter {
+  handle: string | null;
+  id: string;
+  label: string;
+}
+
+export interface BrandDeleteBlockedDialogProps {
+  brandLabel: string;
+  brandSlug?: string;
+  characters: BlockedCharacter[];
+  onClose: () => void;
+  orgSlug?: string;
 }

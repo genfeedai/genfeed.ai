@@ -11,6 +11,7 @@ import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimizatio
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Brand } from '@models/organization/brand.model';
+import type { BlockedCharacter } from '@props/characters/characters-page.props';
 import type { TableRowLink } from '@props/ui/display/table.props';
 import {
   useBrandOverlay,
@@ -30,10 +31,7 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-import {
-  type BlockedCharacter,
-  readBlockedCharacters,
-} from './blocked-characters.util';
+import { readBlockedCharacters } from './blocked-characters.util';
 import BrandDeleteBlockedDialog from './brand-delete-blocked-dialog';
 
 const ITEMS_PER_PAGE = 20;
