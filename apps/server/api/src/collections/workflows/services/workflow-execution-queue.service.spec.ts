@@ -707,6 +707,7 @@ describe('WorkflowExecutionQueueService', () => {
         createMockQueue(),
         createMockQueue(),
         createMockQueue(),
+        createMockQueue(),
         createMockLogger(),
       );
       const replicaB = new (
@@ -715,6 +716,7 @@ describe('WorkflowExecutionQueueService', () => {
         ) => WorkflowExecutionQueueService
       )(
         mockQueue,
+        createMockQueue(),
         createMockQueue(),
         createMockQueue(),
         createMockQueue(),

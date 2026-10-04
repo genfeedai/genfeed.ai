@@ -236,6 +236,7 @@ export class ProactiveAgentRuntimeFixture {
       this.queues[1],
       this.queues[2],
       this.queues[3],
+      this.queues[4],
       this.logger as never,
     );
     this.publishQueue = new ScheduledPostWorkflowQueueService(
