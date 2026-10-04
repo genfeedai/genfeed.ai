@@ -1,34 +1,29 @@
 import { isCloudDeployment } from '@genfeedai/config';
 import { RouterPriority } from '@genfeedai/contracts';
-import {
-  getFallbackImageModelKey,
-  shouldUseLowestCostModelDefaults,
-} from '@genfeedai/contracts/constants';
+import { getFallbackImageModelKey } from '@genfeedai/contracts/constants';
 import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
 
 const FIRST_RUN_REFERENCE_LIMIT = 10;
 
 /**
- * Hosted production first-run images pin the cloud quality catalogue so the
- * prompt harness is visible. Local, self-hosted, and test keep the cheapest
- * key so those environments do not bill flagship rates.
+ * First-run images are a light, standard-resolution preview, never an HQ
+ * render. Hosted production pins Nano Banana 2 Lite; local, self-hosted, and
+ * test keep the cheapest key. Priority is always COST, and callers size the
+ * request at the standard ~1024px execution dimensions with no resolution
+ * override.
  */
-export function resolveFirstRunImageRouting(): {
+export function resolveFirstRunImageRouting(input: { nodeEnv?: string }): {
   autoSelectModel: false;
   model: string;
   prioritize: RouterPriority;
 } {
-  const input = {
-    isCloud: isCloudDeployment(),
-    nodeEnv: process.env.NODE_ENV,
-  };
-
   return {
     autoSelectModel: false,
-    model: getFallbackImageModelKey(input),
-    prioritize: shouldUseLowestCostModelDefaults(input)
-      ? RouterPriority.COST
-      : RouterPriority.QUALITY,
+    model: getFallbackImageModelKey({
+      isCloud: isCloudDeployment(),
+      nodeEnv: input.nodeEnv,
+    }),
+    prioritize: RouterPriority.COST,
   };
 }
 
@@ -56,6 +51,7 @@ export function collectFirstRunReferenceIds(
 export type FirstRunOnboardingImageBodyInput = {
   brandId?: string;
   height: number;
+  nodeEnv?: string;
   onReferenceError?: (error: unknown) => void;
   organizationId: string;
   prompt: string;
@@ -88,7 +84,9 @@ async function readFirstRunBrandVisualReferenceIds(
 export async function buildFirstRunOnboardingImageBody(
   input: FirstRunOnboardingImageBodyInput,
 ): Promise<Record<string, unknown>> {
-  const routing = resolveFirstRunImageRouting();
+  const routing = resolveFirstRunImageRouting({
+    nodeEnv: input.nodeEnv,
+  });
   const references = await readFirstRunBrandVisualReferenceIds(input);
 
   return {

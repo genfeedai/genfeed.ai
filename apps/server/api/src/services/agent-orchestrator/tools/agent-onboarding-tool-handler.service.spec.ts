@@ -88,6 +88,7 @@ function createHandler(options?: {
     }),
   };
   const configService = {
+    get: vi.fn(() => 'test'),
     ingredientsEndpoint: 'https://cdn.example.com/ingredients',
   };
   const organizationsService = { patch: vi.fn() };

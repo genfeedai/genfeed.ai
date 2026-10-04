@@ -22,24 +22,22 @@ describe('resolveFirstRunImageRouting', () => {
   });
 
   it('pins the lowest-cost image model outside cloud production', () => {
-    vi.stubEnv('NODE_ENV', 'test');
     vi.mocked(isCloudDeployment).mockReturnValue(false);
 
-    expect(resolveFirstRunImageRouting()).toEqual({
+    expect(resolveFirstRunImageRouting({ nodeEnv: 'test' })).toEqual({
       autoSelectModel: false,
       model: LOWEST_COST_IMAGE_MODEL_KEY,
       prioritize: RouterPriority.COST,
     });
   });
 
-  it('pins the cloud quality image model on hosted production', () => {
-    vi.stubEnv('NODE_ENV', 'production');
+  it('pins the light Lite model with COST priority on hosted production', () => {
     vi.mocked(isCloudDeployment).mockReturnValue(true);
 
-    expect(resolveFirstRunImageRouting()).toEqual({
+    expect(resolveFirstRunImageRouting({ nodeEnv: 'production' })).toEqual({
       autoSelectModel: false,
       model: CLOUD_QUALITY_IMAGE_MODEL_KEY,
-      prioritize: RouterPriority.QUALITY,
+      prioritize: RouterPriority.COST,
     });
   });
 });
@@ -82,13 +80,34 @@ describe('buildFirstRunOnboardingImageBody', () => {
     vi.mocked(isCloudDeployment).mockReturnValue(false);
   });
 
+  it('never sends a resolution or quality override on hosted production', async () => {
+    vi.mocked(isCloudDeployment).mockReturnValue(true);
+
+    const body = await buildFirstRunOnboardingImageBody({
+      height: 1024,
+      nodeEnv: 'production',
+      organizationId: 'org-1',
+      prompt: 'first post',
+      width: 1024,
+    });
+
+    expect(body).toMatchObject({
+      height: 1024,
+      model: CLOUD_QUALITY_IMAGE_MODEL_KEY,
+      prioritize: RouterPriority.COST,
+      width: 1024,
+    });
+    expect(body).not.toHaveProperty('resolution');
+    expect(body).not.toHaveProperty('quality');
+  });
+
   it('pins lowest-cost routing and omits references when none resolve', async () => {
-    vi.stubEnv('NODE_ENV', 'test');
     vi.mocked(isCloudDeployment).mockReturnValue(false);
 
     await expect(
       buildFirstRunOnboardingImageBody({
         height: 1024,
+        nodeEnv: 'test',
         organizationId: 'org-1',
         prompt: 'first post',
         width: 1024,

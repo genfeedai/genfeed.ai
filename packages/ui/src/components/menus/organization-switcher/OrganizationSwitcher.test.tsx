@@ -143,6 +143,13 @@ function renderSwitcher() {
 }
 
 describe('OrganizationSwitcher', () => {
+  it('renders the translated switching label while an org switch is pending', () => {
+    mockOrganizationStatus = 'switching';
+    renderSwitcher();
+
+    expect(screen.getByText('Switching…')).toBeInTheDocument();
+  });
+
   beforeEach(() => {
     capturedFooterActions = [];
     capturedItems = [];
