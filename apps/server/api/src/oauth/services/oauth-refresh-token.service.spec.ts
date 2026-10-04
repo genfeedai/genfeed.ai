@@ -84,7 +84,11 @@ function buildHarness() {
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       id: `key-${keySequence}`,
       isRevoked: false,
-      metadata: { kind: 'mcp-oauth-session', resource },
+      metadata: {
+        clientName: 'Claude Code',
+        kind: 'mcp-oauth-session',
+        resource,
+      },
       organizationId: 'org-1',
       rateLimit: 120,
       scopes: [...grantedScopes],
@@ -327,7 +331,11 @@ describe('OAuthRefreshTokenService', () => {
     expect(apiKeysService.rotateWithKey).toHaveBeenCalledWith(
       original.id,
       expect.objectContaining({
-        metadata: { kind: 'mcp-oauth-session', resource },
+        metadata: {
+          clientName: 'Claude Code',
+          kind: 'mcp-oauth-session',
+          resource,
+        },
         organizationId: 'org-1',
         scopes: grantedScopes,
         userId: 'user-1',

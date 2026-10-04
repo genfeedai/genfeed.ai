@@ -66,6 +66,9 @@ export const API_KEY_SCOPE_PRESETS = {
 /** Reserved API-key metadata field written only after server-side MCP verification. */
 export const CONNECT_GENFEED_VERIFICATION_METADATA_KEY = 'connectGenfeed';
 
+/** API-key `metadata.kind` of the session key minted by the MCP OAuth token exchange. */
+export const MCP_OAUTH_SESSION_KIND = 'mcp-oauth-session';
+
 export type ApiKeyScopePreset = keyof typeof API_KEY_SCOPE_PRESETS;
 export type ApiKeyScopePresetValue =
   (typeof API_KEY_SCOPE_PRESETS)[ApiKeyScopePreset][number];

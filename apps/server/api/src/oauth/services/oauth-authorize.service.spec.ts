@@ -191,6 +191,7 @@ describe('OAuthAuthorizeService', () => {
     expect(apiKeysService.createWithKey).toHaveBeenCalledWith(
       expect.objectContaining({
         metadata: {
+          clientName: 'Claude',
           kind: 'mcp-oauth-session',
           resource,
         },

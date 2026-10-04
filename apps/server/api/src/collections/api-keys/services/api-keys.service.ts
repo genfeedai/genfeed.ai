@@ -16,7 +16,10 @@ import {
   API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY,
   ApiKeyScope,
 } from '@genfeedai/contracts';
-import { CONNECT_GENFEED_VERIFICATION_METADATA_KEY } from '@genfeedai/contracts/constants';
+import {
+  CONNECT_GENFEED_VERIFICATION_METADATA_KEY,
+  MCP_OAUTH_SESSION_KIND,
+} from '@genfeedai/contracts/constants';
 import { getApiRateLimitForTier } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
@@ -433,7 +436,7 @@ export class ApiKeysService extends BaseService<
       !Array.isArray(apiKey.metadata)
         ? (apiKey.metadata as Record<string, unknown>)
         : {};
-    return metadata.kind === 'mcp-oauth-session';
+    return metadata.kind === MCP_OAUTH_SESSION_KIND;
   }
 
   hasTrustedMcpOriginProof(supplied: unknown): boolean {
