@@ -7,6 +7,7 @@ import {
   PrismaClient,
   type SystemNotificationDestination,
 } from '@genfeedai/prisma';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
@@ -72,6 +73,7 @@ integration('system notification PostgreSQL fanout', () => {
         }),
       } as unknown as SystemNotificationDestinationsService,
       { deliverSystemNotification: send } as unknown as NotificationsService,
+      { warn: vi.fn() } as unknown as LoggerService,
     );
     expect(await service.deliver(event, 'parent-lease')).toBeInstanceOf(Date);
     const resolved = await prisma.systemEventWebhook.findUniqueOrThrow({

@@ -27,6 +27,7 @@ import type { Post, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { ConflictException } from '@nestjs/common';
+import { PROVIDER_PUBLISH_ATTEMPT_LEASE_MS } from '@workers/services/scheduled-post-provider-receipt.util';
 
 const MAX_SERIALIZABLE_ATTEMPTS = 3;
 const NOT_APPLIED = { applied: false, finalizationCreated: false } as const;
@@ -49,6 +50,12 @@ export type SchedulerPublishTransitionGuard = {
   expectedExternalId?: string;
   expectedWorkflowExecutionId?: string;
   priorExecutionStates?: readonly TargetExecutionState[];
+  /**
+   * The provider-attempt hold the writer owns: the transition applies only
+   * while that receipt row is still `attempting` under this token, checked in
+   * the same transaction as the write.
+   */
+  expectedProviderAttempt?: { attemptToken: string; receiptId: string };
 };
 
 export type SchedulerPublishFinalizationInput = {
@@ -207,6 +214,13 @@ export class SchedulerPublishStateService {
     const { before, lockedAccounts, accountWhere } =
       await this.lockPublicationSource(input, tx, discovered);
 
+    if (!(await this.holdsProviderAttempt(input, tx))) {
+      this.logger.warn(
+        `${this.logContext} ignored transition after losing the provider attempt`,
+        { postId: input.postId },
+      );
+      return NOT_APPLIED;
+    }
     if (
       (input.guard?.expectedExternalId !== undefined &&
         before.externalId !== input.guard.expectedExternalId) ||
@@ -314,6 +328,36 @@ export class SchedulerPublishStateService {
       await this.rollUpRelease({ ...input, groupId: input.groupId }, tx);
     }
     return { applied: true, finalizationCreated };
+  }
+
+  /**
+   * A conditional write, not a read: it row-locks the receipt through the
+   * lifecycle commit and renews the lease, so a takeover can neither run
+   * between this check and the FAILED write nor claim an expired lease that
+   * passed the check. True when the guard names no provider attempt.
+   */
+  private async holdsProviderAttempt(
+    input: SchedulerPublishStateInput,
+    tx: Prisma.TransactionClient,
+  ): Promise<boolean> {
+    const attempt = input.guard?.expectedProviderAttempt;
+    if (!attempt) return true;
+    const now = new Date();
+    const owned = await tx.postProviderPublishReceipt.updateMany({
+      where: {
+        attemptToken: attempt.attemptToken,
+        id: attempt.receiptId,
+        isDeleted: false,
+        leaseRenewedAt: {
+          gt: new Date(now.getTime() - PROVIDER_PUBLISH_ATTEMPT_LEASE_MS),
+        },
+        organizationId: input.organizationId,
+        postId: input.postId,
+        status: 'attempting',
+      },
+      data: { leaseRenewedAt: now },
+    });
+    return owned.count === 1;
   }
 
   private buildTransitionRequest(

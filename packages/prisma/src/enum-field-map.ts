@@ -7461,6 +7461,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'destinationId',
       'event',
       'eventId',
+      'failedAt',
       'id',
       'isDeleted',
       'leaseToken',

@@ -64,7 +64,9 @@ describe('StripeCheckoutWebhookHandler', () => {
   const organizationsService = { findOne: vi.fn() };
   const userSubscriptionsService = { updateFromStripeSession: vi.fn() };
   const organizationSettingsService = { findOne: vi.fn(), patch: vi.fn() };
-  const prisma = { skillReceipt: { create: vi.fn(), findFirst: vi.fn() } };
+  const prisma = {
+    skillReceipt: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
+  };
   const accessBootstrapCacheService = { invalidateForUser: vi.fn() };
   const userSetupService = { initializeUserResources: vi.fn() };
   const eventEmitter = { emitAsync: vi.fn() };
@@ -572,6 +574,9 @@ describe('StripeCheckoutWebhookHandler', () => {
     beforeEach(() => {
       usersService.findOne.mockResolvedValue({ id: 'user_skills_1' });
       organizationsService.findOne.mockResolvedValue({ id: 'org_skills_1' });
+      userSetupService.initializeUserResources.mockResolvedValue({
+        organization: { id: 'org_skills_1' },
+      });
       supportService.upsertSkillsProLead.mockResolvedValue(undefined);
     });
 
@@ -650,6 +655,9 @@ describe('StripeCheckoutWebhookHandler', () => {
       usersService.findOne.mockResolvedValueOnce(null);
       usersService.create.mockResolvedValueOnce({ id: 'user_skills_new' });
       organizationsService.findOne.mockResolvedValueOnce(null);
+      userSetupService.initializeUserResources.mockResolvedValueOnce({
+        organization: null,
+      });
 
       await handler.handleCheckoutCompleted(session, 'test');
 
@@ -661,10 +669,14 @@ describe('StripeCheckoutWebhookHandler', () => {
         BETTER_AUTH_USER_CREATED_EVENT,
         { email: 'buyer@example.com', userId: 'user_skills_new' },
       );
-      expect(prisma.skillReceipt.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
+      expect(prisma.skillReceipt.update).toHaveBeenCalledWith({
+        data: {
           data: expect.objectContaining({ userId: 'user_skills_new' }),
-        }),
+        },
+        where: {
+          isDeleted: false,
+          receiptId: expect.stringMatching(/^sk_rcpt_/),
+        },
       });
       expect(supportService.upsertSkillsProLead).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -672,6 +684,106 @@ describe('StripeCheckoutWebhookHandler', () => {
           userId: 'user_skills_new',
         }),
       );
+    });
+
+    it('resolves a mixed-case buyer email to the existing lower-case user', async () => {
+      prisma.skillReceipt.create.mockResolvedValue({});
+      const mixed = {
+        ...session,
+        customer_details: { email: '  Buyer@Example.COM ' },
+        id: 'cs_skills_mixed',
+      } as unknown as StripeCheckoutSession;
+
+      await handler.handleCheckoutCompleted(mixed, 'test');
+
+      expect(usersService.findOne).toHaveBeenCalledWith({
+        email: 'buyer@example.com',
+      });
+      expect(usersService.create).not.toHaveBeenCalled();
+      expect(prisma.skillReceipt.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          data: expect.objectContaining({ email: 'buyer@example.com' }),
+        }),
+      });
+      expect(notificationsService.deliverEmail).toHaveBeenCalledWith(
+        expect.objectContaining({ to: 'buyer@example.com' }),
+      );
+    });
+
+    it('keeps the receipt when provisioning fails and a retry provisions it once', async () => {
+      const provisioningError = new Error('provisioning failed');
+      const stored = {
+        data: { provisioningStatus: 'pending', stripeSessionId: 'cs_skills_1' },
+        id: 'row_1',
+        receiptId: 'sk_rcpt_kept',
+      };
+      prisma.skillReceipt.create.mockResolvedValue(stored);
+      usersService.findOne.mockResolvedValueOnce(null);
+      usersService.create.mockRejectedValueOnce(provisioningError);
+
+      await expect(
+        handler.handleCheckoutCompleted(session, 'test'),
+      ).rejects.toThrow(provisioningError);
+
+      expect(prisma.skillReceipt.create).toHaveBeenCalledTimes(1);
+      expect(notificationsService.deliverEmail).toHaveBeenCalledTimes(1);
+      expect(prisma.skillReceipt.update).not.toHaveBeenCalled();
+      expect(supportService.upsertSkillsProLead).not.toHaveBeenCalled();
+
+      // Stripe retries: the receipt now exists, so it is not recorded again.
+      prisma.skillReceipt.findFirst.mockResolvedValueOnce(stored);
+      usersService.findOne.mockResolvedValueOnce(null);
+      usersService.create.mockResolvedValueOnce({ id: 'user_skills_new' });
+      organizationsService.findOne.mockResolvedValueOnce(null);
+
+      await handler.handleCheckoutCompleted(session, 'test');
+
+      expect(prisma.skillReceipt.create).toHaveBeenCalledTimes(1);
+      expect(usersService.create).toHaveBeenCalledTimes(2);
+      expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
+      expect(prisma.skillReceipt.update).toHaveBeenCalledTimes(1);
+      expect(prisma.skillReceipt.update).toHaveBeenCalledWith({
+        data: {
+          data: expect.objectContaining({
+            provisioningStatus: 'completed',
+            userId: 'user_skills_new',
+          }),
+        },
+        where: { id: 'row_1', isDeleted: false },
+      });
+      expect(supportService.upsertSkillsProLead).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the receipt pending when resource setup fails after the user exists, then recovers once on retry', async () => {
+      const setupError = new Error('setup failed');
+      const stored = {
+        data: { provisioningStatus: 'pending', stripeSessionId: 'cs_skills_1' },
+        id: 'row_2',
+        receiptId: 'sk_rcpt_pending',
+      };
+      prisma.skillReceipt.create.mockResolvedValue(stored);
+      usersService.findOne.mockResolvedValueOnce(null);
+      usersService.create.mockResolvedValueOnce({ id: 'user_skills_new' });
+      userSetupService.initializeUserResources.mockRejectedValueOnce(
+        setupError,
+      );
+
+      await expect(
+        handler.handleCheckoutCompleted(session, 'test'),
+      ).rejects.toThrow(setupError);
+      expect(prisma.skillReceipt.update).not.toHaveBeenCalled();
+
+      // Retry: the user now exists (so no created event), setup is retried.
+      prisma.skillReceipt.findFirst.mockResolvedValueOnce(stored);
+      usersService.findOne.mockResolvedValueOnce({ id: 'user_skills_new' });
+
+      await handler.handleCheckoutCompleted(session, 'test');
+
+      expect(usersService.create).toHaveBeenCalledTimes(1);
+      expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
+      expect(userSetupService.initializeUserResources).toHaveBeenCalledTimes(2);
+      expect(prisma.skillReceipt.update).toHaveBeenCalledTimes(1);
+      expect(supportService.upsertSkillsProLead).toHaveBeenCalledTimes(1);
     });
 
     it('stores the stripe customer id on the receipt', async () => {

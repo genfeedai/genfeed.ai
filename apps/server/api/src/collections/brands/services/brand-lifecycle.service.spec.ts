@@ -21,6 +21,14 @@ import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException } from '@nestjs/common';
 
+// Tagged-template calls pass a strings array; Prisma.sql passes an object.
+function sqlText(query: unknown): string {
+  if (Array.isArray(query)) {
+    return query.join(' ');
+  }
+  return (query as { sql?: string }).sql ?? '';
+}
+
 describe('BrandLifecycleService', () => {
   let service: BrandLifecycleService;
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
@@ -346,16 +354,21 @@ describe('BrandLifecycleService', () => {
       expect(delegate.update).not.toHaveBeenCalled();
     });
 
-    it('takes the organization persona-handle advisory lock before checking shared characters and grants', async () => {
+    it('takes the organization persona-handle advisory lock first, before any learning fence or brand row lock, and before the shared-character reads', async () => {
       await service.remove(brandId);
 
-      const lockCall = txQueryRaw.mock.calls.findIndex(
-        (call) =>
-          (call[0] as string[]).join(' ').includes('hashtextextended') &&
-          call[1] === `persona-handle:${organizationId}`,
-      );
-      expect(lockCall).toBeGreaterThanOrEqual(0);
-      const lockOrder = txQueryRaw.mock.invocationCallOrder[lockCall];
+      const firstQuery = txQueryRaw.mock.calls[0];
+      expect(sqlText(firstQuery[0])).toContain('hashtextextended');
+      expect(firstQuery[1]).toBe(`persona-handle:${organizationId}`);
+      const lockOrder = txQueryRaw.mock.invocationCallOrder[0];
+      for (const later of txQueryRaw.mock.invocationCallOrder.slice(1)) {
+        expect(lockOrder).toBeLessThan(later);
+      }
+      expect(
+        txQueryRaw.mock.calls
+          .slice(1)
+          .some((call) => sqlText(call[0]).includes('FOR UPDATE')),
+      ).toBe(true);
       expect(lockOrder).toBeLessThan(
         personaDelegate.findMany.mock.invocationCallOrder[0],
       );
@@ -368,8 +381,8 @@ describe('BrandLifecycleService', () => {
       // Sharing holds the org lock; the grant becomes visible only when this
       // transaction acquires it, so the re-check under the lock must refuse.
       let sharingCommitted = false;
-      txQueryRaw.mockImplementation(async (strings: TemplateStringsArray) => {
-        if (strings.join(' ').includes('hashtextextended')) {
+      txQueryRaw.mockImplementation(async (query: unknown) => {
+        if (sqlText(query).includes('hashtextextended')) {
           sharingCommitted = true;
         }
         return [{ id: 'locked' }];
@@ -425,11 +438,14 @@ describe('BrandLifecycleService', () => {
       // one $transaction call this test's fake client hands the same tx —
       // including the FOR UPDATE lock query on the org's live brand rows.
       expect(txQueryRaw).toHaveBeenCalledTimes(5);
-      expect(txQueryRaw.mock.calls[0][0].join(' ')).toContain(
+      expect(sqlText(txQueryRaw.mock.calls[0][0])).toContain(
+        'hashtextextended',
+      );
+      expect(sqlText(txQueryRaw.mock.calls[1][0])).toContain(
         'pg_advisory_xact_lock',
       );
-      expect(txQueryRaw.mock.calls[1][0].sql).toContain('organizations');
-      expect(txQueryRaw.mock.calls[2][0].sql).toContain('brands');
+      expect(sqlText(txQueryRaw.mock.calls[2][0])).toContain('organizations');
+      expect(sqlText(txQueryRaw.mock.calls[3][0])).toContain('brands');
       expect(delegate.findMany).toHaveBeenCalledWith({
         orderBy: { createdAt: 'asc' },
         select: { id: true },

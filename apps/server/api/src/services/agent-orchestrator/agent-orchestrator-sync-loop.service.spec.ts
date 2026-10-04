@@ -169,3 +169,31 @@ describe('approved plan recovery metadata', () => {
     );
   });
 });
+
+describe('final assistant persistence failure', () => {
+  it('records the failed run and rethrows the original error when addMessage rejects', async () => {
+    const { run, provider, messages, recorder } = setup();
+    provider.chatCompletion.mockResolvedValue({
+      id: 'reply',
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      choices: [
+        {
+          message: { content: 'Done.', role: 'assistant', tool_calls: [] },
+        },
+      ],
+    });
+    const persistenceError = new Error('persist failed');
+    messages.addMessage.mockRejectedValue(persistenceError);
+
+    await expect(run(5)).rejects.toBe(persistenceError);
+
+    expect(recorder.recordRunFailed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: 'persist failed',
+        runId: 'approval-run',
+        threadId: 'thread',
+      }),
+    );
+    expect(recorder.recordRunCompleted).not.toHaveBeenCalled();
+  });
+});
