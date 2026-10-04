@@ -2,7 +2,7 @@
 
 import { AGENT_CONNECT_EVENT } from '@ui/buttons/connect-agent/connect-agent.event';
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const LazyAgentConnectDialog = dynamic(() => import('./AgentConnectDialog'), {
   ssr: false,
@@ -21,13 +21,21 @@ function isConnectDeepLink(): boolean {
  */
 export default function AgentConnectLauncher() {
   const [isRequested, setIsRequested] = useState(false);
+  const trigger = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (isRequested) {
       return;
     }
 
-    const request = () => setIsRequested(true);
+    const request = () => {
+      // Capture synchronously: focus may move while the chunk downloads.
+      trigger.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      setIsRequested(true);
+    };
     const requestDeepLink = () => {
       if (isConnectDeepLink()) {
         request();
@@ -43,5 +51,7 @@ export default function AgentConnectLauncher() {
     };
   }, [isRequested]);
 
-  return isRequested ? <LazyAgentConnectDialog openOnMount /> : null;
+  return isRequested ? (
+    <LazyAgentConnectDialog openOnMount returnFocusTo={trigger.current} />
+  ) : null;
 }

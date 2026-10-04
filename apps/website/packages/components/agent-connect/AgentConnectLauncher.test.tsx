@@ -1,24 +1,34 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { AGENT_CONNECT_EVENT } from '@ui/buttons/connect-agent/connect-agent.event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import AgentConnectLauncher from './AgentConnectLauncher';
 
+const dialogModuleLoaded = vi.hoisted(() => vi.fn());
+
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: { apps: { app: 'https://app.genfeed.ai' } },
 }));
+
+// The factory runs only when the module is first imported, so it observes
+// whether the launcher defers loading the dialog.
+vi.mock('./AgentConnectDialog', async (importOriginal) => {
+  dialogModuleLoaded();
+  return importOriginal();
+});
 
 describe('AgentConnectLauncher', () => {
   afterEach(() => {
     window.history.replaceState(null, '', '/');
   });
 
-  it('renders nothing until an open is requested', () => {
+  it('does not load the dialog until an open is requested', () => {
     render(<AgentConnectLauncher />);
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(dialogModuleLoaded).not.toHaveBeenCalled();
   });
 
-  it('lazy-loads and opens the dialog on the connect event', async () => {
+  it('loads the dialog once and opens it on the connect event', async () => {
     render(<AgentConnectLauncher />);
 
     act(() => {
@@ -28,6 +38,31 @@ describe('AgentConnectLauncher', () => {
     expect(await screen.findByRole('dialog')).toHaveAccessibleName(
       'Connect your agent',
     );
+    expect(dialogModuleLoaded).toHaveBeenCalledTimes(1);
+  });
+
+  it('restores focus to the element focused when the open was requested', async () => {
+    const opener = document.createElement('button');
+    const other = document.createElement('button');
+    document.body.append(opener, other);
+    opener.focus();
+    render(<AgentConnectLauncher />);
+
+    act(() => {
+      window.dispatchEvent(new Event(AGENT_CONNECT_EVENT));
+      // Focus moves while the chunk is still downloading.
+      other.focus();
+    });
+    await screen.findByRole('dialog');
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' }),
+      );
+    });
+
+    await waitFor(() => expect(opener).toHaveFocus());
+    opener.remove();
+    other.remove();
   });
 
   it('opens the dialog on first load of the /agent#connect deep link', async () => {
