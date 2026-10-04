@@ -69,25 +69,25 @@ function world(options: { releaseFails?: number } = {}) {
     },
   }));
   const tasks: { ingredientId: string; reservationId: string }[] = [];
-  const matches = (
-    row: Record<string, unknown>,
-    where: Record<string, unknown>,
-  ) =>
-    Object.entries(where).every(([key, value]) => {
+  const matches = (row: object, where: Record<string, unknown>) => {
+    const fields = new Map(Object.entries(row));
+    return Object.entries(where).every(([key, value]) => {
+      const field = fields.get(key);
       if (key === 'metadata' || key === 'generationBilling')
         return (
-          JSON.stringify(row[key]) ===
+          JSON.stringify(field) ===
           JSON.stringify((value as { equals: unknown }).equals)
         );
       if (key === 'createdAt')
-        return (row.createdAt as Date) <= (value as { lte: Date }).lte;
+        return field instanceof Date && field <= (value as { lte: Date }).lte;
       if (key === 'modelUsed')
-        return String(row.modelUsed).startsWith(
+        return String(field).startsWith(
           (value as { startsWith: string }).startsWith,
         );
       if (key === 'organizationId' && typeof value === 'object') return true;
-      return row[key] === value;
+      return field === value;
     });
+  };
   const prisma = {
     // Mirrors the sweep SQL: PROCESSING crun outputs older than the cutoff
     // with no live task, oldest first, limited. Values: status, like, cutoff, limit.
@@ -139,7 +139,7 @@ function world(options: { releaseFails?: number } = {}) {
     },
     creditReservation: {
       findFirst: async ({ where }: { where: Record<string, unknown> }) =>
-        matches(hold as never, where) ? hold : null,
+        matches(hold, where) ? hold : null,
       updateMany: async ({
         where,
         data,
@@ -147,7 +147,7 @@ function world(options: { releaseFails?: number } = {}) {
         where: Record<string, unknown>;
         data: Record<string, unknown>;
       }) => {
-        if (!matches(hold as never, where)) return { count: 0 };
+        if (!matches(hold, where)) return { count: 0 };
         Object.assign(hold, data);
         return { count: 1 };
       },
@@ -224,7 +224,7 @@ describe('Crun pre-submission abort of taskless outputs', () => {
       amount: 1,
       description: 'd',
       expiresAt: now.toISOString(),
-      source: 'video-generation',
+      source: 'video-generate',
       state: 'pending',
       userId: 'u',
       submissionIntentProvider: 'crun',
