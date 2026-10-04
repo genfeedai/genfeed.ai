@@ -704,6 +704,7 @@ export class ImageGenerationProviderDispatchService {
       negativePrompt: context.createImageDto.negativePrompt,
       organizationId: context.user.organizationId,
       parentId: context.ingredientData.parentId ?? undefined,
+      personaId: context.personaId,
       promptId: context.promptData.id,
       scope: context.createImageDto.scope,
       sourceIds: context.referenceIds,

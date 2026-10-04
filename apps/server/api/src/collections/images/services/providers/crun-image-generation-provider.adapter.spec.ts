@@ -34,7 +34,10 @@ function fixture() {
     consume: vi.fn().mockResolvedValue({ kind: 'fresh', quote: frozen }),
     assertCurrent: vi.fn(),
   };
-  const input = { normalize: vi.fn().mockReturnValue(dto) };
+  const input = {
+    normalize: vi.fn().mockReturnValue(dto),
+    resolveOutputPersonaId: vi.fn().mockResolvedValue('persona-1'),
+  };
   const tasks = {
     prepareTasks: vi.fn().mockImplementation(async (rows) => rows),
     submit: vi.fn().mockResolvedValue({ isSubmitted: true, taskId: 'opaque' }),
@@ -124,6 +127,7 @@ describe('Crun image admission batch', () => {
       expect(call[1]).toMatchObject({
         generationPrompt: 'Frozen effective prompt',
         groupId: 'quote',
+        personaId: 'persona-1',
       });
     expect(f.credits.reserveCredits).not.toHaveBeenCalled();
   });

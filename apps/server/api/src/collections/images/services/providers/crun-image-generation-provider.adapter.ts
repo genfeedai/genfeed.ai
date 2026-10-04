@@ -216,6 +216,11 @@ export class CrunImageGenerationProviderAdapter
           organizationId: user.organizationId,
           brandId: frozen.brandId,
         });
+    const personaId = await this.input.resolveOutputPersonaId(
+      intent,
+      user,
+      frozen.brandId,
+    );
     const rows: CrunPreparedTask[] = [];
     const ingredients: Awaited<
       ReturnType<SharedService['createMediaDocuments']>
@@ -230,6 +235,7 @@ export class CrunImageGenerationProviderAdapter
         category: IngredientCategory.IMAGE,
         brandId: frozen.brandId,
         organizationId: user.organizationId,
+        personaId,
         promptId: prompt.id,
         extension:
           frozen.request.input.output_format === 'jpg'

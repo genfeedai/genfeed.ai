@@ -228,3 +228,52 @@ describe('Crun in-process DTO fallback presence', () => {
     expect(f.preview.consume).not.toHaveBeenCalled();
   });
 });
+
+describe('Crun video output character link', () => {
+  it('records the admitted character on every output', async () => {
+    const input = {
+      resolveOutputPersonaId: vi.fn().mockResolvedValue('persona-1'),
+    };
+    let index = 0;
+    const shared = {
+      createMediaDocuments: vi.fn().mockImplementation(async () => ({
+        ingredientData: { id: `ingredient-${index++}` },
+      })),
+    };
+    const service = new CrunVideoGenerationService(
+      {} as never,
+      input as never,
+      {} as never,
+      { bindOutput: vi.fn() } as never,
+      {} as never,
+      shared as never,
+      { create: vi.fn().mockResolvedValue({ id: 'prompt' }) } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const frozen = {
+      brandId: brand,
+      intentHash: 'hash',
+      quoteId: 'quote',
+      request: { model: 'endpoint', input: { prompt: 'A bird' } },
+      snapshot: { credits: 0, allocatedCredits: [0, 0] },
+    };
+    const provider = {
+      contractVersion: 'reviewed',
+      credentialSource: 'hosted',
+      inputHash: 'input',
+    };
+    await service['createBoundOutputs'](
+      user as never,
+      { ...intent, outputs: 2, references: [] } as never,
+      frozen as never,
+      provider as never,
+      {} as never,
+    );
+    expect(input.resolveOutputPersonaId).toHaveBeenCalledTimes(1);
+    expect(shared.createMediaDocuments).toHaveBeenCalledTimes(2);
+    for (const call of shared.createMediaDocuments.mock.calls)
+      expect(call[1]).toMatchObject({ personaId: 'persona-1' });
+  });
+});

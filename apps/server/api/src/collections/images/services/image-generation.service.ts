@@ -341,6 +341,7 @@ export class ImageGenerationService {
       modelSchemaFamily,
       outputs,
       pendingIngredientIds: [ingredientData.id.toString()],
+      personaId,
       promptBuilderBrand,
       promptData,
       referenceIds,
