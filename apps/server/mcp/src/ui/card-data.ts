@@ -1,13 +1,30 @@
 import type { McpToolOutput } from '@genfeedai/actions';
 import type {
   McpAppResult,
+  McpCalendarDay,
   McpCard,
   McpCardKind,
+  McpCardLayout,
   McpCardView,
+  McpMediaKind,
 } from '@mcp/shared/interfaces/mcp-app.interface';
 
-export const MCP_CARD_RESOURCE_URI = 'ui://genfeed/content-cards-v1.html';
+// Bump the version whenever the view changes: hosts cache templates by URI.
+export const MCP_CARD_RESOURCE_URI = 'ui://genfeed/content-cards-v2.html';
 export const MCP_APP_MIME_TYPE = 'text/html;profile=mcp-app';
+
+/** Statuses of a media job that has not produced its output yet. */
+const PENDING_STATUSES = new Set([
+  'generating',
+  'in_progress',
+  'pending',
+  'processing',
+  'queued',
+  'running',
+  'started',
+]);
+
+const CALENDAR_MAX_DAYS = 31;
 
 const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
   create_post: 'post',
@@ -23,11 +40,38 @@ const TOOL_KINDS: Readonly<Record<string, McpCardKind>> = {
   transform_media: 'media',
 };
 
+/** Short host status lines shown while a tool runs and once it returns. */
+const INVOCATION_STATUS: Readonly<
+  Record<McpCardKind, { invoked: string; invoking: string }>
+> = {
+  article: { invoked: 'Article ready', invoking: 'Loading articles…' },
+  audio: { invoked: 'Audio ready', invoking: 'Preparing audio…' },
+  image: { invoked: 'Image ready', invoking: 'Preparing image…' },
+  media: { invoked: 'Media ready', invoking: 'Working on media…' },
+  post: { invoked: 'Posts ready', invoking: 'Loading posts…' },
+  usage: { invoked: 'Usage ready', invoking: 'Checking usage…' },
+  video: { invoked: 'Video ready', invoking: 'Preparing video…' },
+};
+
+/**
+ * Links a tool to the content-card view. `ui.resourceUri` is the MCP Apps
+ * key; the flat `ui/resourceUri` is the legacy spelling older hosts read, and
+ * `openai/outputTemplate` is the ChatGPT alias. Text `content` stays the
+ * fallback for hosts that render no UI.
+ */
 export function withCardMetadata(tool: McpToolOutput): McpToolOutput {
   if (!TOOL_KINDS[tool.name] && tool.name !== 'resolve_approval') return tool;
+  const status = INVOCATION_STATUS[TOOL_KINDS[tool.name] ?? 'post'];
   return {
     ...tool,
-    _meta: { ...tool._meta, ui: { resourceUri: MCP_CARD_RESOURCE_URI } },
+    _meta: {
+      ...tool._meta,
+      'openai/outputTemplate': MCP_CARD_RESOURCE_URI,
+      'openai/toolInvocation/invoked': status.invoked,
+      'openai/toolInvocation/invoking': status.invoking,
+      ui: { resourceUri: MCP_CARD_RESOURCE_URI },
+      'ui/resourceUri': MCP_CARD_RESOURCE_URI,
+    },
   };
 }
 
@@ -69,8 +113,57 @@ function cardKind(
   return fallback;
 }
 
-function card(row: Record<string, unknown>, kind: McpCardKind): McpCard {
+function mediaKind(row: Record<string, unknown>): McpMediaKind | undefined {
+  const kind = cardKind(row, 'media');
+  return kind === 'image' || kind === 'video' || kind === 'audio'
+    ? kind
+    : undefined;
+}
+
+/**
+ * Listed posts carry `media: [{ assetId, kind, order }]` without URLs, so the
+ * preview shows what is attached; a media item that does carry a URL plays.
+ */
+function postMedia(row: Record<string, unknown>): Partial<McpCard> {
+  if (!Array.isArray(row.media)) return {};
+  const items = row.media.slice(0, 10).map(record);
+  const attachments = items.flatMap((item) => {
+    const kind = mediaKind(item);
+    return kind ? [kind] : [];
+  });
+  const playable = items.find(
+    (item) => mediaKind(item) && safeCardUrl(text(item, 'url', 'cdnUrl')),
+  );
   return {
+    ...(attachments.length ? { attachments } : {}),
+    ...(playable
+      ? {
+          mediaKind: mediaKind(playable),
+          mediaUrl: safeCardUrl(text(playable, 'url', 'cdnUrl')),
+        }
+      : {}),
+  };
+}
+
+function progress(row: Record<string, unknown>): number | undefined {
+  const value = row.progress ?? row.generationProgress;
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(100, Math.max(0, Math.round(value)))
+    : undefined;
+}
+
+function card(row: Record<string, unknown>, kind: McpCardKind): McpCard {
+  const status = text(row, 'status', 'state', 'executionState');
+  const url = safeCardUrl(text(row, 'url', 'cdnUrl', 'publishedUrl'));
+  const resolvedKind = cardKind(row, kind);
+  const isMedia = ['audio', 'image', 'media', 'video'].includes(resolvedKind);
+  const isPending =
+    isMedia && !url && PENDING_STATUSES.has(status.toLowerCase());
+  const stage = text(row, 'stage', 'generationStage');
+  return {
+    ...(resolvedKind === 'post' ? postMedia(row) : {}),
+    ...(isPending ? { isPending, progress: progress(row) } : {}),
+    ...(isPending && stage ? { stage } : {}),
     date: text(row, 'scheduledDate', 'scheduledAt', 'publishedAt', 'createdAt'),
     description: text(
       row,
@@ -90,9 +183,9 @@ function card(row: Record<string, unknown>, kind: McpCardKind): McpCard {
       'postId',
       'jobId',
     ),
-    kind: cardKind(row, kind),
+    kind: resolvedKind,
     platform: text(row, 'platform'),
-    status: text(row, 'status', 'state', 'executionState'),
+    status,
     thumbnailUrl: safeCardUrl(
       text(row, 'thumbnailUrl', 'thumbnail', 'posterUrl'),
     ),
@@ -100,8 +193,66 @@ function card(row: Record<string, unknown>, kind: McpCardKind): McpCard {
       text(row, 'title', 'label', 'name') ||
       `${kind.charAt(0).toUpperCase()}${kind.slice(1)}`
     ).slice(0, 240),
-    url: safeCardUrl(text(row, 'url', 'cdnUrl', 'publishedUrl')),
+    url,
   };
+}
+
+function isoDay(value: unknown): string | undefined {
+  if (typeof value !== 'string' && !(value instanceof Date)) return undefined;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? undefined
+    : date.toISOString().slice(0, 10);
+}
+
+/**
+ * `get_posts {days}` returns `scheduled` posts and `gapDays` for the coming
+ * days. Every day in the window becomes a column: its posts, or a gap.
+ */
+function buildCalendarView(data: Record<string, unknown>): McpCardView {
+  const scheduled = Array.isArray(data.scheduled) ? data.scheduled : [];
+  const gapDays = new Set(
+    (Array.isArray(data.gapDays) ? data.gapDays : []).flatMap((value) => {
+      const day = isoDay(value);
+      return day ? [day] : [];
+    }),
+  );
+  const postsByDay = new Map<string, McpCard[]>();
+  for (const value of scheduled.slice(0, 200)) {
+    const row = record(value);
+    const day = isoDay(row.scheduledDate);
+    if (!day) continue;
+    const post = card(row, 'post');
+    postsByDay.set(day, [...(postsByDay.get(day) ?? []), post]);
+  }
+  const days: McpCalendarDay[] = [
+    ...new Set([...gapDays, ...postsByDay.keys()]),
+  ]
+    .sort()
+    .slice(0, CALENDAR_MAX_DAYS)
+    .map((date) => {
+      const posts = (postsByDay.get(date) ?? []).sort((a, b) =>
+        a.date.localeCompare(b.date),
+      );
+      return { date, isGap: posts.length === 0, posts };
+    });
+  const draftsCount =
+    typeof data.draftsCount === 'number' && Number.isFinite(data.draftsCount)
+      ? data.draftsCount
+      : 0;
+  return {
+    calendar: { days, draftsCount },
+    cards: days.flatMap((day) => day.posts),
+    layout: 'calendar',
+    title: 'Content calendar',
+    total: scheduled.length,
+  };
+}
+
+function layoutFor(kind: McpCardKind): McpCardLayout {
+  if (kind === 'post') return 'posts';
+  if (kind === 'article' || kind === 'usage') return 'cards';
+  return 'media';
 }
 
 export function buildCardView(
@@ -111,6 +262,9 @@ export function buildCardView(
   const baseKind = TOOL_KINDS[name];
   if (!baseKind) return undefined;
   const data = record(payload);
+  if (name === 'get_posts' && Array.isArray(data.gapDays)) {
+    return buildCalendarView(data);
+  }
   const kind: McpCardKind =
     name === 'generate_content' && text(data, 'articleId')
       ? 'article'
@@ -130,7 +284,7 @@ export function buildCardView(
           ]
         : [],
     );
-    return { cards, title: 'Usage', total: cards.length };
+    return { cards, layout: 'cards', title: 'Usage', total: cards.length };
   }
   const collection = Array.isArray(payload)
     ? payload
@@ -157,6 +311,7 @@ export function buildCardView(
       : rows.length;
   return {
     cards,
+    layout: layoutFor(kind),
     title: name.replace(/_/g, ' '),
     total: Math.max(count, rows.length),
   };
