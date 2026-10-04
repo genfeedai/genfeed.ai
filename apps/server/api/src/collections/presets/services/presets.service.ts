@@ -8,6 +8,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 const PRESET_CREATE_SCALAR_FIELDS = [
@@ -52,53 +53,65 @@ export class PresetsService extends BaseService<
   }
 
   /**
-   * Override create to add key uniqueness validation
+   * Override create to add key uniqueness validation. Keys are unique within a
+   * scope: among platform defaults (`organizationId: null`) or within one
+   * organization. An organization preset may reuse a platform default's key;
+   * `findByKey` then resolves to the organization's own.
    */
   async create(
     createDto: CreatePresetDto,
     populate: PopulateOption[] = [],
   ): Promise<PresetDocument> {
-    // Check for existing key
-    // tenant-scope-ignore: preset keys are a platform-wide catalog invariant and this superadmin-only create path must reject duplicates across organizations
-    const existing = await this.prisma.preset.findFirst({
-      where: {
-        config: { equals: createDto.key, path: ['key'] },
-        isDeleted: false,
-      },
-    });
+    await this.assertKeyAvailable(createDto.key, createDto.organizationId);
 
-    if (existing) {
-      throw new ConflictException(
-        `Preset with key '${createDto.key}' already exists`,
+    try {
+      return await super.create(
+        {
+          ...pickDefinedFields(createDto, PRESET_CREATE_SCALAR_FIELDS),
+          config: pickDefinedFields(createDto, PRESET_CONFIG_FIELDS),
+        } as unknown as CreatePresetDto,
+        populate,
       );
+    } catch (error) {
+      throw this.toKeyConflict(error, createDto.key);
     }
-
-    return super.create(
-      {
-        ...pickDefinedFields(createDto, PRESET_CREATE_SCALAR_FIELDS),
-        config: pickDefinedFields(createDto, PRESET_CONFIG_FIELDS),
-      } as unknown as CreatePresetDto,
-      populate,
-    );
   }
 
   /**
-   * Find preset by key - specific to presets
+   * Resolve a preset by key for a caller: the caller's own organization first,
+   * then the platform defaults. Never an unscoped lookup, so a key owned by
+   * another organization can never be returned.
    */
-  async findByKey(key: string): Promise<PresetDocument> {
-    // tenant-scope-ignore: preset keys are globally unique catalog identifiers, so this internal key lookup intentionally resolves across organizations
-    const preset = await this.prisma.preset.findFirst({
+  async findByKey(
+    key: string,
+    organizationId?: string | null,
+  ): Promise<PresetDocument> {
+    if (organizationId) {
+      const own = await this.prisma.preset.findFirst({
+        where: scopedWhere(organizationId, {
+          config: { equals: key, path: ['key'] },
+        }),
+      });
+
+      if (own) {
+        return own as unknown as PresetDocument;
+      }
+    }
+
+    const platformDefault = await this.prisma.preset.findFirst({
       where: {
+        AND: this.platformScopeProof(),
         config: { equals: key, path: ['key'] },
         isDeleted: false,
+        organizationId: null,
       },
     });
 
-    if (!preset) {
+    if (!platformDefault) {
       throw new NotFoundException('Preset', key);
     }
 
-    return preset as unknown as PresetDocument;
+    return platformDefault as unknown as PresetDocument;
   }
 
   /**
@@ -152,40 +165,29 @@ export class PresetsService extends BaseService<
     updateDto: Partial<UpdatePresetDto>,
     populate: PopulateOption[] = [],
   ): Promise<PresetDocument> {
-    if (updateDto.key) {
-      // tenant-scope-ignore: preset keys are a platform-wide catalog invariant and this superadmin-only update path must reject duplicates across organizations
-      const existing = await this.prisma.preset.findFirst({
-        where: {
-          config: { equals: updateDto.key, path: ['key'] },
-          id: { not: id },
-          isDeleted: false,
-        },
-      });
-
-      if (existing) {
-        throw new ConflictException(
-          `Preset with key '${updateDto.key}' already exists`,
-        );
-      }
-    }
-
-    const existingConfig = this.hasConfigPatch(updateDto)
-      ? await this.readStoredConfig(await this.findOne({ id }), id)
-      : undefined;
-
-    return super.patch(
+    const existingConfig = await this.validateUpdate(
+      await this.findOne({ id }),
       id,
-      this.buildPatchData(updateDto, existingConfig),
-      populate,
+      updateDto,
     );
+
+    try {
+      return await super.patch(
+        id,
+        this.buildPatchData(updateDto, existingConfig),
+        populate,
+      );
+    } catch (error) {
+      throw this.toKeyConflict(error, updateDto.key);
+    }
   }
 
   /**
    * Scoped variant of `patch` for controllers that address a row through a
    * tenant scope (`where` carries `id` plus the caller's organization arms).
-   * Same key validation and config merge as `patch`, but every lookup reuses
-   * that scope so the CLOUD tenant guard sees the caller's organization. The
-   * duplicate-key check is therefore limited to the rows visible in the scope.
+   * Same key validation and config merge as `patch`, but the row is resolved
+   * through that scope so the CLOUD tenant guard sees the caller's
+   * organization.
    */
   override async patchOneWhere(
     where: Record<string, unknown>,
@@ -193,35 +195,115 @@ export class PresetsService extends BaseService<
     populate: PopulateOption[] = [],
   ): Promise<PresetDocument | null> {
     const dto = updateDto as Partial<UpdatePresetDto>;
-    const id = String(where.id);
+    const existingConfig = await this.validateUpdate(
+      await this.findOne(where),
+      String(where.id),
+      dto,
+    );
 
-    if (dto.key) {
-      const duplicate = await this.findOne({
-        ...where,
-        config: { equals: dto.key, path: ['key'] },
-        id: { not: id },
-      });
+    try {
+      return await super.patchOneWhere(
+        where,
+        this.buildPatchData(dto, existingConfig),
+        populate,
+      );
+    } catch (error) {
+      throw this.toKeyConflict(error, dto.key);
+    }
+  }
 
-      if (duplicate) {
-        throw new ConflictException(
-          `Preset with key '${dto.key}' already exists`,
-        );
-      }
+  /**
+   * Validate the key an update would leave on the row against the scope the
+   * row ends up in, and return the stored config to merge the patch into.
+   */
+  private async validateUpdate(
+    existing: PresetDocument | null,
+    id: string,
+    updateDto: Partial<UpdatePresetDto>,
+  ): Promise<Record<string, unknown> | undefined> {
+    const hasConfigPatch = this.hasConfigPatch(updateDto);
+    const changesScope = updateDto.organizationId !== undefined;
+
+    if (!hasConfigPatch && !changesScope) {
+      return undefined;
     }
 
-    let existingConfig: Record<string, unknown> | undefined;
-    if (this.hasConfigPatch(dto)) {
-      existingConfig = await this.readStoredConfig(
-        await this.findOne(where),
+    const storedConfig = this.readStoredConfig(existing, id);
+    const key = updateDto.key ?? storedConfig.key;
+
+    if (
+      (updateDto.key !== undefined || changesScope) &&
+      typeof key === 'string' &&
+      key.length > 0
+    ) {
+      await this.assertKeyAvailable(
+        key,
+        changesScope ? updateDto.organizationId : existing?.organizationId,
         id,
       );
     }
 
-    return super.patchOneWhere(
-      where,
-      this.buildPatchData(dto, existingConfig),
-      populate,
-    );
+    return hasConfigPatch ? storedConfig : undefined;
+  }
+
+  /**
+   * Reject a key already used by another live preset in the same scope:
+   * platform defaults among platform defaults, an organization's presets
+   * within that organization.
+   */
+  private async assertKeyAvailable(
+    key: string,
+    organizationId: string | null | undefined,
+    excludeId?: string,
+  ): Promise<void> {
+    const keyFilter = { config: { equals: key, path: ['key'] } };
+    const notSelf = excludeId ? { id: { not: excludeId } } : {};
+
+    const duplicate = organizationId
+      ? await this.prisma.preset.findFirst({
+          where: scopedWhere(organizationId, { ...keyFilter, ...notSelf }),
+        })
+      : await this.prisma.preset.findFirst({
+          where: {
+            ...notSelf,
+            AND: this.platformScopeProof(),
+            ...keyFilter,
+            isDeleted: false,
+            organizationId: null,
+          },
+        });
+
+    if (duplicate) {
+      throw new ConflictException(`Preset with key '${key}' already exists`);
+    }
+  }
+
+  /**
+   * The CLOUD tenant guard rejects a tenant-model query that names no
+   * organization. A platform-default lookup is `organizationId: null`, so while
+   * a tenant is active it also carries a redundant arm naming the caller's
+   * organization (the same shape as the controller scope). The `null` filter
+   * still decides which rows match.
+   */
+  private platformScopeProof(): Record<string, unknown>[] {
+    const organizationId = getTenantContext()?.organizationId;
+
+    return organizationId
+      ? [{ OR: [{ organizationId: null }, { organizationId }] }]
+      : [];
+  }
+
+  /** Turn the partial unique index's violation into the same conflict. */
+  private toKeyConflict(error: unknown, key: string | undefined): unknown {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      (error as { code?: unknown }).code === 'P2002'
+    ) {
+      return new ConflictException(`Preset with key '${key}' already exists`);
+    }
+
+    return error;
   }
 
   private hasConfigPatch(updateDto: Partial<UpdatePresetDto>): boolean {
