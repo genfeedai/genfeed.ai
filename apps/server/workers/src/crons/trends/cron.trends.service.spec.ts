@@ -99,6 +99,17 @@ describe('CronTrendsService', () => {
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
       },
     );
+    expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalId: TRENDS_MAINTENANCE_WORKFLOW_IDS.SCOPED_REFRESH,
+      }),
+      'trends-scoped-refresh-41387',
+      {
+        attempts: 3,
+        delayMs: SCOPED_REFRESH_START_DELAY_MS,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+      },
+    );
     expect(trends.fetchAndCacheTrends).not.toHaveBeenCalled();
   });
 

@@ -18,6 +18,13 @@ export const TRENDS_MAINTENANCE_ACTION_IDS = {
   PRECOMPUTE_PREVIEW: 'trends.maintenance.precompute-preview',
 } as const;
 
+// The scoped refresh is queued by the same 00:15/12:15 tick as the global
+// refresh and the */5 content-learning reconcile. Delaying it by a minute
+// that is not a multiple of 5 and running fewer tenants at once keeps the
+// transaction pool from being exhausted in that minute (#5961).
+export const SCOPED_REFRESH_START_DELAY_MS = 7 * 60 * 1000;
+export const SCOPED_REFRESH_MAX_CONCURRENCY = 2;
+
 export const TRENDS_MAINTENANCE_WORKFLOW_IDS = {
   DATASET_TASK: 'trends.maintenance.dataset-task',
   REFRESH: 'trends.maintenance.refresh',
@@ -275,7 +282,7 @@ export function buildScopedTrendsRefreshWorkflowDefinition(): SystemWorkflowGrap
           // failing every other tenant's refresh (#5961).
           failureMode: 'collect',
           itemInputKey: 'task',
-          maxConcurrency: 3,
+          maxConcurrency: SCOPED_REFRESH_MAX_CONCURRENCY,
           mode: 'await',
         }),
       ],
