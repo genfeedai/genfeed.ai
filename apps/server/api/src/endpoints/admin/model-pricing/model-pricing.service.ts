@@ -11,6 +11,7 @@ import {
   type ModelProviderContract,
   Prisma,
 } from '@genfeedai/prisma';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 
 const pricingContractSelect = {
@@ -338,11 +339,15 @@ export class AdminModelPricingService {
       async (transaction) => {
         const retrievedAt = new Date().toISOString();
         const [models, setting] = await Promise.all([
-          transaction.model.findMany({
-            where: { organizationId: null, isDeleted: false },
-            orderBy: { key: 'asc' },
-            select: pricingModelSelect,
-          }),
+          // Superadmin report over the platform-global model registry.
+          crossOrgUnsafe(
+            async () =>
+              await transaction.model.findMany({
+                where: { organizationId: null, isDeleted: false },
+                orderBy: { key: 'asc' },
+                select: pricingModelSelect,
+              }),
+          ),
           transaction.platformSetting.findFirst({
             where: { key: 'platform', isDeleted: false },
             select: { marginMultiplierGeneration: true },

@@ -5,6 +5,7 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -109,6 +110,7 @@ export class BookmarksService extends BaseService<
   async addGeneratedIngredient(
     bookmarkId: string,
     ingredientId: string,
+    organizationId: string,
   ): Promise<Bookmark | null> {
     this.logOperation('addGeneratedIngredient', 'started', {
       bookmarkId,
@@ -116,7 +118,7 @@ export class BookmarksService extends BaseService<
     });
 
     const bookmark = await this.delegate.findFirst({
-      where: { id: bookmarkId, isDeleted: false },
+      where: scopedWhere(organizationId, { id: bookmarkId }),
     });
 
     if (!bookmark) {
@@ -124,7 +126,7 @@ export class BookmarksService extends BaseService<
     }
 
     const result = await this.delegate.update({
-      where: { id: bookmarkId },
+      where: scopedWhere(organizationId, { id: bookmarkId }),
       data: {
         generatedIngredients: { connect: { id: ingredientId } },
         processedAt: new Date(),

@@ -344,7 +344,7 @@ export class ContentRunRecommendationsService {
 
     const updatedRun = (await this.prisma.contentRun.update({
       data: { config: toContentRunJsonValue(nextConfig) },
-      where: { id: runId },
+      where: scopedWhere(organizationId, { id: runId }),
     })) as unknown as Record<string, unknown>;
 
     const winner = scores[0];

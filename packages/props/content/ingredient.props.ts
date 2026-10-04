@@ -406,4 +406,6 @@ export interface SelectionActionsBarProps {
   onPublishCampaign?: () => void;
   /** `subtopbar` joins the pinned library filters instead of floating. */
   placement?: 'overlay' | 'subtopbar';
+  /** The bulk tag control, rendered beside the other constructive actions. */
+  tagAction?: ReactNode;
 }

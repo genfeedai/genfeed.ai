@@ -610,8 +610,8 @@ describe('proactive organization to strategy run and attributed draft integratio
       agentStrategyId: 'strategy',
       targetExecutionState: 'draft',
     });
-    await completion.completeExecution('turn-1');
-    await completion.completeExecution('turn-1');
+    await completion.completeExecution('turn-1', 'org');
+    await completion.completeExecution('turn-1', 'org');
     expect(strategy).toMatchObject({
       config: {
         weeklyCreditBudget: 50,
@@ -1158,6 +1158,7 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
     const executionId = String(result.executionId);
     await fixture.executions.completeExecution(
       executionId,
+      fixture.organizationId,
       'Deterministic worker failure before inference',
     );
     const job = await fixture
@@ -1186,6 +1187,7 @@ describe('isolated PostgreSQL/Redis proactive runtime', () => {
     const first = await fixture.dispatch(agent.id);
     await fixture.executions.completeExecution(
       String(first.executionId),
+      fixture.organizationId,
       'Fixture stops before inference',
     );
     await fixture.prisma.agentThread.updateMany({

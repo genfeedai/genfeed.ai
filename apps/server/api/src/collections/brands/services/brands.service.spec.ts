@@ -39,6 +39,10 @@ import { Prisma } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
+import {
+  isCrossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
 describe('BrandsService', () => {
@@ -559,6 +563,37 @@ describe('BrandsService', () => {
       expect(updateCall?.data).toEqual({ label: 'Renamed' });
       expect(updateCall?.data).not.toHaveProperty('description');
       expect(updateCall?.data).not.toHaveProperty('primaryColor');
+    });
+
+    it('scopes the id-only write to the request tenant in CLOUD mode', async () => {
+      const existing = { id: 'brand-1', label: 'B', organizationId: 'org-1' };
+      delegate.update.mockResolvedValue({ ...existing, label: 'Renamed' });
+
+      await runWithTenantContext({ organizationId: 'org-1' }, () =>
+        service.patch('brand-1', { label: 'Renamed' }),
+      );
+
+      expect(delegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: 'brand-1',
+            isDeleted: false,
+            organizationId: 'org-1',
+          }),
+        }),
+      );
+    });
+
+    it('treats a brand outside the request tenant as not found', async () => {
+      delegate.update.mockRejectedValue(
+        Object.assign(new Error('record not found'), { code: 'P2025' }),
+      );
+
+      await expect(
+        runWithTenantContext({ organizationId: 'org-2' }, () =>
+          service.patch('brand-1', { label: 'Renamed' }),
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('rejects agentConfig so JSON updates cannot bypass the merge boundary', async () => {
@@ -1867,6 +1902,21 @@ describe('BrandsService', () => {
         select: { id: true },
         where: { id: { not: 'brand_1' }, slug: 'vincent-on-ai' },
       });
+    });
+
+    it('looks the slug up across every organization, outside the request tenant', async () => {
+      const crossOrgFlags: boolean[] = [];
+      delegate.findFirst.mockImplementation(async () => {
+        crossOrgFlags.push(isCrossOrgUnsafe());
+        return null;
+      });
+
+      await runWithTenantContext({ organizationId: 'org-1' }, async () => {
+        await service.isSlugAvailable('vincent-on-ai', 'brand_1');
+        await service.generateUniqueSlug('Vincent on AI');
+      });
+
+      expect(crossOrgFlags).toEqual([true, true]);
     });
 
     it('is taken when any other brand holds it, deleted or in another organization', async () => {

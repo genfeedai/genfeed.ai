@@ -628,7 +628,9 @@ export class AgentWorkObjectService {
         isDeleted: false,
       },
     });
-    if (execution) await this.executions.cancelExecution(execution.id);
+    if (execution) {
+      await this.executions.cancelExecution(execution.id, scope.organizationId);
+    }
   }
 
   async linkReviewExecution(

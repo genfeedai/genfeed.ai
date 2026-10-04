@@ -1,5 +1,5 @@
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
-import { IngredientOrigin } from '@genfeedai/contracts';
+import { IngredientOrigin, TagMatchMode } from '@genfeedai/contracts';
 
 describe('IngredientFilterUtil', () => {
   describe('buildOriginFilter', () => {
@@ -32,6 +32,67 @@ describe('IngredientFilterUtil', () => {
 
     it('adds no predicate when no character was asked for', () => {
       expect(IngredientFilterUtil.buildCharacterFilter(undefined)).toEqual({});
+    });
+  });
+
+  describe('buildTagFilter', () => {
+    it('matches assets carrying any of the tags by default', () => {
+      const expected = {
+        tags: { some: { id: { in: ['t1', 't2'] }, isDeleted: false } },
+      };
+
+      expect(
+        IngredientFilterUtil.buildTagFilter(['t1', 't2'], undefined),
+      ).toEqual(expected);
+      expect(
+        IngredientFilterUtil.buildTagFilter(['t1', 't2'], TagMatchMode.ANY),
+      ).toEqual(expected);
+    });
+
+    it('requires every tag in all mode, one predicate per tag', () => {
+      expect(
+        IngredientFilterUtil.buildTagFilter(['t1', 't2'], TagMatchMode.ALL),
+      ).toEqual({
+        AND: [
+          { tags: { some: { id: 't1', isDeleted: false } } },
+          { tags: { some: { id: 't2', isDeleted: false } } },
+        ],
+      });
+    });
+
+    it('de-duplicates repeated ids so all mode never demands a tag twice', () => {
+      expect(
+        IngredientFilterUtil.buildTagFilter(['t1', 't1'], TagMatchMode.ALL),
+      ).toEqual({ AND: [{ tags: { some: { id: 't1', isDeleted: false } } }] });
+    });
+
+    it.each([undefined, []])('adds no predicate for %p', (tagIds) => {
+      expect(
+        IngredientFilterUtil.buildTagFilter(tagIds, TagMatchMode.ALL),
+      ).toEqual({});
+    });
+  });
+
+  describe('buildLibraryTagsInclude', () => {
+    it('lists only live tags with just what a chip needs', () => {
+      const { tags } = IngredientFilterUtil.buildLibraryTagsInclude();
+
+      expect(tags.where).toEqual({ isDeleted: false });
+      expect(tags.orderBy).toEqual({ label: 'asc' });
+      expect(Object.keys(tags.select).sort()).toEqual([
+        'backgroundColor',
+        'brandId',
+        'id',
+        'label',
+        'organizationId',
+        'textColor',
+      ]);
+    });
+
+    it('adds tags to the unified list include without dropping row data', () => {
+      expect(
+        Object.keys(IngredientFilterUtil.buildLibraryListInclude()),
+      ).toEqual(['metadata', 'prompt', 'tags']);
     });
   });
 

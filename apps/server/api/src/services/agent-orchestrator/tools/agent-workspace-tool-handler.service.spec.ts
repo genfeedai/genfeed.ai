@@ -354,6 +354,126 @@ describe('AgentWorkspaceToolHandler.listAssets characterIds (#6039 MCP, #6040)',
   });
 });
 
+describe('AgentWorkspaceToolHandler.listAssets tags (#6011)', () => {
+  const [first, second] = [testId('tag', 1), testId('tag', 2)];
+
+  function build() {
+    const ingredients = { listLibraryAssets: vi.fn().mockResolvedValue([]) };
+    return { handler: buildHandler({ ingredients }), ingredients };
+  }
+
+  it('filters by any of the tags by default', async () => {
+    const { handler, ingredients } = build();
+
+    await handler.listAssets({ tags: [first, second], type: 'image' }, baseCtx);
+
+    expect(ingredients.listLibraryAssets).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tagFilter: {
+          tags: { some: { id: { in: [first, second] }, isDeleted: false } },
+        },
+      }),
+    );
+  });
+
+  it('requires every tag in all mode', async () => {
+    const { handler, ingredients } = build();
+
+    await handler.listAssets(
+      { tagMatch: 'all', tags: [first, second], type: 'video' },
+      baseCtx,
+    );
+
+    expect(ingredients.listLibraryAssets).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tagFilter: {
+          AND: [
+            { tags: { some: { id: first, isDeleted: false } } },
+            { tags: { some: { id: second, isDeleted: false } } },
+          ],
+        },
+      }),
+    );
+  });
+
+  it('adds no tag filter when none was asked for', async () => {
+    const { handler, ingredients } = build();
+
+    await handler.listAssets({ type: 'image' }, baseCtx);
+
+    expect(ingredients.listLibraryAssets.mock.calls[0][0]).not.toHaveProperty(
+      'tagFilter',
+    );
+  });
+
+  it('rejects malformed, oversized and non-array tag input', async () => {
+    const { handler, ingredients } = build();
+
+    for (const tags of [
+      ['not an id!'],
+      [first, 7],
+      first,
+      Array.from({ length: 26 }, (_, index) => testId('tag', index + 1)),
+    ]) {
+      const result = await handler.listAssets({ tags, type: 'image' }, baseCtx);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('tags must be at most 25 tag ids');
+    }
+    expect(ingredients.listLibraryAssets).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unknown tagMatch', async () => {
+    const { handler, ingredients } = build();
+
+    const result = await handler.listAssets(
+      { tagMatch: 'both', tags: [first], type: 'image' },
+      baseCtx,
+    );
+
+    expect(result).toMatchObject({
+      error: 'tagMatch must be any or all.',
+      success: false,
+    });
+    expect(ingredients.listLibraryAssets).not.toHaveBeenCalled();
+  });
+
+  it('rejects tags for characters', async () => {
+    const result = await buildHandler({}).listAssets(
+      { tags: [first], type: 'character' },
+      baseCtx,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('tags');
+  });
+
+  it('returns each asset’s tags so an agent can filter by them', async () => {
+    const ingredients = {
+      listLibraryAssets: vi.fn().mockResolvedValue([
+        {
+          category: 'IMAGE',
+          id: 'img-1',
+          status: 'GENERATED',
+          tags: [
+            { backgroundColor: '#000', id: first, label: 'S1E12' },
+            { id: second },
+            null,
+          ],
+        },
+      ]),
+    };
+
+    const result = await buildHandler({ ingredients }).listAssets(
+      { type: 'image' },
+      baseCtx,
+    );
+
+    expect(
+      (result.data as { assets: Array<{ tags: unknown }> }).assets[0]?.tags,
+    ).toEqual([{ id: first, label: 'S1E12' }]);
+  });
+});
+
 describe('AgentWorkspaceToolHandler.listAssets library assets', () => {
   const row = {
     category: 'IMAGE',
@@ -391,6 +511,7 @@ describe('AgentWorkspaceToolHandler.listAssets library assets', () => {
           origin: 'GENERATED',
           prompt: 'a red fox',
           status: 'GENERATED',
+          tags: [],
           url: 'https://cdn.example.test/img-1.png',
         },
       ],

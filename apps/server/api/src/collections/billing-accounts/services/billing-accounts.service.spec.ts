@@ -9,6 +9,11 @@ import {
 } from '@genfeedai/contracts';
 import { BillingAccountSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  getTenantContext,
+  isCrossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 
 describe('BillingAccountsService', () => {
@@ -231,6 +236,66 @@ describe('BillingAccountsService', () => {
       data: { billingAccountId: 'ba_replacement' },
       where: { id: 'org_2' },
     });
+  });
+
+  it('detaches a sibling organization under that organization tenant, with only the sibling lookup cross-org (CLOUD guard)', async () => {
+    prisma.billingAccountMember.findFirst.mockResolvedValue({
+      role: BillingAccountMemberRole.OWNER,
+    });
+    prisma.billingAccountOrganization.updateMany.mockResolvedValue({
+      count: 1,
+    });
+    prisma.billingAccount.create.mockResolvedValue({ id: 'ba_replacement' });
+    prisma.creditBalance.findFirst.mockResolvedValue({
+      id: 'cb_1',
+      organizationId: 'org_2',
+    });
+    const tenantSeen: Array<string | undefined> = [];
+    prisma.member.findFirst.mockImplementation(async () => {
+      tenantSeen.push(getTenantContext()?.organizationId);
+      return { role: { key: 'owner' }, roleKey: 'owner' };
+    });
+    let siblingLookupWasCrossOrg = false;
+    prisma.billingAccountOrganization.findFirst.mockImplementation(async () => {
+      siblingLookupWasCrossOrg = isCrossOrgUnsafe();
+      return { organizationId: 'org_3' };
+    });
+
+    // The session organization is org_1; the detached sibling is org_2.
+    await runWithTenantContext({ organizationId: 'org_1' }, () =>
+      service.detachOrganization({
+        actorUserId: 'user_1',
+        billingAccountId: 'ba_1',
+        organizationId: 'org_2',
+      }),
+    );
+
+    expect(tenantSeen).toEqual(['org_2']);
+    expect(siblingLookupWasCrossOrg).toBe(true);
+    expect(prisma.creditBalance.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { organizationId: 'org_3' } }),
+    );
+  });
+
+  it('refuses to detach for a normal member who does not administer the detached organization (CLOUD guard)', async () => {
+    prisma.billingAccountMember.findFirst.mockResolvedValue({
+      role: BillingAccountMemberRole.OWNER,
+    });
+    prisma.member.findFirst.mockResolvedValue({
+      role: { key: 'viewer' },
+      roleKey: 'viewer',
+    });
+
+    await expect(
+      runWithTenantContext({ organizationId: 'org_1' }, () =>
+        service.detachOrganization({
+          actorUserId: 'user_1',
+          billingAccountId: 'ba_1',
+          organizationId: 'org_2',
+        }),
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.billingAccountOrganization.updateMany).not.toHaveBeenCalled();
   });
 
   it('rejects detaching an organization with unsettled reservations', async () => {

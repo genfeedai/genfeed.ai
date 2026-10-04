@@ -529,7 +529,10 @@ export class ContentGeneratorService implements OnModuleInit {
     state: GeneratedPatternState,
   ): Promise<GeneratedContent> {
     if (state.trackUsage && state.pattern.id) {
-      await this.patternStoreService.incrementUsage(state.pattern.id);
+      await this.patternStoreService.incrementUsage(
+        state.pattern.id,
+        state.organizationId,
+      );
     }
     return state.generated;
   }

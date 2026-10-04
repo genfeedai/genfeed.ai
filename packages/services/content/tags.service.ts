@@ -1,9 +1,12 @@
-import type { TagCategory } from '@genfeedai/contracts';
+import { type TagCategory, TagScope } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type { IQueryParams, ITag } from '@genfeedai/contracts/interfaces';
 import { Tag } from '@genfeedai/models/content/tag.model';
 import { TagSerializer } from '@genfeedai/serializers';
-import { BaseService } from '@services/core/base.service';
+import {
+  BaseService,
+  type JsonApiResponseDocument,
+} from '@services/core/base.service';
 import { logger } from '@services/core/logger.service';
 
 export class TagsService extends BaseService<Tag> {
@@ -13,6 +16,37 @@ export class TagsService extends BaseService<Tag> {
 
   public static getInstance(token: string): TagsService {
     return BaseService.getDataServiceInstance(TagsService, token);
+  }
+
+  /**
+   * The tags one brand can use (#6011): its own brand tags, organization-wide
+   * tags and legacy default tags, each with how many of the brand's assets
+   * carry it. Omit `brandId` for the active brand.
+   */
+  async findLibraryTags(
+    options: { brandId?: string; search?: string; signal?: AbortSignal } = {},
+  ): Promise<Tag[]> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      'library',
+      {
+        params: { brandId: options.brandId, search: options.search },
+        signal: options.signal,
+      },
+    );
+
+    return this.mapMany(response.data);
+  }
+
+  /**
+   * Create a tag in the active brand, or organization-wide with
+   * `scope: 'organization'`. A label that already exists in the same scope
+   * returns that tag instead of a duplicate.
+   */
+  async createLibraryTag(
+    label: string,
+    scope: TagScope.BRAND | TagScope.ORGANIZATION = TagScope.BRAND,
+  ): Promise<Tag> {
+    return await this.post({ label: label.trim(), scope });
   }
 
   /**

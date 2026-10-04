@@ -274,6 +274,7 @@ export class DefaultRecurringContentService {
       if (workflowSchedulerService) {
         await workflowSchedulerService.updateSchedule(
           workflow.id,
+          organizationId,
           scheduleConfig.cronExpression,
           scheduleConfig.timezone,
           scheduleConfig.isEnabled,

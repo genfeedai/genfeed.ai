@@ -138,8 +138,10 @@ export class WorkflowExecutionRunnerService {
       executableWorkflow,
       triggerEvent.data,
     );
-    const existingExecution =
-      await this.executionsService.getRuntimeState(executionId);
+    const existingExecution = await this.executionsService.getRuntimeState(
+      executionId,
+      jobData.organizationId,
+    );
     await this.assertResumedAgentScope(
       existingExecution?.metadata,
       triggerEvent.userId,
@@ -168,6 +170,7 @@ export class WorkflowExecutionRunnerService {
         executionId,
         finalStatus,
         isSystemAction: existingExecution?.metadata?.isSystemAction === true,
+        organizationId: jobData.organizationId,
         result,
         triggerEvent,
         workflowId,
@@ -386,7 +389,10 @@ export class WorkflowExecutionRunnerService {
     event: TriggerEvent,
     trigger: WorkflowExecutionTrigger,
   ): Promise<void> {
-    await this.executionsService.startExecution(prepared.executionId);
+    await this.executionsService.startExecution(
+      prepared.executionId,
+      prepared.organizationId,
+    );
     await this.progressService.publishWorkflowTaskUpdate({
       eta: prepared.initialEta,
       executionId: prepared.executionId,
@@ -440,6 +446,7 @@ export class WorkflowExecutionRunnerService {
       completedAt: new Date(),
       executionId: prepared.executionId,
       finalStatus,
+      organizationId: prepared.organizationId,
       result,
       skipWorkflowStatusUpdate: prepared.isSystemAction,
       workflowId: prepared.workflowId,
@@ -520,6 +527,7 @@ export class WorkflowExecutionRunnerService {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const failedExecution = await this.executionsService.completeExecution(
       prepared.executionId,
+      prepared.organizationId,
       errorMessage,
     );
     await this.settleClipChainHoldSafely({
@@ -633,6 +641,7 @@ export class WorkflowExecutionRunnerService {
     executionId: string;
     finalStatus: WorkflowExecutionStatus;
     isSystemAction: boolean;
+    organizationId: string;
     result: ExecutionRunResult;
     triggerEvent: TriggerEvent;
     workflowId: string;
@@ -645,6 +654,7 @@ export class WorkflowExecutionRunnerService {
       completedAt: new Date(),
       executionId: input.executionId,
       finalStatus: input.finalStatus,
+      organizationId: input.organizationId,
       result: input.result,
       skipWorkflowStatusUpdate: input.isSystemAction,
       workflowId: input.workflowId,
@@ -714,6 +724,7 @@ export class WorkflowExecutionRunnerService {
     });
     const failedExecution = await this.executionsService.completeExecution(
       input.executionId,
+      input.organizationId,
       errorMessage,
     );
     const totalCreditsUsed = await this.settleClipChainHoldSafely({
@@ -812,6 +823,7 @@ export class WorkflowExecutionRunnerService {
   }): Promise<WorkflowExecutionResult> {
     const failedExecution = await this.executionsService.completeExecution(
       input.executionId,
+      input.organizationId,
       input.errorMessage,
     );
     const totalCreditsUsed = await this.settleClipChainHoldSafely({

@@ -11,6 +11,7 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
+import { LIBRARY_TAGS_QUERY_KEY } from '@ui/tags/library-tag-picker/library-tags-query-key';
 import { THEME_COLORS } from '@ui-constants/theme.constant';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -50,10 +51,11 @@ export default function TagsManager({
     isLoading,
     refetch: refreshAvailableTags,
   } = useQuery({
-    queryKey: ['tags-manager-available', TagCategory.INGREDIENT],
+    // The brand's own tags plus organization-wide tags, never another brand's.
+    queryKey: [LIBRARY_TAGS_QUERY_KEY, 'tags-manager'],
     queryFn: async () => {
       const service = await getTagsService();
-      return service.searchTags('', TagCategory.INGREDIENT);
+      return service.findLibraryTags();
     },
     enabled: !!isSignedIn,
   });

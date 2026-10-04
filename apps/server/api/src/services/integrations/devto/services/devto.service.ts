@@ -114,7 +114,10 @@ export class DevtoService {
         credentialId,
       );
 
-      const article = await this.articlesService.findOne({ id: articleId });
+      const article = await this.articlesService.findOne({
+        id: articleId,
+        organizationId,
+      });
 
       if (!article) {
         throw new Error('Article not found');

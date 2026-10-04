@@ -367,6 +367,7 @@ describe('WorkflowCrudController', () => {
       ).not.toHaveBeenCalled();
       expect(mockWorkflowSchedulerService.updateSchedule).toHaveBeenCalledWith(
         id,
+        mockUser.organizationId,
         '0 9 * * *',
         'UTC',
         true,
@@ -399,6 +400,7 @@ describe('WorkflowCrudController', () => {
       });
       expect(mockWorkflowSchedulerService.updateSchedule).toHaveBeenCalledWith(
         id,
+        mockUser.organizationId,
         '0 8 * * *',
         'UTC',
         false,

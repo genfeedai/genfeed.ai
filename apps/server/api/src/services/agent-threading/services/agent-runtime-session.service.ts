@@ -100,7 +100,7 @@ export class AgentRuntimeSessionService {
       };
 
       snapshot = (await this.prisma.agentThreadSnapshot.update({
-        where: { id: existing.id },
+        where: scopedWhere(params.organizationId, { id: existing.id }),
         data: { data: this.toJsonValue(updatedData), updatedAt: new Date() },
       })) as unknown as Record<string, unknown>;
     } else {

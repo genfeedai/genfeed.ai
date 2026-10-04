@@ -130,7 +130,7 @@ describe('proactive snapshot provenance', () => {
     const transaction = {
       ...persistence([], [{ category: 'deduct', amount: -2 }]),
       workflowExecution: {
-        findUnique: vi.fn().mockResolvedValue(execution),
+        findFirst: vi.fn().mockResolvedValue(execution),
         update: vi.fn().mockResolvedValue(execution),
       },
       post: { count: vi.fn().mockResolvedValue(1) },
@@ -151,6 +151,7 @@ describe('proactive snapshot provenance', () => {
       transaction as never,
       strategies as never,
       'run',
+      input.organizationId,
       { completedAt: new Date(), failed: false },
     );
     expect(transaction.agentStrategyReport.upsert).toHaveBeenCalledWith(
@@ -222,7 +223,7 @@ it('stores safe empty report fields and a failure summary for legacy runs withou
   const transaction = {
     ...persistence(),
     workflowExecution: {
-      findUnique: vi.fn().mockResolvedValue(execution),
+      findFirst: vi.fn().mockResolvedValue(execution),
       update: vi.fn().mockResolvedValue(execution),
     },
     post: { count: vi.fn().mockResolvedValue(0) },
@@ -240,6 +241,7 @@ it('stores safe empty report fields and a failure summary for legacy runs withou
     transaction as never,
     { recordRun: vi.fn() } as never,
     'run',
+    input.organizationId,
     { completedAt: new Date('2026-09-24T12:00:00Z'), failed: true },
   );
   expect(transaction.agentStrategyReport.upsert).toHaveBeenCalledWith(

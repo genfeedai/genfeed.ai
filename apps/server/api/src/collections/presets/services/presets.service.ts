@@ -8,7 +8,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getTenantContext } from '@libs/prisma/tenant-context';
+import { platformTenantProof } from '@libs/prisma/platform-scope';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 const PRESET_CREATE_SCALAR_FIELDS = [
@@ -100,7 +100,7 @@ export class PresetsService extends BaseService<
 
     const platformDefault = await this.prisma.preset.findFirst({
       where: {
-        AND: this.platformScopeProof(),
+        AND: platformTenantProof(),
         config: { equals: key, path: ['key'] },
         isDeleted: false,
         organizationId: null,
@@ -148,6 +148,7 @@ export class PresetsService extends BaseService<
     // 3. App-wide preset (no org or brand)
     const preset = await this.prisma.preset.findFirst({
       where: {
+        AND: platformTenantProof(),
         brandId: null,
         config: { equals: key, path: ['key'] },
         isDeleted: false,
@@ -266,7 +267,7 @@ export class PresetsService extends BaseService<
       : await this.prisma.preset.findFirst({
           where: {
             ...notSelf,
-            AND: this.platformScopeProof(),
+            AND: platformTenantProof(),
             ...keyFilter,
             isDeleted: false,
             organizationId: null,
@@ -276,21 +277,6 @@ export class PresetsService extends BaseService<
     if (duplicate) {
       throw new ConflictException(`Preset with key '${key}' already exists`);
     }
-  }
-
-  /**
-   * The CLOUD tenant guard rejects a tenant-model query that names no
-   * organization. A platform-default lookup is `organizationId: null`, so while
-   * a tenant is active it also carries a redundant arm naming the caller's
-   * organization (the same shape as the controller scope). The `null` filter
-   * still decides which rows match.
-   */
-  private platformScopeProof(): Record<string, unknown>[] {
-    const organizationId = getTenantContext()?.organizationId;
-
-    return organizationId
-      ? [{ OR: [{ organizationId: null }, { organizationId }] }]
-      : [];
   }
 
   /** Turn the partial unique index's violation into the same conflict. */

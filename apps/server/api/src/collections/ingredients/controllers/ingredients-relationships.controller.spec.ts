@@ -4,10 +4,13 @@ import { IngredientsRelationshipsController } from '@api/collections/ingredients
 import { IngredientLineageService } from '@api/collections/ingredients/services/ingredient-lineage.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { IngredientLineageDirection } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -124,7 +127,7 @@ describe('IngredientsRelationshipsController', () => {
       const result = await controller.findChildren(
         mockRequest,
         ingredientId,
-        {},
+        new BaseQueryDto(),
       );
 
       expect(ingredientsService.findAll).toHaveBeenCalledWith(
@@ -151,7 +154,11 @@ describe('IngredientsRelationshipsController', () => {
 
   describe('findPosts', () => {
     it('should return posts for ingredient', async () => {
-      const result = await controller.findPosts(mockRequest, ingredientId, {});
+      const result = await controller.findPosts(
+        mockRequest,
+        ingredientId,
+        new BaseQueryDto(),
+      );
 
       expect(ingredientsService.findOne).toHaveBeenCalledWith({
         id: ingredientId,
@@ -183,11 +190,42 @@ describe('IngredientsRelationshipsController', () => {
         category: 'image',
       });
 
-      await controller.findPosts(mockRequest, ingredientId, {});
+      await controller.findPosts(mockRequest, ingredientId, new BaseQueryDto());
 
       expect(postsService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ organizationId: null }),
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('lists the requesting organization posts for a platform ingredient (CLOUD tenant guard)', async () => {
+      mockServices.ingredientsService.findOne.mockResolvedValueOnce({
+        id: ingredientId,
+        category: 'image',
+        organizationId: null,
+      });
+      mockServices.postsService.findAll.mockImplementationOnce(
+        async (query: { where: Record<string, unknown> }) => {
+          assertTenantScopedQuery({
+            args: query,
+            isCloud: true,
+            model: 'Post',
+            operation: 'findMany',
+            tenantModelNames: new Set(['Post']),
+          });
+          return { docs: [] };
+        },
+      );
+
+      await runWithTenantContext({ organizationId }, () =>
+        controller.findPosts(mockRequest, ingredientId, new BaseQueryDto()),
+      );
+
+      expect(postsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ organizationId }),
         }),
         expect.anything(),
       );

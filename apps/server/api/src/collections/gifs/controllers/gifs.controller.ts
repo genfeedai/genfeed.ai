@@ -180,9 +180,12 @@ export class GifsController {
       return returnNotFound(this.constructorName, gifId);
     }
 
+    // Ingredient votes are written with the voter's organization.
     const vote = await this.votesService.findOne({
       entityId: gifId,
       entityModel: ActivityEntityModel.INGREDIENT,
+      isDeleted: false,
+      organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     });
 

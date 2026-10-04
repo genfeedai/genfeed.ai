@@ -98,12 +98,22 @@ export function useAgentChatStream(
           clearPendingInputRequest: state.clearPendingInputRequest,
           markStreamLive: state.markStreamLive,
           resetStreamState: state.resetStreamState,
-          setActiveRun: state.setActiveRun,
+          setActiveRun: (runId, meta) =>
+            state.transitionRun(state.activeThreadId, {
+              runId,
+              startedAt: meta?.startedAt,
+              status: meta?.status,
+              type: 'begin',
+            }),
           setError: state.setError,
           setLatestProposedPlan: state.setLatestProposedPlan,
           setMessages: state.setMessages,
           setPendingInputRequest: state.setPendingInputRequest,
-          setRunStartedAt: state.setRunStartedAt,
+          setRunStartedAt: (startedAt) =>
+            state.transitionRun(state.activeThreadId, {
+              startedAt,
+              type: 'started-at',
+            }),
           setWorkEvents: state.setWorkEvents,
           updateThreadSummary: state.updateThread,
         }).catch(() => undefined);

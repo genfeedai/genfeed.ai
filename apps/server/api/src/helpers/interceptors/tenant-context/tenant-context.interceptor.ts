@@ -1,5 +1,6 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
   type CallHandler,
@@ -11,7 +12,7 @@ import type { Request } from 'express';
 import { Observable } from 'rxjs';
 
 type TenantContextRequest = Request & {
-  context?: Pick<IRequestContext, 'organizationId'>;
+  context?: Pick<IRequestContext, 'isSuperAdmin' | 'organizationId'>;
   user?: AuthenticatedUser;
 };
 
@@ -27,6 +28,27 @@ function readRequestOrganizationId(
   return fromMetadata || undefined;
 }
 
+/**
+ * A verified superadmin may read another organization through the shared
+ * `?organizationId=` override (`CollectionFilterUtil.resolveAuthorizedTenantQuery`).
+ * The request then belongs to that tenant, so the Prisma tenant guard must be
+ * pinned to it. Every other caller keeps the session organization; naming a
+ * different one is rejected by the handler's own authorization. A superadmin
+ * with no session organization stays outside enforcement, as before.
+ */
+function readSuperAdminOrganizationOverride(
+  request: TenantContextRequest,
+): string | undefined {
+  if (!getIsSuperAdmin(request.user, request)) {
+    return undefined;
+  }
+
+  const override: unknown = request.query?.organizationId;
+  return typeof override === 'string' && override.trim()
+    ? override.trim()
+    : undefined;
+}
+
 @Injectable()
 export class TenantContextInterceptor implements NestInterceptor {
   intercept(
@@ -36,10 +58,12 @@ export class TenantContextInterceptor implements NestInterceptor {
     const request = executionContext
       .switchToHttp()
       .getRequest<TenantContextRequest>();
-    const organizationId = readRequestOrganizationId(request);
-    if (!organizationId) {
+    const sessionOrganizationId = readRequestOrganizationId(request);
+    if (!sessionOrganizationId) {
       return next.handle();
     }
+    const organizationId =
+      readSuperAdminOrganizationOverride(request) ?? sessionOrganizationId;
 
     return new Observable<unknown>((subscriber) =>
       runWithTenantContext({ organizationId }, () => {

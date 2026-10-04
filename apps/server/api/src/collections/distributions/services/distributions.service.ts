@@ -6,8 +6,9 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { DistributionPlatform, PublishStatus } from '@genfeedai/contracts';
-import { toPrismaJson } from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -123,17 +124,38 @@ export class DistributionsService extends BaseService<
     return this.normalizeDocument(distribution);
   }
 
+  /**
+   * Status transitions are reached from the Telegram delivery path, which runs
+   * inside a request (immediate send) or in a worker (scheduled send). The
+   * caller's organization, else the request tenant, pins the row; a worker
+   * with neither addresses the distribution by its opaque id.
+   */
+  private transitionWhere(
+    id: string,
+    organizationId?: string,
+  ): Prisma.DistributionWhereInput & { id: string } {
+    const scopeOrganizationId =
+      organizationId ?? getTenantContext()?.organizationId;
+
+    // tenant-scope-ignore: no organization means a worker caller that holds the opaque distribution id from its own queue payload
+    return scopeOrganizationId
+      ? scopedWhere(scopeOrganizationId, { id })
+      : { id };
+  }
+
   async markAsPublished(
     id: string,
     telegramMessageId?: string,
+    organizationId?: string,
   ): Promise<DistributionDocument> {
-    const existing = await this.prisma.distribution.findUnique({
-      where: { id },
-    });
+    const where = this.transitionWhere(id, organizationId);
+    // tenant-scope-ignore: transitionWhere pins the request tenant / explicit organization; worker callers address the row by its opaque id
+    const existing = await this.prisma.distribution.findFirst({ where });
     const existingConfig = (existing?.config as Record<string, unknown>) ?? {};
 
+    // tenant-scope-ignore: same transitionWhere scope as the read above
     const updated = await this.prisma.distribution.update({
-      where: { id },
+      where,
       data: {
         status: PublishStatus.PUBLISHED,
         config: {
@@ -150,14 +172,16 @@ export class DistributionsService extends BaseService<
   async markAsFailed(
     id: string,
     errorMessage: string,
+    organizationId?: string,
   ): Promise<DistributionDocument> {
-    const existing = await this.prisma.distribution.findUnique({
-      where: { id },
-    });
+    const where = this.transitionWhere(id, organizationId);
+    // tenant-scope-ignore: transitionWhere pins the request tenant / explicit organization; worker callers address the row by its opaque id
+    const existing = await this.prisma.distribution.findFirst({ where });
     const existingConfig = (existing?.config as Record<string, unknown>) ?? {};
 
+    // tenant-scope-ignore: same transitionWhere scope as the read above
     const updated = await this.prisma.distribution.update({
-      where: { id },
+      where,
       data: {
         status: PublishStatus.FAILED,
         config: { ...existingConfig, errorMessage },
@@ -180,7 +204,7 @@ export class DistributionsService extends BaseService<
     }
 
     const updated = await this.prisma.distribution.update({
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
       data: { status: PublishStatus.CANCELLED },
     });
 

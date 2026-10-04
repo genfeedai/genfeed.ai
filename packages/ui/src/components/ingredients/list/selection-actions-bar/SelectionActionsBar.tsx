@@ -19,11 +19,15 @@ export default function SelectionActionsBar({
   onMerge,
   onPublishCampaign,
   placement = 'overlay',
+  tagAction,
 }: SelectionActionsBarProps) {
   const translate = useTranslations('common.selectionActions');
 
   const hasConstructiveActions = Boolean(
-    (canPublishCampaign && onPublishCampaign) || canMerge || onDownload,
+    (canPublishCampaign && onPublishCampaign) ||
+      canMerge ||
+      onDownload ||
+      tagAction,
   );
 
   return (
@@ -63,6 +67,8 @@ export default function SelectionActionsBar({
           }
         />
       )}
+
+      {tagAction}
 
       {onDownload && (
         <Button

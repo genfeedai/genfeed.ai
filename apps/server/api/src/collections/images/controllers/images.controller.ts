@@ -157,7 +157,6 @@ export class ImagesController {
                     brandId,
                     status,
                     ...isPublicFilter,
-                    // references,
                   },
                   folderConditions,
                   trainingFilter,
@@ -184,7 +183,6 @@ export class ImagesController {
                           status,
                           // Filter default images by brand when brand is specified
                           ...(isEntityId(query.brandId) ? { brandId } : {}),
-                          // references,
                         },
                         folderConditions,
                         ...(Object.keys(parentConditions).length > 0
@@ -198,8 +196,10 @@ export class ImagesController {
           },
           originFilter,
           characterFilter,
+          IngredientFilterUtil.buildTagFilter(query.tags, query.tagMatch),
         ],
       },
+      include: IngredientFilterUtil.buildLibraryTagsInclude(),
       orderBy: handleQuerySort(query.sort),
     };
 
@@ -319,9 +319,12 @@ export class ImagesController {
       ...dataRecord,
     };
 
+    // Ingredient votes are written with the voter's organization.
     const vote = await this.votesService.findOne({
       entityId: imageId,
       entityModel: ActivityEntityModel.INGREDIENT,
+      isDeleted: false,
+      organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     });
 

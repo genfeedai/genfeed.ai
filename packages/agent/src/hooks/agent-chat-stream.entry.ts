@@ -33,6 +33,13 @@ import type {
   AgentTurnAcceptedPayload,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import {
+  type AgentRunEvent,
+  type AgentRunStatus,
+  adoptDraftRunPatch,
+  runTransitionPatch,
+  selectActiveRun,
+} from '@genfeedai/agent/stores/agent-chat.store.run';
 import { toAgentRequestPageContext } from '@genfeedai/agent/utils/agent-page-context.util';
 import {
   buildThreadSummaryFromSnapshot,
@@ -95,8 +102,23 @@ export function createAgentStreamController(
   const clearMessages = presentationStore.getState().clearMessages;
   const isStreaming = presentationStore.getState().stream.isStreaming;
   const addWorkEvent = presentationStore.getState().addWorkEvent;
-  const setActiveRun = presentationStore.getState().setActiveRun;
-  const setActiveRunStatus = presentationStore.getState().setActiveRunStatus;
+  // Run state moves only through `transitionRun`, keyed by the stream's thread.
+  const transitionRun = (event: AgentRunEvent) =>
+    presentationStore
+      .getState()
+      .transitionRun(presentationStore.getState().activeThreadId, event);
+  const setActiveRun = (
+    runId: string | null,
+    options?: { startedAt?: string | null; status?: AgentRunStatus },
+  ) =>
+    transitionRun({
+      runId,
+      startedAt: options?.startedAt,
+      status: options?.status,
+      type: 'begin',
+    });
+  const setActiveRunStatus = (status: AgentRunStatus) =>
+    transitionRun({ status, type: 'status' });
   const setWorkEvents = presentationStore.getState().setWorkEvents;
   const setPendingInputRequest =
     presentationStore.getState().setPendingInputRequest;
@@ -105,7 +127,8 @@ export function createAgentStreamController(
     presentationStore.getState().clearPendingInputRequest;
   const resolvePendingInputRequest =
     presentationStore.getState().resolvePendingInputRequest;
-  const setRunStartedAt = presentationStore.getState().setRunStartedAt;
+  const setRunStartedAt = (startedAt: string | null) =>
+    transitionRun({ startedAt, type: 'started-at' });
 
   const updateThread = useAgentChatStore.getState().updateThread;
   const pageContext = presentationStore.getState().pageContext;
@@ -646,7 +669,12 @@ export function createAgentStreamController(
             event.threadId === response.threadId &&
             !isForeignRunEvent(event.runId, response.executionId),
         );
-      presentationStore.setState({ activeThreadId: response.threadId });
+      presentationStore.setState((state) => ({
+        activeThreadId: response.threadId,
+        ...(state.activeThreadId
+          ? {}
+          : adoptDraftRunPatch(state, response.threadId)),
+      }));
       streamRuntime.activeStreamThreadRef.current = response.threadId;
       streamRuntime.activeStreamRunIdRef.current = response.executionId;
       streamRuntime.isAwaitingRunIdRef.current = false;
@@ -768,7 +796,7 @@ export function createAgentStreamController(
       previousPending: streamRuntime.pendingCompletionRef.current,
       previousRunId:
         streamRuntime.activeStreamRunIdRef.current ??
-        presentationStore.getState().activeRunId,
+        selectActiveRun(presentationStore.getState()).runId,
       threadId,
     };
     // The asking run's watchdog must not recover (and so complete) the
@@ -881,7 +909,7 @@ export function createAgentStreamController(
         attentionState: 'needs-input',
       });
     if (isThreadVisible(handoff.threadId)) {
-      const status = presentationStore.getState().activeRunStatus;
+      const status = selectActiveRun(presentationStore.getState()).status;
       resetStreamState();
       setActiveRunStatus(status);
     } else {
@@ -947,24 +975,28 @@ export function createAgentStreamController(
         useAgentChatStore
           .getState()
           .applyThreadSnapshotState(pending.threadId, snapshot);
-        presentationStore.setState({
+        // One update, so the stream projection sees the run with its messages.
+        presentationStore.setState((state) => ({
           messages,
           messagesCursor: null,
           hasMoreMessages: false,
           isLoadingOlderMessages: false,
           pendingInputRequest: mapSnapshotPendingInputRequest(snapshot),
           workEvents: mapSnapshotWorkEvents(snapshot),
-          activeRunId: snapshot.activeRun?.runId ?? pending.runId,
-          activeRunStatus: status,
-          runStartedAt: snapshot.activeRun?.startedAt ?? null,
+          ...runTransitionPatch(state, state.activeThreadId, {
+            runId: snapshot.activeRun?.runId ?? pending.runId,
+            startedAt: snapshot.activeRun?.startedAt ?? null,
+            status,
+            type: 'begin',
+          }),
           error: readSnapshotRunError(snapshot),
           stream: {
-            ...presentationStore.getState().stream,
+            ...state.stream,
             isStreaming: status === 'running',
             streamingContent: '',
             streamingReasoning: '',
           },
-        });
+        }));
         updateThreadSummary(
           pending.threadId,
           buildThreadSummaryFromSnapshot(snapshot, {
@@ -990,8 +1022,9 @@ export function createAgentStreamController(
     presentationStore.getState().stream.isStreaming &&
     entry.activeStreamThreadRef.current
   ) {
-    entry.activeStreamRunIdRef.current =
-      presentationStore.getState().activeRunId;
+    entry.activeStreamRunIdRef.current = selectActiveRun(
+      presentationStore.getState(),
+    ).runId;
     const restoredThreadId = entry.activeStreamThreadRef.current;
     const restoredRunId = entry.activeStreamRunIdRef.current;
     // A run restored from the snapshot that the projection tracks as a
@@ -1009,7 +1042,7 @@ export function createAgentStreamController(
       ),
       ...(isRestoredUiActionRun ? { requireRunId: true } : {}),
       runId: entry.activeStreamRunIdRef.current,
-      startedAt: presentationStore.getState().runStartedAt,
+      startedAt: selectActiveRun(presentationStore.getState()).startedAt,
       threadId: entry.activeStreamThreadRef.current,
     };
     attachSubscriptions();

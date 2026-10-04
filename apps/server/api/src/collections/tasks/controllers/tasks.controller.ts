@@ -316,9 +316,9 @@ export class TasksController extends BaseCRUDController<
 
     // When a task is marked done/cancelled, check if parent's children are all complete
     if (updateDto.status === 'done' || updateDto.status === 'cancelled') {
-      const task = await this.tasksService.findOne({
-        id: id,
-      });
+      const task = await this.tasksService.findOne(
+        scopedWhere(user.organizationId, { id }),
+      );
 
       if (task?.parentId) {
         const parentId = task.parentId.toString();

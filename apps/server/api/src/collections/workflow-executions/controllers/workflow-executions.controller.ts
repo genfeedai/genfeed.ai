@@ -31,6 +31,7 @@ import {
 } from '@genfeedai/contracts';
 import { HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE } from '@genfeedai/contracts/interfaces';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Body,
@@ -180,64 +181,72 @@ export class WorkflowExecutionsController {
     if (query.offset % query.limit !== 0) {
       throw new BadRequestException('Offset must be a multiple of limit');
     }
-    const result = await this.workflowExecutionsService.findAll(
-      {
-        include: { workflow: { select: { id: true, label: true } } },
-        orderBy: [{ completedAt: 'desc' }, { id: 'desc' }],
-        // tenant-scope-ignore: superadmin-only cross-tenant failure feed; both execution and workflow must be non-deleted
-        where: {
-          isDeleted: false,
-          status: WorkflowExecutionStatus.FAILED,
-          ...(query.failureReason
-            ? query.failureReason === AgentFailureReason.UNKNOWN
-              ? {
-                  OR: [
-                    { failureReason: AgentFailureReason.UNKNOWN },
-                    { failureReason: null },
-                  ],
-                }
-              : { failureReason: query.failureReason }
-            : {}),
-          workflow: {
-            is: {
+    // The platform failure feed spans every organization by design; the
+    // superadmin gate above is the authorization, so run it as an explicit
+    // cross-org read inside the request's tenant context.
+    const result = await crossOrgUnsafe(
+      async () =>
+        await this.workflowExecutionsService.findAll(
+          {
+            include: { workflow: { select: { id: true, label: true } } },
+            orderBy: [{ completedAt: 'desc' }, { id: 'desc' }],
+            // tenant-scope-ignore: superadmin-only cross-tenant failure feed; both execution and workflow must be non-deleted
+            where: {
               isDeleted: false,
-              AND: [
-                {
-                  metadata: {
-                    path: ['sourceType'],
-                    equals: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
-                  },
-                },
-                {
-                  metadata: {
-                    path: ['systemWorkflow', 'visibility'],
-                    equals: 'internal',
-                  },
-                },
-                {
-                  metadata: {
-                    path: ['systemWorkflow', 'duplicable'],
-                    equals: false,
-                  },
-                },
-                {
-                  OR: AGENT_CONVERSATION_WORKFLOW_IDS.map((canonicalId) => ({
-                    metadata: {
-                      path: ['systemWorkflow', 'canonicalId'],
-                      equals: canonicalId,
+              status: WorkflowExecutionStatus.FAILED,
+              ...(query.failureReason
+                ? query.failureReason === AgentFailureReason.UNKNOWN
+                  ? {
+                      OR: [
+                        { failureReason: AgentFailureReason.UNKNOWN },
+                        { failureReason: null },
+                      ],
+                    }
+                  : { failureReason: query.failureReason }
+                : {}),
+              workflow: {
+                is: {
+                  isDeleted: false,
+                  AND: [
+                    {
+                      metadata: {
+                        path: ['sourceType'],
+                        equals: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+                      },
                     },
-                  })),
+                    {
+                      metadata: {
+                        path: ['systemWorkflow', 'visibility'],
+                        equals: 'internal',
+                      },
+                    },
+                    {
+                      metadata: {
+                        path: ['systemWorkflow', 'duplicable'],
+                        equals: false,
+                      },
+                    },
+                    {
+                      OR: AGENT_CONVERSATION_WORKFLOW_IDS.map(
+                        (canonicalId) => ({
+                          metadata: {
+                            path: ['systemWorkflow', 'canonicalId'],
+                            equals: canonicalId,
+                          },
+                        }),
+                      ),
+                    },
+                  ],
                 },
-              ],
+              },
             },
           },
-        },
-      },
-      {
-        customLabels,
-        limit: query.limit,
-        page: Math.floor(query.offset / query.limit) + 1,
-      },
+          {
+            customLabels,
+            limit: query.limit,
+            page: Math.floor(query.offset / query.limit) + 1,
+          },
+        ),
     );
     return serializeCollection(req, WorkflowExecutionSerializer, result);
   }
@@ -339,7 +348,10 @@ export class WorkflowExecutionsController {
       );
     }
 
-    const cancelled = await this.workflowExecutionsService.cancelExecution(id);
+    const cancelled = await this.workflowExecutionsService.cancelExecution(
+      id,
+      user.organizationId,
+    );
     return serializeSingle(req, WorkflowExecutionSerializer, cancelled);
   }
 }

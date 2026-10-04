@@ -369,8 +369,8 @@ export class AgentAutopilotWorkflowService {
               this.buildSyntheticUserMessage(item, budget, snapshot),
             resolveStrategyThread: (item, owner) =>
               this.resolveStrategyThread(item, owner),
-            scheduleNextRun: (id, frequency, retry, owner) =>
-              this.scheduleNextRun(id, frequency, retry, owner),
+            scheduleNextRun: (id, organizationId, frequency, retry, owner) =>
+              this.scheduleNextRun(id, organizationId, frequency, retry, owner),
             recordStrategyFailure: (item, config, error, id, owner) =>
               this.recordStrategyFailure(item, config, error, id, owner),
             buildExecutionMetadata: (item, handoff) =>
@@ -433,6 +433,7 @@ export class AgentAutopilotWorkflowService {
     if (dailyCreditsUsed >= effectiveDailyBudget) {
       await this.scheduleNextRun(
         strategyId,
+        organizationId,
         config.runFrequency,
         undefined,
         ownership,
@@ -444,6 +445,7 @@ export class AgentAutopilotWorkflowService {
     if (creditsUsedThisWeek >= weeklyCreditBudget) {
       await this.scheduleNextRun(
         strategyId,
+        organizationId,
         config.runFrequency,
         undefined,
         ownership,
@@ -463,6 +465,7 @@ export class AgentAutopilotWorkflowService {
       if (brandCreditsUsedToday >= brandDailyCap) {
         await this.scheduleNextRun(
           strategyId,
+          organizationId,
           config.runFrequency,
           undefined,
           ownership,
@@ -496,6 +499,7 @@ export class AgentAutopilotWorkflowService {
     if (!Number.isFinite(remainingBudget) || remainingBudget <= 0) {
       await this.scheduleNextRun(
         strategyId,
+        organizationId,
         config.runFrequency,
         undefined,
         ownership,
@@ -552,6 +556,7 @@ export class AgentAutopilotWorkflowService {
 
     await this.scheduleNextRun(
       strategy.id,
+      strategy.organizationId,
       config.runFrequency,
       FAILURE_RETRY_MINUTES,
       ownership,
@@ -723,6 +728,7 @@ export class AgentAutopilotWorkflowService {
 
   private async scheduleNextRun(
     strategyId: string,
+    organizationId: string,
     frequency: AgentRunFrequency | undefined,
     retryInMinutes?: number,
     ownership?: ProactiveDispatchOwnership,
@@ -749,9 +755,8 @@ export class AgentAutopilotWorkflowService {
     await this.prisma.$transaction(async (transaction) => {
       await lockAgentStrategy(transaction, strategyId);
       ownership?.assertOwned();
-      // tenant-scope-ignore: internal caller has resolved this opaque id in its tenant; resolve tenant again under the strategy lock
       const record = await transaction.agentStrategy.findFirst({
-        where: { id: strategyId, isDeleted: false },
+        where: scopedWhere(organizationId, { id: strategyId }),
       });
       ownership?.assertOwned();
       if (!record) return;
@@ -764,7 +769,7 @@ export class AgentAutopilotWorkflowService {
             nextRunAt: record.isActive ? nextRun.toISOString() : null,
           }),
         },
-        where: scopedWhere(record.organizationId, { id: strategyId }),
+        where: scopedWhere(organizationId, { id: strategyId }),
       });
     });
   }

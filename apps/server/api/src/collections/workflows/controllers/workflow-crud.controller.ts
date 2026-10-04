@@ -300,6 +300,7 @@ export class WorkflowCrudController {
 
         await this.workflowSchedulerService.updateSchedule(
           workflowId,
+          user.organizationId,
           nextSchedule,
           nextTimezone,
           nextEnabled,

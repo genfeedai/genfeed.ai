@@ -35,6 +35,7 @@ import type {
   ISettleCreditReservationInput,
 } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -638,12 +639,14 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     tx?: PrismaTransactionClient,
   ) {
     const where = { idempotencyKey, isDeleted: false };
-    if (tx) {
-      // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
-      return tx.creditTransaction.findFirst({ where });
-    }
-    // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
-    return this.prisma.creditTransaction.findFirst({ where });
+    const client = tx ?? this.prisma;
+    // Active credit-ledger idempotency keys are globally unique, so replay
+    // detection must follow that database invariant across organizations.
+    return crossOrgUnsafe(
+      async () =>
+        // tenant-scope-ignore: global idempotency-key uniqueness, deliberately cross-organization
+        await client.creditTransaction.findFirst({ where }),
+    );
   }
 
   async refundOrganizationCredits(

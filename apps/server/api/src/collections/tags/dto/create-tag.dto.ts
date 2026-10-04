@@ -1,6 +1,13 @@
-import { TagCategory } from '@genfeedai/contracts';
+import { TagCategory, TagScope } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateTagDto {
   @IsString()
@@ -16,11 +23,26 @@ export class CreateTagDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(80)
   @ApiProperty({
     description: 'The tag label',
+    maxLength: 80,
     required: true,
   })
   readonly label!: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn([TagScope.BRAND, TagScope.ORGANIZATION])
+  @ApiProperty({
+    default: TagScope.BRAND,
+    description:
+      'Where the tag is visible: the active brand (default) or every brand of ' +
+      'the organization. Organization-wide tags need an owner or admin.',
+    enum: [TagScope.BRAND, TagScope.ORGANIZATION],
+    required: false,
+  })
+  readonly scope?: TagScope.BRAND | TagScope.ORGANIZATION;
 
   @IsString()
   @IsOptional()
