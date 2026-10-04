@@ -60,13 +60,32 @@ function setup() {
         destination: SystemNotificationDestination;
       },
   );
+  const client: { current?: unknown } = {};
   const prisma = {
+    // Rolls every mutated row back when the callback throws.
+    $transaction: vi.fn(async (run: (tx: unknown) => Promise<unknown>) => {
+      const eventBefore = structuredClone(event);
+      const deliveriesBefore = deliveries.map((d) => structuredClone(d));
+      try {
+        return await run(client.current);
+      } catch (error) {
+        Object.assign(event, eventBefore);
+        for (const [i, d] of deliveries.entries())
+          Object.assign(d, deliveriesBefore[i]);
+        throw error;
+      }
+    }),
     systemNotificationDestination: {
       findMany: vi.fn(async () => destinations),
     },
     systemEventWebhook: {
       updateMany: vi.fn(async ({ where, data }) => {
         if (where.id !== event.id) return { count: 0 };
+        if (
+          where.leaseToken !== undefined &&
+          event.leaseToken !== where.leaseToken
+        )
+          return { count: 0 };
         if (where.deliveredAt === null && event.deliveredAt)
           return { count: 0 };
         if (where.skippedAt === null && event.skippedAt) return { count: 0 };
@@ -109,6 +128,7 @@ function setup() {
       }),
     },
   };
+  client.current = prisma;
   const logger = { warn: vi.fn() };
   const send = vi.fn(async (_event, target) => {
     if (target.provider === 'email') throw new Error('provider failed');
@@ -207,7 +227,9 @@ describe('independent system notification delivery', () => {
     expect(await service.deliver(event, 'event-lease')).toBe('delivered');
     // The worker publishes the aggregate outcome on the parent.
     event.deliveredAt = new Date();
+    event.leaseToken = 'worker-lease';
     expect(await service.retry('delivery-1')).toBe(true);
+    expect(event.leaseToken).toBeNull();
     expect(deliveries[1].failedAt).toBeNull();
     expect(deliveries[1].attempts).toBe(0);
     expect(event.deliveredAt).toBeNull();
@@ -221,6 +243,45 @@ describe('independent system notification delivery', () => {
       { provider: 'email', address: '1@example.com' },
       'system/delivery-1',
     );
+  });
+  it('keeps the delivery failed when reopening its parent throws', async () => {
+    const { service, event, deliveries, prisma } = setup();
+    deliveries[0].deliveredAt = new Date();
+    deliveries[1].failedAt = new Date();
+    event.deliveredAt = new Date();
+    prisma.systemEventWebhook.updateMany.mockRejectedValueOnce(
+      new Error('db down'),
+    );
+    await expect(service.retry('delivery-1')).rejects.toThrow('db down');
+    expect(deliveries[1].failedAt).toBeInstanceOf(Date);
+    expect(event.deliveredAt).toBeInstanceOf(Date);
+    // A later retry still reopens the terminal parent.
+    expect(await service.retry('delivery-1')).toBe(true);
+    expect(deliveries[1].failedAt).toBeNull();
+    expect(event.deliveredAt).toBeNull();
+  });
+  it('rejects a stale worker terminal write after a revive and then processes the delivery', async () => {
+    const { service, send, event, deliveries, prisma } = setup();
+    deliveries[0].deliveredAt = new Date();
+    deliveries[1].attempts = MAX_DELIVERY_ATTEMPTS - 1;
+    event.leaseToken = 'worker-lease';
+    // The worker computes a terminal outcome from the capped delivery...
+    expect(await service.deliver(event, 'worker-lease')).toBe('delivered');
+    // ...an operator revives the delivery before the worker publishes it...
+    expect(await service.retry('delivery-1')).toBe(true);
+    // ...so the worker's lease-token-conditional write is rejected.
+    const write = await prisma.systemEventWebhook.updateMany({
+      where: { id: event.id, leaseToken: 'worker-lease', isDeleted: false },
+      data: { deliveredAt: new Date(), leaseToken: null, leaseUntil: null },
+    });
+    expect(write.count).toBe(0);
+    expect(event.deliveredAt).toBeNull();
+    // The next sweep processes the revived delivery.
+    send.mockReset();
+    send.mockResolvedValue(undefined);
+    deliveries[1].nextAttemptAt = new Date(0);
+    expect(await service.deliver(event, 'sweep-lease')).toBe('delivered');
+    expect(send).toHaveBeenCalledTimes(1);
   });
   it('keeps retrying below the cap without marking failed', async () => {
     const { service, event, deliveries } = setup();

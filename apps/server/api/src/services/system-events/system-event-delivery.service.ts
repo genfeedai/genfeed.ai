@@ -228,27 +228,46 @@ export class SystemEventDeliveryService {
     });
     if (!row) return false;
     if (row.deliveredAt || row.skippedAt) return true;
+    if (row.failedAt) {
+      // Reopen the parent and revive the delivery together: a failure between
+      // them must never strand a delivery whose parent stays terminal.
+      await this.prisma.$transaction(async (tx) => {
+        // tenant-scope-ignore: reopen the parent of one super-admin-selected delivery
+        await tx.systemEventWebhook.updateMany({
+          where: { id: row.eventId, isDeleted: false },
+          // Keeps the other destinations' acknowledgements, so they are not
+          // re-sent. Clearing the lease token fences a worker that already
+          // computed a terminal outcome: its token-conditional write now misses.
+          data: {
+            nextAttemptAt: new Date(),
+            deliveredAt: null,
+            skippedAt: null,
+            leaseToken: null,
+            leaseUntil: null,
+          },
+        });
+        // tenant-scope-ignore: revive a delivery that hit the attempt cap
+        await tx.systemEventDelivery.updateMany({
+          where: { id, isDeleted: false, deliveredAt: null, skippedAt: null },
+          data: { nextAttemptAt: new Date(), attempts: 0, failedAt: null },
+        });
+      });
+      return true;
+    }
     // tenant-scope-ignore: scheduling never overrides a worker's live lease
     await this.prisma.systemEventDelivery.updateMany({
       where: { id, isDeleted: false, deliveredAt: null, skippedAt: null },
-      data: {
-        nextAttemptAt: new Date(),
-        // An operator retry revives a delivery that hit the attempt cap.
-        ...(row.failedAt ? { attempts: 0, failedAt: null } : {}),
-      },
+      data: { nextAttemptAt: new Date() },
     });
     // tenant-scope-ignore: make the parent event eligible for the next sweep
     await this.prisma.systemEventWebhook.updateMany({
       where: {
         id: row.eventId,
         isDeleted: false,
-        ...(row.failedAt ? {} : { deliveredAt: null, skippedAt: null }),
+        deliveredAt: null,
+        skippedAt: null,
       },
-      // Reopening keeps the other destinations' acknowledgements, so they are not re-sent.
-      data: {
-        nextAttemptAt: new Date(),
-        ...(row.failedAt ? { deliveredAt: null, skippedAt: null } : {}),
-      },
+      data: { nextAttemptAt: new Date() },
     });
     return true;
   }
