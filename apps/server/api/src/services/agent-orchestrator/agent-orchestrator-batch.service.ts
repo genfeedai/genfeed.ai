@@ -49,6 +49,22 @@ export type AgentOrchestratorBatchHost = {
   }) => Promise<string | null>;
 };
 
+const BATCH_TOOL_NAME = 'generate_content_batch';
+
+interface BatchTurnParams {
+  context: AgentChatContext;
+  model: string;
+  policy: ResolvedAgentExecutionPolicy;
+  requestContent: string;
+  seedTitle: string;
+  startedAt: string;
+  threadId: string;
+}
+
+type BatchToolResult = Awaited<
+  ReturnType<AgentToolExecutorService['executeTool']>
+>;
+
 @Injectable()
 export class AgentOrchestratorBatchService {
   constructor(
@@ -61,15 +77,7 @@ export class AgentOrchestratorBatchService {
   ) {}
 
   async tryHandleBatchGenerationTurnStream(
-    params: {
-      context: AgentChatContext;
-      model: string;
-      policy: ResolvedAgentExecutionPolicy;
-      requestContent: string;
-      seedTitle: string;
-      startedAt: string;
-      threadId: string;
-    },
+    params: BatchTurnParams,
     host: AgentOrchestratorBatchHost,
   ): Promise<boolean> {
     const draft = this.extractBatchGenerationDraftFromMessage(
@@ -81,7 +89,7 @@ export class AgentOrchestratorBatchService {
       return false;
     }
 
-    const toolName = 'generate_content_batch';
+    const toolName = BATCH_TOOL_NAME;
     const toolCallId = `${params.context.executionId ?? params.threadId}:batch`;
     const toolParams = this.buildBatchToolParameters(draft);
     const startedAtIso = new Date().toISOString();
@@ -107,30 +115,7 @@ export class AgentOrchestratorBatchService {
       workEventDetail: `Preparing ${draft.count} post${draft.count === 1 ? '' : 's'} for your review.`,
       workEventLabel: 'Batch generation',
     });
-    const result = await this.toolExecutorService.executeTool(
-      toolName,
-      toolParams,
-      {
-        apiKeyContext: params.context.apiKeyContext,
-        autonomyMode: params.policy.autonomyMode,
-        brandId: params.policy.brandId,
-        creditGovernance: params.policy.creditGovernance,
-        generationModelOverride: params.policy.generationModelOverride,
-        generationPriority: params.context.generationPriority,
-        organizationId: params.context.organizationId,
-        platform: params.policy.platform,
-        qualityTier: params.policy.qualityTier,
-        reviewModelOverride: params.policy.reviewModelOverride,
-        runId: params.context.executionId,
-        strategyId: params.context.strategyId,
-        streamBatchToUser: true,
-        hostSupportsApproval: params.context.hostSupportsApproval ?? true,
-        thinkingModel: params.policy.thinkingModelOverride ?? undefined,
-        threadId: params.threadId,
-        userId: params.context.userId,
-        validatedScope: params.policy.scope,
-      },
-    );
+    const result = await this.executeBatchTool(params, toolParams);
 
     const durationMs = Date.now() - startTime;
     const summary: ToolCallSummary = {
@@ -180,6 +165,43 @@ export class AgentOrchestratorBatchService {
       return true;
     }
 
+    await this.persistBatchCompletion(params, host, result, summary);
+
+    return true;
+  }
+
+  private executeBatchTool(
+    params: BatchTurnParams,
+    toolParams: Record<string, unknown>,
+  ): Promise<BatchToolResult> {
+    return this.toolExecutorService.executeTool(BATCH_TOOL_NAME, toolParams, {
+      apiKeyContext: params.context.apiKeyContext,
+      autonomyMode: params.policy.autonomyMode,
+      brandId: params.policy.brandId,
+      creditGovernance: params.policy.creditGovernance,
+      generationModelOverride: params.policy.generationModelOverride,
+      generationPriority: params.context.generationPriority,
+      organizationId: params.context.organizationId,
+      platform: params.policy.platform,
+      qualityTier: params.policy.qualityTier,
+      reviewModelOverride: params.policy.reviewModelOverride,
+      runId: params.context.executionId,
+      strategyId: params.context.strategyId,
+      streamBatchToUser: true,
+      hostSupportsApproval: params.context.hostSupportsApproval ?? true,
+      thinkingModel: params.policy.thinkingModelOverride ?? undefined,
+      threadId: params.threadId,
+      userId: params.context.userId,
+      validatedScope: params.policy.scope,
+    });
+  }
+
+  private async persistBatchCompletion(
+    params: BatchTurnParams,
+    host: AgentOrchestratorBatchHost,
+    result: BatchToolResult,
+    summary: ToolCallSummary,
+  ): Promise<void> {
     const fullContent = result.requiresConfirmation
       ? 'Review the batch details and approve to start generation.'
       : typeof result.data?.streamedTranscript === 'string'
@@ -200,7 +222,7 @@ export class AgentOrchestratorBatchService {
     const enhancedUiActions =
       this.completionCardBuilder.buildAssistantUiActions({
         reviewRequired: result.requiresConfirmation ?? false,
-        toolCalls: [{ status: summary.status, toolName }],
+        toolCalls: [{ status: summary.status, toolName: BATCH_TOOL_NAME }],
         uiActions: result.nextActions ?? [],
       });
     const artifactMetadata = captureRunArtifacts(params.context, result.data);
@@ -235,7 +257,7 @@ export class AgentOrchestratorBatchService {
             ? { summary: summary.resultSummary }
             : {},
           status: summary.status,
-          toolName,
+          toolName: BATCH_TOOL_NAME,
         },
       ],
       userId: params.context.userId,
@@ -265,8 +287,6 @@ export class AgentOrchestratorBatchService {
       threadId: params.threadId,
       toolCalls: [summary],
     });
-
-    return true;
   }
 
   private buildBatchToolParameters(

@@ -56,6 +56,60 @@ interface AgentMembersServiceLike {
  * next-step suggestions).
  * Extracted from AgentToolExecutorService per #519.
  */
+interface ClipWorkflowSummary {
+  description: string | undefined;
+  id: string;
+  name: string;
+  status: string | undefined;
+}
+
+function toClipWorkflowSummary(
+  doc: Record<string, unknown>,
+  fallbackId?: string,
+): ClipWorkflowSummary {
+  return {
+    description:
+      typeof doc.description === 'string' ? doc.description : undefined,
+    id: String(doc.id ?? fallbackId),
+    name:
+      typeof doc.name === 'string' && doc.name.length > 0
+        ? doc.name
+        : 'Workflow',
+    status: typeof doc.status === 'string' ? doc.status : undefined,
+  };
+}
+
+function buildClipRunSteps(mergeGeneratedVideos: boolean) {
+  return [
+    {
+      id: 'generate',
+      label: 'Generate Clip',
+      retryable: true,
+      status: 'pending' as const,
+    },
+    {
+      id: 'merge',
+      label: 'Merge Clips',
+      retryable: true,
+      status: mergeGeneratedVideos
+        ? ('pending' as const)
+        : ('skipped' as const),
+    },
+    {
+      id: 'reframe',
+      label: 'Reframe Portrait',
+      retryable: true,
+      status: 'pending' as const,
+    },
+    {
+      id: 'publish-handoff',
+      label: 'Publish Handoff',
+      retryable: false,
+      status: 'pending' as const,
+    },
+  ];
+}
+
 @Injectable()
 export class AgentPrepareToolHandler {
   constructor(
@@ -424,66 +478,18 @@ export class AgentPrepareToolHandler {
     );
     const mergeGeneratedVideos = Boolean(params.mergeGeneratedVideos ?? true);
 
-    const workflows = await this.workflowsService.findAll(
-      {
-        where: {
-          isDeleted: false,
-          organizationId: ctx.organizationId,
-        },
-        orderBy: { updatedAt: -1 },
-      },
-      {},
+    const workflowSelection = await this.resolveClipWorkflowSelection(
+      requestedWorkflowId,
+      ctx.organizationId,
     );
-
-    const workflowList =
-      workflows.docs?.map((w: unknown) => {
-        const doc = w as Record<string, unknown>;
-        return {
-          description:
-            typeof doc.description === 'string' ? doc.description : undefined,
-          id: String(doc.id),
-          name:
-            typeof doc.name === 'string' && doc.name.length > 0
-              ? doc.name
-              : 'Workflow',
-          status: typeof doc.status === 'string' ? doc.status : undefined,
-        };
-      }) ?? [];
-
-    let selectedWorkflow = requestedWorkflowId;
-    if (!selectedWorkflow && workflowList.length > 0) {
-      selectedWorkflow = workflowList[0].id;
+    if ('error' in workflowSelection) {
+      return {
+        creditsUsed: 0,
+        error: workflowSelection.error,
+        success: false,
+      };
     }
-
-    if (
-      selectedWorkflow &&
-      !workflowList.some((wf) => wf.id === selectedWorkflow)
-    ) {
-      const workflow = await this.workflowsService.findOne({
-        id: selectedWorkflow,
-        organizationId: ctx.organizationId,
-      });
-
-      if (!workflow) {
-        return {
-          creditsUsed: 0,
-          error: `Workflow ${selectedWorkflow} not found`,
-          success: false,
-        };
-      }
-
-      const wf = workflow as unknown as Record<string, unknown>;
-      workflowList.unshift({
-        description:
-          typeof wf.description === 'string' ? wf.description : undefined,
-        id: String(wf.id ?? selectedWorkflow),
-        name:
-          typeof wf.name === 'string' && wf.name.length > 0
-            ? wf.name
-            : 'Workflow',
-        status: typeof wf.status === 'string' ? wf.status : undefined,
-      });
-    }
+    const { selectedWorkflow, workflowList } = workflowSelection;
 
     return {
       creditsUsed: 0,
@@ -536,34 +542,7 @@ export class AgentPrepareToolHandler {
             },
             organizationId: ctx.organizationId,
             status: 'idle' as const,
-            steps: [
-              {
-                id: 'generate',
-                label: 'Generate Clip',
-                retryable: true,
-                status: 'pending' as const,
-              },
-              {
-                id: 'merge',
-                label: 'Merge Clips',
-                retryable: true,
-                status: mergeGeneratedVideos
-                  ? ('pending' as const)
-                  : ('skipped' as const),
-              },
-              {
-                id: 'reframe',
-                label: 'Reframe Portrait',
-                retryable: true,
-                status: 'pending' as const,
-              },
-              {
-                id: 'publish-handoff',
-                label: 'Publish Handoff',
-                retryable: false,
-                status: 'pending' as const,
-              },
-            ],
+            steps: buildClipRunSteps(mergeGeneratedVideos),
           },
           description: identity.isComplete
             ? 'Generate a 30-second landscape clip, optionally merge multiple clips, then reframe to portrait for Instagram.'
@@ -582,6 +561,61 @@ export class AgentPrepareToolHandler {
       ],
       success: true,
     };
+  }
+
+  private async resolveClipWorkflowSelection(
+    requestedWorkflowId: string | undefined,
+    organizationId: string,
+  ): Promise<
+    | { error: string }
+    | {
+        selectedWorkflow: string | undefined;
+        workflowList: ClipWorkflowSummary[];
+      }
+  > {
+    const workflows = await this.workflowsService.findAll(
+      {
+        where: {
+          isDeleted: false,
+          organizationId,
+        },
+        orderBy: { updatedAt: -1 },
+      },
+      {},
+    );
+
+    const workflowList =
+      workflows.docs?.map((w: unknown) =>
+        toClipWorkflowSummary(w as Record<string, unknown>),
+      ) ?? [];
+
+    let selectedWorkflow = requestedWorkflowId;
+    if (!selectedWorkflow && workflowList.length > 0) {
+      selectedWorkflow = workflowList[0].id;
+    }
+
+    if (
+      selectedWorkflow &&
+      !workflowList.some((wf) => wf.id === selectedWorkflow)
+    ) {
+      const workflow = await this.workflowsService.findOne({
+        id: selectedWorkflow,
+        organizationId,
+      });
+
+      if (!workflow) {
+        return { error: `Workflow ${selectedWorkflow} not found` };
+      }
+
+      workflowList.unshift(
+        toClipWorkflowSummary(
+          workflow as unknown as Record<string, unknown>,
+          selectedWorkflow,
+        ),
+      );
+    }
+
+    return { selectedWorkflow, workflowList };
   }
 
   /**
