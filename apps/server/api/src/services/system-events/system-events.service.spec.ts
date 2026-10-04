@@ -44,10 +44,14 @@ function setup(
       upsert: vi.fn(),
     },
     $queryRaw: vi.fn().mockResolvedValue([]),
+    $transaction: vi.fn(),
     systemEventDelivery: {
+      findMany: vi.fn().mockResolvedValue([]),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     systemEventWebhook: {
+      count: vi.fn().mockResolvedValue(0),
+      findFirst: vi.fn(),
       upsert: vi.fn(),
       findMany: vi
         .fn()
