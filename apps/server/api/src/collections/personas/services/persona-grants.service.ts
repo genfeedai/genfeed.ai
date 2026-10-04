@@ -1,6 +1,10 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { isPersonaAvailableToBrand } from '@api/collections/personas/utils/persona-availability.util';
+import {
+  assertOwningBrandLive,
+  withPersonaHandleLocks,
+} from '@api/collections/personas/utils/persona-handle-lock.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
@@ -146,9 +150,19 @@ export class PersonaGrantsService {
       availableBrandIds,
     };
 
-    return this.personas.withHandleLock(
-      params.recipientOrganizationId,
+    // Owner org too, so a grant serializes with the owner's brand deletion;
+    // both locks are taken in sorted org-id order.
+    return withPersonaHandleLocks(
+      this.prisma,
+      [params.organizationId, params.recipientOrganizationId],
       async (tx) => {
+        const locked = await tx.persona.findFirst({
+          where: scopedWhere(params.organizationId, { id: persona.id }),
+        });
+        if (!locked) {
+          throw new NotFoundException('Character', params.personaId);
+        }
+        await assertOwningBrandLive(tx, locked.brandId, params.organizationId);
         await this.personas.assertNoHandleCollision({
           availability: { ...availability, brandId: null },
           client: tx,

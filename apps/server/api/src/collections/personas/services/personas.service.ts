@@ -15,7 +15,10 @@ import {
   isPersonaSharedAcrossBrands,
   resolvePersonaBrandIds,
 } from '@api/collections/personas/utils/persona-availability.util';
-import { lockPersonaHandleScope } from '@api/collections/personas/utils/persona-handle-lock.util';
+import {
+  assertOwningBrandLive,
+  withPersonaHandleLocks,
+} from '@api/collections/personas/utils/persona-handle-lock.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
@@ -547,7 +550,7 @@ export class PersonasService extends BaseService<
     if (ids.length === 0) {
       return noCharacterAdmission();
     }
-    const [rows, grantRows] = await Promise.all([
+    const [rows, grantRows, linkedOutputs] = await Promise.all([
       this.prisma.persona.findMany({
         select: {
           availabilityMode: true,
@@ -572,11 +575,13 @@ export class PersonasService extends BaseService<
         ingredientIds: ids,
         organizationId: params.organizationId,
       }),
+      this.grants.findLinkedOutputs(ids, params.organizationId),
     ]);
     return evaluateCharacterAdmission({
       brandId: params.brandId,
       grantRows,
       ids,
+      linkedOutputs,
       onRefused: (refused) => {
         this.logger.warn('Character reference refused', {
           ...refused,
@@ -751,10 +756,7 @@ export class PersonasService extends BaseService<
     organizationId: string,
     work: (tx: PersonaClient) => Promise<T>,
   ): Promise<T> {
-    return this.prisma.$transaction(async (tx) => {
-      await lockPersonaHandleScope(tx, organizationId);
-      return work(tx);
-    });
+    return withPersonaHandleLocks(this.prisma, [organizationId], work);
   }
 
   /**
@@ -910,6 +912,7 @@ export class PersonasService extends BaseService<
       if (!locked) {
         throw new NotFoundException('Persona', params.personaId);
       }
+      await assertOwningBrandLive(tx, locked.brandId, params.organizationId);
       if (
         availability.availabilityMode !== PersonaAvailabilityMode.OWNING_BRAND
       ) {
