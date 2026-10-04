@@ -1,5 +1,6 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { getPublicMcpUrl, getPublicWebsiteUrl } from '@mcp/mcp/setup-page';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { MCP_APP_MIME_TYPE, MCP_CARD_RESOURCE_URI } from '@mcp/ui/card-data';
 import express from 'express';
@@ -150,6 +151,46 @@ describe('StreamableHttpService (real SDK integration)', () => {
           serverInfo: { name: 'genfeed-mcp-server' },
         },
       });
+    });
+  });
+
+  it('brands the server identity in initialize (#6134)', async () => {
+    await withServer(async (baseUrl) => {
+      const { status, text } = await postMcp(baseUrl, {
+        ...initializeBody,
+        params: { ...initializeBody.params, protocolVersion: '2025-11-25' },
+      });
+
+      expect(status).toBe(200);
+      const { result } = JSON.parse(text);
+      expect(result.protocolVersion).toBe('2025-11-25');
+      expect(result.instructions).toContain('get_brands');
+      expect(result.serverInfo).toMatchObject({
+        description: expect.stringContaining('Genfeed'),
+        name: 'genfeed-mcp-server',
+        title: 'Genfeed',
+        version: expect.any(String),
+        websiteUrl: getPublicWebsiteUrl(),
+      });
+
+      const icons: Array<{
+        mimeType: string;
+        sizes: string[];
+        src: string;
+        theme?: string;
+      }> = result.serverInfo.icons;
+      const mcpOrigin = new URL(getPublicMcpUrl()).origin;
+      expect(icons.map((icon) => icon.mimeType)).toEqual(
+        expect.arrayContaining(['image/png', 'image/svg+xml']),
+      );
+      expect(icons.map((icon) => icon.theme)).toEqual(
+        expect.arrayContaining(['light', 'dark']),
+      );
+      for (const icon of icons) {
+        // Clients verify icons are same-origin with the server and HTTPS.
+        expect(new URL(icon.src).origin).toBe(mcpOrigin);
+        expect(icon.sizes.length).toBeGreaterThan(0);
+      }
     });
   });
 

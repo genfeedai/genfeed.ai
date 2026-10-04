@@ -11,6 +11,10 @@ import {
   generationQuoteGroupReceiptSchema as receiptSchema,
 } from '@api/helpers/utils/credits/generation-quote-group.schema';
 import { persistQuoteGroupFailure } from '@api/helpers/utils/credits/persist-quote-group-failure.util';
+import {
+  abortUnsubmittedCrunOutput,
+  sweepAbortedCrunDispatches,
+} from '@api/helpers/utils/credits/persist-unsubmitted-crun-abort.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivitySource, CreditReservationStatus } from '@genfeedai/contracts';
 import { MEDIA_GENERATION_GROUP_WORKLOAD_TYPE } from '@genfeedai/contracts/constants';
@@ -111,6 +115,29 @@ export class GenerationQuoteGroupService {
         }),
       },
     });
+  }
+
+  /** Pre-submission abort of a taskless Crun output: hold evidence, release, failure. */
+  abortUnsubmittedOutput(
+    ingredientId: string,
+    organizationId: string,
+  ): Promise<void> {
+    return abortUnsubmittedCrunOutput(
+      this.prisma,
+      ingredientId,
+      organizationId,
+      this.credits,
+    );
+  }
+
+  /** Retry aborts whose cleanup failed; returns how many it completed. */
+  reconcileAbortedCrunDispatches(now = new Date()): Promise<number> {
+    return sweepAbortedCrunDispatches(
+      this.prisma,
+      this.logger,
+      this.credits,
+      now,
+    );
   }
 
   async closeDispatch(

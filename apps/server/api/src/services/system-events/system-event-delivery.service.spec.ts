@@ -89,6 +89,9 @@ function setup() {
         if (where.deliveredAt === null && event.deliveredAt)
           return { count: 0 };
         if (where.skippedAt === null && event.skippedAt) return { count: 0 };
+        if (where.failedAt?.not === null && !event.failedAt)
+          return { count: 0 };
+        if (where.failedAt === null && event.failedAt) return { count: 0 };
         Object.assign(event, data);
         return { count: 1 };
       }),
@@ -108,6 +111,17 @@ function setup() {
         ),
       ),
       updateMany: vi.fn(async ({ where, data }) => {
+        if (where.eventId) {
+          const pending = deliveries.filter(
+            (d) =>
+              d.eventId === where.eventId &&
+              !d.deliveredAt &&
+              !d.skippedAt &&
+              !d.failedAt,
+          );
+          for (const d of pending) Object.assign(d, data);
+          return { count: pending.length };
+        }
         const row = deliveries.find((delivery) => delivery.id === where.id);
         if (
           !row ||
@@ -243,6 +257,26 @@ describe('independent system notification delivery', () => {
       { provider: 'email', address: '1@example.com' },
       'system/delivery-1',
     );
+  });
+  it('resets the parent and every pending delivery when a capped parent is retried by delivery id', async () => {
+    const { service, event, deliveries } = setup();
+    event.failedAt = new Date();
+    event.attempts = 32;
+    event.leaseToken = 'stale-worker';
+    for (const delivery of deliveries) {
+      delivery.attempts = 5;
+      delivery.leaseToken = 'stale-delivery';
+      delivery.leaseUntil = new Date(Date.now() + 60_000);
+    }
+    expect(await service.retry('delivery-0')).toBe(true);
+    expect(event.failedAt).toBeNull();
+    expect(event.attempts).toBe(0);
+    expect(event.leaseToken).toBeNull();
+    for (const delivery of deliveries) {
+      expect(delivery.attempts).toBe(0);
+      expect(delivery.leaseToken).toBeNull();
+      expect(delivery.leaseUntil).toBeNull();
+    }
   });
   it('keeps the delivery failed when reopening its parent throws', async () => {
     const { service, event, deliveries, prisma } = setup();

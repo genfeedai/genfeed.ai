@@ -1,8 +1,26 @@
 import type { IBrand } from '@genfeedai/contracts/interfaces';
+import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 
 export interface ConnectGenfeedMetadata {
   lastVerifiedAt: string;
   transport: 'streamable-http';
+}
+
+/**
+ * An agent that can reach Genfeed over MCP: a manually verified key, or an
+ * OAuth session key the MCP server has already authenticated with.
+ */
+export interface VerifiedMcpConnection {
+  apiKey: ApiKey;
+  /** OAuth client name the agent registered with; null for manual keys. */
+  clientName: string | null;
+  /**
+   * Stable per agent connection: the OAuth grant for OAuth sessions (refresh
+   * rotation mints new keys under the same grant), else the key id.
+   */
+  connectionId: string;
+  method: 'manual-key' | 'oauth';
+  verifiedAt: string;
 }
 
 export interface CredentialHealthSummary {

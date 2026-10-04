@@ -3350,6 +3350,8 @@
     }
   },
   "connectGenfeed": {
+    "agentConnectedDescription": "{client} authorized Genfeed and completed its first MCP request.",
+    "agentConnectedTitle": "Connected to {client}",
     "addGenfeed": "Add Genfeed",
     "apiAccessDescription": "API access is available on paid cloud plans and all self-hosted deployments.",
     "authMethodLabel": "Authentication method",
@@ -3412,7 +3414,8 @@
     "verifiedTitle": "Connection verified",
     "verify": "Verify",
     "verifyConnection": "Verify MCP connection",
-    "verifyInClient": "Verify in client"
+    "verifyInClient": "Verify in client",
+    "waitingForAgent": "Waiting for {client} to connect. This page updates as soon as it reaches Genfeed."
   },
   "connectSocial": {
     "authorize": "Authorize account",
@@ -4479,6 +4482,7 @@
       "history": "Recent deliveries",
       "noHistory": "No deliveries recorded yet.",
       "removedDestination": "Removed destination",
+      "eventFailed": "Event processing failed",
       "attempts": "{count} attempts",
       "retry": "Retry",
       "retryScheduled": "Retry scheduled"

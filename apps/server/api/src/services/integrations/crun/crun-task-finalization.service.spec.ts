@@ -235,9 +235,84 @@ describe('Crun authenticated finalization phases', () => {
     expect(f.row.mediaPersistedAt).toBeInstanceOf(Date);
     expect(f.row.vendorCostRecordedAt).toBeInstanceOf(Date);
     expect(f.row.recoveryCode).toBe('CRUN_FINAL_CREDITS_MISMATCH');
-    expect(f.prisma.model.updateMany).toHaveBeenCalled();
+    expect(f.prisma.model.updateMany).toHaveBeenCalledWith({
+      where: {
+        key: 'crun/google/nano-banana-pro',
+        organizationId: 'org',
+        isDeleted: false,
+      },
+      data: { isActive: false },
+    });
     expect(f.billing.settleOutput).not.toHaveBeenCalled();
     expect(f.billing.releaseOutput).not.toHaveBeenCalled();
+  });
+  it('byok discrepancy deactivates only the organization row and never the global or another org row', async () => {
+    const f = fixture();
+    const receipt = {
+      amount: 3,
+      description: 'usage',
+      expiresAt: new Date().toISOString(),
+      source: ActivitySource.IMAGE_GENERATION,
+      userId: 'user',
+      submissionIntentProvider: 'crun',
+    };
+    f.row.credentialSource = 'byok';
+    f.row.reservationId = null;
+    f.row.fundingBinding = { kind: 'byok', receipt };
+    f.row.quoteSnapshot = z.json().parse({
+      ...f.snapshot,
+      providerQuote: {
+        ...f.snapshot.providerQuote,
+        credentialSource: 'byok',
+        credentialId: null,
+        creditsPerUsd: null,
+        acquisitionRateVersion: null,
+      },
+    });
+    f.ingredient.generationBilling = {
+      ...receipt,
+      kind: 'byok',
+      state: 'pending',
+    };
+    f.row.terminalReceipt = { status: 'success', credits: '9' };
+    await f.service.finalize({ ...f.row }, f.info);
+    expect(f.row.recoveryCode).toBe('CRUN_FINAL_CREDITS_MISMATCH');
+    const calls = f.prisma.model.updateMany.mock.calls as unknown as Array<
+      [{ where: unknown }]
+    >;
+    expect(calls.length).toBeGreaterThan(0);
+    for (const [{ where }] of calls)
+      expect(where).toEqual({
+        key: 'crun/google/nano-banana-pro',
+        organizationId: 'org',
+        isDeleted: false,
+      });
+    expect(f.logger.warn).toHaveBeenCalledWith(
+      'Crun terminal receipt requires review',
+      expect.objectContaining({
+        code: 'CRUN_FINAL_CREDITS_MISMATCH',
+        credentialSource: 'byok',
+      }),
+    );
+  });
+  it('platform-funded discrepancy also deactivates the global row', async () => {
+    const f = fixture();
+    f.row.terminalReceipt = { status: 'success', credits: '9' };
+    await f.service.finalize({ ...f.row }, f.info);
+    const key = 'crun/google/nano-banana-pro';
+    const calls = f.prisma.model.updateMany.mock.calls as unknown as Array<
+      [{ where: unknown }]
+    >;
+    for (const [{ where }] of calls)
+      expect([
+        { key, organizationId: 'org', isDeleted: false },
+        { key, organizationId: null, isDeleted: false },
+      ]).toContainEqual(where);
+    expect(calls.map(([{ where }]) => where)).toContainEqual({
+      key,
+      organizationId: null,
+      isDeleted: false,
+    });
   });
   it('preserves owned output but does not bill when final credits are missing', async () => {
     const f = fixture();

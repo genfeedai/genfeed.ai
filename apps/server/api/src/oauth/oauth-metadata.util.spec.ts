@@ -1,5 +1,6 @@
 import {
   buildOAuthAuthorizationServerMetadata,
+  canonicalizeRequestedMcpResource,
   resolveMcpResourceUrl,
   resolveOAuthIssuerUrl,
 } from './oauth-metadata.util';
@@ -24,6 +25,11 @@ describe('OAuth metadata', () => {
       'https://api.genfeed.ai/v1/oauth/authorize',
     );
     expect(metadata.code_challenge_methods_supported).toEqual(['S256']);
+    expect(metadata).toMatchObject({
+      op_policy_uri: 'https://genfeed.ai/privacy',
+      op_tos_uri: 'https://genfeed.ai/terms',
+      service_documentation: 'https://docs.genfeed.ai/api-reference/mcp',
+    });
     expect(metadata.grant_types_supported).toEqual([
       'authorization_code',
       'refresh_token',
@@ -53,6 +59,22 @@ describe('OAuth metadata', () => {
         credential_types_supported: ['api_key'],
       },
       skill: 'https://genfeed.ai/auth.md',
+    });
+  });
+
+  it("advertises the operator's own policies and docs", () => {
+    const metadata = buildOAuthAuthorizationServerMetadata(
+      config({
+        GENFEED_DOCS_URL: 'https://docs.example.test/',
+        GENFEEDAI_API_PUBLIC_URL: 'https://api.example.test',
+        GENFEEDAI_PUBLIC_URL: 'https://content.example.test',
+      }),
+    );
+
+    expect(metadata).toMatchObject({
+      op_policy_uri: 'https://content.example.test/privacy',
+      op_tos_uri: 'https://content.example.test/terms',
+      service_documentation: 'https://docs.example.test/api-reference/mcp',
     });
   });
 
@@ -132,5 +154,36 @@ describe('OAuth metadata', () => {
         ),
       ).toThrow(/GENFEEDAI_MCP_PUBLIC_URL/);
     });
+  });
+});
+
+describe('canonicalizeRequestedMcpResource', () => {
+  it.each([
+    ['https://mcp.genfeed.ai/mcp?profile=full', 'https://mcp.genfeed.ai/mcp'],
+    [
+      'https://mcp.genfeed.ai/mcp?toolsets=core,generation',
+      'https://mcp.genfeed.ai/mcp',
+    ],
+    [
+      'https://mcp.genfeed.ai/mcp/?profile=directory&toolsets=core',
+      'https://mcp.genfeed.ai/mcp',
+    ],
+  ])('drops MCP routing params from %s', (requested, canonical) => {
+    expect(canonicalizeRequestedMcpResource(requested)).toBe(canonical);
+  });
+
+  it.each([
+    'https://mcp.genfeed.ai/mcp',
+    'https://mcp.genfeed.ai/mcp?profile=full&tenant=other',
+    'https://mcp.genfeed.ai/mcp?profile=full#fragment',
+    'https://mcp.genfeed.ai/mcp?profile=full#',
+    'https://reviewer@mcp.genfeed.ai/mcp?profile=full',
+    'https://evil.example/mcp?profile=full',
+    'not a url',
+  ])('leaves %s for the exact comparison to judge', (requested) => {
+    const canonical = canonicalizeRequestedMcpResource(requested);
+    expect(canonical === 'https://mcp.genfeed.ai/mcp').toBe(
+      requested === 'https://mcp.genfeed.ai/mcp',
+    );
   });
 });

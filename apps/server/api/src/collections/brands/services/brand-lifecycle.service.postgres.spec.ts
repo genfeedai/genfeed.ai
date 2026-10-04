@@ -179,8 +179,8 @@ describe.skipIf(!connectionString)(
       const serviceB = makeService();
 
       const results = await Promise.allSettled([
-        serviceA.remove(brandIds[0]),
-        serviceB.remove(brandIds[1]),
+        serviceA.remove(organizationId, brandIds[0]),
+        serviceB.remove(organizationId, brandIds[1]),
       ]);
 
       const fulfilled = results.filter(
@@ -218,7 +218,7 @@ describe.skipIf(!connectionString)(
       // memberIds[0]/switchingUserId already points at brandIds[0]; race a
       // switch onto brandIds[1] against a concurrent delete of brandIds[1].
       const [removeResult, selectResult] = await Promise.allSettled([
-        removeService.remove(brandIds[1]),
+        removeService.remove(organizationId, brandIds[1]),
         selectService.selectBrandForUser(
           brandIds[1],
           switchingUserId,

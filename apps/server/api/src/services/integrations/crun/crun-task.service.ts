@@ -35,6 +35,9 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 
+/** Prepared rows live seconds; anything older was abandoned mid-dispatch. */
+const STALE_PREPARED_AGE_MS = 15 * 60 * 1000;
+
 @Injectable()
 export class CrunTaskService {
   constructor(
@@ -298,6 +301,45 @@ export class CrunTaskService {
         result.reasonCode,
       );
     return { isSubmitted: false, reasonCode: result.reasonCode };
+  }
+
+  /**
+   * Compensation for a dispatch that aborted before this task was claimed for
+   * submission. Only a still-`prepared` row moves; a claimed row is owned by the
+   * poller and its acceptance stays ambiguous.
+   */
+  async failPrepared(
+    task: CrunGenerationTask,
+    reasonCode: string,
+    now = new Date(),
+  ): Promise<void> {
+    if (task.state !== 'prepared') return;
+    await this.markUnsubmitted(task, reasonCode, now);
+  }
+
+  /**
+   * Safety net: a `prepared` row older than the threshold was abandoned (the
+   * dispatching process died before it could compensate). Deployment-global
+   * sweep; every transition re-enters the row's tenant scope.
+   */
+  async failStalePrepared(
+    now = new Date(),
+    maxAgeMs = STALE_PREPARED_AGE_MS,
+  ): Promise<number> {
+    // tenant-scope-ignore: explicitly deployment-global bounded sweep, followed by tenant-scoped CAS per row.
+    const rows = await this.prisma.crunGenerationTask.findMany({
+      orderBy: { createdAt: 'asc' },
+      take: 50,
+      where: {
+        isDeleted: false,
+        state: 'prepared',
+        providerTaskId: null,
+        createdAt: { lte: new Date(now.getTime() - maxAgeMs) },
+      },
+    });
+    for (const row of rows)
+      await this.markUnsubmitted(row, 'CRUN_PREPARED_ABANDONED', now);
+    return rows.length;
   }
 
   private async markUnsubmitted(

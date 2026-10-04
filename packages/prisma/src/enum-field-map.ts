@@ -7483,6 +7483,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'createdAt',
       'deliveredAt',
       'destinationsResolvedAt',
+      'failedAt',
       'id',
       'isDeleted',
       'lastStatusCode',

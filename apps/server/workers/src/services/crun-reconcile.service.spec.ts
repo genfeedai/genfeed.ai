@@ -9,6 +9,7 @@ const row = {
 };
 function fixture() {
   const tasks = {
+    failStalePrepared: vi.fn().mockResolvedValue(0),
     claimDue: vi.fn().mockResolvedValue([row]),
     poll: vi.fn(),
     renewLease: vi.fn().mockResolvedValue(true),
@@ -41,6 +42,19 @@ describe('Crun shared worker ownership', () => {
       undefined,
       expect.any(AbortSignal),
     );
+  });
+  it('fails abandoned prepared rows before claiming and survives a sweep error', async () => {
+    const f = fixture();
+    await f.service.reconcile();
+    expect(f.tasks.failStalePrepared.mock.invocationCallOrder[0]).toBeLessThan(
+      f.tasks.claimDue.mock.invocationCallOrder[0],
+    );
+    f.tasks.failStalePrepared.mockRejectedValueOnce(new Error('db down'));
+    await f.service.reconcile();
+    expect(f.logger.warn).toHaveBeenCalledWith(
+      'Crun stale prepared sweep deferred',
+    );
+    expect(f.tasks.claimDue).toHaveBeenCalledTimes(2);
   });
   it('passes the terminal claimed epoch returned by poll to finalization', async () => {
     const f = fixture();

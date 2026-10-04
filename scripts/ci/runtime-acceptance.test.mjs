@@ -3349,7 +3349,7 @@ function partitionFixture(mode = 'shared') {
     ...LEARNING_DELEGATED_API_FILES,
     'test/integration/ordinary.integration.spec.ts',
   ];
-  const executed = mode === 'final' ? selected.slice(4) : selected.slice(2);
+  const executed = selected.slice(4);
   return {
     apiRoot,
     summary: {
@@ -3370,19 +3370,23 @@ function partitionFixture(mode = 'shared') {
     },
   };
 }
-test('shared API partition delegates exactly two selected fixtures without manufacturing their passes', () => {
+test('shared API partition delegates the four selected fixtures including the learning specs without manufacturing their passes', () => {
   const value = partitionFixture(),
     result = validateSharedApiFullPartition(
       value.summary,
       value.report,
       value.apiRoot,
     );
-  assert.equal(result.executedFileCount, 3);
+  assert.equal(result.executedFileCount, 1);
   assert.equal(result.selectedFileCount, 5);
   assert.equal(result.mode, 'shared');
   assert.deepEqual(
+    result.delegatedFiles.map((entry) => entry.file),
+    [...DELEGATED_API_FILES, ...LEARNING_DELEGATED_API_FILES],
+  );
+  assert.deepEqual(
     result.delegatedFiles.map((entry) => entry.proof),
-    ['REQUIRED', 'REQUIRED'],
+    Array(4).fill('REQUIRED'),
   );
   for (const change of [
     (v) => {
@@ -4590,7 +4594,7 @@ test('actual spawn guard is synchronous and immediately precedes spawn, while ex
 const FROZEN_CRUN = {
   image: {
     path: 'apps/server/api/src/services/integrations/crun/crun-image-flow.integration.spec.ts',
-    sha256: 'b050ef84ba936c699447cf76393a8a3800180114f815fb927378714c60f97be8',
+    sha256: '19ebcf4d0e81a380900d2d1ce7f638e5694a924fcff2eb8aa88c366ff91a7cdd',
     count: 18,
     passedTitles: [
       'Crun image quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success: frozen quote, restart, owned storage and exact accounting',
@@ -4615,7 +4619,7 @@ const FROZEN_CRUN = {
   },
   video: {
     path: 'apps/server/api/src/services/integrations/crun/crun-video-flow.integration.spec.ts',
-    sha256: '2c946fa778c9db9d76aeea45c80b4120462786391ae481905fa0eb16e4c143ae',
+    sha256: 'a0d530c2cab376cd23f789e25ce29b722870af658255ba89f2699f6953c01882',
     count: 23,
     passedTitles: [
       'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant default: frozen quote, restart, owned storage and exact accounting',
@@ -6133,7 +6137,7 @@ test('visual preflight requests only bounded runsc availability and rejects inva
   );
 });
 
-test('final API partition requires all four delegated files and rejects cross-mode proof', () => {
+test('final API partition requires all four delegated files', () => {
   const value = partitionFixture('final');
   const result = validateSharedApiFullPartition(
     value.summary,
@@ -6158,30 +6162,9 @@ test('final API partition requires all four delegated files and rejects cross-mo
         value.summary,
         value.report,
         value.apiRoot,
-        'shared',
-      ),
-    { code: 'INVALID_FULL_PARTITION' },
-  );
-  assert.throws(
-    () =>
-      validateSharedApiFullPartition(
-        value.summary,
-        value.report,
-        value.apiRoot,
         'unknown',
       ),
     { code: 'INVALID_FULL_PARTITION_MODE' },
-  );
-  const shared = partitionFixture('shared');
-  assert.throws(
-    () =>
-      validateSharedApiFullPartition(
-        shared.summary,
-        shared.report,
-        shared.apiRoot,
-        'final',
-      ),
-    { code: 'INVALID_FULL_PARTITION' },
   );
   for (const file of LEARNING_DELEGATED_API_FILES) {
     const missing = partitionFixture('final');

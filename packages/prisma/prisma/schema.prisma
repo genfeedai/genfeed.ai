@@ -8301,6 +8301,8 @@ model SystemEventWebhook {
   deliveries SystemEventDelivery[]
   destinationsResolvedAt DateTime?
   skippedAt DateTime?
+  /// Terminal: the event-level lease cap was reached; only an operator retry reopens it.
+  failedAt DateTime?
   id             String   @id
   type           String
   payload        String

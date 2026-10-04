@@ -306,13 +306,18 @@ export abstract class BaseCRUDController<
     }
 
     const canonicalId = EntityIdUtil.resolveCanonicalId(existing, id);
-    const data = await this.service.remove(canonicalId);
+    const data = await this.removeEntity(existing, canonicalId);
 
     if (!data) {
       ErrorResponse.notFound(this.entityName, id);
     }
 
     return serializeSingle(request, this.serializer, data);
+  }
+
+  /** Performs the soft delete; controllers whose service needs more than the id override it. */
+  protected removeEntity(_existing: T, canonicalId: string): Promise<T | null> {
+    return this.service.remove(canonicalId);
   }
 
   /**

@@ -1,6 +1,11 @@
 import { randomBytes } from 'node:crypto';
 import { hashToken, toBase64Url } from '@api/auth/shared/pkce.util';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import {
+  buildMcpOAuthSessionMetadata,
+  readMcpOAuthSessionLineage,
+} from '@api/oauth/mcp-oauth-session-metadata.util';
+import { canonicalizeRequestedMcpResource } from '@api/oauth/oauth-metadata.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
 import type { McpOAuthRefreshToken } from '@genfeedai/prisma';
@@ -121,7 +126,10 @@ export class OAuthRefreshTokenService {
     if (record.revokedAt || record.expiresAt <= new Date()) {
       throw invalidGrant();
     }
-    if (dto.resource !== undefined && dto.resource !== record.resource) {
+    if (
+      dto.resource !== undefined &&
+      canonicalizeRequestedMcpResource(dto.resource) !== record.resource
+    ) {
       throw oauthError('invalid_target', 'Unsupported resource');
     }
     const scopes = this.narrowScopes(record.scopes, dto.scope);
@@ -163,10 +171,12 @@ export class OAuthRefreshTokenService {
         description: 'OAuth session for a remote MCP client',
         expiresAt: expiresAt.toISOString(),
         label: 'MCP OAuth',
-        metadata: {
-          kind: 'mcp-oauth-session',
-          resource: record.resource,
-        },
+        // Keys minted before grant lineage existed fall back to their own id,
+        // which then stays stable for every later rotation.
+        metadata: buildMcpOAuthSessionMetadata(
+          record.resource,
+          readMcpOAuthSessionLineage(apiKey.metadata, apiKey.id),
+        ),
         organizationId: record.organizationId,
         rateLimit: apiKey.rateLimit ?? 120,
         scopes,

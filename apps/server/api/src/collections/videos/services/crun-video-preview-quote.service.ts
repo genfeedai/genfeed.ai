@@ -36,7 +36,7 @@ export class CrunVideoPreviewQuoteService {
     private readonly models: ModelsService,
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-    private readonly personas?: PersonasService,
+    private readonly personas: PersonasService,
   ) {}
 
   async quote(
@@ -201,7 +201,7 @@ export class CrunVideoPreviewQuoteService {
   async assertCurrent(captured: CrunFrozenVideoQuote): Promise<void> {
     if (!this.tasks.isAdmissionEnabled()) throw this.stale();
     // Access to a character can be revoked after the quote was taken (#6040).
-    await this.personas?.resolveCharacterReferences({
+    await this.personas.resolveCharacterReferences({
       brandId: captured.brandId,
       ingredientIds: [
         ...(captured.intent.references ?? []),

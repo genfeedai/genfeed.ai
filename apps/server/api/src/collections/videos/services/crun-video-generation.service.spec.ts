@@ -264,16 +264,127 @@ describe('Crun video output character link', () => {
       credentialSource: 'hosted',
       inputHash: 'input',
     };
+    const createdIds: string[] = [];
     await service['createBoundOutputs'](
       user as never,
       { ...intent, outputs: 2, references: [] } as never,
       frozen as never,
       provider as never,
       {} as never,
+      createdIds,
     );
+    expect(createdIds).toEqual(['ingredient-0', 'ingredient-1']);
     expect(input.resolveOutputPersonaId).toHaveBeenCalledTimes(1);
     expect(shared.createMediaDocuments).toHaveBeenCalledTimes(2);
     for (const call of shared.createMediaDocuments.mock.calls)
       expect(call[1]).toMatchObject({ personaId: 'persona-1' });
+  });
+});
+
+describe('Crun video dispatch compensation', () => {
+  function harness() {
+    const tasks = {
+      findForIngredient: vi.fn(),
+      failPrepared: vi.fn().mockResolvedValue(undefined),
+    };
+    const billing = {
+      abortUnsubmittedOutput: vi.fn().mockResolvedValue(undefined),
+      recordSubmissionRejection: vi.fn().mockResolvedValue(undefined),
+      releasePool: vi.fn().mockResolvedValue(undefined),
+    };
+    const prisma = {
+      ingredient: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    };
+    const videos = {
+      findOne: vi.fn().mockResolvedValue({ id: 'ingredient-0' }),
+    };
+    const service = new CrunVideoGenerationService(
+      {} as never,
+      {} as never,
+      tasks as never,
+      billing as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      videos as never,
+      prisma as never,
+      {} as never,
+    );
+    const internals = service as unknown as Record<string, unknown>;
+    internals.prepareQuoteConsumption = vi.fn().mockResolvedValue({
+      raw: {},
+      consumed: { kind: 'fresh', quote: { snapshot: {} } },
+    });
+    internals.reserveFrozenFunding = vi
+      .fn()
+      .mockResolvedValue({ provider: {}, intent: {} });
+    return { service, internals, tasks, billing, prisma };
+  }
+  const request = { user, originalUrl: '/videos' };
+
+  it('a throw creating the second ingredient fails the first and releases the pool', async () => {
+    const h = harness();
+    h.internals.createBoundOutputs = vi
+      .fn()
+      .mockImplementation(async (...args: unknown[]) => {
+        (args[5] as string[]).push('ingredient-0');
+        throw new Error('create failed');
+      });
+    h.tasks.findForIngredient.mockResolvedValue(null);
+    await expect(
+      h.service.generate(user as never, {} as never, request as never),
+    ).rejects.toThrow('create failed');
+    expect(h.billing.abortUnsubmittedOutput).toHaveBeenCalledWith(
+      'ingredient-0',
+      folder,
+    );
+    expect(h.billing.releasePool).toHaveBeenCalledTimes(1);
+  });
+
+  it('a throw during submission fails the remaining prepared tasks and releases the pool', async () => {
+    const h = harness();
+    h.internals.createBoundOutputs = vi
+      .fn()
+      .mockImplementation(async (...args: unknown[]) => {
+        (args[5] as string[]).push('ingredient-0', 'ingredient-1');
+        return {
+          rows: [],
+          ingredients: [
+            { ingredientData: { id: 'ingredient-0' } },
+            { ingredientData: { id: 'ingredient-1' } },
+          ],
+        };
+      });
+    h.internals.submitPreparedOutputs = vi
+      .fn()
+      .mockRejectedValue(new Error('provider outage'));
+    h.tasks.findForIngredient.mockImplementation(
+      async (_org: string, id: string) => ({
+        id: `task-${id}`,
+        state: id === 'ingredient-0' ? 'pending' : 'prepared',
+      }),
+    );
+    await expect(
+      h.service.generate(user as never, {} as never, request as never),
+    ).rejects.toThrow('provider outage');
+    expect(h.tasks.failPrepared).toHaveBeenCalledTimes(1);
+    expect(h.billing.recordSubmissionRejection).toHaveBeenCalledWith(
+      'ingredient-1',
+      folder,
+    );
+    expect(h.billing.releasePool).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the success path uncompensated', async () => {
+    const h = harness();
+    h.internals.createBoundOutputs = vi.fn().mockResolvedValue({
+      rows: [],
+      ingredients: [{ ingredientData: { id: 'ingredient-0' } }],
+    });
+    h.internals.submitPreparedOutputs = vi.fn().mockResolvedValue(undefined);
+    await h.service.generate(user as never, {} as never, request as never);
+    expect(h.tasks.failPrepared).not.toHaveBeenCalled();
+    expect(h.billing.abortUnsubmittedOutput).not.toHaveBeenCalled();
+    expect(h.billing.releasePool).not.toHaveBeenCalled();
   });
 });
