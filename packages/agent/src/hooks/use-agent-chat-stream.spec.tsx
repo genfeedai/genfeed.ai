@@ -7,6 +7,10 @@ import {
   resetAgentStreamRuntime,
 } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
+import {
+  AgentWorkEventStatus,
+  AgentWorkEventType,
+} from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
@@ -930,6 +934,7 @@ describe('useAgentChatStream', () => {
         threadId: 'thread-b',
         role: 'user' as const,
         content: 'Visible question',
+        createdAt: '2026-09-24T08:00:00Z',
       };
       const getMessages = vi.fn().mockResolvedValue([
         {
@@ -2016,16 +2021,18 @@ describe('useAgentChatStream', () => {
       },
       threads: [
         {
+          contextVersion: 1,
           createdAt: startedAt,
           id: 'thread-a',
-          status: 'active' as never,
+          status: AgentThreadStatus.ACTIVE,
           title: 'Background thread',
           updatedAt: startedAt,
         },
         {
+          contextVersion: 1,
           createdAt: startedAt,
           id: 'thread-b',
-          status: 'active' as never,
+          status: AgentThreadStatus.ACTIVE,
           title: 'Visible thread',
           updatedAt: startedAt,
         },
@@ -2117,10 +2124,11 @@ describe('useAgentChatStream', () => {
       messages: [],
       threads: [
         {
+          contextVersion: 1,
           createdAt: '2026-03-09T10:00:00.000Z',
           id: 'thread-reconnect',
           runStatus: 'running',
-          status: 'active' as never,
+          status: AgentThreadStatus.ACTIVE,
           title: 'Reconnect thread',
           updatedAt: '2026-03-09T10:00:00.000Z',
         },
@@ -2209,15 +2217,17 @@ describe('useAgentChatStream', () => {
       stream: {
         activeToolCalls: [],
         isStreaming: false,
+        pendingUiActions: [],
         streamingContent: '',
         streamingReasoning: '',
       },
       threads: [
         {
+          contextVersion: 1,
           createdAt: '2026-03-09T10:00:00.000Z',
           id: 'thread-legacy-stream',
           runStatus: 'running',
-          status: 'active' as never,
+          status: AgentThreadStatus.ACTIVE,
           title: 'Legacy stream',
           updatedAt: '2026-03-09T10:00:00.000Z',
         },
@@ -2228,6 +2238,11 @@ describe('useAgentChatStream', () => {
         status: 'running',
       }),
     }));
+    // Older persisted stream state predates the field.
+    Reflect.deleteProperty(
+      useAgentChatStore.getState().stream,
+      'pendingUiActions',
+    );
 
     const apiService = createApiService({
       getMessages: vi.fn().mockResolvedValue([
@@ -2296,11 +2311,11 @@ describe('useAgentChatStream', () => {
     const liveWorkEvents = [
       {
         createdAt: startedAt,
-        event: 'tool_started' as const,
+        event: AgentWorkEventType.TOOL_STARTED,
         id: 'work-live',
         label: 'Generating image',
         runId: 'run-live',
-        status: 'running' as const,
+        status: AgentWorkEventStatus.RUNNING,
         threadId: 'thread-live',
       },
     ];
@@ -2322,10 +2337,11 @@ describe('useAgentChatStream', () => {
       },
       threads: [
         {
+          contextVersion: 1,
           createdAt: startedAt,
           id: 'thread-live',
           runStatus: 'running',
-          status: 'active' as never,
+          status: AgentThreadStatus.ACTIVE,
           title: 'Live generate',
           updatedAt: startedAt,
         },
