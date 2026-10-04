@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { CrunVideoInputService } from '@api/collections/videos/services/crun-video-input.service';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -35,6 +36,7 @@ export class CrunVideoPreviewQuoteService {
     private readonly models: ModelsService,
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly personas?: PersonasService,
   ) {}
 
   async quote(
@@ -198,6 +200,16 @@ export class CrunVideoPreviewQuoteService {
 
   async assertCurrent(captured: CrunFrozenVideoQuote): Promise<void> {
     if (!this.tasks.isAdmissionEnabled()) throw this.stale();
+    // Access to a character can be revoked after the quote was taken (#6040).
+    await this.personas?.resolveCharacterReferences({
+      brandId: captured.brandId,
+      ingredientIds: [
+        ...(captured.intent.references ?? []),
+        ...(captured.intent.endFrame ? [captured.intent.endFrame] : []),
+      ],
+      organizationId: captured.organizationId,
+      path: 'video',
+    });
     const frozen = captured.snapshot.providerQuote;
     if (!frozen) throw this.stale();
     const model = await this.models.findOne({

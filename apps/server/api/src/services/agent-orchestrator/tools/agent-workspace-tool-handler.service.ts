@@ -4,7 +4,7 @@ import { CreditTransactionsService } from '@api/collections/credits/services/cre
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import {
-  type IngredientCharacterFilterService,
+  IngredientCharacterFilterService,
   resolveCharacterFilter,
 } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';

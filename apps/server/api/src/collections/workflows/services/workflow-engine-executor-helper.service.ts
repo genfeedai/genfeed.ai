@@ -462,6 +462,21 @@ export class WorkflowEngineExecutorHelperService {
     return IngredientCategory.IMAGE;
   }
 
+  /** True when the id is a live Library asset of this organization. */
+  async hasOrganizationAsset(
+    id: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    if (!this.ingredientsService) {
+      return false;
+    }
+    return Boolean(
+      await this.ingredientsService.findOne(
+        scopedWhere(organizationId, { id }),
+      ),
+    );
+  }
+
   extractIngredientId(value: unknown): string | undefined {
     if (typeof value === 'string') {
       const match = value.match(

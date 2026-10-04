@@ -6,6 +6,7 @@ import type {
   WorkflowMediaProviderPlanInput,
   WorkflowVideoProviderPlan,
 } from '@api/collections/workflows/services/workflow-media-provider-plan.interface';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   resolveVideoIdentityReferencePlan,
@@ -81,6 +82,12 @@ function readIdentityReferences(value: unknown): ClipChainIdentityReference[] {
   });
 }
 
+function readStrings(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string')
+    : [];
+}
+
 function replaceReferenceTokens(
   value: unknown,
   replacements: ReadonlyMap<string, string>,
@@ -139,29 +146,56 @@ export class WorkflowMediaProviderPlanService {
   }
 
   /**
-   * Admits the characters a node feeds into a generation (#6040): a revoked
-   * character fails the node before any output or provider dispatch exists.
-   * Returns the character to link the output to.
+   * Admits the characters a node feeds into a generation (#6040, #6037): a
+   * revoked character fails the node before any output or provider dispatch
+   * exists. Values are the node's raw inputs: bare asset ids, asset records
+   * and Library media URLs. An internal media URL must point at an asset of
+   * the running organization or at the reference image of a character with an
+   * active grant to it; any other internal URL is refused, so a revoked grant
+   * cannot be used through a still-public URL. Returns the character to link
+   * the output to.
    */
   private async admitCharacters(args: {
     brandId: string;
     organizationId: string;
     values: readonly unknown[];
   }) {
-    const ingredientIds = args.values.flatMap((value) => {
-      const id =
-        this.helper.extractIngredientId(value) ??
+    const targets = args.values.flatMap((value) => {
+      const urlId = this.helper.extractIngredientId(value);
+      if (urlId && typeof value === 'string') {
+        return [{ id: urlId, isInternalUrl: this.isInternalMediaUrl(value) }];
+      }
+      const bareId =
+        urlId ??
         (typeof value === 'string' && value && !value.includes('/')
           ? value
           : undefined);
-      return id ? [id] : [];
+      return bareId ? [{ id: bareId, isInternalUrl: false }] : [];
     });
-    return this.personasService.resolveCharacterReferences({
+    const admission = await this.personasService.resolveCharacterReferences({
       brandId: args.brandId,
-      ingredientIds,
+      ingredientIds: targets.map((target) => target.id),
       organizationId: args.organizationId,
       path: 'workflow',
     });
+    for (const target of targets) {
+      if (
+        target.isInternalUrl &&
+        !admission.availableAvatarIds.has(target.id) &&
+        !(await this.helper.hasOrganizationAsset(
+          target.id,
+          args.organizationId,
+        ))
+      ) {
+        throw new NotFoundException('Reference image');
+      }
+    }
+    return admission;
+  }
+
+  private isInternalMediaUrl(url: string): boolean {
+    const endpoint = this.configService?.ingredientsEndpoint;
+    return endpoint ? url.startsWith(endpoint) : true;
   }
 
   async prepareImage({
@@ -260,6 +294,23 @@ export class WorkflowMediaProviderPlanService {
     context,
     node,
   }: WorkflowMediaProviderPlanInput): Promise<WorkflowVideoProviderPlan> {
+    const brandId = this.helper.requireBrandId(params.brandId, 'videoGen');
+    // Admit the raw inputs first: later steps replace bare ids with synthetic
+    // names that no character could match.
+    const identityReferences = readIdentityReferences(
+      params.identityReferences,
+    );
+    const { availableAvatarIds, personaId } = await this.admitCharacters({
+      brandId,
+      organizationId: context.organizationId,
+      values: [
+        ...readStrings(params.references),
+        params.lastFrame,
+        ...readStrings(params.videoReferences),
+        ...identityReferences.map((reference) => reference.assetId),
+        params.parentIngredientId,
+      ],
+    });
     const {
       endFrameId,
       referenceAssetIds,
@@ -275,24 +326,9 @@ export class WorkflowMediaProviderPlanService {
       typeof params.negativePrompt === 'string'
         ? params.negativePrompt
         : undefined;
-    const brandId = this.helper.requireBrandId(params.brandId, 'videoGen');
     // Run-level identity stills (#4653). Tenancy preflight runs before the
     // brief compiles and before any output or provider dispatch exists, so
     // a deleted or foreign id fails without consuming credits.
-    const identityReferences = readIdentityReferences(
-      params.identityReferences,
-    );
-    const { availableAvatarIds, personaId } = await this.admitCharacters({
-      brandId,
-      organizationId: context.organizationId,
-      values: [
-        ...(referenceAssetIds ?? []),
-        endFrameId,
-        ...videoReferenceAssetIds,
-        ...identityReferences.map((reference) => reference.assetId),
-        params.parentIngredientId,
-      ],
-    });
     const identityPlan =
       identityReferences.length > 0
         ? await this.resolveIdentityReferencePlan({
