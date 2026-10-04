@@ -1,9 +1,6 @@
 import { PLATFORM_COLORS } from '@genfeedai/contracts/constants';
-import {
-  AnthropicIcon,
-  OpenAiIcon,
-  XaiIcon,
-} from '@genfeedai/helpers/ui/icons/brands';
+import { AnthropicIcon, OpenAiIcon } from '@genfeedai/helpers/ui/icons/brands';
+import { XaiIcon } from '@genfeedai/helpers/ui/icons/brands/model-provider-icons';
 import { getPlatformIconComponent } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
 import type {
   ConnectionAgent,
