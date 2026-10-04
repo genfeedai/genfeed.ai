@@ -8,6 +8,8 @@ import type { AgentThreadSnapshot } from '@genfeedai/agent/models/agent-chat.mod
 import {
   type AgentChatStore,
   createAgentChatStore,
+  runTransitionPatch,
+  selectActiveRun,
   useAgentChatStore,
 } from '@genfeedai/agent/stores/agent-chat.store';
 import { mapSnapshotRunStatus } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
@@ -99,15 +101,12 @@ export function getAgentStreamRuntime() {
 
 export function conversationProjection(state: AgentChatStore) {
   return {
-    activeRunId: state.activeRunId,
-    activeRunStatus: state.activeRunStatus,
     error: state.error,
     latestProposedPlan: state.latestProposedPlan,
     messages: state.messages,
     messagesCursor: state.messagesCursor,
     hasMoreMessages: state.hasMoreMessages,
     pendingInputRequest: state.pendingInputRequest,
-    runStartedAt: state.runStartedAt,
     stream: state.stream,
     workEvents: state.workEvents,
   };
@@ -154,9 +153,23 @@ export function projectAgentStreamEntry(entry: AgentStreamEntry) {
   useAgentChatStore.disposeStreamTokens();
   runtime.projecting = true;
   try {
-    useAgentChatStore.setState(
-      conversationProjection(entry.presentation.getState()),
-    );
+    const presentation = entry.presentation.getState();
+    useAgentChatStore.setState(conversationProjection(presentation));
+    // The run record follows the same path as every other writer.
+    const run = selectActiveRun(presentation);
+    const visible = useAgentChatStore.getState();
+    const visibleRun = selectActiveRun(visible);
+    if (
+      run.runId !== visibleRun.runId ||
+      run.status !== visibleRun.status ||
+      run.startedAt !== visibleRun.startedAt
+    )
+      visible.transitionRun(visible.activeThreadId, {
+        runId: run.runId,
+        startedAt: run.startedAt,
+        status: run.status,
+        type: 'begin',
+      });
   } finally {
     runtime.projecting = false;
   }
@@ -170,12 +183,20 @@ export function createAgentStreamEntry(
   if (old) disposeAgentStreamEntry(old);
   const presentation = createAgentChatStore({ ephemeral: true });
   const visible = useAgentChatStore.getState();
-  if (visible.activeThreadId === threadId)
+  presentation.setState({ activeThreadId: threadId });
+  if (visible.activeThreadId === threadId) {
     presentation.setState({
       ...conversationProjection(visible),
       pageContext: visible.pageContext,
     });
-  presentation.setState({ activeThreadId: threadId });
+    const run = selectActiveRun(visible);
+    presentation.getState().transitionRun(threadId, {
+      runId: run.runId,
+      startedAt: run.startedAt,
+      status: run.status,
+      type: 'begin',
+    });
+  }
   const entry: AgentStreamEntry = {
     ...blankRuntime(),
     key: threadId ?? `request:${clientRequestId}`,
@@ -211,15 +232,16 @@ export function createAgentStreamEntry(
       const owner = next.activeThreadId
         ? runtime.entries.get(next.activeThreadId)
         : runtime.visibleDraftOwner;
+      const nextRun = selectActiveRun(next);
       if (
         !owner ||
         !isCurrentAgentStreamEntry(owner) ||
         (!owner.isAwaitingRunIdRef.current &&
-          (!next.activeRunId ||
-            next.activeRunId !==
+          (!nextRun.runId ||
+            nextRun.runId !==
               (owner.activeStreamRunIdRef.current ??
-                owner.presentation.getState().activeRunId))) ||
-        next.activeRunStatus === 'idle'
+                selectActiveRun(owner.presentation.getState()).runId))) ||
+        nextRun.status === 'idle'
       )
         return;
       const patch: Partial<AgentChatStore> = {};
@@ -233,11 +255,9 @@ export function createAgentStreamEntry(
         patch.messagesCursor = next.messagesCursor;
       if (next.hasMoreMessages !== previous.hasMoreMessages)
         patch.hasMoreMessages = next.hasMoreMessages;
-      if (
+      const isStatusMirrored =
         owner.terminalAt === null &&
-        next.activeRunStatus !== previous.activeRunStatus
-      )
-        patch.activeRunStatus = next.activeRunStatus;
+        nextRun.status !== selectActiveRun(previous).status;
       if (
         owner.terminalAt === null &&
         next.stream.pendingUiActions !== previous.stream.pendingUiActions
@@ -246,7 +266,18 @@ export function createAgentStreamEntry(
           ...owner.presentation.getState().stream,
           pendingUiActions: next.stream.pendingUiActions,
         };
-      if (Object.keys(patch).length) owner.presentation.setState(patch);
+      if (!Object.keys(patch).length && !isStatusMirrored) return;
+      // One update, so the stream projection never sees the status without the
+      // rest of the patch.
+      owner.presentation.setState((state) => ({
+        ...patch,
+        ...(isStatusMirrored
+          ? runTransitionPatch(state, state.activeThreadId, {
+              status: nextRun.status,
+              type: 'status',
+            })
+          : {}),
+      }));
     },
   );
   // Only named conversation fields are projected; private store actions never
@@ -259,10 +290,10 @@ export function createAgentStreamEntry(
       next.hasMoreMessages !== previous.hasMoreMessages ||
       next.workEvents !== previous.workEvents ||
       next.pendingInputRequest !== previous.pendingInputRequest ||
-      next.activeRunId !== previous.activeRunId ||
-      next.activeRunStatus !== previous.activeRunStatus ||
+      selectActiveRun(next).runId !== selectActiveRun(previous).runId ||
+      selectActiveRun(next).status !== selectActiveRun(previous).status ||
       next.error !== previous.error ||
-      next.runStartedAt !== previous.runStartedAt
+      selectActiveRun(next).startedAt !== selectActiveRun(previous).startedAt
     ) {
       projectAgentStreamEntry(entry);
     }
@@ -473,13 +504,13 @@ export function captureAgentStreamHydration(threadId: string) {
       snapshot?.activeRun &&
       mapSnapshotRunStatus(snapshot.activeRun.status) === 'running'
     ) {
-      const retained = current.presentation.getState();
-      if (snapshot.activeRun.runId === retained.activeRunId) return false;
+      const retained = selectActiveRun(current.presentation.getState());
+      if (snapshot.activeRun.runId === retained.runId) return false;
       if (
         snapshot.activeRun.startedAt &&
-        retained.runStartedAt &&
+        retained.startedAt &&
         Date.parse(snapshot.activeRun.startedAt) <=
-          Date.parse(retained.runStartedAt)
+          Date.parse(retained.startedAt)
       )
         return false;
     }

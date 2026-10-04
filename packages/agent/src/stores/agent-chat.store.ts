@@ -268,6 +268,8 @@ export type AgentRunEvent =
     }
   /** The run's status moved, same run (`setActiveRunStatus`, input resolved). */
   | { type: 'status'; status: AgentRunStatus }
+  /** The run's start time was set without moving its id or status. */
+  | { type: 'started-at'; startedAt: string | null }
   /** The explicit `isGenerating` flag was set. */
   | { type: 'generating'; isGenerating: boolean }
   /** The turn finished with a final assistant message. */
@@ -322,6 +324,8 @@ function applyRunEvent(
       };
     case 'status':
       return { ...record, status: event.status };
+    case 'started-at':
+      return { ...record, startedAt: event.startedAt };
     case 'generating':
       return { ...record, isGenerating: event.isGenerating };
     case 'complete':
@@ -397,11 +401,28 @@ export function runTransitionPatch(
     isGenerating: next.isGenerating,
     runStartedAt:
       event.type === 'begin' ||
+      event.type === 'started-at' ||
       event.type === 'complete' ||
       event.type === 'reset'
         ? next.startedAt
         : state.runStartedAt,
     runsByThread,
+  };
+}
+
+/**
+ * The draft (`__new__`) record moves to the thread it became, so a run begun
+ * before the thread existed stays readable under its real id.
+ */
+export function adoptDraftRunPatch(
+  state: Pick<AgentChatState, 'runsByThread'>,
+  threadId: string,
+): Pick<AgentChatState, 'runsByThread'> {
+  const { [DRAFT_RUN_KEY]: draftRun, ...otherRuns } = state.runsByThread;
+  return {
+    runsByThread: draftRun
+      ? { ...otherRuns, [threadId]: draftRun }
+      : state.runsByThread,
   };
 }
 
@@ -1369,14 +1390,7 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
           }
           // The draft thread's run record moves to the thread it became.
           if (!state.activeThreadId && id) {
-            const { [DRAFT_RUN_KEY]: draftRun, ...otherRuns } =
-              state.runsByThread;
-            return {
-              activeThreadId: id,
-              runsByThread: draftRun
-                ? { ...otherRuns, [id]: draftRun }
-                : state.runsByThread,
-            };
+            return { activeThreadId: id, ...adoptDraftRunPatch(state, id) };
           }
           return { activeThreadId: id };
         }
@@ -1487,7 +1501,13 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
       })),
     setPageContext: (context) => set({ pageContext: context }),
     setPendingInputRequest: (request) => set({ pendingInputRequest: request }),
-    setRunStartedAt: (startedAt) => set({ runStartedAt: startedAt }),
+    setRunStartedAt: (startedAt) =>
+      set((state) =>
+        runTransitionPatch(state, state.activeThreadId, {
+          startedAt,
+          type: 'started-at',
+        }),
+      ),
     setSocketConnectionState: (socketConnectionState) =>
       set({ socketConnectionState }),
     setStreamingReasoning: (content) =>
@@ -1786,18 +1806,14 @@ export const useAgentChatStore = createAgentChatStore();
 
 // The open thread's run reaches this store through actions, stream projection
 // and snapshot hydration alike. Actions move `runsByThread` through
-// `transitionRun`; stream projection still writes the compatibility fields
-// directly, so first fold those back into the record. Then mirror the record's
+// `transitionRun`; the full-page snapshot hydration still writes the
+// compatibility fields directly, so first fold those back into the record. Then mirror the record's
 // status into the thread summary at one choke point. The sidebar reads only the
 // summary; without this a run that ends (or starts) on the open thread would
 // leave its row stale. Skipped while the open thread itself changes: the switch
 // resets the status to `idle`, which says nothing about the run (see
 // `resolveRunSummaryPatch`).
 useAgentChatStore.subscribe((next, previous) => {
-  if (!next.activeThreadId || next.activeThreadId !== previous.activeThreadId) {
-    return;
-  }
-
   const record = selectActiveRun(next);
   if (
     record.runId !== next.activeRunId ||
@@ -1815,6 +1831,10 @@ useAgentChatStore.subscribe((next, previous) => {
         },
       },
     }));
+    return;
+  }
+
+  if (!next.activeThreadId || next.activeThreadId !== previous.activeThreadId) {
     return;
   }
 
