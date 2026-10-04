@@ -1,5 +1,5 @@
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
-import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   formatIngredientFileSize,
@@ -20,6 +20,17 @@ function buildIngredient(overrides: Partial<IIngredient> = {}): IIngredient {
     status: IngredientStatus.GENERATED,
     ...overrides,
   } as IIngredient;
+}
+
+function buildMetadata(overrides: Partial<IMetadata> = {}): IMetadata {
+  return {
+    createdAt: '2026-10-04T00:00:00.000Z',
+    id: 'metadata-1',
+    isDeleted: false,
+    label: 'asset',
+    updatedAt: '2026-10-04T00:00:00.000Z',
+    ...overrides,
+  };
 }
 
 describe('getIngredientModelLabel', () => {
@@ -164,7 +175,7 @@ describe('inspector detail labels', () => {
     expect(
       getIngredientDimensionsLabel(
         buildIngredient({
-          metadata: { height: 768, label: 'mug', width: 1024 },
+          metadata: buildMetadata({ height: 768, width: 1024 }),
           // The client model's placeholder getters must not leak through.
           metadataHeight: 1920,
           metadataWidth: 1080,
@@ -175,7 +186,7 @@ describe('inspector detail labels', () => {
     expect(
       getIngredientDimensionsLabel(
         buildIngredient({
-          metadata: { height: 0, label: 'mug', width: 0 },
+          metadata: buildMetadata({ height: 0, width: 0 }),
           metadataHeight: 1920,
           metadataWidth: 1080,
         }),
@@ -186,12 +197,12 @@ describe('inspector detail labels', () => {
   it('shows a duration only for time-based assets', () => {
     expect(
       getIngredientDurationLabel(
-        buildIngredient({ metadata: { duration: 75, label: 'clip' } }),
+        buildIngredient({ metadata: buildMetadata({ duration: 75 }) }),
       ),
     ).toBe('1:15');
     expect(
       getIngredientDurationLabel(
-        buildIngredient({ metadata: { duration: 0, label: 'still' } }),
+        buildIngredient({ metadata: buildMetadata({ duration: 0 }) }),
       ),
     ).toBeNull();
   });
@@ -199,7 +210,7 @@ describe('inspector detail labels', () => {
   it('labels the format from the extension, then the MIME type', () => {
     expect(
       getIngredientFormatLabel(
-        buildIngredient({ metadata: { extension: 'png', label: 'mug' } }),
+        buildIngredient({ metadata: buildMetadata({ extension: 'png' }) }),
       ),
     ).toBe('PNG');
     expect(

@@ -248,9 +248,13 @@ describe('IngredientInspectorRail', () => {
           fileSize: 2_400_000,
           generationPrompt: 'A red mug on a desk',
           metadata: {
+            createdAt: '2026-10-04T00:00:00.000Z',
             extension: 'png',
             height: 768,
+            id: 'metadata-1',
+            isDeleted: false,
             label: 'Apple',
+            updatedAt: '2026-10-04T00:00:00.000Z',
             width: 1024,
           },
           modelUsed: 'black-forest-labs/flux-schnell',
