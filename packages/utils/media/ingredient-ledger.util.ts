@@ -97,6 +97,80 @@ export function getIngredientSizeLabel(ingredient: IIngredient): string | null {
   );
 }
 
+/**
+ * Pixel dimensions from the stored metadata. The client model's
+ * `metadataWidth`/`metadataHeight` getters fall back to a 1080 × 1920
+ * placeholder, so they are deliberately not read here: an asset that was never
+ * measured shows no dimensions rather than invented ones.
+ */
+export function getIngredientDimensionsLabel(
+  ingredient: IIngredient,
+): string | null {
+  const metadata = getMetadata(ingredient);
+  const width = metadata?.width ?? ingredient.width;
+  const height = metadata?.height ?? ingredient.height;
+
+  if (
+    typeof width === 'number' &&
+    typeof height === 'number' &&
+    width > 0 &&
+    height > 0
+  ) {
+    return `${width} × ${height}`;
+  }
+
+  return null;
+}
+
+/** Playback length of a time-based asset; null for stills. */
+export function getIngredientDurationLabel(
+  ingredient: IIngredient,
+): string | null {
+  const duration = getMetadata(ingredient)?.duration;
+
+  return typeof duration === 'number' && duration > 0
+    ? formatDuration(duration)
+    : null;
+}
+
+/** The stored file format, e.g. `PNG`, falling back to the recorded MIME type. */
+export function getIngredientFormatLabel(
+  ingredient: IIngredient,
+): string | null {
+  return (
+    firstNonEmpty(getMetadata(ingredient)?.extension)?.toUpperCase() ??
+    firstNonEmpty(ingredient.mimeType)
+  );
+}
+
+export function getIngredientStyleLabel(
+  ingredient: IIngredient,
+): string | null {
+  return firstNonEmpty(
+    ingredient.metadataStyle,
+    getMetadata(ingredient)?.style,
+    ingredient.style,
+  );
+}
+
+/**
+ * The prompt that produced the asset. The linked prompt record is the edited,
+ * user-facing text; the ledger's `generationPrompt` covers generations that
+ * never linked one.
+ */
+export function getIngredientPromptText(
+  ingredient: IIngredient,
+): string | null {
+  // Not `firstNonEmpty`: a prompt keeps its own whitespace.
+  for (const text of [ingredient.promptText, ingredient.generationPrompt]) {
+    if (typeof text === 'string' && text.trim() !== '') {
+      return text;
+    }
+  }
+
+  return null;
+}
+
 export function isFailedIngredient(ingredient: IIngredient): boolean {
   return ingredient.status === IngredientStatus.FAILED;
 }

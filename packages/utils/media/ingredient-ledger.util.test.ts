@@ -3,8 +3,12 @@ import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   formatIngredientFileSize,
+  getIngredientDimensionsLabel,
+  getIngredientDurationLabel,
   getIngredientFailureReason,
+  getIngredientFormatLabel,
   getIngredientModelLabel,
+  getIngredientPromptText,
   getIngredientSizeLabel,
   isFailedIngredient,
 } from './ingredient-ledger.util';
@@ -152,5 +156,71 @@ describe('isFailedIngredient', () => {
         buildIngredient({ status: IngredientStatus.PROCESSING }),
       ),
     ).toBe(false);
+  });
+});
+
+describe('inspector detail labels', () => {
+  it('reads dimensions from stored metadata and never invents them', () => {
+    expect(
+      getIngredientDimensionsLabel(
+        buildIngredient({
+          metadata: { height: 768, label: 'mug', width: 1024 },
+          // The client model's placeholder getters must not leak through.
+          metadataHeight: 1920,
+          metadataWidth: 1080,
+        }),
+      ),
+    ).toBe('1024 × 768');
+
+    expect(
+      getIngredientDimensionsLabel(
+        buildIngredient({
+          metadata: { height: 0, label: 'mug', width: 0 },
+          metadataHeight: 1920,
+          metadataWidth: 1080,
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  it('shows a duration only for time-based assets', () => {
+    expect(
+      getIngredientDurationLabel(
+        buildIngredient({ metadata: { duration: 75, label: 'clip' } }),
+      ),
+    ).toBe('1:15');
+    expect(
+      getIngredientDurationLabel(
+        buildIngredient({ metadata: { duration: 0, label: 'still' } }),
+      ),
+    ).toBeNull();
+  });
+
+  it('labels the format from the extension, then the MIME type', () => {
+    expect(
+      getIngredientFormatLabel(
+        buildIngredient({ metadata: { extension: 'png', label: 'mug' } }),
+      ),
+    ).toBe('PNG');
+    expect(
+      getIngredientFormatLabel(buildIngredient({ mimeType: 'video/mp4' })),
+    ).toBe('video/mp4');
+    expect(getIngredientFormatLabel(buildIngredient())).toBeNull();
+  });
+
+  it('falls back to the ledger prompt and keeps its whitespace', () => {
+    expect(
+      getIngredientPromptText(
+        buildIngredient({ generationPrompt: '  a red mug\non a desk' }),
+      ),
+    ).toBe('  a red mug\non a desk');
+    expect(
+      getIngredientPromptText(
+        buildIngredient({ generationPrompt: 'ledger', promptText: 'edited' }),
+      ),
+    ).toBe('edited');
+    expect(getIngredientPromptText(buildIngredient({ promptText: ' ' }))).toBe(
+      null,
+    );
   });
 });

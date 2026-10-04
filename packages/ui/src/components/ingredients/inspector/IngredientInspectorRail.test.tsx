@@ -1,4 +1,8 @@
-import { IngredientCategory, IngredientOrigin } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  IngredientOrigin,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -183,6 +187,57 @@ describe('IngredientInspectorRail', () => {
 
     expect(screen.getByText('Origin')).toBeInTheDocument();
     expect(screen.getByText(label)).toBeInTheDocument();
+  });
+
+  it('shows what produced a generated asset and its file details', () => {
+    render(
+      <IngredientInspectorRail
+        ingredient={{
+          ...ingredient,
+          fileSize: 2_400_000,
+          generationPrompt: 'A red mug on a desk',
+          metadata: {
+            extension: 'png',
+            height: 768,
+            label: 'Apple',
+            width: 1024,
+          },
+          modelUsed: 'black-forest-labs/flux-schnell',
+          provider: 'replicate',
+          style: 'cinematic',
+        }}
+      />,
+    );
+
+    const row = (label: string) =>
+      screen.getByText(label).closest('div')?.querySelector('dd');
+
+    expect(row('Model')).toHaveTextContent('black-forest-labs/flux-schnell');
+    expect(row('Provider')).toHaveTextContent('replicate');
+    expect(row('Style')).toHaveTextContent('cinematic');
+    expect(row('Dimensions')).toHaveTextContent('1024 × 768');
+    expect(row('Format')).toHaveTextContent('PNG');
+    expect(row('File size')).toHaveTextContent('2.3 MB');
+    expect(screen.getByText('Prompt')).toBeInTheDocument();
+    expect(screen.getByText('A red mug on a desk')).toBeInTheDocument();
+    expect(screen.queryByText('Duration')).not.toBeInTheDocument();
+  });
+
+  it('explains why a failed generation failed', () => {
+    render(
+      <IngredientInspectorRail
+        ingredient={{
+          ...ingredient,
+          generationError: 'Provider rejected the prompt',
+          status: IngredientStatus.FAILED,
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Why it failed')).toBeInTheDocument();
+    expect(screen.getByText('Provider rejected the prompt')).toHaveClass(
+      'text-destructive',
+    );
   });
 
   it('omits the origin row when the asset carries none', () => {
