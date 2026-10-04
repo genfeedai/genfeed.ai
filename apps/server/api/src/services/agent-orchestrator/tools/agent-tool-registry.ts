@@ -1,68 +1,38 @@
-import { CLOUD_AGENT_TOOL_EXTENSIONS } from '@api/services/agent-orchestrator/tools/agent-tool-registry.extensions';
-import type { AgentToolOutput, CuratedActionName } from '@genfeedai/actions';
+import type { AgentToolOutput } from '@genfeedai/actions';
 import { getToolsForSurface, toAgentTools } from '@genfeedai/actions';
+
+/**
+ * Agent-side drift guard. The curated action catalog is the single source of
+ * every agent tool definition, so a name that appears twice is a second
+ * definition competing with the first. Throw instead of letting one silently
+ * win; the agent and MCP surfaces must never disagree about a tool.
+ */
+export function assertUniqueAgentToolNames(tools: AgentToolOutput[]): void {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+
+  for (const tool of tools) {
+    const name = String(tool.name);
+    if (seen.has(name)) {
+      duplicates.add(name);
+    }
+    seen.add(name);
+  }
+
+  if (duplicates.size > 0) {
+    throw new Error(
+      `Agent tool registry drift: [${[...duplicates].join(', ')}] are defined more than once. Define each tool once in the curated action catalog.`,
+    );
+  }
+}
 
 const BASE_AGENT_TOOLS: AgentToolOutput[] = toAgentTools(
   getToolsForSurface('agent'),
 );
 
-const CANONICAL_TOOL_NAMES = new Set<CuratedActionName>([
-  'capture_memory',
-  'create_workflow',
-  'create_ad_remix_workflow',
-  'get_ad_research_detail',
-  'list_ads_research',
-]);
+assertUniqueAgentToolNames(BASE_AGENT_TOOLS);
 
-const FILTERED_CLOUD_AGENT_TOOL_EXTENSIONS = CLOUD_AGENT_TOOL_EXTENSIONS.filter(
-  (tool) => !CANONICAL_TOOL_NAMES.has(tool.name),
-);
-
-/**
- * Agent-side drift guard, mirroring `ToolRegistryService.validateDispatchCoverage`
- * on MCP. A cloud extension that names an action the curated catalog does not
- * surface to the agent would ship a live, credit-costed tool outside review.
- */
-function assertExtensionsAreCurated(
-  baseTools: AgentToolOutput[],
-  extensions: AgentToolOutput[],
-): void {
-  const curatedAgentNames = new Set(baseTools.map((tool) => String(tool.name)));
-  const uncurated = extensions
-    .map((tool) => String(tool.name))
-    .filter((name) => !curatedAgentNames.has(name));
-
-  if (uncurated.length > 0) {
-    throw new Error(
-      `Agent tool registry drift: [${uncurated.join(', ')}] ship to the agent without an 'agent' surface in the curated action catalog. Add them to CURATED_ACTION_CATALOG with a source tool definition instead of extending here.`,
-    );
-  }
-}
-
-assertExtensionsAreCurated(
-  BASE_AGENT_TOOLS,
-  FILTERED_CLOUD_AGENT_TOOL_EXTENSIONS,
-);
-
-function mergeAgentTools(
-  baseTools: AgentToolOutput[],
-  extensions: AgentToolOutput[],
-): AgentToolOutput[] {
-  const merged = new Map<string, AgentToolOutput>(
-    baseTools.map((tool) => [String(tool.name), tool]),
-  );
-
-  for (const tool of extensions) {
-    merged.set(String(tool.name), tool);
-  }
-
-  return [...merged.values()];
-}
-
-export const AGENT_TOOLS: AgentToolOutput[] = mergeAgentTools(
-  BASE_AGENT_TOOLS,
-  FILTERED_CLOUD_AGENT_TOOL_EXTENSIONS,
-);
+export const AGENT_TOOLS: AgentToolOutput[] = BASE_AGENT_TOOLS;
 
 export function getToolDefinitions(): AgentToolOutput[] {
   return AGENT_TOOLS;
