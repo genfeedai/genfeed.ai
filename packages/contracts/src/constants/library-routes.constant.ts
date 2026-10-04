@@ -1,4 +1,9 @@
-import type { IngredientCategory, IngredientOrigin, LibraryShelf } from '..';
+import type {
+  IngredientCategory,
+  IngredientOrigin,
+  LibraryShelf,
+  TagMatchMode,
+} from '..';
 
 import { APP_ROUTES } from './routes.constant';
 
@@ -22,12 +27,26 @@ export const LIBRARY_QUERY_KEYS = {
   SHELF: 'shelf',
   SEARCH: 'search',
   SORT: 'sort',
+  /** `any` (default) or `all` — how the repeated `tags` key combines. */
+  TAG_MATCH: 'tagMatch',
+  /**
+   * Repeated key — the tag filter (`?tags=<id>&tags=<id>`). Tags carry human
+   * judgment (campaign, series, episode); like origin and character it is a
+   * filter, never a navigation destination.
+   */
+  TAGS: 'tags',
   /** Contact sheet vs. list rows vs. free-placement canvas. */
   VIEW: 'view',
 } as const;
 
 /** Most characters one Library query may filter by; the API rejects more. */
 export const LIBRARY_MAX_CHARACTER_FILTERS = 25;
+
+/** Most tags one Library query may filter by; the API rejects more. */
+export const LIBRARY_MAX_TAG_FILTERS = 25;
+
+/** Most assets one bulk tag request may change; the API rejects more. */
+export const LIBRARY_BULK_TAG_LIMIT = 200;
 
 export const LIBRARY_VIEW_MODES = ['grid', 'list', 'canvas'] as const;
 
@@ -39,6 +58,8 @@ export interface LibraryBrowserRouteOptions {
   folderId?: string;
   origins?: readonly IngredientOrigin[];
   search?: string;
+  tagMatch?: TagMatchMode;
+  tags?: readonly string[];
   view?: LibraryViewMode;
 }
 
@@ -53,7 +74,7 @@ export function createLibraryShelfRoute(shelf: LibraryShelf): string {
 }
 
 /**
- * Attach the type / character / origin / folder / search filters to any Library browser route.
+ * Attach the type / character / origin / tag / folder / search filters to any Library browser route.
  *
  * Pass the result through `useOrgUrl().href()` to scope it to org + brand.
  */
@@ -65,6 +86,8 @@ export function createLibraryBrowserRoute(
     folderId,
     origins,
     search,
+    tagMatch,
+    tags,
     view,
   }: LibraryBrowserRouteOptions = {},
 ): string {
@@ -86,6 +109,16 @@ export function createLibraryBrowserRoute(
 
   for (const origin of origins ?? []) {
     params.append(LIBRARY_QUERY_KEYS.ORIGINS, origin);
+  }
+
+  if (tags) params.delete(LIBRARY_QUERY_KEYS.TAGS);
+
+  for (const tag of tags ?? []) {
+    params.append(LIBRARY_QUERY_KEYS.TAGS, tag);
+  }
+
+  if (tagMatch) {
+    params.set(LIBRARY_QUERY_KEYS.TAG_MATCH, tagMatch);
   }
 
   if (folderId) {

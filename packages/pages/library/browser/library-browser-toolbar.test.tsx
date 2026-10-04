@@ -1,6 +1,15 @@
-import { IngredientCategory, IngredientOrigin } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  IngredientOrigin,
+  TagMatchMode,
+} from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { ComponentProps, ReactNode } from 'react';
+import {
+  type ComponentProps,
+  createContext,
+  type ReactNode,
+  useContext,
+} from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LibraryBrowserToolbar, {
   LibraryBrowserIconActions,
@@ -52,18 +61,57 @@ vi.mock('@ui/dropdowns/multiselect/DropdownMultiSelect', () => ({
   ),
 }));
 
+const SelectValueContext = createContext<(value: string) => void>(() => {});
+
 vi.mock('@ui/primitives/select', () => ({
-  Select: ({ children }: { children?: ReactNode }) => (
-    <div data-testid="sort-select">{children}</div>
+  Select: ({
+    children,
+    onValueChange,
+    value,
+  }: {
+    children?: ReactNode;
+    onValueChange?: (value: string) => void;
+    value?: string;
+  }) => (
+    <SelectValueContext.Provider value={onValueChange ?? (() => {})}>
+      <div data-select-value={value} data-testid="select">
+        {children}
+      </div>
+    </SelectValueContext.Provider>
   ),
   SelectContent: ({ children }: { children?: ReactNode }) => (
     <div>{children}</div>
   ),
-  SelectItem: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
-  SelectTrigger: ({ children }: { children?: ReactNode }) => (
-    <button type="button">{children}</button>
+  SelectItem: function SelectItemMock({
+    children,
+    value,
+  }: {
+    children?: ReactNode;
+    value: string;
+  }) {
+    const onValueChange = useContext(SelectValueContext);
+    return (
+      <button onClick={() => onValueChange(value)} type="button">
+        {children}
+      </button>
+    );
+  },
+  SelectTrigger: ({
+    'aria-label': ariaLabel,
+    children,
+  }: {
+    'aria-label'?: string;
+    children?: ReactNode;
+  }) => (
+    <button aria-label={ariaLabel} type="button">
+      {children}
+    </button>
   ),
   SelectValue: () => <span>Newest first</span>,
+}));
+
+vi.mock('@ui/tags/library-tag-picker/LibraryTagManagerDialog', () => ({
+  default: () => <button type="button">Manage tags</button>,
 }));
 
 vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
@@ -108,12 +156,18 @@ function renderToolbar(
       onClearCategories={vi.fn()}
       onClearCharacters={vi.fn()}
       onClearOrigins={vi.fn()}
+      onClearTags={vi.fn()}
       onOriginsChange={vi.fn()}
       onSortChange={vi.fn()}
+      onTagMatchChange={vi.fn()}
+      onTagsChange={vi.fn()}
       origins={[]}
       onViewModeChange={vi.fn()}
       sort="createdAt: -1"
       sortOptions={[{ label: 'Newest first', value: 'createdAt: -1' }]}
+      tagMatch={TagMatchMode.ANY}
+      tagOptions={[]}
+      tags={[]}
       viewMode="list"
       {...overrides}
     />,
@@ -138,12 +192,18 @@ describe('LibraryBrowserToolbar', () => {
         onClearCategories={vi.fn()}
         onClearCharacters={vi.fn()}
         onClearOrigins={vi.fn()}
+        onClearTags={vi.fn()}
         onOriginsChange={vi.fn()}
         onSortChange={vi.fn()}
+        onTagMatchChange={vi.fn()}
+        onTagsChange={vi.fn()}
         origins={[]}
         onViewModeChange={vi.fn()}
         sort="createdAt: -1"
         sortOptions={[{ label: 'Newest first', value: 'createdAt: -1' }]}
+        tagMatch={TagMatchMode.ANY}
+        tagOptions={[]}
+        tags={[]}
         viewMode="list"
       />,
     );
@@ -266,6 +326,113 @@ describe('LibraryBrowserToolbar', () => {
 
     expect(onClearCharacters).toHaveBeenCalledTimes(1);
     expect(onClearOrigins).not.toHaveBeenCalled();
+  });
+
+  describe('tag filter', () => {
+    const tagOptions = [
+      { assetCount: 14, id: 't1', label: 'S1E12' },
+      { assetCount: 3, id: 't2', label: 'Launch' },
+      { id: 't3', label: 'Mood' },
+    ] as ComponentProps<typeof LibraryBrowserToolbar>['tagOptions'];
+
+    it('hides the tag filter when the brand has no tags', () => {
+      renderToolbar();
+
+      expect(screen.queryByText('Tags')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Manage tags' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('lists tags with their asset counts beside the other filters', () => {
+      const onTagsChange = vi.fn();
+
+      renderToolbar({ onTagsChange, tagOptions, tags: ['t1'] });
+
+      expect(screen.getByText('Tags')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'S1E12 (14)' }),
+      ).toHaveAttribute('aria-pressed', 'true');
+      expect(
+        screen.getByRole('button', { name: 'Launch (3)' }),
+      ).toHaveAttribute('aria-pressed', 'false');
+      // A tag without a count is still listed, just unlabelled by one.
+      expect(screen.getByRole('button', { name: 'Mood' })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Launch (3)' }));
+
+      expect(onTagsChange).toHaveBeenCalledWith(['t1', 't2']);
+    });
+
+    it('keeps the filter clearable when its tags are gone', () => {
+      const onClearTags = vi.fn();
+
+      renderToolbar({ onClearTags, tags: ['deleted'] });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Clear tag filter' }));
+
+      expect(onClearTags).toHaveBeenCalledTimes(1);
+    });
+
+    it('offers the match mode only once several tags are selected', () => {
+      renderToolbar({ tagOptions, tags: ['t1'] });
+
+      expect(
+        screen.queryByRole('button', { name: 'How the selected tags combine' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('switches between match any and match all', () => {
+      const onTagMatchChange = vi.fn();
+
+      renderToolbar({
+        onTagMatchChange,
+        tagMatch: TagMatchMode.ANY,
+        tagOptions,
+        tags: ['t1', 't2'],
+      });
+
+      expect(
+        screen.getByRole('button', { name: 'How the selected tags combine' }),
+      ).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Match all' }));
+      expect(onTagMatchChange).toHaveBeenCalledWith(TagMatchMode.ALL);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Match any' }));
+      expect(onTagMatchChange).toHaveBeenCalledWith(TagMatchMode.ANY);
+    });
+
+    it('caps the tag selection at the API limit and shows it', () => {
+      const onTagsChange = vi.fn();
+      const manyTags = Array.from({ length: 26 }, (_, index) => ({
+        id: `t${index}`,
+        label: `Tag ${index}`,
+      })) as ComponentProps<typeof LibraryBrowserToolbar>['tagOptions'];
+
+      renderToolbar({
+        onTagsChange,
+        tagOptions: manyTags,
+        tags: manyTags.slice(0, 25).map((tag) => tag.id),
+      });
+
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Limit of 25 tags reached',
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Tag 25' }));
+
+      expect(onTagsChange.mock.calls[0][0]).toHaveLength(25);
+      expect(onTagsChange.mock.calls[0][0]).not.toContain('t25');
+    });
+
+    it('offers tag management beside the filter', () => {
+      renderToolbar({ tagOptions });
+
+      expect(
+        screen.getByRole('button', { name: 'Manage tags' }),
+      ).toBeInTheDocument();
+    });
   });
 
   it('keeps origin out of the type filter and clears only itself', () => {

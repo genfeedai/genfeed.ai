@@ -1,6 +1,7 @@
 import {
   IngredientCategory,
   IngredientLineageDirection,
+  TagBulkAction,
 } from '@genfeedai/contracts';
 import { Avatar } from '@genfeedai/models/ai/avatar.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
@@ -370,6 +371,61 @@ describe('IngredientsService', () => {
       expect(http.patch).toHaveBeenCalledWith('ing_1/tags', {
         data: { attributes: { tags: ['tag_1', 'tag_2'] } },
       });
+    });
+
+    it('bulkTag POSTs the selection and one tag, and reads the counts', async () => {
+      const counts = {
+        changed: 2,
+        failed: 0,
+        failedIds: [],
+        skipped: 1,
+        skippedIds: ['c'],
+      };
+      http.post.mockResolvedValue(axiosResponse(counts));
+
+      const result = await service.bulkTag({
+        action: TagBulkAction.ADD,
+        ids: ['a', 'b', 'c'],
+        tagId: 'tag_1',
+      });
+
+      expect(http.post).toHaveBeenCalledWith('tags/bulk', {
+        action: 'add',
+        ids: ['a', 'b', 'c'],
+        tagId: 'tag_1',
+      });
+      expect(result).toEqual(counts);
+    });
+
+    it('bulkTag also reads counts wrapped in a JSON API resource', async () => {
+      http.post.mockResolvedValue(
+        axiosResponse(
+          resourceDocument(
+            { changed: 1, failed: 0, skipped: 0 },
+            { id: 'bulk_tag' },
+          ),
+        ),
+      );
+
+      const result = await service.bulkTag({
+        action: TagBulkAction.REMOVE,
+        ids: ['a'],
+        tagId: 'tag_1',
+      });
+
+      expect(result).toMatchObject({ changed: 1, failed: 0, skipped: 0 });
+    });
+
+    it('bulkTag lets a failed request reach the caller', async () => {
+      http.post.mockRejectedValue(new Error('Over the limit'));
+
+      await expect(
+        service.bulkTag({
+          action: TagBulkAction.ADD,
+          ids: ['a'],
+          tagId: 'tag_1',
+        }),
+      ).rejects.toThrow('Over the limit');
     });
 
     it('bulkDelete DELETEs with the serialized body', async () => {

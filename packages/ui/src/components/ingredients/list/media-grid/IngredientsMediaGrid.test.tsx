@@ -8,6 +8,11 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@ui/lazy/masonry/LazyMasonry', () => ({
   LazyMasonryImage: ({
     image,
@@ -107,6 +112,49 @@ describe('IngredientsMediaGrid', () => {
     );
     expect(uploaded).toHaveClass('pointer-events-none');
     expect(generated).toHaveClass('pointer-events-none');
+  });
+
+  it('shows each card’s tags above its origin, never intercepting a click', () => {
+    render(
+      <IngredientsMediaGrid
+        {...baseProps}
+        items={
+          [
+            {
+              ...items[0],
+              origin: IngredientOrigin.UPLOADED,
+              tags: [
+                { backgroundColor: '#000000', id: 'tag-1', label: 'S1E12' },
+                { backgroundColor: '#112233', id: 'tag-2', label: 'Launch' },
+              ],
+            },
+            {
+              ...items[1],
+              tags: [
+                { backgroundColor: '#000000', id: 'tag-3', label: 'Mood' },
+              ],
+            },
+          ] as IIngredient[]
+        }
+      />,
+    );
+
+    const list = screen.getAllByRole('list', { name: 'Tags' })[0];
+    expect(list).toHaveClass('pointer-events-none');
+    expect(list?.parentElement).toContainElement(
+      screen.getByTestId('image-tile-image-1'),
+    );
+    expect(screen.getByText('S1E12')).toBeInTheDocument();
+    expect(screen.getByText('Launch')).toBeInTheDocument();
+    expect(screen.getByText('Mood')).toBeInTheDocument();
+  });
+
+  it('adds no tag row to an untagged card', () => {
+    render(<IngredientsMediaGrid {...baseProps} items={items} />);
+
+    expect(
+      screen.queryByRole('list', { name: 'Tags' }),
+    ).not.toBeInTheDocument();
   });
 
   it('adds no label to a legacy card that has no origin yet', () => {
