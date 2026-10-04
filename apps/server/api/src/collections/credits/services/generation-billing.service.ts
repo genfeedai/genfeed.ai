@@ -66,6 +66,9 @@ export type GenerationReleaseOutcome = 'released' | 'no-hold' | 'held';
 /** Reconcile leaves a fresh hold to the completion hook before sweeping it. */
 const RECONCILE_GRACE_MS = 2 * 60 * 1000;
 const RECONCILE_BATCH = 200;
+/** An unknown provider status is re-polled after 30m, doubling per attempt up to 6h (#6168). */
+const RECOVERY_BACKOFF_BASE_MS = 30 * 60 * 1000;
+const RECOVERY_BACKOFF_MAX_MS = 6 * 60 * 60 * 1000;
 const TERMINAL_FAILURE_STATUSES: readonly string[] = [
   IngredientStatus.FAILED,
   IngredientStatus.REJECTED,
@@ -786,6 +789,8 @@ export class GenerationBillingService {
       organizationId: string;
       workloadId: string | null;
       metadata?: unknown;
+      recoveryAttempts?: number;
+      recoveryNextAttemptAt?: Date | null;
     }>,
     now: Date,
     stats: HoldReconcileStats,
@@ -859,15 +864,27 @@ export class GenerationBillingService {
           // wallet: an output that completes afterwards is charged late
           // (#5886), so expiry cannot give it away.
           if (isPastCeiling && !isFailureConfirmed) {
-            if (!this.holdRecovery || stats.pollsRemaining <= 0) {
+            // A hold backed off after an unknown provider status does not
+            // spend the poll budget, so later holds are reached (#6168).
+            if (
+              !this.holdRecovery ||
+              stats.pollsRemaining <= 0 ||
+              (hold.recoveryNextAttemptAt &&
+                hold.recoveryNextAttemptAt.getTime() > now.getTime())
+            ) {
               stats.awaitingIntentProof += 1;
               continue;
             }
             stats.pollsRemaining -= 1;
-            const action = await this.holdRecovery.recoverAtCeiling(
-              hold.organizationId,
-              hold.id,
-            );
+            let action: CreditHoldRecoveryAction | undefined;
+            try {
+              action = await this.holdRecovery.recoverAtCeiling(
+                hold.organizationId,
+                hold.id,
+              );
+            } finally {
+              if (!action) await this.deferRecovery(hold, now);
+            }
             if (action) {
               if (action === CreditHoldRecoveryAction.RELEASE)
                 stats.expiredIntentHolds += 1;
@@ -927,6 +944,37 @@ export class GenerationBillingService {
     }
 
     return acted;
+  }
+
+  /** Back off a hold whose provider poll resolved nothing, so the next sweep spends its budget elsewhere. */
+  private async deferRecovery(
+    hold: { id: string; organizationId: string; recoveryAttempts?: number },
+    now: Date,
+  ): Promise<void> {
+    const attempts = (hold.recoveryAttempts ?? 0) + 1;
+    const delay = Math.min(
+      RECOVERY_BACKOFF_BASE_MS * 2 ** (attempts - 1),
+      RECOVERY_BACKOFF_MAX_MS,
+    );
+    try {
+      await this.prisma.creditReservation.updateMany({
+        data: {
+          recoveryAttempts: attempts,
+          recoveryNextAttemptAt: new Date(now.getTime() + delay),
+        },
+        where: {
+          id: hold.id,
+          isDeleted: false,
+          organizationId: hold.organizationId,
+          status: CreditReservationStatus.RESERVED,
+        },
+      });
+    } catch (error: unknown) {
+      this.logger.error('Generation hold recovery backoff failed', error, {
+        organizationId: hold.organizationId,
+        reservationId: hold.id,
+      });
+    }
   }
 
   private async failStuckIngredient(

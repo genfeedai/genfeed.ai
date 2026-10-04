@@ -3745,6 +3745,10 @@ model CreditReservation {
   source           String?
   metadata         Json?
   expiresAt        DateTime
+  /// Provider-recovery backoff for holds whose provider status stayed unknown
+  /// at the ceiling (#6168): the sweep skips the hold until this time.
+  recoveryNextAttemptAt DateTime?
+  recoveryAttempts      Int                     @default(0)
   isDeleted        Boolean                 @default(false)
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
