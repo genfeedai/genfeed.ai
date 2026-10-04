@@ -94,24 +94,17 @@ export async function assertBrandHandleAvailable(
 }
 
 /**
- * The brand a relocation starts from. Superadmins may relocate any brand
- * (their session org is unrelated); everyone else starts from a brand in
- * their session org, like every other brand route. Authorization for the move
- * itself stays in the relocation service's assertCanRelocate.
+ * The brand a relocation starts from. It need not live in the caller's session
+ * org (an admin of both orgs, active in the destination, may pull a teammate's
+ * brand in), so the lookup is cross-org. Authorization for the move itself is
+ * the relocation service's assertCanRelocate (superadmin, or owner/admin of
+ * both organizations).
  */
 export function findBrandToRelocate(
   brandsService: Pick<BrandsService, 'findOne'>,
-  user: User,
   brandId: string,
-  isSuperAdmin: boolean,
 ): Promise<BrandDocument | null> {
-  if (isSuperAdmin) {
-    return crossOrgUnsafe(
-      async () => await brandsService.findOne({ id: brandId }),
-    );
-  }
-
-  return brandsService.findOne(
-    scopedWhere(user.organizationId, { id: brandId }),
+  return crossOrgUnsafe(
+    async () => await brandsService.findOne({ id: brandId }),
   );
 }

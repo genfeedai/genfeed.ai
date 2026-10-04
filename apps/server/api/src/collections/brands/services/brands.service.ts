@@ -606,7 +606,7 @@ export class BrandsService extends BaseService<
       if (excludeBrandId) {
         filter.id = { not: excludeBrandId };
       }
-      if (!(await findBrandSlugHolder(this.delegate, filter))) {
+      if (!(await findBrandSlugHolder(this.delegate, { where: filter }))) {
         break;
       }
       candidate = `${base}-${counter}`;
@@ -621,8 +621,8 @@ export class BrandsService extends BaseService<
    */
   async isSlugAvailable(slug: string, brandId: string): Promise<boolean> {
     return !(await findBrandSlugHolder(this.delegate, {
-      id: { not: brandId },
-      slug,
+      select: { id: true },
+      where: { id: { not: brandId }, slug },
     }));
   }
 

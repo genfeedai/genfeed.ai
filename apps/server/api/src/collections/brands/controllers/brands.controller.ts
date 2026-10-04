@@ -240,12 +240,9 @@ export class BrandsController extends BaseCRUDController<
       return super.patch(request, user, id, rest as UpdateBrandDto);
     }
 
-    const existing = (await findBrandToRelocate(
-      this.brandsService,
-      user,
-      id,
-      getIsSuperAdmin(user, request),
-    )) as (BrandDocument & { organizationId?: string }) | null;
+    const existing = (await findBrandToRelocate(this.brandsService, id)) as
+      | (BrandDocument & { organizationId?: string })
+      | null;
     if (!existing) {
       throw new HttpException(
         { detail: `Brand ${id} not found`, title: 'Not Found' },

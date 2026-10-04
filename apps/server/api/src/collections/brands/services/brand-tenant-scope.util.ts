@@ -11,10 +11,10 @@ import {
  * included), so the collision lookup is cross-org by design.
  */
 export function findBrandSlugHolder(
-  delegate: { findFirst(args: { where: Prisma.BrandWhereInput }): unknown },
-  where: Prisma.BrandWhereInput,
+  delegate: { findFirst(args: Prisma.BrandFindFirstArgs): unknown },
+  args: Prisma.BrandFindFirstArgs,
 ): Promise<unknown> {
-  return crossOrgUnsafe(async () => await delegate.findFirst({ where }));
+  return crossOrgUnsafe(async () => await delegate.findFirst(args));
 }
 
 /**
