@@ -571,11 +571,15 @@ export abstract class BaseService<
         ...(include ? { include } : {}),
       });
 
+      // Same tags as `patch`/`remove`, including the bare collection tag that
+      // response caches such as `/elements` register under.
       if (this.cacheService) {
-        await invalidateCollectionQueryCache(
-          this.cacheService,
+        await this.cacheService.invalidateByTags([
           this.collectionName,
-        );
+          `collection:${this.collectionName}`,
+          `query:${this.collectionName}`,
+          paginatedQueryCacheTag(this.collectionName),
+        ]);
       }
 
       return this.normalizeDocument(result);
