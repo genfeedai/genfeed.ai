@@ -366,6 +366,42 @@ describe('IngredientsListContent', () => {
     expect(screen.getByText('Imported')).toBeInTheDocument();
   });
 
+  it('shows the tags of every list row in their own column', () => {
+    renderContent({
+      filteredIngredients: [
+        {
+          ...videoIngredient,
+          tags: [
+            { backgroundColor: '#000000', id: 'tag-1', label: 'S1E12' },
+            { backgroundColor: '#112233', id: 'tag-2', label: 'Launch' },
+          ],
+        } as unknown as IIngredient,
+      ],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+    });
+
+    expect(
+      screen.getByRole('columnheader', { name: 'Tags' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('S1E12')).toBeInTheDocument();
+    expect(screen.getByText('Launch')).toBeInTheDocument();
+  });
+
+  it('shows a dash instead of tags for an untagged row', () => {
+    renderContent({
+      filteredIngredients: [
+        { ...videoIngredient, tags: [] } as unknown as IIngredient,
+      ],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+    });
+
+    expect(
+      screen.queryByRole('list', { name: 'Tags' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('falls back to a video placeholder when there is no poster', () => {
     renderContent({
       filteredIngredients: [
@@ -902,6 +938,7 @@ describe('IngredientsListContent generation ledger columns', () => {
       'Asset',
       'Type',
       'Origin',
+      'Tags',
       'Model',
       'Size',
       'Created',

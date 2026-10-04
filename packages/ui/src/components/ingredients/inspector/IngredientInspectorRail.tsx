@@ -28,6 +28,7 @@ import { Maximize2 } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import IngredientLineageStrip from './IngredientLineageStrip';
+import IngredientTagsControl from './IngredientTagsControl';
 import { getIngredientShelf } from './ingredient-shelf.util';
 
 const SHELF_VARIANTS: Record<
@@ -244,6 +245,8 @@ export default function IngredientInspectorRail({
           }
         />
       </dl>
+
+      <IngredientTagsControl ingredient={ingredient} />
 
       <IngredientLineageStrip
         direction={IngredientLineageDirection.MADE_FROM}

@@ -11,7 +11,11 @@ import {
   ModalEnum,
   PageScope,
 } from '@genfeedai/contracts';
-import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { LIBRARY_ASSET_TAGS_EVENT } from '@genfeedai/contracts/constants';
+import type {
+  IIngredient,
+  ILibraryAssetTagsChange,
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useIngredientDeepLink } from '@hooks/data/ingredients/use-ingredient-deep-link/use-ingredient-deep-link';
 import { useIngredientsList } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-list';
@@ -25,9 +29,11 @@ import Alert from '@ui/feedback/alert/Alert';
 import IngredientsListContent from '@ui/ingredients/list/content/IngredientsListContent';
 import IngredientsListFooter from '@ui/ingredients/list/footer/IngredientsListFooter';
 import IngredientsListHeader from '@ui/ingredients/list/header/IngredientsListHeader';
+import SelectionTagAction from '@ui/ingredients/list/selection-actions-bar/SelectionTagAction';
 import IngredientsListSidebar from '@ui/ingredients/list/sidebar/IngredientsListSidebar';
 import { LazyModalImageToVideo } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
+import { applyLibraryAssetTagsChange } from '@ui/tags/library-tag-picker/library-asset-tags-event';
 import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -219,6 +225,24 @@ export default function IngredientsList({
     return format(new Date(cachedAt), 'PPpp');
   }, [cachedAt]);
 
+  // The inspector and the bulk bar publish tag changes on `window`; applying
+  // them here updates cards, rows and the inspector without a refetch.
+  useEffect(() => {
+    const handleTagsChange = (event: Event) => {
+      const change = (event as CustomEvent<ILibraryAssetTagsChange>).detail;
+      if (change) {
+        setIngredients((current) =>
+          applyLibraryAssetTagsChange(current, change),
+        );
+      }
+    };
+
+    window.addEventListener(LIBRARY_ASSET_TAGS_EVENT, handleTagsChange);
+    return () => {
+      window.removeEventListener(LIBRARY_ASSET_TAGS_EVENT, handleTagsChange);
+    };
+  }, [setIngredients]);
+
   const handleOpenDeepLinkedIngredient = useCallback(
     (ingredient: IIngredient) => {
       openIngredientModal(ModalEnum.INGREDIENT, ingredient);
@@ -257,6 +281,9 @@ export default function IngredientsList({
         }
       }}
       placement={hostsSelectionActions ? 'subtopbar' : 'overlay'}
+      tagAction={
+        <SelectionTagAction selectedIngredients={selectedIngredients} />
+      }
     />
   );
   const selectionChrome = hostsSelectionActions

@@ -110,6 +110,33 @@ describe('SelectionActionsBar', () => {
     expect(deleteIndex).toBe(buttonNames.length - 1);
   });
 
+  it('renders the bulk tag control among the constructive actions, before Delete', () => {
+    render(
+      <SelectionActionsBar
+        count={3}
+        onDownload={vi.fn()}
+        tagAction={<button type="button">Tag</button>}
+      />,
+    );
+
+    const names = screen
+      .getAllByRole('button')
+      .map((button) => button.getAttribute('aria-label') || button.textContent);
+
+    expect(names).toContain('Tag');
+    expect(names.indexOf('Tag')).toBeLessThan(
+      names.findIndex((name) => name?.includes('Delete selection')),
+    );
+  });
+
+  it('renders no tag control when none is supplied', () => {
+    render(<SelectionActionsBar count={3} />);
+
+    expect(
+      screen.queryByRole('button', { name: 'Tag' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('does not render Download when no handler is supplied', () => {
     render(<SelectionActionsBar count={3} />);
 
