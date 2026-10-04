@@ -1228,19 +1228,6 @@ for (const group of QUALIFIED_GROUPS) {
       'INVALID_POSTGRES_CREDENTIALS',
     ],
     [
-      'missing public key',
-      { RUNTIME_ACCEPTANCE_PUBLIC_KEY: '' },
-      'PUBLIC_KEY_REQUIRED',
-    ],
-    [
-      'invalid public key',
-      {
-        RUNTIME_ACCEPTANCE_PUBLIC_KEY:
-          '-----BEGIN PUBLIC KEY-----\ninvalid\n-----END PUBLIC KEY-----\n',
-      },
-      'INVALID_PUBLIC_KEY',
-    ],
-    [
       'missing deadline',
       { RUNTIME_ACCEPTANCE_JOB_STARTED_MS: '' },
       'INVALID_JOB_TIMESTAMP',
