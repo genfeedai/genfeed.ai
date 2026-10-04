@@ -3,6 +3,8 @@ import {
   buildScopedTrendTaskWorkflowDefinition,
   buildTrendDatasetTaskWorkflowDefinition,
   buildTrendsRefreshWorkflowDefinition,
+  SCOPED_REFRESH_MAX_CONCURRENCY,
+  SCOPED_REFRESH_START_DELAY_MS,
   TRENDS_MAINTENANCE_ACTION_IDS,
 } from '@api/collections/trends/services/trends-maintenance-workflow-definition';
 
@@ -40,6 +42,22 @@ describe('trends maintenance workflow definitions', () => {
           data: expect.objectContaining({
             config: expect.objectContaining({
               actionId: 'workflow.for-each-tenant',
+              parameters: expect.objectContaining({ failureMode: 'collect' }),
+            }),
+          }),
+        }),
+      ]),
+    );
+    expect(SCOPED_REFRESH_MAX_CONCURRENCY).toBe(2);
+    expect(SCOPED_REFRESH_START_DELAY_MS % (5 * 60 * 1000)).not.toBe(0);
+    expect(sweep.definition.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          data: expect.objectContaining({
+            config: expect.objectContaining({
+              parameters: expect.objectContaining({
+                maxConcurrency: SCOPED_REFRESH_MAX_CONCURRENCY,
+              }),
             }),
           }),
         }),

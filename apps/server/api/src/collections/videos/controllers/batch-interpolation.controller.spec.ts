@@ -30,6 +30,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -180,7 +181,11 @@ describe('BatchInterpolationController', () => {
   };
   let metadataService: { patch: ReturnType<typeof vi.fn> };
   let modelsService: { findOne: ReturnType<typeof vi.fn> };
-  let promptsService: { create: ReturnType<typeof vi.fn> };
+  let promptsService: {
+    create: ReturnType<typeof vi.fn>;
+    patchOneWhere: ReturnType<typeof vi.fn>;
+  };
+  let patchOneWhere: ReturnType<typeof vi.fn>;
   let promptBuilderService: { buildPrompt: ReturnType<typeof vi.fn> };
   let replicateService: { generateTextToVideo: ReturnType<typeof vi.fn> };
   let ingredientsService: {
@@ -226,7 +231,11 @@ describe('BatchInterpolationController', () => {
     };
     metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
     modelsService = { findOne: vi.fn().mockResolvedValue(mockModel) };
-    promptsService = { create: vi.fn().mockResolvedValue(mockPrompt) };
+    promptsService = {
+      create: vi.fn().mockResolvedValue(mockPrompt),
+      patchOneWhere: vi.fn().mockResolvedValue(undefined),
+    };
+    patchOneWhere = vi.fn().mockResolvedValue(undefined);
     promptBuilderService = {
       buildPrompt: vi.fn().mockResolvedValue({
         input: { prompt: 'cinematic' },
@@ -300,7 +309,10 @@ describe('BatchInterpolationController', () => {
           useValue: replicateService,
         },
         { provide: SharedService, useValue: sharedService },
-        { provide: VideosService, useValue: { findOne: vi.fn() } },
+        {
+          provide: VideosService,
+          useValue: { findOne: vi.fn(), patchOneWhere },
+        },
         {
           provide: NotificationsPublisherService,
           useValue: websocketService,
@@ -1195,6 +1207,192 @@ describe('BatchInterpolationController', () => {
         expect(readBatchResponseFixture(result).jobs[0].status).toBe('failed');
         expect(readBatchResponseFixture(result).jobs[1].status).toBe(
           'processing',
+        );
+      });
+    });
+
+    describe('failed pair cleanup', () => {
+      const failedActivity = expect.objectContaining({
+        key: 'video-failed',
+        organizationId,
+      });
+
+      async function expectPairCleanedUp(): Promise<void> {
+        const [videosAdapter, failedId, , , , activityMetadata] =
+          failedGenerationService.handleFailedVideoGeneration.mock.calls[0];
+        expect(failedId).toBe(ingredientId);
+        expect(activityMetadata).toEqual(failedActivity);
+        expect(JSON.parse(activityMetadata.value).ingredientId).toBe(
+          ingredientId,
+        );
+        await videosAdapter.patch(ingredientId, { status: 'FAILED' });
+        expect(patchOneWhere).toHaveBeenCalledWith(
+          { id: ingredientId, isDeleted: false, organizationId },
+          { status: 'FAILED' },
+        );
+        expect(promptsService.patchOneWhere).toHaveBeenCalledWith(
+          { id: promptId, isDeleted: false, organizationId },
+          { status: 'FAILED' },
+        );
+      }
+
+      it('fails prompt, ingredient and activity when the credit hold throws', async () => {
+        creditsUtilsService.reserveCredits.mockRejectedValue(
+          new Error('insufficient credits'),
+        );
+
+        const result = await controller.createBatchInterpolation(
+          mockReq,
+          mockDto,
+          mockUser,
+        );
+
+        expect(readBatchResponseFixture(result).jobs[0]).toMatchObject({
+          id: ingredientId,
+          pairIndex: 0,
+          status: 'failed',
+        });
+        expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+        await expectPairCleanedUp();
+      });
+
+      it('fails prompt, ingredient and activity and releases the hold when dispatch throws', async () => {
+        replicateService.generateTextToVideo.mockRejectedValue(
+          new Error('provider down'),
+        );
+
+        const result = await controller.createBatchInterpolation(
+          mockReq,
+          mockDto,
+          mockUser,
+        );
+
+        expect(readBatchResponseFixture(result).jobs[0]).toMatchObject({
+          id: ingredientId,
+          pairIndex: 0,
+          status: 'failed',
+        });
+        expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+          organizationId,
+          reservationId: 'pair-reservation',
+        });
+        await expectPairCleanedUp();
+      });
+      it('fails only the unfunded second pair, closing its activity with the real failure handler', async () => {
+        const ingredientIds = [
+          testId('ingredient', 1),
+          testId('ingredient', 2),
+        ];
+        const promptIds = [testId('prompt', 1), testId('prompt', 2)];
+        const activityIds = [testId('activity', 1), testId('activity', 2)];
+        const processingActivities = new Map(
+          ingredientIds.map((id, index) => [
+            id,
+            {
+              id: activityIds[index],
+              organizationId,
+              userId: mockUser.id,
+              value: JSON.stringify({ ingredientId: id }),
+            },
+          ]),
+        );
+        // Tenant enforcement: an unscoped lookup finds nothing.
+        const findByActionValue = vi.fn(
+          async (
+            _action: string,
+            ingredientIdValue: string,
+            _userId: string,
+            lookupOrganizationId?: string,
+          ) =>
+            lookupOrganizationId === organizationId
+              ? (processingActivities.get(ingredientIdValue) ?? null)
+              : null,
+        );
+        const recorder = { record: vi.fn(), update: vi.fn() };
+        const realFailureHandler = new FailedGenerationService(
+          { findByActionValue } as unknown as ActivitiesService,
+          recorder as unknown as ActivityRecorderService,
+          {
+            emit: vi.fn(),
+            publishMediaFailed: vi.fn().mockResolvedValue(undefined),
+          } as unknown as NotificationsPublisherService,
+        );
+        failedGenerationService.handleFailedVideoGeneration.mockImplementation(
+          (
+            ...args: Parameters<
+              FailedGenerationService['handleFailedVideoGeneration']
+            >
+          ) => realFailureHandler.handleFailedVideoGeneration(...args),
+        );
+        mockBuildReferenceImageUrls
+          .mockReset()
+          .mockResolvedValue(['https://cdn.example.com/frame.jpg']);
+        promptsService.create.mockImplementation(
+          async (entity: { original: string }) => ({
+            id: entity.original === 'pair one' ? promptIds[0] : promptIds[1],
+          }),
+        );
+        sharedService.createMediaDocuments.mockImplementation(
+          async (_user: unknown, input: { groupIndex: number }) => ({
+            ingredientData: { id: ingredientIds[input.groupIndex] },
+            metadataData: mockMetadataData,
+          }),
+        );
+        activitiesService.record.mockImplementation(
+          async (input: { entityId: string }) =>
+            processingActivities.get(input.entityId),
+        );
+        creditsUtilsService.reserveCredits.mockImplementation(
+          async (input: { workloadId: string }) => {
+            if (input.workloadId === ingredientIds[1]) {
+              throw new Error('insufficient credits');
+            }
+            return { id: 'pair-reservation' };
+          },
+        );
+
+        const result = await controller.createBatchInterpolation(
+          mockReq,
+          {
+            ...mockDto,
+            pairs: [
+              {
+                endImageId: endImageId1,
+                prompt: 'pair one',
+                startImageId: startImageId1,
+              },
+              {
+                endImageId: endImageId2,
+                prompt: 'pair two',
+                startImageId: startImageId2,
+              },
+            ],
+          },
+          mockUser,
+        );
+
+        const jobs = readBatchResponseFixture(result).jobs;
+        expect(jobs).toEqual([
+          expect.objectContaining({
+            id: ingredientIds[0],
+            status: 'processing',
+          }),
+          expect.objectContaining({ id: ingredientIds[1], status: 'failed' }),
+        ]);
+        expect(patchOneWhere).toHaveBeenCalledTimes(1);
+        expect(patchOneWhere).toHaveBeenCalledWith(
+          { id: ingredientIds[1], isDeleted: false, organizationId },
+          expect.objectContaining({ status: 'FAILED' }),
+        );
+        expect(promptsService.patchOneWhere).toHaveBeenCalledTimes(1);
+        expect(promptsService.patchOneWhere).toHaveBeenCalledWith(
+          { id: promptIds[1], isDeleted: false, organizationId },
+          { status: 'FAILED' },
+        );
+        expect(recorder.update).toHaveBeenCalledTimes(1);
+        expect(recorder.update).toHaveBeenCalledWith(
+          processingActivities.get(ingredientIds[1]),
+          expect.objectContaining({ key: 'video-failed' }),
         );
       });
     });

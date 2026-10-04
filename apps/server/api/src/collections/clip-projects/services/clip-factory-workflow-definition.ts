@@ -181,13 +181,13 @@ export function buildClipFactoryWorkflowDefinition(): SystemWorkflowGraphDefinit
       source: conditionNode.id,
       sourceHandle: 'false',
       target: 'generate-remaining',
-      targetHandle: 'approval',
+      targetHandle: 'previous',
     },
     {
       id: 'review-to-remaining',
       source: reviewNode.id,
       target: 'generate-remaining',
-      targetHandle: 'approval',
+      targetHandle: 'previous',
     },
     {
       id: 'plan-remaining-items',

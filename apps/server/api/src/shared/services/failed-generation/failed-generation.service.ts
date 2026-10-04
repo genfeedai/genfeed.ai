@@ -94,6 +94,7 @@ export class FailedGenerationService {
           processingKey,
           ingredientId,
           activityMetadata.userId,
+          activityMetadata.organizationId,
         );
 
         if (existingActivity) {

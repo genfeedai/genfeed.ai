@@ -138,28 +138,10 @@
     "symbol": "AgentCompletionCardBuilderService.buildCompletionSuggestedActions"
   },
   {
-    "actual": 208,
-    "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-batch.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentOrchestratorBatchService.tryHandleBatchGenerationTurnStream"
-  },
-  {
-    "actual": 158,
-    "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-plan-mode.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentOrchestratorPlanModeService.generatePlanModeResponse"
-  },
-  {
     "actual": 592,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-stream-loop.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorStreamLoopService.runStreamLoop"
-  },
-  {
-    "actual": 377,
-    "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-sync-loop.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentOrchestratorSyncLoopService.executeSynchronousChatLoop"
   },
   {
     "actual": 355,
@@ -178,12 +160,6 @@
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-analytics-tool-handler.service.ts",
     "metric": "method-lines",
     "symbol": "AgentAnalyticsToolHandler.getAnalytics"
-  },
-  {
-    "actual": 202,
-    "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-prepare-tool-handler.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentPrepareToolHandler.prepareClipWorkflowRun"
   },
   {
     "actual": 1098,
@@ -324,7 +300,7 @@
     "symbol": "PlatformSchedulesProcessor.constructor"
   },
   {
-    "actual": 1067,
+    "actual": 1052,
     "file": "apps/server/workers/src/services/scheduled-post-delivery.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/workers/src/services/scheduled-post-delivery.service.ts"

@@ -1,13 +1,18 @@
 import {
-  MAX_REQUESTED_SKILL_SLUG_LENGTH,
-  REQUESTED_SKILL_SLUG_PATTERN,
-} from '@api/collections/skills/utils/requested-skill-slugs.util';
-import {
   parseSkillPackageArchive,
-  SKILL_PACKAGE_LIMITS,
   type SkillPackageFile,
   validateSkillPackageFiles,
 } from '@api/collections/skills/utils/skill-package-archive.util';
+import {
+  hasSkillPackageControlCharacters,
+  isValidSkillPackageChecksum,
+  isValidSkillPackageSlug,
+  isValidSkillPackageSourceUrl,
+  normalizeSkillPackageChecksum,
+  SKILL_PACKAGE_LIMITS,
+  SKILL_PACKAGE_MAX_BASE64_CHARACTERS,
+  SKILL_PACKAGE_MAX_FRONTMATTER_BYTES,
+} from '@genfeedai/contracts/constants';
 import { BadRequestException } from '@nestjs/common';
 import { maxLength } from 'class-validator';
 import {
@@ -20,8 +25,6 @@ import {
   parseDocument,
 } from 'yaml';
 
-const MAX_BASE64_CHARACTERS = 1_333_336;
-const MAX_FRONTMATTER_BYTES = 16_000;
 const PROTOTYPE_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 
 export interface SkillPackageMetadata {
@@ -52,13 +55,7 @@ function exactKeys(value: Record<string, unknown>, allowed: string[]): void {
   if (Object.keys(value).some((key) => !allowed.includes(key)))
     invalid('unknown fields');
 }
-function hasControls(value: string): boolean {
-  return [...value].some(
-    (char) =>
-      char.charCodeAt(0) < 32 ||
-      (char.charCodeAt(0) >= 127 && char.charCodeAt(0) <= 159),
-  );
-}
+const hasControls = hasSkillPackageControlCharacters;
 function boundedText(value: unknown, max: number, label: string): string {
   if (typeof value !== 'string' || !value.trim() || !maxLength(value, max))
     invalid(label);
@@ -66,27 +63,8 @@ function boundedText(value: unknown, max: number, label: string): string {
 }
 function sourceUrl(value: unknown): string | undefined {
   if (value === undefined) return undefined;
-  const text = boundedText(value, 2000, 'source URL');
-  if (
-    text !== text.trim() ||
-    hasControls(text) ||
-    Buffer.byteLength(text, 'utf8') > 2000
-  )
-    invalid('source URL');
-  let url: URL;
-  try {
-    url = new URL(text);
-  } catch {
-    invalid('source URL');
-  }
-  if (
-    (url.protocol !== 'http:' && url.protocol !== 'https:') ||
-    url.username ||
-    url.password ||
-    /^https?:\/*([^/?#]*)/i.exec(text.replaceAll('\\', '/'))?.[1].includes('@')
-  )
-    invalid('source URL');
-  return text;
+  if (!isValidSkillPackageSourceUrl(value)) invalid('source URL');
+  return value;
 }
 
 /** Check AST before materializing any YAML into JavaScript. */
@@ -128,7 +106,7 @@ function frontmatter(content: string): {
     invalid('frontmatter closing delimiter');
   const payloadEnd = closing.index + (closing[0].startsWith('\n') ? 1 : 0);
   const yaml = remaining.slice(0, payloadEnd);
-  if (Buffer.byteLength(yaml, 'utf8') > MAX_FRONTMATTER_BYTES)
+  if (Buffer.byteLength(yaml, 'utf8') > SKILL_PACKAGE_MAX_FRONTMATTER_BYTES)
     invalid('frontmatter size');
   const document = parseDocument(yaml, {
     schema: 'core',
@@ -186,9 +164,7 @@ export function parseSkillPackageManifest(
     if (
       !Object.hasOwn(envelope, 'slug') ||
       !Object.hasOwn(envelope, 'package') ||
-      typeof envelope.slug !== 'string' ||
-      envelope.slug.length > MAX_REQUESTED_SKILL_SLUG_LENGTH ||
-      !REQUESTED_SKILL_SLUG_PATTERN.test(envelope.slug)
+      !isValidSkillPackageSlug(envelope.slug)
     )
       invalid('slug');
     const provenance = sourceUrl(
@@ -209,7 +185,7 @@ export function parseSkillPackageManifest(
       if (
         typeof encoded !== 'string' ||
         !encoded ||
-        encoded.length > MAX_BASE64_CHARACTERS ||
+        encoded.length > SKILL_PACKAGE_MAX_BASE64_CHARACTERS ||
         encoded.length % 4 !== 0 ||
         !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded)
       )
@@ -230,10 +206,8 @@ export function parseSkillPackageManifest(
     ) {
       const expected = envelope.expectedPackageChecksum;
       if (
-        typeof expected !== 'string' ||
-        !/^(?:sha256:)?[a-fA-F0-9]{64}$/.test(expected) ||
-        expected.replace(/^sha256:/, '').toLowerCase() !==
-          validated.packageChecksum
+        !isValidSkillPackageChecksum(expected) ||
+        normalizeSkillPackageChecksum(expected) !== validated.packageChecksum
       )
         invalid('package checksum');
     }

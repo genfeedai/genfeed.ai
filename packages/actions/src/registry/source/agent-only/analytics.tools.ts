@@ -4,7 +4,7 @@ export const AGENT_ANALYTICS_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Get analytics data for the user. Can specify a time range and metrics.',
+      'Get organization analytics, a post analytics snapshot, or analytics for the latest published post related to a selected content item.',
     name: 'get_analytics',
     parameters: {
       properties: {

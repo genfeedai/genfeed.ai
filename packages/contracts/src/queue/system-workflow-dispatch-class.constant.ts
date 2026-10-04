@@ -21,4 +21,12 @@ export enum SystemWorkflowDispatchClass {
    * isolated `PLATFORM_SYSTEM_WORKFLOW_QUEUE` instead.
    */
   BACKGROUND = 'background',
+  /**
+   * Due scheduled posts picked up by the 15-minute sweep (#5890). Routes to
+   * `SCHEDULED_PUBLISH_QUEUE`, which only that producer feeds, so the shared
+   * `WORKFLOW_BACKGROUND_QUEUE` rate limit cannot delay a publish. The value is
+   * persisted in `WorkflowExecution.result.metadata.dispatchClass`; it is a JSON
+   * string, not a Prisma enum, so no migration is involved.
+   */
+  SCHEDULED_PUBLISH = 'scheduled_publish',
 }

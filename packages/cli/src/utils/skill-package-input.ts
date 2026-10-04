@@ -2,6 +2,17 @@ import { constants } from 'node:fs';
 import { lstat, open } from 'node:fs/promises';
 import path from 'node:path';
 import { TextDecoder } from 'node:util';
+import {
+  hasSkillPackageControlCharacters,
+  isSkillPackageEntryCountAllowed,
+  isSkillPackageTotalSizeAllowed,
+  isValidSkillPackageChecksum,
+  isValidSkillPackageSlug,
+  isValidSkillPackageSourceUrl,
+  normalizeSkillPackageChecksum,
+  SKILL_PACKAGE_LIMITS,
+  SKILL_PACKAGE_MAX_PATH_BYTES,
+} from '@genfeedai/contracts/constants';
 
 export interface SkillPackageInputOptions {
   slug: string;
@@ -19,21 +30,10 @@ export interface SkillPackageImportInput {
     | { format: 'zip'; archiveBase64: string };
 }
 
-const MAX_ARCHIVE_BYTES = 1_000_000;
-const MAX_ENTRY_BYTES = 128_000;
-const MAX_TOTAL_BYTES = 512_000;
-const MAX_ENTRIES = 128;
 const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 
 function invalid(message: string): never {
   throw new Error(`Invalid skill package input: ${message}`);
-}
-
-function hasControls(value: string): boolean {
-  return [...value].some((character) => {
-    const code = character.charCodeAt(0);
-    return code < 32 || (code >= 127 && code <= 159);
-  });
 }
 
 function validateReference(relativePath: string): void {
@@ -41,9 +41,9 @@ function validateReference(relativePath: string): void {
     !relativePath ||
     path.isAbsolute(relativePath) ||
     /[\\:]/.test(relativePath) ||
-    hasControls(relativePath) ||
+    hasSkillPackageControlCharacters(relativePath) ||
     !relativePath.endsWith('.md') ||
-    Buffer.byteLength(relativePath, 'utf8') > 65_535 ||
+    Buffer.byteLength(relativePath, 'utf8') > SKILL_PACKAGE_MAX_PATH_BYTES ||
     relativePath.split('/').some((segment) => !segment || segment === '.' || segment === '..')
   )
     invalid('References must be relative Markdown file paths without traversal.');
@@ -96,7 +96,7 @@ export async function readSkillPackageInput(
   filePath: string,
   options: SkillPackageInputOptions
 ): Promise<SkillPackageImportInput> {
-  if (!options.slug || options.slug.length > 160 || !/^[a-z0-9][a-z0-9-]*$/i.test(options.slug))
+  if (!isValidSkillPackageSlug(options.slug))
     invalid('Choose a valid skill slug of at most 160 ASCII characters.');
   const input: SkillPackageImportInput = {
     package: { files: [], format: 'files' },
@@ -104,27 +104,14 @@ export async function readSkillPackageInput(
   };
   if (options.sourceUrl !== undefined) {
     const value = options.sourceUrl;
-    if (
-      !value ||
-      value !== value.trim() ||
-      hasControls(value) ||
-      Buffer.byteLength(value, 'utf8') > 2000
-    )
-      invalid('Source URL must be a bounded HTTP(S) URL without credentials.');
-    let url: URL;
-    try {
-      url = new URL(value);
-    } catch {
-      invalid('Source URL must be a bounded HTTP(S) URL without credentials.');
-    }
-    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password)
+    if (!isValidSkillPackageSourceUrl(value))
       invalid('Source URL must be a bounded HTTP(S) URL without credentials.');
     input.sourceUrl = value;
   }
   if (options.checksum !== undefined) {
-    if (!/^(?:sha256:)?[a-fA-F0-9]{64}$/.test(options.checksum))
+    if (!isValidSkillPackageChecksum(options.checksum))
       invalid('Checksum must be a SHA256 package checksum.');
-    input.expectedPackageChecksum = options.checksum.replace(/^sha256:/, '').toLowerCase();
+    input.expectedPackageChecksum = normalizeSkillPackageChecksum(options.checksum);
   }
   if (!filePath || filePath.includes('\0')) invalid('Select a root SKILL.md or package.zip file.');
   const rootPath = path.resolve(filePath);
@@ -133,8 +120,8 @@ export async function readSkillPackageInput(
   if (isZip && references.length) invalid('ZIP inputs cannot include external reference options.');
   if (!isZip && path.basename(rootPath) !== 'SKILL.md')
     invalid('The direct-file package must have an exact root SKILL.md.');
-  if (references.length + 1 > MAX_ENTRIES)
-    invalid('A direct package may contain at most 128 files.');
+  if (!isSkillPackageEntryCountAllowed(references.length + 1))
+    invalid(`A direct package may contain at most ${SKILL_PACKAGE_LIMITS.entries} files.`);
   const names = new Set(['skill.md']);
   for (const reference of references) {
     validateReference(reference);
@@ -146,7 +133,7 @@ export async function readSkillPackageInput(
     const baseDirectory = path.dirname(rootPath);
     await validateParents(baseDirectory, path.basename(rootPath));
     if (isZip) {
-      const bytes = await readBoundedFile(rootPath, MAX_ARCHIVE_BYTES);
+      const bytes = await readBoundedFile(rootPath, SKILL_PACKAGE_LIMITS.archiveBytes);
       if (!bytes.length) invalid('ZIP input must not be empty.');
       input.package = { archiveBase64: bytes.toString('base64'), format: 'zip' };
       return input;
@@ -155,11 +142,15 @@ export async function readSkillPackageInput(
     let total = 0;
     for (const relativePath of ['SKILL.md', ...references]) {
       await validateParents(baseDirectory, relativePath);
-      const bytes = await readBoundedFile(path.join(baseDirectory, relativePath), MAX_ENTRY_BYTES);
+      const bytes = await readBoundedFile(
+        path.join(baseDirectory, relativePath),
+        SKILL_PACKAGE_LIMITS.entryBytes
+      );
       // Recheck ancestors after the bounded read; reject detected directory symlink changes.
       await validateParents(baseDirectory, relativePath);
       total += bytes.length;
-      if (total > MAX_TOTAL_BYTES) invalid('Direct package total byte limit exceeded.');
+      if (!isSkillPackageTotalSizeAllowed(total))
+        invalid('Direct package total byte limit exceeded.');
       files.push({ content: decoder.decode(bytes), path: relativePath });
     }
     input.package = { files, format: 'files' };

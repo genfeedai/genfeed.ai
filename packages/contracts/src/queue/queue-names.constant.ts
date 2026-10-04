@@ -29,8 +29,8 @@ export const PLATFORM_SYSTEM_WORKFLOW_QUEUE = 'platform-system-workflow';
  * / `WorkflowExecutionQueueService.queueSystemWorkflow` producer that is not
  * one of the three platform-cron sweep workflows already routed to
  * `PLATFORM_SYSTEM_WORKFLOW_QUEUE` (#5162): worker crons, batch generation,
- * the clip factory, other `workflow.for-each` fan-out, scheduled-post
- * dispatch, RSS/social ingestion, lifecycle emails, and friends (#5271). One
+ * the clip factory, other `workflow.for-each` fan-out, RSS/social
+ * ingestion, lifecycle emails, and friends (#5271). One
  * queue for all of them, not per-domain queues — every producer declares its
  * `SystemWorkflowDispatchClass` (`INTERACTIVE` or `BACKGROUND`) as a required
  * option, so a new producer that omits it fails to compile.
@@ -47,6 +47,16 @@ export const WORKFLOW_BACKGROUND_QUEUE = 'workflow-background';
  * sized for sweep traffic, not for interactive turns.
  */
 export const AGENT_TURN_QUEUE = 'agent-turn';
+/**
+ * Scheduled-post publishing from the 15-minute sweep
+ * (`ScheduledPostWorkflowQueueService`, `source === 'scheduled_sweep'`, #5890).
+ * Split from `WORKFLOW_BACKGROUND_QUEUE`, whose 60 jobs/minute limiter is shared
+ * by ~40 unrelated producers (lifecycle emails, cron fan-out, RSS and social
+ * ingestion, batch generation, clip factory): a burst from any of them delayed
+ * due posts. Only the sweep produces to this queue, so nothing else can consume
+ * the budget a due post depends on.
+ */
+export const SCHEDULED_PUBLISH_QUEUE = 'scheduled-publish';
 
 // ---------- Distribution & messaging ----------
 export const NOTIFICATION_DELIVERY_QUEUE = 'notification-delivery';
@@ -80,6 +90,7 @@ export const ALL_QUEUE_NAMES = [
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   WORKFLOW_BACKGROUND_QUEUE,
   AGENT_TURN_QUEUE,
+  SCHEDULED_PUBLISH_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   HEYGEN_POLL_QUEUE,
