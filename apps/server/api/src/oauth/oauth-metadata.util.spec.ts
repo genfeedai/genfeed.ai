@@ -1,5 +1,6 @@
 import {
   buildOAuthAuthorizationServerMetadata,
+  canonicalizeRequestedMcpResource,
   resolveMcpResourceUrl,
   resolveOAuthIssuerUrl,
 } from './oauth-metadata.util';
@@ -153,5 +154,34 @@ describe('OAuth metadata', () => {
         ),
       ).toThrow(/GENFEEDAI_MCP_PUBLIC_URL/);
     });
+  });
+});
+
+describe('canonicalizeRequestedMcpResource', () => {
+  it.each([
+    ['https://mcp.genfeed.ai/mcp?profile=full', 'https://mcp.genfeed.ai/mcp'],
+    [
+      'https://mcp.genfeed.ai/mcp?toolsets=core,generation',
+      'https://mcp.genfeed.ai/mcp',
+    ],
+    [
+      'https://mcp.genfeed.ai/mcp/?profile=directory&toolsets=core',
+      'https://mcp.genfeed.ai/mcp',
+    ],
+  ])('drops MCP routing params from %s', (requested, canonical) => {
+    expect(canonicalizeRequestedMcpResource(requested)).toBe(canonical);
+  });
+
+  it.each([
+    'https://mcp.genfeed.ai/mcp',
+    'https://mcp.genfeed.ai/mcp?profile=full&tenant=other',
+    'https://mcp.genfeed.ai/mcp?profile=full#fragment',
+    'https://evil.example/mcp?profile=full',
+    'not a url',
+  ])('leaves %s for the exact comparison to judge', (requested) => {
+    const canonical = canonicalizeRequestedMcpResource(requested);
+    expect(canonical === 'https://mcp.genfeed.ai/mcp').toBe(
+      requested === 'https://mcp.genfeed.ai/mcp',
+    );
   });
 });

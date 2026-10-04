@@ -9,6 +9,7 @@ import {
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { buildMcpOAuthSessionMetadata } from '@api/oauth/mcp-oauth-session-metadata.util';
 import {
+  canonicalizeRequestedMcpResource,
   resolveMcpResourceUrl,
   resolveOAuthAppUrl,
 } from '@api/oauth/oauth-metadata.util';
@@ -113,7 +114,7 @@ export class OAuthAuthorizeService {
     dto: OAuthAuthorizeDecisionDto,
   ): Promise<{ redirectUrl: string }> {
     await this.clientService.requireClient(dto.client_id, dto.redirect_uri);
-    this.assertResource(dto.resource);
+    const resource = this.assertResource(dto.resource);
     const state = suppliedState(dto.state);
 
     if (!dto.approved) {
@@ -151,7 +152,7 @@ export class OAuthAuthorizeService {
         expiresAt,
         organizationId,
         redirectUri: new URL(dto.redirect_uri).toString(),
-        resource: dto.resource,
+        resource,
         scopes,
         stateHash: state ? hashToken(state) : null,
         userEmail: user.emailAddresses?.[0]?.emailAddress || undefined,
@@ -170,7 +171,7 @@ export class OAuthAuthorizeService {
 
   async exchangeToken(dto: OAuthAuthorizationCodeGrant) {
     const client = await this.clientService.requireClient(dto.client_id);
-    this.assertResource(dto.resource);
+    const resource = this.assertResource(dto.resource);
 
     const persisted = await this.prisma.mcpOAuthAuthCode.findUnique({
       where: { codeHash: hashToken(dto.code) },
@@ -186,7 +187,7 @@ export class OAuthAuthorizeService {
       record.expiresAt > new Date() &&
       record.clientId === dto.client_id &&
       record.redirectUri === new URL(dto.redirect_uri).toString() &&
-      record.resource === dto.resource &&
+      record.resource === resource &&
       safeEqual(record.codeChallenge, verifierChallenge);
     if (!hasValidBinding) {
       throw oauthError('invalid_grant', 'Invalid authorization grant');
@@ -256,10 +257,13 @@ export class OAuthAuthorizeService {
     };
   }
 
-  private assertResource(resource: string): void {
+  /** Returns the canonical resource the grant is bound to. */
+  private assertResource(requested: string): string {
+    const resource = canonicalizeRequestedMcpResource(requested);
     if (resource !== resolveMcpResourceUrl(this.configService)) {
       throw oauthError('invalid_target', 'Unsupported resource');
     }
+    return resource;
   }
 
   private clampScopes(scope?: string): string[] {
