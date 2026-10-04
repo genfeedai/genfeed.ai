@@ -37,7 +37,6 @@ jobs:
     env:
       RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
       RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: genfeed_local
-      RUNTIME_ACCEPTANCE_PUBLIC_KEY: ${{ vars.RUNTIME_ACCEPTANCE_PUBLIC_KEY }}
       ACCEPTANCE_REPO: ${{ github.workspace }}
       CONTROL_SHA: ${{ github.sha }}
       CANDIDATE_SHA: ${{ inputs.candidate_sha || github.sha }}
@@ -98,13 +97,13 @@ jobs:
         if: always() && steps.preflight.outputs.prepared == 'true'
         id: seal
         run: node "$CONTROL_RUNNER" seal --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
-      - name: Retain encrypted scale evidence
+      - name: Retain scale evidence
         if: always() && steps.preflight.outputs.prepared == 'true' && steps.seal.outcome != 'skipped'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dataset-scale-${{ inputs.candidate_sha || github.sha }}
           path: |
             ${{ runner.temp }}/dataset-scale/public/receipt.json
-            ${{ runner.temp }}/dataset-scale/public/evidence.encrypted.json
+            ${{ runner.temp }}/dataset-scale/public/evidence.json
           retention-days: 7
           if-no-files-found: error

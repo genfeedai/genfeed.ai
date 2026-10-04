@@ -10,8 +10,11 @@ import type {
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import {
+  classifyInternalMediaUrl,
+  internalMediaHosts,
+} from '@api/helpers/utils/reference/internal-media-url.util';
 import { buildContentPipelineWorkflowDefinition } from '@api/services/content-orchestration/content-pipeline-workflow-definition';
-import { extractInternalMediaAssetId } from '@api/services/content-orchestration/internal-media-asset-id.util';
 import type {
   PipelineConfigV2,
   PipelineResultV2,
@@ -32,8 +35,14 @@ import {
   MetadataExtension,
   PostCategory,
 } from '@genfeedai/contracts';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  type OnModuleInit,
+  Optional,
+} from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 
@@ -58,6 +67,7 @@ export class ContentOrchestrationService implements OnModuleInit {
     private readonly stepExecutorService: StepExecutorService,
     @Inject(SYSTEM_WORKFLOW_RUNNER)
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
+    @Optional() private readonly configService?: ConfigService,
   ) {}
 
   /**
@@ -208,17 +218,13 @@ export class ContentOrchestrationService implements OnModuleInit {
     // persona itself. Brand content-plan runs pass the brand id as personaId
     // and must admit every asset they feed to a provider, including canonical
     // internal media URLs (#6040).
+    let admittedPersonaId: string | undefined;
     if (this.readPublishMode(input.publishMode) === 'none') {
-      await this.personasService.resolveCharacterReferences({
+      admittedPersonaId = await this.admitCharacters({
         brandId,
-        ingredientIds: [
-          ...(runReferences ?? []).map((reference) => reference.assetId),
-          ...(step.type === 'image-to-video'
-            ? [extractInternalMediaAssetId(step.imageUrl)]
-            : []),
-        ].filter((id): id is string => typeof id === 'string' && id.length > 0),
         organizationId: request.context.organizationId,
-        path: 'workflow',
+        runReferences,
+        step,
       });
     }
 
@@ -248,6 +254,7 @@ export class ContentOrchestrationService implements OnModuleInit {
       brandId,
       request.context.organizationId,
       request.context.userId,
+      admittedPersonaId,
     );
 
     return {
@@ -259,11 +266,52 @@ export class ContentOrchestrationService implements OnModuleInit {
     };
   }
 
+  /**
+   * Admits the run references and the step's source image through the shared
+   * character admission. A canonical internal media URL resolves to its asset
+   * id; one whose id cannot be resolved fails closed. Returns the admitted
+   * character, to link the outputs to.
+   */
+  private async admitCharacters(args: {
+    brandId: string;
+    organizationId: string;
+    runReferences: PipelineConfig['runReferences'];
+    step: PipelineStep;
+  }): Promise<string | undefined> {
+    const ids = (args.runReferences ?? []).map(
+      (reference) => reference.assetId,
+    );
+    if (args.step.type === 'image-to-video' && args.step.imageUrl) {
+      const url = classifyInternalMediaUrl(
+        args.step.imageUrl,
+        internalMediaHosts([
+          this.configService?.cdnUrl,
+          this.configService?.ingredientsEndpoint,
+          this.configService?.apiUrl,
+        ]),
+      );
+      if (url.isInternal) {
+        if (!url.assetId) {
+          throw new NotFoundException('Reference image');
+        }
+        ids.push(url.assetId);
+      }
+    }
+    const admission = await this.personasService.resolveCharacterReferences({
+      brandId: args.brandId,
+      ingredientIds: ids,
+      organizationId: args.organizationId,
+      path: 'workflow',
+    });
+    return admission.personaId ?? undefined;
+  }
+
   private async persistGeneratedResult(
     result: StepResult,
     brandId: string,
     organizationId: string,
     userId: string,
+    personaId?: string,
   ): Promise<string> {
     const category = this.contentTypeToCategory(result.contentType);
     const extension = this.contentTypeToExtension(result.contentType);
@@ -274,6 +322,7 @@ export class ContentOrchestrationService implements OnModuleInit {
         category,
         extension,
         organizationId,
+        ...(personaId ? { personaId } : {}),
         status: IngredientStatus.PROCESSING,
         userId,
       });

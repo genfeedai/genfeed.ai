@@ -44,7 +44,7 @@ describe('CharacterOwnershipService', () => {
       $queryRaw: vi.fn().mockResolvedValue([]),
       $transaction: vi.fn(),
       brand: {
-        findFirst: vi.fn(),
+        findFirst: vi.fn().mockResolvedValue({ id: 'brand-a' }),
         findMany: vi.fn().mockResolvedValue([]),
       },
       member: { findFirst: vi.fn() },
@@ -128,6 +128,13 @@ describe('CharacterOwnershipService', () => {
       });
     });
 
+    it('is not found once the owning brand deletion won the lock', async () => {
+      prisma.brand.findFirst.mockResolvedValue(null);
+
+      await expect(move()).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.persona.update).not.toHaveBeenCalled();
+    });
+
     it('refuses a non-admin', async () => {
       prisma.member.findFirst.mockResolvedValue({ role: { key: 'creator' } });
 
@@ -142,7 +149,9 @@ describe('CharacterOwnershipService', () => {
         ValidationException,
       );
 
-      prisma.brand.findFirst.mockResolvedValue(null);
+      prisma.brand.findFirst
+        .mockResolvedValueOnce({ id: 'brand-a' })
+        .mockResolvedValueOnce(null);
       await expect(move()).rejects.toBeInstanceOf(ValidationException);
       expect(prisma.persona.update).not.toHaveBeenCalled();
     });

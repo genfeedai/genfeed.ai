@@ -47,7 +47,7 @@ function fixture() {
     models as never,
     prisma as never,
     config as never,
-    personas,
+    personas as never,
   );
   return {
     personas,
