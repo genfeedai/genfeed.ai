@@ -50,9 +50,12 @@ export class ModelCreditQuoteService {
     modelKey: string,
     reason: string,
   ): ServiceUnavailableException {
+    // `message` becomes the exception message; without it Nest falls back to
+    // "Service Unavailable Exception" and every agent/MCP caller loses why.
     return new ServiceUnavailableException({
       code: 'PRICING_UNAVAILABLE',
       detail: reason,
+      message: `Pricing is unavailable for ${modelKey}: ${reason}`,
       modelKey,
       title: 'Pricing is unavailable for this generation',
     });

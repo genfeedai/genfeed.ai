@@ -5,7 +5,10 @@ import type {
   AdminModelPricingRow,
   ModelPricingEvidence,
 } from '@genfeedai/contracts/interfaces';
-import { quoteModelBillablePricing } from '@genfeedai/pricing';
+import {
+  hasPendingProviderRateDrift,
+  quoteModelBillablePricing,
+} from '@genfeedai/pricing';
 import {
   type Model,
   type ModelProviderContract,
@@ -213,7 +216,12 @@ export function projectAdminModelPricing(
     else if (age > 30 * 86_400_000)
       reasons.push('Provider rate verification is older than 30 days');
   }
-  if (pending && pending.version !== reviewed?.version)
+  if (
+    hasPendingProviderRateDrift(
+      model.reviewedProviderContractVersion,
+      model.pendingProviderContractVersion,
+    )
+  )
     reasons.push(
       'Pending provider contract requires review before reconciliation',
     );

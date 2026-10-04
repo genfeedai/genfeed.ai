@@ -1,4 +1,8 @@
-import { LIBRARY_SHELF_LABELS, LibraryShelf } from '@genfeedai/contracts';
+import {
+  LIBRARY_SHELF_LABELS,
+  LIBRARY_SHELF_ORDER,
+  LibraryShelf,
+} from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createLibraryShelfRoute,
@@ -10,6 +14,7 @@ import {
   ClipboardCheck,
   Clock,
   Images,
+  ImageUp,
   Inbox,
   LoaderCircle,
   Star,
@@ -77,6 +82,7 @@ export const LIBRARY_PLACE_MENU_ITEMS: MenuItemConfig[] = [
 ];
 
 const SHELF_ICONS = {
+  [LibraryShelf.REFERENCES]: ImageUp,
   [LibraryShelf.GENERATING]: LoaderCircle,
   [LibraryShelf.UNSORTED]: Inbox,
   [LibraryShelf.NEEDS_REVIEW]: ClipboardCheck,
@@ -86,29 +92,24 @@ const SHELF_ICONS = {
 } as const;
 
 /**
- * Shelves — the generation-state axis, in lifecycle order.
+ * Shelves — References (the inputs) first, then the generation-state axis in
+ * lifecycle order.
  *
  * A shelf is a saved query, not a location: an asset lands on one by
  * generating, failing, or being reviewed, with nobody moving it. Shelf
  * membership overlaps and never partitions the library total.
  */
-export const LIBRARY_SHELF_MENU_ITEMS: MenuItemConfig[] = [
-  LibraryShelf.GENERATING,
-  LibraryShelf.UNSORTED,
-  LibraryShelf.NEEDS_REVIEW,
-  LibraryShelf.APPROVED,
-  LibraryShelf.FAILED,
-  LibraryShelf.ARCHIVED,
-].map((shelf) => ({
-  group: 'Shelves',
-  href: createLibraryShelfRoute(shelf),
-  isExactMatch: true,
-  label: LIBRARY_SHELF_LABELS[shelf],
-  matchPaths: [APP_ROUTES.LIBRARY.ASSETS],
-  matchSearchParams: { shelf },
-  outline: SHELF_ICONS[shelf],
-  solid: SHELF_ICONS[shelf],
-}));
+export const LIBRARY_SHELF_MENU_ITEMS: MenuItemConfig[] =
+  LIBRARY_SHELF_ORDER.map((shelf) => ({
+    group: 'Shelves',
+    href: createLibraryShelfRoute(shelf),
+    isExactMatch: true,
+    label: LIBRARY_SHELF_LABELS[shelf],
+    matchPaths: [APP_ROUTES.LIBRARY.ASSETS],
+    matchSearchParams: { shelf },
+    outline: SHELF_ICONS[shelf],
+    solid: SHELF_ICONS[shelf],
+  }));
 
 /**
  * Destinations that are neither a place over the asset table nor a shelf.

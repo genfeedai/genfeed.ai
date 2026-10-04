@@ -268,9 +268,11 @@ describe('resolveStudioGenerationCost', () => {
     { pricingType: 'per-token' as PricingType },
     { reviewStatus: 'pending' },
     { reviewStatus: 'rejected' },
-    { pendingProviderContractVersion: 'v2' },
+    {
+      pendingProviderContractVersion: 'v2',
+      reviewedProviderContractVersion: 'v1',
+    },
     { providerSyncStatus: 'quarantined' },
-    { providerSyncStatus: 'review_required' },
     { isActive: false },
     { lifecycle: ModelLifecycle.RETIRED },
     { category: ModelCategory.TEXT },
@@ -287,6 +289,27 @@ describe('resolveStudioGenerationCost', () => {
       }),
     ).toEqual({ credits: null, status: 'unavailable' });
   });
+
+  it.each<Partial<IModel>>([
+    { pendingProviderContractVersion: 'sync-v1' },
+    {
+      pendingProviderContractVersion: 'sync-v1',
+      providerSyncStatus: 'review_required',
+    },
+  ])(
+    'prices a never-reviewed model despite a synced pending candidate %j',
+    (patch) => {
+      const model = catalogModel(patch);
+      expect(
+        resolveStudioGenerationCost({
+          isLoadingModels: false,
+          model,
+          settings: { ...imageSettings, modelKey: model.key },
+          type: 'image',
+        }).status,
+      ).not.toBe('unavailable');
+    },
+  );
 
   it('shows zero only for an explicitly free model with a zero tariff', () => {
     const model = catalogModel({
