@@ -1,6 +1,6 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { getPublicMcpUrl } from '@mcp/mcp/setup-page';
+import { getPublicMcpUrl, getPublicWebsiteUrl } from '@mcp/mcp/setup-page';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { MCP_APP_MIME_TYPE, MCP_CARD_RESOURCE_URI } from '@mcp/ui/card-data';
 import express from 'express';
@@ -170,7 +170,7 @@ describe('StreamableHttpService (real SDK integration)', () => {
         name: 'genfeed-mcp-server',
         title: 'Genfeed',
         version: expect.any(String),
-        websiteUrl: 'https://genfeed.ai',
+        websiteUrl: getPublicWebsiteUrl(),
       });
 
       const icons: Array<{

@@ -7,10 +7,6 @@ export const MCP_SERVER_VERSION = '1.0.0';
 export const MCP_SERVER_DESCRIPTION =
   'Create, review, schedule, and publish on-brand posts, images, videos, and articles with Genfeed.';
 
-export const GENFEED_WEBSITE_URL = 'https://genfeed.ai';
-export const GENFEED_PRIVACY_URL = `${GENFEED_WEBSITE_URL}/privacy`;
-export const GENFEED_TERMS_URL = `${GENFEED_WEBSITE_URL}/terms`;
-
 /** Returned once per session in `initialize`; clients add it to the model context. */
 export const MCP_SERVER_INSTRUCTIONS = [
   'Genfeed is an AI content OS for brands.',
@@ -23,8 +19,12 @@ export const MCP_SERVER_INSTRUCTIONS = [
 /**
  * `initialize` → `serverInfo`. Icons resolve against the MCP server's own
  * origin: clients are asked to reject icons served from any other origin.
+ * `websiteUrl` is the operator's public site (`GENFEEDAI_PUBLIC_URL`).
  */
-export function getMcpServerInfo(publicMcpUrl: string): Implementation {
+export function getMcpServerInfo(
+  publicMcpUrl: string,
+  websiteUrl: string,
+): Implementation {
   const origin = new URL(publicMcpUrl).origin;
 
   return {
@@ -40,6 +40,6 @@ export function getMcpServerInfo(publicMcpUrl: string): Implementation {
     name: MCP_SERVER_NAME,
     title: MCP_SERVER_TITLE,
     version: MCP_SERVER_VERSION,
-    websiteUrl: GENFEED_WEBSITE_URL,
+    websiteUrl,
   };
 }

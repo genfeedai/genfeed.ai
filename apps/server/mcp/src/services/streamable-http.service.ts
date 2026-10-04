@@ -5,7 +5,7 @@ import {
   getMcpServerInfo,
   MCP_SERVER_INSTRUCTIONS,
 } from '@mcp/mcp/server-identity';
-import { getPublicMcpUrl } from '@mcp/mcp/setup-page';
+import { getPublicMcpUrl, getPublicWebsiteUrl } from '@mcp/mcp/setup-page';
 import { ClientService } from '@mcp/services/client.service';
 import { PostHogAnalyticsService } from '@mcp/services/posthog-analytics.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
@@ -144,7 +144,11 @@ export class StreamableHttpService {
       this.configService,
     );
 
-    const server = new Server(getMcpServerInfo(getPublicMcpUrl()), {
+    const serverInfo = getMcpServerInfo(
+      getPublicMcpUrl(),
+      getPublicWebsiteUrl(),
+    );
+    const server = new Server(serverInfo, {
       capabilities: {
         resources: {},
         tools: {},

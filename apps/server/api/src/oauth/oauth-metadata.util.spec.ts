@@ -61,6 +61,22 @@ describe('OAuth metadata', () => {
     });
   });
 
+  it("advertises the operator's own policies and docs", () => {
+    const metadata = buildOAuthAuthorizationServerMetadata(
+      config({
+        GENFEED_DOCS_URL: 'https://docs.example.test/',
+        GENFEEDAI_API_PUBLIC_URL: 'https://api.example.test',
+        GENFEEDAI_PUBLIC_URL: 'https://content.example.test',
+      }),
+    );
+
+    expect(metadata).toMatchObject({
+      op_policy_uri: 'https://content.example.test/privacy',
+      op_tos_uri: 'https://content.example.test/terms',
+      service_documentation: 'https://docs.example.test/api-reference/mcp',
+    });
+  });
+
   it('falls back to service URLs for self-hosted deployments', () => {
     const serviceConfig = config({
       GENFEEDAI_API_URL: 'http://genfeed.localhost:3010/',

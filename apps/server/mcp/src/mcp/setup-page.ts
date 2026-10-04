@@ -17,8 +17,6 @@ import {
 
 import { SATOSHI_VARIABLE_WOFF2_BASE64 } from './satoshi-font';
 import {
-  GENFEED_PRIVACY_URL,
-  GENFEED_TERMS_URL,
   getMcpServerInfo,
   MCP_SERVER_DESCRIPTION,
   MCP_SERVER_NAME,
@@ -27,6 +25,7 @@ import {
 const DEFAULT_APP_URL = 'https://app.genfeed.ai';
 const DEFAULT_API_URL = 'https://api.genfeed.ai';
 const DEFAULT_DOCS_URL = 'https://docs.genfeed.ai';
+const DEFAULT_WEBSITE_URL = 'https://genfeed.ai';
 const DEFAULT_MCP_URL = 'https://mcp.genfeed.ai/mcp';
 const DEFAULT_POSTHOG_HOST = 'https://eu.i.posthog.com';
 const CONNECT_GENFEED_PATH = '/connect';
@@ -207,8 +206,8 @@ export function getMcpProtectedResourceMetadata() {
     resource: getPublicMcpUrl(),
     resource_documentation: `${getPublicDocsUrl()}/api-reference/mcp`,
     resource_name: 'Genfeed',
-    resource_policy_uri: GENFEED_PRIVACY_URL,
-    resource_tos_uri: GENFEED_TERMS_URL,
+    resource_policy_uri: `${getPublicWebsiteUrl()}/privacy`,
+    resource_tos_uri: `${getPublicWebsiteUrl()}/terms`,
     scopes_supported: [...API_KEY_SCOPE_PRESETS.mcp],
   };
 }
@@ -261,7 +260,7 @@ function getUserVisibleToolsetCards(): Array<{
 }
 
 export function getMcpServerCard() {
-  const serverInfo = getMcpServerInfo(getPublicMcpUrl());
+  const serverInfo = getMcpServerInfo(getPublicMcpUrl(), getPublicWebsiteUrl());
 
   return {
     $schema:
@@ -291,6 +290,11 @@ export function getMcpServerCard() {
 
 export function getPublicDocsUrl(): string {
   return readPublicUrl('GENFEED_DOCS_URL', DEFAULT_DOCS_URL);
+}
+
+/** The operator's public website; its /privacy and /terms are advertised. */
+export function getPublicWebsiteUrl(): string {
+  return readPublicUrl('GENFEEDAI_PUBLIC_URL', DEFAULT_WEBSITE_URL);
 }
 
 export function getPublicAppUrl(): string {

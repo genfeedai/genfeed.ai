@@ -37,6 +37,8 @@ describe('registerWellKnownRoutes', () => {
     vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.genfeed.ai');
     vi.stubEnv('GENFEEDAI_MCP_PUBLIC_URL', '');
     vi.stubEnv('GENFEEDAI_MICROSERVICES_MCP_URL', '');
+    vi.stubEnv('GENFEEDAI_PUBLIC_URL', '');
+    vi.stubEnv('GENFEED_DOCS_URL', '');
   });
 
   afterEach(async () => {
@@ -77,6 +79,23 @@ describe('registerWellKnownRoutes', () => {
       resource_policy_uri: 'https://genfeed.ai/privacy',
       resource_tos_uri: 'https://genfeed.ai/terms',
       scopes_supported: [...API_KEY_SCOPE_PRESETS.mcp],
+    });
+  });
+
+  it("points a self-hosted resource at the operator's own policies", async () => {
+    vi.stubEnv('GENFEEDAI_MCP_PUBLIC_URL', 'https://mcp.example.test/mcp');
+    vi.stubEnv('GENFEEDAI_PUBLIC_URL', 'https://content.example.test');
+    vi.stubEnv('GENFEED_DOCS_URL', 'https://docs.example.test');
+    ({ baseUrl, server } = await listen());
+
+    const response = await fetch(
+      `${baseUrl}/.well-known/oauth-protected-resource/mcp`,
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      resource_documentation: 'https://docs.example.test/api-reference/mcp',
+      resource_policy_uri: 'https://content.example.test/privacy',
+      resource_tos_uri: 'https://content.example.test/terms',
     });
   });
 

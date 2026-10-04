@@ -66,6 +66,7 @@ describe('MCP setup page', () => {
     vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', '');
     vi.stubEnv('GENFEEDAI_MCP_PUBLIC_URL', '');
     vi.stubEnv('GENFEEDAI_MICROSERVICES_MCP_URL', '');
+    vi.stubEnv('GENFEEDAI_PUBLIC_URL', '');
     vi.stubEnv('POSTHOG_HOST', '');
     vi.stubEnv('POSTHOG_PROJECT_API_KEY', '');
   });
