@@ -10,33 +10,23 @@ function fixture(states: Record<string, string | null>) {
     failPrepared: vi.fn().mockResolvedValue(undefined),
   };
   const billing = {
+    abortUnsubmittedOutput: vi.fn().mockResolvedValue(undefined),
     recordSubmissionRejection: vi.fn().mockResolvedValue(undefined),
     releasePool: vi.fn().mockResolvedValue(undefined),
   };
-  const prisma = {
-    ingredient: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
-  };
-  return { tasks, billing, prisma };
+  return { tasks, billing };
 }
 const billingRequest = { creditsConfig: { reservationId: 'hold' } };
 
 describe('compensateCrunDispatchFailure', () => {
-  it('fails an output with no task row tenant-scoped and releases the pool', async () => {
+  it('aborts an output with no task row through billing and releases the pool', async () => {
     const f = fixture({ a: null });
     await compensateCrunDispatchFailure(f as never, {
       organizationId: 'org',
       ingredientIds: ['a'],
       billingRequest: billingRequest as never,
     });
-    expect(f.prisma.ingredient.updateMany).toHaveBeenCalledWith({
-      where: {
-        id: 'a',
-        organizationId: 'org',
-        isDeleted: false,
-        status: 'PROCESSING',
-      },
-      data: { status: 'FAILED' },
-    });
+    expect(f.billing.abortUnsubmittedOutput).toHaveBeenCalledWith('a', 'org');
     expect(f.tasks.failPrepared).not.toHaveBeenCalled();
     expect(f.billing.releasePool).toHaveBeenCalledWith(billingRequest);
   });
@@ -52,7 +42,7 @@ describe('compensateCrunDispatchFailure', () => {
       ['a', 'org'],
       ['b', 'org'],
     ]);
-    expect(f.prisma.ingredient.updateMany).not.toHaveBeenCalled();
+    expect(f.billing.abortUnsubmittedOutput).not.toHaveBeenCalled();
     expect(f.billing.releasePool).toHaveBeenCalledTimes(1);
   });
   it('still releases the pool when one output cannot be compensated', async () => {

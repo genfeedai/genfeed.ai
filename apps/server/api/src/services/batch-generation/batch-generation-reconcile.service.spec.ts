@@ -40,6 +40,7 @@ describe('BatchGenerationReconcileService', () => {
   let generationBilling: {
     reconcile: ReturnType<typeof vi.fn>;
     reconcileLateCompletions: ReturnType<typeof vi.fn>;
+    reconcileAbortedCrunDispatches: ReturnType<typeof vi.fn>;
   };
   let logger: {
     error: ReturnType<typeof vi.fn>;
@@ -85,6 +86,7 @@ describe('BatchGenerationReconcileService', () => {
     generationBilling = {
       reconcile: vi.fn().mockResolvedValue(0),
       reconcileLateCompletions: vi.fn().mockResolvedValue(0),
+      reconcileAbortedCrunDispatches: vi.fn().mockResolvedValue(0),
     };
     logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
@@ -367,6 +369,9 @@ describe('BatchGenerationReconcileService', () => {
     await service.reconcileSettlementShortfalls();
 
     expect(generationBilling.reconcileLateCompletions).toHaveBeenCalledOnce();
+    expect(
+      generationBilling.reconcileAbortedCrunDispatches,
+    ).toHaveBeenCalledOnce();
   });
 
   it('expires unrelated reservations when generation reconciliation fails', async () => {

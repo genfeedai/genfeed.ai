@@ -135,7 +135,7 @@ export class CrunVideoGenerationService {
       );
     } catch (error: unknown) {
       await compensateCrunDispatchFailure(
-        { tasks: this.tasks, billing: this.billing, prisma: this.prisma },
+        { tasks: this.tasks, billing: this.billing },
         {
           organizationId: user.organizationId,
           ingredientIds: createdIngredientIds,

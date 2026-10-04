@@ -135,7 +135,7 @@ export async function recordByokSubmissionRejection(
     throw new BusinessLogicException('BYOK submission evidence changed');
 }
 
-function failedReceipt(
+export function failedReceipt(
   raw: Record<string, unknown>,
   receipt: IGenerationUsageReceipt,
   ingredientId: string,

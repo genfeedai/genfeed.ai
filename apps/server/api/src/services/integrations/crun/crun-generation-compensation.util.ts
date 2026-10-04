@@ -3,8 +3,6 @@ import type {
   GenerationBillingService,
 } from '@api/collections/credits/services/generation-billing.service';
 import type { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IngredientStatus } from '@genfeedai/contracts';
 
 export const CRUN_DISPATCH_ABORTED = 'CRUN_DISPATCH_ABORTED';
 
@@ -12,16 +10,15 @@ interface CrunCompensationDeps {
   tasks: Pick<CrunTaskService, 'failPrepared' | 'findForIngredient'>;
   billing: Pick<
     GenerationBillingService,
-    'recordSubmissionRejection' | 'releasePool'
+    'abortUnsubmittedOutput' | 'recordSubmissionRejection' | 'releasePool'
   >;
-  prisma: Pick<PrismaService, 'ingredient'>;
 }
 
 /**
  * Undo a dispatch that threw after funding was reserved (image and video share
  * it). Outputs whose task row is still `prepared` take the existing
- * submission-rejection path; outputs that never got a task row are failed
- * directly; a task already claimed for submission is left to the poller, since
+ * submission-rejection path; outputs that never got a task row take the billing
+ * pre-submission abort (hold evidence, release, failure); a task already claimed for submission is left to the poller, since
  * its acceptance is ambiguous. The funding pool is then released.
  */
 export async function compensateCrunDispatchFailure(
@@ -51,15 +48,7 @@ async function compensateOutput(
 ): Promise<void> {
   const task = await deps.tasks.findForIngredient(organizationId, ingredientId);
   if (!task) {
-    await deps.prisma.ingredient.updateMany({
-      where: {
-        id: ingredientId,
-        organizationId,
-        isDeleted: false,
-        status: IngredientStatus.PROCESSING,
-      },
-      data: { status: IngredientStatus.FAILED },
-    });
+    await deps.billing.abortUnsubmittedOutput(ingredientId, organizationId);
     return;
   }
   if (task.state !== 'prepared') return;

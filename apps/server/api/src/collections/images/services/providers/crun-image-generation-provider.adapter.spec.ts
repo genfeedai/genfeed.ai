@@ -46,6 +46,7 @@ function fixture() {
   };
   const billing = {
     recordSubmissionRejection: vi.fn(),
+    abortUnsubmittedOutput: vi.fn(),
     bindOutput: vi.fn(),
     releasePool: vi.fn(),
   };
@@ -168,15 +169,6 @@ describe('Crun image admission batch', () => {
     expect(f.tasks.submit).not.toHaveBeenCalled();
   });
   describe('compensation after a mid-dispatch failure', () => {
-    const failedWhere = (id: string) => ({
-      where: {
-        id,
-        organizationId: 'org',
-        isDeleted: false,
-        status: 'PROCESSING',
-      },
-      data: { status: 'FAILED' },
-    });
     it('a throw creating the second ingredient fails the first and releases the pool', async () => {
       const f = fixture();
       f.shared.createMediaDocuments
@@ -189,8 +181,8 @@ describe('Crun image admission batch', () => {
           f.request as never,
         ),
       ).rejects.toThrow('create failed');
-      expect(f.prisma.ingredient.updateMany.mock.calls).toEqual([
-        [failedWhere('ingredient-0')],
+      expect(f.billing.abortUnsubmittedOutput.mock.calls).toEqual([
+        ['ingredient-0', 'org'],
       ]);
       expect(f.billing.releasePool).toHaveBeenCalledTimes(1);
       expect(f.tasks.prepareTasks).not.toHaveBeenCalled();
@@ -207,9 +199,7 @@ describe('Crun image admission batch', () => {
         ),
       ).rejects.toThrow('binding rejected');
       expect(
-        f.prisma.ingredient.updateMany.mock.calls.map(
-          (call) => call[0].where.id,
-        ),
+        f.billing.abortUnsubmittedOutput.mock.calls.map((call) => call[0]),
       ).toEqual([
         'ingredient-0',
         'ingredient-1',
@@ -255,7 +245,7 @@ describe('Crun image admission batch', () => {
       expect(
         f.billing.recordSubmissionRejection.mock.calls.map((call) => call[0]),
       ).toEqual(['ingredient-1', 'ingredient-2', 'ingredient-3']);
-      expect(f.prisma.ingredient.updateMany).not.toHaveBeenCalled();
+      expect(f.billing.abortUnsubmittedOutput).not.toHaveBeenCalled();
       expect(f.billing.releasePool).toHaveBeenCalledTimes(1);
     });
     it('does not compensate the success path', async () => {
@@ -266,7 +256,7 @@ describe('Crun image admission batch', () => {
         f.request as never,
       );
       expect(f.tasks.failPrepared).not.toHaveBeenCalled();
-      expect(f.prisma.ingredient.updateMany).not.toHaveBeenCalled();
+      expect(f.billing.abortUnsubmittedOutput).not.toHaveBeenCalled();
       expect(f.billing.recordSubmissionRejection).not.toHaveBeenCalled();
       expect(f.billing.releasePool).toHaveBeenCalledTimes(1);
     });

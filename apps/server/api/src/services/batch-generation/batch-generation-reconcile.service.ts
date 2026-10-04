@@ -279,6 +279,12 @@ export class BatchGenerationReconcileService {
     } catch (error: unknown) {
       this.logger.error('Generation late charge reconciliation failed', error);
     }
+    // Retry Crun dispatch aborts whose cleanup failed (#5900).
+    try {
+      await this.generationBilling.reconcileAbortedCrunDispatches();
+    } catch (error: unknown) {
+      this.logger.error('Crun dispatch abort reconciliation failed', error);
+    }
     await this.reservationService.expireDue();
   }
 

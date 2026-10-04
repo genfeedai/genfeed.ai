@@ -288,6 +288,7 @@ describe('Crun video dispatch compensation', () => {
       failPrepared: vi.fn().mockResolvedValue(undefined),
     };
     const billing = {
+      abortUnsubmittedOutput: vi.fn().mockResolvedValue(undefined),
       recordSubmissionRejection: vi.fn().mockResolvedValue(undefined),
       releasePool: vi.fn().mockResolvedValue(undefined),
     };
@@ -333,15 +334,10 @@ describe('Crun video dispatch compensation', () => {
     await expect(
       h.service.generate(user as never, {} as never, request as never),
     ).rejects.toThrow('create failed');
-    expect(h.prisma.ingredient.updateMany).toHaveBeenCalledWith({
-      where: {
-        id: 'ingredient-0',
-        organizationId: folder,
-        isDeleted: false,
-        status: 'PROCESSING',
-      },
-      data: { status: 'FAILED' },
-    });
+    expect(h.billing.abortUnsubmittedOutput).toHaveBeenCalledWith(
+      'ingredient-0',
+      folder,
+    );
     expect(h.billing.releasePool).toHaveBeenCalledTimes(1);
   });
 
@@ -388,7 +384,7 @@ describe('Crun video dispatch compensation', () => {
     h.internals.submitPreparedOutputs = vi.fn().mockResolvedValue(undefined);
     await h.service.generate(user as never, {} as never, request as never);
     expect(h.tasks.failPrepared).not.toHaveBeenCalled();
-    expect(h.prisma.ingredient.updateMany).not.toHaveBeenCalled();
+    expect(h.billing.abortUnsubmittedOutput).not.toHaveBeenCalled();
     expect(h.billing.releasePool).not.toHaveBeenCalled();
   });
 });

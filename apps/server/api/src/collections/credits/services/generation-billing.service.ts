@@ -333,6 +333,14 @@ export class GenerationBillingService {
     );
   }
 
+  abortUnsubmittedOutput(id: string, organizationId: string): Promise<void> {
+    return this.quoteGroups.abortUnsubmittedOutput(id, organizationId);
+  }
+
+  reconcileAbortedCrunDispatches(): Promise<number> {
+    return this.quoteGroups.reconcileAbortedCrunDispatches();
+  }
+
   /** Success: queue one reserved settlement for the output's hold. */
   async settleOutput(
     ingredientId: string,
