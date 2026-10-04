@@ -7,6 +7,7 @@ import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   assertPresignedUploadAllowed,
+  isAudioCategory,
   isImageOrVideoCategory,
   resolveUploadMaxBytes,
 } from '@api/services/uploads/presigned-upload-policy.util';
@@ -227,13 +228,17 @@ export class PresignedUploadService {
     if (
       !uploadMeta ||
       (isImageOrVideoCategory(category) &&
-        !(Number(uploadMeta.width) > 0 && Number(uploadMeta.height) > 0))
+        !(Number(uploadMeta.width) > 0 && Number(uploadMeta.height) > 0)) ||
+      (isAudioCategory(category) &&
+        !(uploadMeta.hasAudio === true && Number(uploadMeta.duration) > 0))
     ) {
       this.loggerService.error(`${url} extracted no usable metadata`);
       await this.rejectUpload(id, s3Key);
       throw new HttpException(
         {
-          detail: 'The uploaded file has no readable dimensions.',
+          detail: isAudioCategory(category)
+            ? 'The uploaded file has no readable audio.'
+            : 'The uploaded file has no readable dimensions.',
           title: 'Upload could not be processed',
         },
         HttpStatus.UNPROCESSABLE_ENTITY,

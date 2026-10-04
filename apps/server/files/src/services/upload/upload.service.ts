@@ -53,6 +53,14 @@ type PreparedUpload = {
   height?: number;
   duration?: number;
   hasAudio: boolean;
+  audioCodec?: string;
+  container?: string;
+};
+
+type AudioProbe = {
+  audioCodec: string;
+  container?: string;
+  duration: number;
 };
 
 type ProcessedUpload = PreparedUpload & {
@@ -105,18 +113,17 @@ export class UploadService {
   }
 
   /**
-   * Extract video dimensions from a buffer by writing to temp file
+   * Run a probe against a buffer by writing it to a temp file.
    * Handles temp file creation and cleanup automatically
    */
-  private async getVideoDimensionsFromBuffer(buffer: Buffer): Promise<{
-    width: number;
-    height: number;
-    duration: number;
-    hasAudio: boolean;
-  }> {
+  private async probeBufferViaTempFile<T>(
+    buffer: Buffer,
+    extension: string,
+    probe: (tmpPath: string) => Promise<T>,
+  ): Promise<T> {
     const tmpPath = resolveContainedPath(
       FILES_TMP_ROOT,
-      `${randomUUID()}.mp4`,
+      `${randomUUID()}${extension}`,
       createBadRequest,
     );
     const tmpDir = path.dirname(tmpPath);
@@ -129,7 +136,7 @@ export class UploadService {
         tmpPath,
         buffer,
       );
-      return await this.getVideoDimensions(tmpPath);
+      return await probe(tmpPath);
     } finally {
       // Ensure cleanup even if errors occur
       if (fs.existsSync(tmpPath)) {
@@ -139,6 +146,24 @@ export class UploadService {
         );
       }
     }
+  }
+
+  /**
+   * ffprobe an audio file. A file with no audio stream (corrupt, or another
+   * media type declared as audio) is rejected rather than stored as audio.
+   */
+  private async probeAudio(filePath: string): Promise<AudioProbe> {
+    const metadata = await this.ffmpegService.getVideoMetadata(filePath);
+    const audioStream = metadata.streams?.find((s) => s.codec_type === 'audio');
+    if (!audioStream) {
+      throw new BadRequestException('Uploaded file has no readable audio');
+    }
+    return {
+      audioCodec:
+        String(audioStream.codec_name ?? '').toLowerCase() || 'unknown',
+      container: metadata.format?.format_name || undefined,
+      duration: Number(metadata.format?.duration) || 0,
+    };
   }
 
   private async getImageDimensions(
@@ -169,15 +194,22 @@ export class UploadService {
     let height: number | undefined;
     let duration: number | undefined;
     let hasAudio = false;
+    let audioCodec: string | undefined;
+    let container: string | undefined;
 
     if (contentType.startsWith('video/')) {
       const metadata = await this.getVideoDimensions(filePath);
       ({ width, height, duration, hasAudio } = metadata);
     } else if (contentType.startsWith('image/')) {
       ({ width, height } = await this.getImageDimensions(filePath));
+    } else if (contentType.startsWith('audio/')) {
+      ({ audioCodec, container, duration } = await this.probeAudio(filePath));
+      hasAudio = true;
     }
 
     return {
+      audioCodec,
+      container,
       contentType,
       duration,
       filePath,
@@ -391,16 +423,38 @@ export class UploadService {
     let height: number | undefined;
     let duration: number | undefined;
     let hasAudio = false;
+    let audioCodec: string | undefined;
+    let container: string | undefined;
 
     if (contentType.startsWith('video/')) {
-      const metadata = await this.getVideoDimensionsFromBuffer(body);
+      const metadata = await this.probeBufferViaTempFile(
+        body,
+        '.mp4',
+        (tmpPath) => this.getVideoDimensions(tmpPath),
+      );
       ({ width, height, duration, hasAudio } = metadata);
       contentType = 'video/mp4';
     } else if (contentType.startsWith('image/')) {
       ({ width, height } = await this.getImageDimensions(body));
+    } else if (contentType.startsWith('audio/')) {
+      ({ audioCodec, container, duration } = await this.probeBufferViaTempFile(
+        body,
+        '.audio',
+        (tmpPath) => this.probeAudio(tmpPath),
+      ));
+      hasAudio = true;
     }
 
-    return { body, contentType, duration, hasAudio, height, width };
+    return {
+      audioCodec,
+      body,
+      container,
+      contentType,
+      duration,
+      hasAudio,
+      height,
+      width,
+    };
   }
 
   private async prepareUpload(
@@ -485,6 +539,8 @@ export class UploadService {
     type: string,
     source: UploadSource,
   ): Promise<{
+    audioCodec?: string;
+    container?: string;
     width?: number;
     height?: number;
     duration?: number;
@@ -587,6 +643,8 @@ export class UploadService {
       });
 
       return {
+        ...(processed.audioCodec && { audioCodec: processed.audioCodec }),
+        ...(processed.container && { container: processed.container }),
         duration: processed.duration || 0,
         hasAudio: processed.hasAudio,
         height: processed.height || 0,

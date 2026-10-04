@@ -336,6 +336,59 @@ describe('UploadService', () => {
       );
     });
 
+    it('probes audio files for duration, codec and container', async () => {
+      mockFfmpegService.getVideoMetadata.mockResolvedValue({
+        format: { duration: 12.5, format_name: 'mp3' },
+        streams: [{ codec_name: 'MP3', codec_type: 'audio' }],
+      });
+      const audioPath = path.join(FILES_TMP_ROOT, 'fixtures', 'voice.mp3');
+
+      const result = await service.uploadToS3('test-key', 'audios', {
+        path: audioPath,
+        type: 'file',
+      });
+
+      expect(mockFfmpegService.getVideoMetadata).toHaveBeenCalledWith(
+        audioPath,
+      );
+      expect(result).toMatchObject({
+        audioCodec: 'mp3',
+        container: 'mp3',
+        duration: 12.5,
+        hasAudio: true,
+      });
+    });
+
+    it('rejects a file declared as audio that has no audio stream', async () => {
+      mockFfmpegService.getVideoMetadata.mockResolvedValue({
+        format: { duration: 3 },
+        streams: [{ codec_type: 'video', height: 10, width: 10 }],
+      });
+
+      await expect(
+        service.uploadToS3('test-key', 'audios', {
+          path: path.join(FILES_TMP_ROOT, 'fixtures', 'fake.mp3'),
+          type: 'file',
+        }),
+      ).rejects.toThrow('no readable audio');
+      expect(mockStorage.uploadFromFile).not.toHaveBeenCalled();
+    });
+
+    it('rejects corrupt audio that ffprobe cannot read', async () => {
+      mockFfmpegService.getVideoMetadata.mockRejectedValue(
+        new Error('ffprobe failed'),
+      );
+
+      await expect(
+        service.uploadToS3('test-key', 'audios', {
+          contentType: 'audio/mpeg',
+          data: Buffer.from('not audio'),
+          type: 'buffer',
+        }),
+      ).rejects.toThrow('ffprobe failed');
+      expect(mockStorage.upload).not.toHaveBeenCalled();
+    });
+
     it('should handle video without audio stream', async () => {
       mockFfmpegService.getVideoMetadata.mockResolvedValue({
         format: { duration: 30 },
