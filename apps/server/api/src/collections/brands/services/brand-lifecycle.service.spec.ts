@@ -21,6 +21,14 @@ import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException } from '@nestjs/common';
 
+// Tagged-template calls pass a strings array; Prisma.sql passes an object.
+function sqlText(query: unknown): string {
+  if (Array.isArray(query)) {
+    return query.join(' ');
+  }
+  return (query as { sql?: string }).sql ?? '';
+}
+
 describe('BrandLifecycleService', () => {
   let service: BrandLifecycleService;
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
@@ -351,7 +359,7 @@ describe('BrandLifecycleService', () => {
 
       const lockCall = txQueryRaw.mock.calls.findIndex(
         (call) =>
-          (call[0] as string[]).join(' ').includes('hashtextextended') &&
+          sqlText(call[0]).includes('hashtextextended') &&
           call[1] === `persona-handle:${organizationId}`,
       );
       expect(lockCall).toBeGreaterThanOrEqual(0);
@@ -368,8 +376,8 @@ describe('BrandLifecycleService', () => {
       // Sharing holds the org lock; the grant becomes visible only when this
       // transaction acquires it, so the re-check under the lock must refuse.
       let sharingCommitted = false;
-      txQueryRaw.mockImplementation(async (strings: TemplateStringsArray) => {
-        if (strings.join(' ').includes('hashtextextended')) {
+      txQueryRaw.mockImplementation(async (query: unknown) => {
+        if (sqlText(query).includes('hashtextextended')) {
           sharingCommitted = true;
         }
         return [{ id: 'locked' }];
