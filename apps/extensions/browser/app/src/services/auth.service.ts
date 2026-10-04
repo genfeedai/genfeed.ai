@@ -2,10 +2,35 @@ import { Storage } from '@plasmohq/storage';
 import { apiEndpoint, authCookieOrigins } from '~services/environment.service';
 import { logger } from '~utils/logger.util';
 
-const storage = new Storage();
+// The credential stays on this device: chrome.storage.sync would replicate it
+// to the user's Google account and every other signed-in browser.
+const storage = new Storage({ area: 'local' });
+const legacySyncStorage = new Storage();
 const TOKEN_STORAGE_KEY = 'genfeed_token';
 const AUTH_CONTEXT_STORAGE_KEY = 'genfeed_auth_context';
 const AUTH_CONTEXT_TTL_MS = 30_000;
+
+let legacyMigration: Promise<void> | null = null;
+
+/** Moves a token written by older versions from sync to local storage, once. */
+function migrateLegacySyncToken(): Promise<void> {
+  legacyMigration ??= (async () => {
+    try {
+      const legacy = await legacySyncStorage.get<string>(TOKEN_STORAGE_KEY);
+      if (typeof legacy === 'string' && legacy) {
+        if (!(await storage.get<string>(TOKEN_STORAGE_KEY)))
+          await storage.set(TOKEN_STORAGE_KEY, legacy);
+        await legacySyncStorage.remove(TOKEN_STORAGE_KEY);
+      }
+      await legacySyncStorage.remove(AUTH_CONTEXT_STORAGE_KEY);
+    } catch (error) {
+      // Retry on the next access; the legacy value is left untouched.
+      legacyMigration = null;
+      logger.error('Error migrating token to local storage', error);
+    }
+  })();
+  return legacyMigration;
+}
 
 export async function getJWTToken(
   getToken: (options?: { template?: string }) => Promise<string | null>,
@@ -99,6 +124,7 @@ class AuthService {
   private async refreshToken(): Promise<string | null> {
     // Popup, panel and service worker have separate instances. Storage is the
     // shared credential source so another surface's refresh/logout takes effect.
+    await migrateLegacySyncToken();
     const storedToken = (await storage.get<string>(TOKEN_STORAGE_KEY)) ?? null;
     if (storedToken !== this.tokenCache) {
       this.tokenCache = storedToken;
@@ -160,6 +186,7 @@ class AuthService {
   }
 
   async refreshSessionToken(signal?: AbortSignal): Promise<string | null> {
+    await migrateLegacySyncToken();
     const stored = await storage.get<string>(TOKEN_STORAGE_KEY);
     if (stored?.startsWith('gf_')) return stored;
     const token = await this.exchangeSessionToken(signal);
@@ -170,6 +197,7 @@ class AuthService {
 
   async setToken(token: string): Promise<void> {
     try {
+      await migrateLegacySyncToken();
       await storage.set(TOKEN_STORAGE_KEY, token);
       this.tokenCache = token;
       this.authContextCache = null;
@@ -182,6 +210,7 @@ class AuthService {
 
   async clearToken(): Promise<void> {
     try {
+      await migrateLegacySyncToken();
       await storage.remove(TOKEN_STORAGE_KEY);
       await storage.remove(AUTH_CONTEXT_STORAGE_KEY);
       this.tokenCache = null;

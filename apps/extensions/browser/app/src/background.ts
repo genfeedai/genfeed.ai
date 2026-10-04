@@ -28,6 +28,7 @@ import {
 import {
   handlePublicationCaptureMessage,
   initializePublicationCapture,
+  registerExtensionWrittenText,
 } from '~services/publication-capture.service';
 import {
   assertWorkspace,
@@ -291,6 +292,12 @@ async function executeAuthenticatedRequest<T>(
 // Listen for messages from content scripts and popup
 // Returning true keeps Chrome's response channel open for asynchronous handlers.
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request?.type === 'CONTENT_INSERTED') {
+    // Only text the extension inserted into a composer may later be captured.
+    if (request.payload?.success === true && sender.tab)
+      void registerExtensionWrittenText(request.payload.content, sender);
+    return false;
+  }
   if (
     typeof request?.event === 'string' &&
     request.event.startsWith('publicationCapture')
