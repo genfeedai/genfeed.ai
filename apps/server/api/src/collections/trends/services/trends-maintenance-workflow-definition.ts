@@ -271,6 +271,9 @@ export function buildScopedTrendsRefreshWorkflowDefinition(): SystemWorkflowGrap
         ),
         actionNode('workflow.for-each-tenant', 'refresh-scoped', 180, [], {
           childWorkflowId: TRENDS_MAINTENANCE_WORKFLOW_IDS.SCOPED_TASK,
+          // One tenant's failure is recorded in the parent result instead of
+          // failing every other tenant's refresh (#5961).
+          failureMode: 'collect',
           itemInputKey: 'task',
           maxConcurrency: 3,
           mode: 'await',

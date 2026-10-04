@@ -40,6 +40,7 @@ describe('trends maintenance workflow definitions', () => {
           data: expect.objectContaining({
             config: expect.objectContaining({
               actionId: 'workflow.for-each-tenant',
+              failureMode: 'collect',
             }),
           }),
         }),
