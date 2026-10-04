@@ -56,4 +56,13 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
       file: 'apps/server/api/src/services/media-urls/authorized-media-url.service.ts',
       line: 211,
     },
+    // Access discovery: findActiveForUserAccess lists the caller's own active
+    // memberships by canonical users.id (userId in the where) to resolve which
+    // organizations they belong to (org switcher, identity resolution,
+    // onboarding). It never reads another user's rows. #5981 made handlers run
+    // inside the tenant context, which turned this into a production 500.
+    {
+      file: 'apps/server/api/src/collections/members/services/members.service.ts',
+      line: 96,
+    },
   ];
