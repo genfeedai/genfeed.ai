@@ -449,6 +449,34 @@ describe('TrendIngestionHealthService', () => {
       ).toHaveLength(2);
     });
 
+    it('ignores a global outage of an unrelated dataset', async () => {
+      const { service, health, prisma, events } = setup();
+      prisma.credential.findMany.mockResolvedValue([
+        { createdAt: enrollment, organizationId: 'org-a', platform: 'YOUTUBE' },
+        {
+          createdAt: new Date('2026-09-28T12:15:00.000Z'),
+          organizationId: 'org-b',
+          platform: 'YOUTUBE',
+        },
+      ]);
+      // Global youtube/videos has no receipt (outage); youtube/trends is healthy.
+      health.getHealth.mockImplementation(
+        (input: { organizationId?: string } = {}) =>
+          Promise.resolve(input.organizationId ? [] : [globalHealthy]),
+      );
+      await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+      await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
+      expect(
+        [...events.keys()].some((key) =>
+          key.startsWith('trend-ingestion-health/youtube/videos/missed/'),
+        ),
+      ).toBe(true);
+      expect(scopeKeys(events)).toHaveLength(2);
+      expect([...events.keys()].some((key) => key.includes('/scoped/'))).toBe(
+        false,
+      );
+    });
+
     it('closes per-scope incidents when a global outage starts, and the aggregate when it ends', async () => {
       const { service, health, prisma, events } = setup();
       prisma.credential.findMany.mockResolvedValue([

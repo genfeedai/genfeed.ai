@@ -110,7 +110,7 @@ export class TrendIngestionHealthService {
         TREND_REFRESH_WINDOW_MS +
       SCHEDULE_OFFSET_MS;
     const twoWindowsAgo = closedBefore - 2 * TREND_REFRESH_WINDOW_MS;
-    const globalMissedPlatforms = new Set<string>();
+    const globalMissedDatasets = new Set<string>();
     for (const dataset of targets) {
       const receipt = dataset.health.find(
         (row) =>
@@ -157,7 +157,7 @@ export class TrendIngestionHealthService {
       // Enrollment itself is not a successful refresh.
       if (successAt && successAt.getTime() >= twoWindowsAgo) continue;
       if (baseline.getTime() > twoWindowsAgo) continue;
-      globalMissedPlatforms.add(dataset.platform);
+      globalMissedDatasets.add(`${dataset.platform}/${dataset.dataset}`);
       const episode = baseline.toISOString();
       await this.send(
         `${alertPrefix}${episode}`,
@@ -170,7 +170,7 @@ export class TrendIngestionHealthService {
     }
     await this.alertScopedPlatforms(
       scopedTargets,
-      globalMissedPlatforms,
+      globalMissedDatasets,
       twoWindowsAgo,
       now,
     );
@@ -183,7 +183,7 @@ export class TrendIngestionHealthService {
   // identifiers stay out of operator text; per-scope ids are hashed.
   private async alertScopedPlatforms(
     targets: ScopedTarget[],
-    globalMissedPlatforms: Set<string>,
+    globalMissedDatasets: Set<string>,
     twoWindowsAgo: number,
     now: Date,
   ): Promise<void> {
@@ -200,7 +200,7 @@ export class TrendIngestionHealthService {
     );
     for (const platform of platforms) {
       const platformTargets = byPlatform.get(platform) ?? [];
-      const isGlobalOutage = globalMissedPlatforms.has(platform);
+      const isGlobalOutage = globalMissedDatasets.has(`${platform}/trends`);
       const evaluated = platformTargets.map((target) => ({
         ...this.evaluateScope(target, twoWindowsAgo),
         sourceId: `${platform}/trends/scope-${createHash('sha256').update(target.organizationId).digest('hex').slice(0, 24)}`,
