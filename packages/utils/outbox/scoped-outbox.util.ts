@@ -3,6 +3,7 @@ import type {
   ScopedOutboxConfig,
   ScopedOutboxOptions,
   ScopedOutboxQueue,
+  ScopedOutboxStatus,
   ScopedOutboxStorage,
 } from '@genfeedai/contracts/interfaces/utils/scoped-outbox.interface';
 import { isRecord } from '../data/extract.util';
