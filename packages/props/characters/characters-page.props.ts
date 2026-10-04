@@ -115,7 +115,7 @@ export interface CharacterGrantsState {
   grant: (input: {
     brandIds: string[];
     mode: PersonaAvailabilityMode;
-    organizationId: string;
+    recipientOrganizationId: string;
   }) => Promise<void>;
   grants: CharacterGrantItem[];
   isLoading: boolean;

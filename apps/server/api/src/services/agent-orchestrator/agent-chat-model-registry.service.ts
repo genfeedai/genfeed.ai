@@ -29,6 +29,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { getRuntimeAgentChatMarginMultiplier } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export interface AgentChatRegistryRow {
@@ -113,34 +114,40 @@ export class AgentChatModelRegistryService
   }
 
   async refresh(): Promise<void> {
-    // tenant-scope-ignore: platform-wide model registry (organizationId null)
-    const rows = await this.prisma.model.findMany({
-      select: {
-        cost: true,
-        isActive: true,
-        isDefault: true,
-        isDiscovered: true,
-        inputCostPerMillionTokens: true,
-        isFree: true,
-        key: true,
-        label: true,
-        outputCostPerMillionTokens: true,
-        provider: true,
-        succeededBy: true,
-        lifecycle: true,
-        reviewStatus: true,
-        supportsFeatures: true,
-      },
-      where: {
-        category: ModelCategory.TEXT,
-        isDeleted: false,
-        organizationId: null,
-        OR: [
-          { capabilities: { has: AGENT_CHAT_CAPABILITY } },
-          { recommendedFor: { has: AGENT_CHAT_CAPABILITY } },
-        ],
-      },
-    });
+    // The registry is one process-wide cache shared by every tenant, and a
+    // lazy refresh can fire inside any request: it must read the platform rows
+    // only, never a tenant-widened set.
+    const rows = await crossOrgUnsafe(
+      async () =>
+        // tenant-scope-ignore: platform-wide model registry (organizationId null)
+        await this.prisma.model.findMany({
+          select: {
+            cost: true,
+            isActive: true,
+            isDefault: true,
+            isDiscovered: true,
+            inputCostPerMillionTokens: true,
+            isFree: true,
+            key: true,
+            label: true,
+            outputCostPerMillionTokens: true,
+            provider: true,
+            succeededBy: true,
+            lifecycle: true,
+            reviewStatus: true,
+            supportsFeatures: true,
+          },
+          where: {
+            category: ModelCategory.TEXT,
+            isDeleted: false,
+            organizationId: null,
+            OR: [
+              { capabilities: { has: AGENT_CHAT_CAPABILITY } },
+              { recommendedFor: { has: AGENT_CHAT_CAPABILITY } },
+            ],
+          },
+        }),
+    );
 
     const next = new Map<string, AgentChatRegistryRow>();
     for (const row of rows) {

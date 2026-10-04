@@ -30,6 +30,7 @@ import {
   MetadataSerializer,
   PostSerializer,
 } from '@genfeedai/serializers';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import type { Request } from 'express';
@@ -205,7 +206,12 @@ export class IngredientsRelationshipsController {
         isDeleted,
         // Keep the scope explicit even for unowned shared ingredients because
         // `normalizeWhere` drops undefined values and would widen the query.
-        organizationId: ingredient.organizationId ?? null,
+        // A platform ingredient (no organization) lists the requesting
+        // organization's own posts that use it.
+        organizationId:
+          ingredient.organizationId ??
+          getTenantContext()?.organizationId ??
+          null,
       },
       orderBy: handleQuerySort(query.sort),
     };

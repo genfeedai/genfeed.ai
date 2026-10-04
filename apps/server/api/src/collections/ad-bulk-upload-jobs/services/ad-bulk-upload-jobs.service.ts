@@ -10,6 +10,7 @@ import {
 } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { Prisma } from '@genfeedai/prisma';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -104,19 +105,26 @@ export class AdBulkUploadJobsService {
       currentJob: AdBulkUploadJobDocument | null,
     ) => Record<string, unknown>,
   ): Promise<void> {
-    const existing = await this.prisma.adBulkUploadJob.findUnique({
-      where: { id: jobId },
-    });
+    // Progress writes come from the bulk-upload workflow, which runs inside the
+    // starting request (tenant context) or in a worker (no context).
+    const tenantOrganizationId = getTenantContext()?.organizationId;
+    // tenant-scope-ignore: pinned to the request tenant when one exists; the no-context branch is the worker, which addresses its own job by id
+    const where = tenantOrganizationId
+      ? scopedWhere(tenantOrganizationId, { id: jobId })
+      : { id: jobId };
+    // tenant-scope-ignore: `where` is tenant-pinned above whenever a tenant context exists
+    const existing = await this.prisma.adBulkUploadJob.findFirst({ where });
     const normalized = existing
       ? this.normalizeJob(existing as Record<string, unknown>)
       : null;
     const nextData = updater({ ...(normalized?.data ?? {}) }, normalized);
 
+    // tenant-scope-ignore: `where` is tenant-pinned above whenever a tenant context exists
     await this.prisma.adBulkUploadJob.update({
       data: {
         data: this.toJsonValue(nextData),
       },
-      where: { id: jobId },
+      where,
     });
   }
 

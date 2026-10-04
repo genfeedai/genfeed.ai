@@ -121,7 +121,10 @@ export class InternalWorkflowExecutionsController {
       );
     }
 
-    const cancelled = await this.workflowExecutionsService.cancelExecution(id);
+    const cancelled = await this.workflowExecutionsService.cancelExecution(
+      id,
+      orgId,
+    );
     return serializeSingle(req, WorkflowExecutionSerializer, cancelled);
   }
 }

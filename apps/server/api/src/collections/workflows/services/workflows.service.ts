@@ -281,15 +281,20 @@ export class WorkflowsService extends BaseService<
       // sql-risk-audit: ignore bulk-write-tenant-review -- compare-and-set on workflow.id after the tenant-scoped load; currentVersionId is the concurrency token.
       const changed = await transaction.workflow.updateMany({
         data: { ...scalarPatch, currentVersionId: version.id },
-        where: { currentVersionId: existing.versionId, id },
+        where: {
+          currentVersionId: existing.versionId,
+          id,
+          isDeleted: false,
+          organizationId: existing.organizationId,
+        },
       });
       if (changed.count !== 1) {
         throw new Error(`Workflow ${id} was edited concurrently`);
       }
 
-      return transaction.workflow.findUniqueOrThrow({
+      return transaction.workflow.findFirstOrThrow({
         include: { currentVersion: true },
-        where: { id },
+        where: scopedWhere(existing.organizationId, { id }),
       });
     });
 

@@ -53,6 +53,7 @@ describe('PostRetryService', () => {
     expect(postsService.findOne).toHaveBeenCalledWith({
       id: postId,
       isDeleted: false,
+      organizationId,
     });
     expect(postsService.patch).toHaveBeenCalledWith(
       postId,

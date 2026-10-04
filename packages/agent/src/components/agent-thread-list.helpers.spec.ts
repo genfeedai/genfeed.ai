@@ -354,7 +354,9 @@ describe('sidebar thread activity across thread switches (real store)', () => {
 
     store.clearThreadAttention('a');
     store.setActiveThread('a');
-    expect(useAgentChatStore.getState().activeRunStatus).toBe('idle');
+    // Switching back shows the thread's own known run (it used to restart
+    // from idle until hydration); the summary still keeps it in Working.
+    expect(useAgentChatStore.getState().activeRunStatus).toBe('running');
     expect(workingIds()).toEqual(['a']);
     expect(groupsNow().recent.map(({ id }) => id)).toEqual(['b']);
   });

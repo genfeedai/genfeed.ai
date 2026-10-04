@@ -22,6 +22,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   categoryToPlural,
@@ -435,10 +436,16 @@ export class EditorProjectsController {
       return returnNotFound('Editor project', id);
     }
 
-    const data: EditorProjectDocument = await this.editorProjectsService.patch(
-      id,
-      { isDeleted: true },
-    );
+    // `patch(id)` writes by primary key alone, which the tenant guard rejects.
+    const data: EditorProjectDocument | null =
+      await this.editorProjectsService.patchOneWhere(
+        scopedWhere(user.organizationId, { id }),
+        { isDeleted: true },
+      );
+
+    if (!data) {
+      return returnNotFound('Editor project', id);
+    }
 
     return serializeSingle(request, EditorProjectSerializer, data);
   }

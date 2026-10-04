@@ -3,8 +3,10 @@ vi.unmock('@genfeedai/prisma');
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import { AgentType } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 
 describe('AgentStrategiesService', () => {
   let service: AgentStrategiesService;
@@ -279,6 +281,29 @@ describe('AgentStrategiesService budget and atomic run persistence', () => {
     expect(row.policies).toMatchObject({
       publishPolicy: { autoPublishEnabled: false, platformStates },
     });
+  });
+
+  it('pins patch and config mutations to the request tenant in CLOUD mode', async () => {
+    const { service, prisma } = setup();
+
+    await runWithTenantContext({ organizationId: 'org' }, async () => {
+      await service.patch('strategy', { label: 'Renamed' } as never);
+      await service.resetFailures('strategy');
+    });
+
+    expect(prisma.agentStrategy.findFirst).toHaveBeenCalledWith({
+      where: { id: 'strategy', isDeleted: false, organizationId: 'org' },
+    });
+    expectCloudGuardPasses(
+      'AgentStrategy',
+      'findFirst',
+      prisma.agentStrategy.findFirst,
+    );
+    expectCloudGuardPasses(
+      'AgentStrategy',
+      'update',
+      prisma.agentStrategy.update,
+    );
   });
 
   it('does not accept client-supplied graduation when creating a strategy', async () => {

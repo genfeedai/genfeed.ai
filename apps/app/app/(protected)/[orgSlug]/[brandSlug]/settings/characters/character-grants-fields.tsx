@@ -172,7 +172,7 @@ export default function CharacterGrantsFields({
                 void grant({
                   brandIds: isSelectedMode ? brandIds : [],
                   mode,
-                  organizationId,
+                  recipientOrganizationId: organizationId,
                 });
               }}
               variant={ButtonVariant.SECONDARY}

@@ -79,7 +79,11 @@ function buildService(
   return { brandScraperService, loggerService, service };
 }
 
-const user = { id: 'user-1', userId: 'user-1' } as unknown as User;
+const user = {
+  id: 'user-1',
+  organizationId: 'org-1',
+  userId: 'user-1',
+} as unknown as User;
 const dto: BrandSetupDto = { brandUrl: 'https://acme.com' };
 
 describe('BrandSetupService.setupBrand — brand-scrape error classification (#5080)', () => {

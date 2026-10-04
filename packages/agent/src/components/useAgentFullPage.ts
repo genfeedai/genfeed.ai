@@ -11,6 +11,10 @@ import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-ac
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
+  runTransitionPatch,
+  selectActiveRun,
+} from '@genfeedai/agent/stores/agent-chat.store.run';
+import {
   buildThreadSummaryFromSnapshot,
   mapSnapshotPendingInputRequest,
   mapSnapshotRunStatus,
@@ -568,7 +572,7 @@ export function useAgentFullPage({
               previousEntry?.terminalAt !== null &&
               previousEntry &&
               snapshot.activeRun?.runId !==
-                previousEntry.presentation.getState().activeRunId &&
+                selectActiveRun(previousEntry.presentation.getState()).runId &&
               mapSnapshotRunStatus(snapshot.activeRun?.status) === 'running'
             ) {
               disposeAgentStreamEntry(previousEntry);
@@ -589,17 +593,18 @@ export function useAgentFullPage({
               useAgentChatStore.getState().markStreamLive?.();
             const retained = findAgentStreamEntry(threadId);
             if (retained)
-              retained.presentation.setState({
-                activeRunId: snapshot.activeRun?.runId ?? null,
-                activeRunStatus: mapSnapshotRunStatus(
-                  snapshot.activeRun?.status,
-                ),
+              retained.presentation.setState((state) => ({
+                ...runTransitionPatch(state, state.activeThreadId, {
+                  runId: snapshot.activeRun?.runId ?? null,
+                  startedAt: snapshot.activeRun?.startedAt ?? null,
+                  status: mapSnapshotRunStatus(snapshot.activeRun?.status),
+                  type: 'begin',
+                }),
                 latestProposedPlan: snapshot.latestProposedPlan ?? null,
                 pendingInputRequest: mapSnapshotPendingInputRequest(snapshot),
-                runStartedAt: snapshot.activeRun?.startedAt ?? null,
                 workEvents: mapSnapshotWorkEvents(snapshot),
                 error: readSnapshotRunError(snapshot),
-              });
+              }));
           })
           .catch(reportLoadFailure);
       }

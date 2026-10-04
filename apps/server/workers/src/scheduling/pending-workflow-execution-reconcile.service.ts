@@ -204,6 +204,7 @@ export class PendingWorkflowExecutionReconcileService {
       );
       await this.workflowExecutions.completeExecution(
         candidate.id,
+        candidate.organizationId,
         AGENT_TURN_NEVER_STARTED_ERROR_MESSAGE,
       );
       this.logger.error(
@@ -302,6 +303,7 @@ export class PendingWorkflowExecutionReconcileService {
         );
         await this.workflowExecutions.completeExecution(
           candidate.id,
+          candidate.organizationId,
           NEVER_CLAIMED_ERROR_MESSAGE,
         );
         this.logger.error(
@@ -320,7 +322,10 @@ export class PendingWorkflowExecutionReconcileService {
         candidate.id,
         { type: 'cancelled' },
       );
-      await this.workflowExecutions.cancelExecution(candidate.id);
+      await this.workflowExecutions.cancelExecution(
+        candidate.id,
+        candidate.organizationId,
+      );
       this.logger.log(
         candidate.cancelRequestedAt
           ? `${this.logContext} silently cancelled a workflow execution whose job the deploy drain removed`

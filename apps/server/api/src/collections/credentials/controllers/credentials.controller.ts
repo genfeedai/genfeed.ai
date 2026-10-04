@@ -39,6 +39,7 @@ import {
   CredentialInstagramPagesSerializer,
   CredentialSerializer,
 } from '@genfeedai/serializers';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   Body,
@@ -120,18 +121,20 @@ export class CredentialsController {
       isDeleted,
       userId: user.userId ?? user.id,
     };
-    if (query.brandId || query.organizationId) {
-      const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
-        query,
-        user,
-        getIsSuperAdmin(user, request),
-      );
-      if (scope.brandId) {
-        where.brandId = scope.brandId;
-      }
-      if (scope.organizationId) {
-        where.organizationId = scope.organizationId;
-      }
+    const isSuperAdmin = getIsSuperAdmin(user, request);
+    const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+      query,
+      user,
+      isSuperAdmin,
+    );
+    // Every list is organization-scoped; a plain `GET /credentials` lists the
+    // caller's own credentials in the active organization.
+    const organizationId = scope.organizationId ?? user.organizationId;
+    if (scope.brandId) {
+      where.brandId = scope.brandId;
+    }
+    if (organizationId) {
+      where.organizationId = organizationId;
     }
 
     const aggregate = {
@@ -139,8 +142,14 @@ export class CredentialsController {
       orderBy: handleQuerySort(query.sort),
     };
 
+    // Only a superadmin can ask for another organization's credentials.
     const data: AggregatePaginateResult<CredentialDocument> =
-      await this.credentialsService.findAll(aggregate, options);
+      isSuperAdmin && organizationId !== user.organizationId
+        ? await crossOrgUnsafe(
+            async () =>
+              await this.credentialsService.findAll(aggregate, options),
+          )
+        : await this.credentialsService.findAll(aggregate, options);
     return serializeCollection(request, CredentialSerializer, data);
   }
 
@@ -151,10 +160,13 @@ export class CredentialsController {
     @Req() request: Request,
     @Param('credentialId') credentialId: string,
   ): Promise<JsonApiSingleResponse> {
-    const data: CredentialDocument | null =
-      await this.credentialsService.findOne({
-        id: credentialId,
-      });
+    // Superadmin-only route: reads a credential in any organization.
+    const data: CredentialDocument | null = await crossOrgUnsafe(
+      async () =>
+        await this.credentialsService.findOne({
+          id: credentialId,
+        }),
+    );
 
     return data
       ? serializeSingle(request, CredentialSerializer, data)
@@ -209,6 +221,7 @@ export class CredentialsController {
 
       const updatedCredential = await this.credentialsService.findOne({
         id: credential.id,
+        organizationId: credentialOrganizationId,
       });
 
       return updatedCredential

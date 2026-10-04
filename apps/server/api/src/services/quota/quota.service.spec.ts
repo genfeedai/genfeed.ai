@@ -6,6 +6,8 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { QuotaService } from '@api/services/quota/quota.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -329,6 +331,37 @@ describe('QuotaService', () => {
     expect(result?.currentCount).toBe(8);
     expect(result?.dailyLimit).toBe(20);
     expect(result?.allowed).toBe(true);
+  });
+
+  it('looks the credential up inside the requested organization under the CLOUD tenant guard', async () => {
+    const org = makeOrganization();
+    const cred = makeCredential();
+    mockCredentialsService.findOne.mockImplementationOnce(async (where) => {
+      assertTenantScopedQuery({
+        args: { where },
+        isCloud: true,
+        model: 'Credential',
+        operation: 'findFirst',
+        tenantModelNames: new Set(['Credential']),
+      });
+      return cred;
+    });
+    mockOrganizationsService.findOne.mockResolvedValueOnce(org);
+    mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
+      quotaTwitter: 20,
+    });
+
+    const result = await runWithTenantContext(
+      { organizationId: org.id.toString() },
+      () => service.getQuotaStatus('credential_1', org.id.toString()),
+    );
+
+    expect(result).not.toBeNull();
+    expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
+      id: 'credential_1',
+      isDeleted: false,
+      organizationId: org.id.toString(),
+    });
   });
 
   it('should return null and log error when an exception occurs in getQuotaStatus', async () => {

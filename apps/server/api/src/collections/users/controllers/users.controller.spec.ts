@@ -13,6 +13,8 @@ import type { FilesClientService } from '@api/services/files-microservice/client
 import type { ISubscriptionsService } from '@genfeedai/contracts/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 describe('UsersController', () => {
@@ -256,6 +258,78 @@ describe('UsersController', () => {
 
       expect(usersService.findOne).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+
+    describe('tenant isolation guard (CLOUD)', () => {
+      const guardSubscriptionLookup = (where: Record<string, unknown>) =>
+        assertTenantScopedQuery({
+          args: { where },
+          isCloud: true,
+          model: 'Subscription',
+          operation: 'findFirst',
+          tenantModelNames: new Set(['Subscription']),
+        });
+
+      beforeEach(() => {
+        usersService.findOne.mockResolvedValue({
+          id: userId,
+          isOnboardingCompleted: true,
+        });
+      });
+
+      it('looks the subscription up inside the request organization', async () => {
+        subscriptionsService.findOne.mockImplementation(async (where) => {
+          guardSubscriptionLookup(where);
+          return null;
+        });
+
+        await expect(
+          runWithTenantContext({ organizationId: orgId }, () =>
+            controller.findMe(mockRequest, mockUser),
+          ),
+        ).resolves.toBeDefined();
+
+        expect(subscriptionsService.findOne).toHaveBeenCalledWith({
+          organizationId: orgId,
+          userId,
+        });
+      });
+
+      it('scopes by the request-context organization when the token lags behind a switch', async () => {
+        const switchedOrgId = testId('switched-org');
+        subscriptionsService.findOne.mockImplementation(async (where) => {
+          guardSubscriptionLookup(where);
+          return null;
+        });
+
+        await expect(
+          runWithTenantContext({ organizationId: switchedOrgId }, () =>
+            controller.findMe(
+              {
+                ...(mockRequest as object),
+                context: { organizationId: switchedOrgId },
+              } as never,
+              mockUser,
+            ),
+          ),
+        ).resolves.toBeDefined();
+
+        expect(subscriptionsService.findOne).toHaveBeenCalledWith({
+          organizationId: switchedOrgId,
+          userId,
+        });
+      });
+
+      it('keeps the user-only lookup when the session has no organization', async () => {
+        subscriptionsService.findOne.mockResolvedValue(null);
+
+        await controller.findMe(mockRequest, {
+          id: 'user_subject_123',
+          userId,
+        } as never);
+
+        expect(subscriptionsService.findOne).toHaveBeenCalledWith({ userId });
+      });
     });
 
     it('should throw when user does not exist', async () => {

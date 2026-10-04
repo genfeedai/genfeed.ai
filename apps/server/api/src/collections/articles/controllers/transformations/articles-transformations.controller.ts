@@ -24,7 +24,6 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import {
@@ -136,16 +135,17 @@ export class ArticlesTransformationsController {
     @Body() dto: ScoreSeoDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
+    // The scorer reads the article under `user.organizationId`, so the lookup
+    // is scoped to the same organization: a foreign article is a 404 here
+    // instead of being hydrated and rejected after the query.
+    const where = {
+      id: articleId,
+      isDeleted: false,
+      organizationId: user.organizationId,
+    };
     const results = await this.articlesService.findAll(
-      {
-        where: {
-          id: articleId,
-          isDeleted: false,
-        },
-      },
-      {
-        pagination: false,
-      },
+      { where },
+      { pagination: false },
     );
 
     if (!results?.docs || results.docs.length === 0) {
@@ -154,13 +154,6 @@ export class ArticlesTransformationsController {
 
     const article = results.docs[0];
 
-    if (
-      article.organizationId !== user.organizationId.toString() &&
-      !getIsSuperAdmin(user, request)
-    ) {
-      ErrorResponse.notFound(ARTICLE_ENTITY_NAME, articleId);
-    }
-
     await this.seoScorerService.scoreArticle(
       articleId,
       user.organizationId,
@@ -168,15 +161,8 @@ export class ArticlesTransformationsController {
     );
 
     const updatedResults = await this.articlesService.findAll(
-      {
-        where: {
-          id: articleId,
-          isDeleted: false,
-        },
-      },
-      {
-        pagination: false,
-      },
+      { where },
+      { pagination: false },
     );
 
     return serializeSingle(

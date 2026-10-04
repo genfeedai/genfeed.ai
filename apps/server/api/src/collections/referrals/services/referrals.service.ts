@@ -24,6 +24,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 
@@ -265,28 +266,34 @@ export class ReferralsService {
         ...liveLinkedOrganizations.map((organization) => organization.id),
       ]),
     ];
-    const [priorPurchase, priorSubscription] = await Promise.all([
-      this.prisma.creditTransaction.findFirst({
-        select: { id: true },
-        where: {
-          amount: { gt: 0 },
-          isDeleted: false,
-          organizationId: { in: targetOrganizationIds },
-          source: {
-            in: [ActivitySource.PAY_AS_YOU_GO, LEGACY_PAYG_ACTIVITY_SOURCE],
-          },
-        },
-      }),
-      // tenant-scope-ignore: prior paid status follows linked organizations because subscription.billingAccountId is legacy-nullable
-      this.prisma.subscription.findFirst({
-        select: { id: true },
-        where: {
-          isDeleted: false,
-          organizationId: { in: targetOrganizationIds },
-          stripeSubscriptionId: { not: null },
-        },
-      }),
-    ]);
+    // Every org id below was proven part of the target billing-account scope
+    // (resolveBillingAccountAccess + active links above), so a prior-paid
+    // check across them is cross-org by design.
+    const [priorPurchase, priorSubscription] = await crossOrgUnsafe(
+      async () =>
+        await Promise.all([
+          this.prisma.creditTransaction.findFirst({
+            select: { id: true },
+            where: {
+              amount: { gt: 0 },
+              isDeleted: false,
+              organizationId: { in: targetOrganizationIds },
+              source: {
+                in: [ActivitySource.PAY_AS_YOU_GO, LEGACY_PAYG_ACTIVITY_SOURCE],
+              },
+            },
+          }),
+          // tenant-scope-ignore: prior paid status follows linked organizations because subscription.billingAccountId is legacy-nullable
+          this.prisma.subscription.findFirst({
+            select: { id: true },
+            where: {
+              isDeleted: false,
+              organizationId: { in: targetOrganizationIds },
+              stripeSubscriptionId: { not: null },
+            },
+          }),
+        ]),
+    );
     if (priorPurchase || priorSubscription) {
       return { isAccepted: false, status: ReferralClaimStatus.INELIGIBLE };
     }

@@ -20,6 +20,10 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  getTenantContext,
+  isCrossOrgUnsafe,
+} from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 
 type ClipResultWriteDto = Partial<CreateClipResultDto & UpdateClipResultDto> &
@@ -198,10 +202,19 @@ export class ClipResultsService extends BaseService<
   async transitionProviderTerminal(
     input: ProviderTerminalTransitionInput,
   ): Promise<boolean> {
+    // Webhooks and workers carry no tenant context and key the claim by
+    // provider job; an inline completion inside a request also stays inside
+    // the request organization.
+    const requestOrganizationId = isCrossOrgUnsafe()
+      ? undefined
+      : getTenantContext()?.organizationId;
     const where: Prisma.ClipResultWhereInput = {
       data: { equals: input.providerName, path: ['providerName'] },
       id: input.clipResultId,
       isDeleted: false,
+      ...(requestOrganizationId
+        ? { organizationId: requestOrganizationId }
+        : {}),
       providerJobId: input.providerJobId,
       status: { notIn: [...CLIP_TERMINAL_STATUSES] },
     };

@@ -148,7 +148,7 @@ describe('ContentRunRecommendationsService', () => {
           variants: runConfig.variants,
         }),
       },
-      where: { id: 'run-1' },
+      where: { id: 'run-1', isDeleted: false, organizationId: 'org-1' },
     });
     expect(result.updatedRun).toMatchObject({
       id: 'run-1',

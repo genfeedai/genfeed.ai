@@ -6,12 +6,18 @@ import {
   ContentIntelligencePlatform,
   ContentPatternType,
 } from '@genfeedai/contracts';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import {
+  assertTenantScopedQuery,
+  TenantIsolationError,
+} from '@libs/prisma/tenant-guard';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMocks() {
   const contentPattern = {
     create: vi.fn(),
     findMany: vi.fn(),
+    findFirst: vi.fn(),
     findUnique: vi.fn(),
     update: vi.fn(),
     updateMany: vi.fn(),
@@ -69,6 +75,70 @@ describe('PatternStoreService organization scoping', () => {
           sourceCreatorId: creatorId,
         },
       });
+    });
+  });
+
+  describe('incrementUsage', () => {
+    const patternId = 'pattern-1';
+
+    function guardAll(): void {
+      const guard = (operation: string) => (args: unknown) =>
+        assertTenantScopedQuery({
+          args,
+          isCloud: true,
+          model: 'ContentPattern',
+          operation,
+          tenantModelNames: new Set(['ContentPattern']),
+        });
+      const checkFindFirst = guard('findFirst');
+      const checkUpdate = guard('update');
+      mocks.prisma.contentPattern.findFirst.mockImplementation(
+        async (args: unknown) => {
+          checkFindFirst(args);
+          return { data: { usageCount: 2 }, id: patternId, organizationId };
+        },
+      );
+      mocks.prisma.contentPattern.update.mockImplementation(
+        async (args: { data: Record<string, unknown> }) => {
+          checkUpdate(args);
+          return { id: patternId, organizationId, ...args.data };
+        },
+      );
+    }
+
+    it('scopes the lookup and the write to the organization under the CLOUD tenant guard', async () => {
+      guardAll();
+
+      await runWithTenantContext({ organizationId }, () =>
+        service.incrementUsage(patternId, organizationId),
+      );
+
+      expect(mocks.prisma.contentPattern.findFirst).toHaveBeenCalledWith({
+        where: { id: patternId, isDeleted: false, organizationId },
+      });
+      expect(mocks.prisma.contentPattern.update).toHaveBeenCalledWith({
+        data: { data: { usageCount: 3 } },
+        where: { id: patternId, isDeleted: false, organizationId },
+      });
+    });
+
+    it('refuses an organization other than the request tenant', async () => {
+      guardAll();
+
+      await expect(
+        runWithTenantContext({ organizationId: 'org-other' }, () =>
+          service.incrementUsage(patternId, organizationId),
+        ),
+      ).rejects.toBeInstanceOf(TenantIsolationError);
+      expect(mocks.prisma.contentPattern.update).not.toHaveBeenCalled();
+    });
+
+    it('does nothing when the pattern is not visible to the organization', async () => {
+      mocks.prisma.contentPattern.findFirst.mockResolvedValue(null);
+
+      await service.incrementUsage(patternId, organizationId);
+
+      expect(mocks.prisma.contentPattern.update).not.toHaveBeenCalled();
     });
   });
 

@@ -2,10 +2,15 @@ import { restoreThreadFromSnapshot } from '@genfeedai/agent/hooks/agent-chat-str
 import {
   createAgentStreamEntry,
   getAgentStreamRuntime,
+  projectAgentStreamEntry,
   resetAgentStreamRuntime,
 } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import type { AgentThreadSnapshot } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import {
+  runTransitionPatch,
+  selectActiveRun,
+} from '@genfeedai/agent/stores/agent-chat.store.run';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -269,6 +274,36 @@ describe('restoreThreadFromSnapshot', () => {
       await restoring;
       expect(deps.setMessages).not.toHaveBeenCalled();
       expect(deps.updateThreadSummary).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['failed', 'cancelled'] as const)(
+    'keeps the hydrated %s status when a retained terminal entry projects',
+    (status) => {
+      const entry = createAgentStreamEntry('thread-1', 'terminal-request');
+      entry.presentation.getState().transitionRun('thread-1', {
+        runId: 'run-1',
+        status: 'running',
+        type: 'begin',
+      });
+      // Full-page hydration rewrites the retained record in one update.
+      entry.presentation.setState((state) => ({
+        ...runTransitionPatch(state, state.activeThreadId, {
+          runId: null,
+          startedAt: null,
+          status,
+          type: 'begin',
+        }),
+      }));
+      entry.terminalAt = Date.now();
+
+      projectAgentStreamEntry(entry);
+
+      expect(selectActiveRun(useAgentChatStore.getState())).toMatchObject({
+        runId: null,
+        status,
+      });
+      expect(useAgentChatStore.getState().activeRunStatus).toBe(status);
     },
   );
 });

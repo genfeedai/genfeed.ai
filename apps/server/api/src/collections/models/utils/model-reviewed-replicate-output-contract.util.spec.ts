@@ -74,7 +74,7 @@ describe('exact reviewed Replicate output contract admission reader', () => {
         where: {
           key: 'owner/model',
           isDeleted: false,
-          OR: [{ organizationId: null }],
+          organizationId: null,
         },
       }),
     );

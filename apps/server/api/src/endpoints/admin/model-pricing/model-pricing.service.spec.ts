@@ -1,4 +1,8 @@
 import {
+  buildGuardedDelegate,
+  type GuardedRow,
+} from '@api/collections/models/testing/cloud-guarded-delegate';
+import {
   AdminModelPricingService,
   projectAdminModelPricing,
 } from '@api/endpoints/admin/model-pricing/model-pricing.service';
@@ -7,6 +11,7 @@ import {
   type ModelProviderContract,
   Prisma,
 } from '@genfeedai/prisma';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/prisma', async () => {
@@ -171,6 +176,36 @@ describe('operator model pricing projection', () => {
     );
     expect(row.effectiveUnitCredits).toBeNull();
     expect(row.status).toBe('unresolved');
+  });
+  it('reads the platform catalog inside a tenant request under the CLOUD guard', async () => {
+    const delegate = buildGuardedDelegate('Model', [
+      {
+        ...model,
+        isDeleted: false,
+        organizationId: null,
+        providerContracts: [],
+      } as GuardedRow,
+      {
+        ...model,
+        id: 'tenant-model',
+        isDeleted: false,
+        key: 'tenant/model',
+        organizationId: 'org-1',
+        providerContracts: [],
+      } as GuardedRow,
+    ]);
+    const transaction = {
+      model: delegate,
+      platformSetting: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
+    const report = await runWithTenantContext({ organizationId: 'org-1' }, () =>
+      new AdminModelPricingService({
+        $transaction: async (
+          fn: (client: typeof transaction) => Promise<unknown>,
+        ) => fn(transaction),
+      } as never).getReport('https://api.example/admin/model-pricing'),
+    );
+    expect(report.rows.map((row) => row.key)).toEqual(['provider/model']);
   });
   it('reads only the global nondeleted catalog and policy in one repeatable-read snapshot', async () => {
     const findMany = vi

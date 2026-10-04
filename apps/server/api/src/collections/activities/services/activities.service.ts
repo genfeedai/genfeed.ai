@@ -10,11 +10,13 @@ import { hydrateGenerationActivity } from '@api/collections/activities/utils/gen
 import { normalizeActionOrigin, withActionOriginMetadata } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { ActivityKey, parseActivityKey } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -162,7 +164,11 @@ export class ActivitiesService extends BaseService<
     id: string,
     updateDto: Partial<UpdateActivityDto> | Record<string, unknown>,
   ): Promise<ActivityDocument> {
-    const existing = await super.findOne({ id });
+    // The base `patch` writes by id; resolve the pre-read under the request tenant.
+    const tenantOrganizationId = getTenantContext()?.organizationId;
+    const existing = await super.findOne(
+      tenantOrganizationId ? scopedWhere(tenantOrganizationId, { id }) : { id },
+    );
     const mutation = buildActivityMutation(
       updateDto as ActivityMutationInput,
       existing,
@@ -254,12 +260,19 @@ export class ActivitiesService extends BaseService<
               },
             );
 
+            // tenant-scope-ignore: write predicate carries the same owner-or-organization OR proof as the partition read above
             return this.prisma.activity.update({
               data: {
                 data: nextData as Prisma.InputJsonValue,
                 ...(isDeleted === undefined ? {} : { isDeleted }),
               },
-              where: { id },
+              // Same owner-or-organization predicate as the partition read, so
+              // the write stays tenant-scoped by `organizationId`.
+              where: {
+                id,
+                isDeleted: false,
+                OR: [{ userId }, { organizationId }],
+              },
             });
           }),
         );

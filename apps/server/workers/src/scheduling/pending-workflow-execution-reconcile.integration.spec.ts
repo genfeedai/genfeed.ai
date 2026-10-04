@@ -137,6 +137,7 @@ describe.skipIf(!redisAvailable)(
 
       expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
         executionId,
+        'org-1',
         expect.stringContaining('no worker ever picked it up'),
       );
     });
@@ -171,6 +172,7 @@ describe.skipIf(!redisAvailable)(
 
       expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
         executionId,
+        'org-1',
       );
       expect(workflowExecutions.completeExecution).not.toHaveBeenCalled();
     });

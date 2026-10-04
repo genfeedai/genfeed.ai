@@ -15,6 +15,8 @@ import type { CreateClipResultDto } from '@api/collections/clip-results/dto/crea
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ClipReferenceProvenance } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createLogger(): LoggerService {
@@ -383,6 +385,60 @@ describe('ClipResultsService', () => {
     ).resolves.toBe(false);
 
     expect(prisma.clipResult.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('claims an inline provider completion inside the request organization (CLOUD tenant guard)', async () => {
+    const guard = (operation: string) => (args: unknown) =>
+      assertTenantScopedQuery({
+        args,
+        isCloud: true,
+        model: 'ClipResult',
+        operation,
+        tenantModelNames: new Set(['ClipResult']),
+      });
+    prisma.clipResult.findFirst.mockImplementation(async (args) => {
+      guard('findFirst')(args);
+      return {
+        data: { providerName: 'argil', title: 'Existing' },
+        organizationId: 'org-1',
+      };
+    });
+    prisma.clipResult.updateMany.mockImplementation(async (args) => {
+      guard('updateMany')(args);
+      return { count: 1 };
+    });
+
+    await expect(
+      runWithTenantContext({ organizationId: 'org-1' }, () =>
+        service.transitionProviderTerminal({
+          clipResultId: 'clip-1',
+          providerJobId: 'video-1',
+          providerName: 'argil',
+          status: 'completed',
+          videoUrl: 'https://cdn.argil.ai/video-1.mp4',
+        }),
+      ),
+    ).resolves.toBe(true);
+    expect(prisma.clipResult.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ organizationId: 'org-1' }),
+      }),
+    );
+  });
+
+  it('keeps the provider-job claim unscoped for webhooks that carry no tenant context', async () => {
+    prisma.clipResult.findFirst.mockResolvedValue(null);
+
+    await service.transitionProviderTerminal({
+      clipResultId: 'clip-1',
+      providerJobId: 'video-1',
+      providerName: 'argil',
+      status: 'failed',
+    });
+
+    const where = prisma.clipResult.findFirst.mock.calls[0]?.[0]
+      .where as Record<string, unknown>;
+    expect(where).not.toHaveProperty('organizationId');
   });
 
   it('claims a Library ingredient only when the clip is still unlinked or already owned', async () => {

@@ -7,7 +7,9 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { BotsService } from '@api/collections/bots/services/bots.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { BadRequestException } from '@nestjs/common';
 
 describe('BotsService', () => {
@@ -116,5 +118,26 @@ describe('BotsService', () => {
       },
       where: { id: 'bot-1' },
     });
+  });
+  it('resolves the patch pre-read under the request tenant in CLOUD mode', async () => {
+    findFirst.mockResolvedValue({
+      config: {},
+      id: 'bot-1',
+      organizationId: 'organization-1',
+    });
+    update.mockResolvedValue({ id: 'bot-1', organizationId: 'organization-1' });
+
+    await runWithTenantContext({ organizationId: 'organization-1' }, () =>
+      service.patch('bot-1', { description: 'New description' }),
+    );
+
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'bot-1',
+        isDeleted: false,
+        organizationId: 'organization-1',
+      },
+    });
+    expectCloudGuardPasses('Bot', 'findFirst', findFirst);
   });
 });

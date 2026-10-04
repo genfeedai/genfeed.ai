@@ -249,7 +249,7 @@ export class IntegrationsService {
 
     await this.prisma.orgIntegration.update({
       data: { isDeleted: true },
-      where: { id: integrationId },
+      where: scopedWhere(orgId, { id: integrationId }),
     });
 
     // Emit Redis event
