@@ -4,6 +4,13 @@ import {
 } from '@api/collections/evaluations/services/evaluation-result.projection';
 import type { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type {
+  IJudgeArticleContentSource,
+  IJudgeArticleSource,
+  IJudgeBrandSource,
+  IJudgePostChildrenSource,
+  IJudgePromptSource,
+} from '@genfeedai/contracts/interfaces';
 
 // Everything the judge sees besides the prompt templates is assembled here:
 // content selection and the brand/prompt/metadata context for each content
@@ -14,28 +21,12 @@ export type EvaluationJudgeContext = NonNullable<
   Parameters<EvaluationsOperationsService['evaluateVideo']>[1]
 >;
 
-interface JudgePromptSource {
-  enhanced?: string;
-  original?: string;
-}
-
-interface JudgeBrandSource {
-  name?: string;
-  guidelines?: string;
-}
-
-export interface JudgeArticleSource {
-  category?: unknown;
-  label?: unknown;
-  summary?: unknown;
-}
-
 // Most recent prior evaluation of the same content anchors a post re-score.
 export const PREVIOUS_EVALUATION_ORDER_BY = { updatedAt: 'desc' } as const;
 
 const projection = new EvaluationResultProjection();
 
-function readPromptText(prompt?: JudgePromptSource): string | undefined {
+function readPromptText(prompt?: IJudgePromptSource): string | undefined {
   return (
     projection.readString(prompt?.enhanced) ??
     projection.readString(prompt?.original)
@@ -43,8 +34,8 @@ function readPromptText(prompt?: JudgePromptSource): string | undefined {
 }
 
 export function buildVideoJudgeContext(
-  prompt: JudgePromptSource | undefined,
-  brand: JudgeBrandSource | undefined,
+  prompt: IJudgePromptSource | undefined,
+  brand: IJudgeBrandSource | undefined,
   storedDuration: unknown,
 ): EvaluationJudgeContext {
   return {
@@ -58,8 +49,8 @@ export function buildVideoJudgeContext(
 }
 
 export function buildImageJudgeContext(
-  prompt: JudgePromptSource | undefined,
-  brand: JudgeBrandSource | undefined,
+  prompt: IJudgePromptSource | undefined,
+  brand: IJudgeBrandSource | undefined,
 ): EvaluationJudgeContext {
   return {
     brand: projection.buildBrandContext(brand),
@@ -68,8 +59,8 @@ export function buildImageJudgeContext(
 }
 
 export function buildArticleJudgeContext(
-  article: JudgeArticleSource,
-  brand: JudgeBrandSource | undefined,
+  article: IJudgeArticleSource,
+  brand: IJudgeBrandSource | undefined,
 ): EvaluationJudgeContext {
   return {
     brand: projection.buildBrandContext(brand),
@@ -83,7 +74,7 @@ export function buildArticleJudgeContext(
 
 // The article field sent to the judge as content; an empty one is rejected.
 export function selectArticleJudgeContent(
-  article: { content?: string | null },
+  article: IJudgeArticleContentSource,
   articleId: string,
 ): string {
   if (!article.content) {
@@ -94,7 +85,7 @@ export function selectArticleJudgeContent(
 
 // Thread children the post judge scores alongside the root post.
 export async function loadPostThreadChildren(
-  source: { getChildren(postId: string): Promise<unknown> } | undefined,
+  source: IJudgePostChildrenSource | undefined,
   postId: string,
 ): Promise<PostThreadChild[]> {
   const children = (await source?.getChildren(postId)) as
