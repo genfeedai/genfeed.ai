@@ -525,8 +525,8 @@ export async function handlePublicationCaptureMessage(
         await chrome.storage.session.set({
           [PENDING]: {},
           [INTENTS]: {},
-          [WRITTEN]: {},
         });
+        await chrome.storage.session.remove(WRITTEN);
       });
       throw new Error('Publication recording is disabled.');
     }
@@ -646,10 +646,10 @@ export async function handlePublicationCaptureMessage(
             !same(intent.input.scope, s)
           )
             delete intents[intentKey];
-        const written = prunePublicationWrittenTexts(
-          await readWritten(),
-          Date.now(),
-        );
+        const storedWritten = await readWritten();
+        const written = prunePublicationWrittenTexts(storedWritten, Date.now());
+        const writtenChanged =
+          JSON.stringify(written) !== JSON.stringify(storedWritten);
         if (
           !matchesPublicationWrittenText(
             written,
@@ -660,7 +660,8 @@ export async function handlePublicationCaptureMessage(
             Date.now(),
           )
         ) {
-          await chrome.storage.session.set({ [WRITTEN]: written });
+          if (writtenChanged)
+            await chrome.storage.session.set({ [WRITTEN]: written });
           throw new Error(NOT_WRITTEN_BY_GENFEED);
         }
         if (attempt.surface.kind === 'x-reply-modal') {
@@ -681,7 +682,7 @@ export async function handlePublicationCaptureMessage(
         await chrome.storage.session.set({
           [PENDING]: entries,
           [INTENTS]: intents,
-          [WRITTEN]: written,
+          ...(writtenChanged ? { [WRITTEN]: written } : {}),
         });
       });
       return { success: true, data: { kind: 'armed', attemptId: attempt.id } };
@@ -828,11 +829,12 @@ export function initializePublicationCapture(): () => void {
       const written = await readWritten();
       delete entries[String(id)];
       delete intents[String(id)];
+      const hadWritten = String(id) in written;
       delete written[String(id)];
       await chrome.storage.session.set({
         [PENDING]: entries,
         [INTENTS]: intents,
-        [WRITTEN]: written,
+        ...(hadWritten ? { [WRITTEN]: written } : {}),
       });
     }).catch(() => undefined);
   };
