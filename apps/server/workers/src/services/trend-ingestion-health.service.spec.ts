@@ -304,4 +304,32 @@ describe('TrendIngestionHealthService', () => {
     await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
     expect(scopedKeys()).toHaveLength(1);
   });
+
+  it('closes the incident when every affected scope disconnects, so a later outage alerts again', async () => {
+    const { service, health, prisma, events } = setup();
+    const credential = {
+      createdAt: enrollment,
+      organizationId: 'org-a',
+      platform: 'YOUTUBE',
+    };
+    prisma.credential.findMany.mockResolvedValue([credential]);
+    health.getHealth.mockResolvedValue([]);
+    await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+    const outageKeys = () =>
+      [...events.keys()].filter(
+        (key) => key.includes('/scoped/missed/') && !key.endsWith('/recovered'),
+      );
+    expect(outageKeys()).toHaveLength(1);
+    prisma.credential.findMany.mockResolvedValue([]);
+    await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
+    expect(
+      [...events.keys()].filter((key) => key.endsWith('/recovered')),
+    ).toHaveLength(1);
+    prisma.credential.findMany.mockResolvedValue([
+      { ...credential, createdAt: new Date('2026-09-29T13:00:00.000Z') },
+    ]);
+    await service.checkMissedWindows(new Date('2026-09-30T12:15:00.000Z'));
+    await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
+    expect(outageKeys()).toHaveLength(2);
+  });
 });

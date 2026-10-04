@@ -182,7 +182,12 @@ export class TrendIngestionHealthService {
         target,
       ]);
     }
-    for (const [platform, platformTargets] of byPlatform) {
+    // Platforms with no remaining targets still need their open incident closed.
+    const platforms = new Set<string>(
+      TREND_REFRESH_DATASETS.map((dataset) => dataset.platform),
+    );
+    for (const platform of platforms) {
+      const platformTargets = byPlatform.get(platform) ?? [];
       const sourceId = `${platform}/trends/scoped`;
       const alertPrefix = `trend-ingestion-health/${sourceId}/missed/`;
       const evaluated = platformTargets.map((target) => {
@@ -226,22 +231,6 @@ export class TrendIngestionHealthService {
             : latest,
         null,
       );
-      if (
-        previousAlert &&
-        missed.length === 0 &&
-        latestSuccess &&
-        latestSuccess > previousAlert.occurredAt
-      ) {
-        await this.send(
-          `${previousAlert.deduplicationKey}/recovered`,
-          sourceId,
-          now,
-          'Trend ingestion recovered',
-          `${platform} trends completed a refresh for all connected tenant scopes at ${latestSuccess.toISOString()}.`,
-          true,
-        );
-      }
-      if (missed.length === 0) continue;
       // The incident key stays stable from the first miss until full recovery,
       // so scopes recovering or disconnecting never re-open the same outage.
       const openIncident =
@@ -256,6 +245,21 @@ export class TrendIngestionHealthService {
             sourceType: 'trend_ingestion_health',
           },
         }));
+      if (missed.length === 0) {
+        if (openIncident && previousAlert) {
+          await this.send(
+            `${previousAlert.deduplicationKey}/recovered`,
+            sourceId,
+            now,
+            'Trend ingestion recovered',
+            latestSuccess
+              ? `${platform} trends completed a refresh for all connected tenant scopes at ${latestSuccess.toISOString()}.`
+              : `${platform} trends has no connected tenant scopes still affected.`,
+            true,
+          );
+        }
+        continue;
+      }
       const episode = new Date(
         Math.min(...missed.map((entry) => entry.baseline.getTime())),
       ).toISOString();
