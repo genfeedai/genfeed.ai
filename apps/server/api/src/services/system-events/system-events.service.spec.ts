@@ -304,12 +304,10 @@ describe('system event outbox', () => {
         async ({ where }: { where: Record<string, unknown> }) =>
           matches(event, where) ? [structuredClone(event)] : [],
       );
-      Object.assign(webhook, {
-        findFirst: vi.fn(
-          async ({ where }: { where: Record<string, unknown> }) =>
-            matches(event, where) ? structuredClone(event) : null,
-        ),
-      });
+      webhook.findFirst.mockImplementation(
+        async ({ where }: { where: Record<string, unknown> }) =>
+          matches(event, where) ? structuredClone(event) : null,
+      );
       webhook.updateMany.mockImplementation(async ({ where, data }: Args) => {
         if (!matches(event, where)) return { count: 0 };
         Object.assign(
@@ -328,8 +326,8 @@ describe('system event outbox', () => {
           return { count: 1 };
         },
       );
-      Object.assign(prisma, {
-        $transaction: vi.fn(async (run: (tx: unknown) => Promise<unknown>) => {
+      prisma.$transaction.mockImplementation(
+        async (run: (tx: unknown) => Promise<unknown>) => {
           const before = [structuredClone(event), structuredClone(delivery)];
           try {
             return await run({
@@ -348,14 +346,8 @@ describe('system event outbox', () => {
             Object.assign(delivery, before[1]);
             throw error;
           }
-        }),
-      });
-      Object.assign(prisma.systemEventDelivery, {
-        findMany: vi.fn(async () => []),
-      });
-      Object.assign(prisma.systemEventWebhook, {
-        count: vi.fn().mockResolvedValue(0),
-      });
+        },
+      );
       return { service, prisma, event, delivery, state };
     }
 
@@ -413,7 +405,7 @@ describe('system event outbox', () => {
         transportConfigured: true,
       });
       Object.assign(service, { destinations: { list: async () => [] } });
-      prisma.systemEventDelivery.findMany = vi.fn().mockResolvedValue([
+      prisma.systemEventDelivery.findMany.mockResolvedValue([
         {
           id: 'delivery-1',
           eventId: event.id,
