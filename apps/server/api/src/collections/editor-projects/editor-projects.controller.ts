@@ -22,6 +22,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   categoryToPlural,
