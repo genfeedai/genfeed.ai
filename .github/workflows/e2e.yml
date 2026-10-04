@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       acceptance_diagnostic:
-        description: 'Diagnostic only: run one encrypted acceptance group; does not establish full-suite or release readiness.'
+        description: 'Diagnostic only: run one acceptance group; does not establish full-suite or release readiness.'
         type: choice
         required: false
         default: none
@@ -30,13 +30,13 @@ on:
         default: false
     outputs:
       agent_production_result:
-        description: 'Passed only after the dedicated production receipt and encrypted upload.'
+        description: 'Passed only after the dedicated production receipt and evidence upload.'
         value: ${{ jobs.agent-production-acceptance.outputs.result }}
       brand_acceptance_result:
-        description: 'Passed only after the dedicated BRAND receipt and encrypted upload.'
+        description: 'Passed only after the dedicated BRAND receipt and evidence upload.'
         value: ${{ jobs.brand-acceptance.outputs.result }}
       runtime_acceptance_result:
-        description: 'Passed only after the checked private receipt and encrypted upload.'
+        description: 'Passed only after the checked private receipt and evidence upload.'
         value: ${{ jobs.runtime-acceptance.outputs.result }}
   schedule:
     - cron: "17 2 * * *" # Nightly 02:17 UTC
@@ -543,7 +543,6 @@ jobs:
       RUNTIME_ACCEPTANCE_CI_JOB: ${{ github.job }}
       RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
       RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: genfeed_local
-      RUNTIME_ACCEPTANCE_PUBLIC_KEY: ${{ vars.RUNTIME_ACCEPTANCE_PUBLIC_KEY }}
       ACCEPTANCE_REPO: ${{ github.workspace }}
       CANDIDATE_SHA: ${{ github.sha }}
       CONTROL_SHA: ${{ github.sha }}
@@ -578,7 +577,7 @@ jobs:
         id: seal
         if: always() && steps.preflight.outputs.prepared == 'true'
         run: node scripts/ci/runtime-acceptance.mjs seal --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
-      - name: Retain encrypted runtime evidence
+      - name: Retain runtime evidence
         id: upload
         if: always() && steps.preflight.outputs.prepared == 'true' && steps.seal.outcome != 'skipped'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -586,10 +585,10 @@ jobs:
           name: runtime-acceptance-${{ github.sha }}
           path: |
             ${{ runner.temp }}/runtime-acceptance/public/receipt.json
-            ${{ runner.temp }}/runtime-acceptance/public/evidence.encrypted.json
+            ${{ runner.temp }}/runtime-acceptance/public/evidence.json
           retention-days: 7
           if-no-files-found: error
-      - name: Confirm checked receipt and encrypted upload
+      - name: Confirm checked receipt and evidence upload
         id: complete
         if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success' }}
         run: echo 'result=passed' >> "$GITHUB_OUTPUT"
@@ -632,7 +631,6 @@ jobs:
       TURBO_TOKEN: ''
       RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
       RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: genfeed_local
-      RUNTIME_ACCEPTANCE_PUBLIC_KEY: ${{ vars.RUNTIME_ACCEPTANCE_PUBLIC_KEY }}
       ACCEPTANCE_REPO: ${{ github.workspace }}
       CANDIDATE_SHA: ${{ github.sha }}
       CONTROL_SHA: ${{ github.sha }}
@@ -690,7 +688,7 @@ jobs:
         id: seal
         if: always() && steps.preflight.outputs.prepared == 'true'
         run: node scripts/ci/runtime-acceptance.mjs seal --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
-      - name: Retain encrypted runtime evidence
+      - name: Retain runtime evidence
         id: upload
         if: always() && steps.preflight.outputs.prepared == 'true' && steps.seal.outcome != 'skipped'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -698,10 +696,10 @@ jobs:
           name: agent-production-${{ github.sha }}
           path: |
             ${{ runner.temp }}/agent-production/public/receipt.json
-            ${{ runner.temp }}/agent-production/public/evidence.encrypted.json
+            ${{ runner.temp }}/agent-production/public/evidence.json
           retention-days: 7
           if-no-files-found: error
-      - name: Confirm checked receipt and encrypted upload
+      - name: Confirm checked receipt and evidence upload
         id: complete
         if: steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success'
         run: echo 'result=passed' >> "$GITHUB_OUTPUT"
@@ -735,7 +733,6 @@ jobs:
       TURBO_TOKEN: ''
       RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
       RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: genfeed_local
-      RUNTIME_ACCEPTANCE_PUBLIC_KEY: ${{ vars.RUNTIME_ACCEPTANCE_PUBLIC_KEY }}
       ACCEPTANCE_REPO: ${{ github.workspace }}
       CANDIDATE_SHA: ${{ github.sha }}
       CONTROL_SHA: ${{ github.sha }}
@@ -792,7 +789,7 @@ jobs:
         id: seal
         if: always() && steps.preflight.outputs.prepared == 'true'
         run: node scripts/ci/runtime-acceptance.mjs seal --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
-      - name: Retain encrypted runtime evidence
+      - name: Retain runtime evidence
         id: upload
         if: always() && steps.preflight.outputs.prepared == 'true' && steps.seal.outcome != 'skipped'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -800,10 +797,10 @@ jobs:
           name: brand-acceptance-${{ github.sha }}
           path: |
             ${{ runner.temp }}/brand-acceptance/public/receipt.json
-            ${{ runner.temp }}/brand-acceptance/public/evidence.encrypted.json
+            ${{ runner.temp }}/brand-acceptance/public/evidence.json
           retention-days: 7
           if-no-files-found: error
-      - name: Confirm checked receipt and encrypted upload
+      - name: Confirm checked receipt and evidence upload
         id: complete
         if: ${{ !(github.event_name == 'workflow_dispatch' && github.workflow == 'E2E Tests' && (inputs.acceptance_diagnostic == 'final' || inputs.acceptance_diagnostic == 'brand-acceptance')) && steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success' }}
         run: echo 'result=passed' >> "$GITHUB_OUTPUT"
