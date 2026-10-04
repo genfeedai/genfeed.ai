@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
+import { SecurityUtil } from '@files/helpers/utils/security/security.util';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
 import { UploadService } from '@files/services/upload/upload.service';
