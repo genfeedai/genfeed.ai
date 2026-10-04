@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { isBootstrapCredentialWrite } from '@api/collections/brands/utils/brand-bootstrap-credentials.util';
+import { runFencedLearningMutation } from '@api/collections/content-learning/services/learning-fenced-mutation.util';
 import { OAUTH_STATE_TTL_MS } from '@api/collections/credentials/constants/oauth.constants';
 import type {
   CredentialDocument,
@@ -46,6 +47,7 @@ import { isReservedExternalConnectionOAuthState } from '@genfeedai/helpers/integ
 import type { Prisma } from '@genfeedai/prisma';
 import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -240,12 +242,13 @@ export class CredentialsService
     const include = this.populateToInclude(populate) as
       | Prisma.CredentialInclude
       | undefined;
-    const updated = await this.prisma.$transaction((tx) =>
+    const updated = await runFencedLearningMutation(this.prisma, (tx, scope) =>
       patchCredentialWithLearning(
         tx,
         this.learningMutationContext(),
         id,
         data as Prisma.CredentialUncheckedUpdateInput,
+        scope,
         include,
       ),
     );
@@ -289,8 +292,13 @@ export class CredentialsService
 
   override async remove(id: string): Promise<CredentialDocument | null> {
     if (!id) throw new ValidationException('Document ID is required');
-    const removed = await this.prisma.$transaction((tx) =>
-      removeCredentialWithLearning(tx, this.learningMutationContext(), id),
+    const removed = await runFencedLearningMutation(this.prisma, (tx, scope) =>
+      removeCredentialWithLearning(
+        tx,
+        this.learningMutationContext(),
+        id,
+        scope,
+      ),
     );
     if (removed) await this.invalidateCredentialMutationCache();
     await this.invalidateAccessBootstrap(removed?.organizationId);
@@ -685,15 +693,20 @@ export class CredentialsService
       return null;
     }
 
+    // Callers that omit `scope` (the provider-error callback util) still run
+    // inside the authenticated request, so default to its tenant.
+    const scopedOrganizationId =
+      scope?.organizationId ?? getTenantContext()?.organizationId;
+
     const credential = await this.findOne({
       isConnected: false,
       oauthState: state,
       platform,
       updatedAt: { gte: new Date(Date.now() - OAUTH_STATE_TTL_MS) },
-      ...(scope?.organizationId
+      ...(scopedOrganizationId
         ? {
             organizationId: requireCredentialRelationId(
-              scope.organizationId,
+              scopedOrganizationId,
               'organizationId',
             ),
           }
@@ -956,14 +969,19 @@ export class CredentialsService
       'organizationId',
     );
     const settle = () =>
-      this.prisma.$transaction((tx) =>
-        reconcileCredentialWithLearning(tx, this.learningMutationContext(), {
-          id: credential.id,
-          organizationId,
-          externalId,
-          profileUpdate,
-          connectionUpdate,
-        }),
+      runFencedLearningMutation(this.prisma, (tx, scope) =>
+        reconcileCredentialWithLearning(
+          tx,
+          this.learningMutationContext(),
+          {
+            id: credential.id,
+            organizationId,
+            externalId,
+            profileUpdate,
+            connectionUpdate,
+          },
+          scope,
+        ),
       );
     try {
       return await settle();

@@ -30,7 +30,8 @@ export interface AvatarVideoJobInput {
 export interface AvatarVideoJobResult {
   jobId: string;
   providerName: AvatarVideoProviderName;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  /** `unknown`: the provider could not be read; never treat it as failure. */
+  status: 'queued' | 'processing' | 'completed' | 'failed' | 'unknown';
   videoUrl?: string;
   error?: string;
 }

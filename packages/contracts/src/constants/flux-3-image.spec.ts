@@ -5,7 +5,7 @@ import { UNIFIED_MODEL_CATALOG } from './model-catalog.constant';
 import { MODEL_KEYS } from './model-keys.constant';
 
 describe('FLUX.3 catalog and recipes', () => {
-  it('registers generation and editing with one real endpoint without changing defaults', () => {
+  it('registers generation and editing on distinct registry endpoints without changing defaults', () => {
     const keys = [
       MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
       MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
@@ -22,8 +22,8 @@ describe('FLUX.3 catalog and recipes', () => {
         maxOutputs: 1,
         maxReferences: 10,
         isBatchSupported: false,
-        endpoint: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
       });
+    for (const row of rows) expect(row.endpoint).toBe(row.key);
     expect(
       UNIFIED_MODEL_CATALOG.find(
         (row) => row.key === MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,

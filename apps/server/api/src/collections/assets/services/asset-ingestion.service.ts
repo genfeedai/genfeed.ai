@@ -253,6 +253,8 @@ export class AssetIngestionService {
     const userId = user.userId ?? user.id;
     const ingredient = await this.ingredientsService.findOne({
       id: validatedIngredientId,
+      isDeleted: false,
+      organizationId,
       userId,
     });
 

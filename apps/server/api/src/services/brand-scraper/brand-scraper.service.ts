@@ -2,6 +2,7 @@ import { assertHostNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import {
   BrandScraperHttp,
   MAX_CSS_BYTES,
+  MAX_HTML_BYTES,
   MAX_TOTAL_CSS_BYTES,
 } from '@api/services/brand-scraper/brand-scraper-http.util';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
@@ -518,7 +519,12 @@ export class BrandScraperService {
       if (!response.ok)
         throw new Error(`Failed to fetch website: ${response.status}`);
       this.brandWebsiteParser.assertHtmlResponse(response);
-      html = await this.readWebsiteBody(response, budget);
+      html = await this.readWebsiteBody(
+        response,
+        budget,
+        undefined,
+        MAX_HTML_BYTES,
+      );
     } finally {
       await this.releaseWebsiteResponse(response);
     }
@@ -634,8 +640,9 @@ export class BrandScraperService {
     response: Response,
     budget: WebsiteFetchBudget,
     total?: WebsiteStylesheetByteBudget,
+    maxBytes?: number,
   ): Promise<string> {
-    return this.http.readWebsiteBody(response, budget, total);
+    return this.http.readWebsiteBody(response, budget, total, maxBytes);
   }
 
   private fetchWithRetry(
@@ -678,7 +685,12 @@ export class BrandScraperService {
         throw new Error(`Meta tag fallback failed: ${response.status}`);
       this.brandWebsiteParser.assertHtmlResponse(response);
       html = budget
-        ? await this.readWebsiteBody(response, budget)
+        ? await this.readWebsiteBody(
+            response,
+            budget,
+            undefined,
+            MAX_HTML_BYTES,
+          )
         : await response.text();
     } finally {
       if (budget) await this.releaseWebsiteResponse(response);

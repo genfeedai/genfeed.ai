@@ -3,8 +3,10 @@ import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-int
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/contracts';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { RedisService } from '@libs/redis/redis.service';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -158,6 +160,22 @@ describe('IntegrationsService', () => {
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         REDIS_EVENTS.INTEGRATION_DELETED,
         expect.objectContaining({ platform: IntegrationPlatform.DISCORD }),
+      );
+    });
+
+    it('soft-deletes under the request tenant scope in CLOUD mode', async () => {
+      prisma.orgIntegration.findFirst.mockResolvedValue(prismaRow);
+      prisma.orgIntegration.update.mockClear();
+      prisma.orgIntegration.update.mockResolvedValue(prismaRow);
+
+      await runWithTenantContext({ organizationId: ORG_ID }, () =>
+        buildService().remove(ORG_ID, prismaRow.id),
+      );
+
+      expectCloudGuardPasses(
+        'OrgIntegration',
+        'update',
+        prisma.orgIntegration.update,
       );
     });
   });

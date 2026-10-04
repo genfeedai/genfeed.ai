@@ -43,10 +43,10 @@ describe('hasLiveReconnectStream', () => {
   });
 
   it('does not treat a bare active run id as live', () => {
-    // The reconnect-recovery spec seeds `activeRunId` + `running` with an
+    // The reconnect-recovery spec seeds a run id + `running` with an
     // empty transcript and no stream. That is the offline-tab case: the
     // server finished and snapshot restore must still run. This helper
-    // therefore has no `activeRunId` field.
+    // therefore has no run id field.
     expect(hasLiveReconnectStream(SETTLED)).toBe(false);
   });
 });

@@ -10,6 +10,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import type { ModelSelectionOptions } from '@api/services/router/interfaces/router.interfaces';
 import { RouterService } from '@api/services/router/router.service';
 import { isCloudDeployment } from '@genfeedai/config';
@@ -21,7 +22,10 @@ import {
 } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { ForbiddenException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 const defaultModelId = testId('model');
@@ -64,6 +68,9 @@ describe('RouterService', () => {
   beforeEach(async () => {
     const mockModelsService = {
       findAllActive: vi.fn(),
+      findBillablePricingProfile: vi.fn(async (key: string) =>
+        billableProfile({ key }),
+      ),
       findOne: vi.fn(),
     };
 
@@ -116,6 +123,98 @@ describe('RouterService', () => {
   });
 
   describe('selectModel', () => {
+    describe('admission quote filter', () => {
+      it('skips an Auto candidate whose tariff admission would refuse', async () => {
+        const unpriced = createMockModel({
+          key: 'google/nano-banana-2-lite',
+          qualityTier: 'ultra',
+        });
+        const priced = createMockModel({ key: 'google/imagen-4' });
+        modelsService.findAllActive.mockResolvedValue([unpriced, priced]);
+        modelsService.findBillablePricingProfile.mockImplementation(
+          async (key: string) =>
+            billableProfile({
+              key,
+              hasPendingRate: key === 'google/nano-banana-2-lite',
+            }),
+        );
+
+        const result = await service.selectModel({
+          category: ModelCategory.IMAGE,
+          prioritize: 'quality',
+          prompt: 'A minimalist logo',
+        });
+
+        expect(result.selectedModel).toBe('google/imagen-4');
+      });
+
+      it('keeps reviewed variant rates eligible without sample selectors', async () => {
+        modelsService.findAllActive.mockResolvedValue([
+          createMockModel({ key: 'fal/variant' }),
+        ]);
+        modelsService.findBillablePricingProfile.mockResolvedValue(
+          billableProfile({
+            key: 'fal/variant',
+            requiredSelectorKeys: ['resolution'],
+            requiresReviewedRates: true,
+            reviewedPricing: {
+              currency: 'USD',
+              isFree: false,
+              rates: [
+                {
+                  component: 'output',
+                  unit: 'output',
+                  unitPriceUsd: 0.1,
+                  when: { resolution: '1K' },
+                },
+              ],
+              reviewStatus: 'approved',
+              sourceUrl: 'https://example.test/rates',
+              verifiedAt: '2026-10-01T00:00:00.000Z',
+              version: 'rate-v1',
+            },
+          }),
+        );
+
+        const result = await service.selectModel({
+          category: ModelCategory.IMAGE,
+          prioritize: 'balanced',
+          prompt: 'A logo',
+        });
+
+        expect(result.selectedModel).toBe('fal/variant');
+      });
+
+      it('names pricing when every enabled candidate is unpriceable', async () => {
+        modelsService.findAllActive.mockResolvedValue([
+          createMockModel({ key: 'replicate/unpriced' }),
+        ]);
+        modelsService.findBillablePricingProfile.mockResolvedValue(null);
+
+        await expect(
+          service.selectModel({
+            category: ModelCategory.IMAGE,
+            prioritize: 'balanced',
+            prompt: 'A logo',
+          }),
+        ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      });
+
+      it('does not quote categories admitted outside the media quote', async () => {
+        modelsService.findAllActive.mockResolvedValue([
+          createMockModel({ category: ModelCategory.TEXT, key: 'text/model' }),
+        ]);
+
+        await service.selectModel({
+          category: ModelCategory.TEXT,
+          prioritize: 'balanced',
+          prompt: 'Write a caption',
+        });
+
+        expect(modelsService.findBillablePricingProfile).not.toHaveBeenCalled();
+      });
+    });
+
     describe('Image Generation', () => {
       it('should select fast model for speed-prioritized requests', async () => {
         const fastModel = createMockModel({

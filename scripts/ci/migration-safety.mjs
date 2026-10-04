@@ -9,29 +9,39 @@ const RELEASE = /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
 // Tokenize rather than regex-matching raw SQL: comments/literals cannot hide
 // operations or invent them, and PostgreSQL identifiers may be quoted.
+const WHITESPACE = /\s/y;
+const DOLLAR_TAG = /\$(?:[A-Za-z_][\w]*)?\$/y;
+const WORD = /[A-Za-z_][A-Za-z0-9_$]*/y;
+
+// Sticky match at `index`: no substring is copied per character.
+function matchAt(pattern, sql, index) {
+  pattern.lastIndex = index;
+  return pattern.exec(sql)?.[0];
+}
+
 export function sqlTokens(sql) {
   const tokens = [];
   const comments = [];
   for (let i = 0; i < sql.length; ) {
-    const rest = sql.slice(i);
-    if (/^\s/.test(rest)) {
+    const char = sql[i];
+    if (matchAt(WHITESPACE, sql, i)) {
       i++;
       continue;
     }
-    if (rest.startsWith('--')) {
+    if (sql.startsWith('--', i)) {
       const end = sql.indexOf('\n', i);
       comments.push(sql.slice(i, end < 0 ? sql.length : end));
       i = end < 0 ? sql.length : end;
       continue;
     }
-    if (rest.startsWith('/*')) {
+    if (sql.startsWith('/*', i)) {
       let depth = 1;
       i += 2;
       while (depth && i < sql.length) {
-        if (sql.slice(i, i + 2) === '/*') {
+        if (sql.startsWith('/*', i)) {
           depth++;
           i += 2;
-        } else if (sql.slice(i, i + 2) === '*/') {
+        } else if (sql.startsWith('*/', i)) {
           depth--;
           i += 2;
         } else i++;
@@ -39,7 +49,7 @@ export function sqlTokens(sql) {
       if (depth) throw new Error('Unterminated SQL comment');
       continue;
     }
-    const dollar = rest.match(/^\$(?:[A-Za-z_][\w]*)?\$/)?.[0];
+    const dollar = matchAt(DOLLAR_TAG, sql, i);
     if (dollar) {
       const end = sql.indexOf(dollar, i + dollar.length);
       if (end < 0) throw new Error('Unterminated dollar-quoted SQL');
@@ -49,8 +59,8 @@ export function sqlTokens(sql) {
       i = end + dollar.length;
       continue;
     }
-    if (rest[0] === "'" || rest[0] === '"') {
-      const quote = rest[0];
+    if (char === "'" || char === '"') {
+      const quote = char;
       let value = '';
       let closed = false;
       i++;
@@ -74,8 +84,8 @@ export function sqlTokens(sql) {
       tokens.push({ value, kind: quote === '"' ? 'identifier' : 'literal' });
       continue;
     }
-    const word = rest.match(/^[A-Za-z_][A-Za-z0-9_$]*/)?.[0];
-    tokens.push({ value: word ?? rest[0], kind: word ? 'word' : 'symbol' });
+    const word = matchAt(WORD, sql, i);
+    tokens.push({ value: word ?? char, kind: word ? 'word' : 'symbol' });
     i += word?.length ?? 1;
   }
   return { tokens, comments };

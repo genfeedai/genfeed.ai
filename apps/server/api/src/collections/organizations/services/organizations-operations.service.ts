@@ -3,6 +3,8 @@ import { BillingAccountsService } from '@api/collections/billing-accounts/servic
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { ORGANIZATION_CREATED_EVENT } from '@api/collections/organizations/constants/organization-events.constants';
+import type { OrganizationCreatedEvent } from '@api/collections/organizations/organization-events.types';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -22,12 +24,15 @@ import {
   getOrganizationLimitForTier,
   getUpgradeTierForLimit,
 } from '@genfeedai/pricing';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 export interface CreateOrganizationOperationInput {
   billingAccountId?: string;
   description?: string;
   label: string;
+  websiteUrl?: string;
 }
 
 export interface OrganizationSelectionResult {
@@ -47,6 +52,7 @@ export class OrganizationsOperationsService {
     private readonly usersService: UsersService,
     private readonly userAccessCacheService: UserAccessCacheService,
     private readonly organizationLogoService: OrganizationLogoService,
+    private readonly eventEmitter: EventEmitter2,
     private readonly skillLibrary?: SkillLibraryService,
   ) {}
 
@@ -72,11 +78,15 @@ export class OrganizationsOperationsService {
       return true;
     }
 
-    const member = await this.membersService.findOne({
-      isActive: true,
-      organizationId,
-      userId,
-    });
+    // Membership lookup for the entity's own organization, which is not
+    // necessarily the request tenant; the query is pinned to that org + user.
+    const member = await runWithTenantContext({ organizationId }, () =>
+      this.membersService.findOne({
+        isActive: true,
+        organizationId,
+        userId,
+      }),
+    );
 
     return Boolean(member);
   }
@@ -113,10 +123,16 @@ export class OrganizationsOperationsService {
             organization !== null,
         )
         .map(async (organization) => {
-          const brand = await this.brandsService.findOne({
-            isDeleted: false,
-            organizationId: organization.id,
-          });
+          // Each organization comes from the user's own active memberships
+          // (findActiveForUserAccess), so scope the lookup to that org.
+          const brand = await runWithTenantContext(
+            { organizationId: organization.id.toString() },
+            () =>
+              this.brandsService.findOne({
+                isDeleted: false,
+                organizationId: organization.id,
+              }),
+          );
 
           return {
             brand: brand
@@ -165,14 +181,55 @@ export class OrganizationsOperationsService {
     });
     const organizationId = organization.id.toString();
 
+    // Everything below provisions the NEW organization, which is not the
+    // creator's request tenant; scope it to the org it creates.
+    const brand = await runWithTenantContext({ organizationId }, () =>
+      this.provisionOrganization({ input, label, organization, user, userId }),
+    );
+
+    await this.usersService.patch(userId, {
+      lastUsedOrganizationId: organizationId,
+    });
+    await this.userAccessCacheService.invalidateAll(userId);
+
+    // The brands layer sits above this collection, so the background brand
+    // scan listens for the event rather than being called. `emit` does not
+    // await listeners, so the response never waits on queueing.
+    const event: OrganizationCreatedEvent = {
+      brandId: brand.id.toString(),
+      organizationId,
+      userId,
+      ...(input.websiteUrl?.trim()
+        ? { websiteUrl: input.websiteUrl.trim() }
+        : {}),
+    };
+    this.eventEmitter.emit(ORGANIZATION_CREATED_EVENT, event);
+
+    return {
+      brand: { id: brand.id.toString(), label: brand.label },
+      organization: { id: organizationId, label: organization.label },
+    };
+  }
+
+  private async provisionOrganization(params: {
+    input: CreateOrganizationOperationInput;
+    label: string;
+    organization: OrganizationDocument;
+    user: User;
+    userId: string;
+  }) {
+    const { input, label, organization, user, userId } = params;
+    const organizationId = organization.id.toString();
+
     await this.organizationSettingsService.ensureForOrganization(
       organization.id,
     );
 
     const brand = await this.brandsService.create({
       backgroundColor: '#000000',
-      description:
-        input.description ?? 'Default description. Use it as a pre-prompt',
+      // An empty description stays empty: placeholder copy would read as real
+      // brand context to every prompt builder.
+      description: input.description?.trim() || undefined,
       fontFamily: 'montserrat-black',
       label,
       organizationId: organization.id,
@@ -204,15 +261,7 @@ export class OrganizationsOperationsService {
     });
     await this.skillLibrary?.attachSharedDefaults(organizationId, userId);
 
-    await this.usersService.patch(userId, {
-      lastUsedOrganizationId: organizationId,
-    });
-    await this.userAccessCacheService.invalidateAll(userId);
-
-    return {
-      brand: { id: brand.id.toString(), label: brand.label },
-      organization: { id: organizationId, label: organization.label },
-    };
+    return brand;
   }
 
   async switchOrganization(
@@ -220,6 +269,19 @@ export class OrganizationsOperationsService {
     user: User,
   ): Promise<OrganizationSelectionResult> {
     const userId = this.requireUserId(user);
+    // Authorization (membership or superadmin) is the first statement inside
+    // the switch; every query after it targets the selected organization,
+    // which is intentionally not the caller's current request tenant.
+    return runWithTenantContext({ organizationId }, () =>
+      this.switchIntoOrganization(organizationId, user, userId),
+    );
+  }
+
+  private async switchIntoOrganization(
+    organizationId: string,
+    user: User,
+    userId: string,
+  ): Promise<OrganizationSelectionResult> {
     const member = await this.membersService.findOne({
       isActive: true,
       organizationId,

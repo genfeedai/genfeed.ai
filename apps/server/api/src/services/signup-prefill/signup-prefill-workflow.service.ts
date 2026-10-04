@@ -12,8 +12,19 @@ import type { SignupPrefillWorkflowInput } from '@genfeedai/contracts/interfaces
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
-export function signupPrefillJobId(userId: string): string {
-  return `signup-prefill-${userId}`;
+/**
+ * Where a prefill run was requested: the account's first brand at signup, or
+ * the default brand of an organization created later.
+ */
+export type SignupPrefillSource = 'organization-create' | 'signup';
+
+/**
+ * Keyed on the brand, not the user: a user who creates a second organization
+ * while their signup prefill is still running must get a run of their own
+ * (an in-flight job under the same id swallows the new one).
+ */
+export function signupPrefillJobId(brandId: string): string {
+  return `signup-prefill-${brandId}`;
 }
 
 @Injectable()
@@ -64,7 +75,10 @@ export class SignupPrefillWorkflowService implements OnModuleInit {
     this.runner.registerWorkflow(buildSignupPrefillWorkflowDefinition());
   }
 
-  async enqueuePrefill(request: SignupPrefillWorkflowInput): Promise<void> {
+  async enqueuePrefill(
+    request: SignupPrefillWorkflowInput,
+    source: SignupPrefillSource = 'signup',
+  ): Promise<void> {
     const definition = buildSignupPrefillWorkflowDefinition();
     await this.queue.queueSystemWorkflow(
       {
@@ -72,10 +86,10 @@ export class SignupPrefillWorkflowService implements OnModuleInit {
         canonicalId: definition.canonicalId,
         inputValues: { request },
         organizationId: request.organizationId,
-        source: 'signup',
+        source,
         userId: request.userId,
       },
-      signupPrefillJobId(request.userId),
+      signupPrefillJobId(request.brandId),
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,

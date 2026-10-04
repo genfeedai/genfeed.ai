@@ -45,15 +45,22 @@ export class TrendAnalysisService {
     organizationId?: string,
     brandId?: string,
   ): Promise<void> {
-    await this.prisma.trend.updateMany({
-      data: { isCurrent: false },
-      where: {
-        brandId: brandId ?? null,
-        isCurrent: true,
-        isDeleted: false,
-        organizationId: organizationId ?? null,
-      },
-    });
+    const markHistorical = async () =>
+      await this.prisma.trend.updateMany({
+        data: { isCurrent: false },
+        where: {
+          brandId: brandId ?? null,
+          isCurrent: true,
+          isDeleted: false,
+          organizationId: organizationId ?? null,
+        },
+      });
+    if (organizationId) {
+      await markHistorical();
+      return;
+    }
+    // Platform-global trend corpus refresh: no tenant owns these rows.
+    await crossOrgUnsafe(async () => await markHistorical());
   }
 
   /**

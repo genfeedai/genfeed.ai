@@ -159,7 +159,7 @@ export class ContentPlansService extends BaseService<
           this.buildConfigPayload(updateDto, existing.config),
         ),
       },
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
     })) as PrismaContentPlan;
 
     return this.toDocument(updated);
@@ -214,7 +214,7 @@ export class ContentPlansService extends BaseService<
           this.buildConfigPayload({ status }, existing.config),
         ),
       },
-      where: { id: planId },
+      where: scopedWhere(organizationId, { id: planId }),
     })) as PrismaContentPlan;
 
     return this.toDocument(updated);
@@ -254,7 +254,7 @@ export class ContentPlansService extends BaseService<
 
     const updated = (await this.delegate.update({
       data: { isDeleted: true },
-      where: { id: planId },
+      where: scopedWhere(organizationId, { id: planId }),
     })) as PrismaContentPlan;
 
     return this.toDocument(updated);

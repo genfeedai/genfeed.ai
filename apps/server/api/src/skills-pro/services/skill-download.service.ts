@@ -10,6 +10,7 @@ import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.se
 import { parseSkillsProPack } from '@api/skills-pro/utils/skill-pack-archive.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   ConflictException,
   ForbiddenException,
@@ -349,17 +350,29 @@ export class SkillDownloadService {
   }
 
   private async findCompletedReceiptCandidate(receiptId: string) {
-    // tenant-scope-ignore: an opaque globally unique bearer receipt is looked up once so an authenticated organization can atomically claim it before data is returned
-    return this.prisma.skillReceipt.findFirst({
-      where: {
-        isDeleted: false,
-        OR: [
-          { receiptId },
-          { data: { equals: receiptId, path: ['receiptId'] } },
-        ],
-        status: 'completed',
-      },
-    });
+    return this.onGlobalReceipt(
+      async () =>
+        // tenant-scope-ignore: an opaque globally unique bearer receipt is looked up once so an authenticated organization can atomically claim it before data is returned
+        await this.prisma.skillReceipt.findFirst({
+          where: {
+            isDeleted: false,
+            OR: [
+              { receiptId },
+              { data: { equals: receiptId, path: ['receiptId'] } },
+            ],
+            status: 'completed',
+          },
+        }),
+    );
+  }
+
+  /**
+   * A bearer receipt is globally unique and may still be organization-less, so
+   * it has no tenant the CLOUD guard can prove. This is the single place the
+   * receipt hatch is opened; the receipt secret is the authorization.
+   */
+  private onGlobalReceipt<T>(run: () => Promise<T>): Promise<T> {
+    return crossOrgUnsafe(async () => await run());
   }
 
   private isReceiptExpired(receipt: { expiresAt: Date | null }): boolean {
@@ -398,15 +411,18 @@ export class SkillDownloadService {
 
     if (!candidate.organizationId) {
       // sql-risk-audit: ignore bulk-write-tenant-review -- Atomically claims one globally unique, organization-less bearer receipt before any entitlement data is returned.
-      const claimed = await this.prisma.skillReceipt.updateMany({
-        data: { organizationId },
-        where: {
-          id: candidate.id,
-          isDeleted: false,
-          organizationId: null,
-          status: 'completed',
-        },
-      });
+      const claimed = await this.onGlobalReceipt(
+        async () =>
+          await this.prisma.skillReceipt.updateMany({
+            data: { organizationId },
+            where: {
+              id: candidate.id,
+              isDeleted: false,
+              organizationId: null,
+              status: 'completed',
+            },
+          }),
+      );
       if (claimed.count !== 1) {
         return null;
       }

@@ -350,12 +350,16 @@ export class PostsController extends BaseCRUDController<
     }
 
     // Fetch all children of this post, sorted by order
-    const children = await this.postsService.getChildren(postId, [
-      PopulatePatterns.ingredientsMinimal,
-      PopulatePatterns.credentialMinimal,
-      PopulatePatterns.userMinimal,
-      PopulatePatterns.brandMinimal,
-    ]);
+    const children = await this.postsService.getChildren(
+      postId,
+      user.organizationId,
+      [
+        PopulatePatterns.ingredientsMinimal,
+        PopulatePatterns.credentialMinimal,
+        PopulatePatterns.userMinimal,
+        PopulatePatterns.brandMinimal,
+      ],
+    );
 
     // Fetch analytics summary for this post (non-blocking, returns null on error)
     let analytics = null;

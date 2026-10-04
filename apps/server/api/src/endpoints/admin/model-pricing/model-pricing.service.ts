@@ -5,12 +5,16 @@ import type {
   AdminModelPricingRow,
   ModelPricingEvidence,
 } from '@genfeedai/contracts/interfaces';
-import { quoteModelBillablePricing } from '@genfeedai/pricing';
+import {
+  hasPendingProviderRateDrift,
+  quoteModelBillablePricing,
+} from '@genfeedai/pricing';
 import {
   type Model,
   type ModelProviderContract,
   Prisma,
 } from '@genfeedai/prisma';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 
 const pricingContractSelect = {
@@ -217,7 +221,12 @@ export function projectAdminModelPricing(
     else if (age > 30 * 86_400_000)
       reasons.push('Provider rate verification is older than 30 days');
   }
-  if (pending && pending.version !== reviewed?.version)
+  if (
+    hasPendingProviderRateDrift(
+      model.reviewedProviderContractVersion,
+      model.pendingProviderContractVersion,
+    )
+  )
     reasons.push(
       'Pending provider contract requires review before reconciliation',
     );
@@ -338,11 +347,15 @@ export class AdminModelPricingService {
       async (transaction) => {
         const retrievedAt = new Date().toISOString();
         const [models, setting] = await Promise.all([
-          transaction.model.findMany({
-            where: { organizationId: null, isDeleted: false },
-            orderBy: { key: 'asc' },
-            select: pricingModelSelect,
-          }),
+          // Superadmin report over the platform-global model registry.
+          crossOrgUnsafe(
+            async () =>
+              await transaction.model.findMany({
+                where: { organizationId: null, isDeleted: false },
+                orderBy: { key: 'asc' },
+                select: pricingModelSelect,
+              }),
+          ),
           transaction.platformSetting.findFirst({
             where: { key: 'platform', isDeleted: false },
             select: { marginMultiplierGeneration: true },

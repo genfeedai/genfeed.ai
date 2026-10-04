@@ -206,6 +206,7 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
     expect(result.error).toContain('no longer an active member');
     expect(executionsService.completeExecution).toHaveBeenCalledWith(
       'execution-1',
+      'org-1',
       expect.stringContaining('no longer an active member'),
     );
     expect(documentService.findPinnedWorkflow).not.toHaveBeenCalled();
@@ -234,6 +235,7 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
     expect(result.error).toBe('lease lost mid-resume');
     expect(executionsService.completeExecution).toHaveBeenCalledWith(
       'execution-1',
+      'org-1',
       'lease lost mid-resume',
     );
     expect(prisma.workflow.update).toHaveBeenCalledWith(

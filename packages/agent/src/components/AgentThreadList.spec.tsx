@@ -1,5 +1,11 @@
 import { AgentThreadList } from '@genfeedai/agent/components/AgentThreadList';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
+import {
+  type AgentRunRecord,
+  IDLE_RUN,
+  runKeyFor,
+  selectActiveRun,
+} from '@genfeedai/agent/stores/agent-chat.store.run';
 import { AgentThreadMode } from '@genfeedai/contracts';
 import {
   act,
@@ -85,14 +91,6 @@ vi.mock('@ui/buttons/base/Button', () => ({
 }));
 
 interface AgentChatStoreState {
-  activeRunId: string | null;
-  activeRunStatus:
-    | 'idle'
-    | 'running'
-    | 'cancelling'
-    | 'completed'
-    | 'failed'
-    | 'cancelled';
   activeThreadId: string | null;
   cacheConversation: ReturnType<typeof vi.fn>;
   clearConversationCache: ReturnType<typeof vi.fn>;
@@ -112,7 +110,7 @@ interface AgentChatStoreState {
   resetActiveConversationState: ReturnType<typeof vi.fn>;
   resetStreamState: ReturnType<typeof vi.fn>;
   restoreCachedConversation: ReturnType<typeof vi.fn>;
-  runStartedAt: string | null;
+  runsByThread: Record<string, AgentRunRecord>;
   stream: {
     activeToolCalls: unknown[];
     isStreaming: boolean;
@@ -134,8 +132,6 @@ interface AgentChatStoreState {
 }
 
 const storeState: AgentChatStoreState = {
-  activeRunId: null,
-  activeRunStatus: 'idle',
   activeThreadId: null,
   cacheConversation: vi.fn(),
   clearConversationCache: vi.fn(),
@@ -149,14 +145,15 @@ const storeState: AgentChatStoreState = {
   pendingInputRequest: null,
   primeConversationCache: vi.fn(),
   resetActiveConversationState: vi.fn(() => {
-    storeState.activeRunId = null;
-    storeState.activeRunStatus = 'idle';
+    storeState.runsByThread = {
+      ...storeState.runsByThread,
+      [runKeyFor(storeState.activeThreadId)]: IDLE_RUN,
+    };
     storeState.composerSeed = null;
     storeState.draftAgentMode = AgentThreadMode.MANUAL;
     storeState.latestProposedPlan = null;
     storeState.messages = [];
     storeState.pendingInputRequest = null;
-    storeState.runStartedAt = null;
     storeState.stream = {
       activeToolCalls: [],
       isStreaming: false,
@@ -169,7 +166,7 @@ const storeState: AgentChatStoreState = {
   }),
   resetStreamState: vi.fn(),
   restoreCachedConversation: vi.fn(() => false),
-  runStartedAt: null,
+  runsByThread: {},
   setActiveRun: vi.fn(),
   setActiveThread: vi.fn((threadId: string | null) => {
     storeState.activeThreadId = threadId;
@@ -202,6 +199,17 @@ vi.mock('../stores/agent-chat.store', () => ({
     },
   ),
 }));
+
+function seedRun(threadId: string, patch: Partial<AgentRunRecord>): void {
+  storeState.runsByThread = {
+    ...storeState.runsByThread,
+    [runKeyFor(threadId)]: {
+      ...IDLE_RUN,
+      ...storeState.runsByThread[runKeyFor(threadId)],
+      ...patch,
+    },
+  };
+}
 
 function createThread(
   id: string,
@@ -276,15 +284,13 @@ describe('AgentThreadList', () => {
 
   beforeEach(() => {
     prefetchRoute.mockReset();
-    storeState.activeRunId = null;
-    storeState.activeRunStatus = 'idle';
+    storeState.runsByThread = {};
     storeState.activeThreadId = null;
     storeState.composerSeed = null;
     storeState.draftAgentMode = AgentThreadMode.MANUAL;
     storeState.latestProposedPlan = null;
     storeState.messages = [];
     storeState.pendingInputRequest = null;
-    storeState.runStartedAt = null;
     storeState.threads = [];
     storeState.clearMessages.mockReset();
     storeState.clearThreadAttention.mockReset();
@@ -1004,7 +1010,7 @@ describe('AgentThreadList', () => {
       runStatus: 'running',
     } as Partial<AgentThread>);
     storeState.activeThreadId = 'conv-1';
-    storeState.activeRunStatus = 'running';
+    seedRun('conv-1', { status: 'running' });
 
     const apiService = createApiService({
       getThreads: vi.fn().mockResolvedValue([thread]),
@@ -1028,7 +1034,7 @@ describe('AgentThreadList', () => {
       runStatus: 'running',
     } as Partial<AgentThread>);
     storeState.activeThreadId = 'conv-2';
-    storeState.activeRunStatus = 'idle';
+    seedRun('conv-2', { status: 'idle' });
 
     const apiService = createApiService({
       getThreads: vi.fn().mockResolvedValue([thread]),
@@ -1071,7 +1077,7 @@ describe('AgentThreadList', () => {
       runStatus: 'running',
     } as Partial<AgentThread>);
     storeState.activeThreadId = 'conv-2';
-    storeState.activeRunStatus = 'idle';
+    seedRun('conv-2', { status: 'idle' });
 
     const apiService = createApiService({
       getThreads: vi.fn().mockResolvedValue([thread]),
@@ -1089,7 +1095,7 @@ describe('AgentThreadList', () => {
       runStatus: 'running',
     } as Partial<AgentThread>);
     storeState.activeThreadId = 'conv-1';
-    storeState.activeRunStatus = 'idle';
+    seedRun('conv-1', { status: 'idle' });
 
     const apiService = createApiService({
       getThreads: vi.fn().mockResolvedValue([thread]),
@@ -1159,8 +1165,11 @@ describe('AgentThreadList', () => {
 
     // The previous scope left an active, streaming conversation behind.
     storeState.activeThreadId = 'conv-a';
-    storeState.activeRunId = 'run-a';
-    storeState.activeRunStatus = 'running';
+    seedRun('conv-a', {
+      runId: 'run-a',
+      startedAt: '2026-08-07T00:00:00.000Z',
+      status: 'running',
+    });
     storeState.composerSeed = {
       content: 'Brand A draft',
       nonce: 1,
@@ -1170,7 +1179,6 @@ describe('AgentThreadList', () => {
     storeState.latestProposedPlan = { id: 'plan-a' };
     storeState.messages = [{ id: 'message-a' }];
     storeState.pendingInputRequest = { id: 'input-a' };
-    storeState.runStartedAt = '2026-08-07T00:00:00.000Z';
     storeState.stream = {
       activeToolCalls: [{ id: 'tool-a' }],
       isStreaming: true,
@@ -1206,14 +1214,12 @@ describe('AgentThreadList', () => {
     expect(storeState.setActiveThread).toHaveBeenCalledWith(null);
     expect(storeState.resetActiveConversationState).toHaveBeenCalledTimes(1);
     expect(storeState.activeThreadId).toBeNull();
-    expect(storeState.activeRunId).toBeNull();
-    expect(storeState.activeRunStatus).toBe('idle');
+    expect(selectActiveRun(storeState)).toEqual(IDLE_RUN);
     expect(storeState.composerSeed).toBeNull();
     expect(storeState.draftAgentMode).toBe(AgentThreadMode.MANUAL);
     expect(storeState.latestProposedPlan).toBeNull();
     expect(storeState.messages).toEqual([]);
     expect(storeState.pendingInputRequest).toBeNull();
-    expect(storeState.runStartedAt).toBeNull();
     expect(storeState.stream).toEqual({
       activeToolCalls: [],
       isStreaming: false,
@@ -1229,7 +1235,7 @@ describe('AgentThreadList', () => {
   it('shows an accessible animated dot while a local ui action is busy', async () => {
     const thread = createThread('conv-1', 'Generate launch creative');
     storeState.activeThreadId = 'conv-1';
-    storeState.activeRunStatus = 'idle';
+    seedRun('conv-1', { status: 'idle' });
     storeState.threadUiBusyById = { 'conv-1': true };
 
     const apiService = createApiService({

@@ -3,6 +3,7 @@
 import type { SendStreamMessageOptions } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import { useDesktopLocalTools } from '@genfeedai/agent/hooks/use-desktop-local-tools';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
 import {
   DESKTOP_CLI_RUNTIME_CHECKING_MESSAGE,
   getDesktopCliRuntimeOption,
@@ -123,10 +124,10 @@ export function useDesktopCliAgentChat(): DesktopCliAgentChat {
       return false;
     }
 
-    const { activeRunId, activeThreadId: visibleThreadId } =
-      useAgentChatStore.getState();
+    const visibleState = useAgentChatStore.getState();
+    const visibleThreadId = visibleState.activeThreadId;
     if (
-      activeRunId !== activeTurn.runId &&
+      selectActiveRun(visibleState).runId !== activeTurn.runId &&
       visibleThreadId !== activeTurn.threadId
     ) {
       return false;

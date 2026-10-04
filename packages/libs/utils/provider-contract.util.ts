@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { sha256Hex, stableStringify } from './canonical-hash.util';
 
 export interface ReplicateProviderContractHashInput {
   endpoint: string;
@@ -14,19 +14,9 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function canonicalize(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalize).join(',')}]`;
-  if (isRecord(value))
-    return `{${Object.keys(value)
-      .sort()
-      .map((key) => `${JSON.stringify(key)}:${canonicalize(value[key])}`)
-      .join(',')}}`;
-  return JSON.stringify(value) ?? 'null';
-}
-
 /** Canonical snapshot identity, shared by discovery and admission. */
 export function hashProviderContract(value: unknown): string {
-  return `sha256:${createHash('sha256').update(canonicalize(value)).digest('hex')}`;
+  return `sha256:${sha256Hex(stableStringify(value))}`;
 }
 
 /** Keep the discovery preimage and immutable-version proof byte-identical. */

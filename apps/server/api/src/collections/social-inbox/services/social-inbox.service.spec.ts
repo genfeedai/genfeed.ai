@@ -8,9 +8,11 @@ import { SocialInboxQueryService } from '@api/collections/social-inbox/services/
 import { SocialInboxReadStateService } from '@api/collections/social-inbox/services/social-inbox-read-state.service';
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
 import { X_RATE_LIMIT_ERROR } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
+import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import { createSystemWorkflowRunnerMock } from '@api/shared/testing/system-workflow-runner-mock';
 import { Platform, SocialConversationType } from '@genfeedai/contracts';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
   BadGatewayException,
   BadRequestException,
@@ -1012,6 +1014,64 @@ describe('SocialInboxService', () => {
         conversationId: inbound.conversationId,
         organizationId: 'org-1',
       });
+    });
+
+    it('keeps draft approval, rejection and conversation writes inside the CLOUD tenant guard', async () => {
+      const context = createContext();
+      const inbound = await context.service.ingestInboundMessage({
+        body: 'Inbound',
+        brandId: 'brand-1',
+        conversationType: 'comment',
+        externalConversationId: 'thread-guard',
+        externalMessageId: 'comment-guard',
+        externalParentId: 'comment-guard',
+        organizationId: 'org-1',
+        platform: 'youtube',
+        sourceContentUrl: 'https://youtube.com/watch?v=video-1',
+      });
+      const approvedDraft = await context.service.createDraft(
+        scope,
+        inbound.conversationId,
+        { text: 'Approve me' },
+      );
+      const rejectedDraft = await context.service.createDraft(
+        scope,
+        inbound.conversationId,
+        { text: 'Reject me' },
+      );
+      context.prisma.socialConversation.update.mockClear();
+      context.prisma.socialMessage.update.mockClear();
+
+      await runWithTenantContext({ organizationId: 'org-1' }, async () => {
+        await context.service.approveDraft(
+          scope,
+          inbound.conversationId,
+          approvedDraft.id,
+        );
+        await context.service.rejectDraft(
+          scope,
+          inbound.conversationId,
+          rejectedDraft.id,
+        );
+        await context.service.updateConversation(
+          scope,
+          inbound.conversationId,
+          {
+            tags: ['vip'],
+          },
+        );
+      });
+
+      expectCloudGuardPasses(
+        'SocialConversation',
+        'update',
+        context.prisma.socialConversation.update,
+      );
+      expectCloudGuardPasses(
+        'SocialMessage',
+        'update',
+        context.prisma.socialMessage.update,
+      );
     });
 
     it('clears reply notifications for the whole team once a DM is sent', async () => {

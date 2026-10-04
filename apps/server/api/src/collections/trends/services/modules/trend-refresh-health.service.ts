@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { writeNotificationOutbox } from '@api/services/activity-recording/notification-outbox.writer';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { TrendRefreshHealth } from '@genfeedai/contracts/interfaces';
+import { withPlatformTenantArm } from '@libs/prisma/platform-scope';
 import { Injectable } from '@nestjs/common';
 
 export const TREND_REFRESH_EVENT_TYPE = 'trend_refresh_health';
@@ -140,18 +141,22 @@ export class TrendRefreshHealthService {
     organizationId: string | null,
     dataset: Pick<TrendRefreshHealth, 'platform' | 'dataset'>,
   ): Promise<TrendRefreshHealth | null> {
-    const where = {
+    // The platform-wide refresh evidence is read inside a tenant request, so
+    // the guard needs the caller named; `organizationId: null` still decides.
+    const where = withPlatformTenantArm({
       isDeleted: false,
       organizationId,
       sourceId: sourceId(dataset),
       sourceType: TREND_REFRESH_EVENT_TYPE,
-    };
+    });
     const [row, successful] = await Promise.all([
+      // tenant-scope-ignore: where names the organization (or the platform null with the tenant proof from withPlatformTenantArm); isDeleted is false
       this.prisma.notificationEvent.findFirst({
         orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
         select: { payload: true },
         where,
       }),
+      // tenant-scope-ignore: same where as the lookup above
       this.prisma.notificationEvent.findFirst({
         orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
         select: { payload: true },

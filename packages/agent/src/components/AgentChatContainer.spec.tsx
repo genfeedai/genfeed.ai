@@ -5,6 +5,11 @@ import {
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
+import {
+  type AgentRunRecord,
+  IDLE_RUN,
+  runKeyFor,
+} from '@genfeedai/agent/stores/agent-chat.store.run';
 import { AgentThreadMode } from '@genfeedai/contracts';
 import {
   act,
@@ -320,15 +325,6 @@ vi.mock('@genfeedai/agent/components/AgentInputRequestOverlay', () => ({
 
 type StoreState = {
   activeThreadId: string | null;
-  activeRunId: string | null;
-  activeRunStatus:
-    | 'idle'
-    | 'awaiting_input'
-    | 'running'
-    | 'cancelling'
-    | 'failed'
-    | 'completed'
-    | 'cancelled';
   addMessage: ReturnType<typeof vi.fn>;
   addWorkEvent: ReturnType<typeof vi.fn>;
   clearPendingInputRequest: ReturnType<typeof vi.fn>;
@@ -357,7 +353,6 @@ type StoreState = {
   setDraftRuntimeKey: ReturnType<typeof vi.fn>;
   conversationCacheByThread: Record<string, unknown>;
   error: string | null;
-  isGenerating: boolean;
   messages: AgentChatMessageType[];
   messagesCursor: string | null;
   prependOlderMessages: ReturnType<typeof vi.fn>;
@@ -370,7 +365,7 @@ type StoreState = {
     runId: string;
     title: string;
   } | null;
-  runStartedAt: string | null;
+  runsByThread: Record<string, AgentRunRecord>;
   socketConnectionState: 'connected';
   setActiveThread: ReturnType<typeof vi.fn>;
   setActiveRun: ReturnType<typeof vi.fn>;
@@ -400,9 +395,15 @@ type StoreState = {
   workEvents: [];
 };
 
+function setRun(patch: Partial<AgentRunRecord>): void {
+  const key = runKeyFor(storeState.activeThreadId);
+  storeState.runsByThread = {
+    ...storeState.runsByThread,
+    [key]: { ...IDLE_RUN, ...storeState.runsByThread[key], ...patch },
+  };
+}
+
 const storeState: StoreState = {
-  activeRunId: 'run-1',
-  activeRunStatus: 'idle',
   activeThreadId: 'thread-1',
   addMessage: vi.fn(),
   addWorkEvent: vi.fn(),
@@ -416,7 +417,6 @@ const storeState: StoreState = {
   error: null,
   hasMoreMessages: false,
   isLoadingOlderMessages: false,
-  isGenerating: false,
   latestProposedPlan: null,
   messages: [
     {
@@ -442,7 +442,9 @@ const storeState: StoreState = {
     storeState.hasMoreMessages = page.hasMore;
     storeState.messagesCursor = page.nextCursor;
   }),
-  runStartedAt: null,
+  runsByThread: {
+    'thread-1': { ...IDLE_RUN, runId: 'run-1' },
+  },
   socketConnectionState: 'connected',
   setActiveRun: vi.fn(),
   setActiveRunStatus: vi.fn(),
@@ -595,25 +597,25 @@ describe('AgentChatContainer', () => {
       title: 'Prompt bar mode',
     };
     storeState.messages = [buildAssistantMessage()];
-    storeState.isGenerating = false;
+    storeState.runsByThread = {};
     storeState.stream.isStreaming = false;
     storeState.messagesCursor = null;
-    storeState.runStartedAt = null;
+    setRun({ startedAt: null });
     storeState.stream.pendingUiActions = [];
     storeState.stream.streamingContent = '';
     storeState.workEvents = [];
     storeState.threads = [];
     storeState.draftRuntimeKey = null;
-    storeState.isGenerating = false;
+    setRun({ isGenerating: false });
     storeState.error = null;
-    storeState.activeRunId = 'run-1';
-    storeState.activeRunStatus = 'idle';
+    setRun({ runId: 'run-1' });
+    setRun({ status: 'idle' });
   });
 
   it('clears a stale local run when the server has no active execution for the thread', async () => {
     const apiService = createApiService();
-    storeState.activeRunId = 'run-stale';
-    storeState.activeRunStatus = 'running';
+    setRun({ runId: 'run-stale' });
+    setRun({ status: 'running' });
 
     render(<AgentChatContainer apiService={apiService as never} isStreaming />);
 
@@ -655,11 +657,11 @@ describe('AgentChatContainer', () => {
         },
       ]),
     });
-    storeState.activeRunId = 'run-pending';
-    storeState.activeRunStatus = 'idle';
+    setRun({ runId: 'run-pending' });
+    setRun({ status: 'idle' });
     storeState.setActiveRun.mockImplementation((id, options) => {
-      storeState.activeRunId = id;
-      storeState.activeRunStatus = options.status;
+      setRun({ runId: id });
+      setRun({ status: options.status });
     });
     const view = render(
       <AgentChatContainer apiService={apiService as never} isStreaming />,
@@ -698,15 +700,15 @@ describe('AgentChatContainer', () => {
           return [{ id: 'run-1', metadata: { threadId: 'thread-1' }, status }];
         }),
       });
-      storeState.activeRunId = 'run-1';
-      storeState.activeRunStatus = 'running';
+      setRun({ runId: 'run-1' });
+      setRun({ status: 'running' });
       render(
         <AgentChatContainer apiService={apiService as never} isStreaming />,
       );
       await waitFor(() =>
         expect(apiService.getActiveWorkflowExecutions).toHaveBeenCalledOnce(),
       );
-      storeState.activeRunStatus = terminal;
+      setRun({ status: terminal });
       await act(async () => {
         release();
         await gate;
@@ -737,7 +739,7 @@ describe('AgentChatContainer', () => {
     await waitFor(() =>
       expect(apiService.getActiveWorkflowExecutions).toHaveBeenCalledOnce(),
     );
-    storeState.activeRunId = 'run-new';
+    setRun({ runId: 'run-new' });
     await act(async () => {
       release();
       await gate;
@@ -747,7 +749,7 @@ describe('AgentChatContainer', () => {
   });
   it('reconciles a terminal snapshot run that arrives after the first active execution query', async () => {
     const apiService = createApiService();
-    storeState.activeRunId = null;
+    setRun({ runId: null });
 
     const view = render(
       <AgentChatContainer apiService={apiService as never} isStreaming />,
@@ -758,7 +760,7 @@ describe('AgentChatContainer', () => {
     });
     expect(storeState.clearStaleActiveRun).not.toHaveBeenCalled();
 
-    storeState.activeRunId = 'run-from-terminal-snapshot';
+    setRun({ runId: 'run-from-terminal-snapshot' });
     view.rerender(
       <AgentChatContainer apiService={apiService as never} isStreaming />,
     );
@@ -779,14 +781,14 @@ describe('AgentChatContainer', () => {
           }),
       ),
     });
-    storeState.activeRunId = 'run-stale';
+    setRun({ runId: 'run-stale' });
 
     render(<AgentChatContainer apiService={apiService as never} isStreaming />);
 
     await waitFor(() => {
       expect(apiService.getActiveWorkflowExecutions).toHaveBeenCalledTimes(1);
     });
-    storeState.activeRunId = 'run-new';
+    setRun({ runId: 'run-new' });
     resolveExecutions([]);
 
     await act(async () => {
@@ -857,7 +859,7 @@ describe('AgentChatContainer', () => {
       storeState.pendingInputRequest = null;
     });
     cancelRunHandoff.mockImplementation(() => {
-      storeState.activeRunStatus = 'completed';
+      setRun({ status: 'completed' });
       storeState.pendingInputRequest = null;
     });
     const apiService = createApiService({
@@ -1165,7 +1167,7 @@ describe('AgentChatContainer', () => {
           }),
       ),
     });
-    storeState.activeRunStatus = 'awaiting_input';
+    setRun({ status: 'awaiting_input' });
     storeState.stream.isStreaming = true;
     storeState.pendingInputRequest = {
       allowFreeText: true,
@@ -1818,7 +1820,7 @@ describe('AgentChatContainer', () => {
 
     storeState.pendingInputRequest = null;
     storeState.messages = [];
-    storeState.isGenerating = true;
+    setRun({ isGenerating: true });
 
     render(
       <AgentChatContainer
@@ -1846,8 +1848,8 @@ describe('AgentChatContainer', () => {
 
     storeState.pendingInputRequest = null;
     storeState.messages = [];
-    storeState.activeRunId = 'run-1';
-    storeState.activeRunStatus = 'running';
+    setRun({ runId: 'run-1' });
+    setRun({ status: 'running' });
 
     render(
       <AgentChatContainer
@@ -1872,9 +1874,9 @@ describe('AgentChatContainer', () => {
 
     storeState.pendingInputRequest = null;
     storeState.messages = [];
-    storeState.isGenerating = false;
+    setRun({ isGenerating: false });
     sendNonStreaming.mockImplementationOnce(() => {
-      storeState.isGenerating = true;
+      setRun({ isGenerating: true });
     });
 
     render(
@@ -1901,7 +1903,7 @@ describe('AgentChatContainer', () => {
     const apiService = createApiService();
 
     storeState.pendingInputRequest = null;
-    storeState.isGenerating = true;
+    setRun({ isGenerating: true });
     storeState.messages = [
       {
         content: 'Original prompt',
@@ -1928,7 +1930,7 @@ describe('AgentChatContainer', () => {
     const apiService = createApiService();
     storeState.pendingInputRequest = null;
     storeState.messages = [];
-    storeState.isGenerating = true;
+    setRun({ isGenerating: true });
 
     const view = render(
       <AgentChatContainer
@@ -1944,7 +1946,7 @@ describe('AgentChatContainer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Second' }));
     expect(sendNonStreaming).not.toHaveBeenCalled();
 
-    storeState.isGenerating = false;
+    setRun({ isGenerating: false });
     view.rerender(
       <AgentChatContainer
         apiService={apiService as never}
@@ -1968,7 +1970,7 @@ describe('AgentChatContainer', () => {
     const apiService = createApiService();
     storeState.pendingInputRequest = null;
     storeState.messages = [];
-    storeState.isGenerating = true;
+    setRun({ isGenerating: true });
 
     const view = render(
       <AgentChatContainer
@@ -1984,7 +1986,7 @@ describe('AgentChatContainer', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Review' }));
-    storeState.isGenerating = false;
+    setRun({ isGenerating: false });
     storeState.error = 'Generation failed';
     view.rerender(
       <AgentChatContainer
@@ -2014,9 +2016,9 @@ describe('AgentChatContainer', () => {
     });
     storeState.pendingInputRequest = null;
     storeState.messages = [];
-    storeState.isGenerating = true;
-    storeState.activeRunId = 'run-1';
-    storeState.activeRunStatus = 'running';
+    setRun({ isGenerating: true });
+    setRun({ runId: 'run-1' });
+    setRun({ status: 'running' });
 
     const view = render(
       <AgentChatContainer
@@ -2039,8 +2041,8 @@ describe('AgentChatContainer', () => {
     });
     expect(sendNonStreaming).not.toHaveBeenCalled();
 
-    storeState.isGenerating = false;
-    storeState.activeRunStatus = 'cancelled';
+    setRun({ isGenerating: false });
+    setRun({ status: 'cancelled' });
     view.rerender(
       <AgentChatContainer
         apiService={apiService as never}
@@ -2081,8 +2083,8 @@ describe('AgentChatContainer', () => {
       ]),
     });
     isStreamingHookActive = true;
-    storeState.activeRunId = 'run-1';
-    storeState.activeRunStatus = 'running';
+    setRun({ runId: 'run-1' });
+    setRun({ status: 'running' });
 
     render(<AgentChatContainer apiService={apiService as never} isStreaming />);
     fireEvent.click(screen.getByRole('button', { name: 'Stop agent' }));
@@ -2100,7 +2102,7 @@ describe('AgentChatContainer', () => {
     const apiService = createApiService();
     storeState.pendingInputRequest = null;
     storeState.messages = [];
-    storeState.isGenerating = true;
+    setRun({ isGenerating: true });
     storeState.activeThreadId = 'thread-1';
 
     const view = render(
@@ -2119,6 +2121,7 @@ describe('AgentChatContainer', () => {
     );
 
     storeState.activeThreadId = 'thread-2';
+    setRun({ isGenerating: true });
     view.rerender(
       <AgentChatContainer
         apiService={apiService as never}
@@ -2157,7 +2160,7 @@ describe('AgentChatContainer', () => {
     const apiService = createApiService();
     storeState.pendingInputRequest = null;
     storeState.messages = [];
-    storeState.isGenerating = true;
+    setRun({ isGenerating: true });
 
     const view = render(
       <AgentChatContainer
@@ -2172,7 +2175,7 @@ describe('AgentChatContainer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'First' }));
     fireEvent.click(screen.getByRole('button', { name: 'Second' }));
 
-    storeState.isGenerating = false;
+    setRun({ isGenerating: false });
     view.rerender(
       <AgentChatContainer
         apiService={apiService as never}
@@ -2203,7 +2206,7 @@ describe('AgentChatContainer', () => {
     const apiService = createApiService();
     storeState.pendingInputRequest = null;
     storeState.messages = [];
-    storeState.isGenerating = true;
+    setRun({ isGenerating: true });
 
     const view = render(
       <AgentChatContainer
@@ -2220,7 +2223,7 @@ describe('AgentChatContainer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Second' }));
     expect(sendStreaming).not.toHaveBeenCalled();
 
-    storeState.isGenerating = false;
+    setRun({ isGenerating: false });
     isStreamingHookActive = false;
     view.rerender(
       <AgentChatContainer
@@ -2326,7 +2329,7 @@ describe('AgentChatContainer', () => {
 
     storeState.pendingInputRequest = null;
     storeState.messages = [buildAssistantMessage()];
-    storeState.activeRunStatus = 'running';
+    setRun({ status: 'running' });
 
     render(
       <AgentChatContainer
@@ -2352,8 +2355,8 @@ describe('AgentChatContainer', () => {
 
     storeState.pendingInputRequest = null;
     storeState.messages = [buildAssistantMessage()];
-    storeState.activeRunStatus = 'running';
-    storeState.runStartedAt = new Date(Date.now() - 5_000).toISOString();
+    setRun({ status: 'running' });
+    setRun({ startedAt: new Date(Date.now() - 5_000).toISOString() });
     storeState.stream.streamingContent = 'Partial answer';
     isStreamingHookActive = true;
 
@@ -2770,7 +2773,7 @@ describe('AgentChatContainer', () => {
   it('renders the provided empty-state title and description', () => {
     storeState.messages = [];
     storeState.error = null;
-    storeState.isGenerating = false;
+    setRun({ isGenerating: false });
     storeState.pendingInputRequest = null;
 
     render(

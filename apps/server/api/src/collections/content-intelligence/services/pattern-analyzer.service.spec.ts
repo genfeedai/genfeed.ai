@@ -138,7 +138,7 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
   it('throws when creator not found', async () => {
     mockContentIntelligenceService.findOne.mockResolvedValue(null);
 
-    await expect(service.analyzeCreator(creatorId)).rejects.toThrow(
+    await expect(service.analyzeCreator(creatorId, orgId)).rejects.toThrow(
       'Creator not found',
     );
   });
@@ -155,11 +155,12 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
     });
     mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
 
-    const result = await service.analyzeCreator(creatorId);
+    const result = await service.analyzeCreator(creatorId, orgId);
     expect(result.patternsExtracted).toBe(0);
     expect(result.patterns).toHaveLength(0);
     expect(mockContentIntelligenceService.updateStatus).toHaveBeenCalledWith(
       creatorId,
+      orgId,
       CreatorAnalysisStatus.FAILED,
       'No posts found for analysis',
     );
@@ -174,7 +175,7 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
     mockCreatorScraperService.scrapeCreator.mockResolvedValue(null);
     mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
 
-    const result = await service.analyzeCreator(creatorId);
+    const result = await service.analyzeCreator(creatorId, orgId);
     expect(result.patternsExtracted).toBe(0);
   });
 
@@ -204,9 +205,10 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
     mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
     mockContentIntelligenceService.updateMetrics.mockResolvedValue(undefined);
 
-    const result = await service.analyzeCreator(creatorId);
+    const result = await service.analyzeCreator(creatorId, orgId);
     expect(mockContentIntelligenceService.updateStatus).toHaveBeenCalledWith(
       creatorId,
+      orgId,
       CreatorAnalysisStatus.COMPLETED,
     );
     expect(result.patternsExtracted).toBe(1);
@@ -223,11 +225,12 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
     );
     mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
 
-    await expect(service.analyzeCreator(creatorId)).rejects.toThrow(
+    await expect(service.analyzeCreator(creatorId, orgId)).rejects.toThrow(
       'Apify crashed',
     );
     expect(mockContentIntelligenceService.updateStatus).toHaveBeenCalledWith(
       creatorId,
+      orgId,
       CreatorAnalysisStatus.FAILED,
       'Apify crashed',
     );
@@ -257,7 +260,7 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
     mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
     mockContentIntelligenceService.updateMetrics.mockResolvedValue(undefined);
 
-    const result = await service.analyzeCreator(creatorId);
+    const result = await service.analyzeCreator(creatorId, orgId);
     expect(result.patterns.length).toBeGreaterThanOrEqual(1);
     expect(result.patterns[0].patternType).toBe(ContentPatternType.HOOK);
     expect(result.patterns[0].platform).toBe(
@@ -303,7 +306,7 @@ describe('PatternAnalyzerService rule-based extraction', () => {
   it('extracts QUESTION hook when first line ends with ?', async () => {
     withPost('What if you could 10x your productivity?\n\nHere is how...');
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     const hook = patterns.find(
       (p) =>
         p.patternType === ContentPatternType.HOOK &&
@@ -318,7 +321,7 @@ describe('PatternAnalyzerService rule-based extraction', () => {
       "Stop trying to work harder. It doesn't work.\n\nWork smarter instead.",
     );
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     const hook = patterns.find(
       (p) =>
         p.patternType === ContentPatternType.HOOK &&
@@ -330,7 +333,7 @@ describe('PatternAnalyzerService rule-based extraction', () => {
   it('extracts CONTRARIAN hook when starting with "hot take"', async () => {
     withPost('Hot take: most productivity advice is wrong.\n\nHere is why.');
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     const hook = patterns.find(
       (p) => p.templateCategory === ContentPatternCategory.CONTRARIAN,
     );
@@ -342,7 +345,7 @@ describe('PatternAnalyzerService rule-based extraction', () => {
       'I spent 3 years building the wrong thing.\n\nHere is what happened:',
     );
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     const hook = patterns.find(
       (p) => p.templateCategory === ContentPatternCategory.STORY,
     );
@@ -356,7 +359,7 @@ describe('PatternAnalyzerService rule-based extraction', () => {
       '5 things I wish I knew:\n\n1. First thing\n2. Second thing\n3. Third thing',
     );
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     const list = patterns.find(
       (p) =>
         p.patternType === ContentPatternType.TEMPLATE &&
@@ -369,7 +372,7 @@ describe('PatternAnalyzerService rule-based extraction', () => {
   it('does NOT extract LIST for only 2 numbered items', async () => {
     withPost('Two tips:\n\n1. First thing\n2. Second thing');
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     const list = patterns.find(
       (p) => p.templateCategory === ContentPatternCategory.LIST,
     );
@@ -381,7 +384,7 @@ describe('PatternAnalyzerService rule-based extraction', () => {
       'How to build a startup:\n\n🧵 Thread:\n\n1. Start with problem...',
     );
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     const thread = patterns.find(
       (p) => p.patternType === ContentPatternType.STRUCTURE,
     );
@@ -393,7 +396,7 @@ describe('PatternAnalyzerService rule-based extraction', () => {
       'Great content here.\n\nFollow for daily tips on AI and productivity.',
     );
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     const cta = patterns.find((p) => p.patternType === ContentPatternType.CTA);
     expect(cta).toBeDefined();
   });
@@ -401,7 +404,7 @@ describe('PatternAnalyzerService rule-based extraction', () => {
   it('extracts CTA for "save this" pattern', async () => {
     withPost('Save this post. You will need it later.\n\nHere are 5 tips...');
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     const cta = patterns.find((p) => p.patternType === ContentPatternType.CTA);
     expect(cta).toBeDefined();
   });
@@ -409,14 +412,14 @@ describe('PatternAnalyzerService rule-based extraction', () => {
   it('returns no patterns for very short text', async () => {
     withPost('Short.');
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     expect(patterns).toHaveLength(0);
   });
 
   it('skips posts with no text', async () => {
     withPost('');
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     expect(patterns).toHaveLength(0);
   });
 });
@@ -465,7 +468,7 @@ describe('PatternAnalyzerService LLM response parsing', () => {
       patterns: llmPatterns,
     });
 
-    await service.analyzeCreator(creatorId);
+    await service.analyzeCreator(creatorId, orgId);
     expect(mockLlmDispatcherService.completeStructured).toHaveBeenCalledWith(
       expect.objectContaining({
         max_tokens: 1500,
@@ -482,7 +485,7 @@ describe('PatternAnalyzerService LLM response parsing', () => {
       patterns: [],
     });
 
-    await service.analyzeCreator(creatorId);
+    await service.analyzeCreator(creatorId, orgId);
 
     const [params] = mockLlmDispatcherService.completeStructured.mock
       .calls[0] as [{ messages: Array<{ content: string }> }];
@@ -500,7 +503,7 @@ describe('PatternAnalyzerService LLM response parsing', () => {
       ],
     });
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
 
     expect(mockLlmDispatcherService.completeStructured).toHaveBeenCalled();
     // The post opens with "I spent ...", so the rule-based answer is a story
@@ -522,7 +525,7 @@ describe('PatternAnalyzerService LLM response parsing', () => {
       patterns: [],
     });
 
-    await service.analyzeCreator(creatorId);
+    await service.analyzeCreator(creatorId, orgId);
 
     const [params] = mockLlmDispatcherService.completeStructured.mock
       .calls[0] as [{ messages: Array<{ content: string }> }];
@@ -547,7 +550,7 @@ describe('PatternAnalyzerService LLM response parsing', () => {
       profile: {},
     });
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     expect(patterns.length).toBeGreaterThan(0);
     expect(patterns[0].patternType).toBe(ContentPatternType.HOOK);
   });
@@ -567,7 +570,7 @@ describe('PatternAnalyzerService LLM response parsing', () => {
       profile: {},
     });
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     const story = patterns.find(
       (p) => p.templateCategory === ContentPatternCategory.STORY,
     );
@@ -579,7 +582,7 @@ describe('PatternAnalyzerService LLM response parsing', () => {
       patterns: [],
     });
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     expect(patterns).toHaveLength(0);
   });
 
@@ -602,7 +605,7 @@ describe('PatternAnalyzerService LLM response parsing', () => {
       ],
     });
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
 
     expect(patterns).toHaveLength(1);
     // A placeholder label, visibly flagged rather than quietly plausible.
@@ -654,7 +657,7 @@ describe('PatternAnalyzerService.calculateViralScore (via sourceMetrics)', () =>
       profile: {},
     });
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     expect(patterns.length).toBeGreaterThan(0);
 
     const pattern = patterns[0];
@@ -686,7 +689,7 @@ describe('PatternAnalyzerService.calculateViralScore (via sourceMetrics)', () =>
       profile: {},
     });
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     const pattern = patterns[0];
     // 5.0 + 10 + 5 + 5 = 25.0
     expect(pattern.sourceMetrics.viralScore).toBe(25);
@@ -738,7 +741,7 @@ describe('PatternAnalyzerService post sorting and capping', () => {
       async (p) => p,
     );
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
     // Only top 30 by engagement should be processed; the 5 low-engagement posts won't contribute
     // All question hook posts should generate patterns
     expect(patterns.length).toBeGreaterThan(0);
@@ -804,7 +807,7 @@ describe('PatternAnalyzerService typed-decision labels', () => {
   it('never calls the provider in off mode', async () => {
     setDecisionConfig('off');
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
 
     expect(mockTypedDecisionService.choose).not.toHaveBeenCalled();
     expect(patterns[0]).toMatchObject({
@@ -818,7 +821,7 @@ describe('PatternAnalyzerService typed-decision labels', () => {
     setDecisionConfig('shadow');
     decide(ContentPatternType.TEMPLATE, ContentPatternCategory.LIST);
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
 
     expect(mockTypedDecisionService.choose).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -869,7 +872,7 @@ describe('PatternAnalyzerService typed-decision labels', () => {
     setDecisionConfig('live', 0.8);
     decide(ContentPatternType.TEMPLATE, ContentPatternCategory.LIST, 0.81);
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
 
     // Jev still computed and was called (shadow telemetry), but the pattern
     // analyzer's two label decisions (#4868, release-blocker follow-up to
@@ -889,7 +892,7 @@ describe('PatternAnalyzerService typed-decision labels', () => {
     setDecisionConfig('live');
     decide(ContentPatternType.TEMPLATE, ContentPatternCategory.LIST, 0.84);
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
 
     expect(patterns[0]).toMatchObject({
       isLowConfidence: false,
@@ -902,7 +905,7 @@ describe('PatternAnalyzerService typed-decision labels', () => {
     setDecisionConfig('live');
     mockTypedDecisionService.choose.mockResolvedValue(null);
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
 
     expect(patterns[0]).toMatchObject({
       isLowConfidence: false,
@@ -923,7 +926,7 @@ describe('PatternAnalyzerService typed-decision labels', () => {
       profile: {},
     });
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
 
     expect(patterns[0]).toMatchObject({
       isLowConfidence: true,
@@ -941,7 +944,7 @@ describe('PatternAnalyzerService typed-decision labels', () => {
           : null,
     );
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
 
     expect(patterns[0]).toMatchObject({
       isLowConfidence: false,
@@ -956,7 +959,7 @@ describe('PatternAnalyzerService typed-decision labels', () => {
       patterns: [],
     });
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
 
     expect(patterns).toHaveLength(0);
     expect(mockTypedDecisionService.choose).not.toHaveBeenCalled();
@@ -968,7 +971,7 @@ describe('PatternAnalyzerService typed-decision labels', () => {
       new Error('LLM timeout'),
     );
 
-    const { patterns } = await service.analyzeCreator(creatorId);
+    const { patterns } = await service.analyzeCreator(creatorId, orgId);
 
     expect(mockTypedDecisionService.choose).not.toHaveBeenCalled();
     expect(patterns[0]).toMatchObject({

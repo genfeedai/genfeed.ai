@@ -8,7 +8,7 @@ import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dt
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import {
   lockBrandLearningMutation,
-  patchBrandWithLearning,
+  patchBrandWithLearningFenced,
 } from '@api/collections/brands/services/brand-learning-mutation.util';
 import {
   assertNoCrunGenerationHistory,
@@ -515,13 +515,11 @@ export class BrandRelocationService {
     const sourceBearing =
       updates.isActive !== undefined || updates.isDeleted !== undefined;
     const brand = sourceBearing
-      ? await this.prisma.$transaction((tx) =>
-          patchBrandWithLearning(tx, {
-            brandId,
-            organizationId,
-            data: updates as Prisma.BrandUncheckedUpdateInput,
-          }),
-        )
+      ? await patchBrandWithLearningFenced(this.prisma, {
+          brandId,
+          organizationId,
+          data: updates as Prisma.BrandUncheckedUpdateInput,
+        })
       : await this.prisma.brand.update({
           where: { id: brandId, organizationId, isDeleted: false },
           data: updates as Prisma.BrandUncheckedUpdateInput,

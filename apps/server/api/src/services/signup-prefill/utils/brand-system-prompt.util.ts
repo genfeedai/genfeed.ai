@@ -29,18 +29,24 @@ export function isPlaceholderBrandText(value?: string | null): boolean {
  * Without this, a brand whose site scraped thin (or whose signup email had no
  * corporate domain at all) reaches the user's first prompt with an empty
  * pre-prompt, and the model has nothing to be on-brand about.
+ *
+ * `brandDescription` is what the user wrote themselves (for example when
+ * creating an organization); it describes the brand ahead of scraped copy.
  */
 export function buildBrandSystemPrompt(
   brandLabel: string,
   agentConfig: BrandAgentConfig,
   scrapedData?: IScrapedBrandData,
+  brandDescription?: string,
 ): string {
   const voice = agentConfig.voice ?? {};
   const strategy = agentConfig.strategy ?? {};
   const parts = [`You are creating content for ${brandLabel}.`];
 
   const description =
-    readString(scrapedData?.description) ?? readString(scrapedData?.heroText);
+    readString(brandDescription) ??
+    readString(scrapedData?.description) ??
+    readString(scrapedData?.heroText);
   if (description) {
     parts.push(`About the brand: ${description}`);
   }

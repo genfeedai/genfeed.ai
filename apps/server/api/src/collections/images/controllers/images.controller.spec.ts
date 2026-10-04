@@ -44,8 +44,12 @@ vi.mock('@api/helpers/utils/ingredient-filter/ingredient-filter.util', () => ({
     buildCharacterFilter: vi.fn((ids: string[]) => ({
       personaId: { in: ids },
     })),
+    buildLibraryTagsInclude: vi.fn(() => ({
+      tags: { where: { isDeleted: false } },
+    })),
     buildOriginFilter: vi.fn(() => ({})),
     buildParentFilter: vi.fn(() => ({})),
+    buildTagFilter: vi.fn(() => ({})),
     buildTrainingFilter: vi.fn(() => ({})),
   },
 }));
@@ -331,6 +335,40 @@ describe('ImagesController', () => {
       };
       // A sibling of the OR (user-owned | brand defaults), not inside one branch.
       expect(aggregate.where.AND).toContainEqual(originFilter);
+    });
+  });
+
+  describe('findAll tag filter', () => {
+    it('narrows the whole list by tags and loads each row’s tags', async () => {
+      const [first, second] = [testId('tag', 1), testId('tag', 2)];
+      const tagFilter = {
+        tags: { some: { id: { in: [first, second] }, isDeleted: false } },
+      };
+      vi.mocked(IngredientFilterUtil.buildTagFilter).mockReturnValueOnce(
+        tagFilter,
+      );
+      const query = {
+        limit: 10,
+        page: 1,
+        tagMatch: 'any',
+        tags: [first, second],
+      } as unknown as ImagesQueryDto;
+
+      await controller.findAll(mockRequest, mockUser, query);
+
+      expect(IngredientFilterUtil.buildTagFilter).toHaveBeenCalledWith(
+        [first, second],
+        'any',
+      );
+      const aggregate = imagesService.findAll.mock.calls[0][0] as {
+        include: unknown;
+        where: { AND: unknown[] };
+      };
+      // A sibling of the OR (user-owned | brand defaults), like origin.
+      expect(aggregate.where.AND).toContainEqual(tagFilter);
+      expect(aggregate.include).toEqual({
+        tags: { where: { isDeleted: false } },
+      });
     });
   });
 

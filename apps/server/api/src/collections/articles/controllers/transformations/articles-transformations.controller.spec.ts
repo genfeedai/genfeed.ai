@@ -21,6 +21,8 @@ import {
 } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -316,24 +318,48 @@ describe('ArticlesTransformationsController', () => {
       expect(mockSeoScorerService.scoreArticle).not.toHaveBeenCalled();
     });
 
-    it('should throw NOT_FOUND when the article belongs to another organization', async () => {
-      mockArticlesService.findAll.mockResolvedValue({
-        docs: [
-          {
-            ...mockArticle,
-            organizationId: otherOrganizationId,
-          },
-        ],
-      });
+    it('scopes the article lookup to the caller organization under the CLOUD tenant guard', async () => {
+      mockArticlesService.findAll.mockImplementation(
+        async (query: { where: Record<string, unknown> }) => {
+          assertTenantScopedQuery({
+            args: query,
+            isCloud: true,
+            model: 'Article',
+            operation: 'findMany',
+            tenantModelNames: new Set(['Article']),
+          });
+          return {
+            docs:
+              query.where.organizationId === otherOrganizationId
+                ? [mockArticle]
+                : [],
+          };
+        },
+      );
 
+      // The row lives in another organization, so the scoped read finds nothing.
       await expect(
-        controller.scoreSeo(
-          mockRequest,
-          id,
-          { targetKeyword: 'ai content' },
-          mockUser,
+        runWithTenantContext(
+          { organizationId: mockPublicMetadata.organization },
+          () =>
+            controller.scoreSeo(
+              mockRequest,
+              id,
+              { targetKeyword: 'ai content' },
+              mockUser,
+            ),
         ),
       ).rejects.toThrow(HttpException);
+      expect(mockArticlesService.findAll).toHaveBeenCalledWith(
+        {
+          where: {
+            id,
+            isDeleted: false,
+            organizationId: mockPublicMetadata.organization,
+          },
+        },
+        { pagination: false },
+      );
       expect(mockSeoScorerService.scoreArticle).not.toHaveBeenCalled();
     });
   });

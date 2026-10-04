@@ -5,6 +5,7 @@ import { WorkflowExecutionProgressService } from './workflow-execution-progress.
 
 describe('WorkflowExecutionProgressService', () => {
   const workflow = {
+    organizationId: 'org-1',
     edges: [{ source: 'image', target: 'video' }],
     nodes: [
       {
@@ -66,6 +67,7 @@ describe('WorkflowExecutionProgressService', () => {
 
     expect(executionsService.updateExecutionProgress).toHaveBeenCalledWith(
       'execution-1',
+      'org-1',
       expect.objectContaining({
         eta: expect.objectContaining({
           currentPhase: 'Generating Promo Video',

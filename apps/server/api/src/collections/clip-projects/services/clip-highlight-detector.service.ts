@@ -7,6 +7,7 @@ import {
 import {
   CLIP_HIGHLIGHT_DETECTION_SCHEMA_NAME,
   clipHighlightDetectionSchema,
+  createLenientClipHighlightDetectionSchema,
   type HighlightResult,
 } from '@genfeedai/contracts/api-types/contracts';
 
@@ -114,7 +115,13 @@ Select clips with the highest virality scores for the highlights field.`;
         { content: userPrompt, role: 'user' },
       ];
       const result = await runStructuredCompletion({
-        schema: clipHighlightDetectionSchema,
+        schema: createLenientClipHighlightDetectionSchema((dropped) =>
+          this.logger.warn(`${this.logContext} dropped invalid highlights`, {
+            code: 'clip_highlight_items_dropped',
+            dropped,
+            droppedCount: dropped.length,
+          }),
+        ),
         schemaName: CLIP_HIGHLIGHT_DETECTION_SCHEMA_NAME,
         attempt: async (repair) => {
           const response = await firstValueFrom(

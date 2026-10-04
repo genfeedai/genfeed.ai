@@ -125,7 +125,7 @@ describe('OnboardingStarterAssetsService', () => {
   let llmDispatcherService: vi.Mocked<
     Pick<LlmDispatcherService, 'chatCompletion'>
   >;
-  let configService: Pick<ConfigService, 'ingredientsEndpoint'>;
+  let configService: Pick<ConfigService, 'get' | 'ingredientsEndpoint'>;
   let loggerService: vi.Mocked<Pick<LoggerService, 'error' | 'warn'>>;
   let generationGateway: vi.Mocked<
     Pick<IAgentGenerationGateway, 'generateImage'>
@@ -161,7 +161,10 @@ describe('OnboardingStarterAssetsService', () => {
         ],
       } as never),
     };
-    configService = { ingredientsEndpoint: 'https://cdn.genfeed.ai' };
+    configService = {
+      get: vi.fn(() => 'test'),
+      ingredientsEndpoint: 'https://cdn.genfeed.ai',
+    } as unknown as typeof configService;
     loggerService = { error: vi.fn(), warn: vi.fn() };
     generationGateway = {
       generateImage: vi.fn().mockResolvedValue({

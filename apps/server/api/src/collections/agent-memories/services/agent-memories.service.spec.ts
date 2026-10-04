@@ -2,6 +2,11 @@ import type { AgentMemoryDocument } from '@api/collections/agent-memories/schema
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import {
+  assertTenantScopedQuery,
+  TenantIsolationError,
+} from '@libs/prisma/tenant-guard';
 import {
   BadRequestException,
   ConflictException,
@@ -335,8 +340,45 @@ describe('AgentMemoriesService', () => {
     });
     expect(agentMemoryDelegate.update).toHaveBeenCalledWith({
       data: { isDeleted: true },
-      where: { id: 'memory-1' },
+      where: {
+        id: 'memory-1',
+        isDeleted: false,
+        organizationId: orgId,
+        userId,
+      },
     });
+  });
+
+  it('soft-deletes a user memory under the CLOUD tenant guard', async () => {
+    const guard = (operation: string, args: unknown) =>
+      assertTenantScopedQuery({
+        args,
+        isCloud: true,
+        model: 'AgentMemory',
+        operation,
+        tenantModelNames: new Set(['AgentMemory']),
+      });
+    agentMemoryDelegate.findFirst.mockImplementation(async (args: unknown) => {
+      guard('findFirst', args);
+      return { id: 'memory-1' };
+    });
+    agentMemoryDelegate.update.mockImplementation(async (args: unknown) => {
+      guard('update', args);
+      return { id: 'memory-1', isDeleted: true };
+    });
+
+    await runWithTenantContext({ organizationId: orgId }, () =>
+      service.removeMemory('memory-1', userId, orgId),
+    );
+
+    expect(agentMemoryDelegate.update).toHaveBeenCalledTimes(1);
+
+    await expect(
+      runWithTenantContext({ organizationId: 'org-other' }, () =>
+        service.removeMemory('memory-1', userId, orgId),
+      ),
+    ).rejects.toBeInstanceOf(TenantIsolationError);
+    expect(agentMemoryDelegate.update).toHaveBeenCalledTimes(1);
   });
 
   it('archives org-visible memory and refuses personal rows', async () => {

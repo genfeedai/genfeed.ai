@@ -389,6 +389,8 @@ describe('EditorRenderService', () => {
     expect(editorProjectsService.markAsFailed).toHaveBeenCalledWith(
       projectId,
       expect.any(String),
+      undefined,
+      organizationId,
     );
     expect(ingredientsService.patch).toHaveBeenCalledWith('output-video-123', {
       status: IngredientStatus.FAILED,
@@ -417,6 +419,7 @@ describe('EditorRenderService', () => {
       projectId,
       'job-123',
       expect.objectContaining({ reason: 'cancelled' }),
+      organizationId,
     );
     expect(ingredientsService.patch).toHaveBeenCalledWith('output-video-123', {
       status: IngredientStatus.FAILED,

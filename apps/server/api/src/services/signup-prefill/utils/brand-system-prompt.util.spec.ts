@@ -100,3 +100,19 @@ describe('buildBrandSystemPrompt', () => {
     expect(prompt).toContain('Messaging pillars: speed.');
   });
 });
+
+describe('buildBrandSystemPrompt with a user-written description', () => {
+  it('describes the brand with what the user wrote ahead of scraped copy', () => {
+    const prompt = buildBrandSystemPrompt(
+      'Acme',
+      {},
+      buildScrapedData({ description: 'Meta description from the site.' }),
+      'We make tools for indie operators.',
+    );
+
+    expect(prompt).toContain(
+      'About the brand: We make tools for indie operators.',
+    );
+    expect(prompt).not.toContain('Meta description from the site.');
+  });
+});

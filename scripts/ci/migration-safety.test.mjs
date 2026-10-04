@@ -4,6 +4,7 @@ import {
   checkMigrations,
   destructiveOperations,
   prismaTables,
+  sqlTokens,
   validateContract,
 } from './migration-safety.mjs';
 
@@ -197,4 +198,34 @@ test('requires published stable ancestor release evidence, preserving applied SQ
   });
   assert.equal(expand.run(), 1);
   assert.ok(!expand.calls.some((args) => args[0] === 'show'));
+});
+
+test('sqlTokens tokenizes a large synthetic migration in linear time', () => {
+  const statement =
+    `-- note\nALTER TABLE "examples" ADD COLUMN "c" text DEFAULT 'it''s'; /* c */\n` +
+    `DO $fn$ BEGIN DROP TABLE x; END $fn$;\n`;
+  const small = sqlTokens(statement.repeat(100));
+  const start = performance.now();
+  const large = sqlTokens(statement.repeat(20000));
+  const elapsed = performance.now() - start;
+  assert.equal(large.tokens.length, (small.tokens.length / 100) * 20000);
+  assert.equal(large.comments.length, 20000);
+  assert.ok(elapsed < 3000, `tokenizer took ${Math.round(elapsed)}ms`);
+});
+
+test('sqlTokens output is stable for mixed token kinds', () => {
+  assert.deepEqual(
+    sqlTokens(`SELECT "Id", 'a''b', $$x y$$; -- c\n/* z */ ;`).tokens,
+    [
+      { value: 'SELECT', kind: 'word' },
+      { value: 'Id', kind: 'identifier' },
+      { value: ',', kind: 'symbol' },
+      { value: "a'b", kind: 'literal' },
+      { value: ',', kind: 'symbol' },
+      { value: 'x', kind: 'word' },
+      { value: 'y', kind: 'word' },
+      { value: ';', kind: 'symbol' },
+      { value: ';', kind: 'symbol' },
+    ],
+  );
 });

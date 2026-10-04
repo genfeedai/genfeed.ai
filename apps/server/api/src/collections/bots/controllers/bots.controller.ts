@@ -20,12 +20,14 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { BotLivestreamSessionStatus } from '@genfeedai/contracts';
 import {
   BotSerializer,
   LivestreamBotSessionSerializer,
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   Body,
   Controller,
@@ -89,9 +91,12 @@ export class BotsController extends BaseCRUDController<
         { brandId: query.brandId, organizationId: query.organizationId },
         user,
       );
-      if (tenant.organizationId) {
-        match.organizationId = tenant.organizationId;
-      }
+      // A brand-only query (superadmin) still lists inside the active tenant.
+      match.organizationId = requireRelationId(
+        tenant.organizationId || user.organizationId,
+        'organization',
+        'Bot listing',
+      );
       match.brandId = requireRelationId(
         tenant.brandId || user.brandId,
         'brand',
@@ -112,6 +117,10 @@ export class BotsController extends BaseCRUDController<
           detail: 'Access denied to this user',
           title: 'Forbidden',
         });
+      }
+      // The default list is the caller's bots in the active organization.
+      if (user.organizationId) {
+        match.organizationId = user.organizationId;
       }
       match.userId = requireRelationId(
         getIsSuperAdmin(user) && requestedUserId
@@ -262,12 +271,16 @@ export class BotsController extends BaseCRUDController<
     user: User,
     id: string,
   ): Promise<BotDocument> {
-    const bot = await this.botsService.findOne(
-      {
-        id: id,
-      },
-      this.getPopulateFields(),
-    );
+    // Superadmins may operate on a bot in any organization.
+    const bot = getIsSuperAdmin(user)
+      ? await crossOrgUnsafe(
+          async () =>
+            await this.botsService.findOne({ id }, this.getPopulateFields()),
+        )
+      : await this.botsService.findOne(
+          scopedWhere(user.organizationId, { id }),
+          this.getPopulateFields(),
+        );
 
     if (!bot || !this.canUserModifyEntity(user, bot)) {
       ErrorResponse.notFound(this.entityName, id);

@@ -9,7 +9,9 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 
 describe('BrandMemoryService typed entries', () => {
   const brandMemory = {
@@ -124,5 +126,27 @@ describe('BrandMemoryService typed entries', () => {
         },
       }),
     );
+  });
+  it('scopes the daily-row writes to the organization in CLOUD mode', async () => {
+    brandMemory.findFirst.mockResolvedValue({
+      entries: [],
+      id: 'memory-1',
+      metrics: {},
+    });
+    brandMemory.update.mockResolvedValue({ id: 'memory-1' });
+
+    await runWithTenantContext({ organizationId: 'org-1' }, async () => {
+      await service.logEntry('org-1', 'brand-1', {
+        content: 'note',
+        type: 'note',
+      } as never);
+      await service.updateMetrics('org-1', 'brand-1', {
+        postsPublished: 3,
+      } as never);
+    });
+
+    expect(brandMemory.update).toHaveBeenCalledTimes(2);
+    expectCloudGuardPasses('BrandMemory', 'findFirst', brandMemory.findFirst);
+    expectCloudGuardPasses('BrandMemory', 'update', brandMemory.update);
   });
 });

@@ -7,6 +7,7 @@ import type {
   WorkflowVersionGraph,
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   GENFEED_ACTION_NODE_TYPE,
   getActionDefinition,
@@ -189,9 +190,9 @@ export async function createVersionedWorkflow(
     },
   });
 
-  return transaction.workflow.findUniqueOrThrow({
+  return transaction.workflow.findFirstOrThrow({
     include: { currentVersion: true },
-    where: { id: identity.id },
+    where: scopedWhere(identity.organizationId, { id: identity.id }),
   });
 }
 

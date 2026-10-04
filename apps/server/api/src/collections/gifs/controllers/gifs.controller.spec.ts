@@ -250,6 +250,8 @@ describe('GifsController', () => {
         expect.objectContaining({
           entityId: gifId,
           entityModel: 'Ingredient',
+          isDeleted: false,
+          organizationId: mockUser.organizationId,
           userId: mockUser.userId,
         }),
       );

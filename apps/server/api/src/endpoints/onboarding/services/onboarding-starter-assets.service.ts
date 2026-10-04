@@ -253,7 +253,9 @@ export class OnboardingStarterAssetsService {
     const dimensions = resolveAgentGenerationDimensions(
       DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
     );
-    const routing = resolveFirstRunImageRouting();
+    const routing = resolveFirstRunImageRouting({
+      nodeEnv: this.configService.get('NODE_ENV'),
+    });
     const references = await this.readBrandVisualReferenceIds(
       input.brandId,
       input.organizationId,

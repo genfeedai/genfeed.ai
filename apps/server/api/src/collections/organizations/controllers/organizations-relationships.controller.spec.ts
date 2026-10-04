@@ -26,6 +26,10 @@ import { ANALYTICS_TENANT_FORBIDDEN } from '@api/endpoints/analytics/analytics-t
 
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  getTenantContext,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { ForbiddenException, HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -221,6 +225,53 @@ describe('OrganizationsRelationshipsController', () => {
       'clorganizationrel0000000001',
       'brand-1',
     );
+  });
+
+  describe('path organization tenant scope (CLOUD guard)', () => {
+    it('reads another organization analytics under that organization, after proving access', async () => {
+      mockServices.membersService.findOne.mockResolvedValueOnce({ id: 'm1' });
+      const seen: Array<string | undefined> = [];
+      mockServices.analyticsAggregationService.getOverviewMetrics.mockImplementationOnce(
+        async () => {
+          seen.push(getTenantContext()?.organizationId);
+          return { totalPosts: 0, totalViews: 0 };
+        },
+      );
+
+      await runWithTenantContext(
+        { organizationId: 'clsessionorg00000000001' },
+        () =>
+          controller.findAnalytics(
+            {} as unknown as Request,
+            'clorganizationrel0000000001',
+            {},
+            mockUser,
+          ),
+      );
+
+      expect(seen).toEqual(['clorganizationrel0000000001']);
+    });
+
+    it('still rejects a non-member of that organization before any aggregate runs', async () => {
+      mockServices.membersService.findOne.mockResolvedValueOnce(null);
+      mockServices.organizationsService.findOne.mockResolvedValueOnce(null);
+
+      await expect(
+        runWithTenantContext(
+          { organizationId: 'clsessionorg00000000001' },
+          () =>
+            controller.findAnalytics(
+              {} as unknown as Request,
+              'clorganizationforeign00000001',
+              {},
+              mockUser,
+            ),
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(
+        mockServices.analyticsAggregationService.getOverviewMetrics,
+      ).not.toHaveBeenCalled();
+    });
   });
 
   describe('analytics tenant isolation', () => {

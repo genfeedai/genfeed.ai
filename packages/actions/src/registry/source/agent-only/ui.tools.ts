@@ -267,10 +267,15 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Add or remove a boolean vote on an ingredient (single vote toggle per user).',
+      "Add or remove the current user's vote on an ingredient. Adding is idempotent (one vote per user); removing is explicit.",
     name: 'rate_ingredient',
     parameters: {
       properties: {
+        action: {
+          description: 'add (default) records the vote; remove deletes it',
+          enum: ['add', 'remove'],
+          type: 'string',
+        },
         ingredientId: {
           description: 'Ingredient ID to vote or unvote',
           type: 'string',

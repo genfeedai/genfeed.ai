@@ -220,19 +220,31 @@ export class AgentQualityToolHandler {
         };
       }
 
-      const { action, voteId } = await this.votesService.toggleVote({
+      const userId = ctx.userId;
+
+      if (params.action === 'remove') {
+        await this.votesService.removeVote({
+          entityId: ingredientId,
+          organizationId: ctx.organizationId,
+          userId,
+        });
+        return {
+          creditsUsed: 0,
+          data: { action: 'removed', ingredientId },
+          success: true,
+        };
+      }
+
+      const { vote } = await this.votesService.addVote({
         entityId: ingredientId,
         entityModel: VoteEntityModel.INGREDIENT,
         organizationId: ctx.organizationId,
-        userId: ctx.userId,
+        userId,
       });
 
       return {
         creditsUsed: 0,
-        data:
-          action === 'removed'
-            ? { action, ingredientId }
-            : { action, ingredientId, voteId },
+        data: { action: 'added', ingredientId, voteId: String(vote.id) },
         success: true,
       };
     } catch (error: unknown) {

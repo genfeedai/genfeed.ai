@@ -17,6 +17,7 @@ import {
 } from '@genfeedai/contracts';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { RedisService } from '@libs/redis/redis.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -119,8 +120,12 @@ export class AdminAnnouncementsService implements OnModuleInit {
       trigger: WorkflowExecutionTrigger.API,
       userId: authorId,
     });
+    // The workflow persisted the record under `organizationId`; look it up
+    // under the same org so the read is tenant-scoped.
     const announcement = await this.announcementsCollectionService.findOne({
       id: result.announcementId,
+      isDeleted: false,
+      organizationId,
     });
     if (!announcement) {
       throw new Error(
@@ -143,7 +148,11 @@ export class AdminAnnouncementsService implements OnModuleInit {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(caller);
 
-    return this.announcementsCollectionService.getAll();
+    // Superadmin broadcast history spans every organization by design
+    // (SuperAdminGuard on the controller).
+    return crossOrgUnsafe(
+      async () => await this.announcementsCollectionService.getAll(),
+    );
   }
 
   private async publishToDiscordAction(

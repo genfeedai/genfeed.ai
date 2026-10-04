@@ -3,8 +3,10 @@ import { ProfilesService } from '@api/collections/profiles/services/profiles.ser
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import type { Profile } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -63,6 +65,51 @@ describe('ProfilesService document mapping', () => {
           organizationId: row.organizationId,
         },
       });
+    } finally {
+      await module.close();
+    }
+  });
+});
+
+describe('ProfilesService tenant-scoped writes', () => {
+  it('scopes update, default-unset and remove writes to the request org', async () => {
+    const row = {
+      createdAt: new Date(),
+      createdById: 'creator-1',
+      data: { isDefault: true, label: 'Voice' },
+      id: 'profile-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+      updatedAt: new Date(),
+    };
+    const prisma = {
+      profile: {
+        findFirst: vi.fn().mockResolvedValue(row),
+        findMany: vi.fn().mockResolvedValue([{ ...row, id: 'profile-2' }]),
+        update: vi.fn().mockResolvedValue(row),
+      },
+    };
+    const module = await Test.createTestingModule({
+      providers: [
+        ProfilesService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: LoggerService, useValue: { debug: vi.fn() } },
+        { provide: ModelsService, useValue: {} },
+        { provide: ReplicateService, useValue: {} },
+      ],
+    }).compile();
+
+    try {
+      const service = module.get(ProfilesService);
+      await runWithTenantContext({ organizationId: 'org-1' }, async () => {
+        await service.update('profile-1', { isDefault: true }, 'org-1');
+        await service.remove('profile-1', 'org-1');
+      });
+
+      expect(prisma.profile.update).toHaveBeenCalledTimes(3);
+      expectCloudGuardPasses('Profile', 'findFirst', prisma.profile.findFirst);
+      expectCloudGuardPasses('Profile', 'findMany', prisma.profile.findMany);
+      expectCloudGuardPasses('Profile', 'update', prisma.profile.update);
     } finally {
       await module.close();
     }
