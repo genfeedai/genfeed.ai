@@ -6,9 +6,22 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import type {
+  CreatedPairRecords,
+  InterpolationContext,
+  InterpolationJobResult,
+} from '@api/collections/videos/controllers/batch-interpolation.types';
+import {
+  failInterpolationPair,
+  failInterpolationPrompt,
+} from '@api/collections/videos/controllers/batch-interpolation-failure.util';
+import { toVideoMergeSettings } from '@api/collections/videos/controllers/batch-interpolation-merge-settings.util';
+import {
+  resolveInterpolationDimensions,
+  resolveInterpolationDuration,
+} from '@api/collections/videos/controllers/batch-interpolation-sizing.util';
 import {
   BatchInterpolationDto,
-  type InterpolationMergeSettingsDto,
   InterpolationPairDto,
 } from '@api/collections/videos/dto/batch-interpolation.dto';
 import { BatchInterpolationBillingService } from '@api/collections/videos/services/batch-interpolation-billing.service';
@@ -26,7 +39,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -47,7 +59,6 @@ import {
   PromptStatus,
 } from '@genfeedai/contracts';
 import { hasInterpolation } from '@genfeedai/contracts/constants';
-import type { IVideoMergeSettings } from '@genfeedai/contracts/interfaces';
 import { BatchInterpolationSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
@@ -63,57 +74,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-/** Plain JSON copy of the settings captured when the batch starts. */
-function toVideoMergeSettings(
-  settings: InterpolationMergeSettingsDto,
-): IVideoMergeSettings {
-  return {
-    ...(settings.isCaptionsEnabled !== undefined
-      ? { isCaptionsEnabled: settings.isCaptionsEnabled }
-      : {}),
-    ...(settings.isMuteVideoAudio !== undefined
-      ? { isMuteVideoAudio: settings.isMuteVideoAudio }
-      : {}),
-    ...(settings.music ? { music: settings.music } : {}),
-    ...(settings.musicVolume !== undefined
-      ? { musicVolume: settings.musicVolume }
-      : {}),
-    ...(settings.transition ? { transition: settings.transition } : {}),
-    ...(settings.transitionDuration !== undefined
-      ? { transitionDuration: settings.transitionDuration }
-      : {}),
-    ...(settings.transitionEaseCurve
-      ? { transitionEaseCurve: settings.transitionEaseCurve }
-      : {}),
-  };
-}
-
-type InterpolationJobResult = {
-  id: string;
-  pairIndex: number;
-  status: string;
-};
-
-type CreatedPairRecords = {
-  ingredientId?: string;
-  promptId?: string;
-};
-
-type InterpolationContext = {
-  apiKey?: string;
-  brand: NonNullable<Awaited<ReturnType<BrandsService['findOne']>>>;
-  cameraPrompt: string;
-  dto: BatchInterpolationDto;
-  duration: number;
-  groupId: string;
-  height: number;
-  model: NonNullable<Awaited<ReturnType<ModelsService['findOne']>>>;
-  pairs: InterpolationPairDto[];
-  personaIdByAssetId: ReadonlyMap<string, string>;
-  user: User;
-  width: number;
-};
 
 @AutoSwagger()
 @Controller('videos')
@@ -219,7 +179,7 @@ export class BatchInterpolationController {
         path: 'video-interpolation',
       });
 
-    const { height, width } = this.resolveDimensions(
+    const { height, width } = resolveInterpolationDimensions(
       dto.format || IngredientFormat.LANDSCAPE,
     );
     const apiKey = await this.billing.resolveApiKey(
@@ -231,7 +191,7 @@ export class BatchInterpolationController {
       brand,
       cameraPrompt: dto.cameraPrompt || '',
       dto,
-      duration: this.resolveDuration(dto.duration),
+      duration: resolveInterpolationDuration(dto.duration),
       groupId,
       height,
       model,
@@ -301,29 +261,6 @@ export class BatchInterpolationController {
     }
 
     return pairs;
-  }
-
-  private resolveDuration(duration?: number): number {
-    if (!Number.isFinite(duration ?? 5) || (duration || 5) <= 0) {
-      throw new HttpException(
-        'Interpolation duration must be finite and positive',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-    return duration || 5;
-  }
-
-  private resolveDimensions(format: IngredientFormat): {
-    height: number;
-    width: number;
-  } {
-    if (format === IngredientFormat.PORTRAIT) {
-      return { height: 1280, width: 720 };
-    }
-    if (format === IngredientFormat.SQUARE) {
-      return { height: 1080, width: 1080 };
-    }
-    return { height: 720, width: 1280 };
   }
 
   private async processPair(
@@ -416,39 +353,12 @@ export class BatchInterpolationController {
         });
       const ingredientId = ingredientData.id.toString();
       created.ingredientId = ingredientId;
-      const activity = await this.activityRecorder.record({
-        brandId: context.brand.id,
-        entityId: ingredientData.id,
-        entityModel: ActivityEntityModel.INGREDIENT,
-        key: ActivityKey.VIDEO_PROCESSING,
-        organizationId: context.user.organizationId,
-        source: ActivitySource.VIDEO_GENERATION,
-        userId: context.user.id,
-        value: JSON.stringify({
-          groupId: context.groupId,
-          ingredientId,
-          isLoopMode: context.dto.isLoopMode,
-          isMergeEnabled: context.dto.isMergeEnabled,
-          model: context.dto.modelKey,
-          pairIndex,
-          totalPairs: context.pairs.length,
-          type: 'interpolation',
-        }),
-      });
-      const isLoopPair =
-        Boolean(context.dto.isLoopMode) &&
-        pairIndex === context.pairs.length - 1;
-      await this.websocketService.publishBackgroundTaskUpdate({
-        activityId: activity.id.toString(),
-        label: isLoopPair
-          ? `Loop ${pairIndex + 1}/${context.pairs.length}`
-          : `Interpolation ${pairIndex + 1}/${context.pairs.length}`,
-        progress: 0,
-        room: getUserRoomName(context.user.id),
-        status: 'processing',
-        taskId: ingredientId,
-        userId: context.user.id,
-      });
+      const isLoopPair = await this.recordPairStart(
+        context,
+        ingredientData.id,
+        ingredientId,
+        pairIndex,
+      );
       return await this.dispatchPair({
         amount,
         context,
@@ -464,80 +374,83 @@ export class BatchInterpolationController {
       if (created.ingredientId) {
         // The credit hold, if one was taken, is released by the billing
         // service; here the records created for the pair are failed.
-        await this.failPair(context, {
-          ingredientId: created.ingredientId,
-          pairIndex,
-          promptId: created.promptId,
-        });
+        await failInterpolationPair(
+          this.failureDeps(),
+          this.failureScope(context),
+          {
+            ingredientId: created.ingredientId,
+            pairIndex,
+            promptId: created.promptId,
+          },
+        );
         return { id: created.ingredientId, pairIndex, status: 'failed' };
       }
-      await this.failPrompt(context, created.promptId);
+      await failInterpolationPrompt(
+        this.failureDeps(),
+        this.failureScope(context),
+        created.promptId,
+      );
       return { id: '', pairIndex, status: 'failed' };
     }
   }
 
-  /** Fails the video, closes its activity and fails the prompt of one pair. */
-  private async failPair(
+  /** Records the processing activity and announces the pair; returns whether it is the loop-back pair. */
+  private async recordPairStart(
     context: InterpolationContext,
-    records: CreatedPairRecords & { ingredientId: string; pairIndex: number },
-  ): Promise<void> {
-    const { ingredientId } = records;
-    const { organizationId } = context.user;
-    try {
-      await this.failedGenerationService.handleFailedVideoGeneration(
-        {
-          patch: (id, data) =>
-            this.videosService.patchOneWhere(
-              { id, isDeleted: false, organizationId },
-              data,
-            ),
-        },
+    entityId: string,
+    ingredientId: string,
+    pairIndex: number,
+  ): Promise<boolean> {
+    const activity = await this.activityRecorder.record({
+      brandId: context.brand.id,
+      entityId,
+      entityModel: ActivityEntityModel.INGREDIENT,
+      key: ActivityKey.VIDEO_PROCESSING,
+      organizationId: context.user.organizationId,
+      source: ActivitySource.VIDEO_GENERATION,
+      userId: context.user.id,
+      value: JSON.stringify({
+        groupId: context.groupId,
         ingredientId,
-        WebSocketPaths.video(ingredientId),
-        context.user.id,
-        getUserRoomName(context.user.id),
-        {
-          brandId: context.brand.id,
-          key: ActivityKey.VIDEO_FAILED,
-          organizationId,
-          source: ActivitySource.VIDEO_GENERATION,
-          userId: context.user.id,
-          value: JSON.stringify({
-            groupId: context.groupId,
-            ingredientId,
-            pairIndex: records.pairIndex,
-            type: 'interpolation',
-          }),
-        },
-      );
-    } catch (error: unknown) {
-      this.loggerService.error('Failed to fail interpolation video', error, {
-        ingredientId,
-        organizationId,
-      });
-    }
-    await this.failPrompt(context, records.promptId);
+        isLoopMode: context.dto.isLoopMode,
+        isMergeEnabled: context.dto.isMergeEnabled,
+        model: context.dto.modelKey,
+        pairIndex,
+        totalPairs: context.pairs.length,
+        type: 'interpolation',
+      }),
+    });
+    const isLoopPair =
+      Boolean(context.dto.isLoopMode) && pairIndex === context.pairs.length - 1;
+    await this.websocketService.publishBackgroundTaskUpdate({
+      activityId: activity.id.toString(),
+      label: isLoopPair
+        ? `Loop ${pairIndex + 1}/${context.pairs.length}`
+        : `Interpolation ${pairIndex + 1}/${context.pairs.length}`,
+      progress: 0,
+      room: getUserRoomName(context.user.id),
+      status: 'processing',
+      taskId: ingredientId,
+      userId: context.user.id,
+    });
+    return isLoopPair;
   }
 
-  private async failPrompt(
-    context: InterpolationContext,
-    promptId?: string,
-  ): Promise<void> {
-    if (!promptId) return;
-    try {
-      await this.promptsService.patchOneWhere(
-        {
-          id: promptId,
-          isDeleted: false,
-          organizationId: context.user.organizationId,
-        },
-        { status: PromptStatus.FAILED },
-      );
-    } catch (error: unknown) {
-      this.loggerService.error('Failed to fail interpolation prompt', error, {
-        promptId,
-      });
-    }
+  private failureDeps() {
+    return {
+      failedGenerationService: this.failedGenerationService,
+      loggerService: this.loggerService,
+      promptsService: this.promptsService,
+      videosService: this.videosService,
+    };
+  }
+
+  private failureScope(context: InterpolationContext) {
+    return {
+      brandId: context.brand.id,
+      groupId: context.groupId,
+      user: context.user,
+    };
   }
 
   private async dispatchPair(params: {
@@ -562,11 +475,15 @@ export class BatchInterpolationController {
       user: context.user,
     });
     if (!generationId) {
-      await this.failPair(context, {
-        ingredientId,
-        pairIndex,
-        promptId: params.promptId,
-      });
+      await failInterpolationPair(
+        this.failureDeps(),
+        this.failureScope(context),
+        {
+          ingredientId,
+          pairIndex,
+          promptId: params.promptId,
+        },
+      );
       return { id: ingredientId, pairIndex, status: 'failed' };
     }
     this.loggerService.log('Interpolation job started', {
