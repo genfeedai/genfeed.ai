@@ -5,7 +5,30 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { VoteEntityModel } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
+
+const ADD_VOTE_MAX_ATTEMPTS = 3;
+
+/**
+ * Votes written before organizations were stamped have a null
+ * `organizationId`, so an org-scoped lookup also matches the caller's own
+ * legacy rows. Naming the organization keeps the tenant guard satisfied.
+ */
+function voteOrganizationScope(organizationId: string | undefined): {
+  OR?: Array<{ organizationId: string | null }>;
+} {
+  return organizationId
+    ? { OR: [{ organizationId }, { organizationId: null }] }
+    : {};
+}
+
+function isUniqueConstraintViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: unknown }).code === 'P2002'
+  );
+}
 
 @Injectable()
 export class VotesService extends BaseService<
@@ -21,48 +44,86 @@ export class VotesService extends BaseService<
   }
 
   /**
-   * Toggle a user's vote on an entity: remove the active vote if there is one,
-   * otherwise record a new one stamped with the tenant. The caller must already
-   * have verified that `entityId` belongs to `organizationId`. Return the vote
-   * document as well so HTTP callers can use the standard vote serializer.
+   * Add a user's vote on an entity. Idempotent: an active vote is returned
+   * as-is, a soft-deleted one is revived, and only otherwise is a row
+   * inserted. The partial unique index `votes_entity_user_active_uidx`
+   * (`entityId, userId WHERE isDeleted = false`) makes concurrent adds
+   * converge: the loser's insert fails with P2002 and re-reads the winner's
+   * row. The caller must already have verified that `entityId` belongs to
+   * `organizationId`.
    */
-  async toggleVote(input: {
+  async addVote(input: {
     entityId: string;
     entityModel: VoteEntityModel;
-    organizationId: string;
+    organizationId?: string;
     userId: string;
-  }): Promise<{
-    action: 'added' | 'removed';
-    vote: VoteDocument;
-    voteId: string;
-  }> {
+  }): Promise<{ created: boolean; vote: VoteDocument }> {
     const { entityId, entityModel, organizationId, userId } = input;
-    const existing = await this.findOne({
-      entityId,
-      entityModel,
-      isDeleted: false,
-      organizationId,
-      userId,
-    });
+    const scope = voteOrganizationScope(organizationId);
 
-    if (existing) {
-      await this.patchAll(
-        { entityId, entityModel, isDeleted: false, organizationId, userId },
-        { isDeleted: true },
-      );
-      return {
-        action: 'removed',
-        vote: { ...existing, isDeleted: true },
-        voteId: String(existing.id),
-      };
+    for (let attempt = 0; attempt < ADD_VOTE_MAX_ATTEMPTS; attempt++) {
+      const active = await this.prisma.vote.findFirst({
+        orderBy: { createdAt: 'asc' },
+        where: { entityId, isDeleted: false, userId, ...scope },
+      });
+      if (active) {
+        return {
+          created: false,
+          vote: this.normalizeDocument(active),
+        };
+      }
+
+      const removed = await this.prisma.vote.findFirst({
+        orderBy: { createdAt: 'desc' },
+        where: { entityId, isDeleted: true, userId, ...scope },
+      });
+
+      try {
+        if (removed) {
+          const revived = await this.prisma.vote.update({
+            data: {
+              isDeleted: false,
+              ...(organizationId ? { organizationId } : {}),
+            },
+            where: { id: removed.id, ...scope },
+          });
+          return { created: true, vote: this.normalizeDocument(revived) };
+        }
+
+        const vote = await this.create({
+          entityId,
+          entityModel,
+          ...(organizationId ? { organizationId } : {}),
+          userId,
+        } as unknown as CreateVoteDto);
+        return { created: true, vote };
+      } catch (error: unknown) {
+        // A concurrent add won the unique index; loop to read its row.
+        if (!isUniqueConstraintViolation(error)) {
+          throw error;
+        }
+      }
     }
 
-    const vote = await this.create({
-      entityId,
-      entityModel,
-      organizationId,
-      userId,
-    } as unknown as CreateVoteDto);
-    return { action: 'added', vote, voteId: String(vote.id) };
+    throw new ConflictException('Vote could not be recorded; retry');
+  }
+
+  /**
+   * Remove (soft delete) a user's vote on an entity. Idempotent: removing a
+   * vote that is not there is a no-op. Legacy votes written without an
+   * organization are removed too, since the filter is always the caller's
+   * own `userId`.
+   */
+  async removeVote(input: {
+    entityId: string;
+    organizationId?: string;
+    userId: string;
+  }): Promise<{ removedCount: number }> {
+    const { entityId, organizationId, userId } = input;
+    const { modifiedCount } = await this.patchAll(
+      { entityId, userId, ...voteOrganizationScope(organizationId) },
+      { isDeleted: true },
+    );
+    return { removedCount: modifiedCount };
   }
 }

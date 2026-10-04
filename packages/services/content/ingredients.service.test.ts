@@ -308,14 +308,26 @@ describe('IngredientsService', () => {
   });
 
   describe('item actions', () => {
-    it('vote POSTs to the vote endpoint', async () => {
+    it('vote POSTs the entity to /votes', async () => {
       http.post.mockResolvedValue(axiosResponse(undefined));
 
-      await service.vote('ing_1', 'vote');
-      await service.vote('ing_1', 'unvote');
+      await service.vote('ing_1');
 
-      expect(http.post).toHaveBeenNthCalledWith(1, 'ing_1/vote');
-      expect(http.post).toHaveBeenNthCalledWith(2, 'ing_1/unvote');
+      expect(http.post).toHaveBeenCalledTimes(1);
+      const [url, body] = http.post.mock.calls[0];
+      expect(String(url)).toMatch(/\/votes$/);
+      expect(body).toEqual({ entity: 'ing_1', entityModel: 'Ingredient' });
+    });
+
+    it('unvote DELETEs /votes with the entity query', async () => {
+      http.delete.mockResolvedValue(axiosResponse(undefined));
+
+      await service.unvote('ing_1');
+
+      expect(http.post).not.toHaveBeenCalled();
+      const [url, config] = http.delete.mock.calls[0];
+      expect(String(url)).toMatch(/\/votes$/);
+      expect(config).toEqual({ params: { entity: 'ing_1' } });
     });
 
     it('postClone POSTs to the clone endpoint', async () => {

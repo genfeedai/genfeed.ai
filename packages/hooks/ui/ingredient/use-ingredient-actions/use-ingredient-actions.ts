@@ -681,7 +681,9 @@ export function useIngredientActions({
         errorMessage: 'Failed to vote',
         operation: async () => {
           const service = await getIngredientsService();
-          await service.vote(ingredient.id, endpoint);
+          await (endpoint === 'unvote'
+            ? service.unvote(ingredient.id)
+            : service.vote(ingredient.id));
           // Optimistically update the vote state
           ingredient.hasVoted = willHaveVoted;
           ingredient.totalVotes =
@@ -690,7 +692,7 @@ export function useIngredientActions({
         setActionStates,
         stateKey: 'isVoting',
         successMessage: willHaveVoted ? 'Voted successfully' : 'Vote removed',
-        url: `POST /ingredients/${ingredient.id}/${endpoint}`,
+        url: `${endpoint === 'unvote' ? 'DELETE' : 'POST'} /votes`,
       });
     },
     [getIngredientsService],
