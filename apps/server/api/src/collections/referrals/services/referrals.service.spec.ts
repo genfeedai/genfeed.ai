@@ -307,8 +307,9 @@ describe('ReferralsService', () => {
     prisma.subscription.findFirst.mockImplementation(guarded('Subscription'));
     prisma.referral.create.mockResolvedValue({ id: 'referral_1' });
 
+    // The request tenant is the claiming org; the linked sibling org is not.
     const result = await runWithTenantContext(
-      { organizationId: 'org_other_tenant' },
+      { organizationId: ACTOR.organizationId },
       () => service.claim(ACTOR, 'validcode1'),
     );
 

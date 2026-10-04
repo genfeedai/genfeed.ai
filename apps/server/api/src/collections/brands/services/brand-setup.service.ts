@@ -453,7 +453,7 @@ export class BrandSetupService {
   async addReferenceImages(
     brandId: string,
     images: ReferenceImageDto[],
-    _user: User,
+    user: User,
   ): Promise<{ success: boolean; count: number }> {
     const { organizationId } = await this.resolveBrandScope(
       brandId,
