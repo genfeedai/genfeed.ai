@@ -449,3 +449,19 @@ describe('PresetsController under the CLOUD tenant guard', () => {
     });
   });
 });
+
+describe('PresetsService.findPresetForContext under the CLOUD tenant guard', () => {
+  it('falls back to the app-wide preset for a tenant and hides foreign rows', async () => {
+    const { inTenant, service } = setup();
+
+    const preset = await inTenant(() =>
+      service.findPresetForContext('anime', ORG),
+    );
+    const foreign = await inTenant(() =>
+      service.findPresetForContext('theirs', ORG),
+    );
+
+    expect(preset?.id).toBe(DEFAULT_ID);
+    expect(foreign).toBeNull();
+  });
+});

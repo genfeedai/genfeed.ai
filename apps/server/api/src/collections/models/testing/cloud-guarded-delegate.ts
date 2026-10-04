@@ -11,7 +11,9 @@ export type GuardedRow = {
 type Where = Record<string, unknown>;
 
 type GuardedArgs = {
+  create?: Where;
   data?: Where;
+  update?: Where;
   where?: Where;
 };
 
@@ -32,6 +34,9 @@ function matchesField(actual: unknown, expected: unknown): boolean {
   }
   if (Array.isArray(expected.in)) {
     return expected.in.includes(actual);
+  }
+  if ('has' in expected) {
+    return Array.isArray(actual) && actual.includes(expected.has);
   }
   if ('equals' in expected) {
     return actual === expected.equals;
@@ -114,6 +119,22 @@ export function buildGuardedDelegate(model: string, rows: GuardedRow[]) {
         }
         Object.assign(row, args.data);
         return row;
+      }),
+    ),
+    upsert: vi.fn((args: GuardedArgs) =>
+      lazy('upsert', args, () => {
+        const existing = select(args.where)[0];
+        if (existing) {
+          return Object.assign(existing, args.update);
+        }
+        const created = {
+          id: `created-${rows.length}`,
+          isDeleted: false,
+          organizationId: null,
+          ...args.create,
+        } as GuardedRow;
+        rows.push(created);
+        return created;
       }),
     ),
     updateMany: vi.fn((args: GuardedArgs) =>
