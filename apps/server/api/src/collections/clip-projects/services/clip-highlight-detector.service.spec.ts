@@ -48,6 +48,27 @@ describe('ClipHighlightDetector structured boundary', () => {
       { ...clip, title: 'Best', virality_score: 99 },
     ]);
   });
+  it('keeps valid clips when one item is invalid and logs the drop', async () => {
+    post.mockReturnValue(
+      response(
+        JSON.stringify({
+          highlights: [
+            clip,
+            { ...clip, end_time: 5 },
+            { ...clip, title: 'x'.repeat(61), virality_score: 90 },
+          ],
+        }),
+      ),
+    );
+    const result = await service.detectHighlights('text', segments, 5);
+    expect(result).toHaveLength(2);
+    expect(result[0].title).toHaveLength(60);
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('dropped invalid highlights'),
+      expect.objectContaining({ droppedCount: 1 }),
+    );
+  });
   it.each([
     '',
     'Here are clips: {"highlights":[]}',

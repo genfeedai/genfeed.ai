@@ -4,6 +4,7 @@ import {
   toStructuredJsonSchema,
 } from '@api/services/integrations/llm/structured-output.util';
 import {
+  createLenientPromptOptimizationSchema,
   PROMPT_OPTIMIZATION_SCHEMA_NAME,
   type PromptOptimizationResult,
   promptOptimizationSchema,
@@ -674,7 +675,13 @@ export class ContentOptimizationService implements OnModuleInit {
       },
     ];
     return runStructuredCompletion({
-      schema: promptOptimizationSchema,
+      schema: createLenientPromptOptimizationSchema((dropped) =>
+        this.logger.warn('Dropped invalid prompt optimization suggestions', {
+          code: 'prompt_optimization_items_dropped',
+          dropped,
+          droppedCount: dropped.length,
+        }),
+      ),
       schemaName: PROMPT_OPTIMIZATION_SCHEMA_NAME,
       attempt: async (repair) => {
         const response = await this.openAiLlmService.chatCompletion({
