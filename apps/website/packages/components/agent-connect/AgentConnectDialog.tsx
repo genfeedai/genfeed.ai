@@ -2,6 +2,7 @@
 
 import { type AgentClient, agentClients } from '@data/agent-clients.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { AgentConnectDialogProps } from '@props/agent-client.props';
 import CommandBlock from '@public/agent-clients/agent-client-command-block';
 import { AGENT_CONNECT_EVENT } from '@ui/buttons/connect-agent/connect-agent.event';
 import { Modal } from '@ui/modals/compound';
@@ -13,10 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 export default function AgentConnectDialog({
   openOnMount = false,
   returnFocusTo = null,
-}: {
-  openOnMount?: boolean;
-  returnFocusTo?: HTMLElement | null;
-}) {
+}: AgentConnectDialogProps) {
   const [open, setOpen] = useState(false);
   const [client, setClient] = useState<AgentClient | null>(null);
   const trigger = useRef<HTMLElement | null>(null);
