@@ -17,6 +17,7 @@ import { reserveGenerationRequestCredits } from '@api/helpers/utils/credits/gene
 import { generationUsageReceiptSchema } from '@api/helpers/utils/credits/generation-submission-evidence.schema';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { compensateCrunDispatchFailure } from '@api/services/integrations/crun/crun-generation-compensation.util';
 import { CrunPreviewQuoteService } from '@api/services/integrations/crun/crun-preview-quote.service';
 import type {
   CrunFundingBinding,
@@ -199,150 +200,167 @@ export class CrunImageGenerationProviderAdapter
         billingRequest.creditsConfig?.description ?? 'Image generation',
       isByokBypass: provider.credentialSource === 'byok',
     };
-    await reserveGenerationRequestCredits({
-      amount: frozen.snapshot.credits,
-      creditsUtilsService: this.credits,
-      organizationId: user.organizationId,
-      request: billingRequest,
-    });
-    const prompt = intent.promptId
-      ? { id: intent.promptId }
-      : await this.prompts.create({
-          original: intent.text,
-          enhanced: intent.text,
-          category: PromptCategory.MODELS_PROMPT_IMAGE,
-          status: PromptStatus.GENERATED,
-          userId: user.userId,
-          organizationId: user.organizationId,
-          brandId: frozen.brandId,
-        });
-    const personaId = await this.input.resolveOutputPersonaId(
-      intent,
-      user,
-      frozen.brandId,
-    );
-    const rows: CrunPreparedTask[] = [];
     const ingredients: Awaited<
       ReturnType<SharedService['createMediaDocuments']>
     >[] = [];
-    for (
-      let outputIndex = 0;
-      outputIndex < (intent.outputs ?? 1);
-      outputIndex++
-    ) {
-      const docs = await this.shared.createMediaDocuments(user, {
-        origin: IngredientOrigin.GENERATED,
-        category: IngredientCategory.IMAGE,
-        brandId: frozen.brandId,
+    const createdIngredientIds: string[] = [];
+    try {
+      await reserveGenerationRequestCredits({
+        amount: frozen.snapshot.credits,
+        creditsUtilsService: this.credits,
         organizationId: user.organizationId,
-        personaId,
-        promptId: prompt.id,
-        extension:
-          frozen.request.input.output_format === 'jpg'
-            ? MetadataExtension.JPG
-            : MetadataExtension.PNG,
-        model: intent.model,
-        generationPrompt: String(frozen.request.input.prompt),
-        generationSource: 'studio',
-        sourceIds: intent.references,
-        promptTemplate: frozen.templateUsed,
-        templateVersion: frozen.templateVersion,
-        groupId: frozen.quoteId,
-        groupIndex: outputIndex,
-        style: intent.style,
+        request: billingRequest,
       });
-      ingredients.push(docs);
-      if (intent.folderId)
-        await this.prisma.ingredient.updateMany({
-          where: {
-            id: docs.ingredientData.id,
+      const prompt = intent.promptId
+        ? { id: intent.promptId }
+        : await this.prompts.create({
+            original: intent.text,
+            enhanced: intent.text,
+            category: PromptCategory.MODELS_PROMPT_IMAGE,
+            status: PromptStatus.GENERATED,
+            userId: user.userId,
             organizationId: user.organizationId,
-            isDeleted: false,
-          },
-          data: { folderId: intent.folderId },
-        });
-      await this.billing.bindOutput(billingRequest, {
-        ingredientId: docs.ingredientData.id,
-        credits:
-          provider.credentialSource === 'byok'
-            ? frozen.snapshot.credits / (intent.outputs ?? 1)
-            : frozen.snapshot.allocatedCredits[outputIndex],
-        submissionIntentProvider: 'crun',
-      });
-      let fundingBinding: CrunFundingBinding;
-      if (provider.credentialSource === 'byok') {
-        const linked = await this.prisma.ingredient.findFirst({
-          where: {
-            id: docs.ingredientData.id,
-            organizationId: user.organizationId,
-            isDeleted: false,
-          },
-          select: { generationBilling: true },
-        });
-        const receipt = generationUsageReceiptSchema.parse(
-          linked?.generationBilling,
-        );
-        const {
-          kind: _kind,
-          state: _state,
-          confirmedFailure: _failure,
-          ...immutable
-        } = receipt;
-        fundingBinding = crunFundingBindingSchema.parse({
-          kind: 'byok',
-          receipt: immutable,
-        });
-      } else
-        fundingBinding =
-          frozen.snapshot.credits > 0
-            ? { kind: 'reservation' }
-            : { kind: 'free' };
-      rows.push({
-        organizationId: user.organizationId,
-        userId: user.userId,
-        ingredientId: docs.ingredientData.id,
-        brandId: frozen.brandId,
-        reservationId:
-          provider.credentialSource === 'hosted' && frozen.snapshot.credits > 0
-            ? (billingRequest.creditsConfig?.reservationId ?? null)
-            : null,
-        fundingBinding,
-        modelKey: intent.model,
-        endpoint: frozen.request.model,
-        contractVersion: provider.contractVersion,
-        quoteId: frozen.quoteId,
-        outputIndex,
-        inputHash: provider.inputHash,
-        inputMetadata: {
-          referenceCount: intent.references?.length ?? 0,
-          intentHash: frozen.intentHash,
-        },
-        quoteSnapshot: toPrismaJson(frozen.snapshot) as Prisma.InputJsonObject,
-        credentialSource: provider.credentialSource,
-        credentialId: provider.credentialId,
-        credentialFingerprint: provider.credentialFingerprint,
-      });
-    }
-    const prepared = await this.tasks.prepareTasks(rows);
-    // Every durable row and binding precedes the first paid request. Never regenerate effective input here.
-    for (const task of prepared) {
-      const result = await this.tasks.submit(task, frozen.request);
-      if (result.isSubmitted) continue;
-      const persisted = await this.tasks.findForIngredient(
-        user.organizationId,
-        task.ingredientId,
+            brandId: frozen.brandId,
+          });
+      const personaId = await this.input.resolveOutputPersonaId(
+        intent,
+        user,
+        frozen.brandId,
       );
-      if (
-        persisted?.state === 'provider-failed' &&
-        persisted.providerTaskId === null
-      )
-        await this.billing.recordSubmissionRejection(
-          task.ingredientId,
+      const rows: CrunPreparedTask[] = [];
+      for (
+        let outputIndex = 0;
+        outputIndex < (intent.outputs ?? 1);
+        outputIndex++
+      ) {
+        const docs = await this.shared.createMediaDocuments(user, {
+          origin: IngredientOrigin.GENERATED,
+          category: IngredientCategory.IMAGE,
+          brandId: frozen.brandId,
+          organizationId: user.organizationId,
+          personaId,
+          promptId: prompt.id,
+          extension:
+            frozen.request.input.output_format === 'jpg'
+              ? MetadataExtension.JPG
+              : MetadataExtension.PNG,
+          model: intent.model,
+          generationPrompt: String(frozen.request.input.prompt),
+          generationSource: 'studio',
+          sourceIds: intent.references,
+          promptTemplate: frozen.templateUsed,
+          templateVersion: frozen.templateVersion,
+          groupId: frozen.quoteId,
+          groupIndex: outputIndex,
+          style: intent.style,
+        });
+        ingredients.push(docs);
+        createdIngredientIds.push(docs.ingredientData.id);
+        if (intent.folderId)
+          await this.prisma.ingredient.updateMany({
+            where: {
+              id: docs.ingredientData.id,
+              organizationId: user.organizationId,
+              isDeleted: false,
+            },
+            data: { folderId: intent.folderId },
+          });
+        await this.billing.bindOutput(billingRequest, {
+          ingredientId: docs.ingredientData.id,
+          credits:
+            provider.credentialSource === 'byok'
+              ? frozen.snapshot.credits / (intent.outputs ?? 1)
+              : frozen.snapshot.allocatedCredits[outputIndex],
+          submissionIntentProvider: 'crun',
+        });
+        let fundingBinding: CrunFundingBinding;
+        if (provider.credentialSource === 'byok') {
+          const linked = await this.prisma.ingredient.findFirst({
+            where: {
+              id: docs.ingredientData.id,
+              organizationId: user.organizationId,
+              isDeleted: false,
+            },
+            select: { generationBilling: true },
+          });
+          const receipt = generationUsageReceiptSchema.parse(
+            linked?.generationBilling,
+          );
+          const {
+            kind: _kind,
+            state: _state,
+            confirmedFailure: _failure,
+            ...immutable
+          } = receipt;
+          fundingBinding = crunFundingBindingSchema.parse({
+            kind: 'byok',
+            receipt: immutable,
+          });
+        } else
+          fundingBinding =
+            frozen.snapshot.credits > 0
+              ? { kind: 'reservation' }
+              : { kind: 'free' };
+        rows.push({
+          organizationId: user.organizationId,
+          userId: user.userId,
+          ingredientId: docs.ingredientData.id,
+          brandId: frozen.brandId,
+          reservationId:
+            provider.credentialSource === 'hosted' &&
+            frozen.snapshot.credits > 0
+              ? (billingRequest.creditsConfig?.reservationId ?? null)
+              : null,
+          fundingBinding,
+          modelKey: intent.model,
+          endpoint: frozen.request.model,
+          contractVersion: provider.contractVersion,
+          quoteId: frozen.quoteId,
+          outputIndex,
+          inputHash: provider.inputHash,
+          inputMetadata: {
+            referenceCount: intent.references?.length ?? 0,
+            intentHash: frozen.intentHash,
+          },
+          quoteSnapshot: toPrismaJson(
+            frozen.snapshot,
+          ) as Prisma.InputJsonObject,
+          credentialSource: provider.credentialSource,
+          credentialId: provider.credentialId,
+          credentialFingerprint: provider.credentialFingerprint,
+        });
+      }
+      const prepared = await this.tasks.prepareTasks(rows);
+      // Every durable row and binding precedes the first paid request. Never regenerate effective input here.
+      for (const task of prepared) {
+        const result = await this.tasks.submit(task, frozen.request);
+        if (result.isSubmitted) continue;
+        const persisted = await this.tasks.findForIngredient(
           user.organizationId,
+          task.ingredientId,
         );
-      // Ambiguous acceptance remains funded. No outcome is automatically redispatched.
+        if (
+          persisted?.state === 'provider-failed' &&
+          persisted.providerTaskId === null
+        )
+          await this.billing.recordSubmissionRejection(
+            task.ingredientId,
+            user.organizationId,
+          );
+        // Ambiguous acceptance remains funded. No outcome is automatically redispatched.
+      }
+      await this.billing.releasePool(billingRequest);
+    } catch (error: unknown) {
+      await compensateCrunDispatchFailure(
+        { tasks: this.tasks, billing: this.billing },
+        {
+          organizationId: user.organizationId,
+          ingredientIds: createdIngredientIds,
+          billingRequest,
+        },
+      );
+      throw error;
     }
-    await this.billing.releasePool(billingRequest);
     const first = await this.images.findOne({
       id: ingredients[0].ingredientData.id,
       organizationId: user.organizationId,

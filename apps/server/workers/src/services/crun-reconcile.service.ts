@@ -15,6 +15,11 @@ export class CrunReconcileService {
 
   async reconcile(): Promise<void> {
     // Reconciliation remains mounted even when new admissions are disabled.
+    // Safety net for dispatches that died before compensating; the failed rows
+    // are claimed and finalized by the same pass.
+    await this.tasks.failStalePrepared().catch(() => {
+      this.logger.warn('Crun stale prepared sweep deferred');
+    });
     const rows = await this.tasks.claimDue();
     await Promise.all(
       rows.map(async (claimed) => {
