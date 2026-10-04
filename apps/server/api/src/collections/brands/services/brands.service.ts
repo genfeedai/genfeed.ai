@@ -933,7 +933,7 @@ export class BrandsService extends BaseService<
   }
 
   /** Deletion is organization-scoped: use `removeInOrganization`. */
-  remove(_id: string): Promise<BrandDocument> {
+  async remove(_id: string): Promise<BrandDocument> {
     throw new ValidationException('Brand deletion needs an organization');
   }
 

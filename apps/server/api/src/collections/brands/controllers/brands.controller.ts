@@ -96,7 +96,6 @@ export class BrandsController extends BaseCRUDController<
       'Brand',
     );
   }
-
   protected override removeEntity(brand: BrandDocument, id: string) {
     return this.brandsService.removeInOrganization(brand.organizationId, id);
   }

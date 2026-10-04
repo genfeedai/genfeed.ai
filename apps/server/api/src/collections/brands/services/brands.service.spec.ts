@@ -676,9 +676,9 @@ describe('BrandsService', () => {
   });
 
   it('refuses the organization-less remove so no caller can skip the scope', async () => {
-    await expect(service.remove(testId('brand'))).rejects.toThrow(
-      'Brand deletion needs an organization',
-    );
+    await expect(service.remove(testId('brand'))).rejects.toMatchObject({
+      status: 422,
+    });
     expect(brandLifecycleService.remove).not.toHaveBeenCalled();
   });
 

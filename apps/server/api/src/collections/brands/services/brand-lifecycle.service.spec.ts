@@ -406,9 +406,9 @@ describe('BrandLifecycleService', () => {
     });
 
     it('refuses a deletion without an organization id before touching anything', async () => {
-      await expect(service.remove('', brandId)).rejects.toThrow(
-        'Brand deletion requires an organization',
-      );
+      await expect(service.remove('', brandId)).rejects.toMatchObject({
+        status: 422,
+      });
       expect(transactionMock).not.toHaveBeenCalled();
     });
 
