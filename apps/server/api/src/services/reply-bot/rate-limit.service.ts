@@ -272,11 +272,12 @@ export class RateLimitService {
    */
   async checkCooldown(
     botConfigId: string,
+    organizationId: string,
     _targetUserId: string,
     lastReplyTime: Date,
   ): Promise<{ allowed: boolean; remainingSeconds?: number }> {
     const record = await this.prisma.replyBotConfig.findFirst({
-      where: { id: botConfigId, isDeleted: false },
+      where: scopedWhere(organizationId, { id: botConfigId }),
     });
 
     if (!record) {

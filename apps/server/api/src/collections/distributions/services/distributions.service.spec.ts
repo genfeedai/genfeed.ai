@@ -1,7 +1,9 @@
 import { DistributionsService } from '@api/collections/distributions/services/distributions.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import { DistributionPlatform, PublishStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -73,6 +75,68 @@ describe('DistributionsService', () => {
         }),
       );
       expect(result).toMatchObject({ id: 'dist-id' });
+    });
+  });
+  describe('tenant-scoped status transitions', () => {
+    const row = { config: {}, id: 'dist-id', organizationId: orgId };
+
+    beforeEach(() => {
+      mockPrismaService.distribution.findFirst.mockResolvedValue(row);
+      mockPrismaService.distribution.update.mockResolvedValue(row);
+    });
+
+    it('pins markAsPublished and markAsFailed to the request tenant', async () => {
+      await runWithTenantContext({ organizationId: orgId }, async () => {
+        await service.markAsPublished('dist-id', 'tg-1');
+        await service.markAsFailed('dist-id', 'boom');
+      });
+
+      expect(mockPrismaService.distribution.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'dist-id', isDeleted: false, organizationId: orgId },
+        }),
+      );
+      expectCloudGuardPasses(
+        'Distribution',
+        'findFirst',
+        mockPrismaService.distribution.findFirst,
+      );
+      expectCloudGuardPasses(
+        'Distribution',
+        'update',
+        mockPrismaService.distribution.update,
+      );
+    });
+
+    it('prefers an explicit organization over the request tenant', async () => {
+      await service.markAsFailed('dist-id', 'boom', 'org-from-worker');
+
+      expect(mockPrismaService.distribution.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: 'dist-id',
+            isDeleted: false,
+            organizationId: 'org-from-worker',
+          },
+        }),
+      );
+    });
+
+    it('scopes the cancelScheduled write by organization', async () => {
+      mockPrismaService.distribution.findFirst.mockResolvedValue({
+        ...row,
+        status: PublishStatus.SCHEDULED,
+      });
+
+      await runWithTenantContext({ organizationId: orgId }, () =>
+        service.cancelScheduled('dist-id', orgId),
+      );
+
+      expectCloudGuardPasses(
+        'Distribution',
+        'update',
+        mockPrismaService.distribution.update,
+      );
     });
   });
 });

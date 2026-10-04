@@ -1,5 +1,7 @@
 import { CustomersService } from '@api/collections/customers/services/customers.service';
+import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import { Prisma } from '@genfeedai/prisma';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 
 describe('CustomersService.upsertForOrganization', () => {
   const logger = {
@@ -82,12 +84,15 @@ describe('CustomersService.upsertForOrganization', () => {
       stripeCustomerId: 'cus_fresh',
     });
 
-    const result = await service.upsertForOrganization('org_1', 'cus_fresh');
+    const result = await runWithTenantContext({ organizationId: 'org_1' }, () =>
+      service.upsertForOrganization('org_1', 'cus_fresh'),
+    );
 
+    expectCloudGuardPasses('Customer', 'update', customer.update);
     expect(customer.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ stripeCustomerId: 'cus_fresh' }),
-        where: { id: 'cust_row_1' },
+        where: { id: 'cust_row_1', isDeleted: false, organizationId: 'org_1' },
       }),
     );
     expect(result.stripeCustomerId).toBe('cus_fresh');
@@ -134,7 +139,11 @@ describe('CustomersService.upsertForOrganization', () => {
     expect(customer.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ stripeCustomerId: 'cus_loser' }),
-        where: { id: 'cust_row_winner' },
+        where: {
+          id: 'cust_row_winner',
+          isDeleted: false,
+          organizationId: 'org_1',
+        },
       }),
     );
     expect(result.id).toBe('cust_row_winner');

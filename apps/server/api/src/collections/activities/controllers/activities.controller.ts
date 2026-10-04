@@ -27,6 +27,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { ActivitySerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Body,
@@ -129,8 +130,17 @@ export class ActivitiesController {
         : ({ createdAt: -1, key: 1 } as SortObject),
     };
 
-    const data: AggregatePaginateResult<ActivityDocument> =
-      await this.activitiesService.findAll(aggregate, options);
+    // A superadmin list that is not pinned to the active organization (no
+    // filter, a brand-only filter, or another organization) is cross-tenant.
+    const isCrossTenantList =
+      isSuperAdmin &&
+      Boolean(user.organizationId) &&
+      where.organizationId !== user.organizationId;
+    const data: AggregatePaginateResult<ActivityDocument> = isCrossTenantList
+      ? await crossOrgUnsafe(
+          async () => await this.activitiesService.findAll(aggregate, options),
+        )
+      : await this.activitiesService.findAll(aggregate, options);
     return serializeCollection(request, ActivitySerializer, data);
   }
 

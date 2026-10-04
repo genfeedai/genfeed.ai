@@ -23,6 +23,7 @@ import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   forwardRef,
@@ -267,7 +268,13 @@ export class TasksService extends BaseService<
       | undefined;
 
     if (newStatus || hasConfigPatch) {
-      const existingTask = await this.findOne({ id });
+      // `super.patch` writes by id; resolve the pre-read under the request tenant.
+      const tenantOrganizationId = getTenantContext()?.organizationId;
+      const existingTask = await this.findOne(
+        tenantOrganizationId
+          ? scopedWhere(tenantOrganizationId, { id })
+          : { id },
+      );
       if (!existingTask) {
         throw new NotFoundException('Task', id);
       }
@@ -374,13 +381,9 @@ export class TasksService extends BaseService<
 
   async findByIdentifier(
     identifier: string,
-    organizationId?: string,
+    organizationId: string,
   ): Promise<TaskDocument | null> {
-    const filter: Record<string, unknown> = { identifier, isDeleted: false };
-    if (organizationId) {
-      filter.organizationId = organizationId;
-    }
-    return this.findOne(filter);
+    return this.findOne(scopedWhere(organizationId, { identifier }));
   }
 
   async findChildren(

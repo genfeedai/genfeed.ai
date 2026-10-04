@@ -13,6 +13,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { FontFamilySerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   Body,
   Controller,
@@ -59,7 +60,10 @@ export class FontFamiliesController extends BaseCRUDController<
     @CurrentUser() _user: User,
     @Param('fontFamilyId') fontFamilyId: string,
   ) {
-    return super.findOne(request, _user, fontFamilyId);
+    // Superadmin-only: font families include platform rows (no organization).
+    return crossOrgUnsafe(
+      async () => await super.findOne(request, _user, fontFamilyId),
+    );
   }
 
   @Post()
@@ -82,7 +86,10 @@ export class FontFamiliesController extends BaseCRUDController<
     @Param('fontFamilyId') fontFamilyId: string,
     @Body() updateDto: UpdateFontFamilyDto,
   ) {
-    return super.patch(request, user, fontFamilyId, updateDto);
+    // Superadmin-only: font families include platform rows (no organization).
+    return crossOrgUnsafe(
+      async () => await super.patch(request, user, fontFamilyId, updateDto),
+    );
   }
 
   @Delete(':fontFamilyId')
@@ -93,7 +100,10 @@ export class FontFamiliesController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('fontFamilyId') fontFamilyId: string,
   ) {
-    return super.remove(request, user, fontFamilyId);
+    // Superadmin-only: font families include platform rows (no organization).
+    return crossOrgUnsafe(
+      async () => await super.remove(request, user, fontFamilyId),
+    );
   }
 
   /**

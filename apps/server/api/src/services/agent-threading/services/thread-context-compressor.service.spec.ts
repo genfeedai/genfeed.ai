@@ -4,8 +4,10 @@ import { ThreadContextCompressorService } from '@api/services/agent-threading/se
 import type { CacheService } from '@api/services/cache/cache.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { describe, expect, it, vi } from 'vitest';
 
 function buildService(isAgentContextCompressionEnabled: boolean) {
@@ -30,7 +32,7 @@ function buildService(isAgentContextCompressionEnabled: boolean) {
     platformSettingsService as unknown as PlatformSettingsService,
     { error: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
   );
-  return { agentMessagesService, platformSettingsService, service };
+  return { agentMessagesService, platformSettingsService, prisma, service };
 }
 
 describe('ThreadContextCompressorService switch (#5407)', () => {
@@ -55,5 +57,25 @@ describe('ThreadContextCompressorService switch (#5407)', () => {
     ).resolves.toBeNull();
 
     expect(agentMessagesService.countMessages).toHaveBeenCalledWith('thread-1');
+  });
+  it('reads the compressed state scoped to the organization in CLOUD mode', async () => {
+    const { prisma, service } = buildService(true);
+
+    await runWithTenantContext({ organizationId: 'org-1' }, () =>
+      service.getStateOrCompact('thread-1', 'org-1'),
+    );
+
+    expect(prisma.threadContextState.findFirst).toHaveBeenCalledWith({
+      where: {
+        isDeleted: false,
+        organizationId: 'org-1',
+        threadId: 'thread-1',
+      },
+    });
+    expectCloudGuardPasses(
+      'ThreadContextState',
+      'findFirst',
+      prisma.threadContextState.findFirst,
+    );
   });
 });

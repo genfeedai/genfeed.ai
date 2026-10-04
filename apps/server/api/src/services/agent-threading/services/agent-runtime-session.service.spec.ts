@@ -15,7 +15,9 @@ import {
   upsertRuntimeBinding,
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('AgentRuntimeSessionService', () => {
@@ -124,6 +126,32 @@ describe('AgentRuntimeSessionService', () => {
             }),
           }),
         }),
+      );
+    });
+
+    it('scopes the snapshot read and write to the organization in CLOUD mode', async () => {
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(
+        mockSnapshotRow,
+      );
+      mockPrisma.agentThreadSnapshot.update.mockResolvedValue(mockSnapshotRow);
+
+      await runWithTenantContext({ organizationId }, () =>
+        service.upsertBinding({
+          organizationId,
+          status: 'idle',
+          threadId,
+        }),
+      );
+
+      expectCloudGuardPasses(
+        'AgentThreadSnapshot',
+        'findFirst',
+        mockPrisma.agentThreadSnapshot.findFirst,
+      );
+      expectCloudGuardPasses(
+        'AgentThreadSnapshot',
+        'update',
+        mockPrisma.agentThreadSnapshot.update,
       );
     });
 

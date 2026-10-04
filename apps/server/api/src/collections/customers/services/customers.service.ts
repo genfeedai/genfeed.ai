@@ -4,6 +4,7 @@ import type {
   Customer,
   CustomerDocument,
 } from '@api/collections/customers/schemas/customer.schema';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -124,7 +125,11 @@ export class CustomersService extends BaseService<
         return existing;
       }
 
-      return await this.patch(String(existing.id), { stripeCustomerId });
+      return await this.rebindStripeCustomer(
+        organizationId,
+        String(existing.id),
+        stripeCustomerId,
+      );
     }
 
     try {
@@ -136,11 +141,32 @@ export class CustomersService extends BaseService<
       ) {
         const winner = await this.findByOrganizationId(organizationId);
         if (winner) {
-          return await this.patch(String(winner.id), { stripeCustomerId });
+          return await this.rebindStripeCustomer(
+            organizationId,
+            String(winner.id),
+            stripeCustomerId,
+          );
         }
       }
 
       throw error;
     }
+  }
+
+  /** `patch(id)` writes by primary key alone; pin the write to the organization. */
+  private async rebindStripeCustomer(
+    organizationId: string,
+    customerId: string,
+    stripeCustomerId: string,
+  ): Promise<Customer> {
+    const updated = await this.patchOneWhere(
+      scopedWhere(organizationId, { id: customerId }),
+      { stripeCustomerId },
+    );
+    if (!updated) {
+      throw new NotFoundException('Customer', customerId);
+    }
+
+    return updated as unknown as Customer;
   }
 }

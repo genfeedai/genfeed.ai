@@ -19,57 +19,9 @@
     {
       "delegate": "activity",
       "file": "apps/server/api/src/collections/activities/services/activities.service.ts",
-      "fingerprint": "8ad52445a6d301c9309f",
-      "method": "update",
-      "model": "Activity",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "activity",
-      "file": "apps/server/api/src/collections/activities/services/activities.service.ts",
-      "fingerprint": "5db29a56307e0679428e",
-      "method": "update",
-      "model": "Activity",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "activity",
-      "file": "apps/server/api/src/collections/activities/services/activities.service.ts",
       "fingerprint": "a12e072d00132dc0d063",
       "method": "updateMany",
       "model": "Activity",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "adBulkUploadJob",
-      "file": "apps/server/api/src/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service.ts",
-      "fingerprint": "d709bc267ad80af26221",
-      "method": "findUnique",
-      "model": "AdBulkUploadJob",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "adBulkUploadJob",
-      "file": "apps/server/api/src/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service.ts",
-      "fingerprint": "ca4ec81e36c5c30bafdd",
-      "method": "findUnique",
-      "model": "AdBulkUploadJob",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "adBulkUploadJob",
-      "file": "apps/server/api/src/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service.ts",
-      "fingerprint": "feb4acab364fefc417f6",
-      "method": "update",
-      "model": "AdBulkUploadJob",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "adBulkUploadJob",
-      "file": "apps/server/api/src/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service.ts",
-      "fingerprint": "cc157284807b38bcd9be",
-      "method": "update",
-      "model": "AdBulkUploadJob",
       "reason": "missing-organization-id"
     },
     {
@@ -353,70 +305,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "contextBase",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "2d1c61291704ebfa1c63",
-      "method": "update",
-      "model": "ContextBase",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "contextBase",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "2ee0062cbb0f606d9493",
-      "method": "update",
-      "model": "ContextBase",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "contextBase",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "35ab8488455d903d9ad5",
-      "method": "update",
-      "model": "ContextBase",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "contextBase",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "78890308bcf2433750af",
-      "method": "update",
-      "model": "ContextBase",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "contextEntry",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "31c99752b9cecf9f335e",
-      "method": "update",
-      "model": "ContextEntry",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "contextEntry",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "318e1b186bc0b1692484",
-      "method": "update",
-      "model": "ContextEntry",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "credential",
-      "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
-      "fingerprint": "177a03b409923a10ec75",
-      "method": "update",
-      "model": "Credential",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "credential",
-      "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
-      "fingerprint": "7f2cd8e329a398d416af",
-      "method": "update",
-      "model": "Credential",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "creditBalance",
       "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
       "fingerprint": "c0810f7299b9a1efdb91",
@@ -449,107 +337,11 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "distribution",
-      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
-      "fingerprint": "3726980a38a16d8489b7",
-      "method": "findUnique",
-      "model": "Distribution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "distribution",
-      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
-      "fingerprint": "7875e06dbd3f4b5d960b",
-      "method": "findUnique",
-      "model": "Distribution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "distribution",
-      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
-      "fingerprint": "3e230b88661d46b124ea",
-      "method": "findUnique",
-      "model": "Distribution",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "distribution",
-      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
-      "fingerprint": "d995b40c4e759502a61c",
-      "method": "findUnique",
-      "model": "Distribution",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "distribution",
-      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
-      "fingerprint": "2d6e5c1ba277096dbc4d",
-      "method": "update",
-      "model": "Distribution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "distribution",
-      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
-      "fingerprint": "6223270ee7222edc1e89",
-      "method": "update",
-      "model": "Distribution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "distribution",
-      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
-      "fingerprint": "cb7c42bb4023d124f62d",
-      "method": "update",
-      "model": "Distribution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "distribution",
-      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
-      "fingerprint": "5cb3e5f890c6786b581b",
-      "method": "update",
-      "model": "Distribution",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "distribution",
-      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
-      "fingerprint": "74e6b18aa6c44e096aff",
-      "method": "update",
-      "model": "Distribution",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "distribution",
-      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
-      "fingerprint": "eefb00959a12a06d7c32",
-      "method": "update",
-      "model": "Distribution",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "editorProject",
       "file": "apps/server/api/src/collections/editor-projects/editor-projects.service.ts",
       "fingerprint": "9b98c429c777f7c5a916",
       "method": "findMany",
       "model": "EditorProject",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "elementBlacklist",
-      "file": "apps/server/api/src/collections/elements/blacklists/services/blacklists.service.ts",
-      "fingerprint": "943b1db4856f9f022535",
-      "method": "update",
-      "model": "ElementBlacklist",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "elementBlacklist",
-      "file": "apps/server/api/src/collections/elements/blacklists/services/blacklists.service.ts",
-      "fingerprint": "17a6859ad6b3fe4a9304",
-      "method": "update",
-      "model": "ElementBlacklist",
       "reason": "missing-organization-id"
     },
     {
@@ -793,102 +585,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "monitoredAccount",
-      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
-      "fingerprint": "4de5202e7d4bff4e69b6",
-      "method": "findUnique",
-      "model": "MonitoredAccount",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "monitoredAccount",
-      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
-      "fingerprint": "56c1db8ac01cd1561eca",
-      "method": "findUnique",
-      "model": "MonitoredAccount",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "monitoredAccount",
-      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
-      "fingerprint": "1258fdd238485f49fb28",
-      "method": "findUnique",
-      "model": "MonitoredAccount",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "monitoredAccount",
-      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
-      "fingerprint": "fee91a83f4421e21a02a",
-      "method": "findUnique",
-      "model": "MonitoredAccount",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "monitoredAccount",
-      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
-      "fingerprint": "5302fbcef20c689dd65f",
-      "method": "update",
-      "model": "MonitoredAccount",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "monitoredAccount",
-      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
-      "fingerprint": "7ac54f2ef339bf630a31",
-      "method": "update",
-      "model": "MonitoredAccount",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "monitoredAccount",
-      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
-      "fingerprint": "9932f0336ab6c6e80123",
-      "method": "update",
-      "model": "MonitoredAccount",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "monitoredAccount",
-      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
-      "fingerprint": "e5d264dd2d251762980f",
-      "method": "update",
-      "model": "MonitoredAccount",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "monitoredAccount",
-      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
-      "fingerprint": "1ed3d06585cb5532dde9",
-      "method": "update",
-      "model": "MonitoredAccount",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "monitoredAccount",
-      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
-      "fingerprint": "328ad1b206d03217f01f",
-      "method": "update",
-      "model": "MonitoredAccount",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "monitoredAccount",
-      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
-      "fingerprint": "61ad3f515cbbb75b5bb0",
-      "method": "update",
-      "model": "MonitoredAccount",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "monitoredAccount",
-      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
-      "fingerprint": "c7c97e58f6748033461a",
-      "method": "update",
-      "model": "MonitoredAccount",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "moodBoard",
       "file": "apps/server/api/src/collections/mood-boards/services/mood-boards.service.ts",
       "fingerprint": "5643641aa98612e5d1b8",
@@ -902,270 +598,6 @@
       "fingerprint": "393e0fd8356b9517f93f",
       "method": "upsert",
       "model": "MoodBoard",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
-      "fingerprint": "2047e2de2074af1f94ca",
-      "method": "findMany",
-      "model": "Post",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
-      "fingerprint": "80dc94e97fd588d5947b",
-      "method": "findMany",
-      "model": "Post",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "profile",
-      "file": "apps/server/api/src/collections/profiles/services/profiles.service.ts",
-      "fingerprint": "ea3e9faea67c3b059f3c",
-      "method": "update",
-      "model": "Profile",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "profile",
-      "file": "apps/server/api/src/collections/profiles/services/profiles.service.ts",
-      "fingerprint": "eee6b82e2ca7dc0fc110",
-      "method": "update",
-      "model": "Profile",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "profile",
-      "file": "apps/server/api/src/collections/profiles/services/profiles.service.ts",
-      "fingerprint": "f03f185db951e3646447",
-      "method": "update",
-      "model": "Profile",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "profile",
-      "file": "apps/server/api/src/collections/profiles/services/profiles.service.ts",
-      "fingerprint": "2cbbe2ab70de7f2a5a18",
-      "method": "update",
-      "model": "Profile",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "profile",
-      "file": "apps/server/api/src/collections/profiles/services/profiles.service.ts",
-      "fingerprint": "7b539e81c4d2fb0677ac",
-      "method": "update",
-      "model": "Profile",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "profile",
-      "file": "apps/server/api/src/collections/profiles/services/profiles.service.ts",
-      "fingerprint": "ed79acebb12b581b5dfc",
-      "method": "update",
-      "model": "Profile",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "871d89d132ee06d2b534",
-      "method": "findFirst",
-      "model": "ReplyBotConfig",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "92123b1bedd1c8f94a96",
-      "method": "findFirst",
-      "model": "ReplyBotConfig",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "490f263c53df59a46904",
-      "method": "update",
-      "model": "ReplyBotConfig",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "8226c67092679b235589",
-      "method": "update",
-      "model": "ReplyBotConfig",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "829ca5c69565996dd0f4",
-      "method": "update",
-      "model": "ReplyBotConfig",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "9bb546178a52e1cf4e3a",
-      "method": "update",
-      "model": "ReplyBotConfig",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "d66f4037be269d661f70",
-      "method": "update",
-      "model": "ReplyBotConfig",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "eec4da73645f10b213c5",
-      "method": "update",
-      "model": "ReplyBotConfig",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "0e052618693149293c48",
-      "method": "update",
-      "model": "ReplyBotConfig",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "294c41bda5fea5cdc6ef",
-      "method": "update",
-      "model": "ReplyBotConfig",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "4be7cdd0663daaf4d5fc",
-      "method": "update",
-      "model": "ReplyBotConfig",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "740b0a6487165f499c56",
-      "method": "update",
-      "model": "ReplyBotConfig",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "85495b5f0494b5597fc0",
-      "method": "update",
-      "model": "ReplyBotConfig",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "9b887fe1a47111afd8be",
-      "method": "update",
-      "model": "ReplyBotConfig",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "socialConversation",
-      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
-      "fingerprint": "2903b8ca4f0e38496d22",
-      "method": "update",
-      "model": "SocialConversation",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "socialConversation",
-      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
-      "fingerprint": "7d1685d5db4f1037a062",
-      "method": "update",
-      "model": "SocialConversation",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "socialConversation",
-      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
-      "fingerprint": "81f9ff5ac6f1afcc02c7",
-      "method": "update",
-      "model": "SocialConversation",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "socialConversation",
-      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
-      "fingerprint": "da4c453b1bd6932da3b8",
-      "method": "update",
-      "model": "SocialConversation",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "socialConversation",
-      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
-      "fingerprint": "7ef63df9f85c96b00b5c",
-      "method": "update",
-      "model": "SocialConversation",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "socialConversation",
-      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
-      "fingerprint": "ce69f372f673e6183e85",
-      "method": "update",
-      "model": "SocialConversation",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "socialConversation",
-      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
-      "fingerprint": "f0d3edf97bd17a59a191",
-      "method": "update",
-      "model": "SocialConversation",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "socialMessage",
-      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
-      "fingerprint": "7b2589bed58222a4b48d",
-      "method": "update",
-      "model": "SocialMessage",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "socialMessage",
-      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
-      "fingerprint": "dd1e1837bfa86a6a6b6c",
-      "method": "update",
-      "model": "SocialMessage",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "socialMessage",
-      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
-      "fingerprint": "771856af13920b10528f",
-      "method": "update",
-      "model": "SocialMessage",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "socialMessage",
-      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
-      "fingerprint": "7cd3be3393bd881813e4",
-      "method": "update",
-      "model": "SocialMessage",
       "reason": "missing-organization-id"
     },
     {
@@ -1225,30 +657,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "streak",
-      "file": "apps/server/api/src/collections/streaks/services/streaks.service.ts",
-      "fingerprint": "64e8588640a69a02c8ac",
-      "method": "findMany",
-      "model": "Streak",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "streak",
-      "file": "apps/server/api/src/collections/streaks/services/streaks.service.ts",
-      "fingerprint": "9186222e0548a3bde0d6",
-      "method": "update",
-      "model": "Streak",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "streak",
-      "file": "apps/server/api/src/collections/streaks/services/streaks.service.ts",
-      "fingerprint": "6ea00f3fe6a16b8d92b7",
-      "method": "update",
-      "model": "Streak",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "taskCounter",
       "file": "apps/server/api/src/collections/task-counters/services/task-counters.service.ts",
       "fingerprint": "442e9a294e38eaeabf53",
@@ -1303,22 +711,6 @@
       "method": "findFirst",
       "model": "Trend",
       "reason": "unresolved-where"
-    },
-    {
-      "delegate": "watchlist",
-      "file": "apps/server/api/src/collections/watchlists/services/watchlists.service.ts",
-      "fingerprint": "536a31208a472c4cc09c",
-      "method": "findFirst",
-      "model": "Watchlist",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "watchlist",
-      "file": "apps/server/api/src/collections/watchlists/services/watchlists.service.ts",
-      "fingerprint": "ac87216542b8c947548c",
-      "method": "findMany",
-      "model": "Watchlist",
-      "reason": "missing-organization-id"
     },
     {
       "delegate": "workflowExecution",
@@ -1601,22 +993,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "orgIntegration",
-      "file": "apps/server/api/src/endpoints/integrations/integrations.service.ts",
-      "fingerprint": "7397fbb81676e9d995c9",
-      "method": "update",
-      "model": "OrgIntegration",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "orgIntegration",
-      "file": "apps/server/api/src/endpoints/integrations/integrations.service.ts",
-      "fingerprint": "8923cc00695ca09e4f4d",
-      "method": "update",
-      "model": "OrgIntegration",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "brand",
       "file": "apps/server/api/src/helpers/guards/combined-auth/combined-auth.guard.ts",
       "fingerprint": "49838369fff219c640a1",
@@ -1649,51 +1025,11 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "agentThreadSnapshot",
-      "file": "apps/server/api/src/services/agent-threading/services/agent-runtime-session.service.ts",
-      "fingerprint": "6a240ebc4d7cba06dac4",
-      "method": "update",
-      "model": "AgentThreadSnapshot",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "agentThreadSnapshot",
-      "file": "apps/server/api/src/services/agent-threading/services/agent-runtime-session.service.ts",
-      "fingerprint": "5ddc8b30d3095e276e4e",
-      "method": "update",
-      "model": "AgentThreadSnapshot",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "threadContextState",
-      "file": "apps/server/api/src/services/agent-threading/services/thread-context-compressor.service.ts",
-      "fingerprint": "5c5a26dc084b6c30c16b",
-      "method": "findFirst",
-      "model": "ThreadContextState",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "threadContextState",
-      "file": "apps/server/api/src/services/agent-threading/services/thread-context-compressor.service.ts",
-      "fingerprint": "a4e303d9f895a85bc20d",
-      "method": "findFirst",
-      "model": "ThreadContextState",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "member",
       "file": "apps/server/api/src/services/lifecycle-emails/lifecycle-email.service.ts",
       "fingerprint": "9eb58dfa6d9a22610ec8",
       "method": "findFirst",
       "model": "Member",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/services/reply-bot/rate-limit.service.ts",
-      "fingerprint": "18ed493c0db55d10f668",
-      "method": "findFirst",
-      "model": "ReplyBotConfig",
       "reason": "missing-organization-id"
     }
   ],
