@@ -1429,6 +1429,41 @@ describe('ScheduledPostDeliveryService', () => {
     ).not.toHaveBeenCalled();
   });
 
+  it('skips the failure webhook and reports PUBLISHING when the fenced FAILED transition is rejected', async () => {
+    mocks.schedulerPublishStateService.transitionPost.mockResolvedValue(false);
+
+    const result = await service.failTerminalValidation(
+      createScheduledPost() as never,
+      new Error('Canonical Post digest no longer matches pin.'),
+    );
+
+    expect(result.executionState).toBe(TargetExecutionState.PUBLISHING);
+    expect(
+      mocks.publishEventWebhookService.emitLegacyPostFailed,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('fences the terminal FAILED write on the owned receipt so a takeover after renewal never ends FAILED', async () => {
+    await service.failTerminalValidation(
+      createScheduledPost() as never,
+      new Error('Canonical Post digest no longer matches pin.'),
+    );
+
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ executionState: TargetExecutionState.FAILED }),
+      expect.any(String),
+      expect.objectContaining({
+        expectedProviderAttempt: {
+          attemptToken: expect.any(String),
+          receiptId: 'receipt-1',
+        },
+      }),
+    );
+  });
+
   it('fences the terminal FAILED write on a still-queued target', async () => {
     await service.failTerminalValidation(
       createScheduledPost() as never,
@@ -1441,12 +1476,12 @@ describe('ScheduledPostDeliveryService', () => {
       expect.anything(),
       expect.objectContaining({ executionState: TargetExecutionState.FAILED }),
       expect.any(String),
-      {
+      expect.objectContaining({
         priorExecutionStates: [
           TargetExecutionState.SCHEDULED,
           TargetExecutionState.PUBLISHING,
         ],
-      },
+      }),
     );
   });
 

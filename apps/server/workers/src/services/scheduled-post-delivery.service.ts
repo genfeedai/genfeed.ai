@@ -391,14 +391,24 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
           executionState: TargetExecutionState.PUBLISHING,
         };
       }
-      await this.attemptRetry(
+      const failed = await this.attemptRetry(
         post,
         false,
         errorMessage,
         'publish_validation_failed',
         undefined,
-        { priorExecutionStates: TERMINAL_FAILURE_PRIOR_STATES },
+        {
+          expectedProviderAttempt: hold.attempt,
+          priorExecutionStates: TERMINAL_FAILURE_PRIOR_STATES,
+        },
       );
+      if (failed === undefined) {
+        // The fenced transition was rejected: the target did not fail.
+        return {
+          ...createFailedPublishResult('', errorMessage),
+          executionState: TargetExecutionState.PUBLISHING,
+        };
+      }
     } finally {
       await this.attempts.settle(
         post,

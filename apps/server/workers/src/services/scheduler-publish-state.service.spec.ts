@@ -66,6 +66,9 @@ function transactionFixture(parts: Record<string, unknown> = {}) {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     contentLearningDependency: { findMany: vi.fn().mockResolvedValue([]) },
+    postProviderPublishReceipt: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'receipt-1' }),
+    },
     postPublishFinalization: {
       findUnique: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockResolvedValue({ id: 'finalization-1' }),
@@ -998,6 +1001,32 @@ describe('learning publication transaction boundary', () => {
       expect(h.tx.contentLearningAccount.updateMany).not.toHaveBeenCalled();
     },
   );
+
+  it('rejects a transition whose provider attempt was taken over before lifecycle', async () => {
+    const h = harness();
+    h.tx.postProviderPublishReceipt.findFirst.mockResolvedValue(null);
+    expect(
+      await h.service.transition({
+        ...h.input,
+        guard: {
+          expectedProviderAttempt: {
+            attemptToken: 'token-1',
+            receiptId: 'receipt-1',
+          },
+        },
+      }),
+    ).toBe(false);
+    expect(h.tx.postProviderPublishReceipt.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          attemptToken: 'token-1',
+          id: 'receipt-1',
+          status: 'attempting',
+        }),
+      }),
+    );
+    expect(h.lifecycle.transition).not.toHaveBeenCalled();
+  });
 
   it('rejects same-state polling under a prior-state guard before timestamp mutation', async () => {
     const publishedAt = new Date('2026-09-01T00:00:00Z');

@@ -49,6 +49,12 @@ export type SchedulerPublishTransitionGuard = {
   expectedExternalId?: string;
   expectedWorkflowExecutionId?: string;
   priorExecutionStates?: readonly TargetExecutionState[];
+  /**
+   * The provider-attempt hold the writer owns: the transition applies only
+   * while that receipt row is still `attempting` under this token, checked in
+   * the same transaction as the write.
+   */
+  expectedProviderAttempt?: { attemptToken: string; receiptId: string };
 };
 
 export type SchedulerPublishFinalizationInput = {
@@ -207,6 +213,26 @@ export class SchedulerPublishStateService {
     const { before, lockedAccounts, accountWhere } =
       await this.lockPublicationSource(input, tx, discovered);
 
+    if (input.guard?.expectedProviderAttempt) {
+      const owned = await tx.postProviderPublishReceipt.findFirst({
+        where: {
+          attemptToken: input.guard.expectedProviderAttempt.attemptToken,
+          id: input.guard.expectedProviderAttempt.receiptId,
+          isDeleted: false,
+          organizationId: input.organizationId,
+          postId: input.postId,
+          status: 'attempting',
+        },
+        select: { id: true },
+      });
+      if (!owned) {
+        this.logger.warn(
+          `${this.logContext} ignored transition after losing the provider attempt`,
+          { postId: input.postId },
+        );
+        return NOT_APPLIED;
+      }
+    }
     if (
       (input.guard?.expectedExternalId !== undefined &&
         before.externalId !== input.guard.expectedExternalId) ||
