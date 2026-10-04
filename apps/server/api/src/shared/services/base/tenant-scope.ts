@@ -43,6 +43,10 @@ export const PLATFORM_ROW_MODELS: ReadonlySet<string> = new Set([
   'Trend',
 ]);
 
+// The runtime guard (`tenant-guard.ts`) walks the whole query args and gives up
+// below depth 8, so a filter's own root sits at depth 1. Counting the same way
+// keeps "this filter already proves the tenant" identical to what the guard
+// will see.
 const MAX_ORGANIZATION_SCOPE_DEPTH = 8;
 
 function toPrismaModelName(modelName: string): string {
@@ -75,13 +79,14 @@ function organizationFilterNamesAnOrganization(value: unknown): boolean {
 }
 
 /**
- * Mirrors what the runtime tenant guard counts as an organization proof: a
+ * Mirrors what the runtime tenant guard counts as an organization proof
+ * (including its depth limit, with `where` itself at depth 1): a
  * non-empty `organizationId` (direct, `equals` or `in`) in `where`, `AND` or
  * `OR`. `null` and `{ not }` filters are not proof. A caller that already
  * names an organization keeps full control of its scope, and the guard then
  * validates it against the request tenant.
  */
-export function whereNamesOrganization(node: unknown, depth = 0): boolean {
+export function whereNamesOrganization(node: unknown, depth = 1): boolean {
   if (depth > MAX_ORGANIZATION_SCOPE_DEPTH || node == null) {
     return false;
   }
@@ -115,6 +120,11 @@ function withAndClause(
 
 /**
  * Adds the request tenant to a filter that names no organization.
+ *
+ * The tenant arm always lands at the top level of the filter (a sibling key,
+ * or one more entry in the top-level `AND` array): the caller's own filter is
+ * never nested deeper, so a proof it already carries stays visible to the
+ * guard.
  *
  * No-op when there is no tenant context (workers, crons, webhooks), inside
  * `crossOrgUnsafe`, or when the caller already scoped the query. Callers

@@ -5,10 +5,7 @@ import { PresetsService } from '@api/collections/presets/services/presets.servic
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
-import {
-  assertTenantScopedQuery,
-  TenantIsolationError,
-} from '@libs/prisma/tenant-guard';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 import { ConflictException } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -185,12 +182,15 @@ function setup() {
 const request = {} as Request;
 
 describe('PresetsController under the CLOUD tenant guard', () => {
-  it('proves the guard rejects the inherited id-only write', async () => {
-    const { inTenant, service } = setup();
+  it('scopes the inherited id-only write to the tenant, so a platform default stays unreachable', async () => {
+    const { inTenant, rows, service } = setup();
 
+    // BaseService adds the request tenant; the platform row (no organization)
+    // matches no write, and the guard no longer rejects the query itself.
     await expect(
       inTenant(() => service.patch(DEFAULT_ID, { isActive: false })),
-    ).rejects.toBeInstanceOf(TenantIsolationError);
+    ).rejects.toMatchObject({ code: 'P2025' });
+    expect(rows.find((row) => row.id === DEFAULT_ID)?.isActive).toBe(true);
   });
 
   it('lets a superadmin edit, reorder and deactivate a platform default', async () => {
