@@ -15,7 +15,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Create a post draft. On MCP this never publishes: confirmed is rejected, and publishing uses create_scheduled_release. The in-app agent still confirms publishing with a confirmation card.',
+      'Create a post draft from text, or prepare direct publishing for an existing content item or ingredient. The in-app agent returns a publish confirmation card first and publishes only after confirmed is set. On MCP this never publishes: confirmed is rejected, and publishing uses create_scheduled_release.',
     name: 'create_post',
     parameters: {
       properties: {
