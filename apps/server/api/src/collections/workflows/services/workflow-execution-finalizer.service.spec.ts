@@ -75,6 +75,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       executionId: 'exec-1',
       finalStatus: WorkflowExecutionStatus.FAILED,
       result: failedRunResult(),
+      organizationId: 'org-1',
       workflowId: 'wf-1',
       workflowStatus: WorkflowStatus.FAILED,
     });
@@ -104,6 +105,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       executionId: 'exec-2',
       finalStatus: WorkflowExecutionStatus.FAILED,
       result: failedRunResult(),
+      organizationId: 'org-1',
       workflowId: 'wf-1',
       workflowStatus: WorkflowStatus.FAILED,
     });
@@ -129,6 +131,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
         error: undefined,
         status: 'completed',
       },
+      organizationId: 'org-1',
       workflowId: 'wf-1',
       workflowStatus: WorkflowStatus.ACTIVE,
     });
@@ -154,6 +157,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
         executionId: 'exec-4',
         finalStatus: WorkflowExecutionStatus.FAILED,
         result: failedRunResult(),
+        organizationId: 'org-1',
         workflowId: 'wf-1',
         workflowStatus: WorkflowStatus.FAILED,
       }),
@@ -202,6 +206,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
         status: 'completed',
         totalCreditsUsed: 61,
       },
+      organizationId: 'org-1',
       workflowId: 'wf-1',
       workflowStatus: WorkflowStatus.COMPLETED,
     });
@@ -263,6 +268,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
         ...failedRunResult('segment 2 failed'),
         totalCreditsUsed: 12,
       },
+      organizationId: 'org-1',
       workflowId: 'wf-1',
       workflowStatus: WorkflowStatus.FAILED,
     });
@@ -304,6 +310,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       executionId: 'exec-retained',
       finalStatus: WorkflowExecutionStatus.COMPLETED,
       result: { ...failedRunResult(), error: undefined, status: 'completed' },
+      organizationId: 'org-1',
       workflowId: 'wf-1',
       workflowStatus: WorkflowStatus.COMPLETED,
     });

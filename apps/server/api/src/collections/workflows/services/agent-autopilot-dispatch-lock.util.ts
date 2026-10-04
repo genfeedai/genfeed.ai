@@ -67,6 +67,7 @@ type ProactiveDispatchContext = {
   ): Promise<Pick<AgentThread, 'id' | 'contextVersion'>>;
   scheduleNextRun(
     strategyId: string,
+    organizationId: string,
     frequency: AgentRunFrequency | undefined,
     retryInMinutes: number | undefined,
     ownership: ProactiveDispatchOwnership,
@@ -386,6 +387,7 @@ export async function executeDueProactiveStrategy(
       if (dispatchId === currentDispatchId)
         await context.scheduleNextRun(
           strategyId,
+          organizationId,
           config.runFrequency,
           undefined,
           ownership,
@@ -414,6 +416,7 @@ export async function executeDueProactiveStrategy(
       if (dispatchId === currentDispatchId)
         await context.scheduleNextRun(
           strategyId,
+          organizationId,
           config.runFrequency,
           undefined,
           ownership,
@@ -434,6 +437,7 @@ export async function executeDueProactiveStrategy(
     if (dispatchId === currentDispatchId)
       await context.scheduleNextRun(
         strategyId,
+        organizationId,
         config.runFrequency,
         undefined,
         ownership,
@@ -452,6 +456,7 @@ export async function executeDueProactiveStrategy(
       if (dispatchId === currentDispatchId)
         await context.scheduleNextRun(
           strategyId,
+          organizationId,
           config.runFrequency,
           undefined,
           ownership,

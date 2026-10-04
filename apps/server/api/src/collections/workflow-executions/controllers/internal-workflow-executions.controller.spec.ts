@@ -146,6 +146,7 @@ describe('InternalWorkflowExecutionsController', () => {
 
     expect(mockWorkflowExecutionsService.cancelExecution).toHaveBeenCalledWith(
       executionId,
+      organizationId,
     );
     expect(result).toBeDefined();
   });
