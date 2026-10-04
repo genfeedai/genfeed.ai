@@ -813,9 +813,8 @@ export class IngredientsService extends BaseService<
    * renders each number as "the size of this saved query", never as a share of
    * a whole.
    *
-   * Seven queries, all tenant-scoped through `scopedWhere`. The type breakdown
-   * and three of the seven shelves fall out of a single `groupBy` that also carries the
-   * `fileSize` sum, so the storage meter costs nothing extra.
+   * Seven tenant-scoped (`scopedWhere`) queries; one `groupBy` yields the type
+   * breakdown, three shelves and the `fileSize` sum for the storage meter.
    */
   @HandleErrors('get library summary', 'ingredients')
   async getLibrarySummary(
