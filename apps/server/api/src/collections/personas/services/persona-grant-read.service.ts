@@ -45,11 +45,13 @@ export class PersonaGrantReadService {
       },
       where: {
         persona: {
-          isDeleted: false,
-          OR: [
-            { avatarIngredientId: { in: ids } },
-            { ingredients: { some: { id: { in: ids } } } },
-          ],
+          is: {
+            isDeleted: false,
+            OR: [
+              { avatarIngredientId: { in: ids } },
+              { ingredients: { some: { id: { in: ids } } } },
+            ],
+          },
         },
         recipientOrganizationId: params.organizationId,
         revokedAt: null,
@@ -71,9 +73,11 @@ export class PersonaGrantReadService {
       },
       where: {
         persona: {
-          handle: { in: [...params.handles] },
-          isDeleted: false,
-          status: PersonaStatus.ACTIVE,
+          is: {
+            handle: { in: [...params.handles] },
+            isDeleted: false,
+            status: PersonaStatus.ACTIVE,
+          },
         },
         recipientOrganizationId: params.organizationId,
         revokedAt: null,
@@ -102,23 +106,28 @@ export class PersonaGrantReadService {
       },
       where: {
         persona: {
-          isDeleted: false,
-          status: PersonaStatus.ACTIVE,
-          ...(prefix
-            ? {
-                OR: [
-                  {
-                    handle: {
-                      mode: 'insensitive' as const,
-                      startsWith: prefix.toLowerCase(),
+          is: {
+            isDeleted: false,
+            status: PersonaStatus.ACTIVE,
+            ...(prefix
+              ? {
+                  OR: [
+                    {
+                      handle: {
+                        mode: 'insensitive' as const,
+                        startsWith: prefix.toLowerCase(),
+                      },
                     },
-                  },
-                  {
-                    label: { mode: 'insensitive' as const, startsWith: prefix },
-                  },
-                ],
-              }
-            : {}),
+                    {
+                      label: {
+                        mode: 'insensitive' as const,
+                        startsWith: prefix,
+                      },
+                    },
+                  ],
+                }
+              : {}),
+          },
         },
         recipientOrganizationId: params.organizationId,
         revokedAt: null,
@@ -141,7 +150,7 @@ export class PersonaGrantReadService {
         persona: true,
       },
       where: {
-        persona: { id: params.personaId, isDeleted: false },
+        persona: { is: { id: params.personaId, isDeleted: false } },
         recipientOrganizationId: params.organizationId,
         revokedAt: null,
       },
