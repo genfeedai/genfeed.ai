@@ -55,6 +55,7 @@ import {
   AnalyticsTopContentSerializer,
   IngredientSerializer,
 } from '@genfeedai/serializers';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
   Controller,
   Get,
@@ -82,6 +83,13 @@ export class OrganizationsRelationshipsController {
     private readonly membersService: MembersService,
     private readonly organizationsService: OrganizationsService,
   ) {}
+
+  private inOrganizationScope<T>(
+    organizationId: string,
+    work: () => Promise<T>,
+  ): Promise<T> {
+    return runWithTenantContext({ organizationId }, work);
+  }
 
   /**
    * Verify user has access to organization (owner, member, or superadmin)
@@ -192,26 +200,31 @@ export class OrganizationsRelationshipsController {
     const startDate = query.startDate;
     const endDate = query.endDate;
     const brandId = query.brandId;
-    await this.assertAnalyticsOrganizationAccess(
-      request,
-      organizationId,
-      user,
-      brandId,
-    );
+    // The organization in the path is not necessarily the request tenant
+    // (superadmin, or a member of a non-active org). Access is proven first
+    // inside the scope by queries pinned to that org + user.
+    return this.inOrganizationScope(organizationId, async () => {
+      await this.assertAnalyticsOrganizationAccess(
+        request,
+        organizationId,
+        user,
+        brandId,
+      );
 
-    const metrics = await this.analyticsAggregationService.getOverviewMetrics(
-      organizationId,
-      brandId,
-      startDate,
-      endDate,
-    );
+      const metrics = await this.analyticsAggregationService.getOverviewMetrics(
+        organizationId,
+        brandId,
+        startDate,
+        endDate,
+      );
 
-    const totalCredentialsConnected =
-      await this.credentialsService.countConnected(organizationId, brandId);
+      const totalCredentialsConnected =
+        await this.credentialsService.countConnected(organizationId, brandId);
 
-    return serializeSingle(request, AnalyticSerializer, {
-      ...metrics,
-      totalCredentialsConnected,
+      return serializeSingle(request, AnalyticSerializer, {
+        ...metrics,
+        totalCredentialsConnected,
+      });
     });
   }
 
@@ -234,27 +247,32 @@ export class OrganizationsRelationshipsController {
     const endDate = query.endDate;
     const groupBy = query.groupBy || 'day';
     const brandId = query.brandId;
-    await this.assertAnalyticsOrganizationAccess(
-      request,
-      organizationId,
-      user,
-      brandId,
-    );
-
-    const timeSeriesData =
-      await this.analyticsAggregationService.getTimeSeriesDataWithPlatforms(
+    // The organization in the path is not necessarily the request tenant
+    // (superadmin, or a member of a non-active org). Access is proven first
+    // inside the scope by queries pinned to that org + user.
+    return this.inOrganizationScope(organizationId, async () => {
+      await this.assertAnalyticsOrganizationAccess(
+        request,
         organizationId,
+        user,
         brandId,
-        startDate,
-        endDate,
-        groupBy,
       );
 
-    return serializeSingle(
-      request,
-      AnalyticsTimeseriesWithPlatformsSerializer,
-      timeSeriesData,
-    );
+      const timeSeriesData =
+        await this.analyticsAggregationService.getTimeSeriesDataWithPlatforms(
+          organizationId,
+          brandId,
+          startDate,
+          endDate,
+          groupBy,
+        );
+
+      return serializeSingle(
+        request,
+        AnalyticsTimeseriesWithPlatformsSerializer,
+        timeSeriesData,
+      );
+    });
   }
 
   @Get(':organizationId/analytics/platforms')
@@ -275,22 +293,31 @@ export class OrganizationsRelationshipsController {
     const startDate = query.startDate;
     const endDate = query.endDate;
     const brandId = query.brandId;
-    await this.assertAnalyticsOrganizationAccess(
-      request,
-      organizationId,
-      user,
-      brandId,
-    );
-
-    const platformData =
-      await this.analyticsAggregationService.getPlatformComparison(
+    // The organization in the path is not necessarily the request tenant
+    // (superadmin, or a member of a non-active org). Access is proven first
+    // inside the scope by queries pinned to that org + user.
+    return this.inOrganizationScope(organizationId, async () => {
+      await this.assertAnalyticsOrganizationAccess(
+        request,
         organizationId,
+        user,
         brandId,
-        startDate,
-        endDate,
       );
 
-    return serializeSingle(request, AnalyticsPlatformSerializer, platformData);
+      const platformData =
+        await this.analyticsAggregationService.getPlatformComparison(
+          organizationId,
+          brandId,
+          startDate,
+          endDate,
+        );
+
+      return serializeSingle(
+        request,
+        AnalyticsPlatformSerializer,
+        platformData,
+      );
+    });
   }
 
   @Get(':organizationId/platforms/:platform/analytics')
@@ -312,24 +339,30 @@ export class OrganizationsRelationshipsController {
     const startDate = query.startDate;
     const endDate = query.endDate;
     const brandId = query.brandId;
-    await this.assertAnalyticsOrganizationAccess(
-      request,
-      organizationId,
-      user,
-      brandId,
-    );
+    // The organization in the path is not necessarily the request tenant
+    // (superadmin, or a member of a non-active org). Access is proven first
+    // inside the scope by queries pinned to that org + user.
+    return this.inOrganizationScope(organizationId, async () => {
+      await this.assertAnalyticsOrganizationAccess(
+        request,
+        organizationId,
+        user,
+        brandId,
+      );
 
-    const metrics = await this.analyticsAggregationService.getPlatformAnalytics(
-      organizationId,
-      platform,
-      brandId,
-      startDate,
-      endDate,
-    );
+      const metrics =
+        await this.analyticsAggregationService.getPlatformAnalytics(
+          organizationId,
+          platform,
+          brandId,
+          startDate,
+          endDate,
+        );
 
-    return serializeSingle(request, AnalyticSerializer, {
-      ...metrics,
-      platform,
+      return serializeSingle(request, AnalyticSerializer, {
+        ...metrics,
+        platform,
+      });
     });
   }
 
@@ -353,20 +386,33 @@ export class OrganizationsRelationshipsController {
     const startDate = query.startDate;
     const endDate = query.endDate;
     const brandId = query.brandId;
-    await this.assertIdentifiableAnalyticsAccess(organizationId, user, brandId);
-
-    const topContent =
-      await this.analyticsAggregationService.getTopPerformingContent(
+    // The organization in the path is not necessarily the request tenant
+    // (superadmin, or a member of a non-active org). Access is proven first
+    // inside the scope by queries pinned to that org + user.
+    return this.inOrganizationScope(organizationId, async () => {
+      await this.assertIdentifiableAnalyticsAccess(
         organizationId,
+        user,
         brandId,
-        limit,
-        // @ts-expect-error TS2345
-        metric,
-        startDate,
-        endDate,
       );
 
-    return serializeSingle(request, AnalyticsTopContentSerializer, topContent);
+      const topContent =
+        await this.analyticsAggregationService.getTopPerformingContent(
+          organizationId,
+          brandId,
+          limit,
+          // @ts-expect-error TS2345
+          metric,
+          startDate,
+          endDate,
+        );
+
+      return serializeSingle(
+        request,
+        AnalyticsTopContentSerializer,
+        topContent,
+      );
+    });
   }
 
   @Get(':organizationId/ingredients')
@@ -378,66 +424,71 @@ export class OrganizationsRelationshipsController {
     @CurrentUser() user: User,
     @Query() query: IngredientsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    await this.verifyOrganizationAccess(request, organizationId, user);
+    // The organization in the path is not necessarily the request tenant
+    // (superadmin, or a member of a non-active org). Access is proven first
+    // inside the scope by queries pinned to that org + user.
+    return this.inOrganizationScope(organizationId, async () => {
+      await this.verifyOrganizationAccess(request, organizationId, user);
 
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
+      const options = {
+        customLabels,
+        ...QueryDefaultsUtil.getPaginationDefaults(query),
+      };
 
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const statusFilter = CollectionFilterUtil.buildStatusFilter(query.status);
-    const parentConditions = IngredientFilterUtil.buildParentFilter(
-      query.parentId,
-    );
-    const folderConditions = IngredientFilterUtil.buildFolderFilter(
-      query.folderId,
-    );
-    const metadataWhere = {
-      ...(query.search
-        ? {
-            OR: [
-              { label: { contains: query.search, mode: 'insensitive' } },
-              {
-                description: {
-                  contains: query.search,
-                  mode: 'insensitive',
-                },
-              },
-            ],
-          }
-        : {}),
-      ...(query.format ? { extension: query.format } : {}),
-    };
-
-    const where = {
-      isDeleted,
-      organizationId: organizationId,
-      ...folderConditions,
-      ...(Object.keys(metadataWhere).length > 0 && {
-        metadata: { is: metadataWhere },
-      }),
-      ...statusFilter,
-      ...(query.category && { category: query.category }),
-      ...(query.brandId &&
-        isEntityId(query.brandId) && {
-          brandId: query.brandId,
-        }),
-      ...(Object.keys(parentConditions).length > 0 && {
-        AND: [parentConditions],
-      }),
-    };
-
-    const data: AggregatePaginateResult<IngredientDocument> =
-      await this.ingredientsService.findAll(
-        {
-          include: { metadata: true },
-          orderBy: handleQuerySort(query.sort),
-          where,
-        },
-        options,
+      const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
+      const statusFilter = CollectionFilterUtil.buildStatusFilter(query.status);
+      const parentConditions = IngredientFilterUtil.buildParentFilter(
+        query.parentId,
       );
-    return serializeCollection(request, IngredientSerializer, data);
+      const folderConditions = IngredientFilterUtil.buildFolderFilter(
+        query.folderId,
+      );
+      const metadataWhere = {
+        ...(query.search
+          ? {
+              OR: [
+                { label: { contains: query.search, mode: 'insensitive' } },
+                {
+                  description: {
+                    contains: query.search,
+                    mode: 'insensitive',
+                  },
+                },
+              ],
+            }
+          : {}),
+        ...(query.format ? { extension: query.format } : {}),
+      };
+
+      const where = {
+        isDeleted,
+        organizationId: organizationId,
+        ...folderConditions,
+        ...(Object.keys(metadataWhere).length > 0 && {
+          metadata: { is: metadataWhere },
+        }),
+        ...statusFilter,
+        ...(query.category && { category: query.category }),
+        ...(query.brandId &&
+          isEntityId(query.brandId) && {
+            brandId: query.brandId,
+          }),
+        ...(Object.keys(parentConditions).length > 0 && {
+          AND: [parentConditions],
+        }),
+      };
+
+      const data: AggregatePaginateResult<IngredientDocument> =
+        await this.ingredientsService.findAll(
+          {
+            include: { metadata: true },
+            orderBy: handleQuerySort(query.sort),
+            where,
+          },
+          options,
+        );
+      return serializeCollection(request, IngredientSerializer, data);
+    });
   }
 
   // Nested videos/tags duals removed: prefer GET /videos and GET /tags?organization=

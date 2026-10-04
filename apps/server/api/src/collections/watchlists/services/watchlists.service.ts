@@ -11,6 +11,7 @@ import { WatchlistPlatform } from '@genfeedai/contracts';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const WATCHLIST_CREATE_SCALAR_FIELDS = [
@@ -102,7 +103,12 @@ export class WatchlistsService extends BaseService<
     let config: Record<string, unknown> | undefined;
 
     if (hasConfigPatch) {
-      const existing = await this.findOne({ id });
+      const tenantOrganizationId = getTenantContext()?.organizationId;
+      const existing = await this.findOne(
+        tenantOrganizationId
+          ? scopedWhere(tenantOrganizationId, { id })
+          : { id },
+      );
       if (!existing) {
         throw new NotFoundException('Watchlist', id);
       }
@@ -134,6 +140,7 @@ export class WatchlistsService extends BaseService<
     brandId: string,
     platform: WatchlistPlatform,
     handle: string,
+    organizationId: string,
   ): Promise<WatchlistDocument | null> {
     this.logOperation('findByHandle', 'started', {
       brandId,
@@ -142,12 +149,11 @@ export class WatchlistsService extends BaseService<
     });
 
     const result = await this.prisma.watchlist.findFirst({
-      where: {
+      where: scopedWhere(organizationId, {
         brandId: String(brandId),
         handle: handle.replace('@', ''),
-        isDeleted: false,
         platform,
-      },
+      }),
     });
 
     this.logOperation('findByHandle', 'completed', {
@@ -166,6 +172,7 @@ export class WatchlistsService extends BaseService<
   @HandleErrors('update metrics', 'watchlists')
   async updateMetrics(
     id: string,
+    organizationId: string,
     metrics: {
       followers?: number;
       avgViews?: number;
@@ -174,13 +181,12 @@ export class WatchlistsService extends BaseService<
   ): Promise<WatchlistDocument | null> {
     this.logOperation('updateMetrics', 'started', { id, metrics });
 
-    // tenant-scope-ignore: bootstrap read recovers organizationId for the scoped write; watchlist id is globally unique
     const existing = await this.prisma.watchlist.findFirst({
-      select: { config: true, organizationId: true },
-      where: { id: String(id), isDeleted: false },
+      select: { config: true },
+      where: scopedWhere(organizationId, { id: String(id) }),
     });
 
-    if (!existing?.organizationId) {
+    if (!existing) {
       return null;
     }
 
@@ -194,7 +200,7 @@ export class WatchlistsService extends BaseService<
           metrics,
         }),
       },
-      where: scopedWhere(existing.organizationId, { id: String(id) }),
+      where: scopedWhere(organizationId, { id: String(id) }),
     });
 
     this.logOperation('updateMetrics', 'completed', { id, updated: !!result });
@@ -206,12 +212,15 @@ export class WatchlistsService extends BaseService<
    * Find all watchlist items for a brand
    */
   @HandleErrors('find all by brand', 'watchlists')
-  async findAllByAccount(brandId: string): Promise<WatchlistDocument[]> {
+  async findAllByAccount(
+    brandId: string,
+    organizationId: string,
+  ): Promise<WatchlistDocument[]> {
     this.logOperation('findAllByAccount', 'started', { brandId });
 
     const result = await this.prisma.watchlist.findMany({
       orderBy: { createdAt: 'desc' },
-      where: { brandId: String(brandId), isDeleted: false },
+      where: scopedWhere(organizationId, { brandId: String(brandId) }),
     });
 
     this.logOperation('findAllByAccount', 'completed', {

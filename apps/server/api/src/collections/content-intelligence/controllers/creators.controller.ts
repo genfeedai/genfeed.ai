@@ -212,11 +212,12 @@ export class CreatorsController {
     }
 
     // Trigger analysis (async)
-    await this.patternAnalyzerService.analyzeCreator(id);
+    await this.patternAnalyzerService.analyzeCreator(id, user.organizationId);
 
     // Return updated creator
     const updated = await this.contentIntelligenceService.findOne({
       id: id,
+      organizationId: user.organizationId,
     });
 
     return serializeSingle(request, CreatorAnalysisSerializer, updated);

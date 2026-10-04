@@ -1,9 +1,14 @@
 import { ValidationException } from '@api/exceptions/validation.exception';
+import {
+  scopeWhereToTenant,
+  type TenantScopeAccess,
+} from '@api/shared/services/base/tenant-scope';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import * as PrismaEnums from '@genfeedai/prisma';
 import { getModelMeta } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { isTenantScopedFieldSet } from '@libs/prisma/discover-tenant-models';
 
 export type PrismaFilter = Record<string, unknown>;
 export type PrismaUpdate = Record<string, unknown>;
@@ -28,6 +33,8 @@ type RuntimeModelField = {
 };
 
 type BaseQueryNormalizationHooks = {
+  /** Whether request-tenant scoping is enforced (CLOUD only); off when omitted. */
+  isTenantScopeEnforced?: () => boolean;
   modelHasField?: (fieldName: string) => boolean;
   normalizeWhere?: (where: PrismaFilter) => PrismaFilter;
 };
@@ -244,22 +251,40 @@ export class BaseQueryNormalizationAdapter {
     }
   }
 
+  /**
+   * Adds the request tenant to a filter that names no organization, on tenant
+   * models only (the same `organizationId` + `isDeleted` inventory the runtime
+   * tenant guard enforces). See `scopeWhereToTenant` for the read/write
+   * contract and the platform-row rule. Only in CLOUD mode, like the guard:
+   * self-hosted single-tenant keeps its unscoped queries.
+   */
+  public withTenantScope(
+    where: PrismaFilter,
+    access: TenantScopeAccess = 'read',
+  ): PrismaFilter {
+    const meta = this.staticModelMeta;
+    if (
+      !this.hooks.isTenantScopeEnforced?.() ||
+      !meta ||
+      !isTenantScopedFieldSet(meta.allFields)
+    ) {
+      return where;
+    }
+
+    return scopeWhereToTenant(where, this.modelName, access);
+  }
+
   public withSoftDeleteFilter(
     where: PrismaFilter = {},
     params: PrismaFilter = where,
+    access: TenantScopeAccess = 'read',
   ): PrismaFilter {
-    if (!this.fieldExists('isDeleted')) {
-      return where;
-    }
+    const softDeleteScoped =
+      this.fieldExists('isDeleted') && !(params && 'isDeleted' in params)
+        ? { isDeleted: false, ...where }
+        : where;
 
-    if (params && 'isDeleted' in params) {
-      return where;
-    }
-
-    return {
-      isDeleted: false,
-      ...where,
-    };
+    return this.withTenantScope(softDeleteScoped, access);
   }
 
   public normalizeSort(

@@ -7,12 +7,14 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import {
   ReplyBotActionType,
   ReplyBotPlatform,
   ReplyBotType,
 } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 
 describe('ReplyBotConfigsService persistence', () => {
   const replyBotConfig = {
@@ -124,5 +126,49 @@ describe('ReplyBotConfigsService persistence', () => {
       },
       where: { id: 'bot-1' },
     });
+  });
+
+  it('scopes the patch pre-read by the request tenant in CLOUD mode', async () => {
+    replyBotConfig.findFirst.mockResolvedValue({
+      config: { credentialId: 'credential-1', name: 'Old name' },
+      id: 'bot-1',
+      organizationId: 'org-1',
+    });
+
+    await runWithTenantContext({ organizationId: 'org-1' }, () =>
+      service.patch('bot-1', { isActive: true, name: 'New name' }, []),
+    );
+
+    expect(replyBotConfig.findFirst).toHaveBeenCalledWith({
+      where: { id: 'bot-1', isDeleted: false, organizationId: 'org-1' },
+    });
+    expectCloudGuardPasses(
+      'ReplyBotConfig',
+      'findFirst',
+      replyBotConfig.findFirst,
+    );
+  });
+
+  it('scopes counter reads and writes by the organization', async () => {
+    replyBotConfig.findFirst.mockResolvedValue({
+      config: {},
+      id: 'bot-1',
+      organizationId: 'org-1',
+    });
+
+    await runWithTenantContext({ organizationId: 'org-1' }, async () => {
+      await service.incrementReplyCounters('bot-1', 'org-1');
+      await service.incrementDmCounter('bot-1', 'org-1');
+      await service.incrementSkippedCounter('bot-1', 'org-1');
+      await service.incrementFailedCounter('bot-1', 'org-1');
+    });
+
+    expect(replyBotConfig.update).toHaveBeenCalledTimes(4);
+    expectCloudGuardPasses(
+      'ReplyBotConfig',
+      'findFirst',
+      replyBotConfig.findFirst,
+    );
+    expectCloudGuardPasses('ReplyBotConfig', 'update', replyBotConfig.update);
   });
 });

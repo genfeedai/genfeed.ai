@@ -9,6 +9,7 @@ import {
 } from '@api/collections/content-learning/services/learning-operation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import type {
   LearningAllocatedCostV1,
   LearningExperimentPayloadV1,
@@ -464,9 +465,9 @@ export class LearningExperimentService {
           ),
         );
       }
-      // tenant-scope-ignore: unique id mutation after organization-scoped lock
+      // Scoped by organization like the lock and read above.
       await tx.contentLearningExperiment.update({
-        where: { id: experiment.id },
+        where: scopedWhere(actor.organizationId, { id: experiment.id }),
         data: { revision: { increment: 1 } },
       });
       return event;

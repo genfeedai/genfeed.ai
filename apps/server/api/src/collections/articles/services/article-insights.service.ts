@@ -137,6 +137,7 @@ export class ArticleInsightsService {
 
   async updatePerformanceMetrics(
     articleId: string,
+    organizationId: string,
     metrics: {
       views?: number;
       shares?: number;
@@ -159,6 +160,7 @@ export class ArticleInsightsService {
 
       await this.articleAnalyticsService.updatePerformanceMetrics(
         articleId,
+        organizationId,
         normalizePerformanceMetrics(metrics),
       );
       this.logger.log(`${this.constructorName} updated performance metrics`, {

@@ -411,7 +411,10 @@ describe('AgentWorkObjectService review and scope boundary', () => {
       title: 'Draft',
       reviewStatus: 'pending',
     });
-    expect(executions.cancelExecution).toHaveBeenCalledWith('execution-A');
+    expect(executions.cancelExecution).toHaveBeenCalledWith(
+      'execution-A',
+      'org-1',
+    );
   });
 
   it('keeps a review that settles before its queue acknowledgement', async () => {

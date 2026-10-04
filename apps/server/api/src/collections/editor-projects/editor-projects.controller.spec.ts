@@ -98,6 +98,7 @@ describe('EditorProjectsController', () => {
             findOne: vi.fn(),
             findForRender: vi.fn().mockResolvedValue({ config: {} }),
             patch: vi.fn(),
+            patchOneWhere: vi.fn(),
             updateEditorContent: vi.fn(),
           },
         },
@@ -416,12 +417,16 @@ describe('EditorProjectsController', () => {
       const project = makeProject();
       const deleted = { ...project, isDeleted: true };
       editorProjectsService.findOne.mockResolvedValue(project as never);
-      editorProjectsService.patch.mockResolvedValue(deleted as never);
+      editorProjectsService.patchOneWhere.mockResolvedValue(deleted as never);
 
       await controller.remove(makeRequest(), makeUser(), String(project.id));
 
-      expect(editorProjectsService.patch).toHaveBeenCalledWith(
-        String(project.id),
+      expect(editorProjectsService.patchOneWhere).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: String(project.id),
+          isDeleted: false,
+          organizationId: testId('shared'),
+        }),
         { isDeleted: true },
       );
     });

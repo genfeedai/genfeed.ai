@@ -49,4 +49,35 @@ describe('TenantContextInterceptor', () => {
   it('leaves tenant context empty when the request has no organization', async () => {
     await expect(readContext({ headers: {} })).resolves.toBeUndefined();
   });
+
+  describe('superadmin organization override', () => {
+    it('pins a verified superadmin to the organization named in ?organizationId=', async () => {
+      await expect(
+        readContext({
+          context: { isSuperAdmin: true, organizationId: 'org-admin' },
+          query: { organizationId: 'org-target' },
+          user: { isSuperAdmin: true, organizationId: 'org-admin' },
+        }),
+      ).resolves.toEqual({ organizationId: 'org-target' });
+    });
+
+    it('never lets a normal member override its session organization', async () => {
+      await expect(
+        readContext({
+          context: { isSuperAdmin: false, organizationId: 'org-1' },
+          query: { organizationId: 'org-target' },
+          user: { isSuperAdmin: false, organizationId: 'org-1' },
+        }),
+      ).resolves.toEqual({ organizationId: 'org-1' });
+    });
+
+    it('ignores the override when the superadmin has no session organization', async () => {
+      await expect(
+        readContext({
+          context: { isSuperAdmin: true },
+          query: { organizationId: 'org-target' },
+        }),
+      ).resolves.toBeUndefined();
+    });
+  });
 });

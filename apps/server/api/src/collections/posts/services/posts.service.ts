@@ -676,6 +676,7 @@ export class PostsService extends BaseService<
   @HandleErrors('get post children', 'posts')
   async getChildren(
     parentId: string,
+    organizationId: string,
     _populate: PopulateOption[] = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
@@ -689,7 +690,7 @@ export class PostsService extends BaseService<
     const children = await this.prisma.post.findMany({
       orderBy: { order: 'asc' },
       take: safeLimit,
-      where: { isDeleted: false, parentId },
+      where: scopedWhere(organizationId, { parentId }),
     });
 
     return children;
@@ -821,7 +822,10 @@ export class PostsService extends BaseService<
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PostDocument> {
-    const originalPost = await this.findOne({ id: originalPostId }, populate);
+    const originalPost = await this.findOne(
+      scopedWhere(dto.organizationId, { id: originalPostId }),
+      populate,
+    );
     if (!originalPost) {
       throw new Error(`Original post with ID ${originalPostId} not found`);
     }
@@ -880,6 +884,7 @@ export class PostsService extends BaseService<
   @HandleErrors('get full thread', 'posts')
   async getFullThread(
     postId: string,
+    organizationId: string,
     populate: PopulateOption[] = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
@@ -888,7 +893,10 @@ export class PostsService extends BaseService<
     ],
     maxPosts: number = 500,
   ): Promise<PostDocument[]> {
-    const post = await this.findOne({ id: postId }, populate);
+    const post = await this.findOne(
+      scopedWhere(organizationId, { id: postId }),
+      populate,
+    );
     if (!post) {
       return [];
     }
@@ -917,7 +925,7 @@ export class PostsService extends BaseService<
       const children = await this.prisma.post.findMany({
         orderBy: { order: 'asc' },
         take: maxPosts - allPosts.length,
-        where: { isDeleted: false, parentId: currentId },
+        where: scopedWhere(organizationId, { parentId: currentId }),
       });
 
       for (const child of children) {

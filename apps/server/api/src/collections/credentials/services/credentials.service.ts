@@ -46,6 +46,7 @@ import { isReservedExternalConnectionOAuthState } from '@genfeedai/helpers/integ
 import type { Prisma } from '@genfeedai/prisma';
 import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -685,15 +686,20 @@ export class CredentialsService
       return null;
     }
 
+    // Callers that omit `scope` (the provider-error callback util) still run
+    // inside the authenticated request, so default to its tenant.
+    const scopedOrganizationId =
+      scope?.organizationId ?? getTenantContext()?.organizationId;
+
     const credential = await this.findOne({
       isConnected: false,
       oauthState: state,
       platform,
       updatedAt: { gte: new Date(Date.now() - OAUTH_STATE_TTL_MS) },
-      ...(scope?.organizationId
+      ...(scopedOrganizationId
         ? {
             organizationId: requireCredentialRelationId(
-              scope.organizationId,
+              scopedOrganizationId,
               'organizationId',
             ),
           }

@@ -117,10 +117,12 @@ describe('PlatformScheduleRegistryService', () => {
       return { data, id, remove: vi.fn().mockResolvedValue(undefined) };
     }
 
+    const STALE_JOB_ORGANIZATION_ID = 'org-stale-job';
+
     function platformJob(id: string, source: string, executionId = id) {
       return job(id, {
         systemRun: {
-          input: { source },
+          input: { organizationId: STALE_JOB_ORGANIZATION_ID, source },
           priorExecution: { executionId },
         },
         type: 'system-run',
@@ -146,6 +148,7 @@ describe('PlatformScheduleRegistryService', () => {
       );
       expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
         'execution-old-sweep',
+        STALE_JOB_ORGANIZATION_ID,
       );
       const removeOrder = staleJob.remove.mock.invocationCallOrder[0];
       const cancelOrder =
@@ -300,6 +303,7 @@ describe('PlatformScheduleRegistryService', () => {
 
       expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
         'system-workflow-old-proactive',
+        STALE_JOB_ORGANIZATION_ID,
       );
       expect(staleJob.remove).toHaveBeenCalledOnce();
     });
@@ -381,13 +385,38 @@ describe('PlatformScheduleRegistryService', () => {
       expect(workflowExecutions.cancelExecution).toHaveBeenCalledTimes(2);
       expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
         'execution-transient-failure',
+        STALE_JOB_ORGANIZATION_ID,
       );
       expect(logger.error).not.toHaveBeenCalled();
     });
 
+    it('leaves the job alone when it carries no organizationId, since the cancel must be tenant-scoped', async () => {
+      const staleJob = job('system-workflow-no-org', {
+        systemRun: {
+          input: { source: 'proactive' },
+          priorExecution: { executionId: 'execution-no-org' },
+        },
+        type: 'system-run',
+      });
+      workflowExecutionQueue.getJobs
+        .mockResolvedValueOnce([staleJob])
+        .mockResolvedValue([]);
+
+      await service.drainStalePlatformSourcedJobs();
+
+      expect(cancellationIntent.requestCancellation).not.toHaveBeenCalled();
+      expect(staleJob.remove).not.toHaveBeenCalled();
+      expect(workflowExecutions.cancelExecution).not.toHaveBeenCalled();
+    });
+
     it('leaves the row alone when the job has no priorExecution.executionId to cancel', async () => {
       const staleJob = job('system-workflow-no-prior-execution', {
-        systemRun: { input: { source: 'proactive' } },
+        systemRun: {
+          input: {
+            organizationId: STALE_JOB_ORGANIZATION_ID,
+            source: 'proactive',
+          },
+        },
         type: 'system-run',
       });
       workflowExecutionQueue.getJobs

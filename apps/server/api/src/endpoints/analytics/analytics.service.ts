@@ -7,7 +7,10 @@ import {
   AnalyticsResponseProjection,
   type RawAnalyticsRow,
 } from '@api/endpoints/analytics/analytics-response.projection';
-import { assertAnalyticsBrandInScope } from '@api/endpoints/analytics/analytics-tenant-scope';
+import {
+  assertAnalyticsBrandInScope,
+  runInAnalyticsTenantScope,
+} from '@api/endpoints/analytics/analytics-tenant-scope';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -173,7 +176,9 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         brandFilter,
         orgFilter,
       ),
-      this.countOverviewEntities(organizationId),
+      runInAnalyticsTenantScope(organizationId, () =>
+        this.countOverviewEntities(organizationId),
+      ),
     ]);
 
     const metrics = analyticsResponseProjection.buildOverview(

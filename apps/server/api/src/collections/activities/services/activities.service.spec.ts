@@ -1,4 +1,5 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import {
   ActionOrigin,
   ActivityKey,
@@ -6,6 +7,7 @@ import {
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/contracts';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 
 describe('ActivitiesService action origin', () => {
   const logger = {
@@ -90,6 +92,38 @@ describe('ActivitiesService action origin', () => {
         }),
       }),
     );
+  });
+});
+
+describe('ActivitiesService tenant-scoped patch', () => {
+  it('resolves the patch pre-read under the request tenant', async () => {
+    const activity = { findFirst: vi.fn(), update: vi.fn() };
+    const row = {
+      action: ActivityKey.POST_PUBLISHED,
+      createdAt: new Date(),
+      data: {},
+      id: 'activity-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+      updatedAt: new Date(),
+    };
+    activity.findFirst.mockResolvedValue(row);
+    activity.update.mockResolvedValue(row);
+    const service = new ActivitiesService(
+      { activity } as never,
+      { debug: vi.fn(), error: vi.fn(), warn: vi.fn() } as never,
+    );
+
+    await runWithTenantContext({ organizationId: 'org-1' }, () =>
+      service.patch('activity-1', { isRead: true }),
+    );
+
+    expect(activity.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'activity-1', isDeleted: false, organizationId: 'org-1' },
+      }),
+    );
+    expectCloudGuardPasses('Activity', 'findFirst', activity.findFirst);
   });
 });
 
@@ -221,9 +255,30 @@ describe('ActivitiesService batched writes', () => {
             origin: ActionOrigin.MCP,
           }),
         },
-        where: { id: 'activity-1' },
+        where: {
+          id: 'activity-1',
+          isDeleted: false,
+          OR: [{ userId: 'user-1' }, { organizationId: 'org-1' }],
+        },
       });
       expect(activity.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('keeps the mark-read write inside the CLOUD tenant guard', async () => {
+      const { activity, service } = makeService();
+      activity.findMany.mockResolvedValue([{ data: {}, id: 'activity-1' }]);
+
+      await runWithTenantContext({ organizationId: 'org-1' }, () =>
+        service.bulkUpdateScoped({
+          ids: ['activity-1'],
+          isRead: true,
+          organizationId: 'org-1',
+          userId: 'user-1',
+        }),
+      );
+
+      expectCloudGuardPasses('Activity', 'findMany', activity.findMany);
+      expectCloudGuardPasses('Activity', 'update', activity.update);
     });
 
     it('deduplicates writes but still reports every requested id', async () => {

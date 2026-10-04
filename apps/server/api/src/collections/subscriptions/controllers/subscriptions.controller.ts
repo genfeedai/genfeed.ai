@@ -27,6 +27,7 @@ import type {
 import { SubscriptionPlanChangeCreditsOutcome } from '@genfeedai/contracts/interfaces/billing';
 import { SubscriptionSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   Body,
   Controller,
@@ -135,7 +136,9 @@ export class SubscriptionsController {
         orderBy: { createdAt: -1 },
       };
 
-      const data = await this.subscriptionsService.findAll(aggregate, options);
+      const data = await this.readAsPlatformAdmin(
+        async () => await this.subscriptionsService.findAll(aggregate, options),
+      );
 
       return serializeCollection(request, SubscriptionSerializer, data);
     } catch (error: unknown) {
@@ -293,9 +296,8 @@ export class SubscriptionsController {
         orderBy: { createdAt: -1 },
       };
 
-      const paginated = await this.subscriptionsService.findAll(
-        aggregate,
-        options,
+      const paginated = await this.readAsPlatformAdmin(
+        async () => await this.subscriptionsService.findAll(aggregate, options),
       );
 
       const subscriptions =
@@ -337,10 +339,13 @@ export class SubscriptionsController {
         ]),
       );
 
-      const data = await Promise.all(
-        subscriptions.map((subscription) =>
-          this.buildCreditUsageRow(subscription, organizationNameById),
-        ),
+      const data = await this.readAsPlatformAdmin(
+        async () =>
+          await Promise.all(
+            subscriptions.map((subscription) =>
+              this.buildCreditUsageRow(subscription, organizationNameById),
+            ),
+          ),
       );
 
       return {
@@ -357,6 +362,15 @@ export class SubscriptionsController {
         'Failed to retrieve organization credit usage',
       );
     }
+  }
+
+  /**
+   * The superadmin routes read every organization's subscription and wallet,
+   * never the superadmin's own request tenant. Only these two superadmin-gated
+   * handlers call it; every other route stays inside the request tenant.
+   */
+  private readAsPlatformAdmin<T>(work: () => Promise<T>): Promise<T> {
+    return crossOrgUnsafe(async () => await work());
   }
 
   private async buildCreditUsageRow(

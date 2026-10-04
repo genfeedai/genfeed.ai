@@ -303,7 +303,7 @@ describe('ContentRunsService', () => {
         }),
         status: ContentRunStatus.COMPLETED,
       },
-      where: { id: 'run-1' },
+      where: { id: 'run-1', isDeleted: false, organizationId: 'org-1' },
     });
     expect(result).toMatchObject({
       analyticsSummary: patch.analyticsSummary,
@@ -396,7 +396,7 @@ describe('ContentRunsService', () => {
           ]),
         }),
       },
-      where: { id: 'run-1' },
+      where: { id: 'run-1', isDeleted: false, organizationId: 'org-1' },
     });
     expect(result).toMatchObject({
       id: 'run-1',

@@ -422,7 +422,11 @@ describe('proactive dispatch failure accounting across real services', () => {
     // The strategy's agent thread is reused across proactive attempts, not
     // recreated per attempt.
     expect(fixture.prisma.agentThread.create).toHaveBeenCalledTimes(1);
-    await fixture.completion.completeExecution('run-1', 'duplicate delivery');
+    await fixture.completion.completeExecution(
+      'run-1',
+      'org',
+      'duplicate delivery',
+    );
     expect(fixture.strategy.config.consecutiveFailures).toBe(3);
     expect(fixture.strategy.config.runHistory).toHaveLength(3);
   });
@@ -497,7 +501,7 @@ describe('proactive dispatch failure accounting across real services', () => {
     expect(fixture.strategy.config.consecutiveFailures).toBe(1);
     expect(fixture.strategy.config.runHistory).toHaveLength(1);
     expect(fixture.strategy.isActive).toBe(true);
-    await fixture.completion.completeExecution('run-1', 'replay');
+    await fixture.completion.completeExecution('run-1', 'org', 'replay');
     expect(fixture.strategy.config.consecutiveFailures).toBe(1);
     expect(fixture.strategy.config.runHistory).toHaveLength(1);
   });

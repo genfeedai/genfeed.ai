@@ -24,7 +24,7 @@ describe('ArticleInsightsService', () => {
       analytics,
     );
 
-    await service.updatePerformanceMetrics('article_1', {
+    await service.updatePerformanceMetrics('article_1', 'org_1', {
       clickThroughRate: 0.25,
       comments: 4,
       likes: 8,
@@ -34,6 +34,7 @@ describe('ArticleInsightsService', () => {
 
     expect(analytics.updatePerformanceMetrics).toHaveBeenCalledWith(
       'article_1',
+      'org_1',
       {
         clickThroughRate: 0.25,
         comments: 4,

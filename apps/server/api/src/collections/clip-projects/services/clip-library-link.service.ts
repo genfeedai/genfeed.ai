@@ -300,7 +300,7 @@ export class ClipLibraryLinkService {
 
   private async createTranscriptSidecar(
     clipResult: ClipResultDocument,
-    _organizationId: string,
+    organizationId: string,
     ingredientId: string,
   ): Promise<void> {
     const captionSrt = this.readString(clipResult.captionSrt);
@@ -309,14 +309,21 @@ export class ClipLibraryLinkService {
       return;
     }
 
-    const caption = await this.captionsService.create({
+    const captionInput = {
       format: CaptionFormat.SRT,
       ingredientId,
+      isDeleted: false,
       language: CaptionLanguage.EN,
-    });
+      organizationId,
+      userId,
+    };
+    const caption = await this.captionsService.create(captionInput);
     const captionId = this.readString(caption?.id);
     if (captionId) {
-      await this.captionsService.patch(captionId, { content: captionSrt });
+      await this.captionsService.patchOneWhere(
+        scopedWhere(organizationId, { id: captionId }),
+        { content: captionSrt },
+      );
     }
   }
 

@@ -5,10 +5,7 @@ import { PresetsService } from '@api/collections/presets/services/presets.servic
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
-import {
-  assertTenantScopedQuery,
-  TenantIsolationError,
-} from '@libs/prisma/tenant-guard';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 import { ConflictException } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -113,7 +110,11 @@ function buildPrisma(rows: Row[]) {
     }),
   };
 
-  return { preset: delegate } as unknown as PrismaService;
+  // The real client reports the same CLOUD gate its guard extension uses.
+  return {
+    isCloudTenantGuard: true,
+    preset: delegate,
+  } as unknown as PrismaService;
 }
 
 function buildRows(): Row[] {
@@ -185,12 +186,15 @@ function setup() {
 const request = {} as Request;
 
 describe('PresetsController under the CLOUD tenant guard', () => {
-  it('proves the guard rejects the inherited id-only write', async () => {
-    const { inTenant, service } = setup();
+  it('scopes the inherited id-only write to the tenant, so a platform default stays unreachable', async () => {
+    const { inTenant, rows, service } = setup();
 
+    // BaseService adds the request tenant; the platform row (no organization)
+    // matches no write, and the guard no longer rejects the query itself.
     await expect(
       inTenant(() => service.patch(DEFAULT_ID, { isActive: false })),
-    ).rejects.toBeInstanceOf(TenantIsolationError);
+    ).rejects.toMatchObject({ code: 'P2025' });
+    expect(rows.find((row) => row.id === DEFAULT_ID)?.isActive).toBe(true);
   });
 
   it('lets a superadmin edit, reorder and deactivate a platform default', async () => {
@@ -447,5 +451,31 @@ describe('PresetsController under the CLOUD tenant guard', () => {
         inTenant(() => service.findByKey('theirs')),
       ).rejects.toThrow();
     });
+  });
+});
+
+describe('PresetsService.findPresetForContext under the CLOUD tenant guard', () => {
+  it('falls back to the app-wide preset for a tenant and hides foreign rows', async () => {
+    const { inTenant, rows, service } = setup();
+    rows.push({
+      brandId: null,
+      config: { key: 'appwide' },
+      id: 'cappwide000000000000001',
+      isActive: true,
+      isDeleted: false,
+      key: 'appwide',
+      organizationId: null,
+      sortOrder: 0,
+    } as unknown as Row);
+
+    const preset = await inTenant(() =>
+      service.findPresetForContext('appwide', ORG),
+    );
+    const foreign = await inTenant(() =>
+      service.findPresetForContext('theirs', ORG),
+    );
+
+    expect(preset?.id).toBe('cappwide000000000000001');
+    expect(foreign).toBeNull();
   });
 });

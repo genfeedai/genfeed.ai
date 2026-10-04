@@ -4,6 +4,7 @@ import type { BrandsService } from '@api/collections/brands/services/brands.serv
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { BRAND_HANDLE_TAKEN_MESSAGE } from '@genfeedai/contracts/constants';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { ConflictException } from '@nestjs/common';
 
 /**
@@ -72,10 +73,14 @@ export async function assertBrandHandleAvailable(
     return;
   }
   if (isSuperAdmin) {
-    const brand = await brandsService.findOne({
-      id: brandId,
-      isDeleted: false,
-    });
+    // Superadmins may edit any live brand; their session org is unrelated.
+    const brand = await crossOrgUnsafe(
+      async () =>
+        await brandsService.findOne({
+          id: brandId,
+          isDeleted: false,
+        }),
+    );
     if (!brand) {
       throw new NotFoundException('Brand', brandId);
     }
@@ -86,4 +91,20 @@ export async function assertBrandHandleAvailable(
   if (!(await brandsService.isSlugAvailable(slug, brandId))) {
     throw new ConflictException(BRAND_HANDLE_TAKEN_MESSAGE);
   }
+}
+
+/**
+ * The brand a relocation starts from. It need not live in the caller's session
+ * org (an admin of both orgs, active in the destination, may pull a teammate's
+ * brand in), so the lookup is cross-org. Authorization for the move itself is
+ * the relocation service's assertCanRelocate (superadmin, or owner/admin of
+ * both organizations).
+ */
+export function findBrandToRelocate(
+  brandsService: Pick<BrandsService, 'findOne'>,
+  brandId: string,
+): Promise<BrandDocument | null> {
+  return crossOrgUnsafe(
+    async () => await brandsService.findOne({ id: brandId }),
+  );
 }

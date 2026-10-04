@@ -9,12 +9,15 @@ const GRANT_MODES = [
 ] as const;
 
 export class GrantCharacterDto {
+  // Named `recipientOrganizationId`, not `organizationId`: RolesGuard treats a
+  // body `organizationId` as the caller's session org and rejects any mismatch,
+  // but the receiving organization is by definition not the session org.
   @IsEntityId()
   @ApiProperty({
     description:
       'Organization that receives the character for use only; the actor must be owner or admin of both organizations',
   })
-  readonly organizationId!: string;
+  readonly recipientOrganizationId!: string;
 
   @IsIn(GRANT_MODES)
   @ApiProperty({

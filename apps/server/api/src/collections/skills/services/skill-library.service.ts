@@ -19,6 +19,7 @@ import {
 } from '@api/collections/skills/policy/skill-capabilities';
 import { resolveSkillSourcePolicy } from '@api/collections/skills/policy/skill-source-policy';
 import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
+import { runOnAuthorizedSkillRow } from '@api/collections/skills/services/skill-authorized-row';
 import type {
   PinnedSkillExecution,
   SkillLibraryActor,
@@ -54,7 +55,8 @@ import type {
   SkillVersionReadPageV1,
   SkillVersionReadV1,
 } from '@genfeedai/contracts/interfaces/ai/skill-version-read.interface';
-import type { Prisma } from '@genfeedai/prisma';
+import type { Prisma, Skill } from '@genfeedai/prisma';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   ConflictException,
@@ -299,21 +301,24 @@ export class SkillLibraryService {
       this.prisma,
       { actorUserId: actor.userId, origin: 'authoring' },
       async (tx) => {
-        // tenant-scope-ignore: publish addresses one already-authorized skill id, including personal rows
-        const row = await tx.skill.update({
-          data: {
-            audience: input.audience,
-            publishedVersionId:
-              input.audience === 'public'
-                ? versionId
-                : skill.publishedVersionId,
-            sharedVersionId:
-              input.audience === 'organization'
-                ? versionId
-                : skill.sharedVersionId,
-          },
-          where: { id: skill.id },
-        });
+        const row = await runOnAuthorizedSkillRow(
+          async () =>
+            // tenant-scope-ignore: publish addresses one already-authorized skill id, including personal rows
+            await tx.skill.update({
+              data: {
+                audience: input.audience,
+                publishedVersionId:
+                  input.audience === 'public'
+                    ? versionId
+                    : skill.publishedVersionId,
+                sharedVersionId:
+                  input.audience === 'organization'
+                    ? versionId
+                    : skill.sharedVersionId,
+              },
+              where: { id: skill.id },
+            }),
+        );
         await tx.skillPublication.create({
           data: {
             action: 'publish',
@@ -343,11 +348,14 @@ export class SkillLibraryService {
       this.prisma,
       { actorUserId: actor.userId, origin: 'authoring' },
       (tx) =>
-        // tenant-scope-ignore: archive addresses one already-authorized skill id, including personal rows
-        tx.skill.update({
-          data: { isDeleted: true },
-          where: { id: skill.id },
-        }),
+        runOnAuthorizedSkillRow(
+          async () =>
+            // tenant-scope-ignore: archive addresses one already-authorized skill id, including personal rows
+            await tx.skill.update({
+              data: { isDeleted: true },
+              where: { id: skill.id },
+            }),
+        ),
     );
   }
 
@@ -397,18 +405,23 @@ export class SkillLibraryService {
         origin: 'authoring',
       },
       async (tx) => {
-        // tenant-scope-ignore: rollback addresses one already-authorized skill id, including personal rows
-        const row = await tx.skill.update({
-          data: {
-            config: (payload.config ?? {}) as Prisma.InputJsonValue,
-            label: payload.label ?? skill.label,
-            ...(skill.publishedVersionId
-              ? { publishedVersionId: version.id }
-              : {}),
-            ...(skill.sharedVersionId ? { sharedVersionId: version.id } : {}),
-          },
-          where: { id: skill.id },
-        });
+        const row = await runOnAuthorizedSkillRow(
+          async () =>
+            // tenant-scope-ignore: rollback addresses one already-authorized skill id, including personal rows
+            await tx.skill.update({
+              data: {
+                config: (payload.config ?? {}) as Prisma.InputJsonValue,
+                label: payload.label ?? skill.label,
+                ...(skill.publishedVersionId
+                  ? { publishedVersionId: version.id }
+                  : {}),
+                ...(skill.sharedVersionId
+                  ? { sharedVersionId: version.id }
+                  : {}),
+              },
+              where: { id: skill.id },
+            }),
+        );
         await tx.skillAssignment.updateMany({
           data: { skillVersionId: version.id },
           where: {
@@ -619,15 +632,29 @@ export class SkillLibraryService {
   }
 
   private async assignSharedDefaults(organizationId: string): Promise<number> {
-    const defaults = await this.prisma.skill.findMany({
-      where: {
-        currentVersionId: { not: null },
-        isDeleted: false,
-        isQuarantined: false,
-        organizationId: null,
-        ownerKind: 'system',
-      },
-    });
+    // System skills belong to no tenant; the assignments below belong to the
+    // target organization, which may differ from the request's (new org).
+    const defaults = await runOnAuthorizedSkillRow(
+      async () =>
+        await this.prisma.skill.findMany({
+          where: {
+            currentVersionId: { not: null },
+            isDeleted: false,
+            isQuarantined: false,
+            organizationId: null,
+            ownerKind: 'system',
+          },
+        }),
+    );
+    return runWithTenantContext({ organizationId }, async () =>
+      this.attachDefaultAssignments(organizationId, defaults),
+    );
+  }
+
+  private async attachDefaultAssignments(
+    organizationId: string,
+    defaults: readonly Skill[],
+  ): Promise<number> {
     let attached = 0;
     for (const skill of defaults) {
       const slug = readConfig(skill as unknown as SkillRow).slug;
@@ -738,10 +765,13 @@ export class SkillLibraryService {
   }
 
   private async requireRow(skillId: string): Promise<SkillRow> {
-    // tenant-scope-ignore: lookup is by primary key because personal and system skills have no organization
-    const row = await this.prisma.skill.findFirst({
-      where: { id: skillId, isDeleted: false },
-    });
+    const row = await runOnAuthorizedSkillRow(
+      async () =>
+        // tenant-scope-ignore: lookup is by primary key because personal and system skills have no organization
+        await this.prisma.skill.findFirst({
+          where: { id: skillId, isDeleted: false },
+        }),
+    );
     if (!row) throw new NotFoundException('Skill', skillId);
     return row as unknown as SkillRow;
   }
@@ -760,14 +790,17 @@ export class SkillLibraryService {
     base: string,
     actor: SkillLibraryActor,
   ): Promise<string> {
-    // tenant-scope-ignore: slug uniqueness for a personal skill is scoped to ownerUserId
-    const existing = await this.prisma.skill.findFirst({
-      where: {
-        config: { equals: base, path: ['slug'] },
-        isDeleted: false,
-        ownerUserId: actor.userId,
-      },
-    });
+    const existing = await runOnAuthorizedSkillRow(
+      async () =>
+        // tenant-scope-ignore: slug uniqueness for a personal skill is scoped to ownerUserId
+        await this.prisma.skill.findFirst({
+          where: {
+            config: { equals: base, path: ['slug'] },
+            isDeleted: false,
+            ownerUserId: actor.userId,
+          },
+        }),
+    );
     return existing ? `${base}-${actor.userId.slice(0, 6)}` : base;
   }
 

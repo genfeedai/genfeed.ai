@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IBillingAccountMigrationReport } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -20,7 +21,9 @@ export class BillingAccountMigrationService {
   }
 
   async applyUnambiguous(): Promise<IBillingAccountMigrationReport> {
-    return this.run({ dryRun: false });
+    // Superadmin-only platform migration: it writes each organization's own
+    // rows, never the request tenant's.
+    return crossOrgUnsafe(async () => await this.run({ dryRun: false }));
   }
 
   private async run(options: {

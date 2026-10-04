@@ -2,6 +2,7 @@ import { NOTIFICATION_DELIVERY_STATUS } from '@api/services/notifications/workfl
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { IChannelMessage } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 
 /**
  * The only writer of `notification_events` and `notification_deliveries` rows
@@ -48,6 +49,19 @@ export interface OutboxWriteResult {
   inboxUserIds: string[];
 }
 
+/**
+ * Platform (operator) events carry `organizationId: null` and belong to no
+ * tenant, so inside a request the CLOUD tenant guard has no organization to
+ * prove for them. Tenant events run unchanged under their own scope. This is
+ * the single place the platform-event hatch is opened.
+ */
+export function runForEventOrganization<T>(
+  organizationId: string | null,
+  run: () => Promise<T>,
+): Promise<T> {
+  return organizationId ? run() : crossOrgUnsafe(async () => await run());
+}
+
 type OutboxClient = Pick<
   Prisma.TransactionClient,
   'notificationDelivery' | 'notificationEvent'
@@ -63,10 +77,12 @@ export async function findOutboxEvent(
         select: { activityId: true, id: true },
         where: scopedWhere(organizationId, { deduplicationKey }),
       })
-    : client.notificationEvent.findFirst({
-        select: { activityId: true, id: true },
-        where: { deduplicationKey, isDeleted: false, organizationId: null },
-      });
+    : runForEventOrganization(organizationId, () =>
+        client.notificationEvent.findFirst({
+          select: { activityId: true, id: true },
+          where: { deduplicationKey, isDeleted: false, organizationId: null },
+        }),
+      );
 }
 
 export async function writeNotificationOutbox(
@@ -93,15 +109,17 @@ export async function writeNotificationOutbox(
           deduplicationKey: event.deduplicationKey,
         }),
       })
-    : await client.notificationEvent.upsert({
-        create,
-        update: {},
-        where: {
-          deduplicationKey: event.deduplicationKey,
-          isDeleted: false,
-          organizationId: null,
-        },
-      });
+    : await runForEventOrganization(event.organizationId, () =>
+        client.notificationEvent.upsert({
+          create,
+          update: {},
+          where: {
+            deduplicationKey: event.deduplicationKey,
+            isDeleted: false,
+            organizationId: null,
+          },
+        }),
+      );
 
   const deliveryIds: string[] = [];
   const pendingDeliveryIds: string[] = [];
@@ -134,16 +152,18 @@ export async function writeNotificationOutbox(
             idempotencyKey: delivery.idempotencyKey,
           }),
         })
-      : await client.notificationDelivery.upsert({
-          create: createDelivery,
-          select: { id: true, status: true },
-          update: {},
-          where: {
-            idempotencyKey: delivery.idempotencyKey,
-            isDeleted: false,
-            organizationId: null,
-          },
-        });
+      : await runForEventOrganization(event.organizationId, () =>
+          client.notificationDelivery.upsert({
+            create: createDelivery,
+            select: { id: true, status: true },
+            update: {},
+            where: {
+              idempotencyKey: delivery.idempotencyKey,
+              isDeleted: false,
+              organizationId: null,
+            },
+          }),
+        );
     deliveryIds.push(row.id);
     if (row.status === NOTIFICATION_DELIVERY_STATUS.PENDING) {
       pendingDeliveryIds.push(row.id);

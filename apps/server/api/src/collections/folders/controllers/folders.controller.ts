@@ -16,6 +16,7 @@ import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { FolderSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Body,
@@ -73,7 +74,12 @@ export class FoldersController extends BaseCRUDController<
     if (!isSuperAdmin) {
       folderQuery.organizationId = organizationId;
     }
-    const data = await this.foldersService.findOne(folderQuery);
+    // A superadmin reads a folder in any organization.
+    const data = isSuperAdmin
+      ? await crossOrgUnsafe(
+          async () => await this.foldersService.findOne(folderQuery),
+        )
+      : await this.foldersService.findOne(folderQuery);
 
     if (
       !data ||

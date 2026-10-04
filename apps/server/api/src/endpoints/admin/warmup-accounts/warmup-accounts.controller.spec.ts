@@ -2,6 +2,10 @@ import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { WarmupPreparationService } from '@api/endpoints/admin/warmup-accounts/warmup-preparation.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  isCrossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { RequestMethod } from '@nestjs/common';
 import {
   GUARDS_METADATA,
@@ -76,6 +80,8 @@ describe('WarmupAccountsController', () => {
     sendInvitation: vi.fn(),
   };
 
+  const preparationService = { prepare: vi.fn() };
+
   const loggerService = {
     error: vi.fn(),
     log: vi.fn(),
@@ -93,7 +99,7 @@ describe('WarmupAccountsController', () => {
           useValue: warmupAccountsService,
         },
         { provide: LoggerService, useValue: loggerService },
-        { provide: WarmupPreparationService, useValue: { prepare: vi.fn() } },
+        { provide: WarmupPreparationService, useValue: preparationService },
       ],
     })
       .overrideGuard(IpWhitelistGuard)
@@ -295,5 +301,51 @@ describe('WarmupAccountsController', () => {
       'warmup_1',
       'db_user_1',
     );
+  });
+
+  it('runs every warm-up admin operation outside the operator tenant (CLOUD guard)', async () => {
+    const seen: Record<string, boolean> = {};
+    const record = (name: string) =>
+      vi.fn(async () => {
+        seen[name] = isCrossOrgUnsafe();
+        return makeWarmupAccount();
+      });
+    warmupAccountsService.create = record('create');
+    warmupAccountsService.get = record('get');
+    warmupAccountsService.sendInvitation = record('send');
+    warmupAccountsService.list = vi.fn(async () => {
+      seen.list = isCrossOrgUnsafe();
+      return [];
+    });
+    preparationService.prepare = record('prepare');
+
+    await runWithTenantContext({ organizationId: 'org_operator' }, async () => {
+      await controller.create(
+        { brandName: 'A', leadEmail: 'a@b.co', organizationName: 'A' },
+        makeUser() as never,
+        makeRequest() as never,
+      );
+      await controller.list(makeRequest() as never);
+      await controller.get('warmup_1', makeRequest() as never);
+      await controller.sendInvitation(
+        'warmup_1',
+        makeUser() as never,
+        makeRequest() as never,
+      );
+      await controller.prepare(
+        'warmup_1',
+        {} as never,
+        makeUser() as never,
+        makeRequest() as never,
+      );
+    });
+
+    expect(seen).toEqual({
+      create: true,
+      get: true,
+      list: true,
+      prepare: true,
+      send: true,
+    });
   });
 });

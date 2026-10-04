@@ -53,6 +53,7 @@ export class VideoGenerationCompletionService {
       await this.bookmarksService.addGeneratedIngredient(
         context.createVideoDto.bookmark,
         context.ingredientData.id,
+        context.user.organizationId,
       );
       this.loggerService.log('Linked video to bookmark', {
         bookmarkId: context.createVideoDto.bookmark,
