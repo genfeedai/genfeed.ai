@@ -67,6 +67,7 @@ import {
 import {
   AGENT_TURN_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+  SCHEDULED_PUBLISH_QUEUE,
   WORKFLOW_BACKGROUND_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
@@ -195,6 +196,7 @@ export class ProactiveAgentRuntimeFixture {
       PLATFORM_SYSTEM_WORKFLOW_QUEUE,
       WORKFLOW_BACKGROUND_QUEUE,
       AGENT_TURN_QUEUE,
+      SCHEDULED_PUBLISH_QUEUE,
     ]) {
       this.queues.push(
         new Queue(name, {

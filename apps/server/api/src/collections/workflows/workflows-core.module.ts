@@ -5,6 +5,7 @@ import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tok
 import {
   AGENT_TURN_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+  SCHEDULED_PUBLISH_QUEUE,
   WORKFLOW_BACKGROUND_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
@@ -64,6 +65,15 @@ import { Module } from '@nestjs/common';
           removeOnFail: 100,
         },
         name: AGENT_TURN_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 200,
+          removeOnFail: 100,
+        },
+        name: SCHEDULED_PUBLISH_QUEUE,
       },
     ),
   ],

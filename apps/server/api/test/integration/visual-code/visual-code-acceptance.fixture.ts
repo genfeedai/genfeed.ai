@@ -111,6 +111,7 @@ import {
   AGENT_TURN_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+  SCHEDULED_PUBLISH_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   WORKFLOW_BACKGROUND_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
@@ -326,6 +327,7 @@ const WORKFLOW_QUEUES = [
   WORKFLOW_BACKGROUND_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   AGENT_TURN_QUEUE,
+  SCHEDULED_PUBLISH_QUEUE,
 ];
 const sha256 = (value: string | Buffer) =>
   createHash('sha256').update(value).digest('hex');
@@ -608,6 +610,7 @@ export async function createVisualCodeAcceptanceFixture(
       WORKFLOW_BACKGROUND_QUEUE,
       PLATFORM_SYSTEM_WORKFLOW_QUEUE,
       AGENT_TURN_QUEUE,
+      SCHEDULED_PUBLISH_QUEUE,
     ]
       .filter(() => !runtimeOptions)
       .map((name) => [name, createCapturedWorkflowQueue(name)]),
