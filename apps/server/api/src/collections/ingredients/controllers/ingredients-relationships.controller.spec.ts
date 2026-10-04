@@ -4,6 +4,7 @@ import { IngredientsRelationshipsController } from '@api/collections/ingredients
 import { IngredientLineageService } from '@api/collections/ingredients/services/ingredient-lineage.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { IngredientLineageDirection } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -126,7 +127,7 @@ describe('IngredientsRelationshipsController', () => {
       const result = await controller.findChildren(
         mockRequest,
         ingredientId,
-        {},
+        new BaseQueryDto(),
       );
 
       expect(ingredientsService.findAll).toHaveBeenCalledWith(
@@ -153,7 +154,11 @@ describe('IngredientsRelationshipsController', () => {
 
   describe('findPosts', () => {
     it('should return posts for ingredient', async () => {
-      const result = await controller.findPosts(mockRequest, ingredientId, {});
+      const result = await controller.findPosts(
+        mockRequest,
+        ingredientId,
+        new BaseQueryDto(),
+      );
 
       expect(ingredientsService.findOne).toHaveBeenCalledWith({
         id: ingredientId,
@@ -185,7 +190,7 @@ describe('IngredientsRelationshipsController', () => {
         category: 'image',
       });
 
-      await controller.findPosts(mockRequest, ingredientId, {});
+      await controller.findPosts(mockRequest, ingredientId, new BaseQueryDto());
 
       expect(postsService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -215,7 +220,7 @@ describe('IngredientsRelationshipsController', () => {
       );
 
       await runWithTenantContext({ organizationId }, () =>
-        controller.findPosts(mockRequest, ingredientId, {}),
+        controller.findPosts(mockRequest, ingredientId, new BaseQueryDto()),
       );
 
       expect(postsService.findAll).toHaveBeenCalledWith(
