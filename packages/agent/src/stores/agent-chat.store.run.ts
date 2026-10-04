@@ -65,9 +65,12 @@ export interface RunStateSlice {
   activeThreadId: string | null;
   isGenerating: boolean;
   runStartedAt: string | null;
-  runsByThread: Record<string, AgentRunRecord>;
+  /** Absent only on partial states (mocked stores); selectors then read the fields. */
+  runsByThread?: Record<string, AgentRunRecord>;
   threads: AgentThread[];
 }
+
+type RunRecords = Record<string, AgentRunRecord>;
 
 export function runKeyFor(threadId: string | null): string {
   return threadId ?? DRAFT_RUN_KEY;
@@ -84,7 +87,7 @@ export function recordOf(state: RunStateSlice, threadId: string | null) {
         startedAt: state.runStartedAt,
         status: state.activeRunStatus,
       }
-    : (state.runsByThread[key] ?? IDLE_RUN);
+    : (state.runsByThread?.[key] ?? IDLE_RUN);
 }
 
 function applyRunEvent(
@@ -137,17 +140,16 @@ export function runTransitionPatch(
   state: RunStateSlice,
   threadId: string | null,
   event: AgentRunEvent,
-): Pick<RunStateSlice, 'runsByThread'> &
-  Partial<
-    Pick<
-      RunStateSlice,
-      | 'activeRunId'
-      | 'activeRunStatus'
-      | 'isGenerating'
-      | 'runStartedAt'
-      | 'threads'
-    >
-  > {
+): { runsByThread: RunRecords } & Partial<
+  Pick<
+    RunStateSlice,
+    | 'activeRunId'
+    | 'activeRunStatus'
+    | 'isGenerating'
+    | 'runStartedAt'
+    | 'threads'
+  >
+> {
   const key = runKeyFor(threadId);
   const previous = recordOf(state, threadId);
   const next = applyRunEvent(previous, event);
@@ -192,9 +194,9 @@ export function runTransitionPatch(
  * before the thread existed stays readable under its real id.
  */
 export function adoptDraftRunPatch(
-  state: Pick<RunStateSlice, 'runsByThread'>,
+  state: { runsByThread: RunRecords },
   threadId: string,
-): Pick<RunStateSlice, 'runsByThread'> {
+): { runsByThread: RunRecords } {
   const { [DRAFT_RUN_KEY]: draftRun, ...otherRuns } = state.runsByThread;
   return {
     runsByThread: draftRun
@@ -205,7 +207,9 @@ export function adoptDraftRunPatch(
 
 /** The visible thread's run record. */
 export function selectActiveRun(state: RunStateSlice): AgentRunRecord {
-  return state.runsByThread[runKeyFor(state.activeThreadId)] ?? IDLE_RUN;
+  return state.runsByThread
+    ? (state.runsByThread[runKeyFor(state.activeThreadId)] ?? IDLE_RUN)
+    : recordOf(state, state.activeThreadId);
 }
 
 export function selectIsGenerating(state: RunStateSlice): boolean {
