@@ -156,15 +156,48 @@ describe('HeygenAvatarProvider', () => {
       expect(result.status).toBe('processing');
     });
 
-    it('returns failed status when no API key is resolvable', async () => {
+    it('returns unknown status when no API key is resolvable', async () => {
       byokService.resolveApiKey.mockResolvedValue(undefined);
       apiKeyHelperService.getApiKey.mockReturnValue('');
 
       const result = await provider.getStatus('video-3', 'org-3');
 
       expect(httpService.get).not.toHaveBeenCalled();
-      expect(result.status).toBe('failed');
+      expect(result.status).toBe('unknown');
       expect(result.error).toContain('No HeyGen API key configured');
+    });
+
+    it('returns unknown status when the request throws', async () => {
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'valid' });
+      httpService.get.mockReturnValue(throwError(() => new Error('timeout')));
+
+      const result = await provider.getStatus('video-5', 'org-5');
+
+      expect(result.status).toBe('unknown');
+    });
+
+    it.each([
+      ['a malformed body', { data: 'oops' }],
+      ['missing data', { data: { data: null } }],
+    ])('returns unknown status for %s', async (_name, body) => {
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'valid' });
+      httpService.get.mockReturnValue(of(body));
+
+      const result = await provider.getStatus('video-6', 'org-6');
+
+      expect(result.status).toBe('unknown');
+    });
+
+    it('returns failed status only when HeyGen reports failure', async () => {
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'valid' });
+      httpService.get.mockReturnValue(
+        of({ data: { data: { status: 'failed', error: 'bad avatar' } } }),
+      );
+
+      const result = await provider.getStatus('video-7', 'org-7');
+
+      expect(result.status).toBe('failed');
+      expect(result.error).toBe('bad avatar');
     });
 
     it('never ships an empty api key in headers (regression guard)', async () => {
