@@ -180,7 +180,11 @@ describe('BatchInterpolationController', () => {
   };
   let metadataService: { patch: ReturnType<typeof vi.fn> };
   let modelsService: { findOne: ReturnType<typeof vi.fn> };
-  let promptsService: { create: ReturnType<typeof vi.fn> };
+  let promptsService: {
+    create: ReturnType<typeof vi.fn>;
+    patchOneWhere: ReturnType<typeof vi.fn>;
+  };
+  let patchOneWhere: ReturnType<typeof vi.fn>;
   let promptBuilderService: { buildPrompt: ReturnType<typeof vi.fn> };
   let replicateService: { generateTextToVideo: ReturnType<typeof vi.fn> };
   let ingredientsService: {
@@ -226,7 +230,11 @@ describe('BatchInterpolationController', () => {
     };
     metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
     modelsService = { findOne: vi.fn().mockResolvedValue(mockModel) };
-    promptsService = { create: vi.fn().mockResolvedValue(mockPrompt) };
+    promptsService = {
+      create: vi.fn().mockResolvedValue(mockPrompt),
+      patchOneWhere: vi.fn().mockResolvedValue(undefined),
+    };
+    patchOneWhere = vi.fn().mockResolvedValue(undefined);
     promptBuilderService = {
       buildPrompt: vi.fn().mockResolvedValue({
         input: { prompt: 'cinematic' },
@@ -300,7 +308,10 @@ describe('BatchInterpolationController', () => {
           useValue: replicateService,
         },
         { provide: SharedService, useValue: sharedService },
-        { provide: VideosService, useValue: { findOne: vi.fn() } },
+        {
+          provide: VideosService,
+          useValue: { findOne: vi.fn(), patchOneWhere },
+        },
         {
           provide: NotificationsPublisherService,
           useValue: websocketService,
@@ -1196,6 +1207,75 @@ describe('BatchInterpolationController', () => {
         expect(readBatchResponseFixture(result).jobs[1].status).toBe(
           'processing',
         );
+      });
+    });
+
+    describe('failed pair cleanup', () => {
+      const failedActivity = expect.objectContaining({
+        key: 'video-failed',
+        organizationId,
+      });
+
+      async function expectPairCleanedUp(): Promise<void> {
+        const [videosAdapter, failedId, , , , activityMetadata] =
+          failedGenerationService.handleFailedVideoGeneration.mock.calls[0];
+        expect(failedId).toBe(ingredientId);
+        expect(activityMetadata).toEqual(failedActivity);
+        expect(JSON.parse(activityMetadata.value).ingredientId).toBe(
+          ingredientId,
+        );
+        await videosAdapter.patch(ingredientId, { status: 'FAILED' });
+        expect(patchOneWhere).toHaveBeenCalledWith(
+          { id: ingredientId, isDeleted: false, organizationId },
+          { status: 'FAILED' },
+        );
+        expect(promptsService.patchOneWhere).toHaveBeenCalledWith(
+          { id: promptId, isDeleted: false, organizationId },
+          { status: 'FAILED' },
+        );
+      }
+
+      it('fails prompt, ingredient and activity when the credit hold throws', async () => {
+        creditsUtilsService.reserveCredits.mockRejectedValue(
+          new Error('insufficient credits'),
+        );
+
+        const result = await controller.createBatchInterpolation(
+          mockReq,
+          mockDto,
+          mockUser,
+        );
+
+        expect(readBatchResponseFixture(result).jobs[0]).toMatchObject({
+          id: ingredientId,
+          pairIndex: 0,
+          status: 'failed',
+        });
+        expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+        await expectPairCleanedUp();
+      });
+
+      it('fails prompt, ingredient and activity and releases the hold when dispatch throws', async () => {
+        replicateService.generateTextToVideo.mockRejectedValue(
+          new Error('provider down'),
+        );
+
+        const result = await controller.createBatchInterpolation(
+          mockReq,
+          mockDto,
+          mockUser,
+        );
+
+        expect(readBatchResponseFixture(result).jobs[0]).toMatchObject({
+          id: ingredientId,
+          pairIndex: 0,
+          status: 'failed',
+        });
+        expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+          organizationId,
+          reservationId: 'pair-reservation',
+        });
+        await expectPairCleanedUp();
       });
     });
 

@@ -95,6 +95,11 @@ type InterpolationJobResult = {
   status: string;
 };
 
+type CreatedPairRecords = {
+  ingredientId?: string;
+  promptId?: string;
+};
+
 type InterpolationContext = {
   apiKey?: string;
   brand: NonNullable<Awaited<ReturnType<BrandsService['findOne']>>>;
@@ -326,6 +331,7 @@ export class BatchInterpolationController {
     pairIndex: number,
     context: InterpolationContext,
   ): Promise<InterpolationJobResult> {
+    const created: CreatedPairRecords = {};
     try {
       const { endFrameUrl, sourceIngredientIds, startFrameUrl } =
         await this.interpolationReferenceService.resolvePair(
@@ -379,6 +385,7 @@ export class BatchInterpolationController {
           userId: context.user.id,
         }),
       );
+      created.promptId = promptData.id.toString();
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(context.user, {
           origin: IngredientOrigin.GENERATED,
@@ -408,6 +415,7 @@ export class BatchInterpolationController {
           width: context.width,
         });
       const ingredientId = ingredientData.id.toString();
+      created.ingredientId = ingredientId;
       const activity = await this.activityRecorder.record({
         brandId: context.brand.id,
         entityId: ingredientData.id,
@@ -448,11 +456,87 @@ export class BatchInterpolationController {
         isLoopPair,
         metadataId: metadataData.id.toString(),
         pairIndex,
+        promptId: created.promptId,
         promptParams: builtPrompt.input,
       });
     } catch (error: unknown) {
       this.loggerService.error('Failed to process interpolation pair', error);
+      if (created.ingredientId) {
+        // The credit hold, if one was taken, is released by the billing
+        // service; here the records created for the pair are failed.
+        await this.failPair(context, {
+          ingredientId: created.ingredientId,
+          pairIndex,
+          promptId: created.promptId,
+        });
+        return { id: created.ingredientId, pairIndex, status: 'failed' };
+      }
+      await this.failPrompt(context, created.promptId);
       return { id: '', pairIndex, status: 'failed' };
+    }
+  }
+
+  /** Fails the video, closes its activity and fails the prompt of one pair. */
+  private async failPair(
+    context: InterpolationContext,
+    records: CreatedPairRecords & { ingredientId: string; pairIndex: number },
+  ): Promise<void> {
+    const { ingredientId } = records;
+    const { organizationId } = context.user;
+    try {
+      await this.failedGenerationService.handleFailedVideoGeneration(
+        {
+          patch: (id, data) =>
+            this.videosService.patchOneWhere(
+              { id, isDeleted: false, organizationId },
+              data,
+            ),
+        },
+        ingredientId,
+        WebSocketPaths.video(ingredientId),
+        context.user.id,
+        getUserRoomName(context.user.id),
+        {
+          brandId: context.brand.id,
+          key: ActivityKey.VIDEO_FAILED,
+          organizationId,
+          source: ActivitySource.VIDEO_GENERATION,
+          userId: context.user.id,
+          value: JSON.stringify({
+            groupId: context.groupId,
+            ingredientId,
+            pairIndex: records.pairIndex,
+            type: 'interpolation',
+          }),
+        },
+      );
+    } catch (error: unknown) {
+      this.loggerService.error('Failed to fail interpolation video', error, {
+        ingredientId,
+        organizationId,
+      });
+    }
+    await this.failPrompt(context, records.promptId);
+  }
+
+  private async failPrompt(
+    context: InterpolationContext,
+    promptId?: string,
+  ): Promise<void> {
+    if (!promptId) return;
+    try {
+      await this.promptsService.patchOneWhere(
+        {
+          id: promptId,
+          isDeleted: false,
+          organizationId: context.user.organizationId,
+        },
+        { status: PromptStatus.FAILED },
+      );
+    } catch (error: unknown) {
+      this.loggerService.error('Failed to fail interpolation prompt', error, {
+        promptId,
+      });
     }
   }
 
@@ -463,6 +547,7 @@ export class BatchInterpolationController {
     isLoopPair: boolean;
     metadataId: string;
     pairIndex: number;
+    promptId: string;
     promptParams: Record<string, unknown>;
   }): Promise<InterpolationJobResult> {
     const { context, ingredientId, isLoopPair, metadataId, pairIndex } = params;
@@ -477,13 +562,11 @@ export class BatchInterpolationController {
       user: context.user,
     });
     if (!generationId) {
-      await this.failedGenerationService.handleFailedVideoGeneration(
-        this.videosService,
+      await this.failPair(context, {
         ingredientId,
-        WebSocketPaths.video(ingredientId),
-        context.user.id,
-        getUserRoomName(context.user.id),
-      );
+        pairIndex,
+        promptId: params.promptId,
+      });
       return { id: ingredientId, pairIndex, status: 'failed' };
     }
     this.loggerService.log('Interpolation job started', {
