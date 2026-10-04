@@ -62,10 +62,12 @@ describe('tenant-scope', () => {
     });
 
     describe('guard depth limit', () => {
-      // `where` is depth 1 in the guard; each AND level adds one.
-      function nestedProof(proofDepth: number): Record<string, unknown> {
+      // `where` is depth 1 in the guard, and each `AND: [entry]` level costs two
+      // (the array, then the entry): 3 levels put the proof at depth 7 (still
+      // seen), 4 levels at depth 9 (past the limit of 8).
+      function nestedProof(andLevels: number): Record<string, unknown> {
         let node: Record<string, unknown> = { organizationId: 'o1' };
-        for (let depth = proofDepth; depth > 1; depth -= 1) {
+        for (let level = 0; level < andLevels; level += 1) {
           node = { AND: [node] };
         }
         return node;
@@ -81,8 +83,8 @@ describe('tenant-scope', () => {
           }),
         );
 
-      it('leaves a proof the guard can still see (depth 8) untouched', () => {
-        const where = nestedProof(8);
+      it('leaves a proof the guard can still see (depth 7) untouched', () => {
+        const where = nestedProof(3);
         const result = runWithTenantContext({ organizationId: 'o1' }, () =>
           scopeWhereToTenant(where, 'brand', 'read'),
         );
@@ -92,7 +94,7 @@ describe('tenant-scope', () => {
       });
 
       it('adds the tenant at the top level when the proof is below the guard limit', () => {
-        const where = nestedProof(9);
+        const where = nestedProof(4);
 
         expect(guard(where)).toThrow();
 
