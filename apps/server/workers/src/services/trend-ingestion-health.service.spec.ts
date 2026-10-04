@@ -18,6 +18,25 @@ function setup() {
     notificationEvent: {
       upsert: vi.fn().mockResolvedValue({ id: 'enrollment' }),
       findFirstOrThrow: vi.fn().mockResolvedValue({ occurredAt: enrollment }),
+      findMany: vi.fn().mockImplementation(
+        (input: {
+          where: {
+            deduplicationKey: { endsWith?: string; not?: unknown };
+            sourceId: { startsWith: string };
+          };
+        }) => {
+          const wantsRecovered =
+            input.where.deduplicationKey.endsWith !== undefined;
+          return Promise.resolve(
+            [...events.values()].filter(
+              (event) =>
+                event.sourceId.startsWith(input.where.sourceId.startsWith) &&
+                event.deduplicationKey.endsWith('/recovered') ===
+                  wantsRecovered,
+            ),
+          );
+        },
+      ),
       findFirst: vi
         .fn()
         .mockImplementation(
@@ -186,8 +205,9 @@ describe('TrendIngestionHealthService', () => {
     ]);
     await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
     expect(
-      [...events.keys()].some((key) =>
-        key.includes('youtube/trends/scoped/missed/'),
+      [...events.keys()].some(
+        (key) =>
+          key.includes('youtube/trends/scope-') && key.includes('/missed/'),
       ),
     ).toBe(true);
     expect(JSON.stringify(recorder.dispatch.mock.calls)).not.toContain(
@@ -353,5 +373,155 @@ describe('TrendIngestionHealthService', () => {
         (key) => key.includes('/scoped/missed/') && !key.endsWith('/recovered'),
       ),
     ).toHaveLength(2);
+  });
+
+  describe('while the global refresh is healthy', () => {
+    const globalHealthy: TrendRefreshHealth = {
+      completedAt: '2026-09-30T00:00:00.000Z',
+      dataset: 'trends',
+      lastAttemptAt: '2026-09-30T00:00:00.000Z',
+      lastSuccessfulRefreshAt: '2026-09-30T00:00:00.000Z',
+      outcome: 'native_available',
+      platform: 'youtube',
+      reason: null,
+      scope: 'global',
+    };
+    const scopedHealthy: TrendRefreshHealth = {
+      ...globalHealthy,
+      scope: 'scoped',
+    };
+    const scopeKeys = (events: Map<string, unknown>) =>
+      [...events.keys()].filter(
+        (key) =>
+          key.includes('youtube/trends/scope-') && !key.endsWith('/recovered'),
+      );
+
+    it('alerts for tenant B failing after tenant A, and recovers each scope on its own', async () => {
+      const { service, health, prisma, events, recorder } = setup();
+      const laterConnected = new Date('2026-09-28T12:15:00.000Z');
+      prisma.credential.findMany.mockResolvedValue([
+        { createdAt: enrollment, organizationId: 'org-a', platform: 'YOUTUBE' },
+        {
+          createdAt: laterConnected,
+          organizationId: 'org-b',
+          platform: 'YOUTUBE',
+        },
+      ]);
+      health.getHealth.mockImplementation(
+        (input: { organizationId?: string } = {}) =>
+          Promise.resolve(input.organizationId ? [] : [globalHealthy]),
+      );
+      await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+      expect(scopeKeys(events)).toHaveLength(1);
+      await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
+      expect(scopeKeys(events)).toHaveLength(2);
+      expect([...events.keys()].some((key) => key.includes('/scoped/'))).toBe(
+        false,
+      );
+      expect(JSON.stringify(recorder.dispatch.mock.calls)).not.toContain(
+        'org-',
+      );
+      // Tenant A recovers; only A's incident closes.
+      health.getHealth.mockImplementation(
+        (input: { organizationId?: string } = {}) =>
+          Promise.resolve(
+            input.organizationId === 'org-a'
+              ? [scopedHealthy]
+              : input.organizationId
+                ? []
+                : [globalHealthy],
+          ),
+      );
+      await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
+      expect(
+        [...events.keys()].filter((key) => key.endsWith('/recovered')),
+      ).toHaveLength(1);
+      // Tenant B recovers too.
+      health.getHealth.mockImplementation(
+        (input: { organizationId?: string } = {}) =>
+          Promise.resolve(
+            input.organizationId ? [scopedHealthy] : [globalHealthy],
+          ),
+      );
+      await service.checkMissedWindows(new Date('2026-09-30T12:15:00.000Z'));
+      expect(
+        [...events.keys()].filter((key) => key.endsWith('/recovered')),
+      ).toHaveLength(2);
+    });
+
+    it('ignores a global outage of an unrelated dataset', async () => {
+      const { service, health, prisma, events } = setup();
+      prisma.credential.findMany.mockResolvedValue([
+        { createdAt: enrollment, organizationId: 'org-a', platform: 'YOUTUBE' },
+        {
+          createdAt: new Date('2026-09-28T12:15:00.000Z'),
+          organizationId: 'org-b',
+          platform: 'YOUTUBE',
+        },
+      ]);
+      // Global youtube/videos has no receipt (outage); youtube/trends is healthy.
+      health.getHealth.mockImplementation(
+        (input: { organizationId?: string } = {}) =>
+          Promise.resolve(input.organizationId ? [] : [globalHealthy]),
+      );
+      await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+      await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
+      expect(
+        [...events.keys()].some((key) =>
+          key.startsWith('trend-ingestion-health/youtube/videos/missed/'),
+        ),
+      ).toBe(true);
+      expect(scopeKeys(events)).toHaveLength(2);
+      expect([...events.keys()].some((key) => key.includes('/scoped/'))).toBe(
+        false,
+      );
+    });
+
+    it('closes per-scope incidents when a global outage starts, and the aggregate when it ends', async () => {
+      const { service, health, prisma, events } = setup();
+      prisma.credential.findMany.mockResolvedValue([
+        { createdAt: enrollment, organizationId: 'org-a', platform: 'YOUTUBE' },
+      ]);
+      health.getHealth.mockImplementation(
+        (input: { organizationId?: string } = {}) =>
+          Promise.resolve(input.organizationId ? [] : [globalHealthy]),
+      );
+      await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+      expect(scopeKeys(events)).toHaveLength(1);
+      // Global goes stale: scope folds into the aggregate incident.
+      health.getHealth.mockResolvedValue([]);
+      await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
+      const aggregate = () =>
+        [...events.keys()].filter(
+          (key) =>
+            key.includes('/scoped/missed/') && !key.endsWith('/recovered'),
+        );
+      expect(aggregate()).toHaveLength(1);
+      expect(
+        [...events.keys()].filter(
+          (key) => key.includes('/scope-') && key.endsWith('/recovered'),
+        ),
+      ).toHaveLength(1);
+      // Global recovers while the scope still fails: aggregate closes.
+      health.getHealth.mockImplementation(
+        (input: { organizationId?: string } = {}) =>
+          Promise.resolve(
+            input.organizationId
+              ? []
+              : [
+                  {
+                    ...globalHealthy,
+                    lastSuccessfulRefreshAt: '2026-10-01T12:00:00.000Z',
+                  },
+                ],
+          ),
+      );
+      await service.checkMissedWindows(new Date('2026-10-01T12:15:00.000Z'));
+      expect(
+        [...events.keys()].filter(
+          (key) => key.includes('/scoped/') && key.endsWith('/recovered'),
+        ),
+      ).toHaveLength(1);
+    });
   });
 });
