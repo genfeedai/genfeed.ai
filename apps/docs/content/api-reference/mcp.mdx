@@ -440,12 +440,21 @@ writes; `get_posts` is read-only. None of these tools publishes a post.
 
 ## Interactive content cards
 
-MCP Apps hosts can render Genfeed posts, articles, image galleries, video and audio
-previews, generation results, and usage summaries directly in the conversation.
+MCP Apps hosts can render Genfeed content directly in the conversation:
+
+- **Content calendar:** `get_posts` with `days`, shown as one column per day, with open days and the drafts count.
+- **Post previews:** platform, status, copy and media.
+- **Images:** an enlarge-on-click lightbox.
+- **Video and audio players.**
+- **Running generations:** a progress state that re-reads `get_job_status` until the media is ready.
+- **Article cards and usage summaries.**
+
 The MCP server serves a self-contained HTML resource at
-`ui://genfeed/content-cards-v1.html` with MIME type
+`ui://genfeed/content-cards-v2.html` with MIME type
 `text/html;profile=mcp-app`. Selected tool descriptors link it through
-`_meta.ui.resourceUri`; the widget uses the standard MCP Apps JSON-RPC bridge.
+`_meta.ui.resourceUri`. They also carry the legacy `ui/resourceUri` key and the
+ChatGPT `openai/outputTemplate` alias. The widget uses the standard MCP Apps
+JSON-RPC bridge, and its only tool call is the read-only `get_job_status`.
 No separate ChatGPT frontend deployment is needed.
 
 Text and media resource links remain available to clients without MCP Apps.

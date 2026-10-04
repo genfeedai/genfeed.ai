@@ -243,6 +243,106 @@ describe('MCP Apps card contract', () => {
     expect(safeCardUrl(value)).toBeUndefined();
   });
 
+  it('links tools under the MCP Apps key, the legacy flat key and the ChatGPT alias', () => {
+    const tool = toMcpTools(getToolsForSurface('mcp')).find(
+      (item) => item.name === 'generate',
+    );
+    if (!tool) throw new Error('Missing generate');
+
+    expect(MCP_CARD_RESOURCE_URI).toBe('ui://genfeed/content-cards-v2.html');
+    expect(withCardMetadata(tool)._meta).toMatchObject({
+      'openai/outputTemplate': MCP_CARD_RESOURCE_URI,
+      'openai/toolInvocation/invoked': 'Media ready',
+      'openai/toolInvocation/invoking': 'Working on media…',
+      ui: { resourceUri: MCP_CARD_RESOURCE_URI },
+      'ui/resourceUri': MCP_CARD_RESOURCE_URI,
+    });
+  });
+
+  it('lays out get_posts {days} as a content calendar with gap days', () => {
+    const view = buildCardView('get_posts', {
+      days: 3,
+      draftsCount: 2,
+      gapDays: ['2026-10-05'],
+      gapsCount: 1,
+      scheduled: [
+        {
+          description: 'Evening post',
+          id: 'p2',
+          platform: 'linkedin',
+          scheduledDate: '2026-10-04T18:00:00.000Z',
+        },
+        {
+          description: 'Morning post',
+          id: 'p1',
+          platform: 'instagram',
+          scheduledDate: '2026-10-04T09:00:00.000Z',
+        },
+        {
+          description: 'Launch',
+          id: 'p3',
+          platform: 'twitter',
+          scheduledDate: '2026-10-06T12:00:00.000Z',
+        },
+        { description: 'No date', id: 'p4' },
+      ],
+      scheduledCount: 4,
+    });
+
+    expect(view).toMatchObject({
+      calendar: { draftsCount: 2 },
+      layout: 'calendar',
+      title: 'Content calendar',
+      total: 4,
+    });
+    expect(
+      view?.calendar?.days.map((day) => [
+        day.date,
+        day.isGap,
+        day.posts.map((post) => post.id),
+      ]),
+    ).toEqual([
+      ['2026-10-04', false, ['p1', 'p2']],
+      ['2026-10-05', true, []],
+      ['2026-10-06', false, ['p3']],
+    ]);
+  });
+
+  it('marks running media jobs pending with their progress, never posts or finished media', () => {
+    expect(
+      buildCardView('generate', {
+        category: 'VIDEO',
+        id: 'job',
+        progress: 42.4,
+        stage: 'Rendering',
+        status: 'PROCESSING',
+      })?.cards[0],
+    ).toMatchObject({
+      isPending: true,
+      kind: 'video',
+      progress: 42,
+      stage: 'Rendering',
+    });
+    expect(
+      buildCardView('get_job_status', {
+        category: 'VIDEO',
+        id: 'job',
+        status: 'COMPLETED',
+        url: 'https://cdn.genfeed.ai/video.mp4',
+      })?.cards[0].isPending,
+    ).toBeUndefined();
+    expect(
+      buildCardView('get_posts', { posts: [{ id: 'p', status: 'pending' }] })
+        ?.cards[0].isPending,
+    ).toBeUndefined();
+  });
+
+  it('chooses the post, media or card layout from the tool kind', () => {
+    expect(buildCardView('get_posts', { posts: [] })?.layout).toBe('posts');
+    expect(buildCardView('list_assets', [])?.layout).toBe('media');
+    expect(buildCardView('get_articles', [])?.layout).toBe('cards');
+  });
+
   it('restricts media CSP to configured origins with no API connectivity', () => {
     expect(
       cardResource([
