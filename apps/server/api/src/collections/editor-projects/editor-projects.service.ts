@@ -184,8 +184,8 @@ export class EditorProjectsService extends BaseService<
         return write(tx, project);
       }
 
-      // Render workers address the project by id only; the org comes from
-      // the locked row.
+      // Render workers (no tenant context) address the project by id only;
+      // the org comes from the locked row. HTTP callers always pass one.
       await tx.$queryRaw(
         Prisma.sql`SELECT "id" FROM "editor_projects" WHERE "id" = ${id} FOR UPDATE`,
       );
@@ -237,11 +237,16 @@ export class EditorProjectsService extends BaseService<
     });
   }
 
+  /**
+   * `organizationId` is the request tenant for HTTP callers. Render workers
+   * address the project by id alone and omit it.
+   */
   async attachRenderJob(
     id: string,
     job: IEditorRenderCorrelation,
+    organizationId?: string,
   ): Promise<EditorProjectDocument> {
-    return this.withLockedProject(id, undefined, async (tx, existing) => {
+    return this.withLockedProject(id, organizationId, async (tx, existing) => {
       const renderExport = this.readRenderProvenance(existing);
 
       if (!renderExport) {
@@ -334,12 +339,14 @@ export class EditorProjectsService extends BaseService<
     id: string,
     expectedJobId?: string,
     failure?: IEditorRenderFailure,
+    organizationId?: string,
   ): Promise<EditorProjectDocument> {
     return this.markAsTerminal(
       id,
       EditorProjectStatus.FAILED,
       expectedJobId,
       failure,
+      organizationId,
     );
   }
 
@@ -347,12 +354,14 @@ export class EditorProjectsService extends BaseService<
     id: string,
     expectedJobId: string,
     failure: IEditorRenderFailure,
+    organizationId?: string,
   ): Promise<EditorProjectDocument> {
     return this.markAsTerminal(
       id,
       EditorProjectStatus.CANCELLED,
       expectedJobId,
       failure,
+      organizationId,
     );
   }
 
@@ -361,8 +370,9 @@ export class EditorProjectsService extends BaseService<
     status: EditorProjectStatus.CANCELLED | EditorProjectStatus.FAILED,
     expectedJobId?: string,
     failure?: IEditorRenderFailure,
+    organizationId?: string,
   ): Promise<EditorProjectDocument> {
-    return this.withLockedProject(id, undefined, async (tx, existing) => {
+    return this.withLockedProject(id, organizationId, async (tx, existing) => {
       const renderExport = this.assertRenderOwnership(existing, expectedJobId);
 
       const project = await tx.editorProject.update({

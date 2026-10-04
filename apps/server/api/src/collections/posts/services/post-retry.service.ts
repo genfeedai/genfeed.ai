@@ -1,5 +1,6 @@
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
@@ -11,10 +12,9 @@ export class PostRetryService {
     postId: string,
     organizationId: string,
   ): Promise<PostDocument> {
-    const post = await this.postsService.findOne({
-      id: postId,
-      isDeleted: false,
-    });
+    const post = await this.postsService.findOne(
+      scopedWhere(organizationId, { id: postId }),
+    );
 
     if (!post) {
       throw new HttpException(

@@ -97,6 +97,7 @@ describe('VideoGenerationCompletionService', () => {
     expect(bookmarksService.addGeneratedIngredient).toHaveBeenCalledWith(
       'bookmark-1',
       'video-1',
+      'org-1',
     );
   });
 

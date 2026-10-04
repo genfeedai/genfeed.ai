@@ -172,7 +172,7 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
 
     expect(contextBase.update).toHaveBeenCalledWith({
       data: { isDeleted: true },
-      where: { id: 'ctx-1' },
+      where: { id: 'ctx-1', isDeleted: false, organizationId: 'org-1' },
     });
     expect(contextEntry.updateMany).toHaveBeenCalledWith({
       data: { isDeleted: true },
@@ -234,7 +234,7 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
     });
     expect(contextEntry.update).toHaveBeenCalledWith({
       data: { isDeleted: true },
-      where: { id: 'entry-1' },
+      where: { id: 'entry-1', isDeleted: false, organizationId: 'org-1' },
     });
   });
 

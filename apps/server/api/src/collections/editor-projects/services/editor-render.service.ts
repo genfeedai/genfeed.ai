@@ -135,6 +135,7 @@ export class EditorRenderService {
         id,
         renderJob.jobId,
         failure,
+        orgId,
       );
     } catch (error: unknown) {
       if (!(error instanceof ConflictException)) {
@@ -264,7 +265,7 @@ export class EditorRenderService {
         room,
         userId: user.id,
       };
-      await this.editorProjectsService.attachRenderJob(id, renderJob);
+      await this.editorProjectsService.attachRenderJob(id, renderJob, orgId);
 
       const jobResponse = await this.fileQueueService.processVideo({
         id: jobId,
@@ -296,7 +297,12 @@ export class EditorRenderService {
       };
     } catch (error: unknown) {
       const cleanupResults = await Promise.allSettled([
-        this.editorProjectsService.markAsFailed(id, renderJob?.jobId),
+        this.editorProjectsService.markAsFailed(
+          id,
+          renderJob?.jobId,
+          undefined,
+          orgId,
+        ),
         ...(outputIngredientId
           ? [
               this.ingredientsService.patch(outputIngredientId, {

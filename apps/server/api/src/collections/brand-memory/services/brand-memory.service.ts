@@ -86,7 +86,10 @@ export class BrandMemoryService extends BaseService<
       const currentEntries =
         ((existing as Record<string, unknown>).entries as unknown[]) ?? [];
       return this.delegate.update({
-        where: { id: (existing as Record<string, unknown>).id as string },
+        where: scopedWhere(organizationId, {
+          brandId,
+          id: (existing as Record<string, unknown>).id as string,
+        }),
         data: {
           entries: [...currentEntries, newEntry] as unknown as Record<
             string,
@@ -214,7 +217,10 @@ export class BrandMemoryService extends BaseService<
       }
 
       return this.delegate.update({
-        where: { id: (existing as Record<string, unknown>).id as string },
+        where: scopedWhere(organizationId, {
+          brandId,
+          id: (existing as Record<string, unknown>).id as string,
+        }),
         data: {
           metrics: updatedMetrics as unknown as Record<string, unknown>,
         },

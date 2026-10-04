@@ -5,9 +5,10 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
-import { BotStatus } from '@genfeedai/contracts';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const BOT_CREATE_SCALAR_FIELDS = [
@@ -103,7 +104,13 @@ export class BotsService extends BaseService<
     let config: Record<string, unknown> | undefined;
 
     if (hasConfigPatch) {
-      const existing = await this.findOne({ id });
+      // `super.patch` writes by id; resolve the pre-read under the request tenant.
+      const tenantOrganizationId = getTenantContext()?.organizationId;
+      const existing = await this.findOne(
+        tenantOrganizationId
+          ? scopedWhere(tenantOrganizationId, { id })
+          : { id },
+      );
       if (!existing) {
         throw new NotFoundException('Bot', id);
       }
@@ -122,19 +129,5 @@ export class BotsService extends BaseService<
       } as unknown as Partial<UpdateBotDto>,
       populate,
     );
-  }
-
-  async toggleStatus(id: string): Promise<BotDocument> {
-    const bot = await this.findOne({ id });
-
-    if (!bot) {
-      throw new NotFoundException('Bot', id);
-    }
-
-    const current = String(bot.status ?? '').toUpperCase();
-    const nextStatus =
-      current === BotStatus.ACTIVE ? BotStatus.PAUSED : BotStatus.ACTIVE;
-
-    return super.patch(id, { status: nextStatus } as UpdateBotDto);
   }
 }

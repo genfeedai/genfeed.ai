@@ -76,6 +76,29 @@ describe('BotsController identity gates', () => {
       );
     });
 
+    it('lists the caller bots inside the active organization by default', () => {
+      expect(controller.buildFindAllQuery(mockUser, {} as never)).toEqual(
+        expect.objectContaining({
+          where: expect.objectContaining({ organizationId, userId }),
+        }),
+      );
+    });
+
+    it('keeps a brand-only listing inside the active organization', () => {
+      expect(
+        controller.buildFindAllQuery(mockUser, {
+          brandId: 'brand-1',
+        } as never),
+      ).toEqual(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            brandId: 'brand-1',
+            organizationId,
+          }),
+        }),
+      );
+    });
+
     it('fails closed when organization scope has no organization id', () => {
       const emptyUser = {
         organizationId: '',

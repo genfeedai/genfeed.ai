@@ -571,7 +571,16 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     let creditsSettled = false;
 
     try {
-      const children = await loadPostThreadChildren(this.postsService, postId);
+      const postsService = this.postsService;
+      const children = await loadPostThreadChildren(
+        postsService
+          ? {
+              getChildren: (parentId) =>
+                postsService.getChildren(parentId, organizationId),
+            }
+          : undefined,
+        postId,
+      );
       const previousEvaluation = await this.prisma.evaluation.findFirst({
         where: scopedWhere(organizationId, {
           contentId: postId,
