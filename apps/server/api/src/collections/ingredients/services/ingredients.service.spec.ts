@@ -656,6 +656,32 @@ describe('IngredientsService', () => {
       });
     });
 
+    it('applies a tag filter inside the tenant scope and loads each asset’s tags', async () => {
+      const tagFilter = { tags: { some: { id: 'tag-1', isDeleted: false } } };
+
+      await service.listLibraryAssets({
+        category: IngredientCategory.IMAGE,
+        limit: 10,
+        offset: 0,
+        organizationId,
+        tagFilter,
+      });
+
+      const arg = ingredientDelegate.findMany.mock.calls.at(-1)?.[0] as {
+        include: Record<string, unknown>;
+        where: Record<string, unknown>;
+      };
+      expect(arg.where).toMatchObject({
+        ...tagFilter,
+        isDeleted: false,
+        organizationId,
+      });
+      expect(arg.include).toMatchObject({
+        metadata: { select: { result: true } },
+        tags: { where: { isDeleted: false } },
+      });
+    });
+
     it('omits the origin filter when none is given', async () => {
       await service.listLibraryAssets({
         category: IngredientCategory.VIDEO,

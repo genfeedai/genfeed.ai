@@ -12,6 +12,7 @@ import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-c
 import type { LibraryBrowserProps } from '@props/pages/library-browser.props';
 import Container from '@ui/layout/container/Container';
 import FormSearchbar from '@ui/primitives/searchbar';
+import { useLibraryTags } from '@ui/tags/library-tag-picker/use-library-tags';
 import { Library } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
@@ -53,16 +54,21 @@ export default function LibraryBrowser({
     handleClearCategories,
     handleClearCharacters,
     handleClearOrigins,
+    handleClearTags,
     handleOriginsChange,
     handleRefresh,
     handleSearchChange,
     handleSortChange,
+    handleTagMatchChange,
+    handleTagsChange,
     handleUpload,
     handleViewModeChange,
     isRefreshing,
     origins,
     search,
     sort,
+    tagMatch,
+    tags,
     viewMode,
   } = useLibraryBrowser({
     place: defaultPlace,
@@ -77,6 +83,12 @@ export default function LibraryBrowser({
   const characterOptions = useLibraryCharacterOptions({
     brandId,
     isEnabled: scope === PageScope.BRAND,
+  });
+
+  // Tags are listed for one brand (its own plus organization-wide), never
+  // across brands, so the filter can only offer what the list can match.
+  const { tags: tagOptions } = useLibraryTags({
+    brandId: brandId || undefined,
   });
 
   const [headerMeta, setHeaderMeta] = useState<ReactNode>();
@@ -165,12 +177,18 @@ export default function LibraryBrowser({
               onClearCategories={handleClearCategories}
               onClearCharacters={handleClearCharacters}
               onClearOrigins={handleClearOrigins}
+              onClearTags={handleClearTags}
               onOriginsChange={handleOriginsChange}
               origins={origins}
               onSortChange={handleSortChange}
+              onTagMatchChange={handleTagMatchChange}
+              onTagsChange={handleTagsChange}
               onViewModeChange={handleViewModeChange}
               sort={sort}
               sortOptions={[...LIBRARY_SORT_OPTIONS]}
+              tagMatch={tagMatch}
+              tagOptions={tagOptions}
+              tags={tags}
               viewMode={viewMode}
             />
           }

@@ -15,6 +15,7 @@ import {
   IngredientOrigin,
   IngredientStatus,
   LibraryShelf,
+  TagMatchMode,
 } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { RequestMethod } from '@nestjs/common';
@@ -239,6 +240,69 @@ describe('IngredientsController — Library axes', () => {
       });
       // Tenant scope is never traded for the character filter.
       expect(andBranches(aggregate)).toContainEqual({ organizationId });
+    });
+
+    it('filters by any of the tags by default, beside the other axes', async () => {
+      const [first, second] = [testId('tag', 1), testId('tag', 2)];
+
+      await controller.findAll(
+        mockRequest,
+        {
+          categories: [IngredientCategory.IMAGE],
+          origins: [IngredientOrigin.GENERATED],
+          tags: [first, second],
+        } as IngredientsQueryDto,
+        mockUser,
+      );
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(findBranchWith(aggregate, 'tags')).toEqual({
+        tags: { some: { id: { in: [first, second] }, isDeleted: false } },
+      });
+      expect(findBranchWith(aggregate, 'origin')).toEqual({
+        origin: { in: ['GENERATED'] },
+      });
+      expect(findBranchWith(aggregate, 'category')).toEqual({
+        category: { in: ['IMAGE'] },
+      });
+      expect(andBranches(aggregate)).toContainEqual({ organizationId });
+    });
+
+    it('requires every tag in all mode', async () => {
+      const [first, second] = [testId('tag', 1), testId('tag', 2)];
+
+      await controller.findAll(
+        mockRequest,
+        {
+          tagMatch: TagMatchMode.ALL,
+          tags: [first, second],
+        } as IngredientsQueryDto,
+        mockUser,
+      );
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(findBranchWith(aggregate, 'AND')).toEqual({
+        AND: [
+          { tags: { some: { id: first, isDeleted: false } } },
+          { tags: { some: { id: second, isDeleted: false } } },
+        ],
+      });
+    });
+
+    it('adds no tag predicate and still loads each row’s live tags', async () => {
+      await controller.findAll(
+        mockRequest,
+        {} as IngredientsQueryDto,
+        mockUser,
+      );
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(findBranchWith(aggregate, 'tags')).toBeUndefined();
+      expect(aggregate.include).toMatchObject({
+        metadata: true,
+        prompt: true,
+        tags: { where: { isDeleted: false } },
+      });
     });
 
     it('lists no assets when every requested character is unavailable', async () => {
