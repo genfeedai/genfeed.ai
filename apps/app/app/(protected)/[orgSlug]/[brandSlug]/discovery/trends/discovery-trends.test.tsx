@@ -413,7 +413,10 @@ describe('DiscoveryTrends', () => {
         level: 1,
         name: 'Social Media Trends',
       }),
-    ).toHaveClass('sr-only');
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(screen.getByTestId('socials-platform-filter')).toBeInTheDocument();
+    expect(screen.getByTestId('container')).toBeInTheDocument();
     expect(await screen.findByText('AI video')).toBeInTheDocument();
     expect(screen.getByText('Creator ops')).toBeInTheDocument();
     expect(screen.getByText('#AIAgents')).toBeInTheDocument();
