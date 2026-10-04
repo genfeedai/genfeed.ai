@@ -948,9 +948,7 @@ export class ArticlesService
     );
   }
 
-  /**
-   * Update article performance metrics.
-   */
+  /** Update article performance metrics. */
   updatePerformanceMetrics(
     articleId: string,
     organizationId: string,
