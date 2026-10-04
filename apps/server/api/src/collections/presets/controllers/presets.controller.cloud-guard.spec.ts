@@ -9,6 +9,7 @@ import {
   assertTenantScopedQuery,
   TenantIsolationError,
 } from '@libs/prisma/tenant-guard';
+import { ConflictException } from '@nestjs/common';
 import type { Request } from 'express';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -40,6 +41,9 @@ function matches(row: Row, where: Where): boolean {
   return Object.entries(where).every(([field, expected]) => {
     if (field === 'OR') {
       return (expected as Where[]).some((arm) => matches(row, arm));
+    }
+    if (field === 'AND') {
+      return (expected as Where[]).every((arm) => matches(row, arm));
     }
     if (
       field === 'config' &&
@@ -83,6 +87,20 @@ function buildPrisma(rows: Row[]) {
     findMany: vi.fn(async (args: { where: Where }) => {
       guard('findMany', args);
       return rows.filter((row) => matches(row, args.where));
+    }),
+    create: vi.fn(async (args: { data: Partial<Row> }) => {
+      guard('create', args);
+      const row = {
+        id: `cnew${rows.length}`.padEnd(24, '0'),
+        isActive: true,
+        isDeleted: false,
+        key: String(args.data.config?.key),
+        organizationId: null,
+        sortOrder: 0,
+        ...args.data,
+      } as Row;
+      rows.push(row);
+      return row;
     }),
     update: vi.fn(async (args: { data: Partial<Row>; where: Where }) => {
       guard('update', args);
@@ -299,15 +317,135 @@ describe('PresetsController under the CLOUD tenant guard', () => {
     expect(row).not.toHaveProperty('label');
   });
 
-  it('keeps key validation on scoped preset edits', async () => {
+  it('rejects renaming a platform default to an existing platform key', async () => {
     const { controller, inTenant } = setup();
 
     await expect(
       inTenant(() =>
         controller.patch(request, buildUser(true), DEFAULT_ID, {
-          key: 'mine',
+          key: 'retired',
         } as never),
       ),
-    ).rejects.toThrow();
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('renames a platform default for a superadmin who has an organization', async () => {
+    const { controller, inTenant, rows } = setup();
+
+    await inTenant(() =>
+      controller.patch(request, buildUser(true), DEFAULT_ID, {
+        key: 'anime-v2',
+      } as never),
+    );
+
+    expect(rows.find((row) => row.id === DEFAULT_ID)?.config.key).toBe(
+      'anime-v2',
+    );
+  });
+
+  it('allows a platform default to share a key with an organization preset', async () => {
+    const { controller, inTenant, rows } = setup();
+
+    await inTenant(() =>
+      controller.patch(request, buildUser(true), DEFAULT_ID, {
+        key: 'mine',
+      } as never),
+    );
+
+    expect(rows.find((row) => row.id === DEFAULT_ID)?.config.key).toBe('mine');
+  });
+
+  it('rejects an organization preset key already used in that organization', async () => {
+    const { controller, inTenant } = setup();
+
+    await expect(
+      inTenant(() =>
+        controller.create(request, buildUser(true), {
+          key: 'mine',
+          organizationId: ORG,
+        } as never),
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('lets an organization preset reuse a platform default key', async () => {
+    const { controller, inTenant, rows } = setup();
+
+    await inTenant(() =>
+      controller.create(request, buildUser(true), {
+        key: 'anime',
+        organizationId: ORG,
+      } as never),
+    );
+
+    expect(
+      rows
+        .filter((row) => row.config.key === 'anime')
+        .map((r) => r.organizationId),
+    ).toEqual([null, ORG]);
+  });
+
+  it('creates a platform default and rejects a duplicate platform key', async () => {
+    const { controller, inTenant } = setup();
+
+    await inTenant(() =>
+      controller.create(request, buildUser(true), { key: 'fresh' } as never),
+    );
+    await expect(
+      inTenant(() =>
+        controller.create(request, buildUser(true), { key: 'fresh' } as never),
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      inTenant(() =>
+        controller.create(request, buildUser(true), { key: 'anime' } as never),
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('ignores a key that only another organization owns', async () => {
+    const { controller, inTenant } = setup();
+
+    await inTenant(() =>
+      controller.create(request, buildUser(true), { key: 'theirs' } as never),
+    );
+  });
+
+  describe('findByKey', () => {
+    it('prefers the caller organization over the platform default', async () => {
+      const { inTenant, rows, service } = setup();
+      rows.push({
+        config: { key: 'anime' },
+        id: 'cmine0000000000000000002',
+        isActive: true,
+        isDeleted: false,
+        key: 'anime',
+        organizationId: ORG,
+        sortOrder: 0,
+      });
+
+      const preset = await inTenant(() => service.findByKey('anime', ORG));
+
+      expect(preset.id).toBe('cmine0000000000000000002');
+    });
+
+    it('falls back to the platform default', async () => {
+      const { inTenant, service } = setup();
+
+      const preset = await inTenant(() => service.findByKey('anime', ORG));
+
+      expect(preset.id).toBe(DEFAULT_ID);
+    });
+
+    it('never resolves a key owned by another organization', async () => {
+      const { inTenant, service } = setup();
+
+      await expect(
+        inTenant(() => service.findByKey('theirs', ORG)),
+      ).rejects.toThrow();
+      await expect(
+        inTenant(() => service.findByKey('theirs')),
+      ).rejects.toThrow();
+    });
   });
 });

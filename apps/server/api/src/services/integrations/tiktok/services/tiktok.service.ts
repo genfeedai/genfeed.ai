@@ -532,7 +532,7 @@ export class TiktokService {
           recordTrendProviderOutcome('native_failed', 'native_failed');
           this.loggerService.warn(
             `${url} - Could not fetch personalized trends`,
-            error,
+            { error },
           );
 
           // If auth error, mark credential as disconnected
