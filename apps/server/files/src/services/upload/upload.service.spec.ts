@@ -5,6 +5,10 @@ import { SecurityUtil } from '@files/helpers/utils/security/security.util';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { FileRuntimeSettingsService } from '@files/services/runtime-settings/file-runtime-settings.service';
 import { UploadService } from '@files/services/upload/upload.service';
+import type {
+  FFprobeData,
+  FFprobeStream,
+} from '@files/shared/interfaces/ffmpeg.interfaces';
 import {
   UNATTRIBUTED_FORWARDED_HEADER,
   UNATTRIBUTED_FORWARDED_VALUE,
@@ -74,6 +78,36 @@ type MockSharpInstance = {
   toBuffer: Mock;
   webp: Mock;
 };
+
+function probeStream(
+  codecType: FFprobeStream['codec_type'],
+  codecName: string,
+  extra: Partial<FFprobeStream> = {},
+): FFprobeStream {
+  return {
+    codec_long_name: codecName,
+    codec_name: codecName,
+    codec_type: codecType,
+    index: 0,
+    ...extra,
+  };
+}
+
+function probeData(
+  streams: FFprobeStream[],
+  format: Partial<FFprobeData['format']> = {},
+): FFprobeData {
+  return {
+    format: {
+      bit_rate: '128000',
+      duration: '1',
+      filename: 'probe',
+      size: '1024',
+      ...format,
+    },
+    streams,
+  };
+}
 
 function remoteResponse(
   data: string,
@@ -338,10 +372,12 @@ describe('UploadService', () => {
     });
 
     it('probes audio files for duration, codec and container', async () => {
-      mockFfmpegService.getVideoMetadata.mockResolvedValue({
-        format: { duration: 12.5, format_name: 'mp3' },
-        streams: [{ codec_name: 'MP3', codec_type: 'audio' }],
-      });
+      mockFfmpegService.getVideoMetadata.mockResolvedValue(
+        probeData([probeStream('audio', 'MP3')], {
+          duration: '12.5',
+          format_name: 'mp3',
+        }),
+      );
       const audioPath = path.join(FILES_TMP_ROOT, 'fixtures', 'voice.mp3');
 
       const result = await service.uploadToS3('test-key', 'audios', {
@@ -365,10 +401,12 @@ describe('UploadService', () => {
       // for allowlisted extensions.
       const probeWithRealExtensionGuard = (probedPath: string) => {
         SecurityUtil.validateFileExtension(probedPath);
-        return Promise.resolve({
-          format: { format_name: 'webm' } as never,
-          streams: [{ codec_name: 'opus', codec_type: 'audio' }] as never,
-        });
+        return Promise.resolve(
+          probeData([probeStream('audio', 'opus')], {
+            duration: '',
+            format_name: 'webm',
+          }),
+        );
       };
 
       it.each([
@@ -381,7 +419,7 @@ describe('UploadService', () => {
         'probes a downloaded %s with an allowlisted extension',
         async (contentType, extension) => {
           mockFfmpegService.getVideoMetadata.mockImplementation(
-            probeWithRealExtensionGuard as never,
+            probeWithRealExtensionGuard,
           );
           safeFetchMock.mockResolvedValue(
             remoteResponse('audio-content', { 'content-type': contentType }),
@@ -405,7 +443,7 @@ describe('UploadService', () => {
 
       it('probes a valid audio buffer with an allowlisted extension', async () => {
         mockFfmpegService.getVideoMetadata.mockImplementation(
-          probeWithRealExtensionGuard as never,
+          probeWithRealExtensionGuard,
         );
 
         const result = await service.uploadToS3('test-key', 'audios', {
@@ -419,10 +457,11 @@ describe('UploadService', () => {
     });
 
     it('rejects a file declared as audio that has no audio stream', async () => {
-      mockFfmpegService.getVideoMetadata.mockResolvedValue({
-        format: { duration: 3 },
-        streams: [{ codec_type: 'video', height: 10, width: 10 }],
-      });
+      mockFfmpegService.getVideoMetadata.mockResolvedValue(
+        probeData([probeStream('video', 'h264', { height: 10, width: 10 })], {
+          duration: '3',
+        }),
+      );
 
       await expect(
         service.uploadToS3('test-key', 'audios', {
