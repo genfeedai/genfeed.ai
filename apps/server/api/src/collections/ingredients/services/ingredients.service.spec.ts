@@ -10,6 +10,11 @@ import {
 } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  crossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 import { Test, TestingModule } from '@nestjs/testing';
 
 // Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.Ingredient (category/
@@ -352,6 +357,134 @@ describe('IngredientsService', () => {
           data: expect.objectContaining({ status: 'GENERATED' }),
         }),
       );
+    });
+  });
+
+  describe('request tenant scope (CLOUD tenant guard)', () => {
+    const guard =
+      (operation: string) =>
+      (args: unknown): void =>
+        assertTenantScopedQuery({
+          args,
+          isCloud: true,
+          model: 'Ingredient',
+          operation,
+          tenantModelNames: new Set(['Ingredient']),
+        });
+
+    beforeEach(() => {
+      ingredientDelegate.findFirst.mockImplementation(async (args) => {
+        guard('findFirst')(args);
+        return mockIngredient;
+      });
+      ingredientDelegate.findMany.mockImplementation(async (args) => {
+        guard('findMany')(args);
+        return [mockIngredient];
+      });
+      ingredientDelegate.update.mockImplementation(async (args) => {
+        guard('update')(args);
+        return mockIngredient;
+      });
+      ingredientDelegate.updateMany.mockImplementation(async (args) => {
+        guard('updateMany')(args);
+        return { count: 1 };
+      });
+    });
+
+    it('patches an ingredient under the request organization and re-reads it there', async () => {
+      await runWithTenantContext({ organizationId }, () =>
+        service.patch('ing-1', { status: IngredientStatus.PROCESSING }),
+      );
+
+      const lookups = ingredientDelegate.findFirst.mock.calls.map(
+        ([args]) => args.where,
+      );
+      expect(lookups).toHaveLength(2);
+      for (const where of lookups) {
+        expect(where).toMatchObject({ id: 'ing-1', organizationId });
+      }
+      expect(ingredientDelegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'ing-1', isDeleted: false, organizationId },
+        }),
+      );
+    });
+
+    it('does not reach a foreign organization row through patch', async () => {
+      ingredientDelegate.findFirst.mockImplementation(async (args) => {
+        guard('findFirst')(args);
+        return args.where.organizationId === organizationId
+          ? null
+          : mockIngredient;
+      });
+
+      await expect(
+        runWithTenantContext({ organizationId }, () =>
+          service.patch('ing-1', { status: IngredientStatus.PROCESSING }),
+        ),
+      ).rejects.toThrow('Ingredient');
+      expect(ingredientDelegate.update).not.toHaveBeenCalled();
+    });
+
+    it('keeps the id-keyed shape for workers that carry no tenant context', async () => {
+      ingredientDelegate.findFirst.mockResolvedValue(mockIngredient);
+
+      await service.patch('ing-1', { status: IngredientStatus.PROCESSING });
+
+      for (const [args] of ingredientDelegate.findFirst.mock.calls) {
+        expect(args.where).not.toHaveProperty('organizationId');
+      }
+    });
+
+    it('soft-deletes under the request organization', async () => {
+      await runWithTenantContext({ organizationId }, () =>
+        service.remove('ing-1'),
+      );
+
+      expect(ingredientDelegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { isDeleted: true },
+          where: { id: 'ing-1', isDeleted: false, organizationId },
+        }),
+      );
+    });
+
+    it('soft-deletes by id for workers and explicit cross-organization callers', async () => {
+      await service.remove('ing-1');
+      await runWithTenantContext({ organizationId }, () =>
+        crossOrgUnsafe(async () => await service.remove('ing-2')),
+      );
+
+      expect(ingredientDelegate.update).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ where: { id: 'ing-1' } }),
+      );
+      expect(ingredientDelegate.update).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ where: { id: 'ing-2' } }),
+      );
+    });
+
+    it('never writes platform rows from a request, only the tenant-owned ones', async () => {
+      ingredientDelegate.findMany.mockResolvedValue([
+        { ...mockIngredient, organizationId: null },
+        mockIngredient,
+      ]);
+
+      const result = await runWithTenantContext({ organizationId }, () =>
+        service.patchAll(
+          { category: IngredientCategory.IMAGE, organizationId },
+          { status: IngredientStatus.PROCESSING },
+        ),
+      );
+
+      expect(ingredientDelegate.updateMany).toHaveBeenCalledTimes(1);
+      expect(ingredientDelegate.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ organizationId }),
+        }),
+      );
+      expect(result.modifiedCount).toBe(1);
     });
   });
 

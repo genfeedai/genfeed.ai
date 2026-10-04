@@ -953,6 +953,7 @@ export class ArticlesService
    */
   updatePerformanceMetrics(
     articleId: string,
+    organizationId: string,
     metrics: {
       views?: number;
       shares?: number;
@@ -963,6 +964,7 @@ export class ArticlesService
   ): Promise<void> {
     return this.articleInsightsService.updatePerformanceMetrics(
       articleId,
+      organizationId,
       metrics,
     );
   }

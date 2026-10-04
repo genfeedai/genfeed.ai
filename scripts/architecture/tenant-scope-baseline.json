@@ -81,14 +81,6 @@
       "reason": "missing-is-deleted"
     },
     {
-      "delegate": "article",
-      "file": "apps/server/api/src/collections/articles/services/article-analytics.service.ts",
-      "fingerprint": "0fa8113e7933d0011af0",
-      "method": "findFirst",
-      "model": "Article",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "articleAnalytics",
       "file": "apps/server/api/src/collections/articles/services/article-analytics.service.ts",
       "fingerprint": "3e470218e06cfc0bba2f",
@@ -567,14 +559,6 @@
       "method": "count",
       "model": "Ingredient",
       "reason": "unresolved-where"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "44becbc64d22b9b84e94",
-      "method": "findMany",
-      "model": "Ingredient",
-      "reason": "missing-organization-id"
     },
     {
       "delegate": "ingredient",

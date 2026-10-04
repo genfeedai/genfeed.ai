@@ -4,10 +4,7 @@ import type { AgentGoalMetric } from '@api/collections/agent-goals/schemas/agent
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { brandScope, scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import {
-  findOrThrow,
-  findUniqueOrThrow,
-} from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -149,9 +146,9 @@ export class AgentGoalsService {
       where: scopedWhere(organizationId, { id: goalId }),
     });
 
-    const updatedGoal = await findUniqueOrThrow(
+    const updatedGoal = await findOrThrow(
       this.prisma.agentGoal,
-      { where: { id: goalId } },
+      { where: scopedWhere(organizationId, { id: goalId }) },
       'Agent goal not found after update',
     );
 
