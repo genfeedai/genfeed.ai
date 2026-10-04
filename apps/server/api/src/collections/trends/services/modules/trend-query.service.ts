@@ -85,6 +85,7 @@ export class TrendQueryService {
    */
   async countActiveGlobalTrends(): Promise<number> {
     const now = new Date();
+    // tenant-scope-ignore: platform trends: organizationId null with the tenant proof from withPlatformTenantArm; isDeleted is false
     const activeGlobalTrends = await this.prisma.trend.findMany({
       select: { data: true },
       where: withPlatformTenantArm({
@@ -202,6 +203,7 @@ export class TrendQueryService {
     options: { activeOnly: boolean },
   ): Promise<TrendEntity[]> {
     const now = new Date();
+    // tenant-scope-ignore: where names the requested organization (or the platform null with the tenant proof from withPlatformTenantArm); isDeleted is false
     const docs = await this.prisma.trend.findMany({
       orderBy: { createdAt: 'desc' },
       take: 200,

@@ -293,6 +293,7 @@ export class TrendFilteringService {
           take: limit * 5,
           where: { ...where, organizationId },
         }),
+        // tenant-scope-ignore: platform trends: organizationId null with the tenant proof from withPlatformTenantArm; isDeleted is false
         this.prisma.trend.findMany({
           orderBy: { createdAt: 'desc' },
           take: limit * 5,

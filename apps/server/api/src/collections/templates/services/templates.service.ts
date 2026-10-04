@@ -527,6 +527,7 @@ export class TemplatesService {
     }
 
     // Fall back to global prompt (returns null if not found)
+    // tenant-scope-ignore: global prompt fallback: organizationId null with the tenant proof from withPlatformTenantArm; isDeleted is false
     const globalPrompt = await this.prisma.template.findFirst({
       include: { metadata: true },
       where: withPlatformTenantArm({

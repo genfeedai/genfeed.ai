@@ -150,11 +150,13 @@ export class TrendRefreshHealthService {
       sourceType: TREND_REFRESH_EVENT_TYPE,
     });
     const [row, successful] = await Promise.all([
+      // tenant-scope-ignore: where names the organization (or the platform null with the tenant proof from withPlatformTenantArm); isDeleted is false
       this.prisma.notificationEvent.findFirst({
         orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
         select: { payload: true },
         where,
       }),
+      // tenant-scope-ignore: same where as the lookup above
       this.prisma.notificationEvent.findFirst({
         orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
         select: { payload: true },
