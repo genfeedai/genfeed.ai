@@ -1038,24 +1038,36 @@ async function sourceFixture() {
   const delegates = {
     organization: {
       findFirst: vi.fn(async () => structuredClone(organization)),
+      findMany: vi.fn(async () => [structuredClone(organization)]),
     },
-    brand: { findFirst: vi.fn(async () => structuredClone(brand)) },
-    credential: { findFirst: vi.fn(async () => structuredClone(credential)) },
+    brand: {
+      findFirst: vi.fn(async () => structuredClone(brand)),
+      findMany: vi.fn(async () => [structuredClone(brand)]),
+    },
+    credential: {
+      findFirst: vi.fn(async () => structuredClone(credential)),
+      findMany: vi.fn(async () => [structuredClone(credential)]),
+    },
     post: {
       findFirst: vi.fn(async () => structuredClone(item.post)),
+      findMany: vi.fn(async () => [structuredClone(item.post)]),
       update: blocked,
     },
     publishApproval: {
       findFirst: vi.fn(async () => structuredClone(item.approval)),
+      findMany: vi.fn(async () => [structuredClone(item.approval)]),
     },
     contentVersionPin: {
       findFirst: vi.fn(async () => structuredClone(item.pin)),
+      findMany: vi.fn(async () => [structuredClone(item.pin)]),
     },
     postPublishFinalization: {
       findFirst: vi.fn(async () => structuredClone(item.finalization)),
+      findMany: vi.fn(async () => [structuredClone(item.finalization)]),
     },
     contentLearningCheckpoint: {
       findFirst: vi.fn(async () => structuredClone(item.checkpoint)),
+      findMany: vi.fn(async () => [structuredClone(item.checkpoint)]),
     },
     contentLearningDependency: {
       findMany: vi.fn(
@@ -1104,10 +1116,12 @@ describe('C1 current pinned publication and parent consumers', () => {
     expect(
       await f.service.valid('checkpoint', f.checkpoint.id, f.tx, 'org'),
     ).toBe(true);
-    expect(f.tx.contentVersionPin.findFirst).toHaveBeenCalledTimes(1);
-    expect(f.tx.contentVersionPin.findFirst).toHaveBeenCalledWith({
-      where: { id: edge.sourceId, organizationId: 'org' },
-    });
+    expect(f.tx.contentVersionPin.findMany).toHaveBeenCalledTimes(1);
+    expect(f.tx.contentVersionPin.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: { in: [edge.sourceId] }, organizationId: 'org' },
+      }),
+    );
     expect(f.blocked).not.toHaveBeenCalled();
   });
 
@@ -1126,13 +1140,13 @@ describe('C1 current pinned publication and parent consumers', () => {
       idempotencyKey: 'pin-recheck-fixture',
       provenance: {},
     };
-    vi.mocked(f.tx.contentVersionPin.findFirst)
-      .mockResolvedValueOnce(pin)
-      .mockResolvedValueOnce({ ...pin, contentDigest: 'changed-version' });
+    vi.mocked(f.tx.contentVersionPin.findMany)
+      .mockResolvedValueOnce([pin])
+      .mockResolvedValueOnce([{ ...pin, contentDigest: 'changed-version' }]);
     expect(
       await f.service.valid('checkpoint', f.checkpoint.id, f.tx, 'org'),
     ).toBe(false);
-    expect(f.tx.contentVersionPin.findFirst).toHaveBeenCalledTimes(2);
+    expect(f.tx.contentVersionPin.findMany).toHaveBeenCalledTimes(2);
     expect(f.blocked).not.toHaveBeenCalled();
   });
 

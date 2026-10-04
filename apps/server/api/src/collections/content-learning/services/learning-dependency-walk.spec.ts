@@ -61,19 +61,17 @@ function fixture(edges: ContentLearningDependency[]) {
         .sort((a, b) => a.id.localeCompare(b.id));
     },
   );
-  const checkpointFindFirst = vi.fn(
-    async (args: { where: { id: string } }) => ({
-      id: args.where.id,
-      revision: 1,
-    }),
+  const checkpointFindMany = vi.fn(
+    async (args: { where: { id: { in: string[] } } }) =>
+      args.where.id.in.map((id) => ({ id, revision: 1 })),
   );
   const tx = {
     contentLearningDependency: { findMany },
-    contentLearningCheckpoint: { findFirst: checkpointFindFirst },
+    contentLearningCheckpoint: { findMany: checkpointFindMany },
   } as unknown as Prisma.TransactionClient;
   // The service's own client must never be used when a tx is supplied.
   const service = new LearningDependencyService({} as PrismaService);
-  return { service, tx, findMany, checkpointFindFirst };
+  return { service, tx, findMany, checkpointFindMany };
 }
 
 describe('LearningDependencyService level-batched walk', () => {
@@ -92,7 +90,9 @@ describe('LearningDependencyService level-batched walk', () => {
     const f = fixture(dag());
     expect(await f.service.valid('checkpoint', 'c0', f.tx, 'org')).toBe(true);
     expect(f.findMany).toHaveBeenCalledTimes(4);
-    expect(f.checkpointFindFirst).toHaveBeenCalledTimes(5);
+    // levels c0 | c1,c2 | c3,c4 each pin once, plus one revalidation read for
+    // the shared c3 re-referenced by c2.
+    expect(f.checkpointFindMany).toHaveBeenCalledTimes(4);
   });
 
   it('keeps edge queries proportional to depth for a wide graph', async () => {
@@ -105,6 +105,41 @@ describe('LearningDependencyService level-batched walk', () => {
     const f = fixture(edges);
     expect(await f.service.valid('checkpoint', 'root', f.tx, 'org')).toBe(true);
     expect(f.findMany).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps total queries (edges plus pins) independent of graph width', async () => {
+    const total = async (width: number) => {
+      const f = fixture([
+        ...Array.from({ length: width }, (_, index) =>
+          checkpointEdge('root', `leaf-${index}`),
+        ),
+        ...Array.from({ length: width }, (_, index) =>
+          configEdge(`leaf-${index}`),
+        ),
+      ]);
+      expect(await f.service.valid('checkpoint', 'root', f.tx, 'org')).toBe(
+        true,
+      );
+      return (
+        f.findMany.mock.calls.length + f.checkpointFindMany.mock.calls.length
+      );
+    };
+    expect(await total(5)).toBe(await total(300));
+  });
+
+  it('re-reads a repeated dependency and rejects a version that changed', async () => {
+    const f = fixture(dag());
+    // c3 is read at level 3 then re-read for the c2 edge; the 2nd read changes.
+    let c3Reads = 0;
+    f.checkpointFindMany.mockImplementation(
+      async (args: { where: { id: { in: string[] } } }) =>
+        args.where.id.in.map((id) => {
+          if (id === 'c3') c3Reads += 1;
+          return { id, revision: id === 'c3' && c3Reads > 1 ? 2 : 1 };
+        }),
+    );
+    expect(await f.service.valid('checkpoint', 'c0', f.tx, 'org')).toBe(false);
+    expect(c3Reads).toBe(2);
   });
 
   it('rejects a dependency cycle', async () => {

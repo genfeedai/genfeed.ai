@@ -1,3 +1,7 @@
+import {
+  batches,
+  LearningDatasetGraph,
+} from '@api/collections/content-learning/services/learning-dataset-graph.service';
 import { resolveLearningPublicationSourceV1 } from '@api/collections/content-learning/services/learning-publication-source.helper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -750,8 +754,10 @@ export class LearningDependencyService {
   }
   /**
    * Breadth-first, level-batched dependency validation: one edge query per
-   * level (not per node), node pins resolved once per node, cycles found on the
-   * in-memory graph. Every query uses the caller's transaction client.
+   * level and one pin query per (kind, organization) group per level, all run
+   * sequentially on the caller's transaction client. A node reached again by a
+   * later edge has its version re-read (batched, fresh) and compared to that
+   * edge. Cycles are found on the in-memory graph.
    */
   private async walk(
     root: LearningWalkNode,
@@ -763,20 +769,32 @@ export class LearningDependencyService {
     const sources = new Map<string, string[]>();
     const seen = new Set<string>([rootKey]);
     let frontier: LearningWalkNode[] = [root];
-    while (frontier.length) {
-      const versions = await this.pinnedLevel(frontier, tx);
-      for (const [index, node] of frontier.entries()) {
+    let revisits: { node: LearningWalkNode; want: string }[] = [];
+    while (frontier.length || revisits.length) {
+      const versions = await this.pinsFor(frontier, tx);
+      for (const node of frontier) {
         const key = learningWalkKey(node);
-        const version = versions[index];
+        const version = versions.get(key);
         if (!version) return false;
         for (const want of expected.get(key) ?? [])
           if (want !== version) return false;
         pins.set(key, version);
       }
-      const edges = await tx.contentLearningDependency.findMany({
-        where: { isDeleted: false, OR: learningWalkEdgeFilter(frontier) },
-        orderBy: { id: 'asc' },
-      });
+      if (revisits.length) {
+        const again = await this.pinsFor(
+          revisits.map((revisit) => revisit.node),
+          tx,
+        );
+        for (const { node, want } of revisits)
+          if (again.get(learningWalkKey(node)) !== want) return false;
+      }
+      revisits = [];
+      const edges = frontier.length
+        ? await tx.contentLearningDependency.findMany({
+            where: { isDeleted: false, OR: learningWalkEdgeFilter(frontier) },
+            orderBy: { id: 'asc' },
+          })
+        : [];
       const edgesByNode = new Map<string, typeof edges>();
       for (const edge of edges) {
         const key = JSON.stringify([
@@ -787,6 +805,7 @@ export class LearningDependencyService {
         edgesByNode.set(key, [...(edgesByNode.get(key) ?? []), edge]);
       }
       const next: LearningWalkNode[] = [];
+      const revisited = new Set<string>();
       for (const node of frontier) {
         const key = learningWalkKey(node);
         const nodeEdges = edgesByNode.get(key) ?? [];
@@ -809,20 +828,26 @@ export class LearningDependencyService {
           };
           const childKey = learningWalkKey(child);
           const pinned = pins.get(childKey);
-          if (pinned !== undefined) {
-            if (pinned !== edge.sourceVersion) return false;
-          } else {
+          if (pinned !== undefined && pinned !== edge.sourceVersion)
+            return false;
+          if (pinned === undefined) {
             const wanted = expected.get(childKey) ?? new Set<string>();
             wanted.add(edge.sourceVersion);
             expected.set(childKey, wanted);
-            if (!seen.has(childKey)) {
-              if (seen.size >= LEARNING_DEPENDENCY_WALK_MAX_NODES)
-                throw new ConflictException(
-                  `Learning dependency graph exceeds ${LEARNING_DEPENDENCY_WALK_MAX_NODES} nodes`,
-                );
-              seen.add(childKey);
-              next.push(child);
+          }
+          if (seen.has(childKey)) {
+            const revisitKey = JSON.stringify([childKey, edge.sourceVersion]);
+            if (!revisited.has(revisitKey)) {
+              revisited.add(revisitKey);
+              revisits.push({ node: child, want: edge.sourceVersion });
             }
+          } else {
+            if (seen.size >= LEARNING_DEPENDENCY_WALK_MAX_NODES)
+              throw new ConflictException(
+                `Learning dependency graph exceeds ${LEARNING_DEPENDENCY_WALK_MAX_NODES} nodes`,
+              );
+            seen.add(childKey);
+            next.push(child);
           }
           children.push(childKey);
         }
@@ -832,22 +857,45 @@ export class LearningDependencyService {
     }
     return !learningWalkHasCycle(rootKey, sources);
   }
-  private async pinnedLevel(
+  /** Current pins for nodes, one batched read per (kind, organization) group. */
+  private async pinsFor(
     nodes: readonly LearningWalkNode[],
     tx: Prisma.TransactionClient,
-  ): Promise<(string | null)[]> {
-    const versions: (string | null)[] = [];
-    for (let index = 0; index < nodes.length; index += 50)
-      versions.push(
-        ...(await Promise.all(
-          nodes
-            .slice(index, index + 50)
-            .map((node) =>
-              this.pinned(node.kind, node.id, node.organizationId, tx),
-            ),
-        )),
-      );
-    return versions;
+  ): Promise<Map<string, string>> {
+    const graph = new LearningDatasetGraph(tx);
+    const groups = new Map<
+      string,
+      {
+        kind: LearningDependencyKindV1;
+        organizationId: string | null;
+        ids: Set<string>;
+      }
+    >();
+    for (const node of nodes) {
+      const key = JSON.stringify([node.kind, node.organizationId]);
+      const group = groups.get(key) ?? {
+        kind: node.kind,
+        organizationId: node.organizationId,
+        ids: new Set<string>(),
+      };
+      group.ids.add(node.id);
+      groups.set(key, group);
+    }
+    const result = new Map<string, string>();
+    for (const group of groups.values())
+      for (const part of batches([...group.ids])) {
+        const pins = await graph.pins(group.kind, part, group.organizationId);
+        for (const [id, pin] of pins)
+          result.set(
+            learningWalkKey({
+              kind: group.kind,
+              id,
+              organizationId: group.organizationId,
+            }),
+            pin,
+          );
+      }
+    return result;
   }
   async link(
     tx: Prisma.TransactionClient,
