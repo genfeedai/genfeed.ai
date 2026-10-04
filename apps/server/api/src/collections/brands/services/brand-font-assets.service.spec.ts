@@ -205,9 +205,9 @@ describe('Dedicated immutable brand font service', () => {
     ).rejects.toThrow('font_asset_invalid');
     expect(storage.upload).toHaveBeenCalledOnce();
     h.row = { ...result.asset, displayName: '😀'.repeat(129) };
-    await expect(h.service.list(actor, { limit: 20 })).rejects.toThrow(
-      'font_asset_unavailable',
-    );
+    await expect(h.service.list(actor, { limit: 20 })).resolves.toMatchObject({
+      docs: [],
+    });
   });
   it('authorizes before hashing/storage and rechecks live role after storage', async () => {
     const h = await harness();
