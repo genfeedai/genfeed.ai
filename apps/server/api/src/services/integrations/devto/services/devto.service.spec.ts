@@ -174,6 +174,15 @@ describe('DevtoService', () => {
       );
     });
 
+    it('should load the article scoped to the organization', async () => {
+      await service.publishArticle('article-1', 'org-1', 'brand-1');
+
+      expect(articlesFindOneMock).toHaveBeenCalledWith({
+        id: 'article-1',
+        organizationId: 'org-1',
+      });
+    });
+
     it('should create a draft when published is false', async () => {
       await service.publishArticle('article-1', 'org-1', 'brand-1', {
         published: false,

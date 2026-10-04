@@ -1,5 +1,10 @@
 import type { PrismaAdOptimizationRecommendation } from '@api/collections/ad-optimization-recommendations/schemas/ad-optimization-recommendation.schema';
 import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import {
+  assertTenantScopedQuery,
+  TenantIsolationError,
+} from '@libs/prisma/tenant-guard';
 import { ConflictException } from '@nestjs/common';
 import { AdOptimizationRecommendationsService } from './ad-optimization-recommendations.service';
 
@@ -336,6 +341,70 @@ describe('AdOptimizationRecommendationsService', () => {
       expect(logger.log).toHaveBeenCalledWith(
         expect.stringContaining('expired 2 stale recommendations'),
       );
+    });
+
+    it('sweeps every organization from inside a request tenant context', async () => {
+      const rows = [
+        makeRow(
+          { expiresAt: '2020-01-01T00:00:00.000Z', status: 'pending' },
+          { id: 'rec-other-org', organizationId: 'org-2' },
+        ),
+      ];
+      const guard = (operation: string, args: unknown) =>
+        assertTenantScopedQuery({
+          args,
+          isCloud: true,
+          model: 'AdOptimizationRecommendation',
+          operation,
+          tenantModelNames: new Set(['AdOptimizationRecommendation']),
+        });
+      findMany.mockImplementation(async (args: unknown) => {
+        guard('findMany', args);
+        return rows;
+      });
+      findFirst.mockImplementation(async (args: unknown) => {
+        guard('findFirst', args);
+        return rows[0];
+      });
+      update.mockImplementation(async (args: unknown) => {
+        guard('update', args);
+        return makeRow({ status: 'expired' }, { organizationId: 'org-2' });
+      });
+
+      await expect(
+        runWithTenantContext({ organizationId: 'org-1' }, () =>
+          service.expireStale(),
+        ),
+      ).resolves.toBe(1);
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: 'rec-other-org',
+            isDeleted: false,
+            organizationId: 'org-2',
+          },
+        }),
+      );
+    });
+
+    it('still pins ordinary status transitions to the request tenant', async () => {
+      update.mockImplementation(async (args: unknown) => {
+        assertTenantScopedQuery({
+          args,
+          isCloud: true,
+          model: 'AdOptimizationRecommendation',
+          operation: 'update',
+          tenantModelNames: new Set(['AdOptimizationRecommendation']),
+        });
+        return makeRow({ status: 'approved' });
+      });
+      findFirst.mockResolvedValue(makeRow({ status: 'pending' }));
+
+      await expect(
+        runWithTenantContext({ organizationId: 'org-2' }, () =>
+          service.approve('rec-1', 'org-1'),
+        ),
+      ).rejects.toBeInstanceOf(TenantIsolationError);
     });
 
     it('returns zero without logging when nothing is stale', async () => {

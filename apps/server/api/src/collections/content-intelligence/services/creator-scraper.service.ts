@@ -139,9 +139,13 @@ export class CreatorScraperService {
     private readonly logger: LoggerService,
   ) {}
 
-  async scrapeCreator(creatorId: string): Promise<ScrapeResult | null> {
+  async scrapeCreator(
+    creatorId: string,
+    organizationId: string,
+  ): Promise<ScrapeResult | null> {
     const creator = await this.contentIntelligenceService.findOne({
       id: creatorId,
+      organizationId,
     });
 
     if (!creator) {
@@ -167,6 +171,7 @@ export class CreatorScraperService {
       // Update status to scraping
       await this.contentIntelligenceService.updateStatus(
         creatorId,
+        organizationId,
         CreatorAnalysisStatus.SCRAPING,
       );
 
@@ -190,17 +195,22 @@ export class CreatorScraperService {
       }
 
       // Update creator profile with scraped data
-      await this.contentIntelligenceService.updateCreatorProfile(creatorId, {
-        avatarUrl: result.profile.avatarUrl,
-        bio: result.profile.bio,
-        displayName: result.profile.displayName,
-        followerCount: result.profile.followerCount,
-        followingCount: result.profile.followingCount,
-      });
+      await this.contentIntelligenceService.updateCreatorProfile(
+        creatorId,
+        organizationId,
+        {
+          avatarUrl: result.profile.avatarUrl,
+          bio: result.profile.bio,
+          displayName: result.profile.displayName,
+          followerCount: result.profile.followerCount,
+          followingCount: result.profile.followingCount,
+        },
+      );
 
       // Update status to analyzing
       await this.contentIntelligenceService.updateStatus(
         creatorId,
+        organizationId,
         CreatorAnalysisStatus.ANALYZING,
       );
 
@@ -217,6 +227,7 @@ export class CreatorScraperService {
 
       await this.contentIntelligenceService.updateStatus(
         creatorId,
+        organizationId,
         CreatorAnalysisStatus.FAILED,
         errorMessage,
       );

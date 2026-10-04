@@ -89,12 +89,16 @@ export class PatternAnalyzerService {
     this.defaultModel = LLM_DEFAULTS.background;
   }
 
-  async analyzeCreator(creatorId: string): Promise<{
+  async analyzeCreator(
+    creatorId: string,
+    organizationId: string,
+  ): Promise<{
     patternsExtracted: number;
     patterns: CreatePatternDto[];
   }> {
     const creator = await this.contentIntelligenceService.findOne({
       id: creatorId,
+      organizationId,
     });
 
     if (!creator) {
@@ -103,12 +107,15 @@ export class PatternAnalyzerService {
 
     try {
       // Scrape the creator's content
-      const scrapeResult =
-        await this.creatorScraperService.scrapeCreator(creatorId);
+      const scrapeResult = await this.creatorScraperService.scrapeCreator(
+        creatorId,
+        organizationId,
+      );
 
       if (!scrapeResult || scrapeResult.posts.length === 0) {
         await this.contentIntelligenceService.updateStatus(
           creatorId,
+          organizationId,
           CreatorAnalysisStatus.FAILED,
           'No posts found for analysis',
         );
@@ -135,6 +142,7 @@ export class PatternAnalyzerService {
       // Update creator with metrics and status
       await this.contentIntelligenceService.updateMetrics(
         creatorId,
+        organizationId,
         metrics,
         scrapeResult.posts.length,
         storedPatterns.length,
@@ -142,6 +150,7 @@ export class PatternAnalyzerService {
 
       await this.contentIntelligenceService.updateStatus(
         creatorId,
+        organizationId,
         CreatorAnalysisStatus.COMPLETED,
       );
 
@@ -159,6 +168,7 @@ export class PatternAnalyzerService {
 
       await this.contentIntelligenceService.updateStatus(
         creatorId,
+        organizationId,
         CreatorAnalysisStatus.FAILED,
         errorMessage,
       );
