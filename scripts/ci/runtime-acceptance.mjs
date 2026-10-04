@@ -140,7 +140,7 @@ export const BRAND_SOURCE_CONTRACT = {
 export const CRUN_SOURCE_CONTRACT = Object.freeze({
   image: Object.freeze({
     path: 'apps/server/api/src/services/integrations/crun/crun-image-flow.integration.spec.ts',
-    sha256: 'e6a3414e20e2fcd48e3aa71681d8f717881bbce6abe7daef5893a30c1b21f99f',
+    sha256: 'b050ef84ba936c699447cf76393a8a3800180114f815fb927378714c60f97be8',
     count: 18,
     passedTitles: Object.freeze([
       'Crun image quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success: frozen quote, restart, owned storage and exact accounting',
@@ -165,7 +165,7 @@ export const CRUN_SOURCE_CONTRACT = Object.freeze({
   }),
   video: Object.freeze({
     path: 'apps/server/api/src/services/integrations/crun/crun-video-flow.integration.spec.ts',
-    sha256: '9d4e3110b38339041462190cb208cca8de2d223e91f3c85afff3f0ff18d080dc',
+    sha256: '2c946fa778c9db9d76aeea45c80b4120462786391ae481905fa0eb16e4c143ae',
     count: 23,
     passedTitles: Object.freeze([
       'Crun video quote through durable owned output and accounting model 0 outputs 1 funding hosted scenario success variant default: frozen quote, restart, owned storage and exact accounting',
