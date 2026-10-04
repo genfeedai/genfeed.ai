@@ -314,6 +314,16 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
           );
         }
         held = resolved;
+        if (this.isRetryBudgetExhausted(post)) {
+          // Absence is confirmed (an unverifiable attempt was never claimed)
+          // and no retry is left: end FAILED without another provider call.
+          return await this.failExhaustedAbsentPublish(
+            post,
+            resolved,
+            workflowExecutionId,
+            url,
+          );
+        }
         const failure = (await checkCredential()) ?? (await checkContent());
         if (failure) return await fail(failure);
       } else {
@@ -918,6 +928,40 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     return createFailedPublishResult(platform, message);
   }
 
+  /**
+   * Terminal failure of an occurrence the provider confirmed absent whose
+   * retry budget is spent. The FAILED write is fenced on the claimed receipt,
+   * so a takeover can never leave FAILED with an accepted receipt.
+   */
+  private async failExhaustedAbsentPublish(
+    post: PostEntity,
+    claimed: ProviderPublishAttemptRef,
+    workflowExecutionId: string,
+    url: string,
+  ): Promise<PublishResult> {
+    const message = 'Provider publish retries exhausted';
+    try {
+      const failed = await this.attemptRetry(
+        post,
+        false,
+        message,
+        'publish_retries_exhausted',
+        workflowExecutionId,
+        { expectedProviderAttempt: claimed },
+      );
+      if (failed === false) this.emitPublishFailedWebhook(post, message);
+      if (failed === undefined) {
+        return {
+          ...createFailedPublishResult('', message),
+          executionState: TargetExecutionState.PUBLISHING,
+        };
+      }
+    } finally {
+      await this.attempts.settle(post, claimed, 'released', url);
+    }
+    return createFailedPublishResult('', message);
+  }
+
   /** An uncertain outcome must never turn into FAILED through this budget. */
   private isRetryBudgetExhausted(post: PostEntity): boolean {
     return (post.retryCount || 0) >= this.MAX_RETRY_ATTEMPTS;
@@ -978,12 +1022,17 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         ...(workflowExecutionId ? { workflowExecutionId } : {}),
       },
       errorMessage,
-      workflowExecutionId
+      workflowExecutionId || failureGuard
         ? {
-            expectedWorkflowExecutionId: workflowExecutionId,
-            priorExecutionStates: [TargetExecutionState.PUBLISHING],
+            ...(workflowExecutionId
+              ? {
+                  expectedWorkflowExecutionId: workflowExecutionId,
+                  priorExecutionStates: [TargetExecutionState.PUBLISHING],
+                }
+              : {}),
+            ...failureGuard,
           }
-        : failureGuard,
+        : undefined,
     );
     if (!persisted) {
       return undefined;

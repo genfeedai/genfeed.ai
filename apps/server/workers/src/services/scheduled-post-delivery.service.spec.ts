@@ -1146,6 +1146,95 @@ describe('ScheduledPostDeliveryService', () => {
     ).not.toContain(TargetExecutionState.FAILED);
   });
 
+  it('never calls a verifying publisher again while its verification is unavailable, at any retry count', async () => {
+    const publish = vi.fn().mockRejectedValue(new Error('ETIMEDOUT'));
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish,
+      supportsThreads: false,
+      verifyPublished: vi.fn().mockRejectedValue(new Error('provider 503')),
+    });
+    const post = createScheduledPost({ retryCount: 3 });
+
+    await executeDelivery(mocks, post, 'scheduled_sweep');
+    expect(publish).toHaveBeenCalledTimes(1);
+
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ status: 'uncertain' }),
+    );
+    for (let delivery = 0; delivery < 5; delivery++) {
+      const result = await executeDelivery(mocks, post, 'scheduled_sweep');
+      expect(result.executionState).toBe(TargetExecutionState.PUBLISHING);
+    }
+
+    expect(publish).toHaveBeenCalledTimes(1);
+    expect(
+      mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+        (call) => call[1].executionState,
+      ),
+    ).not.toContain(TargetExecutionState.FAILED);
+  });
+
+  it('fails a confirmed-absent occurrence at retry exhaustion without another provider call, fenced on the claimed receipt', async () => {
+    const publish = vi.fn();
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish,
+      supportsThreads: false,
+      verifyPublished: vi.fn().mockResolvedValue(null),
+    });
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ status: 'uncertain' }),
+    );
+
+    const result = await executeDelivery(
+      mocks,
+      createScheduledPost({ retryCount: 3 }),
+      'scheduled_sweep',
+    );
+
+    expect(publish).not.toHaveBeenCalled();
+    expect(result.executionState).toBe(TargetExecutionState.FAILED);
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ executionState: TargetExecutionState.FAILED }),
+      expect.any(String),
+      expect.objectContaining({
+        expectedProviderAttempt: {
+          attemptToken: expect.any(String),
+          receiptId: 'receipt-1',
+        },
+      }),
+    );
+  });
+
+  it('never moves the verification window anchor when it defers', async () => {
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn(),
+      supportsThreads: false,
+      verifyPublished: vi.fn().mockRejectedValue(new Error('provider 503')),
+    });
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({
+        attemptStartedAt: new Date(Date.now() - 25 * 60 * 60_000),
+        status: 'uncertain',
+      }),
+    );
+
+    for (let delivery = 0; delivery < 3; delivery++) {
+      await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+    }
+
+    // Deferring writes no receipt, so the anchor stays the first attempt.
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).not.toHaveBeenCalled();
+    const codes = mocks.schedulerPublishStateService.transitionPost.mock.calls
+      .map((call) => call[1].error?.code)
+      .filter(Boolean);
+    expect(codes).toEqual(Array(3).fill('publish_outcome_unverified'));
+  });
+
   it('surfaces an unverified outcome once the verification window passed, still publishing', async () => {
     mocks.publisherFactory.getPublisher.mockReturnValue({
       publish: vi.fn(),
