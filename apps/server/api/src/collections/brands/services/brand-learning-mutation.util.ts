@@ -1,6 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import {
   invalidateLearningDependencySource,
+  LearningFenceEscalationError,
   type LearningMutationFenceScope,
   learningFence,
   learningMutationFence,
