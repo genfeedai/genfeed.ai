@@ -92,7 +92,7 @@ export class ThreadContextCompressorService {
       return null;
     }
 
-    const state = await this.getState(threadId);
+    const state = await this.getState(threadId, organizationId);
     if (!state) {
       // Check if thread has enough messages to warrant compression
       const totalMessages =
@@ -103,7 +103,7 @@ export class ThreadContextCompressorService {
           .agentContextWindowSize
       ) {
         await this.compress(threadId, organizationId);
-        return this.getState(threadId);
+        return this.getState(threadId, organizationId);
       }
       return null;
     }
@@ -112,7 +112,7 @@ export class ThreadContextCompressorService {
     const lastIncorporatedMessageId = state.data.lastIncorporatedMessageId;
     if (!lastIncorporatedMessageId) {
       await this.compress(threadId, organizationId);
-      return this.getState(threadId);
+      return this.getState(threadId, organizationId);
     }
 
     const uncompactedCount = await this.agentMessagesService.countMessagesAfter(
@@ -125,7 +125,7 @@ export class ThreadContextCompressorService {
         .agentContextWindowSize
     ) {
       await this.compress(threadId, organizationId);
-      return this.getState(threadId);
+      return this.getState(threadId, organizationId);
     }
 
     return state;
@@ -143,7 +143,7 @@ export class ThreadContextCompressorService {
       return;
     }
 
-    const state = await this.getState(threadId);
+    const state = await this.getState(threadId, organizationId);
     const totalMessages =
       await this.agentMessagesService.countMessages(threadId);
 
@@ -244,6 +244,7 @@ export class ThreadContextCompressorService {
 
   private async getState(
     threadId: string,
+    organizationId: string,
   ): Promise<ThreadContextStateWithData | null> {
     const cached = await this.cacheService.get<ThreadContextStateWithData>(
       this.cacheKey(threadId),
@@ -253,10 +254,7 @@ export class ThreadContextCompressorService {
     }
 
     const state = await this.prisma.threadContextState.findFirst({
-      where: {
-        isDeleted: false,
-        threadId,
-      },
+      where: scopedWhere(organizationId, { threadId }),
     });
 
     if (state) {
@@ -328,10 +326,7 @@ export class ThreadContextCompressorService {
   ): Promise<void> {
     try {
       const existingRecord = await this.prisma.threadContextState.findFirst({
-        where: {
-          isDeleted: false,
-          threadId,
-        },
+        where: scopedWhere(organizationId, { threadId }),
       });
       const existingState = existingRecord
         ? ((existingRecord.data ?? {}) as ThreadContextStateData)

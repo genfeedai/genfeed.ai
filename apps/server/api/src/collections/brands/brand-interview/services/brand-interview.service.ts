@@ -184,7 +184,7 @@ export class BrandInterviewService {
       // Compensate: soft-delete the session so the unique index is freed
       await this.prisma.brandInterview.update({
         data: { isDeleted: true, status: BrandInterviewStatus.ABANDONED },
-        where: { id: session.id },
+        where: scopedWhere(organizationId, { id: session.id }),
       });
       throw error;
     }
@@ -264,7 +264,7 @@ export class BrandInterviewService {
 
     // Reload brand to recompute completeness after write
     const updatedBrand = await this.prisma.brand.findFirst({
-      where: { id: brandId, isDeleted: false },
+      where: scopedWhere(organizationId, { id: brandId }),
     });
 
     const completeness = computeBrandCompleteness(
@@ -303,7 +303,7 @@ export class BrandInterviewService {
         currentFieldKey: nextFieldKey,
         status: newStatus,
       },
-      where: { id: interviewId },
+      where: scopedWhere(organizationId, { id: interviewId }),
     });
 
     const positioningScore = isComplete
@@ -435,7 +435,7 @@ export class BrandInterviewService {
         currentFieldKey: nextFieldKey,
         status: newStatus,
       },
-      where: { id: interviewId },
+      where: scopedWhere(organizationId, { id: interviewId }),
     });
 
     const positioningScore =
@@ -472,7 +472,7 @@ export class BrandInterviewService {
 
     return this.prisma.brandInterview.update({
       data: { status: BrandInterviewStatus.ABANDONED },
-      where: { id: interviewId },
+      where: scopedWhere(organizationId, { id: interviewId }),
     });
   }
 

@@ -1,5 +1,9 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
+import {
+  crossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { ForbiddenException } from '@nestjs/common';
 
 export const ANALYTICS_MISSING_ORGANIZATION_MESSAGE =
@@ -145,6 +149,25 @@ export function buildAnalyticsCacheKey(
   ].join(':');
 }
 
+/**
+ * Runs analytics reads under the tenant the request is scoped to. Customers
+ * always carry their own organization (the request tenant, so this is a
+ * no-op switch). A superadmin who names another organization is narrowed to
+ * that tenant; a superadmin who names none reads every organization, which
+ * only the superadmin scope can produce (`resolveAnalyticsTenantScope`), so
+ * that path alone runs outside tenant enforcement.
+ */
+export function runInAnalyticsTenantScope<T>(
+  organizationId: string | undefined,
+  work: () => Promise<T>,
+): Promise<T> {
+  if (organizationId) {
+    return runWithTenantContext({ organizationId }, work);
+  }
+
+  return crossOrgUnsafe(async () => await work());
+}
+
 export async function assertAnalyticsBrandInScope(
   findBrand: (where: {
     id: string;
@@ -158,11 +181,15 @@ export async function assertAnalyticsBrandInScope(
     return;
   }
 
-  const brand = await findBrand({
-    id: brandId,
-    isDeleted: false,
-    ...(organizationId ? { organizationId } : {}),
-  });
+  const brand = await runInAnalyticsTenantScope(
+    organizationId,
+    async () =>
+      await findBrand({
+        id: brandId,
+        isDeleted: false,
+        ...(organizationId ? { organizationId } : {}),
+      }),
+  );
 
   if (!brand) {
     throwAnalyticsTenantForbidden();

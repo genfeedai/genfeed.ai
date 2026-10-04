@@ -8,6 +8,11 @@ import { AssetCategory, IngredientCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  isCrossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 
 const BASE_URL = 'https://cdn.genfeed.ai';
 const ORGANIZATION_ID = testId('org');
@@ -564,5 +569,45 @@ describe('granted character references (#6037)', () => {
         .find((query) => query.id === id)?.organizationId;
     expect(orgFor('granted-avatar')).toBe(FOREIGN_ORGANIZATION_ID);
     expect(orgFor('own-image')).toBe(ORGANIZATION_ID);
+  });
+
+  it('reads a granted reference outside the request tenant and keeps every other lookup inside it (CLOUD tenant guard)', async () => {
+    const { assetsService, configService, ingredientsService, loggerService } =
+      createMocks();
+    const crossOrgById = new Map<string, boolean>();
+    vi.mocked(ingredientsService.findOne).mockImplementation(
+      async (query: ReferenceLookupQuery) => {
+        crossOrgById.set(String(query.id), isCrossOrgUnsafe());
+        assertTenantScopedQuery({
+          args: { where: query },
+          isCloud: true,
+          model: 'Ingredient',
+          operation: 'findFirst',
+          tenantModelNames: new Set(['Ingredient']),
+        });
+        return query.category === IngredientCategory.IMAGE && query.id
+          ? ({ id: query.id } as never)
+          : null;
+      },
+    );
+
+    const urls = await runWithTenantContext(
+      { organizationId: ORGANIZATION_ID },
+      () =>
+        buildReferenceImageUrls({
+          assetsService,
+          configService,
+          grantedOwners: new Map([['granted-avatar', FOREIGN_ORGANIZATION_ID]]),
+          ingredientsService,
+          loggerService,
+          organizationId: ORGANIZATION_ID,
+          referenceIds: ['granted-avatar', 'own-image'],
+        }),
+    );
+
+    expect(urls).toHaveLength(2);
+    expect(loggerService.warn).not.toHaveBeenCalled();
+    expect(crossOrgById.get('granted-avatar')).toBe(true);
+    expect(crossOrgById.get('own-image')).toBe(false);
   });
 });

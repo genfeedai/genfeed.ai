@@ -14,6 +14,7 @@ import type { TriggerEvent } from '@api/collections/workflows/services/workflow-
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   ActivitySource,
   Platform,
@@ -572,7 +573,9 @@ export class WorkflowTrendPublishExecutorRegistrarService {
           select: {
             currentVersion: { select: { graph: true } },
           },
-          where: { id: params.workflowId, isDeleted: false },
+          where: scopedWhere(params.organizationId, {
+            id: params.workflowId,
+          }),
         });
         const graph = workflowDoc?.currentVersion?.graph;
         const graphNodes =

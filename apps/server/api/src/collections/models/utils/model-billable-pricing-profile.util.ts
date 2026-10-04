@@ -6,6 +6,7 @@ import type {
   ReviewedProviderRate,
 } from '@genfeedai/contracts/interfaces';
 import type { Model, ModelProviderContract } from '@genfeedai/prisma';
+import { platformOrTenantScope } from '@libs/prisma/platform-scope';
 
 type PricingModel = Pick<
   Model,
@@ -275,9 +276,7 @@ export async function findModelBillablePricingProfile(
     where: {
       key,
       isDeleted: false,
-      OR: organizationId
-        ? [{ organizationId }, { organizationId: null }]
-        : [{ organizationId: null }],
+      ...platformOrTenantScope(organizationId),
     },
     select: {
       key: true,

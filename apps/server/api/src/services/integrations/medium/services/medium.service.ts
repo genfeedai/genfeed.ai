@@ -1,5 +1,6 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -187,7 +188,10 @@ export class MediumService {
       );
 
       // Get article
-      const article = await this.articlesService.findOne({ id: articleId });
+      const article = await this.articlesService.findOne({
+        id: articleId,
+        organizationId,
+      });
 
       if (!article) {
         throw new Error('Article not found');
@@ -224,17 +228,20 @@ export class MediumService {
       const existingPosts = Array.isArray(article.posts)
         ? (article.posts as unknown[])
         : [];
-      await this.articlesService.patch(articleId, {
-        posts: [
-          ...existingPosts,
-          {
-            externalId: mediumPost.id,
-            platform: 'medium',
-            publishedAt: new Date(mediumPost.publishedAt),
-            url: mediumPost.url,
-          },
-        ],
-      } as unknown as Record<string, unknown>);
+      await this.articlesService.patchOneWhere(
+        scopedWhere(organizationId, { id: articleId }),
+        {
+          posts: [
+            ...existingPosts,
+            {
+              externalId: mediumPost.id,
+              platform: 'medium',
+              publishedAt: new Date(mediumPost.publishedAt),
+              url: mediumPost.url,
+            },
+          ],
+        } as unknown as Record<string, unknown>,
+      );
 
       return mediumPost;
     } catch (error: unknown) {

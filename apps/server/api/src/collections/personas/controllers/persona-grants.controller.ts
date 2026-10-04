@@ -63,7 +63,7 @@ export class PersonaGrantsController {
         mode: body.mode,
         organizationId: user.organizationId,
         personaId: EntityIdUtil.validate(id, 'personaId'),
-        recipientOrganizationId: body.organizationId,
+        recipientOrganizationId: body.recipientOrganizationId,
       }),
     };
   }

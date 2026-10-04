@@ -665,117 +665,126 @@ export class BillingAccountsService {
       OWNER_ROLE,
     );
 
-    return this.prisma.$transaction(
-      async (tx) => {
-        const membership = await tx.member.findFirst({
-          select: { role: { select: { key: true } }, roleKey: true },
-          where: {
-            isActive: true,
-            isDeleted: false,
-            organizationId: input.organizationId,
-            userId: input.actorUserId,
-          },
-        });
-        const organizationRole = membership?.roleKey ?? membership?.role.key;
-        if (
-          organizationRole !== MemberRole.OWNER &&
-          organizationRole !== MemberRole.ADMIN
-        ) {
-          throw new ForbiddenException(
-            'Organization administration permission required',
-          );
-        }
+    // The detached org is usually a sibling, not the session org: scope the
+    // writes to it, as linkOrganization does (OWNER role proven above).
+    return runWithTenantContext({ organizationId: input.organizationId }, () =>
+      this.prisma.$transaction(
+        async (tx) => {
+          const membership = await tx.member.findFirst({
+            select: { role: { select: { key: true } }, roleKey: true },
+            where: {
+              isActive: true,
+              isDeleted: false,
+              organizationId: input.organizationId,
+              userId: input.actorUserId,
+            },
+          });
+          const organizationRole = membership?.roleKey ?? membership?.role.key;
+          if (
+            organizationRole !== MemberRole.OWNER &&
+            organizationRole !== MemberRole.ADMIN
+          ) {
+            throw new ForbiddenException(
+              'Organization administration permission required',
+            );
+          }
 
-        const activeReservation = await tx.creditReservation.findFirst({
-          where: {
-            billingAccountId: input.billingAccountId,
-            isDeleted: false,
-            organizationId: input.organizationId,
-            status: CreditReservationStatus.RESERVED,
-          },
-        });
-        if (activeReservation) {
-          throw new ConflictException(
-            'Organization has unsettled credit reservations',
-          );
-        }
-
-        const detached = await tx.billingAccountOrganization.updateMany({
-          data: {
-            detachedAt: new Date(),
-            status: BillingAccountOrganizationStatus.DETACHED,
-          },
-          where: {
-            billingAccountId: input.billingAccountId,
-            isDeleted: false,
-            organizationId: input.organizationId,
-            status: BillingAccountOrganizationStatus.LINKED,
-          },
-        });
-        if (detached.count !== 1) {
-          throw new ConflictException(
-            'Organization is not actively linked to this billing account',
-          );
-        }
-
-        const replacement = await tx.billingAccount.create({
-          data: {
-            label: null,
-            status: BillingAccountStatus.UNPROVISIONED,
-          },
-        });
-        await tx.billingAccountMember.create({
-          data: {
-            billingAccountId: replacement.id,
-            role: BillingAccountMemberRole.OWNER,
-            userId: input.actorUserId,
-          },
-        });
-        await tx.billingAccountOrganization.create({
-          data: {
-            billingAccountId: replacement.id,
-            organizationId: input.organizationId,
-            status: BillingAccountOrganizationStatus.LINKED,
-          },
-        });
-        await tx.organization.update({
-          data: { billingAccountId: replacement.id },
-          where: { id: input.organizationId },
-        });
-
-        const wallet = await tx.creditBalance.findFirst({
-          where: scopedWhere(input.organizationId, {
-            billingAccountId: input.billingAccountId,
-          }),
-        });
-        if (wallet?.organizationId === input.organizationId) {
-          const remaining = await tx.billingAccountOrganization.findFirst({
+          const activeReservation = await tx.creditReservation.findFirst({
             where: {
               billingAccountId: input.billingAccountId,
               isDeleted: false,
-              organizationId: { not: input.organizationId },
+              organizationId: input.organizationId,
+              status: CreditReservationStatus.RESERVED,
+            },
+          });
+          if (activeReservation) {
+            throw new ConflictException(
+              'Organization has unsettled credit reservations',
+            );
+          }
+
+          const detached = await tx.billingAccountOrganization.updateMany({
+            data: {
+              detachedAt: new Date(),
+              status: BillingAccountOrganizationStatus.DETACHED,
+            },
+            where: {
+              billingAccountId: input.billingAccountId,
+              isDeleted: false,
+              organizationId: input.organizationId,
               status: BillingAccountOrganizationStatus.LINKED,
             },
           });
-          await tx.creditBalance.update({
-            data: { organizationId: remaining?.organizationId ?? null },
-            where: scopedWhere(input.organizationId, { id: wallet.id }),
+          if (detached.count !== 1) {
+            throw new ConflictException(
+              'Organization is not actively linked to this billing account',
+            );
+          }
+
+          const replacement = await tx.billingAccount.create({
+            data: {
+              label: null,
+              status: BillingAccountStatus.UNPROVISIONED,
+            },
           });
-        }
+          await tx.billingAccountMember.create({
+            data: {
+              billingAccountId: replacement.id,
+              role: BillingAccountMemberRole.OWNER,
+              userId: input.actorUserId,
+            },
+          });
+          await tx.billingAccountOrganization.create({
+            data: {
+              billingAccountId: replacement.id,
+              organizationId: input.organizationId,
+              status: BillingAccountOrganizationStatus.LINKED,
+            },
+          });
+          await tx.organization.update({
+            data: { billingAccountId: replacement.id },
+            where: { id: input.organizationId },
+          });
 
-        await tx.creditBalance.create({
-          data: {
-            balance: 0,
-            billingAccountId: replacement.id,
-            heldAmount: 0,
-            organizationId: input.organizationId,
-            version: 0,
-          },
-        });
+          const wallet = await tx.creditBalance.findFirst({
+            where: scopedWhere(input.organizationId, {
+              billingAccountId: input.billingAccountId,
+            }),
+          });
+          if (wallet?.organizationId === input.organizationId) {
+            // `{ not }` carries no tenant proof by design; OWNER role proven.
+            const remaining = await crossOrgUnsafe(
+              async () =>
+                // tenant-scope-ignore: sibling org lookup on the shared billing account
+                await tx.billingAccountOrganization.findFirst({
+                  where: {
+                    billingAccountId: input.billingAccountId,
+                    isDeleted: false,
+                    organizationId: { not: input.organizationId },
+                    status: BillingAccountOrganizationStatus.LINKED,
+                  },
+                }),
+            );
+            await tx.creditBalance.update({
+              data: { organizationId: remaining?.organizationId ?? null },
+              where: scopedWhere(input.organizationId, { id: wallet.id }),
+            });
+          }
 
-        return replacement;
-      },
-      { isolationLevel: 'Serializable' },
+          await tx.creditBalance.create({
+            data: {
+              balance: 0,
+              billingAccountId: replacement.id,
+              heldAmount: 0,
+              organizationId: input.organizationId,
+              version: 0,
+            },
+          });
+
+          return replacement;
+        },
+        { isolationLevel: 'Serializable' },
+      ),
     );
   }
 

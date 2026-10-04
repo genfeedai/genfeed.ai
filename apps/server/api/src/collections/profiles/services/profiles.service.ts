@@ -107,7 +107,7 @@ export class ProfilesService {
               isDefault: false,
             }) as Prisma.InputJsonValue,
           },
-          where: { id: profile.id },
+          where: scopedWhere(organizationId, { id: profile.id }),
         }),
       ),
     );
@@ -235,7 +235,7 @@ export class ProfilesService {
           ...dto,
         }) as Prisma.InputJsonValue,
       },
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
     });
 
     return this.normalizeProfile(result);
@@ -253,7 +253,7 @@ export class ProfilesService {
 
     await this.prisma.profile.update({
       data: { isDeleted: true },
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
     });
   }
 

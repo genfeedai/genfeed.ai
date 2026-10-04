@@ -3,6 +3,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { AssetCategory, IngredientCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 
 /**
  * Builds a public reference image URL for a given reference id.
@@ -38,7 +39,7 @@ export async function buildReferenceImageUrl(params: {
     return null;
   }
 
-  try {
+  const lookup = async (): Promise<string | null> => {
     const imageIngredient = await ingredientsService.findOne({
       category: IngredientCategory.IMAGE,
       id: referenceId,
@@ -88,6 +89,15 @@ export async function buildReferenceImageUrl(params: {
       reference: referenceId,
     });
     return null;
+  };
+
+  try {
+    // A granted character's reference image lives in its owning organization,
+    // not the request tenant's. Only an admitted grant puts an id in
+    // `grantedOwners`, so only that lookup leaves tenant scope.
+    return grantedOwners?.has(referenceId)
+      ? await crossOrgUnsafe(async () => await lookup())
+      : await lookup();
   } catch {
     loggerService?.warn('Reference lookup failed', {
       reference: referenceId,

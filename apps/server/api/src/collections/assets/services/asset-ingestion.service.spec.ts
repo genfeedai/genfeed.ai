@@ -311,6 +311,8 @@ describe('AssetIngestionService', () => {
 
     expect(ingredientsService.findOne).toHaveBeenCalledWith({
       id: ingredientId,
+      isDeleted: false,
+      organizationId: user.organizationId,
       userId,
     });
     expect(metadataService.findOne).toHaveBeenCalledWith({ id: metadataId });

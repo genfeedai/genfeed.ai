@@ -4,6 +4,11 @@ import { buildIdeogramImageEditInput } from '@api/services/prompt-builder/builde
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
+import {
+  isCrossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -394,5 +399,62 @@ describe('FLUX.3 model-specific admission', () => {
       ),
     ).rejects.toThrow('character not available');
     expect(findOne).not.toHaveBeenCalled();
+  });
+
+  it('passes the CLOUD tenant guard: only a granted character leaves the request tenant (#6037)', async () => {
+    const avatar = testId('edit', 11);
+    resolveCharacterReferences.mockResolvedValue({
+      availableAvatarIds: new Set([avatar]),
+      grantedAvatarOwners: new Map([[avatar, 'org-owner']]),
+      personaId: 'persona-shared',
+    });
+    const crossOrgById = new Map<string, boolean>();
+    findOne.mockImplementation(async (query: { id: string }) => {
+      crossOrgById.set(query.id, isCrossOrgUnsafe());
+      assertTenantScopedQuery({
+        args: { where: query },
+        isCloud: true,
+        model: 'Ingredient',
+        operation: 'findFirst',
+        tenantModelNames: new Set(['Ingredient']),
+      });
+      return query.id === avatar
+        ? { ...ready(avatar), organizationId: 'org-owner' }
+        : ready(query.id);
+    });
+
+    await expect(
+      runWithTenantContext({ organizationId }, () =>
+        service.admitImageEdit(
+          primary,
+          dto({ references: [avatar] }),
+          organizationId,
+          brandId,
+        ),
+      ),
+    ).resolves.toMatchObject({ personaId: 'persona-shared' });
+
+    expect(crossOrgById.get(avatar)).toBe(true);
+    expect(crossOrgById.get(primary)).toBe(false);
+  });
+
+  it('keeps an own-organization source inside the tenant guard when no character is granted', async () => {
+    findOne.mockImplementation(async (query: { id: string }) => {
+      assertTenantScopedQuery({
+        args: { where: query },
+        isCloud: true,
+        model: 'Ingredient',
+        operation: 'findFirst',
+        tenantModelNames: new Set(['Ingredient']),
+      });
+      expect(isCrossOrgUnsafe()).toBe(false);
+      return ready(query.id);
+    });
+
+    await expect(
+      runWithTenantContext({ organizationId }, () =>
+        service.resolveFlux3References(organizationId, brandId, [secondary]),
+      ),
+    ).resolves.toHaveLength(1);
   });
 });

@@ -600,6 +600,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
     ).rejects.toBe(queueError);
     expect(completeExecution).toHaveBeenCalledWith(
       'parent-execution',
+      'tenant-org',
       'queue unavailable',
     );
   });

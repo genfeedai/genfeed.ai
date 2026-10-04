@@ -1,6 +1,10 @@
 import { TrackedLinksService } from '@api/collections/tracked-links/services/tracked-links.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  isCrossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { BadRequestException } from '@nestjs/common';
 
 describe('TrackedLinksService', () => {
@@ -183,6 +187,49 @@ describe('TrackedLinksService', () => {
 
     expect(link.originalUrl).toContain('https://example.com/page');
     expect(link.originalUrl).toContain('utm_source=twitter');
+  });
+
+  it('checks short-code uniqueness globally, outside the request tenant (CLOUD guard)', async () => {
+    const { prisma, service } = makeService();
+    const crossOrgFlags: boolean[] = [];
+    prisma.trackedLink.findFirst.mockImplementation(async () => {
+      crossOrgFlags.push(isCrossOrgUnsafe());
+      return null;
+    });
+    prisma.trackedLink.create.mockImplementation(({ data }) =>
+      Promise.resolve({ id: 'link-1', ...data }),
+    );
+
+    await runWithTenantContext({ organizationId: 'org-1' }, () =>
+      service.generateTrackingLink(
+        { platform: 'twitter', url: 'https://example.com/page' },
+        'org-1',
+      ),
+    );
+
+    expect(crossOrgFlags).toEqual([true]);
+  });
+
+  it('still rejects a custom slug another organization already holds', async () => {
+    const { prisma, service } = makeService();
+    prisma.trackedLink.findFirst.mockResolvedValue({
+      id: 'foreign-link',
+      organizationId: 'org-2',
+    });
+
+    await expect(
+      runWithTenantContext({ organizationId: 'org-1' }, () =>
+        service.generateTrackingLink(
+          {
+            customSlug: 'taken',
+            platform: 'twitter',
+            url: 'https://example.com/page',
+          },
+          'org-1',
+        ),
+      ),
+    ).rejects.toThrow('already in use');
+    expect(prisma.trackedLink.create).not.toHaveBeenCalled();
   });
 
   it('rejects unsafe redirect URL updates', async () => {

@@ -33,6 +33,7 @@ import {
   toPrismaJson,
   type VisualRevision,
 } from '@genfeedai/prisma';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   ConflictException,
   Injectable,
@@ -148,14 +149,20 @@ export class VisualProjectWorkflowService implements OnModuleInit {
       },
       include: { workflowVersion: true },
     });
-    const mirror = await this.prisma.workflow.findFirstOrThrow({
-      where: {
-        id: execution.workflowId,
-        organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-        userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-        isDeleted: false,
-      },
-    });
+    // The hidden system workflow mirror is platform-global (owned by the
+    // system principal), so this binding check reads it as an explicit
+    // cross-org operation.
+    const mirror = await crossOrgUnsafe(
+      async () =>
+        await this.prisma.workflow.findFirstOrThrow({
+          where: {
+            id: execution.workflowId,
+            organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+            userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+            isDeleted: false,
+          },
+        }),
+    );
     const canonical = getSystemWorkflowMetadata(mirror.metadata);
     const result = z
       .object({

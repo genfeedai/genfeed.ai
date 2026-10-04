@@ -8,6 +8,10 @@ import { CredentialPlatform } from '@genfeedai/contracts';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  isCrossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { RedisService } from '@libs/redis/redis.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException } from '@nestjs/common';
@@ -151,6 +155,31 @@ describe('AdminAnnouncementsService', () => {
       expect(result).toBe(mockAnnouncement);
     });
 
+    it('reads the persisted announcement back scoped to the broadcasting organization (CLOUD guard)', async () => {
+      announcementsCollectionService.createAnnouncement.mockResolvedValue(
+        mockAnnouncement as never,
+      );
+      redisService.publish.mockResolvedValue(undefined);
+      let wasCrossOrg = true;
+      announcementsCollectionService.findOne.mockImplementation(async () => {
+        wasCrossOrg = isCrossOrgUnsafe();
+        return mockAnnouncement as never;
+      });
+
+      await runWithTenantContext({ organizationId }, () =>
+        service.broadcast(authorId, organizationId, {
+          body: 'Hello',
+          channels: ['discord'],
+          discordChannelId: 'channel-123',
+        }),
+      );
+
+      expect(announcementsCollectionService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ isDeleted: false, organizationId }),
+      );
+      expect(wasCrossOrg).toBe(false);
+    });
+
     it('should throw BadRequestException when discord channel is missing', async () => {
       const dto: BroadcastAnnouncementDto = {
         body: 'Hello',
@@ -289,6 +318,20 @@ describe('AdminAnnouncementsService', () => {
 
       expect(announcementsCollectionService.getAll).toHaveBeenCalled();
       expect(result).toBe(mockAnnouncements);
+    });
+
+    it('reads the platform-wide history outside the superadmin tenant (CLOUD guard)', async () => {
+      let wasCrossOrg = false;
+      announcementsCollectionService.getAll.mockImplementation(async () => {
+        wasCrossOrg = isCrossOrgUnsafe();
+        return [];
+      });
+
+      await runWithTenantContext({ organizationId }, () =>
+        service.getHistory(),
+      );
+
+      expect(wasCrossOrg).toBe(true);
     });
 
     it('should return empty array when no announcements exist', async () => {

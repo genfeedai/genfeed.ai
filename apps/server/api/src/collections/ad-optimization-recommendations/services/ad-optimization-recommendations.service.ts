@@ -15,6 +15,7 @@ import {
   type AdOptimizationRecommendation as PrismaAdOptimizationRecommendation,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { ConflictException, Inject, Injectable } from '@nestjs/common';
 
@@ -142,28 +143,35 @@ export class AdOptimizationRecommendationsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const now = new Date();
-      // tenant-scope-ignore: platform maintenance sweep intentionally finds stale recommendations across organizations; each mutation below is scoped by the row's organizationId
-      const docs = await this.prisma.adOptimizationRecommendation.findMany({
-        where: {
-          AND: [
-            { data: { equals: 'pending', path: ['status'] } },
-            { data: { lt: now.toISOString(), path: ['expiresAt'] } },
-          ],
-          isDeleted: false,
-        },
-      });
+      // Platform maintenance sweep: stale recommendations are expired across
+      // every organization, so the read and the per-row writes (each scoped
+      // to the row's own organizationId) must not be pinned to the tenant of
+      // whatever request triggered the workflow run.
+      const count = await crossOrgUnsafe(async () => {
+        const now = new Date();
+        // tenant-scope-ignore: platform maintenance sweep intentionally finds stale recommendations across organizations; each mutation below is scoped by the row's organizationId
+        const docs = await this.prisma.adOptimizationRecommendation.findMany({
+          where: {
+            AND: [
+              { data: { equals: 'pending', path: ['status'] } },
+              { data: { lt: now.toISOString(), path: ['expiresAt'] } },
+            ],
+            isDeleted: false,
+          },
+        });
 
-      let count = 0;
-      for (const doc of docs.map((item) => this.toDocument(item))) {
-        await this.updateStatus(
-          doc.id,
-          doc.organizationId,
-          'expired',
-          'pending',
-        );
-        count++;
-      }
+        let expired = 0;
+        for (const doc of docs.map((item) => this.toDocument(item))) {
+          await this.updateStatus(
+            doc.id,
+            doc.organizationId,
+            'expired',
+            'pending',
+          );
+          expired++;
+        }
+        return expired;
+      });
 
       if (count > 0) {
         this.logger.log(`${caller} expired ${count} stale recommendations`);

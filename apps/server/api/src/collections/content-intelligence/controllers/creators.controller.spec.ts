@@ -290,6 +290,7 @@ describe('CreatorsController', () => {
 
       expect(mockPatternAnalyzerService.analyzeCreator).toHaveBeenCalledWith(
         creatorId,
+        organizationId,
       );
     });
 

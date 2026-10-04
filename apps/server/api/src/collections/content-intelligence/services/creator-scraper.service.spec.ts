@@ -36,6 +36,7 @@ function makeService() {
 }
 
 const creatorId = 'test-object-id';
+const organizationId = 'org-1';
 
 function makeCreator(platform: ContentIntelligencePlatform) {
   return {
@@ -295,7 +296,7 @@ describe('CreatorScraperService.scrapeCreator', () => {
   it('returns null when creator not found', async () => {
     mockContentIntelligenceService.findOne.mockResolvedValue(null);
 
-    const result = await service.scrapeCreator(creatorId);
+    const result = await service.scrapeCreator(creatorId, organizationId);
     expect(result).toBeNull();
     expect(mockLogger.error).toHaveBeenCalled();
   });
@@ -306,10 +307,11 @@ describe('CreatorScraperService.scrapeCreator', () => {
     });
     mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
 
-    const result = await service.scrapeCreator(creatorId);
+    const result = await service.scrapeCreator(creatorId, organizationId);
     expect(result).toBeNull();
     expect(mockContentIntelligenceService.updateStatus).toHaveBeenCalledWith(
       creatorId,
+      organizationId,
       CreatorAnalysisStatus.FAILED,
       expect.stringContaining('Unsupported platform'),
     );
@@ -345,7 +347,7 @@ describe('CreatorScraperService.scrapeCreator', () => {
       },
     ]);
 
-    const result = await service.scrapeCreator(creatorId);
+    const result = await service.scrapeCreator(creatorId, organizationId);
     expect(result).not.toBeNull();
     expect(result?.profile.displayName).toBe('John Doe');
     expect(result?.profile.followerCount).toBe(5000);
@@ -361,6 +363,7 @@ describe('CreatorScraperService.scrapeCreator', () => {
     );
     expect(mockContentIntelligenceService.updateStatus).toHaveBeenCalledWith(
       creatorId,
+      organizationId,
       CreatorAnalysisStatus.ANALYZING,
     );
   });
@@ -395,7 +398,7 @@ describe('CreatorScraperService.scrapeCreator', () => {
       },
     ]);
 
-    const result = await service.scrapeCreator(creatorId);
+    const result = await service.scrapeCreator(creatorId, organizationId);
     expect(result?.profile.displayName).toBe('TikToker');
     expect(result?.posts[0].likes).toBe(500);
     expect(result?.posts[0].views).toBe(10000);
@@ -410,10 +413,11 @@ describe('CreatorScraperService.scrapeCreator', () => {
 
     mockApifyService.runActor.mockRejectedValue(new Error('Apify down'));
 
-    const result = await service.scrapeCreator(creatorId);
+    const result = await service.scrapeCreator(creatorId, organizationId);
     expect(result).toBeNull();
     expect(mockContentIntelligenceService.updateStatus).toHaveBeenCalledWith(
       creatorId,
+      organizationId,
       CreatorAnalysisStatus.FAILED,
       'Apify down',
     );
@@ -445,7 +449,7 @@ describe('CreatorScraperService.scrapeCreator', () => {
       },
     ]);
 
-    const result = await service.scrapeCreator(creatorId);
+    const result = await service.scrapeCreator(creatorId, organizationId);
     // (50+10+5)/1000 * 100 = 6.5
     expect(result?.posts[0].engagementRate).toBe(6.5);
   });
@@ -474,7 +478,7 @@ describe('CreatorScraperService.scrapeCreator', () => {
       },
     ]);
 
-    const result = await service.scrapeCreator(creatorId);
+    const result = await service.scrapeCreator(creatorId, organizationId);
     const post = result?.posts[0];
     // views = likes * 20 = 2000; engagement = 100/2000 * 100 = 5
     expect(post?.views).toBe(2000);
@@ -515,7 +519,7 @@ describe('CreatorScraperService hashtag extraction', () => {
       },
     ]);
 
-    return service.scrapeCreator(creatorId).then((result) => {
+    return service.scrapeCreator(creatorId, organizationId).then((result) => {
       expect(result?.posts[0].hashtags).toEqual(['AI', 'MachineLearning']);
     });
   });
@@ -543,7 +547,7 @@ describe('CreatorScraperService hashtag extraction', () => {
       },
     ]);
 
-    return service.scrapeCreator(creatorId).then((result) => {
+    return service.scrapeCreator(creatorId, organizationId).then((result) => {
       expect(result?.posts[0].hashtags).toEqual([]);
     });
   });

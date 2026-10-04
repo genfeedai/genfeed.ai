@@ -262,7 +262,7 @@ describe('BrandInterviewService', () => {
 
       expect(interviewDelegate.update).toHaveBeenCalledWith({
         data: { isDeleted: true, status: BrandInterviewStatus.ABANDONED },
-        where: { id: session.id },
+        where: { id: session.id, isDeleted: false, organizationId: 'org-1' },
       });
     });
 
@@ -851,7 +851,7 @@ describe('BrandInterviewService', () => {
 
       expect(interviewDelegate.update).toHaveBeenCalledWith({
         data: { status: BrandInterviewStatus.ABANDONED },
-        where: { id: 'interview-1' },
+        where: { id: 'interview-1', isDeleted: false, organizationId: 'org-1' },
       });
     });
 

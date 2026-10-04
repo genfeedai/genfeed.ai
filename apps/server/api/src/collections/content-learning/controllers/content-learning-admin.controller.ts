@@ -29,6 +29,7 @@ import {
   ContentLearningReleaseSerializer,
   ContentLearningRunSerializer,
 } from '@genfeedai/serializers';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Body,
@@ -65,13 +66,16 @@ export class ContentLearningAdminController {
     @Query() query: LearningQueryDto,
   ) {
     return serializeCollection(request, ContentLearningAccountSerializer, {
-      // tenant-scope-ignore: superadmin inventory is platform-wide
-      docs: await this.prisma.contentLearningAccount.findMany({
-        where: { isDeleted: false },
-        take: query.limit,
-        skip: (query.page - 1) * query.limit,
-        orderBy: { updatedAt: 'desc' },
-      }),
+      docs: await crossOrgUnsafe(
+        async () =>
+          // tenant-scope-ignore: superadmin inventory is platform-wide
+          await this.prisma.contentLearningAccount.findMany({
+            where: { isDeleted: false },
+            take: query.limit,
+            skip: (query.page - 1) * query.limit,
+            orderBy: { updatedAt: 'desc' },
+          }),
+      ),
     });
   }
   @Get('datasets') async datasetList(

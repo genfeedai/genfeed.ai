@@ -276,7 +276,7 @@ export class AccountHealthService {
         warmupOverrideReason: reason,
         warmupOverrideUntil: expiresAt,
       },
-      where: { id: credential.id },
+      where: scopedWhere(params.organizationId, { id: credential.id }),
     });
 
     this.emitTelemetry(SOCIAL_WARMUP_TELEMETRY_EVENT.override, {

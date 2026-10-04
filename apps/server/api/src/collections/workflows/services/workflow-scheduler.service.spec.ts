@@ -144,6 +144,7 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
 
     const updated = await service.updateSchedule(
       'wf-1',
+      'org-1',
       '0 7 * * *',
       'Europe/Amsterdam',
       true,
@@ -170,7 +171,7 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
     );
     const { queueService, service } = createService({ prisma });
 
-    await service.updateSchedule('wf-1', '0 7 * * *', 'UTC', false);
+    await service.updateSchedule('wf-1', 'org-1', '0 7 * * *', 'UTC', false);
 
     expect(queueService.removeWorkflowScheduler).toHaveBeenCalledWith('wf-1');
     expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
@@ -188,7 +189,7 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
     );
     const { queueService, service } = createService({ prisma });
 
-    await service.updateSchedule('wf-1', null, 'UTC', true);
+    await service.updateSchedule('wf-1', 'org-1', null, 'UTC', true);
 
     expect(queueService.removeWorkflowScheduler).toHaveBeenCalledWith('wf-1');
   });
@@ -197,7 +198,11 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
     const { prisma, queueService, service } = createService();
     prisma.workflow.findFirst.mockResolvedValue(null);
 
-    const updated = await service.updateSchedule('wf-gone', '0 7 * * *');
+    const updated = await service.updateSchedule(
+      'wf-gone',
+      'org-1',
+      '0 7 * * *',
+    );
 
     expect(updated).toBeNull();
     expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
@@ -210,7 +215,7 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
     const { queueService, service } = createService({ prisma });
 
     await expect(
-      service.updateSchedule('wf-1', 'not a cron', 'UTC', true),
+      service.updateSchedule('wf-1', 'org-1', 'not a cron', 'UTC', true),
     ).rejects.toMatchObject({
       message: expect.stringContaining('not a cron'),
       status: 400,
@@ -225,7 +230,13 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
     const { queueService, service } = createService({ prisma });
 
     await expect(
-      service.updateSchedule('wf-1', '0 7 * * *', 'Mars/Olympus', true),
+      service.updateSchedule(
+        'wf-1',
+        'org-1',
+        '0 7 * * *',
+        'Mars/Olympus',
+        true,
+      ),
     ).rejects.toMatchObject({
       message: expect.stringContaining('Mars/Olympus'),
       status: 400,
@@ -249,6 +260,7 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
 
     const updated = await service.updateSchedule(
       'wf-loop',
+      'org-1',
       '0 8 * * *',
       'UTC',
       false,
@@ -280,7 +292,7 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
     const { service } = createService({ prisma, queueService });
 
     await expect(
-      service.updateSchedule('wf-1', '0 7 * * *', 'UTC', true),
+      service.updateSchedule('wf-1', 'org-1', '0 7 * * *', 'UTC', true),
     ).rejects.toThrow('redis unavailable');
   });
 });

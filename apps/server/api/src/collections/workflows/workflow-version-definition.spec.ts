@@ -178,12 +178,12 @@ describe('createVersionedWorkflow', () => {
       }),
     );
     const versionCreate = vi.fn().mockResolvedValue({ id: 'version-1' });
-    const findUniqueOrThrow = vi.fn().mockResolvedValue({
+    const findFirstOrThrow = vi.fn().mockResolvedValue({
       currentVersion: { id: 'version-1', version: 1 },
       id: 'workflow-1',
     });
     const transaction = {
-      workflow: { create: workflowCreate, findUniqueOrThrow },
+      workflow: { create: workflowCreate, findFirstOrThrow },
       workflowVersion: { create: versionCreate },
     };
 
@@ -210,9 +210,13 @@ describe('createVersionedWorkflow', () => {
         workflowId: 'workflow-1',
       }),
     });
-    expect(findUniqueOrThrow).toHaveBeenCalledWith({
+    expect(findFirstOrThrow).toHaveBeenCalledWith({
       include: { currentVersion: true },
-      where: { id: 'workflow-1' },
+      where: {
+        id: 'workflow-1',
+        isDeleted: false,
+        organizationId: 'organization-1',
+      },
     });
   });
 });

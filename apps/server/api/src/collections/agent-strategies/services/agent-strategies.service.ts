@@ -15,6 +15,7 @@ import { AgentStrategyRunStatus } from '@genfeedai/contracts';
 import type { IAgentStrategyPerformanceSnapshot } from '@genfeedai/contracts/interfaces';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 
 type AgentStrategyWriteDto = Partial<
@@ -228,9 +229,9 @@ export class AgentStrategiesService extends BaseService<
       throw new ValidationException('Update data is required');
     return this.prisma.$transaction(async (transaction) => {
       await lockAgentStrategy(transaction, id);
-      // tenant-scope-ignore: the collection controller authorizes the opaque strategy id; resolve its organization before the scoped write
+      // tenant-scope-ignore: strategyLookupWhere pins to the request tenant; worker callers have no context and the write below is scoped to the resolved organization
       const existing = await transaction.agentStrategy.findFirst({
-        where: { id, isDeleted: false },
+        where: this.strategyLookupWhere(id),
       });
       if (!existing) throw new NotFoundException('Agent strategy', id);
       const existingConfig = this.readRecord(existing.config) ?? {};
@@ -440,6 +441,20 @@ export class AgentStrategiesService extends BaseService<
     }));
   }
 
+  /**
+   * Lookup that resolves a strategy's organization before the scoped write.
+   * Request handlers run inside a tenant context, so the lookup is pinned to
+   * it; scheduler/worker callers run without one and address the strategy by
+   * its opaque id alone.
+   */
+  private strategyLookupWhere(id: string): Prisma.AgentStrategyWhereInput {
+    const organizationId = getTenantContext()?.organizationId;
+    // tenant-scope-ignore: no tenant context means a worker/scheduler caller supplying an authorized opaque strategy id; the write below is scoped to the resolved organization
+    return organizationId
+      ? scopedWhere(organizationId, { id })
+      : { id, isDeleted: false };
+  }
+
   private async mutateConfig(
     id: string,
     mutate: (config: Record<string, unknown>) => {
@@ -449,9 +464,9 @@ export class AgentStrategiesService extends BaseService<
   ): Promise<Record<string, unknown> | null> {
     return this.prisma.$transaction(async (transaction) => {
       await lockAgentStrategy(transaction, id);
-      // tenant-scope-ignore: internal callers supply an authorized opaque strategy id; resolve its tenant under the lock before the scoped update
+      // tenant-scope-ignore: strategyLookupWhere pins to the request tenant; worker callers have no context and the write below is scoped to the resolved organization
       const current = await transaction.agentStrategy.findFirst({
-        where: { id, isDeleted: false },
+        where: this.strategyLookupWhere(id),
       });
       if (!current) return null;
       const data = mutate(this.readRecord(current.config) ?? {});

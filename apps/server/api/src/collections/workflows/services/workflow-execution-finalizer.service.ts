@@ -43,6 +43,7 @@ export class WorkflowExecutionFinalizerService {
 
   async finalizeExecution(input: {
     executionId: string;
+    organizationId: string;
     workflowId: string;
     finalStatus: WorkflowExecutionStatus;
     result: ExecutionRunResult;
@@ -59,6 +60,7 @@ export class WorkflowExecutionFinalizerService {
 
     const completedExecution = await this.executionsService.completeExecution(
       input.executionId,
+      input.organizationId,
       input.finalStatus === WorkflowExecutionStatus.FAILED
         ? input.result.error
         : undefined,
@@ -88,7 +90,7 @@ export class WorkflowExecutionFinalizerService {
           completedAt: input.completedAt,
           status: input.workflowStatus,
         },
-        where: { id: input.workflowId },
+        where: scopedWhere(input.organizationId, { id: input.workflowId }),
       });
     }
 

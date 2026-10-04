@@ -93,6 +93,7 @@ export class ContentIntelligenceService extends BaseService<
 
   updateStatus(
     id: string,
+    organizationId: string,
     status: CreatorAnalysisStatus,
     errorMessage?: string,
   ): Promise<CreatorAnalysisDocument> {
@@ -103,16 +104,17 @@ export class ContentIntelligenceService extends BaseService<
     if (status === CreatorAnalysisStatus.COMPLETED) {
       updateData.lastScrapedAt = new Date().toISOString();
     }
-    return this.updateData(id, updateData);
+    return this.updateData(id, organizationId, updateData);
   }
 
   updateMetrics(
     id: string,
+    organizationId: string,
     metrics: Record<string, unknown>,
     postsScraped: number,
     patternsExtracted: number,
   ): Promise<CreatorAnalysisDocument> {
-    return this.updateData(id, {
+    return this.updateData(id, organizationId, {
       metrics,
       patternsExtracted,
       postsScraped,
@@ -121,6 +123,7 @@ export class ContentIntelligenceService extends BaseService<
 
   updateCreatorProfile(
     id: string,
+    organizationId: string,
     profileData: {
       displayName?: string;
       avatarUrl?: string;
@@ -129,22 +132,28 @@ export class ContentIntelligenceService extends BaseService<
       followingCount?: number;
     },
   ): Promise<CreatorAnalysisDocument> {
-    return this.updateData(id, profileData);
+    return this.updateData(id, organizationId, profileData);
   }
 
   private async updateData(
     id: string,
+    organizationId: string,
     update: Record<string, unknown>,
   ): Promise<CreatorAnalysisDocument> {
-    const existing = await this.delegate.findUnique({ where: { id } });
+    const where = scopedWhere(organizationId, { id });
+    const existing = await this.delegate.findFirst({ where });
     if (!existing) {
       throw new NotFoundException('Creator analysis');
     }
-    return this.patch(id, {
+    const updated = await this.patchOneWhere(where, {
       data: {
         ...readRecordOrEmpty(existing.data),
         ...this.pickDefined(update),
       } as Prisma.InputJsonObject,
     });
+    if (!updated) {
+      throw new NotFoundException('Creator analysis');
+    }
+    return updated;
   }
 }

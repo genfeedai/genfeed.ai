@@ -392,7 +392,10 @@ describe('ContentGeneratorService', () => {
       patternId: PATTERN_ID.toString(),
       patternUsed: MOCK_PATTERN.extractedFormula,
     });
-    expect(patternStoreService.incrementUsage).toHaveBeenCalledWith(PATTERN_ID);
+    expect(patternStoreService.incrementUsage).toHaveBeenCalledWith(
+      PATTERN_ID,
+      ORG_ID,
+    );
   });
 
   it('generates freeform content when no patterns found', async () => {

@@ -179,7 +179,9 @@ export class SocialInboxActionService implements OnModuleInit {
         needsReview: true,
         updatedAt: new Date(),
       },
-      where: { id: conversation.id },
+      where: scopedWhere(conversation.organizationId, {
+        id: conversation.id,
+      }),
     });
 
     await this.realtimeService.emit(
@@ -224,7 +226,7 @@ export class SocialInboxActionService implements OnModuleInit {
         } as Prisma.InputJsonValue,
         status: 'approved',
       },
-      where: { id: draft.id },
+      where: scopedWhere(draft.organizationId, { id: draft.id }),
     });
 
     await this.realtimeService.emit(
@@ -253,7 +255,7 @@ export class SocialInboxActionService implements OnModuleInit {
         failureReason: clamp(reason, 1000),
         status: 'rejected',
       },
-      where: { id: draft.id },
+      where: scopedWhere(draft.organizationId, { id: draft.id }),
     });
 
     await this.prisma.socialConversation.update({
@@ -262,7 +264,7 @@ export class SocialInboxActionService implements OnModuleInit {
         needsReview: false,
         updatedAt: new Date(),
       },
-      where: { id: conversationId },
+      where: scopedWhere(draft.organizationId, { id: conversationId }),
     });
 
     await this.realtimeService.emit(
@@ -327,7 +329,7 @@ export class SocialInboxActionService implements OnModuleInit {
 
     const updated = await this.prisma.socialConversation.update({
       data,
-      where: { id: conversationId },
+      where: scopedWhere(scope.organizationId, { id: conversationId }),
     });
 
     // Shared with mark-read (markReadThrough), which emits its own update.
@@ -796,10 +798,7 @@ export class SocialInboxActionService implements OnModuleInit {
         unreadCount: 0,
         updatedAt: now,
       },
-      where: {
-        id: conversation.id,
-        organizationId: state.organizationId,
-      },
+      where: scopedWhere(state.organizationId, { id: conversation.id }),
     });
 
     return this.requiredString(state.outboundMessageId, 'outboundMessageId');
