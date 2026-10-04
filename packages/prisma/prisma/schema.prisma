@@ -7208,6 +7208,9 @@ model Vote {
   // in agent-tool-executor + votes.controller remove). entityId leads so the
   // same index also serves per-entity vote counts on cache miss. Never queried
   // by organizationId.
+  // One active vote per (entityId, userId) is enforced by the partial SQL
+  // index `votes_entity_user_active_uidx` (WHERE isDeleted = false); removal
+  // soft-deletes and re-adding revives, so historic rows are never constrained.
   @@index([entityId, userId, isDeleted], map: "votes_entity_user_deleted_idx")
   @@map("votes")
 }
