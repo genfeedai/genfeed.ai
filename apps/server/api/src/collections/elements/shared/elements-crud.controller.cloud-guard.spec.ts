@@ -135,7 +135,11 @@ function setup() {
     log: vi.fn(),
     warn: vi.fn(),
   } as unknown as LoggerService;
-  const cache = { invalidateByTags: vi.fn().mockResolvedValue(0) };
+  const cache = {
+    get: vi.fn().mockResolvedValue(null),
+    invalidateByTags: vi.fn().mockResolvedValue(0),
+    set: vi.fn().mockResolvedValue(undefined),
+  };
   const service = new ElementsStylesService(
     buildPrisma(rows),
     logger,
