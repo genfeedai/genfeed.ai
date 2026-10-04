@@ -52,26 +52,32 @@ const SOURCE_KEYS = [
 export const LEARNING_PUBLICATION_CONFIG = 'rl-reward-v1-experimental';
 const RAW_HASH = /^[0-9a-f]{64}$/;
 const PIN_HASH = /^sha256:v1:[0-9a-f]{64}$/;
+const keySets = new WeakMap<readonly string[], ReadonlySet<string>>();
+function keySet(keys: readonly string[]) {
+  let set = keySets.get(keys);
+  if (!set) {
+    set = new Set(keys);
+    keySets.set(keys, set);
+  }
+  return set;
+}
 export function dataProperties(
   value: unknown,
   keys?: readonly string[],
 ): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const ownKeys = Reflect.ownKeys(value);
-  if (
-    ownKeys.some((key) => typeof key !== 'string') ||
-    (keys &&
-      (ownKeys.length !== keys.length ||
-        ownKeys.some((key) => typeof key !== 'string' || !keys.includes(key))))
-  )
-    return null;
-  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const allowed = keys && keySet(keys);
+  if (keys && ownKeys.length !== keys.length) return null;
   const result: Record<string, unknown> = {};
-  for (const key of Object.keys(descriptors)) {
-    const descriptor = descriptors[key];
-    if (!('value' in descriptor)) return null;
-    const item: unknown = descriptor.value;
-    Object.defineProperty(result, key, { value: item, enumerable: true });
+  for (const key of ownKeys) {
+    if (typeof key !== 'string' || (allowed && !allowed.has(key))) return null;
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (!descriptor || !('value' in descriptor)) return null;
+    Object.defineProperty(result, key, {
+      value: descriptor.value,
+      enumerable: true,
+    });
   }
   return result;
 }

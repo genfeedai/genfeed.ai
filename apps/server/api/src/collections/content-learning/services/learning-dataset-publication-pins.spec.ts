@@ -215,6 +215,37 @@ function delegates(rows: Rows[]) {
       models.postPublishFinalization,
     ),
   };
+  // Bulk reads are raw `= ANY(array)` queries; serve them from the same delegates.
+  const queryRaw = vi.fn(async (query: { sql: string; values: unknown[] }) => {
+    const ids = query.values[0] as string[];
+    const organizationId = query.values[1] as string | undefined;
+    if (query.sql.includes('SUM(ingredients)'))
+      return models.post
+        .filter((post) => ids.includes(post.id))
+        .map((post) => ({
+          postId: post.id,
+          ingredients: post._count.ingredients,
+          children: post._count.children,
+        }));
+    if (query.sql.includes('publish_approvals'))
+      return tx.publishApproval.findMany({
+        where: query.sql.includes('"postId" = ANY')
+          ? { postId: { in: ids }, organizationId }
+          : { id: { in: ids }, organizationId },
+      });
+    if (query.sql.includes('content_version_pins'))
+      return tx.contentVersionPin.findMany({
+        where: { id: { in: ids }, organizationId },
+      });
+    if (query.sql.includes('post_publish_finalizations'))
+      return tx.postPublishFinalization.findMany({
+        where: query.sql.includes('"postId" = ANY')
+          ? { postId: { in: ids }, organizationId }
+          : { id: { in: ids }, organizationId },
+      });
+    throw new Error(`Unexpected raw read: ${query.sql}`);
+  });
+  Object.assign(tx, { $queryRaw: queryRaw });
   return { tx: tx as unknown as Prisma.TransactionClient, receipt, raw: tx };
 }
 function expected(row: Rows) {
@@ -645,17 +676,45 @@ describe('batched current publication pins', () => {
       expect(
         await resolveLearningPublicationSourceV1(tx, 'org', row.post.id),
       ).toBeNull();
-      for (const kind of [
-        'post',
-        'publish_approval',
-        'post_publish_finalization',
-      ] as const) {
-        const pins = new LearningDatasetPublicationPins(tx, 1000);
-        expect(await pins.pins(kind, [expected(row)[kind][0]], 'org')).toEqual(
-          new Map(),
-        );
-      }
+      // Delegate reads (shared resolver) and set-based reads (dataset extraction).
+      for (const isBulk of [false, true])
+        for (const kind of [
+          'post',
+          'publish_approval',
+          'post_publish_finalization',
+        ] as const) {
+          const pins = new LearningDatasetPublicationPins(tx, 1000, isBulk);
+          expect(
+            await pins.pins(kind, [expected(row)[kind][0]], 'org'),
+          ).toEqual(new Map());
+        }
     });
+  it('grants identical pins through delegate and set-based reads in every entry order', async () => {
+    const rows = Array.from({ length: 5 }, (_, index) => fixture(index));
+    const { tx } = delegates(rows);
+    for (const kind of [
+      'post',
+      'publish_approval',
+      'post_publish_finalization',
+      'content_version_pin',
+    ] as const) {
+      const ids = rows.map((row) =>
+        kind === 'content_version_pin' ? row.pin.id : expected(row)[kind][0],
+      );
+      const delegated = await new LearningDatasetPublicationPins(tx, 1000).pins(
+        kind,
+        ids,
+        'org',
+      );
+      const bulk = await new LearningDatasetPublicationPins(
+        tx,
+        1000,
+        true,
+      ).pins(kind, ids, 'org');
+      expect(delegated.size).toBe(rows.length);
+      expect(bulk).toEqual(delegated);
+    }
+  });
   it('does not grant a current pin to noncurrent or absent identities and caches misses per tenant', async () => {
     const row = fixture();
     const { tx, receipt } = delegates([row]);

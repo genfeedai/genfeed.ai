@@ -1,4 +1,4 @@
-import { createHmac, randomBytes } from 'node:crypto';
+import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import {
   assertLearningDatasetCandidateCount,
   batches,
@@ -8,7 +8,7 @@ import {
   DECISION_SELECT,
   LearningDatasetGraph,
   nodeKey,
-  REWARD_SELECT,
+  REWARD_COLUMNS,
   selectionTooLarge,
 } from '@api/collections/content-learning/services/learning-dataset-graph.service';
 import {
@@ -196,6 +196,14 @@ type DatasetSource = {
 type DatasetDecision = Prisma.ContentLearningDecisionGetPayload<{
   select: typeof DECISION_SELECT;
 }>;
+type RevalidationPage = {
+  latest: Map<string, number>;
+  decisionRows: DatasetDecision[];
+};
+type PreparedPage = {
+  eligible: DatasetReward[];
+  decisions: Map<string, DatasetDecision>;
+};
 type DatasetManifest = {
   temporal: Set<string>;
   split: (
@@ -321,12 +329,31 @@ export class LearningDatasetService {
     organizationId: string,
     ids: string[],
   ) {
-    const rows = await tx.contentLearningReward.groupBy({
-      by: ['decisionId'],
-      where: { organizationId, decisionId: { in: ids }, isDeleted: false },
-      _max: { version: true },
-    });
-    return new Map(rows.map((row) => [row.decisionId, row._max.version]));
+    const rows = await tx.$queryRaw<
+      Array<{ decisionId: string; version: number }>
+    >(Prisma.sql`
+      SELECT "decisionId", MAX(version) AS version FROM content_learning_rewards
+      WHERE "organizationId" = ${organizationId} AND "decisionId" = ANY(${ids}::text[]) AND NOT "isDeleted"
+      GROUP BY "decisionId"`);
+    return new Map(rows.map((row) => [row.decisionId, row.version]));
+  }
+  private decisions(
+    tx: Prisma.TransactionClient,
+    source: {
+      organizationId: string;
+      credentialId: string;
+      cutoff: Date;
+      grantedAt: Date;
+    },
+    ids: string[],
+  ) {
+    return tx.$queryRaw<DatasetDecision[]>(Prisma.sql`
+      SELECT id, "payloadHash", "createdAt", "contextVector", "selectedArmId", probabilities
+      FROM content_learning_decisions
+      WHERE id = ANY(${ids}::text[]) AND "organizationId" = ${source.organizationId}
+        AND "credentialId" = ${source.credentialId} AND NOT "isDeleted" AND NOT synthetic
+        AND state = 'published' AND "createdAt" <= ${source.cutoff.toISOString()}::timestamp
+        AND "createdAt" >= ${source.grantedAt.toISOString()}::timestamp`);
   }
   private async buildSnapshot(
     input: LearningDatasetCreationInput,
@@ -376,7 +403,7 @@ export class LearningDatasetService {
       rows,
       provenance,
       sources,
-      graph: new LearningDatasetGraph(tx),
+      graph: new LearningDatasetGraph(tx, undefined, true),
       examined: 0,
     };
   }
@@ -392,62 +419,72 @@ export class LearningDatasetService {
     source: DatasetSource,
     tx: Prisma.TransactionClient,
   ) {
-    const { account, consent } = source,
-      { cutoff, graph } = selection;
+    const { account } = source,
+      { cutoff } = selection;
     let cursor: string | undefined;
     for (;;) {
-      const rewards = await tx.contentLearningReward.findMany({
-        select: REWARD_SELECT,
-        where: {
-          ...(cursor ? { id: { gt: cursor } } : {}),
-          organizationId: account.organizationId,
-          credentialId: account.credentialId,
-          status: 'valid',
-          isDeleted: false,
-          createdAt: { lte: cutoff },
-        },
-        orderBy: { id: 'asc' },
-        take: DATASET_BATCH_SIZE,
-      });
+      const rewards = await tx.$queryRaw<DatasetReward[]>(Prisma.sql`
+        SELECT ${Prisma.raw(REWARD_COLUMNS)} FROM content_learning_rewards
+        WHERE ${cursor === undefined ? Prisma.sql`TRUE` : Prisma.sql`id > ${cursor}`}
+          AND "organizationId" = ${account.organizationId} AND "credentialId" = ${account.credentialId}
+          AND status = 'valid' AND NOT "isDeleted" AND "createdAt" <= ${cutoff.toISOString()}::timestamp
+        ORDER BY id ASC LIMIT ${DATASET_BATCH_SIZE}`);
       if (!rewards.length) break;
       cursor = rewards[rewards.length - 1].id;
       selection.examined += rewards.length;
       assertLearningDatasetCandidateCount(selection.examined);
-      const decisionIds = [
-        ...new Set(rewards.map((reward) => reward.decisionId)),
-      ];
-      const latest = await this.latest(tx, account.organizationId, decisionIds);
-      const decisions = new Map(
-        (
-          await tx.contentLearningDecision.findMany({
-            select: DECISION_SELECT,
-            where: {
-              id: { in: decisionIds },
-              organizationId: account.organizationId,
-              credentialId: account.credentialId,
-              isDeleted: false,
-              synthetic: false,
-              state: 'published',
-              createdAt: { lte: cutoff, gte: consent.grantedAt ?? cutoff },
-            },
-          })
-        ).map((decision) => [decision.id, decision]),
+      const page = await this.preparePage(selection, source, rewards, tx);
+      this.appendEligibleRewards(
+        selection,
+        source,
+        page.eligible,
+        page.decisions,
       );
-      const eligible = rewards.filter(
-        (reward) =>
-          reward.composite !== null &&
-          latest.get(reward.decisionId) === reward.version &&
-          decisions.has(reward.decisionId),
-      );
-      await graph.load(
-        eligible.map((reward) => ({
-          kind: 'reward',
-          id: reward.id,
-          organizationId: account.organizationId,
-        })),
-      );
-      this.appendEligibleRewards(selection, source, eligible, decisions);
     }
+  }
+  private async preparePage(
+    selection: DatasetSelection,
+    source: DatasetSource,
+    rewards: DatasetReward[],
+    tx: Prisma.TransactionClient,
+  ): Promise<PreparedPage> {
+    const { account, consent } = source,
+      { cutoff, graph } = selection;
+    const decisionIds = [
+      ...new Set(rewards.map((reward) => reward.decisionId)),
+    ];
+    const [latest, decisionRows] = await Promise.all([
+      this.latest(tx, account.organizationId, decisionIds),
+      this.decisions(
+        tx,
+        {
+          organizationId: account.organizationId,
+          credentialId: account.credentialId,
+          cutoff,
+          grantedAt: consent.grantedAt ?? cutoff,
+        },
+        decisionIds,
+      ),
+    ]);
+    const decisions = new Map(
+      decisionRows.map((decision) => [decision.id, decision]),
+    );
+    const eligible = rewards.filter(
+      (reward) =>
+        reward.composite !== null &&
+        latest.get(reward.decisionId) === reward.version &&
+        decisions.has(reward.decisionId),
+    );
+    graph.primeRewards(eligible);
+    graph.primeDecisions(account.organizationId, decisionRows);
+    await graph.load(
+      eligible.map((reward) => ({
+        kind: 'reward',
+        id: reward.id,
+        organizationId: account.organizationId,
+      })),
+    );
+    return { eligible, decisions };
   }
   private appendEligibleRewards(
     selection: DatasetSelection,
@@ -587,53 +624,63 @@ export class LearningDatasetService {
     selection: DatasetSelection,
     tx: Prisma.TransactionClient,
   ) {
-    const fresh = new LearningDatasetGraph(tx);
+    const fresh = new LearningDatasetGraph(tx, undefined, true);
+    const selectedByAccount = new Map<string, DatasetProvenance[]>();
+    for (const value of selection.provenance.values()) {
+      const selected = selectedByAccount.get(value.accountId) ?? [];
+      selected.push(value);
+      selectedByAccount.set(value.accountId, selected);
+    }
+    const work: Array<{ current: DatasetSource; part: DatasetProvenance[] }> =
+      [];
     for (const source of selection.sources) {
       const current = await this.source(tx, source);
-      const selected = [...selection.provenance.values()].filter(
-        (value) => value.accountId === source.accountId,
+      for (const part of batches(selectedByAccount.get(source.accountId) ?? []))
+        work.push({ current, part });
+    }
+    for (const { current, part } of work) {
+      const { latest, decisionRows } = await this.loadRevalidation(
+        selection,
+        current,
+        part,
+        fresh,
+        tx,
       );
-      for (const part of batches(selected))
-        await this.revalidateBatch(
-          selection,
-          current,
-          source.organizationId,
-          part,
-          fresh,
-          tx,
-        );
+      this.verifyRevalidation(
+        selection,
+        current,
+        part,
+        fresh,
+        latest,
+        decisionRows,
+      );
     }
     return fresh;
   }
-  private async revalidateBatch(
+  private async loadRevalidation(
     selection: DatasetSelection,
     current: DatasetSource,
-    organizationId: string,
     part: DatasetProvenance[],
     fresh: LearningDatasetGraph,
     tx: Prisma.TransactionClient,
-  ) {
+  ): Promise<RevalidationPage> {
     const { account, consent } = current,
       { cutoff } = selection;
-    const latest = await this.latest(tx, organizationId, [
-      ...new Set(part.map((value) => value.decisionId)),
+    const decisionIds = [...new Set(part.map((value) => value.decisionId))];
+    const [latest, decisionRows] = await Promise.all([
+      this.latest(tx, account.organizationId, decisionIds),
+      this.decisions(
+        tx,
+        {
+          organizationId: account.organizationId,
+          credentialId: account.credentialId,
+          cutoff,
+          grantedAt: consent.grantedAt ?? cutoff,
+        },
+        decisionIds,
+      ),
     ]);
-    const decisions = new Map(
-      (
-        await tx.contentLearningDecision.findMany({
-          select: DECISION_SELECT,
-          where: {
-            id: { in: part.map((value) => value.decisionId) },
-            organizationId: account.organizationId,
-            credentialId: account.credentialId,
-            isDeleted: false,
-            synthetic: false,
-            state: 'published',
-            createdAt: { lte: cutoff, gte: consent.grantedAt ?? cutoff },
-          },
-        })
-      ).map((decision) => [decision.id, decision]),
-    );
+    fresh.primeDecisions(account.organizationId, decisionRows);
     await fresh.load(
       part.flatMap((value) => [
         {
@@ -647,6 +694,21 @@ export class LearningDatasetService {
           organizationId: value.organizationId,
         },
       ]),
+    );
+    return { latest, decisionRows };
+  }
+  private verifyRevalidation(
+    selection: DatasetSelection,
+    current: DatasetSource,
+    part: DatasetProvenance[],
+    fresh: LearningDatasetGraph,
+    latest: Map<string, number>,
+    decisionRows: DatasetDecision[],
+  ) {
+    const { account, consent } = current,
+      { cutoff } = selection;
+    const decisions = new Map(
+      decisionRows.map((decision) => [decision.id, decision]),
     );
     for (const value of part) {
       const decision = decisions.get(value.decisionId);
@@ -756,30 +818,41 @@ export class LearningDatasetService {
   ) {
     const { rows, provenance } = selection,
       { split } = manifest;
-    for (const part of batches(rows))
-      await tx.contentLearningDatasetEntry.createMany({
-        data: part.map((row) => {
-          const source = provenance.get(row.sourceFingerprint);
-          return {
-            datasetId,
-            sourceFingerprint: row.sourceFingerprint,
-            sourceReference: toPrismaJson(
-              source
-                ? { rewardId: source.rewardId, consentId: source.consentId }
-                : { ownedLogFingerprint: row.sourceFingerprint },
-            ),
-            accountGroup: row.accountGroup,
-            decisionAt: new Date(row.decisionAt),
-            measuredAt: new Date(row.measuredAt),
-            features: row.features,
-            armId: row.armId,
-            probabilities: toPrismaJson(row.probabilities),
-            reward: row.reward,
-            split: split(row),
-            synthetic: row.synthetic,
-          };
-        }),
+    // Raw unnest inserts: Prisma createMany costs ~150ms CPU per 1,000 rows at 100k scale.
+    for (const part of batches(rows)) {
+      const references = part.map((row) => {
+        const source = provenance.get(row.sourceFingerprint);
+        return JSON.stringify(
+          source
+            ? { rewardId: source.rewardId, consentId: source.consentId }
+            : { ownedLogFingerprint: row.sourceFingerprint },
+        );
       });
+      await tx.$executeRaw(Prisma.sql`
+        INSERT INTO content_learning_dataset_entries
+          (id, "createdAt", "updatedAt", "datasetId", "sourceFingerprint", "sourceReference",
+           "accountGroup", "decisionAt", "measuredAt", features, "armId", probabilities,
+           reward, split, synthetic)
+        SELECT v.id, timezone('UTC', now()), timezone('UTC', now()), ${datasetId}::text, v.fingerprint,
+          v.reference::jsonb, v."accountGroup", v."decisionAt"::timestamp, v."measuredAt"::timestamp,
+          v.features::float8[], v."armId", v.probabilities::jsonb, v.reward::float8, v.split,
+          v.synthetic::boolean
+        FROM unnest(
+          ${part.map(() => randomUUID())}::text[],
+          ${part.map((row) => row.sourceFingerprint)}::text[],
+          ${references}::text[],
+          ${part.map((row) => row.accountGroup)}::text[],
+          ${part.map((row) => new Date(row.decisionAt).toISOString())}::text[],
+          ${part.map((row) => new Date(row.measuredAt).toISOString())}::text[],
+          ${part.map((row) => `{${row.features.join(',')}}`)}::text[],
+          ${part.map((row) => row.armId)}::text[],
+          ${part.map((row) => JSON.stringify(row.probabilities))}::text[],
+          ${part.map((row) => String(row.reward))}::text[],
+          ${part.map((row) => split(row))}::text[],
+          ${part.map((row) => String(row.synthetic))}::text[]
+        ) AS v(id, fingerprint, reference, "accountGroup", "decisionAt", "measuredAt",
+               features, "armId", probabilities, reward, split, synthetic)`);
+    }
   }
   private async persistDependencies(
     selection: DatasetSelection,
@@ -815,16 +888,18 @@ export class LearningDatasetService {
     )
       throw new ConflictException('Invalid dataset dependency identity');
     for (const part of batches([...refs.values()]))
-      await tx.contentLearningDependency.createMany({
-        data: part.map((ref) => ({
-          sourceKind: ref.kind,
-          sourceId: ref.id,
-          sourceVersion: ref.version,
-          sourceOrganizationId: ref.organizationId,
-          derivedKind: 'dataset',
-          derivedId: dataset.id,
-          derivedOrganizationId: null,
-        })),
-      });
+      await tx.$executeRaw(Prisma.sql`
+        INSERT INTO content_learning_dependencys
+          (id, "createdAt", "updatedAt", "sourceKind", "sourceOrganizationId", "sourceId",
+           "sourceVersion", "derivedKind", "derivedId", "derivedOrganizationId")
+        SELECT v.id, timezone('UTC', now()), timezone('UTC', now()), v.kind, v.organization, v."sourceId",
+          v.version, 'dataset', ${dataset.id}::text, NULL
+        FROM unnest(
+          ${part.map(() => randomUUID())}::text[],
+          ${part.map((ref) => ref.kind)}::text[],
+          ${part.map((ref) => ref.organizationId)}::text[],
+          ${part.map((ref) => ref.id)}::text[],
+          ${part.map((ref) => ref.version)}::text[]
+        ) AS v(id, kind, organization, "sourceId", version)`);
   }
 }

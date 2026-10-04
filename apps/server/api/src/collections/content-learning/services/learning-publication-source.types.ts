@@ -16,7 +16,7 @@ export type LearningPublicationPostVersionInputV1 = Pick<
   | 'externalId'
   | 'publishedAt'
 > & { description: string };
-export const learningPublicationPostSelect = {
+export const learningPublicationPostScalarSelect = {
   brandId: true,
   category: true,
   credentialId: true,
@@ -56,6 +56,9 @@ export const learningPublicationPostSelect = {
   publishedAt: true,
   publishApprovalId: true,
   reviewVersionPinId: true,
+} satisfies Prisma.PostSelect;
+export const learningPublicationPostSelect = {
+  ...learningPublicationPostScalarSelect,
   _count: {
     select: {
       ingredients: true,
@@ -63,6 +66,9 @@ export const learningPublicationPostSelect = {
     },
   },
 } satisfies Prisma.PostSelect;
+export type LearningPublicationPostScalarRow = Prisma.PostGetPayload<{
+  select: typeof learningPublicationPostScalarSelect;
+}>;
 export const learningPublicationOrganizationSelect = {
   id: true,
   isDeleted: true,
