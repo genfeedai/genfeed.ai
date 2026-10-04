@@ -41,6 +41,7 @@ import {
   SUBSCRIPTIONS_SERVICE,
   USER_SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/contracts/interfaces/billing';
+import { toPrismaJson } from '@genfeedai/prisma';
 import {
   buildSystemEmailHtml,
   buildSystemEmailParagraph,
@@ -63,6 +64,7 @@ type ManagedCheckoutResources = {
 
 type SkillReceiptDocument = {
   data?: unknown;
+  id?: string;
   receiptId?: string | null;
 };
 
@@ -958,80 +960,81 @@ export class StripeCheckoutWebhookHandler {
         'skills-pro-receipt',
         async () => {
           const email = this.readSkillsProBuyerEmail(session);
-          const { dbUser, organizationId } = await this.resolveSkillsProBuyer(
-            session,
-            email,
-          );
-          const existingReceipt = await this.findSkillsProReceiptBySessionId(
-            session.id,
-          );
-
-          if (existingReceipt) {
-            const existingReceiptId =
-              this.readSkillsProReceiptId(existingReceipt);
-            if (!existingReceiptId) {
-              throw new Error(
-                `skills-pro checkout ${session.id} has a receipt without an id`,
-              );
-            }
-
-            await this.sendSkillsProReceiptEmail(
-              session.id,
-              email,
-              existingReceiptId,
-            );
-            await this.supportService.upsertSkillsProLead({
-              email,
-              organizationId,
-              productType: this.parseSkillsProProductType(session),
-              receiptId: existingReceiptId,
-              skillSlugs: this.parseSkillsProSlugs(
-                session.metadata?.skillSlugs,
-                session.metadata?.skillSlug,
-              ),
-              userId: String(dbUser.id),
-            });
-            this.loggerService.log(`${url} skills-pro receipt already exists`, {
-              productType: 'bundle',
-              sessionId: session.id,
-            });
-            return true;
-          }
-
-          const receiptId = `sk_rcpt_${nanoid(16)}`;
           const productType = this.parseSkillsProProductType(session);
           const skillSlugs = this.parseSkillsProSlugs(
             session.metadata?.skillSlugs,
             session.metadata?.skillSlug,
           );
-          const stripeCustomerId =
-            typeof session.customer === 'string' ? session.customer : undefined;
 
-          await this.prisma.skillReceipt.create({
-            data: {
-              productType,
-              receiptId,
-              skillSlugs,
-              status: 'completed',
+          // Record the paid receipt first so a provisioning failure can never
+          // lose it. A retry finds this row and only completes provisioning.
+          let receipt = await this.findSkillsProReceiptBySessionId(session.id);
+          let receiptId: string;
+
+          if (receipt) {
+            const existingReceiptId = this.readSkillsProReceiptId(receipt);
+            if (!existingReceiptId) {
+              throw new Error(
+                `skills-pro checkout ${session.id} has a receipt without an id`,
+              );
+            }
+            receiptId = existingReceiptId;
+            this.loggerService.log(`${url} skills-pro receipt already exists`, {
+              productType: 'bundle',
+              sessionId: session.id,
+            });
+          } else {
+            receiptId = `sk_rcpt_${nanoid(16)}`;
+            const stripeCustomerId =
+              typeof session.customer === 'string'
+                ? session.customer
+                : undefined;
+
+            receipt = await this.prisma.skillReceipt.create({
               data: {
-                amountPaid: session.amount_total || 0,
-                currency: session.currency || 'usd',
-                email,
                 productType,
                 receiptId,
-                skills: skillSlugs,
+                skillSlugs,
                 status: 'completed',
-                ...(stripeCustomerId ? { stripeCustomerId } : {}),
-                stripePaymentIntentId: session.payment_intent
-                  ? String(session.payment_intent)
-                  : undefined,
-                stripeSessionId: session.id,
-                userId: String(dbUser.id),
+                data: {
+                  amountPaid: session.amount_total || 0,
+                  currency: session.currency || 'usd',
+                  email,
+                  productType,
+                  provisioningStatus: 'pending',
+                  receiptId,
+                  skills: skillSlugs,
+                  status: 'completed',
+                  ...(stripeCustomerId ? { stripeCustomerId } : {}),
+                  stripePaymentIntentId: session.payment_intent
+                    ? String(session.payment_intent)
+                    : undefined,
+                  stripeSessionId: session.id,
+                },
               },
-            },
-          });
+            });
+            this.loggerService.log(`${url} skills-pro receipt created`, {
+              ...getEmailLogMetadata(email),
+              productType,
+              sessionId: session.id,
+            });
+          }
 
+          // The receipt email does not depend on an account, so the buyer gets
+          // it even when provisioning below fails (idempotent per session).
           await this.sendSkillsProReceiptEmail(session.id, email, receiptId);
+
+          // Provisioning failure rethrows so Stripe retries; the receipt
+          // already exists, so the retry provisions exactly once.
+          const { dbUser, organizationId } = await this.resolveSkillsProBuyer(
+            session,
+            email,
+          );
+          await this.markSkillsProReceiptProvisioned(
+            receipt,
+            receiptId,
+            String(dbUser.id),
+          );
           await this.supportService.upsertSkillsProLead({
             email,
             organizationId,
@@ -1039,12 +1042,6 @@ export class StripeCheckoutWebhookHandler {
             receiptId,
             skillSlugs,
             userId: String(dbUser.id),
-          });
-
-          this.loggerService.log(`${url} skills-pro receipt created`, {
-            ...getEmailLogMetadata(email),
-            productType,
-            sessionId: session.id,
           });
 
           return true;
@@ -1067,7 +1064,9 @@ export class StripeCheckoutWebhookHandler {
   }
 
   private readSkillsProBuyerEmail(session: StripeCheckoutSession): string {
-    const email = session.customer_details?.email?.trim() ?? '';
+    // users.email is stored lower-case (Better Auth), so normalize at the
+    // boundary for both the lookup and the create.
+    const email = session.customer_details?.email?.trim().toLowerCase() ?? '';
     if (!email.includes('@')) {
       throw new Error(
         `skills-pro checkout ${session.id} is missing a customer email`,
@@ -1101,6 +1100,32 @@ export class StripeCheckoutWebhookHandler {
       dbUser,
       organizationId: organization ? String(organization.id) : null,
     };
+  }
+
+  private async markSkillsProReceiptProvisioned(
+    receipt: SkillReceiptDocument,
+    receiptId: string,
+    userId: string,
+  ): Promise<void> {
+    const current = this.isJsonRecord(receipt.data) ? receipt.data : {};
+    if (
+      current.provisioningStatus === 'completed' &&
+      current.userId === userId
+    ) {
+      return;
+    }
+
+    await this.prisma.skillReceipt.update({
+      data: {
+        data: toPrismaJson({
+          ...current,
+          provisioningStatus: 'completed',
+          receiptId,
+          userId,
+        }),
+      },
+      where: receipt.id ? { id: receipt.id } : { receiptId },
+    });
   }
 
   private readSkillsProReceiptId(receipt: SkillReceiptDocument): string | null {
