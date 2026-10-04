@@ -176,6 +176,8 @@ describe('canonicalizeRequestedMcpResource', () => {
     'https://mcp.genfeed.ai/mcp',
     'https://mcp.genfeed.ai/mcp?profile=full&tenant=other',
     'https://mcp.genfeed.ai/mcp?profile=full#fragment',
+    'https://mcp.genfeed.ai/mcp?profile=full#',
+    'https://reviewer@mcp.genfeed.ai/mcp?profile=full',
     'https://evil.example/mcp?profile=full',
     'not a url',
   ])('leaves %s for the exact comparison to judge', (requested) => {

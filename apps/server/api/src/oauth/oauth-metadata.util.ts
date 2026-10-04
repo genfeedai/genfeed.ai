@@ -75,7 +75,8 @@ export function canonicalizeRequestedMcpResource(resource: string): string {
   } catch {
     return resource;
   }
-  if (url.hash) {
+  // `url.hash` is empty for a bare trailing `#`, so check the raw value.
+  if (resource.includes('#') || url.username || url.password) {
     return resource;
   }
   const keys = [...url.searchParams.keys()];
