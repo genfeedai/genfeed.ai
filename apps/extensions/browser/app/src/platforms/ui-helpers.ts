@@ -167,6 +167,20 @@ function extractPostContext(): { content: string; author: string } {
 }
 
 // Convert data URL to File object
+/** Tells the background this text came from Genfeed, so publishing it may be saved. */
+function markWrittenByGenfeed(content: string): void {
+  try {
+    void Promise.resolve(
+      chrome.runtime.sendMessage({
+        payload: { content, success: true },
+        type: 'CONTENT_INSERTED',
+      }),
+    ).catch(() => undefined);
+  } catch {
+    // The extension context was invalidated; the text simply is not saved.
+  }
+}
+
 function dataUrlToFile(dataUrl: string, filename: string): File {
   const arr = dataUrl.split(',');
   const mimeMatch = arr[0].match(/:(.*?);/);
@@ -218,6 +232,7 @@ async function injectMediaIntoTwitter(
     if (replyBox.isContentEditable) {
       replyBox.textContent = replyText;
       replyBox.dispatchEvent(new Event('input', { bubbles: true }));
+      markWrittenByGenfeed(replyText);
     }
 
     // Find Twitter's file input using resilient selector
@@ -531,6 +546,7 @@ async function injectVideoIntoTwitter(
     if (replyBox.isContentEditable) {
       replyBox.textContent = replyText;
       replyBox.dispatchEvent(new Event('input', { bubbles: true }));
+      markWrittenByGenfeed(replyText);
     }
 
     // Find Twitter's file input using resilient selector
@@ -938,6 +954,7 @@ export function createAIReplyButton(
           } else if (replyBox.isContentEditable) {
             replyBox.textContent = response.reply;
             replyBox.dispatchEvent(new Event('input', { bubbles: true }));
+            markWrittenByGenfeed(response.reply);
           }
 
           button.innerHTML = icons.check;
@@ -1148,6 +1165,7 @@ export function createGenFeedDropdown(
           if (replyBox.isContentEditable) {
             replyBox.textContent = response.reply;
             replyBox.dispatchEvent(new Event('input', { bubbles: true }));
+            markWrittenByGenfeed(response.reply);
           }
         }
 
@@ -1231,6 +1249,7 @@ export function createGenFeedDropdown(
           if (replyBox.isContentEditable) {
             replyBox.textContent = response.reply;
             replyBox.dispatchEvent(new Event('input', { bubbles: true }));
+            markWrittenByGenfeed(response.reply);
           }
         }
 
@@ -1319,6 +1338,7 @@ export function createGenFeedDropdown(
           if (replyBox.isContentEditable) {
             replyBox.textContent = response.reply;
             replyBox.dispatchEvent(new Event('input', { bubbles: true }));
+            markWrittenByGenfeed(response.reply);
           }
         }
 

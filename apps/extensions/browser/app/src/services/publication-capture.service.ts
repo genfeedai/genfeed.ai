@@ -37,6 +37,14 @@ import {
   validPublicationCaptureObservation as validObservation,
 } from '~services/publication-capture-validation';
 import {
+  addPublicationWrittenText,
+  matchesPublicationWrittenText,
+  NOT_WRITTEN_BY_GENFEED,
+  prunePublicationWrittenTexts,
+  readPublicationWrittenTexts as readWritten,
+  PUBLICATION_WRITTEN_KEY as WRITTEN,
+} from '~services/publication-capture-written';
+import {
   assertWorkspace,
   getWorkspaceState,
   requireWorkspace,
@@ -305,6 +313,47 @@ async function record(
   });
   return operation;
 }
+/** Remember text the extension just wrote into a composer so only it is captured. */
+export async function registerExtensionWrittenText(
+  content: unknown,
+  sender: chrome.runtime.MessageSender,
+): Promise<boolean> {
+  try {
+    const url = page(sender.url);
+    const tabId = sender.tab?.id;
+    if (
+      sender.id !== chrome.runtime.id ||
+      typeof content !== 'string' ||
+      !url ||
+      typeof tabId !== 'number' ||
+      !Number.isInteger(tabId) ||
+      tabId < 0 ||
+      sender.frameId !== 0
+    )
+      return false;
+    return await serial(async () => {
+      if (!(await enabled())) return false;
+      const snapshot = await current();
+      const now = Date.now();
+      const entries = prunePublicationWrittenTexts(await readWritten(), now);
+      if (
+        !addPublicationWrittenText(
+          entries,
+          String(tabId),
+          url.origin,
+          currentScope(snapshot),
+          content,
+          now,
+        )
+      )
+        return false;
+      await chrome.storage.session.set({ [WRITTEN]: entries });
+      return true;
+    });
+  } catch {
+    return false;
+  }
+}
 export async function handlePublicationCaptureMessage(
   request: unknown,
   sender: chrome.runtime.MessageSender,
@@ -473,7 +522,11 @@ export async function handlePublicationCaptureMessage(
       await serial(async () => {
         await pendingEntries(); // Refuse to overwrite malformed storage.
         await readIntents();
-        await chrome.storage.session.set({ [PENDING]: {}, [INTENTS]: {} });
+        await chrome.storage.session.set({
+          [PENDING]: {},
+          [INTENTS]: {},
+        });
+        await chrome.storage.session.remove(WRITTEN);
       });
       throw new Error('Publication recording is disabled.');
     }
@@ -593,6 +646,24 @@ export async function handlePublicationCaptureMessage(
             !same(intent.input.scope, s)
           )
             delete intents[intentKey];
+        const storedWritten = await readWritten();
+        const written = prunePublicationWrittenTexts(storedWritten, Date.now());
+        const writtenChanged =
+          JSON.stringify(written) !== JSON.stringify(storedWritten);
+        if (
+          !matchesPublicationWrittenText(
+            written,
+            key,
+            url?.origin ?? '',
+            s,
+            attempt.description,
+            Date.now(),
+          )
+        ) {
+          if (writtenChanged)
+            await chrome.storage.session.set({ [WRITTEN]: written });
+          throw new Error(NOT_WRITTEN_BY_GENFEED);
+        }
         if (attempt.surface.kind === 'x-reply-modal') {
           const intent = intents[key];
           if (
@@ -611,6 +682,7 @@ export async function handlePublicationCaptureMessage(
         await chrome.storage.session.set({
           [PENDING]: entries,
           [INTENTS]: intents,
+          ...(writtenChanged ? { [WRITTEN]: written } : {}),
         });
       });
       return { success: true, data: { kind: 'armed', attemptId: attempt.id } };
@@ -689,6 +761,7 @@ export async function handlePublicationCaptureMessage(
           RETAIN,
           'Could not identify one published post',
           'Could not confirm publication',
+          NOT_WRITTEN_BY_GENFEED,
           'Publication recording is disabled.',
           'Select a verified Genfeed workspace to record this publication',
           'Could not read publication recordings. Existing storage has been preserved.',
@@ -753,11 +826,15 @@ export function initializePublicationCapture(): () => void {
     void serial(async () => {
       const entries = await pendingEntries();
       const intents = await readIntents();
+      const written = await readWritten();
       delete entries[String(id)];
       delete intents[String(id)];
+      const hadWritten = String(id) in written;
+      delete written[String(id)];
       await chrome.storage.session.set({
         [PENDING]: entries,
         [INTENTS]: intents,
+        ...(hadWritten ? { [WRITTEN]: written } : {}),
       });
     }).catch(() => undefined);
   };
