@@ -26,6 +26,7 @@ import { Textarea } from '@ui/primitives/textarea';
 import { ChevronsUpDown, Settings } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 
 import { useCreateOrganizationModal } from './use-create-organization-modal';
@@ -52,6 +53,7 @@ export default function OrganizationSwitcher({
     status,
     switchOrganization,
   } = useRoutedOrganization();
+  const translate = useTranslations('ui.organizationSwitcher');
   const isLoading = status === 'loading';
   const isSwitching = status === 'switching';
   const createModal = useCreateOrganizationModal(getOrgsService);
@@ -144,7 +146,7 @@ export default function OrganizationSwitcher({
                 compactOnMobile && 'hidden md:inline',
               )}
             >
-              {isSwitching ? 'Switching…' : displayLabel}
+              {isSwitching ? translate('switching') : displayLabel}
             </span>
             <ChevronsUpDown
               className={cn(
