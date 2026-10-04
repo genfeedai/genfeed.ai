@@ -57,7 +57,7 @@ export function isValidSkillPackageSourceUrl(value: unknown): value is string {
       !url.username &&
       !url.password &&
       !/^https?:\/*([^/?#]*)/i
-        .exec(value.replaceAll('\\', '/'))?.[1]
+        .exec(value.replace(/\\/g, '/'))?.[1]
         .includes('@')
     );
   } catch {

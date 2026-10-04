@@ -617,7 +617,7 @@ describe('WorkflowExecutionQueueService', () => {
         [SCHEDULED_PUBLISH_QUEUE]: mockScheduledPublishQueue,
         [WORKFLOW_BACKGROUND_QUEUE]: mockBackgroundQueue,
       }[queueName];
-      expect(queue.add).toHaveBeenCalledWith(
+      expect(queue?.add).toHaveBeenCalledWith(
         'delay-resume',
         expect.objectContaining({ delayResumeData: data }),
         expect.objectContaining({ delay: 5000 }),
