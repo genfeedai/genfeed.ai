@@ -31,7 +31,11 @@ vi.mock(
     }: {
       onPublishIngredient: (ingredient: IIngredient) => void;
     }) => ({
-      handlers: { handleDownload, handlePublish: onPublishIngredient },
+      handlers: {
+        handleDownload,
+        handlePublish: (ingredient: IIngredient) =>
+          onPublishIngredient(ingredient),
+      },
       loadingStates: { isDownloading: false, isPublishing: false },
     }),
   }),
