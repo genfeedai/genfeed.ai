@@ -44,6 +44,9 @@ function buildProps(
       setHandle: vi.fn(),
       setLabel: vi.fn(),
     },
+    brandId: 'brand-1',
+    brands: [],
+    canManageSharing: false,
     candidate: null,
     create: {
       description: '',
