@@ -113,9 +113,20 @@ test('fails closed when the prior generated schema cannot be parsed', () => {
   );
 });
 
+test('allows static CREATE TRIGGER ... EXECUTE FUNCTION and EXECUTE PROCEDURE', () => {
+  for (const sql of [
+    'CREATE TRIGGER "t" BEFORE INSERT ON "ingredients" FOR EACH ROW EXECUTE FUNCTION "f"();',
+    'CREATE TRIGGER "t" BEFORE UPDATE ON "ingredients" FOR EACH ROW WHEN (OLD."origin" = \'UNKNOWN\') EXECUTE PROCEDURE "f"();',
+  ]) {
+    assert.deepEqual(destructiveOperations(sql).operations, []);
+  }
+});
+
 test('rejects dynamic SQL, unknown schemas, and malformed SQL rather than skipping them', () => {
   for (const sql of [
     'DO $$ BEGIN EXECUTE \'DROP TABLE "examples"\'; END $$;',
+    "DO $$ BEGIN EXECUTE format('DROP TABLE %I', 'examples'); END $$;",
+    'PREPARE drop_examples AS DROP TABLE "examples"; EXECUTE drop_examples;',
     'ALTER TABLE tenant."examples" DROP COLUMN "oldField";',
     'DROP TABLE "unterminated',
     '/* unterminated',

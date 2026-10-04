@@ -179,23 +179,118 @@ export function redactSensitiveString(value: string): string {
     .replace(PROVIDER_TOKEN_PATTERN, REDACTED_VALUE);
 }
 
-export function redactSensitiveValue(value: unknown): unknown {
+export const REDACTION_MAX_DEPTH = 12;
+export const REDACTED_TRUNCATED_VALUE = '[TRUNCATED]';
+export const REDACTED_CIRCULAR_VALUE = '[CIRCULAR]';
+export const REDACTED_UNSERIALIZABLE_VALUE = '[UNSERIALIZABLE]';
+
+function readProperty(source: object, key: string): unknown {
+  try {
+    return (source as Record<string, unknown>)[key];
+  } catch {
+    return undefined;
+  }
+}
+
+function pickDefined(source: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(source).filter(([, entry]) => entry !== undefined),
+  );
+}
+
+// Errors carry non-enumerable message/stack, and Axios-style errors hold
+// sockets and request objects that are huge and circular. Keep only the
+// diagnostic fields and never traverse the rest.
+function summarizeError(error: Error): Record<string, unknown> {
+  const summary: Record<string, unknown> = {
+    code: readProperty(error, 'code'),
+    message: error.message,
+    name: error.name,
+    stack: error.stack,
+    status: readProperty(error, 'status'),
+  };
+
+  const response = readProperty(error, 'response');
+  if (response !== null && typeof response === 'object') {
+    summary.response = pickDefined({
+      data: readProperty(response, 'data'),
+      status: readProperty(response, 'status'),
+    });
+  }
+
+  const config = readProperty(error, 'config');
+  if (config !== null && typeof config === 'object') {
+    summary.request = pickDefined({
+      method: readProperty(config, 'method'),
+      url: readProperty(config, 'url'),
+    });
+  }
+
+  return pickDefined(summary);
+}
+
+function redactNode(
+  value: unknown,
+  depth: number,
+  ancestors: WeakSet<object>,
+): unknown {
   if (typeof value === 'string') {
     return redactSensitiveString(value);
   }
 
-  if (Array.isArray(value)) {
-    return value.map((item) => redactSensitiveValue(item));
-  }
-
-  if (!isRecord(value)) {
+  if (value === null || typeof value !== 'object') {
     return value;
   }
 
-  return Object.fromEntries(
-    Object.entries(value).map(([key, entry]) => [
-      key,
-      isSensitiveKey(key) ? REDACTED_VALUE : redactSensitiveValue(entry),
-    ]),
-  );
+  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
+    return `[Binary ${value.byteLength} bytes]`;
+  }
+
+  if (value instanceof Date) {
+    return value;
+  }
+
+  if (ancestors.has(value)) {
+    return REDACTED_CIRCULAR_VALUE;
+  }
+
+  if (depth >= REDACTION_MAX_DEPTH) {
+    return REDACTED_TRUNCATED_VALUE;
+  }
+
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      return value.map((item) => redactNode(item, depth + 1, ancestors));
+    }
+
+    const source = value instanceof Error ? summarizeError(value) : value;
+    if (!isRecord(source)) {
+      return REDACTED_UNSERIALIZABLE_VALUE;
+    }
+
+    return Object.fromEntries(
+      Object.entries(source).map(([key, entry]) => [
+        key,
+        isSensitiveKey(key)
+          ? REDACTED_VALUE
+          : redactNode(entry, depth + 1, ancestors),
+      ]),
+    );
+  } finally {
+    ancestors.delete(value);
+  }
+}
+
+/**
+ * Total: never throws, bounded depth, cycle-safe. Values deeper than
+ * REDACTION_MAX_DEPTH are replaced with a marker; circular references become
+ * a marker; Errors are reduced to diagnostic fields; binary data is summarized.
+ */
+export function redactSensitiveValue(value: unknown): unknown {
+  try {
+    return redactNode(value, 0, new WeakSet<object>());
+  } catch {
+    return REDACTED_UNSERIALIZABLE_VALUE;
+  }
 }

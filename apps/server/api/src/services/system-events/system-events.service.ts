@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { systemNotificationStatusCode } from '@api/services/notifications/system-notification-delivery.error';
 import type {
   SystemEvent,
   SystemEventRecording,
@@ -14,6 +15,15 @@ import { SYSTEM_EVENT_TYPES } from '@libs/interfaces/system-event.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type Stripe from 'stripe';
+
+/** Bounds one sweep so a backlog drains over several sweeps instead of at once. */
+export const RECOVER_BATCH_SIZE = 20;
+/**
+ * An event whose own processing keeps throwing (for example an unparseable
+ * payload) stops after this many leases. Above the slow no-destination poll
+ * (one lease an hour for MAX_EVENT_AGE_MS) so holding never exhausts it.
+ */
+export const MAX_EVENT_ATTEMPTS = 32;
 
 @Injectable()
 export class SystemEventsService {
@@ -101,13 +111,15 @@ export class SystemEventsService {
         occurredAt: row.event.occurredAt.toISOString(),
         status: row.deliveredAt
           ? 'delivered'
-          : row.skippedAt
-            ? 'skipped'
-            : row.leaseUntil && row.leaseUntil > new Date()
-              ? 'sending'
-              : row.attempts > 0
-                ? 'failed'
-                : 'pending',
+          : row.failedAt
+            ? 'failed'
+            : row.skippedAt
+              ? 'skipped'
+              : row.leaseUntil && row.leaseUntil > new Date()
+                ? 'sending'
+                : row.attempts > 0
+                  ? 'failed'
+                  : 'pending',
         attempts: row.attempts,
         deliveredAt: row.deliveredAt?.toISOString() ?? null,
       })),
@@ -220,7 +232,7 @@ export class SystemEventsService {
         OR: [{ leaseUntil: null }, { leaseUntil: { lte: now } }],
       },
       orderBy: { nextAttemptAt: 'asc' },
-      take: 20,
+      take: RECOVER_BATCH_SIZE,
     });
     await Promise.all(
       due.map(async (row) => {
@@ -241,7 +253,6 @@ export class SystemEventsService {
           },
         });
         if (!claimed.count) return;
-        const status: number | null = null;
         try {
           const settings = await this.settings();
           const event = JSON.parse(row.payload) as SystemEvent;
@@ -295,12 +306,29 @@ export class SystemEventsService {
               leaseToken: null,
             },
           });
-        } catch {
+        } catch (error) {
           // Do not log request errors: URLs may contain credentials and payloads contain identity data.
-          this.logger.warn('System event delivery will retry', {
-            eventId: row.id,
-            statusCode: status,
-          });
+          const statusCode = systemNotificationStatusCode(error);
+          const isExhausted = row.attempts + 1 >= MAX_EVENT_ATTEMPTS;
+          this.logger.warn(
+            isExhausted
+              ? 'System event delivery failed permanently'
+              : 'System event delivery will retry',
+            { eventId: row.id, statusCode },
+          );
+          if (isExhausted) {
+            // tenant-scope-ignore: lease owner ends an event that can never be processed
+            await this.prisma.systemEventWebhook.updateMany({
+              where: { id: row.id, leaseToken, isDeleted: false },
+              data: {
+                skippedAt: new Date(),
+                leaseUntil: null,
+                leaseToken: null,
+                lastStatusCode: statusCode,
+              },
+            });
+            return;
+          }
           // tenant-scope-ignore: lease owner alone may reschedule this delivery
           await this.prisma.systemEventWebhook.updateMany({
             where: { id: row.id, leaseToken, isDeleted: false },
@@ -311,7 +339,7 @@ export class SystemEventsService {
               ),
               leaseUntil: null,
               leaseToken: null,
-              lastStatusCode: status,
+              lastStatusCode: statusCode,
             },
           });
         }
