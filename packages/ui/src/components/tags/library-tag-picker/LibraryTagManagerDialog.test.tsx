@@ -99,7 +99,8 @@ vi.mock('@ui/primitives/editable-text', () => ({
     <button
       aria-label={ariaLabel}
       onClick={() => {
-        void onSave(`${value} renamed`);
+        // Mirrors the real primitive, which catches a refused save and reverts.
+        void Promise.resolve(onSave(`${value} renamed`)).catch(() => undefined);
       }}
       type="button"
     >

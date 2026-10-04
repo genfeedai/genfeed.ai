@@ -35,6 +35,9 @@ import { useLibraryTags } from './use-library-tags';
 
 type CreatableScope = TagScope.BRAND | TagScope.ORGANIZATION;
 
+/** `onUpdate` already logged and notified; the rejection only lets inline editors revert. */
+function ignoreReportedFailure(): void {}
+
 function refreshLibraryAssets(): void {
   window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
 }
@@ -90,7 +93,9 @@ function TagManagerRow({
             defaultValue={tag.backgroundColor}
             onBlur={(event) => {
               if (event.target.value !== tag.backgroundColor) {
-                void onUpdate(tag, { backgroundColor: event.target.value });
+                void onUpdate(tag, {
+                  backgroundColor: event.target.value,
+                }).catch(ignoreReportedFailure);
               }
             }}
           />
@@ -99,7 +104,9 @@ function TagManagerRow({
             defaultValue={tag.textColor}
             onBlur={(event) => {
               if (event.target.value !== tag.textColor) {
-                void onUpdate(tag, { textColor: event.target.value });
+                void onUpdate(tag, { textColor: event.target.value }).catch(
+                  ignoreReportedFailure,
+                );
               }
             }}
           />
