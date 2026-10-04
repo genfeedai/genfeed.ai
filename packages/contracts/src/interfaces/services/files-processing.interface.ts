@@ -121,6 +121,10 @@ export interface IFileMetadata {
   duration?: number;
   size?: number;
   hasAudio?: boolean;
+  /** Audio codec reported by ffprobe; set for audio uploads. */
+  audioCodec?: string;
+  /** Container (ffprobe format name); set for audio uploads. */
+  container?: string;
   publicUrl?: string;
   [key: string]: unknown;
 }

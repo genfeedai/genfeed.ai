@@ -84,6 +84,10 @@ export function isImageOrVideoCategory(category: IngredientCategory): boolean {
   return policy === IMAGE_POLICY || policy === VIDEO_POLICY;
 }
 
+export function isAudioCategory(category: IngredientCategory): boolean {
+  return resolvePresignedUploadPolicy(category) === AUDIO_POLICY;
+}
+
 export function normalizeUploadContentType(contentType: unknown): string {
   return typeof contentType === 'string'
     ? (contentType.split(';')[0]?.trim().toLowerCase() ?? '')
