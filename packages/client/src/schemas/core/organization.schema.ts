@@ -48,6 +48,12 @@ export const createOrganizationSchema = z.object({
 export type CreateOrganizationFormValues = z.input<
   typeof createOrganizationSchema
 >;
-export type CreateOrganizationPayload = z.output<
-  typeof createOrganizationSchema
->;
+/**
+ * Body of `POST /organizations`. Optional keys may be omitted entirely; the
+ * schema's output (blank fields as `undefined`) is assignable to it.
+ */
+export interface CreateOrganizationPayload {
+  description?: string;
+  label: string;
+  websiteUrl?: string;
+}
