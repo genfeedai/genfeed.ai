@@ -155,13 +155,15 @@ vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     children,
+    label,
     onClick,
   }: {
     children?: ReactNode;
+    label?: ReactNode;
     onClick?: () => void;
   }) => (
     <button type="button" onClick={onClick}>
-      {children}
+      {label ?? children}
     </button>
   ),
 }));
@@ -259,7 +261,8 @@ describe('DiscoveryTrendTurnover', () => {
     expect(screen.getByText('4.3d')).toBeVisible();
     expect(screen.getByText('8.0d')).toBeVisible();
 
-    fireEvent.click(screen.getByText('7D'));
+    // Radix tab triggers activate on mousedown.
+    fireEvent.mouseDown(screen.getByRole('tab', { name: '7D' }));
     await waitFor(() => {
       expect(mocks.getTurnoverStats).toHaveBeenCalledWith(7);
     });
