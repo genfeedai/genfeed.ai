@@ -56,9 +56,11 @@ export function isValidSkillPackageSourceUrl(value: unknown): value is string {
       (url.protocol === 'http:' || url.protocol === 'https:') &&
       !url.username &&
       !url.password &&
-      !/^https?:\/*([^/?#]*)/i
-        .exec(value.replace(/\\/g, '/'))?.[1]
-        .includes('@')
+      // Check the authority both raw and with backslashes read as slashes, so
+      // `https://host\\@other` cannot smuggle userinfo past either parser.
+      ![value, value.replace(/\\/g, '/')].some((candidate) =>
+        /^https?:\/*([^/?#]*)/i.exec(candidate)?.[1]?.includes('@'),
+      )
     );
   } catch {
     return false;
