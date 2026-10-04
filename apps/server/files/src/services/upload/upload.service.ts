@@ -162,7 +162,10 @@ export class UploadService {
       audioCodec:
         String(audioStream.codec_name ?? '').toLowerCase() || 'unknown',
       container: metadata.format?.format_name || undefined,
-      duration: Number(metadata.format?.duration) || 0,
+      // MediaRecorder webm often has no container duration; fall back to the
+      // stream's, then 0. Readable audio is accepted without a duration.
+      duration:
+        Number(metadata.format?.duration) || Number(audioStream.duration) || 0,
     };
   }
 
@@ -439,7 +442,9 @@ export class UploadService {
     } else if (contentType.startsWith('audio/')) {
       ({ audioCodec, container, duration } = await this.probeBufferViaTempFile(
         body,
-        '.audio',
+        this.getAudioExtensionFromContentType(
+          contentType.split(';')[0]?.trim().toLowerCase() ?? '',
+        ),
         (tmpPath) => this.probeAudio(tmpPath),
       ));
       hasAudio = true;
@@ -701,7 +706,37 @@ export class UploadService {
       case 'video/webm':
         return '.mp4';
       default:
-        return '';
+        return mime?.startsWith('audio/')
+          ? this.getAudioExtensionFromContentType(mime)
+          : '';
+    }
+  }
+
+  /**
+   * ffprobe sniffs the content, but the probe's path guard only accepts an
+   * allowlisted extension, so audio gets one derived from the declared type.
+   */
+  private getAudioExtensionFromContentType(mime: string): string {
+    switch (mime) {
+      case 'audio/aac':
+        return '.aac';
+      case 'audio/flac':
+      case 'audio/x-flac':
+        return '.flac';
+      case 'audio/mp4':
+      case 'audio/x-m4a':
+        return '.m4a';
+      case 'audio/ogg':
+      case 'audio/opus':
+        return '.ogg';
+      case 'audio/wav':
+      case 'audio/wave':
+      case 'audio/x-wav':
+        return '.wav';
+      case 'audio/webm':
+        return '.webm';
+      default:
+        return '.mp3';
     }
   }
 

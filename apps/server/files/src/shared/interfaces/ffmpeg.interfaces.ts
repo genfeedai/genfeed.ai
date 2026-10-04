@@ -26,6 +26,7 @@ export interface FFprobeData {
   streams: FFprobeStream[];
   format: {
     filename: string;
+    format_name?: string;
     duration: string;
     size: string;
     bit_rate: string;

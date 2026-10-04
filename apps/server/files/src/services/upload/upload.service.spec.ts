@@ -359,6 +359,64 @@ describe('UploadService', () => {
       });
     });
 
+    describe('audio probe path validation', () => {
+      // The real probe path guard, not a mock of it: ffprobe is only reached
+      // for allowlisted extensions.
+      const probeWithRealExtensionGuard = (probedPath: string) => {
+        SecurityUtil.validateFileExtension(probedPath);
+        return Promise.resolve({
+          format: { format_name: 'webm' } as never,
+          streams: [{ codec_name: 'opus', codec_type: 'audio' }] as never,
+        });
+      };
+
+      it.each([
+        ['audio/mpeg', '.mp3'],
+        ['audio/webm', '.webm'],
+        ['audio/mp4', '.m4a'],
+        ['audio/opus', '.ogg'],
+        ['audio/unknown-type', '.mp3'],
+      ])(
+        'probes a downloaded %s with an allowlisted extension',
+        async (contentType, extension) => {
+          mockFfmpegService.getVideoMetadata.mockImplementation(
+            probeWithRealExtensionGuard as never,
+          );
+          safeFetchMock.mockResolvedValue(
+            remoteResponse('audio-content', { 'content-type': contentType }),
+          );
+
+          const result = await service.uploadToS3('test-key', 'audios', {
+            type: 'url',
+            url: 'https://example.com/recording',
+          });
+
+          expect(result.hasAudio).toBe(true);
+          expect(result.duration).toBe(0);
+          expect(
+            path.extname(
+              vi.mocked(mockFfmpegService.getVideoMetadata).mock
+                .calls[0]?.[0] ?? '',
+            ),
+          ).toBe(extension);
+        },
+      );
+
+      it('probes a valid audio buffer with an allowlisted extension', async () => {
+        mockFfmpegService.getVideoMetadata.mockImplementation(
+          probeWithRealExtensionGuard as never,
+        );
+
+        const result = await service.uploadToS3('test-key', 'audios', {
+          contentType: 'audio/webm;codecs=opus',
+          data: Buffer.from('recording'),
+          type: 'buffer',
+        });
+
+        expect(result).toMatchObject({ audioCodec: 'opus', hasAudio: true });
+      });
+    });
+
     it('rejects a file declared as audio that has no audio stream', async () => {
       mockFfmpegService.getVideoMetadata.mockResolvedValue({
         format: { duration: 3 },

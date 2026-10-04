@@ -229,8 +229,7 @@ export class PresignedUploadService {
       !uploadMeta ||
       (isImageOrVideoCategory(category) &&
         !(Number(uploadMeta.width) > 0 && Number(uploadMeta.height) > 0)) ||
-      (isAudioCategory(category) &&
-        !(uploadMeta.hasAudio === true && Number(uploadMeta.duration) > 0))
+      (isAudioCategory(category) && uploadMeta.hasAudio !== true)
     ) {
       this.loggerService.error(`${url} extracted no usable metadata`);
       await this.rejectUpload(id, s3Key);

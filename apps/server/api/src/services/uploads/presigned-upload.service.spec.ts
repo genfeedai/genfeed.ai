@@ -714,10 +714,36 @@ describe('PresignedUploadService', () => {
       expect(filesClientService.deleteStoredObject).not.toHaveBeenCalled();
     });
 
+    it('should confirm readable audio that has no container duration', async () => {
+      ingredientsService.findOne.mockResolvedValue(
+        createIngredientDocument({
+          category: IngredientCategory.AUDIO,
+          s3Key: `ingredients/audios/${mockIngredientId}`,
+        }),
+      );
+      filesClientService.uploadToExistingObject.mockResolvedValue({
+        audioCodec: 'opus',
+        container: 'matroska,webm',
+        duration: 0,
+        hasAudio: true,
+        size: 2048,
+      });
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocument({ status: IngredientStatus.UPLOADED }),
+      );
+
+      await service.confirmUpload(mockUser, mockIngredientId);
+
+      expect(filesClientService.deleteStoredObject).not.toHaveBeenCalled();
+      expect(ingredientsService.patch).toHaveBeenCalledWith(
+        mockIngredientId,
+        expect.objectContaining({ status: IngredientStatus.UPLOADED }),
+      );
+    });
+
     it.each([
       ['empty result', undefined],
       ['no audio stream', { duration: 5, hasAudio: false, size: 10 }],
-      ['zero duration', { duration: 0, hasAudio: true, size: 10 }],
     ])(
       'should fail an audio upload with %s and delete the object',
       async (_label, uploadMeta) => {
