@@ -77,6 +77,7 @@ export class TrendIngestionHealthService {
       scopes.flatMap((scope) => {
         const platform = fromPrismaCredentialPlatform(scope.platform);
         if (
+          !platform ||
           !scope.organizationId ||
           !TREND_REFRESH_DATASETS.some(
             (dataset) => dataset.platform === platform,
