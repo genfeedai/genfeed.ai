@@ -54,11 +54,15 @@ describe('AgentConnectLauncher', () => {
       other.focus();
     });
     await screen.findByRole('dialog');
+    // Radix listens for Escape on the document, not the window.
     act(() => {
-      window.dispatchEvent(
+      document.dispatchEvent(
         new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' }),
       );
     });
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
 
     await waitFor(() => expect(opener).toHaveFocus());
     opener.remove();
