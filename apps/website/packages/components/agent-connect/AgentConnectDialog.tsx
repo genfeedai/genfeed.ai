@@ -10,7 +10,11 @@ import AgentClientLogo from '@web-components/content/AgentClientLogo';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-export default function AgentConnectDialog() {
+export default function AgentConnectDialog({
+  openOnMount = false,
+}: {
+  openOnMount?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [client, setClient] = useState<AgentClient | null>(null);
   const trigger = useRef<HTMLElement | null>(null);
@@ -37,14 +41,15 @@ export default function AgentConnectDialog() {
       )
         show();
     };
-    showDeepLink();
+    if (openOnMount) show();
+    else showDeepLink();
     window.addEventListener(AGENT_CONNECT_EVENT, show);
     window.addEventListener('hashchange', showDeepLink);
     return () => {
       window.removeEventListener(AGENT_CONNECT_EVENT, show);
       window.removeEventListener('hashchange', showDeepLink);
     };
-  }, []);
+  }, [openOnMount]);
 
   function onOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);

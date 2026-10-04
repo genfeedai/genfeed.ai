@@ -1,0 +1,47 @@
+'use client';
+
+import { AGENT_CONNECT_EVENT } from '@ui/buttons/connect-agent/connect-agent.event';
+import dynamic from 'next/dynamic';
+import { useEffect, useState } from 'react';
+
+const LazyAgentConnectDialog = dynamic(() => import('./AgentConnectDialog'), {
+  ssr: false,
+});
+
+function isConnectDeepLink(): boolean {
+  return (
+    window.location.pathname === '/agent' && window.location.hash === '#connect'
+  );
+}
+
+/**
+ * Always-mounted, dependency-free listener. The dialog chunk is only fetched
+ * on the first open event or `/agent#connect` deep link; once loaded, the
+ * dialog owns its own listeners and opens itself on mount.
+ */
+export default function AgentConnectLauncher() {
+  const [isRequested, setIsRequested] = useState(false);
+
+  useEffect(() => {
+    if (isRequested) {
+      return;
+    }
+
+    const request = () => setIsRequested(true);
+    const requestDeepLink = () => {
+      if (isConnectDeepLink()) {
+        request();
+      }
+    };
+
+    requestDeepLink();
+    window.addEventListener(AGENT_CONNECT_EVENT, request);
+    window.addEventListener('hashchange', requestDeepLink);
+    return () => {
+      window.removeEventListener(AGENT_CONNECT_EVENT, request);
+      window.removeEventListener('hashchange', requestDeepLink);
+    };
+  }, [isRequested]);
+
+  return isRequested ? <LazyAgentConnectDialog openOnMount /> : null;
+}
