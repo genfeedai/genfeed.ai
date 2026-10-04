@@ -1,3 +1,4 @@
+import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import {
   selectActiveRun,
   selectIsGenerating,
@@ -5,6 +6,17 @@ import {
 } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentRuntimeState, AgentThreadStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it } from 'vitest';
+
+function createThread(id: string): AgentThread {
+  return {
+    contextVersion: 1,
+    createdAt: '2026-10-04T10:00:00.000Z',
+    id,
+    status: AgentThreadStatus.ACTIVE,
+    title: id,
+    updatedAt: '2026-10-04T10:00:00.000Z',
+  };
+}
 
 function state() {
   return useAgentChatStore.getState();
@@ -180,12 +192,7 @@ describe('agent-chat.store per-thread run state', () => {
 
   it('settles a background thread summary in the same update as its record', () => {
     for (const id of ['thread-a', 'thread-b']) {
-      state().upsertThread({
-        contextVersion: 1,
-        id,
-        status: AgentThreadStatus.ACTIVE,
-        title: id,
-      });
+      state().upsertThread(createThread(id));
     }
     state().setActiveRun('run-a');
     state().setActiveThread('thread-b');
@@ -205,12 +212,7 @@ describe('agent-chat.store per-thread run state', () => {
 
   it('applies a pushed status to a background thread without touching the visible run', () => {
     for (const id of ['thread-a', 'thread-b']) {
-      state().upsertThread({
-        contextVersion: 1,
-        id,
-        status: AgentThreadStatus.ACTIVE,
-        title: id,
-      });
+      state().upsertThread(createThread(id));
     }
     state().setActiveRun('run-a');
     state().setActiveThread('thread-b');
@@ -236,12 +238,7 @@ describe('agent-chat.store per-thread run state', () => {
   });
 
   it('mirrors the open thread run status into its summary', () => {
-    state().upsertThread({
-      contextVersion: 1,
-      id: 'thread-a',
-      status: AgentThreadStatus.ACTIVE,
-      title: 'A',
-    });
+    state().upsertThread(createThread('thread-a'));
     state().setActiveRun('run-a');
     expect(state().threads[0]?.runStatus).toBe('running');
   });
