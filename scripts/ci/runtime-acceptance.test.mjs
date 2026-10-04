@@ -1,14 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import {
-  constants,
-  createDecipheriv,
-  createHash,
-  generateKeyPairSync,
-  privateDecrypt,
-  randomBytes,
-  randomUUID,
-} from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import {
   chmod,
   lstat,
@@ -32,6 +24,7 @@ import {
   BASELINE_SOURCE_CONTRACT,
   BRAND_PATH,
   BRAND_SOURCE_CONTRACT,
+  buildEvidence,
   buildLearningRedisReceipt,
   CRUN_SOURCE_CONTRACT,
   cleanupFinalCrunResources,
@@ -47,9 +40,9 @@ import {
   datasetChildEnvironment,
   dedicatedChildEnvironment,
   ENVELOPE_LIMIT,
-  encryptEvidence,
   execution,
   FINAL_LEARNING_BUDGET,
+  failureSummary,
   hasFinalCrunTerminationProof,
   hasFinalLearningTerminationProof,
   LEARNING_DELEGATED_API_FILES,
@@ -69,6 +62,7 @@ import {
   privateVitestReporterArguments,
   RAW_LIMIT,
   readPostgresCredentials,
+  redactBytes,
   removeValidatedVisualRenderers,
   rendererContainerNames,
   requireLearningRedisBlank,
@@ -95,7 +89,6 @@ import {
   validateCrunManifest,
   validateOutcome,
   validateOwnerContract,
-  validatePublicKey,
   validateReport,
   validateSha,
   validateSharedApiFullPartition,
@@ -115,17 +108,11 @@ import {
 
 const SHA = 'a'.repeat(40);
 const CONTROL = 'b'.repeat(40);
-const { publicKey, privateKey } = generateKeyPairSync('rsa', {
-  modulusLength: 3072,
-});
-const PEM = publicKey.export({ type: 'spki', format: 'pem' });
-const fingerprint = validatePublicKey(PEM).fingerprint;
 const identity = {
   version: 1,
   candidateSHA: SHA,
   controlSHA: CONTROL,
   group: 'dataset-diagnostic',
-  fingerprint,
 };
 const child = { exitCode: 0, signal: null, timedOut: false };
 const report = (assertions, name = '/fixture/sample.spec.ts') => ({
@@ -152,32 +139,6 @@ async function fixture(t) {
   );
   t.after(() => rm(directory, { recursive: true, force: true }));
   return realpath(directory);
-}
-function decrypt(envelope, key = privateKey) {
-  const secret = privateDecrypt(
-    { key, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' },
-    Buffer.from(envelope.wrappedKey, 'base64'),
-  );
-  const decipher = createDecipheriv(
-    'aes-256-gcm',
-    secret,
-    Buffer.from(envelope.nonce, 'base64'),
-  );
-  const aad = {
-    version: envelope.version,
-    candidateSHA: envelope.candidateSHA,
-    controlSHA: envelope.controlSHA,
-    group: envelope.group,
-    fingerprint: envelope.fingerprint,
-  };
-  decipher.setAAD(Buffer.from(JSON.stringify(aad)));
-  decipher.setAuthTag(Buffer.from(envelope.tag, 'base64'));
-  return JSON.parse(
-    Buffer.concat([
-      decipher.update(Buffer.from(envelope.ciphertext, 'base64')),
-      decipher.final(),
-    ]).toString(),
-  );
 }
 function datasetRecord(kind, size, run, diagnostic = false) {
   return {
@@ -511,65 +472,73 @@ test('retains unchanged dataset latency, SQL, bind and graph bounds', () => {
   assert.throws(() => parseDatasetRecords(lines(records), 'matrix'));
 });
 
-test('accepts only RSA public SPKI keys of at least 3072 bits', () => {
-  assert.match(fingerprint, /^[a-f0-9]{64}$/);
-  for (const value of [
-    undefined,
-    '',
-    'malformed',
-    privateKey.export({ type: 'pkcs8', format: 'pem' }),
-    generateKeyPairSync('rsa', { modulusLength: 2048 }).publicKey.export({
-      type: 'spki',
-      format: 'pem',
-    }),
-    generateKeyPairSync('ec', { namedCurve: 'prime256v1' }).publicKey.export({
-      type: 'spki',
-      format: 'pem',
-    }),
-  ])
-    assert.throws(() => validatePublicKey(value));
+test('plaintext evidence carries both SHAs and the payload verbatim', () => {
+  const payload = {
+    outcome: { error: 'readable error', prompt: 'readable prompt' },
+    files: [{ path: 'source.ts', bytes: 'media' }],
+  };
+  const document = JSON.parse(buildEvidence(payload, identity, {}));
+  assert.deepEqual(document, {
+    version: 1,
+    candidateSHA: SHA,
+    controlSHA: CONTROL,
+    group: 'dataset-diagnostic',
+    ...payload,
+  });
 });
 
-test('encrypted evidence roundtrips privately and authenticates both SHAs and contents', () => {
-  const payload = {
-    outcome: { error: 'private error', prompt: 'private prompt' },
-    files: [{ path: 'private-source.ts', bytes: 'private media' }],
+test('evidence redacts environment values whose names look secret and nothing else', () => {
+  const env = {
+    GITHUB_TOKEN: 'ghs_token_value_123',
+    SOME_API_KEY: 'key-value-456',
+    DB_PASSWORD: 'pass/word"789',
+    CLIENT_SECRET: 'secret-value-000',
+    SHORT_TOKEN: 'abc',
+    CI_JOB: 'plain-public-value',
   };
-  const first = encryptEvidence(payload, identity, PEM);
-  const second = encryptEvidence(payload, identity, PEM);
-  assert.deepEqual(decrypt(first), payload);
-  assert.notEqual(first.nonce, second.nonce);
-  assert.notEqual(first.wrappedKey, second.wrappedKey);
-  for (const plaintext of [
-    'private error',
-    'private prompt',
-    'private-source.ts',
-    'private media',
+  const payload = {
+    outcome: {
+      error: `boom ${env.GITHUB_TOKEN} ${env.DB_PASSWORD} ${env.CI_JOB} ${env.SHORT_TOKEN}`,
+    },
+    files: [
+      {
+        path: 'raw/log.stdout',
+        bytes: redactBytes(
+          Buffer.from(`leak ${env.SOME_API_KEY} and ${env.CLIENT_SECRET}`),
+          env,
+        ).toString('base64'),
+      },
+    ],
+  };
+  const serialized = buildEvidence(payload, identity, env);
+  for (const value of [
+    env.GITHUB_TOKEN,
+    env.SOME_API_KEY,
+    env.DB_PASSWORD,
+    JSON.stringify(env.DB_PASSWORD).slice(1, -1),
+    env.CLIENT_SECRET,
   ])
-    assert.ok(!JSON.stringify(first).includes(plaintext));
-  assert.throws(() => decrypt({ ...first, candidateSHA: CONTROL }));
-  assert.throws(() => decrypt({ ...first, controlSHA: SHA }));
-  assert.throws(() =>
-    decrypt({
-      ...first,
-      ciphertext: Buffer.from('tampered').toString('base64'),
-    }),
+    assert.ok(!serialized.includes(value), value);
+  const document = JSON.parse(serialized);
+  assert.match(document.outcome.error, /\[REDACTED\]/);
+  assert.ok(document.outcome.error.includes(env.CI_JOB));
+  assert.ok(document.outcome.error.includes(env.SHORT_TOKEN));
+  assert.equal(
+    Buffer.from(document.files[0].bytes, 'base64').toString(),
+    'leak [REDACTED] and [REDACTED]',
   );
-  const wrong = generateKeyPairSync('rsa', { modulusLength: 3072 }).privateKey;
-  assert.throws(() => decrypt(first, wrong));
-  assert.throws(() =>
-    encryptEvidence(payload, { ...identity, fingerprint: 'wrong' }, PEM),
-  );
+  const binary = Buffer.from([0, 1, 2, ...Buffer.from(env.SOME_API_KEY)]);
+  assert.equal(redactBytes(binary, env), binary);
 });
 
 test('size policy rejects oversized raw evidence rather than truncating it', () => {
   assert.equal(RAW_LIMIT, 50 * 1024 * 1024);
   assert.equal(ENVELOPE_LIMIT, 100 * 1024 * 1024);
   assert.throws(() =>
-    encryptEvidence(
+    buildEvidence(
       { bytes: 'x'.repeat(Math.ceil(RAW_LIMIT * 1.4 + 65537)) },
       identity,
-      PEM,
+      {},
     ),
   );
 });
@@ -703,18 +672,109 @@ async function stateFixture(t) {
       'candidate-sha': SHA,
       'control-sha': CONTROL,
     },
-    env: { RUNTIME_ACCEPTANCE_PUBLIC_KEY: PEM },
+    env: {},
   };
 }
 
-test('state reuse requires matching identity, key and private directory', async (t) => {
-  const { value, options, env } = await stateFixture(t);
-  assert.deepEqual(await loadState(options, env), value);
-  await assert.rejects(
-    loadState({ ...options, 'candidate-sha': CONTROL }, env),
-  );
+test('state reuse requires matching identity and private directory', async (t) => {
+  const { value, options } = await stateFixture(t);
+  assert.deepEqual(await loadState(options), value);
+  await assert.rejects(loadState({ ...options, 'candidate-sha': CONTROL }));
   await chmod(value.state, 0o755);
-  await assert.rejects(loadState(options, env));
+  await assert.rejects(loadState(options));
+});
+
+test('failure summary names stage, code, first failing case and a bounded readable message without secrets', async (t) => {
+  const { value } = await stateFixture(t);
+  const env = { RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: 'swordfish-0123456789' };
+  const message = [
+    `AssertionError: connect postgresql://genfeed:${env.RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD}@127.0.0.1/test`,
+    ...Array.from({ length: 40 }, (_, index) => `    at frame ${index}`),
+  ].join('\n');
+  await writeFile(
+    path.join(value.state, 'raw/api-spec.report.json'),
+    JSON.stringify({
+      testResults: [
+        {
+          name: '/repo/api.spec.ts',
+          assertionResults: [
+            { fullName: 'suite passes', status: 'passed' },
+            {
+              fullName: 'suite first failing case',
+              status: 'failed',
+              failureMessages: [message],
+            },
+            {
+              fullName: 'suite second failing case',
+              status: 'failed',
+              failureMessages: ['later'],
+            },
+          ],
+        },
+      ],
+    }),
+    { mode: 0o600 },
+  );
+  value.evidence.push('raw/api-spec.report.json');
+  const outcome = {
+    failures: [
+      { stage: 'api-spec', code: 'CHILD_FAILED' },
+      { stage: 'cleanup', code: 'CLEANUP_FAILED' },
+    ],
+    commands: [{ stage: 'api-spec', exitCode: 1, signal: null }],
+  };
+  const text = await failureSummary(value, outcome, env);
+  const lines = text.trimEnd().split('\n');
+  assert.equal(
+    lines[0],
+    `runtime-acceptance failed ${SHA} stage=api-spec code=CHILD_FAILED exit=1 case=suite first failing case`,
+  );
+  assert.match(
+    lines[1],
+    /AssertionError: connect postgresql:\/\/genfeed:\[REDACTED\]@/,
+  );
+  assert.ok(lines.length <= 1 + 20 + 1);
+  assert.match(lines.at(-1), /^ {2}also failed: cleanup\/CLEANUP_FAILED$/);
+  assert.ok(!text.includes(env.RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD));
+  assert.ok(!text.includes('later'));
+});
+
+test('failure summary falls back to the failed child log tail when no report case exists', async (t) => {
+  const { value } = await stateFixture(t);
+  await writeFile(
+    path.join(value.state, 'raw/migrate-0.stderr'),
+    `${Array.from({ length: 50 }, (_, index) => `line ${index}`).join('\n')}\n`,
+    { mode: 0o600 },
+  );
+  value.evidence.push('raw/migrate-0.stderr');
+  const text = await failureSummary(
+    value,
+    {
+      failures: [{ stage: 'migrate', code: 'CHILD_FAILED' }],
+      commands: [{ stage: 'migrate', exitCode: null, signal: 'SIGKILL' }],
+    },
+    {},
+  );
+  const lines = text.trimEnd().split('\n');
+  assert.equal(
+    lines[0],
+    `runtime-acceptance failed ${SHA} stage=migrate code=CHILD_FAILED exit=SIGKILL`,
+  );
+  assert.equal(lines.length, 21);
+  assert.equal(lines.at(-1), '  line 49');
+});
+
+test('sealing a failed outcome logs the summary before the evidence is sealed', async (t) => {
+  const { value, env } = await stateFixture(t);
+  const logged = [];
+  await sealState(value, env, (text) => logged.push(text));
+  assert.equal(logged.length, 1);
+  assert.match(
+    logged[0],
+    new RegExp(
+      `^runtime-acceptance failed ${SHA} stage=preparation code=PREPARATION_INCOMPLETE\\n`,
+    ),
+  );
 });
 
 test('sealing failed preparation preserves failure and refuses successful output', async (t) => {
@@ -723,17 +783,14 @@ test('sealing failed preparation preserves failure and refuses successful output
   assert.equal(receipt.status, 'failed');
   assert.equal(receipt.cleanup, false);
   assert.equal(receipt.passed, 0);
-  const envelope = JSON.parse(
-    await readFile(path.join(value.state, 'public/evidence.encrypted.json')),
+  const evidence = JSON.parse(
+    await readFile(path.join(value.state, 'public/evidence.json')),
   );
-  assert.equal(decrypt(envelope).outcome.status, 'failed');
-  assert.equal(decrypt(envelope).receipt, undefined);
+  assert.equal(evidence.outcome.status, 'failed');
+  assert.equal(evidence.receipt, undefined);
   assert.equal(value.phase, 'sealed');
   assert.deepEqual(await sealState(value, env), receipt);
-  await writeFile(
-    path.join(value.state, 'public/evidence.encrypted.json'),
-    '{}',
-  );
+  await writeFile(path.join(value.state, 'public/evidence.json'), '{}');
   await assert.rejects(sealState(value, env));
 });
 
@@ -900,7 +957,6 @@ async function preflightFixture(t) {
       ...process.env,
       ...credentialEnv(),
       RUNNER_TEMP: repo,
-      RUNTIME_ACCEPTANCE_PUBLIC_KEY: PEM,
       RUNTIME_ACCEPTANCE_JOB_STARTED_MS: String(Date.now()),
     },
   };
@@ -915,16 +971,8 @@ test('preflight exclusively creates private identity and later commands must reu
     (await lstat(path.join(options.state, 'identity.json'))).mode & 0o777,
     0o600,
   );
-  assert.deepEqual(await loadState(options, env), value);
+  assert.deepEqual(await loadState(options), value);
   await assert.rejects(createState(options, env));
-  await assert.rejects(
-    loadState(options, {
-      ...env,
-      RUNTIME_ACCEPTANCE_PUBLIC_KEY: generateKeyPairSync('rsa', {
-        modulusLength: 3072,
-      }).publicKey.export({ type: 'spki', format: 'pem' }),
-    }),
-  );
 });
 
 test('preflight rejects control or candidate SHA mismatch before creating state', async (t) => {
@@ -1100,12 +1148,11 @@ for (const relative of [
   'outcome.json',
   'receipt.json',
   'public/receipt.json',
-  'public/evidence.encrypted.json',
+  'public/evidence.json',
 ])
   test(`actual dataset seal rejects an unknown-group ${relative} rather than implying acceptance`, async (t) => {
     const { value, options, env } = await stateFixture(t);
-    value.phase =
-      relative === 'public/evidence.encrypted.json' ? 'sealed' : 'prepared';
+    value.phase = relative === 'public/evidence.json' ? 'sealed' : 'prepared';
     await writeFile(
       path.join(value.state, 'identity.json'),
       JSON.stringify(value),
@@ -1119,7 +1166,6 @@ for (const relative of [
         version: 1,
         candidateSHA: value.candidateSHA,
         controlSHA: value.controlSHA,
-        fingerprint: value.fingerprint,
         group: 'unknown-group',
         status: 'passed',
       }),
@@ -1182,19 +1228,6 @@ for (const group of QUALIFIED_GROUPS) {
       'INVALID_POSTGRES_CREDENTIALS',
     ],
     [
-      'missing public key',
-      { RUNTIME_ACCEPTANCE_PUBLIC_KEY: '' },
-      'PUBLIC_KEY_REQUIRED',
-    ],
-    [
-      'invalid public key',
-      {
-        RUNTIME_ACCEPTANCE_PUBLIC_KEY:
-          '-----BEGIN PUBLIC KEY-----\ninvalid\n-----END PUBLIC KEY-----\n',
-      },
-      'INVALID_PUBLIC_KEY',
-    ],
-    [
       'missing deadline',
       { RUNTIME_ACCEPTANCE_JOB_STARTED_MS: '' },
       'INVALID_JOB_TIMESTAMP',
@@ -1241,7 +1274,7 @@ for (const group of QUALIFIED_GROUPS) {
     await assert.rejects(lstat(options.state));
     await assert.rejects(lstat(output));
   });
-  test(`actual ${group} prepared identity seals only encrypted preparation failure`, async (t) => {
+  test(`actual ${group} prepared identity seals only plaintext preparation failure`, async (t) => {
     const { value, options, env } = await stateFixture(t);
     Object.assign(value, { group, ...validateTiming(group, Date.now()) });
     await persistFixtureIdentity(value);
@@ -1257,16 +1290,12 @@ for (const group of QUALIFIED_GROUPS) {
     const receipt = JSON.parse(
       await readFile(path.join(value.state, 'public/receipt.json'), 'utf8'),
     );
-    const envelope = JSON.parse(
-      await readFile(
-        path.join(value.state, 'public/evidence.encrypted.json'),
-        'utf8',
-      ),
+    const plaintext = JSON.parse(
+      await readFile(path.join(value.state, 'public/evidence.json'), 'utf8'),
     );
     assert.equal(receipt.group, group);
     assert.equal(receipt.status, 'failed');
     assert.equal(receipt.cleanup, false);
-    const plaintext = decrypt(envelope);
     assert.equal(plaintext.outcome.group, group);
     assert.deepEqual(plaintext.outcome.failures, [
       { stage: 'preparation', code: 'PREPARATION_INCOMPLETE' },
@@ -1445,7 +1474,6 @@ for (const group of QUALIFIED_GROUPS)
 for (const [field, replacement, code] of [
   ['candidateSHA', 'e'.repeat(40), 'STATE_IDENTITY_MISMATCH'],
   ['controlSHA', 'e'.repeat(40), 'STATE_IDENTITY_MISMATCH'],
-  ['fingerprint', 'e'.repeat(64), 'STATE_IDENTITY_MISMATCH'],
   ['inode', -1, 'STATE_IDENTITY_MISMATCH'],
   ['state', '/not-the-owned-private-state', 'STATE_IDENTITY_MISMATCH'],
   ['overallDeadline', 1, 'STATE_DEADLINE_MISMATCH'],
@@ -1464,7 +1492,7 @@ for (const phase of ['prepared', 'finished', 'sealed'])
     'outcome.json',
     'receipt.json',
     'public/receipt.json',
-    ...(phase === 'sealed' ? ['public/evidence.encrypted.json'] : []),
+    ...(phase === 'sealed' ? ['public/evidence.json'] : []),
   ])
     test(`actual ${phase} seal rejects another qualified group in ${relative} without mutation`, async (t) => {
       const { value, options, env } = await stateFixture(t);
@@ -1474,12 +1502,11 @@ for (const phase of ['prepared', 'finished', 'sealed'])
         group: 'final',
         candidateSHA: value.candidateSHA,
         controlSHA: value.controlSHA,
-        fingerprint: value.fingerprint,
         status: 'passed',
       };
       const serialized = JSON.stringify(document);
-      if (relative === 'public/evidence.encrypted.json')
-        value.envelopeHash = createHash('sha256')
+      if (relative === 'public/evidence.json')
+        value.evidenceHash = createHash('sha256')
           .update(serialized)
           .digest('hex');
       await persistFixtureIdentity(value);
@@ -1552,30 +1579,24 @@ test('actual dataset preflight remains qualified and preparation-only seal retai
   assert.equal(receipt.status, 'failed');
   assert.doesNotMatch(await readFile(output, 'utf8'), /result=passed/);
   assert.equal(
-    decrypt(
-      JSON.parse(
-        await readFile(
-          path.join(options.state, 'public/evidence.encrypted.json'),
-          'utf8',
-        ),
-      ),
+    JSON.parse(
+      await readFile(path.join(options.state, 'public/evidence.json'), 'utf8'),
     ).outcome.status,
     'failed',
   );
 });
 
 test('actual dataset seal rejects qualified documents with a mismatched identity tuple', async (t) => {
-  for (const field of ['candidateSHA', 'controlSHA', 'fingerprint']) {
+  for (const field of ['candidateSHA', 'controlSHA']) {
     const { value, options, env } = await stateFixture(t);
     const document = {
       version: 1,
       group: 'dataset-diagnostic',
       candidateSHA: value.candidateSHA,
       controlSHA: value.controlSHA,
-      fingerprint: value.fingerprint,
       status: 'failed',
     };
-    document[field] = field === 'fingerprint' ? 'e'.repeat(64) : 'e'.repeat(40);
+    document[field] = 'e'.repeat(40);
     await writeFile(
       path.join(value.state, 'outcome.json'),
       JSON.stringify(document),
@@ -1737,7 +1758,6 @@ async function isolationEvidenceFixture(t, status) {
     candidateSHA: value.candidateSHA,
     controlSHA: value.controlSHA,
     group: value.group,
-    fingerprint: value.fingerprint,
     status,
     completed: [{ stage: 'visual-protocol' }, { stage: 'visual-isolation' }],
     failures:
@@ -1762,7 +1782,7 @@ async function isolationEvidenceFixture(t, status) {
 }
 
 for (const status of ['passed', 'failed'])
-  test(`actual isolation collector retains ${status} media in encrypted evidence`, async (t) => {
+  test(`actual isolation collector retains ${status} media in plaintext evidence`, async (t) => {
     const { value, env, expected } = await isolationEvidenceFixture(t, status);
     assert.deepEqual(value.evidence, []);
     assert.equal(await collectIsolationEvidence(value), 3);
@@ -1770,12 +1790,8 @@ for (const status of ['passed', 'failed'])
     assert.equal(value.evidence.length, 3);
     const receipt = await sealState(value, env);
     assert.equal(receipt.status, status);
-    const payload = decrypt(
-      JSON.parse(
-        await readFile(
-          path.join(value.state, 'public/evidence.encrypted.json'),
-        ),
-      ),
+    const payload = JSON.parse(
+      await readFile(path.join(value.state, 'public/evidence.json')),
     );
     assert.equal(payload.outcome.status, status);
     if (status === 'failed') {
@@ -2103,7 +2119,6 @@ for (const status of ['passed', 'failed'])
       candidateSHA: value.candidateSHA,
       controlSHA: value.controlSHA,
       group: value.group,
-      fingerprint: value.fingerprint,
       status,
       commands: [],
       completed: [
@@ -2130,12 +2145,8 @@ for (const status of ['passed', 'failed'])
     assert.equal(await collectConnectedEvidence(value), 3);
     assert.equal(value.evidence.length, 3);
     assert.equal((await sealState(value, env)).status, status);
-    const payload = decrypt(
-      JSON.parse(
-        await readFile(
-          path.join(value.state, 'public/evidence.encrypted.json'),
-        ),
-      ),
+    const payload = JSON.parse(
+      await readFile(path.join(value.state, 'public/evidence.json')),
     );
     for (const [relative, bytes] of Object.entries(expected))
       assert.deepEqual(
@@ -5022,7 +5033,7 @@ async function finalSealFixture(t) {
     );
   return { ...state, outcome: qualified.outcome };
 }
-test('qualified final seal encrypts both media proofs and raw evidence using unchanged public allowlist', async (t) => {
+test('qualified final seal writes both media proofs and raw evidence using unchanged public allowlist', async (t) => {
   const { value, env } = await finalSealFixture(t);
   const receipt = await sealState(value, env);
   assert.equal(receipt.status, 'passed');
@@ -5042,7 +5053,6 @@ test('qualified final seal encrypts both media proofs and raw evidence using unc
       'candidateSHA',
       'controlSHA',
       'group',
-      'fingerprint',
       'status',
       'passed',
       'skipped',
@@ -5050,13 +5060,12 @@ test('qualified final seal encrypts both media proofs and raw evidence using unc
       'elapsedMs',
       'cleanup',
       'evidenceBytes',
-      'envelopeSHA256',
+      'evidenceSHA256',
     ].sort(),
   );
-  const encrypted = JSON.parse(
-    await readFile(path.join(value.state, 'public/evidence.encrypted.json')),
+  const privateEvidence = JSON.parse(
+    await readFile(path.join(value.state, 'public/evidence.json')),
   );
-  const privateEvidence = decrypt(encrypted);
   assert.equal(
     privateEvidence.files.length,
     14 + requireLearningSourceContract().cleanupReceipts,
