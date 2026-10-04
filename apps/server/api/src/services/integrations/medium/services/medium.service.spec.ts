@@ -3,9 +3,11 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { MediumService } from '@api/services/integrations/medium/services/medium.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { of } from 'rxjs';
 
 describe('MediumService', () => {
   let service: MediumService;
@@ -123,6 +125,79 @@ describe('MediumService', () => {
 
       expect(() => unconfigured.generateAuthUrl('state')).toThrow(
         HttpException,
+      );
+    });
+  });
+  describe('publishArticle', () => {
+    it('loads and updates the article scoped to the organization', async () => {
+      const findOneArticle = vi.fn().mockResolvedValue({
+        content: '<p>Hello</p>',
+        id: 'article-1',
+        label: 'Hello',
+        posts: [],
+        slug: 'hello',
+      });
+      const patchOneWhere = vi.fn().mockResolvedValue(null);
+      const post = vi.fn().mockReturnValue(
+        of({
+          data: {
+            data: {
+              id: 'medium-1',
+              publishedAt: 1_700_000_000_000,
+              url: 'https://medium.com/p/medium-1',
+            },
+          },
+        }),
+      );
+      const module = await Test.createTestingModule({
+        providers: [
+          MediumService,
+          { provide: ConfigService, useValue: { get: vi.fn(() => 'cfg') } },
+          {
+            provide: CredentialsService,
+            useValue: {
+              resolveBrandAccount: vi.fn().mockResolvedValue({
+                accessToken: 'plain-token',
+                externalId: 'medium-user',
+              }),
+            },
+          },
+          {
+            provide: ArticlesService,
+            useValue: { findOne: findOneArticle, patchOneWhere },
+          },
+          { provide: HttpService, useValue: { post } },
+          {
+            provide: LoggerService,
+            useValue: {
+              debug: vi.fn(),
+              error: vi.fn(),
+              log: vi.fn(),
+              warn: vi.fn(),
+            },
+          },
+        ],
+      }).compile();
+      vi.spyOn(EncryptionUtil, 'decrypt').mockReturnValue('decrypted');
+
+      await module
+        .get<MediumService>(MediumService)
+        .publishArticle('article-1', 'org-1', 'brand-1');
+
+      expect(findOneArticle).toHaveBeenCalledWith({
+        id: 'article-1',
+        organizationId: 'org-1',
+      });
+      expect(patchOneWhere).toHaveBeenCalledWith(
+        { id: 'article-1', isDeleted: false, organizationId: 'org-1' },
+        {
+          posts: [
+            expect.objectContaining({
+              externalId: 'medium-1',
+              platform: 'medium',
+            }),
+          ],
+        },
       );
     });
   });

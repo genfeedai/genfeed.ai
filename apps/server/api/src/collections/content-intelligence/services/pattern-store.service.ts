@@ -170,42 +170,15 @@ export class PatternStoreService extends BaseService<
     return this.normalizeDocuments(documents);
   }
 
-  async incrementUsage(id: string): Promise<void> {
-    const existing = await this.delegate.findUnique({ where: { id } });
+  async incrementUsage(id: string, organizationId: string): Promise<void> {
+    const where = scopedWhere(organizationId, { id });
+    const existing = await this.delegate.findFirst({ where });
     if (!existing) return;
     const data = readJsonRecord(existing.data);
-    await this.delegate.update({
-      where: { id },
+    await this.patchOneWhere(where, {
       data: {
-        data: {
-          ...data,
-          usageCount: Number(data.usageCount ?? 0) + 1,
-        } as Prisma.InputJsonObject,
-      },
-    });
-  }
-
-  updateRelevanceWeight(
-    id: string,
-    weight: number,
-  ): Promise<ContentPatternDocument> {
-    return this.updatePatternData(id, {
-      relevanceWeight: Math.max(0, Math.min(1, weight)),
-    });
-  }
-
-  private async updatePatternData(
-    id: string,
-    update: Record<string, unknown>,
-  ): Promise<ContentPatternDocument> {
-    const existing = await this.delegate.findUnique({ where: { id } });
-    if (!existing) {
-      throw new Error('Content pattern not found');
-    }
-    return this.patch(id, {
-      data: {
-        ...readJsonRecord(existing.data),
-        ...pickDefined(update),
+        ...data,
+        usageCount: Number(data.usageCount ?? 0) + 1,
       } as Prisma.InputJsonObject,
     });
   }

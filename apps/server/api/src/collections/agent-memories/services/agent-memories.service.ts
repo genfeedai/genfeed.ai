@@ -12,6 +12,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { hasOrganizationBilling } from '@genfeedai/config';
 import {
   ContentSkillCategory,
@@ -391,7 +392,7 @@ export class AgentMemoriesService extends BaseService<
     );
 
     await this.delegate.update({
-      where: { id: memoryId },
+      where: scopedWhere(organizationId, { id: memoryId, userId }),
       data: { isDeleted: true },
     });
   }

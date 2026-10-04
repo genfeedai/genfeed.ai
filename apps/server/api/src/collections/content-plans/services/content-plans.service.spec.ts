@@ -2,6 +2,11 @@ import { ContentPlansService } from '@api/collections/content-plans/services/con
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentPlanStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import {
+  assertTenantScopedQuery,
+  TenantIsolationError,
+} from '@libs/prisma/tenant-guard';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -146,6 +151,97 @@ describe('ContentPlansService.recordProvenance', () => {
     await expect(
       service.recordProvenance(organizationId, planId, provenance),
     ).rejects.toThrow();
+    expect(update).not.toHaveBeenCalled();
+  });
+});
+
+describe('ContentPlansService CLOUD tenant guard', () => {
+  const organizationId = 'org-1';
+  const planId = 'plan-1';
+  const existing = {
+    config: { name: 'Plan', status: ContentPlanStatus.DRAFT },
+    createdById: 'user-1',
+    id: planId,
+    label: 'Plan',
+    organizationId,
+  };
+  const findFirst = vi.fn();
+  const update = vi.fn();
+  const service = new ContentPlansService(
+    { contentPlan: { findFirst, update } } as unknown as PrismaService,
+    { error: vi.fn(), log: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
+  );
+
+  function guard(operation: string, args: unknown): void {
+    assertTenantScopedQuery({
+      args,
+      isCloud: true,
+      model: 'ContentPlan',
+      operation,
+      tenantModelNames: new Set(['ContentPlan']),
+    });
+  }
+
+  beforeEach(() => {
+    findFirst.mockReset();
+    update.mockReset();
+    findFirst.mockImplementation(async (args: unknown) => {
+      guard('findFirst', args);
+      return existing;
+    });
+    update.mockImplementation(
+      async (args: { data: Record<string, unknown> }) => {
+        guard('update', args);
+        return { ...existing, ...args.data };
+      },
+    );
+  });
+
+  it('patch writes with the organization in the where', async () => {
+    await runWithTenantContext({ organizationId }, () =>
+      service.patch(planId, { name: 'Renamed', organizationId }),
+    );
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: planId, isDeleted: false, organizationId },
+      }),
+    );
+  });
+
+  it('updateStatus writes with the organization in the where', async () => {
+    await runWithTenantContext({ organizationId }, () =>
+      service.updateStatus(organizationId, planId, ContentPlanStatus.EXECUTING),
+    );
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: planId, isDeleted: false, organizationId },
+      }),
+    );
+  });
+
+  it('softDelete writes with the organization in the where', async () => {
+    await runWithTenantContext({ organizationId }, () =>
+      service.softDelete(organizationId, planId),
+    );
+
+    expect(update).toHaveBeenCalledWith({
+      data: { isDeleted: true },
+      where: { id: planId, isDeleted: false, organizationId },
+    });
+  });
+
+  it('rejects a plan write that targets another tenant', async () => {
+    await expect(
+      runWithTenantContext({ organizationId: 'org-other' }, () =>
+        service.updateStatus(
+          organizationId,
+          planId,
+          ContentPlanStatus.EXECUTING,
+        ),
+      ),
+    ).rejects.toBeInstanceOf(TenantIsolationError);
     expect(update).not.toHaveBeenCalled();
   });
 });
