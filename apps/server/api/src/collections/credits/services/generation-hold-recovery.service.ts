@@ -34,6 +34,8 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { z } from 'zod';
 
 const PAGE_SIZE = 50;
+/** An unreadable provider status at the ceiling stays reserved for an operator this long. */
+export const UNKNOWN_PROVIDER_STATUS_RELEASE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 const COMPLETED = [IngredientStatus.GENERATED, IngredientStatus.VALIDATED];
 
 @Injectable()
@@ -83,20 +85,40 @@ export class GenerationHoldRecoveryService {
             10_000,
           )
         : null;
-    const completed =
+    const isCompleted =
       (ingredient &&
         COMPLETED.includes(ingredient.status as IngredientStatus)) ||
       status?.status === 'completed';
-    const action = completed
+    // Release only on positive provider failure, or when nothing was ever
+    // submitted. A provider we could not read may still have a finished video,
+    // so the hold stays reserved for an operator (admin credit-holds control).
+    const isReleasable = status ? status.status === 'failed' : true;
+    const isUnknownExpired =
+      !isCompleted &&
+      !isReleasable &&
+      hold.expiresAt.getTime() + UNKNOWN_PROVIDER_STATUS_RELEASE_AFTER_MS <=
+        Date.now();
+    if (!isCompleted && !isReleasable && !isUnknownExpired) {
+      this.logger.warn(
+        'Credit hold held for operator review: provider status unknown at ceiling',
+        { organizationId, reservationId, providerStatus: status?.status },
+      );
+      return;
+    }
+    const action = isCompleted
       ? CreditHoldRecoveryAction.CHARGE
       : CreditHoldRecoveryAction.RELEASE;
     await this.apply({
       organizationId,
       reservationId,
       action,
-      reason: completed
+      reason: isCompleted
         ? 'Provider completed at credit-hold ceiling'
-        : 'Provider failed or unknown at credit-hold ceiling',
+        : isUnknownExpired
+          ? 'Unknown provider status after 7d at credit-hold ceiling'
+          : status
+            ? 'Provider confirmed failure at credit-hold ceiling'
+            : 'No provider submission at credit-hold ceiling',
       expectedProviderExternalId: externalId ?? null,
       expectedReservationMetadata: z
         .record(z.string(), z.unknown())

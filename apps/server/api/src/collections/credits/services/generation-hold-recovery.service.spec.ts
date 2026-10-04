@@ -62,7 +62,7 @@ function fixture() {
       .fn()
       .mockReturnValue(of({ data: { data: { status: 'completed' } } })),
   };
-  const logger = { error: vi.fn() };
+  const logger = { error: vi.fn(), warn: vi.fn() };
   const bootstrapCache = { invalidateForOrganization: vi.fn() };
   const service = new GenerationHoldRecoveryService(
     prisma as never,
@@ -85,6 +85,7 @@ function fixture() {
     byok,
     apiKeys,
     http,
+    logger,
   };
 }
 
@@ -125,12 +126,14 @@ describe('media hold provider and operator recovery', () => {
     expect(f.reservations.releaseInTransaction).not.toHaveBeenCalled();
   });
 
-  it.each(['failed', 'processing', 'unrecognized'])(
-    'releases %s status only after checking the provider',
+  it.each(['failed', 'error'])(
+    'releases a hold only when HeyGen confirms %s',
     async (status) => {
       const f = fixture();
       f.http.get.mockReturnValue(of({ data: { data: { status } } }));
-      await f.service.recoverAtCeiling('org', 'hold');
+      await expect(f.service.recoverAtCeiling('org', 'hold')).resolves.toBe(
+        CreditHoldRecoveryAction.RELEASE,
+      );
       expect(f.reservations.releaseInTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
           reason: 'expiry',
@@ -142,11 +145,81 @@ describe('media hold provider and operator recovery', () => {
     },
   );
 
-  it('releases unknown timeout at the ceiling', async () => {
+  it.each([
+    [
+      'a transport error',
+      (f: ReturnType<typeof fixture>) =>
+        f.http.get.mockReturnValue(throwError(() => new Error('timeout'))),
+    ],
+    [
+      'a missing API key',
+      (f: ReturnType<typeof fixture>) => {
+        f.byok.resolveApiKey.mockResolvedValue(undefined);
+        f.apiKeys.getApiKey.mockReturnValue('');
+      },
+    ],
+    [
+      'a malformed body',
+      (f: ReturnType<typeof fixture>) =>
+        f.http.get.mockReturnValue(of({ data: 'not-json-object' })),
+    ],
+    [
+      'missing data',
+      (f: ReturnType<typeof fixture>) =>
+        f.http.get.mockReturnValue(of({ data: { data: null } })),
+    ],
+    [
+      'a still-processing status',
+      (f: ReturnType<typeof fixture>) =>
+        f.http.get.mockReturnValue(
+          of({ data: { data: { status: 'processing' } } }),
+        ),
+    ],
+  ])(
+    'leaves the hold reserved and neither releases nor charges on %s',
+    async (_name, arrange) => {
+      const f = fixture();
+      f.hold.expiresAt = new Date(Date.now() - 25 * 60 * 60 * 1000);
+      arrange(f);
+      await expect(
+        f.service.recoverAtCeiling('org', 'hold'),
+      ).resolves.toBeUndefined();
+      expect(f.reservations.releaseInTransaction).not.toHaveBeenCalled();
+      expect(f.reservations.settleInTransaction).not.toHaveBeenCalled();
+      expect(f.reservations.runSerializable).not.toHaveBeenCalled();
+      expect(f.logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('held for operator review'),
+        expect.objectContaining({ reservationId: 'hold' }),
+      );
+    },
+  );
+
+  it('releases an unknown status with an audit entry after 7 days', async () => {
     const f = fixture();
+    f.hold.expiresAt = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
     f.http.get.mockReturnValue(throwError(() => new Error('timeout')));
-    await f.service.recoverAtCeiling('org', 'hold');
+    await expect(f.service.recoverAtCeiling('org', 'hold')).resolves.toBe(
+      CreditHoldRecoveryAction.RELEASE,
+    );
     expect(f.reservations.releaseInTransaction).toHaveBeenCalledTimes(1);
+    expect(f.activities.recordInTransaction).toHaveBeenCalledWith(
+      f.prisma,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: CreditHoldRecoveryAction.RELEASE,
+          reason: 'Unknown provider status after 7d at credit-hold ceiling',
+        }),
+      }),
+    );
+  });
+
+  it('charges a completed provider even past 7 days', async () => {
+    const f = fixture();
+    f.hold.expiresAt = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    await expect(f.service.recoverAtCeiling('org', 'hold')).resolves.toBe(
+      CreditHoldRecoveryAction.CHARGE,
+    );
+    expect(f.reservations.releaseInTransaction).not.toHaveBeenCalled();
   });
 
   it('does not guess a provider identity when the ingredient is deleted or missing', async () => {
