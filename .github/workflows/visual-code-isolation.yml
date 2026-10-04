@@ -15,10 +15,10 @@ on:
         default: false
     outputs:
       isolation_acceptance_result:
-        description: 'Passed only after checked isolation receipt and encrypted upload.'
+        description: 'Passed only after checked isolation receipt and evidence upload.'
         value: ${{ jobs.isolation.outputs.result }}
       connected_acceptance_result:
-        description: 'Passed only after checked connected receipt and encrypted upload.'
+        description: 'Passed only after checked connected receipt and evidence upload.'
         value: ${{ jobs.connected.outputs.result }}
 concurrency:
   group: visual-code-isolation-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -37,7 +37,6 @@ jobs:
     env:
       RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
       RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: genfeed_local
-      RUNTIME_ACCEPTANCE_PUBLIC_KEY: ${{ vars.RUNTIME_ACCEPTANCE_PUBLIC_KEY }}
       ACCEPTANCE_REPO: ${{ github.workspace }}
       CANDIDATE_SHA: ${{ github.sha }}
       CONTROL_SHA: ${{ github.sha }}
@@ -128,7 +127,7 @@ jobs:
         id: seal
         if: always() && inputs.run_connected == true && steps.preflight.outputs.prepared == 'true'
         run: node scripts/ci/runtime-acceptance.mjs seal --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
-      - name: Retain encrypted final evidence
+      - name: Retain final evidence
         id: upload
         if: always() && inputs.run_connected == true && steps.preflight.outputs.prepared == 'true' && steps.seal.outcome != 'skipped'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -136,10 +135,10 @@ jobs:
           name: visual-isolation-${{ github.sha }}
           path: |
             ${{ runner.temp }}/visual-isolation/public/receipt.json
-            ${{ runner.temp }}/visual-isolation/public/evidence.encrypted.json
+            ${{ runner.temp }}/visual-isolation/public/evidence.json
           retention-days: 7
           if-no-files-found: error
-      - name: Confirm checked receipt and encrypted upload
+      - name: Confirm checked receipt and evidence upload
         id: complete
         if: inputs.run_connected == true && steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success'
         run: echo 'result=passed' >> "$GITHUB_OUTPUT"
@@ -157,7 +156,6 @@ jobs:
     env:
       RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
       RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: genfeed_local
-      RUNTIME_ACCEPTANCE_PUBLIC_KEY: ${{ vars.RUNTIME_ACCEPTANCE_PUBLIC_KEY }}
       ACCEPTANCE_REPO: ${{ github.workspace }}
       CANDIDATE_SHA: ${{ github.sha }}
       CONTROL_SHA: ${{ github.sha }}
@@ -239,7 +237,7 @@ jobs:
         id: seal
         if: always() && steps.preflight.outputs.prepared == 'true'
         run: node scripts/ci/runtime-acceptance.mjs seal --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
-      - name: Retain encrypted final evidence
+      - name: Retain final evidence
         id: upload
         if: always() && steps.preflight.outputs.prepared == 'true' && steps.seal.outcome != 'skipped'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -247,10 +245,10 @@ jobs:
           name: visual-connected-${{ github.sha }}
           path: |
             ${{ runner.temp }}/visual-connected/public/receipt.json
-            ${{ runner.temp }}/visual-connected/public/evidence.encrypted.json
+            ${{ runner.temp }}/visual-connected/public/evidence.json
           retention-days: 7
           if-no-files-found: error
-      - name: Confirm checked receipt and encrypted upload
+      - name: Confirm checked receipt and evidence upload
         id: complete
         if: steps.seal.outputs.result == 'passed' && steps.upload.outcome == 'success'
         run: echo 'result=passed' >> "$GITHUB_OUTPUT"
