@@ -544,7 +544,7 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-publication-races.integration.spec.ts',
       sha256:
-        '64a72190aa29dfbe3335923615757bc29203ac23eeb7f46640e64fbe2ef30319',
+        '85df58fb81b1dcf9048cbcecb5958685614dec3cda0b8b3551f4b2fd668ec16d',
     },
     {
       path: 'apps/server/api/vitest.learning-runtime.config.ts',
