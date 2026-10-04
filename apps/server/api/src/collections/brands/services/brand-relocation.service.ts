@@ -19,7 +19,10 @@ import {
   assertNoBrandedGenerationReceiptHistory as assertNoReceiptHistory,
   assertNoSecurityAuditHistory,
 } from '@api/collections/brands/utils/brand-relocation-guards.util';
-import { invalidateLearningDependencySource } from '@api/collections/content-learning/services/learning-dependency.service';
+import {
+  invalidateLearningDependencySource,
+  withLearningFenceEscalation,
+} from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
@@ -515,12 +518,18 @@ export class BrandRelocationService {
     const sourceBearing =
       updates.isActive !== undefined || updates.isDeleted !== undefined;
     const brand = sourceBearing
-      ? await this.prisma.$transaction((tx) =>
-          patchBrandWithLearning(tx, {
-            brandId,
-            organizationId,
-            data: updates as Prisma.BrandUncheckedUpdateInput,
-          }),
+      ? await withLearningFenceEscalation((fenceScope) =>
+          this.prisma.$transaction((tx) =>
+            patchBrandWithLearning(
+              tx,
+              {
+                brandId,
+                organizationId,
+                data: updates as Prisma.BrandUncheckedUpdateInput,
+              },
+              fenceScope,
+            ),
+          ),
         )
       : await this.prisma.brand.update({
           where: { id: brandId, organizationId, isDeleted: false },
