@@ -65,9 +65,9 @@ type FakeTxClient = {
   workflow: {
     create: (args: CreateArgs) => Promise<StoredWorkflow>;
     findFirst: (args: FindArgs) => Promise<StoredWorkflow | null>;
-    findUniqueOrThrow: (args: {
+    findFirstOrThrow: (args: {
       include?: Record<string, unknown>;
-      where: { id: string };
+      where: { id: string; organizationId?: string };
     }) => Promise<StoredWorkflow>;
     update: (args: UpdateArgs) => Promise<StoredWorkflow | null>;
   };
@@ -198,7 +198,7 @@ function createFakePrisma(options: FakePrismaOptions) {
             const visible = [...snapshot, ...staged];
             return visible.find((row) => matches(row, where)) ?? null;
           },
-          findUniqueOrThrow: async ({ where }) => {
+          findFirstOrThrow: async ({ where }) => {
             const row =
               staged.find((r) => r.id === where.id) ??
               snapshot.find((r) => r.id === where.id);
