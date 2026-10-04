@@ -243,7 +243,7 @@ export class ContentRunsService {
           ...patch,
         }),
       },
-      where: { id: runId },
+      where: scopedWhere(organizationId, { id: runId }),
     });
 
     return hydrateContentRun(updated) ?? updated;
@@ -283,7 +283,7 @@ export class ContentRunsService {
           variants,
         }),
       },
-      where: { id: runId },
+      where: scopedWhere(organizationId, { id: runId }),
     });
 
     return hydrateContentRun(updated) ?? updated;

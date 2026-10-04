@@ -30,6 +30,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const IMAGE_POPULATE = [
@@ -67,6 +68,38 @@ export class ImageGenerationAdmissionService {
       organizationId,
       path,
     });
+  }
+
+  /**
+   * Reads one source image for a generation. A granted character's avatar
+   * lives in its owning organization, which differs from the request tenant;
+   * only that read leaves tenant scope, and `resolveCharacterLink` already
+   * proved the grant. Every other source stays inside the request tenant.
+   */
+  private findSourceImage(params: {
+    availableAvatarIds: ReadonlySet<string>;
+    brandId: string;
+    grantedAvatarOwners: ReadonlyMap<string, string>;
+    id: string;
+    organizationId: string;
+  }): Promise<IngredientDocument | null> {
+    const { availableAvatarIds, brandId, grantedAvatarOwners, id } = params;
+    const grantedOwnerId = grantedAvatarOwners.get(id);
+    const lookup = () =>
+      this.imagesService.findOne(
+        {
+          id,
+          organizationId: grantedOwnerId ?? params.organizationId,
+          ...(availableAvatarIds.has(id) ? {} : { brandId }),
+          isDeleted: false,
+          category: IngredientCategory.IMAGE,
+        },
+        [PopulatePatterns.metadataFull],
+      );
+
+    return grantedOwnerId
+      ? crossOrgUnsafe(async () => await lookup())
+      : lookup();
   }
 
   async admitImageEdit(
@@ -108,19 +141,16 @@ export class ImageGenerationAdmissionService {
         'image-edit',
       );
     const findReadyImage = async (id: string) => {
-      const image = await this.imagesService.findOne(
-        {
-          id,
-          // An admitted shared character's avatar belongs to its owning
-          // brand (and possibly organization); every other source must
-          // belong to the editing brand.
-          organizationId: grantedAvatarOwners.get(id) ?? organizationId,
-          ...(availableAvatarIds.has(id) ? {} : { brandId }),
-          isDeleted: false,
-          category: IngredientCategory.IMAGE,
-        },
-        [PopulatePatterns.metadataFull],
-      );
+      // An admitted shared character's avatar belongs to its owning brand
+      // (and possibly organization); every other source must belong to the
+      // editing brand.
+      const image = await this.findSourceImage({
+        availableAvatarIds,
+        brandId,
+        grantedAvatarOwners,
+        id,
+        organizationId,
+      });
       if (!image) throw new NotFoundException('Editing image');
       if (
         ![
@@ -268,17 +298,14 @@ export class ImageGenerationAdmissionService {
         'image',
       );
     for (const id of sourceIds) {
-      const image = await this.imagesService.findOne(
-        {
-          id,
-          // A granted character's reference image belongs to its owner.
-          organizationId: grantedAvatarOwners.get(id) ?? organizationId,
-          ...(availableAvatarIds.has(id) ? {} : { brandId }),
-          isDeleted: false,
-          category: IngredientCategory.IMAGE,
-        },
-        [PopulatePatterns.metadataFull],
-      );
+      // A granted character's reference image belongs to its owner.
+      const image = await this.findSourceImage({
+        availableAvatarIds,
+        brandId,
+        grantedAvatarOwners,
+        id,
+        organizationId,
+      });
       if (!image) throw new NotFoundException('Reference image');
       if (
         ![

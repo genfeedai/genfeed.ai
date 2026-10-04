@@ -66,7 +66,7 @@
     "symbol": "ListeningTopicAnalysisService.persistAnalysis"
   },
   {
-    "actual": 1035,
+    "actual": 1022,
     "file": "apps/server/api/src/collections/models/services/models.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/models/services/models.service.ts"
@@ -78,7 +78,7 @@
     "symbol": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts"
   },
   {
-    "actual": 1100,
+    "actual": 1099,
     "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts"

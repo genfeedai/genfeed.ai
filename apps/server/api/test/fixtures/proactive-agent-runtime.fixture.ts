@@ -967,7 +967,7 @@ export class ProactiveAgentRuntimeFixture {
     inputValues: RecordValue,
     executionId: string,
   ): Promise<WorkflowExecutionResult> {
-    await this.executions.startExecution(executionId);
+    await this.executions.startExecution(executionId, workflow.organizationId);
     const executable = this.converter.applyRuntimeInputValues(
       workflow,
       this.converter.convertToExecutableWorkflow(workflow),
@@ -1001,7 +1001,11 @@ export class ProactiveAgentRuntimeFixture {
       result.status === 'completed'
         ? undefined
         : JSON.stringify([...result.nodeResults.values()]);
-    await this.executions.completeExecution(executionId, error);
+    await this.executions.completeExecution(
+      executionId,
+      workflow.organizationId,
+      error,
+    );
     if (error) throw new Error(`Runtime graph ${workflow.id} failed: ${error}`);
     return {
       executionId,

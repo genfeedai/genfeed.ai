@@ -1,4 +1,5 @@
 import { skillGrantRecipientClauses } from '@api/collections/skills/policy/skill-capabilities';
+import { runOnAuthorizedSkillRow } from '@api/collections/skills/services/skill-authorized-row';
 import { withSkillWriteSession } from '@api/collections/skills/services/skill-write-session';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
@@ -35,11 +36,14 @@ export async function updateOwnedPersonalSkill(
     prisma,
     { actorUserId: userId, origin: 'authoring' },
     (tx) =>
-      // tenant-scope-ignore: the owner is editing one personal skill, which has no organization id
-      tx.skill.update({
-        data: { config: config as Prisma.InputJsonValue, label },
-        where: { id: skillId },
-      }),
+      runOnAuthorizedSkillRow(
+        async () =>
+          // tenant-scope-ignore: the owner is editing one personal skill, which has no organization id
+          await tx.skill.update({
+            data: { config: config as Prisma.InputJsonValue, label },
+            where: { id: skillId },
+          }),
+      ),
   );
 }
 

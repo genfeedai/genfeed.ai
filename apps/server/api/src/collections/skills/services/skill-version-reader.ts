@@ -1,6 +1,7 @@
 import { SkillVersionListQueryDto } from '@api/collections/skills/dto/skill-version-query.dto';
 import type { resolveSkillCapabilities } from '@api/collections/skills/policy/skill-capabilities';
 import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
+import { runOnAuthorizedSkillRow } from '@api/collections/skills/services/skill-authorized-row';
 import type {
   SkillLibraryActor,
   SkillRow,
@@ -274,10 +275,13 @@ export class SkillVersionReader {
       )
         throw new NotFoundException('Skill version');
     }
-    // tenant-scope-ignore: personal/system parents lack organization; live capabilities below authorize the primary-key lookup
-    const row = await this.prisma.skill.findFirst({
-      where: { id: skillId, isDeleted: false, isQuarantined: false },
-    });
+    const row = await runOnAuthorizedSkillRow(
+      async () =>
+        // tenant-scope-ignore: personal/system parents lack organization; live capabilities below authorize the primary-key lookup
+        await this.prisma.skill.findFirst({
+          where: { id: skillId, isDeleted: false, isQuarantined: false },
+        }),
+    );
     if (!row || row.isDeleted || row.isQuarantined)
       throw new NotFoundException('Skill version');
     const skill = row as unknown as SkillRow;

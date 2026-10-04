@@ -80,6 +80,7 @@ import {
   IngredientCategory,
   IngredientStatus,
   ModelCategory,
+  TagMatchMode,
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -776,6 +777,57 @@ describe('VideosController', () => {
       expect(characterFilterService.buildFilter).toHaveBeenCalledWith(
         expect.objectContaining({ brandId: mockUser.brandId }),
       );
+    });
+
+    it('filters by tags beside the other filters and loads each row’s tags', async () => {
+      const [first, second] = [testId('tag', 1), testId('tag', 2)];
+      videosService.findAll.mockResolvedValue({
+        docs: [],
+        totalDocs: 0,
+      } as unknown as AggregatePaginateResult<IngredientDocument>);
+
+      await controller.findAll(mockRequest, mockUser, {
+        ...baseQuery,
+        tags: [first, second],
+      } as VideosQueryDto);
+
+      const aggregate = videosService.findAll.mock.calls[0]?.[0] as {
+        include: Record<string, unknown>;
+        where: { AND: Array<Record<string, unknown>> };
+      };
+      expect(aggregate.where.AND).toContainEqual({
+        tags: { some: { id: { in: [first, second] }, isDeleted: false } },
+      });
+      expect(aggregate.where.AND[0]).toEqual({
+        organizationId: mockUser.organizationId,
+      });
+      expect(aggregate.include).toMatchObject({
+        tags: { where: { isDeleted: false } },
+      });
+    });
+
+    it('requires every tag in all mode', async () => {
+      const [first, second] = [testId('tag', 1), testId('tag', 2)];
+      videosService.findAll.mockResolvedValue({
+        docs: [],
+        totalDocs: 0,
+      } as unknown as AggregatePaginateResult<IngredientDocument>);
+
+      await controller.findAll(mockRequest, mockUser, {
+        ...baseQuery,
+        tagMatch: TagMatchMode.ALL,
+        tags: [first, second],
+      } as VideosQueryDto);
+
+      const aggregate = videosService.findAll.mock.calls[0]?.[0] as {
+        where: { AND: Array<Record<string, unknown>> };
+      };
+      expect(aggregate.where.AND).toContainEqual({
+        AND: [
+          { tags: { some: { id: first, isDeleted: false } } },
+          { tags: { some: { id: second, isDeleted: false } } },
+        ],
+      });
     });
 
     it('does not resolve characters when none were asked for', async () => {
@@ -1499,6 +1551,7 @@ describe('VideosController', () => {
       expect(bookmarksService.addGeneratedIngredient).toHaveBeenCalledWith(
         bookmarkId.toString(),
         mockVideoId,
+        mockOrgId.toString(),
       );
     });
 

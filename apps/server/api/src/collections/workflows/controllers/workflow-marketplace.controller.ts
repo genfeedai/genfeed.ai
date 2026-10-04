@@ -24,6 +24,7 @@ import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
 import { WorkflowSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -118,8 +119,12 @@ export class WorkflowMarketplaceController {
       orderBy: handleQuerySort(query.sort || '-executionCount'),
     };
 
+    // The marketplace lists public template workflows published by every
+    // organization, so this read is an explicit cross-org operation.
     const data: AggregatePaginateResult<WorkflowDocument> =
-      await this.workflowsService.findAll(aggregate, options);
+      await crossOrgUnsafe(
+        async () => await this.workflowsService.findAll(aggregate, options),
+      );
     return serializeCollection(request, WorkflowSerializer, data);
   }
 }

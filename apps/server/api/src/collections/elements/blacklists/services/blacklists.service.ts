@@ -22,9 +22,12 @@ export class ElementsBlacklistsService extends BaseService<
     super(prisma, 'elementBlacklist', logger, undefined, cacheService);
   }
 
-  async delete(id: string): Promise<ElementBlacklistDocument | null> {
+  async delete(
+    id: string,
+    organizationId: string,
+  ): Promise<ElementBlacklistDocument | null> {
     const updated = await this.prisma.elementBlacklist.update({
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
       data: { isDeleted: true },
     });
 

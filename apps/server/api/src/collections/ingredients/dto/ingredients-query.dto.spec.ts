@@ -1,5 +1,7 @@
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import { MAX_CHARACTER_FILTER_IDS } from '@api/helpers/dto/ingredient-characters-query.transform';
+import { MAX_TAG_FILTER_IDS } from '@api/helpers/dto/ingredient-tags-query.transform';
+import { TagMatchMode } from '@genfeedai/contracts';
 import { testId, testIds } from '@helpers/testing/test-id.helper';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
@@ -116,6 +118,66 @@ describe('IngredientsQueryDto', () => {
       const dto = plainToInstance(IngredientsQueryDto, { origins: ['mine'] });
 
       expect((await validate(dto)).length).toBeGreaterThan(0);
+    });
+
+    describe('tags', () => {
+      it('accepts repeated tags keys and de-duplicates them', async () => {
+        const first = testId('tag', 1);
+        const second = testId('tag', 2);
+        const dto = plainToInstance(IngredientsQueryDto, {
+          tags: [first, second, first],
+        });
+
+        expect(await validate(dto)).toHaveLength(0);
+        expect(dto.tags).toEqual([first, second]);
+      });
+
+      it('wraps a single tag id and leaves it unset when absent', () => {
+        const id = testId('tag');
+
+        expect(plainToInstance(IngredientsQueryDto, { tags: id }).tags).toEqual(
+          [id],
+        );
+        expect(plainToInstance(IngredientsQueryDto, {}).tags).toBeUndefined();
+      });
+
+      it('rejects a malformed or empty tag id instead of listing everything', async () => {
+        for (const tags of [[testId('tag'), 'not an id!'], '']) {
+          const errors = await validate(
+            plainToInstance(IngredientsQueryDto, { tags }),
+          );
+
+          expect(errors.map((error) => error.property)).toContain('tags');
+        }
+      });
+
+      it('rejects an oversized tag list', async () => {
+        const dto = plainToInstance(IngredientsQueryDto, {
+          tags: testIds('tag', MAX_TAG_FILTER_IDS + 1),
+        });
+
+        expect((await validate(dto)).map((error) => error.property)).toContain(
+          'tags',
+        );
+      });
+
+      it('normalizes the match mode and defaults to unset (any)', async () => {
+        const all = plainToInstance(IngredientsQueryDto, { tagMatch: 'ALL' });
+
+        expect(await validate(all)).toHaveLength(0);
+        expect(all.tagMatch).toBe(TagMatchMode.ALL);
+        expect(
+          plainToInstance(IngredientsQueryDto, {}).tagMatch,
+        ).toBeUndefined();
+      });
+
+      it('rejects an unknown match mode', async () => {
+        const dto = plainToInstance(IngredientsQueryDto, { tagMatch: 'both' });
+
+        expect((await validate(dto)).map((error) => error.property)).toContain(
+          'tagMatch',
+        );
+      });
     });
   });
 });

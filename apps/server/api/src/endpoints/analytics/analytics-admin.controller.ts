@@ -4,6 +4,7 @@ import { AnalyticsAdminSummaryService } from '@api/endpoints/analytics/analytics
 import {
   buildAnalyticsCacheKey,
   resolveAnalyticsTenantScope,
+  runInAnalyticsTenantScope,
 } from '@api/endpoints/analytics/analytics-tenant-scope';
 import {
   AdminBrandsQueryDto,
@@ -69,7 +70,10 @@ export class AnalyticsAdminController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
-    const data = await this.summaryService.getSummary(query);
+    // Superadmin-only (RolesDecorator): platform-wide totals across every org.
+    const data = await runInAnalyticsTenantScope(undefined, async () =>
+      this.summaryService.getSummary(query),
+    );
     return serializeSingle(req, AnalyticSerializer, data);
   }
 
@@ -97,13 +101,15 @@ export class AnalyticsAdminController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
-    const data =
-      await this.entityLeaderboardService.getOrganizationsLeaderboard(
+    // Superadmin-only (RolesDecorator): every organization by design.
+    const data = await runInAnalyticsTenantScope(undefined, async () =>
+      this.entityLeaderboardService.getOrganizationsLeaderboard(
         query.startDate,
         query.endDate,
         query.sort,
         query.limit,
-      );
+      ),
+    );
     return serializeSingle(req, AnalyticsOrgLeaderboardSerializer, data);
   }
 
@@ -132,12 +138,15 @@ export class AnalyticsAdminController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
-    const data = await this.entityLeaderboardService.getOrganizationsWithStats(
-      query.startDate,
-      query.endDate,
-      query.page,
-      query.limit,
-      query.sort,
+    // Superadmin-only (RolesDecorator): every organization by design.
+    const data = await runInAnalyticsTenantScope(undefined, async () =>
+      this.entityLeaderboardService.getOrganizationsWithStats(
+        query.startDate,
+        query.endDate,
+        query.page,
+        query.limit,
+        query.sort,
+      ),
     );
     return serializeSingle(req, AnalyticsOrgStatsSerializer, data);
   }
@@ -167,12 +176,14 @@ export class AnalyticsAdminController {
     const organizationId = this.getScopedOrganizationId(user, req);
     this.loggerService.log(url, { query });
 
-    const data = await this.entityLeaderboardService.getBrandsLeaderboard(
-      query.startDate,
-      query.endDate,
-      query.sort,
-      query.limit,
-      organizationId,
+    const data = await runInAnalyticsTenantScope(organizationId, async () =>
+      this.entityLeaderboardService.getBrandsLeaderboard(
+        query.startDate,
+        query.endDate,
+        query.sort,
+        query.limit,
+        organizationId,
+      ),
     );
     return serializeSingle(req, AnalyticsBrandLeaderboardSerializer, data);
   }
@@ -203,13 +214,15 @@ export class AnalyticsAdminController {
     const organizationId = this.getScopedOrganizationId(user, req);
     this.loggerService.log(url, { query });
 
-    const data = await this.entityLeaderboardService.getBrandsWithStats(
-      query.startDate,
-      query.endDate,
-      query.page,
-      query.limit,
-      query.sort,
-      organizationId,
+    const data = await runInAnalyticsTenantScope(organizationId, async () =>
+      this.entityLeaderboardService.getBrandsWithStats(
+        query.startDate,
+        query.endDate,
+        query.page,
+        query.limit,
+        query.sort,
+        organizationId,
+      ),
     );
     return serializeSingle(req, AnalyticsBrandStatsSerializer, data);
   }

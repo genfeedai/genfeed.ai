@@ -7,11 +7,14 @@ import {
   INGREDIENT_ORIGIN_LABELS,
   INGREDIENT_ORIGIN_ORDER,
   parseIngredientOrigin,
+  parseTagMatchMode,
+  TagMatchMode,
   ViewType,
 } from '@genfeedai/contracts';
 import {
   LIBRARY_CANVAS_FEATURE_FLAG,
   LIBRARY_MAX_CHARACTER_FILTERS,
+  LIBRARY_MAX_TAG_FILTERS,
   type LibraryViewMode,
 } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -36,6 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import LibraryTagManagerDialog from '@ui/tags/library-tag-picker/LibraryTagManagerDialog';
 import {
   SHELL_ICON_BUTTON_CLASS,
   SHELL_ICON_CLASS,
@@ -119,7 +123,7 @@ function CharacterAvatar({ character }: { character: LibraryCharacterOption }) {
  * here — a shelf is the route and a folder is the sidebar, so putting either in
  * this row would re-collapse the three axes the redesign just separated. Origin
  * is a filter like type, not a destination: it never gets a nav entry, and
- * neither does character.
+ * neither do character and tags.
  */
 export default function LibraryBrowserToolbar({
   categories,
@@ -128,14 +132,20 @@ export default function LibraryBrowserToolbar({
   origins,
   sort,
   sortOptions,
+  tagMatch,
+  tagOptions,
+  tags,
   viewMode,
   onCategoriesChange,
   onCharactersChange,
   onClearCategories,
   onClearCharacters,
   onClearOrigins,
+  onClearTags,
   onOriginsChange,
   onSortChange,
+  onTagMatchChange,
+  onTagsChange,
   onViewModeChange,
 }: Omit<
   LibraryBrowserToolbarProps,
@@ -147,6 +157,8 @@ export default function LibraryBrowserToolbar({
   const hasCharacterFilter = characters.length > 0;
   const isCharacterFilterVisible =
     characterOptions.length > 0 || hasCharacterFilter;
+  const hasTagFilter = tags.length > 0;
+  const isTagFilterVisible = tagOptions.length > 0 || hasTagFilter;
   const selectedTypeIds = selectedAssetTypeIds(categories);
   const isCanvasEnabled = useFeatureFlag(LIBRARY_CANVAS_FEATURE_FLAG);
 
@@ -158,6 +170,20 @@ export default function LibraryBrowserToolbar({
         value: character.id,
       })),
     [characterOptions],
+  );
+
+  // The count is the number of this brand's assets carrying the tag, so a
+  // filter never promises more than the list can show.
+  const tagDropdownOptions = useMemo(
+    () =>
+      tagOptions.map((tag) => ({
+        label:
+          typeof tag.assetCount === 'number'
+            ? `${tag.label} (${tag.assetCount})`
+            : tag.label,
+        value: tag.id,
+      })),
+    [tagOptions],
   );
 
   const viewOptions = useMemo(() => {
@@ -275,6 +301,74 @@ export default function LibraryBrowserToolbar({
               withWrapper={false}
             />
           ) : null}
+        </div>
+      ) : null}
+
+      {isTagFilterVisible ? (
+        <div className="flex min-w-0 items-center gap-1.5">
+          <DropdownMultiSelect
+            className={cn(
+              fieldControlClassName,
+              fieldControlTriggerClassName,
+              'w-32',
+            )}
+            isSearchEnabled
+            name="tags"
+            onChange={(_name, values) => {
+              onTagsChange(values.slice(0, LIBRARY_MAX_TAG_FILTERS));
+            }}
+            options={tagDropdownOptions}
+            placeholder={translate('tags')}
+            searchPlaceholder={translate('searchTags')}
+            values={tags}
+          />
+
+          {tags.length >= LIBRARY_MAX_TAG_FILTERS ? (
+            <span className="text-xs text-foreground/50" role="status">
+              {translate('tagLimit', { count: LIBRARY_MAX_TAG_FILTERS })}
+            </span>
+          ) : null}
+
+          {tags.length > 1 ? (
+            <Select
+              onValueChange={(value) => {
+                const mode = parseTagMatchMode(value);
+                if (mode) {
+                  onTagMatchChange(mode);
+                }
+              }}
+              value={tagMatch}
+            >
+              <SelectTrigger
+                aria-label={translate('tagMatchAria')}
+                className="w-32"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TagMatchMode.ANY}>
+                  {translate('matchAny')}
+                </SelectItem>
+                <SelectItem value={TagMatchMode.ALL}>
+                  {translate('matchAll')}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          ) : null}
+
+          {hasTagFilter ? (
+            <Button
+              ariaLabel={translate('clearTagFilter')}
+              className="h-7 rounded-full px-2 text-xs text-foreground/50 hover:text-foreground"
+              icon={<X className="size-3.5" />}
+              onClick={onClearTags}
+              tooltip={translate('clearTagFilter')}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+            />
+          ) : null}
+
+          <LibraryTagManagerDialog />
         </div>
       ) : null}
 

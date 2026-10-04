@@ -27,6 +27,7 @@ import { applyExpertPublishApprovalDefault } from '@genfeedai/contracts/constant
 import type { IBrandAgentAutoPublish } from '@genfeedai/contracts/interfaces';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   ConflictException,
@@ -263,7 +264,12 @@ export class OrganizationsService extends BaseService<
 
     if (normalizedDto.accountType !== undefined) {
       if (normalizedDto.accountType === OrganizationCategory.EXPERT) {
-        await this.applyExpertBrandDefaults(id);
+        // The patched organization is the target of this write, not
+        // necessarily the request tenant (superadmin / member of a non-active
+        // org); the controller already authorized the patch.
+        await runWithTenantContext({ organizationId: id }, () =>
+          this.applyExpertBrandDefaults(id),
+        );
       }
       // The bootstrap brand list carries `organization.accountType`, which the
       // proxy reads to route Expert Path onboarding.
@@ -278,78 +284,93 @@ export class OrganizationsService extends BaseService<
     data: Partial<UpdateOrganizationDto>,
   ): Promise<OrganizationDocument> {
     if (!id) throw new ValidationException('Document ID is required');
-    const organization = await this.prisma.$transaction(async (tx) => {
-      await learningFence(tx, 'exclusive');
-      // tenant-scope-ignore: authorized exact organization ID includes its own tombstone for the preexisting patch restoration semantics.
-      const before = await tx.organization.findFirst({
-        where: { id },
-        select: learningPublicationOrganizationSelect,
-      });
-      if (!before) throw new NotFoundException('Organization', id);
-      const where = { organizationId: id, isDeleted: false };
-      const select = {
-        id: true,
-        organizationId: true,
-        brandId: true,
-        credentialId: true,
-      } as const;
-      const accounts = await tx.contentLearningAccount.findMany({
-        where,
-        select,
-        orderBy: { id: 'asc' },
-      });
-      for (const account of accounts) {
-        const rows = await tx.$queryRaw<{ id: string }[]>(
-          Prisma.sql`SELECT "id" FROM "content_learning_accounts" WHERE "id" = ${account.id} AND "organizationId" = ${id} AND "brandId" = ${account.brandId} AND "credentialId" = ${account.credentialId} AND "isDeleted" = false FOR UPDATE`,
-        );
-        if (rows.length !== 1)
-          throw new ConflictException(
-            'Learning account changed during organization mutation.',
-          );
-      }
-      // tenant-scope-ignore: lock only the authorized organization's discovered current tombstone state.
-      const locked = await tx.$queryRaw<{ id: string }[]>(
-        Prisma.sql`SELECT "id" FROM "organizations" WHERE "id" = ${id} AND "isDeleted" = ${before.isDeleted} FOR UPDATE`,
-      );
-      const currentAccounts = await tx.contentLearningAccount.findMany({
-        where,
-        select,
-        orderBy: { id: 'asc' },
-      });
-      if (locked.length !== 1 || !isDeepStrictEqual(accounts, currentAccounts))
-        throw new ConflictException(
-          'Organization source discovery changed during mutation.',
-        );
-      const include = this.populateToInclude(this.populate) as
-        | Prisma.OrganizationInclude
-        | undefined;
-      const updated = await tx.organization.update({
-        where: { id, isDeleted: before.isDeleted },
-        data: this.normalizeData(
-          data,
-        ) as Prisma.OrganizationUncheckedUpdateInput,
-        ...(include ? { include } : {}),
-      });
-      if (
-        !isDeepStrictEqual(before, {
-          id: updated.id,
-          isDeleted: updated.isDeleted,
-        })
-      ) {
-        await invalidateLearningDependencySource(tx, 'organization', id, id);
-        for (const account of accounts) {
-          const result = await tx.contentLearningAccount.updateMany({
-            where: scopedWhere(account.organizationId, account),
-            data: { evidenceRevision: { increment: 1 } },
+    // Every guard-visible query below belongs to the patched organization
+    // (`id`), which the controller already authorized; it is not necessarily
+    // the request tenant (superadmin or a member of a non-active org).
+    const organization = await runWithTenantContext(
+      { organizationId: id },
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          await learningFence(tx, 'exclusive');
+          // tenant-scope-ignore: authorized exact organization ID includes its own tombstone for the preexisting patch restoration semantics.
+          const before = await tx.organization.findFirst({
+            where: { id },
+            select: learningPublicationOrganizationSelect,
           });
-          if (result.count !== 1)
-            throw new ConflictException(
-              'Learning account changed during organization invalidation.',
+          if (!before) throw new NotFoundException('Organization', id);
+          const where = { organizationId: id, isDeleted: false };
+          const select = {
+            id: true,
+            organizationId: true,
+            brandId: true,
+            credentialId: true,
+          } as const;
+          const accounts = await tx.contentLearningAccount.findMany({
+            where,
+            select,
+            orderBy: { id: 'asc' },
+          });
+          for (const account of accounts) {
+            const rows = await tx.$queryRaw<{ id: string }[]>(
+              Prisma.sql`SELECT "id" FROM "content_learning_accounts" WHERE "id" = ${account.id} AND "organizationId" = ${id} AND "brandId" = ${account.brandId} AND "credentialId" = ${account.credentialId} AND "isDeleted" = false FOR UPDATE`,
             );
-        }
-      }
-      return this.normalizeDocument(updated);
-    });
+            if (rows.length !== 1)
+              throw new ConflictException(
+                'Learning account changed during organization mutation.',
+              );
+          }
+          // tenant-scope-ignore: lock only the authorized organization's discovered current tombstone state.
+          const locked = await tx.$queryRaw<{ id: string }[]>(
+            Prisma.sql`SELECT "id" FROM "organizations" WHERE "id" = ${id} AND "isDeleted" = ${before.isDeleted} FOR UPDATE`,
+          );
+          const currentAccounts = await tx.contentLearningAccount.findMany({
+            where,
+            select,
+            orderBy: { id: 'asc' },
+          });
+          if (
+            locked.length !== 1 ||
+            !isDeepStrictEqual(accounts, currentAccounts)
+          )
+            throw new ConflictException(
+              'Organization source discovery changed during mutation.',
+            );
+          const include = this.populateToInclude(this.populate) as
+            | Prisma.OrganizationInclude
+            | undefined;
+          const updated = await tx.organization.update({
+            where: { id, isDeleted: before.isDeleted },
+            data: this.normalizeData(
+              data,
+            ) as Prisma.OrganizationUncheckedUpdateInput,
+            ...(include ? { include } : {}),
+          });
+          if (
+            !isDeepStrictEqual(before, {
+              id: updated.id,
+              isDeleted: updated.isDeleted,
+            })
+          ) {
+            await invalidateLearningDependencySource(
+              tx,
+              'organization',
+              id,
+              id,
+            );
+            for (const account of accounts) {
+              const result = await tx.contentLearningAccount.updateMany({
+                where: scopedWhere(account.organizationId, account),
+                data: { evidenceRevision: { increment: 1 } },
+              });
+              if (result.count !== 1)
+                throw new ConflictException(
+                  'Learning account changed during organization invalidation.',
+                );
+            }
+          }
+          return this.normalizeDocument(updated);
+        }),
+    );
     await this.cacheService?.invalidateByTags([
       this.collectionName,
       `collection:${this.collectionName}`,

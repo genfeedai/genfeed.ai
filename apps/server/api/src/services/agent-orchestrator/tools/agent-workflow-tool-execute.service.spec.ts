@@ -62,6 +62,7 @@ describe('AgentWorkflowToolExecuteService setWorkflowSchedule', () => {
     });
     expect(workflowSchedulerService.updateSchedule).toHaveBeenCalledWith(
       'workflow-1',
+      'org-1',
       '0 9 * * 1-5',
       'Europe/Malta',
       true,
@@ -93,6 +94,7 @@ describe('AgentWorkflowToolExecuteService setWorkflowSchedule', () => {
 
     expect(workflowSchedulerService.updateSchedule).toHaveBeenCalledWith(
       'workflow-1',
+      'org-1',
       null,
       'UTC',
       false,
@@ -126,6 +128,7 @@ describe('AgentWorkflowToolExecuteService setWorkflowSchedule', () => {
 
     expect(workflowSchedulerService.updateSchedule).toHaveBeenCalledWith(
       'workflow-1',
+      'org-1',
       '0 9 * * 1-5',
       'America/New_York',
       false,

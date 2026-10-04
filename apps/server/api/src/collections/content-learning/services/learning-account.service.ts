@@ -46,6 +46,7 @@ import {
   type Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   ConflictException,
@@ -929,6 +930,18 @@ export class LearningAccountService {
     });
   }
   async emergencyPause(
+    actorId: string,
+    accountId: string,
+    body: { expectedRevision: number; requestId: string; reason: string },
+  ) {
+    // Superadmin-only platform action: it locates an account in ANY
+    // organization, then mutates under that account's own organization, so it
+    // runs outside the admin's tenant enforcement.
+    return crossOrgUnsafe(
+      async () => await this.pauseAccountAsPlatform(actorId, accountId, body),
+    );
+  }
+  private async pauseAccountAsPlatform(
     actorId: string,
     accountId: string,
     body: { expectedRevision: number; requestId: string; reason: string },

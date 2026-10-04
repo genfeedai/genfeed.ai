@@ -41,6 +41,18 @@ describe('PrismaService tenant guard wiring', () => {
 
     expect(service).toBeDefined();
     expect(typeof service.$connect).toBe('function');
+    expect(service.isCloudTenantGuard).toBe(true);
+  });
+
+  it('reports the guard as off for self-hosted', () => {
+    const service = new PrismaService(
+      testConfigService({
+        DATABASE_URL: 'postgresql://user:pass@localhost:5432/genfeed',
+        GENFEED_CLOUD: 'false',
+      }),
+    );
+
+    expect(service.isCloudTenantGuard).toBe(false);
   });
 });
 

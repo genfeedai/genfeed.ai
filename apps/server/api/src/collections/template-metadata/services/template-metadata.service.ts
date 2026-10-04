@@ -2,6 +2,7 @@ import { TemplateMetadataEntity } from '@api/collections/template-metadata/entit
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';
+import { platformOrTenantScope } from '@libs/prisma/platform-scope';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -106,8 +107,14 @@ export class TemplateMetadataService {
     },
   ): Promise<void> {
     // Find template by key first
+    // tenant-scope-ignore: platformOrTenantScope limits the key lookup to platform plus the active tenant templates; isDeleted is false
     const template = await this.prisma.template.findFirst({
-      where: { isDeleted: false, key, purpose: 'prompt' },
+      where: {
+        ...platformOrTenantScope(),
+        isDeleted: false,
+        key,
+        purpose: 'prompt',
+      },
     });
 
     if (!template) {

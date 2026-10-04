@@ -11,6 +11,10 @@ import { ArticleCategory, AssetScope } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  isCrossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -151,6 +155,72 @@ describe('ArticlesController', () => {
         },
         { pagination: false },
       );
+    });
+  });
+
+  describe('superadmin reads', () => {
+    const superAdminRequest = {
+      ...mockRequest,
+      context: { isSuperAdmin: true },
+    } as unknown as Request;
+
+    it('reads another organization article outside the request tenant', async () => {
+      let isCrossOrgDuringRead = false;
+      mockArticlesService.findAll.mockImplementation(async () => {
+        isCrossOrgDuringRead = isCrossOrgUnsafe();
+        return { docs: [mockArticle] };
+      });
+
+      await runWithTenantContext(
+        { organizationId: mockPublicMetadata.organization },
+        () => controller.findOne(superAdminRequest, mockUser, mockArticle.id),
+      );
+
+      expect(isCrossOrgDuringRead).toBe(true);
+    });
+
+    it('keeps a regular member inside the request tenant', async () => {
+      let isCrossOrgDuringRead = true;
+      mockArticlesService.findAll.mockImplementation(async () => {
+        isCrossOrgDuringRead = isCrossOrgUnsafe();
+        return { docs: [mockArticle] };
+      });
+
+      await runWithTenantContext(
+        { organizationId: mockPublicMetadata.organization },
+        () => controller.findOne(mockRequest, mockUser, mockArticle.id),
+      );
+
+      expect(isCrossOrgDuringRead).toBe(false);
+    });
+
+    it('mints a preview link for any organization article as a superadmin', async () => {
+      let isCrossOrgDuringRead = false;
+      mockArticlesService.findOne.mockImplementation(async () => {
+        isCrossOrgDuringRead = isCrossOrgUnsafe();
+        return mockArticle;
+      });
+      mockConfigService.get.mockImplementation((key: string) =>
+        key === 'GENFEEDAI_PUBLIC_URL'
+          ? 'https://genfeed.ai/'
+          : 'test-signing-key',
+      );
+
+      await runWithTenantContext(
+        { organizationId: mockPublicMetadata.organization },
+        () =>
+          controller.createPreviewLink(
+            superAdminRequest,
+            mockUser,
+            mockArticle.id,
+          ),
+      );
+
+      expect(isCrossOrgDuringRead).toBe(true);
+      expect(service.findOne).toHaveBeenCalledWith({
+        id: mockArticle.id,
+        isDeleted: false,
+      });
     });
   });
 

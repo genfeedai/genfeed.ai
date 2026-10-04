@@ -65,9 +65,9 @@ type FakeTxClient = {
   workflow: {
     create: (args: CreateArgs) => Promise<StoredWorkflow>;
     findFirst: (args: FindArgs) => Promise<StoredWorkflow | null>;
-    findUniqueOrThrow: (args: {
+    findFirstOrThrow: (args: {
       include?: Record<string, unknown>;
-      where: { id: string };
+      where: { id: string; organizationId?: string };
     }) => Promise<StoredWorkflow>;
     update: (args: UpdateArgs) => Promise<StoredWorkflow | null>;
   };
@@ -198,7 +198,7 @@ function createFakePrisma(options: FakePrismaOptions) {
             const visible = [...snapshot, ...staged];
             return visible.find((row) => matches(row, where)) ?? null;
           },
-          findUniqueOrThrow: async ({ where }) => {
+          findFirstOrThrow: async ({ where }) => {
             const row =
               staged.find((r) => r.id === where.id) ??
               snapshot.find((r) => r.id === where.id);
@@ -695,6 +695,7 @@ describe('DefaultRecurringContentService', () => {
     const updateSchedule = vi.fn(
       async (
         workflowId: string,
+        _organizationId: string,
         schedule: string | null,
         timezone: string,
         isEnabled: boolean,
@@ -833,6 +834,7 @@ describe('DefaultRecurringContentService', () => {
     for (const contentType of CONTENT_TYPES) {
       expect(updateSchedule).toHaveBeenCalledWith(
         `seed_${contentType}`,
+        ORGANIZATION_ID,
         '0 12 * * *',
         'America/New_York',
         false,
@@ -866,12 +868,14 @@ describe('DefaultRecurringContentService', () => {
 
     expect(updateSchedule).toHaveBeenCalledWith(
       'seed_post',
+      ORGANIZATION_ID,
       '0 12 * * *',
       'UTC',
       true,
     );
     expect(updateSchedule).not.toHaveBeenCalledWith(
       'user_workflow',
+      expect.anything(),
       expect.anything(),
       expect.anything(),
       expect.anything(),

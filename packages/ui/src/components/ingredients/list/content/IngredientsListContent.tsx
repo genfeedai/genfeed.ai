@@ -43,6 +43,7 @@ import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import IngredientOriginBadge from '@ui/ingredients/ingredient-origin-badge';
+import IngredientTagChips from '@ui/ingredients/ingredient-tag-chips';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientTimeGroupHeading from '@ui/ingredients/list/media-grid/ingredient-time-group-heading';
@@ -335,6 +336,17 @@ export default function IngredientsListContent({
         render: (ingredient: IIngredient) => (
           <IngredientOriginBadge origin={ingredient.origin} />
         ),
+      },
+      {
+        className: 'w-56',
+        header: translate('browser.columns.tags'),
+        key: 'tags',
+        render: (ingredient: IIngredient) =>
+          ingredient.tags && ingredient.tags.length > 0 ? (
+            <IngredientTagChips tags={ingredient.tags} />
+          ) : (
+            <span className="text-foreground/35">—</span>
+          ),
       },
       {
         className: 'w-52',

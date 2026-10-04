@@ -16,6 +16,7 @@ import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import Spinner from '@ui/primitives/spinner';
+import { LIBRARY_TAGS_QUERY_KEY } from '@ui/tags/library-tag-picker/library-tags-query-key';
 import TagsManager from '@ui/tags/manager/TagsManager';
 import { Plus, Tag, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -44,11 +45,12 @@ export default function IngredientTabsTags({
     return IngredientsService.getInstance(token);
   });
 
+  // The brand's own tags plus organization-wide tags, never another brand's.
   const { data: allTags = [], isLoading } = useQuery({
-    queryKey: ['ingredient-tabs-tags'],
+    queryKey: [LIBRARY_TAGS_QUERY_KEY, 'ingredient-tabs'],
     queryFn: async () => {
       const service = await getTagsService();
-      return service.findAll();
+      return service.findLibraryTags();
     },
     enabled: !!isSignedIn,
   });

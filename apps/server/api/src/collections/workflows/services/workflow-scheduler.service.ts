@@ -326,13 +326,14 @@ export class WorkflowSchedulerService implements OnModuleInit {
    */
   async updateSchedule(
     workflowId: string,
+    organizationId: string,
     schedule: string | null,
     timezone: string = 'UTC',
     isEnabled: boolean = true,
   ): Promise<WorkflowDocument | null> {
     const existing = await this.prisma.workflow.findFirst({
       select: { id: true },
-      where: { id: workflowId, isDeleted: false },
+      where: scopedWhere(organizationId, { id: workflowId }),
     });
 
     if (!existing) {
@@ -365,7 +366,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
         timezone,
       },
       include: { currentVersion: true },
-      where: { id: workflowId },
+      where: scopedWhere(organizationId, { id: workflowId }),
     });
 
     const workflowDocument = toWorkflowDocument(workflow);

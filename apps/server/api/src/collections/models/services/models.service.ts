@@ -6,6 +6,12 @@ import {
   projectReviewedCrunModelInputControls,
   validateProviderApprovalAndResolveCrunContract,
 } from '@api/collections/models/services/crun-model-contract.util';
+import {
+  PUBLIC_MODEL_CATALOG_SELECT,
+  type PublicModelCatalogDocument,
+  type PublicModelCatalogFilters,
+  type PublicModelCatalogRow,
+} from '@api/collections/models/services/public-model-catalog.types';
 import { findModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -18,7 +24,6 @@ import {
   ModelProvider,
 } from '@genfeedai/contracts';
 import type {
-  CrunInputControls,
   IModelProviderContractSnapshot,
   IModelProviderContracts,
   ModelBillablePricingProfile,
@@ -31,6 +36,11 @@ import {
 } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  platformOrTenantScope,
+  withPlatformTenantArm,
+} from '@libs/prisma/platform-scope';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const PAGINATION_OPTION_KEYS = new Set([
@@ -50,67 +60,6 @@ type FindAvailableModelsParams = {
   enabledModelIds?: string[];
   isActive?: boolean;
   organizationId?: string;
-};
-
-const PUBLIC_MODEL_CATALOG_SELECT = {
-  aspectRatios: true,
-  capabilities: true,
-  category: true,
-  cost: true,
-  costPerUnit: true,
-  costTier: true,
-  defaultAspectRatio: true,
-  defaultDuration: true,
-  description: true,
-  durations: true,
-  id: true,
-  isDefault: true,
-  isHighlighted: true,
-  key: true,
-  label: true,
-  maxOutputs: true,
-  minCost: true,
-  pricingType: true,
-  provider: true,
-  providerCostUsd: true,
-  providerInputSchema: true,
-  reviewedProviderContractVersion: true,
-  qualityTier: true,
-  recommendedFor: true,
-  speedTier: true,
-  supportsFeatures: true,
-} satisfies Prisma.ModelSelect;
-
-type PublicModelCatalogRow = Prisma.ModelGetPayload<{
-  select: typeof PUBLIC_MODEL_CATALOG_SELECT;
-}>;
-
-export type PublicModelCatalogDocument = Pick<
-  PublicModelCatalogRow,
-  | 'aspectRatios'
-  | 'capabilities'
-  | 'category'
-  | 'costTier'
-  | 'defaultAspectRatio'
-  | 'defaultDuration'
-  | 'description'
-  | 'durations'
-  | 'id'
-  | 'isDefault'
-  | 'isHighlighted'
-  | 'key'
-  | 'label'
-  | 'maxOutputs'
-  | 'provider'
-  | 'qualityTier'
-  | 'recommendedFor'
-  | 'speedTier'
-  | 'supportsFeatures'
-> & { cost: number; inputControls?: CrunInputControls };
-
-type PublicModelCatalogFilters = {
-  category?: ModelCategory;
-  provider?: ModelProvider;
 };
 
 type RegistryReviewPatch = Partial<UpdateModelDto> & {
@@ -438,7 +387,10 @@ export class ModelsService extends BaseService<
     };
     const organizationId = scopedParams.organizationId;
     if (organizationId === undefined || organizationId === null) {
-      return scopedParams;
+      // Platform rows only named, or no organization named at all: inside a
+      // request the CLOUD tenant guard needs the caller's organization, so the
+      // read widens to platform rows plus the caller's own (never another's).
+      return withPlatformTenantArm(scopedParams);
     }
     delete scopedParams.organizationId;
     const existingOr = Array.isArray(scopedParams.OR)
@@ -482,8 +434,11 @@ export class ModelsService extends BaseService<
     populate: Parameters<BaseService<ModelDocument>['find']>[1] = [],
   ): Promise<ModelDocument[]> {
     void populate;
+    // tenant-scope-ignore: registry reads are platform plus the active tenant: withPlatformTenantArm adds the tenant arm, and isDeleted is part of the caller where
     const models = await this.prisma.model.findMany({
-      where: this.normalizeWhereForModel(params) as Prisma.ModelWhereInput,
+      where: this.normalizeWhereForModel(
+        withPlatformTenantArm(params),
+      ) as Prisma.ModelWhereInput,
     });
     return models.map((model) => this.normalizeModelDocument(model));
   }
@@ -531,14 +486,17 @@ export class ModelsService extends BaseService<
     populate: Parameters<BaseService<ModelDocument>['patch']>[2] = [],
   ): Promise<ModelDocument> {
     void populate;
-    const existing = await this.prisma.model.findUnique({ where: { id } });
+    const where = withPlatformTenantArm({ id }) as Prisma.ModelWhereUniqueInput;
+    // tenant-scope-ignore: `id` plus the platform-or-active-tenant arm bound the registry row; org-owned rows of other tenants never match
+    const existing = await this.prisma.model.findUnique({ where });
     const data = this.splitModelData(
       updateDto as Record<string, unknown>,
       this.getProviderConfig(existing),
     );
+    // tenant-scope-ignore: patch is bound to the id plus the platform-or-active-tenant arm from withPlatformTenantArm
     const updated = await this.prisma.model.update({
       data: data as Prisma.ModelUpdateInput,
-      where: { id },
+      where,
     });
     return this.normalizeModelDocument(updated);
   }
@@ -547,9 +505,10 @@ export class ModelsService extends BaseService<
     if (!id) {
       throw new ValidationException('Document ID is required');
     }
+    // tenant-scope-ignore: remove is bound to the id plus the platform-or-active-tenant arm from withPlatformTenantArm
     const removed = await this.prisma.model.update({
       data: { isDeleted: true },
-      where: { id },
+      where: withPlatformTenantArm({ id }) as Prisma.ModelWhereUniqueInput,
     });
     return this.normalizeModelDocument(removed);
   }
@@ -641,15 +600,16 @@ export class ModelsService extends BaseService<
       );
     }
 
+    // tenant-scope-ignore: clearOtherDefaults names its organization (or the platform null) and withPlatformTenantArm adds the tenant proof; isDeleted is false
     await this.prisma.model.updateMany({
       data: { isDefault: false },
-      where: {
+      where: withPlatformTenantArm({
         category,
         id: { not: exceptModelId },
         isDefault: true,
         isDeleted: false,
         organizationId,
-      },
+      }),
     });
   }
 
@@ -659,6 +619,19 @@ export class ModelsService extends BaseService<
    * remains an independent approval boundary for discovered provider rows.
    */
   async transitionLifecycle(
+    modelId: string,
+    lifecycle: ModelLifecycle,
+    succeededBy?: string,
+  ): Promise<ModelDocument | null> {
+    // Superadmin registry operation (the controller asserts it): the target may
+    // be any registry row, so it runs outside the request tenant arm.
+    return crossOrgUnsafe(
+      async () =>
+        await this.applyLifecycleTransition(modelId, lifecycle, succeededBy),
+    );
+  }
+
+  private async applyLifecycleTransition(
     modelId: string,
     lifecycle: ModelLifecycle,
     succeededBy?: string,
@@ -758,8 +731,11 @@ export class ModelsService extends BaseService<
   }
 
   async count(filter: Record<string, unknown>): Promise<number> {
+    // tenant-scope-ignore: registry count: withPlatformTenantArm bounds it to platform plus the active tenant rows
     return this.prisma.model.count({
-      where: this.normalizeWhereForModel(filter) as Prisma.ModelWhereInput,
+      where: this.normalizeWhereForModel(
+        withPlatformTenantArm(filter),
+      ) as Prisma.ModelWhereInput,
     });
   }
 
@@ -831,6 +807,19 @@ export class ModelsService extends BaseService<
   async approveRegistryModel(
     modelId: string,
     updateDto: Partial<UpdateModelDto> = {},
+    reviewedBy?: string,
+  ): Promise<ModelDocument | null> {
+    // Superadmin registry approval (the controller asserts it) on a
+    // platform-global row.
+    return crossOrgUnsafe(
+      async () =>
+        await this.applyRegistryApproval(modelId, updateDto, reviewedBy),
+    );
+  }
+
+  private async applyRegistryApproval(
+    modelId: string,
+    updateDto: Partial<UpdateModelDto>,
     reviewedBy?: string,
   ): Promise<ModelDocument | null> {
     const existing = await this.findOne({ id: modelId });
@@ -917,34 +906,37 @@ export class ModelsService extends BaseService<
     modelId: string,
     params: { reason?: string; reviewedBy?: string } = {},
   ): Promise<ModelDocument | null> {
-    const existing = await this.findOne({ id: modelId });
-    if (!existing) {
-      return null;
-    }
+    // Superadmin registry rejection (the controller asserts it).
+    return crossOrgUnsafe(async () => {
+      const existing = await this.findOne({ id: modelId });
+      if (!existing) {
+        return null;
+      }
 
-    return this.patch(modelId, {
-      isActive: false,
-      isDefault: false,
-      rejectionReason: params.reason,
-      reviewStatus: 'rejected',
-      reviewedAt: new Date(),
-      reviewedBy: params.reviewedBy,
-    } satisfies RegistryReviewPatch);
+      return this.patch(modelId, {
+        isActive: false,
+        isDefault: false,
+        rejectionReason: params.reason,
+        reviewStatus: 'rejected',
+        reviewedAt: new Date(),
+        reviewedBy: params.reviewedBy,
+      } satisfies RegistryReviewPatch);
+    });
   }
 
   async createFromTraining(training: TrainingDocument): Promise<ModelDocument> {
     const trainingId = this.getTrainingId(training);
+    const organizationId = this.readString(training.organizationId);
+    if (!organizationId) {
+      throw new Error(`Training ${trainingId} is missing an organization`);
+    }
+
     const existing = await this.prisma.model.findFirst({
-      where: { trainingId },
+      where: { isDeleted: false, organizationId, trainingId },
     });
 
     if (existing) {
       return this.normalizeModelDocument(existing);
-    }
-
-    const organizationId = this.readString(training.organizationId);
-    if (!organizationId) {
-      throw new Error(`Training ${trainingId} is missing an organization`);
     }
 
     const config = this.getTrainingConfig(training);
@@ -995,11 +987,13 @@ export class ModelsService extends BaseService<
   async findAllActive(
     filter?: Record<string, unknown>,
   ): Promise<ModelDocument[]> {
-    const dbWhere = this.normalizeWhereForModel({
-      isActive: true,
-      isDeleted: false,
-      ...(filter ?? {}),
-    });
+    const dbWhere = this.normalizeWhereForModel(
+      withPlatformTenantArm({
+        isActive: true,
+        isDeleted: false,
+        ...(filter ?? {}),
+      }),
+    );
     const models = await this.prisma.model.findMany({
       where: dbWhere as Prisma.ModelWhereInput,
     });
@@ -1017,14 +1011,7 @@ export class ModelsService extends BaseService<
       isDeleted: false,
     };
 
-    if (params.organizationId) {
-      where.OR = [
-        { organizationId: null },
-        { organizationId: params.organizationId },
-      ];
-    } else {
-      where.organizationId = null;
-    }
+    Object.assign(where, platformOrTenantScope(params.organizationId));
 
     const models = await this.prisma.model.findMany({
       where: where as Prisma.ModelWhereInput,

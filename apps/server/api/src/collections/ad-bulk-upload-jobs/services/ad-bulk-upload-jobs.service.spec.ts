@@ -1,4 +1,6 @@
 import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
+import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { AdBulkUploadJobsService } from './ad-bulk-upload-jobs.service';
 
 const NOW = new Date('2026-08-01T00:00:00.000Z');
@@ -24,7 +26,6 @@ describe('AdBulkUploadJobsService', () => {
   const create = vi.fn();
   const findFirst = vi.fn();
   const findMany = vi.fn();
-  const findUnique = vi.fn();
   const update = vi.fn();
   const logger = {
     error: vi.fn(),
@@ -32,7 +33,7 @@ describe('AdBulkUploadJobsService', () => {
     warn: vi.fn(),
   } satisfies ServerLogger;
   const prisma = {
-    adBulkUploadJob: { create, findFirst, findMany, findUnique, update },
+    adBulkUploadJob: { create, findFirst, findMany, update },
   } as unknown as Pick<ServerPrisma, 'adBulkUploadJob'>;
   const service = new AdBulkUploadJobsService(prisma, logger);
 
@@ -314,7 +315,7 @@ describe('AdBulkUploadJobsService', () => {
 
   describe('incrementProgress', () => {
     it('starts the counter at 1 when the job has none', async () => {
-      findUnique.mockResolvedValue(makeRow({}));
+      findFirst.mockResolvedValue(makeRow({}));
 
       await service.incrementProgress('job-1', 'completedPermutations');
 
@@ -325,7 +326,7 @@ describe('AdBulkUploadJobsService', () => {
     });
 
     it('increments an existing counter', async () => {
-      findUnique.mockResolvedValue(makeRow({ failedPermutations: 3 }));
+      findFirst.mockResolvedValue(makeRow({ failedPermutations: 3 }));
 
       await service.incrementProgress('job-1', 'failedPermutations');
 
@@ -336,7 +337,7 @@ describe('AdBulkUploadJobsService', () => {
     });
 
     it('writes a fresh counter when the job row is missing', async () => {
-      findUnique.mockResolvedValue(null);
+      findFirst.mockResolvedValue(null);
 
       await service.incrementProgress('job-1', 'completedPermutations');
 
@@ -348,7 +349,7 @@ describe('AdBulkUploadJobsService', () => {
 
     it('logs and rethrows write failures', async () => {
       const dbError = new Error('update failed');
-      findUnique.mockResolvedValue(makeRow({}));
+      findFirst.mockResolvedValue(makeRow({}));
       update.mockRejectedValue(dbError);
 
       await expect(
@@ -361,9 +362,26 @@ describe('AdBulkUploadJobsService', () => {
     });
   });
 
+  describe('tenant-scoped progress writes', () => {
+    it('pins the read and write to the request tenant in CLOUD mode', async () => {
+      findFirst.mockResolvedValue(makeRow({}));
+
+      await runWithTenantContext({ organizationId: 'org-1' }, () =>
+        service.updateStatus('job-1', 'completed'),
+      );
+
+      expect(update).toHaveBeenCalledWith({
+        data: { data: { status: 'completed' } },
+        where: { id: 'job-1', isDeleted: false, organizationId: 'org-1' },
+      });
+      expectCloudGuardPasses('AdBulkUploadJob', 'findFirst', findFirst);
+      expectCloudGuardPasses('AdBulkUploadJob', 'update', update);
+    });
+  });
+
   describe('updateStatus', () => {
     it('merges the new status into the existing JSON column', async () => {
-      findUnique.mockResolvedValue(makeRow({ totalPermutations: 5 }));
+      findFirst.mockResolvedValue(makeRow({ totalPermutations: 5 }));
 
       await service.updateStatus('job-1', 'completed');
 
@@ -378,7 +396,7 @@ describe('AdBulkUploadJobsService', () => {
 
     it('logs and rethrows write failures', async () => {
       const dbError = new Error('update failed');
-      findUnique.mockRejectedValue(dbError);
+      findFirst.mockRejectedValue(dbError);
 
       await expect(
         service.updateStatus('job-1', 'failed'),
@@ -392,7 +410,7 @@ describe('AdBulkUploadJobsService', () => {
 
   describe('addError', () => {
     it('appends to the existing error list and serialises a Date timestamp', async () => {
-      findUnique.mockResolvedValue(
+      findFirst.mockResolvedValue(
         makeRow({
           uploadErrors: [
             {
@@ -432,7 +450,7 @@ describe('AdBulkUploadJobsService', () => {
     });
 
     it('keeps a string timestamp as-is', async () => {
-      findUnique.mockResolvedValue(makeRow({}));
+      findFirst.mockResolvedValue(makeRow({}));
 
       await service.addError('job-1', {
         message: 'boom',
@@ -458,7 +476,7 @@ describe('AdBulkUploadJobsService', () => {
 
     it('logs and rethrows write failures', async () => {
       const dbError = new Error('update failed');
-      findUnique.mockResolvedValue(makeRow({}));
+      findFirst.mockResolvedValue(makeRow({}));
       update.mockRejectedValue(dbError);
 
       await expect(

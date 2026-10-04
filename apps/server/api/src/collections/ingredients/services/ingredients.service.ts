@@ -8,6 +8,7 @@ import {
   UpdateIngredientDto,
 } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { assertTagsVisibleToBrand } from '@api/collections/ingredients/utils/assert-tags-visible-to-brand.util';
 import {
   toIngredientCreateData,
   toIngredientUpdateData,
@@ -18,6 +19,7 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { persistQuoteGroupDisposition } from '@api/helpers/utils/credits/persist-quote-group-completion.util';
 import { persistSubmissionFailure } from '@api/helpers/utils/credits/persist-submission-failure.util';
+import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
 import { scopedWhere } from '@api/index';
 import { MediaDerivativePreparationService } from '@api/services/media-urls/media-derivative-preparation.service';
@@ -42,8 +44,17 @@ import type {
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { withExternalMediaFallback } from '@libs/media/media-url.util';
+import {
+  getTenantContext,
+  isCrossOrgUnsafe,
+} from '@libs/prisma/tenant-context';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+
+/** The request organization writes stay inside; `undefined` for workers and `crossOrgUnsafe`. */
+function requestOrganizationId(): string | undefined {
+  return isCrossOrgUnsafe() ? undefined : getTenantContext()?.organizationId;
+}
 
 @Injectable()
 export class IngredientsService extends BaseService<
@@ -180,44 +191,6 @@ export class IngredientsService extends BaseService<
   }
 
   /**
-   * Find all children of a parent ingredient.
-   *
-   * @param id - Parent ingredient ID
-   * @param limit - Maximum number of children to return (default: 100, max: 500)
-   * @returns Array of child ingredients
-   */
-  async findChildren(
-    id: string,
-    limit: number = 100,
-  ): Promise<IngredientDocument[]> {
-    try {
-      this.logger.debug(`${this.constructorName} findChildren`, {
-        parentId: id,
-      });
-
-      const safeLimit = Math.min(limit, 500);
-
-      const result = await this.prisma.ingredient.findMany({
-        where: { isDeleted: false, parentId: id },
-        take: safeLimit,
-      });
-
-      this.logger.debug(`${this.constructorName} findChildren success`, {
-        count: result.length,
-        parentId: id,
-      });
-
-      return result as unknown as IngredientDocument[];
-    } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} findChildren failed`, {
-        error,
-        parentId: id,
-      });
-      throw error;
-    }
-  }
-
-  /**
    * Batch find ingredients by IDs with organization isolation.
    */
   async findByIds(
@@ -269,9 +242,13 @@ export class IngredientsService extends BaseService<
     offset: number;
     organizationId: string;
     origin?: IngredientOrigin;
+    tagFilter?: Record<string, unknown>;
   }): Promise<IngredientDocument[]> {
     const rows = await this.prisma.ingredient.findMany({
-      include: { metadata: { select: { result: true } } },
+      include: {
+        metadata: { select: { result: true } },
+        ...IngredientFilterUtil.buildLibraryTagsInclude(),
+      },
       orderBy: { createdAt: 'desc' },
       skip: params.offset,
       take: params.limit,
@@ -282,6 +259,7 @@ export class IngredientsService extends BaseService<
         trainingId: null,
         ...(params.origin ? { origin: params.origin } : {}),
         ...(params.characterFilter ?? {}),
+        ...(params.tagFilter ?? {}),
       }),
     });
 
@@ -364,26 +342,19 @@ export class IngredientsService extends BaseService<
     }
   }
 
+  /**
+   * Tags an asset may carry (#6011): its brand's tags, organization-wide tags
+   * and the legacy default tags, never another brand's or organization's.
+   */
   async assertClientTags(
     tagIds: string[],
     organizationId: string,
+    brandId?: string | null,
   ): Promise<void> {
-    const ids = [...new Set(tagIds)];
-    if (ids.length === 0) return;
-    if (!organizationId) {
-      throw new BadRequestException(
-        'An organization is required to assign tags',
-      );
-    }
-    const tags = await this.prisma.tag.findMany({
-      where: { id: { in: ids }, organizationId, isDeleted: false },
-      select: { id: true },
+    await assertTagsVisibleToBrand(this.prisma, tagIds, {
+      brandId,
+      organizationId,
     });
-    if (tags.length !== ids.length) {
-      throw new BadRequestException(
-        'Tags must belong to the current organization',
-      );
-    }
   }
 
   async patch(
@@ -397,7 +368,10 @@ export class IngredientsService extends BaseService<
       const data = this.normalizeData(
         toIngredientUpdateData(updateDto as unknown as Record<string, unknown>),
       );
-      const current = await this.findOne({ id });
+      // In a request the row is read, written and re-read under its organization.
+      const organizationId = requestOrganizationId();
+      const rowWhere = organizationId ? { id, organizationId } : { id };
+      const current = await this.findOne(rowWhere);
       if (!current) throw new NotFoundException('Ingredient', id);
       const completed = current?.organizationId
         ? await persistQuoteGroupDisposition(
@@ -422,7 +396,7 @@ export class IngredientsService extends BaseService<
         throw new NotFoundException('Ingredient', id);
       }
 
-      const result = await this.findOne({ id }, populate);
+      const result = await this.findOne(rowWhere, populate);
 
       if (!result) {
         this.logger.error(
@@ -485,6 +459,18 @@ export class IngredientsService extends BaseService<
     }
   }
 
+  /** Soft-delete one ingredient, keyed by the request organization inside a request. */
+  override async remove(id: string): Promise<IngredientDocument | null> {
+    const organizationId = requestOrganizationId();
+    if (!organizationId) {
+      return super.remove(id);
+    }
+
+    return this.patchOneWhere(scopedWhere(organizationId, { id }), {
+      isDeleted: true,
+    });
+  }
+
   async patchAll(
     filter: Record<string, unknown>,
     update: Record<string, unknown>,
@@ -517,8 +503,16 @@ export class IngredientsService extends BaseService<
         { pagination: false },
         false,
       );
+      // A tenant request never writes platform rows (`organizationId: null`).
+      const isTenantRequest = requestOrganizationId() !== undefined;
       const targetOrganizationIds = [
-        ...new Set(owners.docs.map((row) => row.organizationId ?? null)),
+        ...new Set(
+          owners.docs
+            .map((row) => row.organizationId ?? null)
+            .filter(
+              (organizationId) => !isTenantRequest || organizationId !== null,
+            ),
+        ),
       ];
       let modifiedCount = 0;
       for (const organizationId of targetOrganizationIds) {

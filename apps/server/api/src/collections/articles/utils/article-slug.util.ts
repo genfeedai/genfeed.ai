@@ -1,3 +1,4 @@
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { ConflictException } from '@nestjs/common';
 
 /** Partial unique index over live published article slugs (SQL-only). */
@@ -52,15 +53,20 @@ export async function assertPublicSlugAvailable(
     return;
   }
 
-  const holder = await delegate.findFirst({
-    select: { id: true },
-    where: {
-      isDeleted: false,
-      slug,
-      status: 'PUBLISHED',
-      ...(excludeId ? { id: { not: excludeId } } : {}),
-    },
-  });
+  // A published slug is unique across every organization, so the check
+  // deliberately leaves the request tenant.
+  const holder = await crossOrgUnsafe(
+    async () =>
+      await delegate.findFirst({
+        select: { id: true },
+        where: {
+          isDeleted: false,
+          slug,
+          status: 'PUBLISHED',
+          ...(excludeId ? { id: { not: excludeId } } : {}),
+        },
+      }),
+  );
 
   if (holder) {
     throw new ConflictException(

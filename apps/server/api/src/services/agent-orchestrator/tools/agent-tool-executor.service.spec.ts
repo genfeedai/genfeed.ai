@@ -6967,6 +6967,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
     expect(workflowSchedulerService.updateSchedule).toHaveBeenCalledWith(
       'wf-copy-1',
+      CTX.organizationId,
       '0 9 * * *',
       'UTC',
       true,
@@ -7000,6 +7001,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
     expect(workflowSchedulerService.updateSchedule).toHaveBeenCalledWith(
       'wf-copy-1',
+      CTX.organizationId,
       '0 9 * * *',
       'Europe/Malta',
       false,

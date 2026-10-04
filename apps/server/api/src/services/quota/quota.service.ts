@@ -197,8 +197,12 @@ export class QuotaService {
     organizationId: string,
   ): Promise<QuotaCheckResult | null> {
     try {
+      // Scoped to the organization the status is requested for: an id-only
+      // credential lookup would reach across tenants.
       const credential = await this.credentialsService.findOne({
         id: credentialId,
+        isDeleted: false,
+        organizationId,
       });
       const organization = await this.organizationsService.findOne({
         id: organizationId,

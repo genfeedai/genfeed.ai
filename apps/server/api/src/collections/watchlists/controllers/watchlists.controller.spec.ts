@@ -64,7 +64,10 @@ describe('WatchlistsController', () => {
 
       const result = await controller.findAll(mockRequest, mockUser);
 
-      expect(watchlistsService.findAllByAccount).toHaveBeenCalledWith(brandId);
+      expect(watchlistsService.findAllByAccount).toHaveBeenCalledWith(
+        brandId,
+        orgId,
+      );
       expect(result).toBeDefined();
     });
 
@@ -94,7 +97,17 @@ describe('WatchlistsController', () => {
       };
       watchlistsService.findOne.mockResolvedValue(item);
 
-      const result = await controller.findOne(mockRequest, watchlistId);
+      const result = await controller.findOne(
+        mockRequest,
+        mockUser,
+        watchlistId,
+      );
+
+      expect(watchlistsService.findOne).toHaveBeenCalledWith({
+        id: watchlistId,
+        isDeleted: false,
+        organizationId: orgId,
+      });
 
       expect(result).toBeDefined();
     });
@@ -103,7 +116,7 @@ describe('WatchlistsController', () => {
       watchlistsService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.findOne(mockRequest, watchlistId),
+        controller.findOne(mockRequest, mockUser, watchlistId),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -231,9 +244,14 @@ describe('WatchlistsController', () => {
         notes: 'Updated notes',
       });
 
-      const result = await controller.update(mockRequest, watchlistId, {
-        notes: 'Updated notes',
-      } as never);
+      const result = await controller.update(
+        mockRequest,
+        mockUser,
+        watchlistId,
+        {
+          notes: 'Updated notes',
+        } as never,
+      );
 
       expect(watchlistsService.patch).toHaveBeenCalledWith(watchlistId, {
         notes: 'Updated notes',
@@ -245,7 +263,7 @@ describe('WatchlistsController', () => {
       watchlistsService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.update(mockRequest, watchlistId, {
+        controller.update(mockRequest, mockUser, watchlistId, {
           notes: 'X',
         } as never),
       ).rejects.toThrow(NotFoundException);
@@ -265,7 +283,7 @@ describe('WatchlistsController', () => {
       });
 
       await expect(
-        controller.update(mockRequest, watchlistId, {
+        controller.update(mockRequest, mockUser, watchlistId, {
           handle: 'creator2',
         } as never),
       ).rejects.toThrow(ConflictException);
@@ -274,12 +292,27 @@ describe('WatchlistsController', () => {
 
   describe('delete', () => {
     it('should soft-delete a watchlist item', async () => {
+      watchlistsService.findOne.mockResolvedValue({ id: watchlistId });
       watchlistsService.remove.mockResolvedValue(undefined);
 
-      const result = await controller.delete(watchlistId);
+      const result = await controller.delete(mockUser, watchlistId);
 
+      expect(watchlistsService.findOne).toHaveBeenCalledWith({
+        id: watchlistId,
+        isDeleted: false,
+        organizationId: orgId,
+      });
       expect(watchlistsService.remove).toHaveBeenCalledWith(watchlistId);
       expect(result).toEqual({ success: true });
+    });
+
+    it('should not delete an item outside the caller organization', async () => {
+      watchlistsService.findOne.mockResolvedValue(null);
+
+      await expect(controller.delete(mockUser, watchlistId)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(watchlistsService.remove).not.toHaveBeenCalled();
     });
   });
 });

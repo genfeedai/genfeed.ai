@@ -13,6 +13,10 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { OrganizationCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  getTenantContext,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 
 describe('OrganizationsService', () => {
   const organizationDelegate = {
@@ -351,6 +355,21 @@ describe('OrganizationsService', () => {
       expect(
         accessBootstrapCacheService.invalidateForOrganization,
       ).toHaveBeenCalledWith('org_1');
+    });
+
+    it('applies the Expert brand defaults under the patched organization, not the superadmin tenant (CLOUD guard)', async () => {
+      organizationDelegate.findFirst.mockResolvedValue(expertOrganization);
+      organizationDelegate.update.mockResolvedValue(expertOrganization);
+      brandDelegate.findMany.mockImplementation(async () => {
+        expect(getTenantContext()?.organizationId).toBe('org_1');
+        return [{ agentConfig: {}, id: 'brand_1' }];
+      });
+
+      await runWithTenantContext({ organizationId: 'org_admin' }, () =>
+        service.patch('org_1', { accountType: 'EXPERT' } as never),
+      );
+
+      expect(brandDelegate.update).toHaveBeenCalledTimes(1);
     });
 
     it('leaves brands alone for other account types', async () => {

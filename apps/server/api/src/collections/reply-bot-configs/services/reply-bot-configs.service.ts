@@ -6,13 +6,14 @@ import type {
   ReplyBotRateLimits,
 } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { ReplyBotType } from '@genfeedai/contracts';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const REPLY_BOT_CREATE_SCALAR_FIELDS = [
@@ -203,7 +204,12 @@ export class ReplyBotConfigsService extends BaseService<
         input.organizationId,
         input.monitoredAccountIds,
       );
-      return (await this.findOne({ id: created.id }, populate)) ?? created;
+      return (
+        (await this.findOne(
+          scopedWhere(input.organizationId, { id: created.id }),
+          populate,
+        )) ?? created
+      );
     }
 
     return created;
@@ -223,7 +229,12 @@ export class ReplyBotConfigsService extends BaseService<
     let config: Record<string, unknown> | undefined;
 
     if (needsExisting) {
-      const existing = await this.findOne({ id });
+      const tenantOrganizationId = getTenantContext()?.organizationId;
+      const existing = await this.findOne(
+        tenantOrganizationId
+          ? scopedWhere(tenantOrganizationId, { id })
+          : { id },
+      );
       if (!existing) {
         throw new NotFoundException('ReplyBotConfig', id);
       }
@@ -265,7 +276,12 @@ export class ReplyBotConfigsService extends BaseService<
         existingOrganizationId,
         input.monitoredAccountIds,
       );
-      return (await this.findOne({ id }, populate)) ?? updated;
+      return (
+        (await this.findOne(
+          scopedWhere(existingOrganizationId, { id }),
+          populate,
+        )) ?? updated
+      );
     }
 
     return updated;
@@ -341,13 +357,13 @@ export class ReplyBotConfigsService extends BaseService<
 
     // Check if we need to reset hourly counter
     if (!rateLimits.hourResetAt || now >= new Date(rateLimits.hourResetAt)) {
-      await this.resetHourlyCounter(id);
+      await this.resetHourlyCounter(id, organizationId);
       return true;
     }
 
     // Check if we need to reset daily counter
     if (!rateLimits.dayResetAt || now >= new Date(rateLimits.dayResetAt)) {
-      await this.resetDailyCounter(id);
+      await this.resetDailyCounter(id, organizationId);
       return true;
     }
 
@@ -368,16 +384,20 @@ export class ReplyBotConfigsService extends BaseService<
    */
   private async readConfig(
     id: string,
+    organizationId: string,
   ): Promise<Record<string, unknown> | null> {
     const row = await this.prisma.replyBotConfig.findFirst({
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
     });
     if (!row) return null;
     return parseConfigJson((row as unknown as Record<string, unknown>).config);
   }
 
-  async incrementReplyCounters(id: string): Promise<void> {
-    const cfg = await this.readConfig(id);
+  async incrementReplyCounters(
+    id: string,
+    organizationId: string,
+  ): Promise<void> {
+    const cfg = await this.readConfig(id, organizationId);
     if (!cfg) return;
     const rateLimits = this.normalizeRateLimits(
       cfg.rateLimits as ReplyBotRateLimits | undefined,
@@ -395,12 +415,12 @@ export class ReplyBotConfigsService extends BaseService<
           totalRepliesSent: ((cfg.totalRepliesSent as number) ?? 0) + 1,
         },
       },
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
     });
   }
 
-  async incrementDmCounter(id: string): Promise<void> {
-    const cfg = await this.readConfig(id);
+  async incrementDmCounter(id: string, organizationId: string): Promise<void> {
+    const cfg = await this.readConfig(id, organizationId);
     if (!cfg) return;
     await this.prisma.replyBotConfig.update({
       data: {
@@ -410,12 +430,15 @@ export class ReplyBotConfigsService extends BaseService<
           totalDmsSent: ((cfg.totalDmsSent as number) ?? 0) + 1,
         },
       },
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
     });
   }
 
-  async incrementSkippedCounter(id: string): Promise<void> {
-    const cfg = await this.readConfig(id);
+  async incrementSkippedCounter(
+    id: string,
+    organizationId: string,
+  ): Promise<void> {
+    const cfg = await this.readConfig(id, organizationId);
     if (!cfg) return;
     await this.prisma.replyBotConfig.update({
       data: {
@@ -424,12 +447,15 @@ export class ReplyBotConfigsService extends BaseService<
           totalSkipped: ((cfg.totalSkipped as number) ?? 0) + 1,
         },
       },
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
     });
   }
 
-  async incrementFailedCounter(id: string): Promise<void> {
-    const cfg = await this.readConfig(id);
+  async incrementFailedCounter(
+    id: string,
+    organizationId: string,
+  ): Promise<void> {
+    const cfg = await this.readConfig(id, organizationId);
     if (!cfg) return;
     await this.prisma.replyBotConfig.update({
       data: {
@@ -438,18 +464,21 @@ export class ReplyBotConfigsService extends BaseService<
           totalFailed: ((cfg.totalFailed as number) ?? 0) + 1,
         },
       },
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
     });
   }
 
   /**
    * Reset hourly rate limit counter
    */
-  private async resetHourlyCounter(id: string): Promise<void> {
+  private async resetHourlyCounter(
+    id: string,
+    organizationId: string,
+  ): Promise<void> {
     const hourResetAt = new Date();
     hourResetAt.setHours(hourResetAt.getHours() + 1);
 
-    const cfg = await this.readConfig(id);
+    const cfg = await this.readConfig(id, organizationId);
     if (!cfg) return;
     const rateLimits = this.normalizeRateLimits(
       cfg.rateLimits as ReplyBotRateLimits | undefined,
@@ -466,16 +495,19 @@ export class ReplyBotConfigsService extends BaseService<
           },
         },
       },
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
     });
   }
 
-  private async resetDailyCounter(id: string): Promise<void> {
+  private async resetDailyCounter(
+    id: string,
+    organizationId: string,
+  ): Promise<void> {
     const dayResetAt = new Date();
     dayResetAt.setDate(dayResetAt.getDate() + 1);
     dayResetAt.setHours(0, 0, 0, 0);
 
-    const cfg = await this.readConfig(id);
+    const cfg = await this.readConfig(id, organizationId);
     if (!cfg) return;
     const rateLimits = this.normalizeRateLimits(
       cfg.rateLimits as ReplyBotRateLimits | undefined,
@@ -492,7 +524,7 @@ export class ReplyBotConfigsService extends BaseService<
           },
         },
       },
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
     });
   }
 

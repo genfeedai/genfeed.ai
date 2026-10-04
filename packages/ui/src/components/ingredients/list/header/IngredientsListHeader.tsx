@@ -14,6 +14,7 @@ export default function IngredientsListHeader({
   onMerge,
   onPublishCampaign,
   placement = 'overlay',
+  tagAction,
 }: IngredientsListHeaderProps) {
   return (
     <SelectionActionsBar
@@ -27,6 +28,7 @@ export default function IngredientsListHeader({
       onMerge={onMerge}
       onPublishCampaign={onPublishCampaign}
       placement={placement}
+      tagAction={tagAction}
     />
   );
 }
