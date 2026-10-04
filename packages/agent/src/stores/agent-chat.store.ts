@@ -276,8 +276,6 @@ export type AgentRunEvent =
   | { type: 'error' }
   /** The stream was torn down; a cancel in flight stays cancelling. */
   | { type: 'stream-reset' }
-  /** The thread was switched to: no run is known until hydration. */
-  | { type: 'switch' }
   /** The conversation was cleared or the run is gone. */
   | { type: 'reset' };
 
@@ -289,6 +287,7 @@ type RunStateSlice = Pick<
   | 'isGenerating'
   | 'runStartedAt'
   | 'runsByThread'
+  | 'threads'
 >;
 
 export function runKeyFor(threadId: string | null): string {
@@ -341,8 +340,6 @@ function applyRunEvent(
         ...record,
         status: record.status === 'cancelling' ? 'cancelling' : 'idle',
       };
-    case 'switch':
-      return { ...record, runId: null, startedAt: null, status: 'idle' };
     case 'reset':
       return IDLE_RUN;
   }
@@ -363,23 +360,44 @@ export function runTransitionPatch(
   Partial<
     Pick<
       AgentChatState,
-      'activeRunId' | 'activeRunStatus' | 'isGenerating' | 'runStartedAt'
+      | 'activeRunId'
+      | 'activeRunStatus'
+      | 'isGenerating'
+      | 'runStartedAt'
+      | 'threads'
     >
   > {
   const key = runKeyFor(threadId);
-  const next = applyRunEvent(recordOf(state, threadId), event);
+  const previous = recordOf(state, threadId);
+  const next = applyRunEvent(previous, event);
   const runsByThread = { ...state.runsByThread, [key]: next };
+
+  // The sidebar reads only the thread summary, so the transitioned thread's
+  // row moves in the same update — visible or not.
+  const summary = threadId
+    ? state.threads.find((thread) => thread.id === threadId)
+    : undefined;
+  const summaryPatch =
+    summary && next.status !== previous.status
+      ? resolveRunSummaryPatch(next.status, summary)
+      : null;
+  const threads = summaryPatch
+    ? state.threads.map((thread) =>
+        thread.id === threadId ? { ...thread, ...summaryPatch } : thread,
+      )
+    : undefined;
+
   if (key !== runKeyFor(state.activeThreadId)) {
-    return { runsByThread };
+    return threads ? { runsByThread, threads } : { runsByThread };
   }
   return {
+    ...(threads ? { threads } : {}),
     activeRunId: next.runId,
     activeRunStatus: next.status,
     isGenerating: next.isGenerating,
     runStartedAt:
       event.type === 'begin' ||
       event.type === 'complete' ||
-      event.type === 'switch' ||
       event.type === 'reset'
         ? next.startedAt
         : state.runStartedAt,
@@ -1364,12 +1382,23 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
         }
 
         // The departing thread keeps its record (a run can finish in the
-        // background); the visible fields restart from idle until hydration.
+        // background) and the destination shows its own, idle when unknown
+        // (a new conversation never inherits another thread's run).
+        const destination =
+          (id ? state.runsByThread[runKeyFor(id)] : undefined) ?? IDLE_RUN;
         return {
-          ...runTransitionPatch({ ...state, activeThreadId: id }, id, {
-            type: 'switch',
-          }),
+          activeRunId: destination.runId,
+          activeRunStatus: destination.status,
           activeThreadId: id,
+          isGenerating: destination.isGenerating,
+          runStartedAt: destination.startedAt,
+          runsByThread: {
+            ...state.runsByThread,
+            [runKeyFor(state.activeThreadId)]: recordOf(
+              state,
+              state.activeThreadId,
+            ),
+          },
           stream: { ...DEFAULT_STREAM_STATE },
         };
       }),

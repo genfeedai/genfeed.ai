@@ -3,7 +3,7 @@ import {
   selectIsGenerating,
   useAgentChatStore,
 } from '@genfeedai/agent/stores/agent-chat.store';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentRuntimeState, AgentThreadStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 function state() {
@@ -40,20 +40,54 @@ describe('agent-chat.store per-thread run state', () => {
     expect(state().runStartedAt).toBe('2026-10-04T10:00:00.000Z');
   });
 
-  it('keeps the visible fields idle after a thread switch mid-run, and keeps the left thread run', () => {
+  it('shows the destination thread its own run on a switch, not the departing one', () => {
     state().setActiveRun('run-a');
     state().setIsGenerating(true);
 
     state().setActiveThread('thread-b');
 
+    // Unknown destination: idle, and A's generating flag does not leak over.
     expect(state().activeRunId).toBeNull();
     expect(state().activeRunStatus).toBe('idle');
-    expect(state().isGenerating).toBe(true);
+    expect(state().isGenerating).toBe(false);
     expect(selectActiveRun(state()).status).toBe('idle');
     expect(state().runsByThread['thread-a']).toMatchObject({
+      isGenerating: true,
       runId: 'run-a',
       status: 'running',
     });
+  });
+
+  it('switches between two concurrent runs without crossing their state', () => {
+    state().setActiveRun('run-a', { startedAt: 'a-start' });
+    state().setIsGenerating(true);
+    state().setActiveThread('thread-b');
+    state().setActiveRun('run-b', { startedAt: 'b-start' });
+
+    state().setActiveThread('thread-a');
+    expect(state()).toMatchObject({
+      activeRunId: 'run-a',
+      activeRunStatus: 'running',
+      isGenerating: true,
+      runStartedAt: 'a-start',
+    });
+    expect(selectActiveRun(state()).runId).toBe('run-a');
+
+    state().setActiveThread('thread-b');
+    expect(state()).toMatchObject({
+      activeRunId: 'run-b',
+      activeRunStatus: 'running',
+      isGenerating: false,
+      runStartedAt: 'b-start',
+    });
+  });
+
+  it('a new conversation never inherits the departing run', () => {
+    state().setActiveRun('run-a');
+    state().setIsGenerating(true);
+    state().setActiveThread(null);
+    expect(state().activeRunId).toBeNull();
+    expect(state().isGenerating).toBe(false);
   });
 
   it('settles a background thread without touching the visible thread', () => {
@@ -142,6 +176,63 @@ describe('agent-chat.store per-thread run state', () => {
       runId: 'run-x',
       status: 'awaiting_input',
     });
+  });
+
+  it('settles a background thread summary in the same update as its record', () => {
+    for (const id of ['thread-a', 'thread-b']) {
+      state().upsertThread({
+        contextVersion: 1,
+        id,
+        status: AgentThreadStatus.ACTIVE,
+        title: id,
+      });
+    }
+    state().setActiveRun('run-a');
+    state().setActiveThread('thread-b');
+    state().setActiveRun('run-b');
+    const summaryA = () =>
+      state().threads.find((thread) => thread.id === 'thread-a');
+    expect(summaryA()?.runStatus).toBe('running');
+
+    state().transitionRun('thread-a', { status: 'completed', type: 'status' });
+
+    expect(summaryA()?.runStatus).toBe('completed');
+    expect(
+      state().threads.find((thread) => thread.id === 'thread-b')?.runStatus,
+    ).toBe('running');
+    expect(state().activeRunStatus).toBe('running');
+  });
+
+  it('applies a pushed status to a background thread without touching the visible run', () => {
+    for (const id of ['thread-a', 'thread-b']) {
+      state().upsertThread({
+        contextVersion: 1,
+        id,
+        status: AgentThreadStatus.ACTIVE,
+        title: id,
+      });
+    }
+    state().setActiveRun('run-a');
+    state().setActiveThread('thread-b');
+    state().setActiveRun('run-b');
+
+    const result = state().applyThreadStatusPush({
+      organizationId: 'org-1',
+      pendingInputCount: 0,
+      runStatus: 'completed',
+      runtimeState: AgentRuntimeState.COMPLETED,
+      sequence: 5,
+      threadId: 'thread-a',
+      timestamp: '2026-10-04T10:00:00.000Z',
+      userId: 'user-1',
+    });
+
+    expect(result).toBe('applied');
+    expect(
+      state().threads.find((thread) => thread.id === 'thread-a')?.runStatus,
+    ).toBe('completed');
+    expect(state().activeRunId).toBe('run-b');
+    expect(state().activeRunStatus).toBe('running');
   });
 
   it('mirrors the open thread run status into its summary', () => {
