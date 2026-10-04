@@ -12,6 +12,7 @@ describe('LIBRARY_MENU_ITEMS', () => {
       '/library/assets',
       '/library/assets?place=recent',
       '/library/assets?place=starred',
+      '/library/assets?shelf=references',
       '/library/assets?shelf=generating',
       '/library/assets?shelf=unsorted',
       '/library/assets?shelf=needs-review',
@@ -39,8 +40,9 @@ describe('LIBRARY_MENU_ITEMS', () => {
     ]);
   });
 
-  it('orders shelves by generation lifecycle', () => {
+  it('lists References first, then shelves by generation lifecycle', () => {
     expect(LIBRARY_SHELF_MENU_ITEMS.map((item) => item.label)).toEqual([
+      'References',
       'Generating',
       'Unsorted',
       'Needs review',

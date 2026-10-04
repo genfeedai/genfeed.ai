@@ -3,7 +3,9 @@
 import {
   IngredientCategory,
   type IngredientOrigin,
+  LIBRARY_OUTPUT_ORIGINS,
   LibraryPlace,
+  LibraryShelf,
   PageScope,
   parseIngredientCategory,
   parseIngredientOrigin,
@@ -175,6 +177,14 @@ export function useLibraryBrowser({
   const viewMode = parseViewMode(
     searchParams?.get(LIBRARY_QUERY_KEYS.VIEW) ?? null,
   );
+
+  // All assets is output. References (uploads, imports) have their own shelf,
+  // so the unfiltered view leaves them out — an origin the operator picks, a
+  // shelf, or a folder they filed into always wins.
+  const isAllAssets =
+    !shelf &&
+    !folderId &&
+    (place === undefined || place === LibraryPlace.ASSETS);
 
   const defaultSort =
     place === LibraryPlace.RECENT
@@ -382,13 +392,33 @@ export function useLibraryBrowser({
     const category =
       categories.length === 1 ? categories[0] : IngredientCategory.INGREDIENT;
 
+    // All assets leaves references out, so a fresh upload would vanish from
+    // view; follow it to the References shelf instead.
+    const showUploads = () => {
+      const params = new URLSearchParams(searchParams?.toString() ?? '');
+      params.delete('page');
+      params.set('shelf', LibraryShelf.REFERENCES);
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    };
+
     openUpload({
       category,
-      onComplete: () => handleRefresh(),
+      onComplete: () => (isAllAssets ? showUploads() : handleRefresh()),
       parentId: scope === PageScope.ORGANIZATION ? organizationId : brandId,
       parentModel: scope === PageScope.ORGANIZATION ? 'Organization' : 'Brand',
     });
-  }, [brandId, categories, handleRefresh, openUpload, organizationId, scope]);
+  }, [
+    brandId,
+    categories,
+    handleRefresh,
+    isAllAssets,
+    openUpload,
+    organizationId,
+    pathname,
+    router,
+    scope,
+    searchParams,
+  ]);
 
   /**
    * `filters` feeds the shared filter chrome; `query` is what actually reaches
@@ -425,6 +455,8 @@ export function useLibraryBrowser({
 
     if (origins.length > 0) {
       next.origins = origins;
+    } else if (isAllAssets) {
+      next.origins = [...LIBRARY_OUTPUT_ORIGINS];
     }
 
     if (characters.length > 0) {
@@ -460,6 +492,7 @@ export function useLibraryBrowser({
     categories,
     characters,
     folderId,
+    isAllAssets,
     origins,
     place,
     search,

@@ -28,6 +28,7 @@ import { Maximize2 } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import IngredientLineageStrip from './IngredientLineageStrip';
+import IngredientPromptBlock from './IngredientPromptBlock';
 import IngredientTagsControl from './IngredientTagsControl';
 import { getIngredientShelf } from './ingredient-shelf.util';
 
@@ -35,6 +36,7 @@ const SHELF_VARIANTS: Record<
   LibraryShelf,
   'info' | 'warning' | 'success' | 'error' | 'slate'
 > = {
+  [LibraryShelf.REFERENCES]: 'slate',
   [LibraryShelf.GENERATING]: 'info',
   [LibraryShelf.UNSORTED]: 'slate',
   [LibraryShelf.NEEDS_REVIEW]: 'warning',
@@ -80,34 +82,6 @@ function InspectorField({
       <dd className="min-w-0 truncate text-right text-xs text-foreground/78">
         {value}
       </dd>
-    </div>
-  );
-}
-
-/**
- * The prompt is the one field long enough to wrap, so it gets its own block
- * instead of a `<dl>` row. Its label travels as a prop like every other label
- * in this rail.
- */
-function InspectorNote({
-  label,
-  text,
-}: {
-  label: string;
-  text?: string | null;
-}) {
-  if (!text) {
-    return null;
-  }
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="text-2xs uppercase tracking-[0.12em] text-foreground/35">
-        {label}
-      </div>
-      <p className="min-w-0 select-text whitespace-pre-wrap break-words text-xs leading-relaxed text-foreground/62">
-        {text}
-      </p>
     </div>
   );
 }
@@ -246,6 +220,11 @@ export default function IngredientInspectorRail({
         />
       </dl>
 
+      <IngredientPromptBlock
+        key={ingredient.id}
+        prompt={ingredient.promptText}
+      />
+
       <IngredientTagsControl ingredient={ingredient} />
 
       <IngredientLineageStrip
@@ -258,7 +237,6 @@ export default function IngredientInspectorRail({
       />
 
       <IngredientQuickActions align="start" selectedIngredient={ingredient} />
-      <InspectorNote label="Prompt" text={ingredient.promptText} />
     </aside>
   );
 }
