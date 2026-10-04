@@ -8,6 +8,8 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { IngredientLineageDirection } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -188,6 +190,37 @@ describe('IngredientsRelationshipsController', () => {
       expect(postsService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ organizationId: null }),
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('lists the requesting organization posts for a platform ingredient (CLOUD tenant guard)', async () => {
+      mockServices.ingredientsService.findOne.mockResolvedValueOnce({
+        id: ingredientId,
+        category: 'image',
+        organizationId: null,
+      });
+      mockServices.postsService.findAll.mockImplementationOnce(
+        async (query: { where: Record<string, unknown> }) => {
+          assertTenantScopedQuery({
+            args: query,
+            isCloud: true,
+            model: 'Post',
+            operation: 'findMany',
+            tenantModelNames: new Set(['Post']),
+          });
+          return { docs: [] };
+        },
+      );
+
+      await runWithTenantContext({ organizationId }, () =>
+        controller.findPosts(mockRequest, ingredientId, {}),
+      );
+
+      expect(postsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ organizationId }),
         }),
         expect.anything(),
       );

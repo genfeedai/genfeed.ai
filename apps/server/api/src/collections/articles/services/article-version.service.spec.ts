@@ -12,29 +12,21 @@ describe('ArticleVersionService', () => {
     vi.clearAllMocks();
   });
 
-  it('returns only versions matching the full article ownership scope', async () => {
-    const promptsService = {
-      findAll: vi.fn().mockResolvedValue({
-        docs: [
-          {
-            articleId: 'article_1',
-            brandId: 'brand_1',
-            enhanced: '{"title":"Version one"}',
-            id: 'prompt_1',
-            organizationId: 'org_1',
-            original: 'Improve this',
-            userId: 'user_1',
-          },
-          {
-            articleId: 'article_1',
-            brandId: 'brand_other',
-            id: 'prompt_other',
-            organizationId: 'org_1',
-            userId: 'user_1',
-          },
-        ],
-      }),
-    } as unknown as PromptsService;
+  it('queries only versions matching the full article ownership scope', async () => {
+    const findAll = vi.fn().mockResolvedValue({
+      docs: [
+        {
+          articleId: 'article_1',
+          brandId: 'brand_1',
+          enhanced: '{"title":"Version one"}',
+          id: 'prompt_1',
+          organizationId: 'org_1',
+          original: 'Improve this',
+          userId: 'user_1',
+        },
+      ],
+    });
+    const promptsService = { findAll } as unknown as PromptsService;
     const service = new ArticleVersionService(logger, promptsService);
 
     const result = await service.getArticleVersions(
@@ -45,6 +37,18 @@ describe('ArticleVersionService', () => {
       vi.fn().mockResolvedValue({ id: 'article_1' }),
     );
 
+    expect(findAll).toHaveBeenCalledWith(
+      {
+        where: {
+          articleId: 'article_1',
+          brandId: 'brand_1',
+          isDeleted: false,
+          organizationId: 'org_1',
+          userId: 'user_1',
+        },
+      },
+      { pagination: false },
+    );
     expect(result).toEqual({
       articleId: 'article_1',
       prompts: [

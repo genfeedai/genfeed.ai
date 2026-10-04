@@ -11,6 +11,10 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  isCrossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { SubscriptionsController } from './subscriptions.controller';
@@ -152,6 +156,28 @@ describe('SubscriptionsController', () => {
 
       expect(subscriptionsService.findAll).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+
+    it('reads every organization instead of the superadmin request tenant', async () => {
+      let isCrossOrgDuringRead = false;
+      mockSubscriptionsService.findAll.mockImplementation(async () => {
+        isCrossOrgDuringRead = isCrossOrgUnsafe();
+        return {
+          docs: [mockSubscription],
+          limit: 10,
+          page: 1,
+          totalDocs: 1,
+          totalPages: 1,
+        };
+      });
+
+      await runWithTenantContext(
+        { organizationId: mockUser.organizationId },
+        () => controller.findAll({} as Request, defaultQuery),
+      );
+
+      expect(isCrossOrgDuringRead).toBe(true);
+      expect(isCrossOrgUnsafe()).toBe(false);
     });
   });
 
@@ -384,6 +410,32 @@ describe('SubscriptionsController', () => {
       );
       expect(result.data[0]?.usedPercent).toBeCloseTo(50, 5);
       expect(result.data[0]?.remainingPercent).toBeCloseTo(50, 5);
+    });
+
+    it('reads subscriptions and wallets outside the superadmin request tenant', async () => {
+      const observed: Record<string, boolean> = {};
+      mockSubscriptionsService.findAll.mockImplementation(async () => {
+        observed.subscriptions = isCrossOrgUnsafe();
+        return {
+          docs: [buildSubscription({ stripePriceId: 'price_pro_monthly' })],
+          limit: 20,
+          page: 1,
+          totalDocs: 1,
+          totalPages: 1,
+        };
+      });
+      mockCreditsUtilsService.getOrganizationCreditsBalance.mockImplementation(
+        async () => {
+          observed.balance = isCrossOrgUnsafe();
+          return 2_950;
+        },
+      );
+
+      await runWithTenantContext({ organizationId: 'org_admin' }, () =>
+        controller.getCreditUsage(defaultQuery),
+      );
+
+      expect(observed).toEqual({ balance: true, subscriptions: true });
     });
 
     it('resolves the scale tier plan limit from the Stripe price id', async () => {

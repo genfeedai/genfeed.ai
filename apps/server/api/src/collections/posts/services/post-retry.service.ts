@@ -14,6 +14,7 @@ export class PostRetryService {
     const post = await this.postsService.findOne({
       id: postId,
       isDeleted: false,
+      organizationId,
     });
 
     if (!post) {

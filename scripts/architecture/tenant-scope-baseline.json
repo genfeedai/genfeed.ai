@@ -571,14 +571,6 @@
     {
       "delegate": "ingredient",
       "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "44becbc64d22b9b84e94",
-      "method": "findMany",
-      "model": "Ingredient",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "594bb9426f9f672fb986",
       "method": "findMany",
       "model": "Ingredient",
