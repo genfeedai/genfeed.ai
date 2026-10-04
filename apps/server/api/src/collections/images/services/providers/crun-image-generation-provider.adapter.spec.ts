@@ -41,6 +41,8 @@ function fixture() {
   const tasks = {
     prepareTasks: vi.fn().mockImplementation(async (rows) => rows),
     submit: vi.fn().mockResolvedValue({ isSubmitted: true, taskId: 'opaque' }),
+    findForIngredient: vi.fn().mockResolvedValue(null),
+    failPrepared: vi.fn().mockResolvedValue(undefined),
   };
   const billing = {
     recordSubmissionRejection: vi.fn(),
@@ -56,7 +58,9 @@ function fixture() {
   };
   const prompts = { create: vi.fn().mockResolvedValue({ id: 'prompt' }) };
   const images = { findOne: vi.fn().mockResolvedValue({ id: 'ingredient-0' }) };
-  const prisma = {};
+  const prisma = {
+    ingredient: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+  };
   const adapter = new CrunImageGenerationProviderAdapter(
     preview as never,
     input as never,
@@ -77,6 +81,7 @@ function fixture() {
     shared,
     prompts,
     credits,
+    prisma,
     request,
     frozen,
   };
@@ -161,6 +166,110 @@ describe('Crun image admission batch', () => {
       f.adapter.generateQuoted(user as never, dto as never, f.request as never),
     ).rejects.toThrow('binding rejected');
     expect(f.tasks.submit).not.toHaveBeenCalled();
+  });
+  describe('compensation after a mid-dispatch failure', () => {
+    const failedWhere = (id: string) => ({
+      where: {
+        id,
+        organizationId: 'org',
+        isDeleted: false,
+        status: 'PROCESSING',
+      },
+      data: { status: 'FAILED' },
+    });
+    it('a throw creating the second ingredient fails the first and releases the pool', async () => {
+      const f = fixture();
+      f.shared.createMediaDocuments
+        .mockResolvedValueOnce({ ingredientData: { id: 'ingredient-0' } })
+        .mockRejectedValueOnce(new Error('create failed'));
+      await expect(
+        f.adapter.generateQuoted(
+          user as never,
+          dto as never,
+          f.request as never,
+        ),
+      ).rejects.toThrow('create failed');
+      expect(f.prisma.ingredient.updateMany.mock.calls).toEqual([
+        [failedWhere('ingredient-0')],
+      ]);
+      expect(f.billing.releasePool).toHaveBeenCalledTimes(1);
+      expect(f.tasks.prepareTasks).not.toHaveBeenCalled();
+      expect(f.tasks.submit).not.toHaveBeenCalled();
+    });
+    it('a throw during preparation fails every created ingredient and releases the pool', async () => {
+      const f = fixture();
+      f.tasks.prepareTasks.mockRejectedValue(new Error('binding rejected'));
+      await expect(
+        f.adapter.generateQuoted(
+          user as never,
+          dto as never,
+          f.request as never,
+        ),
+      ).rejects.toThrow('binding rejected');
+      expect(
+        f.prisma.ingredient.updateMany.mock.calls.map(
+          (call) => call[0].where.id,
+        ),
+      ).toEqual([
+        'ingredient-0',
+        'ingredient-1',
+        'ingredient-2',
+        'ingredient-3',
+      ]);
+      expect(f.billing.releasePool).toHaveBeenCalledTimes(1);
+    });
+    it('a throw during the second submission fails the remaining prepared tasks and releases the pool', async () => {
+      const f = fixture();
+      const states = new Map<string, string>();
+      f.tasks.prepareTasks.mockImplementation(
+        async (rows: { ingredientId: string }[]) =>
+          rows.map((row) => {
+            states.set(row.ingredientId, 'prepared');
+            return {
+              ...row,
+              id: `task-${row.ingredientId}`,
+              state: 'prepared',
+            };
+          }),
+      );
+      f.tasks.findForIngredient.mockImplementation(
+        async (_org: string, id: string) => ({
+          id: `task-${id}`,
+          state: states.get(id),
+        }),
+      );
+      f.tasks.submit
+        .mockImplementationOnce(async (task: { ingredientId: string }) => {
+          states.set(task.ingredientId, 'pending');
+          return { isSubmitted: true, taskId: 'opaque' };
+        })
+        .mockRejectedValueOnce(new Error('provider outage'));
+      await expect(
+        f.adapter.generateQuoted(
+          user as never,
+          dto as never,
+          f.request as never,
+        ),
+      ).rejects.toThrow('provider outage');
+      expect(f.tasks.failPrepared).toHaveBeenCalledTimes(3);
+      expect(
+        f.billing.recordSubmissionRejection.mock.calls.map((call) => call[0]),
+      ).toEqual(['ingredient-1', 'ingredient-2', 'ingredient-3']);
+      expect(f.prisma.ingredient.updateMany).not.toHaveBeenCalled();
+      expect(f.billing.releasePool).toHaveBeenCalledTimes(1);
+    });
+    it('does not compensate the success path', async () => {
+      const f = fixture();
+      await f.adapter.generateQuoted(
+        user as never,
+        dto as never,
+        f.request as never,
+      );
+      expect(f.tasks.failPrepared).not.toHaveBeenCalled();
+      expect(f.prisma.ingredient.updateMany).not.toHaveBeenCalled();
+      expect(f.billing.recordSubmissionRejection).not.toHaveBeenCalled();
+      expect(f.billing.releasePool).toHaveBeenCalledTimes(1);
+    });
   });
   it.each(['approvedRemixQuoteId', 'approvedImageQuote'])(
     'rejects approved caller budgets without consuming or funding: %s',

@@ -441,3 +441,65 @@ describe('Crun durable credential and lease boundaries', () => {
     expect(createTask).not.toHaveBeenCalled();
   });
 });
+
+describe('Crun abandoned prepared tasks', () => {
+  const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+  const findMany = vi.fn();
+  const service = new CrunTaskService(
+    {
+      crunGenerationTask: { updateMany, findMany },
+    } as unknown as PrismaService,
+    {} as unknown as ByokService,
+    { get: vi.fn() } as unknown as ConfigService,
+    {} as unknown as CrunClient,
+  );
+  const now = new Date('2026-10-04T12:00:00Z');
+
+  beforeEach(() => vi.clearAllMocks());
+
+  it('fails a prepared row tenant-scoped with the unsubmitted receipt', async () => {
+    await service.failPrepared(
+      task({ state: 'prepared', providerTaskId: null, version: 2 }),
+      'CRUN_DISPATCH_ABORTED',
+      now,
+    );
+    expect(updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        id: 'task-1',
+        organizationId: 'org-1',
+        isDeleted: false,
+        state: 'prepared',
+        version: 2,
+        providerTaskId: null,
+      }),
+      data: expect.objectContaining({
+        state: 'provider-failed',
+        failureCode: 'CRUN_DISPATCH_ABORTED',
+        terminalReceipt: { isAccepted: false, credits: '0' },
+        nextPollAt: now,
+      }),
+    });
+  });
+
+  it('never moves a row the poller already owns', async () => {
+    await service.failPrepared(task({ state: 'pending' }), 'X', now);
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
+  it('sweeps only prepared rows older than the threshold', async () => {
+    findMany.mockResolvedValue([
+      task({ state: 'prepared', providerTaskId: null }),
+    ]);
+    expect(await service.failStalePrepared(now, 60_000)).toBe(1);
+    expect(findMany.mock.calls[0][0].where).toMatchObject({
+      isDeleted: false,
+      state: 'prepared',
+      providerTaskId: null,
+      createdAt: { lte: new Date(now.getTime() - 60_000) },
+    });
+    expect(updateMany).toHaveBeenCalledTimes(1);
+    expect(updateMany.mock.calls[0][0].data).toMatchObject({
+      failureCode: 'CRUN_PREPARED_ABANDONED',
+    });
+  });
+});

@@ -16,6 +16,7 @@ import { createInsufficientCreditsException } from '@api/helpers/utils/credits/i
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CacheService } from '@api/services/cache/cache.service';
+import { compensateCrunDispatchFailure } from '@api/services/integrations/crun/crun-generation-compensation.util';
 import type {
   CrunFrozenVideoQuote,
   CrunFundingBinding,
@@ -106,20 +107,43 @@ export class CrunVideoGenerationService {
     if (consumed.kind === 'replay')
       return this.serializeReplay(user, request, consumed.ingredientIds);
     const frozen = consumed.quote;
-    const { provider, intent } = await this.reserveFrozenFunding(
-      user,
-      raw,
-      frozen,
-      billingRequest,
-    );
-    const { rows, ingredients } = await this.createBoundOutputs(
-      user,
-      intent,
-      frozen,
-      provider,
-      billingRequest,
-    );
-    await this.submitPreparedOutputs(user, frozen, rows, billingRequest);
+    const createdIngredientIds: string[] = [];
+    let ingredients: Awaited<
+      ReturnType<SharedService['createMediaDocuments']>
+    >[];
+    try {
+      const { provider, intent } = await this.reserveFrozenFunding(
+        user,
+        raw,
+        frozen,
+        billingRequest,
+      );
+      const bound = await this.createBoundOutputs(
+        user,
+        intent,
+        frozen,
+        provider,
+        billingRequest,
+        createdIngredientIds,
+      );
+      ingredients = bound.ingredients;
+      await this.submitPreparedOutputs(
+        user,
+        frozen,
+        bound.rows,
+        billingRequest,
+      );
+    } catch (error: unknown) {
+      await compensateCrunDispatchFailure(
+        { tasks: this.tasks, billing: this.billing, prisma: this.prisma },
+        {
+          organizationId: user.organizationId,
+          ingredientIds: createdIngredientIds,
+          billingRequest,
+        },
+      );
+      throw error;
+    }
     const first = await this.videos.findOne({
       id: ingredients[0].ingredientData.id,
       organizationId: user.organizationId,
@@ -274,6 +298,7 @@ export class CrunVideoGenerationService {
     frozen: CrunFrozenVideoQuote,
     provider: NonNullable<CrunFrozenVideoQuote['snapshot']['providerQuote']>,
     billingRequest: RequestWithContext & GenerationBillingRequest,
+    createdIngredientIds: string[],
   ) {
     const prompt = intent.promptId
       ? { id: intent.promptId }
@@ -323,6 +348,7 @@ export class CrunVideoGenerationService {
         style: intent.style,
       });
       ingredients.push(docs);
+      createdIngredientIds.push(docs.ingredientData.id);
       if (intent.folderId)
         await this.prisma.ingredient.updateMany({
           where: {
