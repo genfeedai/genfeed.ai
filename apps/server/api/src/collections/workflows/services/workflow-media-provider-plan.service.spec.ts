@@ -176,6 +176,54 @@ describe('WorkflowMediaProviderPlanService character admission (#6040)', () => {
   });
 });
 
+describe('WorkflowMediaProviderPlanService internal media URL forms (#6037)', () => {
+  const imageNode = node('imageGen', {
+    model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+    prompt: 'portrait',
+  });
+
+  it.each([
+    'https://CDN.genfeed.ai/ingredients/images/avatar-1',
+    'https://cdn.genfeed.ai./ingredients/images/avatar-1',
+    'https://cdn.genfeed.ai/ingredients/%69mages/avatar-1?sig=1',
+    'https://API.genfeed.ai/images/avatar-1',
+  ])('authorizes %s like its canonical form', async (url) => {
+    const f = fixture();
+    Object.assign(f.config, {
+      apiUrl: 'https://api.genfeed.ai',
+      cdnUrl: 'https://cdn.genfeed.ai',
+      ingredientsEndpoint: 'https://cdn.genfeed.ai/ingredients',
+    });
+    const helper = (
+      f.service as unknown as {
+        helper: { hasOrganizationAsset: ReturnType<typeof vi.fn> };
+      }
+    ).helper;
+    helper.hasOrganizationAsset = vi.fn().mockResolvedValue(false);
+
+    await expect(
+      f.service.prepareNode(imageNode, new Map([['image', url]]), context),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(helper.hasOrganizationAsset).toHaveBeenCalledWith(
+      'avatar-1',
+      'org-1',
+    );
+  });
+
+  it('fails closed for an internal-host URL with no resolvable asset', async () => {
+    const f = fixture();
+    Object.assign(f.config, { cdnUrl: 'https://cdn.genfeed.ai' });
+
+    await expect(
+      f.service.prepareNode(
+        imageNode,
+        new Map([['image', 'https://CDN.genfeed.ai/ingredients/oops']]),
+        context,
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
 describe('WorkflowMediaProviderPlanService internal media URLs (#6037)', () => {
   const imageNode = node('imageGen', {
     model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
