@@ -1,7 +1,9 @@
 import { isDeepStrictEqual } from 'node:util';
 import {
   invalidateLearningDependencySource,
+  type LearningMutationFenceScope,
   learningFence,
+  learningMutationFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningPublicationCredentialSelect } from '@api/collections/content-learning/services/learning-publication-source.types';
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
@@ -290,12 +292,40 @@ async function finishCredentialMutation(
       );
   }
 }
+/**
+ * Single-credential mutations of an org-owned row take that organization's
+ * fence (escalating to global when invalidation leaves it). Null-org rows,
+ * bulk selectors and unresolved owners keep the global exclusive fence.
+ */
+async function takeCredentialFence(
+  tx: Prisma.TransactionClient,
+  id: string | undefined,
+  fenceScope: LearningMutationFenceScope | undefined,
+): Promise<void> {
+  if (id === undefined || fenceScope === undefined)
+    return learningFence(tx, 'exclusive');
+  const tenantOrganizationId = isCrossOrgUnsafe()
+    ? undefined
+    : getTenantContext()?.organizationId;
+  // tenant-scope-ignore: the pre-fence read only resolves the owning organization for its fence; discovery re-reads under the fence.
+  const owner = await tx.credential.findFirst({
+    where: {
+      id,
+      isDeleted: false,
+      ...(tenantOrganizationId ? { organizationId: tenantOrganizationId } : {}),
+    },
+    select: { organizationId: true },
+  });
+  if (!owner?.organizationId) return learningFence(tx, 'exclusive');
+  await learningMutationFence(tx, owner.organizationId, fenceScope);
+}
 async function prepareCredentialMutation(
   tx: Prisma.TransactionClient,
   where: Prisma.CredentialWhereInput,
   data: Prisma.CredentialUncheckedUpdateInput,
+  single?: { id: string; fenceScope: LearningMutationFenceScope },
 ): Promise<CredentialMutationPlan> {
-  await learningFence(tx, 'exclusive');
+  await takeCredentialFence(tx, single?.id, single?.fenceScope);
   const plan = await discoverCredentialMutation(tx, where, data);
   await lockCredentialAccounts(tx, plan);
   await lockCredentialSources(tx, plan, data);
@@ -348,12 +378,14 @@ export async function patchCredentialWithLearning(
   context: CredentialLearningMutationContext,
   id: string,
   data: Prisma.CredentialUncheckedUpdateInput,
+  fenceScope: LearningMutationFenceScope,
   populate?: Prisma.CredentialInclude,
 ): Promise<CredentialDocument> {
   const plan = await prepareCredentialMutation(
     tx,
     { id, isDeleted: false },
     data,
+    { fenceScope, id },
   );
   if (plan.rows.length !== 1) throw new NotFoundException('Credential', id);
   const before = await credentialSnapshots(tx, plan),
@@ -370,12 +402,14 @@ export async function removeCredentialWithLearning(
   tx: Prisma.TransactionClient,
   context: CredentialLearningMutationContext,
   id: string,
+  fenceScope: LearningMutationFenceScope,
 ): Promise<CredentialDocument | null> {
   const data = { isDeleted: true };
   const plan = await prepareCredentialMutation(
     tx,
     { id, isDeleted: false },
     data,
+    { fenceScope, id },
   );
   if (!plan.rows.length) return null;
   const before = await credentialSnapshots(tx, plan),
@@ -494,8 +528,9 @@ export async function reconcileCredentialWithLearning(
   tx: Prisma.TransactionClient,
   context: CredentialLearningMutationContext,
   input: CredentialLearningReconcileInput,
+  fenceScope: LearningMutationFenceScope,
 ): Promise<CredentialDocument> {
-  await learningFence(tx, 'exclusive');
+  await takeCredentialFence(tx, input.id, fenceScope);
   const where = await discoverReconcileWhere(tx, input);
   const plan = await discoverCredentialMutation(tx, where, {});
   await lockCredentialAccounts(tx, plan);

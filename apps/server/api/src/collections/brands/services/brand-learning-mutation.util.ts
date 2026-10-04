@@ -1,7 +1,9 @@
 import { isDeepStrictEqual } from 'node:util';
 import {
   invalidateLearningDependencySource,
+  type LearningMutationFenceScope,
   learningFence,
+  learningMutationFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningPublicationBrandSelect } from '@api/collections/content-learning/services/learning-publication-source.types';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -165,11 +167,37 @@ async function lockBrandSources(
   }
   scope.beforeBrand = brand;
 }
+async function takeBrandFence(
+  tx: Prisma.TransactionClient,
+  input: BrandMutationInput,
+  fenceScope: LearningMutationFenceScope | undefined,
+): Promise<void> {
+  if (fenceScope === undefined) return learningFence(tx, 'exclusive');
+  const tenantOrganizationId =
+    input.organizationId ??
+    (isCrossOrgUnsafe() ? undefined : getTenantContext()?.organizationId);
+  // tenant-scope-ignore: the pre-fence read only resolves the owning organization for its fence; discovery re-reads under the fence.
+  const owner = await tx.brand.findFirst({
+    where: {
+      id: input.brandId,
+      isDeleted: false,
+      ...(tenantOrganizationId ? { organizationId: tenantOrganizationId } : {}),
+    },
+    select: { organizationId: true },
+  });
+  if (!owner) throw new NotFoundException('Brand', input.brandId);
+  await learningMutationFence(tx, owner.organizationId, fenceScope);
+}
+/**
+ * Relocation and lifecycle callers cross organizations and keep the global
+ * fence (no fenceScope). A same-organization patch passes its fence scope.
+ */
 export async function lockBrandLearningMutation(
   tx: Prisma.TransactionClient,
   input: BrandMutationInput,
+  fenceScope?: LearningMutationFenceScope,
 ): Promise<BrandLearningScope> {
-  await learningFence(tx, 'exclusive');
+  await takeBrandFence(tx, input, fenceScope);
   const scope = await discoverBrandLearningMutation(tx, input);
   await lockBrandAccounts(tx, scope);
   await lockBrandSources(tx, scope, input);
@@ -211,11 +239,13 @@ export async function patchBrandWithLearning(
     organizationId?: string;
     data: Prisma.BrandUncheckedUpdateInput;
   },
+  fenceScope: LearningMutationFenceScope,
 ): Promise<Prisma.BrandGetPayload<object>> {
-  const scope = await lockBrandLearningMutation(tx, {
-    ...input,
-    lockAllSourceBrands: false,
-  });
+  const scope = await lockBrandLearningMutation(
+    tx,
+    { ...input, lockAllSourceBrands: false },
+    fenceScope,
+  );
   if (
     input.data.organizationId !== undefined &&
     input.data.organizationId !== scope.organizationId
