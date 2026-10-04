@@ -1,10 +1,19 @@
 import { randomUUID } from 'node:crypto';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { systemNotificationStatusCode } from '@api/services/notifications/system-notification-delivery.error';
 import { SystemNotificationDestinationsService } from '@api/services/system-events/system-notification-destinations.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { SystemEventWebhook } from '@genfeedai/prisma';
 import type { SystemEvent } from '@libs/interfaces/system-event.interface';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+/** A destination delivery that keeps failing becomes terminal (`failedAt`) at this many attempts. */
+export const MAX_DELIVERY_ATTEMPTS = 8;
+/** Poll interval for an event held while no destination is configured. */
+export const NO_DESTINATION_RETRY_MS = 3_600_000;
+/** Older events are never fanned out or held: a late burst of stale notifications is dropped. */
+export const MAX_EVENT_AGE_MS = 86_400_000;
 
 @Injectable()
 export class SystemEventDeliveryService {
@@ -12,20 +21,25 @@ export class SystemEventDeliveryService {
     private readonly prisma: PrismaService,
     private readonly destinations: SystemNotificationDestinationsService,
     private readonly notifications: NotificationsService,
+    private readonly logger: LoggerService,
   ) {}
 
   private async resolveDestinations(
     row: SystemEventWebhook,
     eventLeaseToken: string,
-  ): Promise<Date | null> {
+  ): Promise<Date | 'skipped' | null> {
     if (!row.destinationsResolvedAt) {
+      if (Date.now() - row.occurredAt.getTime() > MAX_EVENT_AGE_MS)
+        return 'skipped';
       // tenant-scope-ignore: deployment-owned system event routes
       const destinations =
         await this.prisma.systemNotificationDestination.findMany({
           where: { isDeleted: false },
         });
-      // Keep a fresh event pending until the operator configures a destination.
-      if (!destinations.length) return new Date(Date.now() + 60000);
+      // Keep a fresh event pending until the operator configures a destination,
+      // polling slowly; it is dropped once it is older than MAX_EVENT_AGE_MS.
+      if (!destinations.length)
+        return new Date(Date.now() + NO_DESTINATION_RETRY_MS);
       const selected = destinations.filter(
         (destination) =>
           destination.isEnabled && destination.eventTypes.includes(row.type),
@@ -63,6 +77,7 @@ export class SystemEventDeliveryService {
     eventLeaseToken: string,
   ): Promise<'delivered' | 'skipped' | Date> {
     const retryAt = await this.resolveDestinations(row, eventLeaseToken);
+    if (retryAt === 'skipped') return 'skipped';
     if (retryAt) return retryAt;
 
     const now = new Date();
@@ -73,6 +88,7 @@ export class SystemEventDeliveryService {
         isDeleted: false,
         deliveredAt: null,
         skippedAt: null,
+        failedAt: null,
       },
       include: { destination: true },
     });
@@ -93,6 +109,7 @@ export class SystemEventDeliveryService {
               isDeleted: false,
               deliveredAt: null,
               skippedAt: null,
+              failedAt: null,
               nextAttemptAt: { lte: now },
               OR: [{ leaseUntil: null }, { leaseUntil: { lte: now } }],
             },
@@ -135,22 +152,47 @@ export class SystemEventDeliveryService {
                 leaseUntil: null,
               },
             });
-          } catch {
-            // Never retain a provider error or destination URL in logs or history.
+          } catch (error) {
+            // Never retain a provider error or destination URL in logs or history;
+            // the HTTP status code alone is safe to keep.
+            const statusCode = systemNotificationStatusCode(error);
+            const isExhausted = delivery.attempts + 1 >= MAX_DELIVERY_ATTEMPTS;
+            this.logger.warn(
+              isExhausted
+                ? 'System event delivery failed permanently'
+                : 'System event delivery will retry',
+              {
+                attempts: delivery.attempts + 1,
+                deliveryId: delivery.id,
+                eventId: row.id,
+                statusCode,
+              },
+            );
+            // tenant-scope-ignore: only the event lease owner records the last provider status
+            await this.prisma.systemEventWebhook.updateMany({
+              where: {
+                id: row.id,
+                leaseToken: eventLeaseToken,
+                isDeleted: false,
+              },
+              data: { lastStatusCode: statusCode },
+            });
             // tenant-scope-ignore: destination failure cannot reset another destination
             await this.prisma.systemEventDelivery.updateMany({
               where: { id: delivery.id, leaseToken, isDeleted: false },
-              data: {
-                nextAttemptAt: new Date(
-                  Date.now() +
-                    Math.min(
-                      3600000,
-                      30000 * 2 ** Math.min(delivery.attempts, 7),
+              data: isExhausted
+                ? { failedAt: new Date(), leaseToken: null, leaseUntil: null }
+                : {
+                    nextAttemptAt: new Date(
+                      Date.now() +
+                        Math.min(
+                          3600000,
+                          30000 * 2 ** Math.min(delivery.attempts, 7),
+                        ),
                     ),
-                ),
-                leaseToken: null,
-                leaseUntil: null,
-              },
+                    leaseToken: null,
+                    leaseUntil: null,
+                  },
             });
           }
         }),
@@ -160,7 +202,8 @@ export class SystemEventDeliveryService {
       where: { eventId: row.id, isDeleted: false },
     });
     const remaining = deliveries.filter(
-      (delivery) => !delivery.deliveredAt && !delivery.skippedAt,
+      (delivery) =>
+        !delivery.deliveredAt && !delivery.skippedAt && !delivery.failedAt,
     );
     if (!remaining.length)
       return deliveries.some((delivery) => delivery.deliveredAt)
@@ -188,7 +231,11 @@ export class SystemEventDeliveryService {
     // tenant-scope-ignore: scheduling never overrides a worker's live lease
     await this.prisma.systemEventDelivery.updateMany({
       where: { id, isDeleted: false, deliveredAt: null, skippedAt: null },
-      data: { nextAttemptAt: new Date() },
+      data: {
+        nextAttemptAt: new Date(),
+        // An operator retry revives a delivery that hit the attempt cap.
+        ...(row.failedAt ? { attempts: 0, failedAt: null } : {}),
+      },
     });
     // tenant-scope-ignore: make the parent event eligible for the next sweep
     await this.prisma.systemEventWebhook.updateMany({
@@ -196,9 +243,12 @@ export class SystemEventDeliveryService {
         id: row.eventId,
         isDeleted: false,
         deliveredAt: null,
-        skippedAt: null,
+        ...(row.failedAt ? {} : { skippedAt: null }),
       },
-      data: { nextAttemptAt: new Date() },
+      data: {
+        nextAttemptAt: new Date(),
+        ...(row.failedAt ? { skippedAt: null } : {}),
+      },
     });
     return true;
   }
