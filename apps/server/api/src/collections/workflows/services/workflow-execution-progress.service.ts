@@ -201,10 +201,14 @@ export class WorkflowExecutionProgressService {
     });
 
     if (this.shouldPersistEta(executionId, eta)) {
-      await this.executionsService.updateExecutionProgress(executionId, {
-        eta,
-        progress: options.progress,
-      });
+      await this.executionsService.updateExecutionProgress(
+        executionId,
+        workflow.organizationId,
+        {
+          eta,
+          progress: options.progress,
+        },
+      );
       this.lastEtaWrites.set(executionId, {
         at: Date.now(),
         phase: eta.currentPhase,

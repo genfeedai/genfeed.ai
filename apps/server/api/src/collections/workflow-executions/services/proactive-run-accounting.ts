@@ -137,11 +137,11 @@ export async function recordProactiveRunCompletion(
   transaction: Prisma.TransactionClient,
   strategies: AgentStrategiesService,
   executionId: string,
+  organizationId: string,
   outcome: { completedAt: Date; failed: boolean },
 ): Promise<WorkflowExecution> {
-  // tenant-scope-ignore: this primary-key read follows a successful organization-scoped terminal update in the same transaction
-  const execution = await transaction.workflowExecution.findUnique({
-    where: { id: executionId },
+  const execution = await transaction.workflowExecution.findFirst({
+    where: scopedWhere(organizationId, { id: executionId }),
   });
   if (!execution) {
     throw new Error(
