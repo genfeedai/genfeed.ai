@@ -22,6 +22,7 @@ import {
   getOrganizationLimitForTier,
   getUpgradeTierForLimit,
 } from '@genfeedai/pricing';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 export interface CreateOrganizationOperationInput {
@@ -72,11 +73,15 @@ export class OrganizationsOperationsService {
       return true;
     }
 
-    const member = await this.membersService.findOne({
-      isActive: true,
-      organizationId,
-      userId,
-    });
+    // Membership lookup for the entity's own organization, which is not
+    // necessarily the request tenant; the query is pinned to that org + user.
+    const member = await runWithTenantContext({ organizationId }, () =>
+      this.membersService.findOne({
+        isActive: true,
+        organizationId,
+        userId,
+      }),
+    );
 
     return Boolean(member);
   }
@@ -113,10 +118,16 @@ export class OrganizationsOperationsService {
             organization !== null,
         )
         .map(async (organization) => {
-          const brand = await this.brandsService.findOne({
-            isDeleted: false,
-            organizationId: organization.id,
-          });
+          // Each organization comes from the user's own active memberships
+          // (findActiveForUserAccess), so scope the lookup to that org.
+          const brand = await runWithTenantContext(
+            { organizationId: organization.id.toString() },
+            () =>
+              this.brandsService.findOne({
+                isDeleted: false,
+                organizationId: organization.id,
+              }),
+          );
 
           return {
             brand: brand
@@ -165,6 +176,33 @@ export class OrganizationsOperationsService {
     });
     const organizationId = organization.id.toString();
 
+    // Everything below provisions the NEW organization, which is not the
+    // creator's request tenant; scope it to the org it creates.
+    const brand = await runWithTenantContext({ organizationId }, () =>
+      this.provisionOrganization({ input, label, organization, user, userId }),
+    );
+
+    await this.usersService.patch(userId, {
+      lastUsedOrganizationId: organizationId,
+    });
+    await this.userAccessCacheService.invalidateAll(userId);
+
+    return {
+      brand: { id: brand.id.toString(), label: brand.label },
+      organization: { id: organizationId, label: organization.label },
+    };
+  }
+
+  private async provisionOrganization(params: {
+    input: CreateOrganizationOperationInput;
+    label: string;
+    organization: OrganizationDocument;
+    user: User;
+    userId: string;
+  }) {
+    const { input, label, organization, user, userId } = params;
+    const organizationId = organization.id.toString();
+
     await this.organizationSettingsService.ensureForOrganization(
       organization.id,
     );
@@ -204,15 +242,7 @@ export class OrganizationsOperationsService {
     });
     await this.skillLibrary?.attachSharedDefaults(organizationId, userId);
 
-    await this.usersService.patch(userId, {
-      lastUsedOrganizationId: organizationId,
-    });
-    await this.userAccessCacheService.invalidateAll(userId);
-
-    return {
-      brand: { id: brand.id.toString(), label: brand.label },
-      organization: { id: organizationId, label: organization.label },
-    };
+    return brand;
   }
 
   async switchOrganization(
@@ -220,6 +250,19 @@ export class OrganizationsOperationsService {
     user: User,
   ): Promise<OrganizationSelectionResult> {
     const userId = this.requireUserId(user);
+    // Authorization (membership or superadmin) is the first statement inside
+    // the switch; every query after it targets the selected organization,
+    // which is intentionally not the caller's current request tenant.
+    return runWithTenantContext({ organizationId }, () =>
+      this.switchIntoOrganization(organizationId, user, userId),
+    );
+  }
+
+  private async switchIntoOrganization(
+    organizationId: string,
+    user: User,
+    userId: string,
+  ): Promise<OrganizationSelectionResult> {
     const member = await this.membersService.findOne({
       isActive: true,
       organizationId,

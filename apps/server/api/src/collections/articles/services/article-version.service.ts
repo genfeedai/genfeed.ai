@@ -56,17 +56,21 @@ export class ArticleVersionService {
         };
       }
 
+      // The filters ride the query: an unfiltered `findAll` loaded every
+      // prompt of every tenant and narrowed them in memory.
       const promptsResult = await this.promptsService.findAll(
-        { where: {} },
+        {
+          where: {
+            articleId,
+            brandId,
+            isDeleted: false,
+            organizationId,
+            userId,
+          },
+        },
         { pagination: false },
       );
-      const prompts = promptsResult.docs.filter(
-        (prompt: Record<string, unknown>) =>
-          prompt.articleId === articleId &&
-          prompt.brandId === brandId &&
-          prompt.organizationId === organizationId &&
-          prompt.userId === userId,
-      );
+      const prompts = promptsResult.docs;
 
       return {
         articleId: article.id,
@@ -115,6 +119,7 @@ export class ArticleVersionService {
       const prompt = await this.promptsService.findOne({
         id: promptId,
         articleId,
+        organizationId,
         userId,
       });
 

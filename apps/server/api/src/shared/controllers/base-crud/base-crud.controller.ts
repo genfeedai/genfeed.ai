@@ -31,6 +31,7 @@ import type {
   PopulateOption,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Body,
@@ -44,7 +45,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import type { AggregatePaginateResult } from './base-crud.types';
-import { resolveScopeId } from './base-crud-scope.util';
+import { resolveScopeId, runAsSuperAdmin } from './base-crud-scope.util';
 
 @AutoSwagger()
 export abstract class BaseCRUDController<
@@ -108,11 +109,16 @@ export abstract class BaseCRUDController<
     };
 
     const findAllQuery = this.buildFindAllQuery(user, query);
+    const requestedOrganizationId = findAllQuery?.where?.organizationId;
+    const readPage = (): Promise<AggregatePaginateResult<T>> =>
+      this.service.findAll(findAllQuery, options);
 
-    const data: AggregatePaginateResult<T> = await this.service.findAll(
-      findAllQuery,
-      options,
-    );
+    // Only a superadmin's admin filter may name another organization.
+    const data: AggregatePaginateResult<T> =
+      typeof requestedOrganizationId === 'string' &&
+      requestedOrganizationId !== getTenantContext()?.organizationId
+        ? await runAsSuperAdmin(user, request, readPage)
+        : await readPage();
     return serializeCollection(request, this.serializer, {
       ...data,
       docs: await this.decorateListForResponse(data.docs, user),
@@ -133,9 +139,11 @@ export abstract class BaseCRUDController<
       ErrorResponse.notFound(this.entityName, id);
     }
 
-    const data = await this.service.findOne(
-      this.buildFindOneQuery(user, id, request),
-      this.getPopulateFields(),
+    const data = await runAsSuperAdmin(user, request, () =>
+      this.service.findOne(
+        this.buildFindOneQuery(user, id, request),
+        this.getPopulateFields(),
+      ),
     );
 
     if (!data) {
@@ -198,9 +206,8 @@ export abstract class BaseCRUDController<
     // Check ownership before update - use minimal population
     // Only populate user if the entity might have one (can be overridden by child controllers)
     const populateForOwnershipCheck = this.getPopulateForOwnershipCheck();
-    const existing = await this.service.findOne(
-      { id },
-      populateForOwnershipCheck,
+    const existing = await runAsSuperAdmin(user, request, () =>
+      this.service.findOne({ id }, populateForOwnershipCheck),
     );
 
     if (!existing) {
@@ -229,10 +236,8 @@ export abstract class BaseCRUDController<
         delete enrichedRecord.organizationId;
       }
     }
-    const data = await this.service.patch(
-      id,
-      enrichedDto,
-      this.getPopulateFields(),
+    const data = await runAsSuperAdmin(user, request, () =>
+      this.service.patch(id, enrichedDto, this.getPopulateFields()),
     );
 
     if (!data) {
@@ -290,8 +295,8 @@ export abstract class BaseCRUDController<
     }
 
     // Check ownership before deletion
-    const existing = await this.service.findOne(
-      this.buildFindOneQuery(user, id, request),
+    const existing = await runAsSuperAdmin(user, request, () =>
+      this.service.findOne(this.buildFindOneQuery(user, id, request)),
     );
     if (!existing) {
       ErrorResponse.notFound(this.entityName, id);
@@ -306,7 +311,9 @@ export abstract class BaseCRUDController<
     }
 
     const canonicalId = EntityIdUtil.resolveCanonicalId(existing, id);
-    const data = await this.removeEntity(existing, canonicalId);
+    const data = await runAsSuperAdmin(user, request, () =>
+      this.removeEntity(existing, canonicalId),
+    );
 
     if (!data) {
       ErrorResponse.notFound(this.entityName, id);
@@ -323,6 +330,10 @@ export abstract class BaseCRUDController<
   /**
    * Build the findAll query for findAll
    * Child controllers can override this to customize the query
+   *
+   * The default filters by the caller's own rows. The request tenant is added
+   * by `BaseService.findAll` (see `withTenantScope`), so a controller that
+   * names no organization here is still tenant-scoped.
    */
   public buildFindAllQuery(user: User, query: QueryDto): PrismaFindAllInput {
     const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
@@ -346,9 +357,13 @@ export abstract class BaseCRUDController<
   /**
    * Build the single-record lookup used by findOne and remove.
    *
-   * Tenancy is NOT enforced here — see canUserReadEntity. `service.findOne`
-   * runs no unknown-field audit. Soft deletes are safe to filter because
+   * `BaseService.findOne` adds the request tenant to a filter that names no
+   * organization (own rows, plus shared `organizationId: null` rows on
+   * platform-default models), so this lookup is tenant-scoped by default.
+   * canUserReadEntity stays as the post-fetch check. `service.findOne` runs no
+   * unknown-field audit. Soft deletes are safe to filter because
    * processSearchParams drops `isDeleted` for models without the field.
+   * Collections with a custom shared scope extend ScopedCRUDController.
    */
   public buildFindOneQuery(
     _user: User,

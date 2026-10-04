@@ -194,6 +194,7 @@ export class AgentWorkflowToolExecuteService {
 
     const updatedWorkflow = await this.workflowSchedulerService.updateSchedule(
       workflowId,
+      ctx.organizationId,
       effectiveSchedule,
       effectiveTimezone,
       enabled,

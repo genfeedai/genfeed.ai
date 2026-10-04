@@ -16,6 +16,7 @@ import type {
 import {
   findOutboxEvent,
   type OutboxDeliveryInput,
+  runForEventOrganization,
   writeNotificationOutbox,
 } from '@api/services/activity-recording/notification-outbox.writer';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -98,9 +99,11 @@ async function findActivity(
     ? await transaction.activity.findFirst({
         where: scopedWhere(organizationId, { id: activityId }),
       })
-    : await transaction.activity.findFirst({
-        where: { id: activityId, isDeleted: false, organizationId: null },
-      });
+    : await runForEventOrganization(organizationId, () =>
+        transaction.activity.findFirst({
+          where: { id: activityId, isDeleted: false, organizationId: null },
+        }),
+      );
   return row ? normalizeActivityDocument(row as ActivityDocument) : null;
 }
 
@@ -186,9 +189,11 @@ export async function updateActivityInTransaction(
     ? await transaction.activity.findFirst({
         where: scopedWhere(ref.organizationId, { id: ref.id }),
       })
-    : await transaction.activity.findFirst({
-        where: { id: ref.id, isDeleted: false, organizationId: null },
-      });
+    : await runForEventOrganization(ref.organizationId ?? null, () =>
+        transaction.activity.findFirst({
+          where: { id: ref.id, isDeleted: false, organizationId: null },
+        }),
+      );
   if (!existing) return null;
 
   const mutation = buildActivityMutation(
@@ -205,21 +210,25 @@ export async function updateActivityInTransaction(
     },
     existing as ActivityDocument,
   );
-  const row = await transaction.activity.update({
-    data: {
-      action: mutation.action,
-      brandId: mutation.brandId,
-      data: mutation.data,
-      entityId: mutation.entityId,
-      entityModel: mutation.entityModel,
-      userId: mutation.userId,
-    },
-    where: {
-      id: existing.id,
-      isDeleted: false,
-      organizationId: existing.organizationId,
-    },
-  });
+  const row = await runForEventOrganization(
+    existing.organizationId ?? null,
+    () =>
+      transaction.activity.update({
+        data: {
+          action: mutation.action,
+          brandId: mutation.brandId,
+          data: mutation.data,
+          entityId: mutation.entityId,
+          entityModel: mutation.entityModel,
+          userId: mutation.userId,
+        },
+        where: {
+          id: existing.id,
+          isDeleted: false,
+          organizationId: existing.organizationId,
+        },
+      }),
+  );
   const activity = normalizeActivityDocument(row as ActivityDocument);
   const policy =
     input.key && input.key !== existing.action

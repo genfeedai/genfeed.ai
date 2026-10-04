@@ -172,7 +172,10 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
     job: Job<WorkflowExecutionJobData>,
   ): Promise<boolean> {
     const source = job.data.systemRun?.input.source;
-    if (job.data.type !== 'system-run' || !source) return false;
+    const organizationId = job.data.systemRun?.input.organizationId;
+    if (job.data.type !== 'system-run' || !source || !organizationId) {
+      return false;
+    }
     if (!DRAINED_JOB_SOURCES.has(source)) return false;
 
     const executionId = job.data.systemRun?.priorExecution?.executionId;
@@ -229,7 +232,10 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
       attempt += 1
     ) {
       try {
-        await this.workflowExecutions.cancelExecution(executionId);
+        await this.workflowExecutions.cancelExecution(
+          executionId,
+          organizationId,
+        );
         return true;
       } catch (error: unknown) {
         if (attempt === CANCEL_EXECUTION_MAX_ATTEMPTS) {

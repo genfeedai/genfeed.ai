@@ -358,7 +358,10 @@ describe('WorkflowExecutionsController', () => {
         ...buildCustomerExecutionWhere(organizationId),
         id: 'exec-1',
       });
-      expect(mockService.cancelExecution).toHaveBeenCalledWith('exec-1');
+      expect(mockService.cancelExecution).toHaveBeenCalledWith(
+        'exec-1',
+        organizationId,
+      );
       expect(result).toEqual(mockCancelled);
     });
 

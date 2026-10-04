@@ -12,6 +12,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { WatchlistPlatform } from '@genfeedai/contracts';
 import { WatchlistSerializer } from '@genfeedai/serializers';
 import {
@@ -51,7 +52,10 @@ export class WatchlistsController {
       throw new NotFoundException({ message: 'Account ID is required' });
     }
 
-    const items = await this.service.findAllByAccount(brandId);
+    const items = await this.service.findAllByAccount(
+      brandId,
+      user.organizationId,
+    );
     return serializeCollection(req, WatchlistSerializer, { docs: items });
   }
 
@@ -62,11 +66,12 @@ export class WatchlistsController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
     @Req() req: Request,
+    @CurrentUser() user: User,
     @Param('watchlistId') watchlistId: string,
   ) {
-    const item = await this.service.findOne({
-      id: watchlistId,
-    });
+    const item = await this.service.findOne(
+      scopedWhere(user.organizationId, { id: watchlistId }),
+    );
     if (!item) {
       throw new NotFoundException('Watchlist item');
     }
@@ -102,6 +107,7 @@ export class WatchlistsController {
       brandId,
       dto.platform,
       dto.handle,
+      organization,
     );
 
     if (existing) {
@@ -126,12 +132,13 @@ export class WatchlistsController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() req: Request,
+    @CurrentUser() user: User,
     @Param('watchlistId') watchlistId: string,
     @Body() dto: UpdateWatchlistDto,
   ) {
-    const existing = await this.service.findOne({
-      id: watchlistId,
-    });
+    const existing = await this.service.findOne(
+      scopedWhere(user.organizationId, { id: watchlistId }),
+    );
     if (!existing) {
       throw new NotFoundException('Watchlist item');
     }
@@ -153,6 +160,7 @@ export class WatchlistsController {
         brandId,
         platform,
         handle,
+        user.organizationId,
       );
 
       if (duplicate && duplicate.id !== watchlistId) {
@@ -171,7 +179,17 @@ export class WatchlistsController {
    */
   @Delete(':watchlistId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async delete(@Param('watchlistId') watchlistId: string) {
+  async delete(
+    @CurrentUser() user: User,
+    @Param('watchlistId') watchlistId: string,
+  ) {
+    const existing = await this.service.findOne(
+      scopedWhere(user.organizationId, { id: watchlistId }),
+    );
+    if (!existing) {
+      throw new NotFoundException('Watchlist item');
+    }
+
     await this.service.remove(watchlistId);
     return { success: true };
   }

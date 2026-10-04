@@ -1499,6 +1499,7 @@ describe('VideosController', () => {
       expect(bookmarksService.addGeneratedIngredient).toHaveBeenCalledWith(
         bookmarkId.toString(),
         mockVideoId,
+        mockOrgId.toString(),
       );
     });
 

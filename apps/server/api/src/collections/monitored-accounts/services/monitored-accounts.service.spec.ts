@@ -7,7 +7,9 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { MonitoredAccountsService } from '@api/collections/monitored-accounts/services/monitored-accounts.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 
 type MockDelegate = {
   create: ReturnType<typeof vi.fn>;
@@ -129,7 +131,7 @@ describe('MonitoredAccountsService active filters', () => {
   });
 
   it('merges config-backed patches without dropping stored fields', async () => {
-    delegate.findUnique.mockResolvedValue({
+    delegate.findFirst.mockResolvedValue({
       config: { externalId: 'platform-user-1', username: 'old-name' },
       id: 'account-1',
     });
@@ -145,5 +147,39 @@ describe('MonitoredAccountsService active filters', () => {
       },
       where: { id: 'account-1' },
     });
+  });
+  it('scopes the config pre-read by the request tenant in CLOUD mode', async () => {
+    delegate.findFirst.mockResolvedValue({
+      config: { username: 'old-name' },
+      id: 'account-1',
+    });
+
+    await runWithTenantContext({ organizationId: 'org-1' }, () =>
+      service.patch('account-1', { username: 'new-name' }, []),
+    );
+
+    expect(delegate.findFirst).toHaveBeenCalledWith({
+      where: { id: 'account-1', isDeleted: false, organizationId: 'org-1' },
+    });
+    expectCloudGuardPasses('MonitoredAccount', 'findFirst', delegate.findFirst);
+  });
+
+  it('threads the organization into cursor and counter writes', async () => {
+    delegate.findFirst.mockResolvedValue({
+      config: {},
+      id: 'account-1',
+      isDeleted: false,
+    });
+
+    await runWithTenantContext({ organizationId: 'org-1' }, async () => {
+      await service.updateLastChecked('account-1', 'org-1', 'tweet-1');
+      await service.updateLastProcessed('account-1', 'org-1', 'tweet-2');
+      await service.incrementProcessedCount('account-1', 'org-1');
+      await service.incrementRepliesCount('account-1', 'org-1');
+    });
+
+    expectCloudGuardPasses('MonitoredAccount', 'findFirst', delegate.findFirst);
+    expectCloudGuardPasses('MonitoredAccount', 'update', delegate.update);
+    expect(delegate.update).toHaveBeenCalledTimes(4);
   });
 });

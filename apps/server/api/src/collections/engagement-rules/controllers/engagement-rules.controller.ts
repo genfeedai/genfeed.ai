@@ -16,6 +16,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { EngagementRuleSerializer } from '@genfeedai/serializers';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Body,
@@ -47,9 +48,11 @@ export class EngagementRulesController {
     @Query() query: EngagementRulesQueryDto,
   ) {
     const context = this.requireScope(user, query);
-    const result = await this.engagementRulesService.findAllScoped(
+    const result = await this.inScope(
+      user,
       context,
-      query,
+      async () =>
+        await this.engagementRulesService.findAllScoped(context, query),
     );
     return serializeCollection(request, EngagementRuleSerializer, result);
   }
@@ -76,7 +79,11 @@ export class EngagementRulesController {
     @Param('id') id: string,
   ) {
     const context = this.requireScope(user, query);
-    const rule = await this.engagementRulesService.findOneScoped(id, context);
+    const rule = await this.inScope(
+      user,
+      context,
+      async () => await this.engagementRulesService.findOneScoped(id, context),
+    );
     return serializeSingle(request, EngagementRuleSerializer, rule);
   }
 
@@ -91,10 +98,11 @@ export class EngagementRulesController {
     @Body() body: UpdateEngagementRuleDto,
   ) {
     const context = this.requireScope(user, query);
-    const rule = await this.engagementRulesService.updateScoped(
-      id,
-      body,
+    const rule = await this.inScope(
+      user,
       context,
+      async () =>
+        await this.engagementRulesService.updateScoped(id, body, context),
     );
     return serializeSingle(request, EngagementRuleSerializer, rule);
   }
@@ -108,8 +116,28 @@ export class EngagementRulesController {
     @Param('id') id: string,
   ) {
     const context = this.requireScope(user, query);
-    await this.engagementRulesService.removeScoped(id, context);
+    await this.inScope(
+      user,
+      context,
+      async () => await this.engagementRulesService.removeScoped(id, context),
+    );
     return { success: true };
+  }
+
+  /**
+   * A superadmin may name another organization in the query; that scope is a
+   * deliberate cross-tenant read/write, so it runs outside the tenant guard.
+   * Everyone else is already confined to their own organization.
+   */
+  private inScope<T>(
+    user: User,
+    context: EngagementRuleScope,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    return getIsSuperAdmin(user) &&
+      context.organizationId !== user.organizationId
+      ? crossOrgUnsafe(operation)
+      : operation();
   }
 
   private requireScope(

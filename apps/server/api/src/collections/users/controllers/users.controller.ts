@@ -12,6 +12,7 @@ import { UpdateAssetGateDto } from '@api/collections/users/dto/update-asset-gate
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-onboarding.dto';
 import { UsersService } from '@api/collections/users/services/users.service';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -166,13 +167,19 @@ export class UsersController {
 
   @Get('me')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findMe(@Req() request: Request, @CurrentUser() user: User) {
+  async findMe(@Req() request: RequestWithContext, @CurrentUser() user: User) {
     const subscriptionStatus = getStripeSubscriptionStatus(user, request);
     const userId = user.userId ?? user.id;
-    const organizationId = user.organizationId;
+    // The tenant interceptor binds the active organization from the request
+    // context first; token metadata can lag behind an organization switch.
+    const organizationId =
+      request.context?.organizationId ?? user.organizationId;
 
+    // Subscriptions are billed per organization: look up the user's
+    // subscription in the active organization, never across tenants.
     let dbSubscription = await this.subscriptionsService.findOne({
       userId: userId,
+      ...(organizationId ? { organizationId } : {}),
     });
 
     if (!dbSubscription && organizationId) {

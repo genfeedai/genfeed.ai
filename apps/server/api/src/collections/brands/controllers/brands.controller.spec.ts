@@ -41,6 +41,10 @@ import {
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  isCrossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
+import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
@@ -142,6 +146,7 @@ describe('BrandsController', () => {
             isSlugAvailable: vi.fn(),
             patch: vi.fn(),
             readClaimedBrandOsPreview: vi.fn(),
+            previewRelocation: vi.fn(),
             relocateToOrganization: vi.fn(),
             remove: vi.fn(),
             removeInOrganization: vi.fn(),
@@ -563,6 +568,94 @@ describe('BrandsController', () => {
         brand,
       ]);
       expect(result).toEqual({ data: [decorated] });
+    });
+  });
+
+  describe('cross-organization reads (CLOUD tenant guard)', () => {
+    const page = {
+      docs: [],
+      hasNextPage: false,
+      hasPrevPage: false,
+      limit: 20,
+      page: 1,
+      pagingCounter: 1,
+      totalDocs: 0,
+      totalPages: 0,
+    } as unknown as AggregatePaginateResult<BrandDocument>;
+
+    it('lists another organization for a superadmin outside the session tenant', async () => {
+      const flags: boolean[] = [];
+      brandsService.findAll.mockImplementation(async () => {
+        flags.push(isCrossOrgUnsafe());
+        return page;
+      });
+
+      await runWithTenantContext(
+        { organizationId: mockUser.organizationId },
+        () =>
+          controller.findAll(
+            mockRequest,
+            { ...mockUser, isSuperAdmin: true } as User,
+            { organizationId: 'cmorganization000000000000002' } as BaseQueryDto,
+          ),
+      );
+
+      expect(flags).toEqual([true]);
+    });
+
+    it('keeps a normal member inside enforcement', async () => {
+      const flags: boolean[] = [];
+      brandsService.findAll.mockImplementation(async () => {
+        flags.push(isCrossOrgUnsafe());
+        return page;
+      });
+
+      await runWithTenantContext(
+        { organizationId: mockUser.organizationId },
+        () => controller.findAll(mockRequest, mockUser, {} as BaseQueryDto),
+      );
+
+      expect(flags).toEqual([false]);
+    });
+
+    it('runs a relocation and its preview across tenants, never for the lookup alone', async () => {
+      const flags: boolean[] = [];
+      brandsService.findOne.mockImplementation(async () => {
+        flags.push(isCrossOrgUnsafe());
+        return {
+          ...mockBrand,
+          organizationId: 'cmorganization000000000000009',
+        } as never;
+      });
+      brandsService.relocateToOrganization.mockImplementation(async () => {
+        flags.push(isCrossOrgUnsafe());
+        return {
+          brand: { ...mockBrand, organizationId: mockUser.organizationId },
+          summary: {},
+        } as never;
+      });
+      brandsService.previewRelocation.mockImplementation(async () => {
+        flags.push(isCrossOrgUnsafe());
+        return {} as never;
+      });
+
+      await runWithTenantContext(
+        { organizationId: mockUser.organizationId },
+        async () => {
+          await controller.patch(mockRequest, mockUser, mockBrand.id, {
+            organizationId: mockUser.organizationId,
+          });
+          await controller.previewRelocation(
+            mockRequest,
+            mockUser,
+            mockBrand.id,
+            mockUser.organizationId,
+          );
+        },
+      );
+
+      // lookup (cross-org: the source may be another org), relocate, preview.
+      expect(flags).toEqual([true, true, true]);
     });
   });
 

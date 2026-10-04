@@ -25,6 +25,7 @@ import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { ArticleSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Body,
@@ -98,6 +99,17 @@ export class ArticlesController extends BaseCRUDController<
   // Inherits create(), findAll(), and remove(:id) from BaseCRUDController
 
   /**
+   * A superadmin reads any organization's article; everyone else stays inside
+   * the request tenant. Only the superadmin branch leaves tenant scope.
+   */
+  private readAsSuperAdmin<T>(
+    isSuperAdmin: boolean,
+    work: () => Promise<T>,
+  ): Promise<T> {
+    return isSuperAdmin ? crossOrgUnsafe(async () => await work()) : work();
+  }
+
+  /**
    * Override findOne to include evaluation lookup
    */
   @Get(':id')
@@ -124,9 +136,13 @@ export class ArticlesController extends BaseCRUDController<
     };
 
     // Execute aggregation using service's findAll method
-    const results = await this.articlesService.findAll(pipeline, {
-      pagination: false,
-    });
+    const results = await this.readAsSuperAdmin(
+      isSuperAdmin,
+      async () =>
+        await this.articlesService.findAll(pipeline, {
+          pagination: false,
+        }),
+    );
 
     if (!results?.docs || results.docs.length === 0) {
       ErrorResponse.notFound(this.entityName, articleId);
@@ -170,14 +186,21 @@ export class ArticlesController extends BaseCRUDController<
     @Param('articleId') articleId: string,
   ): Promise<{ expiresInSeconds: number; url: string }> {
     const isSuperAdmin = getIsSuperAdmin(user, request);
-    const article = await this.articlesService.findOne(
-      isSuperAdmin
-        ? { id: articleId, isDeleted: false }
-        : scopedWhere(user.organizationId.toString(), {
-            id: articleId,
-            ...(user.brandId ? { brandId: user.brandId } : {}),
-            OR: [{ userId: user.userId ?? user.id }, { scope: 'ORGANIZATION' }],
-          }),
+    const article = await this.readAsSuperAdmin(
+      isSuperAdmin,
+      async () =>
+        await this.articlesService.findOne(
+          isSuperAdmin
+            ? { id: articleId, isDeleted: false }
+            : scopedWhere(user.organizationId.toString(), {
+                id: articleId,
+                ...(user.brandId ? { brandId: user.brandId } : {}),
+                OR: [
+                  { userId: user.userId ?? user.id },
+                  { scope: 'ORGANIZATION' },
+                ],
+              }),
+        ),
     );
 
     if (!article) {

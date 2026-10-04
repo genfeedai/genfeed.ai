@@ -279,7 +279,7 @@ export class ContextsService {
           ...(dto.type ? { category: dto.type } : {}),
         },
       },
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
     });
 
     return this.normalizeContextBase(contextBase);
@@ -294,7 +294,7 @@ export class ContextsService {
 
     await this.prisma.contextBase.update({
       data: { isDeleted: true },
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
     });
 
     await this.prisma.contextEntry.updateMany({
@@ -372,7 +372,7 @@ export class ContextsService {
 
     await this.prisma.contextEntry.update({
       data: { isDeleted: true },
-      where: { id: entryId },
+      where: scopedWhere(organizationId, { id: entryId }),
     });
 
     await this.adjustContextBaseMetric(

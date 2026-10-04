@@ -319,9 +319,12 @@ export class ImagesController {
       ...dataRecord,
     };
 
+    // Ingredient votes are written with the voter's organization.
     const vote = await this.votesService.findOne({
       entityId: imageId,
       entityModel: ActivityEntityModel.INGREDIENT,
+      isDeleted: false,
+      organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     });
 

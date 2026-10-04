@@ -15,10 +15,12 @@ import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { MemberRole } from '@genfeedai/contracts';
 import type { SortObject } from '@genfeedai/contracts/interfaces';
 import { BlacklistSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   Body,
   Controller,
@@ -187,11 +189,19 @@ export class ElementsBlacklistsController extends BaseCRUDController<
       ErrorResponse.notFound(this.entityName, id);
     }
 
+    // Superadmins may edit another organization's entry; everyone else is
+    // pinned to their own organization.
+    const isSuperAdmin = getIsSuperAdmin(user, request);
+
     // Check ownership before update - don't populate 'user' field since blacklists don't have it
-    const existing = await this.blacklistsService.findOne(
-      { id: id },
-      [], // No population needed for ownership check
-    );
+    const existing = isSuperAdmin
+      ? await crossOrgUnsafe(
+          async () => await this.blacklistsService.findOne({ id }, []),
+        )
+      : await this.blacklistsService.findOne(
+          scopedWhere(user.organizationId, { id }),
+          [], // No population needed for ownership check
+        );
 
     if (!existing) {
       ErrorResponse.notFound(this.entityName, id);
@@ -205,11 +215,23 @@ export class ElementsBlacklistsController extends BaseCRUDController<
     // Enrich the update DTO
     const enrichedDto = await this.enrichUpdateDto(updateDto);
 
-    const data = await this.blacklistsService.patch(
-      id,
-      enrichedDto,
-      this.getPopulateFields(),
-    );
+    // `BaseService.patch` writes by id alone, which the tenant guard rejects;
+    // write through the tenant-scoped predicate instead.
+    const data =
+      isSuperAdmin && existing.organizationId !== user.organizationId
+        ? await crossOrgUnsafe(
+            async () =>
+              await this.blacklistsService.patchOneWhere(
+                { id },
+                enrichedDto,
+                this.getPopulateFields(),
+              ),
+          )
+        : await this.blacklistsService.patchOneWhere(
+            scopedWhere(user.organizationId, { id }),
+            enrichedDto,
+            this.getPopulateFields(),
+          );
 
     if (!data) {
       ErrorResponse.notFound(this.entityName, id);

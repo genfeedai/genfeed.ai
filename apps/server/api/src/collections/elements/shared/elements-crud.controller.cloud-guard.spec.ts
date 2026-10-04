@@ -5,10 +5,7 @@ import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
-import {
-  assertTenantScopedQuery,
-  TenantIsolationError,
-} from '@libs/prisma/tenant-guard';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 import type { Request } from 'express';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -78,7 +75,11 @@ function buildPrisma(rows: Row[]) {
     }),
   };
 
-  return { elementStyle: delegate } as unknown as PrismaService;
+  // The real client reports the same CLOUD gate its guard extension uses.
+  return {
+    isCloudTenantGuard: true,
+    elementStyle: delegate,
+  } as unknown as PrismaService;
 }
 
 function buildRows(): Row[] {
@@ -155,12 +156,15 @@ function setup() {
 const request = {} as Request;
 
 describe('ElementsCRUDController under the CLOUD tenant guard', () => {
-  it('proves the guard rejects the inherited id-only write', async () => {
-    const { inTenant, service } = setup();
+  it('scopes the inherited id-only write to the tenant, so a platform default stays unreachable', async () => {
+    const { inTenant, rows, service } = setup();
 
+    // BaseService adds the request tenant; the platform row (no organization)
+    // matches no write, and the guard no longer rejects the query itself.
     await expect(
       inTenant(() => service.patch(DEFAULT_ID, { isActive: false })),
-    ).rejects.toBeInstanceOf(TenantIsolationError);
+    ).rejects.toMatchObject({ code: 'P2025' });
+    expect(rows.find((row) => row.id === DEFAULT_ID)?.isActive).toBe(true);
   });
 
   it('lets a superadmin edit, reorder and deactivate a platform default', async () => {

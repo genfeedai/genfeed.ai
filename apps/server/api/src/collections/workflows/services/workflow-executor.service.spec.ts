@@ -391,9 +391,11 @@ describe('WorkflowExecutorService', () => {
     );
     expect(executionsService.startExecution).toHaveBeenCalledWith(
       'execution-1',
+      'org-1',
     );
     expect(executionsService.completeExecution).toHaveBeenCalledWith(
       'execution-1',
+      'org-1',
       undefined,
       { creditsUsed: 3 },
     );
@@ -730,6 +732,7 @@ describe('WorkflowExecutorService', () => {
       'handleDelayNode',
     );
     const executableWorkflow = {
+      organizationId: 'org-1',
       edges: [
         { source: 'completed-node', target: 'next-node' },
         { source: 'next-node', target: 'pause-node' },
@@ -849,13 +852,17 @@ describe('WorkflowExecutorService', () => {
         workflowId: 'workflow-1',
       },
     });
-    expect(executionsService.getRuntimeState).toHaveBeenCalledWith('exec-1');
+    expect(executionsService.getRuntimeState).toHaveBeenCalledWith(
+      'exec-1',
+      'org-1',
+    );
     expect(executionsService.findOne).toHaveBeenCalledWith({
       id: 'exec-1',
       organizationId: 'org-1',
     });
     expect(executionsService.updateExecutionProgress).toHaveBeenCalledWith(
       'exec-1',
+      'org-1',
       expect.objectContaining({
         eta: expect.objectContaining({
           currentPhase: 'Running Next node',
@@ -937,6 +944,7 @@ describe('WorkflowExecutorService', () => {
     });
     expect(executionsService.completeExecution).toHaveBeenCalledWith(
       'exec-1',
+      'org-1',
       'Workflow workflow-1 is retired and cannot resume pinned version workflow-version-1',
     );
     expect(engineAdapter.executeNode).not.toHaveBeenCalled();
@@ -1194,6 +1202,7 @@ describe('WorkflowExecutorService', () => {
         expect(result.error).toContain('no longer an active member');
         expect(executionsService.completeExecution).toHaveBeenCalledWith(
           'exec-removed',
+          'org-1',
           expect.stringContaining('no longer an active member'),
         );
         expect(prisma.workflowVersion.findFirst).not.toHaveBeenCalled();
@@ -1281,6 +1290,7 @@ describe('WorkflowExecutorService', () => {
       });
       expect(executionsService.completeExecution).toHaveBeenCalledWith(
         'exec-1',
+        'org-1',
         'Workflow workflow-1 is retired and cannot resume pinned version workflow-version-1',
       );
       expect(engineAdapter.executeNode).not.toHaveBeenCalled();
@@ -1405,6 +1415,7 @@ describe('WorkflowExecutorService', () => {
       expect(executionsService.createExecution).not.toHaveBeenCalled();
       expect(executionsService.startExecution).toHaveBeenCalledWith(
         'exec-pending',
+        'org-1',
       );
       expect(result.executionId).toBe('exec-pending');
       expect(prisma.workflowVersion.findFirst).toHaveBeenCalledWith(
@@ -1479,7 +1490,10 @@ describe('WorkflowExecutorService', () => {
       );
 
       expect(executionsService.createExecution).not.toHaveBeenCalled();
-      expect(executionsService.startExecution).toHaveBeenCalledWith('exec-1');
+      expect(executionsService.startExecution).toHaveBeenCalledWith(
+        'exec-1',
+        'org-1',
+      );
       expect(result.executionId).toBe('exec-1');
       expect(result.workflowId).toBe('workflow-1');
     });

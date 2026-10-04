@@ -484,6 +484,7 @@ export class WorkflowReviewGateService {
       completedAt: input.approvedAt,
       executionId: input.executionId,
       finalStatus: WorkflowExecutionStatus.FAILED,
+      organizationId: input.execution.organizationId,
       result,
       workflowId: input.workflowId,
       workflowStatus: input.keepsWorkflowActive
@@ -558,6 +559,7 @@ export class WorkflowReviewGateService {
         completedAt: input.approvedAt,
         executionId: input.executionId,
         finalStatus: WorkflowExecutionStatus.COMPLETED,
+        organizationId: input.execution.organizationId,
         result,
         workflowId: input.workflowId,
         workflowStatus: keepsWorkflowActive
@@ -620,6 +622,7 @@ export class WorkflowReviewGateService {
             : input.approvedAt,
         executionId: input.executionId,
         finalStatus,
+        organizationId: input.execution.organizationId,
         result,
         workflowId: input.workflowId,
         workflowStatus: keepsWorkflowActive

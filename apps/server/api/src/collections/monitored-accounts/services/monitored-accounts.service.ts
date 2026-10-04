@@ -2,12 +2,13 @@ import { CreateMonitoredAccountDto } from '@api/collections/monitored-accounts/d
 import { UpdateMonitoredAccountDto } from '@api/collections/monitored-accounts/dto/update-monitored-account.dto';
 import type { MonitoredAccountDocument } from '@api/collections/monitored-accounts/schemas/monitored-account.schema';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const MONITORED_ACCOUNT_CREATE_SCALAR_FIELDS = [
@@ -122,8 +123,14 @@ export class MonitoredAccountsService extends BaseService<
     let config: Record<string, unknown> | undefined;
 
     if (hasConfigPatch) {
-      const existing = await this.prisma.monitoredAccount.findUnique({
-        where: { id },
+      // The base `patch` below writes by id alone; scope the config read to the
+      // request tenant so a cross-tenant id is a NotFound, not a guard throw.
+      const tenantOrganizationId = getTenantContext()?.organizationId;
+      // tenant-scope-ignore: scoped by the request tenant whenever one exists; the no-context branch is a worker/system caller
+      const existing = await this.prisma.monitoredAccount.findFirst({
+        where: tenantOrganizationId
+          ? scopedWhere(tenantOrganizationId, { id })
+          : { id },
       });
       if (!existing) {
         throw new NotFoundException('MonitoredAccount', id);
@@ -166,15 +173,16 @@ export class MonitoredAccountsService extends BaseService<
    */
   async updateLastChecked(
     id: string,
+    organizationId: string,
     lastCheckedTweetId: string,
   ): Promise<MonitoredAccountDocument> {
-    const existing = await this.prisma.monitoredAccount.findUnique({
-      where: { id },
+    const existing = await this.prisma.monitoredAccount.findFirst({
+      where: scopedWhere(organizationId, { id }),
     });
     const config = (existing?.config as AccountConfig) ?? {};
 
     const updated = await this.prisma.monitoredAccount.update({
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
       data: {
         config: {
           ...config,
@@ -190,12 +198,15 @@ export class MonitoredAccountsService extends BaseService<
   /**
    * Increment the tweets processed count
    */
-  async incrementProcessedCount(id: string): Promise<void> {
-    const existing = await this.findOne({ id });
+  async incrementProcessedCount(
+    id: string,
+    organizationId: string,
+  ): Promise<void> {
+    const existing = await this.findOne(scopedWhere(organizationId, { id }));
     const config = (existing?.config as AccountConfig) ?? {};
 
     await this.prisma.monitoredAccount.update({
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
       data: {
         config: {
           ...config,
@@ -208,12 +219,15 @@ export class MonitoredAccountsService extends BaseService<
   /**
    * Increment the replies sent count
    */
-  async incrementRepliesCount(id: string): Promise<void> {
-    const existing = await this.findOne({ id });
+  async incrementRepliesCount(
+    id: string,
+    organizationId: string,
+  ): Promise<void> {
+    const existing = await this.findOne(scopedWhere(organizationId, { id }));
     const config = (existing?.config as AccountConfig) ?? {};
 
     await this.prisma.monitoredAccount.update({
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
       data: {
         config: {
           ...config,
@@ -270,7 +284,7 @@ export class MonitoredAccountsService extends BaseService<
     const config = (existing.config as AccountConfig) ?? {};
 
     const updated = await this.prisma.monitoredAccount.update({
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
       data: {
         config: {
           ...config,

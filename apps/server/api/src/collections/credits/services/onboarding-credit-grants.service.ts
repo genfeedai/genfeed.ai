@@ -17,6 +17,7 @@ import {
   type OnboardingJourneyMissionId,
 } from '@genfeedai/contracts/types';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Injectable, Optional } from '@nestjs/common';
 
 const REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
@@ -65,18 +66,22 @@ export class OnboardingCreditGrantsService {
       if (!organization) return null;
       const idempotencyKey = `onboarding:welcome:${userId}`;
       // tenant-scope-ignore: the welcome entitlement is user-scoped across owned organizations; historical ledger evidence survives spent/expired credit buckets.
-      const existing = await tx.creditTransaction.findFirst({
-        where: {
-          category: CreditTransactionCategory.ADD,
-          isDeleted: false,
-          source: WELCOME_CAMPAIGN,
-          OR: [
-            { idempotencyKey },
-            { actorUserId: userId },
-            { organization: { userId } },
-          ],
-        },
-      });
+      const existing = await crossOrgUnsafe(
+        async () =>
+          // tenant-scope-ignore: the welcome entitlement is user-scoped across owned organizations; historical ledger evidence survives spent/expired credit buckets.
+          await tx.creditTransaction.findFirst({
+            where: {
+              category: CreditTransactionCategory.ADD,
+              isDeleted: false,
+              source: WELCOME_CAMPAIGN,
+              OR: [
+                { idempotencyKey },
+                { actorUserId: userId },
+                { organization: { userId } },
+              ],
+            },
+          }),
+      );
       if (existing)
         return existing.organizationId === organizationId
           ? {

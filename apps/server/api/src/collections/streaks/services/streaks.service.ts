@@ -267,20 +267,15 @@ export class StreaksService {
       data: {
         data: this.serializeStreakData(streak),
       },
-      where: { id: streak.id },
+      where: scopedWhere(streak.organizationId, { id: streak.id }),
     });
 
     return this.normalizeStreakRecord(updated as Record<string, unknown>);
   }
 
-  private async listStreaks(
-    organizationId?: string,
-  ): Promise<StreakDocument[]> {
+  private async listStreaks(organizationId: string): Promise<StreakDocument[]> {
     const streaks = await this.prisma.streak.findMany({
-      where: {
-        isDeleted: false,
-        ...(organizationId ? { organizationId } : {}),
-      },
+      where: scopedWhere(organizationId),
     });
 
     return streaks.map((streak) =>

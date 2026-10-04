@@ -420,7 +420,7 @@ describe('BrandSettingsCharactersPage', () => {
           expect(mocks.grantToOrganization).toHaveBeenCalledWith('p2', {
             brandIds: ['brand-x'],
             mode: PersonaAvailabilityMode.SELECTED_BRANDS,
-            organizationId: 'org-2',
+            recipientOrganizationId: 'org-2',
           });
         });
       });

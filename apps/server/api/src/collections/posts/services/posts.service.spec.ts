@@ -3,6 +3,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import type { CacheService } from '@api/services/cache/cache.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { expectCloudGuardPasses } from '@api/shared/testing/cloud-guard-assertions';
 import {
   CredentialPlatform,
   PostCategory,
@@ -13,6 +14,7 @@ import {
 } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 
 async function captureChannelTargetError(
   promise: Promise<unknown>,
@@ -157,10 +159,23 @@ describe('PostsService batchSchedule', () => {
     post.findMany.mockResolvedValue([row]);
 
     const found = await service.findByIds(['post-1'], 'org-1');
-    const children = await service.getChildren('parent-1');
+    const children = await runWithTenantContext(
+      { organizationId: 'org-1' },
+      () => service.getChildren('parent-1', 'org-1'),
+    );
 
     expect(found).toEqual([row]);
     expect(children).toEqual([row]);
+    expect(post.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+          parentId: 'parent-1',
+        },
+      }),
+    );
+    expectCloudGuardPasses('Post', 'findMany', post.findMany);
     expect(found[0]?.createdAt).toBe(createdAt);
     expect(found[0]?.ingredients).toBe(ingredients);
   });

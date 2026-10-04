@@ -14,6 +14,8 @@ import {
 } from '@api/collections/trends/utils/trend-source-classification.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
+import { platformOrTenantScope } from '@libs/prisma/platform-scope';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 
 export interface TrendCorpusFreshnessHealthOptions {
@@ -115,21 +117,7 @@ export class TrendCorpusFreshnessService {
           isDeleted: false,
         },
       }) as Promise<ReferenceHealthDoc[]>,
-      // tenant-scope-ignore: buildFreshnessTrendWhere excludes deleted rows and limits non-admin reads to the current organization plus the public corpus; platform admins inspect all organizations
-      this.prisma.trend.findMany({
-        orderBy: [{ platform: 'asc' }, { updatedAt: 'asc' }],
-        select: {
-          createdAt: true,
-          data: true,
-          expiresAt: true,
-          isCurrent: true,
-          id: true,
-          platform: true,
-          updatedAt: true,
-        },
-        take: MAX_CORPUS_FRESHNESS_TREND_RECORDS,
-        where: this.buildFreshnessTrendWhere(options),
-      }) as Promise<TrendHealthDoc[]>,
+      this.readFreshnessTrends(options),
       this.refreshHealth.getHealth(options),
     ]);
 
@@ -214,6 +202,32 @@ export class TrendCorpusFreshnessService {
     };
   }
 
+  private readFreshnessTrends(
+    options: TrendCorpusFreshnessHealthOptions,
+  ): Promise<TrendHealthDoc[]> {
+    const readTrends = async (): Promise<TrendHealthDoc[]> =>
+      // tenant-scope-ignore: buildFreshnessTrendWhere excludes deleted rows and limits non-admin reads to the current organization plus the public corpus; platform admins inspect all organizations
+      (await this.prisma.trend.findMany({
+        orderBy: [{ platform: 'asc' }, { updatedAt: 'asc' }],
+        select: {
+          createdAt: true,
+          data: true,
+          expiresAt: true,
+          isCurrent: true,
+          id: true,
+          platform: true,
+          updatedAt: true,
+        },
+        take: MAX_CORPUS_FRESHNESS_TREND_RECORDS,
+        where: this.buildFreshnessTrendWhere(options),
+      })) as TrendHealthDoc[];
+
+    // Platform admins inspect every organization's trend corpus.
+    return options.isPlatformAdmin
+      ? crossOrgUnsafe(async () => await readTrends())
+      : readTrends();
+  }
+
   /**
    * Trend rows are organization-scoped or global. Platform admins receive the
    * cross-organization pipeline view; other callers receive their organization
@@ -231,11 +245,7 @@ export class TrendCorpusFreshnessService {
       return where;
     }
 
-    where.OR = options.organizationId
-      ? [{ organizationId: options.organizationId }, { organizationId: null }]
-      : [{ organizationId: null }];
-
-    return where;
+    return { ...where, ...platformOrTenantScope(options.organizationId) };
   }
 
   private buildFreshnessSegments(

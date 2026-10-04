@@ -26,6 +26,7 @@ import {
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { assertLearningFeatures, LEARNING_ARMS } from '@genfeedai/harness';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   ConflictException,
@@ -212,72 +213,78 @@ export class LearningDatasetService {
   async create(input: LearningDatasetCreationInput) {
     const scope = learningHash(['dataset-create', input.organizationId]);
     const payloadHash = learningHash(['dataset-create', input]);
-    return this.prisma.$transaction(
-      async (tx) => {
-        // Dataset sources span consenting organizations; fence every one.
-        await learningOrgFence(
-          tx,
-          [
-            input.organizationId,
-            ...(input.sourceAccounts ?? []).map(
-              (source) => source?.organizationId,
-            ),
-          ],
-          'shared',
-        );
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${learningHash([input.actorId, scope, input.requestId])}, 0))::text`;
-        const previous = await tx.contentLearningOperation.findFirst({
-          where: {
-            organizationId: input.organizationId,
-            actorId: input.actorId,
-            scope,
-            requestId: input.requestId,
-            isDeleted: false,
-          },
-        });
-        if (previous) {
-          if (previous.payloadHash !== payloadHash)
-            throw new ConflictException('Request key payload conflict');
-          const refs = previous.resultReferences;
-          if (
-            !refs ||
-            typeof refs !== 'object' ||
-            Array.isArray(refs) ||
-            typeof refs.datasetId !== 'string'
-          )
-            throw new ConflictException(
-              'Dataset operation receipt unavailable',
+    // Superadmin dataset assembly across consenting organizations: every
+    // source org is fenced by learningOrgFence below, and none of them is the
+    // admin's own tenant, so the transaction runs outside tenant enforcement.
+    return crossOrgUnsafe(
+      async () =>
+        await this.prisma.$transaction(
+          async (tx) => {
+            // Dataset sources span consenting organizations; fence every one.
+            await learningOrgFence(
+              tx,
+              [
+                input.organizationId,
+                ...(input.sourceAccounts ?? []).map(
+                  (source) => source?.organizationId,
+                ),
+              ],
+              'shared',
             );
-          const original = await tx.contentLearningDataset.findFirst({
-            where: {
-              id: refs.datasetId,
-              ownerActorId: input.actorId,
-              isDeleted: false,
-            },
-          });
-          if (!original)
-            throw new ConflictException('Dataset no longer available');
-          return original;
-        }
-        const dataset = await this.buildSnapshot(input, tx);
-        await tx.contentLearningOperation.create({
-          data: {
-            organizationId: input.organizationId,
-            actorId: input.actorId,
-            scope,
-            requestId: input.requestId,
-            payloadHash,
-            type: 'dataset-create',
-            status: 'completed',
-            resultReferences: toPrismaJson({
-              datasetId: dataset.id,
-              manifestHash: dataset.manifestHash,
-            }),
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${learningHash([input.actorId, scope, input.requestId])}, 0))::text`;
+            const previous = await tx.contentLearningOperation.findFirst({
+              where: {
+                organizationId: input.organizationId,
+                actorId: input.actorId,
+                scope,
+                requestId: input.requestId,
+                isDeleted: false,
+              },
+            });
+            if (previous) {
+              if (previous.payloadHash !== payloadHash)
+                throw new ConflictException('Request key payload conflict');
+              const refs = previous.resultReferences;
+              if (
+                !refs ||
+                typeof refs !== 'object' ||
+                Array.isArray(refs) ||
+                typeof refs.datasetId !== 'string'
+              )
+                throw new ConflictException(
+                  'Dataset operation receipt unavailable',
+                );
+              const original = await tx.contentLearningDataset.findFirst({
+                where: {
+                  id: refs.datasetId,
+                  ownerActorId: input.actorId,
+                  isDeleted: false,
+                },
+              });
+              if (!original)
+                throw new ConflictException('Dataset no longer available');
+              return original;
+            }
+            const dataset = await this.buildSnapshot(input, tx);
+            await tx.contentLearningOperation.create({
+              data: {
+                organizationId: input.organizationId,
+                actorId: input.actorId,
+                scope,
+                requestId: input.requestId,
+                payloadHash,
+                type: 'dataset-create',
+                status: 'completed',
+                resultReferences: toPrismaJson({
+                  datasetId: dataset.id,
+                  manifestHash: dataset.manifestHash,
+                }),
+              },
+            });
+            return dataset;
           },
-        });
-        return dataset;
-      },
-      { maxWait: 5000, timeout: 90000 },
+          { maxWait: 5000, timeout: 90000 },
+        ),
     );
   }
   private async source(

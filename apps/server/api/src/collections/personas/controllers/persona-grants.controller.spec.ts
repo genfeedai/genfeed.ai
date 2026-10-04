@@ -49,7 +49,7 @@ describe('PersonaGrantsController (#6037)', () => {
       controller.grant(user, personaId, {
         brandIds: [otherBrandId],
         mode: PersonaAvailabilityMode.SELECTED_BRANDS,
-        organizationId: 'org-2',
+        recipientOrganizationId: 'org-2',
       }),
     ).resolves.toEqual({ data: { id: 'grant-1' } });
 
