@@ -3,9 +3,11 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-templates.constant';
 import {
   assertBrandHandleAvailable,
+  findBrandToRelocate,
   verifyBrandAccess,
   verifyBrandSlugAccess,
 } from '@api/collections/brands/controllers/brand-access.helpers';
+import { attachBrandCredentialRelations } from '@api/collections/brands/controllers/brand-credential-relations.helpers';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
@@ -33,17 +35,17 @@ import { ActivityRecorderService } from '@api/services/activity-recording/activi
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { resolveScopeId } from '@api/shared/controllers/base-crud/base-crud-scope.util';
 import { BaseService } from '@api/shared/services/base/base.service';
-import {
-  ActivityKey,
-  ActivitySource,
-  fromPrismaCredentialPlatform,
-} from '@genfeedai/contracts';
+import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/contracts/interfaces';
 import { BrandSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  crossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Body,
@@ -225,7 +227,7 @@ export class BrandsController extends BaseCRUDController<
         user,
         onboardingProfileOptions,
       );
-      const renamed = await this.brandsService.findOne({ id: id });
+      const renamed = await verifyBrandAccess(this.brandsService, id, user);
       return serializeSingle(
         request,
         BrandSerializer,
@@ -238,9 +240,12 @@ export class BrandsController extends BaseCRUDController<
       return super.patch(request, user, id, rest as UpdateBrandDto);
     }
 
-    const existing = (await this.brandsService.findOne({ id: id })) as
-      | (BrandDocument & { organizationId?: string })
-      | null;
+    const existing = (await findBrandToRelocate(
+      this.brandsService,
+      user,
+      id,
+      getIsSuperAdmin(user, request),
+    )) as (BrandDocument & { organizationId?: string }) | null;
     if (!existing) {
       throw new HttpException(
         { detail: `Brand ${id} not found`, title: 'Not Found' },
@@ -260,11 +265,16 @@ export class BrandsController extends BaseCRUDController<
       return super.patch(request, user, id, fields as UpdateBrandDto);
     }
 
-    const { brand: moved, summary } =
-      await this.brandsService.relocateToOrganization(id, updateDto, {
-        isSuperAdmin: getIsSuperAdmin(user, request),
-        userId: user.userId ?? user.id,
-      });
+    // A relocation spans the source and destination tenants; authorization
+    // (superadmin, or owner/admin of both orgs) is the service's
+    // assertCanRelocate.
+    const { brand: moved, summary } = await crossOrgUnsafe(
+      async () =>
+        await this.brandsService.relocateToOrganization(id, updateDto, {
+          isSuperAdmin: getIsSuperAdmin(user, request),
+          userId: user.userId ?? user.id,
+        }),
+    );
 
     await this.activityRecorder.record({
       brandId: id,
@@ -303,13 +313,13 @@ export class BrandsController extends BaseCRUDController<
       );
     }
 
-    const preview = await this.brandsService.previewRelocation(
-      id,
-      organizationId,
-      {
-        isSuperAdmin: getIsSuperAdmin(user, request),
-        userId: user.userId ?? user.id,
-      },
+    // Counts resources across source and destination tenants; see patch().
+    const preview = await crossOrgUnsafe(
+      async () =>
+        await this.brandsService.previewRelocation(id, organizationId, {
+          isSuperAdmin: getIsSuperAdmin(user, request),
+          userId: user.userId ?? user.id,
+        }),
     );
 
     return { data: preview };
@@ -382,6 +392,14 @@ export class BrandsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Query() query: BaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
+    // buildAdminFilter only yields a filter for superadmins, who may list
+    // another organization's brands (or one brand across organizations).
+    if (CollectionFilterUtil.buildAdminFilter(user, query)) {
+      return crossOrgUnsafe(
+        async () => await super.findAll(request, user, query),
+      );
+    }
+
     return super.findAll(request, user, query);
   }
 
@@ -389,7 +407,11 @@ export class BrandsController extends BaseCRUDController<
   public override decorateListForResponse(
     docs: BrandDocument[],
   ): Promise<BrandDocument[]> {
-    return this.brandsService.attachBrandListRelations(docs);
+    // The rows are already authorized; a superadmin list spans organizations
+    // and each relation read is pinned to its brand's own organizationId.
+    return crossOrgUnsafe(
+      async () => await this.brandsService.attachBrandListRelations(docs),
+    );
   }
 
   @Get('slug')
@@ -432,48 +454,20 @@ export class BrandsController extends BaseCRUDController<
       return brand;
     }
 
-    const [decorated] = await this.brandsService.attachBrandKitAssetRelations(
-      [brand],
-      organizationId,
+    // Reads run under the brand's own organization: a relocation response
+    // carries the destination org and a superadmin reads across tenants.
+    return runWithTenantContext({ organizationId }, async () =>
+      attachBrandCredentialRelations(
+        this.credentialsService,
+        (
+          await this.brandsService.attachBrandKitAssetRelations(
+            [brand],
+            organizationId,
+          )
+        )[0],
+        organizationId,
+      ),
     );
-
-    return this.attachBrandCredentialRelations(decorated, organizationId);
-  }
-
-  /**
-   * Resolve the brand's connected accounts onto the response.
-   *
-   * `brandSerializerConfig` declares `credentials` as a relation, but nothing
-   * ever populated it — `findOne`/`findOneBySlug` fetch the brand row with no
-   * populate — so every brand came back with zero connected accounts and brand
-   * social settings reported "Not connected" for platforms that are linked.
-   *
-   * `platform` crosses to the domain vocabulary here: the column is the
-   * SCREAMING `CredentialPlatform` Prisma enum, while the UI, posts and OAuth
-   * routes all speak the lowercase domain `Platform` ids.
-   */
-  private async attachBrandCredentialRelations(
-    brand: BrandDocument,
-    organizationId: string,
-  ): Promise<BrandDocument> {
-    const credentials = await this.credentialsService.find({
-      brandId: String(brand.id),
-      isDeleted: false,
-      organizationId,
-    });
-
-    // Copy rather than assign onto the argument: the brand row reaching here is
-    // whatever the service returned, and mutating it writes the relation into
-    // any cache entry or caller-held reference pointing at the same object.
-    return {
-      ...brand,
-      credentials: credentials.map((credential) => ({
-        ...credential,
-        platform:
-          fromPrismaCredentialPlatform(credential.platform) ??
-          credential.platform,
-      })),
-    };
   }
 
   /**

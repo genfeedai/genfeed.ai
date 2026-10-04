@@ -96,7 +96,7 @@ export function useCharacterGrants(
     async (input: {
       brandIds: string[];
       mode: PersonaAvailabilityMode;
-      organizationId: string;
+      recipientOrganizationId: string;
     }) => {
       if (!characterId) {
         return;

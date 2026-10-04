@@ -16,6 +16,7 @@ import {
 } from '@api/services/brand-scraper/brand-scrape-error.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { BrandScrapeErrorCode } from '@genfeedai/contracts';
 import type {
   IBrandScrapeWarning,
@@ -75,12 +76,18 @@ export class BrandSetupService {
    * Access has already been verified by the controller (`verifyBrandAccess`),
    * so no user-context re-resolution is needed.
    */
-  private async resolveBrandScope(brandId: string): Promise<{
+  private async resolveBrandScope(
+    brandId: string,
+    sessionOrganizationId: string,
+  ): Promise<{
     brandId: string;
     brandLabel: string | null;
     organizationId: string;
   }> {
-    const brand = await this.brandsService.findOne({ id: brandId }, 'none');
+    const brand = await this.brandsService.findOne(
+      scopedWhere(sessionOrganizationId, { id: brandId }),
+      'none',
+    );
 
     if (!brand) {
       throw new HttpException(
@@ -281,7 +288,7 @@ export class BrandSetupService {
           brandId: targetBrandId,
           brandLabel,
           organizationId,
-        } = await this.resolveBrandScope(brandId);
+        } = await this.resolveBrandScope(brandId, user.organizationId);
         const userId = (user.userId ?? user.id)?.toString() ?? '';
 
         // 3. Scrape brand sources (auto-detected from the URL)
@@ -375,7 +382,7 @@ export class BrandSetupService {
   async updateBrandNameById(
     brandId: string,
     name: string,
-    _user: User,
+    user: User,
     options: {
       agentConfig?: UpdateBrandDto['agentConfig'];
       description?: string;
@@ -397,7 +404,7 @@ export class BrandSetupService {
       },
       async () => {
         const { brandId: targetBrandId, organizationId } =
-          await this.resolveBrandScope(brandId);
+          await this.resolveBrandScope(brandId, user.organizationId);
 
         await this.brandsService.patch(targetBrandId, {
           ...(options.description ? { description: options.description } : {}),
@@ -448,7 +455,10 @@ export class BrandSetupService {
     images: ReferenceImageDto[],
     _user: User,
   ): Promise<{ success: boolean; count: number }> {
-    const { organizationId } = await this.resolveBrandScope(brandId);
+    const { organizationId } = await this.resolveBrandScope(
+      brandId,
+      user.organizationId,
+    );
 
     return this.brandPersistenceService.addReferenceImages(
       brandId,

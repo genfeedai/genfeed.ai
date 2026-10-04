@@ -85,7 +85,7 @@ export interface CharacterGrantItem {
 export interface CharacterGrantInput {
   brandIds?: string[];
   mode: PersonaAvailabilityMode;
-  organizationId: string;
+  recipientOrganizationId: string;
 }
 
 export interface GrantableOrganization {

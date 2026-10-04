@@ -11,6 +11,10 @@ import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-ke
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole, PersonaAvailabilityMode } from '@genfeedai/contracts';
+import {
+  crossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
 type ApiKeyRoleContext = Pick<AuthenticatedUser, 'isApiKey' | 'scopes'>;
@@ -53,19 +57,24 @@ export class PersonaGrantsService {
       label: string;
     }>
   > {
-    const memberships = await this.prisma.member.findMany({
-      select: {
-        organization: { select: { id: true, label: true } },
-        organizationId: true,
-        role: { select: { key: true } },
-      },
-      where: {
-        isActive: true,
-        isDeleted: false,
-        organizationId: { not: params.organizationId },
-        userId: params.userId,
-      },
-    });
+    // The actor's memberships in every OTHER organization: userId-scoped
+    // discovery that spans tenants by design.
+    const memberships = await crossOrgUnsafe(
+      async () =>
+        await this.prisma.member.findMany({
+          select: {
+            organization: { select: { id: true, label: true } },
+            organizationId: true,
+            role: { select: { key: true } },
+          },
+          where: {
+            isActive: true,
+            isDeleted: false,
+            organizationId: { not: params.organizationId },
+            userId: params.userId,
+          },
+        }),
+    );
     const administered = memberships.filter((member) =>
       this.isAdminRole(params.apiKeyContext, member.role.key as MemberRole),
     );
@@ -73,16 +82,20 @@ export class PersonaGrantsService {
       return [];
     }
     // The brands the actor can pick as the grant's receiving availability.
-    const brands = await this.prisma.brand.findMany({
-      orderBy: { label: 'asc' },
-      select: { id: true, label: true, organizationId: true },
-      where: {
-        isDeleted: false,
-        organizationId: {
-          in: administered.map((member) => member.organizationId),
-        },
-      },
-    });
+    // Only organizations the actor was just proven to own or administer.
+    const brands = await crossOrgUnsafe(
+      async () =>
+        await this.prisma.brand.findMany({
+          orderBy: { label: 'asc' },
+          select: { id: true, label: true, organizationId: true },
+          where: {
+            isDeleted: false,
+            organizationId: {
+              in: administered.map((member) => member.organizationId),
+            },
+          },
+        }),
+    );
     return administered.map((member) => ({
       brands: brands
         .filter((brand) => brand.organizationId === member.organizationId)
@@ -163,14 +176,19 @@ export class PersonaGrantsService {
           throw new NotFoundException('Character', params.personaId);
         }
         await assertOwningBrandLive(tx, locked.brandId, params.organizationId);
-        await this.personas.assertNoHandleCollision({
-          availability: { ...availability, brandId: null },
-          client: tx,
-          excludePersonaId: persona.id,
-          handle: persona.handle,
-          organizationId: params.recipientOrganizationId,
-          owningBrandId: null,
-        });
+        // Collisions are checked inside the RECIPIENT organization.
+        await runWithTenantContext(
+          { organizationId: params.recipientOrganizationId },
+          async () =>
+            await this.personas.assertNoHandleCollision({
+              availability: { ...availability, brandId: null },
+              client: tx,
+              excludePersonaId: persona.id,
+              handle: persona.handle,
+              organizationId: params.recipientOrganizationId,
+              owningBrandId: null,
+            }),
+        );
         const existing = await tx.personaGrant.findFirst({
           where: {
             personaId: persona.id,
@@ -328,12 +346,18 @@ export class PersonaGrantsService {
         'brandIds',
       );
     }
-    const brands = await this.prisma.brand.findMany({
-      select: { id: true },
-      where: scopedWhere(params.recipientOrganizationId, {
-        id: { in: requested },
-      }),
-    });
+    // The receiving organization is not the request tenant; its admin rights
+    // were proven by assertAdminOf before this runs.
+    const brands = await runWithTenantContext(
+      { organizationId: params.recipientOrganizationId },
+      async () =>
+        await this.prisma.brand.findMany({
+          select: { id: true },
+          where: scopedWhere(params.recipientOrganizationId, {
+            id: { in: requested },
+          }),
+        }),
+    );
     if (brands.length !== requested.length) {
       throw new ValidationException(
         'Every brand must belong to the receiving organization',
@@ -348,11 +372,16 @@ export class PersonaGrantsService {
     params: { actorUserId: string; apiKeyContext?: ApiKeyRoleContext },
     organizationId: string,
   ): Promise<void> {
-    const isAdmin = await this.personas.isOrganizationOwnerOrAdmin({
-      apiKeyContext: params.apiKeyContext,
-      organizationId,
-      userId: params.actorUserId,
-    });
+    // Pinned to that org + user: the recipient is not the request tenant.
+    const isAdmin = await runWithTenantContext(
+      { organizationId },
+      async () =>
+        await this.personas.isOrganizationOwnerOrAdmin({
+          apiKeyContext: params.apiKeyContext,
+          organizationId,
+          userId: params.actorUserId,
+        }),
+    );
     if (!isAdmin) {
       throw new ForbiddenException({
         detail:

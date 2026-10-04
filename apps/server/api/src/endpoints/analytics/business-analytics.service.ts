@@ -2,6 +2,7 @@ import {
   CREDIT_USAGE_AMOUNT_SQL,
   CREDIT_USAGE_FILTER_SQL,
 } from '@api/collections/credits/services/credit-usage.util';
+import { runInAnalyticsTenantScope } from '@api/endpoints/analytics/analytics-tenant-scope';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -126,12 +127,16 @@ export class BusinessAnalyticsService {
   async getBusinessAnalytics(): Promise<BusinessAnalyticsResponse> {
     const now = new Date();
 
-    const [revenue, credits, ingredients, leaders] = await Promise.all([
-      this.getRevenueData(now),
-      this.getCreditsData(now),
-      this.getIngredientsData(now),
-      this.getLeadersData(now),
-    ]);
+    // Superadmin-only (controller RolesDecorator): every organization.
+    const [revenue, credits, ingredients, leaders] =
+      await runInAnalyticsTenantScope(undefined, () =>
+        Promise.all([
+          this.getRevenueData(now),
+          this.getCreditsData(now),
+          this.getIngredientsData(now),
+          this.getLeadersData(now),
+        ]),
+      );
 
     const projections = this.computeProjections(
       revenue.dailySeries,

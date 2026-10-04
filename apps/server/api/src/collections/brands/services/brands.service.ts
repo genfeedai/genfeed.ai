@@ -24,6 +24,10 @@ import {
   type BrandRelocationResult,
   BrandRelocationService,
 } from '@api/collections/brands/services/brand-relocation.service';
+import {
+  findBrandSlugHolder,
+  tenantScopedBrandWhere,
+} from '@api/collections/brands/services/brand-tenant-scope.util';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import {
   bootstrapCredentialInclude,
@@ -410,6 +414,7 @@ export class BrandsService extends BaseService<
     const sourceBearing = ['isActive', 'isDeleted', 'organizationId'].some(
       (key) => updateBrandDto[key as keyof UpdateBrandDto] !== undefined,
     );
+    const tenantWhere = tenantScopedBrandWhere(id);
     const brand = sourceBearing
       ? this.normalizeDocument(
           await this.prisma.$transaction((tx) =>
@@ -419,7 +424,9 @@ export class BrandsService extends BaseService<
             }),
           ),
         )
-      : await super.patch(id, data as Partial<UpdateBrandDto>);
+      : tenantWhere
+        ? await this.patchOneWhere(tenantWhere, data as Partial<UpdateBrandDto>)
+        : await super.patch(id, data as Partial<UpdateBrandDto>);
     if (sourceBearing)
       await this.cacheService?.invalidateByTags([
         'brand',
@@ -571,12 +578,9 @@ export class BrandsService extends BaseService<
   }
 
   /**
-   * Generate a unique slug for a brand, appending a counter if needed.
-   * Brand.slug is unique across all brands (not scoped by organization), so
-   * this cannot reuse a slug validated only against Organization.slug. A
-   * soft-deleted brand still reserves its slug at the database constraint.
-   * Pass `excludeBrandId` when updating an existing brand's slug to avoid
-   * treating the brand's own current slug as a collision.
+   * Generate a globally unique brand slug (see findBrandSlugHolder), appending
+   * a counter if needed. Pass `excludeBrandId` when updating an existing
+   * brand's slug so its own current slug is not a collision.
    */
   async generateUniqueSlug(
     label: string,
@@ -602,7 +606,7 @@ export class BrandsService extends BaseService<
       if (excludeBrandId) {
         filter.id = { not: excludeBrandId };
       }
-      if (!(await this.delegate.findFirst({ where: filter }))) {
+      if (!(await findBrandSlugHolder(this.delegate, filter))) {
         break;
       }
       candidate = `${base}-${counter}`;
@@ -613,16 +617,13 @@ export class BrandsService extends BaseService<
   }
 
   /**
-   * Whether `slug` is free for `brandId`. Global like the database constraint:
-   * another organization's brand, or a soft-deleted one, still holds its slug.
+   * Whether `slug` is free for `brandId`; global like the database constraint.
    */
   async isSlugAvailable(slug: string, brandId: string): Promise<boolean> {
-    const holder = await this.delegate.findFirst({
-      select: { id: true },
-      where: { id: { not: brandId }, slug },
-    });
-
-    return !holder;
+    return !(await findBrandSlugHolder(this.delegate, {
+      id: { not: brandId },
+      slug,
+    }));
   }
 
   async updateAgentConfig(
