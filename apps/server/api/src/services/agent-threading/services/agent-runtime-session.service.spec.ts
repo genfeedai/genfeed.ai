@@ -179,7 +179,7 @@ describe('AgentRuntimeSessionService', () => {
       expect(result).not.toBeNull();
       expect(mockPrisma.agentThreadSnapshot.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: mockSnapshotRow.id },
+          where: { id: mockSnapshotRow.id, isDeleted: false, organizationId },
         }),
       );
     });

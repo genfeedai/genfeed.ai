@@ -396,7 +396,7 @@ describe('AdBulkUploadJobsService', () => {
 
     it('logs and rethrows write failures', async () => {
       const dbError = new Error('update failed');
-      findUnique.mockRejectedValue(dbError);
+      findFirst.mockRejectedValue(dbError);
 
       await expect(
         service.updateStatus('job-1', 'failed'),
