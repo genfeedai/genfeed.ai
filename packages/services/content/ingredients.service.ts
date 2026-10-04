@@ -1,7 +1,9 @@
 import {
   IngredientCategory,
   type IngredientLineageDirection,
+  VoteEntityModel,
 } from '@genfeedai/contracts';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   IBulkDeleteRequest,
   IBulkDeleteResult,
@@ -405,8 +407,23 @@ export class IngredientsService<
     });
   }
 
-  public async vote(id: string, endpoint: 'vote' | 'unvote'): Promise<void> {
-    await this.instance.post(`${id}/${endpoint}`).then((res) => res.data);
+  /** Add the caller's vote. Idempotent: voting twice leaves one vote. */
+  public async vote(id: string): Promise<void> {
+    await this.instance.post(this.votesUrl(), {
+      entity: id,
+      entityModel: VoteEntityModel.INGREDIENT,
+    });
+  }
+
+  /** Remove the caller's vote. Idempotent: removing a missing vote is a no-op. */
+  public async unvote(id: string): Promise<void> {
+    await this.instance.delete(this.votesUrl(), { params: { entity: id } });
+  }
+
+  // Votes live on `/votes`, not under the ingredient category base URL; an
+  // absolute URL bypasses the instance baseURL and keeps its auth interceptors.
+  private votesUrl(): string {
+    return `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.VOTES}`;
   }
 
   public async postClone(id: string): Promise<T> {
