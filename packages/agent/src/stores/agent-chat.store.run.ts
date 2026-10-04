@@ -73,7 +73,7 @@ export function runKeyFor(threadId: string | null): string {
   return threadId ?? DRAFT_RUN_KEY;
 }
 
-function recordOf(state: RunStateSlice, threadId: string | null) {
+export function recordOf(state: RunStateSlice, threadId: string | null) {
   const key = runKeyFor(threadId);
   // The visible thread's compatibility fields can be written from outside the
   // store (stream projection), so they are the freshest copy of its record.
