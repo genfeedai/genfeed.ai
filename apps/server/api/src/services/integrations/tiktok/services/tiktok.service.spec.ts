@@ -12,7 +12,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import type { Mock } from 'vitest';
 
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
@@ -717,6 +717,34 @@ describe('TiktokService', () => {
           topic: '#launch tips',
         },
       ]);
+    });
+  });
+
+  describe('getTrends failure logging', () => {
+    it('logs the underlying circular HTTP error instead of crashing', async () => {
+      (credentialsMock.findOne as Mock).mockResolvedValue({
+        accessToken: 'access',
+        accessTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
+        id: 'credential-id',
+        isConnected: true,
+        oauthTokenHash: '',
+      });
+      const socket: Record<string, unknown> = {};
+      socket.self = socket;
+      const httpError = Object.assign(new Error('socket hang up'), {
+        code: 'ECONNRESET',
+        isAxiosError: true,
+        request: { socket },
+      });
+      (httpService.get as Mock).mockReturnValue(throwError(() => httpError));
+      (loggerMock.warn as Mock).mockClear();
+
+      await expect(service.getTrends('o', 'a')).resolves.toEqual([]);
+
+      expect(loggerMock.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Could not fetch personalized trends'),
+        { error: httpError },
+      );
     });
   });
 
