@@ -100,9 +100,10 @@ function fixture(byok = false) {
   );
   let profile = billableProfile({ key, cost: 5 });
   const findBillablePricingProfile = vi.fn(async () => profile);
-  const quoteService = new ModelCreditQuoteService({
-    findBillablePricingProfile,
-  } as unknown as ModelsService);
+  const quoteService = new ModelCreditQuoteService(
+    { findBillablePricingProfile } as unknown as ModelsService,
+    { warn: vi.fn() } as unknown as LoggerService,
+  );
   const quoteSnapshotByKey = vi.spyOn(quoteService, 'quoteSnapshotByKey');
   const findFirst = vi.fn().mockResolvedValue({
     id: 'model-1',

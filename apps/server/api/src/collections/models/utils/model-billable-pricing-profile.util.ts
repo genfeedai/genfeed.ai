@@ -252,8 +252,13 @@ export function projectModelBillablePricingProfile(
     minCost: model.minCost,
     reviewedPricing: reviewedPricing(model, contract),
     rateVersion: model.reviewedProviderContractVersion,
+    // A pending contract is drift only against a rate an operator already
+    // reviewed. A row that was never reviewed has no reviewed rate to drift
+    // from: the provider-contract sync parks its first contract as pending for
+    // every such row, and those rows bill from their configured provider cost.
     hasPendingRate: Boolean(
-      model.pendingProviderContractVersion &&
+      model.reviewedProviderContractVersion &&
+        model.pendingProviderContractVersion &&
         model.pendingProviderContractVersion !==
           model.reviewedProviderContractVersion,
     ),

@@ -1,4 +1,5 @@
 import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import type { Model, ModelProviderContract } from '@genfeedai/prisma';
 import { describe, expect, it } from 'vitest';
 
@@ -124,5 +125,71 @@ describe('raw reviewed provider pricing adapter', () => {
         },
       ]).reviewedPricing,
     ).toBeNull();
+  });
+  describe('never-reviewed Replicate rows after the weekly contract sync', () => {
+    // Shape of the prod `google/nano-banana-2-lite` row on 2026-10-04: the
+    // catalog seed priced it (providerCostUsd 0.034, cost 12) and the Sunday
+    // 06:00 UTC model-watcher parked a first contract as pending without ever
+    // reviewing one (`ReplicateModelContractSyncService.synchronizeModel`).
+    const neverReviewed = {
+      ...model,
+      key: 'google/nano-banana-2-lite',
+      endpoint: 'google/nano-banana-2-lite',
+      provider: 'replicate',
+      pricingType: null,
+      providerCostUsd: 0.034,
+      cost: 12,
+      costPerUnit: null,
+      hasResolutionOptions: false,
+      reviewedProviderContractVersion: null,
+      pendingProviderContractVersion: 'sha256-first-sync',
+    } as unknown as Model;
+    const quote = (
+      profile: ReturnType<typeof projectModelBillablePricingProfile>,
+    ) =>
+      quoteModelBillablePricing(
+        profile,
+        {
+          modelKey: 'google/nano-banana-2-lite',
+          provider: 'replicate',
+          width: 1024,
+          height: 1024,
+        },
+        3,
+        '2026-10-04T19:03:17.000Z',
+      );
+
+    it('does not treat a first-sync pending contract as drift', () => {
+      const profile = projectModelBillablePricingProfile(neverReviewed, []);
+      expect(profile.hasPendingRate).toBe(false);
+      expect(profile.requiresReviewedRates).toBe(false);
+    });
+
+    it('quotes the configured provider cost instead of PRICING_UNAVAILABLE', () => {
+      const result = quote(
+        projectModelBillablePricingProfile(neverReviewed, []),
+      );
+      expect(result).toMatchObject({
+        status: 'priced',
+        snapshot: { costSource: 'configured-provider', providerCostUsd: 0.034 },
+      });
+    });
+
+    it('still refuses a reviewed row whose provider contract drifted', () => {
+      const result = quote(
+        projectModelBillablePricingProfile(
+          {
+            ...neverReviewed,
+            reviewedProviderContractVersion: 'reviewed-v1',
+            pendingProviderContractVersion: 'sha256-drifted',
+          },
+          [],
+        ),
+      );
+      expect(result).toEqual({
+        status: 'unresolved',
+        reason: 'Pending provider rate requires review',
+      });
+    });
   });
 });

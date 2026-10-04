@@ -50,9 +50,8 @@ describe('FLUX.3 dated provider evidence', () => {
     const contract =
       prisma.modelProviderContract.upsert.mock.calls[0][0].create;
     const update = prisma.model.updateMany.mock.calls[0][0].data;
-    expect(contract.endpoint).toBe(
-      MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
-    );
+    expect(contract.endpoint).toBe(key);
+    expect(update.endpoint).toBe(key);
     expect(contract.outputSchema).toEqual({
       type: 'string',
       title: 'Output',
@@ -109,7 +108,7 @@ describe('FLUX.3 dated provider evidence', () => {
       ).status,
     ).toBe('unresolved');
   });
-  it('uses distinct contracts for the shared endpoint', async () => {
+  it('uses distinct contracts and endpoints for the two registry rows', async () => {
     const prisma = mockPrisma();
     await seedFlux3ImageContract(
       prisma as never,
@@ -125,6 +124,11 @@ describe('FLUX.3 dated provider evidence', () => {
       prisma.modelProviderContract.upsert.mock.calls[0][0].create.version,
     ).not.toBe(
       prisma.modelProviderContract.upsert.mock.calls[1][0].create.version,
+    );
+    expect(
+      prisma.modelProviderContract.upsert.mock.calls[0][0].create.endpoint,
+    ).not.toBe(
+      prisma.modelProviderContract.upsert.mock.calls[1][0].create.endpoint,
     );
   });
   it.each([

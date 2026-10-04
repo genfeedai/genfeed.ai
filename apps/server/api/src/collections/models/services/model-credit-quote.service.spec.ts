@@ -8,7 +8,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ModelCreditQuoteService', () => {
   const modelsService = { findBillablePricingProfile: vi.fn() };
-  const service = new ModelCreditQuoteService(modelsService as never);
+  const logger = { warn: vi.fn() };
+  const service = new ModelCreditQuoteService(
+    modelsService as never,
+    logger as never,
+  );
   beforeEach(() =>
     modelsService.findBillablePricingProfile.mockResolvedValue(
       billableProfile(),
@@ -42,6 +46,22 @@ describe('ModelCreditQuoteService', () => {
       );
     },
   );
+
+  it('logs the refusal reason and model key before raising PRICING_UNAVAILABLE', async () => {
+    modelsService.findBillablePricingProfile.mockResolvedValue(
+      billableProfile({ hasPendingRate: true }),
+    );
+    await expect(service.quoteByKey('test/model')).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      'Generation pricing unavailable',
+      expect.objectContaining({
+        modelKey: 'test/model',
+        reason: 'Pending provider rate requires review',
+      }),
+    );
+  });
 
   it('rejects a tariff from a different dispatched provider', async () => {
     await expect(
