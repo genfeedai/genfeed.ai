@@ -32,14 +32,14 @@ import type {
   AgentThread,
   AgentTurnAcceptedPayload,
 } from '@genfeedai/agent/models/agent-chat.model';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   type AgentRunEvent,
   type AgentRunStatus,
   adoptDraftRunPatch,
   runTransitionPatch,
   selectActiveRun,
-  useAgentChatStore,
-} from '@genfeedai/agent/stores/agent-chat.store';
+} from '@genfeedai/agent/stores/agent-chat.store.run';
 import { toAgentRequestPageContext } from '@genfeedai/agent/utils/agent-page-context.util';
 import {
   buildThreadSummaryFromSnapshot,

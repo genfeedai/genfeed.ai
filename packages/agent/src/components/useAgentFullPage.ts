@@ -9,11 +9,11 @@ import {
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   runTransitionPatch,
   selectActiveRun,
-  useAgentChatStore,
-} from '@genfeedai/agent/stores/agent-chat.store';
+} from '@genfeedai/agent/stores/agent-chat.store.run';
 import {
   buildThreadSummaryFromSnapshot,
   mapSnapshotPendingInputRequest,

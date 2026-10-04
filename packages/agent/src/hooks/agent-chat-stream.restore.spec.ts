@@ -6,11 +6,11 @@ import {
   resetAgentStreamRuntime,
 } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import type { AgentThreadSnapshot } from '@genfeedai/agent/models/agent-chat.model';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   runTransitionPatch,
   selectActiveRun,
-  useAgentChatStore,
-} from '@genfeedai/agent/stores/agent-chat.store';
+} from '@genfeedai/agent/stores/agent-chat.store.run';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -8,10 +8,12 @@ import type { AgentThreadSnapshot } from '@genfeedai/agent/models/agent-chat.mod
 import {
   type AgentChatStore,
   createAgentChatStore,
-  runTransitionPatch,
-  selectActiveRun,
   useAgentChatStore,
 } from '@genfeedai/agent/stores/agent-chat.store';
+import {
+  runTransitionPatch,
+  selectActiveRun,
+} from '@genfeedai/agent/stores/agent-chat.store.run';
 import { mapSnapshotRunStatus } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
 
 function blankRuntime(): AgentStreamRuntime {

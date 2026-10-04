@@ -1,8 +1,6 @@
 import { getAgentStreamRuntime } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
-import {
-  selectActiveRun,
-  useAgentChatStore,
-} from '@genfeedai/agent/stores/agent-chat.store';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
 
 /** An async restore may apply only while its captured local state still owns it. */
 export function captureAgentRunRestore(
