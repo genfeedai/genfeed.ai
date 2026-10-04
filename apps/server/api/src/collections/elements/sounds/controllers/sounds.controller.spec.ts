@@ -390,7 +390,10 @@ describe('ElementsSoundsController', () => {
       await controller.findAll(mockRequest, mockUser, query);
 
       const findAllQuery = controller.buildFindAllQuery(mockUser, query);
-      expect(findAllQuery.where?.isFavorite).toBe(true);
+      expect(
+        (findAllQuery.where as { isFavorite?: boolean } | undefined)
+          ?.isFavorite,
+      ).toBe(true);
     });
   });
 

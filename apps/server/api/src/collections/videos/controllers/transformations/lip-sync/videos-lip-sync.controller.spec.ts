@@ -233,6 +233,7 @@ describe('VideosLipSyncController', () => {
     it('links the admitted character to the output', async () => {
       vi.mocked(personas.resolveCharacterReferences).mockResolvedValueOnce({
         availableAvatarIds: new Set([mockDto.parent]),
+        grantedAvatarOwners: new Map(),
         personaId: 'persona-1',
         personaIdByAssetId: new Map(),
       });

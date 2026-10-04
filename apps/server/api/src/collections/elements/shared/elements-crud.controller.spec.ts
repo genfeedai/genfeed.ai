@@ -1,6 +1,8 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsStylesController } from '@api/collections/elements/styles/controllers/styles.controller';
+import type { UpdateElementStyleDto } from '@api/collections/elements/styles/dto/update-style.dto';
 import type { ElementsStylesService } from '@api/collections/elements/styles/services/styles.service';
+import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
 
@@ -69,7 +71,11 @@ describe('ElementsCRUDController platform defaults', () => {
   describe('enrichUpdateDto', () => {
     it('never changes ownership', async () => {
       const enriched = await buildController().enrichUpdateDto(
-        { isPlatformDefault: true, label: 'Anime 2', organizationId: 'org-2' },
+        {
+          isPlatformDefault: true,
+          label: 'Anime 2',
+          organizationId: 'org-2',
+        } as Partial<UpdateElementStyleDto>,
         buildUser('org-1', true),
       );
 
@@ -122,7 +128,10 @@ describe('ElementsCRUDController platform defaults', () => {
 
   describe('buildFindAllQuery', () => {
     it('lists active defaults plus own rows for members', () => {
-      const query = buildController().buildFindAllQuery(buildUser('org-1'), {});
+      const query = buildController().buildFindAllQuery(
+        buildUser('org-1'),
+        {} as BaseQueryDto,
+      );
 
       expect(query).toMatchObject({
         where: {
@@ -138,7 +147,7 @@ describe('ElementsCRUDController platform defaults', () => {
     it('includes inactive defaults for superadmins', () => {
       const query = buildController().buildFindAllQuery(
         buildUser('org-1', true),
-        {},
+        {} as BaseQueryDto,
       );
 
       expect(query).toMatchObject({
@@ -157,7 +166,11 @@ describe('ElementsCRUDController platform defaults', () => {
     expect(
       controller
         .decorateListForResponse(docs, buildUser('org-1'))
-        .map((doc: { isPlatformDefault?: boolean }) => doc.isPlatformDefault),
+        .map(
+          (doc) =>
+            (doc as typeof doc & { isPlatformDefault?: boolean })
+              .isPlatformDefault,
+        ),
     ).toEqual([true, false]);
   });
 });

@@ -131,6 +131,7 @@ describe('WorkflowMediaProviderPlanService character admission (#6040)', () => {
     const f = fixture();
     vi.mocked(f.personas.resolveCharacterReferences).mockResolvedValueOnce({
       availableAvatarIds: new Set(['avatar-1']),
+      grantedAvatarOwners: new Map(),
       personaId: 'persona-1',
       personaIdByAssetId: new Map(),
     });

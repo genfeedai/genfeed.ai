@@ -624,13 +624,15 @@ describe('PersonasController', () => {
     });
 
     it('drops availability fields from generic create and update payloads', async () => {
-      const createDto = controller.enrichCreateDto(
-        {
-          availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
-          label: 'Anna',
-        } as never,
-        mockUser,
-      ) as Record<string, unknown>;
+      const createDto: Record<string, unknown> = {
+        ...controller.enrichCreateDto(
+          {
+            availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
+            label: 'Anna',
+          } as never,
+          mockUser,
+        ),
+      };
       expect(createDto.availabilityMode).toBeUndefined();
       expect(createDto.label).toBe('Anna');
 

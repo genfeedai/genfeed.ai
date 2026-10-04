@@ -12,6 +12,7 @@ import {
   StoryboardRunStoreService,
   storyboardJson,
 } from '@api/collections/content-runs/services/storyboard-run-store.service';
+import { noCharacterAdmission } from '@api/collections/personas/utils/character-admission.util';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import {
   AssetScope,
@@ -80,6 +81,9 @@ describe('durable character replacement with real PostgreSQL, BullMQ and isolate
       } as never,
       provider,
       { buildUrl: (key: string) => `https://fixture.invalid/${key}` } as never,
+      {
+        resolveCharacterReferences: vi.fn(async () => noCharacterAdmission()),
+      } as never,
     );
     return { service, store, provider };
   }

@@ -1,4 +1,3 @@
-import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 // @ts-nocheck
 
 import { WorkflowAutomationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-automation-executor-registrar.service';
@@ -14,6 +13,7 @@ import { WorkflowSocialExecutorRegistrarService } from '@api/collections/workflo
 import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
 import { GENERATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/generation-templates';
 import { isPersistableWorkflowNodeType } from '@api/collections/workflows/workflow-version-definition';
+import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
 import { getWorkflowActionIdForNodeType } from '@genfeedai/workflows/nodes';
 import { testId } from '@helpers/testing/test-id.helper';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
