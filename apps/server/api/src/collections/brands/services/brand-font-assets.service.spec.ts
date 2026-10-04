@@ -358,7 +358,8 @@ describe('Dedicated immutable brand font service', () => {
       docs: [],
     });
     await h.service.remove(actor, saved.asset.id).catch(() => undefined);
-    for (const [args] of h.assets.findFirst.mock.calls)
+    const findFirstCalls: unknown[][] = h.assets.findFirst.mock.calls;
+    for (const [args] of findFirstCalls)
       expect(args).toMatchObject({
         where: { parentOrgId: actor.organizationId },
       });
