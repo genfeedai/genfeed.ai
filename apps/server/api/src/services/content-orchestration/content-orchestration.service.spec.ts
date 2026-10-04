@@ -20,6 +20,7 @@ import {
   MusicTaskModel,
   VideoTaskModel,
 } from '@genfeedai/contracts';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -207,6 +208,10 @@ describe('ContentOrchestrationService', () => {
         { provide: PersonasService, useValue: mockPersonasService },
         { provide: PersonaPublisherService, useValue: mockPublisherService },
         { provide: SharedService, useValue: mockSharedService },
+        {
+          provide: ConfigService,
+          useValue: { cdnUrl: 'https://cdn.example.com' },
+        },
         { provide: FilesClientService, useValue: mockFilesClientService },
         { provide: IngredientsService, useValue: mockIngredientsService },
         { provide: MetadataService, useValue: mockMetadataService },
@@ -518,6 +523,45 @@ describe('ContentOrchestrationService', () => {
           ...baseConfig,
           publishMode: 'none',
           steps: [videoStep],
+        })
+        .catch((error: unknown) => error);
+
+      expect(mockStepExecutorService.execute).not.toHaveBeenCalled();
+      expect(
+        result instanceof Error ||
+          (result as { status?: string }).status === 'failed',
+      ).toBe(true);
+    });
+
+    it('records the admitted character on the generated output', async () => {
+      mockPersonasService.resolveCharacterReferences.mockResolvedValue({
+        personaId: 'persona-admitted',
+      });
+
+      await service.generateAndPublish({
+        ...baseConfig,
+        publishMode: 'none',
+        steps: [videoStep],
+      });
+
+      expect(
+        mockSharedService.createMediaDocumentsInternal,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ personaId: 'persona-admitted' }),
+      );
+    });
+
+    it('fails closed on an internal media URL whose asset id cannot be resolved', async () => {
+      const result = await service
+        .generateAndPublish({
+          ...baseConfig,
+          publishMode: 'none',
+          steps: [
+            {
+              ...videoStep,
+              imageUrl: 'https://cdn.example.com/',
+            } as PipelineStep,
+          ],
         })
         .catch((error: unknown) => error);
 

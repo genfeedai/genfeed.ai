@@ -46,6 +46,16 @@ const ENTRY_POINTS: readonly GenerationEntryPoint[] = [
     surface: 'quoted Crun video generation',
   },
   {
+    file: 'services/integrations/crun/crun-preview-quote.service.ts',
+    path: 'image',
+    surface: 'Crun image quote consumption (re-admits on dispatch)',
+  },
+  {
+    file: 'collections/videos/services/crun-video-preview-quote.service.ts',
+    path: 'video',
+    surface: 'Crun video quote consumption (re-admits on dispatch)',
+  },
+  {
     file: 'collections/videos/controllers/transformations/extend/videos-extend.controller.ts',
     path: 'video-extend',
     surface: 'video extensions',
