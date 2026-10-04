@@ -343,6 +343,21 @@ function fingerprintError(target: unknown = ['fingerprint']) {
     meta: { target },
   });
 }
+/** `id: { in: [...] }` bulk filter values; any other shape matches nothing. */
+function idsIn(filter: unknown): string[] {
+  if (typeof filter !== 'object' || filter === null || !('in' in filter))
+    return [];
+  const ids = (filter as { in: unknown }).in;
+  return Array.isArray(ids) ? ids.map(String) : [];
+}
+/** True for the dependency walk's level-batched `OR` of `derivedId in` clauses. */
+function isFrontierFilter(clauses: unknown): boolean {
+  return (
+    Array.isArray(clauses) &&
+    clauses.length > 0 &&
+    clauses.every((clause) => idsIn(clause?.derivedId).length > 0)
+  );
+}
 async function fixture(count = 0, realDependency = false) {
   const cell = descriptor();
   const scope: LearningScope = {
@@ -605,6 +620,9 @@ async function fixture(count = 0, realDependency = false) {
         updateMany: blocked,
       },
       organization: {
+        findMany: vi.fn(async () =>
+          availability.organization ? [structuredClone(organization)] : [],
+        ),
         findFirst: vi
           .fn()
           .mockImplementation(
@@ -620,6 +638,9 @@ async function fixture(count = 0, realDependency = false) {
           ),
       },
       brand: {
+        findMany: vi.fn(async () =>
+          availability.brand ? [structuredClone(brand)] : [],
+        ),
         findFirst: vi
           .fn()
           .mockImplementation(
@@ -633,6 +654,9 @@ async function fixture(count = 0, realDependency = false) {
           ),
       },
       credential: {
+        findMany: vi.fn(async () =>
+          availability.credential ? [structuredClone(credential)] : [],
+        ),
         findFirst: vi
           .fn()
           .mockImplementation(
@@ -648,6 +672,13 @@ async function fixture(count = 0, realDependency = false) {
           ),
       },
       post: {
+        findMany: vi.fn(async (args: Prisma.PostFindManyArgs) =>
+          structuredClone(
+            publications
+              .map((item) => item.post)
+              .filter((post) => idsIn(args.where?.id).includes(post.id)),
+          ),
+        ),
         findFirst: vi
           .fn()
           .mockImplementation(async (args: Prisma.PostFindFirstArgs) =>
@@ -659,6 +690,13 @@ async function fixture(count = 0, realDependency = false) {
         update: blocked,
       },
       publishApproval: {
+        findMany: vi.fn(async (args: Prisma.PublishApprovalFindManyArgs) =>
+          structuredClone(
+            publications
+              .map((item) => item.approval)
+              .filter((row) => idsIn(args.where?.id).includes(row.id)),
+          ),
+        ),
         findFirst: vi
           .fn()
           .mockImplementation(
@@ -670,6 +708,13 @@ async function fixture(count = 0, realDependency = false) {
           ),
       },
       contentVersionPin: {
+        findMany: vi.fn(async (args: Prisma.ContentVersionPinFindManyArgs) =>
+          structuredClone(
+            publications
+              .map((item) => item.pin)
+              .filter((row) => idsIn(args.where?.id).includes(row.id)),
+          ),
+        ),
         findFirst: vi
           .fn()
           .mockImplementation(
@@ -681,6 +726,23 @@ async function fixture(count = 0, realDependency = false) {
           ),
       },
       postPublishFinalization: {
+        findMany: vi.fn(
+          async (args: Prisma.PostPublishFinalizationFindManyArgs) => {
+            const postIds = idsIn(
+              (args.where as { postId?: unknown } | undefined)?.postId,
+            );
+            const finalizationIds = idsIn(args.where?.id);
+            return structuredClone(
+              publications
+                .map((item) => item.finalization)
+                .filter(
+                  (row) =>
+                    postIds.includes(row.postId) ||
+                    finalizationIds.includes(row.id),
+                ),
+            );
+          },
+        ),
         findFirst: vi
           .fn()
           .mockImplementation(
@@ -701,6 +763,18 @@ async function fixture(count = 0, realDependency = false) {
             async (
               args: Prisma.ContentLearningCheckpointFindManyArgs,
             ): Promise<ContentLearningCheckpoint[]> => {
+              const pinIds = idsIn(args.where?.id);
+              if (pinIds.length)
+                return structuredClone(
+                  publications
+                    .map((item) => item.checkpoint)
+                    .filter(
+                      (row) =>
+                        !row.isDeleted &&
+                        pinIds.includes(row.id) &&
+                        row.organizationId === args.where?.organizationId,
+                    ),
+                );
               const dates = args.where?.receivedAt;
               const upper =
                 dates && typeof dates === 'object' && 'lte' in dates
@@ -762,7 +836,7 @@ async function fixture(count = 0, realDependency = false) {
             async (
               args: Prisma.ContentLearningDependencyFindManyArgs,
             ): Promise<ContentLearningDependency[]> => {
-              if (args.where?.OR) return [];
+              if (args.where?.OR && !isFrontierFilter(args.where.OR)) return [];
               const rows = [
                 ...baselineEdges,
                 ...publications.flatMap((item) => item.edges),
@@ -770,10 +844,21 @@ async function fixture(count = 0, realDependency = false) {
                 .filter(
                   (edge) =>
                     !edge.isDeleted &&
-                    edge.derivedKind === args.where?.derivedKind &&
-                    edge.derivedId === args.where?.derivedId &&
-                    edge.derivedOrganizationId ===
-                      args.where?.derivedOrganizationId,
+                    (args.where?.OR
+                      ? (
+                          args.where
+                            .OR as Prisma.ContentLearningDependencyWhereInput[]
+                        ).some(
+                          (clause) =>
+                            edge.derivedKind === clause.derivedKind &&
+                            edge.derivedOrganizationId ===
+                              clause.derivedOrganizationId &&
+                            idsIn(clause.derivedId).includes(edge.derivedId),
+                        )
+                      : edge.derivedKind === args.where?.derivedKind &&
+                        edge.derivedId === args.where?.derivedId &&
+                        edge.derivedOrganizationId ===
+                          args.where?.derivedOrganizationId),
                 )
                 .sort((a, b) => a.id.localeCompare(b.id));
               return structuredClone(
