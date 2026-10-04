@@ -15,6 +15,59 @@ export const NO_DESTINATION_RETRY_MS = 3_600_000;
 /** Older events are never fanned out or held: a late burst of stale notifications is dropped. */
 export const MAX_EVENT_AGE_MS = 86_400_000;
 
+type OutboxTransaction = Pick<
+  PrismaService,
+  'systemEventDelivery' | 'systemEventWebhook'
+>;
+
+/**
+ * Reopens an event that hit the lease cap and resets its pending deliveries.
+ * Clearing the lease token fences a worker still holding the old lease: its
+ * token-conditional terminal write now misses. Run inside one transaction so a
+ * failure never leaves a reopened parent with stranded deliveries. Returns
+ * whether a failed parent was reopened.
+ */
+export async function reopenFailedEvent(
+  tx: OutboxTransaction,
+  eventId: string,
+): Promise<boolean> {
+  // tenant-scope-ignore: reopen one super-admin-selected capped event
+  const reopened = await tx.systemEventWebhook.updateMany({
+    where: {
+      id: eventId,
+      isDeleted: false,
+      deliveredAt: null,
+      skippedAt: null,
+      failedAt: { not: null },
+    },
+    data: {
+      failedAt: null,
+      attempts: 0,
+      nextAttemptAt: new Date(),
+      leaseToken: null,
+      leaseUntil: null,
+    },
+  });
+  if (!reopened.count) return false;
+  // tenant-scope-ignore: reset the pending deliveries of the reopened event
+  await tx.systemEventDelivery.updateMany({
+    where: {
+      eventId,
+      isDeleted: false,
+      deliveredAt: null,
+      skippedAt: null,
+      failedAt: null,
+    },
+    data: {
+      attempts: 0,
+      nextAttemptAt: new Date(),
+      leaseToken: null,
+      leaseUntil: null,
+    },
+  });
+  return true;
+}
+
 @Injectable()
 export class SystemEventDeliveryService {
   constructor(
@@ -232,6 +285,7 @@ export class SystemEventDeliveryService {
       // Reopen the parent and revive the delivery together: a failure between
       // them must never strand a delivery whose parent stays terminal.
       await this.prisma.$transaction(async (tx) => {
+        await reopenFailedEvent(tx, row.eventId);
         // tenant-scope-ignore: reopen the parent of one super-admin-selected delivery
         await tx.systemEventWebhook.updateMany({
           where: { id: row.eventId, isDeleted: false },
@@ -257,27 +311,12 @@ export class SystemEventDeliveryService {
       return true;
     }
     await this.prisma.$transaction(async (tx) => {
+      // A capped parent resets every pending delivery, exactly like an event retry.
+      if (await reopenFailedEvent(tx, row.eventId)) return;
       // tenant-scope-ignore: scheduling never overrides a worker's live lease
       await tx.systemEventDelivery.updateMany({
         where: { id, isDeleted: false, deliveredAt: null, skippedAt: null },
         data: { nextAttemptAt: new Date() },
-      });
-      // tenant-scope-ignore: reopen a capped parent so its pending delivery can run again
-      await tx.systemEventWebhook.updateMany({
-        where: {
-          id: row.eventId,
-          isDeleted: false,
-          deliveredAt: null,
-          skippedAt: null,
-          failedAt: { not: null },
-        },
-        data: {
-          failedAt: null,
-          attempts: 0,
-          nextAttemptAt: new Date(),
-          leaseToken: null,
-          leaseUntil: null,
-        },
       });
       // tenant-scope-ignore: make the parent event eligible for the next sweep
       await tx.systemEventWebhook.updateMany({

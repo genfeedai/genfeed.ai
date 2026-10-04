@@ -406,6 +406,33 @@ describe('system event outbox', () => {
       expect(event.deliveredAt).toBeInstanceOf(Date);
     });
 
+    it('shows a capped parent even when every destination already acknowledged', async () => {
+      const { service, prisma, event } = harness();
+      event.failedAt = new Date();
+      notifications.systemNotificationStatus.mockResolvedValue({
+        transportConfigured: true,
+      });
+      Object.assign(service, { destinations: { list: async () => [] } });
+      prisma.systemEventDelivery.findMany = vi.fn().mockResolvedValue([
+        {
+          id: 'delivery-1',
+          eventId: event.id,
+          destinationId: 'dest-1',
+          event,
+          attempts: 1,
+          deliveredAt: new Date(),
+          skippedAt: null,
+          failedAt: null,
+          leaseUntil: null,
+        },
+      ]);
+      const overview = await service.overview();
+      expect(overview.deliveries).toEqual([
+        expect.objectContaining({ id: event.id, status: 'failed' }),
+        expect.objectContaining({ id: 'delivery-1', status: 'delivered' }),
+      ]);
+    });
+
     it('stays failed when resetting the pending deliveries throws', async () => {
       const { service, prisma, event, delivery, state } = harness();
       event.failedAt = new Date();

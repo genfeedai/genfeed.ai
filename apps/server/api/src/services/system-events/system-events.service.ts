@@ -7,7 +7,10 @@ import type {
   SystemEvent,
   SystemEventRecording,
 } from '@api/services/system-events/system-event.types';
-import { SystemEventDeliveryService } from '@api/services/system-events/system-event-delivery.service';
+import {
+  reopenFailedEvent,
+  SystemEventDeliveryService,
+} from '@api/services/system-events/system-event-delivery.service';
 import { projectStripeSystemEvent } from '@api/services/system-events/system-event-projection';
 import { SystemNotificationDestinationsService } from '@api/services/system-events/system-notification-destinations.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -88,7 +91,7 @@ export class SystemEventsService {
         orderBy: { createdAt: 'desc' },
         take: 50,
       }),
-      // tenant-scope-ignore: super-admin view of events that failed before any destination fanout
+      // tenant-scope-ignore: super-admin view of capped events, with or without destination fanout
       this.prisma.systemEventWebhook.findMany({
         where: {
           isDeleted: false,
@@ -188,7 +191,7 @@ export class SystemEventsService {
     if (!row) throw new NotFoundException('Notification not found');
     if (row.deliveredAt || row.skippedAt) return;
     if (row.failedAt) {
-      await this.reopenFailedEvent(id);
+      await this.prisma.$transaction((tx) => reopenFailedEvent(tx, id));
       return;
     }
     // tenant-scope-ignore: scheduling never bypasses another worker's lease
@@ -201,50 +204,6 @@ export class SystemEventsService {
         failedAt: null,
       },
       data: { nextAttemptAt: new Date() },
-    });
-  }
-
-  /**
-   * Reopens a capped event and its stranded pending deliveries in one
-   * transaction. Clearing the lease token fences a worker still holding the
-   * old lease: its token-conditional terminal write now misses.
-   */
-  private async reopenFailedEvent(id: string): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      // tenant-scope-ignore: reopen one super-admin-selected capped event
-      const reopened = await tx.systemEventWebhook.updateMany({
-        where: {
-          id,
-          isDeleted: false,
-          deliveredAt: null,
-          skippedAt: null,
-          failedAt: { not: null },
-        },
-        data: {
-          failedAt: null,
-          attempts: 0,
-          nextAttemptAt: new Date(),
-          leaseToken: null,
-          leaseUntil: null,
-        },
-      });
-      if (!reopened.count) return;
-      // tenant-scope-ignore: reset the pending deliveries of the reopened event
-      await tx.systemEventDelivery.updateMany({
-        where: {
-          eventId: id,
-          isDeleted: false,
-          deliveredAt: null,
-          skippedAt: null,
-          failedAt: null,
-        },
-        data: {
-          attempts: 0,
-          nextAttemptAt: new Date(),
-          leaseToken: null,
-          leaseUntil: null,
-        },
-      });
     });
   }
 
