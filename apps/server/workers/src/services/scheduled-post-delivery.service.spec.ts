@@ -1118,6 +1118,34 @@ describe('ScheduledPostDeliveryService', () => {
     ).not.toHaveBeenCalled();
   });
 
+  it('never calls an unverifiable publisher again once its retry budget is spent, however often it is delivered', async () => {
+    const publish = vi.fn().mockRejectedValue(new Error('ETIMEDOUT'));
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish,
+      supportsThreads: false,
+    });
+    const post = createScheduledPost({ retryCount: 3 });
+
+    await executeDelivery(mocks, post, 'scheduled_sweep');
+    expect(publish).toHaveBeenCalledTimes(1);
+
+    // Every later delivery finds the timeout's uncertain receipt.
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({ status: 'uncertain' }),
+    );
+    for (let delivery = 0; delivery < 5; delivery++) {
+      const result = await executeDelivery(mocks, post, 'scheduled_sweep');
+      expect(result.executionState).toBe(TargetExecutionState.PUBLISHING);
+    }
+
+    expect(publish).toHaveBeenCalledTimes(1);
+    expect(
+      mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+        (call) => call[1].executionState,
+      ),
+    ).not.toContain(TargetExecutionState.FAILED);
+  });
+
   it('surfaces an unverified outcome once the verification window passed, still publishing', async () => {
     mocks.publisherFactory.getPublisher.mockReturnValue({
       publish: vi.fn(),

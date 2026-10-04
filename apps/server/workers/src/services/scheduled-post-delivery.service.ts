@@ -289,6 +289,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
           attempt,
           workflowExecutionId,
           url,
+          !this.isRetryBudgetExhausted(post),
         );
         if (resolved.kind === 'in_flight') {
           throw new ProviderPublishInFlightError(post.id.toString());
