@@ -102,10 +102,18 @@ export function destructiveOperations(sql) {
     return { table, index };
   };
   const operations = [];
+  // `EXECUTE FUNCTION` / `EXECUTE PROCEDURE` is CREATE TRIGGER syntax naming a
+  // static function, not dynamic SQL.
   if (
     tokens.some(
-      (token) =>
-        token.kind === 'word' && token.value.toUpperCase() === 'EXECUTE',
+      (token, i) =>
+        token.kind === 'word' &&
+        token.value.toUpperCase() === 'EXECUTE' &&
+        !['FUNCTION', 'PROCEDURE'].includes(
+          tokens[i + 1]?.kind === 'word'
+            ? tokens[i + 1].value.toUpperCase()
+            : '',
+        ),
     )
   ) {
     // Dynamic SQL can concatenate identifiers/keywords. Require a static
