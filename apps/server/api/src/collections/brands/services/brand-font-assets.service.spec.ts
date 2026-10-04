@@ -363,6 +363,31 @@ describe('Dedicated immutable brand font service', () => {
         where: { parentOrgId: actor.organizationId },
       });
   });
+  it('backfills a page past invalid rows so hasMore never accompanies a short page', async () => {
+    const h = await harness();
+    const saved = await h.service.upload(actor, { requestId, file: file() });
+    const good = (id: string, at: string) => ({
+      ...saved.asset,
+      id,
+      createdAt: new Date(at),
+    });
+    const bad = { ...saved.asset, id: 'bad', sha256: 'nope' };
+    h.assets.findMany
+      .mockResolvedValueOnce([
+        bad,
+        good('g1', '2026-09-30'),
+        good('g9', '2026-09-29'),
+      ])
+      .mockResolvedValueOnce([
+        good('g2', '2026-09-29'),
+        good('g3', '2026-09-28'),
+      ]);
+    const result = await h.service.list(actor, { limit: 2 });
+    expect(result.docs.map((d) => d.id)).toEqual(['g1', 'g2']);
+    expect(result.docs).toHaveLength(2);
+    expect(result.hasMore).toBe(true);
+    expect(result.nextCursor).not.toBeNull();
+  });
   it('lists only scoped active rows and enforces membership assignment semantics', async () => {
     const h = await harness();
     h.setRole('member', ['other']);
