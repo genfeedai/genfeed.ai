@@ -1,5 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { TagCategory } from '@genfeedai/contracts';
+import type { TagCategory, TagScope } from '@genfeedai/contracts';
 import type {
   IBrand,
   IOrganization,
@@ -19,6 +19,10 @@ export class Tag extends BaseEntity implements ITag {
   declare public textColor: string;
   declare public isActive?: boolean;
   declare public color?: string;
+  declare public brandId?: string | null;
+  declare public organizationId?: string | null;
+  declare public scope?: TagScope;
+  declare public assetCount?: number;
 
   constructor(data: Partial<ITag> = {}) {
     super(data);

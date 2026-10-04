@@ -1,10 +1,12 @@
 import {
   IngredientCategory,
   type IngredientLineageDirection,
+  type TagBulkAction,
 } from '@genfeedai/contracts';
 import type {
   IBulkDeleteRequest,
   IBulkDeleteResult,
+  IBulkTagResult,
   IIngredient,
   IIngredientExportResult,
   IIngredientLineagePage,
@@ -48,6 +50,13 @@ type IngredientModelConstructorMap = {
   musics: typeof Music;
   ingredients: typeof Ingredient;
 };
+
+/** The bulk tag endpoint answers plain JSON; tolerate a JSON API wrapper too. */
+function isBulkTagResult(
+  value: IBulkTagResult | JsonApiResponseDocument,
+): value is IBulkTagResult {
+  return 'changed' in value && typeof value.changed === 'number';
+}
 
 export class IngredientsService<
   T extends Ingredient = Ingredient,
@@ -445,6 +454,25 @@ export class IngredientsService<
         data: { attributes: { tags: tagIds } },
       })
       .then((res) => this.mapOne(res.data));
+  }
+
+  /**
+   * Add or remove one tag on up to 200 assets in one request (#6011). Assets the
+   * member cannot edit are skipped and counted; the result says how many
+   * changed, were skipped and failed.
+   */
+  public async bulkTag(data: {
+    action: TagBulkAction;
+    ids: string[];
+    tagId: string;
+  }): Promise<IBulkTagResult> {
+    const response = await this.instance.post<
+      IBulkTagResult | JsonApiResponseDocument
+    >('tags/bulk', data);
+
+    return isBulkTagResult(response.data)
+      ? response.data
+      : this.extractResource<IBulkTagResult>(response.data);
   }
 
   public async bulkDelete(

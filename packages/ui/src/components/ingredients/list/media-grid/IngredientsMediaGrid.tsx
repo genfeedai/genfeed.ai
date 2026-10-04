@@ -12,6 +12,7 @@ import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import IngredientOriginBadge from '@ui/ingredients/ingredient-origin-badge';
+import IngredientTagChips from '@ui/ingredients/ingredient-tag-chips';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
@@ -26,6 +27,10 @@ const COLUMN_GAP = '4px';
 /** The origin label sits on every card and never intercepts a click. */
 const ORIGIN_BADGE_CLASS =
   'pointer-events-none absolute bottom-1.5 left-1.5 z-10';
+
+/** Tags sit just above the origin label and never intercept a click either. */
+const TAG_CHIPS_CLASS =
+  'pointer-events-none absolute bottom-8 left-1.5 right-1.5 z-10';
 
 function getColumnsConfig(format?: IngredientFormat): {
   mobile: number;
@@ -186,6 +191,10 @@ export default function IngredientsMediaGrid({
             onPortraitVideo={onConvertToPortrait}
             onGenerateCaptions={onGenerateCaptions}
           />
+          <IngredientTagChips
+            className={TAG_CHIPS_CLASS}
+            tags={ingredient.tags}
+          />
           <IngredientOriginBadge
             className={ORIGIN_BADGE_CLASS}
             origin={ingredient.origin}
@@ -217,6 +226,10 @@ export default function IngredientsMediaGrid({
           onToggleSelection={onToggleSelection}
           onScopeChange={onScopeChange}
           onConvertToVideo={onConvertToVideo}
+        />
+        <IngredientTagChips
+          className={TAG_CHIPS_CLASS}
+          tags={ingredient.tags}
         />
         <IngredientOriginBadge
           className={ORIGIN_BADGE_CLASS}

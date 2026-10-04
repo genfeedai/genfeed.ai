@@ -4,8 +4,10 @@ import type {
   LibraryPlace,
   LibraryShelf,
   PageScope,
+  TagMatchMode,
 } from '@genfeedai/contracts';
 import type { LibraryViewMode } from '@genfeedai/contracts/constants';
+import type { ITag } from '@genfeedai/contracts/interfaces';
 import type { ReactNode } from 'react';
 
 /**
@@ -58,6 +60,12 @@ export interface LibraryBrowserToolbarProps {
   characterOptions: LibraryCharacterOption[];
   origins: IngredientOrigin[];
   sort: string;
+  /** Selected tag ids (`?tags=`). */
+  tags: string[];
+  /** How the selected tags combine (`?tagMatch=`). */
+  tagMatch: TagMatchMode;
+  /** Tags the active brand can use, with asset counts. Empty hides the filter. */
+  tagOptions: ITag[];
   sortOptions: LibraryBrowserSortOption[];
   viewMode: LibraryViewMode;
   isRefreshing: boolean;
@@ -67,6 +75,9 @@ export interface LibraryBrowserToolbarProps {
   onClearCharacters: () => void;
   onOriginsChange: (origins: IngredientOrigin[]) => void;
   onClearOrigins: () => void;
+  onClearTags: () => void;
+  onTagMatchChange: (tagMatch: TagMatchMode) => void;
+  onTagsChange: (tags: string[]) => void;
   onSortChange: (sort: string) => void;
   onViewModeChange: (viewMode: LibraryViewMode) => void;
   onRefresh: () => void;
