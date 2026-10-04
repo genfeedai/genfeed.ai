@@ -253,6 +253,7 @@ describe('IngredientsController folder assignment', () => {
     expect(ingredientsService.assertClientTags).toHaveBeenCalledWith(
       [testId('tag')],
       organizationId,
+      brandId,
     );
     expect(ingredientsService.patch).not.toHaveBeenCalled();
   });

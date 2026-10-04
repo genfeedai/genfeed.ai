@@ -1,7 +1,12 @@
-import { FleetReviewStatus, IngredientCategory } from '@genfeedai/contracts';
+import {
+  FleetReviewStatus,
+  IngredientCategory,
+  TagBulkAction,
+} from '@genfeedai/contracts';
+import { LIBRARY_ASSET_TAGS_EVENT } from '@genfeedai/contracts/constants';
 import type { ModalImageToVideoProps } from '@genfeedai/props/modals/modal.props';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -54,12 +59,15 @@ vi.mock('@ui/ingredients/list/header/IngredientsListHeader', () => ({
     canPublishCampaign,
     onPublishCampaign,
     placement,
+    tagAction,
   }: {
     canPublishCampaign: boolean;
     onPublishCampaign: () => void;
     placement?: string;
+    tagAction?: React.ReactNode;
   }) => (
     <div data-placement={placement ?? 'overlay'} data-testid="selection-header">
+      {tagAction}
       <span data-testid="publish-campaign-state">
         {canPublishCampaign ? 'enabled' : 'disabled'}
       </span>
@@ -69,6 +77,21 @@ vi.mock('@ui/ingredients/list/header/IngredientsListHeader', () => ({
     </div>
   ),
 }));
+
+vi.mock(
+  '@ui/ingredients/list/selection-actions-bar/SelectionTagAction',
+  () => ({
+    default: ({
+      selectedIngredients,
+    }: {
+      selectedIngredients: Array<{ id: string }>;
+    }) => (
+      <div data-testid="tag-action">
+        {selectedIngredients.map((ingredient) => ingredient.id).join(',')}
+      </div>
+    ),
+  }),
+);
 
 vi.mock('@ui/ingredients/list/content/IngredientsListContent', () => ({
   default: ({
@@ -383,5 +406,80 @@ describe('IngredientsList', () => {
     expect(screen.getByTestId('publish-campaign-state')).toHaveTextContent(
       'disabled',
     );
+  });
+
+  it('hands the selected assets to the bulk tag action', () => {
+    mockUseBrand.mockReturnValue({ selectedBrand: undefined });
+    mockUseIngredientsList.mockReturnValue(
+      buildIngredientsListReturn({
+        filteredIngredients: [
+          { id: 'img-1' },
+          { id: 'img-2' },
+          { id: 'img-3' },
+        ],
+        selectedIngredientIds: ['img-1', 'img-3'],
+      }),
+    );
+
+    render(<IngredientsList type="images" />);
+
+    expect(screen.getByTestId('tag-action')).toHaveTextContent('img-1,img-3');
+  });
+
+  describe('tag changes published by the inspector and the bulk bar', () => {
+    const tag = { backgroundColor: '#000', id: 'tag-1', label: 'S1E12' };
+
+    function renderWithSetIngredients() {
+      const setIngredients = vi.fn();
+      mockUseBrand.mockReturnValue({ selectedBrand: undefined });
+      mockUseIngredientsList.mockReturnValue(
+        buildIngredientsListReturn({ setIngredients }),
+      );
+      const view = render(<IngredientsList type="images" />);
+      return { setIngredients, view };
+    }
+
+    function publish(detail: unknown) {
+      act(() => {
+        window.dispatchEvent(
+          new CustomEvent(LIBRARY_ASSET_TAGS_EVENT, { detail }),
+        );
+      });
+    }
+
+    it('applies the change to the rows it already holds', () => {
+      const { setIngredients } = renderWithSetIngredients();
+
+      publish({
+        action: TagBulkAction.ADD,
+        ingredientIds: ['img-1'],
+        tag,
+      });
+
+      expect(setIngredients).toHaveBeenCalledTimes(1);
+      const update = setIngredients.mock.calls[0][0] as (
+        current: Array<{ id: string; tags?: unknown[] }>,
+      ) => Array<{ id: string; tags?: unknown[] }>;
+      const next = update([{ id: 'img-1' }, { id: 'img-2' }]);
+      expect(next[0]?.tags).toEqual([tag]);
+      expect(next[1]).toEqual({ id: 'img-2' });
+    });
+
+    it('ignores an event with no detail', () => {
+      const { setIngredients } = renderWithSetIngredients();
+
+      publish(undefined);
+
+      expect(setIngredients).not.toHaveBeenCalled();
+    });
+
+    it('stops listening when the list unmounts', () => {
+      const { setIngredients, view } = renderWithSetIngredients();
+
+      view.unmount();
+      publish({ action: TagBulkAction.ADD, ingredientIds: ['img-1'], tag });
+
+      expect(setIngredients).not.toHaveBeenCalled();
+    });
   });
 });

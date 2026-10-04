@@ -1,5 +1,26 @@
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import type { IngredientOrigin } from '@genfeedai/contracts';
+import { type IngredientOrigin, TagMatchMode } from '@genfeedai/contracts';
+import type { Prisma } from '@genfeedai/prisma';
+
+/**
+ * The `include` that puts each asset's live tags on a Library list row: just
+ * what a chip needs (label, colors, owner columns for the scope), never a
+ * deleted tag, in a stable order.
+ */
+const LIBRARY_TAGS_INCLUDE = {
+  tags: {
+    orderBy: { label: 'asc' },
+    select: {
+      backgroundColor: true,
+      brandId: true,
+      id: true,
+      label: true,
+      organizationId: true,
+      textColor: true,
+    },
+    where: { isDeleted: false },
+  },
+} satisfies Prisma.IngredientInclude;
 
 /**
  * IngredientFilterUtil - Utility for building consistent ingredient query filters
@@ -12,8 +33,17 @@ import type { IngredientOrigin } from '@genfeedai/contracts';
  * const parentConditions = IngredientFilterUtil.buildParentFilter(query.parentId);
  *
  */
-
 export const IngredientFilterUtil = {
+  /** Live tags for each row of a Library list. */
+  buildLibraryTagsInclude() {
+    return LIBRARY_TAGS_INCLUDE;
+  },
+
+  /** The unified Library list include: row metadata and prompt, plus tags. */
+  buildLibraryListInclude() {
+    return { metadata: true, prompt: true, ...LIBRARY_TAGS_INCLUDE };
+  },
+
   /**
    * Build the permanent-origin filter (Library origin axis).
    *
@@ -47,6 +77,38 @@ export const IngredientFilterUtil = {
     return availableCharacterIds
       ? { personaId: { in: [...availableCharacterIds] } }
       : {};
+  },
+
+  /**
+   * Build the tag filter (Library tag filter, #6011).
+   *
+   * - `undefined` or no ids → empty object, so tags never narrow an unfiltered
+   *   list
+   * - `any` (default) → assets carrying at least one of the tags
+   * - `all` → assets carrying every one of the tags
+   *
+   * Tags are a many-to-many relation, so each tag is its own `some` predicate
+   * on the indexed join table. An id the caller cannot see matches nothing:
+   * an asset can only ever carry tags that were visible to its brand when they
+   * were attached.
+   */
+  buildTagFilter(
+    tagIds: readonly string[] | undefined,
+    mode: TagMatchMode | undefined,
+  ): Record<string, unknown> {
+    const ids = Array.from(new Set(tagIds ?? []));
+
+    if (ids.length === 0) {
+      return {};
+    }
+
+    if (mode === TagMatchMode.ALL) {
+      return {
+        AND: ids.map((id) => ({ tags: { some: { id, isDeleted: false } } })),
+      };
+    }
+
+    return { tags: { some: { id: { in: ids }, isDeleted: false } } };
   },
 
   /**

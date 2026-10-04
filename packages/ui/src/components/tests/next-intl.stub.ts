@@ -413,6 +413,7 @@ const UI_TEST_MESSAGES = {
           origin: 'Origin',
           size: 'Size',
           status: 'Status',
+          tags: 'Tags',
           type: 'Type',
         },
       },
@@ -430,6 +431,62 @@ const UI_TEST_MESSAGES = {
         usedIn: 'Used in',
       },
       otherAssets: 'Other assets',
+      tags: {
+        addTag: 'Add tag',
+        alreadyTagged: 'This asset already has “{label}”',
+        bulkAdded:
+          'Added “{label}” to {changed, plural, one {# asset} other {# assets}}{skipped, plural, =0 {} other {, skipped #}}',
+        bulkFailed:
+          'Changed {changed}, skipped {skipped}, failed {failed}. Try again for the rest.',
+        bulkRemoved:
+          'Removed “{label}” from {changed, plural, one {# asset} other {# assets}}{skipped, plural, =0 {} other {, skipped #}}',
+        create: 'Create “{label}”',
+        createFailed: 'The tag could not be created.',
+        emptyGuidance:
+          'No tags yet. Tags are for campaign, series, episode, mood or client. Type, origin and folder are already filters. Type a name to create one.',
+        emptyHint:
+          'No tags yet. Use tags for campaign, series, episode, mood or client.',
+        loading: 'Loading tags…',
+        moreTags: '+{count}',
+        noMatch: 'No matching tag.',
+        notTagged: 'This asset does not have “{label}”',
+        overLimit: 'Select up to {limit} assets to tag them together',
+        removeTag: 'Remove tag {label}',
+        scopeDefault: 'Default',
+        scopeOrganization: 'All brands',
+        searchLabel: 'Search or create a tag',
+        searchPlaceholder: 'Search or create a tag…',
+        sectionLabel: 'Tags',
+        stateAll: 'On every selected asset',
+        stateSome: 'On some selected assets',
+        tagAction: 'Tag',
+        tagSelected:
+          '{count, plural, one {Tag # selected asset} other {Tag # selected assets}}',
+        vocabularyHint:
+          'Tags are for campaign, series, episode, mood or client. Type, origin and folder are already filters.',
+        writeFailed: 'The tags could not be updated.',
+        confirm: 'Confirm',
+        confirmDelete: 'Confirm deleting tag {label}',
+        createButton: 'Create',
+        deleteTag: 'Delete tag {label}',
+        deleted: 'Deleted “{label}”. Its assets are untouched.',
+        manageDescription:
+          'Rename, recolor or delete tags. Deleting a tag removes it from every asset and keeps the assets. Organization-wide tags are shared by every brand and need an owner or admin.',
+        manageFailed:
+          'The tag could not be changed. Organization-wide and default tags are managed by an owner or admin.',
+        manageTags: 'Manage tags',
+        newTagLabel: 'New tag name',
+        newTagPlaceholder: 'New tag name…',
+        newTagScope: 'Where the new tag is visible',
+        organizationTagDenied:
+          'Only an organization owner or admin can create an organization-wide tag.',
+        readOnly: 'Read-only',
+        renameTag: 'Rename tag {label}',
+        scopeBrand: 'This brand',
+        scopeThisBrand: 'This brand',
+        tagBackground: 'Background color of {label}',
+        tagText: 'Text color of {label}',
+      },
       videoDetail: {
         availableVersions: 'Available Versions:',
         editInStudio: 'Edit in Studio',

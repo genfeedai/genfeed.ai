@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { IngredientCategory, LibraryShelf } from '..';
+import { IngredientCategory, LibraryShelf, TagMatchMode } from '..';
 
 import {
   createLibraryBrowserRoute,
@@ -56,6 +56,21 @@ describe('createLibraryBrowserRoute', () => {
         characters: ['c1', 'c2'],
       }),
     ).toBe('/library/assets?categories=IMAGE&characters=c1&characters=c2');
+  });
+
+  it('repeats the tags key and carries the match mode so a filtered view can be shared', () => {
+    expect(
+      createLibraryBrowserRoute(APP_ROUTES.LIBRARY.ASSETS, {
+        tagMatch: TagMatchMode.ALL,
+        tags: ['t1', 't2'],
+      }),
+    ).toBe('/library/assets?tags=t1&tags=t2&tagMatch=all');
+  });
+
+  it('replaces tags already on the route instead of stacking them', () => {
+    expect(
+      createLibraryBrowserRoute('/library/assets?tags=old', { tags: ['new'] }),
+    ).toBe('/library/assets?tags=new');
   });
 
   it('encodes search terms', () => {
