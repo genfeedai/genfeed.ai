@@ -13,6 +13,8 @@ export function cardAppScript(origins: readonly string[]): string {
   return `
 (() => {
   const origins = ${domains};
+  const platformNames = { facebook: 'Facebook', instagram: 'Instagram', linkedin: 'LinkedIn', pinterest: 'Pinterest', reddit: 'Reddit', threads: 'Threads', tiktok: 'TikTok', twitter: 'X', x: 'X', youtube: 'YouTube' };
+  function platformName(value) { return platformNames[String(value).toLowerCase()] || (value ? value.charAt(0).toUpperCase() + value.slice(1) : ''); }
   const root = document.getElementById('cards');
   const notice = document.getElementById('notice');
   const summary = document.getElementById('summary');
@@ -162,9 +164,9 @@ export function cardAppScript(origins: readonly string[]): string {
   function renderPost(item) {
     const article = element('article', 'card post');
     const head = element('div', 'post-head');
-    const platform = item.platform || 'Post';
+    const platform = platformName(item.platform) || 'Post';
     head.append(element('span', 'avatar', platform.charAt(0).toUpperCase()));
-    const who = element('div', 'who'); who.append(element('strong', '', platform.charAt(0).toUpperCase() + platform.slice(1)));
+    const who = element('div', 'who'); who.append(element('strong', '', platform));
     const when = formatDate(item.date, { dateStyle: 'medium', timeStyle: 'short' });
     if (when) who.append(element('span', '', when));
     head.append(who);
@@ -202,7 +204,7 @@ export function cardAppScript(origins: readonly string[]): string {
       if (day.isGap) section.append(element('p', 'gap-label', 'Nothing scheduled'));
       day.posts.forEach(post => {
         const slot = element('div', 'slot');
-        slot.append(element('div', 'meta', [formatDate(post.date, { timeStyle: 'short' }), post.platform].filter(Boolean).join(' · ')));
+        slot.append(element('div', 'meta', [formatDate(post.date, { timeStyle: 'short' }), platformName(post.platform)].filter(Boolean).join(' · ')));
         slot.append(element('p', '', post.description || post.title));
         section.append(slot);
       });

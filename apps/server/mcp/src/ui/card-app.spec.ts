@@ -282,7 +282,7 @@ it('renders posts as a social preview with platform, status and media', () => {
 
   const post = document.querySelector('article.post');
   expect(post?.querySelector('.avatar')?.textContent).toBe('L');
-  expect(post?.querySelector('.who strong')?.textContent).toBe('Linkedin');
+  expect(post?.querySelector('.who strong')?.textContent).toBe('LinkedIn');
   expect(post?.querySelector('.status')?.textContent).toBe('scheduled');
   expect(post?.querySelector('.description')?.textContent).toBe('Hello world');
 });
