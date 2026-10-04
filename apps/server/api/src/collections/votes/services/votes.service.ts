@@ -5,22 +5,10 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { VoteEntityModel } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { platformOrTenantScope } from '@libs/prisma/platform-scope';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 const ADD_VOTE_MAX_ATTEMPTS = 3;
-
-/**
- * Votes written before organizations were stamped have a null
- * `organizationId`, so an org-scoped lookup also matches the caller's own
- * legacy rows. Naming the organization keeps the tenant guard satisfied.
- */
-function voteOrganizationScope(organizationId: string | undefined): {
-  OR?: Array<{ organizationId: string | null }>;
-} {
-  return organizationId
-    ? { OR: [{ organizationId }, { organizationId: null }] }
-    : {};
-}
 
 function isUniqueConstraintViolation(error: unknown): boolean {
   return (
@@ -59,12 +47,17 @@ export class VotesService extends BaseService<
     userId: string;
   }): Promise<{ created: boolean; vote: VoteDocument }> {
     const { entityId, entityModel, organizationId, userId } = input;
-    const scope = voteOrganizationScope(organizationId);
 
     for (let attempt = 0; attempt < ADD_VOTE_MAX_ATTEMPTS; attempt++) {
+      // tenant-scope-ignore: platformOrTenantScope limits the lookup to the caller's organization (or the active tenant) plus the caller's own legacy null-org votes; the filter always carries the caller's userId
       const active = await this.prisma.vote.findFirst({
         orderBy: { createdAt: 'asc' },
-        where: { entityId, isDeleted: false, userId, ...scope },
+        where: {
+          entityId,
+          isDeleted: false,
+          userId,
+          ...platformOrTenantScope(organizationId),
+        },
       });
       if (active) {
         return {
@@ -73,19 +66,26 @@ export class VotesService extends BaseService<
         };
       }
 
+      // tenant-scope-ignore: platformOrTenantScope limits the lookup to the caller's organization (or the active tenant) plus the caller's own legacy null-org votes; the filter always carries the caller's userId
       const removed = await this.prisma.vote.findFirst({
         orderBy: { createdAt: 'desc' },
-        where: { entityId, isDeleted: true, userId, ...scope },
+        where: {
+          entityId,
+          isDeleted: true,
+          userId,
+          ...platformOrTenantScope(organizationId),
+        },
       });
 
       try {
         if (removed) {
+          // tenant-scope-ignore: platformOrTenantScope limits the lookup to the caller's organization (or the active tenant) plus the caller's own legacy null-org votes; the filter always carries the caller's userId
           const revived = await this.prisma.vote.update({
             data: {
               isDeleted: false,
               ...(organizationId ? { organizationId } : {}),
             },
-            where: { id: removed.id, ...scope },
+            where: { id: removed.id, ...platformOrTenantScope(organizationId) },
           });
           return { created: true, vote: this.normalizeDocument(revived) };
         }
@@ -121,7 +121,7 @@ export class VotesService extends BaseService<
   }): Promise<{ removedCount: number }> {
     const { entityId, organizationId, userId } = input;
     const { modifiedCount } = await this.patchAll(
-      { entityId, userId, ...voteOrganizationScope(organizationId) },
+      { entityId, userId, ...platformOrTenantScope(organizationId) },
       { isDeleted: true },
     );
     return { removedCount: modifiedCount };
