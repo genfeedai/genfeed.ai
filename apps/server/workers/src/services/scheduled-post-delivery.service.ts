@@ -41,7 +41,14 @@ import {
   isAmbiguousPublishError,
   isRetryablePublishError,
 } from '@workers/crons/posts/post-publish-error.util';
-import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
+import {
+  PUBLISH_OUTCOME_UNCONFIRMED_CODE,
+  PUBLISH_OUTCOME_UNVERIFIED_CODE,
+  SCHEDULED_POST_RETRY_BACKOFF_SECONDS,
+  SCHEDULED_POST_UNVERIFIED_BACKOFF_SECONDS,
+  SCHEDULED_POST_VERIFICATION_BACKOFF_SECONDS,
+  SCHEDULED_POST_VERIFICATION_WINDOW_SECONDS,
+} from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 import { loadScheduledActionPost } from '@workers/services/scheduled-post-action-load.util';
 import type {
@@ -82,6 +89,12 @@ import {
   type DelayedThreadChild,
   planThreadChildDelivery,
 } from '@workers/services/thread-comment-schedule.util';
+
+/** A terminal validation failure may only move a post that is still queued. */
+const TERMINAL_FAILURE_PRIOR_STATES: readonly TargetExecutionState[] = [
+  TargetExecutionState.SCHEDULED,
+  TargetExecutionState.PUBLISHING,
+];
 
 @Injectable()
 export class ScheduledPostDeliveryService implements OnModuleInit {
@@ -281,12 +294,11 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
           throw new ProviderPublishInFlightError(post.id.toString());
         }
         if (resolved.kind === 'unconfirmed') {
-          // The provider could not confirm the earlier outcome yet.
-          return await this.handlePublishError(
+          // The provider could not confirm the earlier outcome yet: keep
+          // verifying it, never spend the publish retry budget on it.
+          return await this.deferUnverifiedPublish(
             post,
-            new Error(
-              'Provider publish outcome is not confirmed yet (timeout)',
-            ),
+            resolved.attemptStartedAt,
             workflowExecutionId,
           );
         }
@@ -367,11 +379,25 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       postId: post.id,
     });
     try {
+      // Fence the FAILED write on still owning the hold: a stalled hold may
+      // have been taken over, and its new owner can publish before our write.
+      if (!(await this.attempts.confirmOwnership(post, hold.attempt))) {
+        this.logger.warn('Terminal failure hold lost; keeping publishing', {
+          error: errorMessage,
+          postId: post.id,
+        });
+        return {
+          ...createFailedPublishResult('', errorMessage),
+          executionState: TargetExecutionState.PUBLISHING,
+        };
+      }
       await this.attemptRetry(
         post,
         false,
         errorMessage,
         'publish_validation_failed',
+        undefined,
+        { priorExecutionStates: TERMINAL_FAILURE_PRIOR_STATES },
       );
     } finally {
       await this.attempts.settle(
@@ -384,6 +410,62 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     this.emitPublishFailedWebhook(post, errorMessage);
 
     return createFailedPublishResult('', errorMessage);
+  }
+
+  /**
+   * The provider outcome is unknown and cannot be verified yet. The occurrence
+   * stays PUBLISHING for reconciliation with its own verification backoff;
+   * this never touches the publish retry budget and never ends FAILED. Past
+   * the verification window the error turns into an explicit operator-visible
+   * `publish_outcome_unverified`, and verification continues at a slow backoff.
+   */
+  private async deferUnverifiedPublish(
+    post: PostEntity,
+    attemptStartedAt: Date,
+    workflowExecutionId: string,
+  ): Promise<PublishResult> {
+    const now = new Date();
+    const isWindowExpired =
+      now.getTime() - attemptStartedAt.getTime() >=
+      SCHEDULED_POST_VERIFICATION_WINDOW_SECONDS * 1000;
+    const message = isWindowExpired
+      ? 'Provider publish outcome could not be verified within the verification window; operator review needed.'
+      : 'Provider publish outcome is not confirmed yet; verification will retry.';
+    const backoffSeconds = isWindowExpired
+      ? SCHEDULED_POST_UNVERIFIED_BACKOFF_SECONDS
+      : SCHEDULED_POST_VERIFICATION_BACKOFF_SECONDS;
+    const code = isWindowExpired
+      ? PUBLISH_OUTCOME_UNVERIFIED_CODE
+      : PUBLISH_OUTCOME_UNCONFIRMED_CODE;
+
+    this.logger.warn(`${this.constructorName} deferring unverified publish`, {
+      code,
+      postId: post.id,
+      retryCount: post.retryCount || 0,
+    });
+    // Discovery re-queues PUBLISHING posts once lastAttemptAt is older than the
+    // retry backoff; date it ahead so the verification backoff applies instead.
+    await this.persistPublishState(
+      post,
+      {
+        error: createChannelTargetError(code, message, true),
+        executionState: TargetExecutionState.PUBLISHING,
+        lastAttemptAt: new Date(
+          now.getTime() +
+            (backoffSeconds - SCHEDULED_POST_RETRY_BACKOFF_SECONDS) * 1000,
+        ),
+        workflowExecutionId,
+      },
+      message,
+      {
+        expectedWorkflowExecutionId: workflowExecutionId,
+        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+      },
+    );
+    return {
+      ...createFailedPublishResult('', message),
+      executionState: TargetExecutionState.PUBLISHING,
+    };
   }
 
   private async callProvider(
@@ -403,12 +485,20 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     } catch (error: unknown) {
       // A timeout or dropped connection may hide an accepted publish: keep
       // the attempt for verification on retry instead of releasing it.
+      const isAmbiguous = isAmbiguousPublishError(error);
       await this.attempts.settle(
         post,
         attempt,
-        isAmbiguousPublishError(error) ? 'uncertain' : 'released',
+        isAmbiguous ? 'uncertain' : 'released',
         url,
       );
+      if (isAmbiguous && this.isRetryBudgetExhausted(post)) {
+        return await this.deferUnverifiedPublish(
+          post,
+          new Date(),
+          workflowExecutionId,
+        );
+      }
       return await this.handlePublishError(post, error, workflowExecutionId);
     }
     if (!result.success) {
@@ -422,6 +512,13 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         isAmbiguous ? 'uncertain' : 'released',
         url,
       );
+      if (isAmbiguous && this.isRetryBudgetExhausted(post)) {
+        return await this.deferUnverifiedPublish(
+          post,
+          new Date(),
+          workflowExecutionId,
+        );
+      }
       try {
         return await this.handlePublishFailure(
           post,
@@ -810,12 +907,18 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     return createFailedPublishResult(platform, message);
   }
 
+  /** An uncertain outcome must never turn into FAILED through this budget. */
+  private isRetryBudgetExhausted(post: PostEntity): boolean {
+    return (post.retryCount || 0) >= this.MAX_RETRY_ATTEMPTS;
+  }
+
   private async attemptRetry(
     post: PostEntity,
     canRetry: boolean,
     errorMessage: string,
     errorCode = getPublishErrorCode(errorMessage),
     workflowExecutionId?: string,
+    failureGuard?: SchedulerPublishTransitionGuard,
   ): Promise<boolean | undefined> {
     const url = `${this.constructorName} attemptRetry`;
     const currentRetryCount = post.retryCount || 0;
@@ -869,7 +972,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
             expectedWorkflowExecutionId: workflowExecutionId,
             priorExecutionStates: [TargetExecutionState.PUBLISHING],
           }
-        : undefined,
+        : failureGuard,
     );
     if (!persisted) {
       return undefined;

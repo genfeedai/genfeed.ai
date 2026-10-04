@@ -1078,7 +1078,7 @@ describe('ScheduledPostDeliveryService', () => {
     expect(publish).toHaveBeenCalledTimes(1);
   });
 
-  it('soft-retries without publishing when verification is unavailable', async () => {
+  it('keeps an unverifiable unconfirmed attempt publishing without spending the retry budget', async () => {
     const publish = vi.fn();
     mocks.publisherFactory.getPublisher.mockReturnValue({
       publish,
@@ -1089,19 +1089,87 @@ describe('ScheduledPostDeliveryService', () => {
       receiptRow({ status: 'uncertain' }),
     );
 
-    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+    const result = await executeDelivery(
+      mocks,
+      createScheduledPost({ retryCount: 3 }),
+      'scheduled_sweep',
+    );
 
     expect(publish).not.toHaveBeenCalled();
-    expect(
-      mocks.schedulerPublishStateService.transitionPost,
-    ).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(result.executionState).toBe(TargetExecutionState.PUBLISHING);
+    const calls = mocks.schedulerPublishStateService.transitionPost.mock.calls;
+    const states = calls.map((call) => call[1].executionState);
+    expect(states).not.toContain(TargetExecutionState.FAILED);
+    expect(states).not.toContain(TargetExecutionState.SCHEDULED);
+    const deferred = calls.find((call) => call[1].error)?.[1];
+    expect(deferred).toEqual(
       expect.objectContaining({
-        executionState: TargetExecutionState.SCHEDULED,
+        error: expect.objectContaining({
+          code: 'publish_outcome_unconfirmed',
+        }),
+        executionState: TargetExecutionState.PUBLISHING,
       }),
-      expect.any(String),
-      expect.anything(),
     );
+    expect(deferred).not.toHaveProperty('retryCount');
+    // Dated ahead so discovery waits the verification backoff, not 60s.
+    expect(deferred.lastAttemptAt.getTime()).toBeGreaterThan(Date.now());
+    expect(
+      mocks.publishEventWebhookService.emitLegacyPostFailed,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('surfaces an unverified outcome once the verification window passed, still publishing', async () => {
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn(),
+      supportsThreads: false,
+      verifyPublished: vi.fn().mockRejectedValue(new Error('provider 503')),
+    });
+    mocks.prisma.postProviderPublishReceipt.findFirst.mockResolvedValue(
+      receiptRow({
+        attemptStartedAt: new Date(Date.now() - 25 * 60 * 60_000),
+        status: 'uncertain',
+      }),
+    );
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    const calls = mocks.schedulerPublishStateService.transitionPost.mock.calls;
+    expect(calls.map((call) => call[1].executionState)).not.toContain(
+      TargetExecutionState.FAILED,
+    );
+    expect(calls.find((call) => call[1].error)?.[1]).toEqual(
+      expect.objectContaining({
+        error: expect.objectContaining({
+          code: 'publish_outcome_unverified',
+        }),
+        executionState: TargetExecutionState.PUBLISHING,
+      }),
+    );
+  });
+
+  it('keeps a budget-exhausted ambiguous provider call publishing instead of failing it', async () => {
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockRejectedValue(new Error('ETIMEDOUT')),
+      supportsThreads: false,
+    });
+
+    await executeDelivery(
+      mocks,
+      createScheduledPost({ retryCount: 3 }),
+      'scheduled_sweep',
+    );
+
+    expect(
+      mocks.prisma.postProviderPublishReceipt.updateMany,
+    ).toHaveBeenCalledWith({
+      data: { status: 'uncertain' },
+      where: receiptWhere,
+    });
+    expect(
+      mocks.schedulerPublishStateService.transitionPost.mock.calls.map(
+        (call) => call[1].executionState,
+      ),
+    ).not.toContain(TargetExecutionState.FAILED);
   });
 
   it('keeps a returned timeout uncertain instead of releasing it', async () => {
@@ -1337,8 +1405,48 @@ describe('ScheduledPostDeliveryService', () => {
       data: { status: 'released' },
       where: receiptWhere,
     });
-    expect(receipts.updateMany.mock.invocationCallOrder[0]).toBeGreaterThan(
-      failedWrite,
+    const releaseIndex = receipts.updateMany.mock.calls.findIndex(
+      ([args]) => args.data.status === 'released',
+    );
+    expect(
+      receipts.updateMany.mock.invocationCallOrder[releaseIndex],
+    ).toBeGreaterThan(failedWrite);
+  });
+
+  it('never fails the target once its terminal-failure hold was taken over', async () => {
+    mocks.prisma.postProviderPublishReceipt.updateMany.mockResolvedValue({
+      count: 0,
+    });
+
+    const result = await service.failTerminalValidation(
+      createScheduledPost() as never,
+      new Error('Canonical Post digest no longer matches pin.'),
+    );
+
+    expect(result.executionState).toBe(TargetExecutionState.PUBLISHING);
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('fences the terminal FAILED write on a still-queued target', async () => {
+    await service.failTerminalValidation(
+      createScheduledPost() as never,
+      new Error('Canonical Post digest no longer matches pin.'),
+    );
+
+    expect(
+      mocks.schedulerPublishStateService.transitionPost,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ executionState: TargetExecutionState.FAILED }),
+      expect.any(String),
+      {
+        priorExecutionStates: [
+          TargetExecutionState.SCHEDULED,
+          TargetExecutionState.PUBLISHING,
+        ],
+      },
     );
   });
 
