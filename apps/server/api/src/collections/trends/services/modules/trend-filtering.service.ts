@@ -6,6 +6,7 @@ import type {
 import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { platformTenantProof } from '@libs/prisma/platform-scope';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -295,7 +296,11 @@ export class TrendFilteringService {
         this.prisma.trend.findMany({
           orderBy: { createdAt: 'desc' },
           take: limit * 5,
-          where: { ...where, organizationId: null },
+          where: {
+            ...where,
+            AND: platformTenantProof(),
+            organizationId: null,
+          },
         }),
       ]);
       const allTrends = [...orgTrends, ...globalTrends].map((doc) =>
@@ -313,7 +318,11 @@ export class TrendFilteringService {
     const docs = await this.prisma.trend.findMany({
       orderBy: { createdAt: 'desc' },
       take: limit * 5,
-      where: { ...where, organizationId: null },
+      where: {
+        ...where,
+        AND: platformTenantProof(),
+        organizationId: null,
+      },
     });
 
     return docs

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { writeNotificationOutbox } from '@api/services/activity-recording/notification-outbox.writer';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { TrendRefreshHealth } from '@genfeedai/contracts/interfaces';
+import { platformTenantProof } from '@libs/prisma/platform-scope';
 import { Injectable } from '@nestjs/common';
 
 export const TREND_REFRESH_EVENT_TYPE = 'trend_refresh_health';
@@ -141,6 +142,9 @@ export class TrendRefreshHealthService {
     dataset: Pick<TrendRefreshHealth, 'platform' | 'dataset'>,
   ): Promise<TrendRefreshHealth | null> {
     const where = {
+      // The platform-wide refresh evidence is read inside a tenant request, so
+      // the guard needs the caller named; `organizationId: null` still decides.
+      AND: organizationId === null ? platformTenantProof() : [],
       isDeleted: false,
       organizationId,
       sourceId: sourceId(dataset),

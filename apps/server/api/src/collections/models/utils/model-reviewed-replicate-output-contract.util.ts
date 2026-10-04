@@ -2,6 +2,7 @@ import type { ReviewedReplicateOutputContractResult } from '@api/collections/mod
 import { interpretSingleMediaOutputContract } from '@api/collections/models/utils/model-single-media-output-contract.util';
 import { resolvePredictionTarget } from '@api/services/integrations/replicate/helpers/replicate-prediction-target.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { platformOrTenantScope } from '@libs/prisma/platform-scope';
 import { hashReplicateProviderContract } from '@libs/utils/provider-contract.util';
 
 /** Exact selected catalog row only; pending contracts and unrelated endpoints never authorize dispatch. */
@@ -16,9 +17,7 @@ export async function findReviewedReplicateOutputContract(
     where: {
       key: modelKey,
       isDeleted: false,
-      OR: organizationId
-        ? [{ organizationId }, { organizationId: null }]
-        : [{ organizationId: null }],
+      ...platformOrTenantScope(organizationId),
     },
     select: {
       id: true,

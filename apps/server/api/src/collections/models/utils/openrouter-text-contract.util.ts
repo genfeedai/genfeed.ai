@@ -6,6 +6,7 @@ import {
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import { assertWorkflowCanonicalJson } from '@api/helpers/utils/credits/workflow-media-dispatch-input.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { platformOrTenantScope } from '@libs/prisma/platform-scope';
 
 export type ReviewedOpenRouterTextContractResult =
   | { status: 'reviewed'; contract: ReviewedOpenRouterTextContract }
@@ -22,9 +23,7 @@ export async function findReviewedOpenRouterTextContract(
     where: {
       key: modelKey,
       isDeleted: false,
-      OR: organizationId
-        ? [{ organizationId }, { organizationId: null }]
-        : [{ organizationId: null }],
+      ...platformOrTenantScope(organizationId),
     },
     select: {
       id: true,

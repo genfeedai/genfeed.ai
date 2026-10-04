@@ -25,6 +25,10 @@ import type {
   TemplateMetadata,
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  type PlatformTenantScopeArm,
+  platformTenantProof,
+} from '@libs/prisma/platform-scope';
 import { Injectable } from '@nestjs/common';
 import Handlebars from 'handlebars';
 
@@ -121,11 +125,12 @@ export class TemplatesService {
 
     // Validate key uniqueness for prompt templates
     if (dto.purpose === 'prompt' && dto.key) {
+      // tenant-scope-ignore: organizationScope names the organization or the platform null with tenant proof; isDeleted is false
       const existing = await this.prisma.template.findFirst({
         where: {
+          ...this.organizationScope(organization),
           isDeleted: false,
           key: dto.key,
-          organizationId: organization || null,
           purpose: 'prompt',
         },
       });
@@ -226,6 +231,7 @@ export class TemplatesService {
       ];
     }
 
+    // tenant-scope-ignore: organizationScope names the organization or the platform null with tenant proof; isDeleted is false
     const results = await this.prisma.template.findMany({
       include: { metadata: true },
       orderBy: { createdAt: 'desc' },
@@ -233,8 +239,8 @@ export class TemplatesService {
         filters?.sort === 'popular' ? (filters.limit ?? 10) : filters?.limit,
       where: {
         ...where,
+        ...this.organizationScope(organization),
         isDeleted: false,
-        organizationId: organization || null,
       },
     });
 
@@ -245,6 +251,20 @@ export class TemplatesService {
     }
 
     return templates;
+  }
+
+  /**
+   * The organization a template call is scoped to. Platform templates (no
+   * organization) are read inside a tenant request too, so the guard is told
+   * whose request it is; `organizationId: null` still decides the rows.
+   */
+  private organizationScope(organization?: string): {
+    AND?: PlatformTenantScopeArm[];
+    organizationId: string | null;
+  } {
+    return organization
+      ? { organizationId: organization }
+      : { AND: platformTenantProof(), organizationId: null };
   }
 
   /**
@@ -265,9 +285,9 @@ export class TemplatesService {
    */
   async findOne(id: string, organization?: string): Promise<Template> {
     const where: Prisma.TemplateWhereInput = {
+      ...this.organizationScope(organization),
       id,
       isDeleted: false,
-      organizationId: organization || null,
     };
 
     const template = await findOrThrow(
@@ -292,9 +312,9 @@ export class TemplatesService {
     organization?: string,
   ): Promise<Template> {
     const where: Prisma.TemplateWhereInput = {
+      ...this.organizationScope(organization),
       id,
       isDeleted: false,
-      organizationId: organization || null,
     };
 
     return this.prisma.$transaction(async (tx) => {
@@ -311,6 +331,7 @@ export class TemplatesService {
         content !== undefined ||
         description !== undefined ||
         tags !== undefined;
+      // tenant-scope-ignore: where comes from organizationScope plus isDeleted false
       const result = await tx.template.update({
         data: {
           ...scalars,
@@ -328,7 +349,7 @@ export class TemplatesService {
               }
             : {}),
         },
-        where: { id, isDeleted: false, organizationId: organization || null },
+        where,
       });
       if (metadata !== undefined) {
         const savedMetadata = await this.templateMetadataService.update(
@@ -349,9 +370,9 @@ export class TemplatesService {
    */
   async remove(id: string, organization?: string): Promise<void> {
     const where: Prisma.TemplateWhereInput = {
+      ...this.organizationScope(organization),
       id,
       isDeleted: false,
-      organizationId: organization || null,
     };
 
     await findOrThrow(
@@ -361,9 +382,10 @@ export class TemplatesService {
       id,
     );
 
+    // tenant-scope-ignore: where comes from organizationScope plus isDeleted false
     await this.prisma.template.update({
       data: { isDeleted: true },
-      where: { id, isDeleted: false, organizationId: organization || null },
+      where,
     });
   }
 
@@ -508,6 +530,7 @@ export class TemplatesService {
     const globalPrompt = await this.prisma.template.findFirst({
       include: { metadata: true },
       where: {
+        AND: platformTenantProof(),
         isActive: true,
         isDeleted: false,
         key,

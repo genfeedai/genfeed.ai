@@ -1,6 +1,11 @@
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
 import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  platformOrTenantScope,
+  platformTenantProof,
+} from '@libs/prisma/platform-scope';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -44,13 +49,12 @@ export class TrendQueryService {
     trendId: string,
     organizationId?: string,
   ): Promise<TrendEntity | null> {
+    // tenant-scope-ignore: platformOrTenantScope limits the lookup to the supplied organization (or the active tenant) plus platform trends; isDeleted is false
     const doc = await this.prisma.trend.findFirst({
       where: {
         id: trendId,
         isDeleted: false,
-        ...(organizationId
-          ? { OR: [{ organizationId }, { organizationId: null }] }
-          : { organizationId: null }),
+        ...platformOrTenantScope(organizationId),
       },
     });
 
@@ -87,6 +91,7 @@ export class TrendQueryService {
         AND: [
           { data: { equals: true, path: ['isCurrent'] } },
           { data: { gt: now.toISOString(), path: ['expiresAt'] } },
+          ...platformTenantProof(),
         ],
         isDeleted: false,
         organizationId: null,
@@ -106,6 +111,12 @@ export class TrendQueryService {
    * Idempotent.
    */
   async purgeSyntheticTrendRows(): Promise<{ purged: number }> {
+    // Superadmin maintenance sweep: prelaunch seed rows were planted across
+    // every organization, so the purge must see (and soft-delete) all of them.
+    return crossOrgUnsafe(async () => await this.purgeSyntheticRows());
+  }
+
+  private async purgeSyntheticRows(): Promise<{ purged: number }> {
     // tenant-scope-ignore: platform maintenance sweep — prelaunch seed rows were planted across every organization, so the purge must see all of them
     const docs = await this.prisma.trend.findMany({
       select: { data: true, id: true },
@@ -196,6 +207,9 @@ export class TrendQueryService {
       orderBy: { createdAt: 'desc' },
       take: 200,
       where: {
+        // Platform trends (organizationId null) are read inside tenant
+        // requests; the proof names the caller, the null filter still decides.
+        AND: filter.organizationId === null ? platformTenantProof() : [],
         brandId: filter.brandId,
         isDeleted: false,
         organizationId: filter.organizationId,

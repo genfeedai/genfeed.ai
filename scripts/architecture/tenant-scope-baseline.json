@@ -699,38 +699,6 @@
     {
       "delegate": "model",
       "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "eeddb85e407deac9bef2",
-      "method": "count",
-      "model": "Model",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "314ae542b58f6817c92f",
-      "method": "findFirst",
-      "model": "Model",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "02f27b5aadf5c5c91261",
-      "method": "findFirst",
-      "model": "Model",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "0915503799d11c2ed543",
-      "method": "findMany",
-      "model": "Model",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "c85d419727bd968f415f",
       "method": "findMany",
       "model": "Model",
@@ -743,54 +711,6 @@
       "method": "findMany",
       "model": "Model",
       "reason": "unresolved-where"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "4d6504e114eaa53e29cb",
-      "method": "findUnique",
-      "model": "Model",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "eea5a65c811cd21720f5",
-      "method": "findUnique",
-      "model": "Model",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "56054f0ab67e7e7f5561",
-      "method": "update",
-      "model": "Model",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "ee2f67d78f905cbb3e18",
-      "method": "update",
-      "model": "Model",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "aa8dc1340f6d6c41b51d",
-      "method": "update",
-      "model": "Model",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "fdf784d19267db410987",
-      "method": "update",
-      "model": "Model",
-      "reason": "missing-organization-id"
     },
     {
       "delegate": "monitoredAccount",
@@ -1257,14 +1177,6 @@
       "reason": "missing-is-deleted"
     },
     {
-      "delegate": "template",
-      "file": "apps/server/api/src/collections/template-metadata/services/template-metadata.service.ts",
-      "fingerprint": "ac4de38bdfd75720e02a",
-      "method": "findFirst",
-      "model": "Template",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "trackedLink",
       "file": "apps/server/api/src/collections/tracked-links/services/tracked-links.service.ts",
       "fingerprint": "2ec0fa6b8ebc8fd995ed",
@@ -1295,14 +1207,6 @@
       "method": "updateMany",
       "model": "Trend",
       "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "trend",
-      "file": "apps/server/api/src/collections/trends/services/modules/trend-query.service.ts",
-      "fingerprint": "fd3f70ba9e9572100833",
-      "method": "findFirst",
-      "model": "Trend",
-      "reason": "unresolved-where"
     },
     {
       "delegate": "watchlist",
