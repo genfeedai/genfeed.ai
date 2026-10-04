@@ -1,3 +1,4 @@
+import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { IngredientCategory } from '@genfeedai/contracts';
@@ -276,6 +277,17 @@ describe('AgentWorkspaceToolHandler.listAssets characters (#6009)', () => {
     );
     expect(result.success).toBe(false);
     expect(result.error).toContain('origin');
+  });
+});
+
+describe('AgentWorkspaceToolHandler dependency injection (#6040)', () => {
+  it('declares the character filter as an injectable class dependency', () => {
+    const paramTypes = Reflect.getMetadata(
+      'design:paramtypes',
+      AgentWorkspaceToolHandler,
+    ) as unknown[];
+
+    expect(paramTypes).toContain(IngredientCharacterFilterService);
   });
 });
 

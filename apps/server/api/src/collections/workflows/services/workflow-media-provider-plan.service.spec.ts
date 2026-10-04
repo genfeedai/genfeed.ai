@@ -50,6 +50,7 @@ function fixture() {
     ...sideEffects,
     requireMediaAsset,
     requireBrandId: (brandId: unknown) => String(brandId),
+    hasOrganizationAsset: async () => true,
     extractIngredientId: (value: unknown) =>
       typeof value === 'string'
         ? value.match(/\/(?:videos|images)\/([^/?#]+)/i)?.[1]
@@ -172,6 +173,88 @@ describe('WorkflowMediaProviderPlanService character admission (#6040)', () => {
       }),
     );
     expect(f.requireMediaAsset).not.toHaveBeenCalled();
+  });
+});
+
+describe('WorkflowMediaProviderPlanService internal media URLs (#6037)', () => {
+  const imageNode = node('imageGen', {
+    model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+    prompt: 'portrait',
+  });
+  const urlInputs = new Map([['image', 'https://api.test/images/avatar-1']]);
+
+  function withHelper(hasAsset: boolean) {
+    const f = fixture();
+    const helper = (
+      f.service as unknown as {
+        helper: { hasOrganizationAsset: ReturnType<typeof vi.fn> };
+      }
+    ).helper;
+    helper.hasOrganizationAsset = vi.fn().mockResolvedValue(hasAsset);
+    return { f, helper };
+  }
+
+  it('refuses an internal media URL of another organization with no active grant', async () => {
+    const { f, helper } = withHelper(false);
+
+    await expect(
+      f.service.prepareNode(imageNode, urlInputs, context),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(helper.hasOrganizationAsset).toHaveBeenCalledWith(
+      'avatar-1',
+      'org-1',
+    );
+    for (const effect of Object.values(f.sideEffects))
+      expect(effect).not.toHaveBeenCalled();
+  });
+
+  it('allows an internal media URL of the running organization', async () => {
+    const { f } = withHelper(true);
+
+    await expect(
+      f.service.prepareNode(imageNode, urlInputs, context),
+    ).resolves.toMatchObject({ actionId: 'imageGen' });
+  });
+
+  it('allows the reference image of a character with an active grant without an organization lookup', async () => {
+    const { f, helper } = withHelper(false);
+    vi.mocked(f.personas.resolveCharacterReferences).mockResolvedValueOnce({
+      availableAvatarIds: new Set(['avatar-1']),
+      grantedAvatarOwners: new Map([['avatar-1', 'org-owner']]),
+      personaId: 'persona-g',
+      personaIdByAssetId: new Map(),
+    });
+
+    await expect(
+      f.service.prepareNode(imageNode, urlInputs, context),
+    ).resolves.toMatchObject({ actionId: 'imageGen' });
+    expect(helper.hasOrganizationAsset).not.toHaveBeenCalled();
+  });
+
+  it('admits bare asset ids on the video path instead of synthetic reference names', async () => {
+    const { f } = withHelper(true);
+    vi.mocked(f.personas.resolveCharacterReferences).mockRejectedValueOnce(
+      new NotFoundException('Reference image'),
+    );
+
+    await expect(
+      f.service.prepareVideo({
+        context,
+        model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+        node: node('videoGen', {}),
+        params: {
+          brandId: 'brand-1',
+          lastFrame: 'avatar-2',
+          prompt: 'walk',
+          references: ['avatar-1'],
+        },
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    const { ingredientIds } = vi.mocked(f.personas.resolveCharacterReferences)
+      .mock.calls[0][0];
+    expect(ingredientIds).toEqual(['avatar-1', 'avatar-2']);
   });
 });
 

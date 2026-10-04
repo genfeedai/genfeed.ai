@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CrunImageInputService } from '@api/collections/images/services/crun-image-input.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import { CrunQuoteService } from '@api/services/integrations/crun/crun-quote.service';
@@ -34,6 +35,7 @@ export class CrunPreviewQuoteService {
     private readonly models: ModelsService,
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly personas?: PersonasService,
   ) {}
 
   async quote(
@@ -188,6 +190,13 @@ export class CrunPreviewQuoteService {
 
   async assertCurrent(captured: CrunFrozenImageQuote): Promise<void> {
     if (!this.tasks.isAdmissionEnabled()) throw this.stale();
+    // Access to a character can be revoked after the quote was taken (#6040).
+    await this.personas?.resolveCharacterReferences({
+      brandId: captured.brandId,
+      ingredientIds: captured.intent.references ?? [],
+      organizationId: captured.organizationId,
+      path: 'image',
+    });
     const frozen = captured.snapshot.providerQuote;
     if (!frozen) throw this.stale();
     const model = await this.models.findOne({

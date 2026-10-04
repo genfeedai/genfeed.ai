@@ -96,6 +96,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       buildVideoIngredientUrl: (ingredientId: string) =>
         `https://api.test/videos/${ingredientId}`,
       createAndLinkProcessingOutput,
+      hasOrganizationAsset: async () => true,
       extractIngredientId: (value: unknown) =>
         typeof value === 'string'
           ? value.match(/\/videos\/([^/?#]+)/i)?.[1]
@@ -396,6 +397,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       buildVideoIngredientUrl: (ingredientId: string) =>
         `https://api.test/videos/${ingredientId}`,
       createAndLinkProcessingOutput,
+      hasOrganizationAsset: async () => true,
       extractIngredientId: () => undefined,
       requireBrandId: (brandId: unknown) => String(brandId),
       wrapEngineExecutor,
@@ -560,6 +562,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       buildVideoIngredientUrl: (ingredientId: string) =>
         `https://api.test/videos/${ingredientId}`,
       createAndLinkProcessingOutput,
+      hasOrganizationAsset: async () => true,
       extractIngredientId: (value: unknown) =>
         typeof value === 'string'
           ? value.match(/\/videos\/([^/?#]+)/i)?.[1]
@@ -665,6 +668,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         buildVideoIngredientUrl: (ingredientId: string) =>
           `https://api.test/videos/${ingredientId}`,
         createAndLinkProcessingOutput,
+        hasOrganizationAsset: async () => true,
         extractIngredientId: (value: unknown) =>
           typeof value === 'string'
             ? value.match(/\/(?:images|videos)\/([^/?#]+)/i)?.[1]

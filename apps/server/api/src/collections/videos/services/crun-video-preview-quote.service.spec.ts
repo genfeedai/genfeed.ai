@@ -1,4 +1,5 @@
 import { CrunVideoPreviewQuoteService } from '@api/collections/videos/services/crun-video-preview-quote.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import { ModelCategory } from '@genfeedai/contracts';
@@ -35,6 +36,9 @@ function fixture() {
     ingredient: { count: vi.fn().mockResolvedValue(4) },
   };
   const config = { get: vi.fn() };
+  const personas = {
+    resolveCharacterReferences: vi.fn().mockResolvedValue(undefined),
+  };
   const service = new CrunVideoPreviewQuoteService(
     input as never,
     quote as never,
@@ -43,8 +47,19 @@ function fixture() {
     models as never,
     prisma as never,
     config as never,
+    personas,
   );
-  return { service, input, quote, cache, tasks, models, prisma, config };
+  return {
+    personas,
+    service,
+    input,
+    quote,
+    cache,
+    tasks,
+    models,
+    prisma,
+    config,
+  };
 }
 function rows(hash = quoteSnapshotHash(intent)) {
   return Array.from({ length: 4 }, (_, outputIndex) => ({
@@ -266,4 +281,32 @@ describe('Crun scoped video preview freshness', () => {
       expect(f.quote.quote).toHaveBeenCalledTimes(1);
     },
   );
+});
+
+describe('Crun quote character admission on consume (#6040)', () => {
+  it('re-admits the quoted characters and refuses once access was revoked', async () => {
+    const f = fixture();
+    f.tasks.isAdmissionEnabled.mockReturnValue(true);
+    f.personas.resolveCharacterReferences.mockRejectedValue(
+      new NotFoundException('Reference image'),
+    );
+    const captured = {
+      brandId: 'brand',
+      intent: { ...intent, references: ['avatar-1'] },
+      organizationId: 'org',
+      snapshot: { providerQuote: {} },
+    };
+
+    await expect(
+      f.service.assertCurrent(captured as never),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(f.personas.resolveCharacterReferences).toHaveBeenCalledWith({
+      brandId: 'brand',
+      ingredientIds: ['avatar-1'],
+      organizationId: 'org',
+      path: 'video',
+    });
+    expect(f.models.findOne).not.toHaveBeenCalled();
+  });
 });

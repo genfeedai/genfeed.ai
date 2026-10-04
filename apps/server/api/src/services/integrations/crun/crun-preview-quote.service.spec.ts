@@ -1,3 +1,4 @@
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import { CrunPreviewQuoteService } from '@api/services/integrations/crun/crun-preview-quote.service';
 
@@ -29,6 +30,9 @@ function fixture() {
     ingredient: { count: vi.fn().mockResolvedValue(4) },
   };
   const config = { get: vi.fn() };
+  const personas = {
+    resolveCharacterReferences: vi.fn().mockResolvedValue(undefined),
+  };
   const service = new CrunPreviewQuoteService(
     input as never,
     quote as never,
@@ -37,8 +41,9 @@ function fixture() {
     models as never,
     prisma as never,
     config as never,
+    personas,
   );
-  return { service, input, quote, cache, tasks, models, prisma };
+  return { personas, service, input, quote, cache, tasks, models, prisma };
 }
 function rows(hash = quoteSnapshotHash(intent)) {
   return Array.from({ length: 4 }, (_, outputIndex) => ({
@@ -119,5 +124,33 @@ describe('Crun frozen quote consumption', () => {
       f.service.consume(intent, 'quote', user as never),
     ).rejects.toMatchObject({ response: { code: 'CRUN_QUOTE_STALE' } });
     expect(f.cache.getdel).not.toHaveBeenCalled();
+  });
+});
+
+describe('Crun quote character admission on consume (#6040)', () => {
+  it('re-admits the quoted characters and refuses once access was revoked', async () => {
+    const f = fixture();
+    f.tasks.isAdmissionEnabled.mockReturnValue(true);
+    f.personas.resolveCharacterReferences.mockRejectedValue(
+      new NotFoundException('Reference image'),
+    );
+    const captured = {
+      brandId: 'brand',
+      intent: { ...intent, references: ['avatar-1'] },
+      organizationId: 'org',
+      snapshot: { providerQuote: {} },
+    };
+
+    await expect(
+      f.service.assertCurrent(captured as never),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(f.personas.resolveCharacterReferences).toHaveBeenCalledWith({
+      brandId: 'brand',
+      ingredientIds: ['avatar-1'],
+      organizationId: 'org',
+      path: 'image',
+    });
+    expect(f.models.findOne).not.toHaveBeenCalled();
   });
 });
