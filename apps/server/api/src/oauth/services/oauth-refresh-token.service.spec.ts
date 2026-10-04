@@ -602,6 +602,20 @@ describe('OAuthRefreshTokenService', () => {
     );
   });
 
+  it('accepts the bound resource sent with a ?profile= routing query', async () => {
+    const { seedApiKey, seedRefreshToken, service } = buildHarness();
+    seedApiKey();
+    seedRefreshToken('refresh-plain-token-profile');
+
+    await expect(
+      service.refresh(
+        refreshGrant('refresh-plain-token-profile', {
+          resource: `${resource}?profile=full`,
+        }),
+      ),
+    ).resolves.toMatchObject({ token_type: 'Bearer' });
+  });
+
   it('rejects a resource that differs from the bound resource', async () => {
     const { seedApiKey, seedRefreshToken, service } = buildHarness();
     seedApiKey();

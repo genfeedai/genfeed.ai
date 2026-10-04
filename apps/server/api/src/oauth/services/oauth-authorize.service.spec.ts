@@ -217,6 +217,49 @@ describe('OAuthAuthorizeService', () => {
     });
   });
 
+  it('binds a ?profile= endpoint URL sent as resource to the canonical MCP resource', async () => {
+    const { apiKeysService, prisma, service } = buildHarness();
+    const profiled = `${resource}?profile=full`;
+    const authorization = await service.decideAuthorization(
+      makeUser(),
+      decision({ resource: profiled }),
+    );
+    const code = new URL(authorization.redirectUrl).searchParams.get('code');
+
+    expect(prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ resource }),
+    });
+    await expect(
+      service.exchangeToken({
+        client_id: clientId,
+        code: code as string,
+        code_verifier: verifier,
+        grant_type: 'authorization_code',
+        redirect_uri: redirectUri,
+        resource: profiled,
+      }),
+    ).resolves.toMatchObject({ token_type: 'Bearer' });
+    expect(apiKeysService.createWithKey).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ resource }),
+      }),
+      'mcp',
+    );
+  });
+
+  it('still rejects a resource with any other query', async () => {
+    const { service } = buildHarness();
+
+    await expect(
+      service.decideAuthorization(
+        makeUser(),
+        decision({ resource: `${resource}?profile=full&tenant=other` }),
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ error: 'invalid_target' }),
+    });
+  });
+
   it('rejects a PKCE or resource binding mismatch without minting a key', async () => {
     const { apiKeysService, service } = buildHarness();
     const authorization = await service.decideAuthorization(

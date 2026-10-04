@@ -56,6 +56,39 @@ export function resolveMcpResourceUrl(
   }, DEFAULT_MCP_URL).identifier;
 }
 
+/**
+ * Query parameters that only pick which MCP tools a connection lists. The
+ * setup page and the plugin bundle hand out endpoint URLs carrying them, and
+ * a client may send that URL as its RFC 8707 `resource`.
+ */
+const MCP_ROUTING_QUERY_PARAMS = new Set(['profile', 'toolsets']);
+
+/**
+ * The resource a client asked for, without the MCP routing query. Any other
+ * query, a fragment, or a different origin or path is kept, so it still
+ * fails the exact comparison against the advertised identifier.
+ */
+export function canonicalizeRequestedMcpResource(resource: string): string {
+  let url: URL;
+  try {
+    url = new URL(resource);
+  } catch {
+    return resource;
+  }
+  // `url.hash` is empty for a bare trailing `#`, so check the raw value.
+  if (resource.includes('#') || url.username || url.password) {
+    return resource;
+  }
+  const keys = [...url.searchParams.keys()];
+  if (
+    keys.length === 0 ||
+    keys.some((key) => !MCP_ROUTING_QUERY_PARAMS.has(key))
+  ) {
+    return resource;
+  }
+  return trimTrailingSlash(`${url.origin}${url.pathname}`);
+}
+
 export function buildOAuthAuthorizationServerMetadata(
   configService: Pick<ConfigService, 'get'>,
 ) {

@@ -5,6 +5,7 @@ import {
   buildMcpOAuthSessionMetadata,
   readMcpOAuthSessionLineage,
 } from '@api/oauth/mcp-oauth-session-metadata.util';
+import { canonicalizeRequestedMcpResource } from '@api/oauth/oauth-metadata.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
 import type { McpOAuthRefreshToken } from '@genfeedai/prisma';
@@ -125,7 +126,10 @@ export class OAuthRefreshTokenService {
     if (record.revokedAt || record.expiresAt <= new Date()) {
       throw invalidGrant();
     }
-    if (dto.resource !== undefined && dto.resource !== record.resource) {
+    if (
+      dto.resource !== undefined &&
+      canonicalizeRequestedMcpResource(dto.resource) !== record.resource
+    ) {
       throw oauthError('invalid_target', 'Unsupported resource');
     }
     const scopes = this.narrowScopes(record.scopes, dto.scope);
