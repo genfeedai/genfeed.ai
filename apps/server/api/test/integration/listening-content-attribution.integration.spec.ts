@@ -256,7 +256,7 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
     }).compile();
 
     await Promise.all(ownedQueues.map((queue) => queue.waitUntilReady()));
-    expect(ownedQueues).toHaveLength(4);
+    expect(ownedQueues).toHaveLength(5);
     prisma = moduleRef.get(PrismaService);
     db = prisma as unknown as AttributionDatabase;
     dbHelper = createTestDatabaseHelper(moduleRef);
