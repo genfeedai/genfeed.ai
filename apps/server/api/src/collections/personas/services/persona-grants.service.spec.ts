@@ -271,6 +271,13 @@ describe('PersonaGrantsService (#6037)', () => {
         recipientOrganizationId: RECIPIENT_ORG,
       });
 
+      tx.personaGrant.findFirst.mockResolvedValue({
+        availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
+        availableBrandIds: [],
+        id: 'grant-1',
+        recipientOrganizationId: RECIPIENT_ORG,
+      });
+
       await service.revoke(revokeParams);
 
       expect(tx.personaGrant.updateMany).toHaveBeenCalledWith({
@@ -291,6 +298,48 @@ describe('PersonaGrantsService (#6037)', () => {
           previousMode: PersonaAvailabilityMode.ALL_BRANDS,
         }),
       });
+    });
+
+    it('audits the availability read under the lock, not the stale pre-lock read', async () => {
+      const { prisma, service, tx } = setup();
+      prisma.personaGrant.findFirst.mockResolvedValue({
+        availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
+        availableBrandIds: [],
+        id: 'grant-1',
+        recipientOrganizationId: RECIPIENT_ORG,
+      });
+      // A concurrent grant update narrowed the grant before the lock was won.
+      tx.personaGrant.findFirst.mockResolvedValue({
+        availabilityMode: PersonaAvailabilityMode.SELECTED_BRANDS,
+        availableBrandIds: ['recipient-brand'],
+        id: 'grant-1',
+        recipientOrganizationId: RECIPIENT_ORG,
+      });
+
+      await service.revoke(revokeParams);
+
+      expect(tx.personaGrantAudit.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          previousBrandIds: ['recipient-brand'],
+          previousMode: PersonaAvailabilityMode.SELECTED_BRANDS,
+        }),
+      });
+    });
+
+    it('is not found when a concurrent revoke already ended the grant', async () => {
+      const { prisma, service, tx } = setup();
+      prisma.personaGrant.findFirst.mockResolvedValue({
+        availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
+        availableBrandIds: [],
+        id: 'grant-1',
+        recipientOrganizationId: RECIPIENT_ORG,
+      });
+      tx.personaGrant.findFirst.mockResolvedValue(null);
+
+      await expect(service.revoke(revokeParams)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(tx.personaGrantAudit.create).not.toHaveBeenCalled();
     });
 
     it('refuses a non-admin of the owning organization and an unknown grant', async () => {

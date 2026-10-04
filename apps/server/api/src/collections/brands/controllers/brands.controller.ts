@@ -97,6 +97,10 @@ export class BrandsController extends BaseCRUDController<
     );
   }
 
+  protected override removeEntity(brand: BrandDocument, id: string) {
+    return this.brandsService.removeInOrganization(brand.organizationId, id);
+  }
+
   /**
    * Brand PATCHes never persist the generic CRUD controller's session relation
    * aliases. Prisma treats `brand`, `organization`, and `user` as nested

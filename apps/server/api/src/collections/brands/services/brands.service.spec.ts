@@ -658,15 +658,28 @@ describe('BrandsService', () => {
   // brand-lifecycle.service.spec.ts for the FOR UPDATE lock, last-brand
   // guard, member reassignment and cache-invalidation behavior. These two
   // tests only prove BrandsService delegates to it correctly.
-  it('delegates remove to BrandLifecycleService and returns its result', async () => {
+  it('delegates removeInOrganization to BrandLifecycleService and returns its result', async () => {
     const brandId = testId('brand');
     const removed = { id: brandId, organizationId: testId('org') };
     brandLifecycleService.remove.mockResolvedValue(removed);
 
-    const result = await service.remove(brandId);
+    const result = await service.removeInOrganization(
+      removed.organizationId,
+      brandId,
+    );
 
-    expect(brandLifecycleService.remove).toHaveBeenCalledWith(brandId);
+    expect(brandLifecycleService.remove).toHaveBeenCalledWith(
+      removed.organizationId,
+      brandId,
+    );
     expect(result).toBe(removed);
+  });
+
+  it('refuses the organization-less remove so no caller can skip the scope', async () => {
+    await expect(service.remove(testId('brand'))).rejects.toThrow(
+      'Brand deletion needs an organization',
+    );
+    expect(brandLifecycleService.remove).not.toHaveBeenCalled();
   });
 
   it('delegates selectBrandForUser to BrandLifecycleService and returns its result', async () => {

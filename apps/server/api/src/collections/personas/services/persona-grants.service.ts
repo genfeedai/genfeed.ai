@@ -236,16 +236,31 @@ export class PersonaGrantsService {
     if (!grant) {
       throw new NotFoundException('Character grant', params.grantId);
     }
-    await this.personas.withHandleLock(
-      grant.recipientOrganizationId,
+    await withPersonaHandleLocks(
+      this.prisma,
+      [params.organizationId, grant.recipientOrganizationId],
       async (tx) => {
+        // Re-read under the lock: a concurrent grant update may have changed
+        // the availability since the read above, and the audit must record
+        // what was actually revoked.
+        const active = await tx.personaGrant.findFirst({
+          where: {
+            id: grant.id,
+            ownerOrganizationId: params.organizationId,
+            personaId: params.personaId,
+            revokedAt: null,
+          },
+        });
+        if (!active) {
+          throw new NotFoundException('Character grant', params.grantId);
+        }
         const updated = await tx.personaGrant.updateMany({
           data: {
             revokedAt: new Date(),
             revokedByUserId: params.actorUserId,
           },
           where: {
-            id: grant.id,
+            id: active.id,
             ownerOrganizationId: params.organizationId,
             revokedAt: null,
           },
@@ -257,14 +272,14 @@ export class PersonaGrantsService {
           data: {
             action: 'revoked',
             actorUserId: params.actorUserId,
-            grantId: grant.id,
+            grantId: active.id,
             newBrandIds: [],
             newMode: null,
             ownerOrganizationId: params.organizationId,
             personaId: params.personaId,
-            previousBrandIds: grant.availableBrandIds ?? [],
-            previousMode: grant.availabilityMode,
-            recipientOrganizationId: grant.recipientOrganizationId,
+            previousBrandIds: active.availableBrandIds ?? [],
+            previousMode: active.availabilityMode,
+            recipientOrganizationId: active.recipientOrganizationId,
           },
         });
       },
