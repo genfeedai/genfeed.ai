@@ -228,6 +228,174 @@ export const CONVERSATION_CACHE_LIMIT = 20;
  */
 export const CONVERSATION_CACHE_FRESHNESS_MS = 20_000;
 
+export type AgentRunStatus =
+  | 'idle'
+  | 'running'
+  | 'cancelling'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+  | 'awaiting_input'
+  | 'awaiting_confirmation'
+  | 'interrupted'
+  | 'restoring';
+
+/** One thread's run, the single record the run fields derive from. */
+export interface AgentRunRecord {
+  isGenerating: boolean;
+  runId: string | null;
+  startedAt: string | null;
+  status: AgentRunStatus;
+}
+
+/** `runsByThread` key for the not-yet-created thread (`activeThreadId: null`). */
+export const DRAFT_RUN_KEY = '__new__';
+
+const IDLE_RUN: AgentRunRecord = {
+  isGenerating: false,
+  runId: null,
+  startedAt: null,
+  status: 'idle',
+};
+
+export type AgentRunEvent =
+  /** A run began or was restored (`setActiveRun`). */
+  | {
+      type: 'begin';
+      runId: string | null;
+      startedAt?: string | null;
+      status?: AgentRunStatus;
+    }
+  /** The run's status moved, same run (`setActiveRunStatus`, input resolved). */
+  | { type: 'status'; status: AgentRunStatus }
+  /** The explicit `isGenerating` flag was set. */
+  | { type: 'generating'; isGenerating: boolean }
+  /** The turn finished with a final assistant message. */
+  | { type: 'complete' }
+  /** A surfaced error settles a live run as failed and clears generating. */
+  | { type: 'error' }
+  /** The stream was torn down; a cancel in flight stays cancelling. */
+  | { type: 'stream-reset' }
+  /** The thread was switched to: no run is known until hydration. */
+  | { type: 'switch' }
+  /** The conversation was cleared or the run is gone. */
+  | { type: 'reset' };
+
+type RunStateSlice = Pick<
+  AgentChatState,
+  | 'activeRunId'
+  | 'activeRunStatus'
+  | 'activeThreadId'
+  | 'isGenerating'
+  | 'runStartedAt'
+  | 'runsByThread'
+>;
+
+export function runKeyFor(threadId: string | null): string {
+  return threadId ?? DRAFT_RUN_KEY;
+}
+
+function recordOf(state: RunStateSlice, threadId: string | null) {
+  const key = runKeyFor(threadId);
+  // The visible thread's compatibility fields can be written from outside the
+  // store (stream projection), so they are the freshest copy of its record.
+  return key === runKeyFor(state.activeThreadId)
+    ? {
+        isGenerating: state.isGenerating,
+        runId: state.activeRunId,
+        startedAt: state.runStartedAt,
+        status: state.activeRunStatus,
+      }
+    : (state.runsByThread[key] ?? IDLE_RUN);
+}
+
+function applyRunEvent(
+  record: AgentRunRecord,
+  event: AgentRunEvent,
+): AgentRunRecord {
+  switch (event.type) {
+    case 'begin':
+      return {
+        ...record,
+        runId: event.runId,
+        startedAt: event.startedAt ?? null,
+        status: event.status ?? (event.runId ? 'running' : 'idle'),
+      };
+    case 'status':
+      return { ...record, status: event.status };
+    case 'generating':
+      return { ...record, isGenerating: event.isGenerating };
+    case 'complete':
+      return { ...record, runId: null, startedAt: null, status: 'completed' };
+    case 'error':
+      return {
+        ...record,
+        isGenerating: false,
+        status:
+          record.status === 'running' || record.status === 'cancelling'
+            ? 'failed'
+            : record.status,
+      };
+    case 'stream-reset':
+      return {
+        ...record,
+        status: record.status === 'cancelling' ? 'cancelling' : 'idle',
+      };
+    case 'switch':
+      return { ...record, runId: null, startedAt: null, status: 'idle' };
+    case 'reset':
+      return IDLE_RUN;
+  }
+}
+
+/**
+ * The one place run state changes. Moves `threadId`'s record and, when that is
+ * the visible thread, projects it onto `activeRunId` / `activeRunStatus` /
+ * `isGenerating` / `runStartedAt` in the same patch, so the fields cannot
+ * disagree. A background thread's transition never touches the visible
+ * thread's fields.
+ */
+export function runTransitionPatch(
+  state: RunStateSlice,
+  threadId: string | null,
+  event: AgentRunEvent,
+): Pick<AgentChatState, 'runsByThread'> &
+  Partial<
+    Pick<
+      AgentChatState,
+      'activeRunId' | 'activeRunStatus' | 'isGenerating' | 'runStartedAt'
+    >
+  > {
+  const key = runKeyFor(threadId);
+  const next = applyRunEvent(recordOf(state, threadId), event);
+  const runsByThread = { ...state.runsByThread, [key]: next };
+  if (key !== runKeyFor(state.activeThreadId)) {
+    return { runsByThread };
+  }
+  return {
+    activeRunId: next.runId,
+    activeRunStatus: next.status,
+    isGenerating: next.isGenerating,
+    runStartedAt:
+      event.type === 'begin' ||
+      event.type === 'complete' ||
+      event.type === 'switch' ||
+      event.type === 'reset'
+        ? next.startedAt
+        : state.runStartedAt,
+    runsByThread,
+  };
+}
+
+/** The visible thread's run record. */
+export function selectActiveRun(state: RunStateSlice): AgentRunRecord {
+  return state.runsByThread[runKeyFor(state.activeThreadId)] ?? IDLE_RUN;
+}
+
+export function selectIsGenerating(state: RunStateSlice): boolean {
+  return selectActiveRun(state).isGenerating;
+}
+
 interface AgentChatState {
   activeRunId: string | null;
   draftAgentMode: AgentThreadMode;
@@ -246,18 +414,10 @@ interface AgentChatState {
   memoryEntries: AgentMemoryEntry[];
   threads: AgentThread[];
   activeThreadId: string | null;
-  activeRunStatus:
-    | 'idle'
-    | 'running'
-    | 'cancelling'
-    | 'completed'
-    | 'failed'
-    | 'cancelled'
-    | 'awaiting_input'
-    | 'awaiting_confirmation'
-    | 'interrupted'
-    | 'restoring';
+  activeRunStatus: AgentRunStatus;
   isGenerating: boolean;
+  /** Per-thread run records; key = threadId | DRAFT_RUN_KEY. */
+  runsByThread: Record<string, AgentRunRecord>;
   isOpen: boolean;
   error: string | null;
   creditsRemaining: number | null;
@@ -339,6 +499,7 @@ interface AgentChatActions {
     },
   ) => void;
   setActiveRunStatus: (status: AgentChatState['activeRunStatus']) => void;
+  transitionRun: (threadId: string | null, event: AgentRunEvent) => void;
   setPendingInputRequest: (request: AgentInputRequest | null) => void;
   setRunStartedAt: (startedAt: string | null) => void;
   setWorkEvents: (events: AgentWorkEvent[]) => void;
@@ -602,6 +763,7 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
     activeRunId: null,
     activeRunStatus: 'idle',
     activeThreadId: null,
+    runsByThread: {},
     addActiveToolCall: (toolCall) =>
       set((state) => {
         const existingIndex = state.stream.activeToolCalls.findIndex(
@@ -841,31 +1003,25 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
     clearComposerSeed: () => set({ composerSeed: null }),
     clearConversationCache: () => set({ conversationCacheByThread: {} }),
     clearMessages: () =>
-      set({
-        activeRunId: null,
-        activeRunStatus: 'idle',
+      set((state) => ({
+        ...runTransitionPatch(state, state.activeThreadId, { type: 'reset' }),
         composerSeed: null,
         draftAgentMode: get().savedAgentMode ?? DEFAULT_AGENT_THREAD_MODE,
         hasExplicitDraftAgentMode: false,
         error: null,
         latestProposedPlan: null,
         hasMoreMessages: false,
-        isGenerating: false,
         isLoadingOlderMessages: false,
         messages: [],
         messagesCursor: null,
         pendingInputRequest: null,
-        runStartedAt: null,
         threadUiBusyById: {},
         workEvents: [],
-      }),
+      })),
     clearStaleActiveRun: () => {
       discardPendingStreamTokens();
       set((state) => ({
-        activeRunId: null,
-        activeRunStatus: 'idle',
-        isGenerating: false,
-        runStartedAt: null,
+        ...runTransitionPatch(state, state.activeThreadId, { type: 'reset' }),
         stream: { ...DEFAULT_STREAM_STATE },
         // The run is gone server-side. The thread summary is what the sidebar
         // trusts for "Working", so settle it here or it would stay there.
@@ -896,7 +1052,10 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
         resolved = true;
         return {
           pendingInputRequest: null,
-          activeRunStatus: 'running',
+          ...runTransitionPatch(state, threadId, {
+            status: 'running',
+            type: 'status',
+          }),
           threads: state.threads.map((thread) =>
             thread.id === threadId
               ? {
@@ -986,8 +1145,9 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
         });
 
         return {
-          activeRunId: null,
-          activeRunStatus: 'completed',
+          ...runTransitionPatch(state, state.activeThreadId, {
+            type: 'complete',
+          }),
           latestProposedPlan: resolveLatestProposedPlan(
             state.latestProposedPlan,
             message.metadata?.proposedPlan,
@@ -1008,7 +1168,6 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
           pendingInputRequest: null,
           // Clear tool lifecycle rows so sticky "Running get_analytics 15%" cannot
           // outlive the completed turn.
-          runStartedAt: null,
           stream: { ...DEFAULT_STREAM_STATE },
           workEvents: [],
         };
@@ -1084,31 +1243,29 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
       })),
     resetActiveConversationState: () => {
       discardPendingStreamTokens();
-      set({
-        activeRunId: null,
-        activeRunStatus: 'idle',
+      set((state) => ({
+        ...runTransitionPatch(state, state.activeThreadId, { type: 'reset' }),
         composerSeed: null,
         draftAgentMode: get().savedAgentMode ?? DEFAULT_AGENT_THREAD_MODE,
         hasExplicitDraftAgentMode: false,
         error: null,
         latestProposedPlan: null,
         hasMoreMessages: false,
-        isGenerating: false,
         isLoadingOlderMessages: false,
         messages: [],
         messagesCursor: null,
         pendingInputRequest: null,
-        runStartedAt: null,
         stream: { ...DEFAULT_STREAM_STATE },
         threadUiBusyById: {},
         workEvents: [],
-      });
+      }));
     },
     resetStreamState: () => {
       discardPendingStreamTokens();
       set((state) => ({
-        activeRunStatus:
-          state.activeRunStatus === 'cancelling' ? 'cancelling' : 'idle',
+        ...runTransitionPatch(state, state.activeThreadId, {
+          type: 'stream-reset',
+        }),
         stream: { ...DEFAULT_STREAM_STATE },
         workEvents: [],
       }));
@@ -1123,9 +1280,8 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
       // Mirrors resetActiveConversationState for everything the cache does not
       // carry, so no run/stream state leaks across from the thread being left.
       discardPendingStreamTokens();
-      set({
-        activeRunId: null,
-        activeRunStatus: 'idle',
+      set((state) => ({
+        ...runTransitionPatch(state, state.activeThreadId, { type: 'reset' }),
         composerSeed: null,
         draftAgentMode:
           get().threads.find((thread) => thread.id === threadId)?.mode ??
@@ -1135,16 +1291,14 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
         error: cached.error,
         latestProposedPlan: cached.latestProposedPlan,
         hasMoreMessages: cached.hasMoreMessages,
-        isGenerating: false,
         isLoadingOlderMessages: false,
         messages: cached.messages,
         messagesCursor: cached.messagesCursor,
         pendingInputRequest: cached.pendingInputRequest,
-        runStartedAt: null,
         stream: { ...DEFAULT_STREAM_STATE },
         threadUiBusyById: {},
         workEvents: cached.workEvents,
-      });
+      }));
 
       return true;
     },
@@ -1158,12 +1312,23 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
         },
       }),
     setActiveRun: (runId, options) =>
-      set({
-        activeRunId: runId,
-        activeRunStatus: options?.status ?? (runId ? 'running' : 'idle'),
-        runStartedAt: options?.startedAt ?? null,
-      }),
-    setActiveRunStatus: (status) => set({ activeRunStatus: status }),
+      set((state) =>
+        runTransitionPatch(state, state.activeThreadId, {
+          runId,
+          startedAt: options?.startedAt,
+          status: options?.status,
+          type: 'begin',
+        }),
+      ),
+    setActiveRunStatus: (status) =>
+      set((state) =>
+        runTransitionPatch(state, state.activeThreadId, {
+          status,
+          type: 'status',
+        }),
+      ),
+    transitionRun: (threadId, event) =>
+      set((state) => runTransitionPatch(state, threadId, event)),
     setActiveThread: (id) =>
       set((state) => {
         // `/agent/new` creates the thread while the store still has `null`, then
@@ -1184,14 +1349,27 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
               buildAgentGenerationSetupScope(id, 'video'),
             );
           }
+          // The draft thread's run record moves to the thread it became.
+          if (!state.activeThreadId && id) {
+            const { [DRAFT_RUN_KEY]: draftRun, ...otherRuns } =
+              state.runsByThread;
+            return {
+              activeThreadId: id,
+              runsByThread: draftRun
+                ? { ...otherRuns, [id]: draftRun }
+                : state.runsByThread,
+            };
+          }
           return { activeThreadId: id };
         }
 
+        // The departing thread keeps its record (a run can finish in the
+        // background); the visible fields restart from idle until hydration.
         return {
+          ...runTransitionPatch({ ...state, activeThreadId: id }, id, {
+            type: 'switch',
+          }),
           activeThreadId: id,
-          activeRunId: null,
-          activeRunStatus: 'idle',
-          runStartedAt: null,
           stream: { ...DEFAULT_STREAM_STATE },
         };
       }),
@@ -1203,17 +1381,16 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
         error,
         // Credit/limit failures should not leave the composer stuck on Stop.
         ...(error
-          ? {
-              activeRunStatus:
-                state.activeRunStatus === 'running' ||
-                state.activeRunStatus === 'cancelling'
-                  ? 'failed'
-                  : state.activeRunStatus,
-              isGenerating: false,
-            }
+          ? runTransitionPatch(state, state.activeThreadId, { type: 'error' })
           : {}),
       })),
-    setIsGenerating: (generating) => set({ isGenerating: generating }),
+    setIsGenerating: (generating) =>
+      set((state) =>
+        runTransitionPatch(state, state.activeThreadId, {
+          isGenerating: generating,
+          type: 'generating',
+        }),
+      ),
     setIsLoadingOlderMessages: (loading) =>
       set({ isLoadingOlderMessages: loading }),
     setIsOpen: (open) => {
@@ -1578,24 +1755,47 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
 
 export const useAgentChatStore = createAgentChatStore();
 
-// The open thread's run status reaches this store through actions, stream
-// projection and snapshot hydration alike, so mirror it into the thread summary
-// at one choke point. The sidebar reads only the summary; without this a run
-// that ends (or starts) on the open thread would leave its row stale. Skipped
-// while the open thread itself changes: the switch resets the status to `idle`,
-// which says nothing about the run (see `resolveRunSummaryPatch`).
+// The open thread's run reaches this store through actions, stream projection
+// and snapshot hydration alike. Actions move `runsByThread` through
+// `transitionRun`; stream projection still writes the compatibility fields
+// directly, so first fold those back into the record. Then mirror the record's
+// status into the thread summary at one choke point. The sidebar reads only the
+// summary; without this a run that ends (or starts) on the open thread would
+// leave its row stale. Skipped while the open thread itself changes: the switch
+// resets the status to `idle`, which says nothing about the run (see
+// `resolveRunSummaryPatch`).
 useAgentChatStore.subscribe((next, previous) => {
+  if (!next.activeThreadId || next.activeThreadId !== previous.activeThreadId) {
+    return;
+  }
+
+  const record = selectActiveRun(next);
   if (
-    next.activeRunStatus === previous.activeRunStatus ||
-    next.activeThreadId !== previous.activeThreadId ||
-    !next.activeThreadId
+    record.runId !== next.activeRunId ||
+    record.status !== next.activeRunStatus ||
+    record.isGenerating !== next.isGenerating
   ) {
+    useAgentChatStore.setState((state) => ({
+      runsByThread: {
+        ...state.runsByThread,
+        [runKeyFor(state.activeThreadId)]: {
+          isGenerating: state.isGenerating,
+          runId: state.activeRunId,
+          startedAt: state.runStartedAt,
+          status: state.activeRunStatus,
+        },
+      },
+    }));
+    return;
+  }
+
+  if (record.status === selectActiveRun(previous).status) {
     return;
   }
 
   const activeThreadId = next.activeThreadId;
   const thread = next.threads.find((item) => item.id === activeThreadId);
-  const patch = thread && resolveRunSummaryPatch(next.activeRunStatus, thread);
+  const patch = thread && resolveRunSummaryPatch(record.status, thread);
   if (!patch) {
     return;
   }
