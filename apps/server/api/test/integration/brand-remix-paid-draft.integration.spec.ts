@@ -8,6 +8,7 @@ import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/servi
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import type { PausedMetaCampaignDraftResult } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
 import type { PausedXAdsCampaignDraftResult } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
+import { noCharacterAdmission } from '@api/collections/personas/utils/character-admission.util';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { XAdsAdapter } from '@api/services/ads-gateway/adapters/x-ads.adapter';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -563,6 +564,11 @@ describeWithDatabase('Brand remix paid draft integration', () => {
         findOne: vi.fn().mockResolvedValue(null),
       } as never,
       pausedMetaCampaignDraftService: { prepare } as never,
+      personasService: {
+        resolveCharacterReferences: vi
+          .fn()
+          .mockResolvedValue(noCharacterAdmission()),
+      } as never,
       pausedXAdsCampaignDraftService: (options?.prepareX
         ? { prepare: options.prepareX }
         : {}) as never,
