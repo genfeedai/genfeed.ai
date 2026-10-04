@@ -381,3 +381,4 @@ export * from './utils/error.interface';
 export * from './utils/filters.interface';
 export * from './utils/http-interceptor-error.interface';
 export * from './utils/query.interface';
+export * from './utils/scoped-outbox.interface';

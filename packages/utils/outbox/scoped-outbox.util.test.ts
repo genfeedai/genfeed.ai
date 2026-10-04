@@ -1,9 +1,9 @@
+import type {
+  ScopedOutboxFailureResolution,
+  ScopedOutboxStorage,
+} from '@genfeedai/contracts/interfaces/utils/scoped-outbox.interface';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  createScopedOutbox,
-  type ScopedOutboxFailureResolution,
-  type ScopedOutboxStorage,
-} from './scoped-outbox.util';
+import { createScopedOutbox } from './scoped-outbox.util';
 
 type Failure = 'failed' | 'error';
 
@@ -502,5 +502,58 @@ describe('createScopedOutbox', () => {
     outbox.enqueue('a', { text: 'y' }, { write });
     await flush();
     expect(listener).toHaveBeenCalledTimes(2);
+  });
+
+  it('joins a drain started by a reentrant enqueue from a subscriber', async () => {
+    const { outbox } = makeOutbox(makeStorage());
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const written: string[] = [];
+    const write = vi.fn().mockImplementation(async (_id, note: Note) => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await Promise.resolve();
+      written.push(note.text);
+      inFlight -= 1;
+    });
+    let hasReentered = false;
+    outbox.subscribe('a', (status) => {
+      if (status === 'saving' && !hasReentered) {
+        hasReentered = true;
+        outbox.enqueue('a', { text: 'newest' }, { write });
+      }
+    });
+
+    outbox.enqueue('a', { text: 'older' }, { write });
+    await flush();
+
+    expect(maxInFlight).toBe(1);
+    expect(written.at(-1)).toBe('newest');
+    expect(outbox.hasUnsavedWrites('a')).toBe(false);
+  });
+
+  it('joins a drain started by a reentrant enqueue from the writer', async () => {
+    const { outbox } = makeOutbox(makeStorage());
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const written: string[] = [];
+    let hasReentered = false;
+    const write = vi.fn().mockImplementation(async (_id, note: Note) => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      if (!hasReentered) {
+        hasReentered = true;
+        outbox.enqueue('a', { text: 'newest' }, { write });
+      }
+      await Promise.resolve();
+      written.push(note.text);
+      inFlight -= 1;
+    });
+
+    outbox.enqueue('a', { text: 'older' }, { write });
+    await flush();
+
+    expect(maxInFlight).toBe(1);
+    expect(written).toEqual(['older', 'newest']);
   });
 });

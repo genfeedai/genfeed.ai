@@ -1,4 +1,8 @@
 import type {
+  ScopedOutboxOptions,
+  ScopedOutboxStorage,
+} from '@genfeedai/contracts/interfaces/utils/scoped-outbox.interface';
+import type {
   StudioGenerateDraftPayload,
   StudioGenerateDraftSaveStatus,
 } from '@pages/studio/generate/types';
@@ -7,8 +11,6 @@ import { isRecord } from '@utils/data/extract.util';
 import {
   createScopedOutbox,
   SCOPED_OUTBOX_IDLE_TIMEOUT_MS,
-  type ScopedOutboxOptions,
-  type ScopedOutboxStorage,
 } from '@utils/outbox/scoped-outbox.util';
 
 export type StudioGenerateDraftWrite = (
