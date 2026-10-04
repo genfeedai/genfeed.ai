@@ -27,14 +27,27 @@ describe('crun-quote-input.util', () => {
   });
 
   it('accepts every manifest model in its media kind schema', () => {
-    for (const entry of CRUN_VIDEO_MANIFEST)
+    const request = (model: string) => ({
+      model,
+      text: 'hello',
+      crunControls: { contractVersion: 'v1' },
+    });
+    for (const entry of CRUN_VIDEO_MANIFEST) {
       expect(
-        crunVideoQuoteIntentSchema.shape.model.safeParse(entry.key).success,
+        crunVideoQuoteIntentSchema.safeParse(request(entry.key)).success,
       ).toBe(true);
-    for (const entry of CRUN_IMAGE_MANIFEST)
+    }
+    for (const entry of CRUN_IMAGE_MANIFEST) {
       expect(
-        crunImageQuoteIntentSchema.shape.model.safeParse(entry.key).success,
+        crunImageQuoteIntentSchema.safeParse(request(entry.key)).success,
       ).toBe(true);
+    }
+    expect(
+      crunVideoQuoteIntentSchema.safeParse(request('crun/nope/model')).success,
+    ).toBe(false);
+    expect(
+      crunImageQuoteIntentSchema.safeParse(request('crun/nope/model')).success,
+    ).toBe(false);
   });
 
   it('requires an enhanced prompt when skills or a harness are requested', async () => {
