@@ -16,6 +16,7 @@ import {
 import {
   AGENT_TURN_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+  SCHEDULED_PUBLISH_QUEUE,
   SystemWorkflowDispatchClass,
   WORKFLOW_BACKGROUND_QUEUE,
 } from '@genfeedai/contracts/queue';
@@ -78,6 +79,7 @@ describe('WorkflowExecutionQueueService', () => {
   let mockPlatformQueue: ReturnType<typeof createMockQueue>;
   let mockBackgroundQueue: ReturnType<typeof createMockQueue>;
   let mockAgentTurnQueue: ReturnType<typeof createMockQueue>;
+  let mockScheduledPublishQueue: ReturnType<typeof createMockQueue>;
   let mockLogger: ReturnType<typeof createMockLogger>;
 
   beforeEach(() => {
@@ -85,6 +87,7 @@ describe('WorkflowExecutionQueueService', () => {
     mockPlatformQueue = createMockQueue();
     mockBackgroundQueue = createMockQueue();
     mockAgentTurnQueue = createMockQueue();
+    mockScheduledPublishQueue = createMockQueue();
     mockLogger = createMockLogger();
 
     service = new (
@@ -96,6 +99,7 @@ describe('WorkflowExecutionQueueService', () => {
       mockPlatformQueue,
       mockBackgroundQueue,
       mockAgentTurnQueue,
+      mockScheduledPublishQueue,
       mockLogger,
     );
   });
@@ -366,6 +370,63 @@ describe('WorkflowExecutionQueueService', () => {
       expect(mockPlatformQueue.add).not.toHaveBeenCalled();
     });
 
+    it('routes a SCHEDULED_PUBLISH dispatch to the scheduled-publish queue only (#5890)', async () => {
+      const input = {
+        actionType: 'scheduled-post.publish',
+        canonicalId: 'scheduled-post.publish',
+        organizationId: 'org-1',
+        source: 'scheduled_sweep',
+        userId: 'user-1',
+      };
+
+      await service.queueSystemWorkflow(input, 'scheduled-post-1', {
+        dispatchClass: SystemWorkflowDispatchClass.SCHEDULED_PUBLISH,
+      });
+
+      expect(mockScheduledPublishQueue.add).toHaveBeenCalledWith(
+        'system-run',
+        expect.anything(),
+        expect.objectContaining({ jobId: 'scheduled-post-1' }),
+      );
+      expect(mockBackgroundQueue.add).not.toHaveBeenCalled();
+      expect(mockQueue.add).not.toHaveBeenCalled();
+      expect(mockPlatformQueue.add).not.toHaveBeenCalled();
+      expect(mockAgentTurnQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('a saturated background queue does not delay a scheduled publish (#5890)', async () => {
+      // A background queue that never accepts a job models a saturated one:
+      // every producer awaiting it is stuck behind the shared limiter.
+      mockBackgroundQueue.add.mockReturnValue(new Promise(() => undefined));
+      const stuckBackground = service.queueSystemWorkflow(
+        {
+          actionType: 'lifecycle-email',
+          canonicalId: 'lifecycle-email',
+          organizationId: 'org-1',
+          source: 'lifecycle',
+          userId: 'user-1',
+        },
+        'background-1',
+        { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+      );
+      void stuckBackground;
+
+      await expect(
+        service.queueSystemWorkflow(
+          {
+            actionType: 'scheduled-post.publish',
+            canonicalId: 'scheduled-post.publish',
+            organizationId: 'org-1',
+            source: 'scheduled_sweep',
+            userId: 'user-1',
+          },
+          'scheduled-post-2',
+          { dispatchClass: SystemWorkflowDispatchClass.SCHEDULED_PUBLISH },
+        ),
+      ).resolves.toBe('job-123');
+      expect(mockScheduledPublishQueue.add).toHaveBeenCalledTimes(1);
+    });
+
     it('keeps a non-agent interactive dispatch on the interactive queue (#5271)', async () => {
       const input = {
         actionType: 'voice.generate',
@@ -544,23 +605,25 @@ describe('WorkflowExecutionQueueService', () => {
       expect(mockQueue.add).not.toHaveBeenCalled();
     });
 
-    it.each([WORKFLOW_BACKGROUND_QUEUE, PLATFORM_SYSTEM_WORKFLOW_QUEUE])(
-      'retains the %s queue for a delayed resume',
-      async (queueName) => {
-        const data = createDelayResumeData();
-        await service.queueDelayedResume(data, 5000, queueName);
-        const queue =
-          queueName === WORKFLOW_BACKGROUND_QUEUE
-            ? mockBackgroundQueue
-            : mockPlatformQueue;
-        expect(queue.add).toHaveBeenCalledWith(
-          'delay-resume',
-          expect.objectContaining({ delayResumeData: data }),
-          expect.objectContaining({ delay: 5000 }),
-        );
-        expect(mockQueue.add).not.toHaveBeenCalled();
-      },
-    );
+    it.each([
+      WORKFLOW_BACKGROUND_QUEUE,
+      PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+      SCHEDULED_PUBLISH_QUEUE,
+    ])('retains the %s queue for a delayed resume', async (queueName) => {
+      const data = createDelayResumeData();
+      await service.queueDelayedResume(data, 5000, queueName);
+      const queue = {
+        [PLATFORM_SYSTEM_WORKFLOW_QUEUE]: mockPlatformQueue,
+        [SCHEDULED_PUBLISH_QUEUE]: mockScheduledPublishQueue,
+        [WORKFLOW_BACKGROUND_QUEUE]: mockBackgroundQueue,
+      }[queueName];
+      expect(queue.add).toHaveBeenCalledWith(
+        'delay-resume',
+        expect.objectContaining({ delayResumeData: data }),
+        expect.objectContaining({ delay: 5000 }),
+      );
+      expect(mockQueue.add).not.toHaveBeenCalled();
+    });
     it('should add a delayed resume job with correct delay', async () => {
       const data = createDelayResumeData();
       const delayMs = 1800000; // 30 minutes
@@ -644,6 +707,7 @@ describe('WorkflowExecutionQueueService', () => {
         createMockQueue(),
         createMockQueue(),
         createMockQueue(),
+        createMockQueue(),
         createMockLogger(),
       );
       const replicaB = new (
@@ -652,6 +716,7 @@ describe('WorkflowExecutionQueueService', () => {
         ) => WorkflowExecutionQueueService
       )(
         mockQueue,
+        createMockQueue(),
         createMockQueue(),
         createMockQueue(),
         createMockQueue(),

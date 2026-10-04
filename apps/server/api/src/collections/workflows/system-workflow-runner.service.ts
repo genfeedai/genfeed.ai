@@ -907,7 +907,10 @@ export class SystemWorkflowRunnerService
     const dispatchClass =
       metadata.dispatchClass === SystemWorkflowDispatchClass.INTERACTIVE
         ? SystemWorkflowDispatchClass.INTERACTIVE
-        : SystemWorkflowDispatchClass.BACKGROUND;
+        : metadata.dispatchClass ===
+            SystemWorkflowDispatchClass.SCHEDULED_PUBLISH
+          ? SystemWorkflowDispatchClass.SCHEDULED_PUBLISH
+          : SystemWorkflowDispatchClass.BACKGROUND;
     return {
       dispatchClass,
       usePlatformQueue:

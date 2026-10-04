@@ -67,7 +67,7 @@ describe('ScheduledPostWorkflowQueueService', () => {
     },
   );
 
-  it('routes the scheduled_sweep cron source to the background queue', async () => {
+  it('routes the scheduled_sweep cron source to its own scheduled-publish class (#5890)', async () => {
     const workflowQueue = {
       queueSystemWorkflow: vi.fn().mockResolvedValue('job-1'),
     };
@@ -86,7 +86,7 @@ describe('ScheduledPostWorkflowQueueService', () => {
       expect.anything(),
       expect.anything(),
       expect.objectContaining({
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        dispatchClass: SystemWorkflowDispatchClass.SCHEDULED_PUBLISH,
       }),
     );
   });

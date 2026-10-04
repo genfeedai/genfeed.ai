@@ -69,7 +69,7 @@ describe.skipIf(!redisAvailable)(
       WorkflowExecutionQueueService as unknown as new (
         ...args: unknown[]
       ) => WorkflowExecutionQueueService
-    )(queue, queue, queue, queue, createMockLogger());
+    )(queue, queue, queue, queue, queue, createMockLogger());
 
     afterAll(async () => {
       await queue.obliterate({ force: true });
