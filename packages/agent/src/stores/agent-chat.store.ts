@@ -1540,11 +1540,41 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
         return 'stale';
       }
       const patch = resolveStatusPushPatch(event, thread);
-      set((state) => ({
-        threads: state.threads.map((item) =>
-          item.id === event.threadId ? { ...item, ...patch } : item,
-        ),
-      }));
+      set((state) => {
+        // The run record settles with the summary, or switching back to the
+        // thread would show a live run the sidebar already calls finished.
+        // Running / queued pushes leave the record to the stream.
+        const pushedStatus: AgentRunStatus | null =
+          event.runStatus === 'completed' ||
+          event.runStatus === 'failed' ||
+          event.runStatus === 'cancelled'
+            ? event.runStatus
+            : event.runStatus === 'waiting_input'
+              ? 'awaiting_input'
+              : null;
+        const settled = pushedStatus
+          ? runTransitionPatch(state, event.threadId, {
+              status: pushedStatus,
+              type: 'status',
+            })
+          : null;
+        const record = settled?.runsByThread[event.threadId];
+        return {
+          runsByThread:
+            settled && record
+              ? {
+                  ...settled.runsByThread,
+                  [event.threadId]:
+                    pushedStatus === 'awaiting_input'
+                      ? record
+                      : { ...record, isGenerating: false },
+                }
+              : state.runsByThread,
+          threads: state.threads.map((item) =>
+            item.id === event.threadId ? { ...item, ...patch } : item,
+          ),
+        };
+      });
       return 'applied';
     },
     updateThread: (threadId, update) =>

@@ -220,6 +220,7 @@ describe('agent-chat.store per-thread run state', () => {
       state().upsertThread(createThread(id));
     }
     state().setActiveRun('run-a');
+    state().setIsGenerating(true);
     state().setActiveThread('thread-b');
     state().setActiveRun('run-b');
 
@@ -242,6 +243,15 @@ describe('agent-chat.store per-thread run state', () => {
       runId: 'run-b',
       status: 'running',
     });
+    // The background record settles with its summary.
+    expect(state().runsByThread['thread-a']).toMatchObject({
+      isGenerating: false,
+      status: 'completed',
+    });
+
+    state().setActiveThread('thread-a');
+    expect(selectActiveRun(state()).status).toBe('completed');
+    expect(selectIsGenerating(state())).toBe(false);
   });
 
   it('mirrors the open thread run status into its summary', () => {
