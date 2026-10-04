@@ -1,7 +1,12 @@
 import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { NotificationsService } from '@api/services/notifications/notifications.service';
+import { SystemNotificationDeliveryError } from '@api/services/notifications/system-notification-delivery.error';
 import type { SystemEventDeliveryService } from '@api/services/system-events/system-event-delivery.service';
-import { SystemEventsService } from '@api/services/system-events/system-events.service';
+import {
+  MAX_EVENT_ATTEMPTS,
+  RECOVER_BATCH_SIZE,
+  SystemEventsService,
+} from '@api/services/system-events/system-events.service';
 import type { SystemNotificationDestinationsService } from '@api/services/system-events/system-notification-destinations.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
@@ -52,6 +57,7 @@ function setup(
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
   };
+  const logger = { warn: vi.fn() };
   const service = new SystemEventsService(
     {
       deliver: (...args: unknown[]) =>
@@ -61,10 +67,10 @@ function setup(
     {} as SystemNotificationDestinationsService,
     prisma as unknown as PrismaService,
     featureSettings as unknown as PlatformSettingsService,
-    { warn: vi.fn() } as unknown as LoggerService,
+    logger as unknown as LoggerService,
     notifications as unknown as NotificationsService,
   );
-  return { service, prisma };
+  return { service, prisma, logger };
 }
 describe('system event outbox', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -160,6 +166,56 @@ describe('system event outbox', () => {
     prisma.systemEventWebhook.updateMany.mockResolvedValue({ count: 0 });
     await service.recover();
     expect(notifications.deliverSystemNotification).not.toHaveBeenCalled();
+  });
+  it('drains a backlog in bounded batches', async () => {
+    const { service, prisma } = setup();
+    await service.recover();
+    expect(prisma.systemEventWebhook.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: RECOVER_BATCH_SIZE }),
+    );
+  });
+  it('logs and stores the real provider status code on failure', async () => {
+    const { service, prisma, logger } = setup();
+    notifications.deliverSystemNotification.mockRejectedValue(
+      new SystemNotificationDeliveryError('rejected', 503),
+    );
+    await service.recover();
+    expect(logger.warn).toHaveBeenCalledWith(
+      'System event delivery will retry',
+      { eventId: 'user.created/u1', statusCode: 503 },
+    );
+    expect(prisma.systemEventWebhook.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ lastStatusCode: 503 }),
+      }),
+    );
+  });
+  it('stops retrying an event that keeps failing at the attempt cap', async () => {
+    const { service, prisma, logger } = setup();
+    prisma.systemEventWebhook.findMany.mockResolvedValue([
+      {
+        id: 'user.created/u1',
+        type: 'user.created',
+        payload,
+        attempts: MAX_EVENT_ATTEMPTS - 1,
+      },
+    ]);
+    notifications.deliverSystemNotification.mockRejectedValue(
+      new Error('boom'),
+    );
+    await service.recover();
+    expect(logger.warn).toHaveBeenCalledWith(
+      'System event delivery failed permanently',
+      expect.any(Object),
+    );
+    expect(prisma.systemEventWebhook.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          skippedAt: expect.any(Date),
+          leaseToken: null,
+        }),
+      }),
+    );
   });
 
   describe('while the recording switch is unresolved (#5468)', () => {

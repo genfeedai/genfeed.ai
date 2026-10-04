@@ -1,5 +1,4 @@
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
-import { type AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -12,6 +11,7 @@ import { AgentOrchestratorContextService } from '@api/services/agent-orchestrato
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import {
   type AgentToolRoundState,
+  type AgentToolRoundStrategy,
   AgentTurnRoundRunnerService,
   assertAgentCreditBudget,
 } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
@@ -22,7 +22,13 @@ import type {
   AgentChatRequest,
   AgentChatResult,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import type {
+  SyncAssistantMessage,
+  SyncChatLoopParams,
+  SyncChatMessages,
+  SyncChatTools,
+  SyncLoopState,
+} from '@api/services/agent-orchestrator/interfaces/agent-orchestrator-sync-loop.interface';
 import { resolveAgentAutoRoutingRound } from '@api/services/agent-orchestrator/utils/agent-auto-routing-round.util';
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
@@ -46,7 +52,6 @@ import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.s
 import type { CuratedActionName } from '@genfeedai/actions';
 import { AgentMessageRole, type RouterPriority } from '@genfeedai/contracts';
 import type { AgentAutoRoutingResolution } from '@genfeedai/contracts/interfaces';
-
 import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
@@ -146,31 +151,11 @@ export class AgentOrchestratorSyncLoopService {
     });
   }
 
-  async executeSynchronousChatLoop(params: {
-    approvedPlan?: Record<string, unknown>;
-    context: AgentChatContext;
-    threadId: string;
-    generationPriority: RouterPriority;
-    model: string;
-    policy: ResolvedAgentExecutionPolicy;
-    request: AgentChatRequest;
-    resolvedMemories: AgentMemoryDocument[];
-    seedTitle: string;
-    systemPromptOverride?: string;
-    turnCost: number;
-  }): Promise<AgentChatResult> {
-    const {
-      context,
-      threadId,
-      generationPriority,
-      model,
-      policy,
-      request,
-      resolvedMemories,
-      seedTitle,
-      systemPromptOverride,
-      turnCost,
-    } = params;
+  async executeSynchronousChatLoop(
+    params: SyncChatLoopParams,
+  ): Promise<AgentChatResult> {
+    const { context, threadId, generationPriority, model, policy, request } =
+      params;
     const toolRoundState: AgentToolRoundState = {
       artifactMetadata: [],
       highestRiskLevel: 'low',
@@ -180,16 +165,21 @@ export class AgentOrchestratorSyncLoopService {
       totalCreditsUsed: 0,
       uiActions: [],
     };
-    const actualModels = new Set<string>();
-    let roundCredits = 0;
-
-    const settleAccruedTurnCredits = async (): Promise<number> => {
-      const creditsToSettle = roundCredits;
-      // A settlement failure must not make the outer catch retry a possibly
-      // committed ledger write. Every settlement path is terminal.
-      roundCredits = 0;
-
-      return creditsToSettle;
+    // Credits accrue per completed round, not per turn: a turn that burns
+    // N tool rounds costs N rounds of inference and has to bill like it.
+    const loopState: SyncLoopState = {
+      actualModels: new Set<string>(),
+      // Auto-routing decision inputs (#4865): the tier depends on how the turn
+      // has behaved so far, not only on the opening message.
+      hasPreviousRoundUsedTools: false,
+      latestAutoRouting: undefined,
+      latestProviderUsage: {
+        completion_tokens: 0,
+        prompt_tokens: 0,
+        total_tokens: 0,
+      },
+      roundCredits: 0,
+      terminalContent: undefined,
     };
 
     await this.threadEventRecorder.recordThreadTurnStarted({
@@ -201,139 +191,22 @@ export class AgentOrchestratorSyncLoopService {
     });
 
     try {
-      let resolvedSystemPrompt = systemPromptOverride;
-      if (
-        context.campaignId &&
-        this.agentCampaignsService &&
-        this.agentMessageBusService
-      ) {
-        resolvedSystemPrompt = await this.contextService.injectCampaignContext(
-          context.campaignId,
-          context.organizationId,
-          resolvedSystemPrompt,
-        );
-      }
-
-      const { messages: recentMessages, compressedContext } =
-        await this.contextService.resolveThreadMessages(
-          threadId,
-          context.organizationId,
-        );
-      const history = this.contextService.buildMessageHistory(
-        recentMessages,
-        resolvedSystemPrompt,
-        resolvedMemories,
-        request.attachments,
-        compressedContext,
-      );
-      const typeConfig = request.agentType
-        ? getAgentTypeConfig(request.agentType)
-        : null;
-      // Merge skill tool overrides into the base tool set (additive).
-      // When agentType is unset, pass undefined to preserve unrestricted toolset
-      // instead of [] which would wipe all base tools.
-      const syncBaseTools =
-        this.skillRuntimeService && context.resolvedSkills?.length
-          ? (this.skillRuntimeService.mergeSkillToolOverrides(
-              typeConfig?.defaultTools,
-              context.resolvedSkills,
-            ) as CuratedActionName[] | undefined)
-          : typeConfig?.defaultTools;
-      const tools = buildToolDefinitions(
-        mergeAllowedTools(
-          syncBaseTools,
-          request.source !== 'proactive' &&
-            this.batchService.isBatchGenerationIntent(request.content)
-            ? BATCH_SCOPED_ALLOWED_TOOLS
-            : undefined,
-        ),
-        resolveBlockedTools({ source: request.source }),
-      );
-      const allowedToolNames = new Set(
-        tools.map((tool) => tool.function.name as CuratedActionName),
-      );
-      const messages = [...history];
+      const { allowedToolNames, messages, tools } =
+        await this.prepareSyncTurnInputs(params);
       let round = 0;
-      // Auto-routing decision inputs (#4865): the tier depends on how the turn
-      // has behaved so far, not only on the opening message.
-      let hasPreviousRoundUsedTools = false;
-      let latestAutoRouting: AgentAutoRoutingResolution | undefined;
-      let terminalContent: string | undefined;
-      let latestProviderUsage = {
-        completion_tokens: 0,
-        prompt_tokens: 0,
-        total_tokens: 0,
-      };
-      // Credits accrue per completed round, not per turn: a turn that burns
-      // N tool rounds costs N rounds of inference and has to bill like it.
 
-      while (round < AGENT_MAX_TOOL_ROUNDS || terminalContent) {
+      while (round < AGENT_MAX_TOOL_ROUNDS || loopState.terminalContent) {
         round++;
 
-        const isTerminalCompletion = Boolean(terminalContent);
-        const maximumRoundCredits =
-          terminalContent || turnCost === 0
-            ? 0
-            : await this.agentChatModelRegistry.getMaximumRoundCredits(model);
-        if (!terminalContent)
-          assertAgentCreditBudget(
-            context,
-            toolRoundState.totalCreditsUsed + roundCredits,
-            maximumRoundCredits,
-          );
-        const { defaultModelKey, dispatchedModel, resolution } =
-          await resolveAgentAutoRoutingRound({
-            context,
-            hasPreviousRoundUsedTools,
-            hasToolsAvailable: tools.length > 0,
-            isTerminalRound: isTerminalCompletion,
-            latestUserMessage: request.content,
-            model,
-            modelRegistry: this.agentChatModelRegistry,
-            previous: latestAutoRouting,
-            prioritize: generationPriority,
-            resolver: this.autoModelResolver,
-            roundNumber: round,
-            source: request.source,
-            threadId,
+        const { defaultModelKey, response } =
+          await this.executeSyncInferenceRound({
+            loopState,
+            messages,
+            params,
+            round,
+            toolRoundState,
+            tools,
           });
-        latestAutoRouting = resolution;
-        const reservedRound = await this.reserveSyncChatRound({
-          context,
-          defaultModelKey,
-          dispatchedModel,
-          generationPriority,
-          latestAutoRouting,
-          latestProviderUsage,
-          maximumRoundCredits,
-          messages,
-          model,
-          round,
-          seedTitle,
-          source: request.source,
-          terminalContent,
-          threadId,
-          tools,
-          turnCost,
-          userContent: request.content,
-        });
-        const response = reservedRound.response;
-        terminalContent = undefined;
-        if (!isTerminalCompletion) {
-          latestProviderUsage = response.usage;
-          const actualModel =
-            await this.turnRoundRunner.recordAgentResponseModel({
-              actualModels: Array.from(actualModels),
-              context,
-              requestedModel: model,
-              responseModel: response.model,
-              executionId: context.executionId,
-              source: request.source,
-              threadId,
-            });
-          actualModels.add(actualModel);
-          roundCredits += reservedRound.credits;
-        }
 
         const choice = response.choices[0];
         if (!choice) {
@@ -342,115 +215,21 @@ export class AgentOrchestratorSyncLoopService {
 
         const assistantMessage = choice.message;
         const toolCalls = assistantMessage.tool_calls;
-        hasPreviousRoundUsedTools = Boolean(toolCalls?.length);
+        loopState.hasPreviousRoundUsedTools = Boolean(toolCalls?.length);
 
         if (!toolCalls || toolCalls.length === 0) {
-          const threadEnvelope = extractThreadEnvelope({
-            assistantContent: sanitizeAgentOutputText(
-              assistantMessage.content || '',
-            ),
-            prompt: request.content,
-            seedTitle,
-          });
-          const normalizedContent = normalizeFinalAssistantContent(
-            threadEnvelope.content,
-            toolRoundState.toolCalls,
-            toolRoundState.uiActions,
-          );
-          const content = normalizedContent.content;
-
-          toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
-
-          await maybeUpdateThreadTitle({
-            agentThreadsService: this.agentThreadsService,
-            context,
-            seedTitle,
-            threadId,
-            title: threadEnvelope.title,
-          });
-
-          const creditsRemaining =
-            await this.creditsUtilsService.getOrganizationCreditsBalance(
-              context.organizationId,
-            );
-          const memoryEntriesForResponse =
-            this.contextService.buildMemoryEntriesForResponse(resolvedMemories);
-          const memoryInfluence =
-            this.contextService.buildMemoryInfluenceMetadata(resolvedMemories);
-          const reasoning = assistantMessage.reasoning_content ?? null;
-          const enhancedUiActions =
-            this.completionCardBuilder.buildAssistantUiActions({
-              reviewRequired: toolRoundState.reviewRequired,
-              toolCalls: toolRoundState.toolCalls,
-              uiActions: toolRoundState.uiActions,
-            });
-          const assistantMetadata = buildAgentSyncResponseMetadata({
-            actualModels: Array.from(actualModels),
-            approvedPlan: params.approvedPlan,
-            autoRouting: latestAutoRouting,
-            context,
+          return await this.finalizeSyncTurn({
+            assistantMessage,
             defaultModelKey,
-            enhancedUiActions,
-            isFallbackContent: normalizedContent.isFallback,
-            memoryEntries: memoryEntriesForResponse,
-            memoryInfluence,
-            model,
-            reasoning,
-            request,
+            loopState,
+            params,
+            response,
             toolRoundState,
           });
-
-          await this.agentMessagesService.addMessage({
-            brandId: context.scope?.brandId,
-            content,
-            metadata: buildPersistedAgentResponseMetadata(
-              assistantMetadata,
-              creditsRemaining,
-              context.executionId,
-              response.usage,
-            ),
-            organizationId: context.organizationId,
-            role: AgentMessageRole.ASSISTANT,
-            room: threadId,
-            toolCalls: toolRoundState.toolCalls.map((tc) => ({
-              creditsUsed: tc.creditsUsed,
-              durationMs: tc.durationMs,
-              error: tc.error,
-              parameters: tc.parameters ?? {},
-              result: tc.resultSummary ? { summary: tc.resultSummary } : {},
-              status: tc.status,
-              toolName: tc.toolName,
-            })),
-            userId: context.userId,
-          });
-          await this.threadEventRecorder.recordAssistantFinalized({
-            content,
-            context,
-            metadata: assistantMetadata,
-            runId: context.executionId,
-            threadId,
-          });
-          await this.threadEventRecorder.recordRunCompleted({
-            context,
-            detail: 'Agent completed',
-            runId: context.executionId,
-            threadId,
-          });
-
-          return {
-            creditsRemaining,
-            creditsUsed: toolRoundState.totalCreditsUsed,
-            message: {
-              content,
-              metadata: assistantMetadata,
-              role: 'assistant',
-            },
-            threadId,
-            toolCalls: toolRoundState.toolCalls,
-          };
         }
 
-        toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
+        toolRoundState.totalCreditsUsed +=
+          await this.settleAccruedTurnCredits(loopState);
         const toolRoundResult = await this.turnRoundRunner.executeToolRound({
           allowedToolNames,
           assistantContent: assistantMessage.content,
@@ -462,58 +241,25 @@ export class AgentOrchestratorSyncLoopService {
           policy,
           source: request.source,
           state: toolRoundState,
-          strategy: {
-            logParseErrors: true,
-            onToolCompleted: async (event) => {
-              await this.threadEventRecorder.recordToolCompleted({
-                context,
-                durationMs: event.durationMs,
-                error: event.summary.error,
-                runId: context.executionId,
-                status: event.summary.status,
-                threadId,
-                toolCallId: event.toolCallId,
-                toolName: event.toolName,
-              });
-            },
-            onToolStarted: async (event) => {
-              await this.threadEventRecorder.recordToolStarted({
-                context,
-                parameters: event.parameters,
-                runId: context.executionId,
-                threadId,
-                toolCallId: event.toolCallId,
-                toolName: event.toolName,
-              });
-            },
-            onUiBlocks: async (event) => {
-              await this.threadEventRecorder.recordUiBlocksUpdated({
-                blockIds: event.blockIds,
-                blocks: event.blocks,
-                context,
-                operation: event.operation,
-                runId: context.executionId,
-                threadId,
-              });
-            },
-          },
+          strategy: this.buildSyncToolRoundStrategy(context, threadId),
           thinkingModel: policy.thinkingModelOverride ?? model,
           threadId,
           toolCalls,
         });
-        terminalContent = toolRoundResult.terminalContent;
+        loopState.terminalContent = toolRoundResult.terminalContent;
       }
 
       // Overflowing the round budget still consumed every one of those rounds
       // at the provider — settle them before surfacing the failure, or a turn
       // that runs away is the cheapest turn on the platform.
-      await settleAccruedTurnCredits();
+      await this.settleAccruedTurnCredits(loopState);
 
       throw new Error(
         `Agent exceeded maximum tool-calling rounds (${AGENT_MAX_TOOL_ROUNDS})`,
       );
     } catch (error: unknown) {
-      toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
+      toolRoundState.totalCreditsUsed +=
+        await this.settleAccruedTurnCredits(loopState);
       await this.threadEventRecorder.recordRunFailed({
         context,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -522,5 +268,316 @@ export class AgentOrchestratorSyncLoopService {
       });
       throw error;
     }
+  }
+
+  private async settleAccruedTurnCredits(
+    loopState: SyncLoopState,
+  ): Promise<number> {
+    const creditsToSettle = loopState.roundCredits;
+    // A settlement failure must not make the outer catch retry a possibly
+    // committed ledger write. Every settlement path is terminal.
+    loopState.roundCredits = 0;
+
+    return creditsToSettle;
+  }
+
+  private async prepareSyncTurnInputs(params: SyncChatLoopParams): Promise<{
+    allowedToolNames: Set<CuratedActionName>;
+    messages: SyncChatMessages;
+    tools: SyncChatTools;
+  }> {
+    const { context, threadId, request, resolvedMemories } = params;
+    let resolvedSystemPrompt = params.systemPromptOverride;
+    if (
+      context.campaignId &&
+      this.agentCampaignsService &&
+      this.agentMessageBusService
+    ) {
+      resolvedSystemPrompt = await this.contextService.injectCampaignContext(
+        context.campaignId,
+        context.organizationId,
+        resolvedSystemPrompt,
+      );
+    }
+
+    const { messages: recentMessages, compressedContext } =
+      await this.contextService.resolveThreadMessages(
+        threadId,
+        context.organizationId,
+      );
+    const history = this.contextService.buildMessageHistory(
+      recentMessages,
+      resolvedSystemPrompt,
+      resolvedMemories,
+      request.attachments,
+      compressedContext,
+    );
+    const typeConfig = request.agentType
+      ? getAgentTypeConfig(request.agentType)
+      : null;
+    // Merge skill tool overrides into the base tool set (additive).
+    // When agentType is unset, pass undefined to preserve unrestricted toolset
+    // instead of [] which would wipe all base tools.
+    const syncBaseTools =
+      this.skillRuntimeService && context.resolvedSkills?.length
+        ? (this.skillRuntimeService.mergeSkillToolOverrides(
+            typeConfig?.defaultTools,
+            context.resolvedSkills,
+          ) as CuratedActionName[] | undefined)
+        : typeConfig?.defaultTools;
+    const tools = buildToolDefinitions(
+      mergeAllowedTools(
+        syncBaseTools,
+        request.source !== 'proactive' &&
+          this.batchService.isBatchGenerationIntent(request.content)
+          ? BATCH_SCOPED_ALLOWED_TOOLS
+          : undefined,
+      ),
+      resolveBlockedTools({ source: request.source }),
+    );
+    const allowedToolNames = new Set(
+      tools.map((tool) => tool.function.name as CuratedActionName),
+    );
+
+    return { allowedToolNames, messages: [...history], tools };
+  }
+
+  private async executeSyncInferenceRound(input: {
+    loopState: SyncLoopState;
+    messages: SyncChatMessages;
+    params: SyncChatLoopParams;
+    round: number;
+    toolRoundState: AgentToolRoundState;
+    tools: SyncChatTools;
+  }): Promise<{
+    defaultModelKey: string;
+    response: OpenRouterChatCompletionResponse;
+  }> {
+    const { loopState, messages, params, round, toolRoundState, tools } = input;
+    const { context, threadId, generationPriority, model, request } = params;
+    const { seedTitle, turnCost } = params;
+    const { terminalContent } = loopState;
+    const isTerminalCompletion = Boolean(terminalContent);
+    const maximumRoundCredits =
+      terminalContent || turnCost === 0
+        ? 0
+        : await this.agentChatModelRegistry.getMaximumRoundCredits(model);
+    if (!terminalContent)
+      assertAgentCreditBudget(
+        context,
+        toolRoundState.totalCreditsUsed + loopState.roundCredits,
+        maximumRoundCredits,
+      );
+    const { defaultModelKey, dispatchedModel, resolution } =
+      await resolveAgentAutoRoutingRound({
+        context,
+        hasPreviousRoundUsedTools: loopState.hasPreviousRoundUsedTools,
+        hasToolsAvailable: tools.length > 0,
+        isTerminalRound: isTerminalCompletion,
+        latestUserMessage: request.content,
+        model,
+        modelRegistry: this.agentChatModelRegistry,
+        previous: loopState.latestAutoRouting,
+        prioritize: generationPriority,
+        resolver: this.autoModelResolver,
+        roundNumber: round,
+        source: request.source,
+        threadId,
+      });
+    loopState.latestAutoRouting = resolution;
+    const reservedRound = await this.reserveSyncChatRound({
+      context,
+      defaultModelKey,
+      dispatchedModel,
+      generationPriority,
+      latestAutoRouting: loopState.latestAutoRouting,
+      latestProviderUsage: loopState.latestProviderUsage,
+      maximumRoundCredits,
+      messages,
+      model,
+      round,
+      seedTitle,
+      source: request.source,
+      terminalContent,
+      threadId,
+      tools,
+      turnCost,
+      userContent: request.content,
+    });
+    const response = reservedRound.response;
+    loopState.terminalContent = undefined;
+    if (!isTerminalCompletion) {
+      loopState.latestProviderUsage = response.usage;
+      const actualModel = await this.turnRoundRunner.recordAgentResponseModel({
+        actualModels: Array.from(loopState.actualModels),
+        context,
+        requestedModel: model,
+        responseModel: response.model,
+        executionId: context.executionId,
+        source: request.source,
+        threadId,
+      });
+      loopState.actualModels.add(actualModel);
+      loopState.roundCredits += reservedRound.credits;
+    }
+
+    return { defaultModelKey, response };
+  }
+
+  private async finalizeSyncTurn(input: {
+    assistantMessage: SyncAssistantMessage;
+    defaultModelKey: string;
+    loopState: SyncLoopState;
+    params: SyncChatLoopParams;
+    response: OpenRouterChatCompletionResponse;
+    toolRoundState: AgentToolRoundState;
+  }): Promise<AgentChatResult> {
+    const { assistantMessage, defaultModelKey, loopState, params } = input;
+    const { response, toolRoundState } = input;
+    const { context, threadId, model, request } = params;
+    const { resolvedMemories, seedTitle } = params;
+    const threadEnvelope = extractThreadEnvelope({
+      assistantContent: sanitizeAgentOutputText(assistantMessage.content || ''),
+      prompt: request.content,
+      seedTitle,
+    });
+    const normalizedContent = normalizeFinalAssistantContent(
+      threadEnvelope.content,
+      toolRoundState.toolCalls,
+      toolRoundState.uiActions,
+    );
+    const content = normalizedContent.content;
+
+    toolRoundState.totalCreditsUsed +=
+      await this.settleAccruedTurnCredits(loopState);
+
+    await maybeUpdateThreadTitle({
+      agentThreadsService: this.agentThreadsService,
+      context,
+      seedTitle,
+      threadId,
+      title: threadEnvelope.title,
+    });
+
+    const creditsRemaining =
+      await this.creditsUtilsService.getOrganizationCreditsBalance(
+        context.organizationId,
+      );
+    const memoryEntriesForResponse =
+      this.contextService.buildMemoryEntriesForResponse(resolvedMemories);
+    const memoryInfluence =
+      this.contextService.buildMemoryInfluenceMetadata(resolvedMemories);
+    const reasoning = assistantMessage.reasoning_content ?? null;
+    const enhancedUiActions =
+      this.completionCardBuilder.buildAssistantUiActions({
+        reviewRequired: toolRoundState.reviewRequired,
+        toolCalls: toolRoundState.toolCalls,
+        uiActions: toolRoundState.uiActions,
+      });
+    const assistantMetadata = buildAgentSyncResponseMetadata({
+      actualModels: Array.from(loopState.actualModels),
+      approvedPlan: params.approvedPlan,
+      autoRouting: loopState.latestAutoRouting,
+      context,
+      defaultModelKey,
+      enhancedUiActions,
+      isFallbackContent: normalizedContent.isFallback,
+      memoryEntries: memoryEntriesForResponse,
+      memoryInfluence,
+      model,
+      reasoning,
+      request,
+      toolRoundState,
+    });
+
+    await this.agentMessagesService.addMessage({
+      brandId: context.scope?.brandId,
+      content,
+      metadata: buildPersistedAgentResponseMetadata(
+        assistantMetadata,
+        creditsRemaining,
+        context.executionId,
+        response.usage,
+      ),
+      organizationId: context.organizationId,
+      role: AgentMessageRole.ASSISTANT,
+      room: threadId,
+      toolCalls: toolRoundState.toolCalls.map((tc) => ({
+        creditsUsed: tc.creditsUsed,
+        durationMs: tc.durationMs,
+        error: tc.error,
+        parameters: tc.parameters ?? {},
+        result: tc.resultSummary ? { summary: tc.resultSummary } : {},
+        status: tc.status,
+        toolName: tc.toolName,
+      })),
+      userId: context.userId,
+    });
+    await this.threadEventRecorder.recordAssistantFinalized({
+      content,
+      context,
+      metadata: assistantMetadata,
+      runId: context.executionId,
+      threadId,
+    });
+    await this.threadEventRecorder.recordRunCompleted({
+      context,
+      detail: 'Agent completed',
+      runId: context.executionId,
+      threadId,
+    });
+
+    return {
+      creditsRemaining,
+      creditsUsed: toolRoundState.totalCreditsUsed,
+      message: {
+        content,
+        metadata: assistantMetadata,
+        role: 'assistant',
+      },
+      threadId,
+      toolCalls: toolRoundState.toolCalls,
+    };
+  }
+
+  private buildSyncToolRoundStrategy(
+    context: AgentChatContext,
+    threadId: string,
+  ): AgentToolRoundStrategy {
+    return {
+      logParseErrors: true,
+      onToolCompleted: async (event) => {
+        await this.threadEventRecorder.recordToolCompleted({
+          context,
+          durationMs: event.durationMs,
+          error: event.summary.error,
+          runId: context.executionId,
+          status: event.summary.status,
+          threadId,
+          toolCallId: event.toolCallId,
+          toolName: event.toolName,
+        });
+      },
+      onToolStarted: async (event) => {
+        await this.threadEventRecorder.recordToolStarted({
+          context,
+          parameters: event.parameters,
+          runId: context.executionId,
+          threadId,
+          toolCallId: event.toolCallId,
+          toolName: event.toolName,
+        });
+      },
+      onUiBlocks: async (event) => {
+        await this.threadEventRecorder.recordUiBlocksUpdated({
+          blockIds: event.blockIds,
+          blocks: event.blocks,
+          context,
+          operation: event.operation,
+          runId: context.executionId,
+          threadId,
+        });
+      },
+    };
   }
 }
