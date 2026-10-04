@@ -1092,9 +1092,21 @@ export class StripeCheckoutWebhookHandler {
     email: string,
   ): Promise<{ dbUser: UserDocument; organizationId: string | null }> {
     const { dbUser } = await this.resolveManagedCheckoutUser(session, email);
-    const organization = await this.organizationsService.findOne({
-      userId: String(dbUser.id),
-    });
+
+    // The user-created listener swallows provisioning errors and only fires
+    // for a brand-new user, so a retry would never repair a half-provisioned
+    // buyer. Run the idempotent get-or-create setup directly on every attempt;
+    // it throws on failure, which keeps the receipt `pending` and Stripe retrying.
+    const setupResult = await this.userSetupService.initializeUserResources(
+      String(dbUser.id),
+      OrganizationCategory.BUSINESS,
+      { email },
+    );
+    const organization =
+      setupResult.organization ??
+      (await this.organizationsService.findOne({
+        userId: String(dbUser.id),
+      }));
 
     return {
       dbUser,
@@ -1115,6 +1127,7 @@ export class StripeCheckoutWebhookHandler {
       return;
     }
 
+    // tenant-scope-ignore: the receipt was found by its globally unique Stripe session id from a signed webhook and stays organization-less until its first authenticated claim; it is addressed by its own primary key.
     await this.prisma.skillReceipt.update({
       data: {
         data: toPrismaJson({
@@ -1124,7 +1137,9 @@ export class StripeCheckoutWebhookHandler {
           userId,
         }),
       },
-      where: receipt.id ? { id: receipt.id } : { receiptId },
+      where: receipt.id
+        ? { id: receipt.id, isDeleted: false }
+        : { isDeleted: false, receiptId },
     });
   }
 

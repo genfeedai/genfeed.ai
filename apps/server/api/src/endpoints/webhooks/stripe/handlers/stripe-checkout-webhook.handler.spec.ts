@@ -574,6 +574,9 @@ describe('StripeCheckoutWebhookHandler', () => {
     beforeEach(() => {
       usersService.findOne.mockResolvedValue({ id: 'user_skills_1' });
       organizationsService.findOne.mockResolvedValue({ id: 'org_skills_1' });
+      userSetupService.initializeUserResources.mockResolvedValue({
+        organization: { id: 'org_skills_1' },
+      });
       supportService.upsertSkillsProLead.mockResolvedValue(undefined);
     });
 
@@ -652,6 +655,9 @@ describe('StripeCheckoutWebhookHandler', () => {
       usersService.findOne.mockResolvedValueOnce(null);
       usersService.create.mockResolvedValueOnce({ id: 'user_skills_new' });
       organizationsService.findOne.mockResolvedValueOnce(null);
+      userSetupService.initializeUserResources.mockResolvedValueOnce({
+        organization: null,
+      });
 
       await handler.handleCheckoutCompleted(session, 'test');
 
@@ -667,7 +673,10 @@ describe('StripeCheckoutWebhookHandler', () => {
         data: {
           data: expect.objectContaining({ userId: 'user_skills_new' }),
         },
-        where: { receiptId: expect.stringMatching(/^sk_rcpt_/) },
+        where: {
+          isDeleted: false,
+          receiptId: expect.stringMatching(/^sk_rcpt_/),
+        },
       });
       expect(supportService.upsertSkillsProLead).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -740,8 +749,40 @@ describe('StripeCheckoutWebhookHandler', () => {
             userId: 'user_skills_new',
           }),
         },
-        where: { id: 'row_1' },
+        where: { id: 'row_1', isDeleted: false },
       });
+      expect(supportService.upsertSkillsProLead).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the receipt pending when resource setup fails after the user exists, then recovers once on retry', async () => {
+      const setupError = new Error('setup failed');
+      const stored = {
+        data: { provisioningStatus: 'pending', stripeSessionId: 'cs_skills_1' },
+        id: 'row_2',
+        receiptId: 'sk_rcpt_pending',
+      };
+      prisma.skillReceipt.create.mockResolvedValue(stored);
+      usersService.findOne.mockResolvedValueOnce(null);
+      usersService.create.mockResolvedValueOnce({ id: 'user_skills_new' });
+      userSetupService.initializeUserResources.mockRejectedValueOnce(
+        setupError,
+      );
+
+      await expect(
+        handler.handleCheckoutCompleted(session, 'test'),
+      ).rejects.toThrow(setupError);
+      expect(prisma.skillReceipt.update).not.toHaveBeenCalled();
+
+      // Retry: the user now exists (so no created event), setup is retried.
+      prisma.skillReceipt.findFirst.mockResolvedValueOnce(stored);
+      usersService.findOne.mockResolvedValueOnce({ id: 'user_skills_new' });
+
+      await handler.handleCheckoutCompleted(session, 'test');
+
+      expect(usersService.create).toHaveBeenCalledTimes(1);
+      expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
+      expect(userSetupService.initializeUserResources).toHaveBeenCalledTimes(2);
+      expect(prisma.skillReceipt.update).toHaveBeenCalledTimes(1);
       expect(supportService.upsertSkillsProLead).toHaveBeenCalledTimes(1);
     });
 
