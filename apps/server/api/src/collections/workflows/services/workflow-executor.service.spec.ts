@@ -732,6 +732,7 @@ describe('WorkflowExecutorService', () => {
       'handleDelayNode',
     );
     const executableWorkflow = {
+      organizationId: 'org-1',
       edges: [
         { source: 'completed-node', target: 'next-node' },
         { source: 'next-node', target: 'pause-node' },
