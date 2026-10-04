@@ -215,6 +215,7 @@ describe('PendingWorkflowExecutionReconcileService', () => {
     );
     expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
       'execution-1',
+      'org-1',
       expect.stringContaining('no worker ever picked it up'),
     );
     expect(logger.error).toHaveBeenCalledWith(
@@ -264,6 +265,18 @@ describe('PendingWorkflowExecutionReconcileService', () => {
     await service.reconcile();
 
     expect(workflowExecutions.completeExecution).toHaveBeenCalledTimes(2);
+    expect(workflowExecutions.completeExecution).toHaveBeenNthCalledWith(
+      1,
+      'execution-3',
+      'org-1',
+      expect.any(String),
+    );
+    expect(workflowExecutions.completeExecution).toHaveBeenNthCalledWith(
+      2,
+      'execution-4',
+      'org-2',
+      expect.any(String),
+    );
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining('failed to reconcile'),
       expect.objectContaining({ executionId: 'execution-3' }),
@@ -296,6 +309,7 @@ describe('PendingWorkflowExecutionReconcileService', () => {
       ).toHaveBeenCalledWith('system-workflow-turn-waiting');
       expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
         'turn-waiting',
+        'org-1',
         expect.stringContaining('never started'),
       );
     });
@@ -332,6 +346,7 @@ describe('PendingWorkflowExecutionReconcileService', () => {
 
       expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
         'turn-orphaned',
+        'org-1',
         expect.any(String),
       );
     });
@@ -354,6 +369,7 @@ describe('PendingWorkflowExecutionReconcileService', () => {
 
       expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
         'turn-behind-backlog',
+        'org-1',
         expect.any(String),
       );
       expect(workflowExecutions.completeExecution).toHaveBeenCalledTimes(1);
@@ -375,6 +391,7 @@ describe('PendingWorkflowExecutionReconcileService', () => {
 
       expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
         'generic-1',
+        'org-1',
         expect.stringContaining('no worker ever picked it up'),
       );
     });
@@ -540,6 +557,7 @@ describe('PendingWorkflowExecutionReconcileService', () => {
 
       expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
         'execution-drained',
+        'org-1',
       );
       // completeExecution is the loud-failure path: it records the run and
       // can push a strategy already at 2 failures over the disable threshold.
@@ -630,6 +648,7 @@ describe('PendingWorkflowExecutionReconcileService', () => {
 
       expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
         'execution-ancient-1',
+        'org-1',
       );
       expect(workflowExecutions.completeExecution).not.toHaveBeenCalled();
       expect(logger.log).toHaveBeenCalledWith(
@@ -675,10 +694,12 @@ describe('PendingWorkflowExecutionReconcileService', () => {
 
       expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
         'execution-recent',
+        'org-1',
         expect.any(String),
       );
       expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
         'execution-old',
+        'org-1',
       );
     });
 
@@ -756,6 +777,7 @@ describe('PendingWorkflowExecutionReconcileService', () => {
       expect(staleExecutionFinder.findUpperBoundary).toHaveBeenCalledTimes(2);
       expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
         rows[0].id,
+        'org-1',
         expect.stringContaining('no worker ever picked it up'),
       );
       expect(workflowExecutions.completeExecution).toHaveBeenCalledTimes(1);
@@ -820,6 +842,7 @@ describe('PendingWorkflowExecutionReconcileService', () => {
       // silent ancient cancellation would be the wrong action.
       expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
         orphan.id,
+        'org-1',
         expect.stringContaining('no worker ever picked it up'),
       );
       expect(workflowExecutions.completeExecution).toHaveBeenCalledTimes(1);
@@ -895,10 +918,12 @@ describe('PendingWorkflowExecutionReconcileService', () => {
       await service.reconcile();
       expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
         'tied-a',
+        'org-1',
         expect.any(String),
       );
       expect(workflowExecutions.completeExecution).not.toHaveBeenCalledWith(
         'tied-b',
+        'org-1',
         expect.anything(),
       );
 
@@ -915,6 +940,7 @@ describe('PendingWorkflowExecutionReconcileService', () => {
       );
       expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
         'tied-b',
+        'org-1',
         expect.any(String),
       );
       expect(workflowExecutions.completeExecution).toHaveBeenCalledTimes(2);
@@ -961,6 +987,7 @@ describe('PendingWorkflowExecutionReconcileService', () => {
       await service.reconcile();
       expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
         ancientOrphan.id,
+        'org-1',
       );
       expect(workflowExecutions.cancelExecution).toHaveBeenCalledTimes(1);
       expect(workflowExecutions.completeExecution).not.toHaveBeenCalled();

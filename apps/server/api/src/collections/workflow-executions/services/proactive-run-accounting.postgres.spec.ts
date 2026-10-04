@@ -9,6 +9,7 @@ vi.unmock('@prisma/adapter-pg');
 
 // Isolated migrated database seeded with fixtures/proactive-run-accounting.sql.
 const connectionString = process.env.PROACTIVE_RUN_TEST_DATABASE_URL;
+const ORGANIZATION_ID = 'proactive-org-4961';
 describe.skipIf(!connectionString)(
   'proactive terminal accounting PostgreSQL atomicity',
   () => {
@@ -47,7 +48,7 @@ describe.skipIf(!connectionString)(
         data: { config: {}, isActive: true, isDeleted: false },
       });
       await prisma?.workflowExecution.updateMany({
-        where: { organizationId: 'proactive-org-4961' },
+        where: { organizationId: ORGANIZATION_ID },
         data: {
           status: 'RUNNING',
           error: null,
@@ -70,8 +71,8 @@ describe.skipIf(!connectionString)(
     it('concurrent separate runs retain both exact totals and duplicate completion never recounts', async () => {
       const service = makeService();
       await Promise.all([
-        service.completeExecution('proactive-run-1-4961'),
-        service.completeExecution('proactive-run-2-4961'),
+        service.completeExecution('proactive-run-1-4961', ORGANIZATION_ID),
+        service.completeExecution('proactive-run-2-4961', ORGANIZATION_ID),
       ]);
       const row = await prisma?.agentStrategy.findUniqueOrThrow({
         where: { id: 'proactive-strategy-4961' },
@@ -99,7 +100,10 @@ describe.skipIf(!connectionString)(
         },
       });
       expect(
-        await service.completeExecution('proactive-run-1-4961'),
+        await service.completeExecution(
+          'proactive-run-1-4961',
+          ORGANIZATION_ID,
+        ),
       ).toBeNull();
       const after = await prisma?.agentStrategy.findUniqueOrThrow({
         where: { id: 'proactive-strategy-4961' },
@@ -112,8 +116,8 @@ describe.skipIf(!connectionString)(
     it('simultaneous duplicate completions record exactly once', async () => {
       const service = makeService();
       const results = await Promise.all([
-        service.completeExecution('proactive-run-1-4961'),
-        service.completeExecution('proactive-run-1-4961'),
+        service.completeExecution('proactive-run-1-4961', ORGANIZATION_ID),
+        service.completeExecution('proactive-run-1-4961', ORGANIZATION_ID),
       ]);
       expect(results.filter(Boolean)).toHaveLength(1);
       expect(
@@ -128,10 +132,12 @@ describe.skipIf(!connectionString)(
       const service = makeService();
       await service.completeExecution(
         'proactive-run-1-4961',
+        ORGANIZATION_ID,
         'generation failed',
       );
       await service.completeExecution(
         'proactive-run-3-4961',
+        ORGANIZATION_ID,
         'before generation',
       );
       const row = await prisma?.agentStrategy.findUniqueOrThrow({
@@ -150,7 +156,7 @@ describe.skipIf(!connectionString)(
         recordRun: vi.fn().mockRejectedValue(new Error('record write failed')),
       } as never);
       await expect(
-        service.completeExecution('proactive-run-1-4961'),
+        service.completeExecution('proactive-run-1-4961', ORGANIZATION_ID),
       ).rejects.toThrow();
       expect(
         (

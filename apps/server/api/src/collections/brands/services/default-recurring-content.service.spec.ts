@@ -695,6 +695,7 @@ describe('DefaultRecurringContentService', () => {
     const updateSchedule = vi.fn(
       async (
         workflowId: string,
+        _organizationId: string,
         schedule: string | null,
         timezone: string,
         isEnabled: boolean,
@@ -833,6 +834,7 @@ describe('DefaultRecurringContentService', () => {
     for (const contentType of CONTENT_TYPES) {
       expect(updateSchedule).toHaveBeenCalledWith(
         `seed_${contentType}`,
+        ORGANIZATION_ID,
         '0 12 * * *',
         'America/New_York',
         false,
@@ -866,12 +868,14 @@ describe('DefaultRecurringContentService', () => {
 
     expect(updateSchedule).toHaveBeenCalledWith(
       'seed_post',
+      ORGANIZATION_ID,
       '0 12 * * *',
       'UTC',
       true,
     );
     expect(updateSchedule).not.toHaveBeenCalledWith(
       'user_workflow',
+      expect.anything(),
       expect.anything(),
       expect.anything(),
       expect.anything(),
