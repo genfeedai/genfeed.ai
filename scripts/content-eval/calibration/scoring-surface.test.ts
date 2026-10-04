@@ -26,6 +26,8 @@ import type { ScoringSurfaceInput } from './types';
 
 const EVALUATIONS_SERVICE_PATH =
   'apps/server/api/src/collections/evaluations/services/evaluations.service.ts';
+const JUDGE_INPUT_PATH =
+  'apps/server/api/src/collections/evaluations/services/evaluation-judge-input.ts';
 const PROMPTS_PATH =
   'apps/server/api/src/services/content-quality/content-quality-scorer.prompts.ts';
 const RUBRICS_PATH = 'scripts/content-eval/scorers/rubrics.ts';
@@ -60,6 +62,7 @@ describe('scoring surface', () => {
     expect(TEXT_SURFACE_FILES).toEqual(
       expect.arrayContaining([
         PROMPTS_PATH,
+        JUDGE_INPUT_PATH,
         RUBRICS_PATH,
         MODEL_CONSTANT_PATH,
         'apps/server/api/src/collections/evaluations/services/evaluations-operations.service.ts',
@@ -83,6 +86,7 @@ describe('scoring surface', () => {
 
   it.each([
     ['prompt', PROMPTS_PATH],
+    ['judge context assembly', JUDGE_INPUT_PATH],
     ['rubric', RUBRICS_PATH],
     ['model constant', MODEL_CONSTANT_PATH],
   ])(

@@ -6,6 +6,13 @@ import { EvaluationFiltersDto } from '@api/collections/evaluations/dto/evaluatio
 import { RecordEvaluationReviewDto } from '@api/collections/evaluations/dto/record-evaluation-review.dto';
 import type { EvaluationDocument } from '@api/collections/evaluations/schemas/evaluation.schema';
 import {
+  buildArticleJudgeContext,
+  buildImageJudgeContext,
+  buildVideoJudgeContext,
+  type EvaluationJudgeContext,
+  PREVIOUS_EVALUATION_ORDER_BY,
+} from '@api/collections/evaluations/services/evaluation-judge-input';
+import {
   type EvaluationAiResult,
   type EvaluationData,
   EvaluationResultProjection,
@@ -53,10 +60,6 @@ import {
   Injectable,
   Optional,
 } from '@nestjs/common';
-
-type EvaluationContext = NonNullable<
-  Parameters<EvaluationsOperationsService['evaluateVideo']>[1]
->;
 
 const evaluationResultProjection = new EvaluationResultProjection();
 
@@ -319,16 +322,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     const storedDuration = (video.metadata as { duration?: unknown } | null)
       ?.duration;
 
-    const context: EvaluationContext = {
-      brand: evaluationResultProjection.buildBrandContext(brand),
-      durationSeconds:
-        typeof storedDuration === 'number' && storedDuration > 0
-          ? storedDuration
-          : undefined,
-      prompt:
-        evaluationResultProjection.readString(prompt?.enhanced) ??
-        evaluationResultProjection.readString(prompt?.original),
-    };
+    const context = buildVideoJudgeContext(prompt, brand, storedDuration);
 
     let billedCredits = 0;
     const aiResult = (await this.evaluationsOperationsService.evaluateVideo(
@@ -398,12 +392,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     const prompt = image.prompt as { enhanced?: string; original?: string };
     const brand = image.brand as { name?: string; guidelines?: string };
 
-    const context: EvaluationContext = {
-      brand: evaluationResultProjection.buildBrandContext(brand),
-      prompt:
-        evaluationResultProjection.readString(prompt?.enhanced) ??
-        evaluationResultProjection.readString(prompt?.original),
-    };
+    const context = buildImageJudgeContext(prompt, brand);
 
     let billedCredits = 0;
     const aiResult = (await this.evaluationsOperationsService.evaluateImage(
@@ -469,14 +458,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       throw new NotFoundException(`Article ${articleId} has no content`);
 
     const brand = article.brand as { name?: string; guidelines?: string };
-    const context: EvaluationContext = {
-      brand: evaluationResultProjection.buildBrandContext(brand),
-      metadata: evaluationResultProjection.serializeJsonRecord({
-        category: evaluationResultProjection.readString(article.category),
-        summary: evaluationResultProjection.readString(article.summary),
-        title: evaluationResultProjection.readString(article.label),
-      }),
-    };
+    const context = buildArticleJudgeContext(article, brand);
 
     let billedCredits = 0;
     const aiResult = (await this.evaluationsOperationsService.evaluateArticle(
@@ -598,7 +580,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           contentId: postId,
           contentType: 'post',
         }),
-        orderBy: { updatedAt: 'desc' },
+        orderBy: PREVIOUS_EVALUATION_ORDER_BY,
       });
       const { context, threadContent } =
         evaluationResultProjection.buildPostEvaluationContext(
@@ -609,7 +591,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
       const aiResult = (await this.evaluationsOperationsService.evaluatePost(
         threadContent,
-        context as EvaluationContext,
+        context as EvaluationJudgeContext,
         organizationId,
         (amount) => {
           billedCredits += amount;

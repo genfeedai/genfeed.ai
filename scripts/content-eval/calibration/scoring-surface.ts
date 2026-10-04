@@ -22,9 +22,11 @@ import type { ScoringSurfaceInput, SurfaceFileContent } from './types';
 // Every file here can change what a text judge scores. The calibration bridge
 // (live-evaluations.ts) drives EvaluationsOperationsService directly, so
 // evaluations.service.ts (credit billing, persistence, caching, websockets) is
-// deliberately absent: it cannot alter a score. The context it passes to the
-// judge is built in evaluation-result.projection.ts, which stays on the surface.
+// deliberately absent: it cannot alter a score. The content selection and judge
+// context it passes on are assembled in evaluation-judge-input.ts and
+// evaluation-result.projection.ts, which stay on the surface.
 export const TEXT_SURFACE_FILES: readonly string[] = [
+  'apps/server/api/src/collections/evaluations/services/evaluation-judge-input.ts',
   'apps/server/api/src/collections/evaluations/services/evaluation-result.projection.ts',
   'apps/server/api/src/collections/evaluations/services/evaluations-operations.service.ts',
   'apps/server/api/src/constants/default-text-model.constant.ts',
