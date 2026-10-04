@@ -70,11 +70,25 @@ export function parseArguments(argv) {
 export function titlesFromReport(report, paths = CONTRACT_PATHS) {
   if (!report || !Array.isArray(report.testResults))
     throw new Error('Report is not a vitest JSON report (no testResults).');
+  if (report.success !== true)
+    throw new Error('Report is unsuccessful (success is not true).');
+  for (const key of ['errors', 'unhandledErrors']) {
+    if (Array.isArray(report[key]) && report[key].length > 0)
+      throw new Error(`Report contains ${key}.`);
+  }
+  for (const key of ['numFailedTests', 'numFailedTestSuites']) {
+    if (typeof report[key] === 'number' && report[key] > 0)
+      throw new Error(`Report has ${key} = ${report[key]}.`);
+  }
   const titles = new Map();
   for (const file of report.testResults) {
     const name = String(file.name ?? '').replaceAll('\\', '/');
     const match = paths.find((entry) => name.endsWith(`/${entry}`));
     if (!match) continue;
+    if (file.status !== 'passed')
+      throw new Error(`Report file ${match} has status ${file.status}.`);
+    if (file.message)
+      throw new Error(`Report file ${match} has an error: ${file.message}`);
     const passed = [];
     for (const assertion of file.assertionResults ?? []) {
       if (assertion.status !== 'passed')
@@ -373,13 +387,29 @@ function readCurrentVariable(repo) {
   }
 }
 
-function assertVariableAbsent(repo) {
+// gh reports a missing variable as "HTTP 404: Not Found (...)". Anything else
+// (auth, network, rate limit, 5xx) is not proof of absence.
+export function isVariableNotFound(stderr) {
+  return /HTTP 404|Not Found/i.test(String(stderr ?? ''));
+}
+
+export function checkVariableAbsent(read, repo) {
   try {
-    run('gh', ['variable', 'get', VARIABLE_NAME, '--repo', repo]);
-  } catch {
-    return;
+    read();
+  } catch (error) {
+    if (isVariableNotFound(error.stderr)) return;
+    throw new Error(
+      `Could not confirm ${VARIABLE_NAME} is absent on ${repo}: ${String(error.stderr ?? error.message).trim()}`,
+    );
   }
   throw new Error(`${VARIABLE_NAME} already exists on ${repo}; drop --init.`);
+}
+
+function assertVariableAbsent(repo) {
+  checkVariableAbsent(
+    () => run('gh', ['variable', 'get', VARIABLE_NAME, '--repo', repo]),
+    repo,
+  );
 }
 
 function historyFor(sha, filePath, pinnedSha256) {

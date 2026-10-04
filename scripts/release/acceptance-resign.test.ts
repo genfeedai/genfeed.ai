@@ -4,6 +4,7 @@ import {
   buildNextContract,
   buildVitestInvocations,
   CONTRACT_PATHS,
+  checkVariableAbsent,
   collectTitlesByRunning,
   commitsSincePin,
   diffContracts,
@@ -106,9 +107,11 @@ describe('acceptance re-sign contract building', () => {
 describe('acceptance re-sign report and history parsing', () => {
   it('extracts passed titles by contract path', () => {
     const titles = titlesFromReport({
+      success: true,
       testResults: [
         {
           name: `/ci/work/${BRAND_PATH}`,
+          status: 'passed',
           assertionResults: [{ status: 'passed', fullName: 'a b' }],
         },
         { name: '/ci/work/other.spec.ts', assertionResults: [] },
@@ -120,9 +123,11 @@ describe('acceptance re-sign report and history parsing', () => {
   it('rejects reports containing non-passed tests', () => {
     expect(() =>
       titlesFromReport({
+        success: true,
         testResults: [
           {
             name: `/x/${BRAND_PATH}`,
+            status: 'passed',
             assertionResults: [{ status: 'skipped', fullName: 'a' }],
           },
         ],
@@ -155,9 +160,11 @@ describe('acceptance re-sign spec runner', () => {
   const SHA = 'a'.repeat(40);
   const storagePath = CONTRACT_PATHS[1];
   const reportFor = (entry: string) => ({
+    success: true,
     testResults: [
       {
         name: `/repo/${entry}`,
+        status: 'passed',
         assertionResults: [{ status: 'passed', fullName: 't' }],
       },
     ],
@@ -227,9 +234,11 @@ describe('acceptance re-sign spec runner', () => {
         changedPaths: [storagePath],
         deps: makeDeps({
           readReport: () => ({
+            success: true,
             testResults: [
               {
                 name: `/repo/${storagePath}`,
+                status: 'passed',
                 assertionResults: [{ status: 'failed', fullName: 'x' }],
               },
             ],
@@ -249,5 +258,71 @@ describe('acceptance re-sign spec runner', () => {
 
   it('parses --init', () => {
     expect(parseArguments(['--init']).isInit).toBe(true);
+  });
+});
+
+describe('acceptance re-sign strictness', () => {
+  const file = (extra: Record<string, unknown> = {}) => ({
+    name: `/x/${BRAND_PATH}`,
+    status: 'passed',
+    assertionResults: [{ status: 'passed', fullName: 'a' }],
+    ...extra,
+  });
+
+  it('accepts a fully successful report', () => {
+    expect(
+      titlesFromReport({ success: true, testResults: [file()] }).get(
+        BRAND_PATH,
+      ),
+    ).toEqual(['a']);
+  });
+
+  it('rejects success:false even when every assertion passed', () => {
+    expect(() =>
+      titlesFromReport({ success: false, testResults: [file()] }),
+    ).toThrow(/unsuccessful/);
+  });
+
+  it('rejects a missing success flag, failed files and reported errors', () => {
+    expect(() => titlesFromReport({ testResults: [file()] })).toThrow(
+      /unsuccessful/,
+    );
+    expect(() =>
+      titlesFromReport({
+        success: true,
+        testResults: [file({ status: 'failed' })],
+      }),
+    ).toThrow(/status failed/);
+    expect(() =>
+      titlesFromReport({
+        success: true,
+        unhandledErrors: [{ message: 'teardown' }],
+        testResults: [file()],
+      }),
+    ).toThrow(/unhandledErrors/);
+  });
+
+  it('proceeds under --init only on a confirmed 404', () => {
+    const notFound = () => {
+      throw Object.assign(new Error('x'), {
+        stderr:
+          'HTTP 404: Not Found (https://api.github.com/repos/o/r/actions/variables/V)',
+      });
+    };
+    expect(() => checkVariableAbsent(notFound, 'o/r')).not.toThrow();
+  });
+
+  it('aborts under --init on any other read error or when it exists', () => {
+    const authFailure = () => {
+      throw Object.assign(new Error('x'), {
+        stderr: 'HTTP 401: Bad credentials',
+      });
+    };
+    expect(() => checkVariableAbsent(authFailure, 'o/r')).toThrow(
+      /Could not confirm/,
+    );
+    expect(() => checkVariableAbsent(() => '{}', 'o/r')).toThrow(
+      /already exists/,
+    );
   });
 });
