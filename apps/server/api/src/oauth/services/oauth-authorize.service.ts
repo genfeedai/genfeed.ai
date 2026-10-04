@@ -7,6 +7,7 @@ import {
   toBase64Url,
 } from '@api/auth/shared/pkce.util';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { buildMcpOAuthSessionMetadata } from '@api/oauth/mcp-oauth-session-metadata.util';
 import {
   resolveMcpResourceUrl,
   resolveOAuthAppUrl,
@@ -168,7 +169,7 @@ export class OAuthAuthorizeService {
   }
 
   async exchangeToken(dto: OAuthAuthorizationCodeGrant) {
-    await this.clientService.requireClient(dto.client_id);
+    const client = await this.clientService.requireClient(dto.client_id);
     this.assertResource(dto.resource);
 
     const persisted = await this.prisma.mcpOAuthAuthCode.findUnique({
@@ -212,10 +213,10 @@ export class OAuthAuthorizeService {
         description: 'OAuth session for a remote MCP client',
         expiresAt: expiresAt.toISOString(),
         label: 'MCP OAuth',
-        metadata: {
-          kind: 'mcp-oauth-session',
-          resource: record.resource,
-        },
+        metadata: buildMcpOAuthSessionMetadata(record.resource, {
+          clientName: client.clientName,
+          grantId: record.id,
+        }),
         organizationId: record.organizationId,
         rateLimit: 120,
         scopes: record.scopes,

@@ -1,6 +1,10 @@
 import { randomBytes } from 'node:crypto';
 import { hashToken, toBase64Url } from '@api/auth/shared/pkce.util';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import {
+  buildMcpOAuthSessionMetadata,
+  readMcpOAuthSessionLineage,
+} from '@api/oauth/mcp-oauth-session-metadata.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
 import type { McpOAuthRefreshToken } from '@genfeedai/prisma';
@@ -163,10 +167,12 @@ export class OAuthRefreshTokenService {
         description: 'OAuth session for a remote MCP client',
         expiresAt: expiresAt.toISOString(),
         label: 'MCP OAuth',
-        metadata: {
-          kind: 'mcp-oauth-session',
-          resource: record.resource,
-        },
+        // Keys minted before grant lineage existed fall back to their own id,
+        // which then stays stable for every later rotation.
+        metadata: buildMcpOAuthSessionMetadata(
+          record.resource,
+          readMcpOAuthSessionLineage(apiKey.metadata, apiKey.id),
+        ),
         organizationId: record.organizationId,
         rateLimit: apiKey.rateLimit ?? 120,
         scopes,

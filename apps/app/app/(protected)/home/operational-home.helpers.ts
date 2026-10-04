@@ -2,10 +2,15 @@ import {
   getBrandOrganizationId,
   getBrandOrganizationSlug,
 } from '@contexts/user/brand-context/brand-context.helpers';
-import { TargetExecutionState } from '@genfeedai/contracts';
+import {
+  ActionOrigin,
+  API_KEY_ACTION_ORIGIN_METADATA_KEY,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import {
   API_KEY_SCOPE_PRESETS,
   CONNECT_GENFEED_VERIFICATION_METADATA_KEY,
+  MCP_OAUTH_SESSION_KIND,
 } from '@genfeedai/contracts/constants';
 import type {
   IActivity,
@@ -19,12 +24,14 @@ import type {
   CredentialHealthSummary,
   OperationalHomeScope,
   UpcomingScheduleDay,
+  VerifiedMcpConnection,
 } from '@genfeedai/props/home/operational-home.props';
 
 export type {
   CredentialHealthSummary,
   OperationalHomeScope,
   UpcomingScheduleDay,
+  VerifiedMcpConnection,
 } from '@genfeedai/props/home/operational-home.props';
 
 export function resolveOperationalHomeScope({
@@ -88,40 +95,111 @@ function getConnectGenfeedMetadata(
   };
 }
 
+function getApiKeyOrganizationId(apiKey: ApiKey): string | undefined {
+  return typeof apiKey.organization === 'string'
+    ? apiKey.organization
+    : apiKey.organization?.id;
+}
+
+function isUsableApiKey(
+  apiKey: ApiKey,
+  organizationId: string,
+  now: number,
+): boolean {
+  const expiresAt = apiKey.expiresAt ? Date.parse(apiKey.expiresAt) : null;
+  const isExpired =
+    expiresAt !== null && (!Number.isFinite(expiresAt) || expiresAt <= now);
+
+  return (
+    apiKey.isActive &&
+    !apiKey.isRevoked &&
+    getApiKeyOrganizationId(apiKey) === organizationId &&
+    !isExpired
+  );
+}
+
+function readMetadataString(apiKey: ApiKey, key: string): string | null {
+  const value = apiKey.metadata?.[key];
+  return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+/**
+ * The OAuth token exchange mints a session key; the MCP server authenticates
+ * every request through the API key guard, which stamps `lastUsedAt`. A used
+ * session key therefore proves the agent completed OAuth and reached Genfeed.
+ * The `mcp` action origin is server-signed and stripped from user-supplied
+ * metadata, so a relabelled personal key cannot pass as an OAuth session.
+ */
+function getOAuthSessionConnection(
+  apiKey: ApiKey,
+): VerifiedMcpConnection | null {
+  if (
+    apiKey.metadata?.kind !== MCP_OAUTH_SESSION_KIND ||
+    apiKey.metadata[API_KEY_ACTION_ORIGIN_METADATA_KEY] !== ActionOrigin.MCP ||
+    !apiKey.lastUsedAt
+  ) {
+    return null;
+  }
+  if (!Number.isFinite(Date.parse(apiKey.lastUsedAt))) {
+    return null;
+  }
+
+  return {
+    apiKey,
+    clientName: readMetadataString(apiKey, 'clientName'),
+    connectionId: readMetadataString(apiKey, 'grantId') ?? apiKey.id,
+    method: 'oauth',
+    verifiedAt: apiKey.lastUsedAt,
+  };
+}
+
+function getManualKeyConnection(
+  apiKey: ApiKey,
+  now: number,
+): VerifiedMcpConnection | null {
+  const createdAt = Date.parse(apiKey.createdAt);
+  const hasRequiredScopes = API_KEY_SCOPE_PRESETS.mcp.every((scope) =>
+    apiKey.scopes.includes(scope),
+  );
+  const verification = Number.isFinite(createdAt)
+    ? getConnectGenfeedMetadata(apiKey.metadata, createdAt, now)
+    : null;
+
+  if (!hasRequiredScopes || !verification) {
+    return null;
+  }
+
+  return {
+    apiKey,
+    clientName: null,
+    connectionId: apiKey.id,
+    method: 'manual-key',
+    verifiedAt: verification.lastVerifiedAt,
+  };
+}
+
+/** Every agent connection in the organization, in API-key list order. */
+export function getVerifiedMcpConnections(
+  apiKeys: ApiKey[],
+  organizationId: string,
+  now = Date.now(),
+): VerifiedMcpConnection[] {
+  return apiKeys.flatMap((apiKey) => {
+    if (!isUsableApiKey(apiKey, organizationId, now)) {
+      return [];
+    }
+    const connection =
+      getOAuthSessionConnection(apiKey) ?? getManualKeyConnection(apiKey, now);
+    return connection ? [connection] : [];
+  });
+}
+
 export function getVerifiedMcpConnection(
   apiKeys: ApiKey[],
   organizationId: string,
   now = Date.now(),
-): { apiKey: ApiKey; verifiedAt: string } | null {
-  for (const apiKey of apiKeys) {
-    const apiKeyOrganizationId =
-      typeof apiKey.organization === 'string'
-        ? apiKey.organization
-        : apiKey.organization?.id;
-    const expiresAt = apiKey.expiresAt ? Date.parse(apiKey.expiresAt) : null;
-    const createdAt = Date.parse(apiKey.createdAt);
-    const isExpired =
-      expiresAt !== null && (!Number.isFinite(expiresAt) || expiresAt <= now);
-    const hasRequiredScopes = API_KEY_SCOPE_PRESETS.mcp.every((scope) =>
-      apiKey.scopes.includes(scope),
-    );
-    const verification = Number.isFinite(createdAt)
-      ? getConnectGenfeedMetadata(apiKey.metadata, createdAt, now)
-      : null;
-
-    if (
-      apiKey.isActive &&
-      !apiKey.isRevoked &&
-      apiKeyOrganizationId === organizationId &&
-      !isExpired &&
-      hasRequiredScopes &&
-      verification
-    ) {
-      return { apiKey, verifiedAt: verification.lastVerifiedAt };
-    }
-  }
-
-  return null;
+): VerifiedMcpConnection | null {
+  return getVerifiedMcpConnections(apiKeys, organizationId, now)[0] ?? null;
 }
 
 export function getCredentialBadge(credential: ICredential): {

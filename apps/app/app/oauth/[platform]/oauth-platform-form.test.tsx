@@ -139,6 +139,9 @@ describe('OAuthPlatformForm', () => {
       'POST /services/instagram/verify success',
     );
     expect(screen.getByText('Instagram Connected')).toBeVisible();
+    expect(
+      document.querySelector('[data-connection-brand="Instagram"]'),
+    ).toHaveStyle({ color: '#E1306C' });
     expect(clearClientProtectedBootstrapCache).toHaveBeenCalledTimes(1);
 
     expect(mocks.push).toHaveBeenCalledWith('/settings/publishing');
@@ -403,7 +406,7 @@ describe('OAuthPlatformForm', () => {
     render(<OAuthPlatformForm platform="youtube" />);
 
     await waitFor(() => {
-      expect(screen.getByText('Youtube Connected')).toBeVisible();
+      expect(screen.getByText('YouTube Connected')).toBeVisible();
     });
     expect(
       screen.queryByTestId('instagram-account-selector'),

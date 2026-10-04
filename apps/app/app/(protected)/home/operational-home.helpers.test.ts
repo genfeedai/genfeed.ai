@@ -11,6 +11,7 @@ import {
   getActivityBadge,
   getCredentialBadge,
   getVerifiedMcpConnection,
+  getVerifiedMcpConnections,
   summarizeCredentialHealth,
   summarizeUpcomingSchedule,
 } from './operational-home.helpers';
@@ -109,6 +110,94 @@ describe('getVerifiedMcpConnection', () => {
         NOW,
       ),
     ).toBeNull();
+  });
+});
+
+function createOAuthSessionKey(overrides: Partial<ApiKey> = {}): ApiKey {
+  return new ApiKey({
+    createdAt: '2026-07-26T11:58:00.000Z',
+    expiresAt: '2026-08-25T11:58:00.000Z',
+    id: 'oauth_key_1',
+    isActive: true,
+    isRevoked: false,
+    label: 'MCP OAuth',
+    lastUsedAt: '2026-07-26T11:59:00.000Z',
+    metadata: {
+      actionOrigin: 'mcp',
+      clientName: 'Claude Code',
+      grantId: 'grant_1',
+      kind: 'mcp-oauth-session',
+      resource: 'https://mcp.genfeed.ai/mcp',
+    },
+    organization: 'org_1',
+    scopes: ['brands:read', 'posts:write'],
+    updatedAt: '2026-07-26T11:59:00.000Z',
+    ...overrides,
+  });
+}
+
+describe('getVerifiedMcpConnection for OAuth agents', () => {
+  it('accepts an OAuth session the MCP server has used', () => {
+    const result = getVerifiedMcpConnection(
+      [createOAuthSessionKey()],
+      'org_1',
+      NOW,
+    );
+
+    expect(result).toMatchObject({
+      clientName: 'Claude Code',
+      connectionId: 'grant_1',
+      method: 'oauth',
+      verifiedAt: '2026-07-26T11:59:00.000Z',
+    });
+    expect(result?.apiKey.id).toBe('oauth_key_1');
+  });
+
+  it.each([
+    ['unused', { lastUsedAt: null }],
+    ['revoked', { isRevoked: true }],
+    ['expired', { expiresAt: '2026-07-26T11:59:30.000Z' }],
+    ['wrong organization', { organization: 'org_2' }],
+    ['malformed last use', { lastUsedAt: 'not-a-date' }],
+    [
+      'non-OAuth',
+      {
+        metadata: { kind: 'personal', resource: 'https://mcp.genfeed.ai/mcp' },
+      },
+    ],
+    [
+      'user-relabelled (no server-signed MCP origin)',
+      { metadata: { kind: 'mcp-oauth-session' } },
+    ],
+  ])('rejects a %s session', (_label, overrides) => {
+    expect(
+      getVerifiedMcpConnection(
+        [createOAuthSessionKey(overrides as Partial<ApiKey>)],
+        'org_1',
+        NOW,
+      ),
+    ).toBeNull();
+  });
+
+  it('lists OAuth and manually verified connections together', () => {
+    const connections = getVerifiedMcpConnections(
+      [
+        createOAuthSessionKey({
+          metadata: { actionOrigin: 'mcp', kind: 'mcp-oauth-session' },
+        }),
+        createVerifiedKey(),
+      ],
+      'org_1',
+      NOW,
+    );
+
+    expect(connections.map((connection) => connection.method)).toEqual([
+      'oauth',
+      'manual-key',
+    ]);
+    expect(connections[0]?.clientName).toBeNull();
+    // Without grant lineage the key id identifies the connection.
+    expect(connections[0]?.connectionId).toBe('oauth_key_1');
   });
 });
 
