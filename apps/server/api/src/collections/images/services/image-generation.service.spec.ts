@@ -13,6 +13,7 @@ import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/s
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
+import { noCharacterAdmission } from '@api/collections/personas/utils/character-admission.util';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
@@ -228,7 +229,7 @@ const createService = () => {
   const personasService = {
     resolveCharacterReferences: vi
       .fn()
-      .mockResolvedValue({ availableAvatarIds: new Set(), personaId: null }),
+      .mockResolvedValue(noCharacterAdmission()),
   };
   const activitiesService = {
     record: vi.fn().mockResolvedValue({ id: { toString: () => 'act' } }),
@@ -1468,6 +1469,7 @@ describe('ImageGenerationService', () => {
           { id: avatarId, organizationId: ORG },
         ]);
         personasService.resolveCharacterReferences.mockResolvedValue({
+          ...noCharacterAdmission(),
           availableAvatarIds: new Set([avatarId]),
           personaId: 'persona-1',
         });
