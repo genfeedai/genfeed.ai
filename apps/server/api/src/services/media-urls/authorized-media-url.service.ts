@@ -432,8 +432,10 @@ export class AuthorizedMediaUrlService {
       },
       where: {
         persona: {
-          avatarIngredientId: { in: [...new Set(ingredientIds)] },
-          isDeleted: false,
+          is: {
+            avatarIngredientId: { in: [...new Set(ingredientIds)] },
+            isDeleted: false,
+          },
         },
         recipientOrganizationId: scope.organizationId,
         revokedAt: null,
