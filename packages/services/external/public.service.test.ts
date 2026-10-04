@@ -347,6 +347,7 @@ describe('PublicService', () => {
 
       expect(http.get).toHaveBeenCalledWith('articles/slug/post', {
         params: { previewToken: 'tok_123' },
+        validateStatus: expect.any(Function),
       });
       expect(result).toBeInstanceOf(Article);
     });
