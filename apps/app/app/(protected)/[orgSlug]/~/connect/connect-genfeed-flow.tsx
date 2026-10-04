@@ -1,5 +1,6 @@
 'use client';
 
+import { useConnectGenfeedStatus } from '@app/(protected)/home/use-connect-genfeed-status';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   getDeployment,
@@ -15,6 +16,7 @@ import type {
 import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
+import type { VerifiedMcpConnection } from '@genfeedai/props/home/operational-home.props';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -22,6 +24,11 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ApiKeysService } from '@services/management/api-keys.service';
 import Card from '@ui/card/Card';
+import ConnectionSuccess from '@ui/feedback/connection-success/ConnectionSuccess';
+import {
+  resolveAgentConnectionBrand,
+  resolveConnectionAgent,
+} from '@ui/feedback/connection-success/connection-brand';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -38,7 +45,6 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
 import {
   ANALYTICS_EVENTS,
   type ConnectGenfeedStep,
@@ -62,6 +68,9 @@ const CLIENTS = [
     value: 'generic',
   },
 ] as const;
+
+/** How often the browser-authorization tab re-reads the agent connection state. */
+const OAUTH_CONNECTION_POLL_MS = 4000;
 
 const FIRST_ACTION_PROMPT =
   'List my Genfeed brands, then create a draft social post for review. Do not publish it.';
@@ -103,7 +112,16 @@ export default function ConnectGenfeedFlow() {
   const [isCreatingKey, setIsCreatingKey] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [copiedItem, setCopiedItem] = useState('');
+  const [connectedAgent, setConnectedAgent] =
+    useState<VerifiedMcpConnection | null>(null);
   const hasTrackedStart = useRef(false);
+  const knownOAuthConnectionIds = useRef<ReadonlySet<string> | null>(null);
+  const connectionStatus = useConnectGenfeedStatus(organizationId ?? '', {
+    pollIntervalMs:
+      authMethod === 'oauth' && !connectedAgent
+        ? OAUTH_CONNECTION_POLL_MS
+        : false,
+  });
   const deployment = getDeployment();
   const endpoint = EnvironmentService.mcpEndpoint;
   const hasProductApiAccess =
@@ -171,6 +189,43 @@ export default function ConnectGenfeedFlow() {
 
     return () => controller.abort();
   }, [authMethod, fetchApiKeys, isReady, organizationId]);
+
+  // Agents authorize outside this page, so success is the first OAuth session
+  // that was not already connected when the page loaded and has since reached
+  // the MCP server.
+  useEffect(() => {
+    if (
+      connectionStatus.status === 'loading' ||
+      connectionStatus.status === 'error' ||
+      connectedAgent
+    ) {
+      return;
+    }
+
+    const oauthConnections = connectionStatus.connections.filter(
+      (connection) => connection.method === 'oauth',
+    );
+    const knownIds = knownOAuthConnectionIds.current;
+    if (!knownIds) {
+      knownOAuthConnectionIds.current = new Set(
+        oauthConnections.map((connection) => connection.apiKey.id),
+      );
+      return;
+    }
+
+    const newConnection = oauthConnections.find(
+      (connection) => !knownIds.has(connection.apiKey.id),
+    );
+    if (newConnection) {
+      setConnectedAgent(newConnection);
+      trackStep('verification', 'success');
+    }
+  }, [
+    connectedAgent,
+    connectionStatus.connections,
+    connectionStatus.status,
+    trackStep,
+  ]);
 
   useEffect(() => {
     if (hasTrackedStart.current) {
@@ -323,6 +378,17 @@ export default function ConnectGenfeedFlow() {
     }
   };
 
+  const selectedClientLabel =
+    CLIENTS.find((item) => item.value === client)?.label ?? 'MCP';
+  const connectedAgentBrand = resolveAgentConnectionBrand(
+    resolveConnectionAgent(connectedAgent?.clientName ?? client),
+  );
+  const connectedAgentName =
+    connectedAgent?.clientName ?? connectedAgentBrand.name;
+  const selectedClientBrand = resolveAgentConnectionBrand(
+    resolveConnectionAgent(client),
+  );
+
   const publishingHref =
     verification?.status === 'connected' && verification.publishing.isReady
       ? firstBrandSlug
@@ -421,15 +487,57 @@ export default function ConnectGenfeedFlow() {
           <p className="mt-4 text-sm">
             {instructions.authorizationInstruction}
           </p>
-          <Alert className="mt-4">
-            <AlertTitle>{translate('finishTitle')}</AlertTitle>
-            <AlertDescription>
-              {translate('finishDescription')}
-            </AlertDescription>
-          </Alert>
-          <p className="mt-4 text-sm text-muted-foreground">
-            {translate('authorizationRecovery')}
-          </p>
+          {connectedAgent ? (
+            <div
+              className="mt-4 flex flex-col items-center gap-4 border border-border bg-background p-6"
+              data-testid="connect-genfeed-agent-connected"
+            >
+              <ConnectionSuccess
+                brand={connectedAgentBrand}
+                description={translate('agentConnectedDescription', {
+                  client: connectedAgentName,
+                })}
+                title={translate('agentConnectedTitle', {
+                  client: connectedAgentName,
+                })}
+              />
+              <pre className="w-full overflow-x-auto bg-card p-3 font-mono text-xs">
+                <code>{FIRST_ACTION_PROMPT}</code>
+              </pre>
+              <Button
+                icon={<Clipboard aria-hidden="true" className="size-4" />}
+                onClick={() =>
+                  void copyText('First action prompt', FIRST_ACTION_PROMPT)
+                }
+                variant={ButtonVariant.SECONDARY}
+                withWrapper={false}
+              >
+                {translate('copyFirstAction')}
+              </Button>
+            </div>
+          ) : (
+            <>
+              <Alert className="mt-4">
+                <AlertTitle>{translate('finishTitle')}</AlertTitle>
+                <AlertDescription>
+                  {translate('finishDescription')}
+                </AlertDescription>
+              </Alert>
+              <p
+                className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"
+                data-testid="connect-genfeed-waiting"
+              >
+                <span
+                  aria-hidden="true"
+                  className="size-2 animate-pulse rounded-full bg-primary motion-reduce:animate-none"
+                />
+                {translate('waitingForAgent', { client: selectedClientLabel })}
+              </p>
+              <p className="mt-4 text-sm text-muted-foreground">
+                {translate('authorizationRecovery')}
+              </p>
+            </>
+          )}
           <p aria-live="polite" className="mt-3 text-xs">
             {copiedItem
               ? `${copiedItem} copied. Complete authorization in your client.`
@@ -709,17 +817,16 @@ export default function ConnectGenfeedFlow() {
                 ) : null}
 
                 {verification?.status === 'connected' ? (
-                  <Alert variant="success">
-                    <CircleCheck aria-hidden="true" className="size-4" />
-                    <AlertTitle>{translate('verifiedTitle')}</AlertTitle>
-                    <AlertDescription>
-                      {translate('verifiedDescription', {
-                        verifiedAt: new Date(
-                          verification.verifiedAt,
-                        ).toLocaleString(),
-                      })}
-                    </AlertDescription>
-                  </Alert>
+                  <ConnectionSuccess
+                    brand={selectedClientBrand}
+                    className="py-2"
+                    description={translate('verifiedDescription', {
+                      verifiedAt: new Date(
+                        verification.verifiedAt,
+                      ).toLocaleString(),
+                    })}
+                    title={translate('verifiedTitle')}
+                  />
                 ) : null}
               </div>
             </div>

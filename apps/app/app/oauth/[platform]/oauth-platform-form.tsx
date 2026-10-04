@@ -11,11 +11,13 @@ import type {
 } from '@props/auth/oauth-platform-form.props';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
+import ConnectionSuccess from '@ui/feedback/connection-success/ConnectionSuccess';
+import { resolvePlatformConnectionBrand } from '@ui/feedback/connection-success/connection-brand';
 import InstagramAccountSelector from '@ui/modals/brands/instagram/InstagramAccountSelector';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 
-import { CircleCheck, CircleX } from 'lucide-react';
+import { CircleX } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -182,6 +184,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
   }, [verify]);
 
   const platformLabel = platform.charAt(0).toUpperCase() + platform.slice(1);
+  const platformBrand = resolvePlatformConnectionBrand(platform);
 
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -224,15 +227,11 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         )}
 
         {isSignedIn && result.status === 'success' && (
-          <div className="space-y-4">
-            <CircleCheck className="mx-auto text-5xl text-success" />
-            <h2 className="text-lg font-semibold">
-              {translate('success.title', { platform: platformLabel })}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {translate('success.description')}
-            </p>
-          </div>
+          <ConnectionSuccess
+            brand={platformBrand}
+            description={translate('success.description')}
+            title={translate('success.title', { platform: platformBrand.name })}
+          />
         )}
 
         {isSignedIn && result.status === 'error' && (

@@ -1,4 +1,7 @@
 import '@testing-library/jest-dom/vitest';
+import { ApiKey } from '@genfeedai/models/auth/api-key.model';
+import type { UseConnectGenfeedStatusResult } from '@genfeedai/props/home/connect-genfeed-status.props';
+import type { VerifiedMcpConnection } from '@genfeedai/props/home/operational-home.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
@@ -32,10 +35,63 @@ const TRUNCATED_TEST_KEY = ['gf', 'test', 'truncated-secret'].join('_');
 
 const mocks = vi.hoisted(() => ({
   capture: vi.fn(),
+  connectionStatus: null as UseConnectGenfeedStatusResult | null,
   createApiKey: vi.fn(),
   findAll: vi.fn(),
+  statusOptions: vi.fn(),
   verifyMcpConnection: vi.fn(),
 }));
+
+vi.mock('@app/(protected)/home/use-connect-genfeed-status', () => ({
+  useConnectGenfeedStatus: (
+    organizationId: string,
+    options: { pollIntervalMs?: number | false },
+  ) => {
+    mocks.statusOptions(organizationId, options);
+    return mocks.connectionStatus;
+  },
+}));
+
+function oauthConnection(
+  id: string,
+  clientName: string | null,
+): VerifiedMcpConnection {
+  return {
+    apiKey: new ApiKey({
+      id,
+      label: 'MCP OAuth',
+      lastUsedAt: '2026-07-18T12:00:00.000Z',
+      metadata: { clientName, kind: 'mcp-oauth-session' },
+      organization: 'org-1',
+    }),
+    clientName,
+    method: 'oauth',
+    verifiedAt: '2026-07-18T12:00:00.000Z',
+  };
+}
+
+function connectionStatus(
+  connections: VerifiedMcpConnection[],
+): UseConnectGenfeedStatusResult {
+  const [first] = connections;
+  return first
+    ? {
+        connections,
+        error: null,
+        key: first.apiKey,
+        refresh: vi.fn(),
+        status: 'configured',
+        verifiedAt: first.verifiedAt,
+      }
+    : {
+        connections,
+        error: null,
+        key: null,
+        refresh: vi.fn(),
+        status: 'unconfigured',
+        verifiedAt: null,
+      };
+}
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
@@ -189,6 +245,7 @@ function activeKey() {
 describe('ConnectGenfeedFlow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.connectionStatus = connectionStatus([]);
     mocks.findAll.mockResolvedValue([activeKey()]);
     mocks.createApiKey.mockResolvedValue({
       ...activeKey(),
@@ -231,6 +288,61 @@ describe('ConnectGenfeedFlow', () => {
     expect(
       screen.getByText(/If access was denied or the login expired/),
     ).toBeInTheDocument();
+  });
+
+  it('announces an agent once its new OAuth session reaches Genfeed', async () => {
+    const { rerender } = render(<ConnectGenfeedFlow />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Claude Code' }));
+
+    expect(screen.getByTestId('connect-genfeed-waiting')).toHaveTextContent(
+      'Waiting for Claude Code to connect.',
+    );
+    expect(mocks.statusOptions).toHaveBeenLastCalledWith('org-1', {
+      pollIntervalMs: 4000,
+    });
+
+    mocks.connectionStatus = connectionStatus([
+      oauthConnection('oauth-key-1', 'Claude Code'),
+    ]);
+    rerender(<ConnectGenfeedFlow />);
+
+    expect(
+      await screen.findByText('Connected to Claude Code'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Claude Code authorized Genfeed and completed its first MCP request.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('connect-genfeed-waiting'),
+    ).not.toBeInTheDocument();
+    expect(mocks.statusOptions).toHaveBeenLastCalledWith('org-1', {
+      pollIntervalMs: false,
+    });
+    expect(mocks.capture).toHaveBeenCalledWith(
+      'connect_genfeed_step',
+      expect.objectContaining({ outcome: 'success', step: 'verification' }),
+    );
+  });
+
+  it('does not announce an agent that was already connected on load', async () => {
+    mocks.connectionStatus = connectionStatus([
+      oauthConnection('oauth-key-existing', 'Codex'),
+    ]);
+    const { rerender } = render(<ConnectGenfeedFlow />);
+    rerender(<ConnectGenfeedFlow />);
+
+    expect(screen.getByTestId('connect-genfeed-waiting')).toBeInTheDocument();
+    expect(screen.queryByText('Connected to Codex')).not.toBeInTheDocument();
+
+    mocks.connectionStatus = connectionStatus([
+      oauthConnection('oauth-key-new', null),
+      oauthConnection('oauth-key-existing', 'Codex'),
+    ]);
+    rerender(<ConnectGenfeedFlow />);
+
+    expect(await screen.findByText('Connected to Codex')).toBeInTheDocument();
   });
 
   it('switches OAuth clients and provides an unsupported-client fallback', async () => {
