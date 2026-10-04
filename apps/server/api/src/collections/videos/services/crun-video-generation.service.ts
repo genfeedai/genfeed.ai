@@ -10,30 +10,23 @@ import { CrunVideoPreviewQuoteService } from '@api/collections/videos/services/c
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
-import { reserveGenerationRequestCredits } from '@api/helpers/utils/credits/generation-credit-reservation.util';
-import { generationUsageReceiptSchema } from '@api/helpers/utils/credits/generation-submission-evidence.schema';
-import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CacheService } from '@api/services/cache/cache.service';
 import { CRUN_VIDEO_MANIFEST } from '@api/services/integrations/crun/contracts/crun-manifest';
-import { compensateCrunDispatchFailure } from '@api/services/integrations/crun/crun-generation-compensation.util';
-import type {
-  CrunFrozenVideoQuote,
-  CrunFundingBinding,
-  CrunPreparedTask,
-} from '@api/services/integrations/crun/crun-task.schema';
-import { crunFundingBindingSchema } from '@api/services/integrations/crun/crun-task.schema';
+import {
+  type CrunGenerationStrategy,
+  dispatchFrozenCrunGeneration,
+} from '@api/services/integrations/crun/crun-generation-lifecycle';
+import type { CrunFrozenVideoQuote } from '@api/services/integrations/crun/crun-task.schema';
 import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   ActivitySource,
   IngredientCategory,
-  IngredientOrigin,
   MetadataExtension,
   PromptCategory,
-  PromptStatus,
 } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import {
@@ -41,8 +34,6 @@ import {
   isDeserializerRuntime,
   type JsonApiDocument,
 } from '@genfeedai/helpers';
-import type { Prisma } from '@genfeedai/prisma';
-import { toPrismaJson } from '@genfeedai/prisma';
 import { VideoSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
@@ -98,6 +89,30 @@ export class CrunVideoGenerationService {
     private readonly cache: CacheService,
   ) {}
 
+  private readonly strategy: CrunGenerationStrategy<
+    CrunVideoQuoteIntent,
+    CrunFrozenVideoQuote
+  > = {
+    activitySource: ActivitySource.VIDEO_GENERATION,
+    category: IngredientCategory.VIDEO,
+    defaultDescription: 'Video generation',
+    isPreflightCompensated: true,
+    promptCategory: PromptCategory.MODELS_PROMPT_VIDEO,
+    assertCurrent: (frozen) => this.preview.assertCurrent(frozen),
+    beforeSubmit: () => this.cache.invalidateByTags(['videos']),
+    extension: () => MetadataExtension.MP4,
+    normalize: (raw, user) => this.input.normalize(raw, user),
+    parentId: (intent) => intent.parentId,
+    referenceCount: (intent) =>
+      (intent.references?.length ?? 0) + (intent.endFrame ? 1 : 0),
+    resolveOutputPersonaId: (intent, user, brandId) =>
+      this.input.resolveOutputPersonaId(intent, user, brandId),
+    sourceIds: (intent) => [
+      ...(intent.references ?? []),
+      ...(intent.endFrame ? [intent.endFrame] : []),
+    ],
+  };
+
   async generate(
     user: AuthenticatedUser,
     dto: CreateVideoDto,
@@ -113,43 +128,18 @@ export class CrunVideoGenerationService {
     if (consumed.kind === 'replay')
       return this.serializeReplay(user, request, consumed.ingredientIds);
     const frozen = consumed.quote;
-    const createdIngredientIds: string[] = [];
-    let ingredients: Awaited<
-      ReturnType<SharedService['createMediaDocuments']>
-    >[];
-    try {
-      const { provider, intent } = await this.reserveFrozenFunding(
-        user,
-        raw,
-        frozen,
-        billingRequest,
-      );
-      const bound = await this.createBoundOutputs(
-        user,
-        intent,
-        frozen,
-        provider,
-        billingRequest,
-        createdIngredientIds,
-      );
-      ingredients = bound.ingredients;
-      await this.submitPreparedOutputs(
-        user,
-        frozen,
-        bound.rows,
-        billingRequest,
-      );
-    } catch (error: unknown) {
-      await compensateCrunDispatchFailure(
-        { tasks: this.tasks, billing: this.billing },
-        {
-          organizationId: user.organizationId,
-          ingredientIds: createdIngredientIds,
-          billingRequest,
-        },
-      );
-      throw error;
-    }
+    const ingredients = await dispatchFrozenCrunGeneration(
+      {
+        billing: this.billing,
+        credits: this.credits,
+        prisma: this.prisma,
+        prompts: this.prompts,
+        shared: this.shared,
+        tasks: this.tasks,
+      },
+      this.strategy,
+      { billingRequest, frozen, raw, user },
+    );
     const first = await this.videos.findOne({
       id: ingredients[0].ingredientData.id,
       organizationId: user.organizationId,
@@ -249,214 +239,6 @@ export class CrunVideoGenerationService {
       ...existing,
       pendingIngredientIds: ingredientIds,
     });
-  }
-
-  private async reserveFrozenFunding(
-    user: AuthenticatedUser,
-    raw: Record<string, unknown>,
-    frozen: CrunFrozenVideoQuote,
-    billingRequest: RequestWithContext & GenerationBillingRequest,
-  ) {
-    await this.preview.assertCurrent(frozen);
-    const provider = frozen.snapshot.providerQuote;
-    if (!provider) throw new ConflictException({ code: 'CRUN_QUOTE_STALE' });
-    const intent = this.input.normalize(raw, user);
-    if (
-      provider.credentialSource === 'hosted' &&
-      frozen.snapshot.credits > 0 &&
-      !(await this.credits.checkOrganizationCreditsAvailable(
-        user.organizationId,
-        frozen.snapshot.credits,
-      ))
-    ) {
-      const balance = await this.credits.getOrganizationCreditsBalance(
-        user.organizationId,
-      );
-      throw createInsufficientCreditsException(
-        frozen.snapshot.credits,
-        balance,
-      );
-    }
-    billingRequest.creditsConfig = {
-      ...billingRequest.creditsConfig,
-      amount: frozen.snapshot.credits,
-      deferred: false,
-      modelKey: intent.model,
-      modelQuote: frozen.snapshot,
-      settlement: 'completion',
-      source: ActivitySource.VIDEO_GENERATION,
-      description:
-        billingRequest.creditsConfig?.description ?? 'Video generation',
-      isByokBypass: provider.credentialSource === 'byok',
-    };
-    await reserveGenerationRequestCredits({
-      amount: frozen.snapshot.credits,
-      creditsUtilsService: this.credits,
-      organizationId: user.organizationId,
-      request: billingRequest,
-    });
-    return { provider, intent };
-  }
-
-  private async createBoundOutputs(
-    user: AuthenticatedUser,
-    intent: CrunVideoQuoteIntent,
-    frozen: CrunFrozenVideoQuote,
-    provider: NonNullable<CrunFrozenVideoQuote['snapshot']['providerQuote']>,
-    billingRequest: RequestWithContext & GenerationBillingRequest,
-    createdIngredientIds: string[],
-  ) {
-    const prompt = intent.promptId
-      ? { id: intent.promptId }
-      : await this.prompts.create({
-          original: intent.text,
-          enhanced: intent.text,
-          category: PromptCategory.MODELS_PROMPT_VIDEO,
-          status: PromptStatus.GENERATED,
-          userId: user.userId,
-          organizationId: user.organizationId,
-          brandId: frozen.brandId,
-        });
-    const personaId = await this.input.resolveOutputPersonaId(
-      intent,
-      user,
-      frozen.brandId,
-    );
-    const rows: CrunPreparedTask[] = [];
-    const ingredients: Awaited<
-      ReturnType<SharedService['createMediaDocuments']>
-    >[] = [];
-    for (
-      let outputIndex = 0;
-      outputIndex < (intent.outputs ?? 1);
-      outputIndex++
-    ) {
-      const docs = await this.shared.createMediaDocuments(user, {
-        origin: IngredientOrigin.GENERATED,
-        category: IngredientCategory.VIDEO,
-        brandId: frozen.brandId,
-        organizationId: user.organizationId,
-        personaId,
-        promptId: prompt.id,
-        extension: MetadataExtension.MP4,
-        model: intent.model,
-        generationPrompt: String(frozen.request.input.prompt),
-        generationSource: 'studio',
-        sourceIds: [
-          ...(intent.references ?? []),
-          ...(intent.endFrame ? [intent.endFrame] : []),
-        ],
-        parentId: intent.parentId,
-        promptTemplate: frozen.templateUsed,
-        templateVersion: frozen.templateVersion,
-        groupId: frozen.quoteId,
-        groupIndex: outputIndex,
-        style: intent.style,
-      });
-      ingredients.push(docs);
-      createdIngredientIds.push(docs.ingredientData.id);
-      if (intent.folderId)
-        await this.prisma.ingredient.updateMany({
-          where: {
-            id: docs.ingredientData.id,
-            organizationId: user.organizationId,
-            isDeleted: false,
-          },
-          data: { folderId: intent.folderId },
-        });
-      await this.billing.bindOutput(billingRequest, {
-        ingredientId: docs.ingredientData.id,
-        credits:
-          provider.credentialSource === 'byok'
-            ? frozen.snapshot.credits / (intent.outputs ?? 1)
-            : frozen.snapshot.allocatedCredits[outputIndex],
-        submissionIntentProvider: 'crun',
-      });
-      let fundingBinding: CrunFundingBinding;
-      if (provider.credentialSource === 'byok') {
-        const linked = await this.prisma.ingredient.findFirst({
-          where: {
-            id: docs.ingredientData.id,
-            organizationId: user.organizationId,
-            isDeleted: false,
-          },
-          select: { generationBilling: true },
-        });
-        const receipt = generationUsageReceiptSchema.parse(
-          linked?.generationBilling,
-        );
-        const {
-          kind: _kind,
-          state: _state,
-          confirmedFailure: _failure,
-          ...immutable
-        } = receipt;
-        fundingBinding = crunFundingBindingSchema.parse({
-          kind: 'byok',
-          receipt: immutable,
-        });
-      } else
-        fundingBinding =
-          frozen.snapshot.credits > 0
-            ? { kind: 'reservation' }
-            : { kind: 'free' };
-      rows.push({
-        organizationId: user.organizationId,
-        userId: user.userId,
-        ingredientId: docs.ingredientData.id,
-        brandId: frozen.brandId,
-        reservationId:
-          provider.credentialSource === 'hosted' && frozen.snapshot.credits > 0
-            ? (billingRequest.creditsConfig?.reservationId ?? null)
-            : null,
-        fundingBinding,
-        modelKey: intent.model,
-        endpoint: frozen.request.model,
-        contractVersion: provider.contractVersion,
-        quoteId: frozen.quoteId,
-        outputIndex,
-        inputHash: provider.inputHash,
-        inputMetadata: {
-          referenceCount:
-            (intent.references?.length ?? 0) + (intent.endFrame ? 1 : 0),
-          intentHash: frozen.intentHash,
-        },
-        quoteSnapshot: toPrismaJson(frozen.snapshot) as Prisma.InputJsonObject,
-        credentialSource: provider.credentialSource,
-        credentialId: provider.credentialId,
-        credentialFingerprint: provider.credentialFingerprint,
-      });
-    }
-    return { rows, ingredients };
-  }
-
-  private async submitPreparedOutputs(
-    user: AuthenticatedUser,
-    frozen: CrunFrozenVideoQuote,
-    rows: CrunPreparedTask[],
-    billingRequest: RequestWithContext & GenerationBillingRequest,
-  ): Promise<void> {
-    await this.cache.invalidateByTags(['videos']);
-    const prepared = await this.tasks.prepareTasks(rows);
-    // Every durable row and binding precedes the first paid request. Never regenerate effective input here.
-    for (const task of prepared) {
-      const result = await this.tasks.submit(task, frozen.request);
-      if (result.isSubmitted) continue;
-      const persisted = await this.tasks.findForIngredient(
-        user.organizationId,
-        task.ingredientId,
-      );
-      if (
-        persisted?.state === 'provider-failed' &&
-        persisted.providerTaskId === null
-      )
-        await this.billing.recordSubmissionRejection(
-          task.ingredientId,
-          user.organizationId,
-        );
-      // Ambiguous acceptance remains funded. No outcome is automatically redispatched.
-    }
-    await this.billing.releasePool(billingRequest);
   }
 
   private originalIntent(
