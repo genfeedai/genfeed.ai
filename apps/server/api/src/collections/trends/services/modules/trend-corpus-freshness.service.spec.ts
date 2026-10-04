@@ -299,7 +299,7 @@ describe('TrendCorpusFreshnessService', () => {
     expect(prisma.trend.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          OR: [{ organizationId: null }],
+          organizationId: null,
           isDeleted: false,
         },
       }),
