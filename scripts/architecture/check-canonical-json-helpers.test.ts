@@ -53,6 +53,28 @@ describe('check-canonical-json-helpers', () => {
     expect(violations.map((v) => v.kind)).toEqual(['local-canonicalizer']);
   });
 
+  it('rejects sorted-key rebuilds via reduce', () => {
+    write(
+      'packages/foo/src/digest-reduce.ts',
+      [
+        'export function digestCanonical(r: Record<string, unknown>): string {',
+        '  const sorted = Object.keys(r)',
+        '    .sort()',
+        '    .reduce<Record<string, unknown>>((acc, key) => {',
+        '      acc[key] = r[key];',
+        '      return acc;',
+        '    }, {});',
+        '  return JSON.stringify(sorted);',
+        '}',
+      ].join('\n'),
+    );
+    const { violations } = runCheckCanonicalJsonHelpers({
+      allowances: [],
+      rootDir: testDir,
+    });
+    expect(violations.map((v) => v.kind)).toEqual(['local-canonicalizer']);
+  });
+
   it('allows the shared helper and documented allowances, and flags stale ones', () => {
     write(
       'packages/libs/utils/canonical-hash.util.ts',

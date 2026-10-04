@@ -97,9 +97,14 @@ export const CANONICAL_JSON_ALLOWANCES: CanonicalJsonAllowance[] = [
 const DECLARATION_PATTERN =
   /(?:\bfunction\s+|\b(?:const|let)\s+)(stableStringify\w*|canonicalize|canonicalJson\w*|canonicalStringify\w*|sortKeysDeep|sortKeysRecursive\w*|sortObjectKeys)\b/gu;
 
-// Recursive key-sort signature: sorted own keys mapped through JSON.stringify.
-const KEY_SORT_SIGNATURE_PATTERN =
-  /Object\.keys\([^)]*\)\s*\.sort\([^)]*\)\s*\.map\([\s\S]{0,240}?JSON\.stringify\(/gu;
+// Key-sort signatures. Sorted own keys that are mapped/reduced into a
+// JSON.stringify'd string, or sorted keys rebuilt into an object via reduce,
+// regardless of the helper's name. Object.fromEntries(entries.sort()) is not
+// flagged: it is a common non-canonical report-sorting idiom.
+const KEY_SORT_SIGNATURE_PATTERNS = [
+  /Object\.keys\([^)]*\)\s*\.sort\([^)]*\)\s*\.(?:map|reduce|forEach)\([\s\S]{0,240}?JSON\.stringify\(/gu,
+  /Object\.keys\([^)]*\)\s*\.sort\([^)]*\)\s*\.reduce\(/gu,
+];
 
 function normalizePath(file: string): string {
   return file.replaceAll('\\', '/');
@@ -116,7 +121,7 @@ function collectOccurrences(
   const source = readFileSync(filePath, 'utf8');
   const file = normalizePath(path.relative(rootDir, filePath));
 
-  return [DECLARATION_PATTERN, KEY_SORT_SIGNATURE_PATTERN]
+  return [DECLARATION_PATTERN, ...KEY_SORT_SIGNATURE_PATTERNS]
     .flatMap((pattern) =>
       [...source.matchAll(pattern)].map((match) => ({
         file,
