@@ -110,7 +110,11 @@ function buildPrisma(rows: Row[]) {
     }),
   };
 
-  return { preset: delegate } as unknown as PrismaService;
+  // The real client reports the same CLOUD gate its guard extension uses.
+  return {
+    isCloudTenantGuard: true,
+    preset: delegate,
+  } as unknown as PrismaService;
 }
 
 function buildRows(): Row[] {

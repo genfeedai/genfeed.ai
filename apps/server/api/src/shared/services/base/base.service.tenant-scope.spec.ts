@@ -23,12 +23,18 @@ function createDelegate(): DelegateMock {
   };
 }
 
-function createService(modelName: string): {
+function createService(
+  modelName: string,
+  isCloudTenantGuard = true,
+): {
   delegate: DelegateMock;
   service: TestService;
 } {
   const delegate = createDelegate();
-  const prisma = { [modelName]: delegate } as unknown as PrismaService;
+  const prisma = {
+    isCloudTenantGuard,
+    [modelName]: delegate,
+  } as unknown as PrismaService;
   const logger = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -321,6 +327,56 @@ describe('BaseService tenant scope', () => {
       expect(delegate.findFirst.mock.calls[0]?.[0].where.organizationId).toBe(
         undefined,
       );
+    });
+  });
+
+  describe('non-CLOUD mode (self-hosted single-tenant)', () => {
+    it.each(['brand', 'tag'])(
+      'leaves %s queries exactly as the caller wrote them under a tenant context',
+      async (modelName) => {
+        const { delegate, service } = createService(modelName, false);
+
+        await runWithTenantContext({ organizationId: ORG }, async () => {
+          await service.patch('row_1', { label: 'x' });
+          await service.remove('row_1');
+          await service.findOne({ id: 'row_1' });
+          await service.find({ slug: 'a' });
+          await service.patchAll({ slug: 'a' }, { label: 'x' });
+        });
+
+        expect(delegate.update).toHaveBeenNthCalledWith(1, {
+          data: { label: 'x' },
+          where: { id: 'row_1' },
+        });
+        expect(delegate.update).toHaveBeenNthCalledWith(2, {
+          data: { isDeleted: true },
+          where: { id: 'row_1' },
+        });
+        expect(delegate.findFirst).toHaveBeenCalledWith({
+          where: { id: 'row_1', isDeleted: false },
+        });
+        expect(delegate.findMany).toHaveBeenCalledWith({
+          where: { isDeleted: false, slug: 'a' },
+        });
+        expect(delegate.updateMany).toHaveBeenCalledWith({
+          data: { label: 'x' },
+          where: { isDeleted: false, slug: 'a' },
+        });
+      },
+    );
+
+    it('treats a client that does not report the CLOUD gate as non-CLOUD', async () => {
+      const delegate = createDelegate();
+      const prisma = { brand: delegate } as unknown as PrismaService;
+      const service = new TestService(prisma, 'brand');
+
+      await runWithTenantContext({ organizationId: ORG }, () =>
+        service.findOne({ id: 'row_1' }),
+      );
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: 'row_1', isDeleted: false },
+      });
     });
   });
 });

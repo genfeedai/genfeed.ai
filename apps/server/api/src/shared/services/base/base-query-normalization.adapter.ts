@@ -33,6 +33,8 @@ type RuntimeModelField = {
 };
 
 type BaseQueryNormalizationHooks = {
+  /** Whether request-tenant scoping is enforced (CLOUD only); off when omitted. */
+  isTenantScopeEnforced?: () => boolean;
   modelHasField?: (fieldName: string) => boolean;
   normalizeWhere?: (where: PrismaFilter) => PrismaFilter;
 };
@@ -253,14 +255,19 @@ export class BaseQueryNormalizationAdapter {
    * Adds the request tenant to a filter that names no organization, on tenant
    * models only (the same `organizationId` + `isDeleted` inventory the runtime
    * tenant guard enforces). See `scopeWhereToTenant` for the read/write
-   * contract and the platform-row rule.
+   * contract and the platform-row rule. Only in CLOUD mode, like the guard:
+   * self-hosted single-tenant keeps its unscoped queries.
    */
   public withTenantScope(
     where: PrismaFilter,
     access: TenantScopeAccess = 'read',
   ): PrismaFilter {
     const meta = this.staticModelMeta;
-    if (!meta || !isTenantScopedFieldSet(meta.allFields)) {
+    if (
+      !this.hooks.isTenantScopeEnforced?.() ||
+      !meta ||
+      !isTenantScopedFieldSet(meta.allFields)
+    ) {
       return where;
     }
 

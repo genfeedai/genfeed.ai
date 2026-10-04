@@ -127,6 +127,8 @@ export abstract class BaseService<
       modelName,
       logger,
       {
+        // The tenant guard's own CLOUD gate (see `PrismaService.isCloudTenantGuard`).
+        isTenantScopeEnforced: () => this.prisma?.isCloudTenantGuard === true,
         modelHasField: (fieldName) => this.modelHasField(fieldName),
         normalizeWhere: (where) => this.normalizeWhere(where),
       },
@@ -252,7 +254,8 @@ export abstract class BaseService<
    * Scopes a filter to the request tenant when a tenant context is active, the
    * model is a tenant model and the filter names no organization. Reads of
    * platform-default models (`PLATFORM_ROW_MODELS`) also see the shared
-   * `organizationId: null` rows; writes never do. No-op without a tenant
+   * `organizationId: null` rows; writes never do. No-op outside CLOUD mode
+   * (self-hosted single-tenant keeps today's queries), without a tenant
    * context (workers, crons, webhooks) and inside `crossOrgUnsafe`.
    *
    * Use it for any `delegate` query a subclass builds by id or other
