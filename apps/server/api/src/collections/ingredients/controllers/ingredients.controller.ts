@@ -137,7 +137,7 @@ export class IngredientsController {
     });
 
     const aggregate = {
-      include: { metadata: true, prompt: true },
+      include: IngredientFilterUtil.buildLibraryListInclude(),
       orderBy: handleQuerySort(query.sort),
       where: {
         // `isDeleted` stays at the top level: BaseService.withSoftDeleteFilter
@@ -156,6 +156,7 @@ export class IngredientsController {
           IngredientFilterUtil.buildParentFilter(query.parentId?.toString()),
           IngredientFilterUtil.buildOriginFilter(query.origins),
           characterFilter,
+          IngredientFilterUtil.buildTagFilter(query.tags, query.tagMatch),
           searchFilter.where,
         ],
       },
@@ -363,6 +364,7 @@ export class IngredientsController {
       await this.ingredientsService.assertClientTags(
         updateIngredientDto.tags,
         user.organizationId,
+        ingredient.brandId,
       );
     }
 

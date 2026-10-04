@@ -13,9 +13,11 @@ import { FoldersModule } from '@api/collections/folders/folders.module';
 import { IngredientPerceptionController } from '@api/collections/ingredients/controllers/ingredient-perception.controller';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
 import { IngredientsRelationshipsController } from '@api/collections/ingredients/controllers/ingredients-relationships.controller';
+import { IngredientsTagsController } from '@api/collections/ingredients/controllers/ingredients-tags.controller';
 import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientLineageService } from '@api/collections/ingredients/services/ingredient-lineage.service';
+import { IngredientTagsService } from '@api/collections/ingredients/services/ingredient-tags.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
@@ -33,6 +35,7 @@ import { Module } from '@nestjs/common';
     IngredientsRelationshipsController,
     IngredientExportsController,
     IngredientPerceptionController,
+    IngredientsTagsController,
   ],
   exports: [
     IngredientCharacterFilterService,
@@ -58,6 +61,7 @@ import { Module } from '@nestjs/common';
     IngredientExportService,
     IngredientGenerationCancellationService,
     IngredientLineageService,
+    IngredientTagsService,
     IngredientsService,
   ],
 })

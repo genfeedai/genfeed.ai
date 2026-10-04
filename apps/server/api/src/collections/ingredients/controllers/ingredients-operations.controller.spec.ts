@@ -9,7 +9,6 @@ import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard'
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsOperationsController } from '@api/collections/ingredients/controllers/ingredients-operations.controller';
 import { BulkDeleteIngredientsDto } from '@api/collections/ingredients/dto/bulk-delete-ingredients.dto';
-import { UpdateTagsDto } from '@api/collections/ingredients/dto/update-tags.dto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -17,7 +16,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { IngredientCategory, IngredientOrigin } from '@genfeedai/contracts';
-import { testId, testIds } from '@helpers/testing/test-id.helper';
+import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ModuleRef } from '@nestjs/core';
@@ -36,7 +35,6 @@ describe('IngredientsOperationsController', () => {
   const metadataId = testId('metadata');
   const clonedIngredientId = testId('ingredient', 2);
   const clonedMetadataId = testId('metadata', 2);
-  const [firstTagId, secondTagId] = testIds('tag', 2);
 
   const mockUser = {
     id: 'user_123',
@@ -347,24 +345,6 @@ describe('IngredientsOperationsController', () => {
       );
 
       expect(metadataService.patch).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-  });
-
-  describe('updateTags', () => {
-    it('should update tags successfully', async () => {
-      const updateTagsDto: UpdateTagsDto = {
-        tags: [firstTagId, secondTagId],
-      };
-
-      const result = await controller.updateTags(
-        mockRequest,
-        ingredientId,
-        mockUser,
-        updateTagsDto,
-      );
-
-      expect(ingredientsService.patch).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
   });
