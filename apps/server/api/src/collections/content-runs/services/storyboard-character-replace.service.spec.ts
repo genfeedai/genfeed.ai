@@ -107,7 +107,24 @@ describe('durable character replacement', () => {
     expect(h.personas.resolveCharacterReferences).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand',
-        ingredientIds: ['img-a'],
+        ingredientIds: ['video-1', 'img-a'],
+        path: 'storyboard',
+      }),
+    );
+    expect(h.generate).not.toHaveBeenCalled();
+    expect(h.save).not.toHaveBeenCalled();
+  });
+  it('refuses a source video linked to a revoked character before dispatch (#6040)', async () => {
+    const h = harness();
+    vi.mocked(h.personas.resolveCharacterReferences).mockRejectedValueOnce(
+      new NotFoundException('Reference image'),
+    );
+
+    await expect(replace(h)).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(h.personas.resolveCharacterReferences).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ingredientIds: expect.arrayContaining(['video-1']),
         path: 'storyboard',
       }),
     );

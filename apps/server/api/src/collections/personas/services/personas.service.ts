@@ -15,6 +15,7 @@ import {
   isPersonaSharedAcrossBrands,
   resolvePersonaBrandIds,
 } from '@api/collections/personas/utils/persona-availability.util';
+import { lockPersonaHandleScope } from '@api/collections/personas/utils/persona-handle-lock.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
@@ -751,8 +752,7 @@ export class PersonasService extends BaseService<
     work: (tx: PersonaClient) => Promise<T>,
   ): Promise<T> {
     return this.prisma.$transaction(async (tx) => {
-      const key = `persona-handle:${organizationId}`;
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`;
+      await lockPersonaHandleScope(tx, organizationId);
       return work(tx);
     });
   }
