@@ -144,6 +144,7 @@ describe('BrandsController', () => {
             readClaimedBrandOsPreview: vi.fn(),
             relocateToOrganization: vi.fn(),
             remove: vi.fn(),
+            removeInOrganization: vi.fn(),
           },
         },
         {
@@ -807,7 +808,7 @@ describe('BrandsController', () => {
       await expect(
         controller.remove(mockRequest, mockUser, foreignBrand.id),
       ).rejects.toMatchObject({ status: 404 });
-      expect(brandsService.remove).not.toHaveBeenCalled();
+      expect(brandsService.removeInOrganization).not.toHaveBeenCalled();
     });
 
     it('404s brand-kit crawl, apply and Brand OS claim without calling the service', async () => {

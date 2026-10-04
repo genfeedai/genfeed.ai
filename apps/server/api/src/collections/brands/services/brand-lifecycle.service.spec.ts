@@ -281,7 +281,9 @@ describe('BrandLifecycleService', () => {
     it('refuses to delete a brand that owns a character other brands can use and names it', async () => {
       personaDelegate.findMany.mockResolvedValue([sharedCharacter({})]);
 
-      const error = await service.remove(brandId).catch((e: unknown) => e);
+      const error = await service
+        .remove(organizationId, brandId)
+        .catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(ConflictException);
       expect((error as ConflictException).getResponse()).toMatchObject({
@@ -312,9 +314,9 @@ describe('BrandLifecycleService', () => {
         }),
       ]);
 
-      await expect(service.remove(brandId)).rejects.toBeInstanceOf(
-        ConflictException,
-      );
+      await expect(
+        service.remove(organizationId, brandId),
+      ).rejects.toBeInstanceOf(ConflictException);
     });
 
     it('deletes once the character is only available to deleted or the owning brand', async () => {
@@ -322,7 +324,9 @@ describe('BrandLifecycleService', () => {
         sharedCharacter({ availableBrandIds: [brandId, 'deleted-brand'] }),
       ]);
 
-      await expect(service.remove(brandId)).resolves.toMatchObject({
+      await expect(
+        service.remove(organizationId, brandId),
+      ).resolves.toMatchObject({
         id: brandId,
       });
       expect(delegate.update).toHaveBeenCalled();
@@ -334,7 +338,9 @@ describe('BrandLifecycleService', () => {
         { persona: { handle: 'anna', id: 'persona-2', label: 'Anna' } },
       ]);
 
-      const error = await service.remove(brandId).catch((e: unknown) => e);
+      const error = await service
+        .remove(organizationId, brandId)
+        .catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(ConflictException);
       expect((error as ConflictException).getResponse()).toMatchObject({
@@ -355,7 +361,7 @@ describe('BrandLifecycleService', () => {
     });
 
     it('takes the organization persona-handle advisory lock first, before any learning fence or brand row lock, and before the shared-character reads', async () => {
-      await service.remove(brandId);
+      await service.remove(organizationId, brandId);
 
       const firstQuery = txQueryRaw.mock.calls[0];
       expect(sqlText(firstQuery[0])).toContain('hashtextextended');
@@ -393,16 +399,33 @@ describe('BrandLifecycleService', () => {
           : [],
       );
 
-      await expect(service.remove(brandId)).rejects.toBeInstanceOf(
-        ConflictException,
-      );
+      await expect(
+        service.remove(organizationId, brandId),
+      ).rejects.toBeInstanceOf(ConflictException);
       expect(delegate.update).not.toHaveBeenCalled();
+    });
+
+    it('refuses a deletion without an organization id before touching anything', async () => {
+      await expect(service.remove('', brandId)).rejects.toMatchObject({
+        status: 422,
+      });
+      expect(transactionMock).not.toHaveBeenCalled();
+    });
+
+    it('never reads the brand without an organization scope', async () => {
+      await service.remove(organizationId, brandId);
+
+      for (const [query] of delegate.findFirst.mock.calls) {
+        expect(query.where).toMatchObject({ organizationId });
+      }
     });
 
     it('deletes a brand that owns no shared characters', async () => {
       personaDelegate.findMany.mockResolvedValue([]);
 
-      await expect(service.remove(brandId)).resolves.toMatchObject({
+      await expect(
+        service.remove(organizationId, brandId),
+      ).resolves.toMatchObject({
         id: brandId,
       });
     });
@@ -432,7 +455,7 @@ describe('BrandLifecycleService', () => {
       memberDelegate.updateMany.mockResolvedValue({ count: 2 });
       delegate.update.mockResolvedValue({ id: brandId, organizationId });
 
-      const result = await service.remove(brandId);
+      const result = await service.remove(organizationId, brandId);
 
       // Every transactional step runs before anything else, all inside the
       // one $transaction call this test's fake client hands the same tx —
@@ -488,7 +511,7 @@ describe('BrandLifecycleService', () => {
       });
       delegate.findMany.mockResolvedValue([{ id: brandId }]);
 
-      const rejection = service.remove(brandId);
+      const rejection = service.remove(organizationId, brandId);
       await expect(rejection).rejects.toBeInstanceOf(ConflictException);
       await expect(rejection).rejects.toThrow(
         "Cannot delete an organization's last brand. Create another brand first.",
@@ -521,9 +544,9 @@ describe('BrandLifecycleService', () => {
       // longer includes it among the org's live brands.
       delegate.findMany.mockResolvedValue([{ id: otherLiveBrandId }]);
 
-      await expect(service.remove(brandId)).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        service.remove(organizationId, brandId),
+      ).rejects.toBeInstanceOf(NotFoundException);
       expect(memberDelegate.updateMany).not.toHaveBeenCalled();
       expect(delegate.update).not.toHaveBeenCalled();
     });
@@ -545,7 +568,7 @@ describe('BrandLifecycleService', () => {
       memberDelegate.findMany.mockResolvedValueOnce([]);
       delegate.update.mockResolvedValue({ id: brandId, organizationId });
 
-      await service.remove(brandId);
+      await service.remove(organizationId, brandId);
 
       expect(memberDelegate.updateMany).not.toHaveBeenCalled();
       expect(userAccessCacheService.invalidateAll).not.toHaveBeenCalled();
@@ -554,9 +577,9 @@ describe('BrandLifecycleService', () => {
     it('throws NotFound when the brand does not exist at all', async () => {
       delegate.findFirst.mockResolvedValue(null);
 
-      await expect(service.remove('brand_missing')).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        service.remove(testId('org'), 'brand_missing'),
+      ).rejects.toBeInstanceOf(NotFoundException);
       expect(memberDelegate.updateMany).not.toHaveBeenCalled();
       expect(delegate.update).not.toHaveBeenCalled();
     });
@@ -610,7 +633,7 @@ describe('BrandLifecycleService', () => {
             throw error;
           }
         });
-        await expect(service.remove('brand')).rejects.toThrow(
+        await expect(service.remove('org', 'brand')).rejects.toThrow(
           failure === 'dependency'
             ? 'dependency failed'
             : /account scope changed/,

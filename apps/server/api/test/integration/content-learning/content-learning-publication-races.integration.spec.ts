@@ -128,7 +128,10 @@ async function mutate(
         case 'brand-deactivate':
           return services.brands.patch(target.brandId, { isActive: false });
         case 'brand-remove':
-          return services.brandLifecycle.remove(target.brandId);
+          return services.brandLifecycle.remove(
+            target.organizationId,
+            target.brandId,
+          );
         case 'organization-remove':
           return services.organizations.patch(target.organizationId, {
             isDeleted: true,
@@ -1010,7 +1013,10 @@ describe('hosted actual learning publication contention and atomicity', () => {
           }),
         ).rejects.toThrow();
         await expect(
-          fixture.secondServices.brandLifecycle.remove(victim.brandId),
+          fixture.secondServices.brandLifecycle.remove(
+            target.organizationId,
+            victim.brandId,
+          ),
         ).rejects.toThrow();
       },
     );

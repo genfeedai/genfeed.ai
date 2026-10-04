@@ -12,6 +12,7 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { ValidationException } from '@api/exceptions/validation.exception';
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -19,10 +20,6 @@ import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cach
 import { PersonaAvailabilityMode } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  getTenantContext,
-  isCrossOrgUnsafe,
-} from '@libs/prisma/tenant-context';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 /**
@@ -58,7 +55,13 @@ export class BrandLifecycleService {
    * of these same rows) blocks until this transaction commits, then
    * re-evaluates against the post-commit state instead of a stale read.
    */
-  async remove(id: string): Promise<BrandDocument> {
+  async remove(organizationId: string, id: string): Promise<BrandDocument> {
+    if (!organizationId) {
+      throw new ValidationException(
+        'Brand deletion requires an organization',
+        'organizationId',
+      );
+    }
     this.logger.debug('Soft deleting brand', {
       brandId: id,
       operation: 'remove',
@@ -72,14 +75,12 @@ export class BrandLifecycleService {
         // rows, so the reverse order would deadlock. It also serializes
         // deletion with sharing: the checks below read committed state after
         // any in-flight sharing finishes (#6040).
-        const lockedOrganizationId = await this.resolveOrganizationId(tx, id);
-        await lockPersonaHandleScope(tx, lockedOrganizationId);
+        await lockPersonaHandleScope(tx, organizationId);
         const scope = await lockBrandLearningMutation(tx, {
           brandId: id,
           lockAllSourceBrands: true,
-          organizationId: lockedOrganizationId,
+          organizationId,
         });
-        const organizationId = scope.organizationId;
 
         // Re-read under the lock: a transaction that committed first while we
         // were blocked may have already deleted this brand, or consumed the
@@ -185,28 +186,6 @@ export class BrandLifecycleService {
    * the grant be revoked) first. Re-read under the lock so a concurrent share
    * cannot slip by.
    */
-  private async resolveOrganizationId(
-    tx: Prisma.TransactionClient,
-    brandId: string,
-  ): Promise<string> {
-    const organizationId = isCrossOrgUnsafe()
-      ? undefined
-      : getTenantContext()?.organizationId;
-    // tenant-scope-ignore: the owning organization must be known to take its lock before any brand row lock; an active request tenant is fenced here.
-    const brand = await tx.brand.findFirst({
-      select: { organizationId: true },
-      where: {
-        id: brandId,
-        isDeleted: false,
-        ...(organizationId ? { organizationId } : {}),
-      },
-    });
-    if (!brand?.organizationId) {
-      throw new NotFoundException('Brand', brandId);
-    }
-    return brand.organizationId;
-  }
-
   private async assertNoSharedCharacters(
     tx: Prisma.TransactionClient,
     params: {

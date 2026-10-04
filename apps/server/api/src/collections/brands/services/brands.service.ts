@@ -927,15 +927,14 @@ export class BrandsService extends BaseService<
     );
   }
 
-  /**
-   * Soft-deletes a brand, atomically (#5295). Delegates to
-   * `BrandLifecycleService`, which locks every live brand row of the
-   * organization before enforcing the last-brand guard, reassigning members,
-   * and busting each moved member's identity/context caches — see there for
-   * why this can't be three unguarded statements.
-   */
-  async remove(id: string): Promise<BrandDocument> {
-    return this.brandLifecycleService.remove(id);
+  /** Atomic, organization-scoped soft delete (#5295); see `BrandLifecycleService`. */
+  removeInOrganization(organizationId: string, id: string) {
+    return this.brandLifecycleService.remove(organizationId, id);
+  }
+
+  /** Deletion is organization-scoped: use `removeInOrganization`. */
+  async remove(_id: string): Promise<BrandDocument> {
+    throw new ValidationException('Brand deletion needs an organization');
   }
 
   // ───────────────────────── Brand → organization relocation ─────────────────────────
