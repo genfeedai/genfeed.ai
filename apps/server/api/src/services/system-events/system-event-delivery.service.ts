@@ -242,12 +242,12 @@ export class SystemEventDeliveryService {
       where: {
         id: row.eventId,
         isDeleted: false,
-        deliveredAt: null,
-        ...(row.failedAt ? {} : { skippedAt: null }),
+        ...(row.failedAt ? {} : { deliveredAt: null, skippedAt: null }),
       },
+      // Reopening keeps the other destinations' acknowledgements, so they are not re-sent.
       data: {
         nextAttemptAt: new Date(),
-        ...(row.failedAt ? { skippedAt: null } : {}),
+        ...(row.failedAt ? { deliveredAt: null, skippedAt: null } : {}),
       },
     });
     return true;

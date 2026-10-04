@@ -64,12 +64,28 @@ function setup() {
     systemNotificationDestination: {
       findMany: vi.fn(async () => destinations),
     },
-    systemEventWebhook: { updateMany: vi.fn(async () => ({ count: 1 })) },
+    systemEventWebhook: {
+      updateMany: vi.fn(async ({ where, data }) => {
+        if (where.id !== event.id) return { count: 0 };
+        if (where.deliveredAt === null && event.deliveredAt)
+          return { count: 0 };
+        if (where.skippedAt === null && event.skippedAt) return { count: 0 };
+        Object.assign(event, data);
+        return { count: 1 };
+      }),
+    },
     systemEventDelivery: {
+      findFirst: vi.fn(async ({ where }) => {
+        const row = deliveries.find((d) => d.id === where.id);
+        return row ? structuredClone(row) : null;
+      }),
       findMany: vi.fn(async ({ where }) =>
-        deliveries.filter(
-          (d) =>
-            where.deliveredAt === undefined || (!d.deliveredAt && !d.skippedAt),
+        structuredClone(
+          deliveries.filter(
+            (d) =>
+              where.deliveredAt === undefined ||
+              (!d.deliveredAt && !d.skippedAt && !d.failedAt),
+          ),
         ),
       ),
       updateMany: vi.fn(async ({ where, data }) => {
@@ -80,6 +96,7 @@ function setup() {
           (where.OR &&
             (row.deliveredAt ||
               row.skippedAt ||
+              (where.failedAt === null && row.failedAt) ||
               (row.leaseUntil && row.leaseUntil > new Date())))
         )
           return { count: 0 };
@@ -182,6 +199,28 @@ describe('independent system notification delivery', () => {
     deliveries[1].nextAttemptAt = new Date(0);
     await service.deliver(event, 'event-lease');
     expect(send).not.toHaveBeenCalled();
+  });
+  it('reopens a delivered parent when a failed destination is retried, without resending others', async () => {
+    const { service, send, event, deliveries } = setup();
+    deliveries[0].deliveredAt = new Date();
+    deliveries[1].attempts = MAX_DELIVERY_ATTEMPTS - 1;
+    expect(await service.deliver(event, 'event-lease')).toBe('delivered');
+    // The worker publishes the aggregate outcome on the parent.
+    event.deliveredAt = new Date();
+    expect(await service.retry('delivery-1')).toBe(true);
+    expect(deliveries[1].failedAt).toBeNull();
+    expect(deliveries[1].attempts).toBe(0);
+    expect(event.deliveredAt).toBeNull();
+    send.mockReset();
+    send.mockResolvedValue(undefined);
+    deliveries[1].nextAttemptAt = new Date(0);
+    expect(await service.deliver(event, 'event-lease')).toBe('delivered');
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledWith(
+      expect.anything(),
+      { provider: 'email', address: '1@example.com' },
+      'system/delivery-1',
+    );
   });
   it('keeps retrying below the cap without marking failed', async () => {
     const { service, event, deliveries } = setup();
