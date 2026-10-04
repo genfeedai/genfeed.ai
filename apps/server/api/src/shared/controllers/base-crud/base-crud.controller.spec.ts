@@ -5,6 +5,10 @@ import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.
 import { BaseService } from '@api/shared/services/base/base.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  isCrossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { HttpException, Injectable } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -539,6 +543,98 @@ describe('BaseCRUDController', () => {
       ).rejects.toThrow(HttpException);
 
       expect(service.remove).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('tenant scoping hatch', () => {
+    const inTenant = <R>(work: () => R): R =>
+      runWithTenantContext({ organizationId: MOCK_ORG_ID }, work);
+
+    // Records whether each service call ran inside the cross-org hatch.
+    function trackHatch(method: 'findOne' | 'patch' | 'remove'): boolean[] {
+      const seen: boolean[] = [];
+      service[method].mockImplementation(() => {
+        seen.push(isCrossOrgUnsafe());
+        return Promise.resolve({
+          id: testId('entity', 30),
+          organizationId: null,
+          userId: MOCK_USER_ID,
+        });
+      });
+      return seen;
+    }
+
+    it('keeps a regular user inside the request tenant for findOne, patch and remove', async () => {
+      const id = testId('entity', 30);
+      const findSeen = trackHatch('findOne');
+      const patchSeen = trackHatch('patch');
+      const removeSeen = trackHatch('remove');
+
+      await inTenant(async () => {
+        await controller.findOne(mockRequest, mockUser, id);
+        await controller.patch(mockRequest, mockUser, id, { name: 'x' });
+        await controller.remove(mockRequest, mockUser, id);
+      });
+
+      expect([...findSeen, ...patchSeen, ...removeSeen]).not.toContain(true);
+    });
+
+    it('opts a superadmin out of tenant scoping for platform and foreign rows', async () => {
+      const id = testId('entity', 30);
+      const findSeen = trackHatch('findOne');
+      const patchSeen = trackHatch('patch');
+      const removeSeen = trackHatch('remove');
+
+      await inTenant(async () => {
+        await controller.findOne(mockRequest, superAdminUser, id);
+        await controller.patch(mockRequest, superAdminUser, id, { name: 'x' });
+        await controller.remove(mockRequest, superAdminUser, id);
+      });
+
+      // findOne (read) + patch (lookup, write) + remove (lookup, write).
+      expect(findSeen.every(Boolean)).toBe(true);
+      expect(patchSeen).toEqual([true]);
+      expect(removeSeen).toEqual([true]);
+      expect(service.findOne).toHaveBeenCalled();
+    });
+
+    it('lists a foreign organization inside the hatch only for a superadmin', async () => {
+      const seen: boolean[] = [];
+      service.findAll.mockImplementation(() => {
+        seen.push(isCrossOrgUnsafe());
+        return Promise.resolve({ docs: [] });
+      });
+      vi.spyOn(controller, 'buildFindAllQuery').mockReturnValue({
+        where: { isDeleted: false, organizationId: FOREIGN_ORG_ID },
+      } as never);
+
+      await inTenant(async () => {
+        await controller.findAll(
+          mockRequest,
+          superAdminUser,
+          {} as BaseQueryDto,
+        );
+        await controller.findAll(mockRequest, mockUser, {} as BaseQueryDto);
+      });
+
+      expect(seen).toEqual([true, false]);
+    });
+
+    it('does not open the hatch when the list names the request tenant', async () => {
+      const seen: boolean[] = [];
+      service.findAll.mockImplementation(() => {
+        seen.push(isCrossOrgUnsafe());
+        return Promise.resolve({ docs: [] });
+      });
+      vi.spyOn(controller, 'buildFindAllQuery').mockReturnValue({
+        where: { isDeleted: false, organizationId: MOCK_ORG_ID },
+      } as never);
+
+      await inTenant(() =>
+        controller.findAll(mockRequest, superAdminUser, {} as BaseQueryDto),
+      );
+
+      expect(seen).toEqual([false]);
     });
   });
 

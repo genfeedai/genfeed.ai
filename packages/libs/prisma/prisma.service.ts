@@ -70,6 +70,14 @@ export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
+  /**
+   * Whether the CLOUD tenant guard is enforcing on this client. The same
+   * value the guard extension was built with, so request-layer code that adds
+   * the tenant scope (`BaseService`) follows the guard's exact CLOUD gate
+   * instead of re-reading the environment.
+   */
+  declare readonly isCloudTenantGuard: boolean;
+
   constructor(
     configService: ConfigService,
     options: PrismaServiceOptions = {},
@@ -115,15 +123,21 @@ export class PrismaService
       ),
     );
 
+    const isCloud = isCloudTenantGuardEnabled((key) =>
+      readConfigString(configService, key),
+    );
     const extended = this.$extends(
       createTenantGuardExtension({
         billingAccountModelNames,
-        isCloud: isCloudTenantGuardEnabled((key) =>
-          readConfigString(configService, key),
-        ),
+        isCloud,
         tenantModelNames,
       }),
     ).$extends(createMediaUrlExtension(mediaUrlConfig));
+
+    Object.defineProperty(extended, 'isCloudTenantGuard', {
+      configurable: true,
+      value: isCloud,
+    });
 
     Object.defineProperty(extended, 'onModuleInit', {
       configurable: true,
