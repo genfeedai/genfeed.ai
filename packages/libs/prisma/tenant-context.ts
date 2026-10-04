@@ -98,7 +98,9 @@ export function runWithTenantContext<T>(
  * Named, greppable escape hatch for legitimate cross-org Prisma queries in
  * CLOUD mode (platform admin, system workflows). Do not add a silent boolean.
  */
-export function crossOrgUnsafe<T>(callback: () => T): T {
+export function crossOrgUnsafe<T>(callback: () => PromiseLike<T>): Promise<T>;
+export function crossOrgUnsafe<T>(callback: () => T): T;
+export function crossOrgUnsafe(callback: () => unknown): unknown {
   const parent = currentStore();
   return storage.run(
     {
@@ -106,7 +108,27 @@ export function crossOrgUnsafe<T>(callback: () => T): T {
       isCrossOrgUnsafe: true,
       organizationId: parent.organizationId,
     },
-    callback,
+    () => {
+      const result = callback();
+      if (!isPromiseLike(result)) {
+        return result;
+      }
+      // Prisma query promises are lazy: the query (and the tenant guard that
+      // inspects it) runs on the first `.then()`. Returned un-awaited, it would
+      // run after this scope exits and fail the guard, so subscribe here.
+      return new Promise((resolve, reject) => {
+        result.then(resolve, reject);
+      });
+    },
+  );
+}
+
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'then' in value &&
+    typeof value.then === 'function'
   );
 }
 
