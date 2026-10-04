@@ -135,16 +135,21 @@ function setup() {
     log: vi.fn(),
     warn: vi.fn(),
   } as unknown as LoggerService;
+  const cache = {
+    get: vi.fn().mockResolvedValue(null),
+    invalidateByTags: vi.fn().mockResolvedValue(0),
+    set: vi.fn().mockResolvedValue(undefined),
+  };
   const service = new ElementsStylesService(
     buildPrisma(rows),
     logger,
-    undefined as never,
+    cache as never,
   );
   const controller = new ElementsStylesController(service, logger);
   const inTenant = <T>(callback: () => Promise<T>) =>
     runWithTenantContext({ organizationId: ORG }, callback);
 
-  return { controller, inTenant, rows, service };
+  return { cache, controller, inTenant, rows, service };
 }
 
 const request = {} as Request;
@@ -265,5 +270,24 @@ describe('ElementsCRUDController under the CLOUD tenant guard', () => {
     );
 
     expect(result.docs.map((row) => row.key).sort()).toEqual(['anime', 'mine']);
+  });
+
+  it('invalidates the bare collection tag /elements caches under on edit and delete', async () => {
+    const { cache, controller, inTenant } = setup();
+
+    await inTenant(() =>
+      controller.patch(request, buildUser(true), DEFAULT_ID, {
+        isActive: false,
+      } as never),
+    );
+    expect(cache.invalidateByTags).toHaveBeenLastCalledWith(
+      expect.arrayContaining(['elementStyle', 'collection:elementStyle']),
+    );
+
+    cache.invalidateByTags.mockClear();
+    await inTenant(() => controller.remove(request, buildUser(true), OWN_ID));
+    expect(cache.invalidateByTags).toHaveBeenLastCalledWith(
+      expect.arrayContaining(['elementStyle', 'query:elementStyle']),
+    );
   });
 });

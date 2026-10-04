@@ -22,6 +22,7 @@ type Row = {
   id: string;
   isActive: boolean;
   isDeleted: boolean;
+  config: Record<string, unknown>;
   key: string;
   organizationId: string | null;
   sortOrder: number;
@@ -39,6 +40,22 @@ function matches(row: Row, where: Where): boolean {
   return Object.entries(where).every(([field, expected]) => {
     if (field === 'OR') {
       return (expected as Where[]).some((arm) => matches(row, arm));
+    }
+    if (
+      field === 'config' &&
+      typeof expected === 'object' &&
+      expected !== null &&
+      'path' in expected
+    ) {
+      const { equals, path } = expected as { equals: unknown; path: string[] };
+      return row.config[path[0] ?? ''] === equals;
+    }
+    if (
+      typeof expected === 'object' &&
+      expected !== null &&
+      'not' in expected
+    ) {
+      return (row as unknown as Where)[field] !== (expected as Where).not;
     }
     return (row as unknown as Where)[field] === expected;
   });
@@ -87,6 +104,7 @@ function buildRows(): Row[] {
       id: DEFAULT_ID,
       isActive: true,
       isDeleted: false,
+      config: { key: 'anime', label: 'Old' },
       key: 'anime',
       organizationId: null,
       sortOrder: 0,
@@ -95,6 +113,7 @@ function buildRows(): Row[] {
       id: INACTIVE_DEFAULT_ID,
       isActive: false,
       isDeleted: false,
+      config: { key: 'retired', label: 'Old' },
       key: 'retired',
       organizationId: null,
       sortOrder: 0,
@@ -103,6 +122,7 @@ function buildRows(): Row[] {
       id: OWN_ID,
       isActive: true,
       isDeleted: false,
+      config: { key: 'mine', label: 'Old' },
       key: 'mine',
       organizationId: ORG,
       sortOrder: 0,
@@ -111,6 +131,7 @@ function buildRows(): Row[] {
       id: OTHER_ID,
       isActive: true,
       isDeleted: false,
+      config: { key: 'theirs', label: 'Old' },
       key: 'theirs',
       organizationId: 'org-2',
       sortOrder: 0,
@@ -262,5 +283,31 @@ describe('PresetsController under the CLOUD tenant guard', () => {
         .map((row) => (row as typeof row & Pick<Row, 'key'>).key)
         .sort(),
     ).toEqual(['anime', 'mine', 'retired']);
+  });
+
+  it('patches a preset label into config instead of a Prisma column', async () => {
+    const { controller, inTenant, rows } = setup();
+
+    await inTenant(() =>
+      controller.patch(request, buildUser(true), DEFAULT_ID, {
+        label: 'Updated',
+      } as never),
+    );
+
+    const row = rows.find((candidate) => candidate.id === DEFAULT_ID);
+    expect(row?.config).toEqual({ key: 'anime', label: 'Updated' });
+    expect(row).not.toHaveProperty('label');
+  });
+
+  it('keeps key validation on scoped preset edits', async () => {
+    const { controller, inTenant } = setup();
+
+    await expect(
+      inTenant(() =>
+        controller.patch(request, buildUser(true), DEFAULT_ID, {
+          key: 'mine',
+        } as never),
+      ),
+    ).rejects.toThrow();
   });
 });

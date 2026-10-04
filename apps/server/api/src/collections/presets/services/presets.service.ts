@@ -152,7 +152,6 @@ export class PresetsService extends BaseService<
     updateDto: Partial<UpdatePresetDto>,
     populate: PopulateOption[] = [],
   ): Promise<PresetDocument> {
-    // If updating key, check for duplicates
     if (updateDto.key) {
       // tenant-scope-ignore: preset keys are a platform-wide catalog invariant and this superadmin-only update path must reject duplicates across organizations
       const existing = await this.prisma.preset.findFirst({
@@ -170,32 +169,96 @@ export class PresetsService extends BaseService<
       }
     }
 
-    const configPatch = pickDefinedFields(updateDto, PRESET_CONFIG_FIELDS);
-    const hasConfigPatch = Object.keys(configPatch).length > 0;
-    let config: Record<string, unknown> | undefined;
-
-    if (hasConfigPatch) {
-      const existing = await this.findOne({ id });
-      if (!existing) {
-        throw new NotFoundException('Preset', id);
-      }
-
-      const storedConfig =
-        existing.config &&
-        typeof existing.config === 'object' &&
-        !Array.isArray(existing.config)
-          ? (existing.config as Record<string, unknown>)
-          : {};
-      config = { ...storedConfig, ...configPatch };
-    }
+    const existingConfig = this.hasConfigPatch(updateDto)
+      ? await this.readStoredConfig(await this.findOne({ id }), id)
+      : undefined;
 
     return super.patch(
       id,
-      {
-        ...pickDefinedFields(updateDto, PRESET_UPDATE_SCALAR_FIELDS),
-        ...(config ? { config } : {}),
-      } as unknown as Partial<UpdatePresetDto>,
+      this.buildPatchData(updateDto, existingConfig),
       populate,
     );
+  }
+
+  /**
+   * Scoped variant of `patch` for controllers that address a row through a
+   * tenant scope (`where` carries `id` plus the caller's organization arms).
+   * Same key validation and config merge as `patch`, but every lookup reuses
+   * that scope so the CLOUD tenant guard sees the caller's organization. The
+   * duplicate-key check is therefore limited to the rows visible in the scope.
+   */
+  override async patchOneWhere(
+    where: Record<string, unknown>,
+    updateDto: Partial<UpdatePresetDto> | Record<string, unknown>,
+    populate: PopulateOption[] = [],
+  ): Promise<PresetDocument | null> {
+    const dto = updateDto as Partial<UpdatePresetDto>;
+    const id = String(where.id);
+
+    if (dto.key) {
+      const duplicate = await this.findOne({
+        ...where,
+        config: { equals: dto.key, path: ['key'] },
+        id: { not: id },
+      });
+
+      if (duplicate) {
+        throw new ConflictException(
+          `Preset with key '${dto.key}' already exists`,
+        );
+      }
+    }
+
+    let existingConfig: Record<string, unknown> | undefined;
+    if (this.hasConfigPatch(dto)) {
+      existingConfig = await this.readStoredConfig(
+        await this.findOne(where),
+        id,
+      );
+    }
+
+    return super.patchOneWhere(
+      where,
+      this.buildPatchData(dto, existingConfig),
+      populate,
+    );
+  }
+
+  private hasConfigPatch(updateDto: Partial<UpdatePresetDto>): boolean {
+    return (
+      Object.keys(pickDefinedFields(updateDto, PRESET_CONFIG_FIELDS)).length > 0
+    );
+  }
+
+  private readStoredConfig(
+    existing: PresetDocument | null,
+    id: string,
+  ): Record<string, unknown> {
+    if (!existing) {
+      throw new NotFoundException('Preset', id);
+    }
+
+    return existing.config &&
+      typeof existing.config === 'object' &&
+      !Array.isArray(existing.config)
+      ? (existing.config as Record<string, unknown>)
+      : {};
+  }
+
+  private buildPatchData(
+    updateDto: Partial<UpdatePresetDto>,
+    existingConfig?: Record<string, unknown>,
+  ): Partial<UpdatePresetDto> {
+    const config = existingConfig
+      ? {
+          ...existingConfig,
+          ...pickDefinedFields(updateDto, PRESET_CONFIG_FIELDS),
+        }
+      : undefined;
+
+    return {
+      ...pickDefinedFields(updateDto, PRESET_UPDATE_SCALAR_FIELDS),
+      ...(config ? { config } : {}),
+    } as unknown as Partial<UpdatePresetDto>;
   }
 }
