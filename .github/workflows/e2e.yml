@@ -214,7 +214,16 @@ jobs:
         run: bun x prisma migrate deploy
         working-directory: packages/prisma
 
+      # The skill package import concurrency spec migrates its own empty
+      # database and refuses the shared test database.
+      - name: Create disposable skill package import database
+        env:
+          PGPASSWORD: genfeed_local
+        run: psql -h localhost -U genfeed -d test -v ON_ERROR_STOP=1 -c 'CREATE DATABASE genfeed_skill_package_import_test'
+
       - name: Run API E2E full tier
+        env:
+          SKILL_PACKAGE_IMPORT_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/genfeed_skill_package_import_test
         run: |
           set -euo pipefail
           excluded=(
