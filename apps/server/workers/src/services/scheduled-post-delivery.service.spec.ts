@@ -2337,7 +2337,16 @@ describe('ScheduledPostDeliveryService', () => {
         }),
       }),
       'Canonical Post digest no longer matches pin.',
-      undefined,
+      {
+        expectedProviderAttempt: {
+          attemptToken: expect.any(String),
+          receiptId: 'receipt-1',
+        },
+        priorExecutionStates: [
+          TargetExecutionState.SCHEDULED,
+          TargetExecutionState.PUBLISHING,
+        ],
+      },
     );
     expect(
       mocks.publishEventWebhookService.emitLegacyPostFailed,
