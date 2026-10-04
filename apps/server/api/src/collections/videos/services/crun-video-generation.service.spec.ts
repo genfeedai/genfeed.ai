@@ -1,3 +1,4 @@
+import { noCharacterAdmission } from '@api/collections/personas/utils/character-admission.util';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { CrunVideoGenerationService } from '@api/collections/videos/services/crun-video-generation.service';
 import { CrunVideoInputService } from '@api/collections/videos/services/crun-video-input.service';
@@ -22,6 +23,11 @@ function fixture() {
     {} as never,
     {} as never,
     {} as never,
+    {
+      resolveCharacterReferences: vi
+        .fn()
+        .mockResolvedValue(noCharacterAdmission()),
+    } as never,
   );
   const preview = {
     preview: vi.fn(),

@@ -1,8 +1,4 @@
-export interface BlockedCharacter {
-  handle: string | null;
-  id: string;
-  label: string;
-}
+import type { BlockedCharacter } from '@props/characters/characters-page.props';
 
 export const BRAND_OWNS_SHARED_CHARACTERS = 'brand_owns_shared_characters';
 

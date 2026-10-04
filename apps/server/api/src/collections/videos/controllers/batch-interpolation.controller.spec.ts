@@ -620,6 +620,7 @@ describe('BatchInterpolationController', () => {
       it('links each output to the character of its frames', async () => {
         vi.mocked(personas.resolveCharacterReferences).mockResolvedValueOnce({
           availableAvatarIds: new Set(),
+          grantedAvatarOwners: new Map(),
           personaId: 'persona-1',
           personaIdByAssetId: new Map([[endImageId1, 'persona-1']]),
         });

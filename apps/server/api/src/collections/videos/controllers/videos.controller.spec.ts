@@ -662,9 +662,9 @@ describe('VideosController', () => {
         origins: ['UPLOADED', 'IMPORTED'],
       } as unknown as VideosQueryDto);
 
-      const [aggregate] = videosService.findAll.mock.calls[0] as [
-        { where: { AND: Array<Record<string, unknown>> } },
-      ];
+      const aggregate = videosService.findAll.mock.calls[0][0] as {
+        where: { AND: Array<Record<string, unknown>> };
+      };
       expect(aggregate.where.AND).toContainEqual({
         origin: { in: ['UPLOADED', 'IMPORTED'] },
       });

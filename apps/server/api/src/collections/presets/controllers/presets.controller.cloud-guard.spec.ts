@@ -1,5 +1,6 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { PresetsController } from '@api/collections/presets/controllers/presets.controller';
+import { PresetsQueryDto } from '@api/collections/presets/dto/presets-query.dto';
 import { PresetsService } from '@api/collections/presets/services/presets.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -249,15 +250,17 @@ describe('PresetsController under the CLOUD tenant guard', () => {
     const { controller, inTenant, service } = setup();
 
     const result = await inTenant(() =>
-      service.findAll(controller.buildFindAllQuery(buildUser(false), {}), {
-        pagination: false,
-      }),
+      service.findAll(
+        controller.buildFindAllQuery(buildUser(false), {} as PresetsQueryDto),
+        { pagination: false },
+      ),
     );
 
-    expect(result.docs.map((row) => row.key).sort()).toEqual([
-      'anime',
-      'mine',
-      'retired',
-    ]);
+    // The in-memory rows carry a `key` that the Preset model does not declare.
+    expect(
+      result.docs
+        .map((row) => (row as typeof row & Pick<Row, 'key'>).key)
+        .sort(),
+    ).toEqual(['anime', 'mine', 'retired']);
   });
 });

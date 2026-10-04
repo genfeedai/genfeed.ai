@@ -1,6 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsStylesController } from '@api/collections/elements/styles/controllers/styles.controller';
 import { ElementsStylesService } from '@api/collections/elements/styles/services/styles.service';
+import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
@@ -255,9 +256,12 @@ describe('ElementsCRUDController under the CLOUD tenant guard', () => {
     const { controller, inTenant, service } = setup();
 
     const result = await inTenant(() =>
-      service.findAll(controller.buildFindAllQuery(buildUser(false), {}), {
-        pagination: false,
-      }),
+      service.findAll(
+        controller.buildFindAllQuery(buildUser(false), {} as BaseQueryDto),
+        {
+          pagination: false,
+        },
+      ),
     );
 
     expect(result.docs.map((row) => row.key).sort()).toEqual(['anime', 'mine']);

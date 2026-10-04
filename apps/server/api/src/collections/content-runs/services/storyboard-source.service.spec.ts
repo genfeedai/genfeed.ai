@@ -154,6 +154,7 @@ describe('Storyboard plan character admission (#6040)', () => {
     const { personas, prisma, service } = setup();
     vi.mocked(personas.resolveCharacterReferences).mockResolvedValueOnce({
       availableAvatarIds: new Set(['avatar-1']),
+      grantedAvatarOwners: new Map(),
       personaId: 'persona-1',
       personaIdByAssetId: new Map(),
     });

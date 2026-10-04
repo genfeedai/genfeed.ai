@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
 import { StoryboardSourceService } from '@api/collections/content-runs/services/storyboard-source.service';
+import { noCharacterAdmission } from '@api/collections/personas/utils/character-admission.util';
 import {
   IngredientCategory,
   IngredientStatus,
@@ -93,6 +94,9 @@ describe('Storyboard upload creation against real Prisma metadata', () => {
       prisma as never,
       planning as never,
       videos as never,
+      {
+        resolveCharacterReferences: vi.fn(async () => noCharacterAdmission()),
+      } as never,
     );
     runs = new StoryboardRunsService(
       prisma as never,

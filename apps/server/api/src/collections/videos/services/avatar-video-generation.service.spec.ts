@@ -398,6 +398,7 @@ describe('AvatarVideoGenerationService', () => {
       });
       vi.mocked(personas.resolveCharacterReferences).mockResolvedValueOnce({
         availableAvatarIds: new Set(['avatar-1']),
+        grantedAvatarOwners: new Map(),
         personaId: 'persona-1',
         personaIdByAssetId: new Map(),
       });

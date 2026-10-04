@@ -124,10 +124,10 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         personasServiceStub(),
         { buildPrompt: vi.fn() } as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
-        >[2],
+        >[3],
         filesClientService as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
-        >[3],
+        >[4],
       ),
       undefined,
       undefined,
@@ -224,7 +224,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         personasServiceStub(),
         promptBuilderService as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
-        >[2],
+        >[3],
         undefined,
       ),
       undefined,
@@ -330,7 +330,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         personasServiceStub(),
         promptBuilderService as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
-        >[2],
+        >[3],
         undefined,
       ),
       undefined,
@@ -419,7 +419,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         personasServiceStub(),
         { buildPrompt: vi.fn() } as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
-        >[2],
+        >[3],
         undefined,
       ),
       undefined,
@@ -505,7 +505,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         personasServiceStub(),
         { buildPrompt: vi.fn() } as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
-        >[2],
+        >[3],
         undefined,
       ),
       undefined,
@@ -1066,7 +1066,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         undefined,
         filesClientService as unknown as ConstructorParameters<
           typeof WorkflowMediaProviderPlanService
-        >[3],
+        >[4],
       ),
       undefined,
       undefined,

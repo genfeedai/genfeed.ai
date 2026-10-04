@@ -1,3 +1,4 @@
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import {
   buildElementFindAllQuery,
   DEFAULT_ELEMENT_SORT,
@@ -9,7 +10,7 @@ describe('buildElementFindAllQuery ordering', () => {
   it('sorts platform defaults before organization rows by default', () => {
     const { orderBy } = buildElementFindAllQuery({
       metadata: member,
-      query: {},
+      query: {} as BaseQueryDto,
     });
 
     // organizationId DESC puts NULL (platform defaults) first in PostgreSQL.
@@ -26,7 +27,7 @@ describe('buildElementFindAllQuery ordering', () => {
   it('keeps an explicit client sort', () => {
     const { orderBy } = buildElementFindAllQuery({
       metadata: member,
-      query: { sort: 'label: 1' },
+      query: { sort: 'label: 1' } as BaseQueryDto,
     });
 
     expect(orderBy).toEqual({ label: 1 });

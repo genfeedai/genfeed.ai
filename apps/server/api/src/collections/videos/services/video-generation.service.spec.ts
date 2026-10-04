@@ -796,7 +796,7 @@ describe('VideoGenerationService', () => {
       );
 
       const lookups = ingredientsService.findOne.mock.calls.map(
-        ([query]: [{ id?: string; organizationId?: string }]) => query,
+        ([query]) => query as { id?: string; organizationId?: string },
       );
       expect(
         lookups.find((query) => query.id === 'avatar-g')?.organizationId,
@@ -812,6 +812,7 @@ describe('VideoGenerationService', () => {
       const { personas, sharedService, service } = createService();
       vi.mocked(personas.resolveCharacterReferences).mockResolvedValueOnce({
         availableAvatarIds: new Set(['avatar-1']),
+        grantedAvatarOwners: new Map(),
         personaId: 'persona-1',
         personaIdByAssetId: new Map(),
       });
