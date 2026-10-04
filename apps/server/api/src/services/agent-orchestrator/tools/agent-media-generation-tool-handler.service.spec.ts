@@ -36,7 +36,11 @@ function createHandler() {
     completeJourneyMission: vi.fn().mockResolvedValue(undefined),
   };
   const brandsService = {
-    findOne: vi.fn().mockResolvedValue({ id: 'brand-selected' }),
+    // resolveGenerationBrand (#5219) re-validates every candidate brandId
+    // against the organization, so resolve to the brand that was queried.
+    findOne: vi.fn(async (query: { id?: string }) =>
+      query.id ? { id: query.id } : null,
+    ),
   };
   const logger = { error: vi.fn(), warn: vi.fn() };
   const assetGeneration = new AgentMediaAssetGenerationService(
@@ -511,13 +515,7 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
   });
 
   it('grounds social drafts in the thread brand and shows their receipts', async () => {
-    const { brandsService, contentGeneratorService, handler } = createHandler();
-    // #5219: resolveGenerationBrand re-validates the thread's brandId against
-    // the org rather than trusting ctx.brandId blindly -- resolve back to
-    // whatever id was actually queried instead of the shared default stub.
-    brandsService.findOne.mockImplementation(async (query: { id?: string }) =>
-      query.id ? { id: query.id } : null,
-    );
+    const { contentGeneratorService, handler } = createHandler();
     const receipt = {
       excerpt: 'We ship every Thursday.',
       kind: 'TEXT',
@@ -851,7 +849,7 @@ describe('AgentMediaGenerationToolHandler social variations', () => {
     expect(contentGeneratorService.generateContent).toHaveBeenCalledWith(
       context.organizationId,
       expect.objectContaining({
-        brandId: 'brand-selected',
+        brandId: context.brandId,
         platform: 'linkedin',
         variationsCount: 3,
       }),
