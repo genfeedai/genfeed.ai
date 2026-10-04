@@ -78,6 +78,14 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       }
     }
 
+    // Every entry failing is an outage (database down, schema drift), not a
+    // bad entry: surface it as a failed seed rather than a quiet success.
+    if (upserted === 0 && failedKeys.length > 0) {
+      throw new Error(
+        `Model catalog reconcile failed for all ${failedKeys.length} entries`,
+      );
+    }
+
     if (failedKeys.length > 0) {
       this.logger.warn(
         `Model catalog reconciled with ${failedKeys.length} failed entries: ${failedKeys.join(', ')}`,
