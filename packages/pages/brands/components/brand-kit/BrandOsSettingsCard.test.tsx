@@ -1812,3 +1812,68 @@ describe('opt-in auto-save and guide readiness', () => {
     expect(screen.getByLabelText('Description')).toHaveValue('Edited voice');
   });
 });
+
+describe('mutation fence against stale history reads', () => {
+  function withDescription(value: string): IBrandKitDraft {
+    return {
+      ...draft(),
+      fields: {
+        description: {
+          ...draft().fields.description,
+          key: 'description',
+          label: 'Description',
+          group: 'profile',
+          ownerPath: 'brand.description',
+          applyActionDefault: 'accept',
+          proposedValue: value,
+          diagnostics: [],
+          evidence: [],
+        },
+      },
+    } satisfies IBrandKitDraft;
+  }
+  function refreshWith(view: ReturnType<typeof render>, refreshKey: number) {
+    view.rerender(
+      <BrandOsSettingsCard {...cardProps()} refreshKey={refreshKey} />,
+    );
+  }
+
+  it('discards an older read that resolves after a save and re-reads the saved guide', async () => {
+    const saved = revision({
+      content: withDescription('Saved voice'),
+      updatedAt: '2026-09-14T11:00:00.000Z',
+    });
+    const save = cardDeferred<IBrandOsRevision>();
+    mocks.updateBrandOsRevision.mockReturnValueOnce(save.promise);
+    const view = render(<BrandOsSettingsCard {...cardProps()} />);
+    await screen.findByLabelText('Description');
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: 'Saved voice' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+    await waitFor(() =>
+      expect(mocks.updateBrandOsRevision).toHaveBeenCalledTimes(1),
+    );
+    // A scan completion refreshes history while the save is still in flight.
+    const staleRead = cardDeferred<IBrandOsRevision[]>();
+    mocks.listBrandOsRevisions.mockReturnValueOnce(staleRead.promise);
+    refreshWith(view, 1);
+    await waitFor(() =>
+      expect(mocks.listBrandOsRevisions).toHaveBeenCalledTimes(2),
+    );
+    await act(async () => save.resolve(saved));
+    await waitFor(() => expect(mocks.saved).toHaveBeenCalledTimes(1));
+    mocks.listBrandOsRevisions.mockResolvedValue([saved]);
+    await act(async () => staleRead.resolve([revision()]));
+    // The stale response is dropped and history is read again.
+    await waitFor(() =>
+      expect(mocks.listBrandOsRevisions).toHaveBeenCalledTimes(3),
+    );
+    expect(await screen.findByLabelText('Description')).toHaveValue(
+      'Saved voice',
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Discard unsaved edits' }),
+    ).not.toBeInTheDocument();
+  });
+});

@@ -1,3 +1,14 @@
+import {
+  hasSkillPackageControlCharacters,
+  isSkillPackageEntryCountAllowed,
+  isSkillPackageFileSizeAllowed,
+  isSkillPackageTotalSizeAllowed,
+  isValidSkillPackageChecksum,
+  isValidSkillPackageSlug,
+  isValidSkillPackageSourceUrl,
+  normalizeSkillPackageChecksum,
+  SKILL_PACKAGE_MAX_PATH_BYTES,
+} from '@genfeedai/contracts/constants';
 import type {
   SkillImportInput,
   SkillImportInputErrorCode,
@@ -22,20 +33,14 @@ export class SkillImportInputError extends Error {
 function invalid(code: SkillImportInputErrorCode): never {
   throw new SkillImportInputError(code);
 }
-function hasControls(value: string): boolean {
-  return [...value].some((character) => {
-    const code = character.charCodeAt(0);
-    return code < 32 || (code >= 127 && code <= 159);
-  });
-}
 function validateName(name: string): void {
   if (
     !name ||
     /[\\/:]/.test(name) ||
     name === '.' ||
     name === '..' ||
-    hasControls(name) ||
-    new TextEncoder().encode(name).length > 65_535 ||
+    hasSkillPackageControlCharacters(name) ||
+    new TextEncoder().encode(name).length > SKILL_PACKAGE_MAX_PATH_BYTES ||
     (!name.endsWith('.md') && !name.toLowerCase().endsWith('.zip'))
   )
     invalid('PATH');
@@ -55,47 +60,23 @@ export async function buildSkillImportInput(
   signal?: AbortSignal,
 ): Promise<SkillImportInput> {
   signal?.throwIfAborted();
-  if (
-    !options.slug ||
-    options.slug.length > 160 ||
-    !/^[a-z0-9][a-z0-9-]*$/i.test(options.slug)
-  )
-    invalid('SLUG');
+  if (!isValidSkillPackageSlug(options.slug)) invalid('SLUG');
   const input: SkillImportInput = {
     slug: options.slug.toLowerCase(),
     package: { format: 'files', files: [] },
   };
   if (options.sourceUrl !== undefined) {
     const value = options.sourceUrl;
-    if (
-      !value ||
-      value !== value.trim() ||
-      hasControls(value) ||
-      new TextEncoder().encode(value).length > 2000
-    )
-      invalid('SOURCE_URL');
-    let url: URL;
-    try {
-      url = new URL(value);
-    } catch {
-      invalid('SOURCE_URL');
-    }
-    if (
-      !['http:', 'https:'].includes(url.protocol) ||
-      url.username ||
-      url.password
-    )
-      invalid('SOURCE_URL');
+    if (!isValidSkillPackageSourceUrl(value)) invalid('SOURCE_URL');
     input.sourceUrl = value;
   }
   if (options.checksum !== undefined) {
-    if (!/^(?:sha256:)?[a-fA-F0-9]{64}$/.test(options.checksum))
-      invalid('CHECKSUM');
-    input.expectedPackageChecksum = options.checksum
-      .replace(/^sha256:/, '')
-      .toLowerCase();
+    if (!isValidSkillPackageChecksum(options.checksum)) invalid('CHECKSUM');
+    input.expectedPackageChecksum = normalizeSkillPackageChecksum(
+      options.checksum,
+    );
   }
-  if (files.length > 128) invalid('COUNT');
+  if (!isSkillPackageEntryCountAllowed(files.length)) invalid('COUNT');
   if (!files.length) invalid('ROOT');
   const names = new Set<string>();
   let declaredTotal = 0;
@@ -108,7 +89,6 @@ export async function buildSkillImportInput(
     declaredTotal += file.size;
   }
   const isZip = files.some((file) => file.name.toLowerCase().endsWith('.zip'));
-  const limit = isZip ? 1_000_000 : 128_000;
   if (
     isZip
       ? files.length !== 1
@@ -116,8 +96,8 @@ export async function buildSkillImportInput(
   )
     invalid('ROOT');
   if (
-    files.some((file) => file.size > limit) ||
-    (!isZip && declaredTotal > 512_000)
+    files.some((file) => !isSkillPackageFileSizeAllowed(file.size, isZip)) ||
+    (!isZip && !isSkillPackageTotalSizeAllowed(declaredTotal))
   )
     invalid('SIZE');
   const decoded: SkillImportInputFile[] = [];
@@ -133,8 +113,8 @@ export async function buildSkillImportInput(
     signal?.throwIfAborted();
     total += bytes.length;
     if (
-      bytes.length > limit ||
-      (!isZip && total > 512_000) ||
+      !isSkillPackageFileSizeAllowed(bytes.length, isZip) ||
+      (!isZip && !isSkillPackageTotalSizeAllowed(total)) ||
       (isZip && !bytes.length)
     )
       invalid('SIZE');

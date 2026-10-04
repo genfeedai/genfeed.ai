@@ -1,11 +1,9 @@
+import { isRecord } from '@genfeedai/utils/data/extract.util';
+import { createScopedOutbox } from '@genfeedai/utils/outbox/scoped-outbox.util';
 import type {
   EditorProjectContent,
   EditorSaveOutbox,
   EditorSaveOutboxOptions,
-  EditorSaveStatus,
-  EditorSaveStatusListener,
-  EditorSaveStorage,
-  EditorSaveWrite,
   EditorUnsentEdit,
 } from '@props/studio/editor-save.props';
 import { logger } from '@services/core/logger.service';
@@ -31,44 +29,8 @@ export class EditorSaveConflictError extends Error {
   }
 }
 
-interface PendingEdit {
-  content: EditorProjectContent;
-  key: string;
-  ownerId: string | null;
-}
-
-interface ProjectQueue {
-  acknowledgedKey: string | null;
-  drainPromise: Promise<void> | null;
-  isDraining: boolean;
-  isKeepaliveRequested: boolean;
-  isWriting: boolean;
-  listeners: Set<EditorSaveStatusListener>;
-  pending: PendingEdit | null;
-  retryAttempt: number;
-  retryTimer: ReturnType<typeof setTimeout> | null;
-  status: EditorSaveStatus;
-  /** Sent since the last acknowledgement; the server may hold any of them. */
-  unacknowledgedSentKeys: Set<string>;
-  write: EditorSaveWrite | null;
-}
-
-interface StoredUnsentEdit extends EditorUnsentEdit {
-  ownerId: string;
-}
-
-const DEFAULT_RETRY_BASE_MS = 2000;
-const DEFAULT_RETRY_MAX_MS = 30_000;
 export const EDITOR_SAVE_OUTBOX_STORAGE_PREFIX =
   'genfeed.studio.editor.save-outbox.v1';
-
-function storageKey(projectId: string): string {
-  return `${EDITOR_SAVE_OUTBOX_STORAGE_PREFIX}:${projectId}`;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function isProjectContent(value: unknown): value is EditorProjectContent {
   return (
@@ -78,14 +40,6 @@ function isProjectContent(value: unknown): value is EditorProjectContent {
     typeof value.totalDurationFrames === 'number' &&
     Array.isArray(value.tracks)
   );
-}
-
-function defaultStorage(): EditorSaveStorage | null {
-  try {
-    return typeof window === 'undefined' ? null : window.localStorage;
-  } catch {
-    return null;
-  }
 }
 
 function sortKeysDeep(value: unknown): unknown {
@@ -126,208 +80,31 @@ export function serializeEditorProjectContent(
  * write already in flight — and an edit the page never got to send is kept in
  * storage for the next Editor load to restore and replay.
  */
-export function createEditorSaveOutbox({
-  getStorage = defaultStorage,
-  retryBaseMs = DEFAULT_RETRY_BASE_MS,
-  retryMaxMs = DEFAULT_RETRY_MAX_MS,
-}: EditorSaveOutboxOptions = {}): EditorSaveOutbox {
-  const queues = new Map<string, ProjectQueue>();
-
-  function queueFor(projectId: string): ProjectQueue {
-    let queue = queues.get(projectId);
-    if (!queue) {
-      queue = {
-        acknowledgedKey: null,
-        drainPromise: null,
-        isDraining: false,
-        isKeepaliveRequested: false,
-        isWriting: false,
-        listeners: new Set(),
-        pending: null,
-        retryAttempt: 0,
-        retryTimer: null,
-        status: 'idle',
-        unacknowledgedSentKeys: new Set(),
-        write: null,
-      };
-      queues.set(projectId, queue);
-    }
-    return queue;
-  }
-
-  // Persistence is a safety net: a full or blocked store never breaks saving.
-  function persistUnsent(projectId: string, queue: ProjectQueue): void {
-    const pending = queue.pending;
-    if (!pending?.ownerId) {
-      clearUnsent(projectId);
-      return;
-    }
-    try {
-      const stored: StoredUnsentEdit = {
-        baseKeys: [
-          ...(queue.acknowledgedKey ? [queue.acknowledgedKey] : []),
-          ...queue.unacknowledgedSentKeys,
-        ],
-        content: pending.content,
-        ownerId: pending.ownerId,
-      };
-      getStorage()?.setItem(storageKey(projectId), JSON.stringify(stored));
-    } catch {
-      // The in-memory queue still holds the edit.
-    }
-  }
-
-  function clearUnsent(projectId: string): void {
-    try {
-      getStorage()?.removeItem(storageKey(projectId));
-    } catch {
-      // Nothing to clean up if storage is unavailable.
-    }
-  }
-
-  function setStatus(queue: ProjectQueue, status: EditorSaveStatus): void {
-    queue.status = status;
-    for (const listener of queue.listeners) {
-      listener(status);
-    }
-  }
-
-  function clearRetry(queue: ProjectQueue): void {
-    if (queue.retryTimer !== null) {
-      clearTimeout(queue.retryTimer);
-      queue.retryTimer = null;
-    }
-  }
-
-  async function runDrain(projectId: string): Promise<void> {
-    const queue = queueFor(projectId);
-    queue.isDraining = true;
-
-    try {
-      while (queue.pending && queue.write) {
-        const next = queue.pending;
-        if (next.key === queue.acknowledgedKey) {
-          queue.pending = null;
-          break;
+export function createEditorSaveOutbox(
+  options: EditorSaveOutboxOptions = {},
+): EditorSaveOutbox {
+  const outbox = createScopedOutbox<
+    EditorProjectContent,
+    EditorUnsentEdit,
+    'failed' | 'conflict'
+  >(
+    {
+      classifyFailure: (error) => {
+        if (error instanceof EditorSaveConflictError) {
+          // The project is immutable: nothing queued can ever land.
+          return { action: 'drop-all', logMessage: null, status: 'conflict' };
         }
-
-        const isKeepalive = queue.isKeepaliveRequested;
-        queue.isKeepaliveRequested = false;
-        queue.unacknowledgedSentKeys.add(next.key);
-        setStatus(queue, 'saving');
-        queue.isWriting = true;
-        try {
-          await queue.write(projectId, next.content, { isKeepalive });
-        } catch (error) {
-          queue.isWriting = false;
-          if (error instanceof EditorSaveConflictError) {
-            // The project is immutable: nothing queued can ever land.
-            queue.pending = null;
-            queue.retryAttempt = 0;
-            setStatus(queue, 'conflict');
-            break;
-          }
-          if (error instanceof EditorSaveRejectedError) {
-            logger.error('Editor project save was rejected', error);
-            queue.retryAttempt = 0;
-            setStatus(queue, 'failed');
-            return;
-          }
-          logger.error('Failed to save the Editor project', error);
-          setStatus(queue, 'failed');
-          const delay = Math.min(
-            retryBaseMs * 2 ** queue.retryAttempt,
-            retryMaxMs,
-          );
-          queue.retryAttempt += 1;
-          queue.retryTimer = setTimeout(() => {
-            queue.retryTimer = null;
-            void drain(projectId);
-          }, delay);
-          return;
+        if (error instanceof EditorSaveRejectedError) {
+          return {
+            action: 'hold',
+            logMessage: 'Editor project save was rejected',
+            status: 'failed',
+          };
         }
-
-        queue.isWriting = false;
-        queue.acknowledgedKey = next.key;
-        queue.unacknowledgedSentKeys.clear();
-        queue.retryAttempt = 0;
-        if (queue.pending === next) {
-          queue.pending = null;
-        }
-        setStatus(queue, 'saved');
-      }
-      if (!queue.pending) {
-        clearUnsent(projectId);
-      }
-    } finally {
-      queue.isDraining = false;
-      queue.drainPromise = null;
-    }
-  }
-
-  function drain(projectId: string): Promise<void> {
-    const queue = queueFor(projectId);
-    if (!queue.drainPromise) {
-      queue.drainPromise = runDrain(projectId);
-    }
-    return queue.drainPromise;
-  }
-
-  return {
-    enqueue(
-      projectId,
-      content,
-      { isKeepalive = false, ownerId = null, write },
-    ) {
-      const queue = queueFor(projectId);
-      const key = serializeEditorProjectContent(content);
-      queue.write = write;
-
-      if (!queue.isDraining && key === queue.acknowledgedKey) {
-        // Back to what the server holds (an undo): nothing left to write.
-        const hadWork = queue.pending !== null || queue.status === 'failed';
-        queue.pending = null;
-        clearRetry(queue);
-        clearUnsent(projectId);
-        if (hadWork) {
-          setStatus(queue, 'saved');
-        }
-        return;
-      }
-
-      queue.pending = { content, key, ownerId };
-      persistUnsent(projectId, queue);
-      if (isKeepalive) {
-        queue.isKeepaliveRequested = true;
-      }
-      // New content is worth trying now rather than after the backoff.
-      clearRetry(queue);
-      void drain(projectId);
-    },
-
-    discardUnsent(projectId) {
-      clearUnsent(projectId);
-    },
-
-    getStatus(projectId) {
-      return queueFor(projectId).status;
-    },
-
-    hasUnsavedEdits(projectId) {
-      const queue = queues.get(projectId);
-      return Boolean(queue && (queue.pending || queue.isWriting));
-    },
-
-    readUnsent(projectId, ownerId) {
-      try {
-        const raw = getStorage()?.getItem(storageKey(projectId));
-        if (!raw) {
-          return null;
-        }
-        const stored: unknown = JSON.parse(raw);
+        return null;
+      },
+      fromStored: (stored) => {
         if (
-          !isRecord(stored) ||
-          stored.ownerId !== ownerId ||
           !isProjectContent(stored.content) ||
           !Array.isArray(stored.baseKeys)
         ) {
@@ -339,36 +116,38 @@ export function createEditorSaveOutbox({
           ),
           content: stored.content,
         };
-      } catch {
-        return null;
-      }
+      },
+      logError: (message, error) => logger.error(message, error),
+      markSavedOnRevert: true,
+      retryLogMessage: 'Failed to save the Editor project',
+      retryStatus: 'failed',
+      serialize: serializeEditorProjectContent,
+      storageKeyPrefix: EDITOR_SAVE_OUTBOX_STORAGE_PREFIX,
+      toStored: ({ ownerId, payload }, { baseKeys }) => ({
+        baseKeys,
+        content: payload,
+        ownerId,
+      }),
     },
+    options,
+  );
 
-    setAcknowledged(projectId, content) {
-      const queue = queueFor(projectId);
-      queue.acknowledgedKey = serializeEditorProjectContent(content);
-      queue.unacknowledgedSentKeys.clear();
+  return {
+    discardUnsent: outbox.discardUnsent,
+    enqueue(projectId, content, { isKeepalive, ownerId, write }) {
+      outbox.enqueue(projectId, content, {
+        isKeepalive,
+        ownerId,
+        write: (id, payload, { isKeepalive: isKeepaliveWrite }) =>
+          write(id, payload, { isKeepalive: isKeepaliveWrite }),
+      });
     },
-
-    async settle(projectId) {
-      const queue = queueFor(projectId);
-      clearRetry(queue);
-      await drain(projectId);
-      // A write that failed stops the drain; one more attempt answers whether
-      // the edit can be saved now instead of after the backoff.
-      while (queue.pending && queue.status !== 'failed' && !queue.isDraining) {
-        await drain(projectId);
-      }
-      return queue.status;
-    },
-
-    subscribe(projectId, listener) {
-      const queue = queueFor(projectId);
-      queue.listeners.add(listener);
-      return () => {
-        queue.listeners.delete(listener);
-      };
-    },
+    getStatus: outbox.getStatus,
+    hasUnsavedEdits: outbox.hasUnsavedWrites,
+    readUnsent: outbox.readUnsent,
+    setAcknowledged: outbox.setAcknowledged,
+    settle: outbox.settle,
+    subscribe: outbox.subscribe,
   };
 }
 

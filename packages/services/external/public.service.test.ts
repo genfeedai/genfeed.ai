@@ -347,19 +347,48 @@ describe('PublicService', () => {
 
       expect(http.get).toHaveBeenCalledWith('articles/slug/post', {
         params: { previewToken: 'tok_123' },
+        validateStatus: expect.any(Function),
       });
       expect(result).toBeInstanceOf(Article);
     });
 
-    it('omits the preview token by default and nulls on failure', async () => {
+    it('omits the preview token by default and nulls on an empty document', async () => {
       http.get.mockResolvedValue(axiosResponse({}));
       await expect(service.getPublicArticleBySlug('post')).resolves.toBeNull();
       expect(http.get).toHaveBeenCalledWith('articles/slug/post', {
         params: {},
+        validateStatus: expect.any(Function),
       });
+    });
 
-      http.get.mockRejectedValue(new Error('network'));
-      await expect(service.getPublicArticleBySlug('post')).resolves.toBeNull();
+    it('returns null on a genuine 404', async () => {
+      http.get.mockResolvedValue({ data: {}, status: 404 });
+      await expect(service.getPublicArticleBySlug('gone')).resolves.toBeNull();
+    });
+
+    it('lets only 2xx and 404 resolve', async () => {
+      http.get.mockResolvedValue(axiosResponse({}));
+      await service.getPublicArticleBySlug('post');
+      const config = http.get.mock.calls[0]?.[1] as {
+        validateStatus: (status: number) => boolean;
+      };
+      expect(config.validateStatus(200)).toBe(true);
+      expect(config.validateStatus(404)).toBe(true);
+      expect(config.validateStatus(500)).toBe(false);
+      expect(config.validateStatus(503)).toBe(false);
+      expect(config.validateStatus(403)).toBe(false);
+    });
+
+    it('rethrows 5xx and network failures instead of reporting not found', async () => {
+      http.get.mockRejectedValue(new Error('Request failed with status 503'));
+      await expect(service.getPublicArticleBySlug('post')).rejects.toThrow(
+        'status 503',
+      );
+
+      http.get.mockRejectedValue(new Error('Network error'));
+      await expect(service.getPublicArticleBySlug('post')).rejects.toThrow(
+        'Network error',
+      );
     });
   });
 });

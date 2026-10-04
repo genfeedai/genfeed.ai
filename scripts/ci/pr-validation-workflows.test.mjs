@@ -954,17 +954,14 @@ test('dataset diagnostic freezes inspected control before the exact candidate ch
   );
   assert.match(workflow, /--group "\$DATASET_GROUP"/);
   assert.match(workflow, /node "\$CONTROL_RUNNER" "\$DATASET_GROUP"/);
-  assert.match(
-    workflow,
-    /RUNTIME_ACCEPTANCE_PUBLIC_KEY: \$\{\{ vars\.RUNTIME_ACCEPTANCE_PUBLIC_KEY \}\}/,
-  );
+  assert.doesNotMatch(workflow, /RUNTIME_ACCEPTANCE_PUBLIC_KEY/);
   assert.doesNotMatch(
     workflow,
     /secrets: inherit|continue-on-error|passWithNoTests|upload[^\n]*raw/,
   );
   assert.match(workflow, /persist-credentials: false/);
   assert.match(workflow, /public\/receipt\.json/);
-  assert.match(workflow, /public\/evidence\.encrypted\.json/);
+  assert.match(workflow, /public\/evidence\.json/);
   assert.match(workflow, /if-no-files-found: error/);
   assert.doesNotMatch(workflow, /path:.*\*|path:.*raw\//);
 });
@@ -1052,7 +1049,7 @@ test('serial runtime acceptance preserves ordinary E2E routing and requires rece
   assert.match(gate, /needs\.runtime-acceptance\.result \}\}" = skipped/);
 });
 
-test('final visual proof uses separate bounded isolation and connected jobs with encrypted uploads', () => {
+test('final visual proof uses separate bounded isolation and connected jobs with plaintext uploads', () => {
   const workflow = readWorkflow('visual-code-isolation.yml');
   const isolation = jobBlock(
     workflow,
@@ -1115,7 +1112,7 @@ test('final visual proof uses separate bounded isolation and connected jobs with
       /steps\.seal\.outputs\.result == 'passed' && steps\.upload\.outcome == 'success'/,
     );
     assert.match(block, /public\/receipt\.json/);
-    assert.match(block, /public\/evidence\.encrypted\.json/);
+    assert.match(block, /public\/evidence\.json/);
     assert.match(block, /if-no-files-found: error/);
     assert.doesNotMatch(block, /secrets: inherit|continue-on-error/);
   }
@@ -1357,7 +1354,7 @@ test('dedicated production agent and BRAND jobs preserve full-tier selection and
       /steps\.seal\.outputs\.result == 'passed' && steps\.upload\.outcome == 'success'/,
     );
     assert.match(block, /public\/receipt\.json/);
-    assert.match(block, /public\/evidence\.encrypted\.json/);
+    assert.match(block, /public\/evidence\.json/);
     assert.match(block, /if-no-files-found: error/);
     assert.doesNotMatch(
       block,
@@ -1495,17 +1492,14 @@ test('dispatch diagnostics select exactly one acceptance job without exporting r
       );
       assert.match(block, /CONTROL_SHA: \$\{\{ github\.sha \}\}/);
       assert.match(block, /CANDIDATE_SHA: \$\{\{ github\.sha \}\}/);
-      assert.match(
-        block,
-        /RUNTIME_ACCEPTANCE_PUBLIC_KEY: \$\{\{ vars\.RUNTIME_ACCEPTANCE_PUBLIC_KEY \}\}/,
-      );
+      assert.doesNotMatch(block, /RUNTIME_ACCEPTANCE_PUBLIC_KEY/);
       assert.match(
         block,
         /seal --repo "\$ACCEPTANCE_REPO" --state "\$ACCEPTANCE_STATE" --candidate-sha "\$CANDIDATE_SHA" --control-sha "\$CONTROL_SHA"/,
       );
       const state = job === 'runtime-acceptance' ? 'runtime-acceptance' : job;
       assert.ok(block.includes(`/${state}/public/receipt.json`));
-      assert.ok(block.includes(`/${state}/public/evidence.encrypted.json`));
+      assert.ok(block.includes(`/${state}/public/evidence.json`));
       assert.doesNotMatch(block, /path:.*private|continue-on-error/);
     }
     for (const job of ['nightly-failure-report', 'nightly-recovery-report']) {
@@ -1601,4 +1595,18 @@ test('diagnostic inputs stay dispatch-only and isolate concurrency from ordinary
   assert.ok(normal.endsWith('-none'));
   assert.ok(final.endsWith('-final'));
   assert.ok(brand.endsWith('-brand-acceptance'));
+});
+
+test('runtime acceptance workflows upload plaintext evidence without a public key variable', () => {
+  for (const fileName of [
+    'e2e.yml',
+    'dataset-diagnostic.yml',
+    'dataset-scale.yml',
+    'visual-code-isolation.yml',
+  ]) {
+    const workflow = readWorkflow(fileName);
+    assert.doesNotMatch(workflow, /RUNTIME_ACCEPTANCE_PUBLIC_KEY/, fileName);
+    assert.doesNotMatch(workflow, /evidence\.encrypted\.json/, fileName);
+    assert.match(workflow, /public\/evidence\.json/, fileName);
+  }
 });

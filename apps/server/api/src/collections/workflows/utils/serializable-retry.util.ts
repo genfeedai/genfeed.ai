@@ -4,8 +4,15 @@ import type { Prisma } from '@genfeedai/prisma';
 // TransactionWriteConflict) when it overlaps a concurrent one. Sweeps that fire
 // in the same second hit this in the hidden-mirror transaction, and a run with
 // `attempts: 1` then fails for good, so the whole transaction is retried.
+//
+// P2028 "Unable to start a transaction in the given time" means the pool could
+// not hand out a connection before `maxWait` elapsed, so the callback never ran
+// and re-running it is safe. Other P2028 variants (commit timeout, closed
+// transaction) can leave the outcome unknown and are not retried. Pool
+// pressure clears over seconds rather than milliseconds, so it backs off longer.
 const MAX_SERIALIZABLE_ATTEMPTS = 5;
 const SERIALIZABLE_BACKOFF_MS = 25;
+const TRANSACTION_START_BACKOFF_MS = 500;
 
 type SerializableClient = {
   $transaction<T>(
@@ -25,6 +32,18 @@ export function isSerializationFailure(error: unknown): boolean {
   );
 }
 
+export function isTransactionStartFailure(error: unknown): boolean {
+  if (error === null || typeof error !== 'object') {
+    return false;
+  }
+  const { code, message } = error as Record<string, unknown>;
+  return (
+    code === 'P2028' &&
+    typeof message === 'string' &&
+    message.includes('Unable to start a transaction')
+  );
+}
+
 export async function runSerializableWithRetry<T>(
   prisma: SerializableClient,
   callback: (transaction: Prisma.TransactionClient) => Promise<T>,
@@ -35,8 +54,9 @@ export async function runSerializableWithRetry<T>(
         isolationLevel: 'Serializable',
       });
     } catch (error: unknown) {
+      const isStartFailure = isTransactionStartFailure(error);
       if (
-        !isSerializationFailure(error) ||
+        !(isSerializationFailure(error) || isStartFailure) ||
         attempt >= MAX_SERIALIZABLE_ATTEMPTS
       ) {
         throw error;
@@ -45,7 +65,11 @@ export async function runSerializableWithRetry<T>(
       await new Promise((resolve) =>
         setTimeout(
           resolve,
-          SERIALIZABLE_BACKOFF_MS * attempt * (1 + Math.random()),
+          (isStartFailure
+            ? TRANSACTION_START_BACKOFF_MS
+            : SERIALIZABLE_BACKOFF_MS) *
+            attempt *
+            (1 + Math.random()),
         ),
       );
     }

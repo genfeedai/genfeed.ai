@@ -1,13 +1,5 @@
 import { spawn } from 'node:child_process';
-import {
-  constants,
-  createCipheriv,
-  createHash,
-  createPublicKey,
-  publicEncrypt,
-  randomBytes,
-  randomUUID,
-} from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { createWriteStream, constants as fsConstants } from 'node:fs';
 import {
   chmod,
@@ -1293,30 +1285,6 @@ export function validateUrl(value, kind, database, credentials) {
   }
   return url;
 }
-export function validatePublicKey(pem) {
-  requireThat(
-    typeof pem === 'string' &&
-      /^-----BEGIN PUBLIC KEY-----\s[\s\S]+-----END PUBLIC KEY-----\s*$/.test(
-        pem,
-      ),
-    'PUBLIC_KEY_REQUIRED',
-  );
-  let key;
-  try {
-    key = createPublicKey(pem);
-  } catch {
-    throw new AcceptanceError('INVALID_PUBLIC_KEY');
-  }
-  requireThat(
-    key.asymmetricKeyType === 'rsa' &&
-      key.asymmetricKeyDetails.modulusLength >= 3072,
-    'INVALID_PUBLIC_KEY',
-  );
-  return {
-    key,
-    fingerprint: sha256(key.export({ type: 'spki', format: 'der' })),
-  };
-}
 export function parseArguments(argv) {
   const [command, ...args] = argv;
   requireThat(
@@ -1629,41 +1597,50 @@ export function validateCrunManifest(manifest, directory) {
   );
   return manifest;
 }
-export function encryptEvidence(payload, identity, pem) {
-  const { key, fingerprint } = validatePublicKey(pem);
-  requireThat(identity.fingerprint === fingerprint, 'KEY_MISMATCH');
-  const aad = {
+const SECRET_ENV_NAME = /token|secret|password|key/i;
+export function secretValues(env = {}) {
+  const values = new Set();
+  for (const [name, value] of Object.entries(env))
+    if (
+      SECRET_ENV_NAME.test(name) &&
+      typeof value === 'string' &&
+      value.length >= 6
+    ) {
+      values.add(value);
+      values.add(JSON.stringify(value).slice(1, -1));
+    }
+  return [...values].sort((left, right) => right.length - left.length);
+}
+export function redactText(text, env) {
+  let result = String(text);
+  for (const value of secretValues(env))
+    result = result.split(value).join('[REDACTED]');
+  return result;
+}
+export function redactBytes(bytes, env) {
+  if (bytes.includes(0)) return bytes;
+  const text = bytes.toString('utf8');
+  const redacted = redactText(text, env);
+  return redacted === text ? bytes : Buffer.from(redacted);
+}
+export function buildEvidence(payload, identity, env) {
+  const document = {
     version: 1,
     candidateSHA: identity.candidateSHA,
     controlSHA: identity.controlSHA,
     group: identity.group,
-    fingerprint,
+    ...payload,
   };
-  const bytes = Buffer.from(JSON.stringify(payload));
-  requireThat(bytes.length <= RAW_LIMIT * 1.4 + 65536, 'RAW_LIMIT');
-  const secret = randomBytes(32);
-  const nonce = randomBytes(12);
-  const cipher = createCipheriv('aes-256-gcm', secret, nonce);
-  cipher.setAAD(Buffer.from(JSON.stringify(aad)));
-  const ciphertext = Buffer.concat([cipher.update(bytes), cipher.final()]);
-  const envelope = {
-    ...aad,
-    cipher: 'AES-256-GCM',
-    wrapping: 'RSA-OAEP-SHA256',
-    wrappedKey: publicEncrypt(
-      { key, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' },
-      secret,
-    ).toString('base64'),
-    nonce: nonce.toString('base64'),
-    tag: cipher.getAuthTag().toString('base64'),
-    ciphertext: ciphertext.toString('base64'),
-  };
-  secret.fill(0);
+  const serialized = redactText(JSON.stringify(document), env);
   requireThat(
-    Buffer.byteLength(JSON.stringify(envelope)) <= ENVELOPE_LIMIT,
+    Buffer.byteLength(serialized) <= RAW_LIMIT * 1.4 + 65536,
+    'RAW_LIMIT',
+  );
+  requireThat(
+    Buffer.byteLength(serialized) <= ENVELOPE_LIMIT,
     'ENVELOPE_LIMIT',
   );
-  return envelope;
+  return serialized;
 }
 async function privateFile(file, bytes) {
   const handle = await open(file, 'wx', 0o600);
@@ -2052,7 +2029,6 @@ export async function runFinalCrunBounded({
       uuid: resource.uuid,
       candidateSHA: identity.candidateSHA,
       controlSHA: identity.controlSHA,
-      fingerprint: identity.fingerprint,
       groupAbsent: true,
       childClosed: true,
       streamsClosed: true,
@@ -2300,7 +2276,6 @@ export async function runFinalLearningBounded({
       receiptHash: resource.receiptHash,
       candidateSHA: identity.candidateSHA,
       controlSHA: identity.controlSHA,
-      fingerprint: identity.fingerprint,
       groupAbsent: true,
       childClosed: true,
       streamsClosed: true,
@@ -2763,7 +2738,6 @@ export function workBudget(identity, now = Date.now()) {
 }
 export async function createState(options, env) {
   readPostgresCredentials(env);
-  const { fingerprint } = validatePublicKey(env.RUNTIME_ACCEPTANCE_PUBLIC_KEY);
   const timing = validateTiming(
     options.group,
     env.RUNTIME_ACCEPTANCE_JOB_STARTED_MS,
@@ -2817,7 +2791,6 @@ export async function createState(options, env) {
     candidateSHA,
     controlSHA,
     group: options.group,
-    fingerprint,
     phase: 'prepared',
     ...(options.group === 'final'
       ? { learningCi: learningCiIdentity(env) }
@@ -2835,7 +2808,7 @@ export async function createState(options, env) {
   await mkdir(path.join(options.state, 'raw'), { mode: 0o700 });
   return identity;
 }
-export async function loadState(options, env) {
+export async function loadState(options) {
   const metadata = await lstat(options.state);
   requireThat(
     metadata.isDirectory() &&
@@ -2857,14 +2830,12 @@ export async function loadState(options, env) {
       identity.setupDeadline === expectedTiming.setupDeadline,
     'STATE_DEADLINE_MISMATCH',
   );
-  const { fingerprint } = validatePublicKey(env.RUNTIME_ACCEPTANCE_PUBLIC_KEY);
   requireThat(
     identity.version === 1 &&
       identity.state === options.state &&
       identity.repo === (await realpath(options.repo)) &&
       identity.candidateSHA === options['candidate-sha'] &&
       identity.controlSHA === options['control-sha'] &&
-      identity.fingerprint === fingerprint &&
       identity.device === metadata.dev &&
       identity.inode === metadata.ino &&
       GROUPS.includes(identity.group),
@@ -3886,7 +3857,6 @@ export async function superviseDedicatedAcceptance({
     group: identity.group,
     candidateSHA: identity.candidateSHA,
     controlSHA: identity.controlSHA,
-    fingerprint: identity.fingerprint,
     resources: { groups: [], services: [], database: null },
     completed: [],
     failures: [],
@@ -4771,7 +4741,6 @@ async function executeDedicatedAcceptance(identity, env, baseline = false) {
     candidateSHA: identity.candidateSHA,
     controlSHA: identity.controlSHA,
     group: identity.group,
-    fingerprint: identity.fingerprint,
     status: ledger.status,
     completed: ledger.completed,
     failures: ledger.failures,
@@ -6705,7 +6674,6 @@ export async function execution(identity, env) {
       candidateSHA: identity.candidateSHA,
       controlSHA: identity.controlSHA,
       group: identity.group,
-      fingerprint: identity.fingerprint,
       status:
         failures.length === 0 && cleanupResult.passed ? 'passed' : 'failed',
       completed,
@@ -6818,7 +6786,6 @@ export function validateOutcome(outcome, receipt, identity) {
       outcome.candidateSHA === identity.candidateSHA &&
       outcome.controlSHA === identity.controlSHA &&
       outcome.group === identity.group &&
-      outcome.fingerprint === identity.fingerprint &&
       Array.isArray(outcome.completed),
     'INVALID_OUTCOME',
   );
@@ -6982,14 +6949,125 @@ export async function collectIsolationEvidence(identity) {
   }
   return collected;
 }
-export async function sealState(identity, env) {
+const SUMMARY_LINES = 20;
+const SUMMARY_LINE_WIDTH = 300;
+function clipSummaryLines(text, { tail = false } = {}) {
+  const lines = String(text)
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: strips ANSI escapes and control bytes from CI log text.
+    .replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: strips ANSI escapes and control bytes from CI log text.
+    .replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '')
+    .split('\n')
+    .map((line) => line.trimEnd().slice(0, SUMMARY_LINE_WIDTH));
+  while (lines.length && lines[0] === '') lines.shift();
+  while (lines.length && lines.at(-1) === '') lines.pop();
+  return tail ? lines.slice(-SUMMARY_LINES) : lines.slice(0, SUMMARY_LINES);
+}
+async function readOptionalJson(identity, relative) {
+  try {
+    return JSON.parse(await safeFile(identity.state, relative));
+  } catch {
+    return undefined;
+  }
+}
+function firstFailedCase(report) {
+  for (const file of report?.testResults ?? []) {
+    for (const entry of file.assertionResults ?? [])
+      if (entry.status === 'failed')
+        return {
+          title: entry.fullName ?? entry.title,
+          message: (entry.failureMessages ?? []).join('\n'),
+        };
+    if (file.status === 'failed' && file.message)
+      return { title: file.name, message: file.message };
+  }
+  return undefined;
+}
+export async function failureSummary(identity, outcome, env = {}) {
+  const failures = outcome?.failures ?? [];
+  const [first, ...rest] =
+    failures.length === 0 && outcome?.cleanup?.passed === false
+      ? [{ stage: 'cleanup', code: 'CLEANUP_UNCONFIRMED' }]
+      : failures;
+  const stage = first?.stage ?? 'unknown';
+  const code = first?.code ?? 'UNKNOWN';
+  let found;
+  let exit;
+  let logLines = [];
+  try {
+    const reports = [
+      `raw/${stage}.report.json`,
+      ...identity.evidence.filter(
+        (relative) =>
+          relative.endsWith('.report.json') &&
+          relative !== `raw/${stage}.report.json`,
+      ),
+    ];
+    for (const relative of reports) {
+      found = firstFailedCase(await readOptionalJson(identity, relative));
+      if (found) break;
+    }
+    const commands = outcome.commands ?? [];
+    const index = commands.findLastIndex(
+      (command) =>
+        command.stage === stage &&
+        (command.exitCode !== 0 ||
+          command.signal ||
+          command.timedOut ||
+          command.outputLimit ||
+          command.spawnError ||
+          command.streamError ||
+          command.cleanupError),
+    );
+    if (index >= 0) {
+      const command = commands[index];
+      exit =
+        command.signal ??
+        (command.timedOut ? 'timeout' : (command.exitCode ?? 'unknown'));
+      if (!found)
+        for (const stream of ['stderr', 'stdout']) {
+          try {
+            const text = (
+              await safeFile(identity.state, `raw/${stage}-${index}.${stream}`)
+            ).toString('utf8');
+            if (text.trim()) {
+              logLines = clipSummaryLines(text, { tail: true });
+              break;
+            }
+          } catch {}
+        }
+    }
+  } catch {}
+  const header = [
+    `runtime-acceptance failed ${identity.candidateSHA}`,
+    `stage=${stage}`,
+    `code=${code}`,
+    ...(exit === undefined ? [] : [`exit=${exit}`]),
+    ...(found?.title ? [`case=${found.title}`] : []),
+  ].join(' ');
+  const lines = [
+    header,
+    ...(found ? clipSummaryLines(found.message) : logLines).map(
+      (line) => `  ${line}`,
+    ),
+    ...(rest.length
+      ? [
+          `  also failed: ${rest
+            .slice(0, 5)
+            .map((failure) => `${failure.stage}/${failure.code}`)
+            .join(', ')}${rest.length > 5 ? ', ...' : ''}`,
+        ]
+      : []),
+  ];
+  return `${redactText(lines.join('\n'), env)}\n`;
+}
+export async function sealState(identity, env, log = () => {}) {
   if (identity.phase === 'prepared') {
     const outcome = {
       version: 1,
       candidateSHA: identity.candidateSHA,
       controlSHA: identity.controlSHA,
       group: identity.group,
-      fingerprint: identity.fingerprint,
       status: 'failed',
       completed: [],
       failures: [{ stage: 'preparation', code: 'PREPARATION_INCOMPLETE' }],
@@ -7003,14 +7081,14 @@ export async function sealState(identity, env) {
   }
   requireThat(['finished', 'sealed'].includes(identity.phase), 'INVALID_PHASE');
   if (identity.phase === 'sealed') {
-    const envelope = await safeFile(
+    const evidence = await safeFile(
       identity.state,
-      'public/evidence.encrypted.json',
+      'public/evidence.json',
       ENVELOPE_LIMIT,
     );
     requireThat(
-      sha256(envelope) === identity.envelopeHash,
-      'ENVELOPE_HASH_MISMATCH',
+      sha256(evidence) === identity.evidenceHash,
+      'EVIDENCE_HASH_MISMATCH',
     );
     return JSON.parse(
       await safeFile(identity.state, 'public/receipt.json', 65536),
@@ -7024,6 +7102,7 @@ export async function sealState(identity, env) {
     if (error.code !== 'ENOENT') throw error;
   }
   const status = validateOutcome(outcome, receipt, identity);
+  if (status === 'failed') log(await failureSummary(identity, outcome, env));
   const files = [];
   let total = 0;
   const allowlist = new Set(identity.evidence);
@@ -7072,17 +7151,19 @@ export async function sealState(identity, env) {
     }
     total += bytes.length;
     requireThat(total <= RAW_LIMIT, 'RAW_LIMIT');
-    files.push({ path: relative, bytes: bytes.toString('base64') });
+    files.push({
+      path: relative,
+      bytes: redactBytes(bytes, env).toString('base64'),
+    });
   }
-  const envelope = encryptEvidence(
+  const serialized = buildEvidence(
     { outcome, ...(receipt ? { receipt } : {}), files },
     identity,
-    env.RUNTIME_ACCEPTANCE_PUBLIC_KEY,
+    env,
   );
   await mkdir(path.join(identity.state, 'public'), { mode: 0o700 });
-  const serialized = JSON.stringify(envelope);
   await privateFile(
-    path.join(identity.state, 'public/evidence.encrypted.json'),
+    path.join(identity.state, 'public/evidence.json'),
     serialized,
   );
   const publicReceipt = {
@@ -7090,7 +7171,6 @@ export async function sealState(identity, env) {
     candidateSHA: identity.candidateSHA,
     controlSHA: identity.controlSHA,
     group: identity.group,
-    fingerprint: identity.fingerprint,
     status,
     passed: outcome.completed
       .flatMap((entry) => entry.cases ?? [])
@@ -7105,14 +7185,14 @@ export async function sealState(identity, env) {
     ),
     cleanup: outcome.cleanup.passed,
     evidenceBytes: total,
-    envelopeSHA256: sha256(serialized),
+    evidenceSHA256: sha256(serialized),
   };
   await privateFile(
     path.join(identity.state, 'public/receipt.json'),
     JSON.stringify(publicReceipt),
   );
   identity.phase = 'sealed';
-  identity.envelopeHash = publicReceipt.envelopeSHA256;
+  identity.evidenceHash = publicReceipt.evidenceSHA256;
   await persistIdentity(identity);
   await rm(path.join(identity.state, 'raw'), { recursive: true });
   await rm(path.join(identity.state, 'outcome.json'));
@@ -7137,16 +7217,14 @@ async function checkQualifiedSealDocuments(identity) {
     'outcome.json',
     'receipt.json',
     'public/receipt.json',
-    ...(identity.phase === 'sealed' ? ['public/evidence.encrypted.json'] : []),
+    ...(identity.phase === 'sealed' ? ['public/evidence.json'] : []),
   ]) {
     let bytes;
     try {
       bytes = await safeFile(
         identity.state,
         relative,
-        relative.endsWith('evidence.encrypted.json')
-          ? ENVELOPE_LIMIT
-          : RAW_LIMIT,
+        relative.endsWith('evidence.json') ? ENVELOPE_LIMIT : RAW_LIMIT,
       );
     } catch (error) {
       if (error.code === 'ENOENT') continue;
@@ -7163,8 +7241,7 @@ async function checkQualifiedSealDocuments(identity) {
       document.version === 1 &&
         document.group === identity.group &&
         document.candidateSHA === identity.candidateSHA &&
-        document.controlSHA === identity.controlSHA &&
-        document.fingerprint === identity.fingerprint,
+        document.controlSHA === identity.controlSHA,
       'QUALIFIED_RECEIPT_IDENTITY_MISMATCH',
     );
   }
@@ -7187,13 +7264,15 @@ export async function runCli(argv = process.argv.slice(2), env = process.env) {
       process.stdout.write('runtime-acceptance prepared\n');
       return 0;
     }
-    const identity = await loadState(options, env);
+    const identity = await loadState(options);
     requireQualifiedGroup(identity.group);
     if (options.command === 'seal') {
       await checkQualifiedSealDocuments(identity);
     }
     if (options.command === 'seal') {
-      const receipt = await sealState(identity, env);
+      const receipt = await sealState(identity, env, (text) =>
+        process.stdout.write(text),
+      );
       process.stdout.write(
         `runtime-acceptance ${receipt.status} ${receipt.candidateSHA} ${receipt.passed}\n`,
       );
@@ -7210,7 +7289,9 @@ export async function runCli(argv = process.argv.slice(2), env = process.env) {
     requireThat(options.command === identity.group, 'GROUP_MISMATCH');
     const outcome = await execution(identity, env);
     process.stdout.write(
-      `runtime-acceptance ${outcome.status} ${identity.candidateSHA}\n`,
+      outcome.status === 'passed'
+        ? `runtime-acceptance passed ${identity.candidateSHA}\n`
+        : await failureSummary(identity, outcome, env),
     );
     return outcome.status === 'passed' ? 0 : 1;
   } catch (error) {

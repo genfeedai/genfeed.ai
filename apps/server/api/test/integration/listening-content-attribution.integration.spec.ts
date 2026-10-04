@@ -15,6 +15,7 @@ import {
 import {
   AGENT_TURN_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+  SCHEDULED_PUBLISH_QUEUE,
   WORKFLOW_BACKGROUND_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
@@ -220,6 +221,7 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
           PLATFORM_SYSTEM_WORKFLOW_QUEUE,
           WORKFLOW_BACKGROUND_QUEUE,
           AGENT_TURN_QUEUE,
+          SCHEDULED_PUBLISH_QUEUE,
         ].map((name) => ({
           provide: getQueueToken(name),
           useFactory: () => {
@@ -254,7 +256,7 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
     }).compile();
 
     await Promise.all(ownedQueues.map((queue) => queue.waitUntilReady()));
-    expect(ownedQueues).toHaveLength(4);
+    expect(ownedQueues).toHaveLength(5);
     prisma = moduleRef.get(PrismaService);
     db = prisma as unknown as AttributionDatabase;
     dbHelper = createTestDatabaseHelper(moduleRef);

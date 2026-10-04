@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import {
   TREND_REFRESH_DATASETS,
   TREND_REFRESH_WINDOW_MS,
@@ -7,12 +6,24 @@ import {
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { writeNotificationOutbox } from '@api/services/activity-recording/notification-outbox.writer';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { createConcurrencyLimit } from '@api/shared/utils/create-concurrency-limit.util';
 import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
+import type { TrendRefreshHealth } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 // The existing schedule runs at 00:15 and 12:15 UTC. Only closed windows count.
 const SCHEDULE_OFFSET_MS = 15 * 60 * 1000;
+// Upper bound on simultaneous per-scope health queries in one cron run.
+export const HEALTH_LOOKUP_CONCURRENCY = 10;
 const ENROLLMENT_KEY = 'trend-ingestion-health/enrollment-v1';
+
+interface ScopedTarget {
+  dataset: 'trends';
+  enrollmentAt: Date;
+  health: TrendRefreshHealth[];
+  organizationId: string;
+  platform: string;
+}
 
 @Injectable()
 export class TrendIngestionHealthService {
@@ -56,41 +67,41 @@ export class TrendIngestionHealthService {
         organizationId: { not: null },
       },
     });
-    const targets = [
-      ...TREND_REFRESH_DATASETS.map((dataset) => ({
-        ...dataset,
-        enrollmentAt: enrollment.occurredAt,
-        organizationId: null as string | null,
-        health: globalHealth,
-      })),
-      ...(await Promise.all(
-        scopes.flatMap((scope) => {
-          const platform = fromPrismaCredentialPlatform(scope.platform);
-          if (
-            !scope.organizationId ||
-            !TREND_REFRESH_DATASETS.some(
-              (dataset) => dataset.platform === platform,
-            )
+    const limit = createConcurrencyLimit(HEALTH_LOOKUP_CONCURRENCY);
+    const globalTargets = TREND_REFRESH_DATASETS.map((dataset) => ({
+      ...dataset,
+      enrollmentAt: enrollment.occurredAt,
+      health: globalHealth,
+    }));
+    const scopedTargets = await Promise.all(
+      scopes.flatMap((scope) => {
+        const platform = fromPrismaCredentialPlatform(scope.platform);
+        if (
+          !platform ||
+          !scope.organizationId ||
+          !TREND_REFRESH_DATASETS.some(
+            (dataset) => dataset.platform === platform,
           )
-            return [];
-          const organizationId = scope.organizationId;
-          return [
-            this.refreshHealth
-              .getHealth({ organizationId, platform })
-              .then((health) => ({
-                dataset: 'trends' as const,
-                enrollmentAt:
-                  scope.createdAt > enrollment.occurredAt
-                    ? scope.createdAt
-                    : enrollment.occurredAt,
-                health,
-                organizationId,
-                platform,
-              })),
-          ];
-        }),
-      )),
-    ];
+        )
+          return [];
+        const organizationId = scope.organizationId;
+        return [
+          limit(() =>
+            this.refreshHealth.getHealth({ organizationId, platform }),
+          ).then((health) => ({
+            dataset: 'trends' as const,
+            enrollmentAt:
+              scope.createdAt > enrollment.occurredAt
+                ? scope.createdAt
+                : enrollment.occurredAt,
+            health,
+            organizationId,
+            platform,
+          })),
+        ];
+      }),
+    );
+    const targets = [...globalTargets];
     const closedBefore =
       Math.floor(
         (now.getTime() - SCHEDULE_OFFSET_MS) / TREND_REFRESH_WINDOW_MS,
@@ -101,17 +112,14 @@ export class TrendIngestionHealthService {
     for (const dataset of targets) {
       const receipt = dataset.health.find(
         (row) =>
-          row.scope === (dataset.organizationId ? 'scoped' : 'global') &&
+          row.scope === 'global' &&
           row.platform === dataset.platform &&
           row.dataset === dataset.dataset,
       );
       const successAt = receipt?.lastSuccessfulRefreshAt
         ? new Date(receipt.lastSuccessfulRefreshAt)
         : null;
-      const scopeKey = dataset.organizationId
-        ? `/scope-${createHash('sha256').update(dataset.organizationId).digest('hex').slice(0, 24)}`
-        : '';
-      const sourceId = `${dataset.platform}/${dataset.dataset}${scopeKey}`;
+      const sourceId = `${dataset.platform}/${dataset.dataset}`;
       const alertPrefix = `trend-ingestion-health/${sourceId}/missed/`;
       const previousAlert = await this.prisma.notificationEvent.findFirst({
         orderBy: { occurredAt: 'desc' },
@@ -154,6 +162,123 @@ export class TrendIngestionHealthService {
         now,
         'Trend ingestion missed two scheduled windows',
         `${dataset.platform} ${dataset.dataset} has no successful refresh in two completed 12-hour windows. Last attempt: ${receipt?.lastAttemptAt ?? 'not recorded'}. Outcome: ${receipt?.outcome ?? 'not recorded'}. Inspect the trend maintenance queue, provider credentials and rate limits, then retry this dataset.`,
+        false,
+      );
+    }
+    await this.alertScopedPlatforms(scopedTargets, twoWindowsAgo, now);
+  }
+
+  // One provider outage affects many tenants at once. Alert once per platform
+  // and outage window with the affected count; tenant identifiers stay out of
+  // operator text, matching the per-scope alerts this replaces.
+  private async alertScopedPlatforms(
+    targets: ScopedTarget[],
+    twoWindowsAgo: number,
+    now: Date,
+  ): Promise<void> {
+    const byPlatform = new Map<string, ScopedTarget[]>();
+    for (const target of targets) {
+      byPlatform.set(target.platform, [
+        ...(byPlatform.get(target.platform) ?? []),
+        target,
+      ]);
+    }
+    // Platforms with no remaining targets still need their open incident closed.
+    const platforms = new Set<string>(
+      TREND_REFRESH_DATASETS.map((dataset) => dataset.platform),
+    );
+    for (const platform of platforms) {
+      const platformTargets = byPlatform.get(platform) ?? [];
+      const sourceId = `${platform}/trends/scoped`;
+      const alertPrefix = `trend-ingestion-health/${sourceId}/missed/`;
+      const evaluated = platformTargets.map((target) => {
+        const receipt = target.health.find(
+          (row) =>
+            row.scope === 'scoped' &&
+            row.platform === target.platform &&
+            row.dataset === target.dataset,
+        );
+        const successAt = receipt?.lastSuccessfulRefreshAt
+          ? new Date(receipt.lastSuccessfulRefreshAt)
+          : null;
+        const baseline =
+          successAt && successAt > target.enrollmentAt
+            ? successAt
+            : target.enrollmentAt;
+        const isMissed =
+          !(successAt && successAt.getTime() >= twoWindowsAgo) &&
+          baseline.getTime() <= twoWindowsAgo;
+        return { baseline, isMissed, receipt, successAt };
+      });
+      const missed = evaluated.filter((entry) => entry.isMissed);
+      const previousAlert = await this.prisma.notificationEvent.findFirst({
+        orderBy: { occurredAt: 'desc' },
+        select: { deduplicationKey: true, occurredAt: true },
+        where: {
+          deduplicationKey: {
+            startsWith: alertPrefix,
+            not: { endsWith: '/recovered' },
+          },
+          isDeleted: false,
+          organizationId: null,
+          sourceId,
+          sourceType: 'trend_ingestion_health',
+        },
+      });
+      const latestSuccess = evaluated.reduce<Date | null>(
+        (latest, entry) =>
+          entry.successAt && (!latest || entry.successAt > latest)
+            ? entry.successAt
+            : latest,
+        null,
+      );
+      // The incident key stays stable from the first miss until full recovery,
+      // so scopes recovering or disconnecting never re-open the same outage.
+      const recoveryEvent =
+        previousAlert &&
+        (await this.prisma.notificationEvent.findFirst({
+          select: { deduplicationKey: true, occurredAt: true },
+          where: {
+            deduplicationKey: `${previousAlert.deduplicationKey}/recovered`,
+            isDeleted: false,
+            organizationId: null,
+            sourceId,
+            sourceType: 'trend_ingestion_health',
+          },
+        }));
+      const openIncident = previousAlert && !recoveryEvent;
+      if (missed.length === 0) {
+        if (openIncident && previousAlert) {
+          await this.send(
+            `${previousAlert.deduplicationKey}/recovered`,
+            sourceId,
+            now,
+            'Trend ingestion recovered',
+            latestSuccess
+              ? `${platform} trends completed a refresh for all connected tenant scopes at ${latestSuccess.toISOString()}.`
+              : `${platform} trends has no connected tenant scopes still affected.`,
+            true,
+          );
+        }
+        continue;
+      }
+      // A new outage after a recovery must not reuse the recovered incident's key.
+      const episode = new Date(
+        Math.max(
+          Math.min(...missed.map((entry) => entry.baseline.getTime())),
+          recoveryEvent?.occurredAt.getTime() ?? 0,
+        ),
+      ).toISOString();
+      const incidentKey =
+        openIncident && previousAlert
+          ? previousAlert.deduplicationKey
+          : `${alertPrefix}${episode}`;
+      await this.send(
+        incidentKey,
+        sourceId,
+        now,
+        'Trend ingestion missed two scheduled windows',
+        `${platform} trends has no successful refresh in two completed 12-hour windows for ${missed.length} of ${platformTargets.length} connected tenant scopes. Inspect the trend maintenance queue, provider credentials and rate limits, then retry this dataset.`,
         false,
       );
     }

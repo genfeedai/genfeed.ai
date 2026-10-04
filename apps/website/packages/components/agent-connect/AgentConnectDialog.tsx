@@ -2,6 +2,7 @@
 
 import { type AgentClient, agentClients } from '@data/agent-clients.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { AgentConnectDialogProps } from '@props/agent-client.props';
 import CommandBlock from '@public/agent-clients/agent-client-command-block';
 import { AGENT_CONNECT_EVENT } from '@ui/buttons/connect-agent/connect-agent.event';
 import { Modal } from '@ui/modals/compound';
@@ -10,17 +11,22 @@ import AgentClientLogo from '@web-components/content/AgentClientLogo';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-export default function AgentConnectDialog() {
+export default function AgentConnectDialog({
+  openOnMount = false,
+  returnFocusTo = null,
+}: AgentConnectDialogProps) {
   const [open, setOpen] = useState(false);
   const [client, setClient] = useState<AgentClient | null>(null);
   const trigger = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    const show = () => {
+    const show = (restoreTo?: HTMLElement | null) => {
       trigger.current =
-        document.activeElement instanceof HTMLElement
-          ? document.activeElement
-          : null;
+        restoreTo !== undefined
+          ? restoreTo
+          : document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
       setClient(
         agentClients.find(
           (option) =>
@@ -30,6 +36,7 @@ export default function AgentConnectDialog() {
       );
       setOpen(true);
     };
+    const onEvent = () => show();
     const showDeepLink = () => {
       if (
         window.location.pathname === '/agent' &&
@@ -37,14 +44,15 @@ export default function AgentConnectDialog() {
       )
         show();
     };
-    showDeepLink();
-    window.addEventListener(AGENT_CONNECT_EVENT, show);
+    if (openOnMount) show(returnFocusTo);
+    else showDeepLink();
+    window.addEventListener(AGENT_CONNECT_EVENT, onEvent);
     window.addEventListener('hashchange', showDeepLink);
     return () => {
-      window.removeEventListener(AGENT_CONNECT_EVENT, show);
+      window.removeEventListener(AGENT_CONNECT_EVENT, onEvent);
       window.removeEventListener('hashchange', showDeepLink);
     };
-  }, []);
+  }, [openOnMount, returnFocusTo]);
 
   function onOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);

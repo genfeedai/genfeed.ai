@@ -19,10 +19,11 @@ export class ScheduledPostWorkflowQueueService {
     // pass: `scheduled_sweep` is the 15-min cron; `publish_now`,
     // `manual_retry`, and `tiktok_app` are all direct user actions
     // (approve/retry/publish-now, a TikTok-app-side publish confirmation) —
-    // see #5271.
+    // see #5271. The sweep gets its own class and queue (#5890) so the
+    // shared background limiter cannot delay a due post.
     const dispatchClass =
       input.source === 'scheduled_sweep'
-        ? SystemWorkflowDispatchClass.BACKGROUND
+        ? SystemWorkflowDispatchClass.SCHEDULED_PUBLISH
         : SystemWorkflowDispatchClass.INTERACTIVE;
     return this.workflowQueue.queueSystemWorkflow(
       {

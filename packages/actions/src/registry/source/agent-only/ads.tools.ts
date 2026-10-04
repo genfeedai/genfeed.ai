@@ -46,7 +46,7 @@ const AD_REMIX_PROPERTIES = {
   },
   platform: {
     description: 'Optional platform hint for connected ads.',
-    enum: ['meta', 'google'],
+    enum: ['meta', 'google', 'tiktok', 'x'],
     type: 'string',
   },
   source: {
@@ -72,7 +72,7 @@ export const AGENT_ADS_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Prepare a paused Meta or Google campaign launch draft for review from a selected ad. This never publishes live.',
+      'Prepare a paused Meta, Google, or X campaign launch draft for review from a selected ad. This never publishes live.',
     name: 'prepare_ad_launch_review',
     parameters: {
       properties: {

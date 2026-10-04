@@ -1,13 +1,11 @@
 import { createHash } from 'node:crypto';
 import { TextDecoder } from 'node:util';
 import { crc32, inflateRawSync } from 'node:zlib';
+import {
+  SKILL_PACKAGE_LIMITS,
+  SKILL_PACKAGE_MAX_PATH_BYTES,
+} from '@genfeedai/contracts/constants';
 
-export const SKILL_PACKAGE_LIMITS = Object.freeze({
-  archiveBytes: 1_000_000,
-  entries: 128,
-  entryBytes: 128_000,
-  totalBytes: 512_000,
-});
 const decoder = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 
 export interface SkillPackageFile {
@@ -68,7 +66,7 @@ function assertPath(path: string): void {
   const plain = path.endsWith('/') ? path.slice(0, -1) : path;
   if (
     !plain ||
-    Buffer.byteLength(path, 'utf8') > 65_535 ||
+    Buffer.byteLength(path, 'utf8') > SKILL_PACKAGE_MAX_PATH_BYTES ||
     /[\\:]/.test(path) ||
     [...path].some(
       (char) =>

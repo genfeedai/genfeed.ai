@@ -21,6 +21,7 @@ import type { WorkflowTriggerQueueOptions } from '@genfeedai/contracts/interface
 import {
   AGENT_TURN_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+  SCHEDULED_PUBLISH_QUEUE,
   SystemWorkflowDispatchClass,
   WORKFLOW_BACKGROUND_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
@@ -73,7 +74,9 @@ export interface QueueSystemWorkflowOptions {
    * (`INTERACTIVE`, stays on `WORKFLOW_EXECUTION_QUEUE` — except the agent
    * conversation workflows, which get `AGENT_TURN_QUEUE`, #5622) or everything else
    * — worker crons, batch/background fan-out, polling reconciliation
-   * (`BACKGROUND`, routes to `WORKFLOW_BACKGROUND_QUEUE`) — see #5271.
+   * (`BACKGROUND`, routes to `WORKFLOW_BACKGROUND_QUEUE`) — see #5271 — or
+   * a scheduled-post sweep publish (`SCHEDULED_PUBLISH`, routes to
+   * `SCHEDULED_PUBLISH_QUEUE`, #5890).
    * Required so a new producer cannot land without an explicit choice;
    * `check-workflow-dispatch-class.ts` also fails a producer that bypasses
    * this service to inject one of the routed queues directly.
@@ -220,6 +223,9 @@ export class WorkflowExecutionQueueService {
     // Live agent-conversation turns only — see `AGENT_TURN_QUEUE` (#5622).
     @InjectQueue(AGENT_TURN_QUEUE)
     private readonly agentTurnQueue: Queue<WorkflowExecutionJobData>,
+    // Scheduled-post sweep publishes only — see #5890.
+    @InjectQueue(SCHEDULED_PUBLISH_QUEUE)
+    private readonly scheduledPublishQueue: Queue<WorkflowExecutionJobData>,
     private readonly logger: LoggerService,
   ) {}
 
@@ -278,7 +284,8 @@ export class WorkflowExecutionQueueService {
     // Platform-cron sweep dispatches (`usePlatformQueue`) reserve and add on
     // `PLATFORM_SYSTEM_WORKFLOW_QUEUE` instead of `dispatchClass`'s queue —
     // see #5162 and `QueueSystemWorkflowOptions`. Everything else routes by
-    // `dispatchClass`: `BACKGROUND` to `WORKFLOW_BACKGROUND_QUEUE`,
+    // `dispatchClass`: `SCHEDULED_PUBLISH` to `SCHEDULED_PUBLISH_QUEUE` (#5890),
+    // `BACKGROUND` to `WORKFLOW_BACKGROUND_QUEUE`,
     // `INTERACTIVE` to `WORKFLOW_EXECUTION_QUEUE` (#5271), except live agent
     // conversation turns, which get `AGENT_TURN_QUEUE` (#5622).
     const targetQueue = this.resolveSystemWorkflowQueue(
@@ -576,6 +583,7 @@ export class WorkflowExecutionQueueService {
       this.agentTurnQueue,
       this.platformSystemWorkflowQueue,
       this.backgroundQueue,
+      this.scheduledPublishQueue,
     ];
   }
 
@@ -587,6 +595,8 @@ export class WorkflowExecutionQueueService {
         return this.backgroundQueue;
       case AGENT_TURN_QUEUE:
         return this.agentTurnQueue;
+      case SCHEDULED_PUBLISH_QUEUE:
+        return this.scheduledPublishQueue;
       default:
         return this.executionQueue;
     }
@@ -599,6 +609,11 @@ export class WorkflowExecutionQueueService {
     if (options.usePlatformQueue) return this.platformSystemWorkflowQueue;
     if (options.dispatchClass === SystemWorkflowDispatchClass.BACKGROUND) {
       return this.backgroundQueue;
+    }
+    if (
+      options.dispatchClass === SystemWorkflowDispatchClass.SCHEDULED_PUBLISH
+    ) {
+      return this.scheduledPublishQueue;
     }
     return AGENT_CONVERSATION_WORKFLOW_IDS.includes(canonicalId)
       ? this.agentTurnQueue

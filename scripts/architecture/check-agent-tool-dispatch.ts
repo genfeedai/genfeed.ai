@@ -14,8 +14,8 @@ import { parseSourceFile } from './parse-source-file';
  * equivalent, and that is exactly where drift happened: `generate_ad_pack`,
  * `prepare_ad_launch_review`, `get_workflow_inputs`,
  * `draft_brand_voice_profile`, and `save_brand_voice_profile` shipped as live,
- * credit-costed tools defined inline in `CLOUD_AGENT_TOOL_EXTENSIONS`, never
- * reviewed in the catalog.
+ * credit-costed tools defined inline in a since-removed agent-side extension file,
+ * never reviewed in the catalog.
  *
  * Two failure modes, both silent in production:
  *   - **Advertised, unroutable.** The catalog surfaces an action to the agent,
@@ -23,10 +23,10 @@ import { parseSourceFile } from './parse-source-file';
  *     `Unknown tool: <name>` — a failed turn the user pays a round for.
  *   - **Routable, unreviewed.** A `case` exists for a name the catalog does
  *     not surface. Either it is dead code, or (the drift above) it is reachable
- *     through a registry extension that bypasses review.
+ *     through a path that bypasses review.
  *
- * `agent-tool-registry.ts` throws at module load on the second shape, so a
- * bypass cannot boot. This guard is the spec-time half: it also checks the
+ * The agent registry is built from the catalog alone (no override layer) and
+ * throws at module load on a duplicate name. This guard is the spec-time half: it checks the
  * curated catalog, per-agent `defaultTools`, and `BRANDLESS_AGENT_TOOLS` for
  * the first shape, which no runtime check can see until a user hits it.
  *

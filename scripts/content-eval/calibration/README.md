@@ -221,7 +221,10 @@ brand-thread history or prior evaluations. Vision calibration is deferred.
 Content-eval tests are not in CI; that remains #4928.
 
 Known gaps from the #5991 post-merge review, deferred because each changes the
-text digest and so needs a live report: the lock hashes whole service files
-(unrelated edits flip it) yet omits the evaluations prompt-builder path and the
-content-quality schema shape, and the content-quality arm repeats the
-service's temperature and token literals instead of sharing them.
+text digest and so needs a live report: the lock omits the evaluations
+prompt-builder path and the content-quality schema shape, and the
+content-quality arm repeats the service's temperature and token literals
+instead of sharing them. The lock no longer hashes `evaluations.service.ts`
+(billing, persistence and caching only; the bridge drives
+`EvaluationsOperationsService` directly), so edits there leave the digest
+unchanged.

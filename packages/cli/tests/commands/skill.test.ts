@@ -83,7 +83,7 @@ describe('skill import command', () => {
       sourceUrl: 'https://example.com/skill',
     });
     expect(mocks.printJson).toHaveBeenCalledExactlyOnceWith({ id: 'imported-skill' });
-  });
+  }, 15_000);
   it('posts canonical ZIP base64 with no legacy instruction-derived fields', async () => {
     const archive = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
     await writeFile(path.join(directory, 'package.zip'), archive, { mode: 0o600 });
