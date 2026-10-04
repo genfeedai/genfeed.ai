@@ -988,10 +988,10 @@ describe('IngredientsListContent generation ledger columns', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders an em dash when model and size are unavailable', () => {
+  it('renders an em dash when model, size and tags are unavailable', () => {
     renderContent({ viewMode: 'list' });
 
-    expect(screen.getAllByText('—')).toHaveLength(2);
+    expect(screen.getAllByText('—')).toHaveLength(3);
   });
 
   it('offers a retry action next to the status chip for a FAILED asset', () => {
