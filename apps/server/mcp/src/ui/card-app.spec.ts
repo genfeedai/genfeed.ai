@@ -501,3 +501,33 @@ it('keeps keyboard focus inside the lightbox and makes the page inert', () => {
   close?.click();
   expect(document.getElementById('cards')?.hasAttribute('inert')).toBe(false);
 });
+
+it('says when it stops polling a job that never finishes', async () => {
+  result('generate', {
+    category: 'VIDEO',
+    id: 'job-slow',
+    status: 'PROCESSING',
+  });
+  for (let attempt = 0; attempt < 60; attempt++) {
+    await vi.advanceTimersByTimeAsync(5000);
+    const call = vi
+      .mocked(window.parent.postMessage)
+      .mock.calls.map(([data]) => data as { id?: number; method?: string })
+      .filter((data) => data.method === 'tools/call')
+      .at(-1);
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        source: window.parent,
+        data: { jsonrpc: '2.0', id: call?.id, result: {} },
+      }),
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+  }
+  await vi.advanceTimersByTimeAsync(5000);
+
+  expect(document.querySelector('.pending .notice')?.textContent).toBe(
+    'Still generating. Ask for the job status again to see the result.',
+  );
+  expect(document.querySelector('.bar.indeterminate')).toBeNull();
+});

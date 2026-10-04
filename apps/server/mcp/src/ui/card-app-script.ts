@@ -144,12 +144,23 @@ export function cardAppScript(origins: readonly string[]): string {
     box.append(bar, element('p', 'notice', 'This preview updates when the job finishes.'));
     return box;
   }
+  /** Polling gave up: say so instead of promising an update that will not come. */
+  function stopPolling(article) {
+    const pendingBox = article.querySelector('.pending');
+    if (!pendingBox) return;
+    const bar = pendingBox.querySelector('.bar');
+    if (bar) bar.classList.remove('indeterminate');
+    const message = pendingBox.querySelector('.notice');
+    if (message) message.textContent = 'Still generating. Ask for the job status again to see the result.';
+    resize();
+  }
   function pollJob(item, article, attempt) {
     const epoch = renderEpoch;
     const isStale = () => isDisposed || epoch !== renderEpoch || !article.isConnected;
     // The card is not attached yet on the first call, so only the epoch is
     // checked here; connection is re-checked when the timer fires.
-    if (isDisposed || epoch !== renderEpoch || !item.id || attempt >= ${JOB_POLL_MAX_ATTEMPTS}) return;
+    if (isDisposed || epoch !== renderEpoch || !item.id) return;
+    if (attempt >= ${JOB_POLL_MAX_ATTEMPTS}) { stopPolling(article); return; }
     const timer = setTimeout(() => {
       pollTimers.delete(timer);
       if (isStale()) return;
