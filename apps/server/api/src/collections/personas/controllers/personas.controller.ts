@@ -135,10 +135,22 @@ export class PersonasController extends BaseCRUDController<
       ];
     }
 
-    return {
+    const input: PrismaFindAllInput & { grantedToBrandId?: string } = {
       orderBy: handleQuerySort(query.sort),
       where: match,
     };
+    // Characters granted to the organization join the unfiltered brand list.
+    const hasFilters = Boolean(
+      query.status ||
+        query.avatarProvider ||
+        query.assignedMember ||
+        query.isMentionable ||
+        query.q?.trim(),
+    );
+    if (typeof brandId === 'string' && !hasFilters) {
+      input.grantedToBrandId = brandId;
+    }
+    return input;
   }
 
   @Get('mentions')

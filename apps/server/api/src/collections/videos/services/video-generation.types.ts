@@ -85,6 +85,8 @@ export interface ResolvedVideoGenerationRequest {
   modelInputSchema?: Record<string, unknown>;
   modelProvider?: ModelProvider | string;
   modelSchemaFamily?: string;
+  /** Reference images of characters granted by another organization (#6037). */
+  grantedAvatarOwners?: ReadonlyMap<string, string>;
   /** Character admitted for this request; the output links to it (#6040). */
   personaId?: string | null;
   referenceIds: string[];

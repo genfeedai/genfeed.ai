@@ -45,6 +45,7 @@ beforeEach(() => {
   resolveCharacterReferences.mockReset();
   resolveCharacterReferences.mockResolvedValue({
     availableAvatarIds: new Set(),
+    grantedAvatarOwners: new Map(),
     personaId: null,
   });
   findOne.mockReset();
@@ -308,6 +309,7 @@ describe('FLUX.3 model-specific admission', () => {
     const avatar = testId('edit', 6);
     resolveCharacterReferences.mockResolvedValue({
       availableAvatarIds: new Set([avatar]),
+      grantedAvatarOwners: new Map(),
       personaId: 'persona-1',
     });
 
@@ -319,6 +321,21 @@ describe('FLUX.3 model-specific admission', () => {
 
     const query = findOne.mock.calls[0]?.[0] as Record<string, unknown>;
     expect(query.organizationId).toBe(organizationId);
+    expect(query).not.toHaveProperty('brandId');
+  });
+
+  it('reads a granted character reference from its owning organization only (#6037)', async () => {
+    const avatar = testId('edit', 8);
+    resolveCharacterReferences.mockResolvedValue({
+      availableAvatarIds: new Set([avatar]),
+      grantedAvatarOwners: new Map([[avatar, 'org-owner']]),
+      personaId: 'persona-g',
+    });
+
+    await service.resolveFlux3References(organizationId, brandId, [avatar]);
+
+    const query = findOne.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(query.organizationId).toBe('org-owner');
     expect(query).not.toHaveProperty('brandId');
   });
 

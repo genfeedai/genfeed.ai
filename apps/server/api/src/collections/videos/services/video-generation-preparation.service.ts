@@ -164,8 +164,8 @@ export class VideoGenerationPreparationService {
       : [];
     // A character the active brand can no longer use is refused here, before
     // any output or credit charge (#6040).
-    const { personaId } = await this.personasService.resolveCharacterReferences(
-      {
+    const { grantedAvatarOwners, personaId } =
+      await this.personasService.resolveCharacterReferences({
         brandId: brand.id,
         ingredientIds: [
           ...referenceIds,
@@ -174,8 +174,7 @@ export class VideoGenerationPreparationService {
         ],
         organizationId: user.organizationId,
         path: 'video',
-      },
-    );
+      });
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
         organizationId: user.organizationId,
@@ -232,6 +231,7 @@ export class VideoGenerationPreparationService {
       modelInputSchema,
       modelProvider: registeredModel?.provider,
       modelSchemaFamily: registeredModel?.providerSchemaFamily ?? undefined,
+      grantedAvatarOwners,
       personaId,
       referenceIds,
       request,
@@ -287,6 +287,7 @@ export class VideoGenerationPreparationService {
       ? await this.resolveCompiledDispatchReferenceUrls(
           rawCompiledDispatch,
           user.organizationId,
+          resolved.grantedAvatarOwners,
         )
       : undefined;
 
@@ -646,6 +647,7 @@ export class VideoGenerationPreparationService {
   private async resolveCompiledDispatchReferenceUrls(
     dispatch: Record<string, unknown>,
     organizationId: string,
+    grantedOwners?: ReadonlyMap<string, string>,
   ): Promise<Record<string, unknown>> {
     const resolveUrl = async (
       referenceId: string,
@@ -654,6 +656,7 @@ export class VideoGenerationPreparationService {
       const url = await buildReferenceImageUrl({
         assetsService: this.assetsService,
         configService: this.configService,
+        grantedOwners,
         ingredientsService: this.ingredientsService,
         loggerService: this.loggerService,
         organizationId,
@@ -811,6 +814,7 @@ export class VideoGenerationPreparationService {
     const referenceImageUrls = await buildReferenceImageUrls({
       assetsService: this.assetsService,
       configService: this.configService,
+      grantedOwners: resolved.grantedAvatarOwners,
       ingredientsService: this.ingredientsService,
       loggerService: this.loggerService,
       organizationId: resolved.user.organizationId,
@@ -822,6 +826,7 @@ export class VideoGenerationPreparationService {
     const endFrameUrls = await buildReferenceImageUrls({
       assetsService: this.assetsService,
       configService: this.configService,
+      grantedOwners: resolved.grantedAvatarOwners,
       ingredientsService: this.ingredientsService,
       loggerService: this.loggerService,
       organizationId: resolved.user.organizationId,

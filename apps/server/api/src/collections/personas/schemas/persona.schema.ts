@@ -10,6 +10,9 @@ export interface PersonaDocument
   avatarProvider?: AvatarProvider | string | null;
   /** Computed availability summary, set by `withAvailabilitySummary`. */
   availableBrandCount?: number;
+  /** Owning organization of a character granted to this one (#6037). */
+  grantedByOrganizationName?: string | null;
+  isGranted?: boolean;
   isShared?: boolean;
   owningBrandId?: string | null;
   owningBrandName?: string | null;

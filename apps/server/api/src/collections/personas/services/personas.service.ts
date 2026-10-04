@@ -2,9 +2,11 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { CreatePersonaDto } from '@api/collections/personas/dto/create-persona.dto';
 import { UpdatePersonaDto } from '@api/collections/personas/dto/update-persona.dto';
 import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
+import { PersonaGrantReadService } from '@api/collections/personas/services/persona-grant-read.service';
 import {
   type CharacterAdmission,
   type CharacterAdmissionPath,
+  evaluateCharacterAdmission,
   noCharacterAdmission,
 } from '@api/collections/personas/utils/character-admission.util';
 import {
@@ -46,7 +48,12 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 type ApiKeyRoleContext = Pick<AuthenticatedUser, 'isApiKey' | 'scopes'>;
 export type PersonaClient = Pick<
   PrismaService,
-  '$queryRaw' | 'brand' | 'persona' | 'personaAvailabilityAudit'
+  | '$queryRaw'
+  | 'brand'
+  | 'persona'
+  | 'personaAvailabilityAudit'
+  | 'personaGrant'
+  | 'personaGrantAudit'
 >;
 
 function isPersonaHandleUniqueViolation(error: unknown): boolean {
@@ -91,6 +98,7 @@ export class PersonasService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
+    private readonly grants: PersonaGrantReadService,
   ) {
     super(prisma, 'persona', logger);
   }
@@ -289,12 +297,40 @@ export class PersonasService extends BaseService<
     const organizationId = (
       input as { where?: { organizationId?: unknown } } | null
     )?.where?.organizationId;
-    if (typeof organizationId !== 'string' || result.docs.length === 0) {
+    if (typeof organizationId !== 'string') {
       return result;
     }
+    const docs =
+      result.docs.length > 0
+        ? await this.withAvailabilitySummary(result.docs, organizationId)
+        : result.docs;
+    // Characters granted to this organization (#6037) ride on the first page.
+    const grantedToBrandId = (input as { grantedToBrandId?: unknown } | null)
+      ?.grantedToBrandId;
+    const isFirstPage = !options.page || options.page === 1;
+    if (typeof grantedToBrandId !== 'string' || !isFirstPage) {
+      return { ...result, docs };
+    }
+    const granted = await this.grants.listForBrand({
+      brandId: grantedToBrandId,
+      organizationId,
+    });
     return {
       ...result,
-      docs: await this.withAvailabilitySummary(result.docs, organizationId),
+      docs: [
+        ...docs,
+        ...granted.map((grant) => ({
+          ...this.normalizeDocument(grant.persona),
+          availabilityMode: grant.availabilityMode,
+          availableBrandCount: grant.availableBrandIds?.length ?? 0,
+          availableBrandIds: grant.availableBrandIds ?? [],
+          grantedByOrganizationName: grant.ownerOrganization.label,
+          isGranted: true,
+          isShared: false,
+          owningBrandId: null,
+          owningBrandName: null,
+        })),
+      ],
     };
   }
 
@@ -353,7 +389,7 @@ export class PersonasService extends BaseService<
         })
       : 0;
 
-    return rows.flatMap((row) => {
+    const own = rows.flatMap((row) => {
       if (!row.handle) {
         return [];
       }
@@ -373,6 +409,31 @@ export class PersonasService extends BaseService<
         },
       ];
     });
+    const granted = (
+      await this.grants.listForBrand({
+        brandId: params.brandId,
+        organizationId: params.organizationId,
+        prefix,
+      })
+    ).flatMap((grant) =>
+      grant.persona.handle
+        ? [
+            {
+              avatarIngredientId: grant.persona.avatarIngredientId,
+              grantedByOrganizationName: grant.ownerOrganization.label,
+              handle: grant.persona.handle,
+              hasReferenceImage: Boolean(grant.persona.avatarIngredientId),
+              id: grant.persona.id,
+              isGranted: true,
+              label: grant.persona.label,
+              owningBrandName: null,
+            },
+          ]
+        : [],
+    );
+    return [...own, ...granted]
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .slice(0, 20);
   }
 
   async resolveCharacterHandles(params: {
@@ -413,9 +474,18 @@ export class PersonasService extends BaseService<
           }),
         })
       : [];
+    const grantedRows = params.brandId
+      ? (
+          await this.grants.findHandleGrants({
+            brandId: params.brandId,
+            handles: uniqueNormalized,
+            organizationId: params.organizationId,
+          })
+        ).map((grant) => grant.persona)
+      : [];
 
     const byHandle = new Map<string, string | null>();
-    for (const row of rows) {
+    for (const row of [...rows, ...grantedRows]) {
       if (!row.handle) {
         continue;
       }
@@ -462,8 +532,9 @@ export class PersonasService extends BaseService<
    * Rejects the request (not-found, before any output or charge) when the
    * character is not available to the active brand, so revoking availability
    * stops new use on the next request. Returns the avatar ids the brand may
-   * use across brands plus the character to link the output to. One indexed
-   * query per request; refusals are logged with path, brand and character.
+   * use across brands plus the character to link the output to. Two indexed
+   * queries per request (own characters, and grants to the organization, run
+   * in parallel); refusals are logged with path, brand and character.
    */
   async resolveCharacterReferences(params: {
     brandId: string | null | undefined;
@@ -475,64 +546,47 @@ export class PersonasService extends BaseService<
     if (ids.length === 0) {
       return noCharacterAdmission();
     }
-    const rows = await this.prisma.persona.findMany({
-      select: {
-        availabilityMode: true,
-        availableBrandIds: true,
-        avatarIngredientId: true,
-        brandId: true,
-        id: true,
-        ingredients: {
-          select: { id: true },
-          where: { id: { in: ids } },
+    const [rows, grantRows] = await Promise.all([
+      this.prisma.persona.findMany({
+        select: {
+          availabilityMode: true,
+          availableBrandIds: true,
+          avatarIngredientId: true,
+          brandId: true,
+          id: true,
+          ingredients: {
+            select: { id: true },
+            where: { id: { in: ids } },
+          },
         },
-      },
-      where: scopedWhere(params.organizationId, {
-        OR: [
-          { avatarIngredientId: { in: ids } },
-          { ingredients: { some: { id: { in: ids } } } },
-        ],
+        where: scopedWhere(params.organizationId, {
+          OR: [
+            { avatarIngredientId: { in: ids } },
+            { ingredients: { some: { id: { in: ids } } } },
+          ],
+        }),
       }),
+      // Characters granted to this organization (#6037), keyed by the grant.
+      this.grants.findReferenceGrants({
+        ingredientIds: ids,
+        organizationId: params.organizationId,
+      }),
+    ]);
+    return evaluateCharacterAdmission({
+      brandId: params.brandId,
+      grantRows,
+      ids,
+      onRefused: (refused) => {
+        this.logger.warn('Character reference refused', {
+          ...refused,
+          brandId: params.brandId ?? null,
+          organizationId: params.organizationId,
+          path: params.path,
+        });
+        throw new NotFoundException('Reference image');
+      },
+      rows,
     });
-    const availableAvatarIds = new Set<string>();
-    const personaIdByAssetId = new Map<string, string>();
-    let personaId: string | null = null;
-    for (const id of ids) {
-      const avatarOwners = rows.filter((row) => row.avatarIngredientId === id);
-      // An output linked to a character with no owning brand was never
-      // brand-scoped, so only avatars of such characters are refused.
-      const outputOwners = rows.filter(
-        (row) =>
-          row.brandId !== null &&
-          row.ingredients.some((ingredient) => ingredient.id === id),
-      );
-      for (const owners of [avatarOwners, outputOwners]) {
-        if (owners.length === 0) {
-          continue;
-        }
-        const usable = owners.find((row) =>
-          isPersonaAvailableToBrand(row, params.brandId),
-        );
-        if (!usable) {
-          this.logger.warn('Character reference refused', {
-            assetId: id,
-            brandId: params.brandId ?? null,
-            organizationId: params.organizationId,
-            path: params.path,
-            personaIds: owners.map((row) => row.id),
-          });
-          throw new NotFoundException('Reference image');
-        }
-        if (owners === avatarOwners) {
-          availableAvatarIds.add(id);
-        }
-        personaId ??= usable.id;
-        if (!personaIdByAssetId.has(id)) {
-          personaIdByAssetId.set(id, usable.id);
-        }
-      }
-    }
-    return { availableAvatarIds, personaId, personaIdByAssetId };
   }
 
   async createFromApprovedSheet(params: {
@@ -715,7 +769,8 @@ export class PersonasService extends BaseService<
     excludePersonaId?: string;
     handle: string | null | undefined;
     organizationId: string;
-    owningBrandId: string;
+    /** Null for a grant, which has no owning brand in the target organization. */
+    owningBrandId: string | null;
   }): Promise<void> {
     if (!params.handle) {
       return;
@@ -734,7 +789,23 @@ export class PersonasService extends BaseService<
           : {}),
       }),
     });
-    if (others.length === 0) {
+    // Characters granted into this organization occupy their handle in the
+    // brands they were granted to (#6037).
+    const grantedIn = await client.personaGrant.findMany({
+      select: { availabilityMode: true, availableBrandIds: true },
+      where: {
+        persona: {
+          handle: params.handle,
+          id: params.excludePersonaId
+            ? { not: params.excludePersonaId }
+            : undefined,
+          isDeleted: false,
+        },
+        recipientOrganizationId: params.organizationId,
+        revokedAt: null,
+      },
+    });
+    if (others.length === 0 && grantedIn.length === 0) {
       return;
     }
 
@@ -744,17 +815,23 @@ export class PersonasService extends BaseService<
     });
     const organizationBrandIds = brands.map((brand) => brand.id);
     const targetBrandIds = new Set([
-      params.owningBrandId,
+      ...(params.owningBrandId ? [params.owningBrandId] : []),
       ...resolvePersonaBrandIds(
         { ...params.availability, brandId: params.owningBrandId },
         organizationBrandIds,
       ),
     ]);
-    const occupied = new Set(
-      others.flatMap((other) =>
+    const occupied = new Set([
+      ...others.flatMap((other) =>
         resolvePersonaBrandIds(other, organizationBrandIds),
       ),
-    );
+      ...grantedIn.flatMap((grant) =>
+        resolvePersonaBrandIds(
+          { ...grant, brandId: null },
+          organizationBrandIds,
+        ),
+      ),
+    ]);
     const conflictingBrandId = [...targetBrandIds].find((brandId) =>
       occupied.has(brandId),
     );
@@ -779,10 +856,14 @@ export class PersonasService extends BaseService<
     const persona = await this.prisma.persona.findFirst({
       where: scopedWhere(params.organizationId, { id: params.personaId }),
     });
-    if (!persona || !isPersonaAvailableToBrand(persona, params.brandId)) {
-      return null;
+    if (persona) {
+      return isPersonaAvailableToBrand(persona, params.brandId)
+        ? this.normalizeDocument(persona)
+        : null;
     }
-    return this.normalizeDocument(persona);
+    // Not this organization's character: only an active grant can resolve it.
+    const granted = await this.grants.findForBrand(params);
+    return granted ? this.normalizeDocument(granted) : null;
   }
 
   async updateAvailability(params: {

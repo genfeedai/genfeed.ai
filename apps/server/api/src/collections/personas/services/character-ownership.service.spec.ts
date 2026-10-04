@@ -1,4 +1,5 @@
 import { CharacterOwnershipService } from '@api/collections/personas/services/character-ownership.service';
+import { PersonaGrantReadService } from '@api/collections/personas/services/persona-grant-read.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -25,6 +26,7 @@ describe('CharacterOwnershipService', () => {
       update: ReturnType<typeof vi.fn>;
     };
     personaAvailabilityAudit: { create: ReturnType<typeof vi.fn> };
+    personaGrant: { findMany: ReturnType<typeof vi.fn> };
   };
   const orgId = 'org-1';
   const adminMember = { role: { key: 'owner' } };
@@ -52,6 +54,7 @@ describe('CharacterOwnershipService', () => {
         update: vi.fn(),
       },
       personaAvailabilityAudit: { create: vi.fn() },
+      personaGrant: { findMany: vi.fn().mockResolvedValue([]) },
     };
     prisma.$transaction.mockImplementation(
       async (callback: (tx: typeof prisma) => Promise<unknown>) =>
@@ -61,6 +64,7 @@ describe('CharacterOwnershipService', () => {
       providers: [
         CharacterOwnershipService,
         PersonasService,
+        { provide: PersonaGrantReadService, useValue: {} },
         { provide: PrismaService, useValue: prisma },
         {
           provide: LoggerService,

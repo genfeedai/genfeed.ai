@@ -26,6 +26,7 @@ describe('BrandLifecycleService', () => {
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
   let memberDelegate: Record<string, ReturnType<typeof vi.fn>>;
   let personaDelegate: Record<string, ReturnType<typeof vi.fn>>;
+  let personaGrantDelegate: Record<string, ReturnType<typeof vi.fn>>;
   let txQueryRaw: ReturnType<typeof vi.fn>;
   let transactionMock: ReturnType<typeof vi.fn>;
   let learningAccounts: Record<string, ReturnType<typeof vi.fn>>;
@@ -53,6 +54,7 @@ describe('BrandLifecycleService', () => {
       updateMany: vi.fn(),
     };
     personaDelegate = { findMany: vi.fn().mockResolvedValue([]) };
+    personaGrantDelegate = { findMany: vi.fn().mockResolvedValue([]) };
     txQueryRaw = vi.fn().mockResolvedValue([{ id: 'locked' }]);
     cacheInvalidationService = {
       invalidate: vi.fn(),
@@ -87,6 +89,7 @@ describe('BrandLifecycleService', () => {
       brand: delegate,
       member: memberDelegate,
       persona: personaDelegate,
+      personaGrant: personaGrantDelegate,
       contentLearningAccount: learningAccounts,
       contentLearningDependency: dependencies,
     };
@@ -315,6 +318,32 @@ describe('BrandLifecycleService', () => {
         id: brandId,
       });
       expect(delegate.update).toHaveBeenCalled();
+    });
+
+    it('refuses while a character it owns has an active grant to another organization (#6037)', async () => {
+      personaDelegate.findMany.mockResolvedValue([]);
+      personaGrantDelegate.findMany.mockResolvedValue([
+        { persona: { handle: 'anna', id: 'persona-2', label: 'Anna' } },
+      ]);
+
+      const error = await service.remove(brandId).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(ConflictException);
+      expect((error as ConflictException).getResponse()).toMatchObject({
+        code: 'brand_owns_shared_characters',
+        source: {
+          characters: [{ handle: 'anna', id: 'persona-2', label: 'Anna' }],
+        },
+      });
+      expect(personaGrantDelegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            persona: { brandId, isDeleted: false },
+            revokedAt: null,
+          },
+        }),
+      );
+      expect(delegate.update).not.toHaveBeenCalled();
     });
 
     it('deletes a brand that owns no shared characters', async () => {

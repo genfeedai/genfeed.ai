@@ -29,6 +29,8 @@ export const personaAttributes = createEntityAttributes([
   'availabilityMode',
   'availableBrandIds',
   'availableBrandCount',
+  'grantedByOrganizationName',
+  'isGranted',
   'isShared',
   'owningBrandId',
   'owningBrandName',

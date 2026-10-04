@@ -531,3 +531,38 @@ describe('reference image tenant isolation', () => {
     expect(result).toEqual([`${BASE_URL}/ingredients/images/${sameTenantId}`]);
   });
 });
+
+describe('granted character references (#6037)', () => {
+  it('looks a granted reference up in its owning organization, others in the caller organization', async () => {
+    const { assetsService, configService, ingredientsService, loggerService } =
+      createMocks();
+    vi.mocked(ingredientsService.findOne).mockImplementation(
+      async (query: ReferenceLookupQuery) =>
+        query.category === IngredientCategory.IMAGE && query.id
+          ? ({ id: query.id } as never)
+          : null,
+    );
+
+    const urls = await buildReferenceImageUrls({
+      assetsService,
+      configService,
+      grantedOwners: new Map([['granted-avatar', FOREIGN_ORGANIZATION_ID]]),
+      ingredientsService,
+      loggerService,
+      organizationId: ORGANIZATION_ID,
+      referenceIds: ['granted-avatar', 'own-image'],
+    });
+
+    expect(urls).toEqual([
+      `${BASE_URL}/ingredients/images/granted-avatar`,
+      `${BASE_URL}/ingredients/images/own-image`,
+    ]);
+    const orgFor = (id: string) =>
+      vi
+        .mocked(ingredientsService.findOne)
+        .mock.calls.map(([query]) => query as ReferenceLookupQuery)
+        .find((query) => query.id === id)?.organizationId;
+    expect(orgFor('granted-avatar')).toBe(FOREIGN_ORGANIZATION_ID);
+    expect(orgFor('own-image')).toBe(ORGANIZATION_ID);
+  });
+});

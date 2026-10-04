@@ -181,4 +181,6 @@ export interface ImageGenerationPreparedInputs {
   generationHarness: GenerationHarnessReceipt;
   /** Character admitted for this request; outputs link to it. */
   personaId: string | null;
+  /** Reference images of characters granted by another organization. */
+  grantedAvatarOwners: ReadonlyMap<string, string>;
 }

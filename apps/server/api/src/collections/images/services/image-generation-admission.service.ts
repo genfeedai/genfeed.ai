@@ -256,17 +256,19 @@ export class ImageGenerationAdmissionService {
       );
     // A shared character's reference image belongs to its owning brand; it is
     // usable here when the character is available to the active brand.
-    const { availableAvatarIds } = await this.resolveCharacterLink(
-      organizationId,
-      brandId,
-      sourceIds,
-      'image',
-    );
+    const { availableAvatarIds, grantedAvatarOwners } =
+      await this.resolveCharacterLink(
+        organizationId,
+        brandId,
+        sourceIds,
+        'image',
+      );
     for (const id of sourceIds) {
       const image = await this.imagesService.findOne(
         {
           id,
-          organizationId,
+          // A granted character's reference image belongs to its owner.
+          organizationId: grantedAvatarOwners.get(id) ?? organizationId,
           ...(availableAvatarIds.has(id) ? {} : { brandId }),
           isDeleted: false,
           category: IngredientCategory.IMAGE,
@@ -303,6 +305,7 @@ export class ImageGenerationAdmissionService {
       dispatch?: Record<string, unknown>;
     },
     organizationId: string,
+    grantedOwners?: ReadonlyMap<string, string>,
   ): Promise<Record<string, unknown> | undefined> {
     if (!compiled.dispatch) {
       return undefined;
@@ -314,9 +317,11 @@ export class ImageGenerationAdmissionService {
       compiled.brief?.references.map((reference) => reference.assetId),
     );
     for (const referenceId of referenceIds) {
-      const [url] = await this.resolveReferenceImageUrls(organizationId, [
-        referenceId,
-      ]);
+      const [url] = await this.resolveReferenceImageUrls(
+        organizationId,
+        [referenceId],
+        grantedOwners,
+      );
       if (url) {
         urlByReferenceId.set(referenceId, url);
       } else {
@@ -334,8 +339,10 @@ export class ImageGenerationAdmissionService {
   resolveReferenceImageUrls(
     organizationId: string,
     referenceIds: string[],
+    grantedOwners?: ReadonlyMap<string, string>,
   ): Promise<string[]> {
     return buildReferenceImageUrls({
+      grantedOwners,
       assetsService: this.assetsService,
       configService: this.configService,
       ingredientsService: this.ingredientsService,

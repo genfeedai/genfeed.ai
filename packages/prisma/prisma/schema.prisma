@@ -960,6 +960,8 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   contextEntries                ContextEntry[]
   skills                        Skill[]
   receivedSkillGrants           SkillGrant[]              @relation("skill_grant_recipient_org")
+  ownedPersonaGrants            PersonaGrant[]            @relation("persona_grant_owner_org")
+  receivedPersonaGrants         PersonaGrant[]            @relation("persona_grant_recipient_org")
   skillAssignments              SkillAssignment[]
   skillResolutions              SkillResolution[]
   generationPromptSnapshots     GenerationPromptSnapshot[]
@@ -4338,6 +4340,7 @@ model Persona {
   updatedAt          DateTime      @updatedAt
 
   availabilityAudits PersonaAvailabilityAudit[]
+  grants             PersonaGrant[]
   tags            Tag[]        @relation("persona_tags")
   credentials     Credential[] @relation("persona_credentials")
   assignedMembers User[]       @relation("persona_assigned_members")
@@ -4357,6 +4360,55 @@ model Persona {
   // Partial unique (organizationId, brandId, handle) WHERE handle IS NOT NULL
   // AND isDeleted = false lives in 20260824120000_persona_handle_brand_unique.
   @@map("personas")
+}
+
+/// Use-only grant of a character to another organization (#6037). Only one
+/// active grant exists per character and recipient (partial unique index in
+/// the migration); a revoked grant is kept and a re-grant is a new row.
+model PersonaGrant {
+  id                      String                  @id @default(cuid())
+  personaId               String
+  persona                 Persona                 @relation(fields: [personaId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  ownerOrganizationId     String
+  ownerOrganization       Organization            @relation("persona_grant_owner_org", fields: [ownerOrganizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  recipientOrganizationId String
+  recipientOrganization   Organization            @relation("persona_grant_recipient_org", fields: [recipientOrganizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  /// Availability inside the receiving organization (#6009 contract).
+  availabilityMode        PersonaAvailabilityMode @default(ALL_BRANDS)
+  availableBrandIds       String[]                @default([])
+  /// Always "use": the receiving organization can generate, never edit.
+  access                  String                  @default("use")
+  grantedByUserId         String
+  revokedByUserId         String?
+  revokedAt               DateTime?
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+
+  @@index([recipientOrganizationId, revokedAt])
+  @@index([personaId, revokedAt])
+  @@index([ownerOrganizationId, revokedAt])
+  @@map("persona_grants")
+}
+
+/// Append-only audit of grant changes (#6037): actor, time, previous and new state.
+model PersonaGrantAudit {
+  id                      String                   @id @default(cuid())
+  grantId                 String
+  personaId               String
+  ownerOrganizationId     String
+  recipientOrganizationId String
+  actorUserId             String
+  /// granted, updated or revoked.
+  action                  String
+  previousMode            PersonaAvailabilityMode?
+  previousBrandIds        String[]                 @default([])
+  newMode                 PersonaAvailabilityMode?
+  newBrandIds             String[]                 @default([])
+  createdAt               DateTime                 @default(now())
+
+  @@index([grantId, createdAt(sort: Desc)])
+  @@index([ownerOrganizationId, createdAt(sort: Desc)])
+  @@map("persona_grant_audits")
 }
 
 /// Append-only audit of character availability changes (#6009): actor, time,

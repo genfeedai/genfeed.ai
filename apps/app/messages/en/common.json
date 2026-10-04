@@ -500,6 +500,23 @@
         "manage": "Manage characters",
         "title": "Move shared characters first"
       },
+      "grants": {
+        "allBrands": "All brands",
+        "brandsLabel": "Brands that can use the character",
+        "description": "Let another organization you administer use this character for generation only. It pays for its own generations and cannot edit or re-share it. You can revoke at any time.",
+        "error": "Could not grant the character. Check that the other organization has no character with the same @handle.",
+        "grant": "Grant to organization",
+        "grantedByBadge": "Granted by {organization}",
+        "grantedTo": "Granted to",
+        "organization": "Organization",
+        "revoke": "Revoke",
+        "revokeError": "Could not revoke the grant.",
+        "revokeFor": "Revoke the grant to {name}",
+        "revoked": "Grant revoked.",
+        "selectedBrands": "Selected brands",
+        "success": "Character granted.",
+        "title": "Grant to another organization"
+      },
       "ownership": {
         "description": "{brand} owns this character. Move ownership to another brand that can use it, for example before deleting {brand}.",
         "error": "Could not move ownership. Check that the new owner has no character with the same @handle.",

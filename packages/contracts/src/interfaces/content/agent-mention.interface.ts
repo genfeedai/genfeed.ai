@@ -23,9 +23,12 @@ export interface AgentContentMentionItem {
 export interface AgentCharacterMentionItem {
   availableBrandCount?: number;
   avatarIngredientId?: string | null;
+  /** Owning organization of a character granted to this one (#6037). */
+  grantedByOrganizationName?: string | null;
   handle: string;
   hasReferenceImage: boolean;
   id: string;
+  isGranted?: boolean;
   isShared?: boolean;
   label: string;
   owningBrandName?: string | null;

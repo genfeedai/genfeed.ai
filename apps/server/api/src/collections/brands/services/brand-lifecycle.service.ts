@@ -93,49 +93,11 @@ export class BrandLifecycleService {
           );
         }
 
-        // A brand that owns characters other brands can use cannot be
-        // deleted: those brands would lose them (#6040). Ownership must move
-        // first. Re-read under the lock so a concurrent share cannot slip by.
-        const sharedCharacters = await tx.persona.findMany({
-          orderBy: { label: 'asc' },
-          select: {
-            availabilityMode: true,
-            availableBrandIds: true,
-            handle: true,
-            id: true,
-            label: true,
-          },
-          where: scopedWhere(organizationId, {
-            availabilityMode: { not: PersonaAvailabilityMode.OWNING_BRAND },
-            brandId: id,
-          }),
+        await this.assertNoSharedCharacters(tx, {
+          brandId: id,
+          liveBrandIds: new Set(liveBrands.map((brand) => brand.id)),
+          organizationId,
         });
-        const liveBrandIds = new Set(liveBrands.map((brand) => brand.id));
-        const blockingCharacters = sharedCharacters.filter((character) =>
-          character.availabilityMode === PersonaAvailabilityMode.ALL_BRANDS
-            ? liveBrandIds.size > 1
-            : (character.availableBrandIds ?? []).some(
-                (brandId) => brandId !== id && liveBrandIds.has(brandId),
-              ),
-        );
-        if (blockingCharacters.length > 0) {
-          throw new ConflictException({
-            code: 'brand_owns_shared_characters',
-            detail: `This brand owns characters other brands use: ${blockingCharacters
-              .map((character) => character.label)
-              .join(', ')}. Move their ownership to another brand first.`,
-            // JSON:API `source` is the one free-form member the HTTP filter
-            // forwards; the client reads the characters to link to.
-            source: {
-              characters: blockingCharacters.map((character) => ({
-                handle: character.handle,
-                id: character.id,
-                label: character.label,
-              })),
-            },
-            title: 'Brand owns shared characters',
-          });
-        }
 
         // Capture affected members before the move so their caches can be
         // busted once the transaction commits (#5295) — a member left
@@ -202,6 +164,81 @@ export class BrandLifecycleService {
     );
 
     return brand;
+  }
+
+  /**
+   * A brand that owns characters other brands or organizations can use cannot
+   * be deleted: they would lose them (#6040, #6037). Ownership must move (or
+   * the grant be revoked) first. Re-read under the lock so a concurrent share
+   * cannot slip by.
+   */
+  private async assertNoSharedCharacters(
+    tx: Prisma.TransactionClient,
+    params: {
+      brandId: string;
+      liveBrandIds: ReadonlySet<string>;
+      organizationId: string;
+    },
+  ): Promise<void> {
+    const sharedCharacters = await tx.persona.findMany({
+      orderBy: { label: 'asc' },
+      select: {
+        availabilityMode: true,
+        availableBrandIds: true,
+        handle: true,
+        id: true,
+        label: true,
+      },
+      where: scopedWhere(params.organizationId, {
+        availabilityMode: { not: PersonaAvailabilityMode.OWNING_BRAND },
+        brandId: params.brandId,
+      }),
+    });
+    // Characters granted to other organizations block the same way (#6037).
+    const grantedCharacters = await tx.personaGrant.findMany({
+      select: {
+        persona: { select: { handle: true, id: true, label: true } },
+      },
+      where: {
+        persona: { brandId: params.brandId, isDeleted: false },
+        revokedAt: null,
+      },
+    });
+    const sharedBlocking = sharedCharacters.filter((character) =>
+      character.availabilityMode === PersonaAvailabilityMode.ALL_BRANDS
+        ? params.liveBrandIds.size > 1
+        : (character.availableBrandIds ?? []).some(
+            (brandId) =>
+              brandId !== params.brandId && params.liveBrandIds.has(brandId),
+          ),
+    );
+    const blockingCharacters = [
+      ...sharedBlocking,
+      ...grantedCharacters
+        .map((grant) => grant.persona)
+        .filter(
+          (granted) =>
+            !sharedBlocking.some((shared) => shared.id === granted.id),
+        ),
+    ];
+    if (blockingCharacters.length > 0) {
+      throw new ConflictException({
+        code: 'brand_owns_shared_characters',
+        detail: `This brand owns characters other brands use: ${blockingCharacters
+          .map((character) => character.label)
+          .join(', ')}. Move their ownership to another brand first.`,
+        // JSON:API `source` is the one free-form member the HTTP filter
+        // forwards; the client reads the characters to link to.
+        source: {
+          characters: blockingCharacters.map((character) => ({
+            handle: character.handle,
+            id: character.id,
+            label: character.label,
+          })),
+        },
+        title: 'Brand owns shared characters',
+      });
+    }
   }
 
   /**

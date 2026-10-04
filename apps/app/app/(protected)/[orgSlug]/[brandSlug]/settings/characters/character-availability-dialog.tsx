@@ -13,6 +13,7 @@ import {
 import { useTranslations } from 'next-intl';
 
 import CharacterAvailabilityFields from './character-availability-fields';
+import CharacterGrantsFields from './character-grants-fields';
 import CharacterOwnershipFields from './character-ownership-fields';
 
 export default function CharacterAvailabilityDialog({
@@ -49,6 +50,10 @@ export default function CharacterAvailabilityDialog({
             onChange={controls.setDraft}
             owningBrandId={character.owningBrandId ?? ''}
           />
+        ) : null}
+
+        {character && !character.isGranted ? (
+          <CharacterGrantsFields character={character} />
         ) : null}
 
         {character?.isShared ? (

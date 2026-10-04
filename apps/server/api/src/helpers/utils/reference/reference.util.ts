@@ -12,6 +12,12 @@ import { LoggerService } from '@libs/logger/logger.service';
 export async function buildReferenceImageUrl(params: {
   assetsService: AssetsService;
   configService: ConfigService;
+  /**
+   * Reference images of characters granted to the caller (#6037), by the
+   * organization that owns them. Only an admitted grant puts an id here, so
+   * the lookup stays scoped to one explicit organization.
+   */
+  grantedOwners?: ReadonlyMap<string, string>;
   ingredientsService: IngredientsService;
   loggerService?: LoggerService;
   organizationId: string;
@@ -20,11 +26,13 @@ export async function buildReferenceImageUrl(params: {
   const {
     assetsService,
     configService,
+    grantedOwners,
     ingredientsService,
     loggerService,
-    organizationId,
     referenceId,
   } = params;
+  const organizationId =
+    grantedOwners?.get(referenceId) ?? params.organizationId;
 
   if (!referenceId || referenceId === '') {
     return null;
@@ -95,6 +103,7 @@ export async function buildReferenceImageUrl(params: {
 export async function buildReferenceImageUrls(params: {
   assetsService: AssetsService;
   configService: ConfigService;
+  grantedOwners?: ReadonlyMap<string, string>;
   ingredientsService: IngredientsService;
   loggerService?: LoggerService;
   organizationId: string;
@@ -103,6 +112,7 @@ export async function buildReferenceImageUrls(params: {
   const {
     assetsService,
     configService,
+    grantedOwners,
     ingredientsService,
     loggerService,
     organizationId,
@@ -124,6 +134,7 @@ export async function buildReferenceImageUrls(params: {
       const lookup = buildReferenceImageUrl({
         assetsService,
         configService,
+        grantedOwners,
         ingredientsService,
         loggerService,
         organizationId,

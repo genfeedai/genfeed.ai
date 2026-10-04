@@ -236,7 +236,6 @@ export class ImageGenerationService {
       request,
       editing ? ModelCategory.IMAGE_EDIT : ModelCategory.IMAGE,
     );
-
     const accepted = await this.reuseAcceptedGeneration(
       user,
       createImageDto,
@@ -246,12 +245,12 @@ export class ImageGenerationService {
       editing,
     );
     if (accepted) return accepted;
-
     const {
       referenceIds,
       referenceImageUrls,
       referenceImageUrl,
       generationHarness,
+      grantedAvatarOwners,
       personaId,
     } = await this.prepareImageGenerationInputs(
       user,
@@ -289,6 +288,7 @@ export class ImageGenerationService {
           height,
           model,
           generationHarness,
+          grantedAvatarOwners,
           organizationId: user.organizationId,
           referenceIds,
           runReferences,
@@ -699,6 +699,7 @@ export class ImageGenerationService {
     height: number;
     model: string;
     generationHarness: GenerationHarnessReceipt;
+    grantedAvatarOwners?: ReadonlyMap<string, string>;
     organizationId: string;
     referenceIds: string[];
     runReferences?: readonly ImageGenerationBriefReference[];
@@ -759,6 +760,7 @@ export class ImageGenerationService {
       compiled.dispatch = await this.admissionService.resolveDispatchReferences(
         compiled,
         params.organizationId,
+        params.grantedAvatarOwners,
       );
 
       return compiled;
@@ -810,16 +812,18 @@ export class ImageGenerationService {
     // A character reference the active brand can no longer use is rejected
     // here, so revoking availability stops new use in one request. An edit
     // was already admitted with its sources.
+    const admission = editing
+      ? undefined
+      : await this.admissionService.resolveCharacterLink(
+          user.organizationId,
+          brandId,
+          referenceIds,
+          'image',
+        );
     const personaId = editing
       ? (editing.personaId ?? null)
-      : (
-          await this.admissionService.resolveCharacterLink(
-            user.organizationId,
-            brandId,
-            referenceIds,
-            'image',
-          )
-        ).personaId;
+      : (admission?.personaId ?? null);
+    const grantedAvatarOwners = admission?.grantedAvatarOwners ?? new Map();
 
     const referenceImageUrls =
       editing?.sourceUrls ??
@@ -832,6 +836,7 @@ export class ImageGenerationService {
         : await this.admissionService.resolveReferenceImageUrls(
             user.organizationId,
             referenceIds,
+            grantedAvatarOwners,
           ));
 
     const referenceImageUrl: string | null = referenceImageUrls[0] || null;
@@ -859,6 +864,7 @@ export class ImageGenerationService {
       referenceImageUrls,
       referenceImageUrl,
       generationHarness,
+      grantedAvatarOwners,
       personaId,
     };
   }

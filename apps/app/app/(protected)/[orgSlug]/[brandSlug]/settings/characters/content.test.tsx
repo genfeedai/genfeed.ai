@@ -16,18 +16,30 @@ const mocks = vi.hoisted(() => {
   const listCharacters = vi.fn();
   const updateAvailability = vi.fn();
   const moveOwnership = vi.fn();
+  const listGrants = vi.fn();
+  const listGrantableOrganizations = vi.fn();
+  const grantToOrganization = vi.fn();
+  const revokeGrant = vi.fn();
   const postImage = vi.fn();
   const personasService = {
     composeSheetPrompt,
     createFromSheet,
+    grantToOrganization,
     listCharacters,
+    listGrantableOrganizations,
+    listGrants,
     moveOwnership,
+    revokeGrant,
     updateAvailability,
   };
   const imagesService = { post: postImage };
   return {
     role: undefined as string | undefined,
+    grantToOrganization,
+    listGrantableOrganizations,
+    listGrants,
     moveOwnership,
+    revokeGrant,
     updateAvailability,
     composeSheetPrompt,
     createFromSheet,
@@ -125,8 +137,12 @@ vi.mock('@services/content/personas.service', () => ({
     getInstance: () => ({
       composeSheetPrompt: mocks.composeSheetPrompt,
       createFromSheet: mocks.createFromSheet,
+      grantToOrganization: mocks.grantToOrganization,
       listCharacters: mocks.listCharacters,
+      listGrantableOrganizations: mocks.listGrantableOrganizations,
+      listGrants: mocks.listGrants,
       moveOwnership: mocks.moveOwnership,
+      revokeGrant: mocks.revokeGrant,
       updateAvailability: mocks.updateAvailability,
     }),
   },
@@ -147,6 +163,10 @@ describe('BrandSettingsCharactersPage', () => {
     mocks.listCharacters.mockResolvedValue([]);
     mocks.updateAvailability.mockResolvedValue({ id: 'p1' });
     mocks.moveOwnership.mockResolvedValue({ id: 'p1' });
+    mocks.listGrants.mockResolvedValue([]);
+    mocks.listGrantableOrganizations.mockResolvedValue([]);
+    mocks.grantToOrganization.mockResolvedValue(undefined);
+    mocks.revokeGrant.mockResolvedValue(undefined);
     mocks.composeSheetPrompt.mockResolvedValue({
       prompt:
         'CHARACTER REFERENCE SHEET PRESET v1.0.0\n<<<CHARACTER_DESCRIPTION>>>a tall woman<<<END_CHARACTER_DESCRIPTION>>>',
@@ -336,6 +356,124 @@ describe('BrandSettingsCharactersPage', () => {
           brandIds: [],
           mode: PersonaAvailabilityMode.ALL_BRANDS,
         });
+      });
+    });
+
+    describe('granting to another organization (#6037)', () => {
+      const organizations = [
+        {
+          brands: [
+            { id: 'brand-x', label: 'Show' },
+            { id: 'brand-y', label: 'Clips' },
+          ],
+          id: 'org-2',
+          label: 'ShipShit Show',
+        },
+      ];
+
+      it('shows a Granted by badge and no manage control for a granted character', async () => {
+        mocks.role = MemberRole.ADMIN;
+        mocks.listCharacters.mockResolvedValue([
+          {
+            ...sharedCharacter,
+            grantedByOrganizationName: 'Vincent Shipshit',
+            id: 'pg',
+            isGranted: true,
+            isShared: false,
+            label: 'Granted Gina',
+          },
+        ]);
+        render(<BrandSettingsCharactersPage />);
+
+        expect(
+          await screen.findByText('Granted by Vincent Shipshit'),
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('button', {
+            name: 'Manage availability for Granted Gina',
+          }),
+        ).not.toBeInTheDocument();
+      });
+
+      it('grants an owned character to an administered organization for selected brands', async () => {
+        mocks.role = MemberRole.OWNER;
+        mocks.listCharacters.mockResolvedValue([privateCharacter]);
+        mocks.listGrantableOrganizations.mockResolvedValue(organizations);
+        render(<BrandSettingsCharactersPage />);
+
+        fireEvent.click(
+          await screen.findByRole('button', {
+            name: 'Manage availability for Ben',
+          }),
+        );
+        fireEvent.click(
+          await screen.findByRole('radio', { name: 'ShipShit Show' }),
+        );
+        fireEvent.click(
+          await screen.findByRole('radio', { name: 'Selected brands' }),
+        );
+        expect(screen.getByTestId('grant-character')).toBeDisabled();
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Show' }));
+        fireEvent.click(screen.getByTestId('grant-character'));
+
+        await waitFor(() => {
+          expect(mocks.grantToOrganization).toHaveBeenCalledWith('p2', {
+            brandIds: ['brand-x'],
+            mode: PersonaAvailabilityMode.SELECTED_BRANDS,
+            organizationId: 'org-2',
+          });
+        });
+      });
+
+      it('lists active grants and revokes one', async () => {
+        mocks.role = MemberRole.OWNER;
+        mocks.listCharacters.mockResolvedValue([privateCharacter]);
+        mocks.listGrants.mockResolvedValue([
+          {
+            availabilityMode: PersonaAvailabilityMode.ALL_BRANDS,
+            availableBrandIds: [],
+            grantedAt: '2026-10-04T00:00:00.000Z',
+            id: 'grant-1',
+            recipientOrganizationId: 'org-2',
+            recipientOrganizationName: 'ShipShit Show',
+          },
+        ]);
+        render(<BrandSettingsCharactersPage />);
+
+        fireEvent.click(
+          await screen.findByRole('button', {
+            name: 'Manage availability for Ben',
+          }),
+        );
+        expect(await screen.findByTestId('grants-list')).toHaveTextContent(
+          'ShipShit Show',
+        );
+        fireEvent.click(
+          screen.getByRole('button', {
+            name: 'Revoke the grant to ShipShit Show',
+          }),
+        );
+
+        await waitFor(() => {
+          expect(mocks.revokeGrant).toHaveBeenCalledWith('p2', 'grant-1');
+        });
+      });
+
+      it('offers no grant control when the member administers no other organization', async () => {
+        mocks.role = MemberRole.OWNER;
+        mocks.listCharacters.mockResolvedValue([privateCharacter]);
+        render(<BrandSettingsCharactersPage />);
+
+        fireEvent.click(
+          await screen.findByRole('button', {
+            name: 'Manage availability for Ben',
+          }),
+        );
+        await screen.findByTestId('character-availability');
+
+        expect(
+          screen.queryByTestId('character-grants'),
+        ).not.toBeInTheDocument();
       });
     });
 

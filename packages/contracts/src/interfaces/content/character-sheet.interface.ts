@@ -24,8 +24,11 @@ export interface BrandCharacterListItem {
   availableBrandCount?: number;
   availableBrandIds?: string[];
   avatarIngredientId?: string | null;
+  /** Owning organization of a character granted to this one (#6037). */
+  grantedByOrganizationName?: string | null;
   handle?: string | null;
   id: string;
+  isGranted?: boolean;
   isShared?: boolean;
   label: string;
   owningBrandId?: string | null;
@@ -67,4 +70,26 @@ export interface CharacterImageInspection {
   characterId: string | null;
   handle: string | null;
   label: string | null;
+}
+
+/** An active use-only grant of a character to another organization (#6037). */
+export interface CharacterGrantItem {
+  availabilityMode: PersonaAvailabilityMode;
+  availableBrandIds: string[];
+  grantedAt: string;
+  id: string;
+  recipientOrganizationId: string;
+  recipientOrganizationName: string;
+}
+
+export interface CharacterGrantInput {
+  brandIds?: string[];
+  mode: PersonaAvailabilityMode;
+  organizationId: string;
+}
+
+export interface GrantableOrganization {
+  brands: Array<{ id: string; label: string }>;
+  id: string;
+  label: string;
 }

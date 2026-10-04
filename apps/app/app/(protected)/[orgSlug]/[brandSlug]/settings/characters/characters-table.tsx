@@ -70,7 +70,13 @@ export default function CharactersTable({
         key: 'availability',
         render: (character) => (
           <div className="flex flex-wrap items-center gap-2">
-            {character.isShared ? (
+            {character.isGranted ? (
+              <Badge icon={<Share2 />}>
+                {translate('grants.grantedByBadge', {
+                  organization: character.grantedByOrganizationName ?? '',
+                })}
+              </Badge>
+            ) : character.isShared ? (
               <Badge icon={<Share2 />}>
                 {translate('availability.sharedBadge', {
                   brand: character.owningBrandName ?? '',
@@ -82,7 +88,7 @@ export default function CharactersTable({
                 {translate('availability.modes.owningBrand.label')}
               </span>
             )}
-            {canManageSharing ? (
+            {canManageSharing && !character.isGranted ? (
               <Button
                 aria-label={translate('availability.manageFor', {
                   name: character.label,
