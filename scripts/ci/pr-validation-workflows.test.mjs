@@ -1022,10 +1022,7 @@ test('serial runtime acceptance preserves ordinary E2E routing and requires rece
   assert.match(runtime, /inputs\.run_runtime_acceptance == true/);
   assert.match(runtime, /timeout-minutes: 60/);
   assert.match(runtime, /TURBO_TOKEN: ''/);
-  assert.match(
-    runtime,
-    /RUNTIME_ACCEPTANCE_OWNER_CONTRACT: \$\{\{ vars\.RUNTIME_ACCEPTANCE_OWNER_CONTRACT \}\}/,
-  );
+  assert.doesNotMatch(workflow, /RUNTIME_ACCEPTANCE_OWNER_CONTRACT/);
   assert.match(runtime, /image: pgvector\/pgvector:pg17/);
   assert.match(runtime, /image: redis:7/);
   assert.ok(
