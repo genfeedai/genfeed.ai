@@ -7,6 +7,10 @@ import type {
   WorkflowVideoProviderPlan,
 } from '@api/collections/workflows/services/workflow-media-provider-plan.interface';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import {
+  classifyInternalMediaUrl,
+  internalMediaHosts,
+} from '@api/helpers/utils/reference/internal-media-url.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   resolveVideoIdentityReferencePlan,
@@ -160,32 +164,43 @@ export class WorkflowMediaProviderPlanService {
     organizationId: string;
     values: readonly unknown[];
   }) {
-    const targets = args.values.flatMap((value) => {
-      const urlId = this.helper.extractIngredientId(value);
-      if (urlId && typeof value === 'string') {
-        return [{ id: urlId, isInternalUrl: this.isInternalMediaUrl(value) }];
+    const hosts = this.internalHosts();
+    const targets: Array<{ id?: string; isInternalUrl: boolean }> = [];
+    for (const value of args.values) {
+      if (typeof value === 'string') {
+        const url = classifyInternalMediaUrl(value, hosts);
+        if (url.isInternal) {
+          targets.push({ id: url.assetId, isInternalUrl: true });
+          continue;
+        }
       }
-      const bareId =
-        urlId ??
+      const id =
+        this.helper.extractIngredientId(value) ??
         (typeof value === 'string' && value && !value.includes('/')
           ? value
           : undefined);
-      return bareId ? [{ id: bareId, isInternalUrl: false }] : [];
-    });
+      if (id) {
+        targets.push({ id, isInternalUrl: false });
+      }
+    }
     const admission = await this.personasService.resolveCharacterReferences({
       brandId: args.brandId,
-      ingredientIds: targets.map((target) => target.id),
+      ingredientIds: targets.flatMap((target) =>
+        target.id ? [target.id] : [],
+      ),
       organizationId: args.organizationId,
       path: 'workflow',
     });
     for (const target of targets) {
+      // An internal URL whose asset cannot be resolved fails closed.
       if (
         target.isInternalUrl &&
-        !admission.availableAvatarIds.has(target.id) &&
-        !(await this.helper.hasOrganizationAsset(
-          target.id,
-          args.organizationId,
-        ))
+        (!target.id ||
+          (!admission.availableAvatarIds.has(target.id) &&
+            !(await this.helper.hasOrganizationAsset(
+              target.id,
+              args.organizationId,
+            ))))
       ) {
         throw new NotFoundException('Reference image');
       }
@@ -193,9 +208,13 @@ export class WorkflowMediaProviderPlanService {
     return admission;
   }
 
-  private isInternalMediaUrl(url: string): boolean {
-    const endpoint = this.configService?.ingredientsEndpoint;
-    return endpoint ? url.startsWith(endpoint) : true;
+  private internalHosts(): Set<string> {
+    const config = this.configService;
+    return internalMediaHosts([
+      config?.cdnUrl,
+      config?.ingredientsEndpoint,
+      config?.apiUrl,
+    ]);
   }
 
   async prepareImage({
