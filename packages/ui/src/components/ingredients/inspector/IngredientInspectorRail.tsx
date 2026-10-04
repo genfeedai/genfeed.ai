@@ -1,5 +1,6 @@
 'use client';
 
+import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import {
   ButtonVariant,
   ComponentSize,
@@ -10,6 +11,7 @@ import {
 } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
+import { useIngredientActions } from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { IngredientInspectorRailProps } from '@genfeedai/props/content/ingredient.props';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import {
@@ -126,6 +128,13 @@ export default function IngredientInspectorRail({
   const translate = useTranslations('pages.library.inspector');
   const shelf = getIngredientShelf(ingredient);
   const grant = useAuthorizedMediaPreview(ingredient);
+  // The rail is a full detail surface, so Publish and Download run the same
+  // handlers as the asset modal. Without them the quick actions render as
+  // locked placeholders.
+  const { openPostBatchModal } = usePostModal();
+  const { handlers, loadingStates } = useIngredientActions({
+    onPublishIngredient: openPostBatchModal,
+  });
   const previewUrl = grant
     ? isRasterPreviewUrl(grant.url)
       ? grant.url
@@ -281,7 +290,17 @@ export default function IngredientInspectorRail({
         ingredientId={ingredient.id}
       />
 
-      <IngredientQuickActions align="start" selectedIngredient={ingredient} />
+      <IngredientQuickActions
+        align="start"
+        isDownloading={loadingStates.isDownloading}
+        isPublishing={loadingStates.isPublishing}
+        onDownload={async (asset) => {
+          await handlers.handleDownload(asset);
+          return undefined;
+        }}
+        onPublish={handlers.handlePublish}
+        selectedIngredient={ingredient}
+      />
     </aside>
   );
 }

@@ -13,8 +13,55 @@ vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
     ingredient.mediaDelivery ?? null,
 }));
 
+const openPostBatchModal = vi.fn();
+const handleDownload = vi.fn();
+
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    usePostModal: () => ({ openPostBatchModal }),
+  }),
+);
+
+vi.mock(
+  '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions',
+  () => ({
+    useIngredientActions: ({
+      onPublishIngredient,
+    }: {
+      onPublishIngredient: (ingredient: IIngredient) => void;
+    }) => ({
+      handlers: { handleDownload, handlePublish: onPublishIngredient },
+      loadingStates: { isDownloading: false, isPublishing: false },
+    }),
+  }),
+);
+
 vi.mock('@ui/quick-actions/actions/IngredientQuickActions', () => ({
-  default: () => null,
+  default: ({
+    onDownload,
+    onPublish,
+    selectedIngredient,
+  }: {
+    onDownload?: (ingredient: IIngredient) => Promise<undefined>;
+    onPublish?: (ingredient: IIngredient, platform: string) => void;
+    selectedIngredient: IIngredient;
+  }) => (
+    <div>
+      <input
+        aria-label="publish-action"
+        disabled={!onPublish}
+        onClick={() => onPublish?.(selectedIngredient, 'auto')}
+        type="checkbox"
+      />
+      <input
+        aria-label="download-action"
+        disabled={!onDownload}
+        onClick={() => onDownload?.(selectedIngredient)}
+        type="checkbox"
+      />
+    </div>
+  ),
 }));
 
 vi.mock('./IngredientTagsControl', () => ({
@@ -238,6 +285,21 @@ describe('IngredientInspectorRail', () => {
     expect(screen.getByText('Provider rejected the prompt')).toHaveClass(
       'text-destructive',
     );
+  });
+
+  it('publishes and downloads the inspected asset from its quick actions', () => {
+    render(<IngredientInspectorRail ingredient={ingredient} />);
+
+    const publish = screen.getByRole('checkbox', { name: 'publish-action' });
+    const download = screen.getByRole('checkbox', { name: 'download-action' });
+    expect(publish).toBeEnabled();
+    expect(download).toBeEnabled();
+
+    fireEvent.click(publish);
+    expect(openPostBatchModal).toHaveBeenCalledWith(ingredient);
+
+    fireEvent.click(download);
+    expect(handleDownload).toHaveBeenCalledWith(ingredient);
   });
 
   it('omits the origin row when the asset carries none', () => {
