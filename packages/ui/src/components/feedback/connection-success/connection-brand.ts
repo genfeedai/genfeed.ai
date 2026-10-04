@@ -1,4 +1,4 @@
-import { PLATFORM_COLORS } from '@genfeedai/contracts';
+import { PLATFORM_COLORS } from '@genfeedai/contracts/constants';
 import {
   AnthropicIcon,
   OpenAiIcon,
