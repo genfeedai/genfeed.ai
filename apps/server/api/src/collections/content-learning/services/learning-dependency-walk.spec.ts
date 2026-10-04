@@ -58,7 +58,8 @@ function fixture(edges: ContentLearningDependency[]) {
                 ),
             ),
         )
-        .sort((a, b) => a.id.localeCompare(b.id));
+        .sort((a, b) => a.id.localeCompare(b.id))
+        .slice(0, args.take);
     },
   );
   const checkpointFindMany = vi.fn(
@@ -179,5 +180,19 @@ describe('LearningDependencyService level-batched walk', () => {
     await expect(
       f.service.valid('checkpoint', 'root', f.tx, 'org'),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('bounds the edge read and fails fast on a very high-fanout root', async () => {
+    const f = fixture(
+      Array.from({ length: LEARNING_DEPENDENCY_WALK_MAX_NODES * 4 }, (_, i) =>
+        checkpointEdge('root', `leaf-${i}`),
+      ),
+    );
+    await expect(
+      f.service.valid('checkpoint', 'root', f.tx, 'org'),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(f.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: LEARNING_DEPENDENCY_WALK_MAX_NODES + 1 }),
+    );
   });
 });

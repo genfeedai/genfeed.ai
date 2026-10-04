@@ -291,6 +291,10 @@ export async function invalidateLearningDependencySource(
 }
 /** Fail-closed ceiling on distinct nodes one dependency validation may visit. */
 export const LEARNING_DEPENDENCY_WALK_MAX_NODES = 5000;
+const learningWalkCapError = () =>
+  new ConflictException(
+    `Learning dependency graph exceeds ${LEARNING_DEPENDENCY_WALK_MAX_NODES} nodes`,
+  );
 interface LearningWalkNode {
   kind: LearningDependencyKindV1;
   id: string;
@@ -793,8 +797,11 @@ export class LearningDependencyService {
         ? await tx.contentLearningDependency.findMany({
             where: { isDeleted: false, OR: learningWalkEdgeFilter(frontier) },
             orderBy: { id: 'asc' },
+            take: LEARNING_DEPENDENCY_WALK_MAX_NODES + 1,
           })
         : [];
+      if (edges.length > LEARNING_DEPENDENCY_WALK_MAX_NODES)
+        throw learningWalkCapError();
       const edgesByNode = new Map<string, typeof edges>();
       for (const edge of edges) {
         const key = JSON.stringify([
@@ -802,7 +809,9 @@ export class LearningDependencyService {
           edge.derivedId,
           edge.derivedOrganizationId,
         ]);
-        edgesByNode.set(key, [...(edgesByNode.get(key) ?? []), edge]);
+        const group = edgesByNode.get(key);
+        if (group) group.push(edge);
+        else edgesByNode.set(key, [edge]);
       }
       const next: LearningWalkNode[] = [];
       const revisited = new Set<string>();
@@ -843,9 +852,7 @@ export class LearningDependencyService {
             }
           } else {
             if (seen.size >= LEARNING_DEPENDENCY_WALK_MAX_NODES)
-              throw new ConflictException(
-                `Learning dependency graph exceeds ${LEARNING_DEPENDENCY_WALK_MAX_NODES} nodes`,
-              );
+              throw learningWalkCapError();
             seen.add(childKey);
             next.push(child);
           }
