@@ -10,6 +10,7 @@ import { normalizeSourcePostFlags } from '@api/services/source-collector/source-
 import { isSaaS } from '@genfeedai/config';
 import type { SocialPostUrlReference } from '@genfeedai/contracts';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
+import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
 import { Injectable } from '@nestjs/common';
 
 /** YouTube channel ids are `UC` followed by 22 URL-safe characters. */
@@ -38,10 +39,6 @@ function toLinkedinProfileUrl(handle: string): string {
   return `https://www.linkedin.com/in/${handle}`;
 }
 
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
-
 function readCount(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
     ? Math.floor(value)
@@ -52,7 +49,7 @@ function readDate(value: unknown): Date | undefined {
   const raw =
     typeof value === 'number' && Number.isFinite(value)
       ? value
-      : readString(value);
+      : readNonEmptyString(value);
   if (raw === undefined) {
     return undefined;
   }
@@ -231,16 +228,17 @@ export class ApifySocialProvider implements SourceTimelineProvider {
         platform,
         posts: videos
           .map((video): CollectedSourcePost | undefined => {
-            const id = readString(video.id);
+            const id = readNonEmptyString(video.id);
             if (!id) {
               return undefined;
             }
             const url =
-              readString(video.url) ?? `https://www.youtube.com/watch?v=${id}`;
+              readNonEmptyString(video.url) ??
+              `https://www.youtube.com/watch?v=${id}`;
             return {
               ...normalizeSourcePostFlags(video),
-              authorId: readString(video.channelId),
-              authorUsername: readString(video.channelName) || handle,
+              authorId: readNonEmptyString(video.channelId),
+              authorUsername: readNonEmptyString(video.channelName) || handle,
               contentType: 'video',
               contentUrl: url,
               createdAt: readDate(video.publishedAt),
@@ -251,8 +249,8 @@ export class ApifySocialProvider implements SourceTimelineProvider {
                 views: readCount(video.viewCount),
               },
               platform: SocialSourcePlatform.YOUTUBE,
-              text: readString(video.title) ?? '',
-              thumbnailUrl: readString(video.thumbnailUrl),
+              text: readNonEmptyString(video.title) ?? '',
+              thumbnailUrl: readNonEmptyString(video.thumbnailUrl),
             };
           })
           .filter((post): post is CollectedSourcePost => Boolean(post)),
@@ -271,23 +269,26 @@ export class ApifySocialProvider implements SourceTimelineProvider {
         platform,
         posts: posts
           .map((post): CollectedSourcePost | undefined => {
-            const id = readString(post.id) ?? readString(post.urn);
+            const id =
+              readNonEmptyString(post.id) ?? readNonEmptyString(post.urn);
             if (!id) {
               return undefined;
             }
             const imageUrl =
-              readString(post.imageUrl) ?? readString(post.images?.[0]);
-            const videoUrl = readString(post.videoUrl);
+              readNonEmptyString(post.imageUrl) ??
+              readNonEmptyString(post.images?.[0]);
+            const videoUrl = readNonEmptyString(post.videoUrl);
             return {
               ...normalizeSourcePostFlags(post),
               authorDisplayName:
-                readString(post.authorName) ?? readString(post.authorFullName),
+                readNonEmptyString(post.authorName) ??
+                readNonEmptyString(post.authorFullName),
               authorUsername: handle,
               contentType: videoUrl ? 'video' : 'post',
               contentUrl:
-                readString(post.postUrl) ??
-                readString(post.url) ??
-                readString(post.authorUrl),
+                readNonEmptyString(post.postUrl) ??
+                readNonEmptyString(post.url) ??
+                readNonEmptyString(post.authorUrl),
               createdAt:
                 readDate(post.postedAt) ??
                 readDate(post.date) ??
@@ -302,7 +303,10 @@ export class ApifySocialProvider implements SourceTimelineProvider {
                 shares: readCount(post.sharesCount ?? post.numShares),
               },
               platform: SocialSourcePlatform.LINKEDIN,
-              text: readString(post.text) ?? readString(post.commentary) ?? '',
+              text:
+                readNonEmptyString(post.text) ??
+                readNonEmptyString(post.commentary) ??
+                '',
               thumbnailUrl: imageUrl,
             };
           })

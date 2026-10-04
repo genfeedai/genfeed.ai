@@ -7,6 +7,7 @@ import type {
 } from '@api/services/source-collector/source-collector.types';
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
+import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -45,10 +46,6 @@ interface InstagramGraphMediaPage {
   paging?: { cursors?: { after?: unknown }; next?: unknown };
 }
 
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
-
 function readCount(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
     ? Math.floor(value)
@@ -64,11 +61,13 @@ function readInsight(
 }
 
 function toContentType(node: InstagramGraphMediaNode): string {
-  const productType = readString(node.media_product_type)?.toUpperCase();
+  const productType = readNonEmptyString(
+    node.media_product_type,
+  )?.toUpperCase();
   if (productType === 'REELS') {
     return 'reel';
   }
-  const mediaType = readString(node.media_type)?.toUpperCase();
+  const mediaType = readNonEmptyString(node.media_type)?.toUpperCase();
   if (mediaType === 'VIDEO') {
     return 'video';
   }
@@ -80,14 +79,14 @@ function mapMediaNode(
   handle: string,
   igUserId: string,
 ): CollectedSourcePost | undefined {
-  const id = readString(node.id);
+  const id = readNonEmptyString(node.id);
   if (!id) {
     return undefined;
   }
-  const timestamp = readString(node.timestamp);
-  const mediaUrl = readString(node.media_url);
-  const thumbnailUrl = readString(node.thumbnail_url) ?? mediaUrl;
-  const shortcode = readString(node.shortcode);
+  const timestamp = readNonEmptyString(node.timestamp);
+  const mediaUrl = readNonEmptyString(node.media_url);
+  const thumbnailUrl = readNonEmptyString(node.thumbnail_url) ?? mediaUrl;
+  const shortcode = readNonEmptyString(node.shortcode);
 
   return {
     ...normalizeSourcePostFlags(node),
@@ -95,7 +94,7 @@ function mapMediaNode(
     authorUsername: handle,
     contentType: toContentType(node),
     contentUrl:
-      readString(node.permalink) ??
+      readNonEmptyString(node.permalink) ??
       (shortcode ? `https://www.instagram.com/p/${shortcode}/` : undefined),
     createdAt: timestamp ? new Date(timestamp) : undefined,
     id,
@@ -110,7 +109,7 @@ function mapMediaNode(
       views: readInsight(node, 'views'),
     },
     platform: SocialSourcePlatform.INSTAGRAM,
-    text: readString(node.caption) ?? '',
+    text: readNonEmptyString(node.caption) ?? '',
     thumbnailUrl,
   };
 }
@@ -253,8 +252,12 @@ export class InstagramOfficialProvider implements SourceTimelineProvider {
         }
       }
 
-      after = readString(page.paging?.cursors?.after);
-      if (isWindowExhausted || !after || !readString(page.paging?.next)) {
+      after = readNonEmptyString(page.paging?.cursors?.after);
+      if (
+        isWindowExhausted ||
+        !after ||
+        !readNonEmptyString(page.paging?.next)
+      ) {
         break;
       }
     }

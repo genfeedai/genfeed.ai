@@ -1,4 +1,5 @@
 import { isPersistableWorkflowNodeType } from '@api/collections/workflows/workflow-version-definition';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import {
   getWorkflowActionIdForNodeType,
   getWorkflowPresentationNodeType,
@@ -76,12 +77,6 @@ const NODE_DATA_META_KEYS = new Set([
   'progress',
   'status',
 ]);
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
 
 function readInputVariableKeys(data: Record<string, unknown>): string[] {
   return Array.isArray(data.inputVariableKeys)

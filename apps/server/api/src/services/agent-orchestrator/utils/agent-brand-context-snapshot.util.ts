@@ -18,6 +18,10 @@ import type {
   IBrandPromptSeed,
 } from '@genfeedai/contracts/interfaces';
 import type { ResolvedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
+import {
+  isRecord,
+  readNonBlankString,
+} from '@genfeedai/utils/data/extract.util';
 
 /** Headers `AgentContextAssemblyService.buildSystemPrompt` renders per layer. */
 const LAYER_HEADERS: Partial<Record<AgentBrandContextLayerKey, string[]>> = {
@@ -87,16 +91,6 @@ export interface BrandAgentConfigSource {
   };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value
-    : undefined;
-}
-
 function readStringList(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter(
@@ -121,10 +115,10 @@ function readSeeds(value: unknown): IBrandPromptSeed[] {
     return [];
   }
   return value.filter(isRecord).map((seed) => ({
-    angle: readString(seed.angle) ?? '',
-    audience: readString(seed.audience) ?? '',
+    angle: readNonBlankString(seed.angle) ?? '',
+    audience: readNonBlankString(seed.audience) ?? '',
     preferredFormats: readStringList(seed.preferredFormats),
-    topic: readString(seed.topic) ?? '',
+    topic: readNonBlankString(seed.topic) ?? '',
   }));
 }
 
@@ -135,14 +129,14 @@ function readStarters(value: unknown): IBrandConversationStarter[] {
   return value.filter(isRecord).map((starter) => {
     const intent = starter.intent;
     return {
-      id: readString(starter.id) ?? '',
+      id: readNonBlankString(starter.id) ?? '',
       intent:
         intent === 'analyze' || intent === 'plan' || intent === 'create'
           ? intent
           : 'create',
-      label: readString(starter.label) ?? '',
-      prompt: readString(starter.prompt) ?? '',
-      topic: readString(starter.topic) ?? '',
+      label: readNonBlankString(starter.label) ?? '',
+      prompt: readNonBlankString(starter.prompt) ?? '',
+      topic: readNonBlankString(starter.topic) ?? '',
     };
   });
 }

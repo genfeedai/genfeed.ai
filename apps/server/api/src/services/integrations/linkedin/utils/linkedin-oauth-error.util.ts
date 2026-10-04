@@ -1,3 +1,4 @@
+import { readNonBlankString } from '@genfeedai/utils/data/extract.util';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 const CONFIG_OAUTH_CODES = new Set(['invalid_client']);
@@ -58,10 +59,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() !== '' ? value : undefined;
-}
-
 function readFiniteNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value)
     ? value
@@ -109,10 +106,13 @@ function readLinkedInOAuthErrorCode(error: unknown): string | undefined {
   }
 
   if (isRecord(nestedError)) {
-    return readString(nestedError.code) ?? readString(nestedError.error);
+    return (
+      readNonBlankString(nestedError.code) ??
+      readNonBlankString(nestedError.error)
+    );
   }
 
-  return readString(error.code);
+  return readNonBlankString(error.code);
 }
 
 function isNetworkFailure(error: unknown): boolean {
@@ -120,7 +120,7 @@ function isNetworkFailure(error: unknown): boolean {
     return false;
   }
 
-  const code = readString(error.code);
+  const code = readNonBlankString(error.code);
   if (code && NETWORK_ERROR_CODES.has(code)) {
     return true;
   }

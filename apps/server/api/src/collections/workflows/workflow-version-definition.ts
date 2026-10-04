@@ -14,6 +14,7 @@ import {
 } from '@genfeedai/actions';
 import { type EdgeStyle, EdgeStyleEnum } from '@genfeedai/contracts/types';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import {
   isEngineNativeNodeType,
   validateWorkflow,
@@ -52,12 +53,6 @@ function readEdgeStyle(value: unknown): EdgeStyle | undefined {
     default:
       return undefined;
   }
-}
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
 }
 
 function validateActionBackedNode(

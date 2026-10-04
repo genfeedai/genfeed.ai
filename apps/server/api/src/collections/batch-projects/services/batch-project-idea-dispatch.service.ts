@@ -42,6 +42,7 @@ import type {
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { BatchProject, BatchProjectItem } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { readRecord, readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   ConflictException,
@@ -66,18 +67,6 @@ type DispatchTarget = {
   item: BatchProjectItem;
   project: BatchProject;
 };
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : undefined;
-}
 
 function errorMessage(error: unknown): string {
   return error instanceof Error && error.message

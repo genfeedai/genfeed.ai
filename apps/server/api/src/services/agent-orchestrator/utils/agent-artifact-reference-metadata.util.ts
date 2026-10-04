@@ -3,6 +3,7 @@ import type {
   AgentArtifactReference,
 } from '@genfeedai/contracts/interfaces';
 import { AGENT_ARTIFACT_SERIALIZER_BY_KIND } from '@genfeedai/contracts/interfaces';
+import { readString } from '@genfeedai/utils/data/extract.util';
 
 const MAX_COMPLETION_ARTIFACT_REFERENCES = 100;
 
@@ -55,12 +56,6 @@ export function mergeAgentArtifactCompletionMetadata(
       : {}),
     ...(pinIds.size > 0 ? { artifactVersionPinIds: [...pinIds] } : {}),
   };
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : undefined;
 }
 
 function readStrings(value: unknown): string[] {

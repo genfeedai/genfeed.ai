@@ -1,6 +1,6 @@
 import type { BrandAgentConfig } from '@api/collections/brands/schemas/brand.schema';
 import type { IScrapedBrandData } from '@genfeedai/contracts/interfaces';
-
+import { readString } from '@genfeedai/utils/data/extract.util';
 import { readStringList } from './string-list.util';
 
 /**
@@ -10,10 +10,6 @@ import { readStringList } from './string-list.util';
  */
 export const PLACEHOLDER_BRAND_DESCRIPTION =
   'Default description. Use it as a pre-prompt';
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
-}
 
 export function isPlaceholderBrandText(value?: string | null): boolean {
   const normalized = value?.trim();

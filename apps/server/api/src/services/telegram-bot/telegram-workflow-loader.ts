@@ -22,6 +22,7 @@ import {
   createGenfeedActionNode,
   getActionDefinition,
 } from '@genfeedai/actions';
+import { isRecord, readRecord } from '@genfeedai/utils/data/extract.util';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 const WORKFLOW_INPUT_NODE_TYPES = new Set(['workflowInput']);
@@ -36,20 +37,12 @@ const TELEGRAM_WORKFLOW_FILES: TelegramWorkflowName[] = [
 
 export const TELEGRAM_SYSTEM_WORKFLOW_PREFIX = 'telegram.';
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === 'object' && !Array.isArray(value);
-}
-
 function readString(
   source: Record<string, unknown> | undefined,
   key: string,
 ): string | undefined {
   const value = source?.[key];
   return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return isRecord(value) ? value : {};
 }
 
 function readBoolean(

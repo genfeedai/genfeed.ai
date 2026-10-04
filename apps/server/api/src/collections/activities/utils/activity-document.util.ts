@@ -5,6 +5,7 @@ import {
   withActionOriginMetadata,
 } from '@api/index';
 import type { Prisma } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 /** Wire-shaped activity fields a producer may set; persisted as columns + `data`. */
 export interface ActivityMutationInput {
@@ -34,10 +35,6 @@ export interface ActivityRowMutation {
   isDeleted?: boolean;
   organizationId: string | null;
   userId: string | null;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 /**

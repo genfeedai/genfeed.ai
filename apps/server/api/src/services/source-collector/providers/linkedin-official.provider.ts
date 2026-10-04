@@ -8,6 +8,7 @@ import type {
 } from '@api/services/source-collector/source-collector.types';
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { CredentialPlatform, SocialSourcePlatform } from '@genfeedai/contracts';
+import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -42,10 +43,6 @@ interface LinkedinUgcPostsPage {
 interface LinkedinSocialActions {
   commentsSummary?: { totalFirstLevelComments?: unknown };
   likesSummary?: { totalLikes?: unknown };
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
 function readCount(value: unknown): number | undefined {
@@ -118,7 +115,7 @@ export class LinkedinOfficialProvider implements SourceTimelineProvider {
     if (!credential) {
       throw new Error('LinkedIn credential not found');
     }
-    const memberId = readString(credential.externalId);
+    const memberId = readNonEmptyString(credential.externalId);
     if (!memberId) {
       throw new Error('LinkedIn credential is missing its member id');
     }
@@ -213,7 +210,7 @@ export class LinkedinOfficialProvider implements SourceTimelineProvider {
 
       let isWindowExhausted = false;
       for (const node of elements) {
-        const id = readString(node.id);
+        const id = readNonEmptyString(node.id);
         if (!id) continue;
         if (context.sinceId && id === context.sinceId) {
           isWindowExhausted = true;
@@ -232,25 +229,27 @@ export class LinkedinOfficialProvider implements SourceTimelineProvider {
         const share = node.specificContent?.['com.linkedin.ugc.ShareContent'];
         const media = Array.isArray(share?.media) ? share.media : [];
         const mediaUrls = media
-          .map((item) => readString(item.originalUrl))
+          .map((item) => readNonEmptyString(item.originalUrl))
           .filter((url): url is string => Boolean(url));
         const thumbnailUrl = media
           .flatMap((item) => item.thumbnails ?? [])
-          .map((thumbnail) => readString(thumbnail.url))
+          .map((thumbnail) => readNonEmptyString(thumbnail.url))
           .find((url): url is string => Boolean(url));
         collected.push({
           ...normalizeSourcePostFlags(node),
           authorDisplayName: displayName,
           authorId: authorUrn,
           authorUsername: handle,
-          contentType: toContentType(readString(share?.shareMediaCategory)),
+          contentType: toContentType(
+            readNonEmptyString(share?.shareMediaCategory),
+          ),
           contentUrl: `https://www.linkedin.com/feed/update/${id}`,
           createdAt,
           id,
           mediaUrls,
           metrics: {},
           platform: SocialSourcePlatform.LINKEDIN,
-          text: readString(share?.shareCommentary?.text) ?? '',
+          text: readNonEmptyString(share?.shareCommentary?.text) ?? '',
           thumbnailUrl,
         });
         if (collected.length >= limit) break;

@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 export enum FalSchemaFamily {
   IMAGE_EDIT_MULTI = 'image-edit-multi-v1',
   IMAGE_EDIT_SINGLE = 'image-edit-single-v1',
@@ -35,10 +36,6 @@ export interface FalVideoAdapterInput {
   imageUrl?: string;
   prompt: string;
   promptParams: Record<string, unknown>;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function asSchema(value: unknown): FalJsonSchema {

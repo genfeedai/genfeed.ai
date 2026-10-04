@@ -7,6 +7,7 @@ import type {
 } from '@api/services/source-collector/source-collector.types';
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
+import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -56,10 +57,6 @@ interface TikTokVideoListPage {
   error?: { code?: unknown; message?: unknown };
 }
 
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
-
 function readCount(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
     ? Math.floor(value)
@@ -71,19 +68,19 @@ function mapVideoNode(
   handle: string,
   authorId: string | undefined,
 ): CollectedSourcePost | undefined {
-  const id = readString(node.id);
+  const id = readNonEmptyString(node.id);
   if (!id) {
     return undefined;
   }
   const createTime = readCount(node.create_time);
-  const embedLink = readString(node.embed_link);
+  const embedLink = readNonEmptyString(node.embed_link);
 
   return {
     ...normalizeSourcePostFlags(node),
     authorId,
     authorUsername: handle,
     contentType: 'video',
-    contentUrl: readString(node.share_url),
+    contentUrl: readNonEmptyString(node.share_url),
     createdAt: createTime ? new Date(createTime * 1000) : undefined,
     id,
     mediaUrls: embedLink ? [embedLink] : [],
@@ -94,8 +91,11 @@ function mapVideoNode(
       views: readCount(node.view_count),
     },
     platform: SocialSourcePlatform.TIKTOK,
-    text: readString(node.video_description) ?? readString(node.title) ?? '',
-    thumbnailUrl: readString(node.cover_image_url),
+    text:
+      readNonEmptyString(node.video_description) ??
+      readNonEmptyString(node.title) ??
+      '',
+    thumbnailUrl: readNonEmptyString(node.cover_image_url),
   };
 }
 
@@ -158,10 +158,10 @@ export class TiktokOfficialProvider implements SourceTimelineProvider {
 
     while (collected.length < limit) {
       const page = await this.fetchPage(accessToken, cursor);
-      const errorCode = readString(page.error?.code);
+      const errorCode = readNonEmptyString(page.error?.code);
       if (errorCode && errorCode !== 'ok') {
         throw new Error(
-          `TikTok video/list failed: ${readString(page.error?.message) ?? errorCode}`,
+          `TikTok video/list failed: ${readNonEmptyString(page.error?.message) ?? errorCode}`,
         );
       }
       const videos = Array.isArray(page.data?.videos) ? page.data.videos : [];

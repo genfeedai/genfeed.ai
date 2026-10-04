@@ -70,6 +70,7 @@
     "check:bull-board-parity": "bun run scripts/architecture/check-bull-board-queue-parity.ts",
     "check:cron-boundary": "bun run scripts/architecture/check-platform-cron-boundary.ts",
     "check:canonical-json-helpers": "bun run scripts/architecture/check-canonical-json-helpers.ts",
+    "check:local-type-guards": "bun run scripts/architecture/check-local-type-guards.ts",
     "check:deterministic-locale": "bun run scripts/architecture/check-deterministic-locale.ts",
     "check:env-product-flags": "bun run scripts/architecture/check-env-product-flags.ts",
     "check:di-value-imports": "bun run scripts/check-di-value-imports.ts",

@@ -55,6 +55,7 @@ import {
   toAgentScopeMetadata,
   type ValidatedAgentScope,
 } from '@genfeedai/contracts/interfaces';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import {
   BadRequestException,
   Injectable,
@@ -89,12 +90,6 @@ type AgentTurnWorkflowRequest = AgentChatRequest & {
 
 const ARCHIVED_THREAD_WRITE_ERROR =
   'This thread is archived. Unarchive it before sending messages or running actions.';
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
 
 function requiredString(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.trim().length === 0) {

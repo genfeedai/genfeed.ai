@@ -11,6 +11,7 @@ import {
   type LinkedinOwnedPostSignal,
   linkedinAuthorizedSignalStatusValues,
 } from '@genfeedai/contracts/api-types/contracts/linkedin-authorized-signals.contract';
+import { readString } from '@genfeedai/utils/data/extract.util';
 
 export const LINKEDIN_OPENID_SCOPE = 'openid';
 export const LINKEDIN_PROFILE_SCOPE = 'profile';
@@ -85,18 +86,6 @@ export type PlatformEvidenceKey = Exclude<
   LinkedinAuthorizedSignalEvidence['key'],
   'genfeed-publish-outcomes-observed'
 >;
-
-export function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-export function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : undefined;
-}
 
 export function readHttpUrl(value: unknown): string | undefined {
   const candidate = readString(value);

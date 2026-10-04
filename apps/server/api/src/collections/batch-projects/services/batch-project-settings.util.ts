@@ -11,6 +11,10 @@ import type {
   IBatchProjectScheduleTarget,
   IBatchProjectSettings,
 } from '@genfeedai/contracts/interfaces';
+import {
+  readRecordOrNull,
+  readString,
+} from '@genfeedai/utils/data/extract.util';
 
 const MAX_ANGLE_LENGTH = 300;
 const MAX_SCHEDULE_TARGETS = 10;
@@ -20,22 +24,10 @@ export const DEFAULT_IDEA_SETTINGS: IBatchProjectIdeaSettings = {
   formats: ['image', 'video'],
 };
 
-function readRecord(value: unknown): Record<string, unknown> | null {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : undefined;
-}
-
 function parseIdeaSettings(
   value: unknown,
 ): IBatchProjectIdeaSettings | undefined {
-  const record = readRecord(value);
+  const record = readRecordOrNull(value);
   if (!record) {
     return undefined;
   }
@@ -62,7 +54,7 @@ function parseIdeaSettings(
 function parseScheduleTarget(
   value: unknown,
 ): IBatchProjectScheduleTarget | null {
-  const record = readRecord(value);
+  const record = readRecordOrNull(value);
   const credentialId = readString(record?.credentialId);
   const platform = readString(record?.platform)?.toLowerCase();
   if (!record || !credentialId || !platform) {
@@ -82,7 +74,7 @@ function parseScheduleTarget(
 function parseScheduleSettings(
   value: unknown,
 ): IBatchProjectScheduleSettings | undefined {
-  const record = readRecord(value);
+  const record = readRecordOrNull(value);
   if (!record) {
     return undefined;
   }
@@ -108,7 +100,7 @@ function parseScheduleSettings(
 export function parseBatchProjectSettings(
   value: unknown,
 ): IBatchProjectSettings {
-  const record = readRecord(value) ?? {};
+  const record = readRecordOrNull(value) ?? {};
   const ideas = parseIdeaSettings(record.ideas);
   const schedule = parseScheduleSettings(record.schedule);
   return {
@@ -142,7 +134,7 @@ export function parseScheduledTargets(
     return [];
   }
   return value.flatMap((entry): IBatchProjectScheduledTarget[] => {
-    const record = readRecord(entry);
+    const record = readRecordOrNull(entry);
     const credentialId = readString(record?.credentialId);
     const postId = readString(record?.postId);
     const status = readString(record?.status);

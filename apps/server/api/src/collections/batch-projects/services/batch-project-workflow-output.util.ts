@@ -1,4 +1,5 @@
 import { buildForEachChildIdempotencyKey } from '@api/collections/workflows/system-workflow-for-each.util';
+import { readRecord, readString } from '@genfeedai/utils/data/extract.util';
 
 /** Node id of the for-each step in the hidden workflow-batch parent graph. */
 export const BATCH_WORKFLOW_FOR_EACH_NODE_ID = 'execute-items';
@@ -20,18 +21,6 @@ const OUTPUT_URL_KEYS = [
  * as `WorkflowEngineExecutorHelperService` builds it) carries the id.
  */
 const INGREDIENT_MEDIA_URL = /\/(?:images|videos)\/([^/?#]+)(?:[/?#]|$)/i;
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : undefined;
-}
 
 function ingredientIdFromMediaUrl(value: unknown): string | undefined {
   const url = readString(value);
