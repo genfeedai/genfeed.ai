@@ -249,7 +249,7 @@ export const AGENT_PRODUCTION_FILES = [
   },
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn.fixture.ts',
-    sha256: 'b3fbf523ffa0192a7518f75768998741063dd849e298b472133a062c1462d12a',
+    sha256: '70953ea3931ee8d08d1c084972adfd50bf0d4544cdca7489cbc2919cd683e156',
   },
   {
     path: 'apps/server/api/test/integration/proactive-agent-production-turn-cleanup.util.ts',
@@ -274,7 +274,7 @@ export const LEARNING_SOURCE_CONTRACT = Object.freeze({
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.fixture.ts',
       sha256:
-        'ba2ac354c72e2d34ecea4c8b7c1552c027100198d764875d8c0fd55379f87754',
+        '59da379349805420f2b6c41eaf3b695c30c96fdfd12e6c66a228fa0fd984faad',
     },
     {
       path: 'apps/server/api/test/integration/content-learning/content-learning-runtime.integration.spec.ts',

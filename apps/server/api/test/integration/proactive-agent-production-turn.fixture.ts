@@ -563,6 +563,7 @@ export async function createProactiveProductionTurnFixture() {
     for (const name of [
       ...queueNames.ALL_QUEUE_NAMES,
       queueNames.LLM_COST_SETTLEMENT_QUEUE,
+      queueNames.MEDIA_DELIVERY_QUEUE,
     ]) {
       const attempts = new Set<string>([
         queueNames.AGENT_TURN_QUEUE,
