@@ -1,13 +1,5 @@
 import { spawn } from 'node:child_process';
-import {
-  constants,
-  createCipheriv,
-  createHash,
-  createPublicKey,
-  publicEncrypt,
-  randomBytes,
-  randomUUID,
-} from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { createWriteStream, constants as fsConstants } from 'node:fs';
 import {
   chmod,
@@ -137,6 +129,274 @@ export const BRAND_SOURCE_CONTRACT = {
     },
   ],
 };
+/**
+ * The six storage specs the final acceptance runs, with their sha256 and exact
+ * passing titles. Editing one of these specs means updating its entry here in
+ * the same pull request.
+ */
+export const STORAGE_SOURCE_CONTRACT = [
+  {
+    path: 'packages/storage/src/bounded-storage-read.spec.ts',
+    sha256: '0415d4f132c3762bb7bda7524fa2f46311ae10b65c82f58d21d09009d4c829d0',
+    passedTitles: [
+      'bounded payload collection and cancellation ownership rejects byte budget 0 before allocation',
+      'bounded payload collection and cancellation ownership rejects byte budget -1 before allocation',
+      'bounded payload collection and cancellation ownership rejects byte budget 0.5 before allocation',
+      'bounded payload collection and cancellation ownership rejects byte budget 20971521 before allocation',
+      'bounded payload collection and cancellation ownership rejects byte budget 9007199254740992 before allocation',
+      'bounded payload collection and cancellation ownership rejects deadline 0',
+      'bounded payload collection and cancellation ownership rejects deadline -1',
+      'bounded payload collection and cancellation ownership rejects deadline 0.5',
+      'bounded payload collection and cancellation ownership rejects deadline 30001',
+      'bounded payload collection and cancellation ownership validates runtime signal, preserves first cancellation, and disposes timer/listener',
+      'bounded payload collection and cancellation ownership collects exact boundary and offset byte views without concatenation',
+      'bounded payload collection and cancellation ownership destroys dishonest stream with storage_read_limit_exceeded',
+      'bounded payload collection and cancellation ownership destroys dishonest stream with storage_read_changed',
+      'bounded payload collection and cancellation ownership destroys dishonest stream with storage_read_invalid_response',
+      'bounded payload collection and cancellation ownership rejects invalid/oversized expected metadata before allocating',
+      'bounded payload collection and cancellation ownership aborts a stalled body by deadline and awaits destruction',
+      'bounded payload collection and cancellation ownership rejects already aborted without a read and handles external midstream cancellation',
+      'bounded payload collection and cancellation ownership sanitizes foreign errors without invoking arbitrary coercion',
+      'bounded payload collection and cancellation ownership rejects genuine emitClose:false before reading or allocation without a close wait',
+      'bounded payload collection and cancellation ownership runs final stability callback before destroy and waits for delayed native close',
+      'bounded payload collection and cancellation ownership keeps cancellation live during final callback and awaits error-close cleanup',
+      'bounded payload collection and cancellation ownership sanitizes callback errors after closing the native body',
+      'terminal native close ownership waits for close and preserves success outcome',
+      'terminal native close ownership waits for close and preserves changed outcome',
+      'terminal native close ownership waits for close and preserves aborted outcome',
+      'does not return bytes when deadline expires during successful native close',
+    ],
+  },
+  {
+    path: 'packages/storage/__tests__/local-storage.provider.test.ts',
+    sha256: 'c961232589d93cf03022da6deb8969fb751cf3281b1e1cf26d4bca9e4fae7811',
+    passedTitles: [
+      'LocalStorageProvider upload writes buffer under base dir and returns the path',
+      'LocalStorageProvider uploadFromFile copies a local file into storage',
+      'LocalStorageProvider uploadFromFile throws when the source file does not exist',
+      'LocalStorageProvider download copies a stored file to a local path, creating directories',
+      'LocalStorageProvider download throws when the stored file does not exist',
+      'LocalStorageProvider listObjects recursively lists all files under a prefix with size and mtime',
+      'LocalStorageProvider listObjects returns empty array for unknown prefix',
+      'LocalStorageProvider existing surface exists / delete / list still behave',
+      'LocalStorageProvider native bounded reads returns exact stored bytes and rejects oversized metadata',
+      'LocalStorageProvider native bounded reads rejects unsafe key ../escape',
+      'LocalStorageProvider native bounded reads rejects unsafe key /absolute',
+      'LocalStorageProvider native bounded reads rejects unsafe key https://private.invalid/key',
+      'LocalStorageProvider native bounded reads rejects symlinks and already-aborted reads without opening a payload stream',
+      'LocalStorageProvider native bounded reads rejects source grow after actual payload collection',
+      'LocalStorageProvider native bounded reads rejects source truncate after actual payload collection',
+      'LocalStorageProvider native bounded reads rejects source rewrite after actual payload collection',
+      'LocalStorageProvider native bounded reads accepts exact 20MiB and closes resources so the file can be removed',
+      'LocalStorageProvider checks stability on the open native descriptor and closes before returning, including empty files',
+      'LocalStorageProvider returns a local pin and rejects it after a rewrite',
+      'LocalStorageProvider rejects an oversized versioned file',
+    ],
+  },
+  {
+    path: 'packages/storage/__tests__/s3-storage.provider.test.ts',
+    sha256: 'b1a746ca9b28341eb9a33ddc7909cbbfc1eebe578c3af50f045f7ae7cb5381e9',
+    passedTitles: [
+      'S3StorageProvider constructor options uses explicit options over environment',
+      'S3StorageProvider constructor options uses an explicit AWS profile instead of stale static credentials',
+      'S3StorageProvider constructor options publishes through GENFEEDAI_CDN_URL instead of the raw S3 host',
+      'S3StorageProvider constructor options uses an explicit cdnUrl option over the files microservice origin',
+      'S3StorageProvider object-key containment rejects unsafe key ../escaped.png before sending an S3 command',
+      'S3StorageProvider object-key containment rejects unsafe key /absolute.png before sending an S3 command',
+      'S3StorageProvider object-key containment rejects unsafe key nested\\escaped.png before sending an S3 command',
+      'S3StorageProvider object-key containment rejects unsafe key nested/%2e%2e/escaped.png before sending an S3 command',
+      'S3StorageProvider object-key containment rejects unsafe key nested/%252e%252e/escaped.png before sending an S3 command',
+      'S3StorageProvider object-key containment rejects unsafe key nested%2fescaped.png before sending an S3 command',
+      'S3StorageProvider object-key containment accepts and preserves a legitimate nested object key',
+      'S3StorageProvider uploadFromFile streams the local file through lib-storage Upload',
+      'S3StorageProvider uploadFromFile rejects unsafe local source ../outside.mp4 before filesystem access',
+      'S3StorageProvider uploadFromFile rejects unsafe local source nested\\outside.mp4 before filesystem access',
+      'S3StorageProvider uploadFromFile rejects unsafe local source nested/%2e%2e/outside.mp4 before filesystem access',
+      'S3StorageProvider uploadFromFile rejects unsafe local source nested/%252e%252e/outside.mp4 before filesystem access',
+      'S3StorageProvider uploadFromFile respects an explicit content type and maps safetensors/pth to octet-stream',
+      'S3StorageProvider download streams the object body to a local path, creating directories',
+      'S3StorageProvider download rejects a destination that escapes the caller-owned root',
+      'S3StorageProvider download throws on empty response body',
+      'S3StorageProvider delete sends a DeleteObjectCommand for the validated key',
+      'S3StorageProvider delete rejects traversal before sending a delete command',
+      'S3StorageProvider list maps S3 contents to file entries with url, type and metadata',
+      'S3StorageProvider list defaults missing Key, Size and LastModified fields',
+      'S3StorageProvider list returns an empty list when the response has no Contents',
+      'S3StorageProvider list filters by type and applies offset and limit after filtering',
+      'S3StorageProvider list keeps every entry when type filter is "all"',
+      'S3StorageProvider list rejects an unsafe prefix before sending a list command',
+      'S3StorageProvider exists returns true when the head request succeeds',
+      'S3StorageProvider exists returns false when the head request fails with NotFound',
+      'S3StorageProvider exists returns false when the head request fails with NoSuchKey',
+      'S3StorageProvider exists rethrows unexpected errors',
+      'S3StorageProvider listObjects paginates through continuation tokens and maps object metadata',
+      'S3StorageProvider listObjects skips entries missing Key or Size and handles empty listings',
+      'S3StorageProvider native bounded conditional reads pins HEAD ETag/version and returns raw exact bytes without decoding descriptive encoding',
+      'S3StorageProvider native bounded conditional reads rejects invalid HEAD before GET (case 0)',
+      'S3StorageProvider native bounded conditional reads rejects invalid HEAD before GET (case 1)',
+      'S3StorageProvider native bounded conditional reads rejects invalid HEAD before GET (case 2)',
+      'S3StorageProvider native bounded conditional reads rejects invalid HEAD before GET (case 3)',
+      'S3StorageProvider native bounded conditional reads maps 412 to changed without another HEAD or GET',
+      'S3StorageProvider native bounded conditional reads destroys changed response size',
+      'S3StorageProvider native bounded conditional reads destroys changed response etag',
+      'S3StorageProvider native bounded conditional reads destroys changed response version',
+      'S3StorageProvider native bounded conditional reads destroys changed response range',
+      'S3StorageProvider native bounded conditional reads destroys changed response encoding',
+      'S3StorageProvider native bounded conditional reads deadline covers stalled first-byte and destroys body',
+      'S3StorageProvider native bounded conditional reads deadline covers stalled mid-body and destroys body',
+      'S3StorageProvider native bounded conditional reads deadline aborts stalled HEAD request, and pre-aborted calls perform no I/O',
+      'S3StorageProvider native bounded conditional reads external abort stops body and excess chunks abort the shared transport',
+      'bounded GET terminal cleanup awaits native close on metadata mismatch=true',
+      'bounded GET terminal cleanup awaits native close on metadata mismatch=false',
+      'S3StorageProvider readVersionedBytes returns the pin captured by the read (version-1)',
+      'S3StorageProvider readVersionedBytes returns the pin captured by the read (undefined)',
+      'S3StorageProvider readVersionedBytes rejects an oversized versioned object before GET',
+      'S3StorageProvider readVersionedBytes rejects a stale pin before sending GET',
+    ],
+  },
+  {
+    path: 'packages/storage/__tests__/storage-provider.factory.test.ts',
+    sha256: 'd3922d1ea953aa366787d3ea71ce28352cb4540112720d0e41994c54450250d9',
+    passedTitles: [
+      'createStorageProvider roots the local driver at the desktop userData directory',
+      'createStorageProvider returns LocalStorageProvider when self-hosted',
+      'createStorageProvider returns S3StorageProvider with options when cloud',
+      'createStorageProvider returns additive bounded capability for cloud provider',
+    ],
+  },
+  {
+    path: 'packages/storage/src/local-storage.provider.spec.ts',
+    sha256: '9710ecf3366c4d0c49c1e8fa2448b1e5a957726e535ef7c6d148e557f18227fd',
+    passedTitles: [
+      'LocalStorageProvider path containment upload rejects ../escaped.txt',
+      'LocalStorageProvider path containment upload rejects ../../etc/passwd',
+      'LocalStorageProvider path containment upload rejects nested/../../escaped.txt',
+      'LocalStorageProvider path containment upload rejects ..',
+      'LocalStorageProvider path containment upload rejects /etc/passwd',
+      'LocalStorageProvider path containment upload rejects /srv/genfeed/files-sibling/escaped.txt',
+      'LocalStorageProvider path containment upload writes inside the storage root for an ordinary path',
+      'LocalStorageProvider path containment uploadFromFile rejects ../escaped.txt',
+      'LocalStorageProvider path containment uploadFromFile rejects ../../etc/passwd',
+      'LocalStorageProvider path containment uploadFromFile rejects nested/../../escaped.txt',
+      'LocalStorageProvider path containment uploadFromFile rejects ..',
+      'LocalStorageProvider path containment uploadFromFile rejects /etc/passwd',
+      'LocalStorageProvider path containment uploadFromFile rejects /srv/genfeed/files-sibling/escaped.txt',
+      'LocalStorageProvider path containment download rejects ../escaped.txt',
+      'LocalStorageProvider path containment download rejects ../../etc/passwd',
+      'LocalStorageProvider path containment download rejects nested/../../escaped.txt',
+      'LocalStorageProvider path containment download rejects ..',
+      'LocalStorageProvider path containment download rejects /etc/passwd',
+      'LocalStorageProvider path containment download rejects /srv/genfeed/files-sibling/escaped.txt',
+      'LocalStorageProvider path containment download rejects destination ../escaped.txt',
+      'LocalStorageProvider path containment download rejects destination ../../etc/passwd',
+      'LocalStorageProvider path containment download rejects destination nested/../../escaped.txt',
+      'LocalStorageProvider path containment download rejects destination ..',
+      'LocalStorageProvider path containment download rejects destination /etc/passwd',
+      'LocalStorageProvider path containment download rejects destination /srv/genfeed/files-sibling/escaped.txt',
+      'LocalStorageProvider path containment delete rejects ../escaped.txt',
+      'LocalStorageProvider path containment delete rejects ../../etc/passwd',
+      'LocalStorageProvider path containment delete rejects nested/../../escaped.txt',
+      'LocalStorageProvider path containment delete rejects ..',
+      'LocalStorageProvider path containment delete rejects /etc/passwd',
+      'LocalStorageProvider path containment delete rejects /srv/genfeed/files-sibling/escaped.txt',
+      'LocalStorageProvider path containment delete unlinks inside the storage root for an ordinary path',
+      'LocalStorageProvider path containment list rejects ../escaped.txt',
+      'LocalStorageProvider path containment list rejects ../../etc/passwd',
+      'LocalStorageProvider path containment list rejects nested/../../escaped.txt',
+      'LocalStorageProvider path containment list rejects ..',
+      'LocalStorageProvider path containment list rejects /etc/passwd',
+      'LocalStorageProvider path containment list rejects /srv/genfeed/files-sibling/escaped.txt',
+      'LocalStorageProvider path containment list reads the resolved directory for an ordinary prefix',
+      'LocalStorageProvider path containment listObjects rejects ../escaped.txt',
+      'LocalStorageProvider path containment listObjects rejects ../../etc/passwd',
+      'LocalStorageProvider path containment listObjects rejects nested/../../escaped.txt',
+      'LocalStorageProvider path containment listObjects rejects ..',
+      'LocalStorageProvider path containment listObjects rejects /etc/passwd',
+      'LocalStorageProvider path containment listObjects rejects /srv/genfeed/files-sibling/escaped.txt',
+      'LocalStorageProvider path containment exists rejects ../escaped.txt rather than probing it',
+      'LocalStorageProvider path containment exists rejects ../../etc/passwd rather than probing it',
+      'LocalStorageProvider path containment exists rejects nested/../../escaped.txt rather than probing it',
+      'LocalStorageProvider path containment exists rejects .. rather than probing it',
+      'LocalStorageProvider path containment exists rejects /etc/passwd rather than probing it',
+      'LocalStorageProvider path containment exists rejects /srv/genfeed/files-sibling/escaped.txt rather than probing it',
+      'LocalStorageProvider path containment rejects a non-string path',
+      'LocalStorageProvider rooted at the desktop userData directory resolves the userData root from the desktop data directory',
+      'LocalStorageProvider rooted at the desktop userData directory writes inside the userData root for an ordinary path',
+      'LocalStorageProvider rooted at the desktop userData directory rejects ../pglite-db/postgres rather than touching the real disk',
+      'LocalStorageProvider rooted at the desktop userData directory rejects ../../Preferences/com.apple.finder.plist rather than touching the real disk',
+      'LocalStorageProvider rooted at the desktop userData directory rejects ingredients/../../../.ssh/id_rsa rather than touching the real disk',
+      'LocalStorageProvider rooted at the desktop userData directory rejects /etc/passwd rather than touching the real disk',
+      'LocalStorageProvider rooted at the desktop userData directory rejects /Users/example/Library/Application Support/Genfeed/files-sibling/escaped.png rather than touching the real disk',
+      'LocalStorageProvider rooted at the desktop userData directory rejects linked.png once a symlink is planted under the root',
+      'LocalStorageProvider rooted at the desktop userData directory rejects linked-dir/photo.png once a symlink is planted under the root',
+    ],
+  },
+  {
+    path: 'packages/storage/src/path-containment.spec.ts',
+    sha256: '5c0f041dd3f02999591a7be2d9add33d8de9820c6060872b4ed0531be73c31ce',
+    passedTitles: [
+      'path containment accepts a legitimate nested filesystem path',
+      'path containment rejects filesystem escape ../escaped.txt',
+      'path containment rejects filesystem escape nested/../../escaped.txt',
+      'path containment rejects filesystem escape /etc/passwd',
+      'path containment rejects filesystem escape /srv/genfeed/files-sibling/file.txt',
+      'path containment rejects ambiguous filesystem syntax nested/../file.txt',
+      'path containment rejects ambiguous filesystem syntax nested\\file.txt',
+      'path containment rejects ambiguous filesystem syntax C:/Windows/System32/config',
+      'path containment rejects ambiguous filesystem syntax nested/%2e%2e/file.txt',
+      'path containment rejects ambiguous filesystem syntax nested/%252e%252e/file.txt',
+      'path containment rejects ambiguous filesystem syntax nested%2ffile.txt',
+      'path containment rejects a missing containment root',
+      'path containment rejects a missing candidate path',
+      'path containment allows a candidate that resolves to the root itself',
+      'symlink containment under a userData root accepts a real nested path below the root',
+      'symlink containment under a userData root rejects lexical escape ../pglite-db/postgres',
+      'symlink containment under a userData root rejects lexical escape ../../.ssh/id_rsa',
+      'symlink containment under a userData root rejects lexical escape nested/../../escaped.png',
+      'symlink containment under a userData root rejects lexical escape /etc/passwd',
+      'symlink containment under a userData root rejects a file symlink pointing outside the root',
+      'symlink containment under a userData root rejects a path routed through a linked directory',
+      'symlink containment under a userData root rejects a dangling symlink, which a write would follow out of the root',
+      'symlink containment under a userData root rejects a symlink even when it points back inside the root',
+      'symlink containment under a userData root ignores symlinked ancestors of the root itself',
+      'object-key containment preserves a legitimate nested key beneath the prefix',
+      'object-key containment rejects object-key escape ../escaped.png',
+      'object-key containment rejects object-key escape nested/../../escaped.png',
+      'object-key containment rejects object-key escape /absolute.png',
+      'object-key containment rejects object-key escape nested\\escaped.png',
+      'object-key containment rejects object-key escape nested//empty.png',
+      'object-key containment rejects object-key escape ./same.png',
+      'object-key containment rejects object-key escape nested/%2e%2e/escaped.png',
+      'object-key containment rejects object-key escape nested/%252e%252e/escaped.png',
+      'object-key containment rejects object-key escape nested%2fescaped.png',
+      'object-key containment validates a legitimate nested key without imposing a prefix',
+      'object-key containment preserves harmless percent-encoded bytes in a legitimate nested key',
+      'object-key containment preserves an empty bucket-root listing prefix',
+      'object-key containment rejects an empty or non-string object key',
+      'object-key containment rejects a leading slash in an object key',
+      'object-key containment rejects backslash or NUL separator confusion in an object key',
+      'object-key containment rejects a trailing slash on a concrete object key',
+      'object-key containment accepts a listing prefix that ends with a slash',
+      'object-key containment rejects a traversal object-key segment',
+      'object-key containment rejects object-key segment .',
+      'object-key containment rejects object-key segment nested//empty.png',
+      'object-key containment rejects object-key segment ./same.png',
+    ],
+  },
+];
+/**
+ * The release owner contract (BRAND integration spec plus storage specs). It
+ * lives in code next to the other frozen pins; specs may inject a synthetic
+ * contract through the environment.
+ */
+export const OWNER_CONTRACT = {
+  version: 1,
+  brand: BRAND_SOURCE_CONTRACT.brand,
+  storage: STORAGE_SOURCE_CONTRACT,
+};
+export function ownerContractFrom(env) {
+  return env?.RUNTIME_ACCEPTANCE_OWNER_CONTRACT ?? OWNER_CONTRACT;
+}
 export const CRUN_SOURCE_CONTRACT = Object.freeze({
   image: Object.freeze({
     path: 'apps/server/api/src/services/integrations/crun/crun-image-flow.integration.spec.ts',
@@ -751,7 +1011,7 @@ export async function verifyDedicatedSources(repo, group, env) {
     'INVALID_GROUP',
   );
   if (group === 'brand-acceptance')
-    validateBrandOwnerContract(env.RUNTIME_ACCEPTANCE_OWNER_CONTRACT);
+    validateBrandOwnerContract(ownerContractFrom(env));
   const files =
     group === 'agent-production'
       ? AGENT_PRODUCTION_FILES
@@ -1024,30 +1284,6 @@ export function validateUrl(value, kind, database, credentials) {
     );
   }
   return url;
-}
-export function validatePublicKey(pem) {
-  requireThat(
-    typeof pem === 'string' &&
-      /^-----BEGIN PUBLIC KEY-----\s[\s\S]+-----END PUBLIC KEY-----\s*$/.test(
-        pem,
-      ),
-    'PUBLIC_KEY_REQUIRED',
-  );
-  let key;
-  try {
-    key = createPublicKey(pem);
-  } catch {
-    throw new AcceptanceError('INVALID_PUBLIC_KEY');
-  }
-  requireThat(
-    key.asymmetricKeyType === 'rsa' &&
-      key.asymmetricKeyDetails.modulusLength >= 3072,
-    'INVALID_PUBLIC_KEY',
-  );
-  return {
-    key,
-    fingerprint: sha256(key.export({ type: 'spki', format: 'der' })),
-  };
 }
 export function parseArguments(argv) {
   const [command, ...args] = argv;
@@ -1361,41 +1597,50 @@ export function validateCrunManifest(manifest, directory) {
   );
   return manifest;
 }
-export function encryptEvidence(payload, identity, pem) {
-  const { key, fingerprint } = validatePublicKey(pem);
-  requireThat(identity.fingerprint === fingerprint, 'KEY_MISMATCH');
-  const aad = {
+const SECRET_ENV_NAME = /token|secret|password|key/i;
+export function secretValues(env = {}) {
+  const values = new Set();
+  for (const [name, value] of Object.entries(env))
+    if (
+      SECRET_ENV_NAME.test(name) &&
+      typeof value === 'string' &&
+      value.length >= 6
+    ) {
+      values.add(value);
+      values.add(JSON.stringify(value).slice(1, -1));
+    }
+  return [...values].sort((left, right) => right.length - left.length);
+}
+export function redactText(text, env) {
+  let result = String(text);
+  for (const value of secretValues(env))
+    result = result.split(value).join('[REDACTED]');
+  return result;
+}
+export function redactBytes(bytes, env) {
+  if (bytes.includes(0)) return bytes;
+  const text = bytes.toString('utf8');
+  const redacted = redactText(text, env);
+  return redacted === text ? bytes : Buffer.from(redacted);
+}
+export function buildEvidence(payload, identity, env) {
+  const document = {
     version: 1,
     candidateSHA: identity.candidateSHA,
     controlSHA: identity.controlSHA,
     group: identity.group,
-    fingerprint,
+    ...payload,
   };
-  const bytes = Buffer.from(JSON.stringify(payload));
-  requireThat(bytes.length <= RAW_LIMIT * 1.4 + 65536, 'RAW_LIMIT');
-  const secret = randomBytes(32);
-  const nonce = randomBytes(12);
-  const cipher = createCipheriv('aes-256-gcm', secret, nonce);
-  cipher.setAAD(Buffer.from(JSON.stringify(aad)));
-  const ciphertext = Buffer.concat([cipher.update(bytes), cipher.final()]);
-  const envelope = {
-    ...aad,
-    cipher: 'AES-256-GCM',
-    wrapping: 'RSA-OAEP-SHA256',
-    wrappedKey: publicEncrypt(
-      { key, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' },
-      secret,
-    ).toString('base64'),
-    nonce: nonce.toString('base64'),
-    tag: cipher.getAuthTag().toString('base64'),
-    ciphertext: ciphertext.toString('base64'),
-  };
-  secret.fill(0);
+  const serialized = redactText(JSON.stringify(document), env);
   requireThat(
-    Buffer.byteLength(JSON.stringify(envelope)) <= ENVELOPE_LIMIT,
+    Buffer.byteLength(serialized) <= RAW_LIMIT * 1.4 + 65536,
+    'RAW_LIMIT',
+  );
+  requireThat(
+    Buffer.byteLength(serialized) <= ENVELOPE_LIMIT,
     'ENVELOPE_LIMIT',
   );
-  return envelope;
+  return serialized;
 }
 async function privateFile(file, bytes) {
   const handle = await open(file, 'wx', 0o600);
@@ -1784,7 +2029,6 @@ export async function runFinalCrunBounded({
       uuid: resource.uuid,
       candidateSHA: identity.candidateSHA,
       controlSHA: identity.controlSHA,
-      fingerprint: identity.fingerprint,
       groupAbsent: true,
       childClosed: true,
       streamsClosed: true,
@@ -2032,7 +2276,6 @@ export async function runFinalLearningBounded({
       receiptHash: resource.receiptHash,
       candidateSHA: identity.candidateSHA,
       controlSHA: identity.controlSHA,
-      fingerprint: identity.fingerprint,
       groupAbsent: true,
       childClosed: true,
       streamsClosed: true,
@@ -2495,7 +2738,6 @@ export function workBudget(identity, now = Date.now()) {
 }
 export async function createState(options, env) {
   readPostgresCredentials(env);
-  const { fingerprint } = validatePublicKey(env.RUNTIME_ACCEPTANCE_PUBLIC_KEY);
   const timing = validateTiming(
     options.group,
     env.RUNTIME_ACCEPTANCE_JOB_STARTED_MS,
@@ -2535,9 +2777,7 @@ export async function createState(options, env) {
       requireLearningSourceContract().sourceInputs,
     );
     await verifyBaselineSources(repo);
-    const contract = validateOwnerContract(
-      env.RUNTIME_ACCEPTANCE_OWNER_CONTRACT,
-    );
+    const contract = validateOwnerContract(ownerContractFrom(env));
     for (const entry of [contract.brand, ...contract.storage])
       await verifySource(repo, entry);
   }
@@ -2551,7 +2791,6 @@ export async function createState(options, env) {
     candidateSHA,
     controlSHA,
     group: options.group,
-    fingerprint,
     phase: 'prepared',
     ...(options.group === 'final'
       ? { learningCi: learningCiIdentity(env) }
@@ -2569,7 +2808,7 @@ export async function createState(options, env) {
   await mkdir(path.join(options.state, 'raw'), { mode: 0o700 });
   return identity;
 }
-export async function loadState(options, env) {
+export async function loadState(options) {
   const metadata = await lstat(options.state);
   requireThat(
     metadata.isDirectory() &&
@@ -2591,14 +2830,12 @@ export async function loadState(options, env) {
       identity.setupDeadline === expectedTiming.setupDeadline,
     'STATE_DEADLINE_MISMATCH',
   );
-  const { fingerprint } = validatePublicKey(env.RUNTIME_ACCEPTANCE_PUBLIC_KEY);
   requireThat(
     identity.version === 1 &&
       identity.state === options.state &&
       identity.repo === (await realpath(options.repo)) &&
       identity.candidateSHA === options['candidate-sha'] &&
       identity.controlSHA === options['control-sha'] &&
-      identity.fingerprint === fingerprint &&
       identity.device === metadata.dev &&
       identity.inode === metadata.ino &&
       GROUPS.includes(identity.group),
@@ -3620,7 +3857,6 @@ export async function superviseDedicatedAcceptance({
     group: identity.group,
     candidateSHA: identity.candidateSHA,
     controlSHA: identity.controlSHA,
-    fingerprint: identity.fingerprint,
     resources: { groups: [], services: [], database: null },
     completed: [],
     failures: [],
@@ -4505,7 +4741,6 @@ async function executeDedicatedAcceptance(identity, env, baseline = false) {
     candidateSHA: identity.candidateSHA,
     controlSHA: identity.controlSHA,
     group: identity.group,
-    fingerprint: identity.fingerprint,
     status: ledger.status,
     completed: ledger.completed,
     failures: ledger.failures,
@@ -5376,9 +5611,7 @@ export async function execution(identity, env) {
         await save(`raw/${stage}.records.json`, JSON.stringify(records));
       });
     if (identity.group === 'final') {
-      const contract = validateOwnerContract(
-        env.RUNTIME_ACCEPTANCE_OWNER_CONTRACT,
-      );
+      const contract = validateOwnerContract(ownerContractFrom(env));
       await attempt('brand', async () => {
         const url = await database('genfeed_4617_ed1f_test');
         const brandEnv = { BRANDED_GENERATION_TEST_DATABASE_URL: url };
@@ -6441,7 +6674,6 @@ export async function execution(identity, env) {
       candidateSHA: identity.candidateSHA,
       controlSHA: identity.controlSHA,
       group: identity.group,
-      fingerprint: identity.fingerprint,
       status:
         failures.length === 0 && cleanupResult.passed ? 'passed' : 'failed',
       completed,
@@ -6554,7 +6786,6 @@ export function validateOutcome(outcome, receipt, identity) {
       outcome.candidateSHA === identity.candidateSHA &&
       outcome.controlSHA === identity.controlSHA &&
       outcome.group === identity.group &&
-      outcome.fingerprint === identity.fingerprint &&
       Array.isArray(outcome.completed),
     'INVALID_OUTCOME',
   );
@@ -6718,14 +6949,125 @@ export async function collectIsolationEvidence(identity) {
   }
   return collected;
 }
-export async function sealState(identity, env) {
+const SUMMARY_LINES = 20;
+const SUMMARY_LINE_WIDTH = 300;
+function clipSummaryLines(text, { tail = false } = {}) {
+  const lines = String(text)
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: strips ANSI escapes and control bytes from CI log text.
+    .replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: strips ANSI escapes and control bytes from CI log text.
+    .replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '')
+    .split('\n')
+    .map((line) => line.trimEnd().slice(0, SUMMARY_LINE_WIDTH));
+  while (lines.length && lines[0] === '') lines.shift();
+  while (lines.length && lines.at(-1) === '') lines.pop();
+  return tail ? lines.slice(-SUMMARY_LINES) : lines.slice(0, SUMMARY_LINES);
+}
+async function readOptionalJson(identity, relative) {
+  try {
+    return JSON.parse(await safeFile(identity.state, relative));
+  } catch {
+    return undefined;
+  }
+}
+function firstFailedCase(report) {
+  for (const file of report?.testResults ?? []) {
+    for (const entry of file.assertionResults ?? [])
+      if (entry.status === 'failed')
+        return {
+          title: entry.fullName ?? entry.title,
+          message: (entry.failureMessages ?? []).join('\n'),
+        };
+    if (file.status === 'failed' && file.message)
+      return { title: file.name, message: file.message };
+  }
+  return undefined;
+}
+export async function failureSummary(identity, outcome, env = {}) {
+  const failures = outcome?.failures ?? [];
+  const [first, ...rest] =
+    failures.length === 0 && outcome?.cleanup?.passed === false
+      ? [{ stage: 'cleanup', code: 'CLEANUP_UNCONFIRMED' }]
+      : failures;
+  const stage = first?.stage ?? 'unknown';
+  const code = first?.code ?? 'UNKNOWN';
+  let found;
+  let exit;
+  let logLines = [];
+  try {
+    const reports = [
+      `raw/${stage}.report.json`,
+      ...identity.evidence.filter(
+        (relative) =>
+          relative.endsWith('.report.json') &&
+          relative !== `raw/${stage}.report.json`,
+      ),
+    ];
+    for (const relative of reports) {
+      found = firstFailedCase(await readOptionalJson(identity, relative));
+      if (found) break;
+    }
+    const commands = outcome.commands ?? [];
+    const index = commands.findLastIndex(
+      (command) =>
+        command.stage === stage &&
+        (command.exitCode !== 0 ||
+          command.signal ||
+          command.timedOut ||
+          command.outputLimit ||
+          command.spawnError ||
+          command.streamError ||
+          command.cleanupError),
+    );
+    if (index >= 0) {
+      const command = commands[index];
+      exit =
+        command.signal ??
+        (command.timedOut ? 'timeout' : (command.exitCode ?? 'unknown'));
+      if (!found)
+        for (const stream of ['stderr', 'stdout']) {
+          try {
+            const text = (
+              await safeFile(identity.state, `raw/${stage}-${index}.${stream}`)
+            ).toString('utf8');
+            if (text.trim()) {
+              logLines = clipSummaryLines(text, { tail: true });
+              break;
+            }
+          } catch {}
+        }
+    }
+  } catch {}
+  const header = [
+    `runtime-acceptance failed ${identity.candidateSHA}`,
+    `stage=${stage}`,
+    `code=${code}`,
+    ...(exit === undefined ? [] : [`exit=${exit}`]),
+    ...(found?.title ? [`case=${found.title}`] : []),
+  ].join(' ');
+  const lines = [
+    header,
+    ...(found ? clipSummaryLines(found.message) : logLines).map(
+      (line) => `  ${line}`,
+    ),
+    ...(rest.length
+      ? [
+          `  also failed: ${rest
+            .slice(0, 5)
+            .map((failure) => `${failure.stage}/${failure.code}`)
+            .join(', ')}${rest.length > 5 ? ', ...' : ''}`,
+        ]
+      : []),
+  ];
+  return `${redactText(lines.join('\n'), env)}\n`;
+}
+export async function sealState(identity, env, log = () => {}) {
   if (identity.phase === 'prepared') {
     const outcome = {
       version: 1,
       candidateSHA: identity.candidateSHA,
       controlSHA: identity.controlSHA,
       group: identity.group,
-      fingerprint: identity.fingerprint,
       status: 'failed',
       completed: [],
       failures: [{ stage: 'preparation', code: 'PREPARATION_INCOMPLETE' }],
@@ -6739,14 +7081,14 @@ export async function sealState(identity, env) {
   }
   requireThat(['finished', 'sealed'].includes(identity.phase), 'INVALID_PHASE');
   if (identity.phase === 'sealed') {
-    const envelope = await safeFile(
+    const evidence = await safeFile(
       identity.state,
-      'public/evidence.encrypted.json',
+      'public/evidence.json',
       ENVELOPE_LIMIT,
     );
     requireThat(
-      sha256(envelope) === identity.envelopeHash,
-      'ENVELOPE_HASH_MISMATCH',
+      sha256(evidence) === identity.evidenceHash,
+      'EVIDENCE_HASH_MISMATCH',
     );
     return JSON.parse(
       await safeFile(identity.state, 'public/receipt.json', 65536),
@@ -6760,6 +7102,7 @@ export async function sealState(identity, env) {
     if (error.code !== 'ENOENT') throw error;
   }
   const status = validateOutcome(outcome, receipt, identity);
+  if (status === 'failed') log(await failureSummary(identity, outcome, env));
   const files = [];
   let total = 0;
   const allowlist = new Set(identity.evidence);
@@ -6808,17 +7151,19 @@ export async function sealState(identity, env) {
     }
     total += bytes.length;
     requireThat(total <= RAW_LIMIT, 'RAW_LIMIT');
-    files.push({ path: relative, bytes: bytes.toString('base64') });
+    files.push({
+      path: relative,
+      bytes: redactBytes(bytes, env).toString('base64'),
+    });
   }
-  const envelope = encryptEvidence(
+  const serialized = buildEvidence(
     { outcome, ...(receipt ? { receipt } : {}), files },
     identity,
-    env.RUNTIME_ACCEPTANCE_PUBLIC_KEY,
+    env,
   );
   await mkdir(path.join(identity.state, 'public'), { mode: 0o700 });
-  const serialized = JSON.stringify(envelope);
   await privateFile(
-    path.join(identity.state, 'public/evidence.encrypted.json'),
+    path.join(identity.state, 'public/evidence.json'),
     serialized,
   );
   const publicReceipt = {
@@ -6826,7 +7171,6 @@ export async function sealState(identity, env) {
     candidateSHA: identity.candidateSHA,
     controlSHA: identity.controlSHA,
     group: identity.group,
-    fingerprint: identity.fingerprint,
     status,
     passed: outcome.completed
       .flatMap((entry) => entry.cases ?? [])
@@ -6841,14 +7185,14 @@ export async function sealState(identity, env) {
     ),
     cleanup: outcome.cleanup.passed,
     evidenceBytes: total,
-    envelopeSHA256: sha256(serialized),
+    evidenceSHA256: sha256(serialized),
   };
   await privateFile(
     path.join(identity.state, 'public/receipt.json'),
     JSON.stringify(publicReceipt),
   );
   identity.phase = 'sealed';
-  identity.envelopeHash = publicReceipt.envelopeSHA256;
+  identity.evidenceHash = publicReceipt.evidenceSHA256;
   await persistIdentity(identity);
   await rm(path.join(identity.state, 'raw'), { recursive: true });
   await rm(path.join(identity.state, 'outcome.json'));
@@ -6873,16 +7217,14 @@ async function checkQualifiedSealDocuments(identity) {
     'outcome.json',
     'receipt.json',
     'public/receipt.json',
-    ...(identity.phase === 'sealed' ? ['public/evidence.encrypted.json'] : []),
+    ...(identity.phase === 'sealed' ? ['public/evidence.json'] : []),
   ]) {
     let bytes;
     try {
       bytes = await safeFile(
         identity.state,
         relative,
-        relative.endsWith('evidence.encrypted.json')
-          ? ENVELOPE_LIMIT
-          : RAW_LIMIT,
+        relative.endsWith('evidence.json') ? ENVELOPE_LIMIT : RAW_LIMIT,
       );
     } catch (error) {
       if (error.code === 'ENOENT') continue;
@@ -6899,8 +7241,7 @@ async function checkQualifiedSealDocuments(identity) {
       document.version === 1 &&
         document.group === identity.group &&
         document.candidateSHA === identity.candidateSHA &&
-        document.controlSHA === identity.controlSHA &&
-        document.fingerprint === identity.fingerprint,
+        document.controlSHA === identity.controlSHA,
       'QUALIFIED_RECEIPT_IDENTITY_MISMATCH',
     );
   }
@@ -6923,13 +7264,15 @@ export async function runCli(argv = process.argv.slice(2), env = process.env) {
       process.stdout.write('runtime-acceptance prepared\n');
       return 0;
     }
-    const identity = await loadState(options, env);
+    const identity = await loadState(options);
     requireQualifiedGroup(identity.group);
     if (options.command === 'seal') {
       await checkQualifiedSealDocuments(identity);
     }
     if (options.command === 'seal') {
-      const receipt = await sealState(identity, env);
+      const receipt = await sealState(identity, env, (text) =>
+        process.stdout.write(text),
+      );
       process.stdout.write(
         `runtime-acceptance ${receipt.status} ${receipt.candidateSHA} ${receipt.passed}\n`,
       );
@@ -6946,7 +7289,9 @@ export async function runCli(argv = process.argv.slice(2), env = process.env) {
     requireThat(options.command === identity.group, 'GROUP_MISMATCH');
     const outcome = await execution(identity, env);
     process.stdout.write(
-      `runtime-acceptance ${outcome.status} ${identity.candidateSHA}\n`,
+      outcome.status === 'passed'
+        ? `runtime-acceptance passed ${identity.candidateSHA}\n`
+        : await failureSummary(identity, outcome, env),
     );
     return outcome.status === 'passed' ? 0 : 1;
   } catch (error) {

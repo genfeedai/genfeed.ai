@@ -1,9 +1,13 @@
-// @ts-nocheck
-
+import { TrendsService } from '@api/collections/trends/services/trends.service';
+import type {
+  WorkflowInputVariable,
+  WorkflowVisualNode,
+} from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowAutomationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-automation-executor-registrar.service';
 import { WorkflowContentExecutorRegistrarService } from '@api/collections/workflows/services/workflow-content-executor-registrar.service';
 import { WorkflowCoreExecutorRegistrarService } from '@api/collections/workflows/services/workflow-core-executor-registrar.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
+import type { WorkflowDocumentShape } from '@api/collections/workflows/services/workflow-engine-converter.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowEngineExecutorRegistryService } from '@api/collections/workflows/services/workflow-engine-executor-registry.service';
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
@@ -14,9 +18,39 @@ import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/w
 import { GENERATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/generation-templates';
 import { isPersistableWorkflowNodeType } from '@api/collections/workflows/workflow-version-definition';
 import { personasServiceStub } from '@api/shared/testing/personas-service.stub';
+import type { ExecutableNode } from '@genfeedai/workflows/engine';
 import { getWorkflowActionIdForNodeType } from '@genfeedai/workflows/nodes';
 import { testId } from '@helpers/testing/test-id.helper';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+/**
+ * A persisted editor node whose `data` also carries the flat editor fields
+ * (`prompt`, `template`, ...) the converter folds into action parameters.
+ */
+type EditorWorkflowNode = Omit<WorkflowVisualNode, 'data'> & {
+  data: WorkflowVisualNode['data'] & Record<string, unknown>;
+};
+
+/**
+ * Fixture graph in the loose shape the editor produces: nodes may omit
+ * `position` and `data.label`, which the converter tolerates at runtime.
+ */
+type WorkflowFixture = Omit<WorkflowDocumentShape, 'nodes'> & {
+  nodes?: Array<Record<string, unknown>>;
+};
+
+/** The action envelope parameters of a converted node. */
+function readActionParameters(node: ExecutableNode): Record<string, unknown> {
+  const { parameters } = node.config;
+  return parameters && typeof parameters === 'object'
+    ? (parameters as Record<string, unknown>)
+    : {};
+}
+
+/** Stands in for the trends reader, of which the digest uses four methods. */
+function asTrendsService(trends: object): TrendsService {
+  return trends as unknown as TrendsService;
+}
 
 function createWorkflowEngineAdapterForTest(
   ...dependencies: unknown[]
@@ -159,13 +193,10 @@ describe('WorkflowEngineAdapterService', () => {
 
   function convertActionGraph(
     adapter: WorkflowEngineAdapterService,
-    workflow: Record<string, unknown> & {
-      nodes?: Array<Record<string, unknown>>;
-    },
+    workflow: WorkflowFixture,
   ) {
-    return adapter.convertToExecutableWorkflow({
-      ...workflow,
-      nodes: (workflow.nodes ?? []).map((node) => {
+    const nodes = (workflow.nodes ?? []).map(
+      (node): Record<string, unknown> => {
         const nodeType = String(node.type ?? '');
         if (
           nodeType === 'genfeedAction' ||
@@ -204,7 +235,13 @@ describe('WorkflowEngineAdapterService', () => {
           },
           type: 'genfeedAction',
         };
-      }),
+      },
+    );
+
+    // The fixtures are deliberately looser than a persisted editor node.
+    return adapter.convertToExecutableWorkflow({
+      ...workflow,
+      nodes: nodes as WorkflowVisualNode[],
     });
   }
 
@@ -376,7 +413,7 @@ describe('WorkflowEngineAdapterService', () => {
       const result = convertActionGraph(service, workflowDoc);
 
       expect(
-        result.nodes.map((node) => node.config.parameters.brandId),
+        result.nodes.map((node) => readActionParameters(node).brandId),
       ).toEqual(['brand-1', 'brand-1', 'brand-1', 'brand-1', 'brand-1']);
     });
   });
@@ -619,15 +656,19 @@ describe('WorkflowEngineAdapterService', () => {
     });
 
     it('keeps a 1-node prompt on the graph after applyRuntimeInputValues', () => {
+      const promptNode: EditorWorkflowNode = {
+        data: {
+          config: {},
+          label: 'Prompt',
+          template: 'Write a FUD News brief',
+        },
+        id: 'PyHRz6uB',
+        position: { x: 0, y: 0 },
+        type: 'ai-prompt-constructor',
+      };
       const workflowDoc = {
         id: 'wf-prompt',
-        nodes: [
-          {
-            data: { label: 'Prompt', template: 'Write a FUD News brief' },
-            id: 'PyHRz6uB',
-            type: 'ai-prompt-constructor',
-          },
-        ],
+        nodes: [promptNode],
         organizationId: 'org-1',
         userId: 'user-1',
       };
@@ -640,7 +681,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       expect(hydrated.nodes).toHaveLength(1);
       expect(hydrated.nodes[0]?.id).toBe('PyHRz6uB');
-      expect(hydrated.nodes[0]?.config.parameters.template).toBe(
+      expect(readActionParameters(hydrated.nodes[0]).template).toBe(
         'Write a FUD News brief',
       );
     });
@@ -1274,7 +1315,12 @@ describe('WorkflowEngineAdapterService', () => {
         id: 'wf-real-estate',
         brandId: testId('brand'),
         edges: template.edges,
-        inputVariables: template.inputVariables,
+        inputVariables: (template.inputVariables ?? []).map(
+          (variable): WorkflowInputVariable => ({
+            ...variable,
+            required: variable.required ?? false,
+          }),
+        ),
         nodes: template.nodes,
         organizationId: testId('org'),
         userId: testId('user'),
@@ -1960,16 +2006,24 @@ describe('WorkflowEngineAdapterService', () => {
     });
 
     it('keeps only entries on the configured platforms', async () => {
-      const result = await service.buildDigestTrends(makeTrends(), 10, 0, [
-        'youtube',
-      ]);
+      const result = await service.buildDigestTrends(
+        asTrendsService(makeTrends()),
+        10,
+        0,
+        ['youtube'],
+      );
 
       expect(result).toHaveLength(1);
       expect(result[0].platform).toBe('youtube');
     });
 
     it('treats an empty platform list as no constraint', async () => {
-      const result = await service.buildDigestTrends(makeTrends(), 10, 0, []);
+      const result = await service.buildDigestTrends(
+        asTrendsService(makeTrends()),
+        10,
+        0,
+        [],
+      );
 
       expect(result).toHaveLength(2);
     });
@@ -1997,7 +2051,7 @@ describe('WorkflowEngineAdapterService', () => {
       };
 
       const result = await service.buildDigestTrends(
-        trends,
+        asTrendsService(trends),
         10,
         70,
         ['youtube', 'tiktok'],
