@@ -6,8 +6,8 @@ import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import {
+  createLenientTrendContentIdeasSchema,
   TREND_CONTENT_IDEAS_SCHEMA_NAME,
-  trendContentIdeasSchema,
 } from '@genfeedai/contracts/api-types/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -142,7 +142,13 @@ The ideas field contains creative, engaging, platform-appropriate ideas.`;
         {
           input: { max_completion_tokens: 2000 },
           prompt,
-          schema: trendContentIdeasSchema,
+          schema: createLenientTrendContentIdeasSchema((dropped) =>
+            this.loggerService.warn('Dropped invalid trend content ideas', {
+              code: 'trend_content_ideas_items_dropped',
+              dropped,
+              droppedCount: dropped.length,
+            }),
+          ),
           schemaName: TREND_CONTENT_IDEAS_SCHEMA_NAME,
           onAttempt: onBilling
             ? async (input, output) => {
