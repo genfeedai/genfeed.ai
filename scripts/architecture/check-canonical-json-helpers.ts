@@ -88,6 +88,11 @@ export const CANONICAL_JSON_ALLOWANCES: CanonicalJsonAllowance[] = [
       'Sorts OpenAPI document keys for deterministic output; not an integrity hash input.',
   },
   {
+    file: 'apps/server/api/src/cache/redis/redis-cache.interceptor.ts',
+    reason:
+      'Sorts request query params for a Redis cache key; ephemeral cache identity, not a persisted integrity or idempotency hash.',
+  },
+  {
     file: 'scripts/content-eval/provenance.ts',
     reason:
       'Offline eval-provenance script outside the server runtime; its own pinned format.',
@@ -102,8 +107,8 @@ const DECLARATION_PATTERN =
 // regardless of the helper's name. Object.fromEntries(entries.sort()) is not
 // flagged: it is a common non-canonical report-sorting idiom.
 const KEY_SORT_SIGNATURE_PATTERNS = [
-  /Object\.keys\([^)]*\)\s*\.sort\([^)]*\)\s*\.(?:map|reduce|forEach)\([\s\S]{0,240}?JSON\.stringify\(/gu,
-  /Object\.keys\([^)]*\)\s*\.sort\([^)]*\)\s*\.reduce\(/gu,
+  /Object\.keys\([^)]*\)\s*\.sort\([^)]*\)\s*\.(?:map|reduce|forEach)\s*(?:<[^(]{0,160})?\([\s\S]{0,240}?JSON\.stringify\(/gu,
+  /Object\.keys\([^)]*\)\s*\.sort\([^)]*\)\s*\.reduce\s*(?:<[^(]{0,160})?\(/gu,
 ];
 
 function normalizePath(file: string): string {
