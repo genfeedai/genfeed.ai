@@ -318,8 +318,13 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
       {
         baseInput: JSON_DOCUMENT_SCHEMA,
         childWorkflowId: NON_EMPTY_STRING_SCHEMA,
+        // `executeChild` forwards every input except `childWorkflowId` to the
+        // child as its input variables, so a child declaring `context` and
+        // `params` (skill workflows) is fed through these handles.
+        context: JSON_DOCUMENT_SCHEMA,
         dto: JSON_DOCUMENT_SCHEMA,
         item: JSON_DOCUMENT_SCHEMA,
+        params: JSON_DOCUMENT_SCHEMA,
         request: JSON_DOCUMENT_SCHEMA,
       },
       ['childWorkflowId'],

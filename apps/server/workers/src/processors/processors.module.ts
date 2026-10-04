@@ -68,6 +68,7 @@ import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 import { AgentTurnWorkflowProcessor } from '@workers/processors/api/collections/workflows/services/agent-turn-workflow.processor';
 import { BackgroundSystemWorkflowProcessor } from '@workers/processors/api/collections/workflows/services/background-system-workflow.processor';
 import { PlatformSystemWorkflowProcessor } from '@workers/processors/api/collections/workflows/services/platform-system-workflow.processor';
+import { ScheduledPublishWorkflowProcessor } from '@workers/processors/api/collections/workflows/services/scheduled-publish-workflow.processor';
 import { WorkflowExecutionProcessor as CollectionsWorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
 // --- queues/ processors ---
 import { BatchRewriteProcessor } from '@workers/processors/api/queues/batch-rewrite/batch-rewrite.processor';
@@ -171,6 +172,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     PlatformSystemWorkflowProcessor,
     BackgroundSystemWorkflowProcessor,
     AgentTurnWorkflowProcessor,
+    ScheduledPublishWorkflowProcessor,
   ],
 })
 export class ProcessorsModule {}

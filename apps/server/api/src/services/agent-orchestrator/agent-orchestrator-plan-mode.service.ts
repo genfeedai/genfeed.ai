@@ -12,6 +12,7 @@ import type {
   AgentChatRequest,
   AgentChatResult,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import type { PlanModeResponseParams } from '@api/services/agent-orchestrator/interfaces/agent-orchestrator-plan-mode.interface';
 import type { AgentPlanReviewMetadata } from '@api/services/agent-orchestrator/interfaces/agent-plan-review-metadata.interface';
 import {
   type AgentAutoRoutingRound,
@@ -163,17 +164,7 @@ export class AgentOrchestratorPlanModeService {
   }
 
   async generatePlanModeResponse(
-    params: {
-      context: AgentChatContext;
-      model: string;
-      reviewMetadata?: AgentPlanReviewMetadata;
-      request: AgentChatRequest;
-      resolvedMemories: AgentMemoryDocument[];
-      seedTitle: string;
-      systemPromptOverride?: string;
-      threadId: string;
-      turnCost: number;
-    },
+    params: PlanModeResponseParams,
     host: AgentOrchestratorPlanModeHost,
   ): Promise<AgentChatResult> {
     const { messages: recentMessages, compressedContext: planCompressedCtx } =
@@ -194,6 +185,36 @@ export class AgentOrchestratorPlanModeService {
       dispatchedModel,
       resolution: autoRouting,
     } = await this.resolvePlanModeAutoRouting(params);
+    const reservedRound = await this.runPlanningRound(
+      params,
+      history,
+      autoRouting,
+      dispatchedModel,
+    );
+    const response = reservedRound.response;
+
+    const choice = response.choices[0];
+    if (!choice) {
+      throw new Error('No planning response from LLM');
+    }
+
+    return this.persistPlanProposal({
+      autoRouting,
+      assistantContent: sanitizeAgentOutputText(choice.message.content || ''),
+      defaultModelKey,
+      host,
+      params,
+      reservedRound,
+      resolvedModel: response.model ?? params.model,
+    });
+  }
+
+  private async runPlanningRound(
+    params: PlanModeResponseParams,
+    history: OpenRouterMessage[],
+    autoRouting: AgentAutoRoutingResolution | undefined,
+    dispatchedModel: string,
+  ) {
     const chatParams = await this.buildPlanningChatCompletionParams({
       autoRouting,
       messages: history,
@@ -203,7 +224,7 @@ export class AgentOrchestratorPlanModeService {
       source: params.request.source,
       threadId: params.threadId,
     });
-    const reservedRound = await runReservedAgentLlmRound({
+    return runReservedAgentLlmRound({
       actorUserId: params.context.userId,
       brandId: params.context.scope?.brandId,
       credits: this.creditsUtilsService,
@@ -227,22 +248,27 @@ export class AgentOrchestratorPlanModeService {
         ),
       waived: params.turnCost === 0,
     });
-    const response = reservedRound.response;
+  }
 
-    const choice = response.choices[0];
-    if (!choice) {
-      throw new Error('No planning response from LLM');
-    }
-
+  private async persistPlanProposal(input: {
+    autoRouting: AgentAutoRoutingResolution | undefined;
+    assistantContent: string;
+    defaultModelKey: string;
+    host: AgentOrchestratorPlanModeHost;
+    params: PlanModeResponseParams;
+    reservedRound: { credits: number };
+    resolvedModel: string;
+  }): Promise<AgentChatResult> {
+    const { params } = input;
     const envelope = this.extractPlanEnvelope({
-      assistantContent: sanitizeAgentOutputText(choice.message.content || ''),
+      assistantContent: input.assistantContent,
       prompt: params.request.content,
       reviewMetadata: params.reviewMetadata,
       seedTitle: params.seedTitle,
     });
     const plan = envelope.plan;
 
-    await host.maybeUpdateThreadTitle({
+    await input.host.maybeUpdateThreadTitle({
       context: params.context,
       seedTitle: params.seedTitle,
       threadId: params.threadId,
@@ -263,19 +289,17 @@ export class AgentOrchestratorPlanModeService {
     const assistantMetadata = {
       ...buildAgentScopeMetadata(params.context),
       ...buildAgentRoutingMetadata({
-        autoRouting,
-        defaultModelKey,
+        autoRouting: input.autoRouting,
+        defaultModelKey: input.defaultModelKey,
         model: params.model,
         prompt: params.request.content,
         source: params.request.source,
       }),
-      ...buildResolvedModelMetadata(params.model, [
-        response.model ?? params.model,
-      ]),
+      ...buildResolvedModelMetadata(params.model, [input.resolvedModel]),
       proposedPlan: plan,
       reviewRequired: true,
       riskLevel: 'low' as const,
-      totalCreditsUsed: reservedRound.credits,
+      totalCreditsUsed: input.reservedRound.credits,
     };
     const content =
       envelope.summary ||
@@ -310,7 +334,7 @@ export class AgentOrchestratorPlanModeService {
 
     return {
       creditsRemaining,
-      creditsUsed: reservedRound.credits,
+      creditsUsed: input.reservedRound.credits,
       message: {
         content,
         metadata: assistantMetadata,

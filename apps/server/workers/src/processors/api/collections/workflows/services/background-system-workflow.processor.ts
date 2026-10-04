@@ -15,8 +15,8 @@ import { WorkflowExecutionProcessor } from '@workers/processors/api/collections/
  * `WorkflowExecutionQueueService.queueSystemWorkflow` producer that is not
  * one of the three platform-cron sweep templates already isolated onto
  * `PLATFORM_SYSTEM_WORKFLOW_QUEUE` (#5162): worker crons, batch generation,
- * the clip factory, other `workflow.for-each` fan-out, scheduled-post
- * dispatch, RSS/social ingestion, lifecycle emails, and the rest of the ~40
+ * the clip factory, other `workflow.for-each` fan-out, RSS/social
+ * ingestion, lifecycle emails, and the rest of the ~40
  * producers audited in #5271. Before this fix all of them shared
  * `WORKFLOW_EXECUTION_QUEUE` with interactive agent turns — the same
  * starvation mechanism #5162 fixed for the platform-cron sweeps, just via a

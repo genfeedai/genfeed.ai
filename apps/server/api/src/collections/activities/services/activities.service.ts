@@ -145,6 +145,7 @@ export class ActivitiesService extends BaseService<
     action: string,
     value: string,
     userId: string,
+    organizationId?: string,
   ): Promise<ActivityDocument | null> {
     return super.findOne({
       action,
@@ -153,6 +154,7 @@ export class ActivitiesService extends BaseService<
         string_contains: value,
       },
       userId,
+      ...(organizationId ? { isDeleted: false, organizationId } : {}),
     });
   }
 

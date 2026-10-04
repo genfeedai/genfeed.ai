@@ -20,7 +20,7 @@ export function buildClipContinuityWorkflowDefinition(): SystemWorkflowGraphDefi
           id: 'begin-to-qa',
           source: 'begin-continuity',
           target: 'assess-clips',
-          targetHandle: 'claim',
+          targetHandle: 'previous',
         },
         {
           id: 'qa-to-persist',
@@ -144,7 +144,6 @@ export function buildClipContinuityQaWorkflowDefinition(): SystemWorkflowGraphDe
           parameters: {
             blackDurationSeconds: 0.5,
             freezeDurationSeconds: 2,
-            inputVideoKey: 'video',
             isContactSheetEnabled: true,
             isContinuityQaEnabled: true,
           },

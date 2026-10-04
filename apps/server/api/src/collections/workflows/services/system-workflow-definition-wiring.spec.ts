@@ -58,30 +58,6 @@ const PARAMETERIZED_DEFINITIONS: SystemWorkflowGraphDefinition[] = [
   ),
 ];
 
-/**
- * Wiring defects that already exist on master and are outside #5869 (which is
- * the `previous` ordering edge into `workflow.for-each`). Each entry is
- * `<canonicalId>/<nodeId>`. The sweep fails on any issue not listed here, and
- * fails on a listed entry that no longer reproduces, so fixing one forces its
- * removal. Do not add entries; fix the wiring or the contract instead.
- */
-const KNOWN_UNRESOLVED_WIRING = new Set([
-  'brand-remix.generate/reconcile-run',
-  'clip.continuity.qa-one/assess-clip',
-  'clip.continuity/assess-clips',
-  'clip.factory/generate-remaining',
-  'clip.generation/generate-remaining',
-  'content.batch.generate-item.content-geo-optimizer/run-skill',
-  'content.batch.generate-item.content-writing/run-skill',
-  'content.batch.generate-item.image-generation/run-skill',
-  'content.batch.generate-item.trend-discovery/run-skill',
-  'content.batch.generate-item.trend-remix/run-skill',
-  'content.production.autopilot.pipeline.image/publish',
-  'content.production.autopilot.pipeline.music/publish',
-  'content.production.autopilot.pipeline.video/publish',
-  'paid-creative.research.ingest/finalize',
-]);
-
 type NodeIssue = {
   canonicalId: string;
   detail: string;
@@ -139,7 +115,14 @@ function findWiringIssues(
     );
 
     if (schema.additionalProperties === false) {
-      const unexpected = delivered.filter((key) => !(key in properties));
+      const patterns = Object.keys(readRecord(schema.patternProperties)).map(
+        (pattern) => new RegExp(pattern),
+      );
+      const unexpected = delivered.filter(
+        (key) =>
+          !(key in properties) &&
+          !patterns.some((pattern) => pattern.test(key)),
+      );
       if (unexpected.length > 0) {
         issues.push({
           canonicalId: workflow.canonicalId,
@@ -259,18 +242,6 @@ describe('system workflow definition wiring against action contracts', () => {
       expect(canonicalIds).toContain(definition.canonicalId);
     }
 
-    const issues = definitions.flatMap(findWiringIssues);
-    const issueKeys = new Set(
-      issues.map((issue) => `${issue.canonicalId}/${issue.nodeId}`),
-    );
-    expect(
-      issues.filter(
-        (issue) =>
-          !KNOWN_UNRESOLVED_WIRING.has(`${issue.canonicalId}/${issue.nodeId}`),
-      ),
-    ).toEqual([]);
-    expect(
-      [...KNOWN_UNRESOLVED_WIRING].filter((key) => !issueKeys.has(key)),
-    ).toEqual([]);
+    expect(definitions.flatMap(findWiringIssues)).toEqual([]);
   });
 });

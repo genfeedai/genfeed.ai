@@ -12,7 +12,7 @@
  *    options object at all) — a stale caller from before this option
  *    existed, or a spread that could hide a missing field from a quick read.
  * 2. A NEW `@InjectQueue(WORKFLOW_EXECUTION_QUEUE | PLATFORM_SYSTEM_WORKFLOW_QUEUE
- *    | WORKFLOW_BACKGROUND_QUEUE)` outside the one service that owns routing
+ *    | WORKFLOW_BACKGROUND_QUEUE | SCHEDULED_PUBLISH_QUEUE)` outside the one service that owns routing
  *    (`WorkflowExecutionQueueService`) and the one documented boot-drain
  *    exception (`PlatformScheduleRegistryService`, #5162/#5252). Injecting
  *    one of these queues directly lets a producer call `Queue.add()` on it
@@ -45,6 +45,7 @@ const ROUTED_QUEUE_TOKEN_NAMES = new Set([
   'WORKFLOW_EXECUTION_QUEUE',
   'PLATFORM_SYSTEM_WORKFLOW_QUEUE',
   'WORKFLOW_BACKGROUND_QUEUE',
+  'SCHEDULED_PUBLISH_QUEUE',
 ]);
 
 /**

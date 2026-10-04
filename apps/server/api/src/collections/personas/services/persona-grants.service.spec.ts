@@ -28,8 +28,12 @@ function setup() {
     personaGrantAudit: { create: vi.fn() },
   };
   const prisma = {
-    $transaction: vi.fn(async (work: (client: typeof tx) => Promise<unknown>) =>
-      work({ ...tx, $queryRaw: queryRaw }),
+    $transaction: vi.fn(
+      async (
+        work: (
+          client: typeof tx & { $queryRaw: typeof queryRaw },
+        ) => Promise<unknown>,
+      ) => work({ ...tx, $queryRaw: queryRaw }),
     ),
     brand: { findMany: vi.fn().mockResolvedValue([{ id: 'recipient-brand' }]) },
     member: { findMany: vi.fn().mockResolvedValue([]) },

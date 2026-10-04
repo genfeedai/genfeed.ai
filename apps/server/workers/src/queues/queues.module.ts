@@ -22,6 +22,7 @@ import {
   ONBOARDING_STARTER_ASSETS_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   REPLICATE_POLL_QUEUE,
+  SCHEDULED_PUBLISH_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   WORKFLOW_BACKGROUND_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
@@ -118,6 +119,17 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: 50,
         },
         name: AGENT_TURN_QUEUE,
+      },
+      // Scheduled-post sweep publishes only (#5890): split from
+      // WORKFLOW_BACKGROUND_QUEUE so its shared 60/min limiter cannot delay a due post.
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: SCHEDULED_PUBLISH_QUEUE,
       },
       {
         defaultJobOptions: {

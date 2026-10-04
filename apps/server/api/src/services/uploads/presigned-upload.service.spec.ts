@@ -683,6 +683,95 @@ describe('PresignedUploadService', () => {
       },
     );
 
+    it('should confirm a valid audio upload', async () => {
+      ingredientsService.findOne.mockResolvedValue(
+        createIngredientDocument({
+          category: IngredientCategory.AUDIO,
+          s3Key: `ingredients/audios/${mockIngredientId}`,
+        }),
+      );
+      filesClientService.uploadToExistingObject.mockResolvedValue({
+        audioCodec: 'mp3',
+        container: 'mp3',
+        duration: 12.5,
+        hasAudio: true,
+        size: 1024,
+      });
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocument({ status: IngredientStatus.UPLOADED }),
+      );
+
+      await service.confirmUpload(mockUser, mockIngredientId);
+
+      expect(metadataService.patch).toHaveBeenCalledWith(
+        mockMetadataId,
+        expect.objectContaining({ duration: 12.5, hasAudio: true }),
+      );
+      expect(ingredientsService.patch).toHaveBeenCalledWith(
+        mockIngredientId,
+        expect.objectContaining({ status: IngredientStatus.UPLOADED }),
+      );
+      expect(filesClientService.deleteStoredObject).not.toHaveBeenCalled();
+    });
+
+    it('should confirm readable audio that has no container duration', async () => {
+      ingredientsService.findOne.mockResolvedValue(
+        createIngredientDocument({
+          category: IngredientCategory.AUDIO,
+          s3Key: `ingredients/audios/${mockIngredientId}`,
+        }),
+      );
+      filesClientService.uploadToExistingObject.mockResolvedValue({
+        audioCodec: 'opus',
+        container: 'matroska,webm',
+        duration: 0,
+        hasAudio: true,
+        size: 2048,
+      });
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocument({ status: IngredientStatus.UPLOADED }),
+      );
+
+      await service.confirmUpload(mockUser, mockIngredientId);
+
+      expect(filesClientService.deleteStoredObject).not.toHaveBeenCalled();
+      expect(ingredientsService.patch).toHaveBeenCalledWith(
+        mockIngredientId,
+        expect.objectContaining({ status: IngredientStatus.UPLOADED }),
+      );
+    });
+
+    it.each([
+      ['empty result', undefined],
+      ['no audio stream', { duration: 5, hasAudio: false, size: 10 }],
+    ])(
+      'should fail an audio upload with %s and delete the object',
+      async (_label, uploadMeta) => {
+        ingredientsService.findOne.mockResolvedValue(
+          createIngredientDocument({
+            category: IngredientCategory.AUDIO,
+            s3Key: `ingredients/audios/${mockIngredientId}`,
+          }),
+        );
+        filesClientService.uploadToExistingObject.mockResolvedValue(
+          uploadMeta as never,
+        );
+
+        await expect(
+          service.confirmUpload(mockUser, mockIngredientId),
+        ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
+
+        expect(ingredientsService.patch).toHaveBeenCalledWith(
+          mockIngredientId,
+          { status: IngredientStatus.FAILED },
+        );
+        expect(filesClientService.deleteStoredObject).toHaveBeenCalledWith(
+          `ingredients/audios/${mockIngredientId}`,
+        );
+        expect(metadataService.patch).not.toHaveBeenCalled();
+      },
+    );
+
     it('should surface the processing error even when storage cleanup fails', async () => {
       ingredientsService.findOne.mockResolvedValue(
         createIngredientDocument({}),

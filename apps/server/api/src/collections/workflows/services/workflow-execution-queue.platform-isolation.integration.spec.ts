@@ -105,6 +105,7 @@ describe.skipIf(!redisAvailable)(
     const platformQueueName = `platform-system-workflow-isolation-test-${runId}`;
     const backgroundQueueName = `workflow-background-isolation-test-${runId}`;
     const agentTurnQueueName = `agent-turn-isolation-test-${runId}`;
+    const scheduledPublishQueueName = `scheduled-publish-isolation-test-${runId}`;
     const queues: Queue[] = [];
     const workers: Worker[] = [];
 
@@ -124,6 +125,7 @@ describe.skipIf(!redisAvailable)(
       interactiveQueue: Queue;
       platformQueue: Queue;
       runner: SystemWorkflowRunnerService;
+      scheduledPublishQueue: Queue;
     } {
       const interactiveQueue = new Queue(interactiveQueueName, {
         connection: { url: redisUrl },
@@ -137,11 +139,15 @@ describe.skipIf(!redisAvailable)(
       const agentTurnQueue = new Queue(agentTurnQueueName, {
         connection: { url: redisUrl },
       });
+      const scheduledPublishQueue = new Queue(scheduledPublishQueueName, {
+        connection: { url: redisUrl },
+      });
       queues.push(
         interactiveQueue,
         platformQueue,
         backgroundQueue,
         agentTurnQueue,
+        scheduledPublishQueue,
       );
 
       const queueService = new (
@@ -153,6 +159,7 @@ describe.skipIf(!redisAvailable)(
         platformQueue,
         backgroundQueue,
         agentTurnQueue,
+        scheduledPublishQueue,
         createMockLogger(),
       );
 
@@ -207,6 +214,7 @@ describe.skipIf(!redisAvailable)(
         interactiveQueue,
         platformQueue,
         runner,
+        scheduledPublishQueue,
       };
     }
 
@@ -226,17 +234,22 @@ describe.skipIf(!redisAvailable)(
       const agentTurnQueue = new Queue(agentTurnQueueName, {
         connection: { url: redisUrl },
       });
+      const scheduledPublishQueue = new Queue(scheduledPublishQueueName, {
+        connection: { url: redisUrl },
+      });
       await Promise.all([
         interactiveQueue.obliterate({ force: true }),
         platformQueue.obliterate({ force: true }),
         backgroundQueue.obliterate({ force: true }),
         agentTurnQueue.obliterate({ force: true }),
+        scheduledPublishQueue.obliterate({ force: true }),
       ]);
       await Promise.all([
         interactiveQueue.close(),
         platformQueue.close(),
         backgroundQueue.close(),
         agentTurnQueue.close(),
+        scheduledPublishQueue.close(),
       ]);
     });
 
@@ -251,6 +264,7 @@ describe.skipIf(!redisAvailable)(
         platformQueueName,
         backgroundQueueName,
         agentTurnQueueName,
+        scheduledPublishQueueName,
       ].map((name) => new Queue(name, { connection: { url: redisUrl } }));
       // `obliterate` refuses a queue that still has waiting/delayed jobs and
       // is not paused — several tests above leave exactly that behind (a
@@ -365,6 +379,78 @@ describe.skipIf(!redisAvailable)(
       expect(await platformQueue.getJobs(['waiting', 'delayed'])).toHaveLength(
         0,
       );
+    });
+
+    it('processes a scheduled publish while the background queue is saturated by a rate-limited backlog (#5890)', async () => {
+      const { backgroundQueue, runner, scheduledPublishQueue } = createRunner();
+      runner.registerWorkflow({
+        ...definition,
+        canonicalId: 'lifecycle-email',
+      });
+      runner.registerWorkflow({
+        ...definition,
+        canonicalId: 'scheduled-post.publish',
+      });
+      const backgroundProcessed: string[] = [];
+      const publishProcessed: string[] = [];
+
+      // The background worker mirrors the production limiter shape (one job
+      // per window here, so the backlog provably stays waiting).
+      const backgroundWorker = new Worker(
+        backgroundQueueName,
+        async (job) => {
+          backgroundProcessed.push(job.id ?? '');
+        },
+        {
+          concurrency: 1,
+          connection: { url: redisUrl },
+          limiter: { duration: 60000, max: 1 },
+        },
+      );
+      const publishWorker = new Worker(
+        scheduledPublishQueueName,
+        async (job) => {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          publishProcessed.push(job.id ?? '');
+        },
+        { concurrency: 1, connection: { url: redisUrl } },
+      );
+      workers.push(backgroundWorker, publishWorker);
+
+      for (let index = 0; index < 5; index += 1) {
+        await runner.enqueueWorkflow(
+          {
+            actionType: 'lifecycle-email',
+            canonicalId: 'lifecycle-email',
+            organizationId: 'org-1',
+            source: 'lifecycle',
+            userId: 'user-1',
+          },
+          { dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+        );
+      }
+      await runner.enqueueWorkflow(
+        {
+          actionType: 'scheduled-post.publish',
+          canonicalId: 'scheduled-post.publish',
+          organizationId: 'org-1',
+          source: 'scheduled_sweep',
+          userId: 'user-1',
+        },
+        { dispatchClass: SystemWorkflowDispatchClass.SCHEDULED_PUBLISH },
+      );
+
+      await vi.waitFor(() => expect(publishProcessed).toHaveLength(1), {
+        timeout: 5000,
+      });
+      // The limiter admitted at most one background job; the rest still wait.
+      expect(backgroundProcessed.length).toBeLessThanOrEqual(1);
+      expect(
+        (await backgroundQueue.getJobCounts('waiting', 'delayed')).waiting,
+      ).toBeGreaterThanOrEqual(4);
+      expect(
+        await scheduledPublishQueue.getJobs(['waiting', 'delayed']),
+      ).toHaveLength(0);
     });
 
     it('processes an interactive turn promptly while the platform queue is saturated with a real routed backlog', async () => {

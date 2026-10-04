@@ -40,6 +40,8 @@ const uploadMetadataSchema = z
     duration: z.number().optional(),
     size: z.number().optional(),
     hasAudio: z.boolean().optional(),
+    audioCodec: z.string().optional(),
+    container: z.string().optional(),
     publicUrl: z.string().optional(),
   })
   .passthrough();

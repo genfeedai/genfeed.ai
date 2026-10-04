@@ -38,6 +38,10 @@ type ModelConstructor<T> = new (partial: Partial<T>) => T;
  */
 const MAX_PUBLIC_ARTICLE_PAGES = 50;
 
+function isSuccessOrNotFound(status: number): boolean {
+  return (status >= 200 && status < 300) || status === 404;
+}
+
 export class PublicService extends HTTPBaseService {
   private static classInstance?: PublicService;
 
@@ -317,25 +321,30 @@ export class PublicService extends HTTPBaseService {
   /**
    * `previewToken` is the signed grant that unlocks an unpublished article.
    * Without it the API only ever returns published content.
+   *
+   * Resolves `null` only for a genuine 404. Network errors, timeouts and 5xx
+   * responses reject, so a server-rendered page fails (and Next.js keeps the
+   * last good ISR page) instead of caching a 404 for an article that exists.
+   * 404 is let through `validateStatus` so it never reaches the response
+   * interceptor, whose error shape differs between development and production.
    */
   public async getPublicArticleBySlug(
     slug: string,
     previewToken?: string,
   ): Promise<Article | null> {
-    return await this.instance
-      .get<JsonApiResponseDocument>(`articles/slug/${slug}`, {
+    const res = await this.instance.get<JsonApiResponseDocument>(
+      `articles/slug/${slug}`,
+      {
         params: previewToken ? { previewToken } : {},
-      })
-      .then((res) => {
-        const document = res.data;
+        validateStatus: isSuccessOrNotFound,
+      },
+    );
 
-        if (!document.data) {
-          return null;
-        }
+    if (res.status === 404 || !res.data?.data) {
+      return null;
+    }
 
-        return new Article(deserializeResource<Partial<Article>>(document));
-      })
-      .catch(() => null);
+    return new Article(deserializeResource<Partial<Article>>(res.data));
   }
 
   public async findPublicIngredientsPage(

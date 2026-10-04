@@ -70,10 +70,10 @@ Drift is caught in three places, all fatal rather than advisory:
   crashes startup when an MCP-surfaced tool classifies to no executor, or when an
   approval-gated name is not actually MCP-surfaced. A failed boot keeps
   `/v1/health` red and blocks the deploy.
-- **Agent registry + CI** — `assertExtensionsAreCurated` throws at module load
-  when `CLOUD_AGENT_TOOL_EXTENSIONS` names an action the catalog does not surface
-  to the agent, and `bun run check:agent-tool-dispatch` fails on drift in either
-  direction, cataloged-but-unroutable or routable-but-unreviewed.
+- **Agent registry + CI** — `assertUniqueAgentToolNames` throws at module load
+  when an agent tool name is defined more than once, and
+  `bun run check:agent-tool-dispatch` fails on drift in either direction,
+  cataloged-but-unroutable or routable-but-unreviewed.
 
 `.github/workflows/curated-action-catalog.yml` annotates changed catalog lines
 and publishes a step-summary table on every pull request that touches the file.
@@ -81,8 +81,8 @@ The reporter parses the file literally, so entries must stay in the canonical
 single-line form (`{ name: '...', surfaces: [...] },`) or the four-line
 publishing-approval variant.
 
-`CLOUD_AGENT_TOOL_EXTENSIONS` refines cataloged actions with cloud-only schema or
-prompt wording. It is not a place to introduce an action.
+The catalog is the only definition of an agent tool. There is no agent-side
+override layer: schema, description and credit changes are made in the catalog.
 
 ## Why the surfaces differ
 

@@ -905,9 +905,9 @@ export class SystemWorkflowRunnerService
     );
     const source = this.optionalString(metadata.source);
     const dispatchClass =
-      metadata.dispatchClass === SystemWorkflowDispatchClass.INTERACTIVE
-        ? SystemWorkflowDispatchClass.INTERACTIVE
-        : SystemWorkflowDispatchClass.BACKGROUND;
+      Object.values(SystemWorkflowDispatchClass).find(
+        (value) => value === metadata.dispatchClass,
+      ) ?? SystemWorkflowDispatchClass.BACKGROUND;
     return {
       dispatchClass,
       usePlatformQueue:

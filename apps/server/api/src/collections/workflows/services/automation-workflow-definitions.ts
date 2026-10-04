@@ -544,12 +544,9 @@ export function buildPaidCreativeResearchWorkflowDefinition(): SystemWorkflowGra
           target: finalize.id,
           targetHandle: 'state',
         },
-        {
-          id: 'discover-finalize',
-          source: discover.id,
-          target: finalize.id,
-          targetHandle: 'discovery',
-        },
+        // `paid-creative.research.finalize` declares only `state` + `batch`
+        // and never reads discovery, so no `discovery` edge is wired; the
+        // fan-out already orders finalize after discover.
         {
           id: 'fanout-finalize',
           source: fanOut.id,
