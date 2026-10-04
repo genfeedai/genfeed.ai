@@ -22,6 +22,7 @@ function fixture() {
     {} as never,
     {} as never,
     {} as never,
+    {} as never,
     {
       resolveCharacterReferences: vi
         .fn()
