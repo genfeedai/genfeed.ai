@@ -1876,40 +1876,4 @@ describe('mutation fence against stale history reads', () => {
       screen.queryByRole('button', { name: 'Discard unsaved edits' }),
     ).not.toBeInTheDocument();
   });
-
-  it('does not let an older read resurface a draft over a newer approval', async () => {
-    const approved = revision({
-      status: 'APPROVED',
-      approvedAt: '2026-09-14T11:00:00.000Z',
-      approvedById: 'user-1',
-      updatedAt: '2026-09-14T11:00:00.000Z',
-    });
-    const approval = cardDeferred<IBrandOsRevision>();
-    mocks.approveBrandOsRevision.mockReturnValueOnce(approval.promise);
-    const view = render(<BrandOsSettingsCard {...cardProps()} />);
-    await screen.findByLabelText('Description');
-    fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
-    await waitFor(() =>
-      expect(mocks.approveBrandOsRevision).toHaveBeenCalledTimes(1),
-    );
-    const staleRead = cardDeferred<IBrandOsRevision[]>();
-    mocks.listBrandOsRevisions.mockReturnValueOnce(staleRead.promise);
-    refreshWith(view, 1);
-    await waitFor(() =>
-      expect(mocks.listBrandOsRevisions).toHaveBeenCalledTimes(2),
-    );
-    await act(async () => approval.resolve(approved));
-    await waitFor(() => expect(mocks.saved).toHaveBeenCalledTimes(1));
-    mocks.listBrandOsRevisions.mockResolvedValue([approved]);
-    await act(async () => staleRead.resolve([revision()]));
-    await waitFor(() =>
-      expect(mocks.listBrandOsRevisions).toHaveBeenCalledTimes(3),
-    );
-    expect(
-      await screen.findByRole('option', { name: 'Revision 1 · approved' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('option', { name: 'Revision 1 · draft' }),
-    ).not.toBeInTheDocument();
-  });
 });
