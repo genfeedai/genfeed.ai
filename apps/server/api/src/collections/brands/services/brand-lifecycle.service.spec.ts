@@ -346,6 +346,46 @@ describe('BrandLifecycleService', () => {
       expect(delegate.update).not.toHaveBeenCalled();
     });
 
+    it('takes the organization persona-handle advisory lock before checking shared characters and grants', async () => {
+      await service.remove(brandId);
+
+      const lockCall = txQueryRaw.mock.calls.findIndex(
+        (call) =>
+          (call[0] as string[]).join(' ').includes('hashtextextended') &&
+          call[1] === `persona-handle:${organizationId}`,
+      );
+      expect(lockCall).toBeGreaterThanOrEqual(0);
+      const lockOrder = txQueryRaw.mock.invocationCallOrder[lockCall];
+      expect(lockOrder).toBeLessThan(
+        personaDelegate.findMany.mock.invocationCallOrder[0],
+      );
+      expect(lockOrder).toBeLessThan(
+        personaGrantDelegate.findMany.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('sees a grant committed by a concurrent sharing transaction once the lock is acquired', async () => {
+      // Sharing holds the org lock; the grant becomes visible only when this
+      // transaction acquires it, so the re-check under the lock must refuse.
+      let sharingCommitted = false;
+      txQueryRaw.mockImplementation(async (strings: TemplateStringsArray) => {
+        if (strings.join(' ').includes('hashtextextended')) {
+          sharingCommitted = true;
+        }
+        return [{ id: 'locked' }];
+      });
+      personaGrantDelegate.findMany.mockImplementation(async () =>
+        sharingCommitted
+          ? [{ persona: { handle: 'anna', id: 'persona-1', label: 'Anna' } }]
+          : [],
+      );
+
+      await expect(service.remove(brandId)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(delegate.update).not.toHaveBeenCalled();
+    });
+
     it('deletes a brand that owns no shared characters', async () => {
       personaDelegate.findMany.mockResolvedValue([]);
 
@@ -384,7 +424,7 @@ describe('BrandLifecycleService', () => {
       // Every transactional step runs before anything else, all inside the
       // one $transaction call this test's fake client hands the same tx —
       // including the FOR UPDATE lock query on the org's live brand rows.
-      expect(txQueryRaw).toHaveBeenCalledTimes(4);
+      expect(txQueryRaw).toHaveBeenCalledTimes(5);
       expect(txQueryRaw.mock.calls[0][0].join(' ')).toContain(
         'pg_advisory_xact_lock',
       );

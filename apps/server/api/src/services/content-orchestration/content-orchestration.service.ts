@@ -11,6 +11,7 @@ import type {
 import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { buildContentPipelineWorkflowDefinition } from '@api/services/content-orchestration/content-pipeline-workflow-definition';
+import { extractInternalMediaAssetId } from '@api/services/content-orchestration/internal-media-asset-id.util';
 import type {
   PipelineConfigV2,
   PipelineResultV2,
@@ -202,6 +203,24 @@ export class ContentOrchestrationService implements OnModuleInit {
       ? (pipelineContext.runReferences as PipelineConfig['runReferences'])
       : undefined;
     const globalPrompt = this.optionalString(input.prompt);
+
+    // Only a persona-autopilot run (publishMode other than 'none') acts as the
+    // persona itself. Brand content-plan runs pass the brand id as personaId
+    // and must admit every asset they feed to a provider, including canonical
+    // internal media URLs (#6040).
+    if (this.readPublishMode(input.publishMode) === 'none') {
+      await this.personasService.resolveCharacterReferences({
+        brandId,
+        ingredientIds: [
+          ...(runReferences ?? []).map((reference) => reference.assetId),
+          ...(step.type === 'image-to-video'
+            ? [extractInternalMediaAssetId(step.imageUrl)]
+            : []),
+        ].filter((id): id is string => typeof id === 'string' && id.length > 0),
+        organizationId: request.context.organizationId,
+        path: 'workflow',
+      });
+    }
 
     const result = await Sentry.startSpan(
       {

@@ -156,6 +156,7 @@ describe('ContentOrchestrationService', () => {
 
     mockPersonasService = {
       findOne: vi.fn().mockResolvedValue(mockPersona),
+      resolveCharacterReferences: vi.fn().mockResolvedValue({}),
     };
 
     mockStepExecutorService = {
@@ -480,6 +481,62 @@ describe('ContentOrchestrationService', () => {
       await expect(service.generateAndPublish(baseConfig)).rejects.toThrow(
         'Publishing failed',
       );
+    });
+  });
+
+  describe('generateAndPublish - character admission (#6040)', () => {
+    const videoStep: PipelineStep = {
+      imageUrl: 'https://cdn.example.com/images/revoked-character-asset',
+      model: VideoTaskModel.HIGGSFIELD,
+      type: 'image-to-video',
+    };
+
+    it('admits canonical internal media URLs of brand content before any provider call', async () => {
+      await service.generateAndPublish({
+        ...baseConfig,
+        publishMode: 'none',
+        steps: [videoStep],
+      });
+
+      expect(
+        mockPersonasService.resolveCharacterReferences,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ingredientIds: expect.arrayContaining(['revoked-character-asset']),
+          path: 'workflow',
+        }),
+      );
+    });
+
+    it('refuses a revoked character before the provider is called', async () => {
+      mockPersonasService.resolveCharacterReferences.mockRejectedValue(
+        new Error('Reference image not found'),
+      );
+
+      const result = await service
+        .generateAndPublish({
+          ...baseConfig,
+          publishMode: 'none',
+          steps: [videoStep],
+        })
+        .catch((error: unknown) => error);
+
+      expect(mockStepExecutorService.execute).not.toHaveBeenCalled();
+      expect(
+        result instanceof Error ||
+          (result as { status?: string }).status === 'failed',
+      ).toBe(true);
+    });
+
+    it('does not admit persona-autopilot runs, which act as the persona', async () => {
+      await service.generateAndPublish({
+        ...baseConfig,
+        publishMode: 'final',
+      });
+
+      expect(
+        mockPersonasService.resolveCharacterReferences,
+      ).not.toHaveBeenCalled();
     });
   });
 

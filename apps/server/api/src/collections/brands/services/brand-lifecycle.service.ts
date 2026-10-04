@@ -3,6 +3,7 @@ import {
   finishBrandLearningMutation,
   lockBrandLearningMutation,
 } from '@api/collections/brands/services/brand-learning-mutation.util';
+import { lockPersonaHandleScope } from '@api/collections/personas/utils/persona-handle-lock.util';
 import {
   CACHE_PATTERNS,
   SCOPED_CACHE_TAGS,
@@ -67,6 +68,11 @@ export class BrandLifecycleService {
           lockAllSourceBrands: true,
         });
         const organizationId = scope.organizationId;
+
+        // Sharing and grant mutations hold this org lock, so deletion and
+        // sharing serialize: the shared-character and active-grant checks
+        // below read committed state after any in-flight sharing finishes.
+        await lockPersonaHandleScope(tx, organizationId);
 
         // Re-read under the lock: a transaction that committed first while we
         // were blocked may have already deleted this brand, or consumed the

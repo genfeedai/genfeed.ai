@@ -96,6 +96,11 @@ const ENTRY_POINTS: readonly GenerationEntryPoint[] = [
     surface: 'Storyboard character replacement',
   },
   {
+    file: 'services/content-orchestration/content-orchestration.service.ts',
+    path: 'workflow',
+    surface: 'brand content-plan pipeline runs (publishMode none)',
+  },
+  {
     file: 'services/agent-orchestrator/tools/agent-media-generation-references.ts',
     path: 'agent-handles',
     surface: 'Agent tool character handles',
@@ -104,12 +109,12 @@ const ENTRY_POINTS: readonly GenerationEntryPoint[] = [
 
 /**
  * Generation inputs that carry no character on purpose, with the reason.
- * Persona content pipelines act as the character; they do not take one as a
- * reference from a brand that may have lost it.
+ * Only genuine persona-autopilot runs act as the character; they do not take
+ * one as a reference from a brand that may have lost it. Brand content-plan
+ * runs go through the content-orchestration entry point above and are admitted.
  */
 const EXEMPT_CALLERS: readonly string[] = [
   'services/ai-influencer/ai-influencer.service.ts',
-  'services/content-orchestration/content-orchestration.service.ts',
 ];
 
 /** DTOs whose fields feed assets into a generation, and where they are admitted. */
@@ -173,6 +178,15 @@ describe('character admission path coverage (#6040)', () => {
       }
     },
   );
+
+  it('does not exempt brand content orchestration from admission', () => {
+    expect(EXEMPT_CALLERS).not.toContain(
+      'services/content-orchestration/content-orchestration.service.ts',
+    );
+    expect(
+      read('services/content-orchestration/content-orchestration.service.ts'),
+    ).toMatch(ADMISSION_CALL);
+  });
 
   it('only uses declared admission path labels', () => {
     const declared = new Set<string>(CHARACTER_ADMISSION_PATHS);

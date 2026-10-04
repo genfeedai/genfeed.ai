@@ -546,11 +546,12 @@ export class StoryboardCharacterReplaceService {
       [videoAssetId],
       'VIDEO',
     );
-    // A character the brand can no longer use is refused before any media is
-    // read or the operation is journaled (#6040).
+    // A character the brand can no longer use, as a reference image or as the
+    // source video, is refused before any media is read or the operation is
+    // journaled (#6040).
     await this.personasService.resolveCharacterReferences({
       brandId: brand,
-      ingredientIds: input.imageAssetIds,
+      ingredientIds: [videoAssetId, ...input.imageAssetIds],
       organizationId: org,
       path: 'storyboard',
     });
