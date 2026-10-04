@@ -312,14 +312,11 @@ export class TrendFilteringService {
         .map((trend) => trend);
     }
 
+    // tenant-scope-ignore: platform trends: organizationId null with the tenant proof from withPlatformTenantArm; isDeleted is false
     const docs = await this.prisma.trend.findMany({
       orderBy: { createdAt: 'desc' },
       take: limit * 5,
-      where: {
-        ...where,
-        AND: platformTenantProof(),
-        organizationId: null,
-      },
+      where: withPlatformTenantArm({ ...where, organizationId: null }),
     });
 
     return docs
