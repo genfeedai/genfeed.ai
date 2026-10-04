@@ -211,7 +211,7 @@ export default function LibraryTagManagerDialog() {
       <DialogTrigger asChild>
         <Button
           ariaLabel={translate('manageTags')}
-          className="h-7 rounded-full px-2 text-xs text-foreground/50 hover:text-foreground"
+          className="h-control-sm rounded-full px-2 text-xs text-foreground/50 hover:text-foreground"
           icon={<Settings2 className="size-3.5" />}
           tooltip={translate('manageTags')}
           variant={ButtonVariant.UNSTYLED}

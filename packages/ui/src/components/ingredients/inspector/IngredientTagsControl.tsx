@@ -129,7 +129,7 @@ export default function IngredientTagsControl({
           trigger={
             <Button
               ariaLabel={translate('addTag')}
-              className="h-6 gap-1 rounded-full border border-dashed border-foreground/25 px-2 text-xs text-foreground/60 hover:text-foreground"
+              className="h-control-sm gap-1 rounded-full border border-dashed border-foreground/25 px-2 text-xs text-foreground/60 hover:text-foreground"
               icon={<Plus className="size-3" />}
               label={translate('addTag')}
               type="button"

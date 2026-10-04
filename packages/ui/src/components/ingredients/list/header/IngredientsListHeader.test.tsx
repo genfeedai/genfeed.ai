@@ -27,6 +27,11 @@ describe('IngredientsListHeader', () => {
   it('hands the bulk tag control to the selection bar', () => {
     render(
       <IngredientsListHeader
+        canMerge={false}
+        isMerging={false}
+        onBulkDelete={vi.fn()}
+        onClearSelection={vi.fn()}
+        onMerge={vi.fn()}
         selectedCount={2}
         tagAction={<button type="button">Tag</button>}
       />,

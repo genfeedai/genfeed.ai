@@ -42,7 +42,12 @@ describe('LibraryTagChip', () => {
   it('falls back to the theme surface for a color it cannot read', () => {
     render(
       <LibraryTagChip
-        tag={{ backgroundColor: 'teal', id: 't1', label: 'Odd' }}
+        tag={{
+          backgroundColor: 'teal',
+          id: 't1',
+          label: 'Odd',
+          textColor: '#ffffff',
+        }}
       />,
     );
 

@@ -44,6 +44,15 @@ describe('character generation tool params (#3441)', () => {
     );
   });
 
+  it('lets agent and MCP callers filter list_assets by up to 25 characters (#6053)', () => {
+    expect(listAssets?.parameters.properties.characterIds).toMatchObject({
+      items: { type: 'string' },
+      maxItems: 25,
+      type: 'array',
+    });
+    expect(listAssets?.parameters.required).not.toContain('characterIds');
+  });
+
   it('lets list_assets filter by tags, any or all, like characters and origin', () => {
     expect(listAssets?.parameters.properties.tags).toMatchObject({
       items: { type: 'string' },

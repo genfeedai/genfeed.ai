@@ -114,6 +114,8 @@ describe('SelectionActionsBar', () => {
     render(
       <SelectionActionsBar
         count={3}
+        onBulkDelete={vi.fn()}
+        onClear={vi.fn()}
         onDownload={vi.fn()}
         tagAction={<button type="button">Tag</button>}
       />,
@@ -130,7 +132,13 @@ describe('SelectionActionsBar', () => {
   });
 
   it('renders no tag control when none is supplied', () => {
-    render(<SelectionActionsBar count={3} />);
+    render(
+      <SelectionActionsBar
+        count={3}
+        onBulkDelete={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
 
     expect(
       screen.queryByRole('button', { name: 'Tag' }),
