@@ -1,5 +1,9 @@
-import { EvaluationResultProjection } from '@api/collections/evaluations/services/evaluation-result.projection';
+import {
+  EvaluationResultProjection,
+  type PostThreadChild,
+} from '@api/collections/evaluations/services/evaluation-result.projection';
 import type { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 
 // Everything the judge sees besides the prompt templates is assembled here:
 // content selection and the brand/prompt/metadata context for each content
@@ -75,4 +79,26 @@ export function buildArticleJudgeContext(
       title: projection.readString(article.label),
     }),
   };
+}
+
+// The article field sent to the judge as content; an empty one is rejected.
+export function selectArticleJudgeContent(
+  article: { content?: string | null },
+  articleId: string,
+): string {
+  if (!article.content) {
+    throw new NotFoundException(`Article ${articleId} has no content`);
+  }
+  return article.content;
+}
+
+// Thread children the post judge scores alongside the root post.
+export async function loadPostThreadChildren(
+  source: { getChildren(postId: string): Promise<unknown> } | undefined,
+  postId: string,
+): Promise<PostThreadChild[]> {
+  const children = (await source?.getChildren(postId)) as
+    | PostThreadChild[]
+    | undefined;
+  return children ?? [];
 }

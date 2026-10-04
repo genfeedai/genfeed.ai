@@ -10,14 +10,15 @@ import {
   buildImageJudgeContext,
   buildVideoJudgeContext,
   type EvaluationJudgeContext,
+  loadPostThreadChildren,
   PREVIOUS_EVALUATION_ORDER_BY,
+  selectArticleJudgeContent,
 } from '@api/collections/evaluations/services/evaluation-judge-input';
 import {
   type EvaluationAiResult,
   type EvaluationData,
   EvaluationResultProjection,
   type PostEvaluationContent,
-  type PostThreadChild,
   type PublicationMetrics,
 } from '@api/collections/evaluations/services/evaluation-result.projection';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
@@ -202,8 +203,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           scopedWhere(organizationId, { id: contentId }),
         );
         if (!article) throw new NotFoundException('Article', contentId);
-        if (!article.content)
-          throw new NotFoundException(`Article ${contentId} has no content`);
+        selectArticleJudgeContent(article, contentId);
         break;
       }
       case 'post': {
@@ -454,15 +454,14 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     );
 
     if (!article) throw new NotFoundException('Article', articleId);
-    if (!article.content)
-      throw new NotFoundException(`Article ${articleId} has no content`);
+    const articleContent = selectArticleJudgeContent(article, articleId);
 
     const brand = article.brand as { name?: string; guidelines?: string };
     const context = buildArticleJudgeContext(article, brand);
 
     let billedCredits = 0;
     const aiResult = (await this.evaluationsOperationsService.evaluateArticle(
-      article.content,
+      articleContent,
       context,
       organizationId,
       (amount) => {
@@ -572,9 +571,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     let creditsSettled = false;
 
     try {
-      const children = (await this.postsService?.getChildren(postId)) as
-        | PostThreadChild[]
-        | undefined;
+      const children = await loadPostThreadChildren(this.postsService, postId);
       const previousEvaluation = await this.prisma.evaluation.findFirst({
         where: scopedWhere(organizationId, {
           contentId: postId,
@@ -585,7 +582,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       const { context, threadContent } =
         evaluationResultProjection.buildPostEvaluationContext(
           post,
-          children ?? [],
+          children,
           previousEvaluation,
         );
 

@@ -86,7 +86,10 @@ describe('scoring surface', () => {
 
   it.each([
     ['prompt', PROMPTS_PATH],
-    ['judge context assembly', JUDGE_INPUT_PATH],
+    [
+      'judge input assembly (article content, post children, contexts)',
+      JUDGE_INPUT_PATH,
+    ],
     ['rubric', RUBRICS_PATH],
     ['model constant', MODEL_CONSTANT_PATH],
   ])(
