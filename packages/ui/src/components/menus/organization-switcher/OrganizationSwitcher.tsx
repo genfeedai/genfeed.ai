@@ -7,6 +7,9 @@ import {
   APP_ROUTES,
   createOrganizationAppRoute,
   getOrgSwitchHref,
+  ORGANIZATION_DESCRIPTION_MAX_LENGTH,
+  ORGANIZATION_NAME_MAX_LENGTH,
+  ORGANIZATION_WEBSITE_MAX_LENGTH,
 } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -21,14 +24,19 @@ import {
 } from '@ui/menus/switchers/switcher-trigger.classes';
 import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
+import Field from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { ChevronsUpDown, Settings } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 
 import { useCreateOrganizationModal } from './use-create-organization-modal';
+
+const CREATE_ORGANIZATION_FORM_ID = 'create-organization-form';
 
 interface OrganizationSwitcherProps {
   compactOnMobile?: boolean;
@@ -55,6 +63,7 @@ export default function OrganizationSwitcher({
   const isLoading = status === 'loading';
   const isSwitching = status === 'switching';
   const createModal = useCreateOrganizationModal(getOrgsService);
+  const translateCreate = useTranslations('ui.organizationCreateModal');
   const activeOrg = orgs.find((o) => o.id === activeOrgId);
   const organizationLimit = getOrganizationLimitForTier(subscriptionTier);
   const hasOwnershipMetadata = orgs.some(
@@ -185,57 +194,81 @@ export default function OrganizationSwitcher({
           onCloseAutoFocus={(event) => event.preventDefault()}
         >
           <Modal.Header>
-            <Modal.Title>Create Organization</Modal.Title>
+            <Modal.Title>{translateCreate('title')}</Modal.Title>
             <Modal.Description>
-              A new workspace with a default brand and 100 starter credits.
+              {translateCreate('description')}
             </Modal.Description>
           </Modal.Header>
 
           <Modal.Body>
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="org-switcher-name"
-                  className="text-xs font-medium text-foreground/70"
-                >
-                  Name <span className="text-destructive">*</span>
-                </label>
+            <Form
+              id={CREATE_ORGANIZATION_FORM_ID}
+              noValidate
+              onSubmit={(event) => {
+                event.preventDefault();
+                void createModal.submit();
+              }}
+            >
+              <Field
+                error={createModal.fieldErrors.label}
+                htmlFor="org-switcher-name"
+                isRequired
+                label={translateCreate('nameLabel')}
+              >
                 <Input
-                  id="org-switcher-name"
                   type="text"
-                  value={createModal.label}
-                  onChange={(e) => createModal.setLabel(e.target.value)}
-                  placeholder="My Organization"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      void createModal.submit();
-                    }
-                  }}
+                  value={createModal.values.label}
+                  onChange={(e) =>
+                    createModal.setField('label', e.target.value)
+                  }
+                  onBlur={() => createModal.touchField('label')}
+                  placeholder={translateCreate('namePlaceholder')}
+                  maxLength={ORGANIZATION_NAME_MAX_LENGTH}
                 />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="org-switcher-description"
-                  className="text-xs font-medium text-foreground/70"
-                >
-                  Description{' '}
-                  <span className="text-foreground/30">(optional)</span>
-                </label>
+              </Field>
+              <Field
+                error={createModal.fieldErrors.websiteUrl}
+                helpText={translateCreate('websiteHelp')}
+                htmlFor="org-switcher-website"
+                label={translateCreate('websiteLabel')}
+              >
+                <Input
+                  type="text"
+                  inputMode="url"
+                  autoComplete="url"
+                  value={createModal.values.websiteUrl}
+                  onChange={(e) =>
+                    createModal.setField('websiteUrl', e.target.value)
+                  }
+                  onBlur={() => createModal.touchField('websiteUrl')}
+                  placeholder={translateCreate('websitePlaceholder')}
+                  maxLength={ORGANIZATION_WEBSITE_MAX_LENGTH}
+                />
+              </Field>
+              <Field
+                error={createModal.fieldErrors.description}
+                helpText={translateCreate('descriptionHelp')}
+                htmlFor="org-switcher-description"
+                label={translateCreate('descriptionLabel')}
+              >
                 <Textarea
-                  id="org-switcher-description"
-                  value={createModal.description}
-                  onChange={(e) => createModal.setDescription(e.target.value)}
-                  placeholder="What does this organization do?"
+                  value={createModal.values.description}
+                  onChange={(e) =>
+                    createModal.setField('description', e.target.value)
+                  }
+                  onBlur={() => createModal.touchField('description')}
+                  placeholder={translateCreate('descriptionPlaceholder')}
                   rows={2}
                   className="resize-none"
+                  maxLength={ORGANIZATION_DESCRIPTION_MAX_LENGTH}
                 />
-              </div>
+              </Field>
               {createModal.createError && (
-                <p className="text-xs text-destructive">
+                <p role="alert" className="text-sm text-destructive">
                   {createModal.createError}
                 </p>
               )}
-            </div>
+            </Form>
           </Modal.Body>
 
           <Modal.Footer>
@@ -245,17 +278,20 @@ export default function OrganizationSwitcher({
                 withWrapper={false}
                 className="px-4 py-2 text-sm text-foreground/60 hover:text-foreground transition-colors"
               >
-                Cancel
+                {translateCreate('cancel')}
               </Button>
             </Modal.CloseButton>
             <Button
+              type="submit"
+              form={CREATE_ORGANIZATION_FORM_ID}
               variant={ButtonVariant.DEFAULT}
               withWrapper={false}
-              isDisabled={createModal.isCreating || !createModal.label.trim()}
-              onClick={() => void createModal.submit()}
+              isDisabled={createModal.isCreating || !createModal.isValid}
               className="rounded-lg px-4 py-2 text-sm font-medium"
             >
-              {createModal.isCreating ? 'Creating\u2026' : 'Create'}
+              {createModal.isCreating
+                ? translateCreate('creating')
+                : translateCreate('create')}
             </Button>
           </Modal.Footer>
         </Modal.Content>

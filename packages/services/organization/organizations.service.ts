@@ -1,3 +1,4 @@
+import type { CreateOrganizationPayload } from '@genfeedai/client/schemas';
 import {
   type AnalyticsMetric,
   IngredientCategory,
@@ -526,10 +527,7 @@ export class OrganizationsService extends BaseService<Organization> {
   /**
    * Create a new organization and switch to it.
    */
-  public async createOrganization(data: {
-    label: string;
-    description?: string;
-  }): Promise<{
+  public async createOrganization(data: CreateOrganizationPayload): Promise<{
     organization: { id: string; label: string };
     brand: { id: string; label: string };
   }> {

@@ -577,7 +577,7 @@
     "packages/ui/src/components/masonry/shared/MasonryBrandLogo.tsx": 2,
     "packages/ui/src/components/masonry/shared/MasonryConfirmBridge.tsx": 3,
     "packages/ui/src/components/masonry/video/MasonryVideoMediaArea.tsx": 1,
-    "packages/ui/src/components/menus/organization-switcher/OrganizationSwitcher.tsx": 9,
+    "packages/ui/src/components/menus/organization-switcher/OrganizationSwitcher.tsx": 1,
     "packages/ui/src/components/menus/shared/MenuShared.tsx": 1,
     "packages/ui/src/components/menus/shared/MenuSharedConversations.tsx": 3,
     "packages/ui/src/components/menus/shared/MenuSharedPrimaryAction.tsx": 2,

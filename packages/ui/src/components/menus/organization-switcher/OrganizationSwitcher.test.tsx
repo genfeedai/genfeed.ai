@@ -25,6 +25,11 @@ let mockIsSuperAdmin = false;
 let mockIsAccessLoading = false;
 let mockSubscriptionTier: string | null = 'scale';
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    ({ switching: 'Switching…' })[key] ?? key,
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname,
   useParams: () => mockParams,
