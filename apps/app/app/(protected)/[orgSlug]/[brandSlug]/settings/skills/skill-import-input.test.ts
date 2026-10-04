@@ -235,7 +235,7 @@ describe('shared skill package limits', () => {
     await expect(
       buildSkillImportInput([root()], {
         slug: 'skill',
-        sourceUrl: 'https://example.com/\\@evil.test',
+        sourceUrl: 'https://example.com\\@evil.test',
       }),
     ).rejects.toMatchObject({ code: 'SOURCE_URL' });
     await expect(

@@ -378,7 +378,7 @@ describe('shared skill package limits', () => {
     expect(() =>
       parseSkillPackageManifest({
         ...request(),
-        sourceUrl: 'https://example.com/\\@evil.test',
+        sourceUrl: 'https://example.com\\@evil.test',
       }),
     ).toThrow(BadRequestException);
     expect(

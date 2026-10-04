@@ -239,7 +239,7 @@ describe('shared skill package limits', () => {
     const big = await file('big/SKILL.md', 'a'.repeat(SKILL_PACKAGE_LIMITS.entryBytes + 1));
     await expect(readSkillPackageInput(big, { slug: 'skill' })).rejects.toThrow();
     await expect(
-      readSkillPackageInput(root, { slug: 'skill', sourceUrl: 'https://example.com/\\@evil.test' })
+      readSkillPackageInput(root, { slug: 'skill', sourceUrl: 'https://example.com\\@evil.test' })
     ).rejects.toThrow();
     await expect(
       readSkillPackageInput(root, { slug: 'skill', sourceUrl: 'https://example.com/path\\@x' })
