@@ -6,18 +6,12 @@ import {
   getRuntimeMarginMultiplier,
   quoteModelBillablePricing,
 } from '@genfeedai/pricing';
-import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 /** Authoritative admission quote from the exact raw model/provider tariff. */
 @Injectable()
 export class ModelCreditQuoteService {
-  private readonly context = 'ModelCreditQuoteService';
-
-  constructor(
-    private readonly modelsService: ModelsService,
-    private readonly logger: LoggerService,
-  ) {}
+  constructor(private readonly modelsService: ModelsService) {}
 
   async quoteByKey(
     modelKey: string,
@@ -56,13 +50,6 @@ export class ModelCreditQuoteService {
     modelKey: string,
     reason: string,
   ): ServiceUnavailableException {
-    // The 503 body carries the reason for the caller only; without this line
-    // nothing in the API log says which tariff gate refused the quote.
-    this.logger.warn('Generation pricing unavailable', {
-      context: this.context,
-      modelKey,
-      reason,
-    });
     return new ServiceUnavailableException({
       code: 'PRICING_UNAVAILABLE',
       detail: reason,

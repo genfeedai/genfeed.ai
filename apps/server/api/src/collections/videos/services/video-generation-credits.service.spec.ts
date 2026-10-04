@@ -564,12 +564,9 @@ describe('VideoGenerationCreditsService', () => {
         ],
       },
     });
-    const strictQuote = new ModelCreditQuoteService(
-      {
-        findBillablePricingProfile: vi.fn().mockResolvedValue(profile),
-      } as never,
-      { warn: vi.fn() } as never,
-    );
+    const strictQuote = new ModelCreditQuoteService({
+      findBillablePricingProfile: vi.fn().mockResolvedValue(profile),
+    } as never);
     const credits = new VideoGenerationCreditsService(
       creditsUtilsService as never,
       modelsService as never,
