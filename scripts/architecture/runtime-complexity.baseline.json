@@ -54,12 +54,6 @@
     "symbol": "LearningRunService.execute"
   },
   {
-    "actual": 278,
-    "file": "apps/server/api/src/collections/content-learning/services/learning-run.service.ts",
-    "metric": "method-lines",
-    "symbol": "LearningRunService.reconcileDispatch"
-  },
-  {
     "actual": 1114,
     "file": "apps/server/api/src/collections/content-runs/services/brand-remix-run-execution.service.ts",
     "metric": "file-lines",

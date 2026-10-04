@@ -1,3 +1,11 @@
+import type {
+  LearningRunClaim,
+  LearningRunClock,
+  LearningRunDispatchContext,
+  LearningRunDispatchOutcome,
+  LearningRunDispatchScope,
+  LearningRunReceiptRecovery,
+} from '@api/collections/content-learning/interfaces/learning-run-dispatch.interface';
 import {
   LearningDependencyService,
   learningOrgFence,
@@ -29,8 +37,6 @@ import {
 } from '@genfeedai/harness';
 import {
   type ContentLearningDatasetEntry,
-  type ContentLearningOperation,
-  type ContentLearningRun,
   Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
@@ -39,20 +45,7 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
-export interface LearningRunDispatchInput {
-  runId: string;
-  operationId: string;
-  organizationId: string;
-}
-interface LearningRunClock {
-  now: Date;
-}
-interface LearningRunClaim {
-  run: ContentLearningRun;
-  operation: ContentLearningOperation;
-  receipt: LearningRunDispatchReceiptV1;
-  token: Date;
-}
+export type LearningRunDispatchInput = LearningRunDispatchScope;
 export function parseLearningRunDispatch(
   value: unknown,
 ): LearningRunDispatchReceiptV1 | null {
@@ -215,269 +208,35 @@ export class LearningRunService {
   }
   async reconcileDispatch(
     input: LearningRunDispatchInput,
-  ): Promise<{ operation: ContentLearningOperation; dispatchable: boolean }> {
+  ): Promise<LearningRunDispatchOutcome> {
     return this.prisma.$transaction(async (tx) => {
       await learningOrgFence(tx, input.organizationId, 'shared');
       const { run, operation, now } = await this.lockedDispatch(tx, input);
+      const ctx: LearningRunDispatchContext = { input, run, operation, now };
       if (terminalStatuses.has(operation.status))
         return { operation, dispatchable: false };
-      let receipt = parseLearningRunDispatch(operation.resultReferences);
-      if (!receipt) {
-        if (
-          operation.status === 'pending' &&
-          run.status === 'pending' &&
-          !run.startedAt &&
-          operation.resultReferences !== null &&
-          typeof operation.resultReferences === 'object' &&
-          !Array.isArray(operation.resultReferences) &&
-          !('dispatchVersion' in operation.resultReferences)
-        ) {
-          receipt = {
-            dispatchVersion: 1,
-            runId: run.id,
-            datasetId: run.datasetId,
-            retryOfOperationId: null,
-            attemptCount: 0,
-            nextAttemptAt: null,
-            claimedStartedAt: null,
-          };
-          await tx.contentLearningOperation.updateMany({
-            where: {
-              id: operation.id,
-              organizationId: input.organizationId,
-              isDeleted: false,
-              status: 'pending',
-            },
-            data: { resultReferences: toPrismaJson(receipt) },
-          });
-        } else {
-          const freshLegacy =
-            run.status === 'running' &&
-            run.startedAt &&
-            now.getTime() < run.startedAt.getTime() + 300000;
-          if (freshLegacy) return { operation, dispatchable: false };
-          const error =
-            run.status === 'running'
-              ? 'legacy_claim_unverifiable'
-              : 'dispatch_receipt_invalid';
-          await tx.contentLearningOperation.updateMany({
-            where: {
-              id: operation.id,
-              organizationId: input.organizationId,
-              isDeleted: false,
-            },
-            data: { status: 'failed', error },
-          });
-          if (['pending', 'running'].includes(run.status))
-            await tx.contentLearningRun.updateMany({
-              where: {
-                id: run.id,
-                isDeleted: false,
-                status: run.status,
-                startedAt: run.startedAt,
-              },
-              data: {
-                status: 'failed',
-                error,
-                report: Prisma.DbNull,
-                completedAt: now,
-              },
-            });
-          return {
-            operation: { ...operation, status: 'failed', error },
-            dispatchable: false,
-          };
-        }
-      }
-      if (receipt.datasetId !== run.datasetId || receipt.runId !== run.id) {
-        await tx.contentLearningOperation.updateMany({
-          where: {
-            id: operation.id,
-            organizationId: input.organizationId,
-            isDeleted: false,
-            status: operation.status,
-          },
-          data: { status: 'failed', error: 'dispatch_receipt_invalid' },
-        });
-        return {
-          operation: {
-            ...operation,
-            status: 'failed',
-            error: 'dispatch_receipt_invalid',
-          },
-          dispatchable: false,
-        };
-      }
-      if (terminalStatuses.has(run.status)) {
-        const result =
-          run.completedAt &&
-          receipt.claimedStartedAt === run.startedAt?.toISOString()
-            ? learningRunTerminalResult(run, run.completedAt)
-            : null;
-        const status = result
-          ? learningRunOperationStatus(run.status)
-          : 'failed';
-        await tx.contentLearningOperation.updateMany({
-          where: {
-            id: operation.id,
-            organizationId: input.organizationId,
-            isDeleted: false,
-            status: operation.status,
-          },
-          data: {
-            status: status ?? 'failed',
-            error: result ? run.error : 'dispatch_receipt_invalid',
-            resultReferences: toPrismaJson({
-              ...receipt,
-              ...(result ? { terminalResult: result } : {}),
-            }),
-          },
-        });
-        return {
-          operation: {
-            ...operation,
-            status: status ?? 'failed',
-            error: result ? run.error : 'dispatch_receipt_invalid',
-          },
-          dispatchable: false,
-        };
-      }
+      const recovery = await this.recoverReceipt(tx, ctx);
+      if (recovery.outcome) return recovery.outcome;
+      const receipt = recovery.receipt as LearningRunDispatchReceiptV1;
+      if (receipt.datasetId !== run.datasetId || receipt.runId !== run.id)
+        return this.failDispatchOperation(
+          tx,
+          ctx,
+          'dispatch_receipt_invalid',
+          operation.status,
+        );
+      if (terminalStatuses.has(run.status))
+        return this.settleTerminalRun(tx, ctx, receipt);
       if (
         !(await this.actorActive(tx, operation.actorId)) ||
         !(await this.dependencies.valid('run', run.id, tx, null))
-      ) {
-        await tx.contentLearningRun.updateMany({
-          where: {
-            id: run.id,
-            isDeleted: false,
-            status: run.status,
-            startedAt: run.startedAt,
-          },
-          data: {
-            status: 'invalidated',
-            error: 'authorization_or_source_withdrawn',
-            report: Prisma.DbNull,
-            completedAt: now,
-          },
-        });
-        await tx.contentLearningOperation.updateMany({
-          where: {
-            id: operation.id,
-            organizationId: input.organizationId,
-            isDeleted: false,
-            status: operation.status,
-          },
-          data: {
-            status: 'invalidated',
-            error: 'authorization_or_source_withdrawn',
-            resultReferences: toPrismaJson({
-              ...receipt,
-              terminalResult: learningRunTerminalResult(
-                {
-                  ...run,
-                  status: 'invalidated',
-                  error: 'authorization_or_source_withdrawn',
-                },
-                now,
-              ),
-            }),
-          },
-        });
-        return {
-          operation: {
-            ...operation,
-            status: 'invalidated',
-            error: 'authorization_or_source_withdrawn',
-          },
-          dispatchable: false,
-        };
-      }
-      if (run.status === 'running') {
-        if (
-          !run.startedAt ||
-          receipt.claimedStartedAt !== run.startedAt.toISOString() ||
-          operation.status !== 'running'
-        ) {
-          await tx.contentLearningOperation.updateMany({
-            where: {
-              id: operation.id,
-              organizationId: input.organizationId,
-              isDeleted: false,
-            },
-            data: { status: 'failed', error: 'dispatch_receipt_invalid' },
-          });
-          return {
-            operation: {
-              ...operation,
-              status: 'failed',
-              error: 'dispatch_receipt_invalid',
-            },
-            dispatchable: false,
-          };
-        }
-        const expiredAt = run.startedAt.getTime() + 300000;
-        if (now.getTime() < expiredAt)
-          return { operation, dispatchable: false };
-        const status = receipt.attemptCount < 3 ? 'pending' : 'failed';
-        const nextAttemptAt =
-          status === 'pending'
-            ? new Date(expiredAt + (receipt.attemptCount === 1 ? 5000 : 10000))
-            : null;
-        await this.writePair(
-          tx,
-          { run, operation, receipt, token: run.startedAt },
-          status,
-          now,
-          { report: Prisma.DbNull },
-          'run_lease_expired',
-          nextAttemptAt,
-        );
-        return {
-          operation: {
-            ...operation,
-            status,
-            error: 'run_lease_expired',
-            resultReferences: storedJson({
-              ...receipt,
-              nextAttemptAt: nextAttemptAt?.toISOString() ?? null,
-            }),
-          },
-          dispatchable:
-            status === 'pending' &&
-            Boolean(nextAttemptAt && nextAttemptAt <= now),
-        };
-      }
+      )
+        return this.invalidateWithdrawn(tx, ctx, receipt);
+      if (run.status === 'running')
+        return this.reconcileRunningRun(tx, ctx, receipt);
       if (run.status === 'pending' && operation.status === 'running') {
-        if (
-          !run.startedAt ||
-          receipt.claimedStartedAt !== run.startedAt.toISOString()
-        ) {
-          await tx.contentLearningOperation.updateMany({
-            where: {
-              id: operation.id,
-              organizationId: input.organizationId,
-              isDeleted: false,
-            },
-            data: { status: 'failed', error: 'dispatch_receipt_invalid' },
-          });
-          return {
-            operation: {
-              ...operation,
-              status: 'failed',
-              error: 'dispatch_receipt_invalid',
-            },
-            dispatchable: false,
-          };
-        }
-        await tx.contentLearningOperation.updateMany({
-          where: {
-            id: operation.id,
-            organizationId: input.organizationId,
-            isDeleted: false,
-            status: 'running',
-          },
-          data: { status: 'pending', resultReferences: toPrismaJson(receipt) },
-        });
+        const invalid = await this.resetPendingClaim(tx, ctx, receipt);
+        if (invalid) return invalid;
       }
       return {
         operation: {
@@ -490,6 +249,250 @@ export class LearningRunService {
           (!receipt.nextAttemptAt || new Date(receipt.nextAttemptAt) <= now),
       };
     });
+  }
+  private async failDispatchOperation(
+    tx: Prisma.TransactionClient,
+    ctx: LearningRunDispatchContext,
+    error: string,
+    statusGuard?: string,
+  ): Promise<LearningRunDispatchOutcome> {
+    await tx.contentLearningOperation.updateMany({
+      where: {
+        id: ctx.operation.id,
+        organizationId: ctx.input.organizationId,
+        isDeleted: false,
+        ...(statusGuard ? { status: statusGuard } : {}),
+      },
+      data: { status: 'failed', error },
+    });
+    return {
+      operation: { ...ctx.operation, status: 'failed', error },
+      dispatchable: false,
+    };
+  }
+  private async recoverReceipt(
+    tx: Prisma.TransactionClient,
+    ctx: LearningRunDispatchContext,
+  ): Promise<LearningRunReceiptRecovery> {
+    const { input, run, operation, now } = ctx;
+    const stored = parseLearningRunDispatch(operation.resultReferences);
+    if (stored) return { receipt: stored, outcome: null };
+    const isUnversionedPending =
+      operation.status === 'pending' &&
+      run.status === 'pending' &&
+      !run.startedAt &&
+      operation.resultReferences !== null &&
+      typeof operation.resultReferences === 'object' &&
+      !Array.isArray(operation.resultReferences) &&
+      !('dispatchVersion' in operation.resultReferences);
+    if (isUnversionedPending) {
+      const receipt: LearningRunDispatchReceiptV1 = {
+        dispatchVersion: 1,
+        runId: run.id,
+        datasetId: run.datasetId,
+        retryOfOperationId: null,
+        attemptCount: 0,
+        nextAttemptAt: null,
+        claimedStartedAt: null,
+      };
+      await tx.contentLearningOperation.updateMany({
+        where: {
+          id: operation.id,
+          organizationId: input.organizationId,
+          isDeleted: false,
+          status: 'pending',
+        },
+        data: { resultReferences: toPrismaJson(receipt) },
+      });
+      return { receipt, outcome: null };
+    }
+    const freshLegacy =
+      run.status === 'running' &&
+      run.startedAt &&
+      now.getTime() < run.startedAt.getTime() + 300000;
+    if (freshLegacy)
+      return { receipt: null, outcome: { operation, dispatchable: false } };
+    const error =
+      run.status === 'running'
+        ? 'legacy_claim_unverifiable'
+        : 'dispatch_receipt_invalid';
+    await tx.contentLearningOperation.updateMany({
+      where: {
+        id: operation.id,
+        organizationId: input.organizationId,
+        isDeleted: false,
+      },
+      data: { status: 'failed', error },
+    });
+    if (['pending', 'running'].includes(run.status))
+      await tx.contentLearningRun.updateMany({
+        where: {
+          id: run.id,
+          isDeleted: false,
+          status: run.status,
+          startedAt: run.startedAt,
+        },
+        data: {
+          status: 'failed',
+          error,
+          report: Prisma.DbNull,
+          completedAt: now,
+        },
+      });
+    return {
+      receipt: null,
+      outcome: {
+        operation: { ...operation, status: 'failed', error },
+        dispatchable: false,
+      },
+    };
+  }
+  private async settleTerminalRun(
+    tx: Prisma.TransactionClient,
+    ctx: LearningRunDispatchContext,
+    receipt: LearningRunDispatchReceiptV1,
+  ): Promise<LearningRunDispatchOutcome> {
+    const { input, run, operation } = ctx;
+    const result =
+      run.completedAt &&
+      receipt.claimedStartedAt === run.startedAt?.toISOString()
+        ? learningRunTerminalResult(run, run.completedAt)
+        : null;
+    const status = result ? learningRunOperationStatus(run.status) : 'failed';
+    await tx.contentLearningOperation.updateMany({
+      where: {
+        id: operation.id,
+        organizationId: input.organizationId,
+        isDeleted: false,
+        status: operation.status,
+      },
+      data: {
+        status: status ?? 'failed',
+        error: result ? run.error : 'dispatch_receipt_invalid',
+        resultReferences: toPrismaJson({
+          ...receipt,
+          ...(result ? { terminalResult: result } : {}),
+        }),
+      },
+    });
+    return {
+      operation: {
+        ...operation,
+        status: status ?? 'failed',
+        error: result ? run.error : 'dispatch_receipt_invalid',
+      },
+      dispatchable: false,
+    };
+  }
+  private async invalidateWithdrawn(
+    tx: Prisma.TransactionClient,
+    ctx: LearningRunDispatchContext,
+    receipt: LearningRunDispatchReceiptV1,
+  ): Promise<LearningRunDispatchOutcome> {
+    const { input, run, operation, now } = ctx;
+    const error = 'authorization_or_source_withdrawn';
+    await tx.contentLearningRun.updateMany({
+      where: {
+        id: run.id,
+        isDeleted: false,
+        status: run.status,
+        startedAt: run.startedAt,
+      },
+      data: {
+        status: 'invalidated',
+        error,
+        report: Prisma.DbNull,
+        completedAt: now,
+      },
+    });
+    await tx.contentLearningOperation.updateMany({
+      where: {
+        id: operation.id,
+        organizationId: input.organizationId,
+        isDeleted: false,
+        status: operation.status,
+      },
+      data: {
+        status: 'invalidated',
+        error,
+        resultReferences: toPrismaJson({
+          ...receipt,
+          terminalResult: learningRunTerminalResult(
+            { ...run, status: 'invalidated', error },
+            now,
+          ),
+        }),
+      },
+    });
+    return {
+      operation: { ...operation, status: 'invalidated', error },
+      dispatchable: false,
+    };
+  }
+  private async reconcileRunningRun(
+    tx: Prisma.TransactionClient,
+    ctx: LearningRunDispatchContext,
+    receipt: LearningRunDispatchReceiptV1,
+  ): Promise<LearningRunDispatchOutcome> {
+    const { run, operation, now } = ctx;
+    if (
+      !run.startedAt ||
+      receipt.claimedStartedAt !== run.startedAt.toISOString() ||
+      operation.status !== 'running'
+    )
+      return this.failDispatchOperation(tx, ctx, 'dispatch_receipt_invalid');
+    const expiredAt = run.startedAt.getTime() + 300000;
+    if (now.getTime() < expiredAt) return { operation, dispatchable: false };
+    const status = receipt.attemptCount < 3 ? 'pending' : 'failed';
+    const nextAttemptAt =
+      status === 'pending'
+        ? new Date(expiredAt + (receipt.attemptCount === 1 ? 5000 : 10000))
+        : null;
+    await this.writePair(
+      tx,
+      { run, operation, receipt, token: run.startedAt },
+      status,
+      now,
+      { report: Prisma.DbNull },
+      'run_lease_expired',
+      nextAttemptAt,
+    );
+    return {
+      operation: {
+        ...operation,
+        status,
+        error: 'run_lease_expired',
+        resultReferences: storedJson({
+          ...receipt,
+          nextAttemptAt: nextAttemptAt?.toISOString() ?? null,
+        }),
+      },
+      dispatchable:
+        status === 'pending' && Boolean(nextAttemptAt && nextAttemptAt <= now),
+    };
+  }
+  /** Returns an outcome only when the claim is invalid; null means reset to pending. */
+  private async resetPendingClaim(
+    tx: Prisma.TransactionClient,
+    ctx: LearningRunDispatchContext,
+    receipt: LearningRunDispatchReceiptV1,
+  ): Promise<LearningRunDispatchOutcome | null> {
+    const { input, run, operation } = ctx;
+    if (
+      !run.startedAt ||
+      receipt.claimedStartedAt !== run.startedAt.toISOString()
+    )
+      return this.failDispatchOperation(tx, ctx, 'dispatch_receipt_invalid');
+    await tx.contentLearningOperation.updateMany({
+      where: {
+        id: operation.id,
+        organizationId: input.organizationId,
+        isDeleted: false,
+        status: 'running',
+      },
+      data: { status: 'pending', resultReferences: toPrismaJson(receipt) },
+    });
+    return null;
   }
   private async claim(
     input: LearningRunDispatchInput,
