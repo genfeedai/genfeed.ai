@@ -1,6 +1,10 @@
 import { BillingAccountMigrationService } from '@api/collections/billing-accounts/services/billing-account-migration.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  isCrossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 
 describe('BillingAccountMigrationService', () => {
   const prisma = {
@@ -122,5 +126,47 @@ describe('BillingAccountMigrationService', () => {
       createdAccounts: 1,
       linkedOrganizations: 1,
     });
+  });
+
+  it('writes every organization own rows outside the superadmin tenant (CLOUD guard)', async () => {
+    prisma.organization.findMany.mockResolvedValue([
+      {
+        billingAccountId: null,
+        customers: [],
+        id: 'org_1',
+        label: 'Acme',
+        subscriptions: [],
+        userId: 'user_1',
+      },
+    ]);
+    prisma.organization.findFirst.mockResolvedValue({
+      id: 'org_1',
+      userId: 'user_1',
+    });
+    prisma.billingAccount.create.mockResolvedValue({ id: 'ba_1' });
+    prisma.organization.updateMany.mockResolvedValue({ count: 1 });
+    prisma.creditTransaction.updateMany.mockResolvedValue({ count: 0 });
+    let attributedOutsideEnforcement = false;
+    prisma.creditBalance.updateMany.mockImplementation(async () => {
+      attributedOutsideEnforcement = isCrossOrgUnsafe();
+      return { count: 1 };
+    });
+
+    await runWithTenantContext({ organizationId: 'org_admin' }, () =>
+      service.applyUnambiguous(),
+    );
+
+    expect(attributedOutsideEnforcement).toBe(true);
+  });
+
+  it('keeps the read-only dry run inside tenant enforcement', async () => {
+    prisma.organization.findMany.mockImplementation(async () => {
+      expect(isCrossOrgUnsafe()).toBe(false);
+      return [];
+    });
+
+    await runWithTenantContext({ organizationId: 'org_admin' }, () =>
+      service.dryRun(),
+    );
   });
 });

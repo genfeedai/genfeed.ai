@@ -11,6 +11,11 @@ import {
 } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import {
+  assertTenantScopedQuery,
+  TenantIsolationError,
+} from '@libs/prisma/tenant-guard';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const configMock = vi.hoisted(() => ({ organizationBilling: true }));
@@ -265,6 +270,70 @@ describe('ReferralsService', () => {
       }),
     });
     expect(prisma.referral.create).not.toHaveBeenCalled();
+  });
+
+  it('checks prior paid history across linked organizations without tripping the CLOUD tenant guard', async () => {
+    prisma.referralCode.findFirst.mockResolvedValue({
+      id: 'code_1',
+      rewardBillingAccountId: 'ba_referrer',
+      rewardOrganizationId: 'org_referrer',
+    });
+    prisma.billingAccountMember.findFirst
+      .mockResolvedValueOnce({ id: 'target_member' })
+      .mockResolvedValueOnce(null);
+    prisma.billingAccountOrganization.findMany.mockResolvedValue([
+      { organizationId: ACTOR.organizationId },
+      { organizationId: 'org_linked_2' },
+    ]);
+    prisma.organization.findMany.mockResolvedValue([
+      { id: ACTOR.organizationId },
+      { id: 'org_linked_2' },
+    ]);
+    const guardRuns: string[] = [];
+    const guarded = (model: string) => async (args: unknown) => {
+      assertTenantScopedQuery({
+        args,
+        isCloud: true,
+        model,
+        operation: 'findFirst',
+        tenantModelNames: new Set(['CreditTransaction', 'Subscription']),
+      });
+      guardRuns.push(model);
+      return null;
+    };
+    prisma.creditTransaction.findFirst.mockImplementation(
+      guarded('CreditTransaction'),
+    );
+    prisma.subscription.findFirst.mockImplementation(guarded('Subscription'));
+    prisma.referral.create.mockResolvedValue({ id: 'referral_1' });
+
+    // The request tenant is the claiming org; the linked sibling org is not.
+    const result = await runWithTenantContext(
+      { organizationId: ACTOR.organizationId },
+      () => service.claim(ACTOR, 'validcode1'),
+    );
+
+    expect(result.status).toBe(ReferralClaimStatus.ACCEPTED);
+    expect(guardRuns).toEqual(['CreditTransaction', 'Subscription']);
+  });
+
+  it('proves the harness: the same linked-org lookup outside the hatch throws', () => {
+    expect(() =>
+      runWithTenantContext({ organizationId: 'org_other_tenant' }, () =>
+        assertTenantScopedQuery({
+          args: {
+            where: {
+              isDeleted: false,
+              organizationId: { in: [ACTOR.organizationId, 'org_linked_2'] },
+            },
+          },
+          isCloud: true,
+          model: 'CreditTransaction',
+          operation: 'findFirst',
+          tenantModelNames: new Set(['CreditTransaction']),
+        }),
+      ),
+    ).toThrow(TenantIsolationError);
   });
 
   it('rejects an account with a prior subscription in any linked organization', async () => {

@@ -13,6 +13,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { WarmupAccountSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Body,
@@ -47,9 +48,8 @@ export class WarmupAccountsController {
     @Req() request: Request,
   ) {
     try {
-      const account = await this.warmupAccountsService.create(
-        this.getActorUserId(user),
-        dto,
+      const account = await this.runAsPlatformAdmin(() =>
+        this.warmupAccountsService.create(this.getActorUserId(user), dto),
       );
       return serializeSingle(request, WarmupAccountSerializer, account);
     } catch (error) {
@@ -61,7 +61,9 @@ export class WarmupAccountsController {
   @ApiOperation({ summary: 'List warm-up accounts' })
   async list(@Req() request: Request) {
     try {
-      const accounts = await this.warmupAccountsService.list();
+      const accounts = await this.runAsPlatformAdmin(() =>
+        this.warmupAccountsService.list(),
+      );
       return serializeCollection(request, WarmupAccountSerializer, {
         docs: accounts,
         hasNextPage: false,
@@ -85,7 +87,9 @@ export class WarmupAccountsController {
   })
   async inspectInvitation(@Param('id') id: string, @Req() request: Request) {
     try {
-      const account = await this.warmupAccountsService.inspectInvitation(id);
+      const account = await this.runAsPlatformAdmin(() =>
+        this.warmupAccountsService.inspectInvitation(id),
+      );
       return serializeSingle(request, WarmupAccountSerializer, account);
     } catch (error) {
       return ErrorResponse.handle(
@@ -105,9 +109,11 @@ export class WarmupAccountsController {
     @Req() request: Request,
   ) {
     try {
-      const account = await this.warmupAccountsService.sendInvitation(
-        id,
-        this.getActorUserId(user),
+      const account = await this.runAsPlatformAdmin(() =>
+        this.warmupAccountsService.sendInvitation(
+          id,
+          this.getActorUserId(user),
+        ),
       );
       return serializeSingle(request, WarmupAccountSerializer, account);
     } catch (error) {
@@ -128,9 +134,11 @@ export class WarmupAccountsController {
     @Req() request: Request,
   ) {
     try {
-      const account = await this.warmupAccountsService.resendInvitation(
-        id,
-        this.getActorUserId(user),
+      const account = await this.runAsPlatformAdmin(() =>
+        this.warmupAccountsService.resendInvitation(
+          id,
+          this.getActorUserId(user),
+        ),
       );
       return serializeSingle(request, WarmupAccountSerializer, account);
     } catch (error) {
@@ -151,9 +159,11 @@ export class WarmupAccountsController {
     @Req() request: Request,
   ) {
     try {
-      const account = await this.warmupAccountsService.revokeInvitation(
-        id,
-        this.getActorUserId(user),
+      const account = await this.runAsPlatformAdmin(() =>
+        this.warmupAccountsService.revokeInvitation(
+          id,
+          this.getActorUserId(user),
+        ),
       );
       return serializeSingle(request, WarmupAccountSerializer, account);
     } catch (error) {
@@ -177,10 +187,8 @@ export class WarmupAccountsController {
     @Req() request: Request,
   ) {
     try {
-      const account = await this.preparationService.prepare(
-        id,
-        this.getActorUserId(user),
-        dto,
+      const account = await this.runAsPlatformAdmin(() =>
+        this.preparationService.prepare(id, this.getActorUserId(user), dto),
       );
       return serializeSingle(request, WarmupAccountSerializer, account);
     } catch (error) {
@@ -192,11 +200,24 @@ export class WarmupAccountsController {
   @ApiOperation({ summary: 'Get warm-up account details' })
   async get(@Param('id') id: string, @Req() request: Request) {
     try {
-      const account = await this.warmupAccountsService.get(id);
+      const account = await this.runAsPlatformAdmin(() =>
+        this.warmupAccountsService.get(id),
+      );
       return serializeSingle(request, WarmupAccountSerializer, account);
     } catch (error) {
       return ErrorResponse.handle(error, this.loggerService, 'getWarmup');
     }
+  }
+
+  /**
+   * Warm-up provisioning and preparation create and repair workspaces in the
+   * TARGET customer organization (brand, member, wallet, invitation), never in
+   * the operator's own tenant. The class-level IpWhitelistGuard +
+   * SuperAdminGuard already authorized the caller, so the work runs outside
+   * request tenant enforcement.
+   */
+  private runAsPlatformAdmin<T>(work: () => Promise<T>): Promise<T> {
+    return crossOrgUnsafe(async () => await work());
   }
 
   private getActorUserId(user: User): string {

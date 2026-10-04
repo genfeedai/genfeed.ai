@@ -3,6 +3,7 @@ import type {
   IEmailPerformanceQuery,
   IEmailPerformanceReport,
 } from '@genfeedai/contracts/interfaces';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const DAY_MS = 86_400_000;
@@ -27,34 +28,39 @@ export class EmailPerformanceReportService {
     }
 
     const where = { createdAt: { gte: from, lt: to }, isDeleted: false };
-    const [messages, conversions] = await this.prisma.$transaction([
-      // tenant-scope-ignore: platform-wide operator aggregate; the only caller is admin/system-emails, gated by IpWhitelistGuard and SuperAdminGuard, and the result is grouped by template with no per-tenant rows.
-      this.prisma.emailMessage.groupBy({
-        by: ['templateKey'],
-        where,
-        _count: {
-          _all: true,
-          acceptedAt: true,
-          deliveredAt: true,
-          bouncedAt: true,
-          complainedAt: true,
-          openedAt: true,
-          clickedAt: true,
-        },
-        orderBy: { templateKey: 'asc' },
-      }),
-      // tenant-scope-ignore: same platform-wide superadmin aggregate as above, narrowed to messages with a confirmed conversion.
-      this.prisma.emailMessage.groupBy({
-        by: ['templateKey'],
-        where: {
-          ...where,
-          conversions: {
-            some: { isDeleted: false, occurredAt: { lte: asOf } },
-          },
-        },
-        _count: { _all: true },
-      }),
-    ]);
+    // Platform-wide operator aggregate across every tenant by design; the
+    // only caller sits behind IpWhitelistGuard + SuperAdminGuard.
+    const [messages, conversions] = await crossOrgUnsafe(
+      async () =>
+        await this.prisma.$transaction([
+          // tenant-scope-ignore: platform-wide operator aggregate; the only caller is admin/system-emails, gated by IpWhitelistGuard and SuperAdminGuard, and the result is grouped by template with no per-tenant rows.
+          this.prisma.emailMessage.groupBy({
+            by: ['templateKey'],
+            where,
+            _count: {
+              _all: true,
+              acceptedAt: true,
+              deliveredAt: true,
+              bouncedAt: true,
+              complainedAt: true,
+              openedAt: true,
+              clickedAt: true,
+            },
+            orderBy: { templateKey: 'asc' },
+          }),
+          // tenant-scope-ignore: same platform-wide superadmin aggregate as above, narrowed to messages with a confirmed conversion.
+          this.prisma.emailMessage.groupBy({
+            by: ['templateKey'],
+            where: {
+              ...where,
+              conversions: {
+                some: { isDeleted: false, occurredAt: { lte: asOf } },
+              },
+            },
+            _count: { _all: true },
+          }),
+        ]),
+    );
     const convertedByTemplate = new Map(
       conversions.map((row) => [row.templateKey, row._count._all]),
     );

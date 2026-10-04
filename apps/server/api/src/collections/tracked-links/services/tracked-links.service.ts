@@ -8,6 +8,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   HttpException,
@@ -114,9 +115,15 @@ export class TrackedLinksService {
     // so collisions across organizations would cause cross-contamination
     let attempts = 0;
     while (attempts < 5) {
-      const existing = await this.prisma.trackedLink.findFirst({
-        where: { isDeleted: false, shortCode },
-      });
+      // Short codes are globally unique across tenants (public redirects
+      // resolve them without an organization), so this lookup is cross-org.
+      const existing = await crossOrgUnsafe(
+        async () =>
+          // tenant-scope-ignore: short-code uniqueness is global, not per-organization
+          await this.prisma.trackedLink.findFirst({
+            where: { isDeleted: false, shortCode },
+          }),
+      );
 
       if (!existing) {
         break;

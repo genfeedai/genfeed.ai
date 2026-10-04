@@ -1,5 +1,9 @@
 import { EmailPerformanceReportService } from '@api/services/email-performance/email-performance-report.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  isCrossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -128,5 +132,19 @@ describe('EmailPerformanceReportService', () => {
   it('returns an empty report when the cohort has no tracked messages', async () => {
     groupBy.mockResolvedValue([]);
     await expect(service.getReport({})).resolves.toMatchObject({ rows: [] });
+  });
+
+  it('aggregates every tenant outside the superadmin request tenant (CLOUD guard)', async () => {
+    const crossOrgFlags: boolean[] = [];
+    groupBy.mockImplementation(async () => {
+      crossOrgFlags.push(isCrossOrgUnsafe());
+      return [];
+    });
+
+    await runWithTenantContext({ organizationId: 'org_admin' }, () =>
+      service.getReport({ from: '2026-08-01', to: '2026-09-01' }),
+    );
+
+    expect(crossOrgFlags).toEqual([true, true]);
   });
 });
