@@ -284,7 +284,7 @@ export class TemplatesService {
    * Find one template
    */
   async findOne(id: string, organization?: string): Promise<Template> {
-    const where: Prisma.TemplateWhereInput = {
+    const where = {
       ...this.organizationScope(organization),
       id,
       isDeleted: false,
@@ -311,7 +311,7 @@ export class TemplatesService {
     dto: UpdateTemplateDto,
     organization?: string,
   ): Promise<Template> {
-    const where: Prisma.TemplateWhereInput = {
+    const where = {
       ...this.organizationScope(organization),
       id,
       isDeleted: false,
@@ -369,7 +369,7 @@ export class TemplatesService {
    * Delete template (soft delete)
    */
   async remove(id: string, organization?: string): Promise<void> {
-    const where: Prisma.TemplateWhereInput = {
+    const where = {
       ...this.organizationScope(organization),
       id,
       isDeleted: false,

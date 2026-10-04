@@ -205,7 +205,7 @@ export class TrendCorpusFreshnessService {
   private readFreshnessTrends(
     options: TrendCorpusFreshnessHealthOptions,
   ): Promise<TrendHealthDoc[]> {
-    const readTrends = async () =>
+    const readTrends = async (): Promise<TrendHealthDoc[]> =>
       // tenant-scope-ignore: buildFreshnessTrendWhere excludes deleted rows and limits non-admin reads to the current organization plus the public corpus; platform admins inspect all organizations
       (await this.prisma.trend.findMany({
         orderBy: [{ platform: 'asc' }, { updatedAt: 'asc' }],
@@ -220,7 +220,7 @@ export class TrendCorpusFreshnessService {
         },
         take: MAX_CORPUS_FRESHNESS_TREND_RECORDS,
         where: this.buildFreshnessTrendWhere(options),
-      })) as Promise<TrendHealthDoc[]>;
+      })) as TrendHealthDoc[];
 
     // Platform admins inspect every organization's trend corpus.
     return options.isPlatformAdmin

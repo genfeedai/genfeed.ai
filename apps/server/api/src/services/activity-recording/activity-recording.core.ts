@@ -189,7 +189,7 @@ export async function updateActivityInTransaction(
     ? await transaction.activity.findFirst({
         where: scopedWhere(ref.organizationId, { id: ref.id }),
       })
-    : await runForEventOrganization(ref.organizationId, () =>
+    : await runForEventOrganization(ref.organizationId ?? null, () =>
         transaction.activity.findFirst({
           where: { id: ref.id, isDeleted: false, organizationId: null },
         }),

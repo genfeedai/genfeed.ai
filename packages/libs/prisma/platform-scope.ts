@@ -57,9 +57,7 @@ export function platformTenantProof(): PlatformTenantScopeArm[] {
  * `crossOrgUnsafe` (the caller asked for every organization), or when the
  * query already names a concrete organization.
  */
-export function withPlatformTenantArm<T extends PlatformScopedWhere>(
-  where: T,
-): T {
+export function withPlatformTenantArm<T extends object>(where: T): T {
   if (isCrossOrgUnsafe()) {
     return where;
   }
@@ -69,7 +67,8 @@ export function withPlatformTenantArm<T extends PlatformScopedWhere>(
     return where;
   }
 
-  const existing = where.organizationId;
+  const scoped: PlatformScopedWhere = where;
+  const existing = scoped.organizationId;
   if (
     typeof existing === 'string' ||
     (typeof existing === 'object' &&
@@ -82,7 +81,7 @@ export function withPlatformTenantArm<T extends PlatformScopedWhere>(
   const arm: PlatformTenantScopeArm = {
     OR: [{ organizationId }, { organizationId: null }],
   };
-  const existingAnd = where.AND;
+  const existingAnd = scoped.AND;
   const and = Array.isArray(existingAnd)
     ? [...existingAnd, arm]
     : existingAnd
