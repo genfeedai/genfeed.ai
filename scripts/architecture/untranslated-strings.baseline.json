@@ -551,7 +551,7 @@
     "packages/ui/src/components/ingredients/detail-image/IngredientDetailImage.tsx": 7,
     "packages/ui/src/components/ingredients/detail-video/IngredientDetailVideo.tsx": 8,
     "packages/ui/src/components/ingredients/detail-video/VideoDetailWorkspacePanel.tsx": 1,
-    "packages/ui/src/components/ingredients/inspector/IngredientInspectorRail.tsx": 7,
+    "packages/ui/src/components/ingredients/inspector/IngredientInspectorRail.tsx": 1,
     "packages/ui/src/components/ingredients/list/content/IngredientsListContent.tsx": 3,
     "packages/ui/src/components/ingredients/list/selection-actions-bar/SelectionActionsBar.tsx": 2,
     "packages/ui/src/components/ingredients/parents-manager/ParentsList.tsx": 3,
