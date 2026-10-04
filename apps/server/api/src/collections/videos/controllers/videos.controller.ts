@@ -234,9 +234,11 @@ export class VideosController {
           trainingFilter,
           IngredientFilterUtil.buildOriginFilter(query.origins),
           characterFilter,
+          IngredientFilterUtil.buildTagFilter(query.tags, query.tagMatch),
           searchFilter.where,
         ],
       },
+      include: IngredientFilterUtil.buildLibraryTagsInclude(),
       orderBy: handleQuerySort(query.sort),
     };
 

@@ -1,6 +1,6 @@
 ---
 name: Library information architecture
-description: Library has three axes — type is a filter, shelf is generation state, folder is where a human filed it; origin is a fourth filter (never a destination); the canvas is a view, not a destination
+description: Library has three axes — type is a filter, shelf is generation state, folder is where a human filed it; origin, character and tags are filters (never destinations); the canvas is a view, not a destination
 type: feedback
 ---
 
@@ -28,6 +28,22 @@ search; it has no sidebar entry, route or preset, and a count of it must never b
 rendered as a place. Its labels are always words (Uploaded / Generated / Imported)
 on grid cards, list rows and the inspector, matching the Imported / Generated /
 Knowledge boundary.
+
+**Tags are a filter, not a nav destination (#6011).** Tags carry human judgment —
+campaign, series, episode, mood, client — that no structured axis can express.
+They never encode type, origin, review state, folder or linked character, and a
+tag never gets a sidebar entry, route or preset; an empty state says so ("type,
+origin and folder are already filters"). The filter is a toolbar multi-select
+(`?tags=<id>&tags=<id>`, plus `?tagMatch=all` — `any` is the default) and composes
+with type, origin, shelf, folder and search. A tag is brand-scoped (`brandId`) or
+organization-wide (`organizationId`, no `brandId`); legacy default tags (neither)
+are readable everywhere and read-only. Every tag list for a brand —
+`GET /tags/library`, the picker, the filter — returns that brand's tags plus
+organization-wide tags and never another brand's. Tagging follows asset edit
+permission (the `AssetAccessGuard` rules); creating or changing an
+organization-wide tag needs an owner or admin. Bulk add/remove is one tag on at
+most 200 assets (`POST /ingredients/tags/bulk`) and reports changed, skipped and
+failed counts. A tag chip's text color is kept only while it has AA contrast.
 
 **A shelf is a saved query, not a location.** Shelf counts overlap and never
 partition the total. Never render them as a pie or as "x of y".

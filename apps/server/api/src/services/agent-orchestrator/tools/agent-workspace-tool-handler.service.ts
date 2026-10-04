@@ -11,6 +11,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
+import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { resolvePublishValidationMedia } from '@api/services/agent-orchestrator/tools/agent-publish-target.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -21,6 +22,7 @@ import {
   IngredientCategory,
   MemberRole,
   parseIngredientOrigin,
+  parseTagMatchMode,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
@@ -76,6 +78,23 @@ function readCharacterIds(value: unknown): string[] | string | undefined {
     value.some((id) => typeof id !== 'string' || !isEntityId(id))
   ) {
     return `characterIds must be at most ${MAX_CHARACTER_IDS} character ids.`;
+  }
+  return value;
+}
+
+const MAX_TAG_IDS = 25;
+
+/** Tag ids to filter by, or an error message for invalid input. */
+function readTagIds(value: unknown): string[] | string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (
+    !Array.isArray(value) ||
+    value.length > MAX_TAG_IDS ||
+    value.some((id) => typeof id !== 'string' || !isEntityId(id))
+  ) {
+    return `tags must be at most ${MAX_TAG_IDS} tag ids.`;
   }
   return value;
 }
@@ -235,9 +254,14 @@ export class AgentWorkspaceToolHandler {
     }
 
     if (type === 'character') {
-      const misused = ['characterIds', 'limit', 'offset', 'origin'].filter(
-        (key) => params[key] !== undefined && params[key] !== null,
-      );
+      const misused = [
+        'characterIds',
+        'limit',
+        'offset',
+        'origin',
+        'tagMatch',
+        'tags',
+      ].filter((key) => params[key] !== undefined && params[key] !== null);
       if (misused.length > 0) {
         return toolFailure(
           `${misused.join(', ')} do not apply to type character.`,
@@ -270,6 +294,19 @@ export class AgentWorkspaceToolHandler {
       );
     }
 
+    const tagIds = readTagIds(params.tags);
+    if (typeof tagIds === 'string') {
+      return toolFailure(tagIds);
+    }
+
+    const rawTagMatch = params.tagMatch;
+    const hasTagMatch =
+      rawTagMatch !== undefined && rawTagMatch !== null && rawTagMatch !== '';
+    const tagMatch = hasTagMatch ? parseTagMatchMode(rawTagMatch) : undefined;
+    if (hasTagMatch && !tagMatch) {
+      return toolFailure('tagMatch must be any or all.');
+    }
+
     const brandScope = await this.resolveAssetBrand(params, ctx);
     if ('error' in brandScope) return brandScope.error;
     const brandId = brandScope.brandId;
@@ -288,6 +325,9 @@ export class AgentWorkspaceToolHandler {
       offset: clampInteger(params.offset, 0, 0, Number.MAX_SAFE_INTEGER),
       organizationId: ctx.organizationId,
       origin,
+      ...(tagIds
+        ? { tagFilter: IngredientFilterUtil.buildTagFilter(tagIds, tagMatch) }
+        : {}),
     });
 
     return {
@@ -698,8 +738,26 @@ function toListedAsset(asset: IngredientDocument): Record<string, unknown> {
     origin: asset.origin ?? null,
     prompt: asset.generationPrompt ?? null,
     status: asset.status,
+    tags: toListedTags(asset.tags),
     url: readIngredientMediaUrlWithFallback(asset) ?? null,
   };
+}
+
+/** The id and label of each tag an asset carries, so an agent can filter by them. */
+function toListedTags(value: unknown): Array<{ id: string; label: string }> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((tag: unknown) => {
+    if (typeof tag !== 'object' || tag === null) {
+      return [];
+    }
+    const { id, label } = tag as { id?: unknown; label?: unknown };
+    return typeof id === 'string' && typeof label === 'string'
+      ? [{ id, label }]
+      : [];
+  });
 }
 
 function studioHandoffCategory(type: string): IngredientCategory {

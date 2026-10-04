@@ -13,6 +13,12 @@ vi.mock('@ui/quick-actions/actions/IngredientQuickActions', () => ({
   default: () => null,
 }));
 
+vi.mock('./IngredientTagsControl', () => ({
+  default: ({ ingredient }: { ingredient: { id: string } }) => (
+    <div data-testid="tags-control">{ingredient.id}</div>
+  ),
+}));
+
 vi.mock('./IngredientLineageStrip', () => ({
   default: ({
     direction,
@@ -151,6 +157,12 @@ describe('IngredientInspectorRail', () => {
       screen.getByRole('button', { name: 'Open full-size preview' }),
     );
     expect(onOpenPreview).toHaveBeenCalledOnce();
+  });
+
+  it('puts the tag control for this asset in the detail panel', () => {
+    render(<IngredientInspectorRail ingredient={ingredient} />);
+
+    expect(screen.getByTestId('tags-control')).toHaveTextContent('asset-1');
   });
 
   it('shows the references it was made from and where it was used', () => {
