@@ -261,7 +261,7 @@ export class LearningRunService {
         id: ctx.operation.id,
         organizationId: ctx.input.organizationId,
         isDeleted: false,
-        ...(statusGuard ? { status: statusGuard } : {}),
+        status: statusGuard,
       },
       data: { status: 'failed', error },
     });
