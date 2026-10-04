@@ -2,11 +2,16 @@ import {
   MAX_REQUESTED_SKILL_SLUG_LENGTH,
   REQUESTED_SKILL_SLUG_PATTERN,
 } from '@api/collections/skills/utils/requested-skill-slugs.util';
-import {
-  SKILL_PACKAGE_LIMITS,
-  validateSkillPackageFiles,
-} from '@api/collections/skills/utils/skill-package-archive.util';
+import { validateSkillPackageFiles } from '@api/collections/skills/utils/skill-package-archive.util';
 import { FORBID_NON_WHITELISTED } from '@api/helpers/pipes/validation.pipe';
+import {
+  isValidSkillPackageSourceUrl,
+  SKILL_PACKAGE_CHECKSUM_PATTERN,
+  SKILL_PACKAGE_LIMITS,
+  SKILL_PACKAGE_MAX_BASE64_CHARACTERS,
+  SKILL_PACKAGE_MAX_PATH_BYTES,
+  SKILL_PACKAGE_MAX_SOURCE_URL_BYTES,
+} from '@genfeedai/contracts/constants';
 import { BadRequestException } from '@nestjs/common';
 import {
   ApiExtraModels,
@@ -96,31 +101,7 @@ class SkillPackageFilesConstraint implements ValidatorConstraintInterface {
 @ValidatorConstraint({ name: 'skillPackageSourceUrl', async: false })
 class SkillPackageSourceUrlConstraint implements ValidatorConstraintInterface {
   validate(value: unknown): boolean {
-    if (
-      typeof value !== 'string' ||
-      value !== value.trim() ||
-      !value ||
-      Buffer.byteLength(value, 'utf8') > 2000 ||
-      [...value].some(
-        (char) =>
-          char.charCodeAt(0) < 32 ||
-          (char.charCodeAt(0) >= 127 && char.charCodeAt(0) <= 159),
-      )
-    )
-      return false;
-    try {
-      const url = new URL(value);
-      return (
-        (url.protocol === 'http:' || url.protocol === 'https:') &&
-        !url.username &&
-        !url.password &&
-        !/^https?:\/*([^/?#]*)/i
-          .exec(value.replaceAll('\\', '/'))?.[1]
-          .includes('@')
-      );
-    } catch {
-      return false;
-    }
+    return isValidSkillPackageSourceUrl(value);
   }
   defaultMessage(): string {
     return 'sourceUrl must be bounded HTTP(S) provenance without userinfo or controls';
@@ -133,7 +114,7 @@ class SkillPackageBase64Constraint implements ValidatorConstraintInterface {
     if (
       typeof value !== 'string' ||
       !value ||
-      value.length > 1_333_336 ||
+      value.length > SKILL_PACKAGE_MAX_BASE64_CHARACTERS ||
       value.length % 4 !== 0 ||
       !/^[A-Za-z0-9+/]*={0,2}$/.test(value)
     )
@@ -175,8 +156,8 @@ export class ImportSkillPackageFileDto {
   static readonly [FORBID_NON_WHITELISTED] = true;
 
   @IsString()
-  @MaxLength(65_535)
-  @ApiProperty({ type: String, maxLength: 65_535 })
+  @MaxLength(SKILL_PACKAGE_MAX_PATH_BYTES)
+  @ApiProperty({ type: String, maxLength: SKILL_PACKAGE_MAX_PATH_BYTES })
   path!: string;
 
   @IsString()
@@ -223,9 +204,9 @@ export class ImportSkillPackageZipDto {
 
   @IsString()
   @IsNotEmpty()
-  @MaxLength(1_333_336)
+  @MaxLength(SKILL_PACKAGE_MAX_BASE64_CHARACTERS)
   @Validate(SkillPackageBase64Constraint)
-  @ApiProperty({ type: String, maxLength: 1_333_336 })
+  @ApiProperty({ type: String, maxLength: SKILL_PACKAGE_MAX_BASE64_CHARACTERS })
   archiveBase64!: string;
 }
 
@@ -241,14 +222,17 @@ export class ImportSkillPackageDto {
 
   @ValidateIf((_object, value) => value !== undefined)
   @IsString()
-  @MaxLength(2000)
+  @MaxLength(SKILL_PACKAGE_MAX_SOURCE_URL_BYTES)
   @Validate(SkillPackageSourceUrlConstraint)
-  @ApiPropertyOptional({ type: String, maxLength: 2000 })
+  @ApiPropertyOptional({
+    type: String,
+    maxLength: SKILL_PACKAGE_MAX_SOURCE_URL_BYTES,
+  })
   sourceUrl?: string;
 
   @ValidateIf((_object, value) => value !== undefined)
   @IsString()
-  @Matches(/^(?:sha256:)?[a-fA-F0-9]{64}$/)
+  @Matches(SKILL_PACKAGE_CHECKSUM_PATTERN)
   @ApiPropertyOptional({ type: String })
   expectedPackageChecksum?: string;
 
