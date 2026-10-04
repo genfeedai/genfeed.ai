@@ -67,7 +67,22 @@ describe('AgentGoalsService', () => {
       () => service.refreshProgress(GOAL_ID, ORGANIZATION_ID),
     );
 
-    expect(result).toMatchObject({ currentValue: 40, progressPercent: 40 });
+    expect(result).toMatchObject({ id: GOAL_ID });
+    expect(agentGoal.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          config: expect.objectContaining({
+            currentValue: 40,
+            progressPercent: 40,
+          }),
+        },
+        where: {
+          id: GOAL_ID,
+          isDeleted: false,
+          organizationId: ORGANIZATION_ID,
+        },
+      }),
+    );
     expect(agentGoal.findUnique).not.toHaveBeenCalled();
     expect(agentGoal.findFirst).toHaveBeenCalledTimes(2);
     for (const [args] of agentGoal.findFirst.mock.calls) {
