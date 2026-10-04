@@ -246,7 +246,7 @@ export class AgentOrchestratorSyncLoopService {
         loopState.hasPreviousRoundUsedTools = Boolean(toolCalls?.length);
 
         if (!toolCalls || toolCalls.length === 0) {
-          return this.finalizeSyncTurn({
+          return await this.finalizeSyncTurn({
             assistantMessage,
             defaultModelKey,
             loopState,
