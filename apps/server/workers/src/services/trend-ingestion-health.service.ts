@@ -242,12 +242,29 @@ export class TrendIngestionHealthService {
         );
       }
       if (missed.length === 0) continue;
-      // The outage window opens at the earliest baseline among affected scopes.
+      // The incident key stays stable from the first miss until full recovery,
+      // so scopes recovering or disconnecting never re-open the same outage.
+      const openIncident =
+        previousAlert &&
+        !(await this.prisma.notificationEvent.findFirst({
+          select: { deduplicationKey: true, occurredAt: true },
+          where: {
+            deduplicationKey: `${previousAlert.deduplicationKey}/recovered`,
+            isDeleted: false,
+            organizationId: null,
+            sourceId,
+            sourceType: 'trend_ingestion_health',
+          },
+        }));
       const episode = new Date(
         Math.min(...missed.map((entry) => entry.baseline.getTime())),
       ).toISOString();
+      const incidentKey =
+        openIncident && previousAlert
+          ? previousAlert.deduplicationKey
+          : `${alertPrefix}${episode}`;
       await this.send(
-        `${alertPrefix}${episode}`,
+        incidentKey,
         sourceId,
         now,
         'Trend ingestion missed two scheduled windows',
