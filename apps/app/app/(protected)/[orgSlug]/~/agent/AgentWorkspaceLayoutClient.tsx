@@ -14,6 +14,7 @@ import {
   useAgentChatStore,
   useAgentChatStream,
 } from '@genfeedai/agent';
+import { selectIsGenerating } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -273,7 +274,7 @@ function AgentWorkspaceLayoutClientContent({
         if (
           liveState.activeThreadId ||
           liveState.messages.length > 0 ||
-          liveState.isGenerating ||
+          selectIsGenerating(liveState) ||
           liveState.stream.isStreaming
         )
           return;

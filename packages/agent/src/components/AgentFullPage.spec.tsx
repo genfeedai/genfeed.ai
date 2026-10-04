@@ -3,6 +3,7 @@ import {
   ContextSidebarProvider,
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
+import type { AgentRunRecord } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
 import { THREAD_SWITCH_DEBOUNCE_MS } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
 import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
@@ -81,7 +82,6 @@ vi.mock('@genfeedai/agent/components/AgentSidebarContent', () => ({
 }));
 
 interface StoreState {
-  activeRunId: string | null;
   activeThreadId: string | null;
   cacheConversation: ReturnType<typeof vi.fn>;
   clearComposerSeed: ReturnType<typeof vi.fn>;
@@ -130,6 +130,7 @@ interface StoreState {
   applyThreadSnapshotState: ReturnType<typeof vi.fn>;
   clearThreadAttention: ReturnType<typeof vi.fn>;
   resetStreamState: ReturnType<typeof vi.fn>;
+  runsByThread: Record<string, AgentRunRecord>;
   restoreCachedConversation: ReturnType<typeof vi.fn>;
   resetActiveConversationState: ReturnType<typeof vi.fn>;
   setActiveRun: ReturnType<typeof vi.fn>;
@@ -156,7 +157,6 @@ interface StoreState {
 }
 
 const storeState: StoreState = {
-  activeRunId: null,
   activeThreadId: null,
   applyThreadSnapshotState: vi.fn(),
   cacheConversation: vi.fn(),
@@ -175,6 +175,7 @@ const storeState: StoreState = {
   pageContext: null,
   resetActiveConversationState: vi.fn(),
   resetStreamState: vi.fn(),
+  runsByThread: {},
   restoreCachedConversation: vi.fn(() => false),
   seedComposer: vi.fn(),
   setActiveRun: vi.fn(),
@@ -279,7 +280,7 @@ describe('AgentFullPage', () => {
     storeState.resetStreamState.mockReset();
     storeState.resetActiveConversationState.mockReset();
     storeState.clearThreadAttention.mockReset();
-    storeState.activeRunId = null;
+    storeState.runsByThread = {};
     storeState.activeThreadId = null;
     storeState.stream = { isStreaming: false };
     storeState.isConversationCacheFresh.mockReset();
@@ -1300,7 +1301,14 @@ describe('AgentFullPage', () => {
     // First prompt on /agent/new: sendMessage created thread-1, the store is
     // streaming it, and only then does the route land on /agent/thread-1.
     storeState.activeThreadId = 'thread-1';
-    storeState.activeRunId = 'run-1';
+    storeState.runsByThread = {
+      'thread-1': {
+        isGenerating: false,
+        runId: 'run-1',
+        startedAt: null,
+        status: 'idle',
+      },
+    };
     storeState.stream = { isStreaming: true };
     storeState.messages = [
       {

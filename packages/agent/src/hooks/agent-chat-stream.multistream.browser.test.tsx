@@ -7,6 +7,7 @@ import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream
 import { useComposerFollowUpQueue } from '@genfeedai/agent/hooks/use-composer-follow-up-queue';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { NextIntlClientProvider } from 'next-intl';
@@ -75,7 +76,7 @@ function Fixture() {
     threadId,
     isBusy: stream.isStreaming,
     canAutoDispatch:
-      !stream.isStreaming && state.activeRunStatus === 'completed',
+      !stream.isStreaming && selectActiveRun(state).status === 'completed',
     onDispatch: async (item) => {
       await stream.sendMessage(item.content);
       return true;
@@ -120,7 +121,7 @@ function Fixture() {
       />
       <p data-testid="progress">{state.stream.streamingContent}</p>
       <p data-testid="run-status">
-        {stream.isStreaming ? 'WORKING' : state.activeRunStatus}
+        {stream.isStreaming ? 'WORKING' : selectActiveRun(state).status}
       </p>
       <TimelineStreamingRow
         entry={{

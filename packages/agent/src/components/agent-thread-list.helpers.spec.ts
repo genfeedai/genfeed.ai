@@ -1,5 +1,6 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { buildThreadSummaryFromSnapshot } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -356,7 +357,9 @@ describe('sidebar thread activity across thread switches (real store)', () => {
     store.setActiveThread('a');
     // Switching back shows the thread's own known run (it used to restart
     // from idle until hydration); the summary still keeps it in Working.
-    expect(useAgentChatStore.getState().activeRunStatus).toBe('running');
+    expect(selectActiveRun(useAgentChatStore.getState()).status).toBe(
+      'running',
+    );
     expect(workingIds()).toEqual(['a']);
     expect(groupsNow().recent.map(({ id }) => id)).toEqual(['b']);
   });
@@ -369,7 +372,7 @@ describe('sidebar thread activity across thread switches (real store)', () => {
     store.setActiveThread('a');
 
     expect(store.restoreCachedConversation('a')).toBe(true);
-    expect(useAgentChatStore.getState().activeRunStatus).toBe('idle');
+    expect(selectActiveRun(useAgentChatStore.getState()).status).toBe('idle');
     expect(workingIds()).toEqual(['a']);
   });
 
@@ -381,7 +384,7 @@ describe('sidebar thread activity across thread switches (real store)', () => {
     store.resetActiveConversationState();
     store.clearMessages();
 
-    expect(useAgentChatStore.getState().activeRunStatus).toBe('idle');
+    expect(selectActiveRun(useAgentChatStore.getState()).status).toBe('idle');
     expect(workingIds()).toEqual(['a']);
   });
 
