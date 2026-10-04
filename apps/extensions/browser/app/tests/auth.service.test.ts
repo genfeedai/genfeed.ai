@@ -459,4 +459,12 @@ describe('scoped authenticated send and replay fence', () => {
     expect(mocks.values.get('genfeed_token')).toBe('fresh');
     expect(mocks.syncValues.size).toBe(0);
   });
+  it('clears a legacy sync token on sign-out without copying it to local storage', async () => {
+    mocks.syncValues.set('genfeed_token', 'legacy');
+    const { authService } = await import('../src/services/auth.service');
+    await authService.clearToken();
+    expect(mocks.values.has('genfeed_token')).toBe(false);
+    expect(mocks.syncValues.has('genfeed_token')).toBe(false);
+    expect(await authService.getTokenInfo()).toBeNull();
+  });
 });

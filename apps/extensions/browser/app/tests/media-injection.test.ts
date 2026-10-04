@@ -363,6 +363,30 @@ describe('UI Helpers', () => {
 
       expect(button.title).toBe('Generate AI Reply');
     });
+
+    it('tells the background which text Genfeed wrote into the composer', async () => {
+      document.body.innerHTML =
+        '<div data-testid="tweetTextarea_0" contenteditable="true"></div>';
+      const sendMessage = vi
+        .spyOn(chrome.runtime, 'sendMessage')
+        .mockImplementation((async (message: { event?: string }) =>
+          message.event
+            ? { success: true, reply: 'A generated reply' }
+            : undefined) as never);
+      const button = createAIReplyButton(
+        '123',
+        'twitter',
+        '[data-testid="tweetTextarea_0"]',
+      );
+      document.body.appendChild(button);
+      button.click();
+      await vi.waitFor(() =>
+        expect(sendMessage).toHaveBeenCalledWith({
+          payload: { content: 'A generated reply', success: true },
+          type: 'CONTENT_INSERTED',
+        }),
+      );
+    });
   });
 
   describe('createGenFeedDropdown', () => {

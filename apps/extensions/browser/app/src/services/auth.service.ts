@@ -210,9 +210,15 @@ class AuthService {
 
   async clearToken(): Promise<void> {
     try {
-      await migrateLegacySyncToken();
-      await storage.remove(TOKEN_STORAGE_KEY);
-      await storage.remove(AUTH_CONTEXT_STORAGE_KEY);
+      // Sign-out clears both areas directly. It must not copy a legacy sync
+      // token into local storage first, and migration must not run afterwards.
+      legacyMigration = Promise.resolve();
+      await Promise.all([
+        legacySyncStorage.remove(TOKEN_STORAGE_KEY),
+        legacySyncStorage.remove(AUTH_CONTEXT_STORAGE_KEY),
+        storage.remove(TOKEN_STORAGE_KEY),
+        storage.remove(AUTH_CONTEXT_STORAGE_KEY),
+      ]);
       this.tokenCache = null;
       this.authContextCache = null;
       this.verifiedByToken = null;
