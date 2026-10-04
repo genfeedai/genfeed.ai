@@ -1613,15 +1613,15 @@ export function secretValues(env = {}) {
 // Shape-based redaction: catches credentials whose env var name is not known.
 const CREDENTIAL_SHAPES = [
   [
-    /(\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@"'<>\\]*:)[^\s/"'<>\\@]+@/gi,
+    /(\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@"<>\\]*:)[^\s/"<>\\@]+@/gi,
     '$1[REDACTED]@',
   ],
-  [/(\b[a-z][a-z0-9+.-]*:\/\/)[^\s/:@"'<>\\]+@/gi, '$1[REDACTED]@'],
+  [/(\b[a-z][a-z0-9+.-]*:\/\/)[^\s/:@"<>\\]+@/gi, '$1[REDACTED]@'],
   [
-    /(authorization(?:\\?["'])?\s*[:=]\s*(?:\\?["'])?)(?:(?:bearer|basic|token)\s+)?[^\s"',;\\]+/gi,
+    /(authorization(?:\\?["'])?\s*[:=]\s*(?:\\?["'])?)(?:(?:bearer|basic|token)(?:\s|\\[tnr])+)?[^\s"',;\\]+/gi,
     '$1[REDACTED]',
   ],
-  [/((?:bearer|basic)\s+)[A-Za-z0-9._~+/=-]{6,}/gi, '$1[REDACTED]'],
+  [/((?:bearer|basic)(?:\s|\\[tnr])+)[A-Za-z0-9._~+/=-]{6,}/gi, '$1[REDACTED]'],
   [
     /([?&;]|&amp;|\\u0026)((?:x-amz-(?:signature|credential|security-token)|signature|sig|token|access_token|id_token|x-goog-signature|x-goog-credential)=)[^&\s"'<>#\\]+/gi,
     '$1$2[REDACTED]',

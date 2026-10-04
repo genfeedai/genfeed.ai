@@ -548,6 +548,8 @@ test('evidence redacts credential values by shape and by connection-style env na
     cred: 'AKIAEXAMPLEKEY/20261004/us-east-1/s3/aws4_request',
     plainSignature: 'plainSignatureValue77',
     queryToken: 'queryTokenValue88',
+    tabbed: 'tabbedSecretToken123',
+    apos: "p'ass123456",
   };
   const text = [
     `fetch https://deploy:${leaks.userinfo}@registry.example.com/path failed`,
@@ -556,6 +558,8 @@ test('evidence redacts credential values by shape and by connection-style env na
     `request -H "Authorization: Bearer ${leaks.bearer}"`,
     `{"headers":{"Authorization":"Basic ${leaks.authHeader}"}}`,
     `Bearer ${leaks.bearer}`,
+    `Authorization: Bearer\t${leaks.tabbed}`,
+    `postgresql://svc:${leaks.apos}@db.example/app`,
     `https://bucket.s3.amazonaws.com/o?X-Amz-Credential=${encodeURIComponent(leaks.cred)}&X-Amz-Signature=${leaks.sig}&X-Amz-Expires=60`,
     `https://x.example/f?Signature=${leaks.plainSignature}&token=${leaks.queryToken}&keep=visible`,
     `connect ${env.DATABASE_URL} ${env.REDIS_URL} ${env.SERVICE_DSN} ${env.UPSTREAM_CONNECTION} ${env.PUBLIC_LABEL}`,
