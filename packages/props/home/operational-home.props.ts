@@ -14,6 +14,11 @@ export interface VerifiedMcpConnection {
   apiKey: ApiKey;
   /** OAuth client name the agent registered with; null for manual keys. */
   clientName: string | null;
+  /**
+   * Stable per agent connection: the OAuth grant for OAuth sessions (refresh
+   * rotation mints new keys under the same grant), else the key id.
+   */
+  connectionId: string;
   method: 'manual-key' | 'oauth';
   verifiedAt: string;
 }

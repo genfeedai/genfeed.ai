@@ -213,10 +213,10 @@ export class OAuthAuthorizeService {
         description: 'OAuth session for a remote MCP client',
         expiresAt: expiresAt.toISOString(),
         label: 'MCP OAuth',
-        metadata: buildMcpOAuthSessionMetadata(
-          record.resource,
-          client.clientName,
-        ),
+        metadata: buildMcpOAuthSessionMetadata(record.resource, {
+          clientName: client.clientName,
+          grantId: record.id,
+        }),
         organizationId: record.organizationId,
         rateLimit: 120,
         scopes: record.scopes,

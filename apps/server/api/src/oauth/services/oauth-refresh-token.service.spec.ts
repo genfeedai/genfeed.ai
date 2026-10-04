@@ -148,6 +148,7 @@ function buildHarness() {
       async (
         keyId: string,
         dto: {
+          metadata?: ApiKeyRow['metadata'];
           organizationId: string;
           rateLimit?: number;
           scopes: string[];
@@ -155,6 +156,7 @@ function buildHarness() {
         },
       ) => {
         const replacement = seedApiKey({
+          ...(dto.metadata ? { metadata: dto.metadata } : {}),
           organizationId: dto.organizationId,
           rateLimit: dto.rateLimit ?? null,
           scopes: dto.scopes,
@@ -333,6 +335,8 @@ describe('OAuthRefreshTokenService', () => {
       expect.objectContaining({
         metadata: {
           clientName: 'Claude Code',
+          // A legacy key without lineage anchors the grant to its own id.
+          grantId: original.id,
           kind: 'mcp-oauth-session',
           resource,
         },
@@ -349,6 +353,14 @@ describe('OAuthRefreshTokenService', () => {
     const renewed = await service.refresh(refreshGrant(token.refresh_token));
     expect(renewed.access_token).toBe('gf_test_key-3');
     expect(apiKeys.get('key-2')?.isRevoked).toBe(true);
+    // The grant lineage survives every later rotation.
+    expect(apiKeysService.rotateWithKey).toHaveBeenLastCalledWith(
+      'key-2',
+      expect.objectContaining({
+        metadata: expect.objectContaining({ grantId: original.id }),
+      }),
+      'mcp',
+    );
   });
 
   it('rejects an expired refresh token without issuing a token', async () => {

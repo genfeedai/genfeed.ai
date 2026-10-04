@@ -55,6 +55,7 @@ vi.mock('@app/(protected)/home/use-connect-genfeed-status', () => ({
 function oauthConnection(
   id: string,
   clientName: string | null,
+  connectionId = id,
 ): VerifiedMcpConnection {
   return {
     apiKey: new ApiKey({
@@ -65,6 +66,7 @@ function oauthConnection(
       organization: 'org-1',
     }),
     clientName,
+    connectionId,
     method: 'oauth',
     verifiedAt: '2026-07-18T12:00:00.000Z',
   };
@@ -343,6 +345,53 @@ describe('ConnectGenfeedFlow', () => {
     rerender(<ConnectGenfeedFlow />);
 
     expect(await screen.findByText('Connected to Codex')).toBeInTheDocument();
+  });
+
+  it('does not announce an existing agent that rotated its session key', async () => {
+    mocks.connectionStatus = connectionStatus([
+      oauthConnection('oauth-key-old', 'Codex', 'grant-codex'),
+    ]);
+    const { rerender } = render(<ConnectGenfeedFlow />);
+    rerender(<ConnectGenfeedFlow />);
+
+    mocks.connectionStatus = connectionStatus([
+      oauthConnection('oauth-key-rotated', 'Codex', 'grant-codex'),
+    ]);
+    rerender(<ConnectGenfeedFlow />);
+
+    expect(screen.getByTestId('connect-genfeed-waiting')).toBeInTheDocument();
+    expect(screen.queryByText('Connected to Codex')).not.toBeInTheDocument();
+    expect(mocks.statusOptions).toHaveBeenLastCalledWith('org-1', {
+      pollIntervalMs: 4000,
+    });
+  });
+
+  it('resumes waiting for the next client after one connects', async () => {
+    const { rerender } = render(<ConnectGenfeedFlow />);
+    mocks.connectionStatus = connectionStatus([
+      oauthConnection('oauth-key-codex', 'Codex', 'grant-codex'),
+    ]);
+    rerender(<ConnectGenfeedFlow />);
+    expect(await screen.findByText('Connected to Codex')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Claude Code' }));
+
+    expect(screen.queryByText('Connected to Codex')).not.toBeInTheDocument();
+    expect(screen.getByTestId('connect-genfeed-waiting')).toHaveTextContent(
+      'Waiting for Claude Code to connect.',
+    );
+    expect(mocks.statusOptions).toHaveBeenLastCalledWith('org-1', {
+      pollIntervalMs: 4000,
+    });
+
+    mocks.connectionStatus = connectionStatus([
+      oauthConnection('oauth-key-claude', 'Claude Code', 'grant-claude'),
+      oauthConnection('oauth-key-codex', 'Codex', 'grant-codex'),
+    ]);
+    rerender(<ConnectGenfeedFlow />);
+    expect(
+      await screen.findByText('Connected to Claude Code'),
+    ).toBeInTheDocument();
   });
 
   it('switches OAuth clients and provides an unsupported-client fallback', async () => {

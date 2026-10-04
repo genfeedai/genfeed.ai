@@ -123,7 +123,9 @@ function createOAuthSessionKey(overrides: Partial<ApiKey> = {}): ApiKey {
     label: 'MCP OAuth',
     lastUsedAt: '2026-07-26T11:59:00.000Z',
     metadata: {
+      actionOrigin: 'mcp',
       clientName: 'Claude Code',
+      grantId: 'grant_1',
       kind: 'mcp-oauth-session',
       resource: 'https://mcp.genfeed.ai/mcp',
     },
@@ -144,6 +146,7 @@ describe('getVerifiedMcpConnection for OAuth agents', () => {
 
     expect(result).toMatchObject({
       clientName: 'Claude Code',
+      connectionId: 'grant_1',
       method: 'oauth',
       verifiedAt: '2026-07-26T11:59:00.000Z',
     });
@@ -162,6 +165,10 @@ describe('getVerifiedMcpConnection for OAuth agents', () => {
         metadata: { kind: 'personal', resource: 'https://mcp.genfeed.ai/mcp' },
       },
     ],
+    [
+      'user-relabelled (no server-signed MCP origin)',
+      { metadata: { kind: 'mcp-oauth-session' } },
+    ],
   ])('rejects a %s session', (_label, overrides) => {
     expect(
       getVerifiedMcpConnection(
@@ -175,7 +182,9 @@ describe('getVerifiedMcpConnection for OAuth agents', () => {
   it('lists OAuth and manually verified connections together', () => {
     const connections = getVerifiedMcpConnections(
       [
-        createOAuthSessionKey({ metadata: { kind: 'mcp-oauth-session' } }),
+        createOAuthSessionKey({
+          metadata: { actionOrigin: 'mcp', kind: 'mcp-oauth-session' },
+        }),
         createVerifiedKey(),
       ],
       'org_1',
@@ -187,6 +196,8 @@ describe('getVerifiedMcpConnection for OAuth agents', () => {
       'manual-key',
     ]);
     expect(connections[0]?.clientName).toBeNull();
+    // Without grant lineage the key id identifies the connection.
+    expect(connections[0]?.connectionId).toBe('oauth_key_1');
   });
 });
 

@@ -2,7 +2,11 @@ import {
   getBrandOrganizationId,
   getBrandOrganizationSlug,
 } from '@contexts/user/brand-context/brand-context.helpers';
-import { TargetExecutionState } from '@genfeedai/contracts';
+import {
+  ActionOrigin,
+  API_KEY_ACTION_ORIGIN_METADATA_KEY,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import {
   API_KEY_SCOPE_PRESETS,
   CONNECT_GENFEED_VERIFICATION_METADATA_KEY,
@@ -114,28 +118,36 @@ function isUsableApiKey(
   );
 }
 
+function readMetadataString(apiKey: ApiKey, key: string): string | null {
+  const value = apiKey.metadata?.[key];
+  return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
 /**
  * The OAuth token exchange mints a session key; the MCP server authenticates
  * every request through the API key guard, which stamps `lastUsedAt`. A used
  * session key therefore proves the agent completed OAuth and reached Genfeed.
+ * The `mcp` action origin is server-signed and stripped from user-supplied
+ * metadata, so a relabelled personal key cannot pass as an OAuth session.
  */
 function getOAuthSessionConnection(
   apiKey: ApiKey,
 ): VerifiedMcpConnection | null {
-  if (apiKey.metadata?.kind !== MCP_OAUTH_SESSION_KIND || !apiKey.lastUsedAt) {
+  if (
+    apiKey.metadata?.kind !== MCP_OAUTH_SESSION_KIND ||
+    apiKey.metadata[API_KEY_ACTION_ORIGIN_METADATA_KEY] !== ActionOrigin.MCP ||
+    !apiKey.lastUsedAt
+  ) {
     return null;
   }
   if (!Number.isFinite(Date.parse(apiKey.lastUsedAt))) {
     return null;
   }
 
-  const clientName = apiKey.metadata.clientName;
   return {
     apiKey,
-    clientName:
-      typeof clientName === 'string' && clientName.length > 0
-        ? clientName
-        : null,
+    clientName: readMetadataString(apiKey, 'clientName'),
+    connectionId: readMetadataString(apiKey, 'grantId') ?? apiKey.id,
     method: 'oauth',
     verifiedAt: apiKey.lastUsedAt,
   };
@@ -160,6 +172,7 @@ function getManualKeyConnection(
   return {
     apiKey,
     clientName: null,
+    connectionId: apiKey.id,
     method: 'manual-key',
     verifiedAt: verification.lastVerifiedAt,
   };

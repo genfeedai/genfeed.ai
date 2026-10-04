@@ -115,7 +115,7 @@ export default function ConnectGenfeedFlow() {
   const [connectedAgent, setConnectedAgent] =
     useState<VerifiedMcpConnection | null>(null);
   const hasTrackedStart = useRef(false);
-  const knownOAuthConnectionIds = useRef<ReadonlySet<string> | null>(null);
+  const knownOAuthConnectionIds = useRef<Set<string> | null>(null);
   const connectionStatus = useConnectGenfeedStatus(organizationId ?? '', {
     pollIntervalMs:
       authMethod === 'oauth' && !connectedAgent
@@ -208,15 +208,18 @@ export default function ConnectGenfeedFlow() {
     const knownIds = knownOAuthConnectionIds.current;
     if (!knownIds) {
       knownOAuthConnectionIds.current = new Set(
-        oauthConnections.map((connection) => connection.apiKey.id),
+        oauthConnections.map((connection) => connection.connectionId),
       );
       return;
     }
 
+    // Keyed by OAuth grant: an agent that was already connected and merely
+    // refreshed its token keeps its grant, so it is not announced again.
     const newConnection = oauthConnections.find(
-      (connection) => !knownIds.has(connection.apiKey.id),
+      (connection) => !knownIds.has(connection.connectionId),
     );
     if (newConnection) {
+      knownIds.add(newConnection.connectionId);
       setConnectedAgent(newConnection);
       trackStep('verification', 'success');
     }
@@ -240,6 +243,9 @@ export default function ConnectGenfeedFlow() {
     const nextClient = value as ConnectGenfeedClient;
     setClient(nextClient);
     setVerification(null);
+    // The announced agent is already in the known set; resume polling so the
+    // next client's connection can be detected.
+    setConnectedAgent(null);
     captureAnalyticsEvent(ANALYTICS_EVENTS.CONNECT_GENFEED_STEP, {
       client: nextClient,
       deployment,

@@ -192,6 +192,7 @@ describe('OAuthAuthorizeService', () => {
       expect.objectContaining({
         metadata: {
           clientName: 'Claude',
+          grantId: 'code-1',
           kind: 'mcp-oauth-session',
           resource,
         },
