@@ -15,6 +15,21 @@ import { resolveBillableProviderCost } from './live-model-pricing';
 import { applyMargin } from './plans-pricing';
 import { quoteReviewedProviderPricing } from './reviewed-provider-pricing';
 
+/**
+ * A pending provider contract blocks pricing only when it drifts from a
+ * reviewed one. The provider sync stamps a pending candidate on every
+ * observed endpoint, including models that were never reviewed; those keep
+ * pricing from their configured row until an operator promotes a contract.
+ */
+export function hasPendingProviderRateDrift(
+  reviewedVersion: string | null | undefined,
+  pendingVersion: string | null | undefined,
+): boolean {
+  return Boolean(
+    reviewedVersion && pendingVersion && pendingVersion !== reviewedVersion,
+  );
+}
+
 /** Allocate an already rounded total; never round/multiply a unit quote again. */
 export function allocateBillableCredits(
   credits: number,

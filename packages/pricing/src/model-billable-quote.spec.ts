@@ -5,6 +5,7 @@ import type {
 import { describe, expect, it } from 'vitest';
 import {
   allocateBillableCredits,
+  hasPendingProviderRateDrift,
   quoteModelBillableCompletion,
   quoteModelBillablePricing,
 } from './model-billable-quote';
@@ -31,6 +32,17 @@ const input: ModelBillableQuoteRequest = {
   provider: model.provider,
 };
 const date = '2026-09-30T00:00:00Z';
+describe('pending provider rate drift', () => {
+  it.each([
+    ['rate-v1', 'rate-v2', true],
+    ['rate-v1', 'rate-v1', false],
+    ['rate-v1', null, false],
+    [null, 'sync-v1', false],
+    [undefined, undefined, false],
+  ] as const)('reviewed %s, pending %s → %s', (reviewed, pending, expected) => {
+    expect(hasPendingProviderRateDrift(reviewed, pending)).toBe(expected);
+  });
+});
 describe('authoritative bill-time quote snapshots', () => {
   it('prices actual duration, aggregates once, and conserves every allocated credit', () => {
     const quote = quoteModelBillablePricing(
