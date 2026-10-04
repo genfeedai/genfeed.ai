@@ -4,6 +4,7 @@ import {
   buildScopedTrendTaskWorkflowDefinition,
   buildTrendDatasetTaskWorkflowDefinition,
   buildTrendsRefreshWorkflowDefinition,
+  SCOPED_REFRESH_START_DELAY_MS,
   type ScopedTrendRefreshTask,
   TRENDS_MAINTENANCE_ACTION_IDS,
   type TrendDatasetTask,
@@ -83,6 +84,7 @@ export class CronTrendsService implements OnModuleInit {
         'scheduled-scoped-native-trends-refresh',
         `trends-scoped-refresh-${windowId}`,
         now,
+        SCOPED_REFRESH_START_DELAY_MS,
       ),
     ]);
   }
@@ -224,6 +226,7 @@ export class CronTrendsService implements OnModuleInit {
     source: string,
     jobId: string,
     now: Date,
+    delayMs?: number,
   ): Promise<string> {
     const request: TrendsMaintenanceRequest = {
       requestedAt: now.toISOString(),
@@ -243,6 +246,7 @@ export class CronTrendsService implements OnModuleInit {
       {
         attempts: 3,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        ...(delayMs ? { delayMs } : {}),
       },
     );
     this.loggerService.log('Queued trend maintenance workflow', {

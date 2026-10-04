@@ -1,5 +1,6 @@
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import {
+  SCOPED_REFRESH_START_DELAY_MS,
   TRENDS_MAINTENANCE_ACTION_IDS,
   TRENDS_MAINTENANCE_WORKFLOW_IDS,
 } from '@api/collections/trends/services/trends-maintenance-workflow-definition';
@@ -96,6 +97,17 @@ describe('CronTrendsService', () => {
       'trends-refresh-41387',
       {
         attempts: 3,
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+      },
+    );
+    expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalId: TRENDS_MAINTENANCE_WORKFLOW_IDS.SCOPED_REFRESH,
+      }),
+      'trends-scoped-refresh-41387',
+      {
+        attempts: 3,
+        delayMs: SCOPED_REFRESH_START_DELAY_MS,
         dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
       },
     );
