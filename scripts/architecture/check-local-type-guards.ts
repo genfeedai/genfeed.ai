@@ -36,8 +36,25 @@ const DEFAULT_IGNORE_GLOBS = [
   '**/generated/**',
 ];
 
-const DECLARATION_PATTERN =
-  /(?:\bfunction\s+|\b(?:const|let)\s+)(isRecord|readString|readRecord|asRecord)\b/gu;
+// Keep in sync with the readers exported by packages/utils/data/extract.util.ts
+// (a test asserts every guarded name is still exported there).
+export const GUARDED_HELPER_NAMES = [
+  'isRecord',
+  'asRecord',
+  'readString',
+  'readNonEmptyString',
+  'readNonBlankString',
+  'readRawString',
+  'readRecord',
+  'readRecordOrNull',
+  'readRecordOrUndefined',
+] as const;
+
+// function, const/let/var and arrow-function declarations.
+const DECLARATION_PATTERN = new RegExp(
+  `(?:\\bfunction\\s+|\\b(?:const|let|var)\\s+)(${GUARDED_HELPER_NAMES.join('|')})\\b`,
+  'gu',
+);
 
 export type LocalTypeGuardViolation = {
   allowed: number;

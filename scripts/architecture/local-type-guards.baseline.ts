@@ -1,10 +1,11 @@
 /**
- * Remaining local copies of isRecord/readString/readRecord/asRecord (#5909).
+ * Remaining local copies of the shared record/string readers (#5909).
  * Entries may only shrink; see check-local-type-guards.ts.
  */
 export const LOCAL_TYPE_GUARD_BASELINE: Readonly<Record<string, number>> = {
   'apps/app/app/(onboarding)/onboarding/(wizard)/brand/brand-scrape-issue.util.ts': 1,
   'apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/publishing-posting-sets-section.tsx': 2,
+  'apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/clips/useStudioClipsPage.ts': 1,
   'apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/clips/utils/map-clip-project-summary.ts': 2,
   'apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/overview/use-workspace-dashboard-data.ts': 1,
   'apps/app/app/(protected)/[orgSlug]/~/settings/brands/blocked-characters.util.ts': 1,
@@ -22,7 +23,10 @@ export const LOCAL_TYPE_GUARD_BASELINE: Readonly<Record<string, number>> = {
   'apps/desktop/app/src/main/session.service.ts': 1,
   'apps/extensions/browser/app/src/services/social-post-import.service.ts': 1,
   'apps/server/api/src/collections/ad-performance/utils/ad-performance-identity.util.ts': 1,
+  'apps/server/api/src/collections/articles/utils/article-input-boundary.util.ts': 1,
+  'apps/server/api/src/collections/brands/services/brand-voice-corpus.service.ts': 1,
   'apps/server/api/src/collections/brands/utils/brand-profile-generation.util.ts': 1,
+  'apps/server/api/src/collections/clip-projects/services/clip-generation-dispatch.service.ts': 1,
   'apps/server/api/src/collections/content-plans/utils/content-plan-data.util.ts': 1,
   'apps/server/api/src/collections/models/testing/cloud-guarded-delegate.ts': 1,
   'apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts': 1,
@@ -32,6 +36,8 @@ export const LOCAL_TYPE_GUARD_BASELINE: Readonly<Record<string, number>> = {
   'apps/server/api/src/helpers/utils/credits/generation-credit-reservation.util.ts': 1,
   'apps/server/api/src/oauth/filters/oauth-exception.filter.ts': 1,
   'apps/server/api/src/oauth/mcp-oauth-session-metadata.util.ts': 1,
+  'apps/server/api/src/services/agent-orchestrator/tools/agent-campaign-tool-handler.service.ts': 1,
+  'apps/server/api/src/services/agent-orchestrator/tools/agent-tool-pending-confirmation.util.ts': 1,
   'apps/server/api/src/services/brand-scraper/brand-scrape-error.util.ts': 1,
   'apps/server/api/src/services/integrations/instagram/utils/instagram-error.util.ts': 1,
   'apps/server/api/src/services/integrations/linkedin/utils/linkedin-error.util.ts': 1,
@@ -71,11 +77,12 @@ export const LOCAL_TYPE_GUARD_BASELINE: Readonly<Record<string, number>> = {
   'packages/pages/brands/components/brand-kit/BrandOsRevisionFields.tsx': 1,
   'packages/pages/scheduler/posting-set-picker.tsx': 2,
   'packages/pages/studio/generate/utils/studio-generate-session.ts': 1,
-  'packages/pages/studio/generate/utils/studio-generate-starter-ideas.ts': 1,
+  'packages/pages/studio/generate/utils/studio-generate-starter-ideas.ts': 2,
   'packages/pages/studio/generate/utils/studio-generate-storage.ts': 1,
   'packages/serializers/src/helpers/media-delivery-projection.helper.ts': 1,
   'packages/services/core/json-api-error-message.ts': 1,
   'packages/services/core/operation-error.ts': 1,
+  'packages/services/core/socket.service.ts': 1,
   'packages/ui/src/components/modals/system/error-debug/error-debug-copy.util.ts': 1,
   'packages/workflows/src/engine/executors/saas/cast-prompt-executor.ts': 1,
   'packages/workflows/src/engine/utils/action-input.ts': 1,

@@ -2,7 +2,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { runCheckLocalTypeGuards } from './check-local-type-guards';
+import * as extractUtil from '../../packages/utils/data/extract.util';
+import {
+  GUARDED_HELPER_NAMES,
+  runCheckLocalTypeGuards,
+} from './check-local-type-guards';
 
 describe('check-local-type-guards', () => {
   let testDir = '';
@@ -78,5 +82,36 @@ describe('check-local-type-guards', () => {
       rootDir: testDir,
     });
     expect(violations).toEqual([]);
+  });
+
+  it('rejects a new readRecordOrNull copy', () => {
+    write(
+      'apps/server/api/src/b.ts',
+      'function readRecordOrNull(v: unknown) { return v; }\n',
+    );
+    const { violations } = runCheckLocalTypeGuards({
+      baseline: {},
+      rootDir: testDir,
+    });
+    expect(violations.map((v) => v.kind)).toEqual(['new-local-copy']);
+  });
+
+  it('rejects var declarations and arrow forms of the new variants', () => {
+    write('apps/c.ts', 'var readRawString = (v: unknown) => v;\n');
+    write('apps/d.ts', 'let readNonBlankString = (v: unknown) => v;\n');
+    const { violations } = runCheckLocalTypeGuards({
+      baseline: {},
+      rootDir: testDir,
+    });
+    expect(violations.map((v) => v.file)).toEqual(['apps/c.ts', 'apps/d.ts']);
+  });
+
+  it('only guards names the canonical module still exports', () => {
+    const exported = Object.keys(extractUtil);
+    for (const name of GUARDED_HELPER_NAMES) {
+      if (name !== 'asRecord') {
+        expect(exported).toContain(name);
+      }
+    }
   });
 });
