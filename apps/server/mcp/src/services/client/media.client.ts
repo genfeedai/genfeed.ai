@@ -13,10 +13,6 @@ import type {
 import type { BaseApiClient } from './base-api-client';
 import { CONTENT_STATUS } from './client.types';
 
-function readNonEmptyString(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
 /** Media generation: videos, images, and music. */
 export class MediaClient {
   constructor(private readonly base: BaseApiClient) {}
