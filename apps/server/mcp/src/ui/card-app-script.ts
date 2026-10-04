@@ -147,7 +147,9 @@ export function cardAppScript(origins: readonly string[]): string {
   function pollJob(item, article, attempt) {
     const epoch = renderEpoch;
     const isStale = () => isDisposed || epoch !== renderEpoch || !article.isConnected;
-    if (isStale() || !item.id || attempt >= ${JOB_POLL_MAX_ATTEMPTS}) return;
+    // The card is not attached yet on the first call, so only the epoch is
+    // checked here; connection is re-checked when the timer fires.
+    if (isDisposed || epoch !== renderEpoch || !item.id || attempt >= ${JOB_POLL_MAX_ATTEMPTS}) return;
     const timer = setTimeout(() => {
       pollTimers.delete(timer);
       if (isStale()) return;
