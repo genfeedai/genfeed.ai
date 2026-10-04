@@ -367,6 +367,9 @@
     "socket.io-parser": "4.2.7",
     "dompurify": "3.4.13",
     "mermaid": "11.16.1",
-    "svelte": "4.2.19"
+    "svelte": "4.2.19",
+    "sanitize-html": {
+      "htmlparser2": "10.1.0"
+    }
   }
 }
