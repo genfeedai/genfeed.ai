@@ -9127,6 +9127,8 @@ model SystemEventDelivery {
   nextAttemptAt DateTime @default(now())
   deliveredAt DateTime?
   skippedAt DateTime?
+  /// Terminal: the attempt cap was reached; only an operator retry revives it.
+  failedAt DateTime?
   leaseToken String?
   leaseUntil DateTime?
   isDeleted Boolean @default(false)

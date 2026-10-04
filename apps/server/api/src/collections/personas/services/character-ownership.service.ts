@@ -5,6 +5,7 @@ import {
   hasSharedAvailability,
   isPersonaAvailableToBrand,
 } from '@api/collections/personas/utils/persona-availability.util';
+import { assertOwningBrandLive } from '@api/collections/personas/utils/persona-handle-lock.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { scopedWhere } from '@api/index';
@@ -57,6 +58,7 @@ export class CharacterOwnershipService {
       if (!locked) {
         throw new NotFoundException('Persona', params.personaId);
       }
+      await assertOwningBrandLive(tx, locked.brandId, params.organizationId);
       if (!locked.brandId) {
         throw new ValidationException(
           'A character needs an owning brand before its ownership can move',
