@@ -37,7 +37,13 @@ export const SELF_HOSTED_MODELS = [
       category === ModelCategory.IMAGE
         ? MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE
         : MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
-    endpoint: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
+    // Own key as endpoint: `models_provider_endpoint_key` forbids two rows on
+    // one (provider, endpoint). Dispatch maps the edit row back to the hosted
+    // model with `resolveFlux3ReplicateEndpoint`.
+    endpoint:
+      category === ModelCategory.IMAGE
+        ? MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE
+        : MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
     label: category === ModelCategory.IMAGE ? 'FLUX.3' : 'FLUX.3 Edit',
     pricingType: PricingType.FLAT,
     provider: ModelProvider.REPLICATE,

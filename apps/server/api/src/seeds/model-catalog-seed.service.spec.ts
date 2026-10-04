@@ -67,6 +67,30 @@ describe('ModelCatalogSeedService', () => {
     );
   });
 
+  it('keeps reconciling after one entry fails and names the failing key', async () => {
+    const [first, second, third] = UNIFIED_MODEL_CATALOG;
+    prisma.model.upsert.mockImplementation(({ where }: UpsertCall) =>
+      where.key === second.key
+        ? Promise.reject(
+            new Error(
+              'Unique constraint failed on the constraint: `models_provider_endpoint_key`',
+            ),
+          )
+        : Promise.resolve({ id: 'model' }),
+    );
+
+    const upserted = await service.reconcileCatalog([first, second, third]);
+
+    expect(upserted).toBe(2);
+    expect(prisma.model.upsert).toHaveBeenCalledTimes(3);
+    expect(callForKey(third.key)).toBeDefined();
+    expect(logger.error).toHaveBeenCalledWith(
+      `Model catalog entry failed to reconcile: ${second.key}`,
+      expect.any(Error),
+      'ModelCatalogSeedService',
+    );
+  });
+
   it('upserts one registry row per catalog entry, keyed by model key', async () => {
     const upserted = await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 

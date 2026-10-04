@@ -364,4 +364,15 @@ describe('UNIFIED_MODEL_CATALOG', () => {
       expect(row.providerCostUsd).toBeGreaterThan(0);
     }
   });
+
+  it('never seeds two rows on one (provider, endpoint)', () => {
+    // `models_provider_endpoint_key` is unique, and the seed writes
+    // `endpoint ?? key`; a duplicate aborts the whole boot reconcile.
+    const owners = new Map<string, string>();
+    for (const entry of UNIFIED_MODEL_CATALOG) {
+      const identity = `${entry.provider}|${entry.endpoint ?? entry.key}`;
+      expect(owners.get(identity), identity).toBeUndefined();
+      owners.set(identity, entry.key);
+    }
+  });
 });

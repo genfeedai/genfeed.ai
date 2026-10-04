@@ -30,6 +30,16 @@ export const FLUX_3_PROVIDER_COSTS: Record<Flux3Resolution, number> = {
 };
 export const FLUX_3_IMAGE_CONTRACT_VERSION = 'flux-3-image-2026-10-01';
 export const FLUX_3_EDIT_CONTRACT_VERSION = 'flux-3-image-edit-2026-10-01';
+/**
+ * Replicate serves FLUX.3 generation and editing from one model, but the
+ * registry keeps `(provider, endpoint)` unique, so the editing row's endpoint
+ * is its own key. Dispatch resolves it back to the model Replicate hosts.
+ */
+export function resolveFlux3ReplicateEndpoint(endpoint: string): string {
+  return endpoint === MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT
+    ? MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE
+    : endpoint;
+}
 export function isFlux3ImageModel(model: string): boolean {
   return (
     model === MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE ||
