@@ -15,6 +15,7 @@ describe('PersonasService', () => {
   const grantReads = {
     findForBrand: vi.fn(),
     findHandleGrants: vi.fn(),
+    findLinkedOutputs: vi.fn(),
     findReferenceGrants: vi.fn(),
     listForBrand: vi.fn(),
   };
@@ -32,7 +33,10 @@ describe('PersonasService', () => {
       findFirst: ReturnType<typeof vi.fn>;
       findMany: ReturnType<typeof vi.fn>;
     };
-    ingredient: { findFirst: ReturnType<typeof vi.fn> };
+    ingredient: {
+      findFirst: ReturnType<typeof vi.fn>;
+      findMany: ReturnType<typeof vi.fn>;
+    };
     member: { findFirst: ReturnType<typeof vi.fn> };
     persona: {
       create: ReturnType<typeof vi.fn>;
@@ -48,16 +52,20 @@ describe('PersonasService', () => {
     grantReads.findForBrand.mockReset().mockResolvedValue(null);
     grantReads.findHandleGrants.mockReset().mockResolvedValue([]);
     grantReads.findReferenceGrants.mockReset().mockResolvedValue([]);
+    grantReads.findLinkedOutputs.mockReset().mockResolvedValue([]);
     grantReads.listForBrand.mockReset().mockResolvedValue([]);
     prisma = {
       $queryRaw: vi.fn().mockResolvedValue([]),
       $transaction: vi.fn(),
       brand: {
         count: vi.fn(),
+        findFirst: vi.fn().mockResolvedValue({ id: 'brand-a' }),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      ingredient: {
         findFirst: vi.fn(),
         findMany: vi.fn().mockResolvedValue([]),
       },
-      ingredient: { findFirst: vi.fn() },
       member: { findFirst: vi.fn() },
       persona: {
         create: vi.fn(),
@@ -459,6 +467,23 @@ describe('PersonasService', () => {
     });
 
     describe('updateAvailability', () => {
+      it('refuses to share once the owning brand deletion won the lock', async () => {
+        prisma.brand.findFirst.mockResolvedValue(null);
+        prisma.brand.findMany.mockResolvedValue([{ id: 'brand-b' }]);
+
+        await expect(
+          service.updateAvailability({
+            actorUserId: 'actor-1',
+            brandId: 'brand-a',
+            brandIds: ['brand-b'],
+            mode: PersonaAvailabilityMode.SELECTED_BRANDS,
+            organizationId: orgId,
+            personaId: 'persona-1',
+          }),
+        ).rejects.toBeInstanceOf(NotFoundException);
+        expect(prisma.persona.update).not.toHaveBeenCalled();
+      });
+
       beforeEach(() => {
         prisma.persona.findFirst.mockResolvedValue(ownedPersona);
         prisma.member.findFirst.mockResolvedValue(adminMember);
@@ -1011,13 +1036,43 @@ describe('PersonasService', () => {
         );
       });
 
-      it('treats a revoked or missing grant like any other asset and keeps old output links', async () => {
+      it('treats a missing grant like any other unlinked asset', async () => {
         grantReads.findReferenceGrants.mockResolvedValue([]);
 
         const admission = await admit(['avatar-g', 'old-output']);
 
         expect(admission.personaId).toBeNull();
         expect(admission.grantedAvatarOwners.size).toBe(0);
+      });
+
+      it('refuses an output linked to a character whose grant was revoked', async () => {
+        grantReads.findReferenceGrants.mockResolvedValue([]);
+        grantReads.findLinkedOutputs.mockResolvedValue([
+          { id: 'old-output', personaId: 'persona-revoked' },
+        ]);
+
+        await expect(admit(['old-output'])).rejects.toBeInstanceOf(
+          NotFoundException,
+        );
+      });
+
+      it('admits a linked output whose character is currently available', async () => {
+        grantReads.findReferenceGrants.mockResolvedValue([
+          grantedRow({
+            persona: {
+              avatarIngredientId: 'avatar-g',
+              id: 'persona-g',
+              ingredients: [{ id: 'out-1' }],
+            },
+          }),
+        ]);
+        grantReads.findLinkedOutputs.mockResolvedValue([
+          { id: 'out-1', personaId: 'persona-g' },
+        ]);
+
+        const admission = await admit(['out-1']);
+
+        expect(admission.personaIdByAssetId.get('out-1')).toBe('persona-g');
       });
 
       it('links an output of a granted character the brand can use', async () => {

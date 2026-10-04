@@ -1,4 +1,5 @@
 import { isPersonaAvailableToBrand } from '@api/collections/personas/utils/persona-availability.util';
+import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PersonaStatus } from '@genfeedai/contracts';
 import type { PersonaAvailabilityFields } from '@genfeedai/contracts/interfaces';
@@ -56,6 +57,20 @@ export class PersonaGrantReadService {
         recipientOrganizationId: params.organizationId,
         revokedAt: null,
       },
+    });
+  }
+
+  /**
+   * Outputs of the organization already linked to a character, whichever
+   * organization owns that character, so a revoked grant refuses them.
+   */
+  findLinkedOutputs(ingredientIds: readonly string[], organizationId: string) {
+    return this.prisma.ingredient.findMany({
+      select: { id: true, personaId: true },
+      where: scopedWhere(organizationId, {
+        id: { in: [...ingredientIds] },
+        personaId: { not: null },
+      }),
     });
   }
 

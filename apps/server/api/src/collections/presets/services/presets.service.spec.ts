@@ -71,23 +71,67 @@ describe('PresetsService', () => {
       where: {
         config: { equals: 'editorial-portrait', path: ['key'] },
         isDeleted: false,
+        organizationId: 'organization-1',
       },
     });
   });
 
-  it('finds a preset key without materializing the preset table', async () => {
-    findFirst.mockResolvedValue({ id: 'preset-1' });
+  it('rejects a duplicate platform default key', async () => {
+    findFirst.mockResolvedValue({ id: 'preset-2' });
 
-    await expect(service.findByKey('editorial-portrait')).resolves.toEqual({
-      id: 'preset-1',
+    await expect(
+      service.create({ key: 'editorial-portrait' } as never),
+    ).rejects.toThrow("Preset with key 'editorial-portrait' already exists");
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        AND: [],
+        config: { equals: 'editorial-portrait', path: ['key'] },
+        isDeleted: false,
+        organizationId: null,
+      },
     });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('resolves a key in the caller organization before platform defaults', async () => {
+    findFirst.mockResolvedValueOnce({ id: 'own' });
+
+    await expect(
+      service.findByKey('editorial-portrait', 'organization-1'),
+    ).resolves.toEqual({ id: 'own' });
+    expect(findFirst).toHaveBeenCalledTimes(1);
     expect(findFirst).toHaveBeenCalledWith({
       where: {
         config: { equals: 'editorial-portrait', path: ['key'] },
         isDeleted: false,
+        organizationId: 'organization-1',
+      },
+    });
+  });
+
+  it('falls back to platform defaults and never runs an unscoped lookup', async () => {
+    findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'default' });
+
+    await expect(
+      service.findByKey('editorial-portrait', 'organization-1'),
+    ).resolves.toEqual({ id: 'default' });
+    expect(findFirst).toHaveBeenLastCalledWith({
+      where: {
+        AND: [],
+        config: { equals: 'editorial-portrait', path: ['key'] },
+        isDeleted: false,
+        organizationId: null,
       },
     });
     expect(findMany).not.toHaveBeenCalled();
+  });
+
+  it('throws when neither scope has the key', async () => {
+    await expect(
+      service.findByKey('missing', 'organization-1'),
+    ).rejects.toThrow();
   });
 
   it('merges config-backed updates without dropping stored preset details', async () => {

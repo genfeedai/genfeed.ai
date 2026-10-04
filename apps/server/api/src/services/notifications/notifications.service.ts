@@ -1,3 +1,7 @@
+import {
+  SystemNotificationDeliveryError,
+  systemNotificationStatusCode,
+} from '@api/services/notifications/system-notification-delivery.error';
 import type {
   IChannelDeliveryRequest,
   IChannelDeliveryResponse,
@@ -161,11 +165,17 @@ export class NotificationsService {
       );
       if (!response.ok) {
         await response.body?.cancel();
-        throw new Error('Notifications service rejected delivery');
+        throw new SystemNotificationDeliveryError(
+          'Notifications service rejected delivery',
+          response.status,
+        );
       }
       return await response.json();
-    } catch {
-      throw new Error('Notifications service request failed');
+    } catch (error) {
+      throw new SystemNotificationDeliveryError(
+        'Notifications service request failed',
+        systemNotificationStatusCode(error),
+      );
     }
   }
 

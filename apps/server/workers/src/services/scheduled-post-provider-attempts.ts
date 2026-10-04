@@ -94,7 +94,10 @@ export class ScheduledPostProviderAttempts {
   /**
    * Resolve an earlier attempt whose provider outcome was never confirmed.
    * Publishers that can verify report whether it landed; a confirmed absence
-   * (or a publisher without verification) takes the attempt over for a retry.
+   * takes the attempt over for a retry. A publisher without verification can
+   * only retry blind, so it is allowed to while `isBlindRetryAllowed`; once
+   * the retry budget is spent the attempt stays unconfirmed and never reaches
+   * the provider again, or repeated timeouts would publish duplicates.
    */
   async resolveUnconfirmed(
     post: PostEntity,
@@ -102,6 +105,7 @@ export class ScheduledPostProviderAttempts {
     attempt: Extract<ProviderPublishAttempt, { kind: 'unconfirmed' }>,
     workflowExecutionId: string,
     url: string,
+    isBlindRetryAllowed: boolean,
   ): Promise<ProviderPublishAttempt> {
     const verify = prepared.publisher.verifyPublished?.bind(prepared.publisher);
     if (verify) {
@@ -132,6 +136,7 @@ export class ScheduledPostProviderAttempts {
         return { ...attempt, kind: 'replay', result: found };
       }
     }
+    if (!verify && !isBlindRetryAllowed) return attempt;
     const claimed = await claimProviderPublishAttempt(
       this.prisma,
       post,

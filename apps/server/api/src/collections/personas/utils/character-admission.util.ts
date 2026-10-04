@@ -65,13 +65,15 @@ interface Candidate {
  * Decides admission for the assets of one request against the organization's
  * own characters and the characters granted to it (#6037). A group of
  * candidates for one asset (the avatar of a character, or an output linked to
- * one) is refused when it exists and none is usable by the brand; a revoked
- * grant is simply absent, so outputs it linked stay usable.
+ * one) is refused when it exists and none is usable by the brand; an output linked
+ * to a character that is no longer a candidate (revoked grant) is refused.
  */
 export function evaluateCharacterAdmission(params: {
   brandId: string | null | undefined;
   grantRows: readonly GrantedCharacterRow[];
   ids: readonly string[];
+  /** Outputs already linked to a character, whichever organization owns it. */
+  linkedOutputs?: readonly { id: string; personaId: string | null }[];
   onRefused: (refused: { assetId: string; personaIds: string[] }) => never;
   rows: readonly OwnCharacterRow[];
 }): CharacterAdmission {
@@ -99,6 +101,22 @@ export function evaluateCharacterAdmission(params: {
   ];
   const admission = noCharacterAdmission();
   for (const id of params.ids) {
+    // A linked output whose character is not among the candidates (a revoked
+    // grant, a deleted character) can no longer be used by this brand.
+    const orphaned = (params.linkedOutputs ?? []).filter(
+      (output) =>
+        output.id === id &&
+        output.personaId !== null &&
+        !candidates.some(
+          (candidate) => candidate.personaId === output.personaId,
+        ),
+    );
+    if (orphaned.length > 0) {
+      return params.onRefused({
+        assetId: id,
+        personaIds: orphaned.flatMap((output) => output.personaId ?? []),
+      });
+    }
     const avatarOwners = candidates.filter(
       (candidate) => candidate.avatarId === id,
     );

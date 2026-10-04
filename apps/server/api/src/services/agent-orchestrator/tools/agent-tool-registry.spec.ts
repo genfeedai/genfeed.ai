@@ -4,10 +4,15 @@ import {
   agentToolCreditFloor,
 } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import {
+  assertUniqueAgentToolNames,
   getToolDefinitionByName,
   getToolDefinitions,
 } from '@api/services/agent-orchestrator/tools/agent-tool-registry';
-import { getToolByName, getToolsForSurface } from '@genfeedai/actions';
+import {
+  getToolByName,
+  getToolsForSurface,
+  toMcpTools,
+} from '@genfeedai/actions';
 
 describe('agent-tool-registry', () => {
   it('should include onboarding tool definitions', () => {
@@ -42,12 +47,21 @@ describe('agent-tool-registry', () => {
     expect(names).toContain('list_genfeed_tools');
   });
 
-  it('should not contain duplicate tool names after merging extensions', () => {
-    const definitions = getToolDefinitions();
-    const names = definitions.map((tool) => String(tool.name));
-    const uniqueNames = new Set(names);
+  it('should define each agent tool exactly once', () => {
+    const names = getToolDefinitions().map((tool) => String(tool.name));
 
-    expect(uniqueNames.size).toBe(names.length);
+    expect(new Set(names).size).toBe(names.length);
+    expect(() =>
+      assertUniqueAgentToolNames(getToolDefinitions()),
+    ).not.toThrow();
+  });
+
+  it('should throw when a tool name is defined twice', () => {
+    const [first] = getToolDefinitions();
+
+    expect(() => assertUniqueAgentToolNames([first, first])).toThrow(
+      `[${String(first.name)}] are defined more than once`,
+    );
   });
 
   it('should expose exactly the actions the curated catalog surfaces to the agent', () => {
@@ -61,9 +75,8 @@ describe('agent-tool-registry', () => {
     expect(shipped).toEqual(curated);
   });
 
-  it('should preserve representative core and ads extension schemas', () => {
+  it('should preserve representative core and ads schemas', () => {
     expect(getToolDefinitionByName('create_post')).toMatchObject({
-      creditCost: 0,
       parameters: {
         properties: {
           confirmed: { type: 'boolean' },
@@ -105,7 +118,9 @@ describe('agent-tool-registry', () => {
   });
 
   it('should price every agent tool, including the folded cloud tools', () => {
+    // create_post is the one deliberate override: see EXTRA_AGENT_CREDIT_COSTS.
     for (const tool of getToolDefinitions()) {
+      if (tool.name === 'create_post') continue;
       expect(AGENT_CREDIT_COSTS[String(tool.name)], String(tool.name)).toBe(
         tool.creditCost,
       );
@@ -183,14 +198,39 @@ describe('agent-tool-registry', () => {
   });
 });
 
-it.each(['capture_memory', 'create_workflow'] as const)(
-  'keeps %s nested parameters and shared definitions canonical',
-  (name) => {
-    expect(getToolDefinitionByName(name)?.parameters).toEqual(
-      getToolByName(name)?.parameters,
+it('serves every agent tool exactly as the catalog defines it', () => {
+  for (const tool of getToolDefinitions()) {
+    const canonical = getToolByName(tool.name);
+    expect(tool.parameters, tool.name).toEqual(canonical?.parameters);
+    expect(tool.description, tool.name).toBe(canonical?.description);
+    expect(tool.creditCost, tool.name).toBe(canonical?.creditCost);
+  }
+});
+
+it('shows the agent and MCP the same definition of every shared tool', () => {
+  const mcpTools = new Map(
+    toMcpTools(getToolsForSurface('mcp')).map((tool) => [tool.name, tool]),
+  );
+  const shared = getToolDefinitions().filter((tool) =>
+    mcpTools.has(String(tool.name)),
+  );
+
+  expect(shared.length).toBeGreaterThan(0);
+  expect(shared.map((tool) => String(tool.name))).toEqual(
+    expect.arrayContaining(['create_post', 'get_analytics']),
+  );
+  for (const tool of shared) {
+    const mcp = mcpTools.get(String(tool.name));
+    expect(tool.description, tool.name).toBe(mcp?.description);
+    expect(tool.parameters, tool.name).toMatchObject({
+      properties: mcp?.inputSchema.properties,
+      type: mcp?.inputSchema.type,
+    });
+    expect(tool.creditCost, tool.name).toBe(
+      mcp?._meta['genfeed.ai/creditCost'],
     );
-  },
-);
+  }
+});
 
 it('advertises only root fields accepted by each canonical tool contract', () => {
   for (const tool of getToolDefinitions()) {
@@ -213,7 +253,7 @@ it('advertises only root fields accepted by each canonical tool contract', () =>
   }
 });
 
-it('accepts connected-platform names in both canonical and cloud publishing schemas', () => {
+it('accepts connected-platform names in both the catalog and agent publishing schemas', () => {
   for (const tool of [
     getToolByName('create_post'),
     getToolDefinitionByName('create_post'),
