@@ -770,26 +770,23 @@ describe('ToolRegistryService', () => {
       success: true,
     });
 
-    const result = (await service.handleToolCall({
+    const result = await service.handleToolCall({
       arguments: {},
       name: 'get_account',
-    })) as {
-      structuredContent: {
-        genfeedCards: { cards: { description: string; title: string }[] };
-      };
-    };
+    });
 
-    expect(
-      result.structuredContent.genfeedCards.cards.map((card) => [
-        card.title,
-        card.description,
-      ]),
-    ).toEqual([
-      ['current Balance', '88'],
-      ['trend Percentage', '5'],
-      ['usage30 Days', '40'],
-      ['usage7 Days', '12'],
-    ]);
+    expect(result).toMatchObject({
+      structuredContent: {
+        genfeedCards: {
+          cards: [
+            { description: '88', title: 'current Balance' },
+            { description: '5', title: 'trend Percentage' },
+            { description: '40', title: 'usage30 Days' },
+            { description: '12', title: 'usage7 Days' },
+          ],
+        },
+      },
+    });
   });
 
   it('handleToolCall throws for unknown tool and returns error', async () => {

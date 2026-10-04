@@ -72,7 +72,7 @@ describe('get_generation_options', () => {
 
 describe('default MCP profile after the write-tool merges', () => {
   it('loads transform_media and get_generation_options by default', () => {
-    const names = new Set(
+    const names = new Set<string>(
       getToolsForToolsets('mcp', [
         'core',
         'generation',

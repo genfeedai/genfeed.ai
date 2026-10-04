@@ -1,14 +1,6 @@
 {
   "entries": [
     {
-      "code": 18046,
-      "count": 1,
-      "file": "packages/actions/src/registry/character-generation-params.test.ts",
-      "fingerprint": "e36e6e818c456d0ed582",
-      "message": "'generateVideo.parameters.properties.imageUrl' is of type 'unknown'.",
-      "workspace": "actions"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "packages/actions/src/registry/mutation-policy.spec.ts",

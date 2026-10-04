@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 'use client';
 
+import { PersonaAvailabilityMode } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import CharacterCreateDialog from './character-create-dialog';
@@ -36,8 +37,10 @@ function buildProps(
 ): React.ComponentProps<typeof CharacterCreateDialog> {
   return {
     approve: {
+      availability: { brandIds: [], mode: PersonaAvailabilityMode.ALL_BRANDS },
       handle: '',
       label: '',
+      setAvailability: vi.fn(),
       setHandle: vi.fn(),
       setLabel: vi.fn(),
     },

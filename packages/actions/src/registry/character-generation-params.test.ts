@@ -18,14 +18,12 @@ describe('character generation tool params (#3441)', () => {
   it('declares references, characterHandles and imageUrl for video on generate', () => {
     expect(generate?.parameters.properties).toMatchObject({
       characterHandles: { maxItems: 4, type: 'array' },
-      imageUrl: { type: 'string' },
+      imageUrl: {
+        description: expect.stringMatching(/start[\s-]frame/i),
+        type: 'string',
+      },
       references: { maxItems: 10, type: 'array' },
     });
-    expect(
-      String(generate?.parameters.properties.imageUrl.description)
-        .toLowerCase()
-        .replaceAll('-', ' '),
-    ).toContain('start frame');
   });
 
   it('registers list_assets as a zero-credit read tool that covers characters', () => {
@@ -41,8 +39,8 @@ describe('character generation tool params (#3441)', () => {
       surfaces: ['agent', 'mcp'],
       toolset: 'generation',
     });
-    expect(
-      CURATED_ACTION_CATALOG.some((entry) => entry.name === 'list_characters'),
-    ).toBe(false);
+    expect(CURATED_ACTION_CATALOG.map((entry) => entry.name)).not.toContain(
+      'list_characters',
+    );
   });
 });
