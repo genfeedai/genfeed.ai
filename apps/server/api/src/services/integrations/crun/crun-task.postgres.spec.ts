@@ -83,7 +83,7 @@ describe('Crun durable PostgreSQL submission and leases', () => {
       `CREATE TYPE "${schema}"."CreditReservationStatus" AS ENUM ('RESERVED','SETTLED','RELEASED','EXPIRED')`,
     );
     await pool.query(
-      `CREATE TABLE "${schema}"."credit_reservations" ("id" text PRIMARY KEY, "organizationId" text, "isDeleted" boolean DEFAULT false, "status" "${schema}"."CreditReservationStatus", "actorUserId" text, "metadata" jsonb, "amount" double precision, "workloadId" text, "workloadType" text DEFAULT 'media-generation')`,
+      `CREATE TABLE "${schema}"."credit_reservations" ("id" text PRIMARY KEY, "organizationId" text, "isDeleted" boolean DEFAULT false, "status" "${schema}"."CreditReservationStatus", "actorUserId" text, "brandId" text, "metadata" jsonb, "amount" double precision, "workloadId" text, "workloadType" text DEFAULT 'media-generation')`,
     );
     await pool.query(
       `INSERT INTO "${schema}"."credit_reservations" ("id","organizationId","isDeleted","status") VALUES ('funded-group', 'fixture-org', false, 'RESERVED'), ('fixture-reservation', 'fixture-org', false, 'RESERVED')`,

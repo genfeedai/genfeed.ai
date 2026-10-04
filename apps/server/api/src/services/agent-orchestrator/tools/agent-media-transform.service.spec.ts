@@ -19,6 +19,28 @@ function createService() {
   const assetGeneration = {
     editImage: vi.fn().mockResolvedValue(success({ id: 'edited-1' })),
     reframeImage: vi.fn().mockResolvedValue(success({ id: 'reframed-1' })),
+    // Mirrors AgentMediaAssetGenerationService.resolveMediaBrandContext: an
+    // explicit brandId, then the thread brand, and a rejection when neither
+    // exists (the first organization brand is never picked implicitly).
+    resolveMediaBrandContext: vi.fn(
+      async (params: Record<string, unknown>, ctx: { brandId?: string }) => {
+        const brandId =
+          typeof params.brandId === 'string' && params.brandId.trim()
+            ? params.brandId.trim()
+            : ctx.brandId;
+        if (!brandId) {
+          return {
+            error: {
+              creditsUsed: 0,
+              error:
+                'Select a brand before generating. Pass brandId from get_brands; the first organization brand is not used automatically.',
+              success: false,
+            },
+          };
+        }
+        return { context: { ...ctx, brandId } };
+      },
+    ),
     upscaleImage: vi.fn().mockResolvedValue(success({ id: 'upscaled-1' })),
   };
   const gateway = {
@@ -262,22 +284,38 @@ describe('AgentMediaTransformService merge', () => {
     });
   });
 
-  it('merges without a brand, scoping by organization and user only', async () => {
+  it('merges under an explicit brandId when the call has no thread brand', async () => {
     const { gateway, service } = createService();
 
     await service.transformMedia(
-      { ids: ['clip-1', 'clip-2'], operation: 'merge' },
+      { brandId: 'brand-2', ids: ['clip-1', 'clip-2'], operation: 'merge' },
       { ...context, brandId: undefined },
     );
 
     expect(gateway.mergeVideos).toHaveBeenCalledWith({
       body: { category: IngredientCategory.VIDEO, ids: ['clip-1', 'clip-2'] },
       principal: {
-        brandId: undefined,
+        brandId: 'brand-2',
         organizationId: 'organization-1',
         userId: 'user-1',
       },
     });
+  });
+
+  it('rejects a merge that has neither an explicit nor a thread brand', async () => {
+    const { gateway, service } = createService();
+
+    const result = await service.transformMedia(
+      { ids: ['clip-1', 'clip-2'], operation: 'merge' },
+      { ...context, brandId: undefined },
+    );
+
+    expect(result).toMatchObject({
+      creditsUsed: 0,
+      error: expect.stringContaining('Select a brand'),
+      success: false,
+    });
+    expect(gateway.mergeVideos).not.toHaveBeenCalled();
   });
 
   it.each([

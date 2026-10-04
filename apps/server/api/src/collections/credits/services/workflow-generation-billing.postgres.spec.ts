@@ -92,7 +92,7 @@ describe.skipIf(!connectionString)(
     )`);
       await pool.query(`CREATE TABLE "${schema}"."credit_reservations" (
       "id" text PRIMARY KEY, "billingAccountId" text NOT NULL, "organizationId" text NOT NULL,
-      "actorUserId" text, "amount" double precision NOT NULL, "settledAmount" double precision,
+      "actorUserId" text, "brandId" text, "amount" double precision NOT NULL, "settledAmount" double precision,
       "status" "${schema}"."CreditReservationStatus" NOT NULL DEFAULT 'RESERVED',
       "workloadType" text, "workloadId" text, "idempotencyKey" text NOT NULL,
       "description" text, "source" text, "metadata" jsonb, "expiresAt" timestamp(3) NOT NULL,
