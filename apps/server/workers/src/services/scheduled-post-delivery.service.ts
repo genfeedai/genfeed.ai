@@ -13,7 +13,6 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
   type ServerPublisherFactory,
-  scopedWhere,
 } from '@api/index';
 import type { RecordActivityInput } from '@api/services/activity-recording/activity-recording.types';
 import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
@@ -22,7 +21,6 @@ import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.
 import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
 import {
   CredentialPlatform,
-  Platform,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -41,7 +39,14 @@ import {
   isAmbiguousPublishError,
   isRetryablePublishError,
 } from '@workers/crons/posts/post-publish-error.util';
-import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
+import {
+  PUBLISH_OUTCOME_UNCONFIRMED_CODE,
+  PUBLISH_OUTCOME_UNVERIFIED_CODE,
+  SCHEDULED_POST_RETRY_BACKOFF_SECONDS,
+  SCHEDULED_POST_UNVERIFIED_BACKOFF_SECONDS,
+  SCHEDULED_POST_VERIFICATION_BACKOFF_SECONDS,
+  SCHEDULED_POST_VERIFICATION_WINDOW_SECONDS,
+} from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 import { loadScheduledActionPost } from '@workers/services/scheduled-post-action-load.util';
 import type {
@@ -59,10 +64,6 @@ import {
   readScheduledDeliveryResult,
 } from '@workers/services/scheduled-post-delivery-input.util';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
-import {
-  type PlannedThreadChild,
-  toPlannedThreadChildren,
-} from '@workers/services/scheduled-post-media-gate.util';
 import { ScheduledPostProviderAttempts } from '@workers/services/scheduled-post-provider-attempts';
 import {
   type ProviderPublishAttempt,
@@ -71,6 +72,7 @@ import {
   ProviderPublishInFlightError,
   ProviderPublishPersistenceError,
 } from '@workers/services/scheduled-post-provider-receipt.util';
+import { ScheduledPostPublishFollowUps } from '@workers/services/scheduled-post-publish-follow-ups';
 import {
   queueLearningPublicationRefreshV1,
   type SchedulerPublishFinalizationInput,
@@ -78,10 +80,23 @@ import {
   type SchedulerPublishTargetUpdate,
   type SchedulerPublishTransitionGuard,
 } from '@workers/services/scheduler-publish-state.service';
-import {
-  type DelayedThreadChild,
-  planThreadChildDelivery,
-} from '@workers/services/thread-comment-schedule.util';
+
+/** A terminal validation failure may only move a post that is still queued. */
+const TERMINAL_FAILURE_PRIOR_STATES: readonly TargetExecutionState[] = [
+  TargetExecutionState.SCHEDULED,
+  TargetExecutionState.PUBLISHING,
+];
+
+/** The receipt identity a transition fences on, without the attempt's other fields. */
+function toAttemptFence(attempt: ProviderPublishAttemptRef): {
+  attemptToken: string;
+  receiptId: string;
+} {
+  return {
+    attemptToken: attempt.attemptToken,
+    receiptId: attempt.receiptId,
+  };
+}
 
 @Injectable()
 export class ScheduledPostDeliveryService implements OnModuleInit {
@@ -89,6 +104,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
   private readonly MAX_RETRY_ATTEMPTS = 3;
   private readonly gates: ScheduledPostDeliveryGates;
   private readonly attempts: ScheduledPostProviderAttempts;
+  private readonly followUps: ScheduledPostPublishFollowUps;
 
   constructor(
     private readonly logger: LoggerService,
@@ -102,7 +118,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     private readonly publishEventWebhookService: PublishEventWebhookService,
     private readonly schedulerPublishStateService: SchedulerPublishStateService,
-    private readonly replyPostWatchService: ReplyPostWatchService,
+    replyPostWatchService: ReplyPostWatchService,
     publishingReadinessService: CredentialPublishingReadinessService,
     private readonly prisma: PrismaService,
     mediaReadinessService: MediaReadinessService,
@@ -119,6 +135,12 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       mediaReadinessService,
     );
     this.attempts = new ScheduledPostProviderAttempts(prisma, logger);
+    this.followUps = new ScheduledPostPublishFollowUps(
+      logger,
+      prisma,
+      postFailureService,
+      replyPostWatchService,
+    );
   }
 
   onModuleInit(): void {
@@ -276,17 +298,17 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
           attempt,
           workflowExecutionId,
           url,
+          !this.isRetryBudgetExhausted(post),
         );
         if (resolved.kind === 'in_flight') {
           throw new ProviderPublishInFlightError(post.id.toString());
         }
         if (resolved.kind === 'unconfirmed') {
-          // The provider could not confirm the earlier outcome yet.
-          return await this.handlePublishError(
+          // The provider could not confirm the earlier outcome yet: keep
+          // verifying it, never spend the publish retry budget on it.
+          return await this.deferUnverifiedPublish(
             post,
-            new Error(
-              'Provider publish outcome is not confirmed yet (timeout)',
-            ),
+            resolved.attemptStartedAt,
             workflowExecutionId,
           );
         }
@@ -301,6 +323,16 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
           );
         }
         held = resolved;
+        if (this.isRetryBudgetExhausted(post)) {
+          // Absence is confirmed (an unverifiable attempt was never claimed)
+          // and no retry is left: end FAILED without another provider call.
+          return await this.failExhaustedAbsentPublish(
+            post,
+            resolved,
+            workflowExecutionId,
+            url,
+          );
+        }
         const failure = (await checkCredential()) ?? (await checkContent());
         if (failure) return await fail(failure);
       } else {
@@ -367,12 +399,36 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       postId: post.id,
     });
     try {
-      await this.attemptRetry(
+      // Fence the FAILED write on still owning the hold: a stalled hold may
+      // have been taken over, and its new owner can publish before our write.
+      if (!(await this.attempts.confirmOwnership(post, hold.attempt))) {
+        this.logger.warn('Terminal failure hold lost; keeping publishing', {
+          error: errorMessage,
+          postId: post.id,
+        });
+        return {
+          ...createFailedPublishResult('', errorMessage),
+          executionState: TargetExecutionState.PUBLISHING,
+        };
+      }
+      const failed = await this.attemptRetry(
         post,
         false,
         errorMessage,
         'publish_validation_failed',
+        undefined,
+        {
+          expectedProviderAttempt: toAttemptFence(hold.attempt),
+          priorExecutionStates: TERMINAL_FAILURE_PRIOR_STATES,
+        },
       );
+      if (failed === undefined) {
+        // The fenced transition was rejected: the target did not fail.
+        return {
+          ...createFailedPublishResult('', errorMessage),
+          executionState: TargetExecutionState.PUBLISHING,
+        };
+      }
     } finally {
       await this.attempts.settle(
         post,
@@ -384,6 +440,62 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     this.emitPublishFailedWebhook(post, errorMessage);
 
     return createFailedPublishResult('', errorMessage);
+  }
+
+  /**
+   * The provider outcome is unknown and cannot be verified yet. The occurrence
+   * stays PUBLISHING for reconciliation with its own verification backoff;
+   * this never touches the publish retry budget and never ends FAILED. Past
+   * the verification window the error turns into an explicit operator-visible
+   * `publish_outcome_unverified`, and verification continues at a slow backoff.
+   */
+  private async deferUnverifiedPublish(
+    post: PostEntity,
+    attemptStartedAt: Date,
+    workflowExecutionId: string,
+  ): Promise<PublishResult> {
+    const now = new Date();
+    const isWindowExpired =
+      now.getTime() - attemptStartedAt.getTime() >=
+      SCHEDULED_POST_VERIFICATION_WINDOW_SECONDS * 1000;
+    const message = isWindowExpired
+      ? 'Provider publish outcome could not be verified within the verification window; operator review needed.'
+      : 'Provider publish outcome is not confirmed yet; verification will retry.';
+    const backoffSeconds = isWindowExpired
+      ? SCHEDULED_POST_UNVERIFIED_BACKOFF_SECONDS
+      : SCHEDULED_POST_VERIFICATION_BACKOFF_SECONDS;
+    const code = isWindowExpired
+      ? PUBLISH_OUTCOME_UNVERIFIED_CODE
+      : PUBLISH_OUTCOME_UNCONFIRMED_CODE;
+
+    this.logger.warn(`${this.constructorName} deferring unverified publish`, {
+      code,
+      postId: post.id,
+      retryCount: post.retryCount || 0,
+    });
+    // Discovery re-queues PUBLISHING posts once lastAttemptAt is older than the
+    // retry backoff; date it ahead so the verification backoff applies instead.
+    await this.persistPublishState(
+      post,
+      {
+        error: createChannelTargetError(code, message, true),
+        executionState: TargetExecutionState.PUBLISHING,
+        lastAttemptAt: new Date(
+          now.getTime() +
+            (backoffSeconds - SCHEDULED_POST_RETRY_BACKOFF_SECONDS) * 1000,
+        ),
+        workflowExecutionId,
+      },
+      message,
+      {
+        expectedWorkflowExecutionId: workflowExecutionId,
+        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+      },
+    );
+    return {
+      ...createFailedPublishResult('', message),
+      executionState: TargetExecutionState.PUBLISHING,
+    };
   }
 
   private async callProvider(
@@ -403,12 +515,20 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     } catch (error: unknown) {
       // A timeout or dropped connection may hide an accepted publish: keep
       // the attempt for verification on retry instead of releasing it.
+      const isAmbiguous = isAmbiguousPublishError(error);
       await this.attempts.settle(
         post,
         attempt,
-        isAmbiguousPublishError(error) ? 'uncertain' : 'released',
+        isAmbiguous ? 'uncertain' : 'released',
         url,
       );
+      if (isAmbiguous && this.isRetryBudgetExhausted(post)) {
+        return await this.deferUnverifiedPublish(
+          post,
+          new Date(),
+          workflowExecutionId,
+        );
+      }
       return await this.handlePublishError(post, error, workflowExecutionId);
     }
     if (!result.success) {
@@ -422,6 +542,13 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         isAmbiguous ? 'uncertain' : 'released',
         url,
       );
+      if (isAmbiguous && this.isRetryBudgetExhausted(post)) {
+        return await this.deferUnverifiedPublish(
+          post,
+          new Date(),
+          workflowExecutionId,
+        );
+      }
       try {
         return await this.handlePublishFailure(
           post,
@@ -565,7 +692,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
     const children = (post.children || []) as unknown as PostDocument[];
     if (prepared) {
-      await this.deliverThreadChildren(
+      await this.followUps.deliverThreadChildren(
         post,
         children,
         prepared,
@@ -582,7 +709,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
     if (!isProviderDraft) {
       this.emitPublishPublishedWebhook(post, result, platform);
-      this.scheduleReplyPostWatchAfterPublish(post, result, platform);
+      this.followUps.scheduleReplyPostWatch(post, result, platform);
     }
 
     this.logger.log(
@@ -613,128 +740,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         args[0].id.toString(),
         result.externalId,
         error,
-      );
-    }
-  }
-
-  /**
-   * Send the follow-ups that go out with the parent and park the rest.
-   *
-   * A delayed comment keeps its SCHEDULED state and gains a due date; the
-   * thread-comment sweep publishes it once that time arrives, using the same
-   * publisher against the parent's provider id.
-   */
-  private async deliverThreadChildren(
-    post: PostEntity,
-    children: PostDocument[],
-    prepared: PreparedPostDelivery,
-    result: PublishResult,
-    publishedAt: Date,
-    url: string,
-  ): Promise<void> {
-    if (children.length === 0) {
-      return;
-    }
-
-    const plan = planThreadChildDelivery(
-      toPlannedThreadChildren(children),
-      publishedAt,
-    );
-
-    await this.parkDelayedThreadChildren(post, plan.delayed, url);
-
-    await this.publishThreadChildrenIfSupported(
-      post,
-      plan.immediate.map((entry) => entry.child),
-      prepared,
-      result,
-      url,
-    );
-  }
-
-  private async parkDelayedThreadChildren(
-    post: PostEntity,
-    delayed: Array<DelayedThreadChild<PlannedThreadChild>>,
-    url: string,
-  ): Promise<void> {
-    if (delayed.length === 0) {
-      return;
-    }
-
-    const organizationId = readPostString(post, ['organizationId']);
-    if (!organizationId) {
-      this.logger.error(`${url} cannot park delayed comments without an org`, {
-        postId: post.id.toString(),
-      });
-      return;
-    }
-
-    for (const entry of delayed) {
-      await this.prisma.post.updateMany({
-        data: { scheduledDate: entry.dueAt },
-        where: scopedWhere(organizationId, {
-          id: entry.child.id,
-          isDeleted: false,
-        }),
-      });
-    }
-
-    this.logger.log(`${url} parked delayed comments`, {
-      delayedCount: delayed.length,
-      nextDueAt: delayed[0]?.dueAt.toISOString(),
-      postId: post.id.toString(),
-    });
-  }
-
-  private async publishThreadChildrenIfSupported(
-    post: PostEntity,
-    children: PostDocument[],
-    prepared: PreparedPostDelivery,
-    result: PublishResult,
-    url: string,
-  ): Promise<void> {
-    if (
-      children.length === 0 ||
-      !prepared.publisher.supportsThreads ||
-      !result.externalId
-    ) {
-      return;
-    }
-
-    if (!prepared.publisher.publishThreadChildren) {
-      this.logger.warn(
-        `${url} platform supports threads but publishThreadChildren not implemented`,
-        {
-          childrenCount: children.length,
-          platform: prepared.credential.platform,
-          postId: post.id.toString(),
-        },
-      );
-      return;
-    }
-
-    try {
-      await prepared.publisher.publishThreadChildren(
-        prepared.context,
-        children,
-        result.externalId,
-      );
-    } catch (error: unknown) {
-      const errorMessage = getPublishErrorMessage(error);
-      this.logger.error(
-        `${url} failed to publish thread children after parent success`,
-        {
-          childrenCount: children.length,
-          error: errorMessage,
-          externalId: result.externalId,
-          platform: prepared.credential.platform,
-          postId: post.id.toString(),
-        },
-      );
-      await this.postFailureService.failChildren(
-        post,
-        getPublishErrorCode(error),
-        errorMessage,
       );
     }
   }
@@ -810,12 +815,52 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     return createFailedPublishResult(platform, message);
   }
 
+  /**
+   * Terminal failure of an occurrence the provider confirmed absent whose
+   * retry budget is spent. The FAILED write is fenced on the claimed receipt,
+   * so a takeover can never leave FAILED with an accepted receipt.
+   */
+  private async failExhaustedAbsentPublish(
+    post: PostEntity,
+    claimed: ProviderPublishAttemptRef,
+    workflowExecutionId: string,
+    url: string,
+  ): Promise<PublishResult> {
+    const message = 'Provider publish retries exhausted';
+    try {
+      const failed = await this.attemptRetry(
+        post,
+        false,
+        message,
+        'publish_retries_exhausted',
+        workflowExecutionId,
+        { expectedProviderAttempt: toAttemptFence(claimed) },
+      );
+      if (failed === false) this.emitPublishFailedWebhook(post, message);
+      if (failed === undefined) {
+        return {
+          ...createFailedPublishResult('', message),
+          executionState: TargetExecutionState.PUBLISHING,
+        };
+      }
+    } finally {
+      await this.attempts.settle(post, claimed, 'released', url);
+    }
+    return createFailedPublishResult('', message);
+  }
+
+  /** An uncertain outcome must never turn into FAILED through this budget. */
+  private isRetryBudgetExhausted(post: PostEntity): boolean {
+    return (post.retryCount || 0) >= this.MAX_RETRY_ATTEMPTS;
+  }
+
   private async attemptRetry(
     post: PostEntity,
     canRetry: boolean,
     errorMessage: string,
     errorCode = getPublishErrorCode(errorMessage),
     workflowExecutionId?: string,
+    failureGuard?: SchedulerPublishTransitionGuard,
   ): Promise<boolean | undefined> {
     const url = `${this.constructorName} attemptRetry`;
     const currentRetryCount = post.retryCount || 0;
@@ -864,10 +909,15 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         ...(workflowExecutionId ? { workflowExecutionId } : {}),
       },
       errorMessage,
-      workflowExecutionId
+      workflowExecutionId || failureGuard
         ? {
-            expectedWorkflowExecutionId: workflowExecutionId,
-            priorExecutionStates: [TargetExecutionState.PUBLISHING],
+            ...(workflowExecutionId
+              ? {
+                  expectedWorkflowExecutionId: workflowExecutionId,
+                  priorExecutionStates: [TargetExecutionState.PUBLISHING],
+                }
+              : {}),
+            ...failureGuard,
           }
         : undefined,
     );
@@ -986,71 +1036,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       post,
       url: result.url || null,
     });
-  }
-
-  private scheduleReplyPostWatchAfterPublish(
-    post: PostEntity,
-    result: PublishResult,
-    platform: CredentialPlatform | string,
-  ): void {
-    const platformKey = String(platform).toLowerCase();
-    const isX =
-      platformKey === 'twitter' ||
-      platformKey === CredentialPlatform.TWITTER.toLowerCase() ||
-      platform === CredentialPlatform.TWITTER;
-    const isYouTube =
-      platformKey === 'youtube' ||
-      platformKey === CredentialPlatform.YOUTUBE.toLowerCase() ||
-      platform === CredentialPlatform.YOUTUBE;
-    if ((!isX && !isYouTube) || !result.externalId) {
-      return;
-    }
-
-    const organizationId = post.organizationId;
-    const brandId = post.brandId;
-    if (!organizationId || !brandId) {
-      return;
-    }
-
-    const postPreview =
-      readPostString(post, ['title']) ||
-      readPostString(post, ['text']) ||
-      readPostString(post, ['content']) ||
-      undefined;
-    const watchPlatform = isYouTube ? Platform.YOUTUBE : Platform.TWITTER;
-
-    void this.replyPostWatchService
-      .schedulePostWatch({
-        brandId: String(brandId),
-        organizationId: String(organizationId),
-        platform: watchPlatform,
-        postId: result.externalId,
-        postPreview: postPreview?.slice(0, 200),
-      })
-      .then((scheduled) => {
-        this.logger.log(
-          `${this.constructorName} scheduled reply post-watch after publish`,
-          {
-            externalId: result.externalId,
-            platform: watchPlatform,
-            postId: post.id.toString(),
-            scheduled: scheduled.scheduled,
-          },
-        );
-      })
-      .catch((error: unknown) => {
-        this.logger.warn(
-          `${this.constructorName} failed to schedule reply post-watch`,
-          {
-            error: getErrorMessage(error, {
-              fallback: () => 'unknown',
-              messageSource: 'error-instance',
-            }),
-            externalId: result.externalId,
-            postId: post.id.toString(),
-          },
-        );
-      });
   }
 
   private emitPublishFailedWebhook(
