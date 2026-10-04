@@ -99,7 +99,9 @@ export class CrunVideoGenerationService {
     isPreflightCompensated: true,
     promptCategory: PromptCategory.MODELS_PROMPT_VIDEO,
     assertCurrent: (frozen) => this.preview.assertCurrent(frozen),
-    beforeSubmit: () => this.cache.invalidateByTags(['videos']),
+    beforeSubmit: async () => {
+      await this.cache.invalidateByTags(['videos']);
+    },
     extension: () => MetadataExtension.MP4,
     normalize: (raw, user) => this.input.normalize(raw, user),
     parentId: (intent) => intent.parentId,
