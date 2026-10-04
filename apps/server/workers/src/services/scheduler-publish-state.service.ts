@@ -214,33 +214,12 @@ export class SchedulerPublishStateService {
     const { before, lockedAccounts, accountWhere } =
       await this.lockPublicationSource(input, tx, discovered);
 
-    if (input.guard?.expectedProviderAttempt) {
-      // A conditional write, not a read: it row-locks the receipt through the
-      // lifecycle commit and renews the lease, so a takeover can neither run
-      // between this check and the FAILED write nor claim an expired lease
-      // that passed the check.
-      const now = new Date();
-      const owned = await tx.postProviderPublishReceipt.updateMany({
-        where: {
-          attemptToken: input.guard.expectedProviderAttempt.attemptToken,
-          id: input.guard.expectedProviderAttempt.receiptId,
-          isDeleted: false,
-          leaseRenewedAt: {
-            gt: new Date(now.getTime() - PROVIDER_PUBLISH_ATTEMPT_LEASE_MS),
-          },
-          organizationId: input.organizationId,
-          postId: input.postId,
-          status: 'attempting',
-        },
-        data: { leaseRenewedAt: now },
-      });
-      if (owned.count !== 1) {
-        this.logger.warn(
-          `${this.logContext} ignored transition after losing the provider attempt`,
-          { postId: input.postId },
-        );
-        return NOT_APPLIED;
-      }
+    if (!(await this.holdsProviderAttempt(input, tx))) {
+      this.logger.warn(
+        `${this.logContext} ignored transition after losing the provider attempt`,
+        { postId: input.postId },
+      );
+      return NOT_APPLIED;
     }
     if (
       (input.guard?.expectedExternalId !== undefined &&
@@ -349,6 +328,36 @@ export class SchedulerPublishStateService {
       await this.rollUpRelease({ ...input, groupId: input.groupId }, tx);
     }
     return { applied: true, finalizationCreated };
+  }
+
+  /**
+   * A conditional write, not a read: it row-locks the receipt through the
+   * lifecycle commit and renews the lease, so a takeover can neither run
+   * between this check and the FAILED write nor claim an expired lease that
+   * passed the check. True when the guard names no provider attempt.
+   */
+  private async holdsProviderAttempt(
+    input: SchedulerPublishStateInput,
+    tx: Prisma.TransactionClient,
+  ): Promise<boolean> {
+    const attempt = input.guard?.expectedProviderAttempt;
+    if (!attempt) return true;
+    const now = new Date();
+    const owned = await tx.postProviderPublishReceipt.updateMany({
+      where: {
+        attemptToken: attempt.attemptToken,
+        id: attempt.receiptId,
+        isDeleted: false,
+        leaseRenewedAt: {
+          gt: new Date(now.getTime() - PROVIDER_PUBLISH_ATTEMPT_LEASE_MS),
+        },
+        organizationId: input.organizationId,
+        postId: input.postId,
+        status: 'attempting',
+      },
+      data: { leaseRenewedAt: now },
+    });
+    return owned.count === 1;
   }
 
   private buildTransitionRequest(

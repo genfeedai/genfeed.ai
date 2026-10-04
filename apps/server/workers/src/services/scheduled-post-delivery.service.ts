@@ -13,7 +13,6 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
   type ServerPublisherFactory,
-  scopedWhere,
 } from '@api/index';
 import type { RecordActivityInput } from '@api/services/activity-recording/activity-recording.types';
 import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
@@ -22,7 +21,6 @@ import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.
 import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
 import {
   CredentialPlatform,
-  Platform,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -66,10 +64,6 @@ import {
   readScheduledDeliveryResult,
 } from '@workers/services/scheduled-post-delivery-input.util';
 import { ScheduledPostFailureService } from '@workers/services/scheduled-post-failure.service';
-import {
-  type PlannedThreadChild,
-  toPlannedThreadChildren,
-} from '@workers/services/scheduled-post-media-gate.util';
 import { ScheduledPostProviderAttempts } from '@workers/services/scheduled-post-provider-attempts';
 import {
   type ProviderPublishAttempt,
@@ -78,6 +72,7 @@ import {
   ProviderPublishInFlightError,
   ProviderPublishPersistenceError,
 } from '@workers/services/scheduled-post-provider-receipt.util';
+import { ScheduledPostPublishFollowUps } from '@workers/services/scheduled-post-publish-follow-ups';
 import {
   queueLearningPublicationRefreshV1,
   type SchedulerPublishFinalizationInput,
@@ -85,10 +80,6 @@ import {
   type SchedulerPublishTargetUpdate,
   type SchedulerPublishTransitionGuard,
 } from '@workers/services/scheduler-publish-state.service';
-import {
-  type DelayedThreadChild,
-  planThreadChildDelivery,
-} from '@workers/services/thread-comment-schedule.util';
 
 /** A terminal validation failure may only move a post that is still queued. */
 const TERMINAL_FAILURE_PRIOR_STATES: readonly TargetExecutionState[] = [
@@ -96,12 +87,24 @@ const TERMINAL_FAILURE_PRIOR_STATES: readonly TargetExecutionState[] = [
   TargetExecutionState.PUBLISHING,
 ];
 
+/** The receipt identity a transition fences on, without the attempt's other fields. */
+function toAttemptFence(attempt: ProviderPublishAttemptRef): {
+  attemptToken: string;
+  receiptId: string;
+} {
+  return {
+    attemptToken: attempt.attemptToken,
+    receiptId: attempt.receiptId,
+  };
+}
+
 @Injectable()
 export class ScheduledPostDeliveryService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
   private readonly MAX_RETRY_ATTEMPTS = 3;
   private readonly gates: ScheduledPostDeliveryGates;
   private readonly attempts: ScheduledPostProviderAttempts;
+  private readonly followUps: ScheduledPostPublishFollowUps;
 
   constructor(
     private readonly logger: LoggerService,
@@ -115,7 +118,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     private readonly publishEventWebhookService: PublishEventWebhookService,
     private readonly schedulerPublishStateService: SchedulerPublishStateService,
-    private readonly replyPostWatchService: ReplyPostWatchService,
+    replyPostWatchService: ReplyPostWatchService,
     publishingReadinessService: CredentialPublishingReadinessService,
     private readonly prisma: PrismaService,
     mediaReadinessService: MediaReadinessService,
@@ -132,6 +135,12 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       mediaReadinessService,
     );
     this.attempts = new ScheduledPostProviderAttempts(prisma, logger);
+    this.followUps = new ScheduledPostPublishFollowUps(
+      logger,
+      prisma,
+      postFailureService,
+      replyPostWatchService,
+    );
   }
 
   onModuleInit(): void {
@@ -409,7 +418,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         'publish_validation_failed',
         undefined,
         {
-          expectedProviderAttempt: hold.attempt,
+          expectedProviderAttempt: toAttemptFence(hold.attempt),
           priorExecutionStates: TERMINAL_FAILURE_PRIOR_STATES,
         },
       );
@@ -683,7 +692,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
     const children = (post.children || []) as unknown as PostDocument[];
     if (prepared) {
-      await this.deliverThreadChildren(
+      await this.followUps.deliverThreadChildren(
         post,
         children,
         prepared,
@@ -700,7 +709,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
     if (!isProviderDraft) {
       this.emitPublishPublishedWebhook(post, result, platform);
-      this.scheduleReplyPostWatchAfterPublish(post, result, platform);
+      this.followUps.scheduleReplyPostWatch(post, result, platform);
     }
 
     this.logger.log(
@@ -731,128 +740,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         args[0].id.toString(),
         result.externalId,
         error,
-      );
-    }
-  }
-
-  /**
-   * Send the follow-ups that go out with the parent and park the rest.
-   *
-   * A delayed comment keeps its SCHEDULED state and gains a due date; the
-   * thread-comment sweep publishes it once that time arrives, using the same
-   * publisher against the parent's provider id.
-   */
-  private async deliverThreadChildren(
-    post: PostEntity,
-    children: PostDocument[],
-    prepared: PreparedPostDelivery,
-    result: PublishResult,
-    publishedAt: Date,
-    url: string,
-  ): Promise<void> {
-    if (children.length === 0) {
-      return;
-    }
-
-    const plan = planThreadChildDelivery(
-      toPlannedThreadChildren(children),
-      publishedAt,
-    );
-
-    await this.parkDelayedThreadChildren(post, plan.delayed, url);
-
-    await this.publishThreadChildrenIfSupported(
-      post,
-      plan.immediate.map((entry) => entry.child),
-      prepared,
-      result,
-      url,
-    );
-  }
-
-  private async parkDelayedThreadChildren(
-    post: PostEntity,
-    delayed: Array<DelayedThreadChild<PlannedThreadChild>>,
-    url: string,
-  ): Promise<void> {
-    if (delayed.length === 0) {
-      return;
-    }
-
-    const organizationId = readPostString(post, ['organizationId']);
-    if (!organizationId) {
-      this.logger.error(`${url} cannot park delayed comments without an org`, {
-        postId: post.id.toString(),
-      });
-      return;
-    }
-
-    for (const entry of delayed) {
-      await this.prisma.post.updateMany({
-        data: { scheduledDate: entry.dueAt },
-        where: scopedWhere(organizationId, {
-          id: entry.child.id,
-          isDeleted: false,
-        }),
-      });
-    }
-
-    this.logger.log(`${url} parked delayed comments`, {
-      delayedCount: delayed.length,
-      nextDueAt: delayed[0]?.dueAt.toISOString(),
-      postId: post.id.toString(),
-    });
-  }
-
-  private async publishThreadChildrenIfSupported(
-    post: PostEntity,
-    children: PostDocument[],
-    prepared: PreparedPostDelivery,
-    result: PublishResult,
-    url: string,
-  ): Promise<void> {
-    if (
-      children.length === 0 ||
-      !prepared.publisher.supportsThreads ||
-      !result.externalId
-    ) {
-      return;
-    }
-
-    if (!prepared.publisher.publishThreadChildren) {
-      this.logger.warn(
-        `${url} platform supports threads but publishThreadChildren not implemented`,
-        {
-          childrenCount: children.length,
-          platform: prepared.credential.platform,
-          postId: post.id.toString(),
-        },
-      );
-      return;
-    }
-
-    try {
-      await prepared.publisher.publishThreadChildren(
-        prepared.context,
-        children,
-        result.externalId,
-      );
-    } catch (error: unknown) {
-      const errorMessage = getPublishErrorMessage(error);
-      this.logger.error(
-        `${url} failed to publish thread children after parent success`,
-        {
-          childrenCount: children.length,
-          error: errorMessage,
-          externalId: result.externalId,
-          platform: prepared.credential.platform,
-          postId: post.id.toString(),
-        },
-      );
-      await this.postFailureService.failChildren(
-        post,
-        getPublishErrorCode(error),
-        errorMessage,
       );
     }
   }
@@ -947,7 +834,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         message,
         'publish_retries_exhausted',
         workflowExecutionId,
-        { expectedProviderAttempt: claimed },
+        { expectedProviderAttempt: toAttemptFence(claimed) },
       );
       if (failed === false) this.emitPublishFailedWebhook(post, message);
       if (failed === undefined) {
@@ -1149,71 +1036,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       post,
       url: result.url || null,
     });
-  }
-
-  private scheduleReplyPostWatchAfterPublish(
-    post: PostEntity,
-    result: PublishResult,
-    platform: CredentialPlatform | string,
-  ): void {
-    const platformKey = String(platform).toLowerCase();
-    const isX =
-      platformKey === 'twitter' ||
-      platformKey === CredentialPlatform.TWITTER.toLowerCase() ||
-      platform === CredentialPlatform.TWITTER;
-    const isYouTube =
-      platformKey === 'youtube' ||
-      platformKey === CredentialPlatform.YOUTUBE.toLowerCase() ||
-      platform === CredentialPlatform.YOUTUBE;
-    if ((!isX && !isYouTube) || !result.externalId) {
-      return;
-    }
-
-    const organizationId = post.organizationId;
-    const brandId = post.brandId;
-    if (!organizationId || !brandId) {
-      return;
-    }
-
-    const postPreview =
-      readPostString(post, ['title']) ||
-      readPostString(post, ['text']) ||
-      readPostString(post, ['content']) ||
-      undefined;
-    const watchPlatform = isYouTube ? Platform.YOUTUBE : Platform.TWITTER;
-
-    void this.replyPostWatchService
-      .schedulePostWatch({
-        brandId: String(brandId),
-        organizationId: String(organizationId),
-        platform: watchPlatform,
-        postId: result.externalId,
-        postPreview: postPreview?.slice(0, 200),
-      })
-      .then((scheduled) => {
-        this.logger.log(
-          `${this.constructorName} scheduled reply post-watch after publish`,
-          {
-            externalId: result.externalId,
-            platform: watchPlatform,
-            postId: post.id.toString(),
-            scheduled: scheduled.scheduled,
-          },
-        );
-      })
-      .catch((error: unknown) => {
-        this.logger.warn(
-          `${this.constructorName} failed to schedule reply post-watch`,
-          {
-            error: getErrorMessage(error, {
-              fallback: () => 'unknown',
-              messageSource: 'error-instance',
-            }),
-            externalId: result.externalId,
-            postId: post.id.toString(),
-          },
-        );
-      });
   }
 
   private emitPublishFailedWebhook(
