@@ -1,4 +1,5 @@
 import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
+import { expect } from 'vitest';
 
 type MockedDelegateMethod = {
   mock: { calls: unknown[][] };

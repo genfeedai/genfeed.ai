@@ -571,11 +571,14 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     let creditsSettled = false;
 
     try {
+      const postsService = this.postsService;
       const children = await loadPostThreadChildren(
-        {
-          getChildren: (parentId) =>
-            this.postsService.getChildren(parentId, organizationId),
-        },
+        postsService
+          ? {
+              getChildren: (parentId) =>
+                postsService.getChildren(parentId, organizationId),
+            }
+          : undefined,
         postId,
       );
       const previousEvaluation = await this.prisma.evaluation.findFirst({
