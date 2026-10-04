@@ -337,8 +337,8 @@ export class GenerationBillingService {
     return this.quoteGroups.abortUnsubmittedOutput(id, organizationId);
   }
 
-  reconcileAbortedCrunDispatches(): Promise<number> {
-    return this.quoteGroups.reconcileAbortedCrunDispatches();
+  reconcileAbortedCrunDispatches(now = new Date()): Promise<number> {
+    return this.quoteGroups.reconcileAbortedCrunDispatches(now);
   }
 
   /** Success: queue one reserved settlement for the output's hold. */

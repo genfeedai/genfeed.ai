@@ -189,19 +189,25 @@ export async function sweepAbortedCrunDispatches(
   credits: ReservationReleaser,
   now: Date,
 ): Promise<number> {
-  // tenant-scope-ignore: platform sweep; every abort re-enters the row's tenant scope
-  const rows = await prisma.ingredient.findMany({
-    orderBy: { createdAt: 'asc' },
-    take: SWEEP_BATCH,
-    select: { id: true, organizationId: true },
-    where: {
-      isDeleted: false,
-      status: IngredientStatus.PROCESSING,
-      modelUsed: { startsWith: 'crun/' },
-      organizationId: { not: null },
-      createdAt: { lte: new Date(now.getTime() - ABANDONED_DISPATCH_AGE_MS) },
-    },
-  });
+  // Task-backed outputs are excluded before the limit so they can never
+  // starve a taskless one. Platform sweep; every abort re-enters its tenant.
+  const rows = await prisma.$queryRaw<
+    { id: string; organizationId: string | null }[]
+  >(Prisma.sql`
+    SELECT i."id", i."organizationId" FROM "ingredients" i
+    WHERE i."isDeleted" = false
+      AND i."status" = ${IngredientStatus.PROCESSING}::"IngredientStatus"
+      AND i."modelUsed" LIKE ${'crun/%'}
+      AND i."organizationId" IS NOT NULL
+      AND i."createdAt" <= ${new Date(now.getTime() - ABANDONED_DISPATCH_AGE_MS)}
+      AND NOT EXISTS (
+        SELECT 1 FROM "crun_generation_tasks" t
+        WHERE t."ingredientId" = i."id"
+          AND t."organizationId" = i."organizationId"
+          AND t."isDeleted" = false
+      )
+    ORDER BY i."createdAt" ASC
+    LIMIT ${SWEEP_BATCH}`);
   let acted = 0;
   for (const row of rows) {
     if (!row.organizationId) continue;

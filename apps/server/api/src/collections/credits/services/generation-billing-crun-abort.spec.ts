@@ -89,7 +89,29 @@ function world(options: { releaseFails?: number } = {}) {
       return row[key] === value;
     });
   const prisma = {
-    $queryRaw: vi.fn(),
+    // Mirrors the sweep SQL: PROCESSING crun outputs older than the cutoff
+    // with no live task, oldest first, limited. Values: status, like, cutoff, limit.
+    $queryRaw: vi
+      .fn()
+      .mockImplementation(async (sql?: { values?: unknown[] }) => {
+        const values = sql?.values ?? [];
+        if (values.length < 4) return [];
+        const [, , cutoff, limit] = values as [string, string, Date, number];
+        return ingredients
+          .filter(
+            (row) =>
+              row.status === 'PROCESSING' &&
+              row.modelUsed.startsWith('crun/') &&
+              row.createdAt <= cutoff &&
+              !tasks.some((task) => task.ingredientId === row.id),
+          )
+          .sort(
+            (left, right) =>
+              left.createdAt.getTime() - right.createdAt.getTime(),
+          )
+          .slice(0, limit)
+          .map((row) => ({ id: row.id, organizationId: row.organizationId }));
+      }),
     $transaction: async (run: (tx: unknown) => unknown) => run(prisma),
     crunGenerationTask: {
       findFirst: async ({ where }: { where: Record<string, unknown> }) =>
@@ -244,6 +266,34 @@ describe('Crun pre-submission abort of taskless outputs', () => {
     expect(w.logger.error).toHaveBeenCalled();
     expect(await w.service.reconcileAbortedCrunDispatches(now)).toBe(1);
     expect(w.hold.status).toBe('RELEASED');
+  });
+
+  it('is not starved by 200+ older task-backed outputs', async () => {
+    const w = world();
+    for (let index = 0; index < 250; index += 1) {
+      w.ingredients.push({
+        id: `task-backed-${index}`,
+        organizationId: org,
+        status: 'PROCESSING',
+        modelUsed: 'crun/x/y',
+        createdAt: new Date(old.getTime() - 60 * 60 * 1000 - index),
+        isDeleted: false,
+        generationBilling: null,
+      });
+      w.tasks.push({
+        ingredientId: `task-backed-${index}`,
+        reservationId: 'other',
+      });
+    }
+    expect(await w.service.reconcileAbortedCrunDispatches(now)).toBe(2);
+    expect(w.hold.status).toBe('RELEASED');
+    expect(w.ingredients[0].status).toBe('FAILED');
+    expect(w.ingredients[1].status).toBe('FAILED');
+    expect(
+      w.ingredients
+        .filter((row) => row.id.startsWith('task-backed'))
+        .every((row) => row.status === 'PROCESSING'),
+    ).toBe(true);
   });
 
   it('does not sweep outputs younger than the dispatch window', async () => {
