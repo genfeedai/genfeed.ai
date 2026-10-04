@@ -9,6 +9,7 @@ import {
   type PrismaFilter,
   type PrismaUpdate,
 } from '@api/shared/services/base/base-query-normalization.adapter';
+import type { TenantScopeAccess } from '@api/shared/services/base/tenant-scope';
 import {
   GLOBAL_PAGINATED_QUERY_CACHE_TAG,
   generateQueryCacheKey,
@@ -229,12 +230,39 @@ export abstract class BaseService<
    * Not applied to `patch` / `remove`: those address a single row by primary
    * key, which the caller named explicitly, and both are how a tombstone is
    * written and un-written. Injecting there would break restore.
+   *
+   * Tenant scope rides on the same seam: while a tenant context is active, a
+   * filter that names no organization gets the request tenant added (see
+   * `withTenantScope`). `access` is `read` by default; filter-driven writes
+   * pass `write`.
    */
   protected withSoftDeleteFilter(
     where: PrismaFilter = {},
     params: PrismaFilter = where,
+    access: TenantScopeAccess = 'read',
   ): PrismaFilter {
-    return this.queryNormalizationAdapter.withSoftDeleteFilter(where, params);
+    return this.queryNormalizationAdapter.withSoftDeleteFilter(
+      where,
+      params,
+      access,
+    );
+  }
+
+  /**
+   * Scopes a filter to the request tenant when a tenant context is active, the
+   * model is a tenant model and the filter names no organization. Reads of
+   * platform-default models (`PLATFORM_ROW_MODELS`) also see the shared
+   * `organizationId: null` rows; writes never do. No-op without a tenant
+   * context (workers, crons, webhooks) and inside `crossOrgUnsafe`.
+   *
+   * Use it for any `delegate` query a subclass builds by id or other
+   * non-tenant keys.
+   */
+  protected withTenantScope(
+    where: PrismaFilter,
+    access: TenantScopeAccess = 'read',
+  ): PrismaFilter {
+    return this.queryNormalizationAdapter.withTenantScope(where, access);
   }
 
   protected normalizeWhere(where: PrismaFilter = {}): PrismaFilter {
@@ -511,7 +539,7 @@ export abstract class BaseService<
 
       const include = this.populateToInclude(populate);
       const result = await this.internalDelegate.update({
-        where: { id },
+        where: this.withTenantScope({ id }, 'write'),
         data,
         ...(include ? { include } : {}),
       });
@@ -545,10 +573,10 @@ export abstract class BaseService<
 
   /**
    * Update the single document `where` selects, returning it (or null when
-   * nothing matched). `patch(id)` writes by primary key alone, which the CLOUD
-   * tenant guard rejects on tenant models; use this when `where` carries the
-   * tenant scope. Prisma `update` accepts the extra scope predicates next to the
-   * unique `id`; `where` is the caller's scope contract and is used as given.
+   * nothing matched). Prisma `update` accepts the extra scope predicates next
+   * to the unique `id`. Use this when `where` carries a scope `patch(id)`
+   * cannot express (for example a shared-or-own `OR`); a `where` that names no
+   * organization still gets the request tenant added, like `patch`.
    */
   async patchOneWhere(
     where: PrismaFilter,
@@ -567,7 +595,7 @@ export abstract class BaseService<
     try {
       const result = await this.internalDelegate.update({
         data: this.normalizeData(updateDto),
-        where: this.normalizeWhere(where),
+        where: this.withTenantScope(this.normalizeWhere(where), 'write'),
         ...(include ? { include } : {}),
       });
 
@@ -612,9 +640,13 @@ export abstract class BaseService<
 
       this.logger?.debug('Bulk updating documents', { filter, update });
 
-      // sql-risk-audit: ignore bulk-write-tenant-review -- withSoftDeleteFilter forces the isDeleted:false default onto every filter-driven bulk write; organization scoping is the caller's filter contract (single-tenant self-host omits it by design).
+      // sql-risk-audit: ignore bulk-write-tenant-review -- withSoftDeleteFilter forces the isDeleted:false default onto every filter-driven bulk write; the request tenant is added when the caller names no organization, and outside a tenant context the caller's filter is the scope contract (single-tenant self-host omits it by design).
       const result = await this.internalDelegate.updateMany({
-        where: this.withSoftDeleteFilter(this.normalizeWhere(filter), filter),
+        where: this.withSoftDeleteFilter(
+          this.normalizeWhere(filter),
+          filter,
+          'write',
+        ),
         data: this.normalizeData(update),
       });
 
@@ -649,7 +681,7 @@ export abstract class BaseService<
       this.logger?.debug('Soft deleting document', { id });
 
       const result = await this.internalDelegate.update({
-        where: { id },
+        where: this.withTenantScope({ id }, 'write'),
         data: { isDeleted: true },
       });
 
@@ -780,7 +812,7 @@ export abstract class BaseService<
       }
 
       const result = await this.internalDelegate.update({
-        where: { id },
+        where: this.withTenantScope({ id }, 'write'),
         data: { [field]: value },
       });
 
