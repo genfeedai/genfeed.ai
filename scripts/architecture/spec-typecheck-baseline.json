@@ -537,51 +537,11 @@
       "workspace": "agent"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/agent/src/hooks/use-agent-chat-stream.spec.tsx",
-      "fingerprint": "bbf3d1118e622605d3fc",
-      "message": "Type '{ createdAt: string; event: \"tool_started\"; id: string; label: string; runId: string; status: \"running\"; threadId: string; }[]' is not assignable to type 'AgentWorkEvent[]'.   Type '{ createdAt: string; event: \"tool_started\"; id: string; label: string; runId: string; status: \"running\"; threadId: string; }' is not assignable to type 'AgentWorkEvent'.     Types of property 'event' are incompatible.       Type '\"tool_started\"' is not assignable to type 'AgentWorkEventType'.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/agent/src/hooks/use-agent-chat-stream.spec.tsx",
-      "fingerprint": "0bf992fcb90bc2e18c98",
-      "message": "Argument of type '(state: AgentChatStore) => { activeThreadId: string; stream: { streamingContent: string; acceptedReceipt?: AgentTurnAcceptedPayload | undefined; isStreaming: boolean; streamingReasoning: string; activeToolCalls: AgentToolCall[]; pendingUiActions: AgentUiAction[]; }; threads: { ...; }[]; }' is not assignable to parameter of type 'AgentChatStore | Partial<AgentChatStore> | ((state: AgentChatStore) => AgentChatStore | Partial<AgentChatStore>)'.   Type '(state: AgentChatStore) => { activeThreadId: string; stream: { streamingContent: string; acceptedReceipt?: AgentTurnAcceptedPayload | undefined; isStreaming: boolean; streamingReasoning: string; activeToolCalls: AgentToolCall[]; pendingUiActions: AgentUiAction[]; }; threads: { ...; }[]; }' is not assignable to type '(state: AgentChatStore) => AgentChatStore | Partial<AgentChatStore>'.     Type '{ activeThreadId: string; stream: { streamingContent: string; acceptedReceipt?: AgentTurnAcceptedPayload; isStreaming: boolean; streamingReasoning: string; activeToolCalls: AgentToolCall[]; pendingUiActions: AgentUiAction[]; }; threads: { ...; }[]; }' is not assignable to type 'AgentChatStore | Partial<AgentChatStore>'.       Type '{ activeThreadId: string; stream: { streamingContent: string; acceptedReceipt?: AgentTurnAcceptedPayload; isStreaming: boolean; streamingReasoning: string; activeToolCalls: AgentToolCall[]; pendingUiActions: AgentUiAction[]; }; threads: { ...; }[]; }' is not assignable to type 'Partial<AgentChatStore>'.         Types of property 'threads' are incompatible.           Type '{ createdAt: string; id: string; status: never; title: string; updatedAt: string; }[]' is not assignable to type 'AgentThread[]'.             Property 'contextVersion' is missing in type '{ createdAt: string; id: string; status: never; title: string; updatedAt: string; }' but required in type 'AgentThread'.",
-      "workspace": "agent"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "packages/agent/src/hooks/use-agent-chat-stream.spec.tsx",
       "fingerprint": "76851cc15a7b6575116f",
       "message": "Argument of type 'number | undefined' is not assignable to parameter of type 'number'.   Type 'undefined' is not assignable to type 'number'.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/agent/src/hooks/use-agent-chat-stream.spec.tsx",
-      "fingerprint": "37ab732d2e139007932f",
-      "message": "Property 'createdAt' is missing in type '{ id: string; threadId: string; role: \"user\"; content: string; }' but required in type 'AgentChatMessage'.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/agent/src/hooks/use-agent-chat-stream.spec.tsx",
-      "fingerprint": "54aa214a3aed412da1b4",
-      "message": "Property 'pendingUiActions' is missing in type '{ activeToolCalls: never[]; isStreaming: false; streamingContent: string; streamingReasoning: string; }' but required in type 'AgentStreamState'.",
-      "workspace": "agent"
-    },
-    {
-      "code": 2741,
-      "count": 3,
-      "file": "packages/agent/src/hooks/use-agent-chat-stream.spec.tsx",
-      "fingerprint": "e426c7d8d4daa3b03652",
-      "message": "Property 'contextVersion' is missing in type '{ createdAt: string; id: string; runStatus: \"running\"; status: never; title: string; updatedAt: string; }' but required in type 'AgentThread'.",
       "workspace": "agent"
     },
     {
