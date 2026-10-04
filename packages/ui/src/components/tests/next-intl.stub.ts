@@ -418,6 +418,7 @@ const UI_TEST_MESSAGES = {
         },
       },
       inspector: {
+        copyPrompt: 'Copy prompt',
         deletedReference: 'Deleted reference',
         hiddenCount:
           '{count, plural, one {# more is not available to you} other {# more are not available to you}}',
@@ -425,6 +426,9 @@ const UI_TEST_MESSAGES = {
         madeFrom: 'Made from',
         openPreview: 'Open full-size preview',
         origin: 'Origin',
+        prompt: 'Prompt',
+        showFullPrompt: 'Show full prompt',
+        showLess: 'Show less',
         showMore: 'Show more',
         type: 'Type',
         untitled: 'Untitled asset',
