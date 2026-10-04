@@ -5,6 +5,8 @@ import type { ConfigService } from '@libs/config/config.service';
 const DEFAULT_API_URL = 'http://localhost:3010';
 const DEFAULT_APP_URL = 'http://localhost:3000';
 const DEFAULT_MCP_URL = 'http://localhost:3014/mcp';
+const DEFAULT_DOCS_URL = 'https://docs.genfeed.ai';
+const DEFAULT_WEBSITE_URL = 'https://genfeed.ai';
 
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');
@@ -58,6 +60,17 @@ export function buildOAuthAuthorizationServerMetadata(
   configService: Pick<ConfigService, 'get'>,
 ) {
   const issuer = resolveOAuthIssuerUrl(configService);
+  // Policies and docs belong to the operator serving this issuer.
+  const websiteUrl = readUrl(
+    configService,
+    ['GENFEEDAI_PUBLIC_URL'],
+    DEFAULT_WEBSITE_URL,
+  );
+  const docsUrl = readUrl(
+    configService,
+    ['GENFEED_DOCS_URL'],
+    DEFAULT_DOCS_URL,
+  );
   const protectedResources = [resolveMcpResourceUrl(configService)];
   const agentAuthRegistrationUrl = `${issuer}/v1/agent/auth`;
   const agentAuthClaimUrl = `${agentAuthRegistrationUrl}/claim`;
@@ -84,12 +97,15 @@ export function buildOAuthAuthorizationServerMetadata(
     code_challenge_methods_supported: ['S256'],
     grant_types_supported: ['authorization_code', 'refresh_token'],
     issuer,
+    op_policy_uri: `${websiteUrl}/privacy`,
+    op_tos_uri: `${websiteUrl}/terms`,
     protected_resources: protectedResources,
     registration_endpoint: `${issuer}/v1/oauth/register`,
     response_types_supported: ['code'],
     revocation_endpoint: `${issuer}/v1/oauth/revoke`,
     revocation_endpoint_auth_methods_supported: ['none'],
     scopes_supported: [...API_KEY_SCOPE_PRESETS.mcp],
+    service_documentation: `${docsUrl}/api-reference/mcp`,
     token_endpoint: `${issuer}/v1/oauth/token`,
     token_endpoint_auth_methods_supported: ['none'],
   };

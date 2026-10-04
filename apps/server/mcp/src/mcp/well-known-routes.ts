@@ -1,4 +1,5 @@
 import { buildProtectedResourceMetadataPaths } from '@genfeedai/helpers/integrations/mcp-resource.helper';
+import { MCP_BRAND_ICON_FILES } from '@mcp/mcp/brand-icons';
 import {
   getMcpProtectedResourceMetadata,
   getMcpServerCard,
@@ -33,6 +34,20 @@ export function registerWellKnownRoutes(expressApp: Express): void {
         .set('Cache-Control', 'public, max-age=300')
         .status(200)
         .json(getMcpProtectedResourceMetadata());
+    });
+  }
+
+  // `serverInfo.icons` must be same-origin with the MCP server, so the
+  // brand icons are served here rather than from the CDN.
+  for (const [path, icon] of Object.entries(MCP_BRAND_ICON_FILES)) {
+    expressApp.get(path, (_req: Request, res: Response) => {
+      res
+        .set('Access-Control-Allow-Origin', '*')
+        .set('Cache-Control', 'public, max-age=86400')
+        .set('Content-Type', icon.mimeType)
+        .set('X-Content-Type-Options', 'nosniff')
+        .status(200)
+        .send(icon.body);
     });
   }
 
