@@ -2,9 +2,9 @@ import { createHash } from 'node:crypto';
 import { crc32, deflateRawSync } from 'node:zlib';
 import {
   parseSkillPackageArchive,
-  SKILL_PACKAGE_LIMITS,
   validateSkillPackageFiles,
 } from '@api/collections/skills/utils/skill-package-archive.util';
+import { SKILL_PACKAGE_LIMITS } from '@genfeedai/contracts/constants';
 
 function createSkillZip(
   entries: Array<{

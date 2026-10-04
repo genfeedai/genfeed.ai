@@ -1,8 +1,12 @@
+import {
+  SKILL_PACKAGE_MAX_SLUG_LENGTH,
+  SKILL_PACKAGE_SLUG_PATTERN,
+} from '@genfeedai/contracts/constants';
 import { BadRequestException } from '@nestjs/common';
 
 export const MAX_REQUESTED_SKILL_SLUGS = 8;
-export const MAX_REQUESTED_SKILL_SLUG_LENGTH = 160;
-export const REQUESTED_SKILL_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*$/i;
+export const MAX_REQUESTED_SKILL_SLUG_LENGTH = SKILL_PACKAGE_MAX_SLUG_LENGTH;
+export const REQUESTED_SKILL_SLUG_PATTERN = SKILL_PACKAGE_SLUG_PATTERN;
 
 export function normalizeRequestedSkillSlugs(
   value: unknown,

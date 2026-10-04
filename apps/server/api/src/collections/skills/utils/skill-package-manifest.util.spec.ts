@@ -1,6 +1,10 @@
 import { createHash } from 'node:crypto';
 import { crc32 } from 'node:zlib';
 import { parseSkillPackageManifest } from '@api/collections/skills/utils/skill-package-manifest.util';
+import {
+  SKILL_PACKAGE_LIMITS,
+  SKILL_PACKAGE_MAX_BASE64_CHARACTERS,
+} from '@genfeedai/contracts/constants';
 import { BadRequestException } from '@nestjs/common';
 
 function markdown(
@@ -344,5 +348,38 @@ describe('parseSkillPackageManifest', () => {
     expect(() =>
       parseSkillPackageManifest(request(markdown(nodes(247)))),
     ).toThrow();
+  });
+});
+
+describe('shared skill package limits', () => {
+  it('enforces the shared entry, base64 and source URL limits', () => {
+    const files = Array.from(
+      { length: SKILL_PACKAGE_LIMITS.entries + 1 },
+      (_value, index) => ({
+        path: index ? `ref-${index}.md` : 'SKILL.md',
+        content: markdown(),
+      }),
+    );
+    expect(() =>
+      parseSkillPackageManifest({
+        slug: 'example',
+        package: { format: 'files', files },
+      }),
+    ).toThrow(BadRequestException);
+    expect(() =>
+      parseSkillPackageManifest({
+        slug: 'example',
+        package: {
+          format: 'zip',
+          archiveBase64: 'A'.repeat(SKILL_PACKAGE_MAX_BASE64_CHARACTERS + 4),
+        },
+      }),
+    ).toThrow(BadRequestException);
+    expect(() =>
+      parseSkillPackageManifest({
+        ...request(),
+        sourceUrl: 'https://example.com/\\@evil.test',
+      }),
+    ).toThrow(BadRequestException);
   });
 });

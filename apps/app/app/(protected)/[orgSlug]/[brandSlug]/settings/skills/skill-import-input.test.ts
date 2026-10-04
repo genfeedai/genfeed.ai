@@ -1,3 +1,4 @@
+import { SKILL_PACKAGE_LIMITS } from '@genfeedai/contracts/constants';
 import { describe, expect, it, vi } from 'vitest';
 import { buildSkillImportInput } from './skill-import-input';
 
@@ -209,5 +210,33 @@ describe('buildSkillImportInput', () => {
       slug: 'a'.repeat(160),
       expectedPackageChecksum: 'b'.repeat(64),
     });
+  });
+});
+
+describe('shared skill package limits', () => {
+  it('uses the shared entry, size and source URL rules', async () => {
+    const many = Array.from(
+      { length: SKILL_PACKAGE_LIMITS.entries + 1 },
+      (_v, i) => file(i ? `ref-${i}.md` : 'SKILL.md', 'x'),
+    );
+    await expect(
+      buildSkillImportInput(many, { slug: 'skill' }),
+    ).rejects.toMatchObject({
+      code: 'COUNT',
+    });
+    await expect(
+      buildSkillImportInput(
+        [file('SKILL.md', 'a'.repeat(SKILL_PACKAGE_LIMITS.entryBytes + 1))],
+        {
+          slug: 'skill',
+        },
+      ),
+    ).rejects.toMatchObject({ code: 'SIZE' });
+    await expect(
+      buildSkillImportInput([root()], {
+        slug: 'skill',
+        sourceUrl: 'https://example.com/\\@evil.test',
+      }),
+    ).rejects.toMatchObject({ code: 'SOURCE_URL' });
   });
 });

@@ -1,6 +1,7 @@
 import { chmod, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { SKILL_PACKAGE_LIMITS } from '@genfeedai/contracts/constants';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { readSkillPackageInput } from '@/utils/skill-package-input';
 
@@ -222,5 +223,23 @@ describe('readSkillPackageInput', () => {
       'https://example.com/\nsecret',
     ])
       await expect(readSkillPackageInput(root, { slug: 'skill', sourceUrl })).rejects.toThrow();
+  });
+});
+
+describe('shared skill package limits', () => {
+  it('uses the shared entry, size and source URL rules', async () => {
+    const root = await file('SKILL.md', skill);
+    const reference = Array.from(
+      { length: SKILL_PACKAGE_LIMITS.entries },
+      (_value, index) => `ref-${index}.md`
+    );
+    await expect(readSkillPackageInput(root, { reference, slug: 'skill' })).rejects.toThrow(
+      String(SKILL_PACKAGE_LIMITS.entries)
+    );
+    const big = await file('big/SKILL.md', 'a'.repeat(SKILL_PACKAGE_LIMITS.entryBytes + 1));
+    await expect(readSkillPackageInput(big, { slug: 'skill' })).rejects.toThrow();
+    await expect(
+      readSkillPackageInput(root, { slug: 'skill', sourceUrl: 'https://example.com/\\@evil.test' })
+    ).rejects.toThrow();
   });
 });
