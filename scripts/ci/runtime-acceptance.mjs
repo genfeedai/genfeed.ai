@@ -1613,12 +1613,12 @@ export function secretValues(env = {}) {
 // Shape-based redaction: catches credentials whose env var name is not known.
 const CREDENTIAL_SHAPES = [
   [
-    /\b(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|rediss?|amqps?|mssql|sqlserver):\/\/[^\s"'<>\\]+/gi,
-    '[REDACTED]',
+    /(\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@"'<>\\]*:)[^\s/"'<>\\@]+@/gi,
+    '$1[REDACTED]@',
   ],
-  [/(\b[a-z][a-z0-9+.-]*:\/\/)[^\s/"'<>\\@]*@/gi, '$1[REDACTED]@'],
+  [/(\b[a-z][a-z0-9+.-]*:\/\/)[^\s/:@"'<>\\]+@/gi, '$1[REDACTED]@'],
   [
-    /(authorization["']?\s*[:=]\s*["']?)(?:(?:bearer|basic|token)\s+)?[^\s"',;\\]+/gi,
+    /(authorization(?:\\?["'])?\s*[:=]\s*(?:\\?["'])?)(?:(?:bearer|basic|token)\s+)?[^\s"',;\\]+/gi,
     '$1[REDACTED]',
   ],
   [/\b((?:bearer|basic)\s+)[A-Za-z0-9._~+/=-]{6,}/gi, '$1[REDACTED]'],
