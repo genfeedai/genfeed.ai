@@ -235,9 +235,50 @@ describe('Crun authenticated finalization phases', () => {
     expect(f.row.mediaPersistedAt).toBeInstanceOf(Date);
     expect(f.row.vendorCostRecordedAt).toBeInstanceOf(Date);
     expect(f.row.recoveryCode).toBe('CRUN_FINAL_CREDITS_MISMATCH');
-    expect(f.prisma.model.updateMany).toHaveBeenCalled();
+    expect(f.prisma.model.updateMany).toHaveBeenCalledWith({
+      where: {
+        key: 'crun/google/nano-banana-pro',
+        organizationId: 'org',
+        isDeleted: false,
+      },
+      data: { isActive: false },
+    });
     expect(f.billing.settleOutput).not.toHaveBeenCalled();
     expect(f.billing.releaseOutput).not.toHaveBeenCalled();
+  });
+  it('byok discrepancy deactivates only the organization row and never the global or another org row', async () => {
+    const f = fixture();
+    f.row.credentialSource = 'byok';
+    f.row.terminalReceipt = { status: 'success', credits: '9' };
+    await f.service.finalize({ ...f.row }, f.info);
+    expect(f.prisma.model.updateMany).toHaveBeenCalledTimes(1);
+    const { where } = f.prisma.model.updateMany.mock.calls[0][0] as {
+      where: { organizationId: string | null };
+    };
+    expect(where.organizationId).toBe('org');
+    expect(JSON.stringify(f.prisma.model.updateMany.mock.calls)).not.toContain(
+      'null',
+    );
+    expect(f.logger.warn).toHaveBeenCalledWith(
+      'Crun terminal receipt requires review',
+      expect.objectContaining({
+        code: 'CRUN_FINAL_CREDITS_MISMATCH',
+        credentialSource: 'byok',
+      }),
+    );
+  });
+  it('platform-funded discrepancy also deactivates the global row', async () => {
+    const f = fixture();
+    f.row.terminalReceipt = { status: 'success', credits: '9' };
+    await f.service.finalize({ ...f.row }, f.info);
+    expect(f.prisma.model.updateMany).toHaveBeenCalledWith({
+      where: {
+        key: 'crun/google/nano-banana-pro',
+        organizationId: null,
+        isDeleted: false,
+      },
+      data: { isActive: false },
+    });
   });
   it('preserves owned output but does not bill when final credits are missing', async () => {
     const f = fixture();

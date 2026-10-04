@@ -442,21 +442,7 @@ export class CrunTaskFinalizationService {
       succeeded &&
       !crunCreditsEqual(credits ?? '', provider.providerCreditsPerTask)
     ) {
-      await this.assertOwned(task, signal);
-      await this.prisma.model.updateMany({
-        where: {
-          key: task.modelKey,
-          isDeleted: false,
-          OR: [{ organizationId: null }, { organizationId }],
-        },
-        data: { isActive: false },
-      });
-      this.logger.warn('Crun final credit discrepancy requires review', {
-        organizationId,
-        taskId,
-        modelKey: task.modelKey,
-        contractVersion: task.contractVersion,
-      });
+      await this.disableAndAlert(task, signal, 'CRUN_FINAL_CREDITS_MISMATCH');
       await this.recover(task, signal, 'CRUN_FINAL_CREDITS_MISMATCH');
       return { task, ledgerFailed, disposition: 'stopped' };
     }
@@ -721,20 +707,30 @@ export class CrunTaskFinalizationService {
     code: string,
   ): Promise<void> {
     await this.assertOwned(task, signal);
+    // Never deactivate a shared row from one tenant's task: an organization's
+    // BYOK discrepancy may only disable its own row. The platform-wide row is
+    // deactivated only for platform-funded (hosted) tasks; otherwise the
+    // operator alert below is the only effect.
     await this.prisma.model.updateMany({
       where: {
         key: task.modelKey,
+        organizationId: task.organizationId,
         isDeleted: false,
-        OR: [{ organizationId: null }, { organizationId: task.organizationId }],
       },
       data: { isActive: false },
     });
+    if (task.credentialSource === 'hosted')
+      await this.prisma.model.updateMany({
+        where: { key: task.modelKey, organizationId: null, isDeleted: false },
+        data: { isActive: false },
+      });
     await this.assertOwned(task, signal);
     this.logger.warn('Crun terminal receipt requires review', {
       code,
       taskId: task.id,
       organizationId: task.organizationId,
       modelKey: task.modelKey,
+      credentialSource: task.credentialSource,
       contractVersion: task.contractVersion,
     });
   }
