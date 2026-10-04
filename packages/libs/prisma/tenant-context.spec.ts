@@ -11,6 +11,25 @@ import {
 } from './tenant-context';
 
 /**
+ * Mirrors a PrismaPromise: `execute` (the query plus the tenant guard) runs
+ * only on the first `.then()`, in whatever async context calls it.
+ */
+class LazyQuery<T> implements PromiseLike<T> {
+  constructor(private readonly execute: () => T) {}
+
+  // biome-ignore lint/suspicious/noThenProperty: PrismaPromise executes lazily through its then method.
+  then<TResult1 = T, TResult2 = never>(
+    onFulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
+    onRejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+  ): PromiseLike<TResult1 | TResult2> {
+    return new Promise<T>((resolve) => resolve(this.execute())).then(
+      onFulfilled,
+      onRejected,
+    );
+  }
+}
+
+/**
  * `getActiveBillingAccountScopes()` returns a `has()`-only view (hardening,
  * #5231), not a `Set`, so these tests assert membership against an expected
  * id list instead of `.size`/`toEqual(new Set(...))`.
@@ -37,6 +56,29 @@ describe('tenant context', () => {
     );
     expect(seen).toEqual({ organizationId: 'org-1' });
     expect(getTenantContext()).toBeUndefined();
+  });
+
+  it('runs a lazy thenable inside the crossOrgUnsafe hatch', async () => {
+    const sawHatch = await runWithTenantContext(
+      { organizationId: 'org-1' },
+      () => crossOrgUnsafe(() => new LazyQuery(() => isCrossOrgUnsafe())),
+    );
+
+    expect(sawHatch).toBe(true);
+    expect(isCrossOrgUnsafe()).toBe(false);
+  });
+
+  it('propagates a lazy thenable rejection from the crossOrgUnsafe hatch', async () => {
+    await expect(
+      runWithTenantContext({ organizationId: 'org-1' }, () =>
+        crossOrgUnsafe(
+          () =>
+            new LazyQuery(() => {
+              throw new Error('query failed');
+            }),
+        ),
+      ),
+    ).rejects.toThrow('query failed');
   });
 
   it('keeps tenant context while the crossOrgUnsafe hatch is open', () => {
