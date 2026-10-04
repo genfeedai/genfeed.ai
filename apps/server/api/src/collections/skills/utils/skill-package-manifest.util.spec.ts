@@ -381,5 +381,11 @@ describe('shared skill package limits', () => {
         sourceUrl: 'https://example.com/\\@evil.test',
       }),
     ).toThrow(BadRequestException);
+    expect(
+      parseSkillPackageManifest({
+        ...request(),
+        sourceUrl: 'https://example.com/path\\@x',
+      }).sourceUrl,
+    ).toBe('https://example.com/path\\@x');
   });
 });

@@ -238,5 +238,11 @@ describe('shared skill package limits', () => {
         sourceUrl: 'https://example.com/\\@evil.test',
       }),
     ).rejects.toMatchObject({ code: 'SOURCE_URL' });
+    await expect(
+      buildSkillImportInput([root()], {
+        slug: 'skill',
+        sourceUrl: 'https://example.com/path\\@x',
+      }),
+    ).resolves.toMatchObject({ sourceUrl: 'https://example.com/path\\@x' });
   });
 });
