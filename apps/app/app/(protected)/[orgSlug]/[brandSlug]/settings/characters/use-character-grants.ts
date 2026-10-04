@@ -1,3 +1,4 @@
+import type { PersonaAvailabilityMode } from '@genfeedai/contracts';
 import type {
   BrandCharacterListItem,
   CharacterGrantItem,
