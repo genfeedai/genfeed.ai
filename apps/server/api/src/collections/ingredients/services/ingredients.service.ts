@@ -813,9 +813,8 @@ export class IngredientsService extends BaseService<
    * renders each number as "the size of this saved query", never as a share of
    * a whole.
    *
-   * Six queries, all tenant-scoped through `scopedWhere`. The type breakdown and
-   * three of the six shelves fall out of a single `groupBy` that also carries the
-   * `fileSize` sum, so the storage meter costs nothing extra.
+   * Seven tenant-scoped (`scopedWhere`) queries; one `groupBy` yields the type
+   * breakdown, three shelves and the `fileSize` sum for the storage meter.
    */
   @HandleErrors('get library summary', 'ingredients')
   async getLibrarySummary(
@@ -826,6 +825,7 @@ export class IngredientsService extends BaseService<
 
     const [
       groups,
+      referencesCount,
       unsortedCount,
       needsReviewCount,
       approvedCount,
@@ -837,6 +837,12 @@ export class IngredientsService extends BaseService<
         _sum: { fileSize: true },
         by: ['category', 'status'],
         where: scopedWhere(organizationId, { ...filters }),
+      }),
+      this.prisma.ingredient.count({
+        where: scopedWhere(organizationId, {
+          ...filters,
+          ...LibraryShelfUtil.buildShelfFilter(LibraryShelf.REFERENCES),
+        }),
       }),
       this.prisma.ingredient.count({
         where: scopedWhere(organizationId, {
@@ -897,6 +903,7 @@ export class IngredientsService extends BaseService<
     return {
       byCategory,
       byShelf: {
+        [LibraryShelf.REFERENCES]: referencesCount,
         [LibraryShelf.GENERATING]: countOf(IngredientStatus.PROCESSING),
         [LibraryShelf.UNSORTED]: unsortedCount,
         [LibraryShelf.NEEDS_REVIEW]: needsReviewCount,

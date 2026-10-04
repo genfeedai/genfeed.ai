@@ -75,7 +75,7 @@ export const LIBRARY_PLACE_COPY: Readonly<
 > = {
   [LibraryPlace.ASSETS]: {
     description:
-      'Everything this brand has uploaded, imported or generated, in one place.',
+      'Generated output for this brand. Uploads and imports live on the References shelf.',
     label: 'All assets',
   },
   [LibraryPlace.RECENT]: {
@@ -105,8 +105,10 @@ export const LIBRARY_SHELF_DESCRIPTIONS: Readonly<
   [LibraryShelf.GENERATING]: 'Still rendering. This shelf empties itself.',
   [LibraryShelf.NEEDS_REVIEW]:
     'Waiting on a human decision before it can ship.',
+  [LibraryShelf.REFERENCES]:
+    'What you uploaded or imported to generate from, kept apart from output.',
   [LibraryShelf.UNSORTED]:
-    'Finished assets nobody has filed into a folder yet.',
+    'Generated assets nobody has filed into a folder yet.',
 };
 
 /** `sort` is the API's `field: direction` string, not a UI-only token. */

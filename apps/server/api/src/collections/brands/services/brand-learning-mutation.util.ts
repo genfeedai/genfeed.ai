@@ -6,9 +6,11 @@ import {
   learningFence,
   learningMutationFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
+import { runFencedLearningMutation } from '@api/collections/content-learning/services/learning-fenced-mutation.util';
 import { learningPublicationBrandSelect } from '@api/collections/content-learning/services/learning-publication-source.types';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
 import {
   getTenantContext,
@@ -269,4 +271,14 @@ export async function patchBrandWithLearning(
   });
   await finishBrandLearningMutation(tx, scope, brand);
   return brand;
+}
+
+/** `patchBrandWithLearning` in its own transaction, escalating the fence on conflict. */
+export function patchBrandWithLearningFenced(
+  prisma: Pick<PrismaService, '$transaction'>,
+  input: Parameters<typeof patchBrandWithLearning>[1],
+): Promise<Prisma.BrandGetPayload<object>> {
+  return runFencedLearningMutation(prisma, (tx, fenceScope) =>
+    patchBrandWithLearning(tx, input, fenceScope),
+  );
 }

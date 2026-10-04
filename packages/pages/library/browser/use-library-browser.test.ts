@@ -9,15 +9,16 @@ import {
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockOpenUpload, mockReplace, state } = vi.hoisted(() => ({
+const { mockOpenUpload, mockPush, mockReplace, state } = vi.hoisted(() => ({
   mockOpenUpload: vi.fn(),
+  mockPush: vi.fn(),
   mockReplace: vi.fn(),
   state: { pathname: '/library/assets', search: '' },
 }));
 
 vi.mock('next/navigation', () => ({
   usePathname: () => state.pathname,
-  useRouter: () => ({ replace: mockReplace }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
   useSearchParams: () => new URLSearchParams(state.search),
 }));
 
@@ -104,10 +105,40 @@ describe('useLibraryBrowser', () => {
     ]);
   });
 
-  it('sends no origin when none is selected', () => {
-    const { result } = renderHook(() => useLibraryBrowser({}));
+  it('keeps references out of All assets when no origin is selected', () => {
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ place: LibraryPlace.ASSETS }),
+    );
 
     expect(result.current.origins).toEqual([]);
+    expect(result.current.contextValue.query.origins).toEqual([
+      IngredientOrigin.GENERATED,
+      IngredientOrigin.UNKNOWN,
+    ]);
+  });
+
+  it('keeps references out of a type preset, which is All assets with chips', () => {
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ seededCategories: [IngredientCategory.IMAGE] }),
+    );
+
+    expect(result.current.contextValue.query.origins).toEqual([
+      IngredientOrigin.GENERATED,
+      IngredientOrigin.UNKNOWN,
+    ]);
+  });
+
+  it.each([
+    ['a shelf', '?shelf=references', {}],
+    ['a folder', '?folder=f1', { place: LibraryPlace.ASSETS }],
+    ['Recent', '', { place: LibraryPlace.RECENT }],
+    ['Starred', '', { place: LibraryPlace.STARRED }],
+    ['Trash', '', { place: LibraryPlace.TRASH }],
+  ])('sends no origin default inside %s', (_label, search, props) => {
+    state.search = search;
+
+    const { result } = renderHook(() => useLibraryBrowser(props));
+
     expect(result.current.contextValue.query).not.toHaveProperty('origins');
   });
 
@@ -478,6 +509,39 @@ describe('useLibraryBrowser', () => {
     expect(mockOpenUpload).toHaveBeenLastCalledWith(
       expect.objectContaining({ category: IngredientCategory.INGREDIENT }),
     );
+  });
+
+  it('follows an upload from All assets to the References shelf', () => {
+    state.search = '?categories=IMAGE&view=list&page=2';
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ place: LibraryPlace.ASSETS }),
+    );
+
+    act(() => {
+      result.current.handleUpload();
+    });
+    act(() => {
+      mockOpenUpload.mock.lastCall?.[0].onComplete();
+    });
+
+    expect(mockPush).toHaveBeenCalledWith(
+      '/library/assets?categories=IMAGE&view=list&shelf=references',
+      { scroll: false },
+    );
+  });
+
+  it('refreshes in place after an upload from a view that shows references', () => {
+    state.search = '?shelf=references';
+    const { result } = renderHook(() => useLibraryBrowser({}));
+
+    act(() => {
+      result.current.handleUpload();
+    });
+    act(() => {
+      mockOpenUpload.mock.lastCall?.[0].onComplete();
+    });
+
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
   it('uploads against the organization when no brand is selected', () => {

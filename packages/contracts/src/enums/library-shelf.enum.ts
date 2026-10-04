@@ -1,5 +1,6 @@
 /**
- * Library shelf — the *generation-state* axis of the Library.
+ * Library shelf — the *generation-state* axis of the Library, plus the
+ * References shelf for inputs.
  *
  * A shelf is a saved query over `ingredients`, not a location. An asset sits on
  * exactly one shelf at a time and the shelf moves on its own as generation and
@@ -10,8 +11,13 @@
  * product language is correct here (`enum_source_of_truth.md` rule 3). The
  * predicates themselves are built from `IngredientStatus` / `FleetReviewStatus`
  * members in `LibraryShelfUtil`.
+ *
+ * References is the one shelf keyed on origin rather than state: uploads and
+ * imports are material to generate from, so they sit apart from the output
+ * shelves (`LIBRARY_REFERENCE_ORIGINS`).
  */
 export enum LibraryShelf {
+  REFERENCES = 'references',
   GENERATING = 'generating',
   UNSORTED = 'unsorted',
   NEEDS_REVIEW = 'needs-review',
@@ -22,6 +28,7 @@ export enum LibraryShelf {
 
 /** Display order of shelves in the Library sidebar. */
 export const LIBRARY_SHELF_ORDER: readonly LibraryShelf[] = [
+  LibraryShelf.REFERENCES,
   LibraryShelf.GENERATING,
   LibraryShelf.UNSORTED,
   LibraryShelf.NEEDS_REVIEW,
@@ -32,6 +39,7 @@ export const LIBRARY_SHELF_ORDER: readonly LibraryShelf[] = [
 
 /** Human labels for each shelf. */
 export const LIBRARY_SHELF_LABELS: Record<LibraryShelf, string> = {
+  [LibraryShelf.REFERENCES]: 'References',
   [LibraryShelf.GENERATING]: 'Generating',
   [LibraryShelf.UNSORTED]: 'Unsorted',
   [LibraryShelf.NEEDS_REVIEW]: 'Needs review',

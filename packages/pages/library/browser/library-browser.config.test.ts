@@ -74,7 +74,7 @@ describe('LIBRARY_TYPE_PRESETS', () => {
 });
 
 describe('Library copy', () => {
-  it('does not claim every asset was generated: the Library holds uploads and imports too', () => {
+  it('points All assets at References for uploads and imports instead of claiming to hold them', () => {
     const copy = [
       LIBRARY_PLACE_COPY[LibraryPlace.ASSETS].description,
       ...Object.values(LIBRARY_TYPE_PRESETS).map(
@@ -83,7 +83,7 @@ describe('Library copy', () => {
     ];
 
     expect(LIBRARY_PLACE_COPY[LibraryPlace.ASSETS].description).toBe(
-      'Everything this brand has uploaded, imported or generated, in one place.',
+      'Generated output for this brand. Uploads and imports live on the References shelf.',
     );
     for (const description of copy) {
       expect(description).not.toMatch(/this brand (has )?generated/);

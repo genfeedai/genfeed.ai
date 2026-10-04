@@ -544,7 +544,7 @@ test('evidence redacts credential values by shape and by connection-style env na
     dsn: 'dsn-user:dsn-pass-secret',
     bearer: 'bearerTokenValue1234567890',
     authHeader: 'basicHeaderCredential9876',
-    sig: 'abcdef0123456789sigvalue',
+    sig: 'amzSignatureValue42',
     cred: 'AKIAEXAMPLEKEY/20261004/us-east-1/s3/aws4_request',
     plainSignature: 'plainSignatureValue77',
     queryToken: 'queryTokenValue88',

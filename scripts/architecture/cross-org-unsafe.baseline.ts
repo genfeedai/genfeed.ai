@@ -142,7 +142,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin pricing report over the platform model registry.
     {
       file: 'apps/server/api/src/endpoints/admin/model-pricing/model-pricing.service.ts',
-      line: 343,
+      line: 351,
     },
     // #6120: platform (organization-less) outbox and activity events.
     {

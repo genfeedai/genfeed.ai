@@ -41,6 +41,7 @@ import { Maximize2 } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import IngredientLineageStrip from './IngredientLineageStrip';
+import IngredientPromptBlock from './IngredientPromptBlock';
 import IngredientTagsControl from './IngredientTagsControl';
 import { getIngredientShelf } from './ingredient-shelf.util';
 
@@ -48,6 +49,7 @@ const SHELF_VARIANTS: Record<
   LibraryShelf,
   'info' | 'warning' | 'success' | 'error' | 'slate'
 > = {
+  [LibraryShelf.REFERENCES]: 'slate',
   [LibraryShelf.GENERATING]: 'info',
   [LibraryShelf.UNSORTED]: 'slate',
   [LibraryShelf.NEEDS_REVIEW]: 'warning',
@@ -274,9 +276,9 @@ export default function IngredientInspectorRail({
         text={getIngredientFailureReason(ingredient)}
         tone="error"
       />
-      <InspectorNote
-        label={translate('prompt')}
-        text={getIngredientPromptText(ingredient)}
+      <IngredientPromptBlock
+        key={ingredient.id}
+        prompt={getIngredientPromptText(ingredient)}
       />
 
       <IngredientTagsControl ingredient={ingredient} />
