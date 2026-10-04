@@ -301,9 +301,9 @@ async function takeCredentialFence(
   tx: Prisma.TransactionClient,
   id: string | undefined,
   fenceScope: LearningMutationFenceScope | undefined,
-): Promise<void> {
+): Promise<string | undefined> {
   if (id === undefined || fenceScope === undefined)
-    return learningFence(tx, 'exclusive');
+    return learningFence(tx, 'exclusive').then(() => undefined);
   const tenantOrganizationId = isCrossOrgUnsafe()
     ? undefined
     : getTenantContext()?.organizationId;
@@ -316,8 +316,21 @@ async function takeCredentialFence(
     },
     select: { organizationId: true },
   });
-  if (!owner?.organizationId) return learningFence(tx, 'exclusive');
+  if (!owner?.organizationId)
+    return learningFence(tx, 'exclusive').then(() => undefined);
   await learningMutationFence(tx, owner.organizationId, fenceScope);
+  return fenceScope === 'organization' ? owner.organizationId : undefined;
+}
+/** The credential moved organizations between the owner read and the fence. */
+function assertWithinFencedOrganization(
+  rows: { organizationId: string | null }[],
+  fencedOrganizationId: string | undefined,
+): void {
+  if (
+    fencedOrganizationId !== undefined &&
+    rows.some((row) => row.organizationId !== fencedOrganizationId)
+  )
+    throw new LearningFenceEscalationError();
 }
 async function prepareCredentialMutation(
   tx: Prisma.TransactionClient,
@@ -325,8 +338,9 @@ async function prepareCredentialMutation(
   data: Prisma.CredentialUncheckedUpdateInput,
   single?: { id: string; fenceScope: LearningMutationFenceScope },
 ): Promise<CredentialMutationPlan> {
-  await takeCredentialFence(tx, single?.id, single?.fenceScope);
+  const fenced = await takeCredentialFence(tx, single?.id, single?.fenceScope);
   const plan = await discoverCredentialMutation(tx, where, data);
+  assertWithinFencedOrganization(plan.rows, fenced);
   await lockCredentialAccounts(tx, plan);
   await lockCredentialSources(tx, plan, data);
   return plan;
@@ -530,9 +544,10 @@ export async function reconcileCredentialWithLearning(
   input: CredentialLearningReconcileInput,
   fenceScope: LearningMutationFenceScope,
 ): Promise<CredentialDocument> {
-  await takeCredentialFence(tx, input.id, fenceScope);
+  const fenced = await takeCredentialFence(tx, input.id, fenceScope);
   const where = await discoverReconcileWhere(tx, input);
   const plan = await discoverCredentialMutation(tx, where, {});
+  assertWithinFencedOrganization(plan.rows, fenced);
   await lockCredentialAccounts(tx, plan);
   await lockCredentialSources(tx, plan, {});
   const currentWhere = await discoverReconcileWhere(tx, input);

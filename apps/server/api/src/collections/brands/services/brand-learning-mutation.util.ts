@@ -171,8 +171,9 @@ async function takeBrandFence(
   tx: Prisma.TransactionClient,
   input: BrandMutationInput,
   fenceScope: LearningMutationFenceScope | undefined,
-): Promise<void> {
-  if (fenceScope === undefined) return learningFence(tx, 'exclusive');
+): Promise<string | undefined> {
+  if (fenceScope === undefined)
+    return learningFence(tx, 'exclusive').then(() => undefined);
   const tenantOrganizationId =
     input.organizationId ??
     (isCrossOrgUnsafe() ? undefined : getTenantContext()?.organizationId);
@@ -187,6 +188,7 @@ async function takeBrandFence(
   });
   if (!owner) throw new NotFoundException('Brand', input.brandId);
   await learningMutationFence(tx, owner.organizationId, fenceScope);
+  return fenceScope === 'organization' ? owner.organizationId : undefined;
 }
 /**
  * Relocation and lifecycle callers cross organizations and keep the global
@@ -197,8 +199,11 @@ export async function lockBrandLearningMutation(
   input: BrandMutationInput,
   fenceScope?: LearningMutationFenceScope,
 ): Promise<BrandLearningScope> {
-  await takeBrandFence(tx, input, fenceScope);
+  const fenced = await takeBrandFence(tx, input, fenceScope);
   const scope = await discoverBrandLearningMutation(tx, input);
+  // The brand moved organizations between the owner read and the fence.
+  if (fenced !== undefined && scope.organizationId !== fenced)
+    throw new LearningFenceEscalationError();
   await lockBrandAccounts(tx, scope);
   await lockBrandSources(tx, scope, input);
   return scope;

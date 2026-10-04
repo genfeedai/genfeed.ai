@@ -2,6 +2,7 @@ import {
   lockBrandLearningMutation,
   patchBrandWithLearning,
 } from '@api/collections/brands/services/brand-learning-mutation.util';
+import { LearningFenceEscalationError } from '@api/collections/content-learning/services/learning-dependency.service';
 import { describe, expect, it, vi } from 'vitest';
 
 const GLOBAL_EXCLUSIVE = 'pg_advisory_xact_lock(5728, 1)';
@@ -73,5 +74,24 @@ describe('brand learning mutation fence scope (#6158)', () => {
       lockAllSourceBrands: true,
     });
     expect(has(sql, GLOBAL_EXCLUSIVE)).toBe(true);
+  });
+
+  it('escalates when the brand changed organization after the owner read', async () => {
+    const { tx } = fixture();
+    tx.brand.findFirst
+      .mockResolvedValueOnce({ organizationId: 'org' } as never)
+      .mockResolvedValue({
+        id: 'brand',
+        organizationId: 'other',
+        isDeleted: false,
+        isActive: true,
+      } as never);
+    await expect(
+      patchBrandWithLearning(
+        tx as never,
+        { brandId: 'brand', data: { isActive: false } },
+        'organization',
+      ),
+    ).rejects.toBeInstanceOf(LearningFenceEscalationError);
   });
 });

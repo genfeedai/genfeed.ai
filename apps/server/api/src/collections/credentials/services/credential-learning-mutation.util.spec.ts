@@ -1,3 +1,4 @@
+import { LearningFenceEscalationError } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   patchCredentialsWithLearning,
   patchCredentialWithLearning,
@@ -135,5 +136,21 @@ describe('credential learning mutation fence scope (#6158)', () => {
       { isConnected: false },
     );
     expect(has(sql, GLOBAL_EXCLUSIVE)).toBe(true);
+  });
+
+  it('escalates when the credential changed organization after the owner read', async () => {
+    const { tx } = fixture('org');
+    tx.credential.findMany.mockResolvedValue([
+      { ...(await tx.credential.findFirst()), organizationId: 'other' },
+    ]);
+    await expect(
+      patchCredentialWithLearning(
+        tx as never,
+        context,
+        'cred',
+        { accessToken: 'refreshed' },
+        'organization',
+      ),
+    ).rejects.toBeInstanceOf(LearningFenceEscalationError);
   });
 });
