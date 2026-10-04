@@ -27,6 +27,7 @@ import type { Post, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { ConflictException } from '@nestjs/common';
+import { PROVIDER_PUBLISH_ATTEMPT_LEASE_MS } from '@workers/services/scheduled-post-provider-receipt.util';
 
 const MAX_SERIALIZABLE_ATTEMPTS = 3;
 const NOT_APPLIED = { applied: false, finalizationCreated: false } as const;
@@ -214,18 +215,26 @@ export class SchedulerPublishStateService {
       await this.lockPublicationSource(input, tx, discovered);
 
     if (input.guard?.expectedProviderAttempt) {
-      const owned = await tx.postProviderPublishReceipt.findFirst({
+      // A conditional write, not a read: it row-locks the receipt through the
+      // lifecycle commit and renews the lease, so a takeover can neither run
+      // between this check and the FAILED write nor claim an expired lease
+      // that passed the check.
+      const now = new Date();
+      const owned = await tx.postProviderPublishReceipt.updateMany({
         where: {
           attemptToken: input.guard.expectedProviderAttempt.attemptToken,
           id: input.guard.expectedProviderAttempt.receiptId,
           isDeleted: false,
+          leaseRenewedAt: {
+            gt: new Date(now.getTime() - PROVIDER_PUBLISH_ATTEMPT_LEASE_MS),
+          },
           organizationId: input.organizationId,
           postId: input.postId,
           status: 'attempting',
         },
-        select: { id: true },
+        data: { leaseRenewedAt: now },
       });
-      if (!owned) {
+      if (owned.count !== 1) {
         this.logger.warn(
           `${this.logContext} ignored transition after losing the provider attempt`,
           { postId: input.postId },

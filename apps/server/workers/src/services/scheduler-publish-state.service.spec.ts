@@ -67,7 +67,7 @@ function transactionFixture(parts: Record<string, unknown> = {}) {
     },
     contentLearningDependency: { findMany: vi.fn().mockResolvedValue([]) },
     postProviderPublishReceipt: {
-      findFirst: vi.fn().mockResolvedValue({ id: 'receipt-1' }),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     postPublishFinalization: {
       findUnique: vi.fn().mockResolvedValue(null),
@@ -1004,7 +1004,8 @@ describe('learning publication transaction boundary', () => {
 
   it('rejects a transition whose provider attempt was taken over before lifecycle', async () => {
     const h = harness();
-    h.tx.postProviderPublishReceipt.findFirst.mockResolvedValue(null);
+    // The takeover landed after any earlier ownership read.
+    h.tx.postProviderPublishReceipt.updateMany.mockResolvedValue({ count: 0 });
     expect(
       await h.service.transition({
         ...h.input,
@@ -1016,11 +1017,13 @@ describe('learning publication transaction boundary', () => {
         },
       }),
     ).toBe(false);
-    expect(h.tx.postProviderPublishReceipt.findFirst).toHaveBeenCalledWith(
+    expect(h.tx.postProviderPublishReceipt.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           attemptToken: 'token-1',
           id: 'receipt-1',
+          leaseRenewedAt: { gt: expect.any(Date) },
+          organizationId: expect.any(String),
           status: 'attempting',
         }),
       }),
