@@ -107,6 +107,11 @@ export interface IngredientInspectorRailProps {
   onOpenPreview?: () => void;
 }
 
+export interface IngredientPromptBlockProps {
+  prompt?: string | null;
+  className?: string;
+}
+
 export interface IngredientOriginBadgeProps {
   origin?: IngredientOrigin | null;
   className?: string;

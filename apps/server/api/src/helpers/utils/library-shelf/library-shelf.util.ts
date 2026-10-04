@@ -2,6 +2,7 @@ import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-
 import {
   FleetReviewStatus,
   IngredientStatus,
+  LIBRARY_REFERENCE_ORIGINS,
   LibraryShelf,
   parseLibraryShelf,
   QualityStatus,
@@ -40,9 +41,16 @@ const UNSORTED_STATUSES: readonly IngredientStatus[] = [
  * the tenant scope — the shelf spec asserts no branch can ever be empty.
  */
 const SHELF_FILTERS: Record<LibraryShelf, Record<string, unknown>> = {
+  // Inputs, not output: usable uploads and imports, wherever they are filed.
+  [LibraryShelf.REFERENCES]: {
+    origin: { in: [...LIBRARY_REFERENCE_ORIGINS] },
+    status: { in: [...LIBRARY_DEFAULT_STATUSES] },
+  },
   [LibraryShelf.GENERATING]: { status: IngredientStatus.PROCESSING },
+  // References have their own shelf, so Unsorted is unfiled output only.
   [LibraryShelf.UNSORTED]: {
     folderId: null,
+    origin: { notIn: [...LIBRARY_REFERENCE_ORIGINS] },
     status: { in: [...UNSORTED_STATUSES] },
   },
   [LibraryShelf.NEEDS_REVIEW]: {
