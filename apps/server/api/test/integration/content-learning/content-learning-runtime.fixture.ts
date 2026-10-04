@@ -2219,13 +2219,25 @@ export async function assertLearningRuntimeFence(
   mode: 'ShareLock' | 'ExclusiveLock',
 ) {
   const lock = await fixture.database.observer.query(
-    `SELECT mode FROM pg_locks WHERE pid=$1 AND locktype='advisory' AND classid=5728 AND objid=1 AND objsubid=2 AND granted`,
+    `SELECT classid, objid, mode FROM pg_locks WHERE pid=$1 AND locktype='advisory' AND objsubid=2 AND granted AND classid IN (5728, 5729)`,
     [pid],
   );
-  ensure(
-    lock.rows.some((row) => row.mode === mode),
-    'ACTUAL_LEARNING_FENCE_NOT_HELD',
-  );
+  const globalModes = lock.rows
+    .filter((row) => Number(row.classid) === 5728 && Number(row.objid) === 1)
+    .map((row) => row.mode);
+  // An exclusive mutation holds either the global exclusive key (global scope)
+  // or the global shared key plus an organization exclusive key (per-organization
+  // scope, #5938). Readers always hold the global shared key.
+  const held =
+    mode === 'ShareLock'
+      ? globalModes.includes('ShareLock')
+      : globalModes.includes('ExclusiveLock') ||
+        (globalModes.includes('ShareLock') &&
+          lock.rows.some(
+            (row) =>
+              Number(row.classid) === 5729 && row.mode === 'ExclusiveLock',
+          ));
+  ensure(held, 'ACTUAL_LEARNING_FENCE_NOT_HELD');
 }
 export async function installLearningRuntimeFailure(
   fixture: LearningRuntimeFixture,
