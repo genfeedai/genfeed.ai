@@ -4425,6 +4425,7 @@
       "history": "Recent deliveries",
       "noHistory": "No deliveries recorded yet.",
       "removedDestination": "Removed destination",
+      "eventFailed": "Event processing failed",
       "attempts": "{count} attempts",
       "retry": "Retry",
       "retryScheduled": "Retry scheduled"

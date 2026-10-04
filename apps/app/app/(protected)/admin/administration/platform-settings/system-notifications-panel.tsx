@@ -378,9 +378,12 @@ export default function SystemNotificationsPanel() {
               <div>
                 <p>
                   {delivery.type} ·{' '}
-                  {overview.destinations.find(
-                    (destination) => destination.id === delivery.destinationId,
-                  )?.label ?? t('removedDestination')}
+                  {delivery.destinationId === null
+                    ? t('eventFailed')
+                    : (overview.destinations.find(
+                        (destination) =>
+                          destination.id === delivery.destinationId,
+                      )?.label ?? t('removedDestination'))}
                 </p>
                 <p className="text-muted-foreground">
                   {delivery.occurredAt} · {delivery.status} ·{' '}

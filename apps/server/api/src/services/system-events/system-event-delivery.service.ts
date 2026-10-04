@@ -242,6 +242,8 @@ export class SystemEventDeliveryService {
             nextAttemptAt: new Date(),
             deliveredAt: null,
             skippedAt: null,
+            failedAt: null,
+            attempts: 0,
             leaseToken: null,
             leaseUntil: null,
           },
@@ -254,20 +256,40 @@ export class SystemEventDeliveryService {
       });
       return true;
     }
-    // tenant-scope-ignore: scheduling never overrides a worker's live lease
-    await this.prisma.systemEventDelivery.updateMany({
-      where: { id, isDeleted: false, deliveredAt: null, skippedAt: null },
-      data: { nextAttemptAt: new Date() },
-    });
-    // tenant-scope-ignore: make the parent event eligible for the next sweep
-    await this.prisma.systemEventWebhook.updateMany({
-      where: {
-        id: row.eventId,
-        isDeleted: false,
-        deliveredAt: null,
-        skippedAt: null,
-      },
-      data: { nextAttemptAt: new Date() },
+    await this.prisma.$transaction(async (tx) => {
+      // tenant-scope-ignore: scheduling never overrides a worker's live lease
+      await tx.systemEventDelivery.updateMany({
+        where: { id, isDeleted: false, deliveredAt: null, skippedAt: null },
+        data: { nextAttemptAt: new Date() },
+      });
+      // tenant-scope-ignore: reopen a capped parent so its pending delivery can run again
+      await tx.systemEventWebhook.updateMany({
+        where: {
+          id: row.eventId,
+          isDeleted: false,
+          deliveredAt: null,
+          skippedAt: null,
+          failedAt: { not: null },
+        },
+        data: {
+          failedAt: null,
+          attempts: 0,
+          nextAttemptAt: new Date(),
+          leaseToken: null,
+          leaseUntil: null,
+        },
+      });
+      // tenant-scope-ignore: make the parent event eligible for the next sweep
+      await tx.systemEventWebhook.updateMany({
+        where: {
+          id: row.eventId,
+          isDeleted: false,
+          deliveredAt: null,
+          skippedAt: null,
+          failedAt: null,
+        },
+        data: { nextAttemptAt: new Date() },
+      });
     });
     return true;
   }

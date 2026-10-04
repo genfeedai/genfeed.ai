@@ -68,31 +68,48 @@ export class SystemEventsService {
   }
 
   async overview() {
-    const [settings, transport, rows, observedSignups, first, destinations] =
-      await Promise.all([
-        this.settings(),
-        this.notifications.systemNotificationStatus().catch(() => ({
-          transportConfigured: false,
-        })),
-        // tenant-scope-ignore: super-admin delivery history; payloads excluded from the response
-        this.prisma.systemEventDelivery.findMany({
-          include: { event: true },
-          where: { isDeleted: false },
-          orderBy: { createdAt: 'desc' },
-          take: 50,
-        }),
-        // tenant-scope-ignore: deployment-wide signup observation count
-        this.prisma.systemEventWebhook.count({
-          where: { type: 'user.created', isDeleted: false },
-        }),
-        // tenant-scope-ignore: deployment-wide signup observation window
-        this.prisma.systemEventWebhook.findFirst({
-          where: { type: 'user.created', isDeleted: false },
-          orderBy: { occurredAt: 'asc' },
-          select: { occurredAt: true },
-        }),
-        this.destinations.list(),
-      ]);
+    const [
+      settings,
+      transport,
+      rows,
+      failedEvents,
+      observedSignups,
+      first,
+      destinations,
+    ] = await Promise.all([
+      this.settings(),
+      this.notifications.systemNotificationStatus().catch(() => ({
+        transportConfigured: false,
+      })),
+      // tenant-scope-ignore: super-admin delivery history; payloads excluded from the response
+      this.prisma.systemEventDelivery.findMany({
+        include: { event: true },
+        where: { isDeleted: false },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+      }),
+      // tenant-scope-ignore: super-admin view of events that failed before any destination fanout
+      this.prisma.systemEventWebhook.findMany({
+        where: {
+          isDeleted: false,
+          failedAt: { not: null },
+          deliveries: { none: { isDeleted: false } },
+        },
+        orderBy: { failedAt: 'desc' },
+        take: 50,
+      }),
+      // tenant-scope-ignore: deployment-wide signup observation count
+      this.prisma.systemEventWebhook.count({
+        where: { type: 'user.created', isDeleted: false },
+      }),
+      // tenant-scope-ignore: deployment-wide signup observation window
+      this.prisma.systemEventWebhook.findFirst({
+        where: { type: 'user.created', isDeleted: false },
+        orderBy: { occurredAt: 'asc' },
+        select: { occurredAt: true },
+      }),
+      this.destinations.list(),
+    ]);
     return {
       id: 'system-notifications',
       destinations,
@@ -103,26 +120,39 @@ export class SystemEventsService {
       },
       observedSignups,
       signupObservationStart: first?.occurredAt.toISOString() ?? null,
-      deliveries: rows.map((row) => ({
-        id: row.id,
-        eventId: row.eventId,
-        destinationId: row.destinationId,
-        type: row.event.type,
-        occurredAt: row.event.occurredAt.toISOString(),
-        status: row.deliveredAt
-          ? 'delivered'
-          : row.failedAt
-            ? 'failed'
-            : row.skippedAt
-              ? 'skipped'
-              : row.leaseUntil && row.leaseUntil > new Date()
-                ? 'sending'
-                : row.attempts > 0
-                  ? 'failed'
-                  : 'pending',
-        attempts: row.attempts,
-        deliveredAt: row.deliveredAt?.toISOString() ?? null,
-      })),
+      deliveries: [
+        ...failedEvents.map((event) => ({
+          id: event.id,
+          eventId: event.id,
+          destinationId: null,
+          type: event.type,
+          occurredAt: event.occurredAt.toISOString(),
+          status: 'failed',
+          attempts: event.attempts,
+          deliveredAt: null,
+        })),
+        ...rows.map((row) => ({
+          id: row.id,
+          eventId: row.eventId,
+          destinationId: row.destinationId,
+          type: row.event.type,
+          occurredAt: row.event.occurredAt.toISOString(),
+          // A capped parent strands its pending deliveries, so they read as failed.
+          status: row.deliveredAt
+            ? 'delivered'
+            : row.failedAt || (row.event.failedAt && !row.skippedAt)
+              ? 'failed'
+              : row.skippedAt
+                ? 'skipped'
+                : row.leaseUntil && row.leaseUntil > new Date()
+                  ? 'sending'
+                  : row.attempts > 0
+                    ? 'failed'
+                    : 'pending',
+          attempts: row.attempts,
+          deliveredAt: row.deliveredAt?.toISOString() ?? null,
+        })),
+      ],
     };
   }
 
@@ -157,10 +187,64 @@ export class SystemEventsService {
     });
     if (!row) throw new NotFoundException('Notification not found');
     if (row.deliveredAt || row.skippedAt) return;
+    if (row.failedAt) {
+      await this.reopenFailedEvent(id);
+      return;
+    }
     // tenant-scope-ignore: scheduling never bypasses another worker's lease
     await this.prisma.systemEventWebhook.updateMany({
-      where: { id, isDeleted: false, deliveredAt: null, skippedAt: null },
+      where: {
+        id,
+        isDeleted: false,
+        deliveredAt: null,
+        skippedAt: null,
+        failedAt: null,
+      },
       data: { nextAttemptAt: new Date() },
+    });
+  }
+
+  /**
+   * Reopens a capped event and its stranded pending deliveries in one
+   * transaction. Clearing the lease token fences a worker still holding the
+   * old lease: its token-conditional terminal write now misses.
+   */
+  private async reopenFailedEvent(id: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      // tenant-scope-ignore: reopen one super-admin-selected capped event
+      const reopened = await tx.systemEventWebhook.updateMany({
+        where: {
+          id,
+          isDeleted: false,
+          deliveredAt: null,
+          skippedAt: null,
+          failedAt: { not: null },
+        },
+        data: {
+          failedAt: null,
+          attempts: 0,
+          nextAttemptAt: new Date(),
+          leaseToken: null,
+          leaseUntil: null,
+        },
+      });
+      if (!reopened.count) return;
+      // tenant-scope-ignore: reset the pending deliveries of the reopened event
+      await tx.systemEventDelivery.updateMany({
+        where: {
+          eventId: id,
+          isDeleted: false,
+          deliveredAt: null,
+          skippedAt: null,
+          failedAt: null,
+        },
+        data: {
+          attempts: 0,
+          nextAttemptAt: new Date(),
+          leaseToken: null,
+          leaseUntil: null,
+        },
+      });
     });
   }
 
@@ -228,6 +312,7 @@ export class SystemEventsService {
         isDeleted: false,
         deliveredAt: null,
         skippedAt: null,
+        failedAt: null,
         nextAttemptAt: { lte: now },
         OR: [{ leaseUntil: null }, { leaseUntil: { lte: now } }],
       },
@@ -244,6 +329,7 @@ export class SystemEventsService {
             isDeleted: false,
             deliveredAt: null,
             skippedAt: null,
+            failedAt: null,
             OR: [{ leaseUntil: null }, { leaseUntil: { lte: now } }],
           },
           data: {
@@ -321,7 +407,7 @@ export class SystemEventsService {
             await this.prisma.systemEventWebhook.updateMany({
               where: { id: row.id, leaseToken, isDeleted: false },
               data: {
-                skippedAt: new Date(),
+                failedAt: new Date(),
                 leaseUntil: null,
                 leaseToken: null,
                 lastStatusCode: statusCode,
