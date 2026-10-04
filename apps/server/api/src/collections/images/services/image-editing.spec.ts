@@ -346,4 +346,53 @@ describe('FLUX.3 model-specific admission', () => {
 
     expect(findOne.mock.calls[0]?.[0]).toMatchObject({ brandId });
   });
+  it('admits and completes an edit with a character shared to the editing brand (#6075)', async () => {
+    const avatar = testId('edit', 9);
+    resolveCharacterReferences.mockResolvedValue({
+      availableAvatarIds: new Set([avatar]),
+      grantedAvatarOwners: new Map([[avatar, 'org-owner']]),
+      personaId: 'persona-shared',
+    });
+    findOne.mockImplementation(async (query: { id: string }) =>
+      query.id === avatar
+        ? { ...ready(avatar), organizationId: 'org-owner', brandId: 'brand-a' }
+        : ready(query.id),
+    );
+
+    const editing = await service.admitImageEdit(
+      primary,
+      dto({ references: [avatar] }),
+      organizationId,
+      brandId,
+    );
+
+    expect(editing.personaId).toBe('persona-shared');
+    expect(editing.sourceIds).toEqual([primary, avatar]);
+    const avatarQuery = findOne.mock.calls
+      .map(([query]) => query as Record<string, unknown>)
+      .find((query) => query.id === avatar);
+    expect(avatarQuery?.organizationId).toBe('org-owner');
+    expect(avatarQuery).not.toHaveProperty('brandId');
+    const sourceQuery = findOne.mock.calls
+      .map(([query]) => query as Record<string, unknown>)
+      .find((query) => query.id === primary);
+    expect(sourceQuery).toMatchObject({ brandId, organizationId });
+  });
+
+  it('still rejects an edit with an unshared foreign character (#6075)', async () => {
+    const foreign = testId('edit', 10);
+    resolveCharacterReferences.mockRejectedValue(
+      new Error('character not available'),
+    );
+
+    await expect(
+      service.admitImageEdit(
+        primary,
+        dto({ references: [foreign] }),
+        organizationId,
+        brandId,
+      ),
+    ).rejects.toThrow('character not available');
+    expect(findOne).not.toHaveBeenCalled();
+  });
 });

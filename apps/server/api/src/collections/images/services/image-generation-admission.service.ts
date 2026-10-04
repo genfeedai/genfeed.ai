@@ -100,18 +100,22 @@ export class ImageGenerationAdmissionService {
     }
     // A character the active brand can no longer use is refused before any
     // image is read, so no output or charge follows.
-    const { personaId } = await this.resolveCharacterLink(
-      organizationId,
-      brandId,
-      sourceIds,
-      'image-edit',
-    );
+    const { availableAvatarIds, grantedAvatarOwners, personaId } =
+      await this.resolveCharacterLink(
+        organizationId,
+        brandId,
+        sourceIds,
+        'image-edit',
+      );
     const findReadyImage = async (id: string) => {
       const image = await this.imagesService.findOne(
         {
           id,
-          organizationId,
-          brandId,
+          // An admitted shared character's avatar belongs to its owning
+          // brand (and possibly organization); every other source must
+          // belong to the editing brand.
+          organizationId: grantedAvatarOwners.get(id) ?? organizationId,
+          ...(availableAvatarIds.has(id) ? {} : { brandId }),
           isDeleted: false,
           category: IngredientCategory.IMAGE,
         },

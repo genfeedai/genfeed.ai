@@ -591,6 +591,7 @@ describe('Crun image quote through durable owned output and accounting', () => {
         models as never,
         client,
         config as never,
+        personasServiceStub(),
       );
       const shared = {
         createMediaDocuments: async (
