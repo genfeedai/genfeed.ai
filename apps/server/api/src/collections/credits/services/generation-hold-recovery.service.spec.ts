@@ -179,6 +179,7 @@ describe('media hold provider and operator recovery', () => {
     'leaves the hold reserved and neither releases nor charges on %s',
     async (_name, arrange) => {
       const f = fixture();
+      f.hold.expiresAt = new Date(Date.now() - 25 * 60 * 60 * 1000);
       arrange(f);
       await expect(
         f.service.recoverAtCeiling('org', 'hold'),
@@ -192,6 +193,34 @@ describe('media hold provider and operator recovery', () => {
       );
     },
   );
+
+  it('releases an unknown status with an audit entry after 7 days', async () => {
+    const f = fixture();
+    f.hold.expiresAt = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
+    f.http.get.mockReturnValue(throwError(() => new Error('timeout')));
+    await expect(f.service.recoverAtCeiling('org', 'hold')).resolves.toBe(
+      CreditHoldRecoveryAction.RELEASE,
+    );
+    expect(f.reservations.releaseInTransaction).toHaveBeenCalledTimes(1);
+    expect(f.activities.recordInTransaction).toHaveBeenCalledWith(
+      f.prisma,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: CreditHoldRecoveryAction.RELEASE,
+          reason: 'Unknown provider status after 7d at credit-hold ceiling',
+        }),
+      }),
+    );
+  });
+
+  it('charges a completed provider even past 7 days', async () => {
+    const f = fixture();
+    f.hold.expiresAt = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    await expect(f.service.recoverAtCeiling('org', 'hold')).resolves.toBe(
+      CreditHoldRecoveryAction.CHARGE,
+    );
+    expect(f.reservations.releaseInTransaction).not.toHaveBeenCalled();
+  });
 
   it('does not guess a provider identity when the ingredient is deleted or missing', async () => {
     const f = fixture();
