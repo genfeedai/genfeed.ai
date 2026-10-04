@@ -16,7 +16,7 @@ import type {
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
-import { patchBrandWithLearning } from '@api/collections/brands/services/brand-learning-mutation.util';
+import { patchBrandWithLearningFenced } from '@api/collections/brands/services/brand-learning-mutation.util';
 import { BrandLifecycleService } from '@api/collections/brands/services/brand-lifecycle.service';
 import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
 import {
@@ -40,7 +40,6 @@ import {
 } from '@api/collections/brands/utils/brand-config-merge.util';
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
 import { resolveCreateAgentConfig } from '@api/collections/brands/utils/expert-brand-defaults.util';
-import { withLearningFenceEscalation } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   isSlugUniqueConstraintError,
   MAX_SLUG_ALLOCATION_ATTEMPTS,
@@ -418,18 +417,10 @@ export class BrandsService extends BaseService<
     const tenantWhere = tenantScopedBrandWhere(id);
     const brand = sourceBearing
       ? this.normalizeDocument(
-          await withLearningFenceEscalation((fenceScope) =>
-            this.prisma.$transaction((tx) =>
-              patchBrandWithLearning(
-                tx,
-                {
-                  brandId: id,
-                  data: data as Prisma.BrandUncheckedUpdateInput,
-                },
-                fenceScope,
-              ),
-            ),
-          ),
+          await patchBrandWithLearningFenced(this.prisma, {
+            brandId: id,
+            data: data as Prisma.BrandUncheckedUpdateInput,
+          }),
         )
       : tenantWhere
         ? await this.patchOneWhere(tenantWhere, data as Partial<UpdateBrandDto>)
