@@ -283,23 +283,24 @@ describe('TrendIngestionHealthService', () => {
       [...events.keys()].filter((key) => key.includes('/scoped/missed/'));
     expect(scopedKeys()).toHaveLength(1);
     // org-a recovers; org-b is still missed, so the outage continues.
-    health.getHealth.mockImplementation((input: { organizationId: string }) =>
-      Promise.resolve(
-        input.organizationId === 'org-a'
-          ? [
-              {
-                completedAt: '2026-09-29T00:20:00.000Z',
-                dataset: 'trends',
-                lastAttemptAt: '2026-09-29T00:20:00.000Z',
-                lastSuccessfulRefreshAt: '2026-09-29T00:20:00.000Z',
-                outcome: 'native_available',
-                platform: 'youtube',
-                reason: null,
-                scope: 'scoped',
-              },
-            ]
-          : [],
-      ),
+    health.getHealth.mockImplementation(
+      (input: { organizationId?: string } = {}) =>
+        Promise.resolve(
+          input.organizationId === 'org-a'
+            ? [
+                {
+                  completedAt: '2026-09-29T00:20:00.000Z',
+                  dataset: 'trends',
+                  lastAttemptAt: '2026-09-29T00:20:00.000Z',
+                  lastSuccessfulRefreshAt: '2026-09-29T00:20:00.000Z',
+                  outcome: 'native_available',
+                  platform: 'youtube',
+                  reason: null,
+                  scope: 'scoped',
+                },
+              ]
+            : [],
+        ),
     );
     await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
     expect(scopedKeys()).toHaveLength(1);
@@ -331,5 +332,26 @@ describe('TrendIngestionHealthService', () => {
     await service.checkMissedWindows(new Date('2026-09-30T12:15:00.000Z'));
     await service.checkMissedWindows(new Date('2026-10-01T00:15:00.000Z'));
     expect(outageKeys()).toHaveLength(2);
+  });
+
+  it('gives a fresh incident key after recovery even when the credential createdAt is unchanged', async () => {
+    const { service, health, prisma, events } = setup();
+    const credential = {
+      createdAt: enrollment,
+      organizationId: 'org-a',
+      platform: 'YOUTUBE',
+    };
+    prisma.credential.findMany.mockResolvedValue([credential]);
+    health.getHealth.mockResolvedValue([]);
+    await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+    prisma.credential.findMany.mockResolvedValue([]);
+    await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
+    prisma.credential.findMany.mockResolvedValue([credential]);
+    await service.checkMissedWindows(new Date('2026-09-30T00:15:00.000Z'));
+    expect(
+      [...events.keys()].filter(
+        (key) => key.includes('/scoped/missed/') && !key.endsWith('/recovered'),
+      ),
+    ).toHaveLength(2);
   });
 });

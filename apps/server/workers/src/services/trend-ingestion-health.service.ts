@@ -233,9 +233,9 @@ export class TrendIngestionHealthService {
       );
       // The incident key stays stable from the first miss until full recovery,
       // so scopes recovering or disconnecting never re-open the same outage.
-      const openIncident =
+      const recoveryEvent =
         previousAlert &&
-        !(await this.prisma.notificationEvent.findFirst({
+        (await this.prisma.notificationEvent.findFirst({
           select: { deduplicationKey: true, occurredAt: true },
           where: {
             deduplicationKey: `${previousAlert.deduplicationKey}/recovered`,
@@ -245,6 +245,7 @@ export class TrendIngestionHealthService {
             sourceType: 'trend_ingestion_health',
           },
         }));
+      const openIncident = previousAlert && !recoveryEvent;
       if (missed.length === 0) {
         if (openIncident && previousAlert) {
           await this.send(
@@ -260,8 +261,12 @@ export class TrendIngestionHealthService {
         }
         continue;
       }
+      // A new outage after a recovery must not reuse the recovered incident's key.
       const episode = new Date(
-        Math.min(...missed.map((entry) => entry.baseline.getTime())),
+        Math.max(
+          Math.min(...missed.map((entry) => entry.baseline.getTime())),
+          recoveryEvent?.occurredAt.getTime() ?? 0,
+        ),
       ).toISOString();
       const incidentKey =
         openIncident && previousAlert
