@@ -13,3 +13,8 @@ export interface AgentClientVisualProps {
 export interface AgentClientLogoProps {
   client: Pick<AgentClient, 'logo'>;
 }
+
+export interface AgentConnectDialogProps {
+  openOnMount?: boolean;
+  returnFocusTo?: HTMLElement | null;
+}
