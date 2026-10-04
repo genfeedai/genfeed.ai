@@ -15,7 +15,10 @@ const persona = {
 };
 
 function setup() {
+  const queryRaw = vi.fn().mockResolvedValue([]);
   const tx = {
+    brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand-a' }) },
+    persona: { findFirst: vi.fn().mockResolvedValue(persona) },
     personaGrant: {
       create: vi.fn().mockResolvedValue({ id: 'grant-1' }),
       findFirst: vi.fn().mockResolvedValue(null),
@@ -25,6 +28,9 @@ function setup() {
     personaGrantAudit: { create: vi.fn() },
   };
   const prisma = {
+    $transaction: vi.fn(async (work: (client: typeof tx) => Promise<unknown>) =>
+      work({ ...tx, $queryRaw: queryRaw }),
+    ),
     brand: { findMany: vi.fn().mockResolvedValue([{ id: 'recipient-brand' }]) },
     member: { findMany: vi.fn().mockResolvedValue([]) },
     organization: {
@@ -49,7 +55,7 @@ function setup() {
     ),
   };
   const service = new PersonaGrantsService(prisma as never, personas as never);
-  return { personas, prisma, roles, service, tx };
+  return { personas, prisma, queryRaw, roles, service, tx };
 }
 
 const base = {
@@ -65,14 +71,24 @@ const base = {
 
 describe('PersonaGrantsService (#6037)', () => {
   describe('grant', () => {
+    it('is not found when the owning brand deletion won the lock', async () => {
+      const { service, tx } = setup();
+      tx.brand.findFirst.mockResolvedValue(null);
+
+      await expect(service.grant(base)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(tx.personaGrant.create).not.toHaveBeenCalled();
+    });
+
     it('creates one active grant and audits it under the recipient handle lock', async () => {
-      const { personas, service, tx } = setup();
+      const { personas, queryRaw, service, tx } = setup();
 
       await expect(service.grant(base)).resolves.toEqual({ id: 'grant-1' });
 
-      expect(personas.withHandleLock).toHaveBeenCalledWith(
-        RECIPIENT_ORG,
-        expect.any(Function),
+      // Owner and recipient org locks, in sorted org-id order.
+      expect(queryRaw.mock.calls.map((call) => call[1])).toEqual(
+        [OWNER_ORG, RECIPIENT_ORG].sort().map((org) => `persona-handle:${org}`),
       );
       expect(personas.assertNoHandleCollision).toHaveBeenCalledWith(
         expect.objectContaining({
