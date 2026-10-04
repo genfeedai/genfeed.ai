@@ -9,6 +9,8 @@ import { assertTenantScopedQuery } from './tenant-guard';
 
 const TENANT = 'org-1';
 
+type PlatformScopedWhere = { AND?: unknown; isDeleted: boolean };
+
 function guard(args: unknown): void {
   assertTenantScopedQuery({
     args,
@@ -80,7 +82,9 @@ describe('withPlatformTenantArm', () => {
 
   it('adds the arm to a where that names no organization', () => {
     runWithTenantContext({ organizationId: TENANT }, () => {
-      const where = withPlatformTenantArm({ isDeleted: false });
+      const where = withPlatformTenantArm<PlatformScopedWhere>({
+        isDeleted: false,
+      });
 
       expect(where.AND).toEqual([
         { OR: [{ organizationId: TENANT }, { organizationId: null }] },
