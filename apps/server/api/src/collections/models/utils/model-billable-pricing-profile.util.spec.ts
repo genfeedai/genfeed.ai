@@ -1,4 +1,5 @@
 import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import type { Model, ModelProviderContract } from '@genfeedai/prisma';
 import { describe, expect, it } from 'vitest';
 
@@ -110,6 +111,37 @@ describe('raw reviewed provider pricing adapter', () => {
     expect(profile.hasPendingRate).toBe(true);
     expect(profile.requiresReviewedRates).toBe(true);
     expect(profile.reviewedPricing).toBeNull();
+  });
+  it('prices a never-reviewed model from its configured row despite a synced pending candidate', () => {
+    // Production shape: the Replicate watcher stamps a pending contract on
+    // every active model it observes, including ones never reviewed.
+    const profile = projectModelBillablePricingProfile(
+      {
+        ...model,
+        key: 'google/nano-banana-2-lite',
+        endpoint: 'google/nano-banana-2-lite',
+        provider: 'replicate',
+        pricingType: 'flat',
+        providerCostUsd: 0.034,
+        cost: 12,
+        hasResolutionOptions: false,
+        reviewedProviderContractVersion: null,
+        pendingProviderContractVersion: 'sync-v1',
+      },
+      [],
+    );
+    expect(profile.hasPendingRate).toBe(false);
+    expect(
+      quoteModelBillablePricing(
+        profile,
+        { modelKey: 'google/nano-banana-2-lite', provider: 'replicate' },
+        3.33,
+        '2026-10-04T19:03:18Z',
+      ),
+    ).toMatchObject({
+      status: 'priced',
+      snapshot: { costSource: 'configured-provider' },
+    });
   });
   it('does not promote Replicate curated prices into financially verified bands', () => {
     const replicate = { ...model, provider: 'replicate' };

@@ -5,6 +5,7 @@ import type {
   ReviewedProviderPricing,
   ReviewedProviderRate,
 } from '@genfeedai/contracts/interfaces';
+import { hasPendingProviderRateDrift } from '@genfeedai/pricing';
 import type { Model, ModelProviderContract } from '@genfeedai/prisma';
 import { platformOrTenantScope } from '@libs/prisma/platform-scope';
 
@@ -252,10 +253,9 @@ export function projectModelBillablePricingProfile(
     minCost: model.minCost,
     reviewedPricing: reviewedPricing(model, contract),
     rateVersion: model.reviewedProviderContractVersion,
-    hasPendingRate: Boolean(
-      model.pendingProviderContractVersion &&
-        model.pendingProviderContractVersion !==
-          model.reviewedProviderContractVersion,
+    hasPendingRate: hasPendingProviderRateDrift(
+      model.reviewedProviderContractVersion,
+      model.pendingProviderContractVersion,
     ),
     requiredSelectorKeys,
     requiresReviewedRates:

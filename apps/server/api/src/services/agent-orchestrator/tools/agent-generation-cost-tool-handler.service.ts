@@ -99,6 +99,8 @@ export function toStudioGenerationCostModel(
         : undefined,
     provider: model.provider,
     providerSyncStatus: readProviderSyncStatus(model.providerSyncStatus),
+    reviewedProviderContractVersion:
+      model.reviewedProviderContractVersion ?? undefined,
     reviewStatus: readReviewStatus(model.reviewStatus),
     updatedAt: isoTimestamp(model.updatedAt),
   };
