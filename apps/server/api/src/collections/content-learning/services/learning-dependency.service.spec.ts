@@ -1060,10 +1060,17 @@ async function sourceFixture() {
     contentLearningDependency: {
       findMany: vi.fn(
         async (args: Prisma.ContentLearningDependencyFindManyArgs) =>
-          item.edges.filter(
-            (edge) =>
-              edge.derivedKind === args.where?.derivedKind &&
-              edge.derivedId === args.where?.derivedId,
+          item.edges.filter((edge) =>
+            (
+              (args.where?.OR ??
+                []) as Prisma.ContentLearningDependencyWhereInput[]
+            ).some(
+              (clause) =>
+                edge.derivedKind === clause.derivedKind &&
+                (clause.derivedId as { in: string[] }).in.includes(
+                  edge.derivedId,
+                ),
+            ),
           ),
       ),
       create: blocked,
