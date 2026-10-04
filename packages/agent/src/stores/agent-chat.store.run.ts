@@ -58,15 +58,10 @@ export type AgentRunEvent =
   /** The conversation was cleared or the run is gone. */
   | { type: 'reset' };
 
-/** The run fields of the chat store, as `runTransitionPatch` reads them. */
+/** The run state of the chat store, as `runTransitionPatch` reads it. */
 export interface RunStateSlice {
-  activeRunId: string | null;
-  activeRunStatus: AgentRunStatus;
   activeThreadId: string | null;
-  isGenerating: boolean;
-  runStartedAt: string | null;
-  /** Absent only on partial states (mocked stores); selectors then read the fields. */
-  runsByThread?: Record<string, AgentRunRecord>;
+  runsByThread: Record<string, AgentRunRecord>;
   threads: AgentThread[];
 }
 
@@ -77,17 +72,7 @@ export function runKeyFor(threadId: string | null): string {
 }
 
 export function recordOf(state: RunStateSlice, threadId: string | null) {
-  const key = runKeyFor(threadId);
-  // The visible thread's compatibility fields can be written from outside the
-  // store (stream projection), so they are the freshest copy of its record.
-  return key === runKeyFor(state.activeThreadId)
-    ? {
-        isGenerating: state.isGenerating,
-        runId: state.activeRunId,
-        startedAt: state.runStartedAt,
-        status: state.activeRunStatus,
-      }
-    : (state.runsByThread?.[key] ?? IDLE_RUN);
+  return state.runsByThread[runKeyFor(threadId)] ?? IDLE_RUN;
 }
 
 function applyRunEvent(
@@ -130,33 +115,22 @@ function applyRunEvent(
 }
 
 /**
- * The one place run state changes. Moves `threadId`'s record and, when that is
- * the visible thread, projects it onto `activeRunId` / `activeRunStatus` /
- * `isGenerating` / `runStartedAt` in the same patch, so the fields cannot
- * disagree. A background thread's transition never touches the visible
- * thread's fields.
+ * The one place run state changes: moves `threadId`'s record in
+ * `runsByThread`. A background thread's transition never touches the visible
+ * thread's record.
  */
 export function runTransitionPatch(
   state: RunStateSlice,
   threadId: string | null,
   event: AgentRunEvent,
-): { runsByThread: RunRecords } & Partial<
-  Pick<
-    RunStateSlice,
-    | 'activeRunId'
-    | 'activeRunStatus'
-    | 'isGenerating'
-    | 'runStartedAt'
-    | 'threads'
-  >
-> {
+): { runsByThread: RunRecords } & Partial<Pick<RunStateSlice, 'threads'>> {
   const key = runKeyFor(threadId);
   const previous = recordOf(state, threadId);
   const next = applyRunEvent(previous, event);
   const runsByThread = { ...state.runsByThread, [key]: next };
 
   // The sidebar reads only the thread summary, so the transitioned thread's
-  // row moves in the same update — visible or not.
+  // row moves in the same update, visible or not.
   const summary = threadId
     ? state.threads.find((thread) => thread.id === threadId)
     : undefined;
@@ -170,23 +144,7 @@ export function runTransitionPatch(
       )
     : undefined;
 
-  if (key !== runKeyFor(state.activeThreadId)) {
-    return threads ? { runsByThread, threads } : { runsByThread };
-  }
-  return {
-    ...(threads ? { threads } : {}),
-    activeRunId: next.runId,
-    activeRunStatus: next.status,
-    isGenerating: next.isGenerating,
-    runStartedAt:
-      event.type === 'begin' ||
-      event.type === 'started-at' ||
-      event.type === 'complete' ||
-      event.type === 'reset'
-        ? next.startedAt
-        : state.runStartedAt,
-    runsByThread,
-  };
+  return threads ? { runsByThread, threads } : { runsByThread };
 }
 
 /**
@@ -207,9 +165,7 @@ export function adoptDraftRunPatch(
 
 /** The visible thread's run record. */
 export function selectActiveRun(state: RunStateSlice): AgentRunRecord {
-  return state.runsByThread
-    ? (state.runsByThread[runKeyFor(state.activeThreadId)] ?? IDLE_RUN)
-    : recordOf(state, state.activeThreadId);
+  return recordOf(state, state.activeThreadId);
 }
 
 export function selectIsGenerating(state: RunStateSlice): boolean {

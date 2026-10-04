@@ -4,8 +4,8 @@ import { type ReactElement, useState } from 'react';
 
 import { useChat } from '~hooks/use-chat';
 import type { ChatMessage } from '~models/chat.model';
-import { authService } from '~services/auth.service';
 import { AgentToolsService } from '~services/agent-tools.service';
+import { authService } from '~services/auth.service';
 import { useBrandStore } from '~store/use-brand-store';
 import { useChatStore } from '~store/use-chat-store';
 import { usePlatformStore } from '~store/use-platform-store';

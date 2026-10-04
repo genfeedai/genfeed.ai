@@ -1,11 +1,11 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
-import { Button } from '@ui/primitives/button';
 import {
   BookOpen,
   History,
