@@ -367,6 +367,12 @@ describe('UI Helpers', () => {
     it('tells the background which text Genfeed wrote into the composer', async () => {
       document.body.innerHTML =
         '<div data-testid="tweetTextarea_0" contenteditable="true"></div>';
+      // jsdom does not implement isContentEditable.
+      Object.defineProperty(
+        document.querySelector('[data-testid="tweetTextarea_0"]'),
+        'isContentEditable',
+        { value: true },
+      );
       const sendMessage = vi
         .spyOn(chrome.runtime, 'sendMessage')
         .mockImplementation((async (message: { event?: string }) =>
