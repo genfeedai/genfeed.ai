@@ -54,17 +54,51 @@ test('scans only migrations changed against the base', () => {
   assert.ok(diff.includes('origin/master...HEAD'));
 });
 
-test('falls back to the head commit when no base resolves', () => {
+test('fails closed when the base cannot be resolved', () => {
+  const git = () => {
+    throw new Error('bad revision');
+  };
+  assert.throws(
+    () => changedMigrationFiles({ base: 'deadbeef', env: {}, git }),
+    /Cannot resolve migration diff base/,
+  );
+});
+
+test('fails closed when the diff fails (no merge base)', () => {
+  const git = (args) => {
+    if (args[0] === 'diff') throw new Error('no merge base');
+    return 'abc';
+  };
+  assert.throws(
+    () => changedMigrationFiles({ base: 'abc', env: {}, git }),
+    /git diff abc\.\.\.HEAD failed/,
+  );
+});
+
+test('a multi-commit range scans every changed migration', () => {
+  const git = (args) =>
+    args[0] === 'diff'
+      ? [
+          `${dir}/20260101_a/migration.sql`,
+          `${dir}/20260102_b/migration.sql`,
+        ].join('\n')
+      : 'abc';
+  assert.deepEqual(changedMigrationFiles({ base: 'abc', env: {}, git }), [
+    `${dir}/20260101_a/migration.sql`,
+    `${dir}/20260102_b/migration.sql`,
+  ]);
+});
+
+test('no requested base is an explicit skip, not a verified pass', () => {
+  assert.equal(changedMigrationFiles({ env: {}, git: () => '' }), null);
+});
+
+test('CI_BASE_SHA is used when no --base is given', () => {
   const calls = [];
   const git = (args) => {
     calls.push(args);
-    if (args[0] === 'rev-parse') throw new Error('no base');
     return '';
   };
-  assert.deepEqual(
-    changedMigrationFiles({ base: undefined, env: {}, git }),
-    [],
-  );
-  const diff = calls.find((args) => args[0] === 'diff');
-  assert.ok(diff.includes('HEAD^'));
+  changedMigrationFiles({ env: { CI_BASE_SHA: 'cafe' }, git });
+  assert.ok(calls.some((args) => args.includes('cafe...HEAD')));
 });

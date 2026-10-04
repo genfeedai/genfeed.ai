@@ -11,36 +11,36 @@ const MIGRATIONS = 'packages/prisma/prisma/migrations';
 
 // Purely static PR-time pass of the deploy migration guard: no network, no
 // release lookup. The release/Prisma-client comparison stays in deploy.
-export function resolveBase({ base, env = process.env, git }) {
-  for (const candidate of [base, env.CI_BASE_SHA, 'origin/master']) {
-    if (!candidate) continue;
-    try {
-      git(['rev-parse', '--verify', '--quiet', `${candidate}^{commit}`]);
-      return candidate;
-    } catch {
-      // try the next candidate
-    }
-  }
-  return null;
+// Returns null when no base was requested (e.g. a push run): the caller must
+// say it skipped. A requested base that cannot be resolved fails closed.
+export function resolveBase({ base, env = process.env }) {
+  return base || env.CI_BASE_SHA || null;
 }
 
 export function changedMigrationFiles({ base, env, git }) {
-  const resolved = resolveBase({ base, env, git });
-  // Without a base (shallow clone, detached checkout) scan only the commit
-  // under test; never every historical migration.
-  const range = resolved ? [`${resolved}...HEAD`] : ['HEAD^', 'HEAD'];
+  const requested = resolveBase({ base, env });
+  if (!requested) return null;
+  try {
+    git(['rev-parse', '--verify', '--quiet', `${requested}^{commit}`]);
+  } catch {
+    throw new Error(
+      `Cannot resolve migration diff base "${requested}"; fetch full history (fetch-depth: 0)`,
+    );
+  }
   let out;
   try {
     out = git([
       'diff',
       '--name-only',
       '--diff-filter=ACMR',
-      ...range,
+      `${requested}...HEAD`,
       '--',
       MIGRATIONS,
     ]);
-  } catch {
-    return [];
+  } catch (error) {
+    throw new Error(
+      `git diff ${requested}...HEAD failed (no merge base or missing history): ${error.message}`,
+    );
   }
   return out.split('\n').filter((file) => file.endsWith('/migration.sql'));
 }
@@ -69,6 +69,7 @@ export function run({
   read = (file) => readFileSync(`${cwd}/${file}`, 'utf8'),
 } = {}) {
   const files = changedMigrationFiles({ base, env, git });
+  if (files === null) return { files: null, failures: [] };
   return { files, failures: checkMigrationFiles({ files, read }) };
 }
 
@@ -77,8 +78,19 @@ if (
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
   const { values } = parseArgs({ options: { base: { type: 'string' } } });
-  const { files, failures } = run({ base: values.base });
-  if (failures.length) {
+  let result;
+  try {
+    result = run({ base: values.base });
+  } catch (error) {
+    process.stderr.write(`Migration safety: ${error.message}\n`);
+    process.exit(1);
+  }
+  const { files, failures } = result;
+  if (files === null) {
+    process.stdout.write(
+      'Migration safety (static) SKIPPED: no diff base (push run); pull requests are checked before merge.\n',
+    );
+  } else if (failures.length) {
     for (const { file, message } of failures)
       process.stderr.write(`Migration safety: ${file}: ${message}\n`);
     process.exitCode = 1;
