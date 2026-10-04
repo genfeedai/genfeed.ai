@@ -29,6 +29,17 @@ function matchesField(actual: unknown, expected: unknown): boolean {
   if (!isRecord(expected)) {
     return actual === expected;
   }
+  if (Array.isArray(expected.path)) {
+    const value = expected.path.reduce<unknown>(
+      (current, segment) =>
+        isRecord(current) ? current[String(segment)] : undefined,
+      actual,
+    );
+    if ('gt' in expected) {
+      return String(value) > String(expected.gt);
+    }
+    return value === expected.equals;
+  }
   if ('not' in expected) {
     return actual !== expected.not;
   }

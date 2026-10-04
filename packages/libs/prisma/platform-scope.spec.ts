@@ -29,7 +29,7 @@ describe('platformOrTenantScope', () => {
       const scope = platformOrTenantScope();
 
       expect(scope).toEqual({
-        OR: [{ organizationId: null }, { organizationId: TENANT }],
+        OR: [{ organizationId: TENANT }, { organizationId: null }],
       });
       expect(() =>
         guard({ where: { isDeleted: false, ...scope } }),
@@ -39,7 +39,7 @@ describe('platformOrTenantScope', () => {
 
   it('prefers an explicit organization', () => {
     expect(platformOrTenantScope('org-2')).toEqual({
-      OR: [{ organizationId: null }, { organizationId: 'org-2' }],
+      OR: [{ organizationId: 'org-2' }, { organizationId: null }],
     });
   });
 
@@ -83,7 +83,7 @@ describe('withPlatformTenantArm', () => {
       const where = withPlatformTenantArm({ isDeleted: false });
 
       expect(where.AND).toEqual([
-        { OR: [{ organizationId: null }, { organizationId: TENANT }] },
+        { OR: [{ organizationId: TENANT }, { organizationId: null }] },
       ]);
       expect(() => guard({ where })).not.toThrow();
     });

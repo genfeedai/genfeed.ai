@@ -452,16 +452,26 @@ describe('PresetsController under the CLOUD tenant guard', () => {
 
 describe('PresetsService.findPresetForContext under the CLOUD tenant guard', () => {
   it('falls back to the app-wide preset for a tenant and hides foreign rows', async () => {
-    const { inTenant, service } = setup();
+    const { inTenant, rows, service } = setup();
+    rows.push({
+      brandId: null,
+      config: { key: 'appwide' },
+      id: 'cappwide000000000000001',
+      isActive: true,
+      isDeleted: false,
+      key: 'appwide',
+      organizationId: null,
+      sortOrder: 0,
+    } as unknown as Row);
 
     const preset = await inTenant(() =>
-      service.findPresetForContext('anime', ORG),
+      service.findPresetForContext('appwide', ORG),
     );
     const foreign = await inTenant(() =>
       service.findPresetForContext('theirs', ORG),
     );
 
-    expect(preset?.id).toBe(DEFAULT_ID);
+    expect(preset?.id).toBe('cappwide000000000000001');
     expect(foreign).toBeNull();
   });
 });

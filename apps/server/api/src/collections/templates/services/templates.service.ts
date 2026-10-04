@@ -27,7 +27,7 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   type PlatformTenantScopeArm,
-  platformTenantProof,
+  withPlatformTenantArm,
 } from '@libs/prisma/platform-scope';
 import { Injectable } from '@nestjs/common';
 import Handlebars from 'handlebars';
@@ -262,9 +262,9 @@ export class TemplatesService {
     AND?: PlatformTenantScopeArm[];
     organizationId: string | null;
   } {
-    return organization
-      ? { organizationId: organization }
-      : { AND: platformTenantProof(), organizationId: null };
+    return withPlatformTenantArm({
+      organizationId: organization ?? null,
+    }) as { AND?: PlatformTenantScopeArm[]; organizationId: string | null };
   }
 
   /**
@@ -529,14 +529,13 @@ export class TemplatesService {
     // Fall back to global prompt (returns null if not found)
     const globalPrompt = await this.prisma.template.findFirst({
       include: { metadata: true },
-      where: {
-        AND: platformTenantProof(),
+      where: withPlatformTenantArm({
         isActive: true,
         isDeleted: false,
         key,
         organizationId: null,
         purpose: 'prompt',
-      },
+      }),
     });
 
     return globalPrompt ? toTemplateDocument(globalPrompt) : null;

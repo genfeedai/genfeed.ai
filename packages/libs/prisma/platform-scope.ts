@@ -9,10 +9,8 @@ import { getTenantContext, isCrossOrgUnsafe } from './tenant-context';
  * the active tenant's own rows, and never another organization's.
  */
 
-export type PlatformTenantScopeBranch = { organizationId: string | null };
-
 export type PlatformTenantScopeArm = {
-  OR: [{ organizationId: null }, { organizationId: string }];
+  OR: [{ organizationId: string }, { organizationId: null }];
 };
 
 type PlatformScopedWhere = {
@@ -21,7 +19,7 @@ type PlatformScopedWhere = {
 };
 
 /**
- * `OR: [{ organizationId: null }, { organizationId }]` for `organizationId`
+ * `OR: [{ organizationId }, { organizationId: null }]` for `organizationId`
  * (defaults to the active tenant context), or the plain platform-only filter
  * `{ organizationId: null }` when there is no organization to name (no tenant
  * context: background work and `crossOrgUnsafe` callers keep platform-only
@@ -35,7 +33,7 @@ export function platformOrTenantScope(
   const organization = organizationId ?? getTenantContext()?.organizationId;
 
   return organization
-    ? { OR: [{ organizationId: null }, { organizationId: organization }] }
+    ? { OR: [{ organizationId: organization }, { organizationId: null }] }
     : { organizationId: null };
 }
 
@@ -49,7 +47,7 @@ export function platformTenantProof(): PlatformTenantScopeArm[] {
   const organizationId = getTenantContext()?.organizationId;
 
   return organizationId
-    ? [{ OR: [{ organizationId: null }, { organizationId }] }]
+    ? [{ OR: [{ organizationId }, { organizationId: null }] }]
     : [];
 }
 
@@ -82,7 +80,7 @@ export function withPlatformTenantArm<T extends PlatformScopedWhere>(
   }
 
   const arm: PlatformTenantScopeArm = {
-    OR: [{ organizationId: null }, { organizationId }],
+    OR: [{ organizationId }, { organizationId: null }],
   };
   const existingAnd = where.AND;
   const and = Array.isArray(existingAnd)

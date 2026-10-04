@@ -3,7 +3,7 @@ import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   platformOrTenantScope,
-  platformTenantProof,
+  withPlatformTenantArm,
 } from '@libs/prisma/platform-scope';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
@@ -87,15 +87,14 @@ export class TrendQueryService {
     const now = new Date();
     const activeGlobalTrends = await this.prisma.trend.findMany({
       select: { data: true },
-      where: {
+      where: withPlatformTenantArm({
         AND: [
           { data: { equals: true, path: ['isCurrent'] } },
           { data: { gt: now.toISOString(), path: ['expiresAt'] } },
-          ...platformTenantProof(),
         ],
         isDeleted: false,
         organizationId: null,
-      },
+      }),
     });
 
     return activeGlobalTrends.filter(
@@ -206,14 +205,13 @@ export class TrendQueryService {
     const docs = await this.prisma.trend.findMany({
       orderBy: { createdAt: 'desc' },
       take: 200,
-      where: {
-        // Platform trends (organizationId null) are read inside tenant
-        // requests; the proof names the caller, the null filter still decides.
-        AND: filter.organizationId === null ? platformTenantProof() : [],
+      // Platform trends (organizationId null) are read inside tenant requests;
+      // the arm names the caller, the null filter still decides.
+      where: withPlatformTenantArm({
         brandId: filter.brandId,
         isDeleted: false,
         organizationId: filter.organizationId,
-      },
+      }),
     });
 
     return docs

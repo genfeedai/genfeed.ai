@@ -13,7 +13,7 @@ import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { platformTenantProof } from '@libs/prisma/platform-scope';
+import { withPlatformTenantArm } from '@libs/prisma/platform-scope';
 import { Injectable } from '@nestjs/common';
 
 interface TrendsAccessControlResult {
@@ -408,12 +408,11 @@ export class TrendSourcePreviewService {
     });
     const where =
       organizationId === null
-        ? {
-            AND: platformTenantProof(),
+        ? withPlatformTenantArm({
             id: trendId,
             isDeleted: false,
             organizationId: null,
-          }
+          })
         : scopedWhere(organizationId, { id: trendId });
 
     if (organizationId !== writeScope.organizationId) {
