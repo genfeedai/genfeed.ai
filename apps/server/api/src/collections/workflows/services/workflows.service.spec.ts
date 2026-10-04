@@ -813,11 +813,12 @@ describe('WorkflowsService versioned edge style patches', () => {
         .fn()
         .mockResolvedValue({ id: 'version-2' });
       const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+      const findFirstOrThrow = vi.fn();
       const transaction = {
         workflowVersion: { create: workflowVersionCreate },
         workflow: {
           updateMany,
-          findUniqueOrThrow: vi.fn().mockResolvedValue({
+          findFirstOrThrow: findFirstOrThrow.mockResolvedValue({
             id: 'workflow-1',
             currentVersion: {
               id: 'version-2',
@@ -868,7 +869,16 @@ describe('WorkflowsService versioned edge style patches', () => {
       });
       expect(updateMany).toHaveBeenCalledWith({
         data: { currentVersionId: 'version-2' },
-        where: { currentVersionId: 'version-1', id: 'workflow-1' },
+        where: {
+          currentVersionId: 'version-1',
+          id: 'workflow-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
+      expect(findFirstOrThrow).toHaveBeenCalledWith({
+        include: { currentVersion: true },
+        where: { id: 'workflow-1', isDeleted: false, organizationId: 'org-1' },
       });
       expect(result).toHaveProperty('edgeStyle', expected);
     },
