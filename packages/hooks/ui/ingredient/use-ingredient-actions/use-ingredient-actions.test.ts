@@ -163,6 +163,7 @@ describe('useIngredientActions', () => {
     patch: ReturnType<typeof vi.fn>;
     postClone: ReturnType<typeof vi.fn>;
     vote: ReturnType<typeof vi.fn>;
+    unvote: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
   };
   let mockVideosService: {
@@ -202,6 +203,7 @@ describe('useIngredientActions', () => {
       patch: vi.fn().mockResolvedValue(undefined),
       postClone: vi.fn().mockResolvedValue(undefined),
       vote: vi.fn().mockResolvedValue(undefined),
+      unvote: vi.fn().mockResolvedValue(undefined),
     };
 
     mockVideosService = {
@@ -592,10 +594,8 @@ describe('useIngredientActions', () => {
         await result.current.handlers.handleVote(ingredient);
       });
 
-      expect(mockIngredientsService.vote).toHaveBeenCalledWith(
-        'ingredient-1',
-        'vote',
-      );
+      expect(mockIngredientsService.vote).toHaveBeenCalledWith('ingredient-1');
+      expect(mockIngredientsService.unvote).not.toHaveBeenCalled();
       expect(mockNotificationsService.success).toHaveBeenCalledWith(
         'Voted successfully',
       );
@@ -613,10 +613,10 @@ describe('useIngredientActions', () => {
         await result.current.handlers.handleVote(ingredient);
       });
 
-      expect(mockIngredientsService.vote).toHaveBeenCalledWith(
+      expect(mockIngredientsService.unvote).toHaveBeenCalledWith(
         'ingredient-1',
-        'unvote',
       );
+      expect(mockIngredientsService.vote).not.toHaveBeenCalled();
     });
   });
 

@@ -205,9 +205,9 @@ describe('Dedicated immutable brand font service', () => {
     ).rejects.toThrow('font_asset_invalid');
     expect(storage.upload).toHaveBeenCalledOnce();
     h.row = { ...result.asset, displayName: '😀'.repeat(129) };
-    await expect(h.service.list(actor, { limit: 20 })).rejects.toThrow(
-      'font_asset_unavailable',
-    );
+    await expect(h.service.list(actor, { limit: 20 })).resolves.toMatchObject({
+      docs: [],
+    });
   });
   it('authorizes before hashing/storage and rechecks live role after storage', async () => {
     const h = await harness();
@@ -349,6 +349,45 @@ describe('Dedicated immutable brand font service', () => {
     await expect(h.service.remove(actor, saved.asset.id)).rejects.toThrow(
       'font_asset_unavailable',
     );
+  });
+  it('skips invalid stored rows in list instead of failing and scopes asset lookups by organization', async () => {
+    const h = await harness();
+    const saved = await h.service.upload(actor, { requestId, file: file() });
+    h.row = { ...saved.asset, sha256: 'not-a-hash' };
+    await expect(h.service.list(actor, { limit: 20 })).resolves.toMatchObject({
+      docs: [],
+    });
+    await h.service.remove(actor, saved.asset.id).catch(() => undefined);
+    const findFirstCalls: unknown[][] = h.assets.findFirst.mock.calls;
+    for (const [args] of findFirstCalls)
+      expect(args).toMatchObject({
+        where: { parentOrgId: actor.organizationId },
+      });
+  });
+  it('backfills a page past invalid rows so hasMore never accompanies a short page', async () => {
+    const h = await harness();
+    const saved = await h.service.upload(actor, { requestId, file: file() });
+    const good = (id: string, at: string) => ({
+      ...saved.asset,
+      id,
+      createdAt: new Date(at),
+    });
+    const bad = { ...saved.asset, id: 'bad', sha256: 'nope' };
+    h.assets.findMany
+      .mockResolvedValueOnce([
+        bad,
+        good('g1', '2026-09-30'),
+        good('g9', '2026-09-29'),
+      ])
+      .mockResolvedValueOnce([
+        good('g2', '2026-09-29'),
+        good('g3', '2026-09-28'),
+      ]);
+    const result = await h.service.list(actor, { limit: 2 });
+    expect(result.docs.map((d) => d.id)).toEqual(['g1', 'g2']);
+    expect(result.docs).toHaveLength(2);
+    expect(result.hasMore).toBe(true);
+    expect(result.nextCursor).not.toBeNull();
   });
   it('lists only scoped active rows and enforces membership assignment semantics', async () => {
     const h = await harness();

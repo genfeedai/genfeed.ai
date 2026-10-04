@@ -3,6 +3,8 @@ import { BillingAccountsService } from '@api/collections/billing-accounts/servic
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { ORGANIZATION_CREATED_EVENT } from '@api/collections/organizations/constants/organization-events.constants';
+import type { OrganizationCreatedEvent } from '@api/collections/organizations/organization-events.types';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -24,11 +26,13 @@ import {
 } from '@genfeedai/pricing';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 export interface CreateOrganizationOperationInput {
   billingAccountId?: string;
   description?: string;
   label: string;
+  websiteUrl?: string;
 }
 
 export interface OrganizationSelectionResult {
@@ -48,6 +52,7 @@ export class OrganizationsOperationsService {
     private readonly usersService: UsersService,
     private readonly userAccessCacheService: UserAccessCacheService,
     private readonly organizationLogoService: OrganizationLogoService,
+    private readonly eventEmitter: EventEmitter2,
     private readonly skillLibrary?: SkillLibraryService,
   ) {}
 
@@ -187,6 +192,19 @@ export class OrganizationsOperationsService {
     });
     await this.userAccessCacheService.invalidateAll(userId);
 
+    // The brands layer sits above this collection, so the background brand
+    // scan listens for the event rather than being called. `emit` does not
+    // await listeners, so the response never waits on queueing.
+    const event: OrganizationCreatedEvent = {
+      brandId: brand.id.toString(),
+      organizationId,
+      userId,
+      ...(input.websiteUrl?.trim()
+        ? { websiteUrl: input.websiteUrl.trim() }
+        : {}),
+    };
+    this.eventEmitter.emit(ORGANIZATION_CREATED_EVENT, event);
+
     return {
       brand: { id: brand.id.toString(), label: brand.label },
       organization: { id: organizationId, label: organization.label },
@@ -209,8 +227,9 @@ export class OrganizationsOperationsService {
 
     const brand = await this.brandsService.create({
       backgroundColor: '#000000',
-      description:
-        input.description ?? 'Default description. Use it as a pre-prompt',
+      // An empty description stays empty: placeholder copy would read as real
+      // brand context to every prompt builder.
+      description: input.description?.trim() || undefined,
       fontFamily: 'montserrat-black',
       label,
       organizationId: organization.id,

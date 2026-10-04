@@ -62,6 +62,34 @@ describe('ReplicateImageGenerationProviderAdapter BYOK dispatch key (#5294)', ()
     );
   });
 
+  it('dispatches the FLUX.3 edit row to the model Replicate actually hosts', async () => {
+    const replicateService = {
+      generateTextToImage: vi.fn().mockResolvedValue('pred_flux_edit'),
+      getPrediction: vi.fn().mockResolvedValue({
+        output: ['https://cdn.test/out.png'],
+        status: 'succeeded',
+      }),
+    };
+    const adapter = new ReplicateImageGenerationProviderAdapter(
+      replicateService as unknown as ReplicateService,
+    );
+
+    const prepared = await adapter.prepare(
+      buildRequest({
+        model: 'black-forest-labs/flux-3-image-edit',
+        modelEndpoint: 'black-forest-labs/flux-3-image-edit',
+      }),
+    );
+    await prepared.generate();
+
+    expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
+      'black-forest-labs/flux-3-image',
+      expect.anything(),
+      undefined,
+      undefined,
+    );
+  });
+
   it('forwards the resolved BYOK apiKeyOverride to generation and to local polling', async () => {
     const replicateService = {
       generateTextToImage: vi.fn().mockResolvedValue('pred_byok'),

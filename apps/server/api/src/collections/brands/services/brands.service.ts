@@ -16,7 +16,7 @@ import type {
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
-import { patchBrandWithLearning } from '@api/collections/brands/services/brand-learning-mutation.util';
+import { patchBrandWithLearningFenced } from '@api/collections/brands/services/brand-learning-mutation.util';
 import { BrandLifecycleService } from '@api/collections/brands/services/brand-lifecycle.service';
 import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
 import {
@@ -417,12 +417,10 @@ export class BrandsService extends BaseService<
     const tenantWhere = tenantScopedBrandWhere(id);
     const brand = sourceBearing
       ? this.normalizeDocument(
-          await this.prisma.$transaction((tx) =>
-            patchBrandWithLearning(tx, {
-              brandId: id,
-              data: data as Prisma.BrandUncheckedUpdateInput,
-            }),
-          ),
+          await patchBrandWithLearningFenced(this.prisma, {
+            brandId: id,
+            data: data as Prisma.BrandUncheckedUpdateInput,
+          }),
         )
       : tenantWhere
         ? await this.patchOneWhere(tenantWhere, data as Partial<UpdateBrandDto>)

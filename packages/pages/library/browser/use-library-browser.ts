@@ -3,14 +3,19 @@
 import {
   IngredientCategory,
   type IngredientOrigin,
+  LIBRARY_OUTPUT_ORIGINS,
   LibraryPlace,
+  LibraryShelf,
   PageScope,
   parseIngredientCategory,
   parseIngredientOrigin,
   parseLibraryShelf,
+  parseTagMatchMode,
+  TagMatchMode,
 } from '@genfeedai/contracts';
 import {
   LIBRARY_MAX_CHARACTER_FILTERS,
+  LIBRARY_MAX_TAG_FILTERS,
   LIBRARY_QUERY_KEYS,
   LIBRARY_VIEW_MODES,
   type LibraryViewMode,
@@ -60,6 +65,12 @@ function parseCharacters(values: string[]): string[] {
   return Array.from(
     new Set(values.map((value) => value.trim()).filter(Boolean)),
   ).slice(0, LIBRARY_MAX_CHARACTER_FILTERS);
+}
+
+function parseTags(values: string[]): string[] {
+  return Array.from(
+    new Set(values.map((value) => value.trim()).filter(Boolean)),
+  ).slice(0, LIBRARY_MAX_TAG_FILTERS);
 }
 
 function parseViewMode(value: string | null): LibraryViewMode {
@@ -150,11 +161,30 @@ export function useLibraryBrowser({
     [searchParams],
   );
 
+  // Tags are a filter like origin and character: URL-only and repeatable, so a
+  // filtered view can be bookmarked and shared. `tagMatch` only matters once
+  // more than one tag is selected and defaults to any.
+  const tags = useMemo(
+    () => parseTags(searchParams?.getAll(LIBRARY_QUERY_KEYS.TAGS) ?? []),
+    [searchParams],
+  );
+  const tagMatch =
+    parseTagMatchMode(searchParams?.get(LIBRARY_QUERY_KEYS.TAG_MATCH)) ??
+    TagMatchMode.ANY;
+
   const folderId = searchParams?.get(LIBRARY_QUERY_KEYS.FOLDER) ?? '';
   const search = searchParams?.get(LIBRARY_QUERY_KEYS.SEARCH) ?? '';
   const viewMode = parseViewMode(
     searchParams?.get(LIBRARY_QUERY_KEYS.VIEW) ?? null,
   );
+
+  // All assets is output. References (uploads, imports) have their own shelf,
+  // so the unfiltered view leaves them out — an origin the operator picks, a
+  // shelf, or a folder they filed into always wins.
+  const isAllAssets =
+    !shelf &&
+    !folderId &&
+    (place === undefined || place === LibraryPlace.ASSETS);
 
   const defaultSort =
     place === LibraryPlace.RECENT
@@ -181,6 +211,8 @@ export function useLibraryBrowser({
       origins?: IngredientOrigin[];
       search?: string;
       sort?: string;
+      tagMatch?: TagMatchMode;
+      tags?: string[];
       viewMode?: LibraryViewMode;
     }) => {
       const nextCategories = next.categories ?? categories;
@@ -189,6 +221,8 @@ export function useLibraryBrowser({
       const nextOrigins = next.origins ?? origins;
       const nextSearch = next.search ?? search;
       const nextSort = next.sort ?? sort;
+      const nextTagMatch = next.tagMatch ?? tagMatch;
+      const nextTags = next.tags ?? tags;
       const nextViewMode = next.viewMode ?? viewMode;
 
       const params = new URLSearchParams(searchParams?.toString() ?? '');
@@ -199,6 +233,8 @@ export function useLibraryBrowser({
         'origins',
         'search',
         'sort',
+        'tagMatch',
+        'tags',
         'view',
         'page',
       ])
@@ -221,6 +257,14 @@ export function useLibraryBrowser({
 
       for (const origin of nextOrigins) {
         params.append(LIBRARY_QUERY_KEYS.ORIGINS, origin);
+      }
+
+      for (const tag of nextTags) {
+        params.append(LIBRARY_QUERY_KEYS.TAGS, tag);
+      }
+
+      if (nextTags.length > 1 && nextTagMatch === TagMatchMode.ALL) {
+        params.set(LIBRARY_QUERY_KEYS.TAG_MATCH, TagMatchMode.ALL);
       }
 
       if (nextFolderId) {
@@ -257,6 +301,8 @@ export function useLibraryBrowser({
       searchParams,
       seededCategories,
       sort,
+      tagMatch,
+      tags,
       viewMode,
     ],
   );
@@ -301,6 +347,24 @@ export function useLibraryBrowser({
     pushAxes({ origins: [] });
   }, [pushAxes]);
 
+  const handleTagsChange = useCallback(
+    (nextTags: string[]) => {
+      pushAxes({ tags: parseTags(nextTags) });
+    },
+    [pushAxes],
+  );
+
+  const handleClearTags = useCallback(() => {
+    pushAxes({ tags: [] });
+  }, [pushAxes]);
+
+  const handleTagMatchChange = useCallback(
+    (nextTagMatch: TagMatchMode) => {
+      pushAxes({ tagMatch: nextTagMatch });
+    },
+    [pushAxes],
+  );
+
   const handleSearchChange = useCallback(
     (value: string) => {
       pushAxes({ search: value });
@@ -328,13 +392,33 @@ export function useLibraryBrowser({
     const category =
       categories.length === 1 ? categories[0] : IngredientCategory.INGREDIENT;
 
+    // All assets leaves references out, so a fresh upload would vanish from
+    // view; follow it to the References shelf instead.
+    const showUploads = () => {
+      const params = new URLSearchParams(searchParams?.toString() ?? '');
+      params.delete('page');
+      params.set('shelf', LibraryShelf.REFERENCES);
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    };
+
     openUpload({
       category,
-      onComplete: () => handleRefresh(),
+      onComplete: () => (isAllAssets ? showUploads() : handleRefresh()),
       parentId: scope === PageScope.ORGANIZATION ? organizationId : brandId,
       parentModel: scope === PageScope.ORGANIZATION ? 'Organization' : 'Brand',
     });
-  }, [brandId, categories, handleRefresh, openUpload, organizationId, scope]);
+  }, [
+    brandId,
+    categories,
+    handleRefresh,
+    isAllAssets,
+    openUpload,
+    organizationId,
+    pathname,
+    router,
+    scope,
+    searchParams,
+  ]);
 
   /**
    * `filters` feeds the shared filter chrome; `query` is what actually reaches
@@ -371,10 +455,20 @@ export function useLibraryBrowser({
 
     if (origins.length > 0) {
       next.origins = origins;
+    } else if (isAllAssets) {
+      next.origins = [...LIBRARY_OUTPUT_ORIGINS];
     }
 
     if (characters.length > 0) {
       next.characters = characters;
+    }
+
+    if (tags.length > 0) {
+      next.tags = tags;
+
+      if (tags.length > 1 && tagMatch === TagMatchMode.ALL) {
+        next.tagMatch = TagMatchMode.ALL;
+      }
     }
 
     if (folderId) {
@@ -394,7 +488,19 @@ export function useLibraryBrowser({
     }
 
     return next;
-  }, [categories, characters, folderId, origins, place, search, shelf, sort]);
+  }, [
+    categories,
+    characters,
+    folderId,
+    isAllAssets,
+    origins,
+    place,
+    search,
+    shelf,
+    sort,
+    tagMatch,
+    tags,
+  ]);
 
   const contextValue: IIngredientsContextValue = useMemo(
     () => ({
@@ -428,16 +534,21 @@ export function useLibraryBrowser({
     handleClearCategories,
     handleClearCharacters,
     handleClearOrigins,
+    handleClearTags,
     handleOriginsChange,
     handleRefresh,
     handleSearchChange,
     handleSortChange,
+    handleTagMatchChange,
+    handleTagsChange,
     handleUpload,
     handleViewModeChange,
     isRefreshing,
     origins,
     search,
     sort,
+    tagMatch,
+    tags,
     viewMode,
   };
 }

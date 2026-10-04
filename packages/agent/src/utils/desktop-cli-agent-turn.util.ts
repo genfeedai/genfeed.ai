@@ -4,6 +4,7 @@ import type {
   AgentToolCall,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { syncAgentThreadFromTurn } from '@genfeedai/agent/utils/sync-agent-thread-from-turn';
 import type { AgentExternalRuntimeKey } from '@genfeedai/contracts/constants';
 import type {
@@ -176,7 +177,7 @@ export function runDesktopCliAgentTurn(params: {
       }
 
       const state = store.getState();
-      if (state.activeRunId === runId) {
+      if (selectActiveRun(state).runId === runId) {
         state.setActiveRun(null, { startedAt: null, status });
       }
       state.setIsGenerating(false);

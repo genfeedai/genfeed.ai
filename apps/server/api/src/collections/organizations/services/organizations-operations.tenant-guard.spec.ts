@@ -16,6 +16,7 @@ import {
   TenantIsolationError,
 } from '@libs/prisma/tenant-guard';
 import { HttpException } from '@nestjs/common';
+import type { EventEmitter2 } from '@nestjs/event-emitter';
 
 /**
  * CLOUD-mode tenant guard over the cross-organization paths of
@@ -86,6 +87,7 @@ describe('OrganizationsOperationsService tenant guard (CLOUD)', () => {
     usersService as unknown as UsersService,
     userAccessCacheService as unknown as UserAccessCacheService,
     organizationLogoService as unknown as OrganizationLogoService,
+    { emit: vi.fn() } as unknown as EventEmitter2,
     skillLibrary as unknown as SkillLibraryService,
   );
 

@@ -46,7 +46,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // findAll, delete, and merge stay organization-scoped.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 287,
+      line: 288,
     },
     // #5981: readPublicSources discovers only non-deleted ingredients that are
     // public (isPublic, scope PUBLIC, or on a visibility PUBLIC post) and keeps
@@ -142,7 +142,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin pricing report over the platform model registry.
     {
       file: 'apps/server/api/src/endpoints/admin/model-pricing/model-pricing.service.ts',
-      line: 343,
+      line: 351,
     },
     // #6120: platform (organization-less) outbox and activity events.
     {

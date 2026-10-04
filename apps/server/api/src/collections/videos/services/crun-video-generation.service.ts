@@ -16,6 +16,7 @@ import { createInsufficientCreditsException } from '@api/helpers/utils/credits/i
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CacheService } from '@api/services/cache/cache.service';
+import { CRUN_VIDEO_MANIFEST } from '@api/services/integrations/crun/contracts/crun-manifest';
 import { compensateCrunDispatchFailure } from '@api/services/integrations/crun/crun-generation-compensation.util';
 import type {
   CrunFrozenVideoQuote,
@@ -48,6 +49,11 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+
+/** Allowed video models come from the reviewed Crun manifest, not a literal list. */
+const CRUN_VIDEO_MODEL_KEYS: readonly string[] = CRUN_VIDEO_MANIFEST.map(
+  (entry) => entry.key,
+);
 
 const INTENT_FIELDS = [
   'model',
@@ -502,9 +508,7 @@ export class CrunVideoGenerationService {
     this.assertLogicalKeys(source);
     if (
       source.model !== dto.model ||
-      !['crun/kling/v2-5-turbo-pro', 'crun/google/veo3-1-fast-t2v'].includes(
-        String(source.model),
-      )
+      !CRUN_VIDEO_MODEL_KEYS.some((key) => key === source.model)
     )
       throw invalid();
     const quoteId = source.crunQuoteId;

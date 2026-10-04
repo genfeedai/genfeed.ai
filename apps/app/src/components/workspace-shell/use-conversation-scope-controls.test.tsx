@@ -1,3 +1,4 @@
+import type { AgentRunRecord } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -13,9 +14,9 @@ const routedOrganization = vi.hoisted(() => ({
   switchOrganization: vi.fn(),
 }));
 const store = vi.hoisted(() => ({
-  activeRunStatus: 'idle',
-  isGenerating: false,
+  activeThreadId: null as string | null,
   resetActiveConversationState: vi.fn(),
+  runsByThread: {} as Record<string, AgentRunRecord>,
   setActiveThread: vi.fn(),
   upsertThread: vi.fn(),
 }));
@@ -170,8 +171,7 @@ function Harness({
 
 describe('useConversationScopeControls', () => {
   beforeEach(() => {
-    store.activeRunStatus = 'idle';
-    store.isGenerating = false;
+    store.runsByThread = {};
     store.upsertThread.mockReset();
     router.push.mockReset();
     router.replace.mockReset();
@@ -243,7 +243,14 @@ describe('useConversationScopeControls', () => {
   });
 
   it('requires active work to stop before organization scope can change', async () => {
-    store.activeRunStatus = 'running';
+    store.runsByThread = {
+      __new__: {
+        isGenerating: false,
+        runId: null,
+        startedAt: null,
+        status: 'running',
+      },
+    };
     render(<Harness />);
 
     fireEvent.click(

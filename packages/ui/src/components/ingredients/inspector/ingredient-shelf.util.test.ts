@@ -1,5 +1,6 @@
 import {
   FleetReviewStatus,
+  IngredientOrigin,
   IngredientStatus,
   LibraryShelf,
   QualityStatus,
@@ -65,6 +66,32 @@ describe('getIngredientShelf', () => {
         }),
       ),
     ).toBe(LibraryShelf.APPROVED);
+  });
+
+  it.each([IngredientOrigin.UPLOADED, IngredientOrigin.IMPORTED])(
+    'reads an unfiled %s asset as References, never Unsorted',
+    (origin) => {
+      expect(
+        getIngredientShelf(
+          createIngredient({
+            folderId: null,
+            origin,
+            status: IngredientStatus.UPLOADED,
+          }),
+        ),
+      ).toBe(LibraryShelf.REFERENCES);
+    },
+  );
+
+  it('still reads an archived upload as Archived', () => {
+    expect(
+      getIngredientShelf(
+        createIngredient({
+          origin: IngredientOrigin.UPLOADED,
+          status: IngredientStatus.ARCHIVED,
+        }),
+      ),
+    ).toBe(LibraryShelf.ARCHIVED);
   });
 
   it('reads an unfiled generated asset as Unsorted', () => {

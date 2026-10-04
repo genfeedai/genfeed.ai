@@ -17,6 +17,7 @@ import {
   CONVERSATION_CACHE_LIMIT,
   useAgentChatStore,
 } from '@genfeedai/agent/stores/agent-chat.store';
+import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import { ONBOARDING_JOURNEY_TOTAL_CREDITS } from '@genfeedai/contracts/types/onboarding-journey';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -381,12 +382,12 @@ describe('agent-chat.store messages and plans', () => {
 
     const state = useAgentChatStore.getState();
     expect(state.messages).toEqual([]);
-    expect(state.activeRunId).toBeNull();
-    expect(state.activeRunStatus).toBe('idle');
-    expect(state.runStartedAt).toBeNull();
+    expect(selectActiveRun(state).runId).toBeNull();
+    expect(selectActiveRun(state).status).toBe('idle');
+    expect(selectActiveRun(state).startedAt).toBeNull();
     expect(state.draftAgentMode).toBe(AgentThreadMode.MANUAL);
     expect(state.error).toBeNull();
-    expect(state.isGenerating).toBe(false);
+    expect(selectActiveRun(state).isGenerating).toBe(false);
     expect(state.threadUiBusyById).toEqual({});
     expect(state.hasMoreMessages).toBe(false);
     expect(state.messagesCursor).toBeNull();
@@ -415,7 +416,7 @@ describe('agent-chat.store messages and plans', () => {
     expect(state.messagesCursor).toBeNull();
     expect(state.isLoadingOlderMessages).toBe(false);
     expect(state.error).toBeNull();
-    expect(state.isGenerating).toBe(false);
+    expect(selectActiveRun(state).isGenerating).toBe(false);
   });
 });
 
@@ -460,7 +461,7 @@ describe('agent-chat.store stream state', () => {
 
     const state = useAgentChatStore.getState();
     expect(state.stream.streamingContent).toBe('');
-    expect(state.activeRunStatus).toBe('cancelling');
+    expect(selectActiveRun(state).status).toBe('cancelling');
     expect(state.workEvents).toEqual([]);
   });
 
@@ -468,7 +469,7 @@ describe('agent-chat.store stream state', () => {
     useAgentChatStore.getState().setActiveRunStatus('running');
     useAgentChatStore.getState().resetStreamState();
 
-    expect(useAgentChatStore.getState().activeRunStatus).toBe('idle');
+    expect(selectActiveRun(useAgentChatStore.getState()).status).toBe('idle');
   });
 });
 
@@ -496,10 +497,10 @@ describe('agent-chat.store run lifecycle', () => {
     useAgentChatStore.getState().clearStaleActiveRun();
 
     const state = useAgentChatStore.getState();
-    expect(state.activeRunId).toBeNull();
-    expect(state.activeRunStatus).toBe('idle');
-    expect(state.isGenerating).toBe(false);
-    expect(state.runStartedAt).toBeNull();
+    expect(selectActiveRun(state).runId).toBeNull();
+    expect(selectActiveRun(state).status).toBe('idle');
+    expect(selectActiveRun(state).isGenerating).toBe(false);
+    expect(selectActiveRun(state).startedAt).toBeNull();
     expect(state.stream.isStreaming).toBe(false);
     expect(state.stream.streamingContent).toBe('');
     expect(state.workEvents).toEqual([completedEvent]);
@@ -509,9 +510,9 @@ describe('agent-chat.store run lifecycle', () => {
     useAgentChatStore.getState().setActiveRun('run-1');
 
     const state = useAgentChatStore.getState();
-    expect(state.activeRunId).toBe('run-1');
-    expect(state.activeRunStatus).toBe('running');
-    expect(state.runStartedAt).toBeNull();
+    expect(selectActiveRun(state).runId).toBe('run-1');
+    expect(selectActiveRun(state).status).toBe('running');
+    expect(selectActiveRun(state).startedAt).toBeNull();
   });
 
   it('setActiveRun honors explicit status and startedAt', () => {
@@ -521,21 +522,21 @@ describe('agent-chat.store run lifecycle', () => {
     });
 
     const state = useAgentChatStore.getState();
-    expect(state.activeRunStatus).toBe('cancelling');
-    expect(state.runStartedAt).toBe('2026-03-26T10:00:00.000Z');
+    expect(selectActiveRun(state).status).toBe('cancelling');
+    expect(selectActiveRun(state).startedAt).toBe('2026-03-26T10:00:00.000Z');
   });
 
   it('setActiveRun with null run id goes idle', () => {
     useAgentChatStore.getState().setActiveRun('run-1');
     useAgentChatStore.getState().setActiveRun(null);
 
-    expect(useAgentChatStore.getState().activeRunStatus).toBe('idle');
+    expect(selectActiveRun(useAgentChatStore.getState()).status).toBe('idle');
   });
 
   it('setRunStartedAt stores the timestamp', () => {
     useAgentChatStore.getState().setRunStartedAt('2026-03-26T11:00:00.000Z');
 
-    expect(useAgentChatStore.getState().runStartedAt).toBe(
+    expect(selectActiveRun(useAgentChatStore.getState()).startedAt).toBe(
       '2026-03-26T11:00:00.000Z',
     );
   });
@@ -548,15 +549,17 @@ describe('agent-chat.store run lifecycle', () => {
 
     const state = useAgentChatStore.getState();
     expect(state.error).toBe('Insufficient credits');
-    expect(state.activeRunStatus).toBe('failed');
-    expect(state.isGenerating).toBe(false);
+    expect(selectActiveRun(state).status).toBe('failed');
+    expect(selectActiveRun(state).isGenerating).toBe(false);
   });
 
   it('setError leaves a completed run status untouched', () => {
     useAgentChatStore.getState().setActiveRunStatus('completed');
     useAgentChatStore.getState().setError('late error');
 
-    expect(useAgentChatStore.getState().activeRunStatus).toBe('completed');
+    expect(selectActiveRun(useAgentChatStore.getState()).status).toBe(
+      'completed',
+    );
   });
 
   it('setError(null) clears the error without status changes', () => {
@@ -565,7 +568,7 @@ describe('agent-chat.store run lifecycle', () => {
 
     const state = useAgentChatStore.getState();
     expect(state.error).toBeNull();
-    expect(state.activeRunStatus).toBe('running');
+    expect(selectActiveRun(state).status).toBe('running');
   });
 
   it('pending input requests can be set and cleared', () => {
@@ -630,7 +633,7 @@ describe('agent-chat.store simple setters', () => {
 
     const state = useAgentChatStore.getState();
     expect(state.activeThreadId).toBe('thread-9');
-    expect(state.isGenerating).toBe(true);
+    expect(selectActiveRun(state).isGenerating).toBe(true);
     expect(state.creditsRemaining).toBe(42);
     expect(state.modelCosts).toEqual({ 'gpt-test': 3 });
     expect(state.threadPrompts['thread-9']).toBe('draft prompt');
@@ -990,7 +993,7 @@ describe('agent-chat.store conversation cache', () => {
     expect(state.hasMoreMessages).toBe(true);
     expect(state.messagesCursor).toBe('cursor-2');
     expect(state.error).toBe('Stored terminal failure');
-    expect(state.isGenerating).toBe(false);
+    expect(selectActiveRun(state).isGenerating).toBe(false);
   });
 
   it('restoreCachedConversation reports a miss without touching state', () => {
@@ -1022,8 +1025,8 @@ describe('agent-chat.store conversation cache', () => {
     const state = useAgentChatStore.getState();
     expect(state.stream.streamingContent).toBe('');
     expect(state.stream.isStreaming).toBe(false);
-    expect(state.activeRunId).toBeNull();
-    expect(state.activeRunStatus).toBe('idle');
+    expect(selectActiveRun(state).runId).toBeNull();
+    expect(selectActiveRun(state).status).toBe('idle');
   });
 
   it('evicts the least recently cached thread past the limit', () => {

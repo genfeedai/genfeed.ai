@@ -1,10 +1,14 @@
 import {
   IngredientCategory,
   type IngredientLineageDirection,
+  type TagBulkAction,
+  VoteEntityModel,
 } from '@genfeedai/contracts';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   IBulkDeleteRequest,
   IBulkDeleteResult,
+  IBulkTagResult,
   IIngredient,
   IIngredientExportResult,
   IIngredientLineagePage,
@@ -48,6 +52,13 @@ type IngredientModelConstructorMap = {
   musics: typeof Music;
   ingredients: typeof Ingredient;
 };
+
+/** The bulk tag endpoint answers plain JSON; tolerate a JSON API wrapper too. */
+function isBulkTagResult(
+  value: IBulkTagResult | JsonApiResponseDocument,
+): value is IBulkTagResult {
+  return 'changed' in value && typeof value.changed === 'number';
+}
 
 export class IngredientsService<
   T extends Ingredient = Ingredient,
@@ -405,8 +416,23 @@ export class IngredientsService<
     });
   }
 
-  public async vote(id: string, endpoint: 'vote' | 'unvote'): Promise<void> {
-    await this.instance.post(`${id}/${endpoint}`).then((res) => res.data);
+  /** Add the caller's vote. Idempotent: voting twice leaves one vote. */
+  public async vote(id: string): Promise<void> {
+    await this.instance.post(this.votesUrl(), {
+      entity: id,
+      entityModel: VoteEntityModel.INGREDIENT,
+    });
+  }
+
+  /** Remove the caller's vote. Idempotent: removing a missing vote is a no-op. */
+  public async unvote(id: string): Promise<void> {
+    await this.instance.delete(this.votesUrl(), { params: { entity: id } });
+  }
+
+  // Votes live on `/votes`, not under the ingredient category base URL; an
+  // absolute URL bypasses the instance baseURL and keeps its auth interceptors.
+  private votesUrl(): string {
+    return `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.VOTES}`;
   }
 
   public async postClone(id: string): Promise<T> {
@@ -445,6 +471,25 @@ export class IngredientsService<
         data: { attributes: { tags: tagIds } },
       })
       .then((res) => this.mapOne(res.data));
+  }
+
+  /**
+   * Add or remove one tag on up to 200 assets in one request (#6011). Assets the
+   * member cannot edit are skipped and counted; the result says how many
+   * changed, were skipped and failed.
+   */
+  public async bulkTag(data: {
+    action: TagBulkAction;
+    ids: string[];
+    tagId: string;
+  }): Promise<IBulkTagResult> {
+    const response = await this.instance.post<
+      IBulkTagResult | JsonApiResponseDocument
+    >('tags/bulk', data);
+
+    return isBulkTagResult(response.data)
+      ? response.data
+      : this.extractResource<IBulkTagResult>(response.data);
   }
 
   public async bulkDelete(

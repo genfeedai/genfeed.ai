@@ -10,6 +10,7 @@ import {
 } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -199,7 +200,9 @@ describe('thread stream registry', () => {
     ).toBe('request-a');
     expect(a.owner.activeStreamRunIdRef.current).toBeNull();
     expect(a.owner.completionTimeoutRef.current).toBeNull();
-    expect(a.owner.presentation.getState().runStartedAt).toBeNull();
+    expect(
+      selectActiveRun(a.owner.presentation.getState()).startedAt,
+    ).toBeNull();
     emit('agent:token', 'a', { token: 'hello' });
     emit('agent:turn_accepted', 'a', receipt);
     expect(
@@ -251,7 +254,9 @@ describe('thread stream registry', () => {
     await Promise.resolve();
     expect(canHydrate()).toBe(false);
     expect(next.owner.completionTimeoutRef.current).not.toBeNull();
-    expect(useAgentChatStore.getState().activeRunStatus).toBe('running');
+    expect(selectActiveRun(useAgentChatStore.getState()).status).toBe(
+      'running',
+    );
   });
   it('bounds terminal entries without evicting live executions', async () => {
     const a = entry('a');
@@ -397,7 +402,9 @@ it('preserves visible UI mutations when another token arrives', async () => {
   });
   emit('agent:token', 'a', { token: 'later' });
   await vi.advanceTimersByTimeAsync(100);
-  expect(useAgentChatStore.getState().activeRunStatus).toBe('cancelling');
+  expect(selectActiveRun(useAgentChatStore.getState()).status).toBe(
+    'cancelling',
+  );
   expect(useAgentChatStore.getState().messages[0].content).toBe('Older');
 });
 it('discards a scheduled global token batch on a synchronous thread switch', async () => {
@@ -514,7 +521,7 @@ it('cannot let an in-flight recovery erase a newly received question', async () 
   expect(
     a.owner.presentation.getState().pendingInputRequest?.inputRequestId,
   ).toBe('question');
-  expect(a.owner.presentation.getState().activeRunStatus).toBe(
+  expect(selectActiveRun(a.owner.presentation.getState()).status).toBe(
     'awaiting_input',
   );
   expect(a.owner.completionTimeoutRef.current).toBeNull();
@@ -587,7 +594,9 @@ it('keeps known A traffic out of an unknown B FIFO and replays B terminal last',
   await sending;
   expect(b.owner.needsReconciliation).toBe(false);
   expect(getThreadSnapshot).not.toHaveBeenCalled();
-  expect(b.owner.presentation.getState().activeRunStatus).toBe('completed');
+  expect(selectActiveRun(b.owner.presentation.getState()).status).toBe(
+    'completed',
+  );
   expect(b.owner.presentation.getState().messages.at(-1)?.content).toBe(
     'answer-b',
   );
@@ -630,7 +639,9 @@ it('keeps two provisional FIFOs independent when one overflows', async () => {
   expect(b.owner.presentation.getState().messages.at(-1)?.content).toBe(
     'answer-b',
   );
-  expect(b.owner.presentation.getState().activeRunStatus).toBe('completed');
+  expect(selectActiveRun(b.owner.presentation.getState()).status).toBe(
+    'completed',
+  );
   ackA.resolve(accepted('a'));
   await sendingA;
   await Promise.resolve();
