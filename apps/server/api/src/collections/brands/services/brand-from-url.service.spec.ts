@@ -336,6 +336,67 @@ describe('BrandFromUrlService', () => {
     });
     expect(h.brand.agentConfig).toHaveProperty('voice');
   });
+  it('releases the reservation when brand creation throws', async () => {
+    const h = harness();
+    h.brands.create.mockRejectedValue(new Error('create failed'));
+    await expect(
+      h.service.start({ url: 'https://example.com' }, context),
+    ).rejects.toThrow('create failed');
+    expect(h.credits.releaseReservation).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      reservationId: 'reservation-1',
+    });
+    expect(h.credits.settleReservation).not.toHaveBeenCalled();
+  });
+  it.each([
+    [
+      'voice analysis',
+      (h: ReturnType<typeof harness>) =>
+        h.voice.analyzeBrandVoice.mockRejectedValue(new Error('boom')),
+      {},
+    ],
+    [
+      'persistence',
+      (h: ReturnType<typeof harness>) =>
+        h.persistence.updateBrandGuidance.mockRejectedValue(new Error('boom')),
+      {},
+    ],
+    [
+      'a stale revision update',
+      (h: ReturnType<typeof harness>) =>
+        h.revisions.update.mockRejectedValue(new Error('boom')),
+      {},
+    ],
+    [
+      'approval',
+      (h: ReturnType<typeof harness>) =>
+        h.revisions.approve.mockRejectedValue(new Error('boom')),
+      { approve: true },
+    ],
+  ])(
+    'releases the reservation once when %s throws',
+    async (_name, arrange, extra) => {
+      const h = harness();
+      arrange(h);
+      const operation = await h.service.start(
+        { url: 'https://example.com', ...extra },
+        context,
+      );
+      await expect(operation.completion).rejects.toThrow('boom');
+      expect(h.credits.releaseReservation).toHaveBeenCalledOnce();
+      expect(h.credits.settleReservation).not.toHaveBeenCalled();
+    },
+  );
+  it('settles exactly once and never releases on success', async () => {
+    const h = harness();
+    const operation = await h.service.start(
+      { url: 'https://example.com' },
+      context,
+    );
+    await operation.completion;
+    expect(h.credits.settleReservation).toHaveBeenCalledOnce();
+    expect(h.credits.releaseReservation).not.toHaveBeenCalled();
+  });
   it('releases the reservation on scan failure and keeps the created brand', async () => {
     const h = harness();
     const failed = { status: 'failed', errorCode: 'brand_scan.failed' };

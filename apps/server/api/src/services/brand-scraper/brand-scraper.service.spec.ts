@@ -191,6 +191,23 @@ describe('BrandScraperService', () => {
         expect(fetchMock).not.toHaveBeenCalled();
       },
     );
+    it('aborts the HTML read once the body exceeds the byte cap', async () => {
+      const cancel = vi.fn();
+      const chunk = new Uint8Array(1_048_576);
+      const stream = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          controller.enqueue(chunk);
+        },
+        cancel,
+      });
+      fetchMock.mockResolvedValue(
+        new Response(stream, { headers: { 'content-type': 'text/html' } }),
+      );
+      await expect(
+        service.scrapeWebsiteWithEvidence('https://acme.com'),
+      ).rejects.toThrow('html_size_limit');
+      expect(cancel).toHaveBeenCalled();
+    });
     it('uses the shorter caller budget across stalled body and fallback without mutating it', async () => {
       fakeClock();
       const cancel = vi.fn();

@@ -350,6 +350,19 @@ describe('Dedicated immutable brand font service', () => {
       'font_asset_unavailable',
     );
   });
+  it('skips invalid stored rows in list instead of failing and scopes asset lookups by organization', async () => {
+    const h = await harness();
+    const saved = await h.service.upload(actor, { requestId, file: file() });
+    h.row = { ...saved.asset, sha256: 'not-a-hash' };
+    await expect(h.service.list(actor, { limit: 20 })).resolves.toMatchObject({
+      docs: [],
+    });
+    await h.service.remove(actor, saved.asset.id).catch(() => undefined);
+    for (const [args] of h.assets.findFirst.mock.calls)
+      expect(args).toMatchObject({
+        where: { parentOrgId: actor.organizationId },
+      });
+  });
   it('lists only scoped active rows and enforces membership assignment semantics', async () => {
     const h = await harness();
     h.setRole('member', ['other']);

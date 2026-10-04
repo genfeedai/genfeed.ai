@@ -200,10 +200,18 @@ export class BrandFontAssetsService {
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit + 1,
     });
-    const docs = rows.slice(0, limit);
-    for (const row of docs) this.validateStored(row);
+    const page = rows.slice(0, limit);
+    const docs = page.filter((row) => {
+      try {
+        this.validateStored(row);
+        return true;
+      } catch {
+        this.logger.warn(`font_asset_row_skipped ${row.id}`);
+        return false;
+      }
+    });
     const hasMore = rows.length > limit;
-    const last = docs.at(-1);
+    const last = page.at(-1);
     return {
       docs,
       limit,
@@ -272,7 +280,9 @@ export class BrandFontAssetsService {
     return this.prisma.$transaction(
       async (tx) => {
         await this.lockBrand(tx, actor);
-        const existing = await tx.asset.findFirst({ where: { id } });
+        const existing = await tx.asset.findFirst({
+          where: { id, parentOrgId: actor.organizationId },
+        });
         if (existing) return this.replay(existing, actor, upload);
         this.checkSignal(signal);
         const asset = await tx.asset.create({
@@ -315,12 +325,16 @@ export class BrandFontAssetsService {
       actor.brandId,
       input.requestId,
     );
-    const existing = await this.prisma.asset.findFirst({ where: { id } });
+    const existing = await this.prisma.asset.findFirst({
+      where: { id, parentOrgId: actor.organizationId },
+    });
     if (existing)
       return this.prisma.$transaction(
         async (tx) => {
           await this.lockBrand(tx, actor);
-          const current = await tx.asset.findFirst({ where: { id } });
+          const current = await tx.asset.findFirst({
+            where: { id, parentOrgId: actor.organizationId },
+          });
           if (!current) throw new ConflictException('font_asset_conflict');
           return this.replay(current, actor, upload);
         },
@@ -349,7 +363,9 @@ export class BrandFontAssetsService {
     await this.prisma.$transaction(
       async (tx) => {
         await this.lockBrand(tx, actor);
-        const asset = await tx.asset.findFirst({ where: { id: assetId } });
+        const asset = await tx.asset.findFirst({
+          where: { id: assetId, parentOrgId: actor.organizationId },
+        });
         if (!asset || !this.owned(asset, actor))
           throw new NotFoundException({ message: 'font_asset_unavailable' });
         this.validateStored(asset);
