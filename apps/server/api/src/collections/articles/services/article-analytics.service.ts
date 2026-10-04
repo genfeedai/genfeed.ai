@@ -34,6 +34,7 @@ export class ArticleAnalyticsService extends BaseService<
    */
   async findOrCreateTodayAnalytics(
     articleId: string,
+    organizationId: string,
     data: Partial<CreateArticleAnalyticsDto>,
   ): Promise<ArticleAnalyticsEntity> {
     const today = new Date();
@@ -41,7 +42,7 @@ export class ArticleAnalyticsService extends BaseService<
 
     const article = await findOrThrow(
       this.prisma.article,
-      { where: { id: articleId, isDeleted: false } },
+      { where: scopedWhere(organizationId, { id: articleId }) },
       'Article',
     );
 
@@ -71,6 +72,7 @@ export class ArticleAnalyticsService extends BaseService<
   /** Update today's analytics snapshot and engagement rate. */
   async updateTodayAnalytics(
     articleId: string,
+    organizationId: string,
     metrics: {
       totalViews?: number;
       totalLikes?: number;
@@ -85,6 +87,7 @@ export class ArticleAnalyticsService extends BaseService<
     const todayAnalytics = await this.findOne({
       articleId,
       date: today,
+      organizationId,
     });
 
     const currentViews = metrics.totalViews ?? todayAnalytics?.totalViews ?? 0;
@@ -103,7 +106,7 @@ export class ArticleAnalyticsService extends BaseService<
 
     // Fetch article to get required fields for upsert
     const article = await this.prisma.article.findFirst({
-      where: { id: articleId, isDeleted: false },
+      where: scopedWhere(organizationId, { id: articleId }),
     });
     if (!article) {
       this.logger.error(`Article ${articleId} not found for analytics update`);
@@ -200,6 +203,7 @@ export class ArticleAnalyticsService extends BaseService<
    */
   async getAnalyticsByDateRange(
     articleId: string,
+    organizationId: string,
     startDate: Date,
     endDate: Date,
   ): Promise<ArticleAnalyticsEntity[]> {
@@ -210,11 +214,10 @@ export class ArticleAnalyticsService extends BaseService<
     end.setHours(23, 59, 59, 999);
 
     const results = await this.delegate.findMany({
-      where: {
+      where: scopedWhere(organizationId, {
         articleId,
         date: { gte: start, lte: end },
-        isDeleted: false,
-      },
+      }),
       orderBy: { date: 'desc' },
     });
 
@@ -226,10 +229,11 @@ export class ArticleAnalyticsService extends BaseService<
    */
   async updatePerformanceMetrics(
     articleId: string,
+    organizationId: string,
     metrics: PerformanceMetricsInput,
   ): Promise<void> {
     const normalized = normalizePerformanceMetrics(metrics);
-    await this.updateTodayAnalytics(articleId, {
+    await this.updateTodayAnalytics(articleId, organizationId, {
       clickThroughRate: normalized.clickThroughRate,
       totalComments: normalized.comments,
       totalLikes: normalized.likes,
