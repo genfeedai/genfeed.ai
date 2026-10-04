@@ -1,5 +1,8 @@
 import type { TrendRefreshHealth } from '@genfeedai/contracts/interfaces';
-import { TrendIngestionHealthService } from '@workers/services/trend-ingestion-health.service';
+import {
+  HEALTH_LOOKUP_CONCURRENCY,
+  TrendIngestionHealthService,
+} from '@workers/services/trend-ingestion-health.service';
 
 const enrollment = new Date('2026-09-28T00:15:00.000Z');
 function setup() {
@@ -176,7 +179,9 @@ describe('TrendIngestionHealthService', () => {
     ]);
     await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
     expect(
-      [...events.keys()].some((key) => key.includes('youtube/trends/scope-')),
+      [...events.keys()].some((key) =>
+        key.includes('youtube/trends/scoped/missed/'),
+      ),
     ).toBe(true);
     expect(JSON.stringify(recorder.dispatch.mock.calls)).not.toContain(
       'private-org',
@@ -208,5 +213,53 @@ describe('TrendIngestionHealthService', () => {
         key.startsWith('trend-ingestion-health/youtube/trends/missed/'),
       ),
     ).toHaveLength(1);
+  });
+
+  it('bounds concurrent per-scope health lookups', async () => {
+    const { service, health, prisma } = setup();
+    prisma.credential.findMany.mockResolvedValue(
+      Array.from({ length: 50 }, (_, index) => ({
+        createdAt: enrollment,
+        organizationId: `org-${index}`,
+        platform: 'YOUTUBE',
+      })),
+    );
+    let inFlight = 0;
+    let peak = 0;
+    health.getHealth.mockImplementation(async () => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      inFlight -= 1;
+      return [];
+    });
+    await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+    expect(health.getHealth).toHaveBeenCalledTimes(51);
+    expect(peak).toBeLessThanOrEqual(HEALTH_LOOKUP_CONCURRENCY);
+    expect(peak).toBeGreaterThan(1);
+  });
+
+  it('sends one alert per platform with the affected tenant count during an outage', async () => {
+    const { service, health, prisma, events, recorder } = setup();
+    prisma.credential.findMany.mockResolvedValue(
+      Array.from({ length: 30 }, (_, index) => ({
+        createdAt: enrollment,
+        organizationId: `org-${index}`,
+        platform: 'YOUTUBE',
+      })),
+    );
+    health.getHealth.mockResolvedValue([]);
+    await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+    const scoped = [...events.keys()].filter((key) =>
+      key.startsWith('trend-ingestion-health/youtube/trends/scoped/missed/'),
+    );
+    expect(scoped).toHaveLength(1);
+    const calls = JSON.stringify(recorder.dispatch.mock.calls);
+    expect(calls).toContain('30 of 30 connected tenant scopes');
+    expect(calls).not.toContain('org-1');
+    await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
+    expect(
+      [...events.keys()].filter((key) => key.includes('/scoped/missed/')),
+    ).toEqual(scoped);
   });
 });
