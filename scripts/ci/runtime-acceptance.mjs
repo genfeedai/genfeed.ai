@@ -948,9 +948,7 @@ function sharedApiDelegations(mode) {
     mode === 'shared' || mode === 'final',
     'INVALID_FULL_PARTITION_MODE',
   );
-  return mode === 'final'
-    ? [...DELEGATED_API_FILES, ...LEARNING_DELEGATED_API_FILES]
-    : DELEGATED_API_FILES;
+  return [...DELEGATED_API_FILES, ...LEARNING_DELEGATED_API_FILES];
 }
 export const SERIAL_BRAND_UNITS = [
   'branded-generation-hash.util.spec.ts',

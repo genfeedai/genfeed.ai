@@ -1208,7 +1208,7 @@ test('dedicated production agent and BRAND jobs preserve full-tier selection and
   ])
     assert.ok(full.includes(`--exclude ${file}`));
   assert.ok(
-    full.includes('if [ "$RUNTIME_ACCEPTANCE_PARTITION_MODE" = final ]; then'),
+    !full.includes('if [ "$RUNTIME_ACCEPTANCE_PARTITION_MODE" = final ]; then'),
   );
   assert.ok(full.includes('process.env.RUNTIME_ACCEPTANCE_PARTITION_MODE'));
   const fullGate = jobBlock(workflow, 'e2e-api-full-gate', 'e2e.yml');
