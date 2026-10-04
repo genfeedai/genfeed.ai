@@ -8,6 +8,8 @@ import {
 import type { AgentThreadSnapshot } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
+  type AgentRunRecord,
+  IDLE_RUN,
   runTransitionPatch,
   selectActiveRun,
 } from '@genfeedai/agent/stores/agent-chat.store.run';
@@ -58,13 +60,32 @@ function makeDeps(snapshot: AgentThreadSnapshot) {
   };
 }
 
+function seedRun(threadId: string, patch: Partial<AgentRunRecord>): void {
+  useAgentChatStore.setState((state) => ({
+    runsByThread: {
+      ...state.runsByThread,
+      [threadId]: {
+        ...IDLE_RUN,
+        ...state.runsByThread[threadId],
+        ...patch,
+      },
+    },
+  }));
+}
+
 describe('restoreThreadFromSnapshot', () => {
   beforeEach(() => {
     resetAgentStreamRuntime();
     useAgentChatStore.setState({
       activeThreadId: 'thread-1',
-      activeRunId: 'run-1',
-      activeRunStatus: 'running',
+      runsByThread: {
+        'thread-1': {
+          isGenerating: false,
+          runId: 'run-1',
+          startedAt: null,
+          status: 'running',
+        },
+      },
       threads: [
         {
           id: 'thread-1',
@@ -127,12 +148,11 @@ describe('restoreThreadFromSnapshot', () => {
         return snapshot;
       });
       const restore = restoreThreadFromSnapshot('thread-1', deps as never);
-      useAgentChatStore.setState({
-        activeRunStatus: terminal,
-        ...(visible
-          ? {}
-          : { activeThreadId: 'thread-2', activeRunId: 'run-2' }),
-      });
+      if (visible) seedRun('thread-1', { status: terminal });
+      else {
+        useAgentChatStore.setState({ activeThreadId: 'thread-2' });
+        seedRun('thread-2', { runId: 'run-2', status: terminal });
+      }
       useAgentChatStore.getState().updateThread('thread-1', {
         runStatus: terminal,
         attentionState: 'updated',
@@ -166,7 +186,7 @@ describe('restoreThreadFromSnapshot', () => {
       });
       const restore = restoreThreadFromSnapshot('thread-1', deps as never);
       if (change === 'ownership') getAgentStreamRuntime().ownerGeneration += 1;
-      else useAgentChatStore.setState({ activeRunId: 'run-new' });
+      else seedRun('thread-1', { runId: 'run-new' });
       release();
       await restore;
       expect(deps.updateThreadSummary).not.toHaveBeenCalled();
@@ -176,7 +196,7 @@ describe('restoreThreadFromSnapshot', () => {
   );
 
   it('restores a genuinely different run after an older run completed', async () => {
-    useAgentChatStore.setState({ activeRunStatus: 'completed' });
+    seedRun('thread-1', { status: 'completed' });
     const deps = makeDeps(
       makeSnapshot({ runId: 'run-new', startedAt: null, status: 'running' }),
     );
@@ -190,10 +210,8 @@ describe('restoreThreadFromSnapshot', () => {
   it.each(['completed', 'failed', 'cancelled'] as const)(
     'does not overwrite a background thread that becomes %s',
     async (terminal) => {
-      useAgentChatStore.setState({
-        activeThreadId: 'thread-2',
-        activeRunId: 'run-2',
-      });
+      useAgentChatStore.setState({ activeThreadId: 'thread-2' });
+      seedRun('thread-2', { runId: 'run-2', status: 'running' });
       const snapshot = makeSnapshot({
         runId: 'run-1',
         startedAt: null,
@@ -222,10 +240,8 @@ describe('restoreThreadFromSnapshot', () => {
   );
 
   it('restores an unchanged background summary without replacing the visible run', async () => {
-    useAgentChatStore.setState({
-      activeThreadId: 'thread-2',
-      activeRunId: 'run-2',
-    });
+    useAgentChatStore.setState({ activeThreadId: 'thread-2' });
+    seedRun('thread-2', { runId: 'run-2', status: 'running' });
     const deps = makeDeps(
       makeSnapshot({ runId: 'run-1', startedAt: null, status: 'running' }),
     );
@@ -238,7 +254,7 @@ describe('restoreThreadFromSnapshot', () => {
   it.each(['completed', 'failed', 'cancelled'] as const)(
     'does not revive the same run already known as %s when restore begins',
     async (terminal) => {
-      useAgentChatStore.setState({ activeRunStatus: terminal });
+      seedRun('thread-1', { status: terminal });
       const deps = makeDeps(
         makeSnapshot({ runId: 'run-1', startedAt: null, status: 'running' }),
       );
@@ -303,7 +319,6 @@ describe('restoreThreadFromSnapshot', () => {
         runId: null,
         status,
       });
-      expect(useAgentChatStore.getState().activeRunStatus).toBe(status);
     },
   );
 });

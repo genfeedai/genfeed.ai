@@ -1,6 +1,7 @@
 import {
   IngredientCategory,
   IngredientLineageDirection,
+  TagBulkAction,
 } from '@genfeedai/contracts';
 import { Avatar } from '@genfeedai/models/ai/avatar.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
@@ -307,14 +308,26 @@ describe('IngredientsService', () => {
   });
 
   describe('item actions', () => {
-    it('vote POSTs to the vote endpoint', async () => {
+    it('vote POSTs the entity to /votes', async () => {
       http.post.mockResolvedValue(axiosResponse(undefined));
 
-      await service.vote('ing_1', 'vote');
-      await service.vote('ing_1', 'unvote');
+      await service.vote('ing_1');
 
-      expect(http.post).toHaveBeenNthCalledWith(1, 'ing_1/vote');
-      expect(http.post).toHaveBeenNthCalledWith(2, 'ing_1/unvote');
+      expect(http.post).toHaveBeenCalledTimes(1);
+      const [url, body] = http.post.mock.calls[0];
+      expect(String(url)).toMatch(/\/votes$/);
+      expect(body).toEqual({ entity: 'ing_1', entityModel: 'Ingredient' });
+    });
+
+    it('unvote DELETEs /votes with the entity query', async () => {
+      http.delete.mockResolvedValue(axiosResponse(undefined));
+
+      await service.unvote('ing_1');
+
+      expect(http.post).not.toHaveBeenCalled();
+      const [url, config] = http.delete.mock.calls[0];
+      expect(String(url)).toMatch(/\/votes$/);
+      expect(config).toEqual({ params: { entity: 'ing_1' } });
     });
 
     it('postClone POSTs to the clone endpoint', async () => {
@@ -370,6 +383,61 @@ describe('IngredientsService', () => {
       expect(http.patch).toHaveBeenCalledWith('ing_1/tags', {
         data: { attributes: { tags: ['tag_1', 'tag_2'] } },
       });
+    });
+
+    it('bulkTag POSTs the selection and one tag, and reads the counts', async () => {
+      const counts = {
+        changed: 2,
+        failed: 0,
+        failedIds: [],
+        skipped: 1,
+        skippedIds: ['c'],
+      };
+      http.post.mockResolvedValue(axiosResponse(counts));
+
+      const result = await service.bulkTag({
+        action: TagBulkAction.ADD,
+        ids: ['a', 'b', 'c'],
+        tagId: 'tag_1',
+      });
+
+      expect(http.post).toHaveBeenCalledWith('tags/bulk', {
+        action: 'add',
+        ids: ['a', 'b', 'c'],
+        tagId: 'tag_1',
+      });
+      expect(result).toEqual(counts);
+    });
+
+    it('bulkTag also reads counts wrapped in a JSON API resource', async () => {
+      http.post.mockResolvedValue(
+        axiosResponse(
+          resourceDocument(
+            { changed: 1, failed: 0, skipped: 0 },
+            { id: 'bulk_tag' },
+          ),
+        ),
+      );
+
+      const result = await service.bulkTag({
+        action: TagBulkAction.REMOVE,
+        ids: ['a'],
+        tagId: 'tag_1',
+      });
+
+      expect(result).toMatchObject({ changed: 1, failed: 0, skipped: 0 });
+    });
+
+    it('bulkTag lets a failed request reach the caller', async () => {
+      http.post.mockRejectedValue(new Error('Over the limit'));
+
+      await expect(
+        service.bulkTag({
+          action: TagBulkAction.ADD,
+          ids: ['a'],
+          tagId: 'tag_1',
+        }),
+      ).rejects.toThrow('Over the limit');
     });
 
     it('bulkDelete DELETEs with the serialized body', async () => {

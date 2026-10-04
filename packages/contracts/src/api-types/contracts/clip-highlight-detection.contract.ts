@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { type DroppedItemsHandler, lenientItems } from './lenient-items';
 
 export const clipHighlightSchema = z
   .strictObject({
@@ -30,5 +31,38 @@ export const clipHighlightSchema = z
 export const clipHighlightDetectionSchema = z.strictObject({
   highlights: z.array(clipHighlightSchema),
 });
+
+const MAX_CLIP_TITLE_LENGTH = 60;
+
+function truncateClipTitle(item: unknown): unknown {
+  if (
+    typeof item === 'object' &&
+    item !== null &&
+    'title' in item &&
+    typeof item.title === 'string'
+  ) {
+    return {
+      ...item,
+      title: item.title.trim().slice(0, MAX_CLIP_TITLE_LENGTH).trim(),
+    };
+  }
+  return item;
+}
+
+/**
+ * Same envelope as {@link clipHighlightDetectionSchema}, but each clip is
+ * validated on its own: over-long titles are truncated, clips outside the
+ * duration bounds (or otherwise invalid) are dropped and reported.
+ */
+export function createLenientClipHighlightDetectionSchema(
+  onDropped?: DroppedItemsHandler,
+) {
+  return z.strictObject({
+    highlights: lenientItems(clipHighlightSchema, {
+      normalize: truncateClipTitle,
+      onDropped,
+    }),
+  });
+}
 export type HighlightResult = z.infer<typeof clipHighlightSchema>;
 export const CLIP_HIGHLIGHT_DETECTION_SCHEMA_NAME = 'clip_highlight_detection';

@@ -4,19 +4,21 @@ import {
   LibraryPlace,
   LibraryShelf,
   PageScope,
+  TagMatchMode,
 } from '@genfeedai/contracts';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockOpenUpload, mockReplace, state } = vi.hoisted(() => ({
+const { mockOpenUpload, mockPush, mockReplace, state } = vi.hoisted(() => ({
   mockOpenUpload: vi.fn(),
+  mockPush: vi.fn(),
   mockReplace: vi.fn(),
   state: { pathname: '/library/assets', search: '' },
 }));
 
 vi.mock('next/navigation', () => ({
   usePathname: () => state.pathname,
-  useRouter: () => ({ replace: mockReplace }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
   useSearchParams: () => new URLSearchParams(state.search),
 }));
 
@@ -103,10 +105,40 @@ describe('useLibraryBrowser', () => {
     ]);
   });
 
-  it('sends no origin when none is selected', () => {
-    const { result } = renderHook(() => useLibraryBrowser({}));
+  it('keeps references out of All assets when no origin is selected', () => {
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ place: LibraryPlace.ASSETS }),
+    );
 
     expect(result.current.origins).toEqual([]);
+    expect(result.current.contextValue.query.origins).toEqual([
+      IngredientOrigin.GENERATED,
+      IngredientOrigin.UNKNOWN,
+    ]);
+  });
+
+  it('keeps references out of a type preset, which is All assets with chips', () => {
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ seededCategories: [IngredientCategory.IMAGE] }),
+    );
+
+    expect(result.current.contextValue.query.origins).toEqual([
+      IngredientOrigin.GENERATED,
+      IngredientOrigin.UNKNOWN,
+    ]);
+  });
+
+  it.each([
+    ['a shelf', '?shelf=references', {}],
+    ['a folder', '?folder=f1', { place: LibraryPlace.ASSETS }],
+    ['Recent', '', { place: LibraryPlace.RECENT }],
+    ['Starred', '', { place: LibraryPlace.STARRED }],
+    ['Trash', '', { place: LibraryPlace.TRASH }],
+  ])('sends no origin default inside %s', (_label, search, props) => {
+    state.search = search;
+
+    const { result } = renderHook(() => useLibraryBrowser(props));
+
     expect(result.current.contextValue.query).not.toHaveProperty('origins');
   });
 
@@ -216,6 +248,111 @@ describe('useLibraryBrowser', () => {
     const cleared = new URLSearchParams(lastPushedSearch());
     expect(cleared.has('origins')).toBe(false);
     expect(cleared.getAll('categories')).toEqual(['VIDEO']);
+  });
+
+  describe('tags', () => {
+    it('reads repeated tags from the URL into the API query', () => {
+      state.search = '?tags=t1&tags=t2&tags=t1';
+
+      const { result } = renderHook(() => useLibraryBrowser({}));
+
+      expect(result.current.tags).toEqual(['t1', 't2']);
+      expect(result.current.contextValue.query.tags).toEqual(['t1', 't2']);
+    });
+
+    it('never reads more tags from the URL than the API accepts', () => {
+      state.search = Array.from(
+        { length: 30 },
+        (_, index) => `tags=t${index}`,
+      ).join('&');
+
+      const { result } = renderHook(() => useLibraryBrowser({}));
+
+      expect(result.current.tags).toHaveLength(25);
+    });
+
+    it('sends no tags and no match mode when none are selected', () => {
+      state.search = '?tagMatch=all';
+
+      const { result } = renderHook(() => useLibraryBrowser({}));
+
+      expect(result.current.tags).toEqual([]);
+      expect(result.current.contextValue.query).not.toHaveProperty('tags');
+      expect(result.current.contextValue.query).not.toHaveProperty('tagMatch');
+    });
+
+    it('defaults to any and sends all only when asked for beside several tags', () => {
+      state.search = '?tags=t1&tags=t2';
+      const { result: any } = renderHook(() => useLibraryBrowser({}));
+      expect(any.current.tagMatch).toBe(TagMatchMode.ANY);
+      expect(any.current.contextValue.query).not.toHaveProperty('tagMatch');
+
+      state.search = '?tags=t1&tags=t2&tagMatch=ALL';
+      const { result: all } = renderHook(() => useLibraryBrowser({}));
+      expect(all.current.tagMatch).toBe(TagMatchMode.ALL);
+      expect(all.current.contextValue.query.tagMatch).toBe(TagMatchMode.ALL);
+
+      // One tag has nothing to combine, so the mode is never sent.
+      state.search = '?tags=t1&tagMatch=all';
+      const { result: single } = renderHook(() => useLibraryBrowser({}));
+      expect(single.current.contextValue.query).not.toHaveProperty('tagMatch');
+    });
+
+    it('writes tags to the URL without dropping the other axes', () => {
+      state.search =
+        '?categories=IMAGE&origins=GENERATED&characters=c1&folder=f1&search=hero&page=2';
+
+      const { result } = renderHook(() => useLibraryBrowser({}));
+      act(() => result.current.handleTagsChange(['t1', 't2', 't1']));
+
+      const next = new URLSearchParams(lastPushedSearch());
+      expect(next.getAll('tags')).toEqual(['t1', 't2']);
+      expect(next.getAll('categories')).toEqual(['IMAGE']);
+      expect(next.getAll('origins')).toEqual(['GENERATED']);
+      expect(next.getAll('characters')).toEqual(['c1']);
+      expect(next.get('folder')).toBe('f1');
+      expect(next.get('search')).toBe('hero');
+      expect(next.has('page')).toBe(false);
+    });
+
+    it('writes the match mode only beside several tags', () => {
+      state.search = '?tags=t1&tags=t2';
+
+      const { result } = renderHook(() => useLibraryBrowser({}));
+      act(() => result.current.handleTagMatchChange(TagMatchMode.ALL));
+
+      const next = new URLSearchParams(lastPushedSearch());
+      expect(next.getAll('tags')).toEqual(['t1', 't2']);
+      expect(next.get('tagMatch')).toBe('all');
+
+      state.search = '?tags=t1&tagMatch=all';
+      const { result: single } = renderHook(() => useLibraryBrowser({}));
+      act(() => single.current.handleTagsChange(['t1']));
+      expect(new URLSearchParams(lastPushedSearch()).has('tagMatch')).toBe(
+        false,
+      );
+    });
+
+    it('keeps tags when another axis changes and clears only itself', () => {
+      state.search = '?tags=t1&tagMatch=all&tags=t2';
+
+      const { result } = renderHook(() => useLibraryBrowser({}));
+      act(() =>
+        result.current.handleCategoriesChange([IngredientCategory.VIDEO]),
+      );
+      const kept = new URLSearchParams(lastPushedSearch());
+      expect(kept.getAll('tags')).toEqual(['t1', 't2']);
+      expect(kept.get('tagMatch')).toBe('all');
+
+      state.search = '?categories=VIDEO&tags=t1&tags=t2&tagMatch=all';
+      const { result: second } = renderHook(() => useLibraryBrowser({}));
+      act(() => second.current.handleClearTags());
+
+      const cleared = new URLSearchParams(lastPushedSearch());
+      expect(cleared.has('tags')).toBe(false);
+      expect(cleared.has('tagMatch')).toBe(false);
+      expect(cleared.getAll('categories')).toEqual(['VIDEO']);
+    });
   });
 
   it('puts the selected view in the shared list context', () => {
@@ -372,6 +509,39 @@ describe('useLibraryBrowser', () => {
     expect(mockOpenUpload).toHaveBeenLastCalledWith(
       expect.objectContaining({ category: IngredientCategory.INGREDIENT }),
     );
+  });
+
+  it('follows an upload from All assets to the References shelf', () => {
+    state.search = '?categories=IMAGE&view=list&page=2';
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ place: LibraryPlace.ASSETS }),
+    );
+
+    act(() => {
+      result.current.handleUpload();
+    });
+    act(() => {
+      mockOpenUpload.mock.lastCall?.[0].onComplete();
+    });
+
+    expect(mockPush).toHaveBeenCalledWith(
+      '/library/assets?categories=IMAGE&view=list&shelf=references',
+      { scroll: false },
+    );
+  });
+
+  it('refreshes in place after an upload from a view that shows references', () => {
+    state.search = '?shelf=references';
+    const { result } = renderHook(() => useLibraryBrowser({}));
+
+    act(() => {
+      result.current.handleUpload();
+    });
+    act(() => {
+      mockOpenUpload.mock.lastCall?.[0].onComplete();
+    });
+
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
   it('uploads against the organization when no brand is selected', () => {

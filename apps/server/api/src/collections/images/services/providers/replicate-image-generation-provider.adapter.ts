@@ -22,6 +22,7 @@ import {
   isFlux3ImageModel,
   isImageEditModel,
   MODEL_OUTPUT_CAPABILITIES,
+  resolveFlux3ReplicateEndpoint,
 } from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
 
@@ -181,7 +182,7 @@ export class ReplicateImageGenerationProviderAdapter
       failureLabel: 'ReplicateService generateImage',
       generate: async () => {
         const generationId = await this.replicateService.generateTextToImage(
-          request.modelEndpoint ?? request.model,
+          resolveFlux3ReplicateEndpoint(request.modelEndpoint ?? request.model),
           input,
           request.apiKeyOverride,
           request.onProviderSubmissionStarted,

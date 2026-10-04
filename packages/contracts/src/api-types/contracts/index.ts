@@ -39,6 +39,7 @@ export * from './generation-webhook-events.contract';
 export * from './grok-trend-extraction.contract';
 export * from './ingredients.contract';
 export * from './instagram-authorized-signals.contract';
+export * from './lenient-items';
 export * from './linkedin-authorized-signals.contract';
 export * from './media-assessment.contract';
 export * from './media-moderation.contract';

@@ -6,6 +6,10 @@ import {
   useAgentChatStore,
 } from '@genfeedai/agent';
 import {
+  selectActiveRun,
+  selectIsGenerating,
+} from '@genfeedai/agent/stores/agent-chat.store.run';
+import {
   clearConversationComposerDraft,
   readConversationComposerDraft,
   writeConversationComposerAttachments,
@@ -219,8 +223,10 @@ export function useConversationScopeControls({
     status: organizationContextStatus,
     switchOrganization: switchRoutedOrganization,
   } = useRoutedOrganization();
-  const activeRunStatus = useAgentChatStore((state) => state.activeRunStatus);
-  const isGenerating = useAgentChatStore((state) => state.isGenerating);
+  const activeRunStatus = useAgentChatStore(
+    (state) => selectActiveRun(state).status,
+  );
+  const isGenerating = useAgentChatStore(selectIsGenerating);
   const resetActiveConversationState = useAgentChatStore(
     (state) => state.resetActiveConversationState,
   );

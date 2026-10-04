@@ -43,6 +43,17 @@ describe('ModelCreditQuoteService', () => {
     },
   );
 
+  it('names the model and pricing reason in the exception message', async () => {
+    modelsService.findBillablePricingProfile.mockResolvedValue(
+      billableProfile({ hasPendingRate: true }),
+    );
+    await expect(service.quoteByKey('test/model')).rejects.toMatchObject({
+      message:
+        'Pricing is unavailable for test/model: Pending provider rate requires review',
+      response: { code: 'PRICING_UNAVAILABLE', modelKey: 'test/model' },
+    });
+  });
+
   it('rejects a tariff from a different dispatched provider', async () => {
     await expect(
       service.quoteByKey('test/model', { provider: 'heygen' }),

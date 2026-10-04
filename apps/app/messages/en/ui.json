@@ -165,6 +165,21 @@
     "settingsDescription": "Enable a platform above to customise its title, description, and scheduling options.",
     "settingsTitle": "Platform-Specific Settings"
   },
+  "organizationCreateModal": {
+    "title": "Create Organization",
+    "description": "A new workspace with a default brand and 100 starter credits.",
+    "nameLabel": "Name",
+    "namePlaceholder": "My Organization",
+    "websiteLabel": "Website",
+    "websiteHelp": "Optional. We scan it to fill in the brand’s voice, colors and links.",
+    "websitePlaceholder": "acme.com",
+    "descriptionLabel": "Description",
+    "descriptionHelp": "Optional.",
+    "descriptionPlaceholder": "What does this organization do?",
+    "cancel": "Cancel",
+    "create": "Create",
+    "creating": "Creating…"
+  },
   "brandGenerate": {
     "banner": {
       "label": "Describe the banner",
@@ -191,6 +206,9 @@
   },
   "evaluationCard": {
     "persuasion": "Persuasion"
+  },
+  "organizationSwitcher": {
+    "switching": "Switching…"
   },
   "agentModelLockNotice": {
     "freePlan": "Free plans run every agent on {model}. <upgrade>Upgrade</upgrade> to choose any model."

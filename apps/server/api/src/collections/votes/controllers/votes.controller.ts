@@ -45,38 +45,34 @@ export class VotesController {
         throw new BadRequestException('Invalid entity id');
       }
 
-      if (createVoteDto.entityModel === VoteEntityModel.INGREDIENT) {
-        if (!user.organizationId) {
-          throw new NotFoundException('Ingredient', createVoteDto.entity);
-        }
-
-        const ingredient = await this.prisma.ingredient.findFirst({
-          select: { id: true },
-          where: {
-            id: createVoteDto.entity,
-            isDeleted: false,
-            organizationId: user.organizationId,
-          },
-        });
-
-        if (!ingredient) {
-          throw new NotFoundException('Ingredient', createVoteDto.entity);
-        }
-
-        const { vote } = await this.votesService.toggleVote({
-          entityId: createVoteDto.entity,
-          entityModel: VoteEntityModel.INGREDIENT,
-          organizationId: user.organizationId,
-          userId: user.userId ?? user.id,
-        });
-        return serializeSingle(request, VoteSerializer, vote);
+      if (!user.organizationId) {
+        throw new NotFoundException(
+          createVoteDto.entityModel,
+          createVoteDto.entity,
+        );
       }
 
-      const vote = await this.votesService.create({
+      // Fail closed: only an entity in the caller's own organization can be
+      // voted on, so a foreign or unknown id never reaches the votes table.
+      if (
+        !(await this.isEntityInOrganization(
+          createVoteDto.entityModel,
+          createVoteDto.entity,
+          user.organizationId,
+        ))
+      ) {
+        throw new NotFoundException(
+          createVoteDto.entityModel,
+          createVoteDto.entity,
+        );
+      }
+
+      const { vote } = await this.votesService.addVote({
         entityId: createVoteDto.entity,
         entityModel: createVoteDto.entityModel,
+        organizationId: user.organizationId,
         userId: user.userId ?? user.id,
-      } as unknown as CreateVoteDto);
+      });
 
       return serializeSingle(request, VoteSerializer, vote);
     } catch (error: unknown) {
@@ -97,12 +93,28 @@ export class VotesController {
       throw new BadRequestException('Invalid entity id');
     }
 
-    await this.votesService.patchAll(
-      {
-        entityId,
-        userId: user.userId ?? user.id,
-      },
-      { isDeleted: true },
-    );
+    await this.votesService.removeVote({
+      entityId,
+      organizationId: user.organizationId || undefined,
+      userId: user.userId ?? user.id,
+    });
+  }
+
+  private async isEntityInOrganization(
+    entityModel: VoteEntityModel,
+    entityId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    const where = { id: entityId, isDeleted: false, organizationId };
+
+    const row =
+      entityModel === VoteEntityModel.PROMPT
+        ? await this.prisma.prompt.findFirst({ select: { id: true }, where })
+        : await this.prisma.ingredient.findFirst({
+            select: { id: true },
+            where,
+          });
+
+    return Boolean(row);
   }
 }

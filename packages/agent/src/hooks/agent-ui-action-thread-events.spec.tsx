@@ -1,4 +1,6 @@
-'use client';
+import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
+
+('use client');
 
 import { MutationApprovalCard } from '@genfeedai/agent/components/MutationApprovalCard';
 import { useAgentThreadPrefetch } from '@genfeedai/agent/components/useAgentThreadPrefetch';
@@ -323,7 +325,7 @@ describe('ui-action results as thread events', () => {
     });
 
     expect(uiActionState()?.status).toBe('pending');
-    expect(useAgentChatStore.getState().activeRunId).toBe('exec-1');
+    expect(selectActiveRun(useAgentChatStore.getState()).runId).toBe('exec-1');
 
     emit('agent:done', done());
 
@@ -638,7 +640,7 @@ describe('ui-action results as thread events', () => {
       ]);
     });
     expect(useAgentChatStore.getState().latestProposedPlan).toEqual(newerPlan);
-    expect(useAgentChatStore.getState().activeRunId).toBe('exec-2');
+    expect(selectActiveRun(useAgentChatStore.getState()).runId).toBe('exec-2');
     expect(uiActionState('revise_plan:plan-2')?.status).toBe('pending');
   });
 
@@ -795,7 +797,7 @@ describe('ui-action results as thread events', () => {
       error: 'Provider unavailable',
       status: 'failed',
     });
-    expect(state.activeRunStatus).toBe('failed');
+    expect(selectActiveRun(state).status).toBe('failed');
     expect(state.error).toBe('Provider unavailable');
   });
 
@@ -980,7 +982,7 @@ describe('ui-action results as thread events', () => {
       status: 'failed',
     });
     // The followed run is untouched.
-    expect(useAgentChatStore.getState().activeRunId).toBe('exec-1');
+    expect(selectActiveRun(useAgentChatStore.getState()).runId).toBe('exec-1');
     expect(useAgentChatStore.getState().stream.isStreaming).toBe(true);
   });
 
@@ -1059,7 +1061,7 @@ describe('ui-action results as thread events', () => {
       error: 'Provider unavailable',
       status: 'failed',
     });
-    expect(state.activeRunStatus).toBe('failed');
+    expect(selectActiveRun(state).status).toBe('failed');
     expect(state.error).toBe('Provider unavailable');
   });
 
@@ -1160,7 +1162,9 @@ describe('ui-action results as thread events', () => {
         error: 'Provider unavailable',
         status: 'failed',
       });
-      expect(useAgentChatStore.getState().activeRunStatus).toBe('failed');
+      expect(selectActiveRun(useAgentChatStore.getState()).status).toBe(
+        'failed',
+      );
     });
 
     it('shows the failed card of a queued run whose result lands while another is followed', async () => {
@@ -1188,7 +1192,9 @@ describe('ui-action results as thread events', () => {
       );
 
       expect(uiActionState(secondKey)?.status).toBe('failed');
-      expect(useAgentChatStore.getState().activeRunId).toBe('exec-1');
+      expect(selectActiveRun(useAgentChatStore.getState()).runId).toBe(
+        'exec-1',
+      );
       const card = useAgentChatStore
         .getState()
         .messages.find((item) => item.id === 'proposal-2')?.metadata
@@ -1238,7 +1244,7 @@ describe('ui-action results as thread events', () => {
 
     const state = useAgentChatStore.getState();
     expect(uiActionState()?.status).toBe('completed');
-    expect(state.activeRunStatus).toBe('completed');
+    expect(selectActiveRun(state).status).toBe('completed');
     expect(state.error).toBeNull();
   });
 
@@ -1322,7 +1328,9 @@ describe('ui-action results as thread events', () => {
           'exec-a'
         ],
       ).toMatchObject({ status: 'completed', terminalSequence: 7 });
-      expect(useAgentChatStore.getState().activeRunId).toBe('exec-b');
+      expect(selectActiveRun(useAgentChatStore.getState()).runId).toBe(
+        'exec-b',
+      );
     });
 
     it('shows the plan approved when a second queued approval fails as a duplicate', () => {
@@ -1438,7 +1446,9 @@ describe('ui-action results as thread events', () => {
         runId: 'exec-b',
         status: 'completed',
       });
-      expect(useAgentChatStore.getState().activeRunId).toBe('exec-main');
+      expect(selectActiveRun(useAgentChatStore.getState()).runId).toBe(
+        'exec-main',
+      );
     });
 
     it('restores an earlier success over a duplicate failure whose result arrived first', () => {

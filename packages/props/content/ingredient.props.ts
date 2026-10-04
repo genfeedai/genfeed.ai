@@ -107,6 +107,11 @@ export interface IngredientInspectorRailProps {
   onOpenPreview?: () => void;
 }
 
+export interface IngredientPromptBlockProps {
+  prompt?: string | null;
+  className?: string;
+}
+
 export interface IngredientOriginBadgeProps {
   origin?: IngredientOrigin | null;
   className?: string;
@@ -406,4 +411,6 @@ export interface SelectionActionsBarProps {
   onPublishCampaign?: () => void;
   /** `subtopbar` joins the pinned library filters instead of floating. */
   placement?: 'overlay' | 'subtopbar';
+  /** The bulk tag control, rendered beside the other constructive actions. */
+  tagAction?: ReactNode;
 }

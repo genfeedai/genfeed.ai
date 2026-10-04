@@ -1,6 +1,7 @@
 import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
 import {
   FleetReviewStatus,
+  IngredientOrigin,
   IngredientStatus,
   LibraryShelf,
   QualityStatus,
@@ -22,9 +23,31 @@ describe('LibraryShelfUtil', () => {
       ).toEqual({ status: IngredientStatus.PROCESSING });
     });
 
-    it('scopes Unsorted to usable assets with no folder', () => {
+    it('scopes References to usable uploads and imports', () => {
+      expect(
+        LibraryShelfUtil.buildShelfFilter(LibraryShelf.REFERENCES),
+      ).toEqual({
+        origin: {
+          in: [IngredientOrigin.UPLOADED, IngredientOrigin.IMPORTED],
+        },
+        status: {
+          in: [
+            IngredientStatus.DRAFT,
+            IngredientStatus.PROCESSING,
+            IngredientStatus.UPLOADED,
+            IngredientStatus.GENERATED,
+            IngredientStatus.VALIDATED,
+          ],
+        },
+      });
+    });
+
+    it('scopes Unsorted to usable output with no folder, leaving references out', () => {
       expect(LibraryShelfUtil.buildShelfFilter(LibraryShelf.UNSORTED)).toEqual({
         folderId: null,
+        origin: {
+          notIn: [IngredientOrigin.UPLOADED, IngredientOrigin.IMPORTED],
+        },
         status: {
           in: [
             IngredientStatus.DRAFT,

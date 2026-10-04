@@ -9,7 +9,15 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import type { CharacterAdmission } from '@api/collections/personas/utils/character-admission.util';
-import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
+import {
+  authorizeCrunSelection,
+  type CrunPreparedInput,
+  type CrunPreparedResult,
+  normalizeCrunQuoteIntent,
+  prepareCrunPricing,
+  readReviewedCrunContract,
+  validateCrunPromptProvenance,
+} from '@api/services/integrations/crun/crun-quote-input.util';
 import { resolveCrunReferences } from '@api/services/integrations/crun/crun-reference.util';
 import type { CrunQuotePreparation } from '@api/services/integrations/crun/crun-task.schema';
 import { CrunTaskService } from '@api/services/integrations/crun/crun-task.service';
@@ -21,25 +29,11 @@ import type {
   CrunQuoteReasonCode,
 } from '@genfeedai/contracts/interfaces';
 import { normalizeCrunInput } from '@genfeedai/helpers';
-import { getRuntimeMarginMultiplier } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
-export interface CrunPreparedImageInput {
-  intent: CrunImageQuoteIntent;
-  intentHash: string;
-  brandId: string;
-  preparation: CrunQuotePreparation;
-  templateUsed?: string;
-  templateVersion?: number;
-}
-export type CrunPreparedImageResult =
-  | { isAvailable: true; data: CrunPreparedImageInput }
-  | { isAvailable: false; reasonCode: CrunQuoteReasonCode };
+export type CrunPreparedImageInput = CrunPreparedInput<CrunImageQuoteIntent>;
+export type CrunPreparedImageResult = CrunPreparedResult<CrunImageQuoteIntent>;
 
 @Injectable()
 export class CrunImageInputService {
@@ -55,16 +49,7 @@ export class CrunImageInputService {
   ) {}
 
   normalize(raw: unknown, user: AuthenticatedUser): CrunImageQuoteIntent {
-    const parsed = crunImageQuoteIntentSchema.safeParse(raw);
-    if (!parsed.success)
-      throw new BadRequestException({
-        code: 'CRUN_INVALID_INPUT',
-        fieldErrors: parsed.error.issues.map((issue) => ({
-          field: issue.path.join('.'),
-          message: issue.message,
-        })),
-      });
-    return { ...parsed.data, brandId: parsed.data.brandId ?? user.brandId };
+    return normalizeCrunQuoteIntent(crunImageQuoteIntentSchema, raw, user);
   }
 
   async prepare(
@@ -133,112 +118,29 @@ export class CrunImageInputService {
     );
   }
 
-  private async authorizeSelection(
+  private authorizeSelection(
     intent: CrunImageQuoteIntent,
     user: AuthenticatedUser,
   ) {
-    const brandId = intent.brandId;
-    if (!brandId) throw new BadRequestException({ code: 'CRUN_INVALID_INPUT' });
-    const brand = await this.prisma.brand.findFirst({
-      where: {
-        id: brandId,
-        organizationId: user.organizationId,
-        isDeleted: false,
-      },
-    });
-    if (!brand) throw new ForbiddenException('Selected brand is unavailable');
-    if (
-      intent.folderId &&
-      !(await this.prisma.folder.findFirst({
-        where: {
-          id: intent.folderId,
-          organizationId: user.organizationId,
-          brandId,
-          isDeleted: false,
-        },
-        select: { id: true },
-      }))
-    )
-      throw new ForbiddenException('Selected folder is unavailable');
-    return { brandId, brand };
+    return authorizeCrunSelection(this.prisma, intent, user);
   }
 
-  private async validatePromptProvenance(
+  private validatePromptProvenance(
     intent: CrunImageQuoteIntent,
     user: AuthenticatedUser,
     brandId: string,
-  ): Promise<CrunQuoteReasonCode | null> {
-    if (
-      intent.harness ||
-      intent.requestedSkillSlugs.length ||
-      (intent.knowledge &&
-        ((intent.knowledge.sourceIds?.length ?? 0) ||
-          (intent.knowledge.spaceIds?.length ?? 0) ||
-          (intent.knowledge.purposes?.length ?? 0)))
-    )
-      return 'CRUN_ENHANCEMENT_REQUIRED';
-    if (intent.promptId) {
-      const prompt = await this.prisma.prompt.findFirst({
-        where: {
-          id: intent.promptId,
-          organizationId: user.organizationId,
-          userId: user.userId,
-          brandId,
-          isDeleted: false,
-        },
-        select: { enhanced: true },
-      });
-      if (!prompt?.enhanced?.trim() || prompt.enhanced.trim() !== intent.text)
-        return 'CRUN_ENHANCEMENT_REQUIRED';
-    }
-    return null;
+  ) {
+    return validateCrunPromptProvenance(this.prisma, intent, user, brandId);
   }
 
-  private async readReviewedContract(
+  private readReviewedContract(
     intent: CrunImageQuoteIntent,
     user: AuthenticatedUser,
-  ): Promise<
-    | {
-        isAvailable: true;
-        model: NonNullable<Awaited<ReturnType<ModelsService['findOne']>>>;
-        contract: CrunModelInputContract;
-      }
-    | { isAvailable: false; reasonCode: CrunQuoteReasonCode }
-  > {
-    const model = await this.models.findOne({
-      key: intent.model,
-      organizationId: user.organizationId,
+  ) {
+    return readReviewedCrunContract(this.models, intent, user, {
+      category: ModelCategory.IMAGE,
+      mediaKind: 'image',
     });
-    if (
-      model?.provider !== 'crun' ||
-      !model.isActive ||
-      model.isDeleted ||
-      model.category !== ModelCategory.IMAGE
-    )
-      return { isAvailable: false, reasonCode: 'CRUN_MODEL_UNAVAILABLE' };
-    if (
-      model.pendingProviderContractVersion ||
-      !model.reviewedProviderContractVersion ||
-      intent.crunControls.contractVersion !==
-        model.reviewedProviderContractVersion
-    )
-      return { isAvailable: false, reasonCode: 'CRUN_CONTRACT_UNAVAILABLE' };
-    const rawContract = model.providerInputSchema;
-    if (
-      !rawContract ||
-      typeof rawContract !== 'object' ||
-      Array.isArray(rawContract)
-    )
-      return { isAvailable: false, reasonCode: 'CRUN_CONTRACT_UNAVAILABLE' };
-    const contract = rawContract as unknown as CrunModelInputContract;
-    if (
-      contract.version !== model.reviewedProviderContractVersion ||
-      contract.endpoint !== intent.model.slice(5) ||
-      contract.mediaKind !== 'image' ||
-      !contract.fields
-    )
-      return { isAvailable: false, reasonCode: 'CRUN_CONTRACT_UNAVAILABLE' };
-    return { isAvailable: true, model, contract };
   }
 
   /**
@@ -349,7 +251,7 @@ export class CrunImageInputService {
     return references.map((reference) => reference.url);
   }
 
-  private async preparePricing(
+  private preparePricing(
     intent: CrunImageQuoteIntent,
     user: AuthenticatedUser,
     brandId: string,
@@ -358,55 +260,22 @@ export class CrunImageInputService {
     normalizedInput: CrunQuotePreparation['request']['input'],
     built: Awaited<ReturnType<PromptBuilderService['buildPrompt']>>,
   ): Promise<CrunPreparedImageResult> {
-    const unavailable = (
-      reasonCode: CrunQuoteReasonCode,
-    ): CrunPreparedImageResult => ({ isAvailable: false, reasonCode });
-    const reviewed = await this.prisma.modelProviderContract.findFirst({
-      where: {
-        modelId,
-        provider: 'crun',
-        endpoint: contract.endpoint,
-        version: contract.version,
-        reviewStatus: 'approved',
+    return prepareCrunPricing(
+      {
+        config: this.config,
+        models: this.models,
+        prisma: this.prisma,
+        tasks: this.tasks,
       },
-      select: { pricing: true },
-    });
-    if (!reviewed) return unavailable('CRUN_CONTRACT_UNAVAILABLE');
-    const profile = await this.models.findBillablePricingProfile(
-      intent.model,
-      user.organizationId,
-    );
-    if (!profile) return unavailable('PRICING_UNAVAILABLE');
-    let credential: CrunQuotePreparation['credential'];
-    try {
-      credential = await this.tasks.resolveCredential(user.organizationId);
-    } catch {
-      return unavailable('CRUN_CREDENTIALS_UNAVAILABLE');
-    }
-    const creditsPerUsd = this.config.get('CRUN_CREDITS_PER_USD');
-    const rateVersion = this.config.get('CRUN_RATE_VERSION');
-    return {
-      isAvailable: true,
-      data: {
-        intent,
+      {
         brandId,
-        intentHash: quoteSnapshotHash(intent),
-        templateUsed: built.templateUsed,
-        templateVersion: built.templateVersion,
-        preparation: {
-          profile,
-          contract,
-          pricingEvidence: reviewed?.pricing,
-          request: { model: contract.endpoint, input: normalizedInput },
-          credential,
-          outputs: intent.outputs,
-          creditsPerUsd:
-            typeof creditsPerUsd === 'string' ? creditsPerUsd : null,
-          acquisitionRateVersion:
-            typeof rateVersion === 'string' ? rateVersion : null,
-          marginMultiplier: getRuntimeMarginMultiplier(),
-        },
+        built,
+        contract,
+        intent,
+        modelId,
+        normalizedInput,
+        user,
       },
-    };
+    );
   }
 }

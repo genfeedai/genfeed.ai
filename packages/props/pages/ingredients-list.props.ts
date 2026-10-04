@@ -21,7 +21,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { CrunVideoPromptBinding } from '@genfeedai/props/studio/prompt-bar.props';
 import type { IngredientsTypeProps } from '@props/content/ingredient.props';
-import type { Dispatch, SetStateAction } from 'react';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
 
 export type ImageToVideoPromptDraft = Partial<PromptTextareaSchema> & {
   isValid: boolean;
@@ -48,6 +48,8 @@ export interface IngredientsListHeaderProps {
   onPublishCampaign?: () => void;
   /** `subtopbar` joins the pinned library filters instead of floating. */
   placement?: 'overlay' | 'subtopbar';
+  /** The bulk tag control, rendered beside the other constructive actions. */
+  tagAction?: ReactNode;
 }
 
 export interface IngredientsListSidebarProps {

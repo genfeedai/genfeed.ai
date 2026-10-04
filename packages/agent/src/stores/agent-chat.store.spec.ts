@@ -291,7 +291,6 @@ describe('request-aware input resolution', () => {
     useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
     useAgentChatStore.setState({
       activeThreadId: 'thread-1',
-      activeRunStatus: 'awaiting_input',
       pendingInputRequest: {
         threadId: 'thread-1',
         inputRequestId: 'new-ask',
@@ -310,6 +309,14 @@ describe('request-aware input resolution', () => {
           runStatus: 'waiting_input',
         },
       ],
+      runsByThread: {
+        'thread-1': {
+          isGenerating: false,
+          runId: null,
+          startedAt: null,
+          status: 'awaiting_input',
+        },
+      },
     });
   });
 
@@ -328,7 +335,9 @@ describe('request-aware input resolution', () => {
     expect(listener).toHaveBeenCalledTimes(1);
     expect(useAgentChatStore.getState()).toMatchObject({
       pendingInputRequest: null,
-      activeRunStatus: 'running',
+      runsByThread: {
+        'thread-1': expect.objectContaining({ status: 'running' }),
+      },
       threads: [
         expect.objectContaining({
           attentionState: 'running',

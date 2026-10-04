@@ -28,6 +28,7 @@ vi.mock('~services/workspace.service', () => ({
 }));
 const OUTBOX = 'genfeed-publication-outbox-v1';
 const CONFIRMED = 'genfeed-publication-confirmed-v1';
+const WRITTEN = 'genfeed-publication-written-v1';
 let local: Record<string, unknown>;
 let session: Record<string, unknown>;
 let failSave = false;
@@ -107,7 +108,19 @@ beforeEach(async () => {
     revision: 1,
   };
   local = {};
-  session = {};
+  session = {
+    // The extension wrote the default test publication into tab 1's composer.
+    [WRITTEN]: {
+      '1': [
+        {
+          text: 'Own authored text',
+          origin: 'https://x.com',
+          scope: { ...mocks.snapshot },
+          createdAt: Date.now(),
+        },
+      ],
+    },
+  };
   failSave = false;
   failDelete = false;
   failSession = false;
@@ -1451,4 +1464,94 @@ it('a long-lived intent cannot authorize a stale submitted attempt', async () =>
   } finally {
     clock.mockRestore();
   }
+});
+
+it('registers extension-written text and captures only a matching publication', async () => {
+  session = {};
+  expect(
+    await service.registerExtensionWrittenText('Hello\n\n  world', source),
+  ).toBe(true);
+  const written = attempt();
+  written.description = 'Hello world';
+  expect(
+    (
+      await service.handlePublicationCaptureMessage(
+        { event: 'publicationCaptureBegin', attempt: written },
+        source,
+      )
+    ).success,
+  ).toBe(true);
+});
+it('ignores a publication the extension did not write and never uploads it', async () => {
+  const other = attempt();
+  other.description = 'My own tweet typed by hand';
+  const reply = await service.handlePublicationCaptureMessage(
+    { event: 'publicationCaptureBegin', attempt: other },
+    source,
+  );
+  expect(reply).toEqual({
+    success: false,
+    error: 'Not written with Genfeed',
+  });
+  expect(
+    (
+      await service.handlePublicationCaptureMessage(
+        {
+          event: 'publicationCaptureComplete',
+          observation: observation(other),
+        },
+        source,
+      )
+    ).success,
+  ).toBe(false);
+  expect(mocks.request).not.toHaveBeenCalled();
+  expect(session['genfeed-publication-pending-v1']).toBeUndefined();
+  expect(local[OUTBOX]).toBeUndefined();
+});
+it('does not let text written in one tab, workspace or after expiry authorize a capture', async () => {
+  expect(
+    await service.registerExtensionWrittenText('Tab two text', {
+      ...source,
+      tab: tab(2),
+    }),
+  ).toBe(true);
+  const other = attempt();
+  other.description = 'Tab two text';
+  expect(
+    (
+      await service.handlePublicationCaptureMessage(
+        { event: 'publicationCaptureBegin', attempt: other },
+        source,
+      )
+    ).success,
+  ).toBe(false);
+  vi.useFakeTimers();
+  vi.setSystemTime(Date.now() + 31 * 60 * 1000);
+  const late = attempt();
+  late.startedAt = Date.now();
+  expect(
+    (
+      await service.handlePublicationCaptureMessage(
+        { event: 'publicationCaptureBegin', attempt: late },
+        source,
+      )
+    ).success,
+  ).toBe(false);
+  vi.useRealTimers();
+  expect(mocks.request).not.toHaveBeenCalled();
+});
+it('registers nothing for forged senders, empty text or a disabled preference', async () => {
+  session = {};
+  expect(
+    await service.registerExtensionWrittenText('x', { ...source, id: 'other' }),
+  ).toBe(false);
+  expect(
+    await service.registerExtensionWrittenText('x', { ...source, frameId: 1 }),
+  ).toBe(false);
+  expect(await service.registerExtensionWrittenText('   ', source)).toBe(false);
+  local['genfeed-settings'] = { recordOwnPublications: false };
+  expect(await service.registerExtensionWrittenText('text', source)).toBe(
+    false,
+  );
+  expect(session[WRITTEN]).toBeUndefined();
 });

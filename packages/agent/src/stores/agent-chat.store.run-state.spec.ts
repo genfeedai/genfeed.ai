@@ -46,10 +46,7 @@ describe('agent-chat.store per-thread run state', () => {
       status: 'running',
     });
     expect(selectIsGenerating(state())).toBe(true);
-    expect(state().activeRunId).toBe('run-a');
-    expect(state().activeRunStatus).toBe('running');
-    expect(state().isGenerating).toBe(true);
-    expect(state().runStartedAt).toBe('2026-10-04T10:00:00.000Z');
+    expect(state().runsByThread['thread-a']).toEqual(selectActiveRun(state()));
   });
 
   it('shows the destination thread its own run on a switch, not the departing one', () => {
@@ -59,10 +56,12 @@ describe('agent-chat.store per-thread run state', () => {
     state().setActiveThread('thread-b');
 
     // Unknown destination: idle, and A's generating flag does not leak over.
-    expect(state().activeRunId).toBeNull();
-    expect(state().activeRunStatus).toBe('idle');
-    expect(state().isGenerating).toBe(false);
-    expect(selectActiveRun(state()).status).toBe('idle');
+    expect(selectActiveRun(state())).toEqual({
+      isGenerating: false,
+      runId: null,
+      startedAt: null,
+      status: 'idle',
+    });
     expect(state().runsByThread['thread-a']).toMatchObject({
       isGenerating: true,
       runId: 'run-a',
@@ -77,20 +76,19 @@ describe('agent-chat.store per-thread run state', () => {
     state().setActiveRun('run-b', { startedAt: 'b-start' });
 
     state().setActiveThread('thread-a');
-    expect(state()).toMatchObject({
-      activeRunId: 'run-a',
-      activeRunStatus: 'running',
+    expect(selectActiveRun(state())).toEqual({
       isGenerating: true,
-      runStartedAt: 'a-start',
+      runId: 'run-a',
+      startedAt: 'a-start',
+      status: 'running',
     });
-    expect(selectActiveRun(state()).runId).toBe('run-a');
 
     state().setActiveThread('thread-b');
-    expect(state()).toMatchObject({
-      activeRunId: 'run-b',
-      activeRunStatus: 'running',
+    expect(selectActiveRun(state())).toEqual({
       isGenerating: false,
-      runStartedAt: 'b-start',
+      runId: 'run-b',
+      startedAt: 'b-start',
+      status: 'running',
     });
   });
 
@@ -98,8 +96,8 @@ describe('agent-chat.store per-thread run state', () => {
     state().setActiveRun('run-a');
     state().setIsGenerating(true);
     state().setActiveThread(null);
-    expect(state().activeRunId).toBeNull();
-    expect(state().isGenerating).toBe(false);
+    expect(selectActiveRun(state()).runId).toBeNull();
+    expect(selectIsGenerating(state())).toBe(false);
   });
 
   it('settles a background thread without touching the visible thread', () => {
@@ -113,9 +111,10 @@ describe('agent-chat.store per-thread run state', () => {
       runId: null,
       status: 'completed',
     });
-    expect(state().activeRunId).toBe('run-b');
-    expect(state().activeRunStatus).toBe('running');
-    expect(selectActiveRun(state()).runId).toBe('run-b');
+    expect(selectActiveRun(state())).toMatchObject({
+      runId: 'run-b',
+      status: 'running',
+    });
   });
 
   it('walks cancel: cancelling survives a stream reset, then settles', () => {
@@ -124,7 +123,7 @@ describe('agent-chat.store per-thread run state', () => {
 
     state().transitionRun('thread-a', { status: 'cancelling', type: 'status' });
     state().resetStreamState();
-    expect(state().activeRunStatus).toBe('cancelling');
+    expect(selectActiveRun(state()).status).toBe('cancelling');
 
     state().transitionRun('thread-a', { status: 'cancelled', type: 'status' });
     state().transitionRun('thread-a', {
@@ -135,13 +134,11 @@ describe('agent-chat.store per-thread run state', () => {
       isGenerating: false,
       status: 'cancelled',
     });
-    expect(state().activeRunStatus).toBe('cancelled');
   });
 
   it('settles a stream reset to idle when not cancelling', () => {
     state().setActiveRun('run-a');
     state().resetStreamState();
-    expect(state().activeRunStatus).toBe('idle');
     expect(selectActiveRun(state()).status).toBe('idle');
   });
 
@@ -157,7 +154,7 @@ describe('agent-chat.store per-thread run state', () => {
     state().transitionRun('thread-a', { type: 'reset' });
     state().transitionRun('thread-a', { status: 'completed', type: 'status' });
     state().setError('later');
-    expect(state().activeRunStatus).toBe('completed');
+    expect(selectActiveRun(state()).status).toBe('completed');
   });
 
   it('resets every field together on clearStaleActiveRun and resetActiveConversationState', () => {
@@ -170,24 +167,32 @@ describe('agent-chat.store per-thread run state', () => {
       startedAt: null,
       status: 'idle',
     });
-    expect(state().runStartedAt).toBeNull();
 
     state().setActiveRun('run-b');
     state().setIsGenerating(true);
     state().resetActiveConversationState();
     expect(selectIsGenerating(state())).toBe(false);
-    expect(state().activeRunId).toBeNull();
+    expect(selectActiveRun(state()).runId).toBeNull();
   });
 
-  it('folds a direct write of the compatibility fields back into the record', () => {
-    useAgentChatStore.setState({
-      activeRunId: 'run-x',
-      activeRunStatus: 'awaiting_input',
-    });
+  it('mirrors a direct write of the open thread record into its summary', () => {
+    state().upsertThread(createThread('thread-a'));
+    useAgentChatStore.setState((current) => ({
+      runsByThread: {
+        ...current.runsByThread,
+        'thread-a': {
+          isGenerating: false,
+          runId: 'run-x',
+          startedAt: null,
+          status: 'running',
+        },
+      },
+    }));
     expect(selectActiveRun(state())).toMatchObject({
       runId: 'run-x',
-      status: 'awaiting_input',
+      status: 'running',
     });
+    expect(state().threads[0]?.runStatus).toBe('running');
   });
 
   it('settles a background thread summary in the same update as its record', () => {
@@ -207,7 +212,7 @@ describe('agent-chat.store per-thread run state', () => {
     expect(
       state().threads.find((thread) => thread.id === 'thread-b')?.runStatus,
     ).toBe('running');
-    expect(state().activeRunStatus).toBe('running');
+    expect(selectActiveRun(state()).status).toBe('running');
   });
 
   it('applies a pushed status to a background thread without touching the visible run', () => {
@@ -215,6 +220,7 @@ describe('agent-chat.store per-thread run state', () => {
       state().upsertThread(createThread(id));
     }
     state().setActiveRun('run-a');
+    state().setIsGenerating(true);
     state().setActiveThread('thread-b');
     state().setActiveRun('run-b');
 
@@ -233,8 +239,19 @@ describe('agent-chat.store per-thread run state', () => {
     expect(
       state().threads.find((thread) => thread.id === 'thread-a')?.runStatus,
     ).toBe('completed');
-    expect(state().activeRunId).toBe('run-b');
-    expect(state().activeRunStatus).toBe('running');
+    expect(selectActiveRun(state())).toMatchObject({
+      runId: 'run-b',
+      status: 'running',
+    });
+    // The background record settles with its summary.
+    expect(state().runsByThread['thread-a']).toMatchObject({
+      isGenerating: false,
+      status: 'completed',
+    });
+
+    state().setActiveThread('thread-a');
+    expect(selectActiveRun(state()).status).toBe('completed');
+    expect(selectIsGenerating(state())).toBe(false);
   });
 
   it('mirrors the open thread run status into its summary', () => {

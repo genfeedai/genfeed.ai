@@ -10,6 +10,7 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 const FETCH_TIMEOUT_MS = 10_000;
 export const MAX_CSS_BYTES = 262_144;
 export const MAX_TOTAL_CSS_BYTES = 1_048_576;
+export const MAX_HTML_BYTES = 3_145_728;
 
 /** Maximum number of retry attempts for rate-limited (429) requests */
 const MAX_RETRY_ATTEMPTS = 3;
@@ -61,6 +62,7 @@ export class BrandScraperHttp {
     response: Response,
     budget: WebsiteFetchBudget,
     total?: WebsiteStylesheetByteBudget,
+    maxBytes?: number,
   ): Promise<string> {
     const state = this.websiteResponses.get(response);
     const remaining = Math.min(
@@ -95,6 +97,8 @@ export class BrandScraperHttp {
           return text + decoder.decode();
         }
         bytes += chunk.value.byteLength;
+        if (maxBytes !== undefined && bytes > maxBytes)
+          throw new Error('html_size_limit');
         if (total) {
           total.bytes += chunk.value.byteLength;
           if (total.bytes >= MAX_TOTAL_CSS_BYTES)

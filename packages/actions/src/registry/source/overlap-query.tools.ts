@@ -120,7 +120,7 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'List library assets of one type, newest first, for one brand: brandId, else the thread brand, else your current brand; with none of those it lists the whole organization. Failed, archived and rejected assets are left out. Types image, video, music and avatar return id, category, status, url, label or prompt, origin and createdAt. Type character lists the active named characters the brand can use, including characters another organization granted to yours for use only (handle, label, description, whether a reference image exists, and who granted it). A revoked grant disappears on the next call.',
+      'List library assets of one type, newest first, for one brand: brandId, else the thread brand, else your current brand; with none of those it lists the whole organization. Failed, archived and rejected assets are left out. Types image, video, music and avatar return id, category, status, url, label or prompt, origin, tags (id and label) and createdAt. Type character lists the active named characters the brand can use, including characters another organization granted to yours for use only (handle, label, description, whether a reference image exists, and who granted it). A revoked grant disappears on the next call.',
     name: 'list_assets',
     parameters: {
       properties: {
@@ -157,6 +157,20 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
           description:
             'Type character only. Optional handle or label prefix filter.',
           type: 'string',
+        },
+        tagMatch: {
+          default: 'any',
+          description:
+            'How tags combine: any (default) returns assets with at least one of the tags, all returns assets carrying every one. Not used with type character.',
+          enum: ['any', 'all'],
+          type: 'string',
+        },
+        tags: {
+          description:
+            'Only assets carrying these tags (at most 25 tag ids, taken from the tags each listed asset returns). Combined by tagMatch. A tag the brand cannot use matches nothing. Not used with type character.',
+          items: { type: 'string' },
+          maxItems: 25,
+          type: 'array',
         },
         type: {
           description: 'Which kind of asset to list.',

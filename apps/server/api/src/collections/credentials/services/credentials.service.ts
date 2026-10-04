@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { isBootstrapCredentialWrite } from '@api/collections/brands/utils/brand-bootstrap-credentials.util';
+import { runFencedLearningMutation } from '@api/collections/content-learning/services/learning-fenced-mutation.util';
 import { OAUTH_STATE_TTL_MS } from '@api/collections/credentials/constants/oauth.constants';
 import type {
   CredentialDocument,
@@ -241,12 +242,13 @@ export class CredentialsService
     const include = this.populateToInclude(populate) as
       | Prisma.CredentialInclude
       | undefined;
-    const updated = await this.prisma.$transaction((tx) =>
+    const updated = await runFencedLearningMutation(this.prisma, (tx, scope) =>
       patchCredentialWithLearning(
         tx,
         this.learningMutationContext(),
         id,
         data as Prisma.CredentialUncheckedUpdateInput,
+        scope,
         include,
       ),
     );
@@ -290,8 +292,13 @@ export class CredentialsService
 
   override async remove(id: string): Promise<CredentialDocument | null> {
     if (!id) throw new ValidationException('Document ID is required');
-    const removed = await this.prisma.$transaction((tx) =>
-      removeCredentialWithLearning(tx, this.learningMutationContext(), id),
+    const removed = await runFencedLearningMutation(this.prisma, (tx, scope) =>
+      removeCredentialWithLearning(
+        tx,
+        this.learningMutationContext(),
+        id,
+        scope,
+      ),
     );
     if (removed) await this.invalidateCredentialMutationCache();
     await this.invalidateAccessBootstrap(removed?.organizationId);
@@ -962,14 +969,19 @@ export class CredentialsService
       'organizationId',
     );
     const settle = () =>
-      this.prisma.$transaction((tx) =>
-        reconcileCredentialWithLearning(tx, this.learningMutationContext(), {
-          id: credential.id,
-          organizationId,
-          externalId,
-          profileUpdate,
-          connectionUpdate,
-        }),
+      runFencedLearningMutation(this.prisma, (tx, scope) =>
+        reconcileCredentialWithLearning(
+          tx,
+          this.learningMutationContext(),
+          {
+            id: credential.id,
+            organizationId,
+            externalId,
+            profileUpdate,
+            connectionUpdate,
+          },
+          scope,
+        ),
       );
     try {
       return await settle();

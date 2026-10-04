@@ -1,31 +1,43 @@
 'use client';
 
+import {
+  type CreateOrganizationFormValues,
+  createOrganizationSchema,
+} from '@genfeedai/client/schemas';
 import { getJsonApiErrorMember } from '@genfeedai/services/core/json-api-error-message';
 import type { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
-import { useCallback, useReducer } from 'react';
+import { useCallback, useMemo, useReducer } from 'react';
+
+export type CreateOrganizationField = keyof CreateOrganizationFormValues;
+
+export type CreateOrganizationFieldErrors = Partial<
+  Record<CreateOrganizationField, string>
+>;
 
 interface CreateOrganizationState {
   createError: string | null;
-  description: string;
+  hasSubmitted: boolean;
   isCreating: boolean;
   isOpen: boolean;
-  label: string;
+  touched: Partial<Record<CreateOrganizationField, boolean>>;
+  values: CreateOrganizationFormValues;
 }
 
 type CreateOrganizationAction =
   | { type: 'SET_OPEN'; isOpen: boolean }
-  | { type: 'SET_LABEL'; label: string }
-  | { type: 'SET_DESCRIPTION'; description: string }
-  | { type: 'VALIDATION_ERROR'; error: string }
+  | { type: 'SET_FIELD'; field: CreateOrganizationField; value: string }
+  | { type: 'TOUCH_FIELD'; field: CreateOrganizationField }
+  | { type: 'SUBMIT_INVALID' }
   | { type: 'SUBMIT_START' }
   | { type: 'SUBMIT_ERROR'; error: string };
 
 const INITIAL_STATE: CreateOrganizationState = {
   createError: null,
-  description: '',
+  hasSubmitted: false,
   isCreating: false,
   isOpen: false,
-  label: '',
+  touched: {},
+  values: { description: '', label: '', websiteUrl: '' },
 };
 
 function createOrganizationReducer(
@@ -36,14 +48,28 @@ function createOrganizationReducer(
     case 'SET_OPEN':
       // Reset the form when the modal is dismissed so a reopen starts clean.
       return action.isOpen ? { ...state, isOpen: true } : { ...INITIAL_STATE };
-    case 'SET_LABEL':
-      return { ...state, label: action.label };
-    case 'SET_DESCRIPTION':
-      return { ...state, description: action.description };
-    case 'VALIDATION_ERROR':
-      return { ...state, createError: action.error };
+    case 'SET_FIELD':
+      // Editing a field clears a stale server error: it described the old values.
+      return {
+        ...state,
+        createError: null,
+        touched: { ...state.touched, [action.field]: true },
+        values: { ...state.values, [action.field]: action.value },
+      };
+    case 'TOUCH_FIELD':
+      return {
+        ...state,
+        touched: { ...state.touched, [action.field]: true },
+      };
+    case 'SUBMIT_INVALID':
+      return { ...state, hasSubmitted: true };
     case 'SUBMIT_START':
-      return { ...state, createError: null, isCreating: true };
+      return {
+        ...state,
+        createError: null,
+        hasSubmitted: true,
+        isCreating: true,
+      };
     case 'SUBMIT_ERROR':
       return { ...state, createError: action.error, isCreating: false };
     default:
@@ -53,25 +79,28 @@ function createOrganizationReducer(
 
 export interface UseCreateOrganizationModalReturn {
   createError: string | null;
-  description: string;
+  /** Errors for fields the user has touched (all fields after a submit). */
+  fieldErrors: CreateOrganizationFieldErrors;
   isCreating: boolean;
   isOpen: boolean;
-  label: string;
+  /** False while any field fails `createOrganizationSchema`; locks submit. */
+  isValid: boolean;
   open: () => void;
-  setDescription: (description: string) => void;
-  setLabel: (label: string) => void;
+  setField: (field: CreateOrganizationField, value: string) => void;
   setOpen: (isOpen: boolean) => void;
   submit: () => Promise<void>;
+  touchField: (field: CreateOrganizationField) => void;
+  values: CreateOrganizationFormValues;
 }
 
 /**
  * Focused hook for the "Create Organization" modal owned by OrganizationSwitcher.
  *
- * Groups the modal's five related pieces of state (open, label, description,
- * submitting, error) behind a single reducer so one logical transition dispatches
- * once instead of fanning out into separate `setState` renders. On success it
- * reloads the page to re-sync session-scoped workspace data (same contract as the
- * switch flow), so the form fields are cleared via the reducer's dismiss reset.
+ * Validates with `createOrganizationSchema`, the zod mirror of the API's
+ * `CreateOrganizationRequestDto`: only the name is required, and description
+ * and website are optional. Field errors appear once a field is touched, while
+ * `isValid` locks submit from the start. On success it reloads the page to
+ * re-sync session-scoped workspace data (same contract as the switch flow).
  */
 export function useCreateOrganizationModal(
   getOrgsService: () => Promise<OrganizationsService>,
@@ -81,6 +110,33 @@ export function useCreateOrganizationModal(
     INITIAL_STATE,
   );
 
+  const parsed = useMemo(
+    () => createOrganizationSchema.safeParse(state.values),
+    [state.values],
+  );
+
+  const fieldErrors = useMemo(() => {
+    const errors: CreateOrganizationFieldErrors = {};
+
+    if (parsed.success) {
+      return errors;
+    }
+
+    for (const issue of parsed.error.issues) {
+      const field = issue.path[0] as CreateOrganizationField | undefined;
+
+      if (
+        field &&
+        !errors[field] &&
+        (state.hasSubmitted || state.touched[field])
+      ) {
+        errors[field] = issue.message;
+      }
+    }
+
+    return errors;
+  }, [parsed, state.hasSubmitted, state.touched]);
+
   const setOpen = useCallback((isOpen: boolean) => {
     dispatch({ isOpen, type: 'SET_OPEN' });
   }, []);
@@ -89,30 +145,27 @@ export function useCreateOrganizationModal(
     dispatch({ isOpen: true, type: 'SET_OPEN' });
   }, []);
 
-  const setLabel = useCallback((label: string) => {
-    dispatch({ label, type: 'SET_LABEL' });
-  }, []);
+  const setField = useCallback(
+    (field: CreateOrganizationField, value: string) => {
+      dispatch({ field, type: 'SET_FIELD', value });
+    },
+    [],
+  );
 
-  const setDescription = useCallback((description: string) => {
-    dispatch({ description, type: 'SET_DESCRIPTION' });
+  const touchField = useCallback((field: CreateOrganizationField) => {
+    dispatch({ field, type: 'TOUCH_FIELD' });
   }, []);
 
   const submit = useCallback(async () => {
-    const trimmedLabel = state.label.trim();
-    if (!trimmedLabel) {
-      dispatch({
-        error: 'Organization name is required',
-        type: 'VALIDATION_ERROR',
-      });
+    if (!parsed.success) {
+      dispatch({ type: 'SUBMIT_INVALID' });
       return;
     }
+
     dispatch({ type: 'SUBMIT_START' });
     try {
       const svc = await getOrgsService();
-      await svc.createOrganization({
-        description: state.description.trim() || undefined,
-        label: trimmedLabel,
-      });
+      await svc.createOrganization(parsed.data);
       // Close + clear the form, then reload to re-sync session-scoped
       // workspace data for the new org (same contract as the switch flow).
       dispatch({ isOpen: false, type: 'SET_OPEN' });
@@ -123,22 +176,23 @@ export function useCreateOrganizationModal(
       dispatch({
         error:
           getJsonApiErrorMember(error)?.detail?.trim() ||
-          'Failed to create organization',
+          'Could not create the organization. Try again.',
         type: 'SUBMIT_ERROR',
       });
     }
-  }, [getOrgsService, state.description, state.label]);
+  }, [getOrgsService, parsed]);
 
   return {
     createError: state.createError,
-    description: state.description,
+    fieldErrors,
     isCreating: state.isCreating,
     isOpen: state.isOpen,
-    label: state.label,
+    isValid: parsed.success,
     open,
-    setDescription,
-    setLabel,
+    setField,
     setOpen,
     submit,
+    touchField,
+    values: state.values,
   };
 }

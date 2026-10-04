@@ -25,6 +25,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 
+const MAX_FONT_LIST_SCANS = 5;
 type ValidatedBrandFontUpload = ReturnType<typeof validateBrandFontUpload>;
 export interface BrandFontActor {
   organizationId: string;
@@ -180,30 +181,55 @@ export class BrandFontAssetsService {
     const limit = query.limit ?? 20;
     if (!Number.isInteger(limit) || limit < 1 || limit > 50)
       throw new BadRequestException('font_asset_invalid');
-    const cursor =
+    let cursor =
       query.cursor === undefined ? null : parseBrandFontCursor(query.cursor);
-    const rows = await this.prisma.asset.findMany({
-      where: {
-        ...this.scope(actor),
-        ...(cursor
-          ? {
-              OR: [
-                { createdAt: { lt: new Date(cursor.createdAt) } },
-                {
-                  createdAt: new Date(cursor.createdAt),
-                  id: { lt: cursor.id },
-                },
-              ],
-            }
-          : {}),
-      },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: limit + 1,
-    });
-    const docs = rows.slice(0, limit);
-    for (const row of docs) this.validateStored(row);
-    const hasMore = rows.length > limit;
-    const last = docs.at(-1);
+    const docs: Asset[] = [];
+    let hasMore = false;
+    let last: Asset | undefined;
+    // Invalid rows are skipped; keep scanning (bounded) so a page stays full
+    // whenever more valid rows exist and clients never see a short page with hasMore.
+    for (let scan = 0; scan < MAX_FONT_LIST_SCANS; scan++) {
+      const rows = await this.prisma.asset.findMany({
+        where: {
+          ...this.scope(actor),
+          ...(cursor
+            ? {
+                OR: [
+                  { createdAt: { lt: new Date(cursor.createdAt) } },
+                  {
+                    createdAt: new Date(cursor.createdAt),
+                    id: { lt: cursor.id },
+                  },
+                ],
+              }
+            : {}),
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit + 1,
+      });
+      const batch = rows.slice(0, limit);
+      const more = rows.length > limit;
+      let isFull = false;
+      for (const [index, row] of batch.entries()) {
+        last = row;
+        try {
+          this.validateStored(row);
+        } catch {
+          this.logger.warn(`font_asset_row_skipped ${row.id}`);
+          continue;
+        }
+        docs.push(row);
+        if (docs.length === limit) {
+          hasMore = more || index < batch.length - 1;
+          isFull = true;
+          break;
+        }
+      }
+      if (isFull) break;
+      hasMore = more;
+      if (!more || !last) break;
+      cursor = { createdAt: last.createdAt.toISOString(), id: last.id };
+    }
     return {
       docs,
       limit,
@@ -272,7 +298,9 @@ export class BrandFontAssetsService {
     return this.prisma.$transaction(
       async (tx) => {
         await this.lockBrand(tx, actor);
-        const existing = await tx.asset.findFirst({ where: { id } });
+        const existing = await tx.asset.findFirst({
+          where: { id, parentOrgId: actor.organizationId },
+        });
         if (existing) return this.replay(existing, actor, upload);
         this.checkSignal(signal);
         const asset = await tx.asset.create({
@@ -315,12 +343,16 @@ export class BrandFontAssetsService {
       actor.brandId,
       input.requestId,
     );
-    const existing = await this.prisma.asset.findFirst({ where: { id } });
+    const existing = await this.prisma.asset.findFirst({
+      where: { id, parentOrgId: actor.organizationId },
+    });
     if (existing)
       return this.prisma.$transaction(
         async (tx) => {
           await this.lockBrand(tx, actor);
-          const current = await tx.asset.findFirst({ where: { id } });
+          const current = await tx.asset.findFirst({
+            where: { id, parentOrgId: actor.organizationId },
+          });
           if (!current) throw new ConflictException('font_asset_conflict');
           return this.replay(current, actor, upload);
         },
@@ -349,7 +381,9 @@ export class BrandFontAssetsService {
     await this.prisma.$transaction(
       async (tx) => {
         await this.lockBrand(tx, actor);
-        const asset = await tx.asset.findFirst({ where: { id: assetId } });
+        const asset = await tx.asset.findFirst({
+          where: { id: assetId, parentOrgId: actor.organizationId },
+        });
         if (!asset || !this.owned(asset, actor))
           throw new NotFoundException({ message: 'font_asset_unavailable' });
         this.validateStored(asset);
