@@ -22,6 +22,7 @@ import type { UserAccessCacheService } from '@api/common/services/user-access-ca
 import { SubscriptionTier } from '@genfeedai/contracts';
 import { SINGLE_ORGANIZATION_LIMIT } from '@genfeedai/pricing';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import type { EventEmitter2 } from '@nestjs/event-emitter';
 
 describe('OrganizationsOperationsService', () => {
   const brandsService = {
@@ -54,6 +55,7 @@ describe('OrganizationsOperationsService', () => {
   };
   const userAccessCacheService = { invalidateAll: vi.fn() };
   const organizationLogoService = { resolveLogoUrls: vi.fn() };
+  const eventEmitter = { emit: vi.fn() };
   const user = {
     brandId: 'brand_active',
     id: 'user_1',
@@ -71,6 +73,7 @@ describe('OrganizationsOperationsService', () => {
     usersService as unknown as UsersService,
     userAccessCacheService as unknown as UserAccessCacheService,
     organizationLogoService as unknown as OrganizationLogoService,
+    eventEmitter as unknown as EventEmitter2,
   );
 
   beforeEach(() => {
@@ -334,6 +337,35 @@ describe('OrganizationsOperationsService', () => {
       expect(userAccessCacheService.invalidateAll).toHaveBeenCalledWith(
         'user_1',
       );
+      expect(eventEmitter.emit).toHaveBeenCalledWith('organization.created', {
+        brandId: 'brand_new',
+        organizationId: 'org_new',
+        userId: 'user_1',
+      });
+    });
+
+    it('creates the default brand without placeholder copy when no description is given', async () => {
+      await service.createOrganization({ label: 'New Org' }, user);
+
+      const brandInput = brandsService.create.mock.calls[0]?.[0] as Record<
+        string,
+        unknown
+      >;
+      expect(brandInput.description).toBeUndefined();
+    });
+
+    it('passes the typed website to the brand scan through the created event', async () => {
+      await service.createOrganization(
+        { label: 'New Org', websiteUrl: '  acme.com  ' },
+        user,
+      );
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith('organization.created', {
+        brandId: 'brand_new',
+        organizationId: 'org_new',
+        userId: 'user_1',
+        websiteUrl: 'acme.com',
+      });
     });
   });
 

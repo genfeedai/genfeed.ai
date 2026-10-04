@@ -928,6 +928,7 @@ export class AgentOnboardingToolHandler {
     const body = await buildFirstRunOnboardingImageBody({
       brandId: ctx.brandId,
       height: dimensions.height,
+      nodeEnv: this.configService.get('NODE_ENV'),
       onReferenceError: (error) =>
         this.loggerService.warn('Onboarding image skipped brand references', {
           brandId: ctx.brandId,

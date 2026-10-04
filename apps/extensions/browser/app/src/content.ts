@@ -312,7 +312,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     );
 
     chrome.runtime.sendMessage({
-      payload: { error: result.error, success: result.success },
+      payload: {
+        // Lets the background know this text was written by the extension.
+        content: result.success ? String(message.content ?? '') : undefined,
+        error: result.error,
+        success: result.success,
+      },
       type: 'CONTENT_INSERTED',
     });
 

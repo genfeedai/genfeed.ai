@@ -39,6 +39,7 @@ import {
   PUBLICATION_REPLY_INTENT_LIFETIME_MS,
   publicationCapturePageUrl as page,
 } from '~services/publication-capture-validation';
+import { NOT_WRITTEN_BY_GENFEED } from '~services/publication-capture-written';
 
 const normalize = (text: string) => text.replace(/\r\n/g, '\n').trim();
 const textOf = (element: HTMLElement) =>
@@ -562,14 +563,17 @@ export function attachXPublicationObserver(): () => void {
       () => cancel('Could not confirm publication'),
       60000,
     );
-    showPublicationStatus('Waiting for publication');
     void send({ event: 'publicationCaptureBegin', attempt }).then((reply) => {
       if (disposed || active !== attempt || generation !== version) return;
       if (reply.success === false) {
-        cancel(reply.error);
+        // Posts not written with Genfeed are ignored without any notice.
+        cancel(
+          reply.error === NOT_WRITTEN_BY_GENFEED ? undefined : reply.error,
+        );
         return;
       }
       armed = true;
+      showPublicationStatus('Waiting for publication');
       scan();
     });
   };

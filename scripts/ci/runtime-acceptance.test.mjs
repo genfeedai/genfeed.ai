@@ -531,6 +531,59 @@ test('evidence redacts environment values whose names look secret and nothing el
   assert.equal(redactBytes(binary, env), binary);
 });
 
+test('evidence redacts credential values by shape and by connection-style env names', () => {
+  const env = {
+    DATABASE_URL: 'internal-db-host.example:5432/appdb',
+    REDIS_URL: 'cache-host-internal:6379',
+    SERVICE_DSN: 'dsn-opaque-value-1',
+    UPSTREAM_CONNECTION: 'conn-opaque-value-2',
+    PUBLIC_LABEL: 'plain-public-value',
+  };
+  const leaks = {
+    userinfo: 'hunter2-userinfo-pass',
+    dsn: 'dsn-user:dsn-pass-secret',
+    bearer: 'bearerTokenValue1234567890',
+    authHeader: 'basicHeaderCredential9876',
+    sig: 'abcdef0123456789sigvalue',
+    cred: 'AKIAEXAMPLEKEY/20261004/us-east-1/s3/aws4_request',
+    plainSignature: 'plainSignatureValue77',
+    queryToken: 'queryTokenValue88',
+    tabbed: 'tabbedSecretToken123',
+    apos: "p'ass123456",
+  };
+  const text = [
+    `fetch https://deploy:${leaks.userinfo}@registry.example.com/path failed`,
+    `postgresql://${leaks.dsn}@db.internal:5432/app?sslmode=require`,
+    `redis://:redispass@cache.internal:6379/0`,
+    `request -H "Authorization: Bearer ${leaks.bearer}"`,
+    `{"headers":{"Authorization":"Basic ${leaks.authHeader}"}}`,
+    `Bearer ${leaks.bearer}`,
+    `Authorization: Bearer\t${leaks.tabbed}`,
+    `postgresql://svc:${leaks.apos}@db.example/app`,
+    `https://bucket.s3.amazonaws.com/o?X-Amz-Credential=${encodeURIComponent(leaks.cred)}&X-Amz-Signature=${leaks.sig}&X-Amz-Expires=60`,
+    `https://x.example/f?Signature=${leaks.plainSignature}&token=${leaks.queryToken}&keep=visible`,
+    `connect ${env.DATABASE_URL} ${env.REDIS_URL} ${env.SERVICE_DSN} ${env.UPSTREAM_CONNECTION} ${env.PUBLIC_LABEL}`,
+  ].join('\n');
+  const serialized = buildEvidence({ outcome: { error: text } }, identity, env);
+  for (const value of [
+    ...Object.values(leaks),
+    encodeURIComponent(leaks.cred),
+    'redispass',
+    env.DATABASE_URL,
+    env.REDIS_URL,
+    env.SERVICE_DSN,
+    env.UPSTREAM_CONNECTION,
+  ])
+    assert.ok(!serialized.includes(value), value);
+  const redactedError = JSON.parse(serialized).outcome.error;
+  assert.ok(redactedError.includes(env.PUBLIC_LABEL));
+  assert.ok(redactedError.includes('keep=visible'));
+  assert.ok(redactedError.includes('registry.example.com/path'));
+  assert.ok(redactedError.includes('X-Amz-Expires=60'));
+  const bytes = redactBytes(Buffer.from(text), env).toString();
+  assert.ok(!bytes.includes(leaks.sig) && !bytes.includes(leaks.bearer));
+});
+
 test('size policy rejects oversized raw evidence rather than truncating it', () => {
   assert.equal(RAW_LIMIT, 50 * 1024 * 1024);
   assert.equal(ENVELOPE_LIMIT, 100 * 1024 * 1024);

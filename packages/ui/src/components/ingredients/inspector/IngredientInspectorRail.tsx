@@ -1,5 +1,6 @@
 'use client';
 
+import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import {
   ButtonVariant,
   ComponentSize,
@@ -10,8 +11,20 @@ import {
 } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthorizedMediaPreview } from '@genfeedai/hooks/media/use-authorized-media-preview';
+import { useIngredientActions } from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { IngredientInspectorRailProps } from '@genfeedai/props/content/ingredient.props';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
+import {
+  formatIngredientFileSize,
+  getIngredientDimensionsLabel,
+  getIngredientDurationLabel,
+  getIngredientFailureReason,
+  getIngredientFormatLabel,
+  getIngredientModelLabel,
+  getIngredientPromptText,
+  getIngredientProviderLabel,
+  getIngredientStyleLabel,
+} from '@genfeedai/utils/media/ingredient-ledger.util';
 import {
   getIngredientPreviewUrl,
   isRasterPreviewUrl,
@@ -45,24 +58,6 @@ const SHELF_VARIANTS: Record<
   [LibraryShelf.ARCHIVED]: 'slate',
 };
 
-const BYTE_UNITS = ['B', 'KB', 'MB', 'GB'] as const;
-
-function formatBytes(bytes?: number): string | null {
-  if (!bytes || !Number.isFinite(bytes) || bytes <= 0) {
-    return null;
-  }
-
-  let value = bytes;
-  let unitIndex = 0;
-
-  while (value >= 1024 && unitIndex < BYTE_UNITS.length - 1) {
-    value /= 1024;
-    unitIndex += 1;
-  }
-
-  return `${unitIndex === 0 ? Math.round(value) : value.toFixed(1)} ${BYTE_UNITS[unitIndex]}`;
-}
-
 function InspectorField({
   label,
   value,
@@ -87,6 +82,41 @@ function InspectorField({
 }
 
 /**
+ * The prompt and a failure reason are long enough to wrap, so each gets its
+ * own block instead of a `<dl>` row. Its label travels as a prop like every
+ * other label in this rail.
+ */
+function InspectorNote({
+  label,
+  text,
+  tone = 'default',
+}: {
+  label: string;
+  text?: string | null;
+  tone?: 'default' | 'error';
+}) {
+  if (!text) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="text-2xs uppercase tracking-[0.12em] text-foreground/35">
+        {label}
+      </div>
+      <p
+        className={cn(
+          'min-w-0 select-text whitespace-pre-wrap break-words text-xs leading-relaxed',
+          tone === 'error' ? 'text-destructive' : 'text-foreground/62',
+        )}
+      >
+        {text}
+      </p>
+    </div>
+  );
+}
+
+/**
  * The inspector rail — what one asset is, read across all three Library axes at
  * once: its shelf (generation state), its folder (where a person filed it), and
  * its type. It appears only for a single selection; a multi-selection is a bulk
@@ -100,6 +130,13 @@ export default function IngredientInspectorRail({
   const translate = useTranslations('pages.library.inspector');
   const shelf = getIngredientShelf(ingredient);
   const grant = useAuthorizedMediaPreview(ingredient);
+  // The rail is a full detail surface, so Publish and Download run the same
+  // handlers as the asset modal. Without them the quick actions render as
+  // locked placeholders.
+  const { openPostBatchModal } = usePostModal();
+  const { handlers, loadingStates } = useIngredientActions({
+    onPublishIngredient: openPostBatchModal,
+  });
   const previewUrl = grant
     ? isRasterPreviewUrl(grant.url)
       ? grant.url
@@ -110,10 +147,9 @@ export default function IngredientInspectorRail({
       ? (grant.url ?? undefined)
       : ingredient.ingredientUrl
     : undefined;
-  const dimensions =
-    ingredient.width && ingredient.height
-      ? `${ingredient.width} × ${ingredient.height}`
-      : null;
+  const fileSize = formatIngredientFileSize(
+    ingredient.fileSize || ingredient.metadataSize,
+  );
 
   return (
     <aside
@@ -200,18 +236,33 @@ export default function IngredientInspectorRail({
             </dd>
           </div>
         ) : null}
-        <InspectorField label="Size" value={dimensions} />
         <InspectorField
-          label="File"
-          value={formatBytes(ingredient.metadataSize)}
+          label={translate('model')}
+          value={getIngredientModelLabel(ingredient)}
         />
         <InspectorField
-          label="Model"
-          value={ingredient.metadataModelLabel || ingredient.model}
+          label={translate('provider')}
+          value={getIngredientProviderLabel(ingredient)}
         />
-        <InspectorField label="Provider" value={ingredient.provider} />
         <InspectorField
-          label="Created"
+          label={translate('style')}
+          value={getIngredientStyleLabel(ingredient)}
+        />
+        <InspectorField
+          label={translate('dimensions')}
+          value={getIngredientDimensionsLabel(ingredient)}
+        />
+        <InspectorField
+          label={translate('duration')}
+          value={getIngredientDurationLabel(ingredient)}
+        />
+        <InspectorField
+          label={translate('format')}
+          value={getIngredientFormatLabel(ingredient)}
+        />
+        <InspectorField label={translate('file')} value={fileSize} />
+        <InspectorField
+          label={translate('created')}
           value={
             ingredient.createdAt
               ? format(new Date(ingredient.createdAt), 'd MMM yyyy, HH:mm')
@@ -220,9 +271,14 @@ export default function IngredientInspectorRail({
         />
       </dl>
 
+      <InspectorNote
+        label={translate('failureReason')}
+        text={getIngredientFailureReason(ingredient)}
+        tone="error"
+      />
       <IngredientPromptBlock
         key={ingredient.id}
-        prompt={ingredient.promptText}
+        prompt={getIngredientPromptText(ingredient)}
       />
 
       <IngredientTagsControl ingredient={ingredient} />
@@ -236,7 +292,17 @@ export default function IngredientInspectorRail({
         ingredientId={ingredient.id}
       />
 
-      <IngredientQuickActions align="start" selectedIngredient={ingredient} />
+      <IngredientQuickActions
+        align="start"
+        isDownloading={loadingStates.isDownloading}
+        isPublishing={loadingStates.isPublishing}
+        onDownload={async (asset) => {
+          await handlers.handleDownload(asset);
+          return undefined;
+        }}
+        onPublish={handlers.handlePublish}
+        selectedIngredient={ingredient}
+      />
     </aside>
   );
 }

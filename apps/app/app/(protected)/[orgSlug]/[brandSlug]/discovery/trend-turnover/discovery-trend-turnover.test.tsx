@@ -19,6 +19,13 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/brand${path}`,
+    orgHref: (path: string) => `/acme${path}`,
+  }),
+}));
+
 vi.mock('@services/core/logger.service', () => ({
   logger: {
     error: mocks.loggerError,
@@ -148,13 +155,15 @@ vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     children,
+    label,
     onClick,
   }: {
     children?: ReactNode;
+    label?: ReactNode;
     onClick?: () => void;
   }) => (
     <button type="button" onClick={onClick}>
-      {children}
+      {label ?? children}
     </button>
   ),
 }));
@@ -227,9 +236,13 @@ describe('DiscoveryTrendTurnover', () => {
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: 'Trend Turnover Dashboard',
+        name: 'Trend Turnover',
       }),
-    ).toHaveClass('sr-only');
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('container')).toHaveAttribute(
+      'data-module-chrome',
+      'section-topbar',
+    );
     expect(screen.getByText('Loading table')).toBeVisible();
 
     await waitFor(() => {
@@ -248,13 +261,14 @@ describe('DiscoveryTrendTurnover', () => {
     expect(screen.getByText('4.3d')).toBeVisible();
     expect(screen.getByText('8.0d')).toBeVisible();
 
-    fireEvent.click(screen.getByText('7D'));
+    // Radix tab triggers activate on mousedown.
+    fireEvent.mouseDown(screen.getByRole('tab', { name: '7D' }));
     await waitFor(() => {
       expect(mocks.getTurnoverStats).toHaveBeenCalledWith(7);
     });
   });
 
-  it('renders empty data and logs non-abort failures', async () => {
+  it('explains the page and links to source health when the corpus is empty', async () => {
     mocks.getTurnoverStats
       .mockResolvedValueOnce({
         byPlatform: [],
@@ -270,19 +284,30 @@ describe('DiscoveryTrendTurnover', () => {
 
     render(<DiscoveryTrendTurnover />);
 
+    expect(await screen.findByText('No trend turnover yet')).toBeVisible();
     expect(
-      await screen.findByText('No trend data for this period'),
+      screen.getByText(
+        /counts the trends that appeared and expired in the last 30 days/,
+      ),
     ).toBeVisible();
     expect(
-      screen.getByText('No platform data available for this period.'),
-    ).toBeVisible();
+      screen.getByRole('link', { name: /Check source health/ }),
+    ).toHaveAttribute('href', '/acme/brand/discovery/trends');
+    expect(screen.queryByTestId('trend-flow-chart')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('90D'));
+    fireEvent.click(screen.getByText('Show last 90 days'));
     await waitFor(() => {
-      expect(mocks.loggerError).toHaveBeenCalledWith(
-        'Failed to fetch trend turnover data',
-        expect.objectContaining({ error: expect.any(Error) }),
-      );
+      expect(mocks.getTurnoverStats).toHaveBeenCalledWith(90);
     });
+    expect(
+      await screen.findByText(
+        'Trend turnover could not be loaded. Refresh the page to try again.',
+      ),
+    ).toBeVisible();
+    expect(mocks.loggerError).toHaveBeenCalledWith(
+      'Failed to fetch trend turnover data',
+      expect.objectContaining({ error: expect.any(Error) }),
+    );
+    expect(screen.queryByText('No trend turnover yet')).not.toBeInTheDocument();
   });
 });

@@ -70,7 +70,9 @@
   },
   "analytics": {
     "trendTurnover": {
-      "heading": "Trend Turnover Dashboard",
+      "heading": "Trend Turnover",
+      "description": "How fast trends rise and fade on each platform.",
+      "periodLabel": "Period",
       "periods": {
         "d7": "7D",
         "d30": "30D",
@@ -116,6 +118,15 @@
         "title": "Platform Volatility",
         "description": "Turnover rate by platform: higher bars indicate faster trend churn.",
         "empty": "No platform data available for this period."
+      },
+      "errors": {
+        "load": "Trend turnover could not be loaded. Refresh the page to try again."
+      },
+      "emptyState": {
+        "title": "No trend turnover yet",
+        "description": "Trend Turnover counts the trends that appeared and expired in the last {days} days and how long they stayed active, so you can post before a topic peaks. It is calculated from the shared trend corpus, which has no trends for this period yet. It fills in on its own once trend sources refresh successfully.",
+        "checkSourceHealth": "Check source health",
+        "tryLongestPeriod": "Show last 90 days"
       }
     },
     "topVideos": {
@@ -265,7 +276,8 @@
         "heading": "Social Media Trends",
         "trendingTopics": "Trending Topics",
         "trendingHashtags": "Trending Hashtags",
-        "trendingSounds": "Trending Sounds"
+        "trendingSounds": "Trending Sounds",
+        "subtitle": "Public topics, videos, hashtags and sounds trending across platforms."
       },
       "header": {
         "latestObserved": "Latest observed source {date}",
@@ -2428,16 +2440,25 @@
     },
     "inspector": {
       "copyPrompt": "Copy prompt",
+      "created": "Created",
       "deletedReference": "Deleted reference",
+      "dimensions": "Dimensions",
+      "duration": "Duration",
+      "failureReason": "Why it failed",
+      "file": "File size",
+      "format": "Format",
       "hiddenCount": "{count, plural, one {# more is not available to you} other {# more are not available to you}}",
       "lineageError": "This could not be loaded right now.",
       "madeFrom": "Made from",
+      "model": "Model",
       "openPreview": "Open full-size preview",
       "origin": "Origin",
       "prompt": "Prompt",
+      "provider": "Provider",
       "showFullPrompt": "Show full prompt",
       "showLess": "Show less",
       "showMore": "Show more",
+      "style": "Style",
       "surface": "Library",
       "type": "Type",
       "untitled": "Untitled asset",

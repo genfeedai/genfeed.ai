@@ -17,7 +17,11 @@ const heygenStatusSchema = z.object({
     .nullish(),
 });
 
-/** Shared fixed-endpoint adapter. Credentials are resolved for the proved tenant. */
+/**
+ * Shared fixed-endpoint adapter. Credentials are resolved for the proved tenant.
+ * `failed` means HeyGen positively reported failure. Anything we could not
+ * learn (no key, transport error, malformed body, missing data) is `unknown`.
+ */
 export async function readHeygenVideoStatus(
   jobId: string,
   organizationId: string,
@@ -37,14 +41,14 @@ export async function readHeygenVideoStatus(
 
     if (!apiKey) {
       logger.error(
-        `${'HeygenVideoStatus'} getStatus failed: no HeyGen API key resolved`,
+        'HeygenVideoStatus getStatus failed: no HeyGen API key resolved',
         { organizationId },
       );
       return {
         error: 'No HeyGen API key configured (BYOK or env HEYGEN_KEY).',
         jobId,
         providerName: 'heygen',
-        status: 'failed',
+        status: 'unknown',
       };
     }
 
@@ -60,7 +64,7 @@ export async function readHeygenVideoStatus(
     const data = parsed.success ? parsed.data.data : undefined;
 
     if (!data) {
-      return { jobId, providerName: 'heygen', status: 'processing' };
+      return { jobId, providerName: 'heygen', status: 'unknown' };
     }
 
     if (data.status === 'completed') {
@@ -83,7 +87,7 @@ export async function readHeygenVideoStatus(
 
     return { jobId, providerName: 'heygen', status: 'processing' };
   } catch (error: unknown) {
-    logger.error(`${'HeygenVideoStatus'} getStatus failed`, error);
-    return { jobId, providerName: 'heygen', status: 'processing' };
+    logger.error('HeygenVideoStatus getStatus failed', error);
+    return { jobId, providerName: 'heygen', status: 'unknown' };
   }
 }

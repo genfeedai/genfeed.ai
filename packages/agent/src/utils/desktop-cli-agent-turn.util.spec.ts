@@ -1,4 +1,5 @@
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
 import {
   type DesktopCliAgentTurnHandleRef,
   runDesktopCliAgentTurn,
@@ -84,8 +85,12 @@ describe('runDesktopCliAgentTurn', () => {
       runtimeKey: 'local/claude-cli',
       threadId: 'thread-1',
     });
-    expect(useAgentChatStore.getState().isGenerating).toBe(true);
-    expect(useAgentChatStore.getState().activeRunStatus).toBe('running');
+    expect(selectActiveRun(useAgentChatStore.getState()).isGenerating).toBe(
+      true,
+    );
+    expect(selectActiveRun(useAgentChatStore.getState()).status).toBe(
+      'running',
+    );
     expect(activeTurnRef.current?.turnId).toBe(requests[0]?.turnId);
 
     emit({
@@ -137,9 +142,9 @@ describe('runDesktopCliAgentTurn', () => {
       resultSummary: 'Voice: bold',
       status: 'completed',
     });
-    expect(state.isGenerating).toBe(false);
-    expect(state.activeRunId).toBeNull();
-    expect(state.activeRunStatus).toBe('completed');
+    expect(selectActiveRun(state).isGenerating).toBe(false);
+    expect(selectActiveRun(state).runId).toBeNull();
+    expect(selectActiveRun(state).status).toBe('completed');
     expect(state.error).toBeNull();
     expect(activeTurnRef.current).toBeNull();
   });
@@ -198,7 +203,9 @@ describe('runDesktopCliAgentTurn', () => {
     await failing;
 
     expect(useAgentChatStore.getState().error).toContain('claude auth login');
-    expect(useAgentChatStore.getState().isGenerating).toBe(false);
+    expect(selectActiveRun(useAgentChatStore.getState()).isGenerating).toBe(
+      false,
+    );
 
     useAgentChatStore.getState().setError(null);
     const second = createBridge();
@@ -217,7 +224,9 @@ describe('runDesktopCliAgentTurn', () => {
     await cancelled;
 
     expect(useAgentChatStore.getState().error).toBeNull();
-    expect(useAgentChatStore.getState().activeRunStatus).toBe('cancelled');
+    expect(selectActiveRun(useAgentChatStore.getState()).status).toBe(
+      'cancelled',
+    );
   });
 
   it('reports bridge failures without the Electron IPC prefix', async () => {

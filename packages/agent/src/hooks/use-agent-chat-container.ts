@@ -28,6 +28,7 @@ import type {
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
 import {
   readConversationComposerDraft,
   writeConversationComposerAttachments,
@@ -162,14 +163,18 @@ export function useAgentChatContainer({
   const setIsLoadingOlderMessages = useAgentChatStore(
     (s) => s.setIsLoadingOlderMessages,
   );
-  const isGenerating = useAgentChatStore((s) => s.isGenerating);
+  const activeRun = useAgentChatStore(selectActiveRun);
+  const {
+    isGenerating,
+    runId: activeRunId,
+    startedAt: runStartedAt,
+    status: activeRunStatus,
+  } = activeRun;
   const error = useAgentChatStore((s) => s.error);
   const setError = useAgentChatStore((s) => s.setError);
   const streamState = useAgentChatStore((s) => s.stream);
   const threads = useAgentChatStore((s) => s.threads);
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
-  const activeRunId = useAgentChatStore((s) => s.activeRunId);
-  const activeRunStatus = useAgentChatStore((s) => s.activeRunStatus);
   const addWorkEvent = useAgentChatStore((s) => s.addWorkEvent);
   const clearPendingInputRequest = useAgentChatStore(
     (s) => s.clearPendingInputRequest,
@@ -196,7 +201,6 @@ export function useAgentChatContainer({
     (s) => s.onboardingTotalJourneyCredits,
   );
   const pendingInputRequest = useAgentChatStore((s) => s.pendingInputRequest);
-  const runStartedAt = useAgentChatStore((s) => s.runStartedAt);
   const setActiveRun = useAgentChatStore((s) => s.setActiveRun);
   const setActiveRunStatus = useAgentChatStore((s) => s.setActiveRunStatus);
   const workEvents = useAgentChatStore((s) => s.workEvents);
@@ -467,10 +471,8 @@ export function useAgentChatContainer({
       cancelSettleTimerRef.current = setTimeout(() => {
         cancelSettleTimerRef.current = null;
         const state = useAgentChatStore.getState();
-        if (
-          state.activeRunId !== activeRunId ||
-          state.activeRunStatus !== 'cancelling'
-        ) {
+        const liveRun = selectActiveRun(state);
+        if (liveRun.runId !== activeRunId || liveRun.status !== 'cancelling') {
           return;
         }
         state.setActiveRunStatus('cancelled');
@@ -561,13 +563,14 @@ export function useAgentChatContainer({
         return false;
       }
       const liveState = useAgentChatStore.getState();
+      const liveRun = selectActiveRun(liveState);
       const shouldQueueFollowUp =
         Boolean(activeUiActionRef.current) ||
-        liveState.isGenerating ||
-        isAgentRunActive(liveState.activeRunStatus) ||
+        liveRun.isGenerating ||
+        isAgentRunActive(liveRun.status) ||
         (isStreaming &&
           liveState.stream.isStreaming &&
-          liveState.activeRunStatus !== 'awaiting_input');
+          liveRun.status !== 'awaiting_input');
 
       const pendingAsk = liveState.pendingInputRequest;
       if (pendingAsk && !shouldQueueFollowUp) {
@@ -1117,7 +1120,7 @@ export function useAgentChatContainer({
           if (
             restoredRunId &&
             state.activeThreadId === activeThreadId &&
-            state.activeRunId === restoredRunId
+            selectActiveRun(state).runId === restoredRunId
           ) {
             clearStaleActiveRun();
           }

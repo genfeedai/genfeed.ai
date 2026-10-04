@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { CreateAgentTransferDto } from '@api/collections/agent-transfers/dto/create-agent-transfer.dto';
 import { projectAgentTransferStatus } from '@api/collections/agent-transfers/services/agent-transfer-status.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -18,6 +18,7 @@ import {
 } from '@genfeedai/contracts';
 import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { sha256Hex, stableStringify } from '@libs/utils/canonical-hash.util';
 import {
   BadRequestException,
   ConflictException,
@@ -69,29 +70,13 @@ type AuthorizedThread = {
   title: string | null;
 };
 
-function stableStringify(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `[${value.map(stableStringify).join(',')}]`;
-  }
-  if (value && typeof value === 'object') {
-    const record = value as Record<string, unknown>;
-    return `{${Object.keys(record)
-      .sort()
-      .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
-      .join(',')}}`;
-  }
-  return JSON.stringify(value) ?? 'null';
-}
-
 function requestHash(input: CreateAgentTransferDto): string {
   const {
     explicitUserIntent: _intent,
     sourceActionId: _action,
     ...payload
   } = input;
-  return `sha256:v1:${createHash('sha256')
-    .update(stableStringify(payload))
-    .digest('hex')}`;
+  return `sha256:v1:${sha256Hex(stableStringify(payload))}`;
 }
 
 @Injectable()

@@ -59,10 +59,38 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
     catalog: readonly ModelCatalogSeedEntry[] = this.resolveSeedCatalog(),
   ): Promise<number> {
     let upserted = 0;
+    const failedKeys: string[] = [];
 
+    // One bad entry must never strand the rest of the registry: every later
+    // row (and its pricing, provider-contract and review writes) would stay at
+    // whatever an earlier boot left behind.
     for (const entry of catalog) {
-      await this.upsertEntry(entry);
-      upserted += 1;
+      try {
+        await this.upsertEntry(entry);
+        upserted += 1;
+      } catch (error) {
+        failedKeys.push(entry.key);
+        this.logger.error(
+          `Model catalog entry failed to reconcile: ${entry.key}`,
+          error instanceof Error ? error : new Error(String(error)),
+          this.context,
+        );
+      }
+    }
+
+    // Every entry failing is an outage (database down, schema drift), not a
+    // bad entry: surface it as a failed seed rather than a quiet success.
+    if (upserted === 0 && failedKeys.length > 0) {
+      throw new Error(
+        `Model catalog reconcile failed for all ${failedKeys.length} entries`,
+      );
+    }
+
+    if (failedKeys.length > 0) {
+      this.logger.warn(
+        `Model catalog reconciled with ${failedKeys.length} failed entries: ${failedKeys.join(', ')}`,
+        this.context,
+      );
     }
 
     this.logger.log(

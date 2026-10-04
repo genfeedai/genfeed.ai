@@ -1,12 +1,7 @@
-import {
-  buildStructuredResponseFormat,
-  runStructuredCompletion,
-  toStructuredJsonSchema,
-} from '@api/services/integrations/llm/structured-output.util';
+import { runStructuredCompletion } from '@api/services/integrations/llm/structured-output.util';
 import {
   PROMPT_OPTIMIZATION_SCHEMA_NAME,
   type PromptOptimizationResult,
-  promptOptimizationSchema,
 } from '@genfeedai/contracts/api-types/contracts';
 
 export type { PromptOptimizationResult } from '@genfeedai/contracts/api-types/contracts';
@@ -31,6 +26,10 @@ import {
   CONTENT_OPTIMIZATION_WORKFLOW_DEFINITIONS,
   CONTENT_OPTIMIZATION_WORKFLOW_IDS,
 } from '@api/services/content-optimization/content-optimization-workflow-definition';
+import {
+  createPromptOptimizationOutputSchema,
+  PROMPT_OPTIMIZATION_RESPONSE_FORMAT,
+} from '@api/services/content-optimization/prompt-optimization-output.util';
 import { OpenAiLlmService } from '@api/services/integrations/openai-llm/services/openai-llm.service';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -674,7 +673,7 @@ export class ContentOptimizationService implements OnModuleInit {
       },
     ];
     return runStructuredCompletion({
-      schema: promptOptimizationSchema,
+      schema: createPromptOptimizationOutputSchema(this.logger),
       schemaName: PROMPT_OPTIMIZATION_SCHEMA_NAME,
       attempt: async (repair) => {
         const response = await this.openAiLlmService.chatCompletion({
@@ -688,10 +687,7 @@ export class ContentOptimizationService implements OnModuleInit {
             : messages,
           model: LLM_DEFAULTS.fastText,
           temperature: 0.7,
-          response_format: buildStructuredResponseFormat(
-            PROMPT_OPTIMIZATION_SCHEMA_NAME,
-            toStructuredJsonSchema(promptOptimizationSchema),
-          ),
+          response_format: PROMPT_OPTIMIZATION_RESPONSE_FORMAT,
         });
         return response.choices?.[0]?.message?.content ?? '';
       },

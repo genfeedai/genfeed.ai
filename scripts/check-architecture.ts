@@ -70,6 +70,14 @@ const checks = [
     name: 'Deterministic locale boundary',
   },
   {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-canonical-json-helpers.ts',
+    ],
+    name: 'Canonical JSON helpers',
+  },
+  {
     command: ['bun', 'run', 'scripts/check-decorator-boundaries.ts'],
     name: 'Nest decorator boundaries',
   },

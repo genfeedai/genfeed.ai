@@ -436,7 +436,8 @@ export function useAgentFullPage({
     const hasLiveLocalRun =
       Boolean(retainedEntry && retainedEntry.terminalAt === null) ||
       (shouldPreserveVisibleThread &&
-        (liveState.stream.isStreaming || liveState.activeRunId !== null));
+        (liveState.stream.isStreaming ||
+          selectActiveRun(liveState).runId !== null));
 
     let hasReportedLoadFailure = false;
     const reportLoadFailure = (error: unknown) => {

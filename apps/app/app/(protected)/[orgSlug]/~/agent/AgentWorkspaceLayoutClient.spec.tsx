@@ -1,3 +1,4 @@
+import type { AgentRunRecord } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { act, render, waitFor } from '@testing-library/react';
 import { type PropsWithChildren, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -29,7 +30,7 @@ const storeState = {
   activeThreadId: 'thread-existing' as string | null,
   setError: vi.fn(),
   messages: [] as Array<{ content: string }>,
-  isGenerating: false,
+  runsByThread: {} as Record<string, AgentRunRecord>,
   stream: { isStreaming: false },
   threads: [] as Array<{
     brandId?: string | null;
@@ -167,7 +168,7 @@ describe('AgentWorkspaceLayoutClient', () => {
     storeState.activeThreadId = 'thread-existing';
     storeState.threads = [];
     storeState.messages = [];
-    storeState.isGenerating = false;
+    storeState.runsByThread = {};
     storeState.stream.isStreaming = false;
     storeState.setError.mockReset();
     brandState.brandId = 'brand-1';

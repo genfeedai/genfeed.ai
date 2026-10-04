@@ -40,6 +40,7 @@ import {
 } from '@api/collections/brands/utils/brand-config-merge.util';
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
 import { resolveCreateAgentConfig } from '@api/collections/brands/utils/expert-brand-defaults.util';
+import { withLearningFenceEscalation } from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   isSlugUniqueConstraintError,
   MAX_SLUG_ALLOCATION_ATTEMPTS,
@@ -417,11 +418,17 @@ export class BrandsService extends BaseService<
     const tenantWhere = tenantScopedBrandWhere(id);
     const brand = sourceBearing
       ? this.normalizeDocument(
-          await this.prisma.$transaction((tx) =>
-            patchBrandWithLearning(tx, {
-              brandId: id,
-              data: data as Prisma.BrandUncheckedUpdateInput,
-            }),
+          await withLearningFenceEscalation((fenceScope) =>
+            this.prisma.$transaction((tx) =>
+              patchBrandWithLearning(
+                tx,
+                {
+                  brandId: id,
+                  data: data as Prisma.BrandUncheckedUpdateInput,
+                },
+                fenceScope,
+              ),
+            ),
           ),
         )
       : tenantWhere

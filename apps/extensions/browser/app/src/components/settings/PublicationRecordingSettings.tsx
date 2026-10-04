@@ -126,18 +126,18 @@ export function PublicationRecordingSettings(): ReactElement {
       <div className="flex items-start justify-between gap-3">
         <div>
           <span className="text-sm text-foreground">
-            Record my published posts
+            Save posts I write with Genfeed
           </span>
           <p className="text-2xs text-muted-foreground">
-            Save posts and replies you publish here to the selected Genfeed
-            brand. This does not publish for you.
+            Save posts and replies you generate with Genfeed and publish on X to
+            the selected Genfeed brand. Your other posts are never saved.
           </p>
         </div>
         <Button
           type="button"
           variant={ButtonVariant.UNSTYLED}
           role="switch"
-          ariaLabel="Record my published posts"
+          ariaLabel="Save posts I write with Genfeed"
           aria-checked={enabled}
           onClick={() => setEnabled(!enabled)}
           className={`relative h-5 w-9 shrink-0 rounded-full ${enabled ? 'bg-primary' : 'bg-border'}`}
@@ -148,9 +148,8 @@ export function PublicationRecordingSettings(): ReactElement {
         </Button>
       </div>
       <p className="text-2xs text-muted-foreground">
-        Currently observing X home text posts, text posts from the Post dialog,
-        and text replies opened from a post's Reply button. Other publishing
-        surfaces are being added.
+        Only text Genfeed inserted into the X composer is saved when you publish
+        it, from the home composer, the Post dialog or a reply.
       </p>
       <p
         role="status"

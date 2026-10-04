@@ -29,17 +29,22 @@ export async function seedFlux3ImageContract(
     model.pendingProviderContractVersion
   )
     return;
-  const endpoint = MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE;
-  const version =
-    modelKey === MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT
-      ? FLUX_3_EDIT_CONTRACT_VERSION
-      : FLUX_3_IMAGE_CONTRACT_VERSION;
+  const isEdit =
+    modelKey === MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT;
+  // The contract endpoint must equal the registry row's endpoint (billing
+  // checks it), and the registry keeps one row per (provider, endpoint).
+  const endpoint = isEdit
+    ? MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT
+    : MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE;
+  const version = isEdit
+    ? FLUX_3_EDIT_CONTRACT_VERSION
+    : FLUX_3_IMAGE_CONTRACT_VERSION;
   const verifiedAt = '2026-10-01T00:00:00.000Z';
   const inputSchema = openapi.components.schemas.Input;
   const pricing = {
     currency: 'USD',
     source: 'provider-model-page',
-    sourceUrl: `https://replicate.com/${endpoint}`,
+    sourceUrl: `https://replicate.com/${MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE}`,
     verifiedAt,
     rates: Object.entries(FLUX_3_PROVIDER_COSTS).map(
       ([resolution, unitPriceUsd]) => ({

@@ -51,12 +51,10 @@ afterEach(cleanup);
 it('shows default-on preference, boundedcoverage and explicitlyrecoverable records', async () => {
   render(<PublicationRecordingSettings />);
   expect(
-    screen.getByRole('switch', { name: 'Record my published posts' }),
+    screen.getByRole('switch', { name: 'Save posts I write with Genfeed' }),
   ).toHaveAttribute('aria-checked', 'true');
   expect(
-    screen.getByText(
-      /Currently observing X home text posts, text posts from the Post dialog/,
-    ),
+    screen.getByText(/Only text Genfeed inserted into the X composer is saved/),
   ).toBeInTheDocument();
   expect(
     await screen.findByText('Own pending publication'),

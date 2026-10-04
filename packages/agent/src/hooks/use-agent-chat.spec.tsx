@@ -15,8 +15,8 @@ describe('useAgentChat', () => {
     useAgentChatStore.setState({
       activeThreadId: null,
       error: null,
-      isGenerating: false,
       messages: [],
+      runsByThread: {},
       pageContext: null,
       threads: [],
     });

@@ -403,10 +403,23 @@ export class SignupPrefillService {
       ...input.scrapedData,
       brandVoice: input.brandVoice,
     };
+    const brand = await this.brandsService.findOne(
+      { id: input.brandId, organizationId: input.organizationId },
+      'none',
+    );
+    const currentDescription =
+      typeof brand?.description === 'string' ? brand.description : null;
+    // A description the user wrote when creating the organization wins over
+    // the site's meta description.
+    const scrapedForBrand: IScrapedBrandData = isPlaceholderBrandText(
+      currentDescription,
+    )
+      ? input.scrapedData
+      : { ...input.scrapedData, description: undefined };
 
     await this.brandPersistenceService.updateBrandWithScrapedData(
       input.brandId,
-      input.scrapedData,
+      scrapedForBrand,
       setupDto,
       input.brandLabel,
     );
@@ -468,6 +481,9 @@ export class SignupPrefillService {
         brandLabel,
         agentConfig,
         scrapedData,
+        isPlaceholderBrandText(currentDescription)
+          ? undefined
+          : (currentDescription ?? undefined),
       );
     }
 
