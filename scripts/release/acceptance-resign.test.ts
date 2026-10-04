@@ -1,8 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { BRAND_PATH } from '../ci/runtime-acceptance.mjs';
 import {
-  BRAND_PATH,
   buildNextContract,
+  buildVitestInvocations,
   CONTRACT_PATHS,
+  collectTitlesByRunning,
   commitsSincePin,
   diffContracts,
   formatDiff,
@@ -146,5 +148,106 @@ describe('acceptance re-sign report and history parsing', () => {
   it('parses flags and rejects unknown ones', () => {
     expect(parseArguments(['--dry-run', '--sha', 'abc']).dryRun).toBe(true);
     expect(() => parseArguments(['--force'])).toThrow(/Unknown/);
+  });
+});
+
+describe('acceptance re-sign spec runner', () => {
+  const SHA = 'a'.repeat(40);
+  const storagePath = CONTRACT_PATHS[1];
+  const reportFor = (entry: string) => ({
+    testResults: [
+      {
+        name: `/repo/${entry}`,
+        assertionResults: [{ status: 'passed', fullName: 't' }],
+      },
+    ],
+  });
+  const makeDeps = (overrides: Record<string, unknown> = {}) => ({
+    head: () => SHA,
+    dirtyPaths: () => [] as string[],
+    exec: vi.fn(() => 0),
+    readReport: vi.fn(() => reportFor(storagePath)),
+    env: {} as Record<string, string>,
+    execPath: 'node',
+    ...overrides,
+  });
+  const base = { sha: SHA, repoRoot: '/repo', reportDir: '/tmp/r' };
+
+  it('builds CI-equivalent invocations per group', () => {
+    const [storage, brand] = buildVitestInvocations(
+      [storagePath, BRAND_PATH],
+      base,
+    );
+    expect(storage.cwd).toBe('/repo/packages/storage/');
+    expect(storage.args).toContain('--reporter=json');
+    expect(storage.args).toContain(
+      storagePath.slice('packages/storage/'.length),
+    );
+    expect(brand.args).toContain('vitest.config.e2e.ts');
+    expect(brand.requiredEnv).toEqual(['BRANDED_GENERATION_TEST_DATABASE_URL']);
+  });
+
+  it('returns titles from the run report', () => {
+    const deps = makeDeps();
+    const titles = collectTitlesByRunning({
+      ...base,
+      changedPaths: [storagePath],
+      deps,
+    });
+    expect(titles.get(storagePath)).toEqual(['t']);
+    expect(deps.exec).toHaveBeenCalledTimes(1);
+  });
+
+  it('aborts without running when the checkout is not at the target sha', () => {
+    const deps = makeDeps({ head: () => 'b'.repeat(40) });
+    expect(() =>
+      collectTitlesByRunning({ ...base, changedPaths: [storagePath], deps }),
+    ).toThrow(/git checkout/);
+    expect(deps.exec).not.toHaveBeenCalled();
+  });
+
+  it('aborts when a spec has uncommitted edits', () => {
+    const deps = makeDeps({ dirtyPaths: () => [storagePath] });
+    expect(() =>
+      collectTitlesByRunning({ ...base, changedPaths: [storagePath], deps }),
+    ).toThrow(/Uncommitted/);
+  });
+
+  it('aborts when vitest fails or a test did not pass', () => {
+    expect(() =>
+      collectTitlesByRunning({
+        ...base,
+        changedPaths: [storagePath],
+        deps: makeDeps({ exec: vi.fn(() => 1) }),
+      }),
+    ).toThrow(/failed/);
+    expect(() =>
+      collectTitlesByRunning({
+        ...base,
+        changedPaths: [storagePath],
+        deps: makeDeps({
+          readReport: () => ({
+            testResults: [
+              {
+                name: `/repo/${storagePath}`,
+                assertionResults: [{ status: 'failed', fullName: 'x' }],
+              },
+            ],
+          }),
+        }),
+      }),
+    ).toThrow(/failed/);
+  });
+
+  it('requires the database env for the brand spec before running', () => {
+    const deps = makeDeps();
+    expect(() =>
+      collectTitlesByRunning({ ...base, changedPaths: [BRAND_PATH], deps }),
+    ).toThrow(/BRANDED_GENERATION_TEST_DATABASE_URL/);
+    expect(deps.exec).not.toHaveBeenCalled();
+  });
+
+  it('parses --init', () => {
+    expect(parseArguments(['--init']).isInit).toBe(true);
   });
 });

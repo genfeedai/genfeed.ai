@@ -7,12 +7,15 @@
 // readable diff (removed titles highlighted), validates the result with the
 // release validators, and only after an explicit y/N sets the variable.
 //
-// Titles cannot be derived from source (it.each, $placeholders), so changed
-// files need `--report <vitest-json>` from a passing run of those specs.
-// Unchanged files keep their pinned titles. Nothing is ever invented.
-import { execFileSync } from 'node:child_process';
+// Titles cannot be derived from source (it.each, $placeholders). For changed
+// files the script runs just those specs with the same vitest invocation CI's
+// runtime acceptance uses (JSON reporter) and takes the passed titles from the
+// report; `--report <vitest-json>` overrides that. Unchanged files keep their
+// pinned titles. Nothing is ever invented; any failure aborts without writing.
+import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -39,6 +42,7 @@ export const sha256Hex = (bytes) =>
 export function parseArguments(argv) {
   const options = {
     dryRun: false,
+    isInit: false,
     ref: DEFAULT_REF,
     repo: DEFAULT_REPO,
     report: null,
@@ -53,6 +57,7 @@ export function parseArguments(argv) {
       return next;
     };
     if (arg === '--dry-run') options.dryRun = true;
+    else if (arg === '--init') options.isInit = true;
     else if (arg === '--sha') options.ref = value();
     else if (arg === '--repo') options.repo = value();
     else if (arg === '--report') options.report = value();
@@ -229,6 +234,109 @@ export function validateNext(contract) {
   return problems;
 }
 
+const STORAGE_ROOT = 'packages/storage/';
+const BRAND_ROOT = 'apps/server/api/';
+
+// Same vitest invocation as runtime-acceptance.mjs: storage specs run from
+// packages/storage with vitest.config.ts; the brand integration spec runs from
+// apps/server/api with vitest.config.e2e.ts against a dedicated database.
+export function buildVitestInvocations(changedPaths, { repoRoot, reportDir }) {
+  const invocations = [];
+  const storage = changedPaths.filter((entry) => STORAGE_PATHS.includes(entry));
+  const vitestArgs = (config, reportPath, files) => [
+    '--max-old-space-size=2048',
+    path.join(repoRoot, 'node_modules/vitest/vitest.mjs'),
+    'run',
+    '--config',
+    config,
+    '--maxWorkers=1',
+    '--no-file-parallelism',
+    '--reporter=default',
+    '--reporter=json',
+    `--outputFile.json=${reportPath}`,
+    '--passWithNoTests=false',
+    ...files,
+  ];
+  if (storage.length > 0) {
+    const reportPath = path.join(reportDir, 'storage.report.json');
+    invocations.push({
+      name: 'storage',
+      reportPath,
+      cwd: path.join(repoRoot, STORAGE_ROOT),
+      args: vitestArgs(
+        'vitest.config.ts',
+        reportPath,
+        storage.map((entry) => entry.slice(STORAGE_ROOT.length)),
+      ),
+      requiredEnv: [],
+    });
+  }
+  if (changedPaths.includes(BRAND_PATH)) {
+    const reportPath = path.join(reportDir, 'brand.report.json');
+    invocations.push({
+      name: 'brand',
+      reportPath,
+      cwd: path.join(repoRoot, BRAND_ROOT),
+      args: vitestArgs('vitest.config.e2e.ts', reportPath, [
+        BRAND_PATH.slice(BRAND_ROOT.length),
+      ]),
+      requiredEnv: ['BRANDED_GENERATION_TEST_DATABASE_URL'],
+    });
+  }
+  return invocations;
+}
+
+// Gets passed titles for the changed files by running their specs. `deps`
+// supplies head(), dirtyPaths(), exec(), readReport(), env, execPath so the
+// orchestration is testable without running vitest.
+export function collectTitlesByRunning({
+  changedPaths,
+  sha,
+  repoRoot,
+  reportDir,
+  deps,
+}) {
+  const head = deps.head();
+  if (head !== sha)
+    throw new Error(
+      `Checkout is at ${head}, not ${sha}. Run: git checkout ${sha}  (then re-run), or pass --report.`,
+    );
+  const dirty = deps
+    .dirtyPaths()
+    .filter((entry) => changedPaths.includes(entry));
+  if (dirty.length > 0)
+    throw new Error(
+      `Uncommitted edits in acceptance specs: ${dirty.join(', ')}`,
+    );
+  const titles = new Map();
+  for (const invocation of buildVitestInvocations(changedPaths, {
+    repoRoot,
+    reportDir,
+  })) {
+    for (const name of invocation.requiredEnv)
+      if (!deps.env[name])
+        throw new Error(
+          `${invocation.name} acceptance needs ${name} (a dedicated Postgres) in the environment.`,
+        );
+    const status = deps.exec(deps.execPath, invocation.args, {
+      cwd: invocation.cwd,
+      env: deps.env,
+    });
+    if (status !== 0)
+      throw new Error(
+        `${invocation.name} acceptance run failed (exit ${status}); nothing was written.`,
+      );
+    for (const [entry, passed] of titlesFromReport(
+      deps.readReport(invocation.reportPath),
+    ))
+      titles.set(entry, passed);
+  }
+  const missing = changedPaths.filter((entry) => !titles.has(entry));
+  if (missing.length > 0)
+    throw new Error(`Run produced no results for: ${missing.join(', ')}`);
+  return titles;
+}
+
 // ---- side-effecting shell helpers (not unit-tested) ----
 
 const run = (command, args, options = {}) =>
@@ -248,16 +356,30 @@ const blobAt = (commit, filePath) =>
   });
 
 function readCurrentVariable(repo) {
+  let raw;
   try {
-    return JSON.parse(
-      run('gh', ['variable', 'get', VARIABLE_NAME, '--repo', repo]),
-    );
+    raw = run('gh', ['variable', 'get', VARIABLE_NAME, '--repo', repo]);
   } catch (error) {
-    process.stderr.write(
-      `Could not read ${VARIABLE_NAME} from ${repo} (${String(error.stderr ?? error.message).trim()}); diffing against an empty contract.\n`,
+    throw new Error(
+      `Could not read ${VARIABLE_NAME} from ${repo}: ${String(error.stderr ?? error.message).trim()}. Use --init only if the variable does not exist yet.`,
     );
-    return null;
   }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error(
+      `${VARIABLE_NAME} on ${repo} is not valid JSON; refusing to continue.`,
+    );
+  }
+}
+
+function assertVariableAbsent(repo) {
+  try {
+    run('gh', ['variable', 'get', VARIABLE_NAME, '--repo', repo]);
+  } catch {
+    return;
+  }
+  throw new Error(`${VARIABLE_NAME} already exists on ${repo}; drop --init.`);
 }
 
 function historyFor(sha, filePath, pinnedSha256) {
@@ -307,18 +429,56 @@ export async function main(argv) {
     }
   }
   const sha = git(['rev-parse', '--verify', `${options.ref}^{commit}`]).trim();
-  const current = readCurrentVariable(options.repo);
+  let current = null;
+  if (options.isInit) {
+    assertVariableAbsent(options.repo);
+    process.stdout.write(
+      `--init: ${VARIABLE_NAME} does not exist on ${options.repo}; this run will CREATE it.\n`,
+    );
+  } else current = readCurrentVariable(options.repo);
   const hashes = new Map(
     CONTRACT_PATHS.map((entry) => [entry, sha256Hex(blobAt(sha, entry))]),
   );
-  const titlesByPath = options.report
+  let titlesByPath = options.report
     ? titlesFromReport(JSON.parse(readFileSync(options.report, 'utf8')))
     : new Map();
-  const { contract, missing } = buildNextContract({
-    current,
-    hashes,
-    titlesByPath,
-  });
+  let built = buildNextContract({ current, hashes, titlesByPath });
+  if (built.missing.length > 0) {
+    const repoRoot = git(['rev-parse', '--show-toplevel']).trim();
+    const reportDir = mkdtempSync(path.join(tmpdir(), 'acceptance-resign-'));
+    process.stdout.write(
+      `Running ${built.missing.length} changed acceptance spec file(s) to collect titles...\n`,
+    );
+    try {
+      titlesByPath = new Map([
+        ...titlesByPath,
+        ...collectTitlesByRunning({
+          changedPaths: built.missing,
+          sha,
+          repoRoot,
+          reportDir,
+          deps: {
+            head: () => git(['rev-parse', 'HEAD']).trim(),
+            dirtyPaths: () =>
+              git(['status', '--porcelain'])
+                .split('\n')
+                .filter(Boolean)
+                .map((line) => line.slice(3)),
+            exec: (command, args, spawnOptions) =>
+              spawnSync(command, args, { ...spawnOptions, stdio: 'inherit' })
+                .status ?? 1,
+            readReport: (file) => JSON.parse(readFileSync(file, 'utf8')),
+            env: process.env,
+            execPath: process.execPath,
+          },
+        }),
+      ]);
+    } finally {
+      rmSync(reportDir, { force: true, recursive: true });
+    }
+    built = buildNextContract({ current, hashes, titlesByPath });
+  }
+  const { contract, missing } = built;
 
   process.stdout.write(
     `${VARIABLE_NAME} re-sign against ${sha} (${options.ref}) for ${options.repo}\n\n`,
