@@ -7,6 +7,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import type { AgentTeamMentionItem } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 
 const DEFAULT_TEAM_MENTION_LIMIT = 50;
@@ -89,14 +90,19 @@ export class MembersService extends BaseService<
       throw new TypeError('findActiveForUserAccess requires userId');
     }
 
-    // tenant-scope-ignore: access discovery recovers organizationIds from canonical users.id before tenant context exists
-    const members = await this.prisma.member.findMany({
-      where: {
-        isActive: true,
-        isDeleted: false,
-        userId,
-      },
-    });
+    // Access discovery is cross-organization by definition: it recovers the
+    // caller's organizationIds from canonical users.id. Since #5981 handlers
+    // run inside the request's tenant context, so the read must be explicit.
+    const members = await crossOrgUnsafe(() =>
+      // tenant-scope-ignore: access discovery recovers organizationIds from canonical users.id before tenant context exists
+      this.prisma.member.findMany({
+        where: {
+          isActive: true,
+          isDeleted: false,
+          userId,
+        },
+      }),
+    );
 
     return members as unknown as MemberDocument[];
   }
