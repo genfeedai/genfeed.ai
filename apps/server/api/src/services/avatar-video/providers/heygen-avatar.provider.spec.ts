@@ -4,7 +4,7 @@ import { HeyGenService } from '@api/services/integrations/heygen/services/heygen
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { HeygenAvatarProvider } from './heygen-avatar.provider';
 
