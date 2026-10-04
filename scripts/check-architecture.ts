@@ -78,6 +78,10 @@ const checks = [
     name: 'Canonical JSON helpers',
   },
   {
+    command: ['bun', 'run', 'scripts/architecture/check-local-type-guards.ts'],
+    name: 'Local type-guard helpers',
+  },
+  {
     command: ['bun', 'run', 'scripts/check-decorator-boundaries.ts'],
     name: 'Nest decorator boundaries',
   },

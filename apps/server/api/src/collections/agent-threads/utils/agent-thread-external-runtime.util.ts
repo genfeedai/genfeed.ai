@@ -4,21 +4,16 @@ import {
   isAgentExternalRuntimeKey,
 } from '@genfeedai/contracts/constants';
 import type { IAgentThreadExternalRuntime } from '@genfeedai/contracts/interfaces';
+import { readRecordOrNull } from '@genfeedai/utils/data/extract.util';
 
 /** Key inside `AgentThread.config` that stores the external CLI session. */
 export const AGENT_THREAD_EXTERNAL_RUNTIME_CONFIG_KEY = 'externalRuntime';
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
 export function readAgentThreadExternalRuntime(
   config: unknown,
 ): IAgentThreadExternalRuntime | null {
-  const stored = asRecord(
-    asRecord(config)?.[AGENT_THREAD_EXTERNAL_RUNTIME_CONFIG_KEY],
+  const stored = readRecordOrNull(
+    readRecordOrNull(config)?.[AGENT_THREAD_EXTERNAL_RUNTIME_CONFIG_KEY],
   );
 
   if (!stored || !isAgentExternalRuntimeKey(stored.runtimeKey)) {

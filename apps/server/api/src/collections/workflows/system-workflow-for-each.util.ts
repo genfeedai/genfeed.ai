@@ -4,6 +4,7 @@ import type {
   SystemWorkflowProvenance,
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 
 export const WORKFLOW_FOR_EACH_ACTION_ID = 'workflow.for-each';
 
@@ -304,12 +305,6 @@ function boundedInteger(
     throw new Error(`${field} must be an integer between ${min} and ${max}`);
   }
   return value;
-}
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
 }
 
 function requiredString(value: unknown, field: string): string {

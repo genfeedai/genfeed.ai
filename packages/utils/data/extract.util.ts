@@ -5,6 +5,45 @@ export function isRecord(value: unknown): value is UnknownRecord {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
+/** Trimmed non-empty string, otherwise `undefined`. */
+export function readString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0
+    ? value.trim()
+    : undefined;
+}
+
+/** Non-empty string returned as-is (not trimmed), otherwise `undefined`. */
+export function readNonEmptyString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+/** Non-blank string returned as-is (not trimmed), otherwise `undefined`. */
+export function readNonBlankString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() !== '' ? value : undefined;
+}
+
+/** Any string (including empty), otherwise `undefined`. */
+export function readRawString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+/** Plain object (arrays excluded), otherwise an empty record. */
+export function readRecord(value: unknown): UnknownRecord {
+  return isRecord(value) ? value : {};
+}
+
+/** Plain object (arrays excluded), otherwise `null`. */
+export function readRecordOrNull(value: unknown): UnknownRecord | null {
+  return isRecord(value) ? value : null;
+}
+
+/** Plain object (arrays excluded), otherwise `undefined`. */
+export function readRecordOrUndefined(
+  value: unknown,
+): UnknownRecord | undefined {
+  return isRecord(value) ? value : undefined;
+}
+
 export function getNestedValue(source: unknown, path: PropertyPath): unknown {
   let cursor: unknown = source;
 

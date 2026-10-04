@@ -11,6 +11,7 @@ import {
   type ModelProviderContract,
   Prisma,
 } from '@genfeedai/prisma';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 
@@ -106,19 +107,13 @@ type PricingContract = Pick<
   | 'pricing'
 >;
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
 function evidence(
   contract: PricingContract | undefined,
 ): ModelPricingEvidence | null {
   if (!contract) return null;
   const pricing = Array.isArray(contract.pricing)
-    ? asRecord(contract.pricing[0])
-    : asRecord(contract.pricing);
+    ? readRecord(contract.pricing[0])
+    : readRecord(contract.pricing);
   return {
     source: typeof pricing.source === 'string' ? pricing.source : null,
     sourceUrl: typeof pricing.sourceUrl === 'string' ? pricing.sourceUrl : null,
@@ -130,7 +125,7 @@ function evidence(
     currency: contract.currency,
     billingUnit: contract.billingUnit,
     unitPrice: contract.unitPrice,
-    conditionalDimensions: asRecord(contract.conditionalDimensions),
+    conditionalDimensions: readRecord(contract.conditionalDimensions),
     mappingStatus: contract.mappingStatus,
     observedAt: contract.lastSeenAt.toISOString(),
   };
@@ -260,8 +255,8 @@ export function projectAdminModelPricing(
     reasons.push(
       'Zero stored credits are unresolved, not an explicit free model',
     );
-  const schema = asRecord(model.providerInputSchema);
-  const properties = asRecord(schema.properties);
+  const schema = readRecord(model.providerInputSchema);
+  const properties = readRecord(schema.properties);
   const selectors = Object.fromEntries(
     [
       'resolution',
@@ -272,7 +267,7 @@ export function projectAdminModelPricing(
       'num_frames',
       'num_outputs',
     ].flatMap((key) => {
-      const property = asRecord(properties[key]);
+      const property = readRecord(properties[key]);
       return Object.keys(property).length
         ? [
             [

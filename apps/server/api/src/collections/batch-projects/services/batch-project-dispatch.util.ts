@@ -7,6 +7,10 @@ import type {
   IBatchProjectQuote,
   IBatchProjectQuoteLine,
 } from '@genfeedai/contracts/interfaces';
+import {
+  readNonEmptyString,
+  readRecordOrNull,
+} from '@genfeedai/utils/data/extract.util';
 
 /** Idea generation renders portrait short-form media. */
 export const IDEA_OUTPUT_ASPECT_RATIO = '9:16';
@@ -46,16 +50,6 @@ const DISPATCH_STATES = new Set<string>([
   'reserved',
   'settled',
 ]);
-
-function readRecord(value: unknown): Record<string, unknown> | null {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
 
 function readCount(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0
@@ -98,12 +92,12 @@ export function ideaSpeechText(idea: BatchIdea): string {
 }
 
 function parseQuoteLine(value: unknown): IBatchProjectQuoteLine | null {
-  const record = readRecord(value);
-  const itemId = readString(record?.itemId);
-  const key = readString(record?.key);
-  const format = readString(record?.format);
-  const model = readString(record?.model);
-  const billingMode = readString(record?.billingMode);
+  const record = readRecordOrNull(value);
+  const itemId = readNonEmptyString(record?.itemId);
+  const key = readNonEmptyString(record?.key);
+  const format = readNonEmptyString(record?.format);
+  const model = readNonEmptyString(record?.model);
+  const billingMode = readNonEmptyString(record?.billingMode);
   const attempt = readCount(record?.attempt);
   const credits = readCount(record?.credits);
   if (
@@ -134,11 +128,11 @@ function parseQuoteLine(value: unknown): IBatchProjectQuoteLine | null {
 export function parseBatchProjectQuote(
   value: unknown,
 ): IBatchProjectQuote | null {
-  const record = readRecord(value);
-  const id = readString(record?.id);
+  const record = readRecordOrNull(value);
+  const id = readNonEmptyString(record?.id);
   const revision = readCount(record?.revision);
-  const createdAt = readString(record?.createdAt);
-  const expiresAt = readString(record?.expiresAt);
+  const createdAt = readNonEmptyString(record?.createdAt);
+  const expiresAt = readNonEmptyString(record?.expiresAt);
   if (
     !record ||
     !id ||
@@ -157,7 +151,7 @@ export function parseBatchProjectQuote(
     }
     items.push(line);
   }
-  const acceptedAt = readString(record.acceptedAt);
+  const acceptedAt = readNonEmptyString(record.acceptedAt);
   return {
     createdAt,
     expiresAt,
@@ -173,11 +167,11 @@ export function parseBatchProjectQuote(
 export function parseBatchProjectItemDispatch(
   value: unknown,
 ): IBatchProjectItemDispatch | null {
-  const record = readRecord(value);
-  const key = readString(record?.key);
-  const model = readString(record?.model);
-  const billingMode = readString(record?.billingMode);
-  const state = readString(record?.state);
+  const record = readRecordOrNull(value);
+  const key = readNonEmptyString(record?.key);
+  const model = readNonEmptyString(record?.model);
+  const billingMode = readNonEmptyString(record?.billingMode);
+  const state = readNonEmptyString(record?.state);
   const attempt = readCount(record?.attempt);
   const credits = readCount(record?.credits);
   if (
@@ -192,7 +186,7 @@ export function parseBatchProjectItemDispatch(
   ) {
     return null;
   }
-  const reservationId = readString(record?.reservationId);
+  const reservationId = readNonEmptyString(record?.reservationId);
   return {
     attempt,
     billingMode: billingMode as BatchProjectBillingMode,

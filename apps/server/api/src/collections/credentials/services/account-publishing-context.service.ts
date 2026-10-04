@@ -17,6 +17,10 @@ import type {
   ContentSurface,
   Publishability,
 } from '@genfeedai/contracts/interfaces';
+import {
+  readRecordOrUndefined,
+  readString,
+} from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -49,18 +53,6 @@ function normalizeCredentialPlatform(value: unknown): CredentialPlatform {
     );
   }
   return platform;
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : undefined;
-}
-
-function readRecord(value: unknown): Record<string, unknown> | undefined {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
 }
 
 @Injectable()
@@ -162,7 +154,7 @@ export class AccountPublishingContextService {
         organizationId: params.organizationId,
       }),
       brand: {
-        agentConfig: readRecord(brand?.agentConfig),
+        agentConfig: readRecordOrUndefined(brand?.agentConfig),
         description: readString(brand?.description),
         id: String(brand?.id ?? params.brandId),
         label: readString(brand?.label),

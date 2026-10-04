@@ -1,5 +1,6 @@
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
 import { redactEmailTrackingUrl } from '@api/helpers/utils/email-tracking-url.util';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import {
   ArgumentsHost,
   Catch,
@@ -12,10 +13,6 @@ import type { Request as ExpressRequest } from 'express';
 interface ValidatorFieldError {
   field: string;
   message: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function constraintMessage(constraints: unknown): string | undefined {

@@ -35,6 +35,7 @@ import type {
   IContentPlanProvenance,
   IExpertFirstSystemReadiness,
 } from '@genfeedai/contracts/interfaces';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -52,12 +53,6 @@ export interface ExpertFirstSystemRecord {
   error?: string;
   planId?: string;
   status: ExpertFirstSystemStatus;
-}
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
 }
 
 function readStringList(value: unknown): string[] {

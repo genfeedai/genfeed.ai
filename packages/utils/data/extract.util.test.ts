@@ -9,9 +9,40 @@ import {
   getNumberByPaths,
   getStringByPaths,
   isRecord,
+  readNonBlankString,
+  readNonEmptyString,
+  readRawString,
+  readRecord,
+  readRecordOrNull,
+  readRecordOrUndefined,
+  readString,
 } from './extract.util';
 
 describe('extract utilities', () => {
+  it('reads strings with the documented trimming and empty handling', () => {
+    expect(readString('  a ')).toBe('a');
+    expect(readString('   ')).toBeUndefined();
+    expect(readString(1)).toBeUndefined();
+    expect(readNonEmptyString('  a ')).toBe('  a ');
+    expect(readNonEmptyString('   ')).toBe('   ');
+    expect(readNonEmptyString('')).toBeUndefined();
+    expect(readNonBlankString('  a ')).toBe('  a ');
+    expect(readNonBlankString('   ')).toBeUndefined();
+    expect(readRawString('')).toBe('');
+    expect(readRawString(null)).toBeUndefined();
+  });
+
+  it('reads records without treating arrays or null as records', () => {
+    const input = { a: 1 };
+    expect(readRecord(input)).toBe(input);
+    expect(readRecord([])).toEqual({});
+    expect(readRecord(null)).toEqual({});
+    expect(readRecordOrNull(input)).toBe(input);
+    expect(readRecordOrNull([])).toBeNull();
+    expect(readRecordOrUndefined(input)).toBe(input);
+    expect(readRecordOrUndefined('x')).toBeUndefined();
+  });
+
   it('identifies plain records without treating arrays as records', () => {
     expect(isRecord({ key: 'value' })).toBe(true);
     expect(isRecord([])).toBe(false);

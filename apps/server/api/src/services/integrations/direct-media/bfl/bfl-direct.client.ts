@@ -15,16 +15,13 @@ import {
   type PreparedDirectMediaRequest,
 } from '@api/services/integrations/direct-media/direct-media.types';
 import { requestDirectMediaJson } from '@api/services/integrations/direct-media/direct-media-transport';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 const POLLING_ORIGINS = new Set([
   'https://api.bfl.ai',
   'https://api.eu.bfl.ai',
   'https://api.us.bfl.ai',
 ]);
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function invalidResponse(isSubmissionUncertain = false): never {
   throw new DirectMediaProviderError(

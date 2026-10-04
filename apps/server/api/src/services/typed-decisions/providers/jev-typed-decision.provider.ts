@@ -21,6 +21,7 @@ import type {
   TypedDecisionScoreParams,
   TypedDecisionUsage,
 } from '@genfeedai/contracts/interfaces';
+import { readRecordOrUndefined } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
@@ -31,12 +32,6 @@ const JEV_ORIGIN = new URL(JEV_SYSTEM_ONE_URL).origin;
 const DEFAULT_RATE_LIMIT_COOLDOWN_SECONDS = 60;
 
 type UnknownRecord = Record<string, unknown>;
-
-function asRecord(value: unknown): UnknownRecord | undefined {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? (value as UnknownRecord)
-    : undefined;
-}
 
 function asProbability(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
@@ -310,16 +305,16 @@ export class JevTypedDecisionProvider implements TypedDecisionProvider {
   }
 
   private parseEvaluation(payload: unknown): JevEvaluation | null {
-    const envelope = asRecord(payload);
-    const answers = asRecord(envelope?.answers);
-    const answer = asRecord(answers?.[JEV_QUESTION_KEY]);
+    const envelope = readRecordOrUndefined(payload);
+    const answers = readRecordOrUndefined(envelope?.answers);
+    const answer = readRecordOrUndefined(answers?.[JEV_QUESTION_KEY]);
     const type = answer?.type;
 
     if (type !== 'choice' && type !== 'noul' && type !== 'score') {
       return null;
     }
 
-    const usage = parseUsage(asRecord(envelope?.usage));
+    const usage = parseUsage(readRecordOrUndefined(envelope?.usage));
 
     if (type === 'choice') {
       const choice = answer?.choice;

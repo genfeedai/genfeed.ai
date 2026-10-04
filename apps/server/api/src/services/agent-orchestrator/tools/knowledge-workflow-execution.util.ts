@@ -6,6 +6,7 @@ import type {
   AgentToolResult,
   KnowledgeWorkflowProvenance,
 } from '@genfeedai/contracts/interfaces';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type { ExecutionContext } from '@genfeedai/workflows/engine';
 
 const KNOWLEDGE_WORKFLOW_ACTION_IDS = new Set<string>([
@@ -99,10 +100,6 @@ export function toWorkflowToolExecutionContext(context: ExecutionContext): {
       : {}),
     userId: context.userId,
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function readSourceRef(

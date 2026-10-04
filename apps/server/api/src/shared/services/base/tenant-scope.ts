@@ -1,4 +1,5 @@
 import type { PrismaFilter } from '@api/shared/services/base/base-query-normalization.adapter';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import {
   getTenantContext,
   isCrossOrgUnsafe,
@@ -55,10 +56,6 @@ function toPrismaModelName(modelName: string): string {
 
 export function isPlatformRowModel(modelName: string): boolean {
   return PLATFORM_ROW_MODELS.has(toPrismaModelName(modelName));
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function isNonEmptyString(value: unknown): boolean {

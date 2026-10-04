@@ -13,6 +13,7 @@ import {
   type IBrandVoiceSample,
   type IGeneratedBrandProfile,
 } from '@genfeedai/contracts/interfaces';
+import { readRecordOrNull } from '@genfeedai/utils/data/extract.util';
 
 /**
  * Provider output that does not satisfy the brand-profile contract. Carries
@@ -131,12 +132,6 @@ function dedupeRules(rules: readonly string[], limit: number): string[] {
   });
 }
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
 function clampText(value: string, maxLength: number): string {
   return value.trim().replace(/\s+/g, ' ').slice(0, maxLength).trim();
 }
@@ -191,7 +186,7 @@ function parseJsonObject(content: string): Record<string, unknown> {
     throw new BrandVoiceValidationError(BrandVoiceFailureCode.MALFORMED_OUTPUT);
   }
 
-  const record = asRecord(parsed);
+  const record = readRecordOrNull(parsed);
   if (!record) {
     throw new BrandVoiceValidationError(
       BrandVoiceFailureCode.UNEXPECTED_OUTPUT_SHAPE,
@@ -205,7 +200,7 @@ function normalizeSeed(
   allowedTopics: string[],
   fallbackAudience: string,
 ): IBrandPromptSeed | null {
-  const record = asRecord(value);
+  const record = readRecordOrNull(value);
   if (!record) {
     return null;
   }

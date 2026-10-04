@@ -4,6 +4,7 @@ import type {
   AgentClipRunIdentityField,
   AgentClipRunIdentitySource,
 } from '@genfeedai/contracts/interfaces';
+import { readRecordOrUndefined } from '@genfeedai/utils/data/extract.util';
 
 export interface ClipIdentityResolutionInput {
   avatarId?: string;
@@ -26,12 +27,6 @@ function readOptionalString(value: unknown): string | undefined {
     : undefined;
 }
 
-function readRecord(value: unknown): Record<string, unknown> | undefined {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
-
 function isHeygenProvider(value: unknown): boolean {
   return (
     typeof value === 'string' && value.toUpperCase() === VoiceProvider.HEYGEN
@@ -39,7 +34,7 @@ function isHeygenProvider(value: unknown): boolean {
 }
 
 function readHeygenVoiceIdFromDefaultRef(value: unknown): string | undefined {
-  const ref = readRecord(value) as DefaultVoiceRefLike | undefined;
+  const ref = readRecordOrUndefined(value) as DefaultVoiceRefLike | undefined;
 
   if (ref?.source !== 'catalog' || !isHeygenProvider(ref.provider)) {
     return undefined;
@@ -78,8 +73,8 @@ export function resolveClipIdentity({
 }: ClipIdentityResolutionInput): AgentClipRunIdentity {
   const explicitAvatarId = readOptionalString(requestedAvatarId);
   const explicitVoiceId = readOptionalString(requestedVoiceId);
-  const brandRecord = readRecord(brand);
-  const brandAgentConfig = readRecord(brandRecord?.agentConfig);
+  const brandRecord = readRecordOrUndefined(brand);
+  const brandAgentConfig = readRecordOrUndefined(brandRecord?.agentConfig);
   const brandAvatarId = readOptionalString(brandAgentConfig?.heygenAvatarId);
   const brandVoiceId =
     readOptionalString(brandAgentConfig?.heygenVoiceId) ??
@@ -87,7 +82,8 @@ export function resolveClipIdentity({
     (isHeygenProvider(brandAgentConfig?.defaultVoiceProvider)
       ? readOptionalString(brandAgentConfig?.defaultVoiceId)
       : undefined);
-  const organizationSettingsRecord = readRecord(organizationSettings);
+  const organizationSettingsRecord =
+    readRecordOrUndefined(organizationSettings);
   const organizationVoiceId =
     readHeygenVoiceIdFromDefaultRef(
       organizationSettingsRecord?.defaultVoiceRef,

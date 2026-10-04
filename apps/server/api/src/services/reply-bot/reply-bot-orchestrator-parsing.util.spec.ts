@@ -2,24 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   mergeReplyContext,
   numberValue,
-  readRecord,
   requiredString,
 } from './reply-bot-orchestrator-parsing.util';
 
 describe('reply-bot-orchestrator-parsing.util', () => {
-  describe('readRecord', () => {
-    it('returns a plain object as-is', () => {
-      expect(readRecord({ a: 1 })).toEqual({ a: 1 });
-    });
-
-    it('returns an empty object for null, arrays, and primitives', () => {
-      expect(readRecord(null)).toEqual({});
-      expect(readRecord(undefined)).toEqual({});
-      expect(readRecord(['a'])).toEqual({});
-      expect(readRecord('x')).toEqual({});
-    });
-  });
-
   describe('requiredString', () => {
     it('returns a non-empty string', () => {
       expect(requiredString('hi', 'field')).toBe('hi');

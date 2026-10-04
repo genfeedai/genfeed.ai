@@ -11,6 +11,7 @@ import type {
   TableBlock,
   TopPostsBlock,
 } from '@genfeedai/contracts/interfaces';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { Injectable, Optional } from '@nestjs/common';
 
 const DEFAULT_PAGE_KEY = 'workspace-overview';
@@ -22,10 +23,6 @@ interface DashboardHydrationState {
 type HydratableDashboardBlock<T extends AgentUIBlock = AgentUIBlock> = T & {
   hydration?: DashboardHydrationState;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function resolveBrandId(
   params: Record<string, unknown>,

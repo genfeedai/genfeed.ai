@@ -1,3 +1,4 @@
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { ANONYMISER_TOKEN_PATTERN } from './golden-set.constants';
 import type {
   AnonymisationContext,
@@ -175,14 +176,6 @@ export function findResidualIdentifiers(
   const categories = new Set<ResidualCategory>();
   collectClaims(text, context, true, categories);
   return [...categories].sort(compareCodePoints);
-}
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return isRecord(value) ? value : {};
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function readTerm(value: unknown): string | null {
