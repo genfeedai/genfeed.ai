@@ -6,6 +6,7 @@ import type {
   McpCardKind,
   McpCardLayout,
   McpCardView,
+  McpMediaKind,
 } from '@mcp/shared/interfaces/mcp-app.interface';
 
 // Bump the version whenever the view changes: hosts cache templates by URI.
@@ -112,6 +113,38 @@ function cardKind(
   return fallback;
 }
 
+function mediaKind(row: Record<string, unknown>): McpMediaKind | undefined {
+  const kind = cardKind(row, 'media');
+  return kind === 'image' || kind === 'video' || kind === 'audio'
+    ? kind
+    : undefined;
+}
+
+/**
+ * Listed posts carry `media: [{ assetId, kind, order }]` without URLs, so the
+ * preview shows what is attached; a media item that does carry a URL plays.
+ */
+function postMedia(row: Record<string, unknown>): Partial<McpCard> {
+  if (!Array.isArray(row.media)) return {};
+  const items = row.media.slice(0, 10).map(record);
+  const attachments = items.flatMap((item) => {
+    const kind = mediaKind(item);
+    return kind ? [kind] : [];
+  });
+  const playable = items.find(
+    (item) => mediaKind(item) && safeCardUrl(text(item, 'url', 'cdnUrl')),
+  );
+  return {
+    ...(attachments.length ? { attachments } : {}),
+    ...(playable
+      ? {
+          mediaKind: mediaKind(playable),
+          mediaUrl: safeCardUrl(text(playable, 'url', 'cdnUrl')),
+        }
+      : {}),
+  };
+}
+
 function progress(row: Record<string, unknown>): number | undefined {
   const value = row.progress ?? row.generationProgress;
   return typeof value === 'number' && Number.isFinite(value)
@@ -128,6 +161,7 @@ function card(row: Record<string, unknown>, kind: McpCardKind): McpCard {
     isMedia && !url && PENDING_STATUSES.has(status.toLowerCase());
   const stage = text(row, 'stage', 'generationStage');
   return {
+    ...(resolvedKind === 'post' ? postMedia(row) : {}),
     ...(isPending ? { isPending, progress: progress(row) } : {}),
     ...(isPending && stage ? { stage } : {}),
     date: text(row, 'scheduledDate', 'scheduledAt', 'publishedAt', 'createdAt'),

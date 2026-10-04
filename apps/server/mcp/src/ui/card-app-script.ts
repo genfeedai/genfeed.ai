@@ -21,6 +21,8 @@ export function cardAppScript(origins: readonly string[]): string {
   const pending = new Map();
   const pollTimers = new Set();
   let nextId = 1;
+  // Bumped on every render, cancel and teardown; a poll from an older epoch stops.
+  let renderEpoch = 0;
   let isInitialized = false;
   let isDisposed = false;
   let displayModes = [];
@@ -81,12 +83,23 @@ export function cardAppScript(origins: readonly string[]): string {
     if (!lightbox) return;
     const trigger = lightbox.trigger;
     lightbox.remove(); lightbox = undefined;
+    setBackgroundInert(false);
     document.removeEventListener('keydown', onLightboxKey);
     if (displayModes.includes('fullscreen')) request('ui/request-display-mode', { mode: 'inline' }).catch(() => undefined);
     if (trigger) trigger.focus();
     resize();
   }
-  function onLightboxKey(event) { if (event.key === 'Escape') closeLightbox(); }
+  function setBackgroundInert(isInert) {
+    for (const child of Array.from(document.body.children)) {
+      if (child === lightbox || child.tagName === 'SCRIPT') continue;
+      if (isInert) child.setAttribute('inert', ''); else child.removeAttribute('inert');
+    }
+  }
+  function onLightboxKey(event) {
+    if (event.key === 'Escape') { closeLightbox(); return; }
+    // Close is the dialog's only control: keep Tab and Shift+Tab on it.
+    if (event.key === 'Tab' && lightbox) { event.preventDefault(); lightbox.querySelector('.close').focus(); }
+  }
   function openLightbox(src, alt, trigger) {
     closeLightbox();
     lightbox = element('div', 'lightbox');
@@ -97,6 +110,7 @@ export function cardAppScript(origins: readonly string[]): string {
     close.addEventListener('click', closeLightbox);
     lightbox.addEventListener('click', event => { if (event.target === lightbox) closeLightbox(); });
     lightbox.append(image, close); document.body.append(lightbox);
+    setBackgroundInert(true);
     document.addEventListener('keydown', onLightboxKey);
     if (displayModes.includes('fullscreen')) request('ui/request-display-mode', { mode: 'fullscreen' }).catch(() => undefined);
     close.focus(); resize();
@@ -131,17 +145,21 @@ export function cardAppScript(origins: readonly string[]): string {
     return box;
   }
   function pollJob(item, article, attempt) {
-    if (isDisposed || !item.id || attempt >= ${JOB_POLL_MAX_ATTEMPTS}) return;
+    const epoch = renderEpoch;
+    const isStale = () => isDisposed || epoch !== renderEpoch || !article.isConnected;
+    if (isStale() || !item.id || attempt >= ${JOB_POLL_MAX_ATTEMPTS}) return;
     const timer = setTimeout(() => {
       pollTimers.delete(timer);
+      if (isStale()) return;
       request('tools/call', { name: 'get_job_status', arguments: { jobId: item.id } }).then(result => {
+        if (isStale()) return;
         const view = result && result.structuredContent && result.structuredContent.genfeedCards;
         const next = view && Array.isArray(view.cards) && view.cards[0];
-        if (!next || isDisposed || !article.isConnected) return pollJob(item, article, attempt + 1);
+        if (!next) return pollJob(item, article, attempt + 1);
         // The fresh card replaces the old one outright: a finished job has no isPending.
         const replacement = renderMediaCard({ ...next, id: next.id || item.id }, attempt + 1);
         article.replaceWith(replacement); resize();
-      }).catch(() => pollJob(item, article, attempt + 1));
+      }).catch(() => { if (!isStale()) pollJob(item, article, attempt + 1); });
     }, ${JOB_POLL_INTERVAL_MS});
     pollTimers.add(timer);
   }
@@ -177,31 +195,66 @@ export function cardAppScript(origins: readonly string[]): string {
     description(item, body);
     article.append(body);
     const copy = element('div', 'copy');
-    const media = mediaElement(item, copy);
+    const media = item.mediaUrl && item.mediaKind ? mediaElement({ kind: item.mediaKind, title: item.title, url: item.mediaUrl }, copy) : null;
     if (media) { const frame = element('div', 'media-frame'); frame.append(media); article.append(frame); }
+    if (Array.isArray(item.attachments) && item.attachments.length) {
+      const counts = {};
+      item.attachments.forEach(kind => { counts[kind] = (counts[kind] || 0) + 1; });
+      const chips = element('div', 'summary attachments');
+      chips.setAttribute('aria-label', 'Attached media');
+      Object.keys(counts).forEach(kind => chips.append(element('span', 'pill', kind.charAt(0).toUpperCase() + kind.slice(1) + (counts[kind] > 1 ? ' ×' + counts[kind] : ''))));
+      body.append(chips);
+    }
     const url = safeUrl(item.url);
     if (url) copy.append(linkTo(url, 'Open published post ↗'));
     if (copy.childNodes.length) article.append(copy);
     return article;
   }
+  function localDayKey(date) {
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+  }
+  function parseDayKey(key) {
+    const parts = String(key).split('-').map(Number);
+    return new Date(parts[0], parts[1] - 1, parts[2], 12);
+  }
+  /**
+   * The server groups by UTC day. Regroup every post by the viewer's local
+   * day so a column's date, its posts' times, gaps and "today" agree.
+   */
+  function localCalendarDays(calendar) {
+    const keys = new Set();
+    const first = calendar.days[0] && parseDayKey(calendar.days[0].date);
+    if (first) for (let offset = 0; offset < calendar.days.length; offset++) { const day = new Date(first); day.setDate(first.getDate() + offset); keys.add(localDayKey(day)); }
+    const posts = new Map();
+    calendar.days.forEach(day => day.posts.forEach(post => {
+      const date = new Date(post.date);
+      if (Number.isNaN(date.getTime())) return;
+      const key = localDayKey(date);
+      keys.add(key);
+      posts.set(key, [...(posts.get(key) || []), post]);
+    }));
+    return [...keys].sort().map(key => ({ date: key, posts: (posts.get(key) || []).sort((a, b) => a.date.localeCompare(b.date)) }));
+  }
   function renderCalendar(view) {
     const calendar = view.calendar || { days: [], draftsCount: 0 };
+    const days = localCalendarDays(calendar);
     root.className = 'calendar';
-    const gaps = calendar.days.filter(day => day.isGap).length;
+    const gaps = days.filter(day => !day.posts.length).length;
     summary.replaceChildren(
       element('span', 'pill', view.total + ' scheduled'),
       element('span', 'pill', gaps + (gaps === 1 ? ' open day' : ' open days')),
       element('span', 'pill', calendar.draftsCount + (calendar.draftsCount === 1 ? ' draft' : ' drafts')),
     );
-    const today = new Date().toISOString().slice(0, 10);
-    calendar.days.forEach(day => {
-      const section = element('section', 'day' + (day.isGap ? ' gap' : '') + (day.date === today ? ' today' : ''));
-      const date = new Date(day.date + 'T12:00:00Z');
+    const today = localDayKey(new Date());
+    days.forEach(day => {
+      const isGap = !day.posts.length;
+      const section = element('section', 'day' + (isGap ? ' gap' : '') + (day.date === today ? ' today' : ''));
+      const date = parseDayKey(day.date);
       const head = element('div', 'day-head');
-      head.append(element('span', '', date.toLocaleDateString(undefined, { weekday: 'short', timeZone: 'UTC' })), element('strong', '', date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' })));
-      section.setAttribute('aria-label', date.toLocaleDateString(undefined, { dateStyle: 'full', timeZone: 'UTC' }));
+      head.append(element('span', '', date.toLocaleDateString(undefined, { weekday: 'short' })), element('strong', '', date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })));
+      section.setAttribute('aria-label', date.toLocaleDateString(undefined, { dateStyle: 'full' }));
       section.append(head);
-      if (day.isGap) section.append(element('p', 'gap-label', 'Nothing scheduled'));
+      if (isGap) section.append(element('p', 'gap-label', 'Nothing scheduled'));
       day.posts.forEach(post => {
         const slot = element('div', 'slot');
         slot.append(element('div', 'meta', [formatDate(post.date, { timeStyle: 'short' }), platformName(post.platform)].filter(Boolean).join(' · ')));
@@ -210,9 +263,9 @@ export function cardAppScript(origins: readonly string[]): string {
       });
       root.append(section);
     });
-    notice.textContent = calendar.days.length ? '' : 'No days in this calendar window.';
+    notice.textContent = days.length ? '' : 'No days in this calendar window.';
   }
-  function clearPolls() { for (const timer of pollTimers) clearTimeout(timer); pollTimers.clear(); }
+  function clearPolls() { renderEpoch++; for (const timer of pollTimers) clearTimeout(timer); pollTimers.clear(); }
   function render(result) {
     if (isDisposed) return;
     clearPolls(); closeLightbox();
@@ -256,7 +309,7 @@ export function cardAppScript(origins: readonly string[]): string {
     else if (message.id !== undefined && message.method) send({ id: message.id, error: { code: -32601, message: 'Method not supported' } });
   }
   window.addEventListener('message', onMessage);
-  request('ui/initialize', { appInfo: { name: 'Genfeed content cards', version: '2.0.0' }, appCapabilities: {}, protocolVersion: '2026-01-26' }).then(result => {
+  request('ui/initialize', { appInfo: { name: 'Genfeed content cards', version: '2.0.0' }, appCapabilities: { availableDisplayModes: ['inline', 'fullscreen'] }, protocolVersion: '2026-01-26' }).then(result => {
     if (isDisposed) return;
     applyContext(result.hostContext); isInitialized = true;
     send({ method: 'ui/notifications/initialized', params: {} });

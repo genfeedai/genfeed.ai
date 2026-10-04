@@ -364,3 +364,140 @@ it('polls a pending job through the host and swaps in the finished video', async
   expect(video?.preload).toBe('metadata');
   expect(document.querySelector('[role="progressbar"]')).toBeNull();
 });
+
+it('declares inline and fullscreen display modes at initialization', () => {
+  expect(window.parent.postMessage).toHaveBeenCalledWith(
+    expect.objectContaining({
+      method: 'ui/initialize',
+      params: expect.objectContaining({
+        appCapabilities: { availableDisplayModes: ['inline', 'fullscreen'] },
+      }),
+    }),
+    '*',
+  );
+});
+
+it('stops polling a job once a newer result replaces the view', async () => {
+  result('generate', {
+    category: 'VIDEO',
+    id: 'job-old',
+    status: 'PROCESSING',
+  });
+  await vi.advanceTimersByTimeAsync(5000);
+  const calls = () =>
+    vi
+      .mocked(window.parent.postMessage)
+      .mock.calls.map(([data]) => data as { id?: number; method?: string })
+      .filter((data) => data.method === 'tools/call');
+  const inFlight = calls()[0];
+  expect(inFlight).toBeDefined();
+
+  result('get_posts', { posts: [{ id: 'p1', description: 'New view' }] });
+  window.dispatchEvent(
+    new MessageEvent('message', {
+      source: window.parent,
+      data: {
+        jsonrpc: '2.0',
+        id: inFlight?.id,
+        result: {
+          structuredContent: {
+            genfeedCards: buildCardView('get_job_status', {
+              category: 'VIDEO',
+              id: 'job-old',
+              status: 'PROCESSING',
+            }),
+          },
+        },
+      },
+    }),
+  );
+  await vi.advanceTimersByTimeAsync(30000);
+
+  expect(calls()).toHaveLength(1);
+  expect(document.querySelector('video')).toBeNull();
+  expect(document.querySelector('article.post')).not.toBeNull();
+});
+
+it('files calendar posts under the viewer-local day of their time', () => {
+  const scheduledDate = '2026-10-04T01:00:00.000Z';
+  result('get_posts', {
+    days: 2,
+    draftsCount: 0,
+    gapDays: [],
+    scheduled: [{ description: 'Late post', id: 'p1', scheduledDate }],
+  });
+
+  const local = new Date(scheduledDate);
+  const label = local.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+  });
+  const column = Array.from(document.querySelectorAll('section.day')).find(
+    (day) => day.textContent?.includes('Late post'),
+  );
+  expect(column?.querySelector('.day-head strong')?.textContent).toBe(label);
+  expect(column?.querySelector('.slot .meta')?.textContent).toContain(
+    local.toLocaleString(undefined, { timeStyle: 'short' }),
+  );
+});
+
+it('shows post attachments and plays attached media that carries a URL', () => {
+  result('get_posts', {
+    posts: [
+      {
+        description: 'Carousel',
+        id: 'p1',
+        media: [
+          { assetId: 'a1', kind: 'image', order: 0 },
+          { assetId: 'a2', kind: 'image', order: 1 },
+          { assetId: 'a3', kind: 'video', order: 2 },
+        ],
+        platform: 'instagram',
+      },
+      {
+        description: 'Clip',
+        id: 'p2',
+        media: [
+          {
+            assetId: 'v1',
+            kind: 'video',
+            url: 'https://cdn.genfeed.ai/clip.mp4',
+          },
+        ],
+        platform: 'tiktok',
+      },
+    ],
+  });
+
+  const [carousel, clip] = Array.from(
+    document.querySelectorAll('article.post'),
+  );
+  expect(
+    Array.from(carousel?.querySelectorAll('.attachments .pill') ?? []).map(
+      (pill) => pill.textContent,
+    ),
+  ).toEqual(['Image ×2', 'Video']);
+  expect(clip?.querySelector('video')?.getAttribute('src')).toBe(
+    'https://cdn.genfeed.ai/clip.mp4',
+  );
+});
+
+it('keeps keyboard focus inside the lightbox and makes the page inert', () => {
+  result('list_assets', [
+    { category: 'IMAGE', id: 'img', url: 'https://cdn.genfeed.ai/hero.png' },
+  ]);
+  document.querySelector<HTMLElement>('button.zoom')?.click();
+  const close = document.querySelector<HTMLElement>('.lightbox .close');
+
+  expect(document.getElementById('cards')?.hasAttribute('inert')).toBe(true);
+  document.dispatchEvent(
+    new KeyboardEvent('keydown', {
+      key: 'Tab',
+      shiftKey: true,
+      cancelable: true,
+    }),
+  );
+  expect(document.activeElement).toBe(close);
+  close?.click();
+  expect(document.getElementById('cards')?.hasAttribute('inert')).toBe(false);
+});

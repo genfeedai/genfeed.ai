@@ -337,6 +337,31 @@ describe('MCP Apps card contract', () => {
     ).toBeUndefined();
   });
 
+  it('maps post media kinds and the first playable attachment', () => {
+    expect(
+      buildCardView('get_posts', {
+        posts: [
+          {
+            id: 'p1',
+            media: [
+              { assetId: 'a1', kind: 'image', order: 0 },
+              {
+                assetId: 'a2',
+                kind: 'video',
+                url: 'https://cdn.genfeed.ai/clip.mp4',
+              },
+              { assetId: 'a3', kind: 'unknown' },
+            ],
+          },
+        ],
+      })?.cards[0],
+    ).toMatchObject({
+      attachments: ['image', 'video'],
+      mediaKind: 'video',
+      mediaUrl: 'https://cdn.genfeed.ai/clip.mp4',
+    });
+  });
+
   it('chooses the post, media or card layout from the tool kind', () => {
     expect(buildCardView('get_posts', { posts: [] })?.layout).toBe('posts');
     expect(buildCardView('list_assets', [])?.layout).toBe('media');
