@@ -29,7 +29,7 @@ import {
 } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { resolveSafeDestination } from '@libs/security/destination-guard';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
 const VOICE_FIELDS = [
   'voiceTone',
@@ -43,6 +43,8 @@ const VOICE_FIELDS = [
 
 @Injectable()
 export class BrandFromUrlService {
+  private readonly logger = new Logger(BrandFromUrlService.name);
+
   constructor(
     private readonly brands: BrandsService,
     private readonly scans: BrandOsScanService,
@@ -70,14 +72,21 @@ export class BrandFromUrlService {
       workloadId: requestId,
       workloadType: 'brand-from-url',
     });
-    const brand = await this.brands.create({
-      ...AGENT_CREATED_BRAND_VISUAL_DEFAULTS,
-      userId: context.userId,
-      organizationId: context.organizationId,
-      label: input.label ?? new URL(url).hostname,
-    });
+    let brand: Awaited<ReturnType<BrandsService['create']>>;
+    let reviewUrl: string;
+    try {
+      brand = await this.brands.create({
+        ...AGENT_CREATED_BRAND_VISUAL_DEFAULTS,
+        userId: context.userId,
+        organizationId: context.organizationId,
+        label: input.label ?? new URL(url).hostname,
+      });
+      reviewUrl = await this.reviewUrl(context.organizationId, brand.slug);
+    } catch (error: unknown) {
+      await this.releaseQuietly(context.organizationId, reservation.id);
+      throw error;
+    }
     const createdAt = Date.now();
-    const reviewUrl = await this.reviewUrl(context.organizationId, brand.slug);
     return {
       createdAt,
       running: { brandId: brand.id, scanStatus: 'running', reviewUrl },
@@ -134,7 +143,45 @@ export class BrandFromUrlService {
     };
   }
 
+  /** Releases the hold; release is idempotent for settled or released reservations. */
+  private async releaseQuietly(
+    organizationId: string,
+    reservationId: string,
+  ): Promise<void> {
+    try {
+      await this.credits.releaseReservation({ organizationId, reservationId });
+    } catch (error: unknown) {
+      this.logger.error('Brand-from-URL reservation release failed', error, {
+        organizationId,
+        reservationId,
+      });
+    }
+  }
+
   private async complete(
+    input: BrandFromUrlInput,
+    context: BrandFromUrlContext,
+    brandId: string,
+    url: string,
+    requestId: string,
+    reservationId: string,
+  ): Promise<BrandFromUrlResult> {
+    try {
+      return await this.runCompletion(
+        input,
+        context,
+        brandId,
+        url,
+        requestId,
+        reservationId,
+      );
+    } catch (error: unknown) {
+      await this.releaseQuietly(context.organizationId, reservationId);
+      throw error;
+    }
+  }
+
+  private async runCompletion(
     input: BrandFromUrlInput,
     context: BrandFromUrlContext,
     brandId: string,
