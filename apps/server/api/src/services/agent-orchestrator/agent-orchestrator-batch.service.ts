@@ -7,7 +7,10 @@ import type {
   AgentChatContext,
   ToolCallSummary,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import type {
+  BatchToolResult,
+  BatchTurnParams,
+} from '@api/services/agent-orchestrator/interfaces/agent-orchestrator-batch.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { captureRunArtifacts } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { extractBatchTopic } from '@api/services/agent-orchestrator/utils/agent-orchestrator-input-parsing.util';
@@ -50,20 +53,6 @@ export type AgentOrchestratorBatchHost = {
 };
 
 const BATCH_TOOL_NAME = 'generate_content_batch';
-
-interface BatchTurnParams {
-  context: AgentChatContext;
-  model: string;
-  policy: ResolvedAgentExecutionPolicy;
-  requestContent: string;
-  seedTitle: string;
-  startedAt: string;
-  threadId: string;
-}
-
-type BatchToolResult = Awaited<
-  ReturnType<AgentToolExecutorService['executeTool']>
->;
 
 @Injectable()
 export class AgentOrchestratorBatchService {

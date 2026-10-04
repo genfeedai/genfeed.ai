@@ -13,6 +13,7 @@ import {
   AGENT_NEXT_STEP_DESTINATIONS,
   isAgentNextStepDestinationKey,
 } from '@api/services/agent-orchestrator/constants/agent-next-step-destinations.constant';
+import type { ClipWorkflowSummary } from '@api/services/agent-orchestrator/interfaces/agent-prepare-clip-workflow.interface';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import {
@@ -56,13 +57,6 @@ interface AgentMembersServiceLike {
  * next-step suggestions).
  * Extracted from AgentToolExecutorService per #519.
  */
-interface ClipWorkflowSummary {
-  description: string | undefined;
-  id: string;
-  name: string;
-  status: string | undefined;
-}
-
 function toClipWorkflowSummary(
   doc: Record<string, unknown>,
   fallbackId?: string,

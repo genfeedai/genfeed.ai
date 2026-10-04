@@ -1,5 +1,4 @@
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
-import { type AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -23,7 +22,13 @@ import type {
   AgentChatRequest,
   AgentChatResult,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import type {
+  SyncAssistantMessage,
+  SyncChatLoopParams,
+  SyncChatMessages,
+  SyncChatTools,
+  SyncLoopState,
+} from '@api/services/agent-orchestrator/interfaces/agent-orchestrator-sync-loop.interface';
 import { resolveAgentAutoRoutingRound } from '@api/services/agent-orchestrator/utils/agent-auto-routing-round.util';
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
@@ -47,40 +52,7 @@ import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.s
 import type { CuratedActionName } from '@genfeedai/actions';
 import { AgentMessageRole, type RouterPriority } from '@genfeedai/contracts';
 import type { AgentAutoRoutingResolution } from '@genfeedai/contracts/interfaces';
-
 import { Injectable, Optional } from '@nestjs/common';
-
-interface SyncChatLoopParams {
-  approvedPlan?: Record<string, unknown>;
-  context: AgentChatContext;
-  threadId: string;
-  generationPriority: RouterPriority;
-  model: string;
-  policy: ResolvedAgentExecutionPolicy;
-  request: AgentChatRequest;
-  resolvedMemories: AgentMemoryDocument[];
-  seedTitle: string;
-  systemPromptOverride?: string;
-  turnCost: number;
-}
-
-interface SyncLoopState {
-  actualModels: Set<string>;
-  hasPreviousRoundUsedTools: boolean;
-  latestAutoRouting: AgentAutoRoutingResolution | undefined;
-  latestProviderUsage: OpenRouterChatCompletionResponse['usage'];
-  roundCredits: number;
-  terminalContent: string | undefined;
-}
-
-type SyncChatMessages = Parameters<
-  typeof buildAgentChatCompletionParams
->[0]['messages'];
-type SyncChatTools = Parameters<
-  typeof buildAgentChatCompletionParams
->[0]['tools'];
-type SyncAssistantMessage =
-  OpenRouterChatCompletionResponse['choices'][number]['message'];
 
 @Injectable()
 export class AgentOrchestratorSyncLoopService {

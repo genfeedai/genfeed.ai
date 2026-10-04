@@ -12,6 +12,7 @@ import type {
   AgentChatRequest,
   AgentChatResult,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import type { PlanModeResponseParams } from '@api/services/agent-orchestrator/interfaces/agent-orchestrator-plan-mode.interface';
 import type { AgentPlanReviewMetadata } from '@api/services/agent-orchestrator/interfaces/agent-plan-review-metadata.interface';
 import {
   type AgentAutoRoutingRound,
@@ -59,18 +60,6 @@ export type AgentOrchestratorPlanModeHost = {
     title: string | null;
   }) => Promise<string | null>;
 };
-
-interface PlanModeResponseParams {
-  context: AgentChatContext;
-  model: string;
-  reviewMetadata?: AgentPlanReviewMetadata;
-  request: AgentChatRequest;
-  resolvedMemories: AgentMemoryDocument[];
-  seedTitle: string;
-  systemPromptOverride?: string;
-  threadId: string;
-  turnCost: number;
-}
 
 @Injectable()
 export class AgentOrchestratorPlanModeService {
