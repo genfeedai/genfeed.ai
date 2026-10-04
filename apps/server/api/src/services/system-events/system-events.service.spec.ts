@@ -11,7 +11,7 @@ import type { SystemNotificationDestinationsService } from '@api/services/system
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const notifications = {
   deliverSystemNotification: vi.fn(),
@@ -44,10 +44,14 @@ function setup(
       upsert: vi.fn(),
     },
     $queryRaw: vi.fn().mockResolvedValue([]),
+    $transaction: vi.fn(),
     systemEventDelivery: {
+      findMany: vi.fn().mockResolvedValue([]),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     systemEventWebhook: {
+      count: vi.fn().mockResolvedValue(0),
+      findFirst: vi.fn(),
       upsert: vi.fn(),
       findMany: vi
         .fn()
@@ -211,11 +215,237 @@ describe('system event outbox', () => {
     expect(prisma.systemEventWebhook.updateMany).toHaveBeenLastCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          skippedAt: expect.any(Date),
+          failedAt: expect.any(Date),
           leaseToken: null,
         }),
       }),
     );
+    expect(prisma.systemEventWebhook.updateMany).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ skippedAt: expect.any(Date) }),
+      }),
+    );
+  });
+
+  describe('a capped event (#6110)', () => {
+    afterEach(() => notifications.deliverSystemNotification.mockReset());
+    type EventRow = {
+      id: string;
+      type: string;
+      payload: string;
+      occurredAt: Date;
+      attempts: number;
+      nextAttemptAt: Date;
+      deliveredAt: Date | null;
+      skippedAt: Date | null;
+      failedAt: Date | null;
+      leaseToken: string | null;
+      leaseUntil: Date | null;
+      isDeleted: boolean;
+    };
+    type DeliveryRow = {
+      id: string;
+      eventId: string;
+      destinationId: string;
+      attempts: number;
+      nextAttemptAt: Date;
+      deliveredAt: Date | null;
+      skippedAt: Date | null;
+      failedAt: Date | null;
+      leaseToken: string | null;
+      leaseUntil: Date | null;
+      isDeleted: boolean;
+    };
+    type Args = {
+      where: Record<string, unknown>;
+      data: Record<string, unknown>;
+    };
+    const matches = (
+      row: Record<string, unknown>,
+      where: Record<string, unknown>,
+    ) =>
+      Object.entries(where).every(([key, want]) => {
+        if (key === 'OR' || key === 'deliveries') return true;
+        if (want === null) return row[key] === null;
+        if (typeof want === 'object' && want !== null && 'not' in want)
+          return row[key] !== null;
+        if (typeof want === 'object' && want !== null && 'lte' in want)
+          return (row[key] as Date) <= (want as { lte: Date }).lte;
+        return row[key] === want;
+      });
+    function harness() {
+      const { service, prisma } = setup();
+      const event: EventRow = {
+        id: 'user.created/u1',
+        type: 'user.created',
+        payload,
+        occurredAt: new Date('2026-09-23T12:00:00Z'),
+        attempts: MAX_EVENT_ATTEMPTS - 1,
+        nextAttemptAt: new Date(0),
+        deliveredAt: null,
+        skippedAt: null,
+        failedAt: null,
+        leaseToken: null,
+        leaseUntil: null,
+        isDeleted: false,
+      };
+      const delivery: DeliveryRow = {
+        id: 'delivery-1',
+        eventId: event.id,
+        destinationId: 'dest-1',
+        attempts: 3,
+        nextAttemptAt: new Date(Date.now() + 3_600_000),
+        deliveredAt: null,
+        skippedAt: null,
+        failedAt: null,
+        leaseToken: 'stale',
+        leaseUntil: new Date(Date.now() + 60_000),
+        isDeleted: false,
+      };
+      const state = { failProcessing: true, failTransaction: false };
+      const webhook = prisma.systemEventWebhook;
+      webhook.findMany.mockImplementation(
+        async ({ where }: { where: Record<string, unknown> }) =>
+          matches(event, where) ? [structuredClone(event)] : [],
+      );
+      webhook.findFirst.mockImplementation(
+        async ({ where }: { where: Record<string, unknown> }) =>
+          matches(event, where) ? structuredClone(event) : null,
+      );
+      webhook.updateMany.mockImplementation(async ({ where, data }: Args) => {
+        if (!matches(event, where)) return { count: 0 };
+        Object.assign(
+          event,
+          data,
+          typeof data.attempts === 'object'
+            ? { attempts: event.attempts + 1 }
+            : {},
+        );
+        return { count: 1 };
+      });
+      prisma.systemEventDelivery.updateMany.mockImplementation(
+        async ({ where, data }: Args) => {
+          if (!matches(delivery, where)) return { count: 0 };
+          Object.assign(delivery, data);
+          return { count: 1 };
+        },
+      );
+      prisma.$transaction.mockImplementation(
+        async (run: (tx: unknown) => Promise<unknown>) => {
+          const before = [structuredClone(event), structuredClone(delivery)];
+          try {
+            return await run({
+              systemEventWebhook: {
+                updateMany: webhook.updateMany,
+              },
+              systemEventDelivery: {
+                updateMany: async (args: Args) => {
+                  if (state.failTransaction) throw new Error('db down');
+                  return prisma.systemEventDelivery.updateMany(args);
+                },
+              },
+            });
+          } catch (error) {
+            Object.assign(event, before[0]);
+            Object.assign(delivery, before[1]);
+            throw error;
+          }
+        },
+      );
+      return { service, prisma, event, delivery, state };
+    }
+
+    it('fails (not skipped), shows in the overview, and a retry delivers', async () => {
+      const { service, event, delivery, state } = harness();
+      notifications.deliverSystemNotification.mockImplementation(async () => {
+        if (state.failProcessing) throw new Error('boom');
+        return 'delivered';
+      });
+      notifications.systemNotificationStatus.mockResolvedValue({
+        transportConfigured: true,
+      });
+      Object.assign(service, {
+        destinations: { list: async () => [] },
+      });
+
+      await service.recover();
+      expect(event.failedAt).toBeInstanceOf(Date);
+      expect(event.skippedAt).toBeNull();
+      expect(event.leaseToken).toBeNull();
+
+      const overview = await service.overview();
+      expect(overview.deliveries).toEqual([
+        expect.objectContaining({
+          id: event.id,
+          destinationId: null,
+          status: 'failed',
+        }),
+      ]);
+
+      // A failed event is never swept again until an operator retries it.
+      notifications.deliverSystemNotification.mockClear();
+      await service.recover();
+      expect(notifications.deliverSystemNotification).not.toHaveBeenCalled();
+
+      state.failProcessing = false;
+      await service.retry(event.id);
+      expect(event.failedAt).toBeNull();
+      expect(event.attempts).toBe(0);
+      expect(event.leaseToken).toBeNull();
+      expect(delivery.attempts).toBe(0);
+      expect(delivery.leaseToken).toBeNull();
+      expect(delivery.leaseUntil).toBeNull();
+      expect(delivery.nextAttemptAt.getTime()).toBeLessThanOrEqual(Date.now());
+
+      await service.recover();
+      expect(notifications.deliverSystemNotification).toHaveBeenCalledTimes(1);
+      expect(event.deliveredAt).toBeInstanceOf(Date);
+    });
+
+    it('shows a capped parent even when every destination already acknowledged', async () => {
+      const { service, prisma, event } = harness();
+      event.failedAt = new Date();
+      notifications.systemNotificationStatus.mockResolvedValue({
+        transportConfigured: true,
+      });
+      Object.assign(service, { destinations: { list: async () => [] } });
+      prisma.systemEventDelivery.findMany.mockResolvedValue([
+        {
+          id: 'delivery-1',
+          eventId: event.id,
+          destinationId: 'dest-1',
+          event,
+          attempts: 1,
+          deliveredAt: new Date(),
+          skippedAt: null,
+          failedAt: null,
+          leaseUntil: null,
+        },
+      ]);
+      const overview = await service.overview();
+      expect(overview.deliveries).toEqual([
+        expect.objectContaining({ id: event.id, status: 'failed' }),
+        expect.objectContaining({ id: 'delivery-1', status: 'delivered' }),
+      ]);
+    });
+
+    it('stays failed when resetting the pending deliveries throws', async () => {
+      const { service, prisma, event, delivery, state } = harness();
+      event.failedAt = new Date();
+      event.attempts = MAX_EVENT_ATTEMPTS;
+      state.failTransaction = true;
+
+      await expect(service.retry(event.id)).rejects.toThrow('db down');
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(event.failedAt).toBeInstanceOf(Date);
+      expect(event.attempts).toBe(MAX_EVENT_ATTEMPTS);
+      expect(delivery.attempts).toBe(3);
+
+      state.failTransaction = false;
+      await service.retry(event.id);
+      expect(event.failedAt).toBeNull();
+      expect(delivery.attempts).toBe(0);
+    });
   });
 
   describe('while the recording switch is unresolved (#5468)', () => {

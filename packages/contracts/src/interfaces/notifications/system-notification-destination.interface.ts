@@ -34,7 +34,8 @@ export interface ISystemNotificationOverview {
   deliveries: Array<{
     id: string;
     eventId: string;
-    destinationId: string;
+    /** Null for an event that failed before any destination fanout. */
+    destinationId: string | null;
     type: string;
     occurredAt: string;
     status: string;
