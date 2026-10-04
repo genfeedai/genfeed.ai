@@ -16,6 +16,13 @@ import {
 } from '@genfeedai/ui/static/surface';
 
 import { SATOSHI_VARIABLE_WOFF2_BASE64 } from './satoshi-font';
+import {
+  GENFEED_PRIVACY_URL,
+  GENFEED_TERMS_URL,
+  getMcpServerInfo,
+  MCP_SERVER_DESCRIPTION,
+  MCP_SERVER_NAME,
+} from './server-identity';
 
 const DEFAULT_APP_URL = 'https://app.genfeed.ai';
 const DEFAULT_API_URL = 'https://api.genfeed.ai';
@@ -198,7 +205,10 @@ export function getMcpProtectedResourceMetadata() {
     authorization_servers: [getOAuthIssuerUrl()],
     bearer_methods_supported: ['header'],
     resource: getPublicMcpUrl(),
-    resource_name: 'Genfeed MCP',
+    resource_documentation: `${getPublicDocsUrl()}/api-reference/mcp`,
+    resource_name: 'Genfeed',
+    resource_policy_uri: GENFEED_PRIVACY_URL,
+    resource_tos_uri: GENFEED_TERMS_URL,
     scopes_supported: [...API_KEY_SCOPE_PRESETS.mcp],
   };
 }
@@ -251,6 +261,8 @@ function getUserVisibleToolsetCards(): Array<{
 }
 
 export function getMcpServerCard() {
+  const serverInfo = getMcpServerInfo(getPublicMcpUrl());
+
   return {
     $schema:
       'https://static.modelcontextprotocol.io/schemas/mcp-server-card/v1.json',
@@ -262,17 +274,12 @@ export function getMcpServerCard() {
       resources: {},
       tools: {},
     },
-    description:
-      'Create, review, automate, and publish content through Genfeed.',
-    documentationUrl: 'https://docs.genfeed.ai/api-reference/mcp',
-    iconUrl: 'https://cdn.genfeed.ai/assets/branding/logo.jpg',
-    name: 'genfeed-mcp-server',
+    description: MCP_SERVER_DESCRIPTION,
+    documentationUrl: `${getPublicDocsUrl()}/api-reference/mcp`,
+    iconUrl: serverInfo.icons?.[0]?.src,
+    name: MCP_SERVER_NAME,
     protocolVersion: '2025-06-18',
-    serverInfo: {
-      name: 'genfeed-mcp-server',
-      title: 'Genfeed MCP Server',
-      version: '1.0.0',
-    },
+    serverInfo,
     toolsets: getUserVisibleToolsetCards(),
     transport: {
       endpoint: getPublicMcpUrl(),

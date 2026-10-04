@@ -24,6 +24,11 @@ describe('OAuth metadata', () => {
       'https://api.genfeed.ai/v1/oauth/authorize',
     );
     expect(metadata.code_challenge_methods_supported).toEqual(['S256']);
+    expect(metadata).toMatchObject({
+      op_policy_uri: 'https://genfeed.ai/privacy',
+      op_tos_uri: 'https://genfeed.ai/terms',
+      service_documentation: 'https://docs.genfeed.ai/api-reference/mcp',
+    });
     expect(metadata.grant_types_supported).toEqual([
       'authorization_code',
       'refresh_token',

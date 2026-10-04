@@ -1,6 +1,11 @@
 import type { ToolsetName } from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
+import {
+  getMcpServerInfo,
+  MCP_SERVER_INSTRUCTIONS,
+} from '@mcp/mcp/server-identity';
+import { getPublicMcpUrl } from '@mcp/mcp/setup-page';
 import { ClientService } from '@mcp/services/client.service';
 import { PostHogAnalyticsService } from '@mcp/services/posthog-analytics.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
@@ -139,18 +144,13 @@ export class StreamableHttpService {
       this.configService,
     );
 
-    const server = new Server(
-      {
-        name: 'genfeed-mcp-server',
-        version: '1.0.0',
+    const server = new Server(getMcpServerInfo(getPublicMcpUrl()), {
+      capabilities: {
+        resources: {},
+        tools: {},
       },
-      {
-        capabilities: {
-          resources: {},
-          tools: {},
-        },
-      },
-    );
+      instructions: MCP_SERVER_INSTRUCTIONS,
+    });
 
     server.setRequestHandler(ListToolsRequestSchema, () => ({
       tools: toolRegistry.getTools(),

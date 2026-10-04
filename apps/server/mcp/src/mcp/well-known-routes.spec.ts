@@ -1,6 +1,7 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
+import { MCP_BRAND_ICON_FILES } from '@mcp/mcp/brand-icons';
 import {
   MCP_SERVER_CARD_PATHS,
   registerWellKnownRoutes,
@@ -71,7 +72,10 @@ describe('registerWellKnownRoutes', () => {
       authorization_servers: ['https://api.genfeed.ai'],
       bearer_methods_supported: ['header'],
       resource: 'https://mcp.genfeed.ai/mcp',
-      resource_name: 'Genfeed MCP',
+      resource_documentation: 'https://docs.genfeed.ai/api-reference/mcp',
+      resource_name: 'Genfeed',
+      resource_policy_uri: 'https://genfeed.ai/privacy',
+      resource_tos_uri: 'https://genfeed.ai/terms',
       scopes_supported: [...API_KEY_SCOPE_PRESETS.mcp],
     });
   });
@@ -93,6 +97,29 @@ describe('registerWellKnownRoutes', () => {
       resource: 'https://self-hosted.test/genfeed/mcp',
     });
   });
+
+  it.each(Object.keys(MCP_BRAND_ICON_FILES))(
+    'serves the %s brand icon same-origin with its declared type',
+    async (path) => {
+      ({ baseUrl, server } = await listen());
+
+      const response = await fetch(`${baseUrl}${path}`);
+      const body = Buffer.from(await response.arrayBuffer());
+      const icon = MCP_BRAND_ICON_FILES[path];
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('access-control-allow-origin')).toBe('*');
+      expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+      expect(response.headers.get('content-type')).toContain(icon?.mimeType);
+      if (icon?.mimeType === 'image/png') {
+        // Clients sniff magic bytes and reject a type mismatch.
+        expect(body.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+      } else {
+        expect(body.toString('utf8')).toMatch(/^<svg [^>]*viewBox=/);
+        expect(body.toString('utf8')).not.toMatch(/<script|on\w+=/i);
+      }
+    },
+  );
 
   it.each(MCP_SERVER_CARD_PATHS)(
     'keeps the server card at %s cross-origin',

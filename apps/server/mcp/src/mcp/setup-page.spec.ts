@@ -77,9 +77,12 @@ describe('MCP setup page', () => {
   it('publishes a discoverable server card for the remote MCP endpoint', () => {
     expect(getMcpServerCard()).toMatchObject({
       name: 'genfeed-mcp-server',
+      description: expect.stringContaining('Genfeed'),
+      iconUrl: 'https://mcp.genfeed.ai/icons/genfeed-192.png',
       serverInfo: {
         name: 'genfeed-mcp-server',
-        title: 'Genfeed MCP Server',
+        title: 'Genfeed',
+        websiteUrl: 'https://genfeed.ai',
       },
       transport: {
         endpoint: 'https://mcp.genfeed.ai/mcp',
