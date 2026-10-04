@@ -646,6 +646,29 @@ describe('ImageGenerationProviderDispatchService', () => {
     expect(plan?.kind).toBe('background-only');
   });
 
+  it('links every additional output to the admitted character', async () => {
+    falService.generateImage
+      .mockResolvedValueOnce({ url: 'https://fal.example.com/primary.png' })
+      .mockResolvedValueOnce({ url: 'https://fal.example.com/second.png' });
+    sharedService.createMediaDocuments.mockResolvedValue({
+      ingredientData: { id: 'ingredient-2', parent: 'parent-1' },
+      metadataData: { id: 'metadata-2' },
+    });
+    const context = buildContext({
+      model: MODEL_KEYS.FAL_NANO_BANANA_2,
+      outputs: 2,
+      personaId: 'persona-1',
+    });
+
+    const plan = await service.dispatch(context);
+    await plan?.generationPromise;
+
+    expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ personaId: 'persona-1' }),
+    );
+  });
+
   it('routes a non-prefix Fal partner endpoint by provider identity', async () => {
     falService.generateImage.mockResolvedValueOnce({
       url: 'https://fal.example.com/partner.png',

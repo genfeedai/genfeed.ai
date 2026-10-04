@@ -4,6 +4,7 @@ import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/bran
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import type { CharacterAdmission } from '@api/collections/personas/utils/character-admission.util';
 import {
   type CrunVideoQuoteIntent,
   crunVideoQuoteIntentSchema,
@@ -263,13 +264,25 @@ export class CrunVideoInputService {
     return { isAvailable: true, model, contract };
   }
 
-  private async resolveReferences(
+  /**
+   * Character the request's frames belong to, for linking every output
+   * (#6040). A character the brand can no longer use is refused.
+   */
+  async resolveOutputPersonaId(
     intent: CrunVideoQuoteIntent,
     user: AuthenticatedUser,
     brandId: string,
-  ): Promise<string[]> {
-    // A character the brand can no longer use is refused here too (#6040).
-    await this.personas.resolveCharacterReferences({
+  ): Promise<string | null> {
+    const admission = await this.admitCharacters(intent, user, brandId);
+    return admission.personaId;
+  }
+
+  private admitCharacters(
+    intent: CrunVideoQuoteIntent,
+    user: AuthenticatedUser,
+    brandId: string,
+  ): Promise<CharacterAdmission> {
+    return this.personas.resolveCharacterReferences({
       brandId,
       ingredientIds: [
         ...intent.references,
@@ -278,6 +291,14 @@ export class CrunVideoInputService {
       organizationId: user.organizationId,
       path: 'video',
     });
+  }
+
+  private async resolveReferences(
+    intent: CrunVideoQuoteIntent,
+    user: AuthenticatedUser,
+    brandId: string,
+  ): Promise<string[]> {
+    await this.admitCharacters(intent, user, brandId);
     const references = await resolveCrunReferences({
       prisma: this.prisma,
       assets: this.assets,

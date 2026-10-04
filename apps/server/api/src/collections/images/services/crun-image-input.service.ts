@@ -8,6 +8,7 @@ import {
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import type { CharacterAdmission } from '@api/collections/personas/utils/character-admission.util';
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import { resolveCrunReferences } from '@api/services/integrations/crun/crun-reference.util';
 import type { CrunQuotePreparation } from '@api/services/integrations/crun/crun-task.schema';
@@ -240,18 +241,38 @@ export class CrunImageInputService {
     return { isAvailable: true, model, contract };
   }
 
-  private async resolveReferences(
+  /**
+   * Character the request's references belong to, for linking every output
+   * (#6040). A character the brand can no longer use is refused.
+   */
+  async resolveOutputPersonaId(
     intent: CrunImageQuoteIntent,
     user: AuthenticatedUser,
     brandId: string,
-  ): Promise<string[]> {
-    // A character the brand can no longer use is refused here too (#6040).
-    await this.personas.resolveCharacterReferences({
+  ): Promise<string | null> {
+    const admission = await this.admitCharacters(intent, user, brandId);
+    return admission.personaId;
+  }
+
+  private admitCharacters(
+    intent: CrunImageQuoteIntent,
+    user: AuthenticatedUser,
+    brandId: string,
+  ): Promise<CharacterAdmission> {
+    return this.personas.resolveCharacterReferences({
       brandId,
       ingredientIds: intent.references,
       organizationId: user.organizationId,
       path: 'image',
     });
+  }
+
+  private async resolveReferences(
+    intent: CrunImageQuoteIntent,
+    user: AuthenticatedUser,
+    brandId: string,
+  ): Promise<string[]> {
+    await this.admitCharacters(intent, user, brandId);
     const references = await resolveCrunReferences({
       prisma: this.prisma,
       assets: this.assets,

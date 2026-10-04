@@ -82,6 +82,8 @@ export interface ImageGenerationContext {
   modelSchemaFamily?: string;
   outputs: number;
   pendingIngredientIds: string[];
+  /** Character admitted for this request; every output links to it (#6040). */
+  personaId?: string | null;
   promptBuilderBrand: {
     description?: string;
     label: string;
