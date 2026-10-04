@@ -552,8 +552,12 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     const delivery = readSourceOf('ScheduledPostDeliveryService', {
       root: WORKERS_SRC,
     });
-    expect(delivery).toContain('scheduleReplyPostWatchAfterPublish');
-    expect(delivery).toContain('schedulePostWatch');
+    const followUps = readSourceOf('ScheduledPostPublishFollowUps', {
+      root: WORKERS_SRC,
+    });
+    expect(delivery).toContain('followUps.scheduleReplyPostWatch(');
+    expect(followUps).toContain('scheduleReplyPostWatch(');
+    expect(followUps).toContain('schedulePostWatch');
   });
 
   it('registers X activity webhook and reply inbound/post-watch workflows', () => {
