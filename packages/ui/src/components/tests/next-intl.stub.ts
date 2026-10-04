@@ -418,6 +418,7 @@ const UI_TEST_MESSAGES = {
         },
       },
       inspector: {
+        copyPrompt: 'Copy prompt',
         created: 'Created',
         deletedReference: 'Deleted reference',
         dimensions: 'Dimensions',
@@ -434,6 +435,8 @@ const UI_TEST_MESSAGES = {
         origin: 'Origin',
         prompt: 'Prompt',
         provider: 'Provider',
+        showFullPrompt: 'Show full prompt',
+        showLess: 'Show less',
         showMore: 'Show more',
         style: 'Style',
         type: 'Type',

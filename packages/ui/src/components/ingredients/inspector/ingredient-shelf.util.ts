@@ -1,6 +1,7 @@
 import {
   FleetReviewStatus,
   IngredientStatus,
+  isLibraryReferenceOrigin,
   LibraryShelf,
   QualityStatus,
 } from '@genfeedai/contracts';
@@ -30,13 +31,14 @@ const REVIEW_PENDING_STATUSES: readonly string[] = [
  * The server's shelves are saved queries and overlap by design — an approved
  * asset with no folder matches both Approved and Unsorted. The inspector shows
  * one badge, so this resolves in lifecycle order and returns the first match:
- * terminal states first, then review, then the "nobody has filed it" fallback.
+ * terminal states first, then References for uploads and imports, then review,
+ * then the "nobody has filed it" fallback.
  * Keep this order in step with `SHELF_FILTERS` on the server.
  */
 export function getIngredientShelf(
   ingredient: IIngredient,
 ): LibraryShelf | null {
-  const { folderId, qualityStatus, reviewStatus, status } = ingredient;
+  const { folderId, origin, qualityStatus, reviewStatus, status } = ingredient;
 
   if (status === IngredientStatus.PROCESSING) {
     return LibraryShelf.GENERATING;
@@ -48,6 +50,10 @@ export function getIngredientShelf(
 
   if (ARCHIVED_STATUSES.includes(status)) {
     return LibraryShelf.ARCHIVED;
+  }
+
+  if (isLibraryReferenceOrigin(origin)) {
+    return LibraryShelf.REFERENCES;
   }
 
   const hasPendingReview =

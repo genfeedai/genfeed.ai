@@ -2439,6 +2439,7 @@
       }
     },
     "inspector": {
+      "copyPrompt": "Copy prompt",
       "created": "Created",
       "deletedReference": "Deleted reference",
       "dimensions": "Dimensions",
@@ -2454,6 +2455,8 @@
       "origin": "Origin",
       "prompt": "Prompt",
       "provider": "Provider",
+      "showFullPrompt": "Show full prompt",
+      "showLess": "Show less",
       "showMore": "Show more",
       "style": "Style",
       "surface": "Library",

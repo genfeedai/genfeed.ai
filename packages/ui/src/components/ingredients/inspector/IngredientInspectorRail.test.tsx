@@ -141,24 +141,19 @@ describe('IngredientInspectorRail', () => {
     );
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
-  it('shows the complete selectable prompt with whitespace and unbroken text preserved', () => {
-    const prompt = `${'A detailed prompt line.\n'.repeat(12)}\n${'longword'.repeat(80)}`;
+  it('shows the prompt right after the asset details, before tags', () => {
     render(
       <IngredientInspectorRail
-        ingredient={{ ...ingredient, promptText: prompt }}
+        ingredient={{ ...ingredient, promptText: 'A red mug on a table' }}
       />,
     );
-    const note = screen.getByText(
-      (_, element) =>
-        element?.tagName === 'P' && element.textContent === prompt,
-    );
-    expect(note.textContent).toBe(prompt);
-    expect(note).toHaveClass(
-      'whitespace-pre-wrap',
-      'break-words',
-      'select-text',
-    );
-    expect(note).not.toHaveClass('line-clamp-6');
+
+    const prompt = screen.getByRole('region', { name: 'Prompt' });
+    expect(prompt).toHaveTextContent('A red mug on a table');
+    expect(
+      prompt.compareDocumentPosition(screen.getByTestId('tags-control')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('contains the whole image in a bounded preview', () => {

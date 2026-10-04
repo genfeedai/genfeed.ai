@@ -27,6 +27,7 @@ import {
   calculateImageGenerationCredits,
   calculateVideoGenerationCredits,
 } from './generation-credit-calculator';
+import { hasPendingProviderRateDrift } from './model-billable-quote';
 import { applyMargin } from './plans-pricing';
 
 const UNAVAILABLE: StudioGenerationCostEstimate = {
@@ -204,9 +205,11 @@ export function resolveStudioGenerationCost({
     model.reviewStatus === 'pending' ||
     model.reviewStatus === 'rejected' ||
     model.providerSyncStatus === 'quarantined' ||
-    model.providerSyncStatus === 'review_required' ||
     model.providerSyncStatus === 'failed' ||
-    model.pendingProviderContractVersion ||
+    hasPendingProviderRateDrift(
+      model.reviewedProviderContractVersion,
+      model.pendingProviderContractVersion,
+    ) ||
     !Number.isFinite(model.cost) ||
     model.cost < 0 ||
     (model.minCost != null &&

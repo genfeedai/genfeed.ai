@@ -32,6 +32,29 @@ export const INGREDIENT_ORIGIN_LABELS: Record<IngredientOrigin, string> = {
   [IngredientOrigin.UNKNOWN]: 'Unknown',
 };
 
+/**
+ * Origins that make an asset a *reference* — material brought in to generate
+ * from, not output. The Library keeps them on the References shelf, out of
+ * All assets and Unsorted.
+ */
+export const LIBRARY_REFERENCE_ORIGINS: readonly IngredientOrigin[] = [
+  IngredientOrigin.UPLOADED,
+  IngredientOrigin.IMPORTED,
+] as const;
+
+/** Origins All assets shows by default: everything that is not a reference. */
+export const LIBRARY_OUTPUT_ORIGINS: readonly IngredientOrigin[] =
+  INGREDIENT_ORIGIN_ORDER.filter(
+    (origin) => !LIBRARY_REFERENCE_ORIGINS.includes(origin),
+  );
+
+/** Whether an asset's origin makes it a reference rather than output. */
+export function isLibraryReferenceOrigin(value?: unknown): boolean {
+  const origin = parseIngredientOrigin(value);
+
+  return origin ? LIBRARY_REFERENCE_ORIGINS.includes(origin) : false;
+}
+
 /** Narrow an arbitrary string to an `IngredientOrigin`, or `undefined`. */
 export function parseIngredientOrigin(
   value?: unknown,
