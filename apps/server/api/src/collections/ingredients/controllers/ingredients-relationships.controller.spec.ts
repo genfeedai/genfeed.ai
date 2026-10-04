@@ -127,7 +127,7 @@ describe('IngredientsRelationshipsController', () => {
       const result = await controller.findChildren(
         mockRequest,
         ingredientId,
-        {},
+        new BaseQueryDto(),
       );
 
       expect(ingredientsService.findAll).toHaveBeenCalledWith(
