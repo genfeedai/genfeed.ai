@@ -444,7 +444,12 @@ export class ToolRegistryService implements OnModuleInit {
       case 'ads-gateway':
         return handleAdsGatewayTool(this.clientService, name, args);
       case 'account-management':
-        return handleAccountManagementTool(this.clientService, name, args);
+        return handleAccountManagementTool(
+          this.clientService,
+          name,
+          args,
+          this.mediaOrigins(),
+        );
       case 'social-messages':
         return handleSocialMessagesTool(this.clientService, name, args);
       case 'clip-projects':
@@ -605,6 +610,12 @@ export class ToolRegistryService implements OnModuleInit {
     return { content: [{ text, type: 'text' }] };
   }
 
+  private mediaOrigins(): string[] {
+    return [
+      this.configService?.get('GENFEEDAI_CDN_URL') || 'https://cdn.genfeed.ai',
+    ];
+  }
+
   private toMcpResult(result: AgentToolResult) {
     if (!result.success) {
       const gated = toMcpToolErrorResult(
@@ -627,10 +638,7 @@ export class ToolRegistryService implements OnModuleInit {
 
     const payload = result.data ?? {};
     if (serializeMediaArtifact(payload)) {
-      return toNativeMcpMediaResult(payload, [
-        this.configService?.get('GENFEEDAI_CDN_URL') ||
-          'https://cdn.genfeed.ai',
-      ]);
+      return toNativeMcpMediaResult(payload, this.mediaOrigins());
     }
     return {
       content: [

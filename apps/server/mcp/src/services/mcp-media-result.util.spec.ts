@@ -33,9 +33,8 @@ describe('native MCP image delivery', () => {
       }),
     );
     const client = {
-      executeAgentTool: vi
-        .fn()
-        .mockResolvedValue({ success: true, data: payload }),
+      getJobStatus: vi.fn().mockResolvedValue(payload),
+      evaluateMcpToolResult: vi.fn().mockResolvedValue({ outcome: 'allowed' }),
     };
     const logger = { debug: vi.fn(), warn: vi.fn(), error: vi.fn() };
     const registry = new ToolRegistryService(
