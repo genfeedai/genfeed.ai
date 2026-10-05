@@ -829,7 +829,7 @@ export class TrendFetchService {
 
           // Each row is saved on its own, so one malformed provider item
           // cannot drop the rest of the platform's batch.
-          let failedRows = 0;
+          let savedRows = 0;
           for (const trendData of trendsData) {
             if (!trendData.topic?.trim() || !trendData.platform) {
               this.loggerService.warn(
@@ -848,8 +848,8 @@ export class TrendFetchService {
                   calculateViralityScore,
                 ),
               );
+              savedRows += 1;
             } catch (error: unknown) {
-              failedRows += 1;
               this.loggerService.error(
                 `Failed to save ${platform} trend "${trendData.topic}"`,
                 error,
@@ -857,7 +857,7 @@ export class TrendFetchService {
             }
           }
 
-          if (failedRows > 0 && failedRows === trendsData.length) {
+          if (trendsData.length > 0 && savedRows === 0) {
             markTrendRefreshPersistenceFailed(platform, 'trends');
           }
         }

@@ -689,6 +689,31 @@ describe('TrendFetchService', () => {
       ]);
     });
 
+    it('records persistence failure when every Instagram row lacks a topic', async () => {
+      mockApifyService.getInstagramTrends.mockResolvedValue([
+        instagramTrend(undefined),
+        instagramTrend(' '),
+      ]);
+
+      const result = await service.fetchAndCacheTrends(
+        undefined,
+        undefined,
+        undefined,
+        { platforms: ['instagram'] },
+      );
+
+      expect(result).toEqual([]);
+      expect(mockPrisma.trend.create).not.toHaveBeenCalled();
+      expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+        expect.objectContaining({
+          lastSuccessfulRefreshAt: null,
+          outcome: 'fallback_failed',
+          platform: 'instagram',
+          reason: 'persistence_failed',
+        }),
+      ]);
+    });
+
     it('keeps the rest of the batch when one row fails to save', async () => {
       mockApifyService.getInstagramTrends.mockResolvedValue([
         instagramTrend('reels'),
