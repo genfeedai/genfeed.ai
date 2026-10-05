@@ -9,14 +9,19 @@ import type { GenerationExecutionDimensions } from '../billing/generation-credit
 export interface AgentGenerationQuoteRequest {
   /** Aspect ratio the Agent request will execute with; drives dimensions. */
   aspectRatio?: string;
-  category: 'image' | 'video';
+  category: 'image' | 'image-edit' | 'video';
   duration?: number;
+  /** Executed pixel height; pair with `width` to quote exact dimensions. */
+  height?: number;
   modelKey?: string;
   outputs?: number;
   prioritize?: RouterPriority;
-  prompt: string;
+  /** Required only when the server must route (no `modelKey`). */
+  prompt?: string;
   quality?: string;
   resolution?: string;
+  /** Executed pixel width; pair with `height` to quote exact dimensions. */
+  width?: number;
 }
 
 /** Server-side quote input: the request plus the authenticated organization. */
@@ -30,12 +35,28 @@ export interface AgentGenerationQuoteInput extends AgentGenerationQuoteRequest {
   dimensions?: GenerationExecutionDimensions;
 }
 
+/** Why the server could not quote a generation. Codes only, never provider data. */
+export enum AgentGenerationQuoteUnavailableReason {
+  /** The quote failed unexpectedly; the failure is logged server-side. */
+  ERROR = 'ERROR',
+  /** No prompt or model was given, so nothing can be priced or routed. */
+  INSUFFICIENT_INPUT = 'INSUFFICIENT_INPUT',
+  /** A setting the model's price depends on is missing or unsupported. */
+  MISSING_SETTING = 'MISSING_SETTING',
+  /** The model is not enabled, active or supported for this organization. */
+  MODEL_UNAVAILABLE = 'MODEL_UNAVAILABLE',
+  /** The model exists but admission cannot resolve an exact tariff for it. */
+  PRICING_UNRESOLVED = 'PRICING_UNRESOLVED',
+}
+
 export interface AgentGenerationQuote {
   /** `null` when unavailable; generation requires an available finite quote. */
   credits: number | null;
   isAvailable: boolean;
   /** Concrete validated model; unavailable quotes never disclose a key. */
   modelKey: string | null;
+  /** Set whenever `isAvailable` is false. */
+  unavailableReason?: AgentGenerationQuoteUnavailableReason;
 }
 
 export type AgentGenerationQuoteStatus = 'available' | 'error';

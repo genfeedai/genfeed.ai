@@ -122,6 +122,18 @@ vi.mock('@pages/studio/generate/hooks/useStudioLooks', () => ({
   }),
 }));
 
+const estimateMocks = vi.hoisted(() => ({
+  resolve: vi.fn(),
+}));
+
+// The estimate is the server admission quote; the composer only requests it.
+vi.mock('@pages/studio/generate/hooks/useStudioGenerationEstimate', () => ({
+  useStudioGenerationEstimate: (request: unknown) =>
+    request
+      ? estimateMocks.resolve(request)
+      : { credits: null, status: 'loading' },
+}));
+
 vi.mock(
   '@pages/studio/generate/hooks/useStudioGenerationSetupLookOptions',
   () => ({ useStudioGenerationSetupLookOptions: () => ({}) }),
@@ -692,6 +704,12 @@ describe('StudioGenerateComposer', () => {
       key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
       pricingType: 'per-second',
     };
+    estimateMocks.resolve.mockImplementation(
+      (request: { resolution?: string }) => ({
+        credits: request.resolution === '4k' ? 125 : 50,
+        status: 'estimated',
+      }),
+    );
     const props = {
       ...baseProps,
       models: [model] as never,
@@ -725,6 +743,13 @@ describe('StudioGenerateComposer', () => {
     );
 
     expect(screen.getByText('Estimated 125 credits')).toBeVisible();
+    expect(estimateMocks.resolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        category: 'video',
+        modelKey: model.key,
+        resolution: '4k',
+      }),
+    );
   });
 
   describe('Enhance prompt action (#4676)', () => {
@@ -874,7 +899,9 @@ describe('StudioGenerateComposer', () => {
         settings={{ ...settings, modelKey: 'missing' }}
       />,
     );
-    expect(screen.getByText('Estimate unavailable')).toBeVisible();
+    expect(
+      screen.getByText('This model is not available for your workspace.'),
+    ).toBeVisible();
     expect(screen.getByText('Balance unavailable')).toBeVisible();
     walletMocks.balance = 0;
     rerender(<StudioGenerateComposer {...props} />);
@@ -907,6 +934,12 @@ describe('StudioGenerateComposer', () => {
       prompt: 'A product photo',
       type: 'image' as const,
     };
+    estimateMocks.resolve.mockImplementation(
+      (request: { outputs?: number }) => ({
+        credits: 8 * (request.outputs ?? 1),
+        status: 'estimated',
+      }),
+    );
     const { rerender } = render(
       <StudioGenerateComposer
         {...props}
@@ -928,14 +961,20 @@ describe('StudioGenerateComposer', () => {
     );
     expect(screen.getByText('Estimated 24 credits')).toBeVisible();
     expect(screen.getByText('Imagen 4 · 9:16 · 2K · 3 outputs')).toBeVisible();
+    estimateMocks.resolve.mockReturnValue({
+      credits: null,
+      status: 'unavailable',
+      unavailableReason: 'PRICING_UNRESOLVED',
+    });
     rerender(
       <StudioGenerateComposer
         {...props}
-        models={[{ ...model, cost: 0 }] as never}
         settings={{ ...settings, modelKey: model.key }}
       />,
     );
-    expect(screen.getByText('Estimate unavailable')).toBeVisible();
+    expect(
+      screen.getByText('This model has no confirmed price yet.'),
+    ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
   });
 
@@ -950,6 +989,12 @@ describe('StudioGenerateComposer', () => {
       label: 'Ideogram 4.5',
     } as IModel;
     it('shows the editing default and its full output cost in Auto mode', () => {
+      estimateMocks.resolve.mockImplementation(
+        (request: { outputs?: number }) => ({
+          credits: 20 * (request.outputs ?? 1),
+          status: 'estimated',
+        }),
+      );
       render(
         <StudioGenerateComposer
           {...baseProps}
@@ -964,6 +1009,13 @@ describe('StudioGenerateComposer', () => {
         />,
       );
       expect(screen.getByText('Estimated 60 credits')).toBeVisible();
+      expect(estimateMocks.resolve).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          category: 'image-edit',
+          modelKey: editModel.key,
+          outputs: 3,
+        }),
+      );
       expect(screen.getByText('Ideogram 4.5 · 3 outputs')).toBeVisible();
     });
     it('blocks submission without a source and never offers prompt enhancement', () => {
@@ -1042,6 +1094,7 @@ describe('FLUX.3 composer controls', () => {
     reviewedProviderContractVersion: 'reviewed',
   } as IModel;
   it('shows native controls and ten sources without Ideogram mask, seed or size', () => {
+    estimateMocks.resolve.mockReturnValue({ credits: 12, status: 'estimated' });
     render(
       <StudioGenerateComposer
         {...baseProps}

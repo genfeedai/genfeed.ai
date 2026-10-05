@@ -142,6 +142,7 @@ import { MediaPromptEnhancementModule } from '@api/services/harness/media-prompt
 import { InstagramInspirationModule } from '@api/services/instagram-inspiration/instagram-inspiration.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
+import { RouterModule } from '@api/services/router/router.module';
 import { SeoModule } from '@api/services/seo/seo.module';
 import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
 import { TypedDecisionsModule } from '@api/services/typed-decisions/typed-decisions.module';
@@ -234,6 +235,7 @@ import { Module } from '@nestjs/common';
     SeoModule,
     SkillRuntimeModule,
     TypedDecisionsModule,
+    RouterModule,
   ],
   providers: [
     AgentBrandContextSnapshotService,

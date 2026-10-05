@@ -161,6 +161,7 @@ export class RouterController {
       aspectRatio: body.aspectRatio,
       category: body.category,
       duration: body.duration,
+      height: body.height,
       modelKey: body.modelKey,
       organizationId,
       outputs: body.outputs,
@@ -168,11 +169,13 @@ export class RouterController {
       prompt: body.prompt,
       quality: body.quality,
       resolution: body.resolution,
+      width: body.width,
     });
 
     this.logger.log(`${url} completed`, {
       isAvailable: estimate.isAvailable,
       modelKey: estimate.modelKey,
+      unavailableReason: estimate.unavailableReason,
       organizationId,
     });
 

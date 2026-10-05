@@ -11,23 +11,41 @@ import {
   DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
   DEFAULT_AGENT_VIDEO_ASPECT_RATIO,
   DEFAULT_AGENT_VIDEO_DURATION_SECONDS,
+  IMAGE_EDIT_QUALITY,
   isFlux3ImageModel,
   isFlux3Resolution,
   MODEL_OUTPUT_CAPABILITIES,
   resolveAgentGenerationDimensions,
 } from '@genfeedai/contracts/constants';
-import type {
-  AgentGenerationQuote,
-  AgentGenerationQuoteInput,
+import {
+  type AgentGenerationQuote,
+  type AgentGenerationQuoteInput,
+  AgentGenerationQuoteUnavailableReason,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
-const UNAVAILABLE_QUOTE: AgentGenerationQuote = {
-  credits: null,
-  isAvailable: false,
-  modelKey: null,
-};
+function unavailableQuote(
+  unavailableReason: AgentGenerationQuoteUnavailableReason,
+  modelKey: string | null = null,
+): AgentGenerationQuote {
+  return { credits: null, isAvailable: false, modelKey, unavailableReason };
+}
+
+function isPricingUnresolved(error: unknown): boolean {
+  if (!(error instanceof ServiceUnavailableException)) return false;
+  const response = error.getResponse();
+  return (
+    typeof response === 'object' &&
+    response !== null &&
+    'code' in response &&
+    response.code === 'PRICING_UNAVAILABLE'
+  );
+}
 
 /**
  * #4672 Manual-mode review card estimate, #4813 billing parity. Resolves the
@@ -65,24 +83,44 @@ export class AgentGenerationEstimateService {
         'Outputs must be an integer between 1 and 8.',
       );
     }
-    const isVideo = input.category === ModelCategory.VIDEO;
-    const category = isVideo ? ModelCategory.VIDEO : ModelCategory.IMAGE;
+    const isVideo = input.category === 'video';
+    const isEdit = input.category === 'image-edit';
+    const category = isVideo
+      ? ModelCategory.VIDEO
+      : isEdit
+        ? ModelCategory.IMAGE_EDIT
+        : ModelCategory.IMAGE;
+    if (!input.modelKey && !input.prompt?.trim()) {
+      return unavailableQuote(
+        AgentGenerationQuoteUnavailableReason.INSUFFICIENT_INPUT,
+      );
+    }
     try {
       const modelKey =
         input.modelKey ??
-        (
-          await this.routerService.selectModel({
-            category,
-            duration: input.duration,
-            organizationId: input.organizationId,
-            outputs: input.outputs,
-            prioritize: input.prioritize,
-            prompt: input.prompt,
-          })
-        ).modelDetails.key;
+        (isEdit
+          ? (
+              await this.routerService.resolveModelKey({
+                category,
+                organizationId: input.organizationId,
+              })
+            ).key
+          : (
+              await this.routerService.selectModel({
+                category,
+                duration: input.duration,
+                organizationId: input.organizationId,
+                outputs: input.outputs,
+                prioritize: input.prioritize,
+                prompt: input.prompt ?? '',
+              })
+            ).modelDetails.key);
 
       if (modelKey.startsWith('crun/'))
-        return { ...UNAVAILABLE_QUOTE, modelKey };
+        return unavailableQuote(
+          AgentGenerationQuoteUnavailableReason.MODEL_UNAVAILABLE,
+          modelKey,
+        );
       const model = await this.modelRegistrationService.validateModelForOrg(
         modelKey,
         input.organizationId,
@@ -95,11 +133,16 @@ export class AgentGenerationEstimateService {
         model.isDeleted ||
         (model.organizationId && model.organizationId !== input.organizationId)
       ) {
-        return UNAVAILABLE_QUOTE;
+        return unavailableQuote(
+          AgentGenerationQuoteUnavailableReason.MODEL_UNAVAILABLE,
+        );
       }
 
       const dimensions =
         input.dimensions ??
+        (input.width !== undefined && input.height !== undefined
+          ? { height: input.height, width: input.width }
+          : undefined) ??
         resolveAgentGenerationDimensions(
           input.aspectRatio,
           isVideo
@@ -109,7 +152,10 @@ export class AgentGenerationEstimateService {
       const provider = isVideo
         ? model.provider
         : resolveImageGenerationProvider(modelKey, model.provider);
-      if (!provider) return UNAVAILABLE_QUOTE;
+      if (!provider)
+        return unavailableQuote(
+          AgentGenerationQuoteUnavailableReason.MODEL_UNAVAILABLE,
+        );
       const outputs = isVideo
         ? (input.outputs ?? 1)
         : resolveImageBillableOutputs(provider, input.outputs ?? 1);
@@ -123,12 +169,17 @@ export class AgentGenerationEstimateService {
           !isFlux3Resolution(input.resolution ?? '1k') ||
           input.quality !== undefined)
       )
-        return UNAVAILABLE_QUOTE;
+        return unavailableQuote(
+          AgentGenerationQuoteUnavailableReason.MISSING_SETTING,
+        );
+      // Admission always edits at the fixed quality tier; only Flux has a resolution.
       const selected = flux
         ? (input.resolution ?? '1k')
         : isVideo
           ? input.resolution
-          : input.quality;
+          : isEdit
+            ? IMAGE_EDIT_QUALITY
+            : input.quality;
       const quote = await this.modelCreditQuote.quoteSnapshotByKey(modelKey, {
         ...dimensions,
         organizationId: input.organizationId,
@@ -150,14 +201,25 @@ export class AgentGenerationEstimateService {
 
       return Number.isFinite(credits) && credits >= 0
         ? { credits, isAvailable: true, modelKey }
-        : UNAVAILABLE_QUOTE;
+        : unavailableQuote(
+            AgentGenerationQuoteUnavailableReason.PRICING_UNRESOLVED,
+          );
     } catch (error: unknown) {
-      this.logger.warn('Agent generation credit estimate unavailable', {
+      if (isPricingUnresolved(error)) {
+        this.logger.warn('Generation credit estimate has no exact tariff', {
+          category: input.category,
+          error: error instanceof Error ? error.message : String(error),
+          organizationId: input.organizationId,
+        });
+        return unavailableQuote(
+          AgentGenerationQuoteUnavailableReason.PRICING_UNRESOLVED,
+        );
+      }
+      this.logger.error('Generation credit estimate failed', error, {
         category: input.category,
-        error: error instanceof Error ? error.message : String(error),
         organizationId: input.organizationId,
       });
-      return UNAVAILABLE_QUOTE;
+      return unavailableQuote(AgentGenerationQuoteUnavailableReason.ERROR);
     }
   }
 }

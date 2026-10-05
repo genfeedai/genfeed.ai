@@ -8,7 +8,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [RouterController],
-  exports: [RouterService],
+  exports: [RouterService, AgentGenerationEstimateService],
   imports: [LoggerModule, ModelsModule, OrganizationSettingsModule],
   providers: [RouterService, AgentGenerationEstimateService],
 })

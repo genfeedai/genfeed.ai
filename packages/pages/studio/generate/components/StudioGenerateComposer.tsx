@@ -15,15 +15,22 @@ import {
   normalizeMusicSettings,
   requiresFirstFrame,
 } from '@genfeedai/contracts/constants';
-import type { IStudioLook } from '@genfeedai/contracts/interfaces';
+import {
+  AgentGenerationQuoteUnavailableReason,
+  type IStudioLook,
+} from '@genfeedai/contracts/interfaces';
 import type {
   GenerationSetupFieldKey,
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import type { StudioGenerationCostEstimate } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
-import { resolveStudioGenerationCost } from '@genfeedai/pricing';
+import {
+  buildStudioGenerationQuoteRequest,
+  isAutoStudioModelKey,
+} from '@genfeedai/pricing';
 import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
 import { canSubmitStudioGeneration } from '@genfeedai/services/core/desktop-runtime.service';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
@@ -33,11 +40,13 @@ import {
   crunFieldOptions,
   useCrunInputControls,
 } from '@pages/studio/generate/hooks/useCrunInputControls';
+import { useStudioGenerationEstimate } from '@pages/studio/generate/hooks/useStudioGenerationEstimate';
 import { useStudioGenerationSetupLookOptions } from '@pages/studio/generate/hooks/useStudioGenerationSetupLookOptions';
 import {
   presetToGenerationSetupValues,
   useStudioLooks,
 } from '@pages/studio/generate/hooks/useStudioLooks';
+import { buildStudioPromptData } from '@pages/studio/generate/utils/studio-generate-settings';
 import {
   isStudioGenerateType,
   listStudioGenerateTypeConfigs,
@@ -267,12 +276,47 @@ export default function StudioGenerateComposer({
     isListening ||
     isTranscribing ||
     isUploading;
-  const estimate = resolveStudioGenerationCost({
-    isLoadingModels,
-    model: selectedModel,
+  const costPromptData = buildStudioPromptData({
+    brandId: '',
+    promptText: '',
     settings: displaySettings,
     type,
   });
+  const isServerPricedModel =
+    !isLoadingModels &&
+    selectedModel !== undefined &&
+    selectedModel.key === displaySettings.modelKey &&
+    selectedModel.provider !== 'crun';
+  // The server quote admission charges; Studio never recalculates it.
+  const serverEstimate = useStudioGenerationEstimate(
+    isServerPricedModel
+      ? buildStudioGenerationQuoteRequest({
+          aspectRatio: displaySettings.aspectRatio,
+          duration: costPromptData.duration,
+          height: costPromptData.height,
+          modelKey: displaySettings.modelKey,
+          outputs: costPromptData.outputs,
+          resolution: costPromptData.resolution,
+          type,
+          width: costPromptData.width,
+        })
+      : null,
+  );
+  const estimate: StudioGenerationCostEstimate =
+    type !== 'image' && type !== 'image-edit' && type !== 'video'
+      ? { credits: null, status: 'unavailable' }
+      : isLoadingModels
+        ? { credits: null, status: 'loading' }
+        : isAutoStudioModelKey(displaySettings.modelKey)
+          ? { credits: null, status: 'auto' }
+          : !selectedModel || selectedModel.key !== displaySettings.modelKey
+            ? {
+                credits: null,
+                status: 'unavailable',
+                unavailableReason:
+                  AgentGenerationQuoteUnavailableReason.MODEL_UNAVAILABLE,
+              }
+            : serverEstimate;
 
   const scope = buildStudioGenerationSetupScope(type);
   const defaults = getDefaultGenerationSetupValues(type);

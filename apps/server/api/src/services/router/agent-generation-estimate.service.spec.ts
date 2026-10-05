@@ -4,6 +4,7 @@ import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
 import { EstimateGenerationCreditsDto } from '@api/services/router/dto/estimate-generation-credits.dto';
 import { ModelCategory } from '@genfeedai/contracts';
+import { AgentGenerationQuoteUnavailableReason } from '@genfeedai/contracts/interfaces';
 import {
   calculateImageGenerationCredits,
   calculateVideoGenerationCredits,
@@ -13,11 +14,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentGenerationEstimateService', () => {
   const selectModel = vi.fn();
+  const resolveModelKey = vi.fn();
+  const logger = { error: vi.fn(), warn: vi.fn() };
   const validateModelForOrg = vi.fn();
   const service = new AgentGenerationEstimateService(
-    { selectModel } as never,
+    { resolveModelKey, selectModel } as never,
     { validateModelForOrg } as never,
-    { warn: vi.fn() } as never,
+    logger as never,
     testModelCreditQuote({
       findOne: async () => validateModelForOrg(),
     } as never),
@@ -36,7 +39,14 @@ describe('AgentGenerationEstimateService', () => {
     isDeleted: false,
     organizationId: null,
   };
-  const unavailable = { credits: null, isAvailable: false, modelKey: null };
+  const unavailable = (
+    unavailableReason: AgentGenerationQuoteUnavailableReason,
+  ) => ({
+    credits: null,
+    isAvailable: false,
+    modelKey: null,
+    unavailableReason,
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     selectModel.mockResolvedValue({
@@ -243,7 +253,9 @@ describe('AgentGenerationEstimateService', () => {
   });
   it('rejects a zero cost without an explicit free designation', async () => {
     validateModelForOrg.mockResolvedValue({ ...model, cost: 0 });
-    expect(await service.estimate(input)).toEqual(unavailable);
+    expect(await service.estimate(input)).toEqual(
+      unavailable(AgentGenerationQuoteUnavailableReason.PRICING_UNRESOLVED),
+    );
   });
   it.each([
     { key: 'retired-successor' },
@@ -260,12 +272,95 @@ describe('AgentGenerationEstimateService', () => {
     'rejects unavailable model row %j without exposing a key',
     async (override) => {
       validateModelForOrg.mockResolvedValue({ ...model, ...override });
-      expect(await service.estimate(input)).toEqual(unavailable);
+      const quote = await service.estimate(input);
+      expect(quote).toMatchObject({
+        credits: null,
+        isAvailable: false,
+        modelKey: null,
+      });
+      expect(quote.unavailableReason).toBeDefined();
     },
   );
   it('hides model identity when organization policy rejects it', async () => {
     validateModelForOrg.mockRejectedValue(new Error('not enabled'));
-    expect(await service.estimate(input)).toEqual(unavailable);
+    expect(await service.estimate(input)).toEqual(
+      unavailable(AgentGenerationQuoteUnavailableReason.ERROR),
+    );
+    expect(logger.error).toHaveBeenCalledTimes(1);
+  });
+  it('requires a prompt only when the server must route', async () => {
+    expect(
+      await service.estimate({
+        category: ModelCategory.IMAGE,
+        organizationId: 'org-1',
+      }),
+    ).toEqual(
+      unavailable(AgentGenerationQuoteUnavailableReason.INSUFFICIENT_INPUT),
+    );
+    expect(selectModel).not.toHaveBeenCalled();
+    const explicit = await service.estimate({
+      category: ModelCategory.IMAGE,
+      modelKey: model.key,
+      organizationId: 'org-1',
+    });
+    expect(explicit).toMatchObject({ credits: 50, isAvailable: true });
+    const dto = Object.assign(new EstimateGenerationCreditsDto(), {
+      category: 'image-edit',
+      modelKey: model.key,
+    });
+    expect(await validate(dto)).toEqual([]);
+    expect(
+      (
+        await validate(
+          Object.assign(new EstimateGenerationCreditsDto(), {
+            category: 'image',
+          }),
+        )
+      ).some((error) => error.property === 'prompt'),
+    ).toBe(true);
+  });
+  it('prices an image edit at the admission quality tier and resolves Auto through the edit default', async () => {
+    resolveModelKey.mockResolvedValue({ key: 'ideogram-ai/ideogram-4-5' });
+    validateModelForOrg.mockResolvedValue({
+      ...model,
+      category: ModelCategory.IMAGE_EDIT,
+      cost: 20,
+      key: 'ideogram-ai/ideogram-4-5',
+    });
+    expect(
+      await service.estimate({
+        category: 'image-edit',
+        organizationId: 'org-1',
+        outputs: 4,
+      }),
+    ).toEqual({
+      credits: 80,
+      isAvailable: true,
+      modelKey: 'ideogram-ai/ideogram-4-5',
+    });
+    expect(selectModel).not.toHaveBeenCalled();
+  });
+  it('quotes explicit width and height like admission dimensions', async () => {
+    validateModelForOrg.mockResolvedValue({
+      ...model,
+      cost: 1,
+      costPerUnit: 4,
+      key: 'fal-ai/flux/dev',
+      pricingType: 'per-megapixel',
+      provider: 'fal',
+    });
+    const tall = await service.estimate({
+      ...input,
+      height: 1920,
+      modelKey: 'fal-ai/flux/dev',
+      width: 1080,
+    });
+    const viaDimensions = await service.estimate({
+      ...input,
+      dimensions: { height: 1920, width: 1080 },
+      modelKey: 'fal-ai/flux/dev',
+    });
+    expect(tall).toEqual(viaDimensions);
   });
   it('rejects an empty aspect ratio at the DTO boundary', async () => {
     const dto = Object.assign(new EstimateGenerationCreditsDto(), {

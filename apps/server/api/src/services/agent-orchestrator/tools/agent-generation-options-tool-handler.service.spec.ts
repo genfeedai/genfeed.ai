@@ -1,5 +1,10 @@
+import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
+import { AgentGenerationCostToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-cost-tool-handler.service';
 import { AgentGenerationOptionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-options-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
+import { ModelCategory } from '@genfeedai/contracts';
+import { setRuntimeMarginMultiplier } from '@genfeedai/pricing';
 import { describe, expect, it, vi } from 'vitest';
 
 const ctx = {
@@ -108,5 +113,48 @@ describe('AgentGenerationOptionsToolHandler', () => {
 
     expect((await handler.execute({}, ctx)).creditsUsed).toBe(0);
     expect((await handler.execute({ type: 'image' }, ctx)).creditsUsed).toBe(0);
+  });
+
+  it('#6199: returns a non-null estimate for a model admission quotes from configured provider USD', async () => {
+    setRuntimeMarginMultiplier(1);
+    const row = {
+      category: ModelCategory.IMAGE,
+      cost: 0,
+      isActive: true,
+      isDeleted: false,
+      key: 'google/nano-banana-2-lite',
+      organizationId: null,
+      pricingType: 'flat',
+      provider: 'replicate',
+      providerCostUsd: 0.04,
+    };
+    const estimate = new AgentGenerationEstimateService(
+      { selectModel: vi.fn() } as never,
+      { validateModelForOrg: vi.fn(async () => row) } as never,
+      { error: vi.fn(), warn: vi.fn() } as never,
+      testModelCreditQuote({ findOne: async () => row } as never),
+    );
+    const handler = new AgentGenerationOptionsToolHandler(
+      {
+        get: vi
+          .fn()
+          .mockResolvedValue({ creditsUsed: 0, data: SETTINGS, success: true }),
+      } as never,
+      new AgentGenerationCostToolHandler(
+        { getOrganizationCreditsBalance: vi.fn(async () => 42) } as never,
+        estimate,
+      ),
+    );
+
+    const result = await handler.execute(
+      { modelKey: row.key, type: 'image' },
+      ctx,
+    );
+
+    expect(result.data).toMatchObject({
+      cost: {
+        estimate: { credits: expect.any(Number), status: 'estimated' },
+      },
+    });
   });
 });

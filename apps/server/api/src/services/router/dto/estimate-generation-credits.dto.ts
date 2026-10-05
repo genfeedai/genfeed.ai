@@ -10,9 +10,14 @@ import {
   IsString,
   Max,
   Min,
+  ValidateIf,
 } from 'class-validator';
 
-const ESTIMATE_CATEGORIES = [ModelCategory.IMAGE, ModelCategory.VIDEO] as const;
+const ESTIMATE_CATEGORIES = [
+  ModelCategory.IMAGE,
+  ModelCategory.IMAGE_EDIT,
+  ModelCategory.VIDEO,
+] as const;
 type EstimateCategory = (typeof ESTIMATE_CATEGORIES)[number];
 
 /**
@@ -31,15 +36,18 @@ export class EstimateGenerationCreditsDto {
 
   @IsString()
   @IsNotEmpty()
+  @ValidateIf((dto: EstimateGenerationCreditsDto) => !dto.modelKey)
   @ApiProperty({
-    description: 'The prompt as the Agent wrote it',
+    description:
+      'The prompt as the Agent wrote it. Required only when the server must route (no modelKey).',
     example: 'A futuristic city at sunset with flying cars',
+    required: false,
   })
-  readonly prompt!: string;
+  readonly prompt?: string;
 
   @IsIn(ESTIMATE_CATEGORIES)
   @ApiProperty({
-    description: 'Image or video — the two the docked review card supports',
+    description: 'Image, image edit or video',
     enum: ESTIMATE_CATEGORIES,
     example: ModelCategory.IMAGE,
   })
@@ -105,4 +113,24 @@ export class EstimateGenerationCreditsDto {
     required: false,
   })
   readonly quality?: string;
+
+  @IsInt()
+  @IsOptional()
+  @Min(64)
+  @Max(8192)
+  @ApiProperty({
+    description: 'Executed pixel width; send with height to quote exact size',
+    required: false,
+  })
+  readonly width?: number;
+
+  @IsInt()
+  @IsOptional()
+  @Min(64)
+  @Max(8192)
+  @ApiProperty({
+    description: 'Executed pixel height; send with width to quote exact size',
+    required: false,
+  })
+  readonly height?: number;
 }
