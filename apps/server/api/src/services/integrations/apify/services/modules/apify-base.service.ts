@@ -33,10 +33,6 @@ type ApifyActorRegistration = {
  * boundary makes an unknown direct actor call fail before it can spend money.
  */
 const APIFY_ACTOR_REGISTRY: Readonly<Record<string, ApifyActorRegistration>> = {
-  'alexey/pinterest-scraper': {
-    capability: 'pinterest.public-and-scoped-discovery',
-    mode: 'fallback_only',
-  },
   'apify/facebook-ads-scraper': {
     capability: 'meta.paid-creative-discovery',
     mode: 'temporarily_apify_primary',
@@ -56,6 +52,10 @@ const APIFY_ACTOR_REGISTRY: Readonly<Record<string, ApifyActorRegistration>> = {
   'apify/instagram-scraper': {
     capability: 'instagram.public-and-scoped-social-read',
     mode: 'temporarily_apify_primary',
+  },
+  'automation-lab/twitter-trends-scraper': {
+    capability: 'x.public-trend-discovery',
+    mode: 'fallback_only',
   },
   'bernardo/youtube-comment-scraper': {
     capability: 'youtube.comments',
@@ -85,16 +85,16 @@ const APIFY_ACTOR_REGISTRY: Readonly<Record<string, ApifyActorRegistration>> = {
     capability: 'linkedin.public-creator-ingestion',
     mode: 'temporarily_apify_primary',
   },
+  'fatihtahta/pinterest-scraper-search': {
+    capability: 'pinterest.public-and-scoped-discovery',
+    mode: 'fallback_only',
+  },
   'lexis-solutions/google-ads-scraper': {
     capability: 'google.paid-creative-discovery',
     mode: 'temporarily_apify_primary',
   },
   'quacker/twitter-scraper': {
     capability: 'x.social-read',
-    mode: 'fallback_only',
-  },
-  'quacker/twitter-trends-scraper': {
-    capability: 'x.public-trend-discovery',
     mode: 'fallback_only',
   },
   'streamers/youtube-channel-scraper': {
@@ -162,7 +162,7 @@ export class ApifyBaseService {
     LINKEDIN_PROFILE_SCRAPER: 'curious_coder/linkedin-profile-scraper',
 
     // Pinterest scrapers
-    PINTEREST_SCRAPER: 'alexey/pinterest-scraper',
+    PINTEREST_SCRAPER: 'fatihtahta/pinterest-scraper-search',
     REDDIT_COMMENT_SCRAPER: 'trudax/reddit-comments-scraper',
 
     // Reddit scrapers
@@ -177,7 +177,7 @@ export class ApifyBaseService {
     TWITTER_SCRAPER: 'quacker/twitter-scraper',
 
     // Twitter/X scrapers
-    TWITTER_TRENDS: 'quacker/twitter-trends-scraper',
+    TWITTER_TRENDS: 'automation-lab/twitter-trends-scraper',
     YOUTUBE_CHANNEL_SCRAPER: 'streamers/youtube-channel-scraper',
     YOUTUBE_COMMENT_SCRAPER: 'bernardo/youtube-comment-scraper',
 
