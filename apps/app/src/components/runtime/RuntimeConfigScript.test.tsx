@@ -1,5 +1,6 @@
+// @vitest-environment jsdom
+
 import { render } from '@testing-library/react';
-import { JSDOM } from 'jsdom';
 import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import RuntimeConfigScript from '@/components/runtime/RuntimeConfigScript';
@@ -7,7 +8,12 @@ import RuntimeConfigScript from '@/components/runtime/RuntimeConfigScript';
 const insertHTML = vi.hoisted(() => vi.fn());
 vi.mock('next/navigation', () => ({ useServerInsertedHTML: insertHTML }));
 
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  Reflect.deleteProperty(window, 'genfeedDesktop');
+  Reflect.deleteProperty(window, '__GENFEED_RUNTIME_CONFIG__');
+  document.body.className = '';
+});
 
 describe('RuntimeConfigScript browser surface bootstrap', () => {
   it.each([
@@ -19,12 +25,10 @@ describe('RuntimeConfigScript browser surface bootstrap', () => {
     'detects $surface for bridge=$hasBridge build=$isShellBuild',
     ({ hasBridge, isShellBuild, surface }) => {
       vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', isShellBuild ? '1' : '0');
-      const dom = new JSDOM(
-        '<!doctype html><html><body class="gf-app"></body></html>',
-        { runScripts: 'outside-only' },
-      );
+      document.body.className = 'gf-app';
       if (hasBridge)
-        Object.defineProperty(dom.window, 'genfeedDesktop', {
+        Object.defineProperty(window, 'genfeedDesktop', {
+          configurable: true,
           value: undefined,
         });
       let scriptSource = '';
@@ -46,16 +50,20 @@ describe('RuntimeConfigScript browser surface bootstrap', () => {
           }
         />,
       );
-      dom.window.eval(scriptSource);
-      expect(dom.window.eval('globalThis.__GENFEED_RUNTIME_CONFIG__')).toEqual({
+      const runtimeConfig = new Function(
+        'globalThis',
+        'window',
+        'document',
+        `${scriptSource}\nreturn globalThis.__GENFEED_RUNTIME_CONFIG__;`,
+      )(window, window, document);
+      expect(runtimeConfig).toEqual({
         apiEndpoint: '/v1',
         betterAuthEnabled: true,
         clientSurface: surface,
       });
-      expect(
-        dom.window.document.body.classList.contains('gf-desktop-shell'),
-      ).toBe(surface === 'desktop');
-      dom.window.close();
+      expect(document.body.classList.contains('gf-desktop-shell')).toBe(
+        surface === 'desktop',
+      );
     },
   );
 });

@@ -3,9 +3,8 @@
  *
  * Locale is carried by cookie, not by a URL segment: the studio routes are
  * `/:orgSlug/:brandSlug/...` and a `[locale]` segment would collide with the
- * brand-scoped matching in `apps/app/proxy.ts`. Resolution mirrors
- * `theme.constant.ts` / `resolveRequestTheme` so both preferences behave the
- * same way on the server.
+ * brand-scoped matching in `apps/app/proxy.ts`. The static app shell uses
+ * DEFAULT_LOCALE from its `i18n/request.ts` configuration.
  */
 
 /**
@@ -79,10 +78,8 @@ export function getSelectableLocales(
 
 /**
  * The stored half of the `user → org → browser → en` precedence chain. The
- * browser and default tails belong to `resolveRequestLocale`, which is the only
- * place that can read `Accept-Language`; this returns `undefined` when neither
- * the user nor the organization has expressed a preference so the caller can
- * fall through to them.
+ * browser and default tails are left to the caller; this returns `undefined`
+ * when neither the user nor the organization has expressed a preference.
  */
 export function resolvePreferredLocale(preference: {
   organizationLocale?: string | null;

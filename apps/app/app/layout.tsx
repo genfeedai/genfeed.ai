@@ -60,8 +60,15 @@ export default function RootLayout({ children }: LayoutProps) {
       fontVariables={fontVariables}
       bodyClassName="gf-app gf-studio-app"
       lang={DEFAULT_LOCALE}
+      head={
+        <>
+          <RuntimeConfigScript source={createRuntimeConfigScript()} />
+          {process.env.GENFEED_RUNTIME_CONFIG_ENDPOINT === '1' && (
+            <script src="/runtime-config.js" />
+          )}
+        </>
+      }
     >
-      <RuntimeConfigScript source={createRuntimeConfigScript()} />
       {/* Locale and messages are inherited from i18n/request.ts rather than
           passed here, so server components keep resolving copy on the server
           and only what client components actually read crosses the boundary. */}

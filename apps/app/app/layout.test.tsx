@@ -54,9 +54,21 @@ vi.mock('@ui/providers/AppProviders', () => ({
 }));
 
 vi.mock('@ui/shell/AppHtmlDocument', () => ({
-  default: ({ children, ...props }: { children: ReactNode; lang?: string }) => {
+  default: ({
+    children,
+    ...props
+  }: {
+    children: ReactNode;
+    head?: ReactNode;
+    lang?: string;
+  }) => {
     htmlDocumentSpy(props);
-    return <div data-testid="app-html-document">{children}</div>;
+    return (
+      <div data-testid="app-html-document">
+        {props.head}
+        {children}
+      </div>
+    );
   },
 }));
 
@@ -89,6 +101,7 @@ describe('app root layout', () => {
   const originalDesktopShellEnv = process.env.NEXT_PUBLIC_DESKTOP_SHELL;
 
   beforeEach(() => {
+    vi.stubEnv('GENFEED_RUNTIME_CONFIG_ENDPOINT', undefined);
     appProvidersSpy.mockClear();
     htmlDocumentSpy.mockClear();
     runtimeConfigSpy.mockClear();
@@ -97,6 +110,7 @@ describe('app root layout', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     if (originalDesktopShellEnv === undefined) {
       delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
       return;
@@ -104,6 +118,32 @@ describe('app root layout', () => {
 
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = originalDesktopShellEnv;
   });
+
+  it.each(['1', '0', 'true', '', undefined])(
+    'renders the blocking runtime override only for flag 1 (flag=%s)',
+    async (flag) => {
+      vi.stubEnv('GENFEED_RUNTIME_CONFIG_ENDPOINT', flag);
+      const { default: RootLayout } = await import('./layout');
+      const { container } = render(
+        RootLayout({ children: <div>App child</div> } as never),
+      );
+      const script = container.querySelector(
+        'script[src="/runtime-config.js"]',
+      );
+
+      expect(runtimeConfigSpy).toHaveBeenCalledTimes(1);
+      if (flag === '1') {
+        expect(script).not.toBeNull();
+        expect(script).not.toHaveAttribute('async');
+        expect(script).not.toHaveAttribute('defer');
+        expect(htmlDocumentSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ head: expect.anything() }),
+        );
+      } else {
+        expect(script).toBeNull();
+      }
+    },
+  );
 
   it('boots the app with a single root AppProviders wrapper', async () => {
     const { default: RootLayout } = await import('./layout');
