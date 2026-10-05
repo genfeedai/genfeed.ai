@@ -52,6 +52,33 @@ describe('toGenerationWorkflowDto', () => {
     ).not.toThrow();
   });
 
+  it.each([true, false])(
+    'validates the saved brand harness flag %s without coercion',
+    (requireBrandHarness) => {
+      const contract = compileInputContract(
+        'content-intelligence.load-context',
+      );
+      expect(() =>
+        contract.validateInput(
+          {
+            dto: toGenerationWorkflowDto(dtoWithUndefinedFields),
+            requireBrandHarness,
+          },
+          PROVENANCE,
+        ),
+      ).not.toThrow();
+      expect(() =>
+        contract.validateInput(
+          { dto: {}, requireBrandHarness: String(requireBrandHarness) },
+          PROVENANCE,
+        ),
+      ).toThrow(/must be boolean/);
+      expect(() =>
+        contract.validateInput({ dto: {}, unexpected: true }, PROVENANCE),
+      ).toThrow(/additional properties/);
+    },
+  );
+
   it('drops undefined keys recursively and keeps every defined value', () => {
     expect(toGenerationWorkflowDto(dtoWithUndefinedFields)).toEqual({
       knowledge: { purposes: ['BRAND_TRUTH'] },

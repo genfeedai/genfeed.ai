@@ -9,10 +9,7 @@ import {
 } from '@genfeedai/actions';
 import { formatAgentError } from '@genfeedai/agent/server';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
-import {
-  serializeMediaArtifact,
-  toMcpMediaToolResult,
-} from '@genfeedai/helpers';
+import { serializeMediaArtifact } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
@@ -23,6 +20,7 @@ import {
 } from '@mcp/mcp/resource-catalog';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
+import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
 import {
   agentGuideResource,
   jsonResource,
@@ -629,7 +627,10 @@ export class ToolRegistryService implements OnModuleInit {
 
     const payload = result.data ?? {};
     if (serializeMediaArtifact(payload)) {
-      return toMcpMediaToolResult(payload);
+      return toNativeMcpMediaResult(payload, [
+        this.configService?.get('GENFEEDAI_CDN_URL') ||
+          'https://cdn.genfeed.ai',
+      ]);
     }
     return {
       content: [
