@@ -46,3 +46,19 @@ export interface ILibraryAssetTagsChange {
   ingredientIds: string[];
   tag: ITag;
 }
+
+/**
+ * The fields of a Library tag that changed. Only these are merged into loaded
+ * assets, so an edit never replays fields it did not touch.
+ */
+export interface ILibraryTagUpdate
+  extends Partial<Pick<ITag, 'backgroundColor' | 'label' | 'textColor'>> {
+  id: string;
+}
+
+/** A color a Library tag can take from its picker. */
+export interface ITagColorSwatch {
+  backgroundColor: string;
+  name: string;
+  textColor: string;
+}

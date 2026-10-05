@@ -182,7 +182,7 @@ describe('IngredientTagsControl', () => {
         'asset-1',
       ]),
     );
-    expect(createTag).toHaveBeenCalledWith('Spring drop');
+    expect(createTag).toHaveBeenCalledWith('Spring drop', undefined, undefined);
     expect(await screen.findByText('Spring drop')).toBeInTheDocument();
   });
 

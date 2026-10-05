@@ -3,7 +3,11 @@
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonVariant, TagBulkAction } from '@genfeedai/contracts';
 import { LIBRARY_BULK_TAG_LIMIT } from '@genfeedai/contracts/constants';
-import type { IIngredient, ITag } from '@genfeedai/contracts/interfaces';
+import type {
+  IIngredient,
+  ITag,
+  ITagColorSwatch,
+} from '@genfeedai/contracts/interfaces';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
@@ -68,9 +72,12 @@ export default function SelectionTagAction({
     );
   };
 
-  const handleCreate = async (label: string): Promise<void> => {
+  const handleCreate = async (
+    label: string,
+    color: ITagColorSwatch | undefined,
+  ): Promise<void> => {
     try {
-      const tag = await createTag(label);
+      const tag = await createTag(label, undefined, color);
       await applyTag(TagBulkAction.ADD, tag, ids);
     } catch (error: unknown) {
       logger.error('Failed to create Library tag', error);
@@ -82,8 +89,8 @@ export default function SelectionTagAction({
     <LibraryTagPicker
       isBusy={isWriting}
       isLoading={isLoading}
-      onCreate={(label) => {
-        void handleCreate(label);
+      onCreate={(label, color) => {
+        void handleCreate(label, color);
       }}
       onToggle={handleToggle}
       states={states}

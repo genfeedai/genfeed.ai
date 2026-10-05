@@ -155,8 +155,38 @@ describe('LibraryTagPicker', () => {
     });
     fireEvent.click(screen.getByText('Create “Spring drop”'));
 
-    expect(onCreate).toHaveBeenCalledWith('Spring drop');
+    expect(onCreate).toHaveBeenCalledWith('Spring drop', undefined);
     expect(screen.getByLabelText('Search or create a tag')).toHaveValue('');
+  });
+
+  it('creates the tag in the color picked for it', () => {
+    const { onCreate } = renderPicker();
+
+    fireEvent.change(screen.getByLabelText('Search or create a tag'), {
+      target: { value: 'Spring drop' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Violet' }));
+    fireEvent.click(screen.getByText('Create “Spring drop”'));
+
+    expect(onCreate).toHaveBeenCalledWith('Spring drop', {
+      backgroundColor: '#7C3AED',
+      name: 'Violet',
+      textColor: '#FFFFFF',
+    });
+  });
+
+  it('keeps the palette out of cmdk, so Enter on a swatch cannot select an item', () => {
+    const { onCreate, onToggle } = renderPicker();
+
+    fireEvent.change(screen.getByLabelText('Search or create a tag'), {
+      target: { value: 'Spring drop' },
+    });
+    const swatch = screen.getByRole('button', { name: 'Violet' });
+    fireEvent.keyDown(swatch, { key: 'Enter' });
+
+    expect(swatch.closest('[cmdk-root]')).toBeNull();
+    expect(onCreate).not.toHaveBeenCalled();
+    expect(onToggle).not.toHaveBeenCalled();
   });
 
   it('does not offer to create a duplicate, however it is cased', () => {
