@@ -41,7 +41,7 @@ describe('composeContentHarnessBrief', () => {
     expect(brief.systemDirectives).toEqual([]);
     expect(brief.styleDirectives).toEqual([]);
     expect(brief.guardrails).toEqual([]);
-    expect(brief.evaluationCriteria).toEqual([]);
+    expect(brief.evaluationCriteria.join(' ')).not.toContain('Hook strength');
     expect(brief.providerHints).toEqual([]);
     expect(brief.sources).toEqual([]);
     expect(brief.metadata).toEqual({

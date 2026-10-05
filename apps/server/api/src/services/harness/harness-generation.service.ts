@@ -714,27 +714,29 @@ export class HarnessGenerationService {
             })
           : [];
 
-      const brief = await this.contentHarnessService.composeBrief(
-        buildHarnessInput({
-          additionalSources: [
-            ...(params.additionalSources ?? []),
-            ...memorySources,
-          ],
-          brand,
-          brandOsRevision,
-          harnessProfileId: profile?.profileId,
-          intent: {
-            contentType: params.contentType,
-            objective: params.objective ?? 'engagement',
-            platform: params.platform,
-            topic: params.topic,
-          },
-          organizationId: params.organizationId,
-          persona: params.persona,
-          profileContribution: profile?.contribution,
-        }),
-        params.surface ? { surface: params.surface } : undefined,
-      );
+      const harnessInput = buildHarnessInput({
+        additionalSources: [
+          ...(params.additionalSources ?? []),
+          ...memorySources,
+        ],
+        brand,
+        brandOsRevision,
+        harnessProfileId: profile?.profileId,
+        intent: {
+          contentType: params.contentType,
+          objective: params.objective ?? 'engagement',
+          platform: params.platform,
+          topic: params.topic,
+        },
+        organizationId: params.organizationId,
+        persona: params.persona,
+        profileContribution: profile?.contribution,
+      });
+      const brief = params.surface
+        ? await this.contentHarnessService.composeBrief(harnessInput, {
+            surface: params.surface,
+          })
+        : await this.contentHarnessService.composeBrief(harnessInput);
       // Operator-only receipt: pack IDs and versions, never pack contents.
       this.logger.log(`${this.constructorName} applied content harness packs`, {
         appliedPacks: brief.appliedPacks,
