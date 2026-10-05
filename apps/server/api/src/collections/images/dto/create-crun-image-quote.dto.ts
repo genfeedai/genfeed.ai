@@ -6,9 +6,10 @@ import {
   finalizeCrunQuoteCommon,
   refineCrunQuoteCommon,
 } from '@api/services/integrations/crun/crun-quote-common.dto';
-import type {
-  CrunImageQuoteControls,
-  CrunImageQuoteRequest,
+import {
+  CRUN_IMAGE_MODEL_KEYS,
+  type CrunImageQuoteControls,
+  type CrunImageQuoteRequest,
 } from '@genfeedai/contracts/interfaces/billing';
 import { Type } from 'class-transformer';
 import {
@@ -43,7 +44,7 @@ export class CreateCrunImageQuoteDto
   implements CrunImageQuoteRequest
 {
   @IsString()
-  @IsIn(['crun/google/nano-banana-pro', 'crun/bytedance/seedream-4-5'])
+  @IsIn(CRUN_IMAGE_MODEL_KEYS)
   model!: string;
   @IsString() @MinLength(1) @MaxLength(20000) text!: string;
   @IsObject()
@@ -60,10 +61,7 @@ export class CreateCrunImageQuoteDto
 
 export const crunImageQuoteIntentSchema = z
   .object({
-    model: z.enum([
-      'crun/google/nano-banana-pro',
-      'crun/bytedance/seedream-4-5',
-    ]),
+    model: z.enum(CRUN_IMAGE_MODEL_KEYS),
     text: z.string().trim().min(1).max(20000),
     references: z
       .array(crunQuoteEntityId)
