@@ -18,6 +18,46 @@ vi.mock('node:crypto', async (original) => ({
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
   PrismaService: class {},
 }));
+type RawQuery = { sql: string; values: unknown[] };
+// Serves $queryRaw reads by matching a fragment of the generated SQL.
+function rawReads(
+  handlers: Array<[match: string, run: (query: RawQuery) => unknown]>,
+  fallback: unknown = [],
+) {
+  return vi.fn(async (query: RawQuery | TemplateStringsArray) => {
+    // Tagged-template calls (advisory fences) arrive as plain string arrays.
+    const sql = 'sql' in query ? query.sql : query.join('?');
+    for (const [match, run] of handlers)
+      if (sql.includes(match)) return run(query as RawQuery);
+    return fallback;
+  });
+}
+// Entry columns of every bulk insert, decoded from the bound unnest arrays.
+function insertedEntries(executeRaw: { mock: { calls: unknown[][] } }) {
+  return (executeRaw.mock.calls as Array<[RawQuery]>)
+    .filter(([query]) => query.sql.includes('content_learning_dataset_entries'))
+    .flatMap(([query]) => {
+      const [, , fingerprints, , groups, , , , , , , splits] = query.values as [
+        string,
+        string[],
+        string[],
+        string[],
+        string[],
+        string[],
+        string[],
+        string[],
+        string[],
+        string[],
+        string[],
+        string[],
+      ];
+      return fingerprints.map((sourceFingerprint, index) => ({
+        sourceFingerprint,
+        accountGroup: groups[index],
+        split: splits[index],
+      }));
+    });
+}
 const row = {
   sourceFingerprint: 'log-sha',
   accountGroup: 'pseudonym',
@@ -86,9 +126,7 @@ describe('immutable dataset operation retries', () => {
         create: createDataset,
         findFirst: vi.fn().mockImplementation(() => Promise.resolve(dataset)),
       },
-      contentLearningDatasetEntry: {
-        createMany: vi.fn().mockResolvedValue({}),
-      },
+      $executeRaw: vi.fn().mockResolvedValue(1),
     };
     const prisma = {
       $transaction: vi.fn().mockImplementation((callback) => callback(tx)),
@@ -111,7 +149,7 @@ describe('immutable dataset operation retries', () => {
       second = await service.create(input);
     expect(second).toEqual(first);
     expect(createDataset).toHaveBeenCalledTimes(1);
-    expect(tx.contentLearningDatasetEntry.createMany).toHaveBeenCalledTimes(1);
+    expect(tx.$executeRaw).toHaveBeenCalledTimes(1);
     await expect(
       service.create({ ...input, rightsStatement: 'Changed rights' }),
     ).rejects.toThrow('payload conflict');
@@ -203,23 +241,21 @@ describe('bounded dataset graph validation', () => {
     limits?: { nodes: number; edges: number; levels: number },
   ) {
     const tx = {
-      contentLearningReward: {
-        findMany: vi.fn().mockResolvedValue([{ id: 'reward', version: 1 }]),
-      },
-      contentLearningDependency: {
-        findMany: vi
-          .fn()
-          .mockImplementation(({ where }) =>
-            Promise.resolve(
-              edges.filter(
-                (edge: { derivedKind: string }) =>
-                  edge.derivedKind === where.derivedKind,
-              ),
+      $queryRaw: rawReads([
+        [
+          'content_learning_dependencys',
+          ({ values }) =>
+            edges.filter(
+              (edge: { derivedKind: string }) => edge.derivedKind === values[0],
             ),
-          ),
-      },
+        ],
+        ['content_learning_rewards', () => [{ id: 'reward', version: 1 }]],
+      ]),
     };
-    return { tx, graph: new LearningDatasetGraph(tx as never, limits) };
+    return {
+      tx,
+      graph: new LearningDatasetGraph(tx as never, limits, true),
+    };
   }
   const root = { kind: 'reward' as const, id: 'reward', organizationId: 'org' };
   const edge = {
@@ -236,8 +272,12 @@ describe('bounded dataset graph validation', () => {
     await f.graph.load([root]);
     await f.graph.load([root]);
     expect(f.graph.valid(root)).toBe(true);
-    expect(f.tx.contentLearningReward.findMany).toHaveBeenCalledTimes(1);
-    expect(f.tx.contentLearningDependency.findMany).toHaveBeenCalledTimes(2);
+    const reads = (table: string) =>
+      f.tx.$queryRaw.mock.calls.filter(([query]) =>
+        (query as RawQuery).sql.includes(table),
+      );
+    expect(reads('content_learning_rewards')).toHaveLength(1);
+    expect(reads('content_learning_dependencys')).toHaveLength(2);
   });
   it.each(
     [
@@ -377,6 +417,7 @@ describe('dataset pin parity with the shared resolver', () => {
     const prisma = tx as unknown as PrismaService;
     const shared = new LearningDependencyService(prisma);
     const graph = new LearningDatasetGraph(prisma);
+    const bulk = new LearningDatasetGraph(prisma, undefined, true);
     for (const kind of kinds) {
       const global = [
         'dataset',
@@ -394,6 +435,10 @@ describe('dataset pin parity with the shared resolver', () => {
       expect((await graph.pins(kind, [id], global ? 'wrong' : null)).size).toBe(
         0,
       );
+      if (['checkpoint', 'baseline', 'decision', 'reward'].includes(kind))
+        expect((await bulk.pins(kind, [id], organizationId)).get(id)).toBe(
+          resolved.version,
+        );
     }
   });
 });
@@ -422,9 +467,7 @@ describe('dataset envelope and immutable split parity', () => {
             Promise.resolve({ id: 'dataset', ...data }),
           ),
       },
-      contentLearningDatasetEntry: {
-        createMany: vi.fn().mockResolvedValue({ count: 0 }),
-      },
+      $executeRaw: vi.fn().mockResolvedValue(0),
     };
     const service = new LearningDatasetService(
       {
@@ -534,10 +577,7 @@ describe('dataset envelope and immutable split parity', () => {
         sorted.map((value) => [value, split(value)]),
       ]),
     );
-    const entries =
-      f.tx.contentLearningDatasetEntry.createMany.mock.calls.flatMap(
-        ([args]) => args.data,
-      );
+    const entries = insertedEntries(f.tx.$executeRaw);
     expect(
       entries.map((value) => ({
         fingerprint: value.sourceFingerprint,
@@ -590,34 +630,28 @@ describe('dataset envelope and immutable split parity', () => {
       },
     ];
     const tx = {
-      contentLearningReward: {
-        findMany: vi
-          .fn()
-          .mockImplementation(({ where }) =>
-            Promise.resolve(
-              where.id.in.map((id: string) => ({ id, version: 1 })),
+      $queryRaw: rawReads([
+        [
+          'content_learning_rewards',
+          ({ values }) =>
+            (values[0] as string[]).map((id) => ({ id, version: 1 })),
+        ],
+        [
+          'content_learning_dependencys',
+          ({ values }) =>
+            edges.filter(
+              (edge) =>
+                edge.derivedKind === values[0] &&
+                (values[1] as string[]).includes(edge.derivedId),
             ),
-          ),
-      },
-      contentLearningDependency: {
-        findMany: vi
-          .fn()
-          .mockImplementation(({ where }) =>
-            Promise.resolve(
-              edges.filter(
-                (edge) =>
-                  edge.derivedKind === where.derivedKind &&
-                  where.derivedId.in.includes(edge.derivedId),
-              ),
-            ),
-          ),
-      },
+        ],
+      ]),
     };
-    const graph = new LearningDatasetGraph(tx as never, {
-      nodes: 10,
-      edges: 10,
-      levels: 2,
-    });
+    const graph = new LearningDatasetGraph(
+      tx as never,
+      { nodes: 10, edges: 10, levels: 2 },
+      true,
+    );
     const first = { kind: 'reward' as const, id: 'r0', organizationId: 'org' },
       second = { ...first, id: 'r1' };
     await graph.load([first]);
@@ -650,25 +684,50 @@ describe('candidate eligibility paging', () => {
       selectedArmId: row.armId,
       probabilities: row.probabilities,
     };
-    const rewardRead = vi.fn().mockImplementation(({ where, take }) => {
-      if (where.id?.in) return Promise.resolve([eligible]);
-      const start = where.id?.gt ? Number(where.id.gt.slice(7)) + 1 : 0;
-      return Promise.resolve(
-        Array.from(
-          { length: Math.max(0, Math.min(take, 100002 - start)) },
-          (_, offset) => {
-            const index = start + offset;
-            return {
-              ...eligible,
-              id: `reward-${String(index).padStart(7, '0')}`,
-              composite: index === 100001 ? 0.5 : null,
-            };
-          },
-        ),
+    const candidateRead = vi.fn(({ values }: RawQuery) => {
+      const cursor = values.length === 5 ? (values[0] as string) : undefined;
+      const take = values[values.length - 1] as number;
+      const start = cursor ? Number(cursor.slice(7)) + 1 : 0;
+      return Array.from(
+        { length: Math.max(0, Math.min(take, 100002 - start)) },
+        (_, offset) => {
+          const index = start + offset;
+          return {
+            ...eligible,
+            id: `reward-${String(index).padStart(7, '0')}`,
+            composite: index === 100001 ? 0.5 : null,
+          };
+        },
       );
     });
     const tx = {
-      $queryRaw: vi.fn().mockResolvedValue([{ id: 'decision' }]),
+      $queryRaw: rawReads([
+        ['FOR UPDATE', () => [{ id: 'decision' }]],
+        ['ORDER BY id ASC', candidateRead],
+        [
+          'GROUP BY "decisionId"',
+          () => [{ decisionId: 'decision', version: 1 }],
+        ],
+        ['content_learning_rewards', () => [eligible]],
+        ['AND state = ', () => [decision]],
+        [
+          'content_learning_dependencys',
+          ({ values }) =>
+            values[0] === 'reward'
+              ? [
+                  {
+                    derivedId: eligible.id,
+                    sourceKind: 'config',
+                    sourceId: 'numeric-nine-v1',
+                    sourceVersion: 'numeric-nine-v1',
+                    sourceOrganizationId: null,
+                    valid: true,
+                  },
+                ]
+              : [],
+        ],
+      ]),
+      $executeRaw: vi.fn().mockResolvedValue(1),
       contentLearningOperation: {
         findFirst: vi.fn().mockResolvedValue(null),
         create: vi.fn().mockResolvedValue({}),
@@ -698,45 +757,12 @@ describe('candidate eligibility paging', () => {
             { id: 'consent', accountId: 'account', version: 1 },
           ]),
       },
-      contentLearningReward: {
-        findMany: rewardRead,
-        groupBy: vi
-          .fn()
-          .mockResolvedValue([
-            { decisionId: 'decision', _max: { version: 1 } },
-          ]),
-      },
-      contentLearningDecision: {
-        findMany: vi.fn().mockResolvedValue([decision]),
-      },
-      contentLearningDependency: {
-        findMany: vi.fn().mockImplementation(({ where }) =>
-          Promise.resolve(
-            where.derivedKind === 'reward'
-              ? [
-                  {
-                    derivedId: eligible.id,
-                    sourceKind: 'config',
-                    sourceId: 'numeric-nine-v1',
-                    sourceVersion: 'numeric-nine-v1',
-                    sourceOrganizationId: null,
-                    valid: true,
-                  },
-                ]
-              : [],
-          ),
-        ),
-        createMany: vi.fn().mockResolvedValue({ count: 2 }),
-      },
       contentLearningDataset: {
         create: vi
           .fn()
           .mockImplementation(({ data }) =>
             Promise.resolve({ id: 'dataset', ...data }),
           ),
-      },
-      contentLearningDatasetEntry: {
-        createMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
     };
     const service = new LearningDatasetService(
@@ -756,12 +782,9 @@ describe('candidate eligibility paging', () => {
       sourceAccounts: [{ organizationId: 'org', accountId: 'account' }],
     });
     expect(result.counts).toMatchObject({ total: 1 });
-    expect(
-      tx.contentLearningDatasetEntry.createMany.mock.calls[0][0].data[0]
-        .sourceFingerprint,
-    ).toBe('later-fingerprint');
-    expect(rewardRead.mock.calls.filter(([args]) => args.take)).toHaveLength(
-      102,
+    expect(insertedEntries(tx.$executeRaw)[0].sourceFingerprint).toBe(
+      'later-fingerprint',
     );
+    expect(candidateRead).toHaveBeenCalledTimes(102);
   });
 });

@@ -229,7 +229,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // fenced by learningOrgFence.
     {
       file: 'apps/server/api/src/collections/content-learning/services/learning-dataset.service.ts',
-      line: 219,
+      line: 227,
     },
     // #6120: invalidation walks cross-tenant derived learning lineage, fenced.
     {

@@ -40,8 +40,20 @@ type DatasetEdge = Pick<
   | 'derivedId'
   | 'valid'
 >;
+// Incoming edge with its source identity validated once at load time.
+type GraphEdge = {
+  // The edge row is active and names a well-formed pinned source.
+  isUsable: boolean;
+  // The edge names a well-formed source identity, so the source joins the closure.
+  isSourceKnown: boolean;
+  isGlobalSource: boolean;
+  sourceKey: string;
+  sourceVersion: string;
+  sourceOrganizationId: string | null;
+};
+// NUL separators cannot appear in ids; a null (global) organization maps to SOH.
 export const nodeKey = (node: DatasetNode) =>
-  JSON.stringify([node.kind, node.id, node.organizationId]);
+  `${node.kind}\u0000${node.organizationId ?? '\u0001'}\u0000${node.id}`;
 
 export const REWARD_SELECT = {
   id: true,
@@ -56,6 +68,10 @@ export const REWARD_SELECT = {
   baselineId: true,
   status: true,
 } satisfies Prisma.ContentLearningRewardSelect;
+// Quoted column list for raw reads of the same rows REWARD_SELECT describes.
+export const REWARD_COLUMNS = Object.keys(REWARD_SELECT)
+  .map((column) => `"${column}"`)
+  .join(', ');
 export type DatasetReward = Prisma.ContentLearningRewardGetPayload<{
   select: typeof REWARD_SELECT;
 }>;
@@ -71,7 +87,7 @@ export const DECISION_SELECT = {
 export class LearningDatasetGraph {
   private readonly nodes = new Map<
     string,
-    { node: DatasetNode; pin: string | null; edges: DatasetEdge[] }
+    { node: DatasetNode; pin: string | null; edges: GraphEdge[] }
   >();
   private edgeCount = 0;
   private readonly validity = new Map<string, boolean>();
@@ -81,14 +97,42 @@ export class LearningDatasetGraph {
     return { nodes: this.nodes.size, edges: this.edgeCount };
   }
   private readonly publicationPins: LearningDatasetPublicationPins;
+  // `isBulk` reads whole batches with set-based SQL for dataset extraction; the shared
+  // resolver keeps the default Prisma delegate reads.
   constructor(
     private readonly tx: Prisma.TransactionClient,
     private readonly limits = GRAPH_LIMITS,
+    private readonly isBulk = false,
   ) {
     this.publicationPins = new LearningDatasetPublicationPins(
       tx,
       DATASET_BATCH_SIZE,
+      isBulk,
     );
+  }
+  // Pins for rows the caller just read in the same pass; consumed on first use.
+  private readonly primed = new Map<string, string>();
+  primeRewards(rewards: readonly DatasetReward[]) {
+    for (const reward of rewards) {
+      const node = {
+        kind: 'reward' as const,
+        id: reward.id,
+        organizationId: reward.organizationId,
+      };
+      this.primed.set(nodeKey(node), String(reward.version));
+      this.rewardFacts.set(nodeKey(node), reward);
+    }
+  }
+  primeDecisions(
+    organizationId: string,
+    decisions: readonly { id: string; payloadHash: string }[],
+  ) {
+    for (const decision of decisions)
+      if (decision.payloadHash)
+        this.primed.set(
+          nodeKey({ kind: 'decision', id: decision.id, organizationId }),
+          decision.payloadHash,
+        );
   }
   async pins(
     kind: LearningDependencyKindV1,
@@ -113,6 +157,9 @@ export class LearningDatasetGraph {
       case 'baseline':
       case 'decision':
       case 'reward':
+        return this.isBulk
+          ? this.bulkObservationPins(kind, ids, organizationId)
+          : this.observationPins(kind, ids, organizationId);
       case 'policy':
         return this.observationPins(kind, ids, organizationId);
       case 'experiment':
@@ -428,74 +475,144 @@ export class LearningDatasetGraph {
     }
     return result;
   }
+  private async bulkObservationPins(
+    kind: 'checkpoint' | 'baseline' | 'decision' | 'reward',
+    ids: string[],
+    organizationId: string,
+  ): Promise<Map<string, string>> {
+    const result = new Map<string, string>();
+    const missing: string[] = [];
+    if (kind === 'reward' || kind === 'decision')
+      for (const id of ids) {
+        const key = nodeKey({ kind, id, organizationId });
+        const pin = this.primed.get(key);
+        if (pin === undefined) missing.push(id);
+        else {
+          this.primed.delete(key);
+          result.set(id, pin);
+        }
+      }
+    else missing.push(...ids);
+    if (!missing.length) return result;
+    // `= ANY(array)` binds one array per batch instead of one parameter per id.
+    const rows = <T>(table: string, columns: string) =>
+      this.tx.$queryRaw<T[]>(Prisma.sql`
+        SELECT ${Prisma.raw(columns)} FROM ${Prisma.raw(table)}
+        WHERE id = ANY(${missing}::text[]) AND "organizationId" = ${organizationId} AND NOT "isDeleted"`);
+    switch (kind) {
+      case 'checkpoint':
+        for (const row of await rows<{ id: string; revision: number }>(
+          'content_learning_checkpoints',
+          'id, revision',
+        ))
+          result.set(row.id, String(row.revision));
+        break;
+      case 'baseline':
+        for (const row of await rows<{ fingerprint: string; id: string }>(
+          'content_learning_baselines',
+          'id, fingerprint',
+        ))
+          if (row.fingerprint) result.set(row.id, row.fingerprint);
+        break;
+      case 'decision':
+        for (const row of await rows<{ id: string; payloadHash: string }>(
+          'content_learning_decisions',
+          'id, "payloadHash"',
+        ))
+          if (row.payloadHash) result.set(row.id, row.payloadHash);
+        break;
+      case 'reward':
+        for (const row of await rows<DatasetReward>(
+          'content_learning_rewards',
+          REWARD_COLUMNS,
+        )) {
+          this.rewardFacts.set(
+            nodeKey({ kind, id: row.id, organizationId }),
+            row,
+          );
+          result.set(row.id, String(row.version));
+        }
+        break;
+    }
+    return result;
+  }
+  private async loadBatch(part: DatasetNode[], take: number) {
+    const { kind, organizationId } = part[0];
+    const ids = part.map((node) => node.id);
+    const pins = await this.pins(kind, ids, organizationId);
+    const edges = await this.tx.$queryRaw<DatasetEdge[]>(Prisma.sql`
+      SELECT "sourceKind", "sourceId", "sourceVersion", "sourceOrganizationId", "derivedId", valid
+      FROM content_learning_dependencys
+      WHERE "derivedKind" = ${kind} AND "derivedId" = ANY(${ids}::text[])
+        AND ${organizationId === null ? Prisma.sql`"derivedOrganizationId" IS NULL` : Prisma.sql`"derivedOrganizationId" = ${organizationId}`}
+        AND NOT "isDeleted"
+      LIMIT ${take}`);
+    return { pins, edges };
+  }
+  private graphEdge(edge: DatasetEdge): GraphEdge {
+    const isSourceKnown =
+      validLearningDependencyKind(edge.sourceKind) &&
+      validLearningDependencyRef({
+        kind: edge.sourceKind,
+        id: edge.sourceId,
+        organizationId: edge.sourceOrganizationId,
+        version: edge.sourceVersion,
+      });
+    return {
+      isUsable: edge.valid && isSourceKnown,
+      isSourceKnown,
+      isGlobalSource:
+        isSourceKnown && isLearningGlobalDependencyKind(edge.sourceKind),
+      sourceKey: `${edge.sourceKind}\u0000${edge.sourceOrganizationId ?? '\u0001'}\u0000${edge.sourceId}`,
+      sourceVersion: edge.sourceVersion,
+      sourceOrganizationId: edge.sourceOrganizationId,
+    };
+  }
   async load(roots: DatasetNode[]) {
-    let frontier = roots;
-    for (let level = 0; frontier.length; level++) {
+    let frontier = new Map<string, DatasetNode>();
+    for (const node of roots) frontier.set(nodeKey(node), node);
+    for (let level = 0; frontier.size; level++) {
       if (level >= this.limits.levels) selectionTooLarge();
       const pending = new Map<string, DatasetNode>();
-      for (const node of frontier)
-        if (!this.nodes.has(nodeKey(node))) pending.set(nodeKey(node), node);
+      for (const [key, node] of frontier)
+        if (!this.nodes.has(key)) pending.set(key, node);
       if (!pending.size) break;
       if (this.nodes.size + pending.size > this.limits.nodes)
         selectionTooLarge();
       const groups = new Map<string, DatasetNode[]>();
       for (const node of pending.values()) {
-        const key = JSON.stringify([node.kind, node.organizationId]);
+        const key = `${node.kind}\u0000${node.organizationId ?? '\u0001'}`;
         const group = groups.get(key) ?? [];
         group.push(node);
         groups.set(key, group);
       }
-      frontier = [];
+      frontier = new Map();
       for (const group of groups.values())
         for (const part of batches(group)) {
-          const { kind, organizationId } = part[0];
-          const pins = await this.pins(
-            kind,
-            part.map((node) => node.id),
-            organizationId,
+          const { pins, edges } = await this.loadBatch(
+            part,
+            this.limits.edges - this.edgeCount + 1,
           );
-          const edges = await this.tx.contentLearningDependency.findMany({
-            select: {
-              sourceKind: true,
-              sourceId: true,
-              sourceVersion: true,
-              sourceOrganizationId: true,
-              derivedId: true,
-              valid: true,
-            },
-            where: {
-              derivedKind: kind,
-              derivedId: { in: part.map((node) => node.id) },
-              derivedOrganizationId: organizationId,
-              isDeleted: false,
-            },
-            take: this.limits.edges - this.edgeCount + 1,
-          });
           this.edgeCount += edges.length;
           if (this.edgeCount > this.limits.edges) selectionTooLarge();
-          for (const node of part)
+          const entries = new Map<string, GraphEdge[]>();
+          for (const node of part) {
+            const incoming: GraphEdge[] = [];
+            entries.set(node.id, incoming);
             this.nodes.set(nodeKey(node), {
               node,
               pin: pins.get(node.id) ?? null,
-              edges: [],
+              edges: incoming,
             });
-          for (const edge of edges) {
-            this.nodes
-              .get(nodeKey({ kind, id: edge.derivedId, organizationId }))
-              ?.edges.push(edge);
-            if (
-              validLearningDependencyKind(edge.sourceKind) &&
-              validLearningDependencyRef({
-                kind: edge.sourceKind,
-                id: edge.sourceId,
-                organizationId: edge.sourceOrganizationId,
-                version: edge.sourceVersion,
-              })
-            )
-              frontier.push({
-                kind: edge.sourceKind,
-                id: edge.sourceId,
-                organizationId: edge.sourceOrganizationId,
+          }
+          for (const row of edges) {
+            const edge = this.graphEdge(row);
+            entries.get(row.derivedId)?.push(edge);
+            if (edge.isSourceKnown && !this.nodes.has(edge.sourceKey))
+              frontier.set(edge.sourceKey, {
+                kind: row.sourceKind as LearningDependencyKindV1,
+                id: row.sourceId,
+                organizationId: row.sourceOrganizationId,
               });
           }
         }
@@ -503,10 +620,9 @@ export class LearningDatasetGraph {
   }
   valid(root: DatasetNode): boolean {
     const active = new Set<string>();
-    const walk = (node: DatasetNode, depth = 1): boolean => {
+    const walk = (key: string, depth: number): boolean => {
       if (depth > this.limits.levels) selectionTooLarge();
-      const key = nodeKey(node),
-        cached = this.validity.get(key);
+      const cached = this.validity.get(key);
       if (cached !== undefined) {
         if (
           cached &&
@@ -519,51 +635,38 @@ export class LearningDatasetGraph {
       const value = this.nodes.get(key);
       if (
         !value?.pin ||
-        (isLearningDerivedDependencyKind(node.kind) && !value.edges.length)
+        (isLearningDerivedDependencyKind(value.node.kind) &&
+          !value.edges.length)
       ) {
         this.validity.set(key, false);
         return false;
       }
+      const { kind, organizationId } = value.node;
+      const isGlobalNode = isLearningGlobalDependencyKind(kind);
       active.add(key);
       let valid = true,
         height = 1;
       for (const edge of value.edges) {
+        const source = this.nodes.get(edge.sourceKey);
         if (
-          !edge.valid ||
-          !validLearningDependencyKind(edge.sourceKind) ||
-          !validLearningDependencyRef({
-            kind: edge.sourceKind,
-            id: edge.sourceId,
-            organizationId: edge.sourceOrganizationId,
-            version: edge.sourceVersion,
-          })
+          !edge.isUsable ||
+          (!edge.isGlobalSource &&
+            !isGlobalNode &&
+            edge.sourceOrganizationId !== organizationId) ||
+          source?.pin !== edge.sourceVersion ||
+          !walk(edge.sourceKey, depth + 1)
         ) {
           valid = false;
           break;
         }
-        const source = {
-          kind: edge.sourceKind,
-          id: edge.sourceId,
-          organizationId: edge.sourceOrganizationId,
-        };
-        if (
-          (!isLearningGlobalDependencyKind(source.kind) &&
-            !isLearningGlobalDependencyKind(node.kind) &&
-            source.organizationId !== node.organizationId) ||
-          this.nodes.get(nodeKey(source))?.pin !== edge.sourceVersion ||
-          !walk(source, depth + 1)
-        ) {
-          valid = false;
-          break;
-        }
-        height = Math.max(height, 1 + (this.heights.get(nodeKey(source)) ?? 1));
+        height = Math.max(height, 1 + (this.heights.get(edge.sourceKey) ?? 1));
       }
       active.delete(key);
       this.heights.set(key, height);
       this.validity.set(key, valid);
       return valid;
     };
-    return walk(root);
+    return walk(nodeKey(root), 1);
   }
   ref(node: DatasetNode): LearningDependencyRefV1 {
     const ref = { ...node, version: this.nodes.get(nodeKey(node))?.pin ?? '' };
