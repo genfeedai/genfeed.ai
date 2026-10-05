@@ -161,6 +161,7 @@ for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
       await control(electron, 'start');
       const page = await electron.firstWindow();
       await expect.poll(() => page.url()).toContain(baseURL);
+      await page.waitForLoadState('networkidle');
       // Electron pages have no Playwright baseURL, so navigations must be absolute.
       await createAuthenticatedPage(
         page,
