@@ -1,4 +1,4 @@
-import { orgPath } from '@e2e/utils/app-chrome';
+import { brandPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { expect, test } from '../../fixtures/onboarding.fixture';
 import { ExpertOnboardingPage } from '../../pages/expert-onboarding.page';
@@ -125,7 +125,7 @@ test.describe('Expert Path Onboarding', () => {
       .poll(() => new URL(expertOnboardingPage.url()).pathname, {
         timeout: 60000,
       })
-      .toContain(orgPath(APP_ROUTES.WORKSPACE.ROOT));
+      .toContain(brandPath(APP_ROUTES.WORKSPACE.ROOT));
   });
 
   test('blocks generation until positioning and corpus are done', async ({
