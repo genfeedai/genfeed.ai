@@ -1,3 +1,5 @@
+import type { ModelPricingRateChange } from '../billing/model-pricing.interface';
+
 /**
  * Channel message payloads the notifications service renders. Messages are
  * recorded in the durable outbox by the activity recording API (#5197) and
@@ -13,6 +15,8 @@ export type INotificationPayloadTypes =
   | IUserCreatedPayload
   | IIngredientNotificationPayload
   | IModelDiscoveryNotificationPayload
+  | IModelPriceChangePayload
+  | IModelPricingUnavailablePayload
   | IReviewGatePendingEmailPayload
   | ILowCreditsAlertPayload
   | IRevenueNotificationPayload;
@@ -180,6 +184,21 @@ export interface IModelDiscoveryNotificationPayload {
   provider: string;
   qualityTier?: string;
   speedTier?: string;
+}
+
+/** A provider changed its price; the approved rate keeps charging until approval. */
+export interface IModelPriceChangePayload {
+  modelKey: string;
+  provider: string;
+  changes: ModelPricingRateChange[];
+  sourceUrl: string | null;
+}
+
+/** An active model became unpriceable, or its price refresh failed. */
+export interface IModelPricingUnavailablePayload {
+  modelKey: string;
+  provider: string;
+  reason: string;
 }
 
 export interface ILowCreditsAlertPayload {

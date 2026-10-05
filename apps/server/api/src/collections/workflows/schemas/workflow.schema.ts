@@ -72,7 +72,7 @@ export type FeaturedWorkflowDocument = IFeaturedWorkflowSummary & {
 };
 
 /** Public marketplace projection; source tenant identity and runtime state stay private. */
-export type MarketplaceWorkflowDocument = Omit<
+type MarketplaceWorkflowProjection = Omit<
   FeaturedWorkflowDocument,
   'featuredRank' | 'nodes' | 'inputVariables'
 > & {
@@ -87,6 +87,8 @@ export type MarketplaceWorkflowDocument = Omit<
   createdAt: Date;
   updatedAt: Date;
 };
+
+export type { MarketplaceWorkflowProjection as MarketplaceWorkflowDocument };
 
 export type WorkflowVersionDocument = Omit<
   PrismaWorkflowVersion,

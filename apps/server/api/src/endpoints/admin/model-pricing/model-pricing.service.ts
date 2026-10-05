@@ -1,4 +1,9 @@
-import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import {
+  parseContractReviewedPricing,
+  projectModelBillablePricingProfile,
+} from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import { classifyModelRowPricingAttention } from '@api/collections/models/utils/model-pricing-attention.util';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   AdminModelPricingReport,
@@ -6,8 +11,12 @@ import type {
   ModelPricingEvidence,
 } from '@genfeedai/contracts/interfaces';
 import {
+  describeProviderRateChanges,
+  enumerateReviewedVariantSelectors,
+  hashReviewedProviderRates,
   hasPendingProviderRateDrift,
   quoteModelBillablePricing,
+  selectorNumber,
 } from '@genfeedai/pricing';
 import {
   type Model,
@@ -15,8 +24,13 @@ import {
   Prisma,
 } from '@genfeedai/prisma';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
+import { platformOrTenantScope } from '@libs/prisma/platform-scope';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 const pricingContractSelect = {
   provider: true,
@@ -61,6 +75,9 @@ const pricingModelSelect = {
   reviewedProviderContractVersion: true,
   pendingProviderContractVersion: true,
   providerInputSchema: true,
+  providerSyncStatus: true,
+  providerSyncFailureCode: true,
+  providerPricingSyncedAt: true,
   providerContracts: { select: pricingContractSelect },
 } satisfies Prisma.ModelSelect;
 type PricingModel = Pick<
@@ -93,6 +110,9 @@ type PricingModel = Pick<
   | 'reviewedProviderContractVersion'
   | 'pendingProviderContractVersion'
   | 'providerInputSchema'
+  | 'providerSyncStatus'
+  | 'providerSyncFailureCode'
+  | 'providerPricingSyncedAt'
 >;
 type PricingContract = Pick<
   ModelProviderContract,
@@ -109,6 +129,11 @@ type PricingContract = Pick<
   | 'lastSeenAt'
   | 'pricing'
 >;
+
+const RATES_CHANGED =
+  'Provider rates changed since they were loaded; reload and review again';
+const NO_PROVIDER_RATE_ACTION =
+  'No pending provider rates differ from the approved ones';
 
 function evidence(
   contract: PricingContract | undefined,
@@ -171,6 +196,10 @@ export function projectAdminModelPricing(
     reviewed.verifiedAt = profile.reviewedPricing.verifiedAt;
   }
   const reasons: string[] = [];
+  // Rate-based evidence (a rate sheet, a Replicate billing page, a Fal price)
+  // prices every declared variant itself; the scalar configured-row checks
+  // below only describe legacy single-rate evidence.
+  const hasReviewedRates = profile.reviewedPricing !== null;
   const hasPolicy =
     typeof margin === 'number' && Number.isFinite(margin) && margin > 0;
   const rate = model.providerCostUsd;
@@ -179,20 +208,25 @@ export function projectAdminModelPricing(
     Number.isFinite(rate) &&
     (rate > 0 || (rate === 0 && model.isFree));
   if (!hasPolicy) reasons.push('Configured conversion policy unavailable');
-  if (!hasRate)
+  if (!hasRate && !hasReviewedRates)
     reasons.push(
       'Configured provider USD unavailable; stored credits do not verify provider cost',
     );
   if (reviewed?.reviewStatus !== 'approved')
     reasons.push('No approved provider pricing evidence');
-  if (reviewed && Object.keys(reviewed.conditionalDimensions).length > 0)
+  if (
+    reviewed &&
+    !hasReviewedRates &&
+    Object.keys(reviewed.conditionalDimensions).length > 0
+  )
     reasons.push('Conditional provider rates require variant reconciliation');
   if (
     reviewed &&
+    !hasReviewedRates &&
     (reviewed.currency !== 'USD' || !priceTypeForUnit(reviewed.billingUnit))
   )
     reasons.push('Provider currency or billed unit unsupported');
-  if (reviewed) {
+  if (reviewed && !hasReviewedRates) {
     const price =
       reviewed.unitPrice === null || reviewed.unitPrice.trim() === ''
         ? NaN
@@ -203,6 +237,7 @@ export function projectAdminModelPricing(
       reasons.push('Provider pricing mapping is not supported');
     const verifiedAt = Date.parse(reviewed.verifiedAt ?? '');
     const age = Date.parse(retrievedAt) - verifiedAt;
+    // Rates are refreshed, never expired: only a missing or future date fails.
     if (
       !reviewed.sourceUrl?.startsWith('https://') ||
       reviewed.source === 'curated-known-cost' ||
@@ -213,26 +248,66 @@ export function projectAdminModelPricing(
       reasons.push(
         'Official provider rate source/verification date unavailable; observation is not verification',
       );
-    else if (age > 30 * 86_400_000)
-      reasons.push('Provider rate verification is older than 30 days');
   }
-  if (
-    hasPendingProviderRateDrift(
-      model.reviewedProviderContractVersion,
-      model.pendingProviderContractVersion,
-    )
+  const pendingContract = contracts.find(
+    (c) => c.version === model.pendingProviderContractVersion,
+  );
+  const pendingPricing = parseContractReviewedPricing(model, pendingContract);
+  const hasRateDrift = hasPendingProviderRateDrift(
+    profile.reviewedPricing
+      ? hashReviewedProviderRates(profile.reviewedPricing.rates)
+      : null,
+    pendingPricing ? hashReviewedProviderRates(pendingPricing.rates) : null,
+  );
+  // A never-reviewed model whose refresh parsed the provider's rates: red until
+  // an operator approves them.
+  const hasUnreviewedRates =
+    !profile.reviewedPricing &&
+    pendingPricing !== null &&
+    pendingContract?.mappingStatus === 'supported';
+  const pendingRateChanges =
+    (hasRateDrift || hasUnreviewedRates) && pendingPricing
+      ? describeProviderRateChanges(
+          profile.reviewedPricing?.rates ?? [],
+          pendingPricing.rates,
+        )
+      : [];
+  if (hasRateDrift)
+    reasons.push(
+      'The provider changed its price; the approved rate keeps charging until approved',
+    );
+  if (hasUnreviewedRates)
+    reasons.push('Provider rates were read and are ready to approve');
+  else if (
+    !profile.reviewedPricing &&
+    model.providerSyncFailureCode?.startsWith('rates_unavailable:')
   )
     reasons.push(
-      'Pending provider contract requires review before reconciliation',
+      `Provider rates could not be read (${model.providerSyncFailureCode})`,
     );
   if (model.category === 'text')
     reasons.push(
       'Text uses actual answering-model token/usage settlement; catalog sample is not a token quote',
     );
   const identity = { modelKey: model.key, provider: model.provider };
+  // A variant model is quoted at its first declared variant; the attention
+  // classification below proves every variant prices.
+  const firstVariant = profile.reviewedPricing
+    ? enumerateReviewedVariantSelectors(profile.reviewedPricing.rates)[0]
+    : undefined;
+  const variantSelectors =
+    firstVariant && Object.keys(firstVariant).length
+      ? { selectors: firstVariant }
+      : {};
   const unitQuote = quoteModelBillablePricing(
     profile,
-    { ...identity, duration: 1, width: 1000, height: 1000 },
+    {
+      ...identity,
+      ...variantSelectors,
+      duration: selectorNumber(firstVariant?.duration) ?? 1,
+      width: 1000,
+      height: 1000,
+    },
     margin,
     retrievedAt,
   );
@@ -240,16 +315,31 @@ export function projectAdminModelPricing(
     profile,
     {
       ...identity,
-      ...(model.defaultDuration !== null
-        ? { duration: model.defaultDuration }
-        : {}),
+      ...variantSelectors,
+      ...(selectorNumber(firstVariant?.duration) !== null
+        ? { duration: selectorNumber(firstVariant?.duration) as number }
+        : model.defaultDuration !== null
+          ? { duration: model.defaultDuration }
+          : {}),
     },
     margin,
     retrievedAt,
   );
-  if (unitQuote.status === 'unresolved') reasons.push(unitQuote.reason);
+  if (unitQuote.status === 'unresolved' && !hasReviewedRates)
+    reasons.push(unitQuote.reason);
+  const attention = classifyModelRowPricingAttention(
+    model,
+    contracts,
+    margin,
+    new Date(retrievedAt),
+    profile,
+  );
+  if (hasReviewedRates)
+    for (const item of attention)
+      if (!reasons.includes(item.reason)) reasons.push(item.reason);
   const hasMismatch =
     !!reviewed &&
+    !hasReviewedRates &&
     reviewed.unitPrice !== null &&
     reviewed.unitPrice.trim() !== '' &&
     Number.isFinite(Number(reviewed.unitPrice)) &&
@@ -259,7 +349,7 @@ export function projectAdminModelPricing(
       priceTypeForUnit(reviewed.billingUnit) !== (model.pricingType || 'flat'));
   if (hasMismatch)
     reasons.push('Approved provider rate/unit differs from configured row');
-  if (model.cost === 0 && !model.isFree && !hasRate)
+  if (model.cost === 0 && !model.isFree && !hasRate && !hasReviewedRates)
     reasons.push(
       'Zero stored credits are unresolved, not an explicit free model',
     );
@@ -330,7 +420,26 @@ export function projectAdminModelPricing(
         ? 'unresolved'
         : 'verified',
     reasons,
+    attentionLevel: attention[0]?.level ?? null,
+    attention,
+    pendingRateChanges,
+    isRateApprovalAvailable:
+      (hasRateDrift || hasUnreviewedRates) &&
+      pendingContract?.mappingStatus === 'supported',
+    providerSyncStatus: model.providerSyncStatus,
+    providerSyncFailureCode: model.providerSyncFailureCode,
+    providerPricingSyncedAt:
+      model.providerPricingSyncedAt?.toISOString() ?? null,
   };
+}
+
+function configuredMargin(
+  setting: { marginMultiplierGeneration: number | null } | null,
+): number | null {
+  const value = setting?.marginMultiplierGeneration;
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? value
+    : null;
 }
 
 @Injectable()
@@ -356,13 +465,7 @@ export class AdminModelPricingService {
             select: { marginMultiplierGeneration: true },
           }),
         ]);
-        const configuredMargin = setting?.marginMultiplierGeneration;
-        const margin =
-          typeof configuredMargin === 'number' &&
-          Number.isFinite(configuredMargin) &&
-          configuredMargin > 0
-            ? configuredMargin
-            : null;
+        const margin = configuredMargin(setting);
         return {
           id: 'model-pricing',
           retrievedAt,
@@ -381,5 +484,103 @@ export class AdminModelPricingService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
     );
+  }
+
+  /**
+   * Promote the pending provider rates to the reviewed contract (#6196). The
+   * new rate takes effect from the next quote; approver and time are recorded
+   * on the contract and the model. Registry fields (activation, schema, row
+   * price) are untouched.
+   */
+  async approveRates(
+    modelId: string,
+    approvedBy: string,
+    expectedPendingVersion: string,
+  ): Promise<AdminModelPricingRow> {
+    return this.prisma.$transaction(async (transaction) => {
+      const retrievedAt = new Date();
+      const [model, setting] = await Promise.all([
+        // Platform registry row, proven to the CLOUD tenant guard by the
+        // platform-or-tenant arm (no cross-organization hatch).
+        // tenant-scope-ignore: superadmin approval over the platform-global model registry; the where spreads platformOrTenantScope() (organizationId null or the caller's own) with isDeleted:false and an exact id, so no other organization's row can match
+        transaction.model.findFirst({
+          where: { id: modelId, isDeleted: false, ...platformOrTenantScope() },
+          select: pricingModelSelect,
+        }),
+        transaction.platformSetting.findFirst({
+          where: { key: 'platform', isDeleted: false },
+          select: { marginMultiplierGeneration: true },
+        }),
+      ]);
+      if (!model) throw new NotFoundException('Model', modelId);
+      // The operator approves the exact rates they saw, never a newer refresh.
+      if (model.pendingProviderContractVersion !== expectedPendingVersion)
+        throw new ConflictException(RATES_CHANGED);
+      const margin = configuredMargin(setting);
+      const before = projectAdminModelPricing(
+        model,
+        model.providerContracts,
+        margin,
+        retrievedAt.toISOString(),
+      );
+      const pendingContract = model.providerContracts.find(
+        (contract) => contract.version === model.pendingProviderContractVersion,
+      );
+      if (
+        !before.isRateApprovalAvailable ||
+        !pendingContract ||
+        !model.pendingProviderContractVersion
+      )
+        throw new BadRequestException(NO_PROVIDER_RATE_ACTION);
+      // Compare-and-set: promote only while the pending contract is still the
+      // one the operator approved, so a refresh landing in between cannot be
+      // approved unseen.
+      // tenant-scope-ignore: superadmin approval over the platform-global model registry; the where spreads platformOrTenantScope() (organizationId null or the caller's own) with isDeleted:false and an exact id, so no other organization's row can match
+      const promoted = await transaction.model.updateMany({
+        data: {
+          pendingProviderContractVersion: null,
+          providerSyncFailedAt: null,
+          providerSyncFailureCode: null,
+          providerSyncStatus: 'fresh',
+          reviewedAt: retrievedAt,
+          reviewedBy: approvedBy,
+          reviewedProviderContractVersion: pendingContract.version,
+          reviewStatus: 'approved',
+        },
+        where: {
+          id: modelId,
+          isDeleted: false,
+          ...platformOrTenantScope(),
+          pendingProviderContractVersion: expectedPendingVersion,
+        },
+      });
+      if (promoted.count !== 1) throw new ConflictException(RATES_CHANGED);
+      await transaction.modelProviderContract.update({
+        data: {
+          reviewStatus: 'approved',
+          reviewedAt: retrievedAt,
+          reviewedBy: approvedBy,
+        },
+        where: {
+          provider_endpoint_version: {
+            endpoint: pendingContract.endpoint,
+            provider: pendingContract.provider,
+            version: pendingContract.version,
+          },
+        },
+      });
+      // tenant-scope-ignore: superadmin approval over the platform-global model registry; the where spreads platformOrTenantScope() (organizationId null or the caller's own) with isDeleted:false and an exact id, so no other organization's row can match
+      const refreshed = await transaction.model.findFirst({
+        where: { id: modelId, isDeleted: false, ...platformOrTenantScope() },
+        select: pricingModelSelect,
+      });
+      if (!refreshed) throw new NotFoundException('Model', modelId);
+      return projectAdminModelPricing(
+        refreshed,
+        refreshed.providerContracts,
+        margin,
+        retrievedAt.toISOString(),
+      );
+    });
   }
 }

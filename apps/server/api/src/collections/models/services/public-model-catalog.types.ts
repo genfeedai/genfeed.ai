@@ -31,6 +31,50 @@ export const PUBLIC_MODEL_CATALOG_SELECT = {
   supportsFeatures: true,
 } satisfies Prisma.ModelSelect;
 
+/**
+ * Private pricing inputs the red-model classification reads. Selected by a
+ * separate query so none of it can reach the anonymous catalog projection.
+ */
+export const PRICING_ATTENTION_SELECT = {
+  category: true,
+  cost: true,
+  costPerUnit: true,
+  defaultDuration: true,
+  endpoint: true,
+  hasAudioToggle: true,
+  hasResolutionOptions: true,
+  id: true,
+  inputCostPerMillionTokens: true,
+  isActive: true,
+  isDeleted: true,
+  isFree: true,
+  key: true,
+  minCost: true,
+  outputCostPerMillionTokens: true,
+  pendingProviderContractVersion: true,
+  pricingType: true,
+  provider: true,
+  providerContracts: {
+    select: {
+      conditionalDimensions: true,
+      discoveredAt: true,
+      endpoint: true,
+      lastSeenAt: true,
+      mappingStatus: true,
+      pricing: true,
+      provider: true,
+      reviewStatus: true,
+      version: true,
+    },
+  },
+  providerCostUsd: true,
+  providerInputSchema: true,
+  providerPricingSyncedAt: true,
+  providerSyncFailureCode: true,
+  providerSyncStatus: true,
+  reviewedProviderContractVersion: true,
+} satisfies Prisma.ModelSelect;
+
 export type PublicModelCatalogRow = Prisma.ModelGetPayload<{
   select: typeof PUBLIC_MODEL_CATALOG_SELECT;
 }>;

@@ -33,6 +33,13 @@ it('exports the same dated snapshot with unresolved values and prevents spreadsh
         reviewed: null,
         status: 'unresolved',
         reasons: ['Unknown price'],
+        attention: [],
+        attentionLevel: null,
+        isRateApprovalAvailable: false,
+        pendingRateChanges: [],
+        providerPricingSyncedAt: null,
+        providerSyncFailureCode: null,
+        providerSyncStatus: null,
       },
     ],
   } satisfies AdminModelPricingReport;

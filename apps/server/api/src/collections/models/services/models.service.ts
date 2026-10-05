@@ -13,6 +13,7 @@ import {
   type PublicModelCatalogRow,
 } from '@api/collections/models/services/public-model-catalog.types';
 import { findModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import { withoutUnpriceableModels } from '@api/collections/models/utils/model-pricing-attention.util';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -324,10 +325,9 @@ export class ModelsService extends BaseService<
   }
 
   /**
-   * Public catalog projection. This deliberately selects only the public
-   * contract plus the private pricing inputs needed to calculate live credits.
-   * A newly added internal registry column therefore cannot break or leak into
-   * the anonymous catalog merely because Prisma selects every field by default.
+   * Public catalog projection: only the public contract plus the private
+   * pricing inputs needed for live credits, so a new internal registry column
+   * cannot leak into the anonymous catalog. Unpriceable (red) models are left out.
    */
   async findPublicCatalog(
     filters: PublicModelCatalogFilters,
@@ -335,7 +335,7 @@ export class ModelsService extends BaseService<
   ): Promise<AggregatePaginateResult<PublicModelCatalogDocument>> {
     const page = options.page ?? 1;
     const limit = options.limit ?? 50;
-    const where: Prisma.ModelWhereInput = {
+    const where = await withoutUnpriceableModels(this.prisma, {
       ...(filters.category ? { category: filters.category } : {}),
       isActive: true,
       isDeleted: false,
@@ -343,7 +343,7 @@ export class ModelsService extends BaseService<
       isPublic: true,
       organizationId: null,
       ...(filters.provider ? { provider: filters.provider } : {}),
-    };
+    });
     const [rows, totalDocs] = await Promise.all([
       // tenant-scope-ignore: the anonymous catalog is restricted to active global rows with organizationId:null and isDeleted:false in the shared where above
       this.prisma.model.findMany({

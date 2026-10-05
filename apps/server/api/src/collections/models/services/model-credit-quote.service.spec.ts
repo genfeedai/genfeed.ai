@@ -32,9 +32,9 @@ describe('ModelCreditQuoteService', () => {
     null,
     billableProfile({ isActive: false }),
     billableProfile({ cost: 0 }),
-    billableProfile({ hasPendingRate: true }),
+    billableProfile({ requiresReviewedRates: true }),
   ])(
-    'refuses absent, inactive, unpriced or pending tariffs',
+    'refuses absent, inactive, unpriced or unreviewed variant tariffs',
     async (profile) => {
       modelsService.findBillablePricingProfile.mockResolvedValue(profile);
       await expect(service.quoteByKey('test/model')).rejects.toBeInstanceOf(
@@ -45,13 +45,20 @@ describe('ModelCreditQuoteService', () => {
 
   it('names the model and pricing reason in the exception message', async () => {
     modelsService.findBillablePricingProfile.mockResolvedValue(
-      billableProfile({ hasPendingRate: true }),
+      billableProfile({ requiresReviewedRates: true }),
     );
     await expect(service.quoteByKey('test/model')).rejects.toMatchObject({
       message:
-        'Pricing is unavailable for test/model: Pending provider rate requires review',
+        'Pricing is unavailable for test/model: Selected variant requires reviewed provider rates',
       response: { code: 'PRICING_UNAVAILABLE', modelKey: 'test/model' },
     });
+  });
+
+  it('keeps charging the approved tariff while a provider price change awaits approval', async () => {
+    modelsService.findBillablePricingProfile.mockResolvedValue(
+      billableProfile({ cost: 12, hasPendingRate: true }),
+    );
+    await expect(service.quoteByKey('test/model')).resolves.toBe(12);
   });
 
   it('rejects a tariff from a different dispatched provider', async () => {

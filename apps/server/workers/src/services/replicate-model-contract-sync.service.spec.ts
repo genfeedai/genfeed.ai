@@ -4,8 +4,45 @@ import {
   ModelProvider,
   PricingType,
 } from '@genfeedai/contracts';
+import type { ReviewedProviderRate } from '@genfeedai/contracts/interfaces';
+import { hashReviewedProviderRates } from '@genfeedai/pricing';
 import type { IReplicateModel } from '@workers/interfaces/model-discovery.interface';
 import { ReplicateModelContractSyncService } from '@workers/services/replicate-model-contract-sync.service';
+
+const tier = (resolution: string, seconds: number, price: string) => ({
+  criteria: [
+    {
+      subtype: 'string',
+      title: 'target resolution',
+      type: 'equals',
+      value: resolution,
+    },
+    {
+      subtype: 'number',
+      title: 'second of output video',
+      type: 'equals',
+      value: seconds,
+    },
+  ],
+  prices: [
+    {
+      metric: 'video_output_count',
+      price,
+      title: 'per output video',
+      type: 'per-unit',
+    },
+  ],
+});
+// Replicate's billingConfig tiers for minimax/hailuo-2.3-fast, 2026-10-05.
+const HAILUO_2_3_FAST_BILLING_TIERS = [
+  tier('768P', 6, '$0.19'),
+  tier('768P', 10, '$0.32'),
+  tier('1080P', 6, '$0.33'),
+];
+const HAILUO_2_3_FAST_INPUT_PROPERTIES = {
+  duration: { enum: [6, 10], title: 'Duration', type: 'integer' },
+  resolution: { enum: ['768p', '1080p'], title: 'Resolution', type: 'string' },
+};
 
 function providerModel(openapi = validOpenapi()): IReplicateModel {
   return {
@@ -25,15 +62,13 @@ function providerModel(openapi = validOpenapi()): IReplicateModel {
   };
 }
 
-function validOpenapi(): Record<string, unknown> {
+function validOpenapi(
+  properties: Record<string, unknown> = { prompt: { type: 'string' } },
+): Record<string, unknown> {
   return {
     components: {
       schemas: {
-        Input: {
-          properties: { prompt: { type: 'string' } },
-          required: ['prompt'],
-          type: 'object',
-        },
+        Input: { properties, required: ['prompt'], type: 'object' },
         Output: { format: 'uri', type: 'string' },
       },
     },
@@ -47,6 +82,7 @@ function registryModel(reviewedVersion: string | null = null) {
     endpoint: 'google/imagen-4',
     id: 'model-1',
     isActive: true,
+    key: 'google/imagen-4',
     pricingType: PricingType.PER_REQUEST,
     providerCostUsd: 0.04,
     reviewedProviderContractVersion: reviewedVersion,
@@ -61,8 +97,70 @@ function pricing(unitPriceUsd: number | null = 0.04) {
   };
 }
 
-function harness() {
-  const modelProviderContract = { upsert: vi.fn() };
+const variantProperties = {
+  ...HAILUO_2_3_FAST_INPUT_PROPERTIES,
+  prompt: { type: 'string' },
+};
+const sourceUrl = 'https://replicate.com/google/imagen-4';
+const reviewedRates: ReviewedProviderRate[] = [
+  {
+    component: 'output',
+    unit: 'output',
+    unitPriceUsd: 0.19,
+    when: { resolution: '768p', duration: 6 },
+  },
+  {
+    component: 'output',
+    unit: 'output',
+    unitPriceUsd: 0.32,
+    when: { resolution: '768p', duration: 10 },
+  },
+  {
+    component: 'output',
+    unit: 'output',
+    unitPriceUsd: 0.33,
+    when: { resolution: '1080p', duration: 6 },
+  },
+];
+const reviewedVersion = hashReviewedProviderRates(reviewedRates);
+const reviewedContract = {
+  discoveredAt: new Date('2026-10-01T00:00:00Z'),
+  endpoint: 'google/imagen-4',
+  id: 'reviewed-contract',
+  lastSeenAt: new Date('2026-10-01T00:00:00Z'),
+  inputSchema: { properties: {} },
+  mappingStatus: 'supported',
+  openapi: { openapi: '3.0.2' },
+  outputSchema: { format: 'uri', type: 'string' },
+  pricing: {
+    currency: 'USD',
+    rates: reviewedRates,
+    source: 'provider-model-page',
+    sourceUrl,
+    verifiedAt: '2026-09-01T00:00:00.000Z',
+  },
+  provider: ModelProvider.REPLICATE,
+  reviewStatus: 'approved',
+  version: reviewedVersion,
+};
+const billing = {
+  sourceUrl,
+  status: 'ok' as const,
+  tiers: HAILUO_2_3_FAST_BILLING_TIERS,
+};
+
+function harness(
+  reviewed:
+    | (Omit<typeof reviewedContract, 'outputSchema'> & {
+        outputSchema: Record<string, unknown>;
+      })
+    | null = null,
+) {
+  const modelProviderContract = {
+    findUnique: vi.fn(),
+    update: vi.fn(),
+    upsert: vi.fn(),
+  };
   const model = { update: vi.fn(), updateMany: vi.fn() };
   const service = new ReplicateModelContractSyncService({
     prisma: { model, modelProviderContract },
@@ -71,6 +169,8 @@ function harness() {
   modelProviderContract.upsert.mockImplementation(({ create }) =>
     Promise.resolve({ ...create, id: 'contract-1' }),
   );
+  modelProviderContract.findUnique.mockResolvedValue(reviewed);
+  modelProviderContract.update.mockResolvedValue({});
   model.update.mockResolvedValue({ id: 'model-1' });
   model.updateMany.mockResolvedValue({ count: 1 });
   return { model, modelProviderContract, service };
@@ -114,22 +214,248 @@ describe('ReplicateModelContractSyncService', () => {
     });
   });
 
-  it('turns either schema or price drift into a new version without mutating runtime fields', async () => {
-    const { model, service } = harness();
+  it('stores the rates the model page states as a pending contract for an unreviewed model', async () => {
+    const { modelProviderContract, service } = harness();
+    const now = new Date('2026-10-05T00:00:00.000Z');
+
+    await service.synchronizeModel(
+      registryModel(),
+      providerModel(validOpenapi(variantProperties)),
+      ModelCategory.IMAGE,
+      { ...pricing(), billing },
+      now,
+    );
+
+    const create = modelProviderContract.upsert.mock.calls[0]?.[0].create;
+    expect(create).toMatchObject({
+      billingUnit: 'output',
+      mappingStatus: 'supported',
+      pricingType: 'conditional',
+      unitPrice: null,
+    });
+    expect(create.pricing).toMatchObject({
+      currency: 'USD',
+      source: 'replicate-billing-config',
+      sourceUrl,
+      verifiedAt: now.toISOString(),
+    });
+    expect(create.pricing.rates).toHaveLength(3);
+  });
+
+  it('tells ops an active never-reviewed model has rates ready to approve, or why they could not be read', async () => {
+    const ready = harness();
+    const readyResult = await ready.service.synchronizeModel(
+      registryModel(),
+      providerModel(validOpenapi(variantProperties)),
+      ModelCategory.IMAGE,
+      { ...pricing(), billing },
+    );
+    expect(readyResult.refreshFailure?.reason).toContain('ready to approve');
+
+    const failed = harness();
+    const failedResult = await failed.service.synchronizeModel(
+      registryModel(),
+      providerModel(validOpenapi(variantProperties)),
+      ModelCategory.IMAGE,
+      {
+        ...pricing(),
+        billing: { reason: 'no_billing_config', status: 'unavailable' },
+      },
+    );
+    expect(failedResult.refreshFailure?.reason).toContain('no_billing_config');
+    expect(failed.model.update.mock.calls[0]?.[0].data).toMatchObject({
+      providerSyncFailureCode: 'rates_unavailable:no_billing_config',
+    });
+  });
+
+  it('keeps a stable version while only the verification date moves', async () => {
+    const first = harness();
+    const second = harness();
+    const run = (service: ReplicateModelContractSyncService, now: Date) =>
+      service.synchronizeModel(
+        registryModel(),
+        providerModel(validOpenapi(variantProperties)),
+        ModelCategory.IMAGE,
+        { ...pricing(), billing },
+        now,
+      );
+
+    const a = await run(first.service, new Date('2026-10-05T00:00:00Z'));
+    const b = await run(second.service, new Date('2026-10-06T00:00:00Z'));
+
+    expect(a.version).toBe(b.version);
+  });
+
+  it('re-verifies the reviewed contract and keeps the model active when the same rates are observed', async () => {
+    const { model, modelProviderContract, service } = harness(reviewedContract);
+    const now = new Date('2026-12-05T00:00:00.000Z');
 
     const result = await service.synchronizeModel(
-      registryModel('sha256:reviewed'),
-      providerModel(),
+      registryModel(reviewedVersion),
+      providerModel(validOpenapi(variantProperties)),
       ModelCategory.IMAGE,
-      pricing(0.05),
+      { ...pricing(), billing },
+      now,
+    );
+
+    expect(result).toMatchObject({ drifted: false, quarantined: false });
+    expect(result.priceChange).toBeUndefined();
+    expect(modelProviderContract.upsert).not.toHaveBeenCalled();
+    expect(modelProviderContract.update).toHaveBeenCalledWith({
+      data: {
+        lastSeenAt: now,
+        pricing: expect.objectContaining({
+          rates: reviewedRates,
+          verifiedAt: now.toISOString(),
+        }),
+      },
+      where: { id: 'reviewed-contract' },
+    });
+    const update = model.update.mock.calls[0]?.[0];
+    expect(update.data).toMatchObject({
+      pendingProviderContractVersion: null,
+      providerPricingSyncedAt: now,
+      providerSyncStatus: 'fresh',
+    });
+    expect(update.data).not.toHaveProperty('isActive');
+    expect(update.data).not.toHaveProperty('isDefault');
+  });
+
+  it('repairs an empty output schema on the reviewed contract when the same rates are observed', async () => {
+    const { modelProviderContract, service } = harness({
+      ...reviewedContract,
+      outputSchema: {},
+    });
+
+    await service.synchronizeModel(
+      registryModel(reviewedVersion),
+      providerModel(validOpenapi(variantProperties)),
+      ModelCategory.IMAGE,
+      { ...pricing(), billing },
+    );
+
+    expect(modelProviderContract.update.mock.calls[0]?.[0].data).toMatchObject({
+      outputSchema: { format: 'uri', type: 'string' },
+    });
+  });
+
+  it('does not block or deactivate on a schema-only change', async () => {
+    const { model, service } = harness(reviewedContract);
+
+    const result = await service.synchronizeModel(
+      registryModel(reviewedVersion),
+      providerModel(
+        validOpenapi({
+          ...variantProperties,
+          negative_prompt: { type: 'string' },
+        }),
+      ),
+      ModelCategory.IMAGE,
+      { ...pricing(), billing },
+    );
+
+    expect(result.drifted).toBe(false);
+    const update = model.update.mock.calls[0]?.[0];
+    expect(update.data.providerSyncStatus).toBe('fresh');
+    expect(update.data.pendingProviderContractVersion).toBeNull();
+    expect(update.data).not.toHaveProperty('isActive');
+    expect(update.data).not.toHaveProperty('isDefault');
+  });
+
+  it('keeps the reviewed rate and reports old and new prices when the provider changes a price', async () => {
+    const { model, service } = harness(reviewedContract);
+    const changedTiers = HAILUO_2_3_FAST_BILLING_TIERS.map((tier, index) =>
+      index === 0
+        ? {
+            ...tier,
+            prices: [
+              {
+                metric: 'video_output_count',
+                price: '$0.21',
+                title: 'per output video',
+                type: 'per-unit',
+              },
+            ],
+          }
+        : tier,
+    );
+
+    const result = await service.synchronizeModel(
+      registryModel(reviewedVersion),
+      providerModel(validOpenapi(variantProperties)),
+      ModelCategory.IMAGE,
+      { ...pricing(), billing: { ...billing, tiers: changedTiers } },
     );
 
     expect(result.drifted).toBe(true);
+    expect(result.priceChange).toMatchObject({
+      changes: [
+        {
+          newPriceUsd: 0.21,
+          oldPriceUsd: 0.19,
+          variant: 'duration=6 · resolution=768p',
+        },
+      ],
+      modelKey: 'google/imagen-4',
+      provider: 'replicate',
+      sourceUrl,
+    });
+    expect(result.priceChange?.pendingRateHash).toMatch(/^rates:sha256:/);
     const update = model.update.mock.calls[0]?.[0];
-    expect(update.data).not.toHaveProperty('providerCostUsd');
-    expect(update.data).not.toHaveProperty('providerInputSchema');
-    expect(update.data).not.toHaveProperty('pricingType');
-    expect(update.data).not.toHaveProperty('reviewedProviderContractVersion');
+    expect(update.data).toMatchObject({
+      pendingProviderContractVersion: result.version,
+      providerSyncStatus: 'review_required',
+    });
+    for (const field of [
+      'isActive',
+      'isDefault',
+      'providerCostUsd',
+      'providerInputSchema',
+      'pricingType',
+      'reviewedProviderContractVersion',
+    ])
+      expect(update.data).not.toHaveProperty(field);
+  });
+
+  it('fails the refresh for one model, keeping its reviewed rate, when a criterion cannot be mapped', async () => {
+    const { model, service } = harness(reviewedContract);
+
+    const result = await service.synchronizeModel(
+      registryModel(reviewedVersion),
+      providerModel(validOpenapi(variantProperties)),
+      ModelCategory.IMAGE,
+      {
+        ...pricing(),
+        billing: {
+          ...billing,
+          tiers: [
+            {
+              criteria: [
+                {
+                  subtype: 'string',
+                  title: 'camera motion',
+                  type: 'equals',
+                  value: 'pan',
+                },
+              ],
+              prices: [{ metric: 'video_output_count', price: '$0.20' }],
+            },
+          ],
+        },
+      },
+    );
+
+    expect(result.refreshFailure?.reason).toContain(
+      'rates_unavailable:unmapped_criterion:camera motion',
+    );
+    const update = model.update.mock.calls[0]?.[0];
+    expect(update.data).toMatchObject({
+      providerSyncFailureCode:
+        'rates_unavailable:unmapped_criterion:camera motion',
+      providerSyncStatus: 'failed',
+    });
+    expect(update.data).not.toHaveProperty('pendingProviderContractVersion');
+    expect(update.data).not.toHaveProperty('isActive');
   });
 
   it('quarantines contracts with missing schema or reviewed pricing', async () => {
