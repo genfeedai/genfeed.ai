@@ -1,3 +1,5 @@
+import { ContentHarnessService } from '@api/services/harness/harness.service';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
 import { PromptEnhancementResponseError } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import { BadRequestException } from '@nestjs/common';
@@ -333,6 +335,71 @@ describe('MediaPromptEnhancementService', () => {
     expect(logger.warn).toHaveBeenCalledWith(
       'Media prompt enhancement failed; generating with original prompt',
       expect.objectContaining({ stage: 'response' }),
+    );
+  });
+
+  describe('copywriting harness rules', () => {
+    const LEAKED_RULES = [
+      'Attach to demand that already exists',
+      'Assume the first three seconds decide everything',
+    ];
+
+    async function enhanceWithRealPacks(contentType: 'image' | 'video') {
+      const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+      const contentHarness = new ContentHarnessService(
+        { get: vi.fn() } as never,
+        logger as never,
+      );
+      const harness = new HarnessGenerationService(
+        contentHarness,
+        logger as never,
+        {
+          findOne: vi.fn().mockResolvedValue({ id: 'brand', label: 'Brand' }),
+        } as never,
+        {
+          resolveContributionForBrand: vi.fn().mockResolvedValue(null),
+        } as never,
+      );
+      const service = new MediaPromptEnhancementService(
+        {
+          get: vi.fn().mockResolvedValue({ isEnabled: true, source: 'brand' }),
+        } as never,
+        harness,
+        contentHarness,
+        {
+          enhance: vi.fn().mockResolvedValue({
+            result: 'A red bicycle at dawn',
+            tokensUsed: 1,
+            isByok: false,
+          }),
+        } as never,
+        logger as never,
+      );
+      const receipt = await service.enhance({ ...input, contentType });
+      const copyBrief = await harness.resolveBrief({
+        brandId: input.brandId,
+        contentType: 'post',
+        organizationId: input.organizationId,
+      });
+      return { copyBrief, receipt };
+    }
+
+    it.each(['video', 'image'] as const)(
+      'keeps persuasion rules out of the %s provider prompt',
+      async (contentType) => {
+        const { copyBrief, receipt } = await enhanceWithRealPacks(contentType);
+
+        expect(receipt.status).toBe('applied');
+        expect(receipt.enhancedPrompt).toContain('A red bicycle at dawn');
+        for (const rule of LEAKED_RULES) {
+          expect(receipt.enhancedPrompt).not.toContain(rule);
+        }
+        expect(receipt.appliedPacks.map((pack) => pack.id)).not.toContain(
+          'viral-psychology',
+        );
+        // Copy generation still gets the pack.
+        expect(copyBrief?.appliedPacks).toContain('viral-psychology');
+      },
     );
   });
 });
