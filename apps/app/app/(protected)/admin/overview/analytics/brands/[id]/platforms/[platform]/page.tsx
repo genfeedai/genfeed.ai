@@ -1,23 +1,13 @@
+import AdminAnalyticsBrandPlatformDetailRoute from '@app/(protected)/admin/overview/analytics/brands/[id]/platforms/[platform]/AdminAnalyticsBrandPlatformDetailRoute';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import AnalyticsPlatformDetail from '@pages/analytics/platform-detail/analytics-platform-detail';
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Platform Analytics');
 
-export default async function AdminAnalyticsBrandPlatformDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string; platform: string }>;
-}) {
-  const { id, platform } = await params;
-
+export default function AdminAnalyticsBrandPlatformDetailPage() {
   return (
     <Suspense fallback={null}>
-      <AnalyticsPlatformDetail
-        brandId={id}
-        platform={platform}
-        basePath="/admin/overview/analytics"
-      />
+      <AdminAnalyticsBrandPlatformDetailRoute />
     </Suspense>
   );
 }

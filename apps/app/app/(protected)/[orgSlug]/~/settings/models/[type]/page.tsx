@@ -1,27 +1,8 @@
+import ModelsTypeRoute from '@app/(protected)/[orgSlug]/~/settings/models/[type]/ModelsTypeRoute';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import { Suspense } from 'react';
-import ModelsTypePageClientContent from './page-content';
 
 export const generateMetadata = createPageMetadata('Models');
 
-export default function ModelsTypePage({
-  params,
-}: {
-  params: Promise<{ type: string }>;
-}) {
-  return (
-    <Suspense fallback={null}>
-      <ModelsTypePageLoader params={params} />
-    </Suspense>
-  );
-}
-
-async function ModelsTypePageLoader({
-  params,
-}: {
-  params: Promise<{ type: string }>;
-}) {
-  const { type } = await params;
-
-  return <ModelsTypePageClientContent type={type} />;
+export default function ModelsTypePage() {
+  return <ModelsTypeRoute />;
 }

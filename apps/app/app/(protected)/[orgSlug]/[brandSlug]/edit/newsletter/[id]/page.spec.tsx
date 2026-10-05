@@ -1,4 +1,22 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import * as PageModule from '@app/(protected)/[orgSlug]/[brandSlug]/edit/newsletter/[id]/page';
 import { runPageModuleTests } from '@shared/pages/pageTestUtils';
-import * as PageModule from './page';
+import { describe, expect, it } from 'vitest';
 
 runPageModuleTests('app/(protected)/edit/newsletter/[id]/page', PageModule);
+
+describe('synchronous route shell', () => {
+  it('renders the client route without awaiting URL props', () => {
+    const source = readFileSync(
+      join(
+        process.cwd(),
+        'app/(protected)/[orgSlug]/[brandSlug]/edit/newsletter/[id]/page.tsx',
+      ),
+      'utf8',
+    );
+    expect(source).toMatch(/export default function/);
+    expect(source).not.toMatch(/await (params|searchParams)/);
+    expect(source).toContain('<NewsletterEditorRoute />');
+  });
+});
