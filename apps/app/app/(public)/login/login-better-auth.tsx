@@ -1,10 +1,10 @@
 'use client';
 
 import { getSession, signIn } from '@genfeedai/auth-client';
-import { isDesktopClient } from '@genfeedai/config/deployment';
 import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
+import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type {
   InvitationNotice,
   LoginBetterAuthProps,
@@ -26,7 +26,6 @@ import {
   useEffect,
   useRef,
   useState,
-  useSyncExternalStore,
 } from 'react';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 import { useDesktopLocalWorkspaceFlag } from '@/lib/desktop/use-desktop-local-workspace-flag';
@@ -47,14 +46,6 @@ import {
   AuthFormActions,
 } from '../auth-ui';
 
-/**
- * Desktop vs web is decided on the server (`isDesktopServerRequest`) so the
- * first HTML is already the right surface. `useSyncExternalStore` keeps that
- * snapshot through hydration, then follows `isDesktopClient()` if the runtime
- * config later disagrees. Web LCP still ships the full sign-in form; desktop
- * never paints the web chooser first.
- */
-const subscribeToClientSurface = () => () => {};
 const LOGIN_TITLE = 'Welcome back';
 const LOGIN_DESCRIPTION = 'Sign in to Genfeed';
 const DESKTOP_IPC_ERROR_PREFIX =
@@ -111,16 +102,11 @@ function getInvitationNotice(
 export type { LoginBetterAuthProps };
 
 export default function LoginBetterAuth({
-  isDesktopShell = false,
   mode = 'chooser',
 }: LoginBetterAuthProps) {
   const translate = useTranslations('common');
   const searchParams = useSearchParams();
-  const isDesktop = useSyncExternalStore(
-    subscribeToClientSurface,
-    () => isDesktopClient() || isDesktopShell,
-    () => isDesktopShell,
-  );
+  const isDesktop = useIsDesktopClient();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

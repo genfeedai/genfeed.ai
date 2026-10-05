@@ -121,6 +121,7 @@
         "@google/design.md": "0.4.0",
         "@nestjs/cli": "12.0.8",
         "@nestjs/testing": "12.1.2",
+        "@next/playwright": "16.3.8",
         "@paralleldrive/cuid2": "3.3.0",
         "@playwright/test": "1.63.0",
         "@prisma/adapter-pg": "7.10.0",
@@ -2337,6 +2338,8 @@
     "@nestjs/websockets": ["@nestjs/websockets@12.1.2", "", { "dependencies": { "iterare": "1.2.1", "object-hash": "3.0.0", "tslib": "2.8.1" }, "peerDependencies": { "@nestjs/common": "^12.0.0", "@nestjs/core": "^12.0.0", "@nestjs/platform-socket.io": "^12.0.0", "reflect-metadata": "^0.1.12 || ^0.2.0", "rxjs": "^7.1.0" }, "optionalPeers": ["@nestjs/platform-socket.io"] }, "sha512-iW+97/cYLP1OrEhZKGwT+BW2q79fnfAUJ/mcyaPgcR/ZA9UwvoDw7eN/rv3bE5NaCSOOZl74+hSGRyR1sBd0HA=="],
 
     "@next/env": ["@next/env@16.3.8", "", {}, "sha512-Al9zqHVV7TJv0eFuOU4U7Lvv74PTih4Ch63sk2xCIpSTkE3udFnaOcnzP2lQVymiL7yS9Cj2iClUXlR3EQ5sEw=="],
+
+    "@next/playwright": ["@next/playwright@16.3.8", "", { "peerDependencies": { "@playwright/test": ">=1.0.0" }, "optionalPeers": ["@playwright/test"] }, "sha512-w8pc0ANMHfZkLq6+cRHYLXtvXZXw/WerPvj56pA6ju55ZBYlyliM80zOYssc1YO40kVcF8ojBjp9nEkV+q1pMg=="],
 
     "@next/swc-darwin-arm64": ["@next/swc-darwin-arm64@16.3.8", "", { "os": "darwin", "cpu": "arm64" }, "sha512-2JPRMh2nmQG5CiL7cXGL9AGwnPWJQ//cTtAUCT+w511QHk79SYz3LGv/pc5X643B/WEO0rvu3Yww0hqwt3kgeA=="],
 

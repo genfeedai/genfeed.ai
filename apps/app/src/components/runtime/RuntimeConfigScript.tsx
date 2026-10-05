@@ -1,5 +1,6 @@
 'use client';
 
+import { isDesktopShellBuild } from '@genfeedai/config/deployment';
 import { useServerInsertedHTML } from 'next/navigation';
 import { useRef } from 'react';
 
@@ -29,6 +30,13 @@ export default function RuntimeConfigScript({
   source,
 }: RuntimeConfigScriptProps) {
   const hasInserted = useRef(false);
+  const bootstrapSource = `${source}
+    globalThis.__GENFEED_RUNTIME_CONFIG__.clientSurface = (${isDesktopShellBuild()} || 'genfeedDesktop' in window) ? 'desktop' : 'web';
+    if (globalThis.__GENFEED_RUNTIME_CONFIG__.clientSurface === 'desktop') {
+      const applyDesktopClass = () => document.body.classList.add('gf-desktop-shell');
+      if (document.body) applyDesktopClass();
+      else document.addEventListener('DOMContentLoaded', applyDesktopClass, { once: true });
+    }`;
 
   useServerInsertedHTML(() => {
     if (hasInserted.current) {
@@ -39,7 +47,7 @@ export default function RuntimeConfigScript({
     return (
       <script
         // biome-ignore lint/security/noDangerouslySetInnerHtml: trusted server-built runtime config
-        dangerouslySetInnerHTML={{ __html: source }}
+        dangerouslySetInnerHTML={{ __html: bootstrapSource }}
         id="genfeed-runtime-config"
       />
     );

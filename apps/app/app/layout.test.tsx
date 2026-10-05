@@ -22,18 +22,13 @@ vi.mock('@helpers/media/metadata/metadata.helper', () => ({
   },
 }));
 
-vi.mock('@helpers/ui/theme/theme.helper', () => ({
-  resolveRequestTheme: vi.fn().mockResolvedValue('dark'),
-}));
-
-// The pseudo-locale stands in for "not the default", so a hardcoded 'en'
-// anywhere in the layout would fail the lang assertion below.
-vi.mock('@helpers/ui/locale/locale.helper', () => ({
-  resolveRequestLocale: vi.fn().mockResolvedValue('en-XA'),
-}));
+vi.mock('@helpers/ui/locale/locale.helper', () => ({ DEFAULT_LOCALE: 'en' }));
 
 vi.mock('next/headers', () => ({
   headers: headersMock,
+  cookies: vi.fn(() => {
+    throw new Error('Root layout must not read cookies');
+  }),
 }));
 
 // The real provider reads request-scoped config from i18n/request.ts, which
@@ -124,13 +119,13 @@ describe('app root layout', () => {
     expect(appProvidersSpy).toHaveBeenCalledTimes(1);
     expect(appProvidersSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        initialTheme: 'dark',
+        initialTheme: 'system',
         storageKey: 'theme',
       }),
     );
   });
 
-  it('sets the document language from the resolved request locale', async () => {
+  it('sets the static document language', async () => {
     const { default: RootLayout } = await import('./layout');
 
     render(
@@ -140,7 +135,7 @@ describe('app root layout', () => {
     );
 
     expect(htmlDocumentSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ lang: 'en-XA' }),
+      expect.objectContaining({ lang: 'en' }),
     );
   });
 
@@ -165,25 +160,21 @@ describe('app root layout', () => {
     });
   });
 
-  it('activates the desktop surface from the Electron version header', async () => {
+  it('keeps the document request-free even with a desktop header', async () => {
     headersMock.mockResolvedValue(
       new Headers({ 'x-genfeed-desktop-version': '0.1.0' }),
     );
     const { default: RootLayout } = await import('./layout');
-
-    render(
-      await RootLayout({
-        children: <div>Desktop child</div>,
-      } as never),
-    );
-
+    const result = RootLayout({ children: <div>Desktop child</div> } as never);
+    expect(result).not.toBeInstanceOf(Promise);
+    render(result);
+    expect(headersMock).not.toHaveBeenCalled();
     expect(htmlDocumentSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        bodyClassName: 'gf-app gf-desktop-shell gf-studio-app',
+        bodyClassName: 'gf-app gf-studio-app',
+        initialTheme: 'system',
+        lang: 'en',
       }),
-    );
-    expect(runtimeConfigSpy).toHaveBeenCalledWith(
-      expect.stringContaining('"clientSurface":"desktop"'),
     );
   });
 });

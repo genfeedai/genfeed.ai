@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 
 // Always render at request time and never cache: a stale CDN copy would report
 // the old build id and hide a fresh deployment from clients polling for updates.
-export const dynamic = 'force-dynamic';
 
 /**
  * Reports the build id baked into THIS deployment. The client compares it to the

@@ -203,6 +203,7 @@
     "@nestjs/testing": "12.1.2",
     "@paralleldrive/cuid2": "3.3.0",
     "@playwright/test": "1.63.0",
+    "@next/playwright": "16.3.8",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
     "@secretlint/secretlint-rule-no-homedir": "13.0.7",

@@ -1,18 +1,20 @@
 import './styles.css';
 
-import { isDesktopServerRequest } from '@app-server/desktop-request.server';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
-import { THEME_STORAGE_KEY } from '@genfeedai/contracts/constants';
+import {
+  DEFAULT_THEME,
+  THEME_STORAGE_KEY,
+} from '@genfeedai/contracts/constants';
 import { fontVariables } from '@genfeedai/fonts';
 import { metadata as metadataHelper } from '@helpers/media/metadata/metadata.helper';
-import { resolveRequestLocale } from '@helpers/ui/locale/locale.helper';
-import { resolveRequestTheme } from '@helpers/ui/theme/theme.helper';
+import { DEFAULT_LOCALE } from '@helpers/ui/locale/locale.helper';
 import type { LayoutProps } from '@props/layout/layout.props';
 import AppProviders from '@ui/providers/AppProviders';
 import AppHtmlDocument from '@ui/shell/AppHtmlDocument';
 import { createAppMetadata, createPwaMetadata } from '@ui/shell/metadata';
 import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
+import { Suspense } from 'react';
 import AnalyticsAnonymousSessionSync from '@/components/analytics/AnalyticsAnonymousSessionSync';
 import DesktopDragStrip from '@/components/desktop/DesktopDragStrip';
 import ServiceWorkerRegistrar from '@/components/pwa/ServiceWorkerRegistrar';
@@ -40,11 +42,10 @@ export const metadata: Metadata = createAppMetadata({
 
 export const viewport: Viewport = pwaConfig.viewport;
 
-function createRuntimeConfigScript(clientSurface: 'desktop' | 'web'): string {
+function createRuntimeConfigScript(): string {
   const config = {
     apiEndpoint: process.env.NEXT_PUBLIC_API_ENDPOINT,
     betterAuthEnabled: isBetterAuthEnabled(),
-    clientSurface,
   };
 
   return `globalThis.__GENFEED_RUNTIME_CONFIG__=${JSON.stringify(
@@ -52,47 +53,31 @@ function createRuntimeConfigScript(clientSurface: 'desktop' | 'web'): string {
   ).replaceAll('<', '\\u003c')};`;
 }
 
-export default async function RootLayout({ children }: LayoutProps) {
-  const [initialTheme, locale, isDesktopShell] = await Promise.all([
-    resolveRequestTheme(),
-    resolveRequestLocale(),
-    isDesktopServerRequest(),
-  ]);
-  const bodyClassName = isDesktopShell
-    ? 'gf-app gf-desktop-shell gf-studio-app'
-    : 'gf-app gf-studio-app';
-
+export default function RootLayout({ children }: LayoutProps) {
   return (
     <AppHtmlDocument
-      initialTheme={initialTheme}
+      initialTheme={DEFAULT_THEME}
       fontVariables={fontVariables}
-      bodyClassName={bodyClassName}
-      lang={locale}
+      bodyClassName="gf-app gf-studio-app"
+      lang={DEFAULT_LOCALE}
     >
-      <RuntimeConfigScript
-        source={createRuntimeConfigScript(isDesktopShell ? 'desktop' : 'web')}
-      />
+      <RuntimeConfigScript source={createRuntimeConfigScript()} />
       {/* Locale and messages are inherited from i18n/request.ts rather than
           passed here, so server components keep resolving copy on the server
           and only what client components actually read crosses the boundary. */}
       <NextIntlClientProvider>
-        <AppProviders
-          initialTheme={initialTheme}
-          storageKey={THEME_STORAGE_KEY}
-        >
-          <AnalyticsAnonymousSessionSync />
-          <DesktopDragStrip />
-          {/* Desktop ships as a bundled app with its own update path and offline
-              story; the deploy skew watcher and the service worker both only
-              apply to the Vercel-hosted studio. */}
-          {!isDesktopShell ? (
-            <>
-              <DeploymentVersionWatcher />
-              <ServiceWorkerRegistrar />
-            </>
-          ) : null}
-          {children}
-        </AppProviders>
+        <Suspense fallback={null}>
+          <AppProviders
+            initialTheme={DEFAULT_THEME}
+            storageKey={THEME_STORAGE_KEY}
+          >
+            <AnalyticsAnonymousSessionSync />
+            <DesktopDragStrip />
+            <DeploymentVersionWatcher />
+            <ServiceWorkerRegistrar />
+            {children}
+          </AppProviders>
+        </Suspense>
       </NextIntlClientProvider>
     </AppHtmlDocument>
   );

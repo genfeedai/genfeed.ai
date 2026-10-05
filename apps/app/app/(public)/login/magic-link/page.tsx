@@ -1,4 +1,3 @@
-import { isDesktopServerRequest } from '@app-server/desktop-request.server';
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import LoginBetterAuth from '../login-better-auth';
@@ -14,16 +13,7 @@ export const metadata: Metadata = {
 export default function MagicLinkLoginPage() {
   return (
     <Suspense fallback={null}>
-      <DesktopAwareMagicLinkLoginPage />
+      <LoginBetterAuth mode="magic-link" />
     </Suspense>
-  );
-}
-
-async function DesktopAwareMagicLinkLoginPage() {
-  return (
-    <LoginBetterAuth
-      isDesktopShell={await isDesktopServerRequest()}
-      mode="magic-link"
-    />
   );
 }

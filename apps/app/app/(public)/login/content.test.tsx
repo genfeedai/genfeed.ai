@@ -1,4 +1,7 @@
 import '@testing-library/jest-dom/vitest';
+import MagicLinkLoginPage from '@app/(public)/login/magic-link/page';
+import AppLoginPage from '@app/(public)/login/page';
+import PasswordLoginPage from '@app/(public)/login/password/page';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   act,
@@ -156,6 +159,7 @@ describe('LoginPage', () => {
       writable: true,
     });
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
   it('renders the Better Auth sign-in chooser', () => {
@@ -201,10 +205,11 @@ describe('LoginPage', () => {
     expect(screen.getByRole('link', { name: 'Magic Link' })).toBeVisible();
   });
 
-  it('renders the desktop surface from the server snapshot without a web-form flash', () => {
+  it('renders the desktop surface from the browser runtime config', () => {
     window.history.replaceState({}, '', '/login');
 
-    render(<LoginPage isDesktopShell />);
+    vi.stubGlobal('__GENFEED_RUNTIME_CONFIG__', { clientSurface: 'desktop' });
+    render(<LoginPage />);
 
     expect(
       screen.getByRole('heading', { name: 'Connect to Genfeed' }),
@@ -216,16 +221,16 @@ describe('LoginPage', () => {
   });
 
   it.each([
-    { ui: <LoginPage />, pathname: '/login' },
-    { ui: <LoginBetterAuth mode="password" />, pathname: '/login/password' },
+    { ui: <AppLoginPage />, pathname: '/login' },
+    { ui: <PasswordLoginPage />, pathname: '/login/password' },
     {
-      ui: <LoginBetterAuth mode="magic-link" />,
+      ui: <MagicLinkLoginPage />,
       pathname: '/login/magic-link',
     },
   ])(
     'renders the desktop sign-in surface for $pathname',
     ({ ui, pathname }) => {
-      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+      vi.stubGlobal('__GENFEED_RUNTIME_CONFIG__', { clientSurface: 'desktop' });
       window.history.replaceState({}, '', pathname);
 
       render(ui);
