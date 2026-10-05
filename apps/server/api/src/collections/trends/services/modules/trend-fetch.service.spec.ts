@@ -882,7 +882,7 @@ describe('TrendFetchService', () => {
   ] as const)('global %s Apify fallback evidence', (platform, method) => {
     it('records fallback_failed without a successful refresh when Apify throws', async () => {
       mockApifyService[method].mockRejectedValue(
-        new Error('Apify run budget exhausted'),
+        new Error('Apify actor run failed'),
       );
 
       await service.fetchAndCacheTrends(undefined, undefined, undefined, {

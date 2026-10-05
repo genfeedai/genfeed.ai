@@ -45,23 +45,6 @@ export interface ApifyAccountLimitSuspension {
   suspendedUntilMs: number;
 }
 
-/**
- * Outcome of a run-budget check. Apify bills per actor run, so the number of
- * runs — not the number of items — is what has to be capped.
- */
-export interface ApifyRunBudgetDecision {
-  isAllowed: boolean;
-  maxTotalChargeUsd?: number;
-  reason?: string;
-  retryAfterMs?: number;
-}
-
-export interface ApifyRunBudgetLimits {
-  maxRunsPerDay: number;
-  maxRunsPerHour: number;
-  maxTotalChargeUsdPerRun: number;
-}
-
 export interface ApifyDatasetResponse<T = ApifyDatasetItem> {
   data: T[];
 }
