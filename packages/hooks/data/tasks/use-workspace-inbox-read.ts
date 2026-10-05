@@ -36,9 +36,10 @@ export function useWorkspaceInboxRead() {
   const read = useMutation({
     mutationKey: key,
     scope: { id: key.join(':') },
-    mutationFn: async (tasks: Task[]) => {
+    mutationFn: async (tasks: Task[] | null) => {
       // Chunk a large inbox without dropping any items from "Mark all read".
       const usersService = await service();
+      if (tasks === null) return usersService.markAllInboxRead();
       let saved = state.data;
       for (let offset = 0; offset < tasks.length; offset += 500) {
         saved = await usersService.markInboxRead(

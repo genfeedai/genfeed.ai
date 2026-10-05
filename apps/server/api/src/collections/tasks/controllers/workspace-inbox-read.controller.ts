@@ -7,11 +7,11 @@ import { WorkspaceInboxReadSerializer } from '@genfeedai/serializers';
 import { Body, Controller, Get, Patch, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
-@Controller('tasks/inbox/read-state')
+@Controller('tasks/inbox')
 export class WorkspaceInboxReadController {
   constructor(private readonly inbox: WorkspaceInboxReadService) {}
 
-  @Get()
+  @Get('read-state')
   async list(@Req() request: Request, @CurrentUser() user: AuthenticatedUser) {
     return serializeSingle(
       request,
@@ -20,7 +20,7 @@ export class WorkspaceInboxReadController {
     );
   }
 
-  @Patch()
+  @Patch('read-state')
   async read(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
@@ -34,6 +34,18 @@ export class WorkspaceInboxReadController {
         user.userId ?? user.id,
         body.reads,
       ),
+    );
+  }
+
+  @Patch('read-all')
+  async readAll(
+    @Req() request: Request,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return serializeSingle(
+      request,
+      WorkspaceInboxReadSerializer,
+      await this.inbox.markAllRead(user.organizationId, user.userId ?? user.id),
     );
   }
 }

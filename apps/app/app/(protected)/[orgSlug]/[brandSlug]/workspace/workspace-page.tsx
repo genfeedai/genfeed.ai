@@ -245,9 +245,9 @@ function WorkspacePageContentContent({
             disabled={
               inboxRead.read.isPending ||
               !inboxRead.state.data ||
-              unreadInboxTasks.length === 0
+              !inboxRead.state.data?.unreadCount
             }
-            onClick={() => inboxRead.read.mutate(unreadInboxTasks)}
+            onClick={() => inboxRead.read.mutate(null)}
           >
             {translate('inbox.markAllRead')}
           </Button>
@@ -272,7 +272,6 @@ function WorkspacePageContentContent({
     isOverviewSection,
     isInboxSection,
     inboxRead,
-    unreadInboxTasks,
     translate,
     isWorkspaceRefreshing,
     refreshWorkspaceTasks,
@@ -359,7 +358,10 @@ function WorkspacePageContentContent({
             size={ButtonSize.SM}
             disabled={inboxRead.read.isPending}
             onClick={() => {
-              if (inboxRead.read.isError && inboxRead.read.variables)
+              if (
+                inboxRead.read.isError &&
+                inboxRead.read.variables !== undefined
+              )
                 inboxRead.read.mutate(inboxRead.read.variables);
               else void inboxRead.state.refetch();
             }}

@@ -1,3 +1,6 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
-export const workspaceInboxReadAttributes = createEntityAttributes(['reads']);
+export const workspaceInboxReadAttributes = createEntityAttributes([
+  'reads',
+  'unreadCount',
+]);

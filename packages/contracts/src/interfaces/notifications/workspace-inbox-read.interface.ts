@@ -6,4 +6,5 @@ export interface IWorkspaceInboxRead {
 export interface IWorkspaceInboxReadState {
   id: string;
   reads: IWorkspaceInboxRead[];
+  unreadCount: number;
 }

@@ -285,6 +285,12 @@ export class TasksService extends BaseService<
     return this.extractResource<IWorkspaceInboxReadState>(response.data);
   }
 
+  async markAllInboxRead(): Promise<IWorkspaceInboxReadState> {
+    const response =
+      await this.instance.patch<JsonApiResponseDocument>('/inbox/read-all');
+    return this.extractResource<IWorkspaceInboxReadState>(response.data);
+  }
+
   async getInbox(limit?: number): Promise<Task[]> {
     return this.list({ limit, view: 'inbox' } as ListTasksParams);
   }

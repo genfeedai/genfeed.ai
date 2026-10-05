@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   get: vi.fn(),
   read: vi.fn(),
+  readAll: vi.fn(),
   identity: { userId: 'user-1', orgId: 'org-1', getToken: vi.fn() },
 }));
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
@@ -20,6 +21,7 @@ vi.mock('@services/management/tasks.service', async (original) => ({
     getInstance: () => ({
       findInboxReadState: mocks.get,
       markInboxRead: mocks.read,
+      markAllInboxRead: mocks.readAll,
     }),
   },
 }));
@@ -37,8 +39,8 @@ const task = new Task({
 const reads = [{ taskId: task.id, seenUpdatedAt: task.updatedAt }];
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.get.mockResolvedValue({ id: 'org-1', reads: [] });
-  mocks.read.mockResolvedValue({ id: 'org-1', reads });
+  mocks.get.mockResolvedValue({ id: 'org-1', reads: [], unreadCount: 1 });
+  mocks.read.mockResolvedValue({ id: 'org-1', reads, unreadCount: 0 });
 });
 describe('workspace inbox read state', () => {
   it('treats unseen completed tasks as unread and later updates as unread again', () => {
@@ -57,12 +59,25 @@ describe('workspace inbox read state', () => {
       { wrapper: createQueryWrapper() },
     );
     await waitFor(() => expect(result.current.page.state.isSuccess).toBe(true));
-    mocks.get.mockResolvedValue({ id: 'org-1', reads });
+    mocks.get.mockResolvedValue({ id: 'org-1', reads, unreadCount: 0 });
     await act(async () => {
       await result.current.page.read.mutateAsync([task]);
     });
     expect(mocks.read).toHaveBeenCalledWith(reads);
     await waitFor(() => expect(result.current.menu.isUnread(task)).toBe(false));
+  });
+  it('marks the entire inbox read through the server rather than just the loaded page', async () => {
+    mocks.readAll.mockResolvedValue({ id: 'org-1', reads, unreadCount: 0 });
+    mocks.get.mockResolvedValue({ id: 'org-1', reads, unreadCount: 0 });
+    const { result } = renderHook(() => useWorkspaceInboxRead(), {
+      wrapper: createQueryWrapper(),
+    });
+    await waitFor(() => expect(result.current.state.isSuccess).toBe(true));
+    await act(async () => {
+      await result.current.read.mutateAsync(null);
+    });
+    expect(mocks.readAll).toHaveBeenCalledTimes(1);
+    expect(mocks.read).not.toHaveBeenCalled();
   });
   it('keeps rows unread after a failed write', async () => {
     mocks.read.mockRejectedValue(new Error('offline'));

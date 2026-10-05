@@ -21,13 +21,51 @@ export class WorkspaceInboxReadService {
       }),
       select: { taskId: true, seenUpdatedAt: true },
     });
+    const tasks = await this.prisma.task.findMany({
+      where: scopedWhere({
+        organizationId,
+        isDeleted: false,
+        dismissedAt: null,
+        reviewState: { not: 'dismissed' },
+      }),
+      select: { id: true, updatedAt: true },
+    });
+    const seenVersions = new Map(
+      reads.map((read) => [read.taskId, read.seenUpdatedAt.getTime()]),
+    );
     return {
+      unreadCount: tasks.filter(
+        (task) => task.updatedAt.getTime() > (seenVersions.get(task.id) ?? 0),
+      ).length,
       id: organizationId,
       reads: reads.map((read) => ({
         taskId: read.taskId,
         seenUpdatedAt: read.seenUpdatedAt.toISOString(),
       })),
     };
+  }
+
+  async markAllRead(
+    organizationId: string,
+    userId: string,
+  ): Promise<IWorkspaceInboxReadState> {
+    const tasks = await this.prisma.task.findMany({
+      where: scopedWhere({
+        organizationId,
+        isDeleted: false,
+        dismissedAt: null,
+        reviewState: { not: 'dismissed' },
+      }),
+      select: { id: true, updatedAt: true },
+    });
+    return this.markRead(
+      organizationId,
+      userId,
+      tasks.map((task) => ({
+        taskId: task.id,
+        seenUpdatedAt: task.updatedAt.toISOString(),
+      })),
+    );
   }
 
   async markRead(

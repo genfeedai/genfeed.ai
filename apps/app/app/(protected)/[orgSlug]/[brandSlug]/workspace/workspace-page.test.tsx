@@ -12,14 +12,20 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import WorkspacePageContent from './workspace-page';
 
+const inboxReadMock = vi.hoisted(() => ({ mutate: vi.fn() }));
+
 vi.mock('@hooks/data/tasks/use-workspace-inbox-read', async () => {
   const { isUnreadWorkspaceInboxTask } = await import(
     '@services/management/tasks.service'
   );
   return {
     useWorkspaceInboxRead: () => ({
-      state: { data: { reads: [] }, isLoading: false, isError: false },
-      read: { isPending: false, isError: false, mutate: vi.fn() },
+      state: {
+        data: { reads: [], unreadCount: 4 },
+        isLoading: false,
+        isError: false,
+      },
+      read: { isPending: false, isError: false, mutate: inboxReadMock.mutate },
       isUnread: isUnreadWorkspaceInboxTask,
     }),
   };
@@ -540,6 +546,20 @@ describe('WorkspacePageContent', () => {
     expect(mocks.replace).toHaveBeenCalledWith('/workspace/inbox/unread', {
       scroll: false,
     });
+  });
+
+  it('marks individual rows and all inbox items read without opening the task', async () => {
+    render(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
+    expect(await screen.findByText('Campaign image')).toBeVisible();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Mark read' })[0]);
+    expect(inboxReadMock.mutate).toHaveBeenCalledWith([
+      expect.objectContaining({ id: 'task-1' }),
+    ]);
+    expect(
+      screen.queryByTestId('workspace-task-inspector'),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Mark all read' }));
+    expect(inboxReadMock.mutate).toHaveBeenCalledWith(null);
   });
 
   it('refreshes tasks and applies realtime workspace updates', async () => {

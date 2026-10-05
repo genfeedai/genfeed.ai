@@ -74,6 +74,38 @@ describe('WorkspaceInboxReadService', () => {
       }),
     });
   });
+  it('counts unread tasks from all live inbox tasks and returns saved versions', async () => {
+    const { service, prisma, reads } = await setup();
+    reads.findMany.mockResolvedValue([
+      { taskId: 'task-1', seenUpdatedAt: updatedAt },
+    ]);
+    prisma.task.findMany.mockResolvedValue([
+      { id: 'task-1', updatedAt },
+      { id: 'task-2', updatedAt },
+    ]);
+    expect(await service.list('org-1', 'user-1')).toEqual({
+      id: 'org-1',
+      unreadCount: 1,
+      reads: [version],
+    });
+  });
+  it('marks all inbox tasks read, including tasks outside any table page', async () => {
+    const { service, prisma } = await setup();
+    const markRead = vi
+      .spyOn(service, 'markRead')
+      .mockResolvedValue({ id: 'org-1', unreadCount: 0, reads: [version] });
+    await service.markAllRead('org-1', 'user-1');
+    expect(prisma.task.findMany).toHaveBeenCalledWith({
+      select: { id: true, updatedAt: true },
+      where: expect.objectContaining({
+        organizationId: 'org-1',
+        isDeleted: false,
+        dismissedAt: null,
+        reviewState: { not: 'dismissed' },
+      }),
+    });
+    expect(markRead).toHaveBeenCalledWith('org-1', 'user-1', [version]);
+  });
   it('rejects cross-organization or missing tasks atomically', async () => {
     const { service, prisma } = await setup();
     prisma.task.findMany.mockResolvedValue([]);
