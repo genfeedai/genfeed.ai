@@ -120,30 +120,11 @@ export class TaskOrchestratorService {
     const resultPreview = summaries.filter(Boolean).join(' | ');
 
     if (hasFailures) {
-      await this.tasksService.recordTaskEvent(
+      await this.recordRollupFailure(
         task.id.toString(),
-        organizationId,
         task.assigneeUserId ?? '',
-        {
-          payload: {
-            failureReason: 'One or more workflow executions failed.',
-            resultPreview: resultPreview || undefined,
-          },
-          type: 'task_failed',
-        },
-        {
-          failureReason: 'One or more workflow executions failed.',
-          progress: {
-            activeRunCount: 0,
-            message: 'One or more executions failed.',
-            percent: 100,
-            stage: 'failed',
-          },
-          resultPreview: resultPreview || undefined,
-          reviewTriggered: true,
-          reviewState: 'none',
-          status: 'failed',
-        },
+        organizationId,
+        resultPreview,
       );
     } else {
       const qualityAssessment = await this.workspaceTaskQualityService.assess(
@@ -254,6 +235,39 @@ export class TaskOrchestratorService {
         type: 'execution_started',
       },
       { progress },
+    );
+  }
+
+  private async recordRollupFailure(
+    taskId: string,
+    userId: string,
+    organizationId: string,
+    resultPreview: string,
+  ): Promise<void> {
+    await this.tasksService.recordTaskEvent(
+      taskId,
+      organizationId,
+      userId,
+      {
+        payload: {
+          failureReason: 'One or more workflow executions failed.',
+          resultPreview: resultPreview || undefined,
+        },
+        type: 'task_failed',
+      },
+      {
+        failureReason: 'One or more workflow executions failed.',
+        progress: {
+          activeRunCount: 0,
+          message: 'One or more executions failed.',
+          percent: 100,
+          stage: 'failed',
+        },
+        resultPreview: resultPreview || undefined,
+        reviewTriggered: true,
+        reviewState: 'none',
+        status: 'failed',
+      },
     );
   }
 

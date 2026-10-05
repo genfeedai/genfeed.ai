@@ -13,12 +13,12 @@ import { persistCreatedWorkflowExecutionWithAdmission } from '@api/collections/w
 import { recordProactiveRunCompletion } from '@api/collections/workflow-executions/services/proactive-run-accounting';
 import { readWorkflowAccounting } from '@api/collections/workflow-executions/services/workflow-accounting';
 import { captureMissingWorkflowCostEstimate } from '@api/collections/workflow-executions/services/workflow-cost-estimate';
+import { findWorkflowExecutionCompletionRow } from '@api/collections/workflow-executions/services/workflow-execution-completion-row.util';
 import { logWorkflowExecutionEtaComparison } from '@api/collections/workflow-executions/services/workflow-execution-eta-log.util';
 import { normalizeWorkflowExecution } from '@api/collections/workflow-executions/services/workflow-execution-normalization';
 import {
   buildWorkflowOutcomeInput,
   suppressWorkflowOutcomeNotification,
-  type WorkflowExecutionCompletionRow,
 } from '@api/collections/workflow-executions/services/workflow-execution-outcome.util';
 import { buildCustomerExecutionWhere } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
 import {
@@ -458,18 +458,11 @@ export class WorkflowExecutionsService extends BaseService<
   ): Promise<WorkflowExecutionDocument | null> {
     const completedAt = new Date();
     const failure = error ? { ...formatAgentError(error), detail: null } : null;
-    const execution = (await this.prisma.workflowExecution.findFirst({
-      select: {
-        estimatedDurationMs: true,
-        organizationId: true,
-        startedAt: true,
-        trigger: true,
-        userId: true,
-        workflowId: true,
-        workflow: { select: { label: true, metadata: true, userId: true } },
-      },
-      where: scopedWhere(organizationId, { id: executionId }),
-    })) as WorkflowExecutionCompletionRow | null;
+    const execution = await findWorkflowExecutionCompletionRow(
+      this.prisma,
+      executionId,
+      organizationId,
+    );
 
     if (!execution) return null;
     const durationMs = execution.startedAt
