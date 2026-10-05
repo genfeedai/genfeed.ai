@@ -115,7 +115,14 @@ test.describe('Agents — Content Team', () => {
         name: 'Creator Growth Machine',
       }),
     ).toBeVisible();
-    await expect(authenticatedPage.getByText('Growth Autopilot')).toBeVisible();
+    // Next retains the create form hidden; check the visible Program agents list.
+    const agentsList = authenticatedPage
+      .getByRole('heading', { level: 3, name: /^Agents \(\d+\)$/ })
+      .locator('..')
+      .filter({ visible: true });
+    await expect(
+      agentsList.getByText('Growth Autopilot', { exact: true }),
+    ).toBeVisible();
   });
 });
 

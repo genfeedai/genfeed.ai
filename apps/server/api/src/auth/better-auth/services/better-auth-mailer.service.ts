@@ -1,6 +1,9 @@
 import { createHash } from 'node:crypto';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { isSafeBrowserAuthCallbackURL } from '@genfeedai/auth-client/callback';
+import {
+  isSafeBrowserAuthCallbackURL,
+  readMagicLinkVerifyCallbackURL,
+} from '@genfeedai/auth-client/callback';
 import {
   buildSystemEmailHtml,
   buildSystemEmailParagraph,
@@ -45,6 +48,9 @@ export function resolveBrowserAuthActionUrl(
     )
       ? ['/', '/reset-password']
       : ['/'];
+    // Magic-link verify decodes callbacks once more before redirecting, so
+    // validate the URL it will actually send the browser to.
+    const isMagicLinkVerify = action.pathname.endsWith('/magic-link/verify');
 
     for (const callbackParam of [
       'callbackURL',
@@ -56,9 +62,13 @@ export function resolveBrowserAuthActionUrl(
         continue;
       }
 
+      const redirectURL = isMagicLinkVerify
+        ? readMagicLinkVerifyCallbackURL(callbackURL)
+        : callbackURL;
       if (
+        !redirectURL ||
         !isSafeBrowserAuthCallbackURL(
-          callbackURL,
+          redirectURL,
           app?.origin ?? action.origin,
           allowedCallbackPathnames,
         )

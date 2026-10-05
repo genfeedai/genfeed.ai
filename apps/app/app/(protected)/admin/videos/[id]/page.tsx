@@ -1,5 +1,4 @@
-import IngredientDetail from '@pages/ingredients/detail/ingredient-detail';
-import type { IngredientDetailPageProps } from '@props/content/ingredient.props';
+import IngredientDetailRoute from '@app/(protected)/admin/videos/[id]/IngredientDetailRoute';
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
@@ -10,14 +9,10 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function IngredientDetailPage({
-  params,
-}: IngredientDetailPageProps) {
-  const { id } = await params;
-
+export default function IngredientDetailPage() {
   return (
     <Suspense fallback={null}>
-      <IngredientDetail type={'videos'} id={id} />
+      <IngredientDetailRoute />
     </Suspense>
   );
 }

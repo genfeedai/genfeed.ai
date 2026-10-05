@@ -12,6 +12,10 @@ import {
   idsOf,
 } from '@api/collections/models/testing/cloud-guarded-delegate';
 import { findModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import {
+  findUnpriceableModelIds,
+  unpriceableModelsScope,
+} from '@api/collections/models/utils/model-pricing-attention.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ModelCategory,
@@ -213,5 +217,62 @@ describe('ModelsService under the CLOUD tenant guard', () => {
         ),
       ),
     ).rejects.toBeInstanceOf(TenantIsolationError);
+  });
+
+  describe('unpriceable (red) model ids for the /models list', () => {
+    function setupRed() {
+      const pricing = {
+        costPerUnit: null,
+        hasAudioToggle: false,
+        hasResolutionOptions: false,
+        isFree: false,
+        minCost: null,
+        pricingType: 'flat',
+        providerCostUsd: null,
+        providerInputSchema: null,
+        reviewedProviderContractVersion: null,
+      };
+      const rows = [
+        makeRow({ id: 'priced', ...pricing }),
+        makeRow({ cost: 0, id: 'red-platform', ...pricing }),
+        makeRow({
+          cost: 0,
+          id: 'red-mine',
+          organizationId: ORG,
+          ...pricing,
+        }),
+        makeRow({
+          cost: 0,
+          id: 'red-theirs',
+          organizationId: OTHER_ORG,
+          ...pricing,
+        }),
+        makeRow({ cost: 0, id: 'red-deleted', isDeleted: true, ...pricing }),
+      ];
+      const prisma = {
+        model: buildGuardedDelegate('Model', rows),
+      } as unknown as PrismaService;
+      return prisma;
+    }
+
+    it('classifies platform and own rows for a tenant caller, never another organization', async () => {
+      const prisma = setupRed();
+
+      const ids = await runWithTenantContext({ organizationId: ORG }, () =>
+        findUnpriceableModelIds(prisma, unpriceableModelsScope(ORG)),
+      );
+
+      expect([...ids].sort()).toEqual(['red-mine', 'red-platform']);
+    });
+
+    it('passes the real tenant guard without an organization argument inside a tenant request', async () => {
+      const prisma = setupRed();
+
+      const ids = await runWithTenantContext({ organizationId: ORG }, () =>
+        findUnpriceableModelIds(prisma, unpriceableModelsScope()),
+      );
+
+      expect([...ids].sort()).toEqual(['red-mine', 'red-platform']);
+    });
   });
 });

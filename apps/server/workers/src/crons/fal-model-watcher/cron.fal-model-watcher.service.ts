@@ -13,10 +13,15 @@ import type {
   IModelDiscoveryRunSummary,
 } from '@workers/interfaces/model-discovery.interface';
 import {
+  type FalContractSyncResult,
   FalModelContractSyncService,
   type FalSyncModelRecord,
 } from '@workers/services/fal-model-contract-sync.service';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
+import {
+  dispatchModelPriceChangeAlert,
+  dispatchModelPricingUnavailableAlert,
+} from '@workers/services/model-pricing-alerts.util';
 
 /** Lifecycle status fal reports for endpoints that still accept requests */
 const FAL_MODEL_STATUS_ACTIVE = 'active';
@@ -93,6 +98,7 @@ export class CronFalModelWatcherService {
           endpoint: true,
           id: true,
           isActive: true,
+          isFree: true,
           key: true,
           provider: true,
           reviewedProviderContractVersion: true,
@@ -159,53 +165,13 @@ export class CronFalModelWatcherService {
       // Step 6: Create missing drafts, then persist a versioned contract for
       // every endpoint. Candidate writes never replace reviewed runtime fields.
       for (const model of routableModels) {
-        let registryModel = existingFalModels.get(model.endpoint_id);
-        try {
-          if (!registryModel) {
-            const discoveryInput = await this.buildDiscoveryInput(model);
-            const draft =
-              await this.modelDiscoveryService.createDraftModel(discoveryInput);
-
-            if (!draft) continue;
-            summary.draftsCreated++;
-            registryModel = draft;
-            await this.sendDiscoveryNotification(
-              model.endpoint_id,
-              discoveryInput.category,
-              draft.cost ?? 0,
-            );
-          }
-
-          const syncResult = await this.falContractSyncService.synchronizeModel(
-            registryModel,
-            model,
-            pricingByEndpoint.get(model.endpoint_id) ?? [],
-            summary.timestamp,
-          );
-          summary.providerContractsSynchronized =
-            (summary.providerContractsSynchronized ?? 0) + 1;
-          if (syncResult.drifted) {
-            summary.providerContractsDrifted =
-              (summary.providerContractsDrifted ?? 0) + 1;
-          }
-          if (syncResult.quarantined) {
-            summary.providerContractsQuarantined =
-              (summary.providerContractsQuarantined ?? 0) + 1;
-          }
-        } catch (error: unknown) {
-          summary.errors++;
-          if (registryModel?.id) {
-            await this.falContractSyncService.recordFailure(
-              'contract_sync_failed',
-              summary.timestamp,
-              registryModel.id,
-            );
-          }
-          this.logger.error(
-            `${url} failed to process model ${model.endpoint_id}`,
-            { reason: error instanceof Error ? error.name : 'unknown' },
-          );
-        }
+        await this.syncRoutableModel(
+          model,
+          existingFalModels,
+          pricingByEndpoint,
+          summary,
+          url,
+        );
       }
 
       // Step 7: Log low-cardinality observability only. Raw schemas, pricing,
@@ -224,6 +190,12 @@ export class CronFalModelWatcherService {
     } catch (error: unknown) {
       summary.errors++;
       await this.falContractSyncService.recordFailure(
+        'fal_sync_failed',
+        summary.timestamp,
+      );
+      // One deduped provider-level alert: every fal rate is unconfirmed.
+      await this.sendFailureAlert(
+        'provider:fal',
         'fal_sync_failed',
         summary.timestamp,
       );
@@ -300,6 +272,118 @@ export class CronFalModelWatcherService {
       schema: model.openapi,
       tags: [...(category ? [category] : []), ...(model.metadata?.tags ?? [])],
     });
+  }
+
+  /** Draft (when new) and synchronize one routable fal endpoint; never throws. */
+  private async syncRoutableModel(
+    model: IFalModel,
+    existingFalModels: ReadonlyMap<string, FalSyncModelRecord>,
+    pricingByEndpoint: ReadonlyMap<string, Array<Record<string, unknown>>>,
+    summary: IModelDiscoveryRunSummary,
+    url: string,
+  ): Promise<void> {
+    let registryModel = existingFalModels.get(model.endpoint_id);
+    try {
+      if (!registryModel) {
+        const discoveryInput = await this.buildDiscoveryInput(model);
+        const draft =
+          await this.modelDiscoveryService.createDraftModel(discoveryInput);
+
+        if (!draft) return;
+        summary.draftsCreated++;
+        registryModel = draft;
+        await this.sendDiscoveryNotification(
+          model.endpoint_id,
+          discoveryInput.category,
+          draft.cost ?? 0,
+        );
+      }
+
+      const syncResult = await this.falContractSyncService.synchronizeModel(
+        registryModel,
+        model,
+        pricingByEndpoint.get(model.endpoint_id) ?? [],
+        summary.timestamp,
+      );
+      await this.sendPricingAlerts(syncResult, summary.timestamp);
+      summary.providerContractsSynchronized =
+        (summary.providerContractsSynchronized ?? 0) + 1;
+      if (syncResult.drifted) {
+        summary.providerContractsDrifted =
+          (summary.providerContractsDrifted ?? 0) + 1;
+      }
+      if (syncResult.quarantined) {
+        summary.providerContractsQuarantined =
+          (summary.providerContractsQuarantined ?? 0) + 1;
+      }
+    } catch (error: unknown) {
+      summary.errors++;
+      if (registryModel?.id) {
+        await this.falContractSyncService.recordFailure(
+          'contract_sync_failed',
+          summary.timestamp,
+          registryModel.id,
+        );
+        await this.sendFailureAlert(
+          model.endpoint_id,
+          'contract_sync_failed',
+          summary.timestamp,
+        );
+      }
+      this.logger.error(`${url} failed to process model ${model.endpoint_id}`, {
+        reason: error instanceof Error ? error.name : 'unknown',
+      });
+    }
+  }
+
+  /** Ops Discord for a model whose refresh threw. */
+  private async sendFailureAlert(
+    modelKey: string,
+    code: string,
+    now: Date,
+  ): Promise<void> {
+    try {
+      await dispatchModelPricingUnavailableAlert(
+        this.activityRecorder,
+        {
+          modelKey,
+          provider: ModelProvider.FAL,
+          reason: `The fal price refresh failed (${code}); the last approved rate keeps charging.`,
+        },
+        now,
+      );
+    } catch (error: unknown) {
+      this.logger.error(`${this.constructorName} failure alert failed`, {
+        error,
+      });
+    }
+  }
+
+  /**
+   * Ops Discord for a refresh that found a changed price or could not read one.
+   * Silently swallows errors: an alert failure must never fail the watcher.
+   */
+  private async sendPricingAlerts(
+    result: FalContractSyncResult,
+    now: Date,
+  ): Promise<void> {
+    try {
+      if (result.priceChange)
+        await dispatchModelPriceChangeAlert(
+          this.activityRecorder,
+          result.priceChange,
+        );
+      if (result.refreshFailure)
+        await dispatchModelPricingUnavailableAlert(
+          this.activityRecorder,
+          result.refreshFailure,
+          now,
+        );
+    } catch (error: unknown) {
+      this.logger.error(`${this.constructorName} pricing alert failed`, {
+        error,
+      });
+    }
   }
 
   /**

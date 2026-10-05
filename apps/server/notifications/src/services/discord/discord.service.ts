@@ -409,6 +409,118 @@ export class DiscordService {
     );
   }
 
+  /**
+   * A provider changed a price (#6196). The approved rate keeps charging; the
+   * operator approves the new one from the admin model pricing page.
+   */
+  async sendModelPriceChangeNotification(payload: {
+    modelKey: string;
+    provider: string;
+    changes: Array<{
+      variant: string;
+      unit: string;
+      oldPriceUsd: number | null;
+      newPriceUsd: number | null;
+    }>;
+    sourceUrl: string | null;
+  }): Promise<boolean> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    return this.withWebhook(
+      await this.discordBotService.getModelsWebhook(),
+      url,
+      async (webhookClient) => {
+        const formatPrice = (value: number | null): string =>
+          value === null
+            ? 'none'
+            : `$${value.toLocaleString('en-US', { maximumFractionDigits: 10 })}`;
+        // Discord caps an embed field value at 1024 characters.
+        const lines = payload.changes
+          .slice(0, 12)
+          .map(
+            (change) =>
+              `${change.variant}: ${formatPrice(change.oldPriceUsd)} → ${formatPrice(change.newPriceUsd)} per ${change.unit}`,
+          );
+        if (payload.changes.length > lines.length)
+          lines.push(`and ${payload.changes.length - lines.length} more`);
+        const fields: Array<{ name: string; value: string; inline: boolean }> =
+          [
+            { inline: true, name: 'Provider', value: payload.provider },
+            {
+              inline: false,
+              name: 'Old → new price',
+              value: lines.join('\n').slice(0, 1024) || 'See admin',
+            },
+          ];
+        if (payload.sourceUrl)
+          fields.push({
+            inline: false,
+            name: 'Source',
+            value: payload.sourceUrl,
+          });
+        const avatarUrl =
+          (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined;
+
+        await webhookClient.send({
+          avatarURL: avatarUrl,
+          embeds: [
+            {
+              color: 0xffa500,
+              description:
+                'The approved rate keeps charging until a superadmin approves the new price.',
+              fields,
+              timestamp: new Date().toISOString(),
+              title: `Provider price changed: ${payload.modelKey}`,
+            },
+          ],
+          username: 'Genfeed.ai',
+        });
+
+        this.loggerService.log(`${url} succeeded`, {
+          modelKey: payload.modelKey,
+          provider: payload.provider,
+        });
+      },
+    );
+  }
+
+  /** An active model became unpriceable, or its provider price refresh failed (#6196). */
+  async sendModelPricingUnavailableNotification(payload: {
+    modelKey: string;
+    provider: string;
+    reason: string;
+  }): Promise<boolean> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    return this.withWebhook(
+      await this.discordBotService.getModelsWebhook(),
+      url,
+      async (webhookClient) => {
+        const avatarUrl =
+          (await this.runtimeSettings.get()).discordBotAvatarUrl ?? undefined;
+
+        await webhookClient.send({
+          avatarURL: avatarUrl,
+          embeds: [
+            {
+              color: 0xef4444,
+              description: payload.reason.slice(0, 1000),
+              fields: [
+                { inline: true, name: 'Provider', value: payload.provider },
+              ],
+              timestamp: new Date().toISOString(),
+              title: `Model pricing needs attention: ${payload.modelKey}`,
+            },
+          ],
+          username: 'Genfeed.ai',
+        });
+
+        this.loggerService.log(`${url} succeeded`, {
+          modelKey: payload.modelKey,
+          provider: payload.provider,
+        });
+      },
+    );
+  }
+
   async sendArticleNotification(article: {
     label: string;
     slug: string;

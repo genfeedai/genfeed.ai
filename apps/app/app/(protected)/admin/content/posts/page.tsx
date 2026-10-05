@@ -1,19 +1,13 @@
-import { PageScope } from '@genfeedai/contracts';
+import AdminPostsRoute from '@app/(protected)/admin/content/posts/AdminPostsRoute';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import PostsList from '@pages/posts/list/posts-list';
-import type { AdminPostsPageProps } from '@props/admin/posts.props';
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Posts');
 
-export default async function AdminPostsPage({
-  searchParams,
-}: AdminPostsPageProps) {
-  const { platform } = await searchParams;
-
+export default function AdminPostsPage() {
   return (
     <Suspense fallback={null}>
-      <PostsList scope={PageScope.SUPERADMIN} platform={platform || 'all'} />
+      <AdminPostsRoute />
     </Suspense>
   );
 }

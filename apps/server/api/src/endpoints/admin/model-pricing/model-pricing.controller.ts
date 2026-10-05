@@ -4,8 +4,24 @@ import { AdminModelPricingService } from '@api/endpoints/admin/model-pricing/mod
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { ModelPricingReportSerializer } from '@genfeedai/serializers';
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import type { Request } from 'express';
+import { z } from 'zod';
+
+const modelIdSchema = z.string().trim().min(1).max(200);
+const approveBodySchema = z
+  .object({ expectedPendingVersion: z.string().min(1).max(500) })
+  .strict();
 
 @Controller('admin/model-pricing')
 @UseGuards(IpWhitelistGuard, SuperAdminGuard)
@@ -15,11 +31,47 @@ export class AdminModelPricingController {
   @Get()
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   async getReport(@Req() request: Request) {
-    const source = `${request.protocol}://${request.get('host')}${request.originalUrl.split('?')[0]}`;
     return serializeSingle(
       request,
       ModelPricingReportSerializer,
-      await this.pricing.getReport(source),
+      await this.pricing.getReport(this.reportSource(request)),
     );
+  }
+
+  /**
+   * Promote a provider's pending rates to the reviewed contract (#6196). Under
+   * the same superadmin and IP allowlist guards as the report; returns the
+   * refreshed report.
+   */
+  @Post(':modelId/approve-rates')
+  @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
+  async approveRates(
+    @Req() request: Request,
+    @Param('modelId') modelId: string,
+    @Body() body: unknown,
+  ) {
+    if (!modelIdSchema.safeParse(modelId).success)
+      throw new BadRequestException('Invalid identifier');
+    const parsed = approveBodySchema.safeParse(body);
+    if (!parsed.success)
+      throw new BadRequestException('expectedPendingVersion is required');
+    const approvedBy = request.context?.userId;
+    if (!approvedBy) throw new UnauthorizedException();
+    await this.pricing.approveRates(
+      modelId,
+      approvedBy,
+      parsed.data.expectedPendingVersion,
+    );
+    return serializeSingle(
+      request,
+      ModelPricingReportSerializer,
+      await this.pricing.getReport(
+        this.reportSource(request).replace(/\/[^/]+\/approve-rates$/, ''),
+      ),
+    );
+  }
+
+  private reportSource(request: Request): string {
+    return `${request.protocol}://${request.get('host')}${request.originalUrl.split('?')[0]}`;
   }
 }

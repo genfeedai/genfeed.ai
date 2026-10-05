@@ -1208,7 +1208,12 @@ export interface IGenfeedDesktopBridge {
   auth: {
     completeWithCode: (code: string) => Promise<void>;
     getSession: () => Promise<IDesktopSession | null>;
-    login: () => Promise<void>;
+    /**
+     * Open sign-in in the system browser. `continuation` is the product path
+     * the shell returns to after the browser callback (an OAuth consent
+     * request); main validates it and falls back to the app root.
+     */
+    login: (continuation?: string) => Promise<void>;
     logout: () => Promise<void>;
     onDidChangeSession: (
       callback: (session: IDesktopSession | null) => void,

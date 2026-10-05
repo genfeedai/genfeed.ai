@@ -228,8 +228,9 @@ export class ClientService {
     name: string,
     parameters: Record<string, unknown>,
     context?: Record<string, unknown>,
+    timeoutMs?: number,
   ): Promise<AgentToolResult> {
-    return this.agent.executeAgentTool(name, parameters, context);
+    return this.agent.executeAgentTool(name, parameters, context, timeoutMs);
   }
 
   createApproval(

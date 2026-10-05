@@ -65,6 +65,13 @@ const absoluteCallback = (path: string) => {
   return `${window.location.origin}/?callbackUrl=${encodeURIComponent(path)}`;
 };
 
+// Magic links pre-encode the continuation once more: Better Auth decodes the
+// verify callback twice (see buildMagicLinkCallbackURL).
+const absoluteMagicLinkCallback = (path: string) =>
+  path === '/'
+    ? absoluteCallback('/')
+    : `${window.location.origin}/?callbackUrl=${encodeURIComponent(encodeURIComponent(path))}`;
+
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
 
@@ -157,7 +164,7 @@ describe('SignUpForm', () => {
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({
-        callbackURL: absoluteCallback('/onboarding'),
+        callbackURL: absoluteMagicLinkCallback('/onboarding'),
         email: 'new@example.com',
         metadata: { intent: 'signup' },
       });
@@ -190,7 +197,7 @@ describe('SignUpForm', () => {
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({
-        callbackURL: absoluteCallback(
+        callbackURL: absoluteMagicLinkCallback(
           '/onboarding/post-signup?plan=payg&brandDomain=acme.co&brandName=Acme',
         ),
         email: 'new@example.com',
@@ -214,7 +221,7 @@ describe('SignUpForm', () => {
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({
-        callbackURL: absoluteCallback(
+        callbackURL: absoluteMagicLinkCallback(
           `/onboarding/post-signup?brandOsToken=${token}`,
         ),
         email: 'brand@example.com',

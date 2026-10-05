@@ -99,6 +99,7 @@
     "check:typecheck-alias-inputs": "bun run scripts/architecture/check-typecheck-alias-inputs.ts",
     "check:typescript-toolchain": "bun run scripts/architecture/check-typescript-toolchain.ts",
     "check:ui-guards": "bun run scripts/ui/check-ui-guards.ts",
+    "pricing:rates:pull": "bun run scripts/pricing/pull-provider-rates.ts",
     "publish:package": "./scripts/publish-package.sh",
     "check:npm-release": "node scripts/npm-release-plan.mjs --validate",
     "check:nested-node-modules": "bun run scripts/check-nested-node-modules.ts",

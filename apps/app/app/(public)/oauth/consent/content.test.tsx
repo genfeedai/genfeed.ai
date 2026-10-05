@@ -10,6 +10,7 @@ const useAuthMock = vi.fn();
 const useSearchParamsMock = vi.fn();
 const resolveAuthTokenMock = vi.fn();
 const redirectMock = vi.fn();
+const loginPropsMock = vi.fn();
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
@@ -31,6 +32,13 @@ vi.mock('@helpers/auth/auth.helper', () => ({
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
     apiEndpoint: 'https://api.genfeed.ai/v1',
+  },
+}));
+
+vi.mock('@app/(public)/login/login-better-auth', () => ({
+  default: (props: { title?: string }) => {
+    loginPropsMock(props);
+    return <h1>{props.title}</h1>;
   },
 }));
 
@@ -148,7 +156,7 @@ describe('OAuthConsentPage', () => {
     expect(screen.getByText(expected)).toBeInTheDocument();
   });
 
-  it('preserves the full OAuth request through sign-in', () => {
+  it('offers every sign-in and sign-up path in place, returning to this request (#6268)', () => {
     useAuthMock.mockReturnValue({
       getToken: vi.fn(),
       isLoaded: true,
@@ -157,13 +165,18 @@ describe('OAuthConsentPage', () => {
 
     render(<OAuthConsentPage />);
 
-    const link = screen.getByRole('link', { name: 'Sign in to continue' });
-    const href = link.getAttribute('href') ?? '';
-    const loginUrl = new URL(href, 'https://app.genfeed.ai');
-    const callbackUrl = loginUrl.searchParams.get('callbackUrl');
-    expect(callbackUrl).not.toBeNull();
+    expect(
+      screen.getByRole('heading', { name: /^Connect .+ to Genfeed$/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Authorize' }),
+    ).not.toBeInTheDocument();
+    expect(loginPropsMock).toHaveBeenCalled();
+    const [{ callbackURL }] = loginPropsMock.mock.lastCall as [
+      { callbackURL: string },
+    ];
 
-    const consentUrl = new URL(callbackUrl ?? '', 'https://app.genfeed.ai');
+    const consentUrl = new URL(callbackURL, 'https://app.genfeed.ai');
     expect(consentUrl.pathname).toBe('/oauth/consent');
     expect(consentUrl.searchParams.get('client_id')).toBe('oauth_client');
     expect(consentUrl.searchParams.get('resource')).toBe(

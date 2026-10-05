@@ -361,6 +361,7 @@ describe('curated action catalog', () => {
     const expected: ReadonlyArray<readonly [string, string]> = [
       ['get_account', 'core'],
       ['get_brands', 'core'],
+      ['onboard_brand', 'core'],
       ['get_posts', 'content'],
       ['list_assets', 'generation'],
       ['resolve_approval', 'core'],
