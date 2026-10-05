@@ -7,22 +7,15 @@ name: Server Image PR Guard
 # build surfaces within one merge, while the ~15-30 min docker build stops
 # taxing every server-touching PR. Changes to the Dockerfile or bundler config
 # still must prove the image builds before merging.
+#
+# "Build Server Image" is a required status check on master, so the workflow
+# runs on every pull request: `detect` decides whether the image definition
+# changed, and `build` is skipped (which satisfies the required check) when it
+# did not. A path filter on the trigger would leave the check unreported and
+# block unrelated pull requests forever (#6189 merged with a red image build
+# because the check was not required).
 on:
   pull_request:
-    paths:
-      - 'docker/Dockerfile.server'
-      - '.dockerignore'
-      - '.bun-version'
-      - 'configs/**'
-      - 'patches/**'
-      # Bundler config decides what lands in the server bundles, so a change
-      # here must exercise the image build even when no server source changed.
-      - 'webpack.base.config.js'
-      - 'tsconfig.json'
-      - 'tsconfig.server.decorators.json'
-      - 'bun.lock'
-      - 'package.json'
-      - '.github/workflows/server-image-pr.yml'
 
 concurrency:
   group: server-image-pr-${{ github.event.pull_request.number }}
@@ -32,8 +25,59 @@ permissions:
   contents: read
 
 jobs:
+  detect:
+    name: Detect Server Image Inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      image: ${{ steps.changes.outputs.image }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: changes
+        name: Detect image definition changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # Bundler config decides what lands in the server bundles, so a change
+          # here must exercise the image build even when no server source changed.
+          IMAGE_INPUTS: |
+            docker/Dockerfile.server
+            .dockerignore
+            .bun-version
+            configs/*
+            patches/*
+            webpack.base.config.js
+            tsconfig.json
+            tsconfig.server.decorators.json
+            bun.lock
+            package.json
+            .github/workflows/server-image-pr.yml
+        run: |
+          set -euo pipefail
+          image=false
+          while IFS= read -r changed; do
+            [ -n "$changed" ] || continue
+            while IFS= read -r pattern; do
+              [ -n "$pattern" ] || continue
+              # shellcheck disable=SC2053 # pattern is an intentional glob
+              if [[ "$changed" == $pattern ]]; then
+                image=true
+                break 2
+              fi
+            done <<< "$IMAGE_INPUTS"
+          done < <(git diff --name-only "$BASE_SHA...$HEAD_SHA")
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "Server image definition changed: $image"
+
   build:
     name: Build Server Image
+    needs: detect
+    if: needs.detect.outputs.image == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 40
 

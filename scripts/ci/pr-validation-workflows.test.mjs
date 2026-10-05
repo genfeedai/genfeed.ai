@@ -568,23 +568,31 @@ test('runs desktop QA weekly and for release callers', () => {
 test('server image PR validation bounds cache export without changing reachability', () => {
   const workflow = readWorkflow('server-image-pr.yml');
 
-  assert.match(workflow, /^ {2}pull_request:\n/m);
-  for (const pathFilter of [
+  // Required status check: the workflow must report on every pull request,
+  // so the trigger has no path filter and `build` skips via `detect` instead.
+  assert.match(workflow, /^ {2}pull_request:\n\n/m);
+  assert.doesNotMatch(workflow, /^ {4}paths:$/m);
+  assert.match(
+    workflow,
+    /^ {4}name: Build Server Image\n {4}needs: detect\n {4}if: needs\.detect\.outputs\.image == 'true'$/m,
+  );
+  for (const imageInput of [
     'docker/Dockerfile.server',
     'webpack.base.config.js',
     'bun.lock',
+    'package.json',
     '.github/workflows/server-image-pr.yml',
   ]) {
     assert.ok(
-      workflow.includes(`      - '${pathFilter}'\n`),
-      `server-image-pr.yml must stay reachable for ${pathFilter}`,
+      workflow.includes(`            ${imageInput}\n`),
+      `server-image-pr.yml must build the image for ${imageInput}`,
     );
   }
   // Source paths are validated by normal CI and by build-server-image.yml on
   // every master push (build-server-image.yml); the PR docker build is scoped to the image definition.
-  for (const droppedPath of ['apps/server/**', 'packages/**']) {
+  for (const droppedPath of ['apps/server/*', 'packages/*']) {
     assert.ok(
-      !workflow.includes(`      - '${droppedPath}'\n`),
+      !workflow.includes(`            ${droppedPath}\n`),
       `server-image-pr.yml must not rebuild the image for ${droppedPath}`,
     );
   }
