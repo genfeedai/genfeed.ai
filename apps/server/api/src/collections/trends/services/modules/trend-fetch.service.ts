@@ -810,58 +810,55 @@ export class TrendFetchService {
         const allTrends: TrendEntity[] = [];
 
         for (const platform of platforms) {
+          let trendsData: TrendData[];
           try {
-            const trendsData = await this.fetchPlatformTrends(
+            trendsData = await this.fetchPlatformTrends(
               platform,
               organizationId,
               brandId,
               options,
             );
-
-            for (const trendData of trendsData) {
-              const viralityScore = calculateViralityScore
-                ? calculateViralityScore(trendData)
-                : 0;
-
-              // Determine if this trend requires authentication
-              const requiresAuth = !!(organizationId && brandId);
-
-              // Set TTL based on whether it's personalized or generic
-              const ttlMinutes = requiresAuth
-                ? this.PERSONALIZED_TREND_DOCUMENT_TTL_MINUTES
-                : this.GLOBAL_TREND_DOCUMENT_TTL_MINUTES;
-              const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
-
-              const savedTrend = await this.prisma.trend.create({
-                data: {
-                  data: {
-                    growthRate: trendData.growthRate,
-                    mentions: trendData.mentions,
-                    metadata: trendData.metadata,
-                  } as Prisma.InputJsonValue,
-                  brandId: brandId || null,
-                  expiresAt,
-                  isCurrent: true,
-                  organizationId: organizationId?.trim() || null,
-                  platform: trendData.platform,
-                  requiresAuth,
-                  topic: trendData.topic,
-                  viralityScore,
-                },
-              });
-              allTrends.push(
-                new TrendEntity({
-                  ...savedTrend,
-                  ...(savedTrend.data as Record<string, unknown>),
-                } as unknown as TrendDocument),
-              );
-            }
           } catch (error: unknown) {
             markTrendRefreshPersistenceFailed(platform, 'trends');
             this.loggerService.error(
               `Failed to cache trends for ${platform}`,
               error,
             );
+            continue;
+          }
+
+          // Each row is saved on its own, so one malformed provider item
+          // cannot drop the rest of the platform's batch.
+          let failedRows = 0;
+          for (const trendData of trendsData) {
+            if (!trendData.topic?.trim() || !trendData.platform) {
+              this.loggerService.warn(
+                `Skipping ${platform} trend without a topic or platform`,
+                { platform },
+              );
+              continue;
+            }
+
+            try {
+              allTrends.push(
+                await this.saveTrend(
+                  trendData,
+                  organizationId,
+                  brandId,
+                  calculateViralityScore,
+                ),
+              );
+            } catch (error: unknown) {
+              failedRows += 1;
+              this.loggerService.error(
+                `Failed to save ${platform} trend "${trendData.topic}"`,
+                error,
+              );
+            }
+          }
+
+          if (failedRows > 0 && failedRows === trendsData.length) {
+            markTrendRefreshPersistenceFailed(platform, 'trends');
           }
         }
 
@@ -870,5 +867,48 @@ export class TrendFetchService {
       (evidence) => this.refreshHealth.record(organizationId ?? null, evidence),
     );
     return captured.result;
+  }
+
+  private async saveTrend(
+    trendData: TrendData,
+    organizationId: string | undefined,
+    brandId: string | undefined,
+    calculateViralityScore?: (trend: TrendData) => number,
+  ): Promise<TrendEntity> {
+    const viralityScore = calculateViralityScore
+      ? calculateViralityScore(trendData)
+      : 0;
+
+    // Determine if this trend requires authentication
+    const requiresAuth = !!(organizationId && brandId);
+
+    // Set TTL based on whether it's personalized or generic
+    const ttlMinutes = requiresAuth
+      ? this.PERSONALIZED_TREND_DOCUMENT_TTL_MINUTES
+      : this.GLOBAL_TREND_DOCUMENT_TTL_MINUTES;
+    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+
+    const savedTrend = await this.prisma.trend.create({
+      data: {
+        data: {
+          growthRate: trendData.growthRate,
+          mentions: trendData.mentions,
+          metadata: trendData.metadata,
+        } as Prisma.InputJsonValue,
+        brandId: brandId || null,
+        expiresAt,
+        isCurrent: true,
+        organizationId: organizationId?.trim() || null,
+        platform: trendData.platform,
+        requiresAuth,
+        topic: trendData.topic,
+        viralityScore,
+      },
+    });
+
+    return new TrendEntity({
+      ...savedTrend,
+      ...(savedTrend.data as Record<string, unknown>),
+    } as unknown as TrendDocument);
   }
 }

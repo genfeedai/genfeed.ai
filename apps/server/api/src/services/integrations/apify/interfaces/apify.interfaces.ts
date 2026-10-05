@@ -259,12 +259,6 @@ export interface ApifyNormalizedTweet {
 /**
  * Instagram trend data from Apify
  */
-export interface ApifyInstagramHashtag {
-  name: string;
-  mediaCount?: number;
-  topPosts?: ApifyInstagramPost[];
-}
-
 export interface ApifyInstagramPost {
   id: string;
   shortCode?: string;
@@ -277,6 +271,7 @@ export interface ApifyInstagramPost {
   ownerUsername?: string;
   timestamp?: string;
   hashtags?: string[];
+  url?: string;
 }
 
 /**
