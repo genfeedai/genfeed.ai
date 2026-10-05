@@ -16,17 +16,20 @@ import { applyMargin } from './plans-pricing';
 import { quoteReviewedProviderPricing } from './reviewed-provider-pricing';
 
 /**
- * A pending provider contract blocks pricing only when it drifts from a
- * reviewed one. The provider sync stamps a pending candidate on every
- * observed endpoint, including models that were never reviewed; those keep
- * pricing from their configured row until an operator promotes a contract.
+ * A pending provider contract is price drift only when its normalized rates
+ * (`hashReviewedProviderRates`) differ from the reviewed contract's. A schema
+ * or provider-version change with the same prices is not drift, and a drift
+ * never blocks pricing: the reviewed rate keeps charging until an operator
+ * approves the pending one. The provider sync stamps a pending candidate on
+ * every observed endpoint, including models that were never reviewed; those
+ * have no reviewed rate hash and so never drift.
  */
 export function hasPendingProviderRateDrift(
-  reviewedVersion: string | null | undefined,
-  pendingVersion: string | null | undefined,
+  reviewedRateHash: string | null | undefined,
+  pendingRateHash: string | null | undefined,
 ): boolean {
   return Boolean(
-    reviewedVersion && pendingVersion && pendingVersion !== reviewedVersion,
+    reviewedRateHash && pendingRateHash && pendingRateHash !== reviewedRateHash,
   );
 }
 
@@ -83,8 +86,8 @@ export function quoteModelBillablePricing(
     )
   )
     return unresolved('Request/output count is invalid');
-  if (model.hasPendingRate)
-    return unresolved('Pending provider rate requires review');
+  // `hasPendingRate` is review metadata only: a detected provider price change
+  // keeps charging the last approved rate until an operator approves the new one.
   const { modelKey: _key, provider: _provider, ...suppliedQuantities } = input;
   const quantities: ProviderQuoteDimensions = {
     ...suppliedQuantities,
@@ -101,10 +104,12 @@ export function quoteModelBillablePricing(
     const pricing = model.reviewedPricing;
     if (!model.rateVersion || pricing.version !== model.rateVersion)
       return unresolved('Reviewed rate version does not match model');
-    const age = Date.parse(quotedAt) - Date.parse(pricing.verifiedAt);
-    if (!Number.isFinite(age) || age < 0 || age > 30 * 86400000)
+    // Rates are refreshed by the provider sync rather than expired by age:
+    // the verification date must exist and cannot be in the future.
+    const verifiedAtMs = Date.parse(pricing.verifiedAt);
+    if (!Number.isFinite(verifiedAtMs) || verifiedAtMs > Date.parse(quotedAt))
       return unresolved(
-        'Provider rate verification is missing, stale or in the future',
+        'Provider rate verification date is missing or in the future',
       );
     const invariantSelectors = new Set(pricing.invariantSelectors ?? []);
     if (

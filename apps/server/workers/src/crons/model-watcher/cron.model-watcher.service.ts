@@ -14,8 +14,13 @@ import type {
 } from '@workers/interfaces/model-discovery.interface';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
+import {
+  dispatchModelPriceChangeAlert,
+  dispatchModelPricingUnavailableAlert,
+} from '@workers/services/model-pricing-alerts.util';
 import { PlatformMarginService } from '@workers/services/platform-margin.service';
 import {
+  type ReplicateContractSyncResult,
   ReplicateModelContractSyncService,
   type ReplicateSyncModelRecord,
 } from '@workers/services/replicate-model-contract-sync.service';
@@ -101,6 +106,7 @@ export class CronModelWatcherService {
           endpoint: true,
           id: true,
           isActive: true,
+          isFree: true,
           key: true,
           pricingType: true,
           provider: true,
@@ -227,12 +233,19 @@ export class CronModelWatcherService {
                   category,
                 ).pricingType
               : null);
+          // The public model page states current rates per variant (#6196).
+          const billing =
+            await this.modelDiscoveryService.fetchReplicateBilling(
+              model.owner,
+              model.name,
+            );
           const syncResult =
             await this.replicateContractSyncService.synchronizeModel(
               registryModel,
               model,
               category,
               {
+                billing,
                 pricingType,
                 source:
                   knownCost !== null
@@ -242,6 +255,7 @@ export class CronModelWatcherService {
               },
               summary.timestamp,
             );
+          await this.sendPricingAlerts(syncResult, summary.timestamp);
           summary.providerContractsSynchronized =
             (summary.providerContractsSynchronized ?? 0) + 1;
           if (syncResult.drifted) {
@@ -375,6 +389,33 @@ export class CronModelWatcherService {
     }
 
     return allModels;
+  }
+
+  /**
+   * Ops Discord for a refresh that found a changed price or could not read one.
+   * Silently swallows errors: an alert failure must never fail the watcher.
+   */
+  private async sendPricingAlerts(
+    result: ReplicateContractSyncResult,
+    now: Date,
+  ): Promise<void> {
+    try {
+      if (result.priceChange)
+        await dispatchModelPriceChangeAlert(
+          this.activityRecorder,
+          result.priceChange,
+        );
+      if (result.refreshFailure)
+        await dispatchModelPricingUnavailableAlert(
+          this.activityRecorder,
+          result.refreshFailure,
+          now,
+        );
+    } catch (error: unknown) {
+      this.logger.error(`${this.constructorName} pricing alert failed`, {
+        error,
+      });
+    }
   }
 
   /**

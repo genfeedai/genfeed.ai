@@ -180,6 +180,18 @@ export class ChannelMessageDispatcherService {
           return this.discordService.sendModelDiscoveryNotification(payload);
         }
         break;
+      case 'model_price_change':
+        if ('modelKey' in payload && 'changes' in payload) {
+          return this.discordService.sendModelPriceChangeNotification(payload);
+        }
+        break;
+      case 'model_pricing_unavailable':
+        if ('modelKey' in payload && 'reason' in payload) {
+          return this.discordService.sendModelPricingUnavailableNotification(
+            payload,
+          );
+        }
+        break;
       case 'low_credits_alert':
         if ('organizationId' in payload && 'balance' in payload) {
           return this.discordService.sendLowCreditsAlert(payload);

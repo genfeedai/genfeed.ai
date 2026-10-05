@@ -4899,7 +4899,21 @@
     "rows": "rows",
     "policyLoaded": "Configured conversion margin: {margin}×",
     "policyUnresolved": "Conversion policy unresolved",
-    "unavailable": "Pricing snapshot unavailable"
+    "unavailable": "Pricing snapshot unavailable",
+    "attentionLabel": "Models needing pricing attention",
+    "attentionRedTitle": "{count, plural, one {# model cannot be priced} other {# models cannot be priced}}",
+    "attentionRedHint": "Price missing, zero credits or unpriceable. Customers are not offered these models until a price is approved.",
+    "attentionOrangeTitle": "{count, plural, one {# model needs a price review} other {# models need a price review}}",
+    "attentionOrangeHint": "These keep charging their last approved rate while a price change or a failed refresh awaits review.",
+    "badgeRed": "Price missing",
+    "badgeOrange": "Review",
+    "pendingPriceChanges": "Provider price change:",
+    "priceChangeLine": "{variant}: {oldPrice} → {newPrice}",
+    "noPrice": "none",
+    "approveRates": "Approve new price",
+    "confirmApproveRates": "Confirm approval",
+    "cancelApproveRates": "Cancel",
+    "approveRatesFailed": "Approval failed. Refresh the snapshot and try again."
   },
   "generationReceipts": {
     "title": "Generation receipts",

@@ -31,8 +31,41 @@ function price(endpoint: string): Array<Record<string, unknown>> {
   );
 }
 
-function harness() {
-  const modelProviderContract = { upsert: vi.fn() };
+const reviewedContract = {
+  conditionalDimensions: {},
+  discoveredAt: new Date('2026-08-01T00:00:00Z'),
+  endpoint: 'fal-ai/per-image',
+  id: 'reviewed-contract',
+  lastSeenAt: new Date('2026-09-01T00:00:00Z'),
+  mappingStatus: 'supported',
+  pricing: [
+    {
+      conditionalDimensions: {},
+      currency: 'USD',
+      endpoint: 'fal-ai/per-image',
+      unit: 'image',
+      unitPrice: '0.025',
+    },
+  ],
+  provider: ModelProvider.FAL,
+  reviewStatus: 'approved',
+  version: 'sha256:reviewed',
+};
+const reviewedModel = {
+  endpoint: 'fal-ai/per-image',
+  id: 'model-1',
+  isActive: true,
+  key: 'fal-ai/per-image',
+  provider: ModelProvider.FAL,
+  reviewedProviderContractVersion: 'sha256:reviewed',
+};
+
+function harness(reviewed: typeof reviewedContract | null = null) {
+  const modelProviderContract = {
+    findUnique: vi.fn(),
+    update: vi.fn(),
+    upsert: vi.fn(),
+  };
   const model = { update: vi.fn(), updateMany: vi.fn() };
   const service = new FalModelContractSyncService({
     prisma: { model, modelProviderContract },
@@ -41,13 +74,15 @@ function harness() {
   modelProviderContract.upsert.mockImplementation(({ create }) =>
     Promise.resolve({ ...create, id: 'contract-1' }),
   );
+  modelProviderContract.findUnique.mockResolvedValue(reviewed);
+  modelProviderContract.update.mockResolvedValue({});
   model.update.mockResolvedValue({ id: 'model-1' });
   model.updateMany.mockResolvedValue({ count: 1 });
   return { model, modelProviderContract, service };
 }
 
 describe('FalModelContractSyncService', () => {
-  it('stores an exact candidate and leaves a new endpoint inactive until review', async () => {
+  it('stores an exact candidate and stamps a pending candidate for a new endpoint', async () => {
     const { model, modelProviderContract, service } = harness();
     const now = new Date('2026-08-22T10:00:00.000Z');
 
@@ -81,37 +116,99 @@ describe('FalModelContractSyncService', () => {
     );
     expect(model.update).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        isActive: false,
-        isDefault: false,
         pendingProviderContractVersion: result.version,
         providerSyncStatus: 'review_required',
       }),
       where: { id: 'model-1' },
     });
+    expect(model.update.mock.calls[0]?.[0].data).not.toHaveProperty('isActive');
   });
 
-  it('flags material drift while preserving reviewed execution and pricing fields', async () => {
-    const { model, service } = harness();
+  it('keeps the reviewed rate and reports old and new prices when the provider changes a price', async () => {
+    const { model, service } = harness({
+      ...reviewedContract,
+      pricing: [{ ...reviewedContract.pricing[0], unitPrice: '0.02' }],
+    });
 
     const result = await service.synchronizeModel(
-      {
-        endpoint: 'fal-ai/per-image',
-        id: 'model-1',
-        isActive: true,
-        provider: ModelProvider.FAL,
-        reviewedProviderContractVersion: 'sha256:reviewed',
-      },
+      reviewedModel,
       providerModel(),
       price('fal-ai/per-image'),
     );
 
     expect(result.drifted).toBe(true);
+    expect(result.priceChange).toMatchObject({
+      changes: [{ newPriceUsd: 0.025, oldPriceUsd: 0.02 }],
+      modelKey: 'fal-ai/per-image',
+      provider: 'fal',
+    });
     const update = model.update.mock.calls[0]?.[0];
-    expect(update.data).not.toHaveProperty('providerInputSchema');
-    expect(update.data).not.toHaveProperty('providerSchemaFamily');
-    expect(update.data).not.toHaveProperty('providerCostUsd');
-    expect(update.data).not.toHaveProperty('pricingType');
-    expect(update.data).not.toHaveProperty('reviewedProviderContractVersion');
+    expect(update.data).toMatchObject({
+      pendingProviderContractVersion: result.version,
+      providerSyncStatus: 'review_required',
+    });
+    for (const field of [
+      'isActive',
+      'isDefault',
+      'providerInputSchema',
+      'providerSchemaFamily',
+      'providerCostUsd',
+      'pricingType',
+      'reviewedProviderContractVersion',
+    ])
+      expect(update.data).not.toHaveProperty(field);
+  });
+
+  it('re-verifies the reviewed contract when the same rates are observed, even after a schema change', async () => {
+    const { model, modelProviderContract, service } = harness(reviewedContract);
+    const now = new Date('2026-12-05T00:00:00.000Z');
+
+    const result = await service.synchronizeModel(
+      reviewedModel,
+      {
+        ...providerModel(),
+        openapi: { ...imageOpenapi, info: { title: 'schema changed' } },
+      },
+      price('fal-ai/per-image'),
+      now,
+    );
+
+    expect(result.drifted).toBe(false);
+    expect(result.priceChange).toBeUndefined();
+    expect(modelProviderContract.upsert).not.toHaveBeenCalled();
+    expect(modelProviderContract.update).toHaveBeenCalledWith({
+      data: { lastSeenAt: now },
+      where: { id: 'reviewed-contract' },
+    });
+    const update = model.update.mock.calls[0]?.[0];
+    expect(update.data).toMatchObject({
+      pendingProviderContractVersion: null,
+      providerSyncStatus: 'fresh',
+    });
+    expect(update.data).not.toHaveProperty('isActive');
+    expect(update.data).not.toHaveProperty('isDefault');
+  });
+
+  it('fails the refresh, keeping the reviewed rate, when no readable price is returned', async () => {
+    const { model, service } = harness(reviewedContract);
+
+    const result = await service.synchronizeModel(
+      reviewedModel,
+      providerModel(),
+      [],
+    );
+
+    expect(result.refreshFailure).toMatchObject({
+      modelKey: 'fal-ai/per-image',
+      provider: 'fal',
+    });
+    expect(result.refreshFailure?.reason).toContain(
+      'rates_unavailable:missing_pricing',
+    );
+    const update = model.update.mock.calls[0]?.[0];
+    expect(update.data).toMatchObject({ providerSyncStatus: 'failed' });
+    expect(update.data).not.toHaveProperty('pendingProviderContractVersion');
+    expect(update.data).not.toHaveProperty('isActive');
   });
 
   it('preserves a legacy active endpoint until its first contract is reviewed', async () => {

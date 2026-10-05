@@ -26,6 +26,13 @@ import {
   resolveModelDiscoveryDecisionSettings,
 } from '@workers/services/model-discovery-decision.settings';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
+import {
+  extractReplicateBillingTiers,
+  type ReplicateBillingObservation,
+} from '@workers/services/replicate-billing-config.util';
+
+/** Public Replicate model pages are the structured rate source (#6196). */
+const REPLICATE_PAGE_TIMEOUT_MS = 30_000;
 
 /**
  * Schema property shape from Replicate OpenAPI schema inspection.
@@ -365,6 +372,51 @@ export class ModelDiscoveryService {
         reason: error instanceof Error ? error.name : 'unknown',
       });
       return null;
+    }
+  }
+
+  /**
+   * Read the structured billing tiers from the public Replicate model page
+   * (`billingConfig.current_tiers`). Never throws: an unreachable or changed
+   * page is reported as unavailable so the sync keeps the last approved rate.
+   */
+  async fetchReplicateBilling(
+    owner: string,
+    name: string,
+  ): Promise<ReplicateBillingObservation> {
+    const context = 'ModelDiscoveryService fetchReplicateBilling';
+    const sourceUrl = `https://replicate.com/${owner}/${name}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(),
+      REPLICATE_PAGE_TIMEOUT_MS,
+    );
+    try {
+      const response = await fetch(sourceUrl, {
+        headers: { Accept: 'text/html' },
+        method: 'GET',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        this.logger.warn(
+          `${context} Replicate page returned ${response.status} for ${owner}/${name}`,
+        );
+        return {
+          reason: `page_status_${response.status}`,
+          status: 'unavailable',
+        };
+      }
+      const tiers = extractReplicateBillingTiers(await response.text());
+      return tiers
+        ? { sourceUrl, status: 'ok', tiers }
+        : { reason: 'no_billing_config', status: 'unavailable' };
+    } catch (error: unknown) {
+      this.logger.error(`${context} failed for ${owner}/${name}`, {
+        reason: error instanceof Error ? error.name : 'unknown',
+      });
+      return { reason: 'page_fetch_failed', status: 'unavailable' };
+    } finally {
+      clearTimeout(timeout);
     }
   }
 

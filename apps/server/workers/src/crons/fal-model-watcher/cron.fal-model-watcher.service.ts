@@ -13,10 +13,15 @@ import type {
   IModelDiscoveryRunSummary,
 } from '@workers/interfaces/model-discovery.interface';
 import {
+  type FalContractSyncResult,
   FalModelContractSyncService,
   type FalSyncModelRecord,
 } from '@workers/services/fal-model-contract-sync.service';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
+import {
+  dispatchModelPriceChangeAlert,
+  dispatchModelPricingUnavailableAlert,
+} from '@workers/services/model-pricing-alerts.util';
 
 /** Lifecycle status fal reports for endpoints that still accept requests */
 const FAL_MODEL_STATUS_ACTIVE = 'active';
@@ -93,6 +98,7 @@ export class CronFalModelWatcherService {
           endpoint: true,
           id: true,
           isActive: true,
+          isFree: true,
           key: true,
           provider: true,
           reviewedProviderContractVersion: true,
@@ -182,6 +188,7 @@ export class CronFalModelWatcherService {
             pricingByEndpoint.get(model.endpoint_id) ?? [],
             summary.timestamp,
           );
+          await this.sendPricingAlerts(syncResult, summary.timestamp);
           summary.providerContractsSynchronized =
             (summary.providerContractsSynchronized ?? 0) + 1;
           if (syncResult.drifted) {
@@ -300,6 +307,33 @@ export class CronFalModelWatcherService {
       schema: model.openapi,
       tags: [...(category ? [category] : []), ...(model.metadata?.tags ?? [])],
     });
+  }
+
+  /**
+   * Ops Discord for a refresh that found a changed price or could not read one.
+   * Silently swallows errors: an alert failure must never fail the watcher.
+   */
+  private async sendPricingAlerts(
+    result: FalContractSyncResult,
+    now: Date,
+  ): Promise<void> {
+    try {
+      if (result.priceChange)
+        await dispatchModelPriceChangeAlert(
+          this.activityRecorder,
+          result.priceChange,
+        );
+      if (result.refreshFailure)
+        await dispatchModelPricingUnavailableAlert(
+          this.activityRecorder,
+          result.refreshFailure,
+          now,
+        );
+    } catch (error: unknown) {
+      this.logger.error(`${this.constructorName} pricing alert failed`, {
+        error,
+      });
+    }
   }
 
   /**

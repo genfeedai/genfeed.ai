@@ -5,7 +5,10 @@ import type {
   ReviewedProviderPricing,
   ReviewedProviderRate,
 } from '@genfeedai/contracts/interfaces';
-import { hasPendingProviderRateDrift } from '@genfeedai/pricing';
+import {
+  hashReviewedProviderRates,
+  hasPendingProviderRateDrift,
+} from '@genfeedai/pricing';
 import type { Model, ModelProviderContract } from '@genfeedai/prisma';
 import { platformOrTenantScope } from '@libs/prisma/platform-scope';
 
@@ -38,6 +41,7 @@ type PricingContract = Pick<
   | 'pricing'
   | 'conditionalDimensions'
   | 'discoveredAt'
+  | 'lastSeenAt'
 >;
 function record(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -81,17 +85,22 @@ function unit(value: unknown): ProviderBillingUnit | null {
       return null;
   }
 }
-function reviewedPricing(
-  model: PricingModel,
-  contract: PricingContract | undefined,
+/**
+ * The normalized rates a contract carries, whatever its review state. Used for
+ * the reviewed contract and for a pending candidate, whose rates are compared
+ * (never its schema or provider version) to detect a provider price change.
+ */
+export function parseContractReviewedPricing(
+  model: Pick<
+    PricingModel,
+    'endpoint' | 'isFree' | 'provider' | 'reviewedProviderContractVersion'
+  >,
+  contract: Omit<PricingContract, 'reviewStatus' | 'mappingStatus'> | undefined,
 ): ReviewedProviderPricing | null {
   if (
     !contract ||
-    contract.version !== model.reviewedProviderContractVersion ||
     contract.provider !== model.provider ||
-    contract.endpoint !== model.endpoint ||
-    contract.reviewStatus !== 'approved' ||
-    contract.mappingStatus !== 'supported'
+    contract.endpoint !== model.endpoint
   )
     return null;
   const metadata = record(contract.pricing);
@@ -106,8 +115,10 @@ function reviewedPricing(
   const sourceUrl = isFalSnapshot
     ? 'https://api.fal.ai/v1/models/pricing'
     : metadata.sourceUrl;
+  // A Fal snapshot has no room for a date of its own. Its `lastSeenAt` moves
+  // only when the refresh observed these exact rates (see the contract sync).
   const verifiedAt = isFalSnapshot
-    ? contract.discoveredAt.toISOString()
+    ? contract.lastSeenAt.toISOString()
     : metadata.verifiedAt;
   if (
     typeof sourceUrl !== 'string' ||
@@ -201,20 +212,25 @@ function reviewedPricing(
       : {}),
   };
 }
-
-/** Internal raw pricing profile: never a serialized/virtual model display row. */
-export function projectModelBillablePricingProfile(
+function reviewedPricing(
   model: PricingModel,
-  contracts: PricingContract[],
-): ModelBillablePricingProfile {
-  const contract = contracts.find(
-    (candidate) => candidate.version === model.reviewedProviderContractVersion,
-  );
-  const properties = record(
-    model.provider === 'crun'
-      ? record(model.providerInputSchema).fields
-      : record(model.providerInputSchema).properties,
-  );
+  contract: PricingContract | undefined,
+): ReviewedProviderPricing | null {
+  if (
+    !contract ||
+    contract.version !== model.reviewedProviderContractVersion ||
+    contract.reviewStatus !== 'approved' ||
+    contract.mappingStatus !== 'supported'
+  )
+    return null;
+  return parseContractReviewedPricing(model, contract);
+}
+
+/** Schema selectors that must be chosen before a variant can be priced. */
+export function deriveRequiredSelectorKeys(
+  properties: Record<string, unknown>,
+  flags: { hasAudioToggle?: boolean; hasResolutionOptions?: boolean } = {},
+): string[] {
   const requiredSelectorKeys = [
     'resolution',
     'quality',
@@ -229,17 +245,44 @@ export function projectModelBillablePricingProfile(
     return !Array.isArray(property.enum) || property.enum.length > 1;
   });
   if (
-    model.hasResolutionOptions &&
+    flags.hasResolutionOptions &&
     !requiredSelectorKeys.includes('resolution')
   )
     requiredSelectorKeys.push('resolution');
   if (
-    model.hasAudioToggle &&
+    flags.hasAudioToggle &&
     !requiredSelectorKeys.some(
       (key) => key === 'audio' || key === 'generate_audio',
     )
   )
     requiredSelectorKeys.push('audio');
+  return requiredSelectorKeys;
+}
+
+/** Internal raw pricing profile: never a serialized/virtual model display row. */
+export function projectModelBillablePricingProfile(
+  model: PricingModel,
+  contracts: PricingContract[],
+): ModelBillablePricingProfile {
+  const contract = contracts.find(
+    (candidate) => candidate.version === model.reviewedProviderContractVersion,
+  );
+  const properties = record(
+    model.provider === 'crun'
+      ? record(model.providerInputSchema).fields
+      : record(model.providerInputSchema).properties,
+  );
+  const requiredSelectorKeys = deriveRequiredSelectorKeys(properties, model);
+  const reviewed = reviewedPricing(model, contract);
+  const pendingContract = model.pendingProviderContractVersion
+    ? contracts.find(
+        (candidate) =>
+          candidate.version === model.pendingProviderContractVersion,
+      )
+    : undefined;
+  const pending = reviewed
+    ? parseContractReviewedPricing(model, pendingContract)
+    : null;
   return {
     key: model.key,
     provider: model.provider,
@@ -251,11 +294,11 @@ export function projectModelBillablePricingProfile(
     cost: model.cost,
     costPerUnit: model.costPerUnit,
     minCost: model.minCost,
-    reviewedPricing: reviewedPricing(model, contract),
+    reviewedPricing: reviewed,
     rateVersion: model.reviewedProviderContractVersion,
     hasPendingRate: hasPendingProviderRateDrift(
-      model.reviewedProviderContractVersion,
-      model.pendingProviderContractVersion,
+      reviewed ? hashReviewedProviderRates(reviewed.rates) : null,
+      pending ? hashReviewedProviderRates(pending.rates) : null,
     ),
     requiredSelectorKeys,
     requiresReviewedRates:
@@ -305,6 +348,7 @@ export async function findModelBillablePricingProfile(
           pricing: true,
           conditionalDimensions: true,
           discoveredAt: true,
+          lastSeenAt: true,
         },
       },
     },

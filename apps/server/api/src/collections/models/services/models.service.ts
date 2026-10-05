@@ -7,12 +7,14 @@ import {
   validateProviderApprovalAndResolveCrunContract,
 } from '@api/collections/models/services/crun-model-contract.util';
 import {
+  PRICING_ATTENTION_SELECT,
   PUBLIC_MODEL_CATALOG_SELECT,
   type PublicModelCatalogDocument,
   type PublicModelCatalogFilters,
   type PublicModelCatalogRow,
 } from '@api/collections/models/services/public-model-catalog.types';
 import { findModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import { isModelRowPricingRed } from '@api/collections/models/utils/model-pricing-attention.util';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -28,7 +30,10 @@ import type {
   IModelProviderContracts,
   ModelBillablePricingProfile,
 } from '@genfeedai/contracts/interfaces';
-import { withLiveModelCreditPricing } from '@genfeedai/pricing';
+import {
+  getRuntimeMarginMultiplier,
+  withLiveModelCreditPricing,
+} from '@genfeedai/pricing';
 import {
   type Prisma,
   type Model as PrismaModel,
@@ -335,7 +340,7 @@ export class ModelsService extends BaseService<
   ): Promise<AggregatePaginateResult<PublicModelCatalogDocument>> {
     const page = options.page ?? 1;
     const limit = options.limit ?? 50;
-    const where: Prisma.ModelWhereInput = {
+    const catalogWhere: Prisma.ModelWhereInput = {
       ...(filters.category ? { category: filters.category } : {}),
       isActive: true,
       isDeleted: false,
@@ -344,6 +349,12 @@ export class ModelsService extends BaseService<
       organizationId: null,
       ...(filters.provider ? { provider: filters.provider } : {}),
     };
+    // A model that cannot be priced (red in the admin pricing panel) is never
+    // offered to customers; superadmin model admin still lists it.
+    const unpriceableIds = await this.findUnpriceableModelIds(catalogWhere);
+    const where: Prisma.ModelWhereInput = unpriceableIds.length
+      ? { ...catalogWhere, id: { notIn: unpriceableIds } }
+      : catalogWhere;
     const [rows, totalDocs] = await Promise.all([
       // tenant-scope-ignore: the anonymous catalog is restricted to active global rows with organizationId:null and isDeleted:false in the shared where above
       this.prisma.model.findMany({
@@ -374,6 +385,24 @@ export class ModelsService extends BaseService<
       totalDocs,
       totalPages,
     };
+  }
+
+  /** Ids of catalog rows the shared red classification marks unpriceable. */
+  private async findUnpriceableModelIds(
+    catalogWhere: Prisma.ModelWhereInput,
+  ): Promise<string[]> {
+    // tenant-scope-ignore: the pricing classification reads the same platform-only rows (organizationId:null, isDeleted:false) as the catalog query it narrows
+    const rows = await this.prisma.model.findMany({
+      select: PRICING_ATTENTION_SELECT,
+      where: catalogWhere,
+    });
+    const now = new Date();
+    const margin = getRuntimeMarginMultiplier();
+    return rows
+      .filter((row) =>
+        isModelRowPricingRed(row, row.providerContracts, margin, now),
+      )
+      .map((row) => row.id);
   }
 
   // Registry reads are global-plus-org (organizationId:null is the platform catalog),

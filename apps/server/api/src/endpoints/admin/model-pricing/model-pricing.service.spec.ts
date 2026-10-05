@@ -125,7 +125,6 @@ describe('operator model pricing projection', () => {
             pricing: [
               {
                 sourceUrl: 'https://replicate.com/provider/model',
-                verifiedAt: '2026-01-01',
               },
             ],
           },
@@ -134,6 +133,31 @@ describe('operator model pricing projection', () => {
         retrievedAt,
       ).status,
     ).toBe('unresolved');
+  });
+  it('does not call old evidence stale: rates are refreshed, never expired', () => {
+    const row = projectAdminModelPricing(
+      {
+        ...model,
+        providerCostUsd: 0.2,
+        reviewedProviderContractVersion: 'reviewed',
+      },
+      [
+        {
+          ...contract,
+          pricing: [
+            {
+              source: 'provider-rate-page',
+              sourceUrl: 'https://replicate.com/provider/model',
+              verifiedAt: '2026-01-01T00:00:00Z',
+            },
+          ],
+        },
+      ],
+      1,
+      retrievedAt,
+    );
+    expect(row.status).toBe('verified');
+    expect(row.reasons.join(' ')).not.toContain('30 days');
   });
   it('registry observations, unsupported mapping and pending drift cannot count as verified', () => {
     const configured = {
@@ -151,21 +175,142 @@ describe('operator model pricing projection', () => {
         projectAdminModelPricing(configured, [candidate], 1, retrievedAt)
           .status,
       ).toBe('unresolved');
-    const pending = {
-      ...contract,
-      version: 'new',
-      unitPrice: '0.4',
-      reviewStatus: 'pending',
-    };
-    const row = projectAdminModelPricing(
-      { ...configured, pendingProviderContractVersion: 'new' },
-      [contract, pending],
-      1,
-      retrievedAt,
-    );
-    expect(row.status).toBe('unresolved');
-    expect(row.pending?.unitPrice).toBe('0.4');
-    expect(row.reasons.join(' ')).toContain('Pending provider contract');
+  });
+  describe('rate-based evidence (#6196)', () => {
+    const rates = [
+      {
+        c: 'video_output_count',
+        price: 0.19,
+        when: { resolution: '768P', duration: 6 },
+      },
+      {
+        c: 'video_output_count',
+        price: 0.32,
+        when: { resolution: '768P', duration: 10 },
+      },
+      {
+        c: 'video_output_count',
+        price: 0.33,
+        when: { resolution: '1080P', duration: 6 },
+      },
+    ].map(({ c, price, when }) => ({
+      component: c,
+      unit: 'output',
+      unitPriceUsd: price,
+      when,
+    }));
+    const hailuo = {
+      ...model,
+      key: 'minimax/hailuo-2.3-fast',
+      endpoint: 'minimax/hailuo-2.3-fast',
+      defaultDuration: null,
+      reviewedProviderContractVersion: 'rates-v1',
+      providerInputSchema: {
+        properties: {
+          duration: { enum: [6, 10] },
+          resolution: { enum: ['768P', '1080P'] },
+        },
+      },
+    } as unknown as Model;
+    const rateContract = (
+      version: string,
+      list: unknown[],
+      extra: Record<string, unknown> = {},
+    ) =>
+      ({
+        ...contract,
+        conditionalDimensions: { resolution: ['768P', '1080P'] },
+        endpoint: 'minimax/hailuo-2.3-fast',
+        pricing: {
+          currency: 'USD',
+          rates: list,
+          source: 'provider-model-page',
+          sourceUrl: 'https://replicate.com/minimax/hailuo-2.3-fast',
+          verifiedAt: '2026-01-01T00:00:00.000Z',
+        },
+        unitPrice: null,
+        version,
+        ...extra,
+      }) as unknown as ModelProviderContract;
+
+    it('needs no action on a reviewed variant model, however old its verification', () => {
+      const row = projectAdminModelPricing(
+        hailuo,
+        [rateContract('rates-v1', rates)],
+        3.33,
+        '2026-10-05T00:00:00Z',
+      );
+      expect(row.attentionLevel).toBeNull();
+      expect(row.attention).toEqual([]);
+      expect(row.status).toBe('verified');
+      expect(row.effectiveSampleCredits).toBe(64);
+    });
+
+    it('shows a model red when a variant model has no reviewed rates', () => {
+      const row = projectAdminModelPricing(hailuo, [], 3.33, retrievedAt);
+      expect(row.attentionLevel).toBe('red');
+      expect(row.attention[0]).toMatchObject({ code: 'price_missing' });
+    });
+
+    it('shows a provider price change orange with old and new prices, still pricing the approved rate', () => {
+      const changed = rates.map((rate, index) =>
+        index === 0 ? { ...rate, unitPriceUsd: 0.21 } : rate,
+      );
+      const row = projectAdminModelPricing(
+        { ...hailuo, pendingProviderContractVersion: 'rates-v2' },
+        [
+          rateContract('rates-v1', rates),
+          rateContract('rates-v2', changed, { reviewStatus: 'pending' }),
+        ],
+        3.33,
+        '2026-10-05T00:00:00Z',
+      );
+      expect(row.attentionLevel).toBe('orange');
+      expect(row.attention).toMatchObject([{ code: 'price_change_pending' }]);
+      expect(row.pendingRateChanges).toMatchObject([
+        { newPriceUsd: 0.21, oldPriceUsd: 0.19 },
+      ]);
+      expect(row.isRateApprovalAvailable).toBe(true);
+      expect(row.effectiveSampleCredits).toBe(64);
+    });
+
+    it('does not offer approval for a schema-only pending contract', () => {
+      const row = projectAdminModelPricing(
+        { ...hailuo, pendingProviderContractVersion: 'rates-v2' },
+        [
+          rateContract('rates-v1', rates),
+          rateContract('rates-v2', rates, { reviewStatus: 'pending' }),
+        ],
+        3.33,
+        '2026-10-05T00:00:00Z',
+      );
+      expect(row.attentionLevel).toBeNull();
+      expect(row.isRateApprovalAvailable).toBe(false);
+    });
+
+    it('shows a failed or stale refresh orange', () => {
+      const failed = projectAdminModelPricing(
+        {
+          ...hailuo,
+          providerSyncFailureCode: 'rates_unavailable:unmapped_criterion:x',
+          providerSyncStatus: 'failed',
+        } as unknown as Model,
+        [rateContract('rates-v1', rates)],
+        3.33,
+        '2026-10-05T00:00:00Z',
+      );
+      expect(failed.attention).toMatchObject([{ code: 'refresh_failed' }]);
+      const stale = projectAdminModelPricing(
+        {
+          ...hailuo,
+          providerPricingSyncedAt: new Date('2026-09-01T00:00:00Z'),
+        } as unknown as Model,
+        [rateContract('rates-v1', rates)],
+        3.33,
+        '2026-10-05T00:00:00Z',
+      );
+      expect(stale.attention).toMatchObject([{ code: 'refresh_stale' }]);
+    });
   });
   it('does not invent a conversion policy when platform settings are absent', () => {
     const row = projectAdminModelPricing(

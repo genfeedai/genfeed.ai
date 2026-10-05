@@ -10,13 +10,18 @@ import { exportModelPricingCsv } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminModelPricingService } from '@services/admin/model-pricing.service';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import AppTable from '@ui/display/table/Table';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { Download, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
+import {
+  ADMIN_MODEL_PRICING_QUERY_KEY,
+  useAdminModelPricingReport,
+} from './use-admin-model-pricing-report';
 
 type PricingTranslate = ReturnType<
   typeof useTranslations<'pages.adminModelPricing'>
@@ -118,6 +123,90 @@ function PricingEvidence({
   );
 }
 
+function AttentionBadge({ row }: { row: AdminModelPricingRow }) {
+  const t = useTranslations('pages.adminModelPricing');
+  if (row.attentionLevel === 'red')
+    return <Badge variant="destructive">{t('badgeRed')}</Badge>;
+  if (row.attentionLevel === 'orange')
+    return <Badge variant="warning">{t('badgeOrange')}</Badge>;
+  return null;
+}
+
+function priceOrNone(value: number | null, t: PricingTranslate): string {
+  return value === null
+    ? t('noPrice')
+    : `$${value.toLocaleString('en-US', { maximumFractionDigits: 10 })}`;
+}
+
+/**
+ * Orange price-change rows: show old → new per variant and let a superadmin
+ * promote the pending rates. The approved rate keeps charging until then.
+ */
+function ApproveRatesControl({ row }: { row: AdminModelPricingRow }) {
+  const t = useTranslations('pages.adminModelPricing');
+  const queryClient = useQueryClient();
+  const [isConfirming, setIsConfirming] = useState(false);
+  const getService = useAuthedService((token: string) =>
+    AdminModelPricingService.getInstance(token),
+  );
+  const mutation = useMutation({
+    mutationFn: async () => (await getService()).approveRates(row.id),
+    onSuccess: (report) => {
+      setIsConfirming(false);
+      queryClient.setQueryData(ADMIN_MODEL_PRICING_QUERY_KEY, report);
+    },
+  });
+  if (row.pendingRateChanges.length === 0) return null;
+  return (
+    <div className="mt-2 space-y-1">
+      <p className="font-medium">{t('pendingPriceChanges')}</p>
+      <ul className="list-disc pl-4">
+        {row.pendingRateChanges.map((change) => (
+          <li key={`${change.component}:${change.variant}`}>
+            {t('priceChangeLine', {
+              newPrice: priceOrNone(change.newPriceUsd, t),
+              oldPrice: priceOrNone(change.oldPriceUsd, t),
+              variant: change.variant,
+            })}
+          </li>
+        ))}
+      </ul>
+      {row.isRateApprovalAvailable ? (
+        <div className="flex flex-wrap gap-2">
+          {isConfirming ? (
+            <>
+              <Button
+                disabled={mutation.isPending}
+                onClick={() => mutation.mutate()}
+              >
+                {t('confirmApproveRates')}
+              </Button>
+              <Button
+                variant={ButtonVariant.GHOST}
+                disabled={mutation.isPending}
+                onClick={() => setIsConfirming(false)}
+              >
+                {t('cancelApproveRates')}
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              onClick={() => {
+                mutation.reset();
+                setIsConfirming(true);
+              }}
+            >
+              {t('approveRates')}
+            </Button>
+          )}
+        </div>
+      ) : null}
+      {mutation.error ? <p role="alert">{t('approveRatesFailed')}</p> : null}
+    </div>
+  );
+}
+
 function pricingColumns(
   t: PricingTranslate,
 ): TableColumn<AdminModelPricingRow>[] {
@@ -127,7 +216,8 @@ function pricingColumns(
       key: 'key',
       render: (row) => (
         <div>
-          <span className="font-medium">{row.key}</span>
+          <span className="font-medium">{row.key}</span>{' '}
+          <AttentionBadge row={row} />
           <p className="text-xs text-muted-foreground">
             {row.provider} · {row.category} ·{' '}
             {row.isActive ? t('enabled') : t('disabled')} · {row.lifecycle}
@@ -200,6 +290,7 @@ function pricingColumns(
           <p className="max-w-sm text-muted-foreground">
             {row.reasons.join(' · ')}
           </p>
+          <ApproveRatesControl row={row} />
         </div>
       ),
     },
@@ -210,19 +301,13 @@ export default function ModelPricingTable() {
   const t = useTranslations('pages.adminModelPricing');
   const columns = pricingColumns(t);
   const [search, setSearch] = useState('');
-  const getService = useAuthedService((token: string) =>
-    AdminModelPricingService.getInstance(token),
-  );
   const {
     data: report,
     isLoading,
     isFetching,
     error,
     refetch,
-  } = useQuery({
-    queryKey: ['admin-model-pricing'],
-    queryFn: async ({ signal }) => (await getService()).getReport(signal),
-  });
+  } = useAdminModelPricingReport();
   const rows = useMemo(
     () =>
       report?.rows.filter((row) =>

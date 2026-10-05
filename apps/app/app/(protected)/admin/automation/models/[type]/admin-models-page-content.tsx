@@ -7,6 +7,7 @@ import type { AdminModelType } from '@props/admin/models.props';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import ModelPricingAttentionPanel from './model-pricing-attention-panel';
 import ModelPricingTable from './model-pricing-table';
 
 export default function AdminModelsPageContent({
@@ -20,6 +21,7 @@ export default function AdminModelsPageContent({
 
   return (
     <>
+      <ModelPricingAttentionPanel />
       <div className="mb-4 flex gap-2">
         <Button
           variant={

@@ -123,7 +123,6 @@ describe('authoritative bill-time quote snapshots', () => {
   it.each([
     { isActive: false },
     { isDeleted: true },
-    { hasPendingRate: true },
     { requiresReviewedRates: true },
   ])('rejects unusable model/profile %s', (change) => {
     expect(
@@ -290,7 +289,78 @@ describe('authoritative bill-time quote snapshots', () => {
         1,
         '2026-11-01T00:00:00Z',
       ).status,
+    ).toBe('priced');
+    // Rates are refreshed, never expired: only a future verification date fails.
+    expect(
+      quoteModelBillablePricing(
+        {
+          ...reviewed,
+          reviewedPricing: {
+            ...reviewed.reviewedPricing,
+            verifiedAt: '2026-10-01T00:00:00Z',
+          },
+        },
+        {
+          ...input,
+          duration: 90,
+          selectors: { resolution: '720p', audio: false },
+        },
+        1,
+        date,
+      ).status,
     ).toBe('unresolved');
+    expect(
+      quoteModelBillablePricing(
+        {
+          ...reviewed,
+          reviewedPricing: {
+            ...reviewed.reviewedPricing,
+            verifiedAt: 'not-a-date',
+          },
+        },
+        {
+          ...input,
+          duration: 90,
+          selectors: { resolution: '720p', audio: false },
+        },
+        1,
+        date,
+      ).status,
+    ).toBe('unresolved');
+  });
+  it('keeps charging the reviewed rate while a price change awaits approval', () => {
+    const reviewed = {
+      ...model,
+      rateVersion: 'rate-v1',
+      requiresReviewedRates: true,
+      hasPendingRate: true,
+      reviewedPricing: {
+        version: 'rate-v1',
+        currency: 'USD',
+        reviewStatus: 'approved',
+        sourceUrl: 'https://replicate.com/provider/avatar',
+        verifiedAt: '2026-06-01T00:00:00Z',
+        rates: [
+          {
+            component: 'output',
+            unit: 'output' as const,
+            unitPriceUsd: 0.19,
+            when: { resolution: '768P' },
+          },
+        ],
+      },
+    };
+    expect(
+      quoteModelBillablePricing(
+        reviewed,
+        { ...input, selectors: { resolution: '768P' } },
+        3.33,
+        date,
+      ),
+    ).toMatchObject({
+      status: 'priced',
+      snapshot: { providerCostUsd: 0.19, credits: 64 },
+    });
   });
   it('allocates using only applicable bands and demands schema pricing selectors', () => {
     const reviewed = {
