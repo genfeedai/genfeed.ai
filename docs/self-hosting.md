@@ -151,17 +151,25 @@ up:
 1. Open `http://localhost:3000/default/~/settings/api-keys`.
 2. Create a Genfeed API key and pick the **MCP** preset.
 3. Copy the key once. Export it in the **MCP client** environment (your shell,
-   Claude Code, or Codex). Do not put this user key in the Genfeed container
+   Codex or another non-Claude client). Do not put this user key in the Genfeed container
    `.env` — that file's `GENFEED_API_KEY` is the optional Cloud execution key,
    a different secret.
 4. Point the client at `http://localhost:3014/mcp`.
 
 ```bash
 export GENFEED_API_KEY=gf_live_xxx
-claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp --header "Authorization: Bearer $GENFEED_API_KEY"
+codex mcp add genfeed --url http://localhost:3014/mcp --bearer-token-env-var GENFEED_API_KEY
 ```
 
-Codex equivalent: set `url = "http://localhost:3014/mcp"` and
+For Claude Code, use the dedicated content connector with browser OAuth:
+
+```bash
+claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp/claude
+```
+
+Open `/mcp`, select Genfeed and authenticate in your browser. Media creation happens separately in Genfeed Studio. Configure the deployment’s public app, API and MCP URLs for OAuth discovery.
+
+Codex configuration alternative: set `url = "http://localhost:3014/mcp"` and
 `bearer_token_env_var = "GENFEED_API_KEY"` so the key stays in the environment
 instead of the config file.
 

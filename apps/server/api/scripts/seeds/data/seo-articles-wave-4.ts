@@ -446,7 +446,7 @@ const briefs: readonly SeoArticleBrief[] = [
     ],
     mistakes: [
       'Adding the server without --scope user, then not finding it in a different project',
-      'Pasting a GENFEED_API_KEY value directly into a claude mcp add command instead of an environment variable',
+      'Trying to use a manual API key or the full /mcp endpoint for the Claude connector',
       'Assuming a queued draft has published without checking Genfeed directly',
       'Skipping claude mcp list and only trusting that /mcp opened once',
     ],
