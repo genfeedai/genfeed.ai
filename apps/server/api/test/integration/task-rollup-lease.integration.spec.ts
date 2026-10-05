@@ -252,6 +252,53 @@ describe('Workspace task rollup lease (real Postgres, #6265)', () => {
     });
   });
 
+  it('invalidates an old holder when executions are relinked', async () => {
+    const { organizationId, taskId } = await seedTask([
+      WorkflowExecutionStatus.COMPLETED,
+    ]);
+    const task = await service.requireTask(taskId, organizationId);
+    await lease(taskId, organizationId, 'old-cycle');
+    await service.patch(taskId, {
+      linkedExecutionIds: task.linkedExecutionIds,
+    });
+    expect(
+      await service.patchIfMatches(
+        taskId,
+        organizationId,
+        { rollupLeaseOwner: 'old-cycle', status: 'in_progress' },
+        { status: 'in_review', rolledUpAt: new Date() },
+      ),
+    ).toBeNull();
+    await expect(lease(taskId, organizationId, 'new-cycle')).resolves.toBe(1);
+  });
+
+  it('refuses a stale execution snapshot and unsettled executions at claim time', async () => {
+    const { organizationId, taskId } = await seedTask([
+      WorkflowExecutionStatus.COMPLETED,
+    ]);
+    const task = await service.requireTask(taskId, organizationId);
+    const claim = (expectedExecutionIds: string[]) =>
+      service.acquireRollupLease({
+        expectedExecutionIds,
+        maxAttempts: MAX_ATTEMPTS,
+        organizationId,
+        owner: 'snapshot-owner',
+        taskId,
+        ttlMs: LEASE_TTL_MS,
+      });
+    await expect(claim(['unlinked-execution'])).resolves.toBeNull();
+    await prisma.workflowExecution.updateMany({
+      where: { id: { in: task.linkedExecutionIds } },
+      data: { status: WorkflowExecutionStatus.RUNNING },
+    });
+    await expect(claim(task.linkedExecutionIds)).resolves.toBeNull();
+    await prisma.workflowExecution.updateMany({
+      where: { id: { in: task.linkedExecutionIds } },
+      data: { status: WorkflowExecutionStatus.COMPLETED },
+    });
+    await expect(claim(task.linkedExecutionIds)).resolves.toBe(1);
+  });
+
   it('drops a progress write that lands after the task was rolled up', async () => {
     const { organizationId, taskId } = await seedTask([
       WorkflowExecutionStatus.COMPLETED,

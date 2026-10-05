@@ -214,6 +214,7 @@ export class TaskOrchestratorService {
     const taskId = task.id.toString();
     const owner = randomUUID();
     const attempt = await this.tasksService.acquireRollupLease({
+      expectedExecutionIds: task.linkedExecutionIds.map((id) => id.toString()),
       maxAttempts: TASK_ROLLUP_MAX_ATTEMPTS,
       organizationId,
       owner,

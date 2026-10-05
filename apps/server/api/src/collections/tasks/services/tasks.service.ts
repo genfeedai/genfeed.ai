@@ -265,6 +265,8 @@ export class TasksService extends BaseService<
         },
         rolledUpAt: null,
         rollupAttempts: 0,
+        rollupLeaseOwner: null,
+        rollupLeaseExpiresAt: null,
       }),
     };
 
@@ -399,6 +401,7 @@ export class TasksService extends BaseService<
    * Returns the attempt number it won, or null.
    */
   async acquireRollupLease(input: {
+    expectedExecutionIds?: string[];
     maxAttempts: number;
     now?: Date;
     organizationId: string;
@@ -417,6 +420,24 @@ export class TasksService extends BaseService<
         },
         where: scopedWhere(organizationId, {
           id: taskId,
+          ...(input.expectedExecutionIds && {
+            AND: input.expectedExecutionIds.map((id) => ({
+              linkedExecutions: { some: { id } },
+            })),
+            linkedExecutions: {
+              every: {
+                id: { in: input.expectedExecutionIds },
+                status: {
+                  in: [
+                    PrismaWorkflowExecutionStatus.COMPLETED,
+                    PrismaWorkflowExecutionStatus.FAILED,
+                    PrismaWorkflowExecutionStatus.CANCELLED,
+                  ],
+                },
+              },
+              some: {},
+            },
+          }),
           OR: [
             { rollupLeaseExpiresAt: null },
             { rollupLeaseExpiresAt: { lte: now } },
