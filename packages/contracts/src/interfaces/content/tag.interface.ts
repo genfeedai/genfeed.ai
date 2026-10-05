@@ -1,6 +1,8 @@
 import type { TagBulkAction, TagCategory, TagScope } from '../..';
 import type { IBaseEntity, IBrand, IOrganization, IUser } from '../index';
 
+export type { ITagColorSwatch } from './tag-color.interface';
+
 export interface ITag extends IBaseEntity {
   user: IUser;
   organization: IOrganization;
@@ -54,11 +56,4 @@ export interface ILibraryAssetTagsChange {
 export interface ILibraryTagUpdate
   extends Partial<Pick<ITag, 'backgroundColor' | 'label' | 'textColor'>> {
   id: string;
-}
-
-/** A color a Library tag can take from its picker. */
-export interface ITagColorSwatch {
-  backgroundColor: string;
-  name: string;
-  textColor: string;
 }
