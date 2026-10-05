@@ -61,11 +61,23 @@ test('Motion reviews exact output cost and retains source on a revision conflict
         submitted++;
         return route.fulfill({
           status: 409,
-          json: { message: 'stale_visual_revision' },
+          json: {
+            errors: [
+              {
+                code: '409',
+                status: '409',
+                title: 'ConflictException',
+                detail: 'stale_visual_revision',
+              },
+            ],
+          },
         });
       }
       return route.fulfill({
-        json: { data: [], links: { cursor: { nextCursor: null } } },
+        json: {
+          data: [],
+          links: { cursor: { hasMore: false, limit: 20, nextCursor: null } },
+        },
       });
     },
   );

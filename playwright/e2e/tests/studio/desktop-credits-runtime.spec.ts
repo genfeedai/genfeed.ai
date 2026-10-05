@@ -1,7 +1,9 @@
 import { RouterPriority } from '@genfeedai/contracts';
 import { APP_ROUTES, MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type {
+  IDesktopBootstrap,
   IDesktopRuntimeContext,
+  IDesktopSession,
   IGenfeedDesktopBridge,
 } from '@genfeedai/contracts/desktop';
 import type { BrowserContext, Page } from '@playwright/test';
@@ -103,13 +105,21 @@ async function installBridge(
     ({ context, pending }) => {
       const target = window as FixtureWindow;
       const callbacks = new Set<(context: IDesktopRuntimeContext) => void>();
+      const bootstrapCallbacks = new Set<
+        (bootstrap: IDesktopBootstrap) => void
+      >();
+      const sessionCallbacks = new Set<
+        (session: IDesktopSession | null) => void
+      >();
       let resolve!: (context: IDesktopRuntimeContext) => void;
       target.desktopRuntimeReads = 0;
       // This fixture supplies only the allowlisted runtime slice; the production
       // hook, shared store and shell components consume it unchanged.
       const app: Pick<
         IGenfeedDesktopBridge['app'],
-        'getRuntimeContext' | 'onDidChangeRuntimeContext'
+        | 'getRuntimeContext'
+        | 'onDidChangeRuntimeContext'
+        | 'onDidBootstrapChange'
       > = {
         getRuntimeContext: () => {
           target.desktopRuntimeReads++;
@@ -122,6 +132,12 @@ async function installBridge(
         onDidChangeRuntimeContext: (callback) => {
           callbacks.add(callback);
           return () => callbacks.delete(callback);
+        },
+        onDidBootstrapChange: (callback) => {
+          bootstrapCallbacks.add(callback);
+          return () => {
+            bootstrapCallbacks.delete(callback);
+          };
         },
       };
       const bootstrap = {
@@ -142,6 +158,16 @@ async function installBridge(
       Object.defineProperty(target, 'genfeedDesktop', {
         value: {
           app,
+          auth: {
+            onDidChangeSession: (
+              callback: (session: IDesktopSession | null) => void,
+            ) => {
+              sessionCallbacks.add(callback);
+              return () => {
+                sessionCallbacks.delete(callback);
+              };
+            },
+          } satisfies Pick<IGenfeedDesktopBridge['auth'], 'onDidChangeSession'>,
           generation: {
             getProviderConfig: async () => {
               if (context.status === 'unavailable')
