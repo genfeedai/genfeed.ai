@@ -1,7 +1,15 @@
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
+import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
-import { PromptEnhancementResponseError } from '@api/services/prompt-enhancement/prompt-enhancement.service';
+import {
+  PromptEnhancementResponseError,
+  PromptEnhancementService,
+} from '@api/services/prompt-enhancement/prompt-enhancement.service';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -356,35 +364,44 @@ describe('MediaPromptEnhancementService', () => {
     ];
 
     async function enhanceWithRealPacks(contentType: 'image' | 'video') {
-      const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+      const logger: Partial<LoggerService> = {
+        error: vi.fn(),
+        log: vi.fn(),
+        warn: vi.fn(),
+      };
+      const config: Partial<ConfigService> = { get: vi.fn() };
+      const brands: Partial<BrandsService> = {
+        findOne: vi.fn().mockResolvedValue({ id: 'brand', label: 'Brand' }),
+      };
+      const profiles: Partial<HarnessProfilesService> = {
+        resolveContributionForBrand: vi.fn().mockResolvedValue(null),
+      };
+      const settings: Partial<GenerationHarnessSettingsService> = {
+        get: vi.fn().mockResolvedValue({ isEnabled: true, source: 'brand' }),
+      };
+      const promptEnhancement: Partial<PromptEnhancementService> = {
+        enhance: vi.fn().mockResolvedValue({
+          result: 'A red bicycle at dawn',
+          tokensUsed: 1,
+          isByok: false,
+        }),
+      };
       const contentHarness = new ContentHarnessService(
-        { get: vi.fn() } as never,
-        logger as never,
+        config as ConfigService,
+        logger as LoggerService,
       );
       const harness = new HarnessGenerationService(
         contentHarness,
-        logger as never,
-        {
-          findOne: vi.fn().mockResolvedValue({ id: 'brand', label: 'Brand' }),
-        } as never,
-        {
-          resolveContributionForBrand: vi.fn().mockResolvedValue(null),
-        } as never,
+        logger as LoggerService,
+        brands as BrandsService,
+        profiles as HarnessProfilesService,
       );
       const service = new MediaPromptEnhancementService(
-        {
-          get: vi.fn().mockResolvedValue({ isEnabled: true, source: 'brand' }),
-        } as never,
+        settings as GenerationHarnessSettingsService,
         harness,
         contentHarness,
-        {
-          enhance: vi.fn().mockResolvedValue({
-            result: 'A red bicycle at dawn',
-            tokensUsed: 1,
-            isByok: false,
-          }),
-        } as never,
-        logger as never,
+        promptEnhancement as PromptEnhancementService,
+        logger as LoggerService,
       );
       const receipt = await service.enhance({ ...input, contentType });
       const copyBrief = await harness.resolveBrief({
