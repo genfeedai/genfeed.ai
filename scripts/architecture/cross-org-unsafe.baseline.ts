@@ -63,7 +63,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // inside the tenant context, which turned this into a production 500.
     {
       file: 'apps/server/api/src/collections/members/services/members.service.ts',
-      line: 96,
+      line: 129,
     },
     // #6120: hidden system-workflow mirror upsert. System-principal rows are
     // platform-global and owned by the system principal, not the request

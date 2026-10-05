@@ -18,7 +18,10 @@ import {
   BatchGenerationService,
   ReviewInboxSummary,
 } from '@api/services/batch-generation/batch-generation.service';
+import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
+import { MemberRole } from '@genfeedai/contracts';
 import type { IAnalytics, IBrand } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 
@@ -45,6 +48,10 @@ type OverviewBootstrapCacheEntry = {
   expiresAt: number;
   payload: OverviewBootstrapPayload;
 };
+
+type BootstrapMemberWithRole = Prisma.MemberGetPayload<{
+  include: { role: true };
+}>;
 
 const OVERVIEW_BOOTSTRAP_CACHE_TTL_MS = 10_000;
 const OVERVIEW_BOOTSTRAP_CACHE_MAX_ENTRIES = 100;
@@ -149,6 +156,20 @@ export class AuthBootstrapService {
     });
   }
 
+  private async resolveMemberRole(
+    organizationId: string,
+    userId: string,
+  ): Promise<MemberRole | null> {
+    const member = (await this.membersService.findOne(
+      { isActive: true, isDeleted: false, organizationId, userId },
+      [PopulateBuilder.withFields('role', ['id', 'key', 'label'])],
+    )) as BootstrapMemberWithRole | null;
+    return (
+      Object.values(MemberRole).find((role) => role === member?.role?.key) ??
+      null
+    );
+  }
+
   private serializeRecord<T>(value: T | null | undefined): T | null {
     if (value == null) {
       return null;
@@ -209,7 +230,7 @@ export class AuthBootstrapService {
     const hasValidOrganizationId = Boolean(organizationId);
     const isSuperAdmin = user ? getIsSuperAdmin(user, request) : false;
 
-    const [dbUser, organizationSettings, creditsBalance, brands] =
+    const [dbUser, organizationSettings, creditsBalance, brands, memberRole] =
       await Promise.all([
         hasValidUserId
           ? this.usersService.findOne(
@@ -232,6 +253,9 @@ export class AuthBootstrapService {
         hasValidUserId && hasValidOrganizationId
           ? this.getAccessibleBrands(organizationId, userId, isSuperAdmin)
           : [],
+        hasValidUserId && hasValidOrganizationId
+          ? this.resolveMemberRole(organizationId, userId)
+          : null,
       ]);
 
     const matchedBrand = brands.find(
@@ -251,6 +275,7 @@ export class AuthBootstrapService {
           organizationSettings?.hasGeneratedFirstAsset === true,
         isOnboardingCompleted: dbUser?.isOnboardingCompleted === true,
         isSuperAdmin,
+        memberRole,
         organizationId,
         subscriptionStatus,
         subscriptionTier:

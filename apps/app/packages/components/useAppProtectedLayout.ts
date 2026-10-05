@@ -250,10 +250,12 @@ export function useAppProtectedLayout(
 
   const threads = useAgentChatStore((s) => s.threads);
 
-  const role = useUserRole();
+  const contextRole = useUserRole();
+  const bootstrapRole = initialBootstrap?.accessState?.memberRole;
+  const role = bootstrapRole !== undefined ? bootstrapRole : contextRole;
 
   // Sync route context into the agent store
-  useAgentPageContext(role);
+  useAgentPageContext(role ?? undefined);
 
   const handleNavigate = useCallback(
     (path: string) => {

@@ -45,7 +45,7 @@ describe('OrganizationsOperationsService', () => {
     findOne: vi.fn(),
     generateUniqueSlug: vi.fn(),
   };
-  const rolesService = { findOne: vi.fn() };
+  const rolesService = { findOne: vi.fn(), create: vi.fn() };
   const usersService = {
     findOne: vi.fn(),
     patch: vi.fn(),
@@ -96,7 +96,7 @@ describe('OrganizationsOperationsService', () => {
       id: 'brand_new',
       label: 'New Org',
     });
-    rolesService.findOne.mockResolvedValue({ id: 'role_admin' });
+    rolesService.findOne.mockResolvedValue({ id: 'role_owner', key: 'owner' });
     membersService.create.mockResolvedValue({ id: 'member_new' });
     membersService.setCurrentBrand.mockResolvedValue(undefined);
     usersService.findOne.mockResolvedValue({ id: 'user_1' });
@@ -237,7 +237,8 @@ describe('OrganizationsOperationsService', () => {
       expect(membersService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           organizationId: 'org_new',
-          roleId: 'role_admin',
+          roleId: 'role_owner',
+          roleKey: 'owner',
           userId: 'user_1',
         }),
       );
@@ -251,6 +252,32 @@ describe('OrganizationsOperationsService', () => {
       );
       expect(userAccessCacheService.invalidateAll).toHaveBeenCalledWith(
         'user_1',
+      );
+    });
+
+    it('creates owner when neither privileged role exists and links billing after membership', async () => {
+      rolesService.findOne.mockResolvedValue(null);
+      rolesService.create.mockResolvedValue({ id: 'new_owner', key: 'owner' });
+      await service.createOrganization({ label: 'New Org' }, user);
+      expect(rolesService.create).toHaveBeenCalledWith({
+        key: 'owner',
+        label: 'Owner',
+      });
+      expect(membersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ roleId: 'new_owner', roleKey: 'owner' }),
+      );
+      expect(membersService.create.mock.invocationCallOrder[0]).toBeLessThan(
+        billingAccountsService.ensureForOrganization.mock
+          .invocationCallOrder[0],
+      );
+    });
+
+    it('prefers owner when the role catalog includes admin', async () => {
+      await service.createOrganization({ label: 'New Org' }, user);
+      expect(rolesService.findOne).toHaveBeenCalledWith({ key: 'owner' });
+      expect(rolesService.findOne).not.toHaveBeenCalledWith({ key: 'admin' });
+      expect(membersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ roleKey: 'owner' }),
       );
     });
 
@@ -293,9 +320,9 @@ describe('OrganizationsOperationsService', () => {
       },
     );
 
-    it('falls back from admin to user role and provisions the full default workspace', async () => {
+    it('falls back from owner to admin role and provisions the full default workspace', async () => {
       rolesService.findOne.mockImplementation(async ({ key }) =>
-        key === 'admin' ? null : { id: 'role_user' },
+        key === 'owner' ? null : { id: 'role_admin', key: 'admin' },
       );
 
       await expect(
@@ -307,8 +334,8 @@ describe('OrganizationsOperationsService', () => {
         brand: { id: 'brand_new', label: 'New Org' },
         organization: { id: 'org_new', label: 'New Org' },
       });
-      expect(rolesService.findOne).toHaveBeenNthCalledWith(1, { key: 'admin' });
-      expect(rolesService.findOne).toHaveBeenNthCalledWith(2, { key: 'user' });
+      expect(rolesService.findOne).toHaveBeenNthCalledWith(1, { key: 'owner' });
+      expect(rolesService.findOne).toHaveBeenNthCalledWith(2, { key: 'admin' });
       expect(
         organizationSettingsService.ensureForOrganization,
       ).toHaveBeenCalledWith('org_new');
@@ -324,7 +351,8 @@ describe('OrganizationsOperationsService', () => {
         expect.objectContaining({
           currentBrandId: 'brand_new',
           organizationId: 'org_new',
-          roleId: 'role_user',
+          roleId: 'role_admin',
+          roleKey: 'admin',
           userId: 'user_1',
         }),
       );

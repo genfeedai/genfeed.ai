@@ -1,4 +1,8 @@
+import { useAgentPageContext } from '@genfeedai/agent';
+import { MemberRole } from '@genfeedai/contracts';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
+import { useUserRole } from '@hooks/auth/use-user-role';
+import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -411,7 +415,7 @@ vi.mock('@hooks/auth/use-is-super-admin/use-is-super-admin', () => ({
 }));
 
 vi.mock('@hooks/auth/use-user-role', () => ({
-  useUserRole: () => 'member',
+  useUserRole: vi.fn(() => 'user'),
 }));
 
 vi.mock(
@@ -523,6 +527,8 @@ vi.mock('@services/core/agent-overlay-coordination.service', async () => {
 
 describe('AppProtectedLayout', () => {
   beforeEach(() => {
+    vi.mocked(useUserRole).mockReturnValue(MemberRole.USER);
+    vi.mocked(useAgentPageContext).mockClear();
     mockPathname.value = '/workspace';
     shellState.isAuthLoaded = true;
     shellState.isShellThrowing = false;
@@ -571,6 +577,61 @@ describe('AppProtectedLayout', () => {
       writable: true,
     });
   });
+
+  it.each([MemberRole.OWNER, MemberRole.ADMIN, MemberRole.USER, null])(
+    'syncs the bootstrap role %s above UserProvider',
+    (memberRole) => {
+      vi.mocked(useUserRole).mockReturnValue(MemberRole.ADMIN);
+      const initialBootstrap: ProtectedBootstrapData = {
+        accessState: {
+          brandId: 'brand-123',
+          creditsBalance: 0,
+          hasDismissedAssetGate: false,
+          hasEverHadCredits: false,
+          hasGeneratedFirstAsset: false,
+          isOnboardingCompleted: true,
+          isSuperAdmin: false,
+          memberRole,
+          organizationId: 'org-123',
+          subscriptionStatus: '',
+          subscriptionTier: '',
+          userId: 'user-123',
+        },
+        brandId: 'brand-123',
+        brands: [],
+        currentUser: null,
+        fleetCapabilities: null,
+        organizationId: 'org-123',
+        settings: null,
+        streak: null,
+      };
+
+      render(
+        <AppProtectedLayout initialBootstrap={initialBootstrap}>
+          <div>Page</div>
+        </AppProtectedLayout>,
+      );
+
+      expect(useAgentPageContext).toHaveBeenLastCalledWith(
+        memberRole ?? undefined,
+      );
+    },
+  );
+
+  it.each([MemberRole.OWNER, null, undefined])(
+    'falls back to the context role %s when bootstrap is absent',
+    (role) => {
+      vi.mocked(useUserRole).mockReturnValue(role);
+
+      render(
+        <AppProtectedLayout>
+          <div>Page</div>
+        </AppProtectedLayout>,
+      );
+
+      expect(useAgentPageContext).toHaveBeenLastCalledWith(role ?? undefined);
+    },
+  );
 
   it.each(['/admin', '/onboarding/brand', '/org-123/~/agent/onboarding'])(
     'registers settings on palette host %s',

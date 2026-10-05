@@ -9,6 +9,7 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IBrandKitDraft } from '@genfeedai/contracts/interfaces';
 import { buildBrandKitDraftFromBrand } from '@genfeedai/helpers';
 import { Prisma, PrismaClient, toPrismaJson } from '@genfeedai/prisma';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import {
@@ -244,6 +245,7 @@ describe.skipIf(!connectionString)(
         database() as unknown as PrismaService,
         scraper as unknown as BrandScraperService,
         revisionService,
+        { warn: vi.fn() } as unknown as LoggerService,
       );
     }
     const input = () => ({
@@ -565,6 +567,7 @@ describe.skipIf(!connectionString)(
             extended as unknown as PrismaService,
             scraper as unknown as BrandScraperService,
             extendedRevisions,
+            { warn: vi.fn() } as unknown as LoggerService,
           );
           expect((await service.start(input())).errorCode).toBe(
             'brand_scan.timed_out',
@@ -613,6 +616,7 @@ describe.skipIf(!connectionString)(
         extended as unknown as PrismaService,
         scraper as unknown as BrandScraperService,
         writer,
+        { warn: vi.fn() } as unknown as LoggerService,
       );
       const gate = gateScraper();
       const pending = service.start(input());
@@ -672,6 +676,7 @@ describe.skipIf(!connectionString)(
           extended as unknown as PrismaService,
           scraper as unknown as BrandScraperService,
           writer,
+          { warn: vi.fn() } as unknown as LoggerService,
         );
         const gate = gateScraper();
         const pending = service.start(input()).catch((error) => error);
