@@ -172,7 +172,7 @@ describe('ProtectedRootResolver', () => {
     });
   });
 
-  it('routes incomplete Community users to the shared brand step', async () => {
+  it('routes incomplete Community users to the agent onboarding surface', async () => {
     mocks.currentUserState.currentUser = {
       id: 'user_1',
       isOnboardingCompleted: false,
@@ -188,7 +188,7 @@ describe('ProtectedRootResolver', () => {
     render(<ProtectedRootResolver />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
     });
   });
 
@@ -292,7 +292,7 @@ describe('ProtectedRootResolver', () => {
     rerender(<ProtectedRootResolver />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
     });
   });
 
