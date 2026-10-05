@@ -558,7 +558,12 @@ describe('Replicate derived billing refresh', () => {
         endpoint: 'openai/gpt-image-2',
         key: 'openai/gpt-image-2',
       },
-      providerModel(validOpenapi(properties)),
+      {
+        ...providerModel(validOpenapi(properties)),
+        owner: 'openai',
+        name: 'gpt-image-2',
+        url: 'https://replicate.com/openai/gpt-image-2',
+      },
       ModelCategory.IMAGE,
       {
         ...pricing(),
@@ -607,18 +612,28 @@ describe('Replicate derived billing refresh', () => {
     };
     const a = await first.service.synchronizeModel(
       row,
-      providerModel(validOpenapi(properties)),
+      {
+        ...providerModel(validOpenapi(properties)),
+        owner: 'openai',
+        name: 'gpt-image-2',
+        url: 'https://replicate.com/openai/gpt-image-2',
+      },
       ModelCategory.IMAGE,
       { ...pricing(), billing },
     );
     const b = await second.service.synchronizeModel(
       row,
-      providerModel(
-        validOpenapi({
-          ...properties,
-          quality: { ...properties.quality, default: 'medium' },
-        }),
-      ),
+      {
+        ...providerModel(
+          validOpenapi({
+            ...properties,
+            quality: { ...properties.quality, default: 'medium' },
+          }),
+        ),
+        owner: 'openai',
+        name: 'gpt-image-2',
+        url: 'https://replicate.com/openai/gpt-image-2',
+      },
       ModelCategory.IMAGE,
       { ...pricing(), billing },
     );

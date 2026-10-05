@@ -208,7 +208,14 @@ describe('derived variant admission adapters', () => {
       model: quote.modelKey,
     };
     dispatch.target = JSON.stringify({ model: quote.modelKey });
-    dispatch.quantities = structuredClone(quote.quantities);
+    if (quote.quantities.requests !== 1 || quote.quantities.outputs !== 1) {
+      throw new Error('Expected a single-request, single-output image quote');
+    }
+    dispatch.quantities = {
+      ...structuredClone(quote.quantities),
+      requests: quote.quantities.requests,
+      outputs: quote.quantities.outputs,
+    };
     dispatch.contractVersion = `workflow-media-v1:${quoteSnapshotHash(dispatch.preparationContract)}`;
     dispatch.billableFingerprint = quoteSnapshotHash({
       ...dispatch,
