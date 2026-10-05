@@ -737,3 +737,224 @@ for (const reporter of [
     assert.equal(repository.calls.graphql.length, 0);
   });
 }
+
+function green(fixture, runId) {
+  return recordScheduledWorkflowGreen({
+    github: fixture.github,
+    owner: 'genfeedai',
+    repo: 'genfeed.ai',
+    workflowIdentity: '.github/workflows/nightly.yml',
+    sha: '2222222222222222222222222222222222222222',
+    runId,
+    runUrl: `https://github.test/runs/${runId}`,
+    core: { info() {} },
+  });
+}
+
+const trackerState = (fixture, index = 0) =>
+  parseTrackerState(fixture.issues[index].body);
+
+test('replaying one scheduled green cannot close its tracker', async () => {
+  const fixture = githubFixture();
+  await reportScheduledFailure({ github: fixture.github, ...failure() });
+  assert.equal((await green(fixture, 11)).action, 'recovering');
+  const updates = fixture.calls.updates.length;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const result = await green(fixture, '11');
+    assert.equal(result.action, 'noop');
+    assert.deepEqual(result.skipped, [100]);
+  }
+  assert.equal(trackerState(fixture).greenStreak, 1);
+  assert.equal(fixture.issues[0].state, 'open');
+  assert.equal(fixture.calls.updates.length, updates);
+  assert.equal(fixture.calls.comments.length, 0);
+  assert.equal((await green(fixture, 12)).action, 'recovering');
+  assert.equal((await green(fixture, 13)).action, 'closed');
+  assert.deepEqual(trackerState(fixture).greenRunIds, ['11', '12', '13']);
+  assert.equal(fixture.calls.comments.length, 1);
+});
+
+test('a non-adjacent repeated green does not advance recovery', async () => {
+  const fixture = githubFixture();
+  await reportScheduledFailure({ github: fixture.github, ...failure() });
+  await green(fixture, 11);
+  await green(fixture, 12);
+  assert.equal((await green(fixture, 11)).action, 'noop');
+  assert.equal(trackerState(fixture).greenStreak, 2);
+  assert.equal((await green(fixture, 13)).action, 'closed');
+});
+
+test('the failing run cannot supply its own recovery evidence', async () => {
+  const fixture = githubFixture();
+  await reportScheduledFailure({ github: fixture.github, ...failure() });
+  const updates = fixture.calls.updates.length;
+  const result = await green(fixture, 10);
+  assert.equal(result.action, 'noop');
+  assert.deepEqual(result.skipped, [100]);
+  assert.equal(trackerState(fixture).greenStreak, 0);
+  assert.equal(fixture.calls.updates.length, updates);
+});
+
+test('a failure starts a new recovery window without ordering run IDs', async () => {
+  const fixture = githubFixture();
+  await reportScheduledFailure({ github: fixture.github, ...failure() });
+  await green(fixture, 11);
+  await green(fixture, 12);
+  await reportScheduledFailure({
+    github: fixture.github,
+    ...failure({ runId: 13, runUrl: 'https://github.test/runs/13' }),
+  });
+  assert.equal(trackerState(fixture).greenStreak, 0);
+  assert.equal((await green(fixture, 13)).action, 'noop');
+  assert.equal((await green(fixture, 12)).action, 'recovering');
+  assert.deepEqual(trackerState(fixture).greenRunIds, ['12']);
+  assert.equal((await green(fixture, 12)).action, 'noop');
+  await green(fixture, 14);
+  assert.equal((await green(fixture, 15)).action, 'closed');
+});
+
+test('a lost update response does not count a committed green again', async () => {
+  const fixture = githubFixture();
+  await reportScheduledFailure({ github: fixture.github, ...failure() });
+  const originalUpdate = fixture.github.rest.issues.update;
+  const error = Object.assign(new Error('Response lost'), { status: 502 });
+  fixture.github.rest.issues.update = async (input) => {
+    await originalUpdate(input);
+    throw error;
+  };
+  await assert.rejects(green(fixture, 11), (actual) => actual === error);
+  assert.deepEqual(trackerState(fixture).greenRunIds, ['11']);
+  const updates = fixture.calls.updates.length;
+  fixture.github.rest.issues.update = originalUpdate;
+  assert.equal((await green(fixture, 11)).action, 'noop');
+  assert.equal(trackerState(fixture).greenStreak, 1);
+  assert.equal(fixture.calls.updates.length, updates);
+});
+
+test('a rejected recovery write stays visible and can be retried', async () => {
+  const fixture = githubFixture();
+  await reportScheduledFailure({ github: fixture.github, ...failure() });
+  const originalUpdate = fixture.github.rest.issues.update;
+  const body = fixture.issues[0].body;
+  const error = Object.assign(new Error('Write denied'), { status: 403 });
+  fixture.github.rest.issues.update = async () => {
+    throw error;
+  };
+  await assert.rejects(green(fixture, 11), (actual) => actual === error);
+  assert.equal(fixture.issues[0].body, body);
+  fixture.github.rest.issues.update = originalUpdate;
+  assert.equal((await green(fixture, 11)).action, 'recovering');
+  assert.equal(trackerState(fixture).greenStreak, 1);
+});
+
+test('a failed closure notification does not replay the committed close', async () => {
+  const fixture = githubFixture();
+  await reportScheduledFailure({ github: fixture.github, ...failure() });
+  await green(fixture, 11);
+  await green(fixture, 12);
+  const originalComment = fixture.github.rest.issues.createComment;
+  const error = new Error('Notification failed');
+  fixture.github.rest.issues.createComment = async () => {
+    throw error;
+  };
+  await assert.rejects(green(fixture, 13), (actual) => actual === error);
+  assert.equal(fixture.issues[0].state, 'closed');
+  assert.equal(trackerState(fixture).status, 'resolved');
+  const updates = fixture.calls.updates.length;
+  fixture.github.rest.issues.createComment = originalComment;
+  assert.equal((await green(fixture, 13)).action, 'noop');
+  assert.equal(fixture.calls.comments.length, 0);
+  assert.equal(fixture.calls.updates.length, updates);
+});
+
+test('retrying a partial batch skips committed trackers and finishes the rest', async () => {
+  const fixture = githubFixture();
+  await reportScheduledFailure({ github: fixture.github, ...failure() });
+  await reportScheduledFailure({
+    github: fixture.github,
+    ...failure({ failedJob: 'test-unit' }),
+  });
+  const originalUpdate = fixture.github.rest.issues.update;
+  const error = new Error('Second tracker unavailable');
+  fixture.github.rest.issues.update = async (input) => {
+    if (input.issue_number === 101) throw error;
+    return originalUpdate(input);
+  };
+  await assert.rejects(green(fixture, 11), (actual) => actual === error);
+  assert.equal(trackerState(fixture).greenStreak, 1);
+  assert.equal(trackerState(fixture, 1).greenStreak, 0);
+  fixture.github.rest.issues.update = originalUpdate;
+  const result = await green(fixture, 11);
+  assert.equal(result.action, 'recovering');
+  assert.deepEqual(result.recovered, [101]);
+  assert.deepEqual(result.skipped, [100]);
+  assert.equal(trackerState(fixture).greenStreak, 1);
+  assert.equal(trackerState(fixture, 1).greenStreak, 1);
+});
+
+test('suppression resets once for a distinct green, never for the failing run', async () => {
+  const fixture = githubFixture();
+  const transient = { excerpt: 'Hosted runner network unavailable' };
+  await reportScheduledFailure({
+    github: fixture.github,
+    ...failure(transient),
+  });
+  assert.equal((await green(fixture, 10)).action, 'noop');
+  assert.equal(trackerState(fixture).status, 'suppressed');
+  assert.equal(trackerState(fixture).transientStreak, 1);
+  assert.equal((await green(fixture, 11)).action, 'reset-suppression');
+  assert.deepEqual(trackerState(fixture).greenRunIds, ['11']);
+  assert.equal((await green(fixture, 11)).action, 'noop');
+  const next = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure({ ...transient, runId: 12 }),
+  });
+  assert.equal(next.action, 'suppressed');
+});
+
+for (const legacy of [
+  { greenStreak: 2, lastGreenRunId: 12 },
+  { greenStreak: 2, lastGreenRunId: 12, greenRunIds: ['11', '11'] },
+  { greenStreak: 2, lastGreenRunId: 12, greenRunIds: ['invalid', '12'] },
+]) {
+  test(`legacy or malformed evidence trusts only the last proven green: ${JSON.stringify(legacy)}`, async () => {
+    const fixture = githubFixture();
+    await reportScheduledFailure({ github: fixture.github, ...failure() });
+    fixture.issues[0].body = buildScheduledFailureBody({
+      state: { ...trackerState(fixture), ...legacy },
+    });
+    assert.equal((await green(fixture, 12)).action, 'noop');
+    await green(fixture, 13);
+    assert.equal(trackerState(fixture).greenStreak, 2);
+    assert.deepEqual(trackerState(fixture).greenRunIds, ['12', '13']);
+    assert.equal((await green(fixture, 14)).action, 'closed');
+  });
+}
+
+for (const legacy of [
+  { greenStreak: 0, lastGreenRunId: 12 },
+  { greenStreak: 0, lastGreenRunId: 12, greenRunIds: ['11', '12'] },
+]) {
+  test(`reset legacy evidence starts an empty window: ${JSON.stringify(legacy)}`, async () => {
+    const fixture = githubFixture();
+    await reportScheduledFailure({ github: fixture.github, ...failure() });
+    fixture.issues[0].body = buildScheduledFailureBody({
+      state: { ...trackerState(fixture), ...legacy },
+    });
+    const runId = legacy.greenRunIds ? 11 : 12;
+    assert.equal((await green(fixture, runId)).action, 'recovering');
+    assert.deepEqual(trackerState(fixture).greenRunIds, [String(runId)]);
+    assert.equal(trackerState(fixture).greenStreak, 1);
+  });
+}
+
+test('invalid green run IDs fail before any tracker write', async () => {
+  const fixture = githubFixture();
+  await reportScheduledFailure({ github: fixture.github, ...failure() });
+  const updates = fixture.calls.updates.length;
+  for (const runId of [undefined, NaN, '0', '1.5']) {
+    await assert.rejects(green(fixture, runId), TypeError);
+  }
+  assert.equal(fixture.calls.updates.length, updates);
+  assert.equal(fixture.calls.comments.length, 0);
+});
