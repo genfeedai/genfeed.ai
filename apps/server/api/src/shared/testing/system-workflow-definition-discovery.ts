@@ -180,9 +180,16 @@ export async function collectServiceRegisteredDefinitions(
       }
       const paramTypes: unknown[] =
         Reflect.getMetadata('design:paramtypes', exported) ?? [];
-      const args = paramTypes.map((type) =>
-        type === runnerClass ? capturingRunner : createPermissiveStub(),
-      );
+      const args = paramTypes.map((type) => {
+        if (type === runnerClass) {
+          return capturingRunner;
+        }
+        // Services that resolve the runner lazily through ModuleRef.get().
+        if ((type as { name?: string } | undefined)?.name === 'ModuleRef') {
+          return { get: () => capturingRunner };
+        }
+        return createPermissiveStub();
+      });
       try {
         const instance = new (exported as Constructor)(...args);
         for (const hook of ['onModuleInit', 'onApplicationBootstrap']) {
