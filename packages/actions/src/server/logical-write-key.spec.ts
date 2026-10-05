@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { buildLogicalWriteKey } from '../server';
 
@@ -192,4 +193,119 @@ describe('logical write key compatibility', () => {
       expect(key).toMatch(/^[a-f0-9]{64}$/);
     },
   );
+});
+
+// FROZEN reference: the pre-#5912 local serializer, byte for byte. It is kept
+// here only to prove JSON-clean inputs keep their historical keys.
+function frozenStableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => frozenStableStringify(item)).join(',')}]`;
+  }
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record)
+    .sort()
+    .map(
+      (key) => `${JSON.stringify(key)}:${frozenStableStringify(record[key])}`,
+    )
+    .join(',')}}`;
+}
+
+function frozenLogicalWriteKey(input: {
+  arguments: Record<string, unknown>;
+  organizationId: string;
+  scope?: { brandId?: string; contextVersion: number };
+  threadId?: string;
+  toolName: string;
+  userId: string;
+}): string {
+  return createHash('sha256')
+    .update(
+      frozenStableStringify({
+        arguments: input.arguments,
+        organizationId: input.organizationId,
+        threadId: input.threadId ?? '',
+        ...(input.scope
+          ? {
+              scope: {
+                brandId: input.scope.brandId ?? null,
+                contextVersion: input.scope.contextVersion,
+              },
+            }
+          : {}),
+        toolName: input.toolName,
+        userId: input.userId,
+      }),
+    )
+    .digest('hex');
+}
+
+describe('logical write key and undefined arguments (#5912)', () => {
+  const base = {
+    organizationId: 'org-1',
+    scope: { brandId: 'brand-1', contextVersion: 3 },
+    threadId: 'thread-1',
+    userId: 'user-1',
+  };
+
+  it('keeps the historical key for every JSON-clean golden input', () => {
+    for (const { input } of GOLDEN_VECTORS) {
+      expect(buildLogicalWriteKey(input)).toBe(frozenLogicalWriteKey(input));
+    }
+  });
+
+  it('equals the key recomputed from the JSON round-trip of the stored arguments', () => {
+    const args = {
+      count: undefined,
+      label: 'Daily posts',
+      nested: { keep: 1, drop: undefined, deeper: [{ a: 1, b: undefined }] },
+      prompt: 'Write one post',
+    };
+    const input = { ...base, arguments: args, toolName: 'create_workflow' };
+    const stored = JSON.parse(JSON.stringify(args)) as Record<string, unknown>;
+
+    expect(buildLogicalWriteKey(input)).toBe(
+      buildLogicalWriteKey({ ...input, arguments: stored }),
+    );
+  });
+
+  it('drops undefined keys instead of mapping them to null', () => {
+    const input = { ...base, toolName: 'create_workflow' };
+
+    expect(
+      buildLogicalWriteKey({ ...input, arguments: { a: 1, b: undefined } }),
+    ).toBe(buildLogicalWriteKey({ ...input, arguments: { a: 1 } }));
+    expect(
+      buildLogicalWriteKey({ ...input, arguments: { a: 1, b: undefined } }),
+    ).not.toBe(
+      buildLogicalWriteKey({ ...input, arguments: { a: 1, b: null } }),
+    );
+  });
+
+  it('matches the stored approval for the recurring-task create_workflow arguments with undefined draft fields', () => {
+    // Argument shape built by agent-orchestrator-recurring-task.service.ts
+    // when the draft leaves its optional fields unset.
+    const args = {
+      contentType: 'image',
+      count: undefined,
+      diversityMode: 'medium',
+      label: 'Daily brand images',
+      negativePrompt: undefined,
+      prompt: 'Promote the spring launch',
+      schedule: '0 9 * * *',
+      styleNotes: undefined,
+      timezone: undefined,
+    };
+    const input = { ...base, arguments: args, toolName: 'create_workflow' };
+    const approvalArguments = JSON.parse(JSON.stringify(args)) as Record<
+      string,
+      unknown
+    >;
+
+    expect(buildLogicalWriteKey(input)).toBe(
+      buildLogicalWriteKey({ ...input, arguments: approvalArguments }),
+    );
+  });
 });

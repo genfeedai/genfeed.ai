@@ -625,6 +625,9 @@
     "packages/actions": {
       "name": "@genfeedai/actions",
       "version": "0.1.4",
+      "dependencies": {
+        "@genfeedai/contracts": "workspace:*",
+      },
       "devDependencies": {
         "@types/node": "24.13.3",
         "@typescript/native": "npm:typescript@7.0.2",
