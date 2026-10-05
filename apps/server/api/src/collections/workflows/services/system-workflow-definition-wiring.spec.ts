@@ -7,9 +7,9 @@ import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/s
 import {
   collectSystemWorkflowDefinitions,
   PARAMETERIZED_DEFINITIONS,
-  readRecord,
 } from '@api/shared/testing/system-workflow-definition-discovery';
 import { getActionDefinition } from '@genfeedai/actions';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { buildActionExecutionInput } from '@genfeedai/workflows/engine';
 import { describe, expect, it } from 'vitest';
 

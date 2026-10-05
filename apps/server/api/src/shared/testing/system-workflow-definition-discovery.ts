@@ -8,6 +8,7 @@ import {
   buildWorkflowArtifactExpiredScopeDefinition,
 } from '@api/collections/workflows/services/workflow-artifact-workflow-definition';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 
 /**
  * Test-only discovery of every registered system workflow definition: the
@@ -44,12 +45,6 @@ export const PARAMETERIZED_DEFINITIONS: SystemWorkflowGraphDefinition[] = [
     WORKFLOW_ARTIFACT_ACTION_IDS.DISCOVER_EXPIRED,
   ),
 ];
-
-export function readRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
 
 function isSystemWorkflowDefinition(
   value: unknown,
