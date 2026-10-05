@@ -49,6 +49,10 @@ import {
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
+import {
+  ONBOARDING_TOOL_NAMES,
+  resolveOnboardBrandCall,
+} from '@mcp/tools/onboarding.tool';
 import { handleRemixTool, REMIX_TOOL_NAMES } from '@mcp/tools/remix.tool';
 import {
   handleSchedulerTool,
@@ -145,7 +149,7 @@ const isAdsGatewayTool = (name: string): boolean => name.startsWith('get_ads_');
  * a registry/handler mismatch fails the boot health check instead of surfacing
  * as a runtime "Unknown tool" error. Order mirrors the historical dispatch
  * precedence exactly (tool-discovery → agent-chat → workflow-control →
- * agent-executor → catalog REST handlers → ads/external), so classification
+ * agent-executor → onboarding → catalog REST handlers → ads/external), so classification
  * never changes which handler runs. `tool-discovery` is checked first since
  * its name (`find_tools`) is a meta tool with no other executor to
  * shadow.
@@ -155,6 +159,7 @@ type ExecutorKind =
   | 'agent-chat'
   | 'workflow-control'
   | 'agent-executor'
+  | 'onboarding'
   | 'content'
   | 'analytics'
   | 'workflow-status'
@@ -374,6 +379,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (AGENT_CHAT_TOOL_NAMES.has(name)) return 'agent-chat';
     if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) return 'workflow-control';
     if (AGENT_EXECUTOR_TOOL_NAMES.has(name)) return 'agent-executor';
+    if (ONBOARDING_TOOL_NAMES.has(name)) return 'onboarding';
     if (CONTENT_TOOL_NAMES.has(name)) return 'content';
     if (ANALYTICS_TOOL_NAMES.has(name)) return 'analytics';
     if (WORKFLOW_STATUS_TOOL_NAMES.has(name)) return 'workflow-status';
@@ -402,10 +408,12 @@ export class ToolRegistryService implements OnModuleInit {
     approvedApprovalId?: string,
   ) {
     const result = await this.dispatchTool(name, args, approvedApprovalId);
+    const kind = ToolRegistryService.classify(name);
     return finalizeMcpToolResult(
       name,
       result,
-      ToolRegistryService.classify(name) === 'agent-executor',
+      // Both run through the API agent executor, which already gates results.
+      kind === 'agent-executor' || kind === 'onboarding',
       this.clientService,
       this.logger,
     );
@@ -428,6 +436,17 @@ export class ToolRegistryService implements OnModuleInit {
           name,
           args,
           approvedApprovalId ? { approvedApprovalId } : undefined,
+        );
+        return this.toMcpResult(result);
+      }
+      case 'onboarding': {
+        const { agentToolName, parameters, timeoutMs } =
+          resolveOnboardBrandCall(args);
+        const result = await this.clientService.executeAgentTool(
+          agentToolName,
+          parameters,
+          undefined,
+          timeoutMs,
         );
         return this.toMcpResult(result);
       }

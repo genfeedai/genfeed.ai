@@ -72,7 +72,6 @@ interface GenerationMockOptions extends MockOptions {
 interface BillingMockOptions extends MockOptions {
   plan?: 'free' | 'starter' | 'pro' | 'enterprise';
   credits?: number;
-  hasPaymentMethod?: boolean;
 }
 
 interface MockAvatarIdentityFixture {

@@ -1,18 +1,13 @@
+import NewsletterEditorRoute from '@app/(protected)/[orgSlug]/[brandSlug]/edit/newsletter/[id]/NewsletterEditorRoute';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import type { DetailPageProps } from '@props/pages/page.props';
 import { Suspense } from 'react';
-import NewsletterEditorContent from './content';
 
 export const generateMetadata = createPageMetadata('Edit Newsletter');
 
-export default async function NewsletterEditorPage({
-  params,
-}: DetailPageProps) {
-  const { id } = await params;
-
+export default function NewsletterEditorPage() {
   return (
     <Suspense fallback={null}>
-      <NewsletterEditorContent artifactId={id} />
+      <NewsletterEditorRoute />
     </Suspense>
   );
 }

@@ -10,6 +10,7 @@ import {
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
@@ -114,6 +115,8 @@ export class AgentWorkspaceToolHandler {
     private readonly ingredientsService: IngredientsService,
     @Optional()
     private readonly characterFilter?: IngredientCharacterFilterService,
+    @Optional()
+    private readonly usersService?: UsersService,
   ) {}
 
   /**
@@ -163,12 +166,33 @@ export class AgentWorkspaceToolHandler {
     ctx: ToolExecutionContext,
   ): Promise<Record<string, unknown>> {
     const brandId = ctx.brandId ?? ctx.validatedScope?.brandId;
+    const isOnboardingCompleted = await this.resolveOnboardingCompleted(ctx);
     return {
       ...(brandId ? { brandId } : {}),
+      ...(isOnboardingCompleted === undefined ? {} : { isOnboardingCompleted }),
       organizationId: ctx.organizationId,
       role: await this.resolveOrganizationRole(ctx),
       userId: ctx.userId,
     };
+  }
+
+  /**
+   * Whether the caller finished first-run onboarding. An MCP client that signed
+   * up during the OAuth connect never sees the web onboarding, so it reads this
+   * to know it must run `onboard_brand` first. Omitted when unresolved.
+   */
+  private async resolveOnboardingCompleted(
+    ctx: ToolExecutionContext,
+  ): Promise<boolean | undefined> {
+    if (!this.usersService) {
+      return undefined;
+    }
+    try {
+      const user = await this.usersService.findOne({ id: ctx.userId });
+      return user ? user.isOnboardingCompleted === true : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   /**

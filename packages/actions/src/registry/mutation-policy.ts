@@ -122,6 +122,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   generate_content_batch: 'approval-required',
   generate_monthly_content: 'direct',
   generate_onboarding_content: 'direct',
+  onboard_brand: 'direct',
   scan_brand_url: 'direct',
   save_onboarding_answers: 'direct',
   initiate_oauth_connect: 'direct',
