@@ -1,5 +1,4 @@
 import * as authConfig from '@genfeedai/auth-client/server';
-import { JSDOM } from 'jsdom';
 import { connection } from 'next/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GET } from './route';
@@ -34,17 +33,19 @@ describe('self-hosted runtime config', () => {
         'application/javascript; charset=utf-8',
       );
 
-      const dom = new JSDOM('', { runScripts: 'outside-only' });
-      dom.window.eval(
-        'globalThis.__GENFEED_RUNTIME_CONFIG__={apiEndpoint:"/v1",clientSurface:"desktop",betterAuthEnabled:false};',
-      );
-      dom.window.eval(source);
-      expect(dom.window.eval('globalThis.__GENFEED_RUNTIME_CONFIG__')).toEqual({
+      const fakeGlobal = {
+        __GENFEED_RUNTIME_CONFIG__: {
+          apiEndpoint: '/v1',
+          clientSurface: 'desktop',
+          betterAuthEnabled: false,
+        },
+      };
+      new Function('globalThis', source)(fakeGlobal);
+      expect(fakeGlobal.__GENFEED_RUNTIME_CONFIG__).toEqual({
         apiEndpoint: '/v1',
         clientSurface: 'desktop',
         betterAuthEnabled: flag === 'true',
       });
-      dom.window.close();
     },
   );
 
