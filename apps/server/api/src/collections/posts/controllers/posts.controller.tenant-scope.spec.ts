@@ -33,7 +33,13 @@ async function setupController(
   postAnalyticsService: {
     getPostAnalyticsSummary?: ReturnType<typeof vi.fn>;
   } = {},
-  evaluationProjection: { attachToPage?: ReturnType<typeof vi.fn> } = {},
+  evaluationProjection: {
+    attachToItem?: ReturnType<typeof vi.fn>;
+    attachToPage?: ReturnType<typeof vi.fn>;
+  } = {
+    attachToItem: vi.fn(async (item: unknown) => item),
+    attachToPage: vi.fn(async (page: unknown) => page),
+  },
 ) {
   const module = await Test.createTestingModule({
     controllers: [PostsController],
