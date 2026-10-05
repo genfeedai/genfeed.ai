@@ -956,7 +956,7 @@ ${postHogSnippet}
             <div>
               <p class="step-title">Give this to a local shell agent</p>
               <p class="step-copy">Drop this into Claude Code, Codex, or another local agent with shell access. It installs the playbook for your selected client, configures Genfeed, starts browser authorization, and verifies access with read-only calls.</p>
-              <p class="step-copy">For skills only, run this command and select your client. Skip it if a Genfeed plugin already includes the playbook. Skills alone do not connect or authenticate MCP.</p>
+              <p class="step-copy">For non-Claude clients only, run this command and select your client. Skip it if a Genfeed plugin already includes the playbook. Claude Code uses the dedicated Genfeed plugin; other Claude clients connect with OAuth. Do not install this skills bundle into any Claude client. Skills alone do not connect or authenticate MCP.</p>
               ${renderCommandBlock({ id: 'skills-install-command', label: 'Copy skills install command', textSafe: escapeHtml(GENFEED_SKILLS_INSTALL_COMMAND), ui })}
               ${renderCommandBlock({ id: 'agent-setup-prompt', label: 'Copy agent setup prompt', multiline: true, textSafe: agentSetupPromptSafe, ui })}
             </div>

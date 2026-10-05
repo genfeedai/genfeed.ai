@@ -54,6 +54,8 @@ describe('Claude setup endpoint separation', () => {
       );
       expect(prompt).not.toContain('generation/claude');
       expect(prompt).toContain('Claude requires OAuth');
+      expect(prompt).toContain('Never run skills add for any Claude client');
+      expect(prompt).toContain('For non-Claude clients, install');
     },
   );
 });

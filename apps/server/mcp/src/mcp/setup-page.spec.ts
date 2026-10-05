@@ -316,6 +316,10 @@ describe('MCP setup page', () => {
     expect(promptHtml).toContain('npx skills add genfeedai/agent');
     expect(promptHtml).toContain('read-only get_account and get_brands');
     expect(html).toContain('data-copy-source="skills-install-command"');
+    expect(html).toContain('For non-Claude clients only');
+    expect(html).toContain(
+      'Do not install this skills bundle into any Claude client',
+    );
   });
 
   it('uses shared static UI surface primitives instead of local card CSS', () => {
