@@ -6,6 +6,7 @@ import {
   parseReviewDecision,
   ReviewDecision,
 } from '@genfeedai/contracts';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { CONTENT_EVAL_THRESHOLDS } from '../../../../../scripts/content-eval/contracts';
 import type { ScoreBand } from '../../../../../scripts/content-eval/rows';
 import type {
@@ -26,9 +27,6 @@ import type {
 
 function record(value: unknown): Record<string, unknown> {
   return isRecord(value) ? value : {};
-}
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 function string(value: unknown): string | null {
   return typeof value === 'string' ? value : null;

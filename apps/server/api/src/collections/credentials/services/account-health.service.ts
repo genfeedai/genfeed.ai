@@ -35,6 +35,7 @@ import type {
   ManualAccountHealthOverrideRequest,
 } from '@genfeedai/contracts/interfaces';
 import { type Credential, type Prisma } from '@genfeedai/prisma';
+import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
@@ -116,12 +117,6 @@ function clampScore(value: number): number {
 
 function readNumber(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : undefined;
 }
 
 function readDateIso(

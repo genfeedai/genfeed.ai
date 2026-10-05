@@ -13,6 +13,7 @@ import type { CuratedActionName } from '@genfeedai/actions';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { RouterPriority } from '@genfeedai/contracts';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 const GEMINI_FUNCTION_SCHEMA_KEYS = new Set([
   '$defs',
@@ -27,10 +28,6 @@ const GEMINI_FUNCTION_SCHEMA_KEYS = new Set([
   'required',
   'type',
 ]);
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 /**
  * Gemini function declarations accept a documented OpenAPI subset. Keep the

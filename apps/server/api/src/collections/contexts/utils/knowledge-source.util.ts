@@ -5,6 +5,7 @@ import {
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 /** `data.purpose` of every context base that stores Knowledge chunks. */
 export const KNOWLEDGE_BASE_PURPOSE = 'knowledge-base';
@@ -40,10 +41,6 @@ export interface PersistedKnowledgeSource {
   status: KnowledgeBaseStatus;
   summary?: string;
   tags?: string[];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function isKnowledgeBaseCategory(

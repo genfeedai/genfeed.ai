@@ -11,6 +11,7 @@ import {
   twitterAuthorizedSignalStatusValues,
   twitterAuthorizedSignalsSnapshotSchema,
 } from '@genfeedai/contracts/api-types/contracts/twitter-authorized-signals.contract';
+import { readRawString, readRecord } from '@genfeedai/utils/data/extract.util';
 
 export const USERS_READ_SCOPE = 'users.read';
 export const TWEET_READ_SCOPE = 'tweet.read';
@@ -107,16 +108,6 @@ function toFieldAvailability(
   return Object.fromEntries(entries);
 }
 
-export function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-export function readString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
-
 export function readNonNegativeInteger(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0
     ? value
@@ -124,7 +115,7 @@ export function readNonNegativeInteger(value: unknown): number | undefined {
 }
 
 export function readIsoTimestamp(value: unknown): string | undefined {
-  const candidate = readString(value);
+  const candidate = readRawString(value);
   if (!candidate) {
     return undefined;
   }
@@ -144,7 +135,7 @@ export function readIsoToUnixSeconds(value: unknown): number | undefined {
 }
 
 function readHttpUrl(value: unknown): string | undefined {
-  const candidate = readString(value);
+  const candidate = readRawString(value);
   if (!candidate) {
     return undefined;
   }
@@ -308,15 +299,15 @@ export function buildProfileEvidence(
 
   const value = {
     createdAt: readIsoTimestamp(result.value.created_at),
-    description: readString(result.value.description),
+    description: readRawString(result.value.description),
     isProtected: readBoolean(result.value.protected),
     isVerified: readBoolean(result.value.verified),
-    location: readString(result.value.location),
-    name: readString(result.value.name),
+    location: readRawString(result.value.location),
+    name: readRawString(result.value.name),
     profileImageUrl: readHttpUrl(result.value.profile_image_url),
     url: readHttpUrl(result.value.url),
-    username: readString(result.value.username),
-    verifiedType: readString(result.value.verified_type),
+    username: readRawString(result.value.username),
+    verifiedType: readRawString(result.value.verified_type),
   };
   const fieldAvailability = Object.fromEntries(
     Object.entries(PROFILE_FIELDS).map(

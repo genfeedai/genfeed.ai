@@ -2,6 +2,7 @@ import {
   RESEARCH_FINDING_REFERENCE_KINDS,
   type ScopedResearchFindingReference,
 } from '@genfeedai/contracts/interfaces';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 const ANALYTICS_METRICS = [
   'comments',
@@ -40,10 +41,6 @@ export interface AgentPageContextAuthorizationScope {
 interface PageContextScopeValue {
   readonly brandId?: unknown;
   readonly organizationId?: unknown;
-}
-
-function isRecord(value: unknown): value is UnknownRecord {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function isBoundedString(value: unknown, maxLength: number): value is string {

@@ -1,4 +1,5 @@
 import { parseGrantedOAuthScopes } from '@genfeedai/helpers';
+import { readNonBlankString } from '@genfeedai/utils/data/extract.util';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { AxiosError } from 'axios';
 
@@ -63,10 +64,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() !== '' ? value : undefined;
-}
-
 function readFiniteNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value)
     ? value
@@ -102,8 +99,8 @@ function readInstagramErrorRecord(
 
     if (
       readFiniteNumber(current.code) !== undefined ||
-      readString(current.message) !== undefined ||
-      readString(current.type) !== undefined
+      readNonBlankString(current.message) !== undefined ||
+      readNonBlankString(current.type) !== undefined
     ) {
       return current;
     }
@@ -120,8 +117,8 @@ function readInstagramProviderStringCode(error: unknown): string | undefined {
     return undefined;
   }
 
-  const directError = readString(data.error);
-  const errorCode = readString(data.error_code);
+  const directError = readNonBlankString(data.error);
+  const errorCode = readNonBlankString(data.error_code);
   const code = directError ?? errorCode;
 
   return code && /^[a-z][a-z0-9_.-]{0,63}$/i.test(code) ? code : undefined;
@@ -133,13 +130,17 @@ function readInstagramProviderNumericCode(error: unknown): number | undefined {
 }
 
 function readInstagramProviderMessage(error: unknown): string {
-  const graphMessage = readString(readInstagramErrorRecord(error)?.message);
+  const graphMessage = readNonBlankString(
+    readInstagramErrorRecord(error)?.message,
+  );
   if (graphMessage) {
     return graphMessage;
   }
 
   const data = readInstagramResponse(error)?.data;
-  return isRecord(data) ? (readString(data.error_description) ?? '') : '';
+  return isRecord(data)
+    ? (readNonBlankString(data.error_description) ?? '')
+    : '';
 }
 
 function readInstagramHttpStatus(error: unknown): number | undefined {
@@ -159,7 +160,7 @@ function readInstagramTransportCode(error: unknown): string | undefined {
     return undefined;
   }
 
-  const code = readString(error.code);
+  const code = readNonBlankString(error.code);
   return code && NETWORK_ERROR_CODES.has(code) ? code : undefined;
 }
 
@@ -186,8 +187,8 @@ export function getInstagramGraphError(
     readFiniteNumber(graphError?.code) ??
     readInstagramProviderNumericCode(error);
   const errorSubcode = readFiniteNumber(graphError?.error_subcode);
-  const message = readString(graphError?.message);
-  const type = readString(graphError?.type);
+  const message = readNonBlankString(graphError?.message);
+  const type = readNonBlankString(graphError?.type);
 
   if (
     code === undefined &&

@@ -1,6 +1,10 @@
 import path from 'node:path';
 import { defineConfig } from '@playwright/test';
 
+// The CI step runs from the repo root; resolve the app against it so the web
+// server never depends on Playwright's config-relative default cwd.
+const webAppPath = path.resolve(process.cwd(), 'apps/app');
+
 export default defineConfig({
   testDir: path.resolve(__dirname, '../e2e/tests/desktop'),
   testMatch: 'desktop-runtime-electron.spec.ts',
@@ -14,8 +18,7 @@ export default defineConfig({
   use: { baseURL: 'http://127.0.0.1:57161' },
   globalSetup: path.resolve(__dirname, '../e2e/global-setup.ts'),
   webServer: {
-    command:
-      'bun run --cwd apps/app start -- --hostname 127.0.0.1 --port 57161',
+    command: `bun run --cwd ${webAppPath} start -- --hostname 127.0.0.1 --port 57161`,
     url: 'http://127.0.0.1:57161/playwright-ready',
     reuseExistingServer: false,
     timeout: 120_000,

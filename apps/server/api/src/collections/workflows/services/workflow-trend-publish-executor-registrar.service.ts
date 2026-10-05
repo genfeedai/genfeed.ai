@@ -31,6 +31,7 @@ import {
   type RawTrendTopic,
   type RawTrendVideo,
 } from '@genfeedai/helpers';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type {
   DigestTrendsLookup,
   KeywordTriggerPlatform,
@@ -807,10 +808,6 @@ export class WorkflowTrendPublishExecutorRegistrarService {
   private digestUtcDateKey(): string {
     return new Date().toISOString().slice(0, 10);
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function readText(

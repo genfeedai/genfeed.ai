@@ -4,6 +4,7 @@ import type {
   OpenRouterResponseFormat,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import type { ILlmStructuredOutputIssue } from '@genfeedai/contracts/interfaces';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { type ZodType, z } from 'zod';
 
 /**
@@ -104,10 +105,6 @@ function requireAllProperties(node: unknown): unknown {
   }
 
   return next;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /**

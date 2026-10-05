@@ -1,7 +1,7 @@
 import type { BrandAgentConfig } from '@api/collections/brands/schemas/brand.schema';
 import { UpsertHarnessProfileDto } from '@api/collections/harness-profiles/dto/upsert-harness-profile.dto';
 import type { IScrapedBrandData } from '@genfeedai/contracts/interfaces';
-
+import { readString } from '@genfeedai/utils/data/extract.util';
 import { readStringList } from './string-list.util';
 
 export interface BuildSignupHarnessProfileInput {
@@ -34,10 +34,6 @@ const BASELINE_STRUCTURE = {
     'Single call to action',
   ],
 };
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
-}
 
 /**
  * Build the default harness profile for a freshly prefilled brand.

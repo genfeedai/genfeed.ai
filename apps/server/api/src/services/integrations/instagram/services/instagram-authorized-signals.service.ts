@@ -27,6 +27,7 @@ import {
   instagramAuthorizedSignalStatusValues,
   instagramAuthorizedSignalsSnapshotSchema,
 } from '@genfeedai/contracts/api-types/contracts/instagram-authorized-signals.contract';
+import { readRawString, readRecord } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -38,8 +39,6 @@ import {
   type InstagramUserResponse,
   readHttpUrl,
   readNonNegativeInteger,
-  readRecord,
-  readString,
 } from './instagram-authorized-signals.provider';
 
 const INSTAGRAM_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS = 5 * 60;
@@ -305,7 +304,7 @@ export class InstagramAuthorizedSignalsService {
     } = params;
     const providerResult = await this.provider.fetch(
       accessToken,
-      readString(credential.externalId),
+      readRawString(credential.externalId),
       grantedScopes,
       BASIC_SCOPE,
       INSIGHTS_SCOPE,
@@ -402,15 +401,15 @@ export class InstagramAuthorizedSignalsService {
     }
 
     const value = {
-      accountType: readString(result.value.account_type),
-      biography: readString(result.value.biography),
+      accountType: readRawString(result.value.account_type),
+      biography: readRawString(result.value.biography),
       followersCount: readNonNegativeInteger(result.value.followers_count),
       followsCount: readNonNegativeInteger(result.value.follows_count),
       mediaCount: readNonNegativeInteger(result.value.media_count),
-      name: readString(result.value.name),
+      name: readRawString(result.value.name),
       profilePictureUrl: readHttpUrl(result.value.profile_picture_url),
-      username: readString(result.value.username),
-      website: readString(result.value.website),
+      username: readRawString(result.value.username),
+      website: readRawString(result.value.website),
     };
     const fieldAvailability = toFieldAvailability(
       PROFILE_FIELDS.map((field) => [
@@ -517,7 +516,7 @@ export class InstagramAuthorizedSignalsService {
       );
     }
 
-    const accountType = readString(result.value.account_type);
+    const accountType = readRawString(result.value.account_type);
     const isProfessional = isProfessionalAccountType(accountType);
     const canPublish = accountType === 'BUSINESS';
     const value = {

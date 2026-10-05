@@ -12,6 +12,7 @@ import type {
   SocialWarmupAccountAge,
   SocialWarmupReconnect,
 } from '@genfeedai/contracts/interfaces';
+import { readString } from '@genfeedai/utils/data/extract.util';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const NATIVE_ACCOUNT_AGE_KEY = 'native-account-age';
@@ -486,12 +487,6 @@ function isNamedUniqueViolation(
   return (
     Array.isArray(target) && fields.every((field) => target.includes(field))
   );
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : undefined;
 }
 
 function readUnixSeconds(value: unknown): number | undefined {

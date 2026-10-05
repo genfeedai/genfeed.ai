@@ -1,4 +1,5 @@
 import { parseGrantedOAuthScopes } from '@genfeedai/helpers';
+import { readString } from '@genfeedai/utils/data/extract.util';
 import type { AxiosError } from 'axios';
 
 interface LinkedInApiErrorBody {
@@ -182,12 +183,6 @@ export function getLinkedinRetryAfterMs(
   }
 
   return Math.min(retryAfterSeconds * 1_000, maximumMs);
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() !== ''
-    ? value.trim()
-    : undefined;
 }
 
 function readFiniteNumber(value: unknown): number | undefined {

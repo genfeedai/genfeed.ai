@@ -2,6 +2,12 @@
   "$schema": "https://v2-9-12.turborepo.dev/schema.json",
   "extends": ["//"],
   "tasks": {
+    // The app shell is a `next build` of apps/app (see scripts/build-app-shell.cjs),
+    // which imports workspace packages the desktop package does not declare, so
+    // `^build` never builds them ("Can't resolve '@genfeedai/integrations/ads'").
+    "qa:release": {
+      "dependsOn": ["$TURBO_EXTENDS$", "@genfeedai/integrations#build"]
+    },
     // tsconfig `paths` reach these workspaces' sources without a declared
     // dependency, so `^build` never hashes them. Explicit globs ignore
     // .gitignore, hence the exclusions.

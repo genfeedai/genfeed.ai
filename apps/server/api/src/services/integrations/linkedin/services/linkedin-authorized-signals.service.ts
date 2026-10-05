@@ -32,6 +32,7 @@ import {
   type LinkedinOwnedPostSignal,
   linkedinAuthorizedSignalsSnapshotSchema,
 } from '@genfeedai/contracts/api-types/contracts/linkedin-authorized-signals.contract';
+import { readRecord, readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -50,8 +51,6 @@ import {
   LinkedInAuthorizedSignalsEvidenceMapper,
   type PlatformEvidenceKey,
   readNonNegativeInteger,
-  readRecord,
-  readString,
 } from './linkedin-authorized-signals-evidence.mapper';
 
 export {

@@ -1,3 +1,4 @@
+import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
 export type AdPerformanceBenchmarkFields = {
   headlineText: string | null;
   ctaText: string | null;
@@ -47,9 +48,6 @@ export const SPEND_BUCKETS = [
   { label: '$1000+/day', min: 1000, max: Infinity },
 ] as const;
 
-const readString = (value: unknown): string | undefined =>
-  typeof value === 'string' && value.length > 0 ? value : undefined;
-
 const readNumber = (value: unknown): number | undefined =>
   typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 
@@ -75,12 +73,12 @@ const resolveSpendBucket = (spend: number | undefined): string | undefined => {
 export const buildAdPerformanceBenchmarkFields = (
   data: Record<string, unknown>,
 ): AdPerformanceBenchmarkFields => {
-  const headlineText = readString(data.headlineText);
-  const ctaText = readString(data.ctaText);
+  const headlineText = readNonEmptyString(data.headlineText);
+  const ctaText = readNonEmptyString(data.ctaText);
   const spend = readNumber(data.spend);
 
   return {
-    adPlatform: readString(data.adPlatform) ?? null,
+    adPlatform: readNonEmptyString(data.adPlatform) ?? null,
     conversionRate: readNumber(data.conversionRate) ?? null,
     cpa: readNumber(data.cpa) ?? null,
     cpc: readNumber(data.cpc) ?? null,
@@ -96,10 +94,10 @@ export const buildAdPerformanceBenchmarkFields = (
       HEADLINE_PATTERN_CATEGORIES,
     ),
     headlineText: headlineText ?? null,
-    industry: readString(data.industry) ?? null,
+    industry: readNonEmptyString(data.industry) ?? null,
     performanceScore: readNumber(data.performanceScore) ?? null,
     roas: readNumber(data.roas) ?? null,
-    scope: readString(data.scope) ?? null,
+    scope: readNonEmptyString(data.scope) ?? null,
     spend: spend ?? null,
     spendBucket: resolveSpendBucket(spend) ?? null,
   };

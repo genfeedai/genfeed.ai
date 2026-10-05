@@ -1,4 +1,5 @@
 import { ModelCategory } from '@genfeedai/contracts';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 export interface ReplicateJsonSchema extends Record<string, unknown> {
   properties?: Record<string, Record<string, unknown>>;
@@ -9,10 +10,6 @@ export interface ReplicateJsonSchema extends Record<string, unknown> {
 export interface ReplicateEndpointSchemas {
   input: ReplicateJsonSchema;
   output: ReplicateJsonSchema;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function asSchema(value: unknown): ReplicateJsonSchema {

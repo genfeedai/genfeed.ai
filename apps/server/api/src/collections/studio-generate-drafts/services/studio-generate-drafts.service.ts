@@ -17,6 +17,7 @@ import type {
   StudioGenerateType,
 } from '@genfeedai/contracts/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -42,10 +43,6 @@ type StudioGenerateDraftWriteData = Pick<
 
 const REFERENCE_ROLES = new Set<string>(STUDIO_GENERATE_REFERENCE_ROLES);
 const DRAFT_TYPES = new Set<string>(STUDIO_GENERATE_DRAFT_TYPES);
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function readReferences(value: unknown): StudioGenerateDraftReference[] {
   if (!Array.isArray(value)) {

@@ -27,6 +27,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { ContentHarnessContribution } from '@genfeedai/harness';
 import { type Profile as PrismaProfile, toPrismaJson } from '@genfeedai/prisma';
+import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -70,10 +71,6 @@ export interface HarnessProfileServerFields {
 export interface HarnessProfileContributionResult {
   contribution: ContentHarnessContribution;
   profileId: string;
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
 function readStringArray(value: unknown): string[] {
