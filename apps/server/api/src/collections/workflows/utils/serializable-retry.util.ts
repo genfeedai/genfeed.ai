@@ -1,9 +1,12 @@
 import type { Prisma } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 // Postgres aborts a Serializable transaction (P2034, or the driver adapter's
 // TransactionWriteConflict) when it overlaps a concurrent one. Sweeps that fire
 // in the same second hit this in the hidden-mirror transaction, and a run with
 // `attempts: 1` then fails for good, so the whole transaction is retried.
+// Raw queries with adapter-pg wrap the same abort as P2010 with nested
+// PostgreSQL SQLSTATE 40001; that exact representation is also retried.
 //
 // P2028 "Unable to start a transaction in the given time" means the pool could
 // not hand out a connection before `maxWait` elapsed, so the callback never ran
@@ -28,7 +31,21 @@ export function isSerializationFailure(error: unknown): boolean {
   const { code, message, name } = error as Record<string, unknown>;
   return (
     code === 'P2034' ||
-    (name === 'DriverAdapterError' && message === 'TransactionWriteConflict')
+    (name === 'DriverAdapterError' && message === 'TransactionWriteConflict') ||
+    isRawQuerySerializationFailure(error)
+  );
+}
+
+function isRawQuerySerializationFailure(error: unknown): boolean {
+  // adapter-pg wraps a raw-query PostgreSQL serialization abort as P2010.
+  // Only this proven SQLSTATE denotes an aborted transaction safe to retry.
+  if (!isRecord(error) || error.code !== 'P2010' || !isRecord(error.meta))
+    return false;
+  const adapterError = error.meta.driverAdapterError;
+  return (
+    isRecord(adapterError) &&
+    isRecord(adapterError.cause) &&
+    adapterError.cause.originalCode === '40001'
   );
 }
 

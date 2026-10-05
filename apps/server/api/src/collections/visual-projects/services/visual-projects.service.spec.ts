@@ -90,19 +90,20 @@ function fixture() {
     registerAction: vi.fn(),
     enqueueWorkflow: vi.fn(async () => ({ executionId: 'execution' })),
   };
+  const dispatcher = new VisualProjectDispatchService(
+    prisma as never,
+    authorization as never,
+    billing as never,
+    workflows as never,
+    queue as never,
+  );
   const service = new VisualProjectsService(
     prisma as never,
     authorization as never,
     assets as never,
     billing as never,
     workflows as never,
-    new VisualProjectDispatchService(
-      prisma as never,
-      authorization as never,
-      billing as never,
-      workflows as never,
-      queue as never,
-    ),
+    dispatcher,
   );
   const user = {
     id: 'user',
@@ -116,6 +117,7 @@ function fixture() {
     billing,
     queue,
     service,
+    dispatcher,
     user,
     workflows,
     authorization,
@@ -428,4 +430,29 @@ describe('permanent visual request identity conflicts', () => {
     expect(f.billing.reserve).not.toHaveBeenCalled();
     expect(f.workflows.enqueueWorkflow).not.toHaveBeenCalled();
   });
+  it.each(['P2002', 'P2010'])(
+    'preserves post-dispatch %s failures without replaying the revision transaction',
+    async (code) => {
+      const f = fixture();
+      const error = Object.assign(new Error('dispatch outcome uncertain'), {
+        code,
+        meta: { driverAdapterError: { cause: { originalCode: '40001' } } },
+      });
+      f.transaction.visualRevision.create.mockResolvedValue(f.revision);
+      const dispatch = vi
+        .spyOn(f.dispatcher, 'dispatch')
+        .mockRejectedValue(error);
+      await expect(
+        f.service.revise(f.user, 'project', {
+          requestId: 'dispatch-request',
+          expectedRevision: 1,
+          props: {},
+          maximumCredits: 10,
+        }),
+      ).rejects.toBe(error);
+      expect(dispatch).toHaveBeenCalledOnce();
+      expect(f.prisma.$transaction).toHaveBeenCalledOnce();
+      expect(f.prisma.visualRevision.findFirst).toHaveBeenCalledTimes(2);
+    },
+  );
 });
