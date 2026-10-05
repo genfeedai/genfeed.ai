@@ -7,22 +7,11 @@ name: Server Image PR Guard
 # build surfaces within one merge, while the ~15-30 min docker build stops
 # taxing every server-touching PR. Changes to the Dockerfile or bundler config
 # still must prove the image builds before merging.
+# Runs on every PR so "Build Server Image" can be a required check: when no
+# image-definition path changed it reports success in seconds, otherwise it
+# builds the image. #6189 merged with this check red while it was optional.
 on:
   pull_request:
-    paths:
-      - 'docker/Dockerfile.server'
-      - '.dockerignore'
-      - '.bun-version'
-      - 'configs/**'
-      - 'patches/**'
-      # Bundler config decides what lands in the server bundles, so a change
-      # here must exercise the image build even when no server source changed.
-      - 'webpack.base.config.js'
-      - 'tsconfig.json'
-      - 'tsconfig.server.decorators.json'
-      - 'bun.lock'
-      - 'package.json'
-      - '.github/workflows/server-image-pr.yml'
 
 concurrency:
   group: server-image-pr-${{ github.event.pull_request.number }}
@@ -32,21 +21,57 @@ permissions:
   contents: read
 
 jobs:
+  detect:
+    name: Detect Server Image Scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      image: ${{ steps.changes.outputs.image }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: changes
+        with:
+          filters: |
+            image:
+              - 'docker/Dockerfile.server'
+              - '.dockerignore'
+              - '.bun-version'
+              - 'configs/**'
+              - 'patches/**'
+              - 'webpack.base.config.js'
+              - 'tsconfig.json'
+              - 'tsconfig.server.decorators.json'
+              - 'bun.lock'
+              - 'package.json'
+              - '.github/workflows/server-image-pr.yml'
+
   build:
     name: Build Server Image
+    needs: detect
     runs-on: ubuntu-latest
     timeout-minutes: 40
 
     steps:
+      - name: Skip (no image-definition change)
+        if: needs.detect.outputs.image != 'true'
+        run: echo "No image-definition path changed; nothing to build."
+
       - name: Checkout code
+        if: needs.detect.outputs.image == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Docker Buildx
+        if: needs.detect.outputs.image == 'true'
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Build unified server image
+        if: needs.detect.outputs.image == 'true'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
