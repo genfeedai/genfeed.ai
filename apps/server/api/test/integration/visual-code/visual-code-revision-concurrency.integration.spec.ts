@@ -110,6 +110,7 @@ function observe(
   const original: unknown = Reflect.get(target, method);
   if (typeof original !== 'function')
     throw new Error(`Missing diagnostic boundary ${method}`);
+  const ownDescriptor = Object.getOwnPropertyDescriptor(target, method);
   Object.defineProperty(target, method, {
     configurable: true,
     value: async function (this: object, ...args: unknown[]) {
@@ -123,9 +124,57 @@ function observe(
     },
   });
   return () => {
-    Reflect.deleteProperty(target, method);
+    if (ownDescriptor) Object.defineProperty(target, method, ownDescriptor);
+    else Reflect.deleteProperty(target, method);
   };
 }
+
+describe('diagnostic boundary restoration', () => {
+  it('restores an instance-bound method and its original descriptor', async () => {
+    const target = {};
+    const original = async () => 'original';
+    Object.defineProperty(target, 'method', {
+      configurable: true,
+      enumerable: true,
+      writable: true,
+      value: original,
+    });
+    const descriptor = Object.getOwnPropertyDescriptor(target, 'method');
+    const restore = observe(
+      target,
+      'method',
+      () => {},
+      () => {},
+    );
+    expect(await Reflect.apply(Reflect.get(target, 'method'), target, [])).toBe(
+      'original',
+    );
+    restore();
+    expect(Object.getOwnPropertyDescriptor(target, 'method')).toEqual(
+      descriptor,
+    );
+  });
+
+  it('removes the temporary override of an inherited method', () => {
+    class Boundary {
+      async method() {
+        return 'original';
+      }
+    }
+    const target = new Boundary();
+    const original = target.method;
+    const restore = observe(
+      target,
+      'method',
+      () => {},
+      () => {},
+    );
+    expect(Object.hasOwn(target, 'method')).toBe(true);
+    restore();
+    expect(Object.hasOwn(target, 'method')).toBe(false);
+    expect(Reflect.get(target, 'method')).toBe(original);
+  });
+});
 
 describe('real Postgres visual revision concurrency (captured transports)', () => {
   const pairs = Number(process.env.VISUAL_REVISION_DIAGNOSTIC_PAIRS ?? 1);

@@ -1,4 +1,5 @@
 import type { Prisma } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 // Postgres aborts a Serializable transaction (P2034, or the driver adapter's
 // TransactionWriteConflict) when it overlaps a concurrent one. Sweeps that fire
@@ -33,10 +34,6 @@ export function isSerializationFailure(error: unknown): boolean {
     (name === 'DriverAdapterError' && message === 'TransactionWriteConflict') ||
     isRawQuerySerializationFailure(error)
   );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function isRawQuerySerializationFailure(error: unknown): boolean {
