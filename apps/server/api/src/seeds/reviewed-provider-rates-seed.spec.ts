@@ -1,0 +1,182 @@
+import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import {
+  RATE_SHEET_REVIEWER,
+  seedReviewedProviderRates,
+} from '@api/seeds/reviewed-provider-rates-seed';
+import {
+  applyMargin,
+  hashReviewedProviderRates,
+  quoteModelBillablePricing,
+  REVIEWED_RATE_SHEET_ENTRIES,
+} from '@genfeedai/pricing';
+import { describe, expect, it, vi } from 'vitest';
+
+const hailuo = REVIEWED_RATE_SHEET_ENTRIES.find(
+  (entry) => entry.endpoint === 'minimax/hailuo-2.3-fast',
+);
+if (!hailuo) throw new Error('The sheet must carry hailuo-2.3-fast');
+const hailuoVersion = hashReviewedProviderRates(hailuo.rates);
+
+function modelRow(overrides: Record<string, unknown> = {}) {
+  return {
+    endpoint: 'minimax/hailuo-2.3-fast',
+    hasAudioToggle: false,
+    hasResolutionOptions: false,
+    id: 'model-1',
+    isFree: false,
+    key: 'minimax/hailuo-2.3-fast',
+    provider: 'replicate',
+    providerInputSchema: {
+      properties: {
+        duration: { enum: [6, 10] },
+        resolution: { enum: ['768P', '1080P'] },
+      },
+    },
+    reviewedProviderContractVersion: null,
+    ...overrides,
+  };
+}
+
+function harness(row: ReturnType<typeof modelRow> | null, reviewed?: unknown) {
+  const prisma = {
+    model: {
+      findFirst: vi.fn().mockResolvedValue(row),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
+    modelProviderContract: {
+      findUnique: vi.fn().mockResolvedValue(reviewed ?? null),
+      upsert: vi.fn().mockResolvedValue({}),
+    },
+  };
+  return prisma;
+}
+
+describe('reviewed provider rates seed', () => {
+  it('seeds an approved contract whose version is the rate hash and prices hailuo-2.3-fast', async () => {
+    const prisma = harness(modelRow());
+
+    const written = await seedReviewedProviderRates(prisma as never, [hailuo]);
+
+    expect(written).toBe(1);
+    const create =
+      prisma.modelProviderContract.upsert.mock.calls[0]?.[0].create;
+    expect(create).toMatchObject({
+      endpoint: 'minimax/hailuo-2.3-fast',
+      mappingStatus: 'supported',
+      reviewStatus: 'approved',
+      reviewedBy: RATE_SHEET_REVIEWER,
+      version: hailuoVersion,
+    });
+    expect(prisma.model.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          reviewedProviderContractVersion: hailuoVersion,
+          providerSyncStatus: 'fresh',
+        }),
+        where: { id: 'model-1', isDeleted: false, organizationId: null },
+      }),
+    );
+    const profile = projectModelBillablePricingProfile(
+      {
+        ...modelRow(),
+        cost: 0,
+        costPerUnit: null,
+        isActive: true,
+        isDeleted: false,
+        minCost: null,
+        pendingProviderContractVersion: null,
+        pricingType: 'flat',
+        providerCostUsd: null,
+        reviewedProviderContractVersion: hailuoVersion,
+      } as never,
+      [
+        {
+          ...create,
+          discoveredAt: new Date(create.discoveredAt),
+          lastSeenAt: new Date(create.lastSeenAt),
+        },
+      ],
+    );
+    expect(
+      quoteModelBillablePricing(
+        profile,
+        {
+          modelKey: 'minimax/hailuo-2.3-fast',
+          provider: 'replicate',
+          selectors: { duration: 6, resolution: '768P' },
+        },
+        3.33,
+        '2026-12-31T00:00:00Z',
+      ),
+    ).toMatchObject({
+      snapshot: { credits: applyMargin(0.19, 3.33), providerCostUsd: 0.19 },
+      status: 'priced',
+    });
+  });
+
+  it('is idempotent: a row already on these rates is left alone', async () => {
+    const prisma = harness(
+      modelRow({ reviewedProviderContractVersion: hailuoVersion }),
+    );
+
+    expect(await seedReviewedProviderRates(prisma as never, [hailuo])).toBe(0);
+    expect(prisma.modelProviderContract.upsert).not.toHaveBeenCalled();
+    expect(prisma.model.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('skips a model that is not in the registry', async () => {
+    const prisma = harness(null);
+
+    expect(await seedReviewedProviderRates(prisma as never, [hailuo])).toBe(0);
+  });
+
+  it('never overwrites a contract an operator approved at or after the sheet date', async () => {
+    const prisma = harness(
+      modelRow({ reviewedProviderContractVersion: 'operator-approved' }),
+      {
+        pricing: {},
+        reviewedAt: new Date('2026-12-01T00:00:00Z'),
+        reviewedBy: 'user-1',
+      },
+    );
+
+    expect(await seedReviewedProviderRates(prisma as never, [hailuo])).toBe(0);
+    expect(prisma.model.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('replaces an older rate-sheet contract with different rates', async () => {
+    const prisma = harness(
+      modelRow({ reviewedProviderContractVersion: 'older-sheet' }),
+      {
+        pricing: {},
+        reviewedAt: new Date('2026-01-01T00:00:00Z'),
+        reviewedBy: RATE_SHEET_REVIEWER,
+      },
+    );
+
+    expect(await seedReviewedProviderRates(prisma as never, [hailuo])).toBe(1);
+  });
+
+  it('gives FLUX.3 and Ideogram editing the input schema the old seeds shipped', async () => {
+    const flux = REVIEWED_RATE_SHEET_ENTRIES.find(
+      (entry) => entry.endpoint === 'black-forest-labs/flux-3-image',
+    );
+    if (!flux) throw new Error('missing flux entry');
+    const prisma = harness(
+      modelRow({
+        endpoint: 'black-forest-labs/flux-3-image',
+        key: 'black-forest-labs/flux-3-image',
+        providerInputSchema: null,
+      }),
+    );
+
+    await seedReviewedProviderRates(prisma as never, [flux]);
+
+    expect(prisma.model.updateMany.mock.calls[0]?.[0].data).toMatchObject({
+      providerSchemaFamily: 'flux-3-image-v1',
+    });
+    expect(
+      prisma.model.updateMany.mock.calls[0]?.[0].data.providerInputSchema,
+    ).toHaveProperty('properties.resolution');
+  });
+});

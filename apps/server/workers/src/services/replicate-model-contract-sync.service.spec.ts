@@ -7,11 +7,42 @@ import {
 import type { ReviewedProviderRate } from '@genfeedai/contracts/interfaces';
 import { hashReviewedProviderRates } from '@genfeedai/pricing';
 import type { IReplicateModel } from '@workers/interfaces/model-discovery.interface';
-import {
-  HAILUO_2_3_FAST_BILLING_TIERS,
-  HAILUO_2_3_FAST_INPUT_PROPERTIES,
-} from '@workers/services/replicate-billing-config.fixture';
 import { ReplicateModelContractSyncService } from '@workers/services/replicate-model-contract-sync.service';
+
+const tier = (resolution: string, seconds: number, price: string) => ({
+  criteria: [
+    {
+      subtype: 'string',
+      title: 'target resolution',
+      type: 'equals',
+      value: resolution,
+    },
+    {
+      subtype: 'number',
+      title: 'second of output video',
+      type: 'equals',
+      value: seconds,
+    },
+  ],
+  prices: [
+    {
+      metric: 'video_output_count',
+      price,
+      title: 'per output video',
+      type: 'per-unit',
+    },
+  ],
+});
+// Replicate's billingConfig tiers for minimax/hailuo-2.3-fast, 2026-10-05.
+const HAILUO_2_3_FAST_BILLING_TIERS = [
+  tier('768P', 6, '$0.19'),
+  tier('768P', 10, '$0.32'),
+  tier('1080P', 6, '$0.33'),
+];
+const HAILUO_2_3_FAST_INPUT_PROPERTIES = {
+  duration: { enum: [6, 10], title: 'Duration', type: 'integer' },
+  resolution: { enum: ['768P', '1080P'], title: 'Resolution', type: 'string' },
+};
 
 function providerModel(openapi = validOpenapi()): IReplicateModel {
   return {

@@ -8,6 +8,10 @@ import type {
   TypedDecisionAnswer,
   TypedDecisionMode,
 } from '@genfeedai/contracts/interfaces';
+import {
+  extractReplicateBillingTiers,
+  type ReplicateBillingObservation,
+} from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
@@ -26,10 +30,6 @@ import {
   resolveModelDiscoveryDecisionSettings,
 } from '@workers/services/model-discovery-decision.settings';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
-import {
-  extractReplicateBillingTiers,
-  type ReplicateBillingObservation,
-} from '@workers/services/replicate-billing-config.util';
 
 /** Public Replicate model pages are the structured rate source (#6196). */
 const REPLICATE_PAGE_TIMEOUT_MS = 30_000;

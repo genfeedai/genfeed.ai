@@ -2,7 +2,10 @@ import type {
   ProviderBillingUnit,
   ReviewedProviderRate,
 } from '@genfeedai/contracts/interfaces';
-import { isRecord } from '@workers/services/provider-contract.util';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
 
 /** What the Replicate public model page said about billing. */
 export type ReplicateBillingObservation =

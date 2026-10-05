@@ -14,6 +14,10 @@ import type {
   ReviewedProviderPricing,
   ReviewedProviderRate,
 } from '@genfeedai/contracts/interfaces';
+import {
+  mapReplicateBillingTiers,
+  type ReplicateBillingObservation,
+} from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
 import { hashReplicateProviderContract } from '@libs/utils/provider-contract.util';
 import { Injectable } from '@nestjs/common';
@@ -27,10 +31,6 @@ import {
   compareProviderRates,
   loadReviewedRateContract,
 } from '@workers/services/provider-rate-sync.util';
-import {
-  mapReplicateBillingTiers,
-  type ReplicateBillingObservation,
-} from '@workers/services/replicate-billing-config.util';
 
 export interface ReplicateSyncModelRecord {
   category: string;
