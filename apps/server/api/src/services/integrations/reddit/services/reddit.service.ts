@@ -1,4 +1,5 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
+import { recordTrendProviderOutcome } from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import {
   SERVER_TOKENS,
   type ServerCredentialStore,
@@ -77,7 +78,8 @@ export class RedditService {
    * Read public Reddit listings with application-only OAuth. Global discovery
    * uses r/all; a connected brand Reddit account narrows discovery to the
    * credential's configured subreddit and combines its hot and daily top
-   * listings.
+   * listings. Without app credentials the native provider is unavailable and
+   * makes no Reddit call, so trend orchestration moves to the Apify fallback.
    */
   public async getTrends(
     organizationId?: string,
@@ -85,6 +87,11 @@ export class RedditService {
     limit = 20,
     settings: ChannelTargetSettings = {},
   ): Promise<RedditTrend[]> {
+    if (!this.hasAppCredentials()) {
+      recordTrendProviderOutcome('native_empty', 'native_unavailable');
+      return [];
+    }
+
     const accessToken = await this.getAppAccessToken();
     const subreddit = await this.resolveScopedSubreddit(
       organizationId,
@@ -231,6 +238,13 @@ export class RedditService {
             : undefined,
         },
       ];
+    });
+  }
+
+  private hasAppCredentials(): boolean {
+    return ['REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET'].every((key) => {
+      const value = this.configService.get(key);
+      return typeof value === 'string' && value.trim().length > 0;
     });
   }
 

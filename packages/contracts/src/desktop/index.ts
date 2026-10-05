@@ -14,6 +14,26 @@ import type { IAgentThreadExternalRuntime } from '../interfaces/ai/agent-externa
  */
 export const IS_DESKTOP_LOCAL_MODE_ENABLED = false;
 
+/**
+ * Test-harness seam: a process that sets this global symbol to `true` forces
+ * local mode on. Only `apps/desktop/app/scripts/runtime-acceptance-launcher.cjs`
+ * (unpackaged) and Playwright's init script set it; no shipped code, env var
+ * or setting does. The main-process IPC gate stays authoritative, so setting
+ * it in a renderer can only reveal UI, never enable local mode.
+ */
+export const DESKTOP_LOCAL_MODE_TEST_OVERRIDE = Symbol.for(
+  'genfeed.desktop.localModeTestOverride',
+);
+
+/** Single read point for every renderer and main-process local-mode gate. */
+export function isDesktopLocalModeEnabled(): boolean {
+  const overrides = globalThis as { [key: symbol]: unknown };
+  return (
+    IS_DESKTOP_LOCAL_MODE_ENABLED ||
+    overrides[DESKTOP_LOCAL_MODE_TEST_OVERRIDE] === true
+  );
+}
+
 export const DESKTOP_ASSET_PROTOCOL_HOST = 'local';
 export const DESKTOP_ASSET_PROTOCOL_SCHEME = 'genfeed-asset';
 

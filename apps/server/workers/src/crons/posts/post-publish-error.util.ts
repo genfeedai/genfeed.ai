@@ -8,8 +8,8 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import { isRecord } from '@workers/services/provider-contract.util';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 
 const RETRYABLE_ERROR_PATTERNS = [

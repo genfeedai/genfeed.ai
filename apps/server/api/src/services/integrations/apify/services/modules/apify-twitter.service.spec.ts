@@ -42,18 +42,20 @@ describe('ApifyTwitterService', () => {
   };
 
   const mockTrend = {
-    category: 'Technology',
+    countryCode: 'US',
+    isHashtag: true,
+    isPromoted: false,
     name: '#AItrending',
     rank: 1,
     tweetVolume: 150000,
-    url: 'https://twitter.com/search?q=%23AItrending',
+    twitterSearchUrl: 'http://twitter.com/search?q=%23AItrending',
   };
 
   beforeEach(async () => {
     baseService = {
       ACTORS: {
         TWITTER_SCRAPER: 'quacker/twitter-scraper',
-        TWITTER_TRENDS: 'quacker/twitter-trends-scraper',
+        TWITTER_TRENDS: 'automation-lab/twitter-trends-scraper',
       },
       calculateGrowthRate: vi.fn().mockReturnValue(65),
       getApiToken: vi.fn().mockReturnValue('test-token'),
@@ -87,7 +89,27 @@ describe('ApifyTwitterService', () => {
       platform: 'twitter',
       topic: '#AItrending',
     });
-    expect(result[0].metadata.trendType).toBe('hashtag');
+    expect(result[0].metadata).toMatchObject({
+      hashtags: ['AItrending'],
+      trendType: 'hashtag',
+      urls: ['http://twitter.com/search?q=%23AItrending'],
+    });
+    expect(baseService.runActor).toHaveBeenCalledWith(
+      'automation-lab/twitter-trends-scraper',
+      { locations: ['US'], maxTrendsPerLocation: 10 },
+    );
+  });
+
+  it('getTwitterTrends drops promoted and nameless rows and tolerates a null volume', async () => {
+    baseService.runActor.mockResolvedValue([
+      { ...mockTrend, isPromoted: true, name: '#Sponsored' },
+      { ...mockTrend, name: undefined },
+      { ...mockTrend, isHashtag: false, name: 'Election', tweetVolume: null },
+    ]);
+    const result = await service.getTwitterTrends();
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ mentions: 0, topic: 'Election' });
+    expect(result[0].metadata.trendType).toBe('topic');
   });
 
   it('getTwitterTrends rethrows provider failures', async () => {
@@ -236,7 +258,7 @@ describe('ApifyTwitterService', () => {
 
   it('normalizes trend without hashtag prefix as topic type', async () => {
     baseService.runActor.mockResolvedValue([
-      { ...mockTrend, name: 'Breaking News' },
+      { ...mockTrend, isHashtag: undefined, name: 'Breaking News' },
     ]);
     const result = await service.getTwitterTrends();
     expect(result[0].metadata.trendType).toBe('topic');

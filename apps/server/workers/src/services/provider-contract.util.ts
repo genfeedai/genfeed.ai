@@ -1,4 +1,1 @@
-export {
-  hashProviderContract,
-  isRecord,
-} from '@libs/utils/provider-contract.util';
+export { hashProviderContract } from '@libs/utils/provider-contract.util';

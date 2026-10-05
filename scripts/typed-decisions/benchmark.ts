@@ -63,6 +63,7 @@ import type {
   TypedDecisionProvider,
   TypedDecisionProviderName,
 } from '@genfeedai/contracts/interfaces';
+import { readRecordOrUndefined } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { createLogger, format, transports } from 'winston';
@@ -117,15 +118,9 @@ function readNumberFlag(name: string): number | undefined {
   return parsed;
 }
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
-
 function parseRow(line: string, index: number): BenchmarkFixtureRow {
-  const row = asRecord(JSON.parse(line));
-  const state = asRecord(row?.state);
+  const row = readRecordOrUndefined(JSON.parse(line));
+  const state = readRecordOrUndefined(row?.state);
   const expected = row?.expected;
 
   if (!row || !state) {

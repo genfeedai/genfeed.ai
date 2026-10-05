@@ -10,10 +10,6 @@ export interface ReplicateProviderContractHashInput {
   schemaFamily: string | null;
 }
 
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
 /** Canonical snapshot identity, shared by discovery and admission. */
 export function hashProviderContract(value: unknown): string {
   return `sha256:${sha256Hex(stableStringify(value))}`;

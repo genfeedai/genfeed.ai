@@ -15,9 +15,7 @@ const buildFlag = vi.hoisted(() => ({ isLocalModeEnabled: true }));
 
 vi.mock('@genfeedai/contracts/desktop', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@genfeedai/contracts/desktop')>()),
-  get IS_DESKTOP_LOCAL_MODE_ENABLED() {
-    return buildFlag.isLocalModeEnabled;
-  },
+  isDesktopLocalModeEnabled: () => buildFlag.isLocalModeEnabled,
 }));
 
 const runtimeMocks = vi.hoisted(() => ({

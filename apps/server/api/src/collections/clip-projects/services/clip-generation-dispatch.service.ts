@@ -18,11 +18,8 @@ import {
   type ClipGenerationResult,
   serializeClipGenerationResult,
 } from '@genfeedai/serializers';
+import { readNonEmptyStringOrNull } from '@genfeedai/utils/data/extract.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
-
-function readNonEmptyString(value: unknown): string | null {
-  return typeof value === 'string' && value.length > 0 ? value : null;
-}
 
 function toDispatchedStatus(
   result: ClipGenerationJobResult,
@@ -246,14 +243,14 @@ export class ClipGenerationDispatchService {
       );
     }
     const highlights = failedResults.map((result) => ({
-      clip_type: readNonEmptyString(result.clipType) ?? 'highlight',
+      clip_type: readNonEmptyStringOrNull(result.clipType) ?? 'highlight',
       end_time: result.endTime as number,
       start_time: result.startTime as number,
-      summary: readNonEmptyString(result.summary) ?? '',
+      summary: readNonEmptyStringOrNull(result.summary) ?? '',
       tags: Array.isArray(result.tags)
         ? result.tags.filter((tag): tag is string => typeof tag === 'string')
         : [],
-      title: readNonEmptyString(result.title) ?? 'Clip',
+      title: readNonEmptyStringOrNull(result.title) ?? 'Clip',
       virality_score:
         typeof result.viralityScore === 'number' ? result.viralityScore : 0,
     }));

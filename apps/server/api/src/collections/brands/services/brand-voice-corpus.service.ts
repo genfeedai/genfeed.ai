@@ -11,7 +11,10 @@ import type {
   IBrandVoiceCorpus,
   IBrandVoiceCorpusCandidate,
 } from '@genfeedai/contracts/interfaces';
-import { readRecord } from '@genfeedai/utils/data/extract.util';
+import {
+  readRecord,
+  readTrimmedStringOrNull,
+} from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -23,10 +26,6 @@ const OWN_ACCOUNT_FETCH_LIMIT = 600;
 const PUBLISHED_POST_FETCH_LIMIT = 300;
 
 const RETWEET_PREFIX_PATTERN = /^RT @/u;
-
-function readNonEmptyString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
 
 function normalizeHandle(value: string | null | undefined): string {
   return (value ?? '').trim().replace(/^@/, '').toLowerCase();
@@ -86,9 +85,9 @@ export function classifyOwnAccountPost(
     return null;
   }
   if (
-    readNonEmptyString(raw.quotedPostId) ||
-    readNonEmptyString(raw.quotedId) ||
-    readNonEmptyString(raw.quoteTweetId)
+    readTrimmedStringOrNull(raw.quotedPostId) ||
+    readTrimmedStringOrNull(raw.quotedId) ||
+    readTrimmedStringOrNull(raw.quoteTweetId)
   ) {
     return null;
   }
@@ -98,8 +97,8 @@ export function classifyOwnAccountPost(
     return null;
   }
 
-  const inReplyTo = readNonEmptyString(raw.inReplyToId);
-  const authorId = readNonEmptyString(raw.authorId);
+  const inReplyTo = readTrimmedStringOrNull(raw.inReplyToId);
+  const authorId = readTrimmedStringOrNull(raw.authorId);
   const isSelfReply = Boolean(inReplyTo && authorId && inReplyTo === authorId);
   if ((inReplyTo && !isSelfReply) || text.startsWith('@')) {
     return 'reply';

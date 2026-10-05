@@ -52,7 +52,7 @@ const WORKFLOW_DELAY_UNIT_MS = {
   seconds: 1000,
 } as const;
 
-function asRecord(value: unknown): Record<string, unknown> {
+function readObjectLikeOrEmpty(value: unknown): Record<string, unknown> {
   return typeof value === 'object' && value !== null
     ? (value as Record<string, unknown>)
     : {};
@@ -64,7 +64,7 @@ function optionalString(value: unknown): string | null {
 
 function readPath(value: unknown, path: string): unknown {
   return path.split('.').reduce<unknown>((current, segment) => {
-    const record = asRecord(current);
+    const record = readObjectLikeOrEmpty(current);
     return record[segment];
   }, value);
 }
@@ -77,7 +77,7 @@ function isEmptyConditionValue(value: unknown): boolean {
     (Array.isArray(value) && value.length === 0) ||
     (typeof value === 'object' &&
       !Array.isArray(value) &&
-      Object.keys(asRecord(value)).length === 0)
+      Object.keys(readObjectLikeOrEmpty(value)).length === 0)
   );
 }
 
@@ -188,7 +188,7 @@ function resolveDelayMs(config: Record<string, unknown>, now: Date): number {
 }
 
 function toWorkflowBrandContext(brand: Brand): WorkflowBrandContext {
-  const row = asRecord(brand);
+  const row = readObjectLikeOrEmpty(brand);
   const effectiveVoice = resolveEffectiveBrandAgentConfig({ brand }).voice;
 
   return {

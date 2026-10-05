@@ -7,6 +7,7 @@ import {
 import { ModelProvider } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { Injectable } from '@nestjs/common';
 import {
   mapFalPricing,
@@ -14,10 +15,7 @@ import {
   normalizeFalPrice,
 } from '@workers/crons/fal-model-watcher/fal-pricing';
 import type { IFalModel } from '@workers/interfaces/model-discovery.interface';
-import {
-  hashProviderContract,
-  isRecord,
-} from '@workers/services/provider-contract.util';
+import { hashProviderContract } from '@workers/services/provider-contract.util';
 
 export interface FalSyncModelRecord {
   endpoint: string;

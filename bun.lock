@@ -497,6 +497,7 @@
         "@genfeedai/helpers": "workspace:*",
         "@genfeedai/libs": "workspace:*",
         "@genfeedai/ui": "workspace:*",
+        "@genfeedai/utils": "workspace:*",
         "@posthog/mcp": "0.21.4",
         "posthog-node": "5.55.0",
         "tsconfig-paths": "4.2.0",
@@ -624,6 +625,9 @@
     "packages/actions": {
       "name": "@genfeedai/actions",
       "version": "0.1.4",
+      "dependencies": {
+        "@genfeedai/contracts": "workspace:*",
+      },
       "devDependencies": {
         "@types/node": "24.13.3",
         "@typescript/native": "npm:typescript@7.0.2",

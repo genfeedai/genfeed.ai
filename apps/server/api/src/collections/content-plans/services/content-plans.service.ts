@@ -7,7 +7,6 @@ import type {
 import {
   asDate,
   asNumber,
-  asRecord,
   asString,
   serializeDate,
 } from '@api/collections/content-plans/utils/content-plan-data.util';
@@ -23,6 +22,7 @@ import {
   type ContentPlan as PrismaContentPlan,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { readRecordCopy } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -261,7 +261,7 @@ export class ContentPlansService extends BaseService<
   }
 
   private toDocument(doc: PrismaContentPlan): ContentPlanDocument {
-    const config = asRecord(doc.config);
+    const config = readRecordCopy(doc.config);
     const name = asString(config.name) ?? doc.label ?? null;
 
     return this.normalizeDocument({
@@ -287,7 +287,7 @@ export class ContentPlansService extends BaseService<
     data: ContentPlanConfigInput,
     existingConfig?: unknown,
   ): Record<string, unknown> {
-    const payload = asRecord(existingConfig);
+    const payload = readRecordCopy(existingConfig);
 
     if (data.name !== undefined) {
       payload.name = data.name;

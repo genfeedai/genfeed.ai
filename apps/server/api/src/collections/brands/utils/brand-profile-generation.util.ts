@@ -136,7 +136,7 @@ function clampText(value: string, maxLength: number): string {
   return value.trim().replace(/\s+/g, ' ').slice(0, maxLength).trim();
 }
 
-function readString(
+function readClampedProfileText(
   value: unknown,
   maxLength: number = MAX_PROFILE_TEXT_LENGTH,
 ): string {
@@ -155,7 +155,7 @@ function readStringList(
   const seen = new Set<string>();
 
   return items.flatMap((item) => {
-    const normalized = readString(item);
+    const normalized = readClampedProfileText(item);
     const key = normalized.toLowerCase();
     if (!normalized || seen.has(key) || seen.size >= limit) {
       return [];
@@ -205,7 +205,7 @@ function normalizeSeed(
     return null;
   }
 
-  const requestedTopic = readString(record.topic);
+  const requestedTopic = readClampedProfileText(record.topic);
   const topic = allowedTopics.find(
     (candidate) => candidate.toLowerCase() === requestedTopic.toLowerCase(),
   );
@@ -218,8 +218,8 @@ function normalizeSeed(
   );
 
   return {
-    angle: readString(record.angle) || 'Practical guidance',
-    audience: readString(record.audience) || fallbackAudience,
+    angle: readClampedProfileText(record.angle) || 'Practical guidance',
+    audience: readClampedProfileText(record.audience) || fallbackAudience,
     preferredFormats: preferredFormats.length > 0 ? preferredFormats : ['post'],
     topic,
   };
@@ -332,8 +332,8 @@ export function parseGeneratedBrandProfile(
   promptSamples: readonly IBrandVoiceSample[] = [],
 ): IGeneratedBrandProfile {
   const record = parseJsonObject(content);
-  const tone = readString(record.tone);
-  const style = readString(record.style ?? record.voice);
+  const tone = readClampedProfileText(record.tone);
+  const style = readClampedProfileText(record.style ?? record.voice);
   const audience = readStringList(record.audience, 4);
   const messagingPillars = readStringList(record.messagingPillars, 5);
   const topics = readStringList(record.topics, 6);
@@ -392,7 +392,7 @@ export function parseGeneratedBrandProfile(
       audience,
       tone,
     ),
-    sampleOutput: readString(record.sampleOutput, 1000),
+    sampleOutput: readClampedProfileText(record.sampleOutput, 1000),
     strategy: {
       goals: readStringList(record.goals, 4),
       topics: canonicalTopics,

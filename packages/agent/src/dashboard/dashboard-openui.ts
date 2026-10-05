@@ -162,10 +162,6 @@ function assertDocumentSize(input: unknown, path: FieldPath): void {
   }
 }
 
-function isRecord(value: unknown): value is DashboardRecord {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 function isPrimitive(value: unknown): value is DashboardPrimitive {
   return (
     value === null ||
@@ -175,7 +171,11 @@ function isPrimitive(value: unknown): value is DashboardPrimitive {
   );
 }
 
-function readRecord(
+function isRecord(value: unknown): value is DashboardRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readRecordField(
   source: DashboardRecord,
   key: string,
   path: FieldPath,
@@ -194,7 +194,7 @@ function readRecord(
   return value;
 }
 
-function readString(
+function readStringField(
   source: DashboardRecord,
   key: string,
   path: FieldPath,
@@ -366,7 +366,7 @@ function readPrimitiveRecordArray(
 }
 
 function parseHydration(source: DashboardRecord, path: FieldPath) {
-  const hydration = readRecord(source, 'hydration', path);
+  const hydration = readRecordField(source, 'hydration', path);
   if (!hydration) {
     return undefined;
   }
@@ -390,7 +390,7 @@ function parseSourceParams(
   source: DashboardRecord,
   path: FieldPath,
 ): AgentBlockSourceParams | undefined {
-  const record = readRecord(source, 'sourceParams', path);
+  const record = readRecordField(source, 'sourceParams', path);
   if (!record) {
     return undefined;
   }
@@ -404,17 +404,19 @@ function parseSourceParams(
 }
 
 function parseBaseBlock(source: DashboardRecord, path: FieldPath) {
-  const id = readString(source, 'id', path, {
+  const id = readStringField(source, 'id', path, {
     maxLength: 96,
     required: true,
   });
   if (!id) {
     fail('invalid_props', `${path}.id`, 'id is required');
   }
-  const title = readString(source, 'title', path, { maxLength: 160 });
+  const title = readStringField(source, 'title', path, { maxLength: 160 });
   const width = readEnum(source, 'width', path, WIDTHS);
   const hydration = parseHydration(source, path);
-  const sourceKey = readString(source, 'sourceKey', path, { maxLength: 96 });
+  const sourceKey = readStringField(source, 'sourceKey', path, {
+    maxLength: 96,
+  });
   const sourceParams = parseSourceParams(source, path);
   return {
     ...(hydration ? { hydration } : {}),
@@ -427,7 +429,7 @@ function parseBaseBlock(source: DashboardRecord, path: FieldPath) {
 }
 
 function parseTrend(source: DashboardRecord, path: FieldPath) {
-  const trend = readRecord(source, 'trend', path);
+  const trend = readRecordField(source, 'trend', path);
   if (!trend) {
     return undefined;
   }
@@ -454,9 +456,11 @@ function parseMetricCard(
   path: FieldPath,
 ): MetricCardBlock {
   const base = parseBaseBlock(source, path);
-  const subtitle = readString(source, 'subtitle', path, { maxLength: 240 });
-  const icon = readString(source, 'icon', path, { maxLength: 40 });
-  const color = readString(source, 'color', path, { maxLength: 40 });
+  const subtitle = readStringField(source, 'subtitle', path, {
+    maxLength: 240,
+  });
+  const icon = readStringField(source, 'icon', path, { maxLength: 40 });
+  const color = readStringField(source, 'color', path, { maxLength: 40 });
   const trend = parseTrend(source, path);
   return {
     ...base,
@@ -516,15 +520,15 @@ function parseSeries(source: DashboardRecord, path: FieldPath) {
       );
     }
     const itemPath = `${path}.series[${index}]`;
-    const key = readString(item, 'key', itemPath, {
+    const key = readStringField(item, 'key', itemPath, {
       maxLength: 80,
       required: true,
     });
-    const label = readString(item, 'label', itemPath, {
+    const label = readStringField(item, 'label', itemPath, {
       maxLength: 120,
       required: true,
     });
-    const color = readString(item, 'color', itemPath, { maxLength: 40 });
+    const color = readStringField(item, 'color', itemPath, { maxLength: 40 });
     if (!key || !label) {
       fail('invalid_props', itemPath, 'series item requires key and label');
     }
@@ -543,8 +547,8 @@ function parseChart(source: DashboardRecord, path: FieldPath): ChartBlock {
   const series = parseSeries(source, path);
   const showGrid = readBoolean(source, 'showGrid', path);
   const showLegend = readBoolean(source, 'showLegend', path);
-  const xAxis = readString(source, 'xAxis', path, { maxLength: 80 });
-  const yAxis = readString(source, 'yAxis', path, { maxLength: 80 });
+  const xAxis = readStringField(source, 'xAxis', path, { maxLength: 80 });
+  const yAxis = readStringField(source, 'yAxis', path, { maxLength: 80 });
   return {
     ...parseBaseBlock(source, path),
     chartType,
@@ -580,11 +584,11 @@ function parseColumns(source: DashboardRecord, path: FieldPath) {
       );
     }
     const itemPath = `${path}.columns[${index}]`;
-    const key = readString(item, 'key', itemPath, {
+    const key = readStringField(item, 'key', itemPath, {
       maxLength: 80,
       required: true,
     });
-    const label = readString(item, 'label', itemPath, {
+    const label = readStringField(item, 'label', itemPath, {
       maxLength: 120,
       required: true,
     });
@@ -604,7 +608,7 @@ function parseColumns(source: DashboardRecord, path: FieldPath) {
 
 function parseTable(source: DashboardRecord, path: FieldPath): TableBlock {
   const pageSize = readInteger(source, 'pageSize', path, { max: 100, min: 1 });
-  const sortBy = readString(source, 'sortBy', path, { maxLength: 80 });
+  const sortBy = readStringField(source, 'sortBy', path, { maxLength: 80 });
   const sortDirection = readEnum(
     source,
     'sortDirection',
@@ -646,7 +650,7 @@ function parseTopPosts(
         );
       }
       const itemPath = `${path}.posts[${index}]`;
-      const id = readString(post, 'id', itemPath, {
+      const id = readStringField(post, 'id', itemPath, {
         maxLength: 96,
         required: true,
       });
@@ -654,14 +658,16 @@ function parseTopPosts(
         fail('invalid_props', `${itemPath}.id`, 'post id is required');
       }
       const engagement = readNumber(post, 'engagement', itemPath);
-      const platform = readString(post, 'platform', itemPath, {
+      const platform = readStringField(post, 'platform', itemPath, {
         maxLength: 80,
       });
-      const publishedAt = readString(post, 'publishedAt', itemPath, {
+      const publishedAt = readStringField(post, 'publishedAt', itemPath, {
         maxLength: 80,
       });
       const thumbnail = readSafeUrl(post, 'thumbnail', itemPath);
-      const title = readString(post, 'title', itemPath, { maxLength: 180 });
+      const title = readStringField(post, 'title', itemPath, {
+        maxLength: 180,
+      });
       const views = readNumber(post, 'views', itemPath);
       return {
         ...(engagement !== undefined ? { engagement } : {}),
@@ -678,7 +684,7 @@ function parseTopPosts(
 }
 
 function parseAlert(source: DashboardRecord, path: FieldPath): AlertBlock {
-  const message = readString(source, 'message', path, {
+  const message = readStringField(source, 'message', path, {
     maxLength: 500,
     required: true,
   });
@@ -714,7 +720,7 @@ function parseSectionHeader(
   source: DashboardRecord,
   path: FieldPath,
 ): SectionHeaderBlock {
-  const text = readString(source, 'text', path, {
+  const text = readStringField(source, 'text', path, {
     maxLength: 200,
     required: true,
   });
@@ -734,7 +740,7 @@ function parseTextParagraph(
   source: DashboardRecord,
   path: FieldPath,
 ): TextParagraphBlock {
-  const text = readString(source, 'text', path, {
+  const text = readStringField(source, 'text', path, {
     maxLength: 4000,
     required: true,
   });
@@ -778,7 +784,7 @@ function parseBulletList(
 }
 
 function parseCallout(source: DashboardRecord, path: FieldPath): CalloutBlock {
-  const message = readString(source, 'message', path, {
+  const message = readStringField(source, 'message', path, {
     maxLength: 500,
     required: true,
   });
@@ -811,7 +817,7 @@ function readSafeUrl(
   path: FieldPath,
   required = false,
 ): string | undefined {
-  const value = readString(source, key, path, {
+  const value = readStringField(source, key, path, {
     maxLength: 1000,
     required,
   });
@@ -860,8 +866,8 @@ function parseImageGrid(
       if (!url) {
         fail('invalid_props', `${itemPath}.url`, 'image url is required');
       }
-      const alt = readString(image, 'alt', itemPath, { maxLength: 180 });
-      const caption = readString(image, 'caption', itemPath, {
+      const alt = readStringField(image, 'alt', itemPath, { maxLength: 180 });
+      const caption = readStringField(image, 'caption', itemPath, {
         maxLength: 240,
       });
       return {
@@ -912,16 +918,18 @@ function parseEmptyState(
   source: DashboardRecord,
   path: FieldPath,
 ): EmptyStateBlock {
-  const message = readString(source, 'message', path, {
+  const message = readStringField(source, 'message', path, {
     maxLength: 500,
     required: true,
   });
   if (!message) {
     fail('invalid_props', `${path}.message`, 'message is required');
   }
-  const ctaAction = readString(source, 'ctaAction', path, { maxLength: 160 });
-  const ctaLabel = readString(source, 'ctaLabel', path, { maxLength: 80 });
-  const icon = readString(source, 'icon', path, { maxLength: 40 });
+  const ctaAction = readStringField(source, 'ctaAction', path, {
+    maxLength: 160,
+  });
+  const ctaLabel = readStringField(source, 'ctaLabel', path, { maxLength: 80 });
+  const icon = readStringField(source, 'icon', path, { maxLength: 40 });
   return {
     ...parseBaseBlock(source, path),
     ...(ctaAction ? { ctaAction } : {}),
@@ -1048,7 +1056,9 @@ function parseOpenUIComponents(input: unknown): unknown[] {
   if (!isRecord(input)) {
     fail('invalid_document', 'document', 'OpenUI document must be an object');
   }
-  const version = readString(input, 'version', 'document', { maxLength: 80 });
+  const version = readStringField(input, 'version', 'document', {
+    maxLength: 80,
+  });
   if (version && version !== DASHBOARD_OPENUI_VERSION) {
     fail(
       'invalid_document',
@@ -1068,7 +1078,7 @@ function readOpenUIProps(
   node: DashboardRecord,
   path: FieldPath,
 ): DashboardRecord {
-  return readRecord(node, 'props', path) ?? {};
+  return readRecordField(node, 'props', path) ?? {};
 }
 
 function readOpenUIComponent(

@@ -10,10 +10,10 @@ import {
   PricingType,
 } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { hashReplicateProviderContract } from '@libs/utils/provider-contract.util';
 import { Injectable } from '@nestjs/common';
 import type { IReplicateModel } from '@workers/interfaces/model-discovery.interface';
-import { isRecord } from '@workers/services/provider-contract.util';
 
 export interface ReplicateSyncModelRecord {
   category: string;

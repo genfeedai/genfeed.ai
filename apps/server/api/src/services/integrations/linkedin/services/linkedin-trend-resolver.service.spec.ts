@@ -1,3 +1,7 @@
+import {
+  captureTrendRefreshEvidence,
+  withTrendRefreshAttempt,
+} from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { LinkedInTrendResolverService } from '@api/services/integrations/linkedin/services/linkedin-trend-resolver.service';
 import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
@@ -44,7 +48,7 @@ describe('LinkedInTrendResolverService', () => {
         'Teams are investing more in #AI safety and enterprise deployment.',
       ],
       scrapedAt: new Date('2026-03-26T10:00:00.000Z'),
-      sourceUrl: 'https://www.linkedin.com/company/anthropic-ai/',
+      sourceUrl: 'https://www.linkedin.com/company/anthropicresearch/',
     });
     brandScraperService.scrapeLinkedIn.mockResolvedValue({
       companyName: 'Other',
@@ -86,6 +90,42 @@ describe('LinkedInTrendResolverService', () => {
       expect(loggerService.warn).toHaveBeenCalled();
     },
   );
+
+  it('reports why scraped pages produced no usable topics', async () => {
+    brandScraperService.scrapeLinkedIn
+      .mockRejectedValueOnce(new Error('Failed to fetch LinkedIn page: 404'))
+      .mockResolvedValue({
+        recentPosts: [],
+        sourceUrl: 'https://www.linkedin.com/company/empty/',
+      });
+
+    expect(await service.resolve()).toEqual([]);
+    expect(loggerService.warn).toHaveBeenCalledWith(
+      expect.stringContaining('no usable topics'),
+      { failedSourceCount: 1, sourceCount: 8, sourcesWithPosts: 0 },
+    );
+  });
+
+  it('records a native failure when every page loads but yields no posts', async () => {
+    brandScraperService.scrapeLinkedIn.mockResolvedValue({
+      recentPosts: [],
+      sourceUrl: 'https://www.linkedin.com/company/empty/',
+    });
+
+    const captured = await captureTrendRefreshEvidence(() =>
+      withTrendRefreshAttempt('linkedin', 'trends', 'global', () =>
+        service.resolve(),
+      ),
+    );
+
+    expect(captured.result).toEqual([]);
+    expect(captured.evidence).toEqual([
+      expect.objectContaining({
+        outcome: 'native_failed',
+        reason: 'native_failed',
+      }),
+    ]);
+  });
 
   it('returns no trends when every scrape fails', async () => {
     brandScraperService.scrapeLinkedIn.mockRejectedValue(

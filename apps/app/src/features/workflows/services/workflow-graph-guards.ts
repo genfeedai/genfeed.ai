@@ -1,8 +1,5 @@
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type { Edge, Node } from '@xyflow/react';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 export function isWorkflowGraphNode(value: unknown): value is Node {
   return (
