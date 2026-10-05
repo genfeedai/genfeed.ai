@@ -66,6 +66,11 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
         resolution: { type: 'string', description: 'Cost only.' },
         duration: { type: 'number', description: 'Cost only, in seconds.' },
         outputs: { type: 'number', description: 'Cost only.' },
+        isAudioEnabled: {
+          type: 'boolean',
+          description:
+            'Cost only, video. Price the clip with audio on; defaults to off, as Studio submits it.',
+        },
       },
     },
   },

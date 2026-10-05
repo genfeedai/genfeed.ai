@@ -6,6 +6,10 @@ import {
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { buildVideoQuoteSelectors } from '@api/helpers/utils/credits/video-quote-selectors.util';
+import {
+  hasProviderVideoDurationRule,
+  normalizeProviderVideoDuration,
+} from '@api/services/prompt-builder/builders/replicate/provider-video-duration.util';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { ModelCategory } from '@genfeedai/contracts';
@@ -270,6 +274,12 @@ export class AgentGenerationEstimateService {
       width: number;
     },
   ): Promise<Record<string, unknown> | undefined> {
+    // A fixed-length provider is priced at the length it executes, without
+    // needing the references the full builder would validate.
+    if (hasProviderVideoDurationRule(modelKey))
+      return {
+        duration: normalizeProviderVideoDuration(modelKey, params.duration),
+      };
     try {
       const built = await this.promptBuilderService.buildPrompt(modelKey, {
         ...params,

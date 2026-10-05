@@ -2,6 +2,7 @@ import { VideoGenerationCreditsService } from '@api/collections/videos/services/
 import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { AgentGenerationCostToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-cost-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { normalizeProviderVideoDuration } from '@api/services/prompt-builder/builders/replicate/provider-video-duration.util';
 import { ReplicatePromptBuilder } from '@api/services/prompt-builder/builders/replicate-prompt.builder';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
@@ -198,6 +199,40 @@ describe('Studio estimate parity with admission', () => {
     });
     expect(charged).toBe(60);
     expect(quote.credits).toBe(charged);
+  });
+
+  it('prices Hailuo 2.3 Fast 5 s as 6 s without any reference in the estimate request', async () => {
+    const modelKey = MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST;
+    row = {
+      ...baseRow,
+      category: ModelCategory.VIDEO,
+      cost: 1,
+      costPerUnit: 10,
+      key: modelKey,
+      pricingType: 'per-second',
+      provider: 'replicate',
+    };
+    // Admission quotes the provider input the builder produced for the request
+    // (which carried its first frame); the estimate has none.
+    const request = { creditsConfig: { deferred: true } };
+    await admission.ensureDeferredCredits(
+      { duration: 5, height: 720, outputs: 1, width: 1280 },
+      modelKey,
+      'org-1',
+      request as never,
+      { duration: normalizeProviderVideoDuration(modelKey, 5) },
+    );
+    const charged = (request.creditsConfig as unknown as { amount: number })
+      .amount;
+    const quote = await estimateService.estimate({
+      category: 'video',
+      duration: 5,
+      modelKey,
+      organizationId: 'org-1',
+    });
+    expect(charged).toBe(60);
+    expect(quote).toMatchObject({ credits: charged, isAvailable: true });
+    expect(normalizeProviderVideoDuration(modelKey, 5)).toBe(6);
   });
 
   it('prices 1:1 at 2K as 2048x2048 megapixels for Studio and the options tool alike', async () => {

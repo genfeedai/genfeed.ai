@@ -629,6 +629,17 @@ describe('StudioGenerateComposer', () => {
   it('blocks a required image-to-video model with an inline first-frame error', () => {
     const props = {
       ...baseProps,
+      models: [
+        {
+          category: ModelCategory.VIDEO,
+          cost: 20,
+          isActive: true,
+          key: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+          label: 'Hailuo Fast',
+          lifecycle: ModelLifecycle.AVAILABLE,
+          provider: ModelProvider.REPLICATE,
+        },
+      ] as never,
       prompt: 'Move the subject toward camera',
       settings: {
         ...settings,
@@ -1015,6 +1026,25 @@ describe('StudioGenerateComposer', () => {
       else expect(button).toBeEnabled();
     },
   );
+
+  it('blocks Generate for a concrete model missing from the catalog, so no other model is substituted', () => {
+    render(
+      <StudioGenerateComposer
+        {...baseProps}
+        models={[]}
+        prompt="A product photo"
+        settings={{
+          ...settings,
+          modelKey: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+        }}
+        type="image"
+      />,
+    );
+    expect(
+      screen.getByText('This model is not available for your workspace.'),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+  });
 
   it('never blocks Generate while the estimate is loading', () => {
     const model = {
