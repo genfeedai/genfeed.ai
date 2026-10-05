@@ -1,4 +1,4 @@
-import { brandPath, orgPath } from '@e2e/utils/app-chrome';
+import { orgPath } from '@e2e/utils/app-chrome';
 import {
   APP_ROUTES,
   ONBOARDING_GREETING,
@@ -71,7 +71,7 @@ test.describe('Conversational onboarding', () => {
       isOnboardingCompleted: true,
     });
     await expect(page).toHaveURL(
-      new RegExp(brandPath(APP_ROUTES.WORKSPACE.OVERVIEW)),
+      new RegExp(orgPath(APP_ROUTES.WORKSPACE.OVERVIEW)),
     );
   });
   test('redirects a signed-in incomplete user from the brand route without rendering a form', async ({

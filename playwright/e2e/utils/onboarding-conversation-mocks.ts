@@ -242,6 +242,8 @@ export async function setupOnboardingConversationMocks(
               id: 'expert-handoff',
               type: 'completion_summary_card',
               title: 'Your brand is ready',
+              summaryText:
+                'Continue with your positioning interview and source corpus.',
               ctas: [{ label: 'Continue', href: '/onboarding/positioning' }],
             },
           ];

@@ -366,6 +366,8 @@ describe('Expert brand handoff', () => {
     );
     expect(h.organizationsService.patch).not.toHaveBeenCalled();
     expect(h.usersService.patchAll).not.toHaveBeenCalled();
+    // Outcome copy keeps the required Expert handoff visible in the transcript.
+    expect(result.nextActions?.[0].summaryText).toContain('positioning');
     expect(result.nextActions?.[0].ctas).toEqual([
       { label: 'Continue', href: '/onboarding/positioning' },
     ]);
