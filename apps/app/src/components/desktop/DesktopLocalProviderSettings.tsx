@@ -1,10 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import {
-  type DesktopGenerationProviderKind,
-  isDesktopLocalModeEnabled,
-} from '@genfeedai/contracts/desktop';
+import type { DesktopGenerationProviderKind } from '@genfeedai/contracts/desktop';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { getDesktopLocalCostState } from '@genfeedai/services/core/desktop-runtime.service';
@@ -14,6 +11,7 @@ import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useReducer, useState } from 'react';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
+import { useDesktopLocalModeEnabled } from '@/lib/desktop/use-desktop-local-mode-enabled';
 
 const PROVIDER_PRESETS: Record<
   DesktopGenerationProviderKind,
@@ -155,7 +153,8 @@ export default function DesktopLocalProviderSettings(
   props: DesktopLocalProviderSettingsProps,
 ) {
   // Cloud-only builds expose no way into (or out of) local mode from settings.
-  if (!isDesktopLocalModeEnabled()) {
+  const isLocalModeEnabled = useDesktopLocalModeEnabled();
+  if (!isLocalModeEnabled) {
     return null;
   }
 

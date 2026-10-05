@@ -1,7 +1,7 @@
 'use client';
 
 import { DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG } from '@genfeedai/contracts/constants';
-import { isDesktopLocalModeEnabled } from '@genfeedai/contracts/desktop';
+import { useDesktopLocalModeEnabled } from '@/lib/desktop/use-desktop-local-mode-enabled';
 import { usePlatformFlags } from '@/lib/platform-flags/use-platform-flags';
 
 interface DesktopLocalWorkspaceFlagState {
@@ -18,11 +18,11 @@ interface DesktopLocalWorkspaceFlagState {
  */
 export function useDesktopLocalWorkspaceFlag(): DesktopLocalWorkspaceFlagState {
   const { flags, isReady } = usePlatformFlags();
+  const isLocalModeEnabled = useDesktopLocalModeEnabled();
   return {
-    isAvailable: isDesktopLocalModeEnabled(),
+    isAvailable: isLocalModeEnabled,
     isEnabled:
-      isDesktopLocalModeEnabled() &&
-      flags[DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG],
+      isLocalModeEnabled && flags[DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG],
     isReady,
   };
 }
