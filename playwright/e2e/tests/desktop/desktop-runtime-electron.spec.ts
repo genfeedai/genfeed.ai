@@ -149,7 +149,13 @@ for (const failure of ['rename', 'relaunch'] as const) {
       await control(electron, 'start');
       const page = await electron.firstWindow();
       await expect.poll(() => page.url()).toContain(baseURL);
-      await createAuthenticatedPage(page, context);
+      // Electron pages have no Playwright baseURL, so navigations must be absolute.
+      await createAuthenticatedPage(
+        page,
+        context,
+        {},
+        new URL('/workspace', baseURL).href,
+      );
       const initial = await page.evaluate(() =>
         (window as AcceptanceWindow).genfeedDesktop.app.getRuntimeContext(),
       );
@@ -188,7 +194,9 @@ for (const failure of ['rename', 'relaunch'] as const) {
           },
         }),
       );
-      await page.goto('/test-org/brand-1/studio/generate');
+      await page.goto(
+        new URL('/test-org/brand-1/studio/generate', baseURL).href,
+      );
       await expect(page.getByTestId('topbar-credits-trigger')).toContainText(
         '500',
       );
@@ -217,7 +225,7 @@ for (const failure of ['rename', 'relaunch'] as const) {
       await page.route('**/v1/public/platform-flags**', (route) =>
         route.fulfill({ json: { desktop_local_workspace: true } }),
       );
-      await page.goto('/desktop/local');
+      await page.goto(new URL('/desktop/local', baseURL).href);
       await expect(
         page.getByTestId('desktop-local-generation-cost'),
       ).toHaveText('Local generation · no Genfeed credits');
@@ -228,7 +236,9 @@ for (const failure of ['rename', 'relaunch'] as const) {
         path: testInfo.outputPath(`electron-${failure}-local.png`),
         fullPage: true,
       });
-      await page.goto('/test-org/brand-1/studio/generate');
+      await page.goto(
+        new URL('/test-org/brand-1/studio/generate', baseURL).href,
+      );
       await expect(page.getByTestId('topbar-credits-trigger')).toHaveCount(0);
       const walletBeforeRecovery = walletRequests;
       await control(electron, 'defer');
