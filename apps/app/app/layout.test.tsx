@@ -12,7 +12,10 @@ const headersMock = vi.fn(async () => new Headers());
 const runtimeConfigSpy = vi.fn();
 const insertHTML = vi.hoisted(() => vi.fn());
 
-vi.mock('next/navigation', () => ({ useServerInsertedHTML: insertHTML }));
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
+  useServerInsertedHTML: insertHTML,
+}));
 vi.mock('next/server', () => ({ connection: vi.fn(async () => undefined) }));
 
 vi.mock('./styles.css', () => ({}));
