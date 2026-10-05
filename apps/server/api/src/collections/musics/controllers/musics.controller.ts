@@ -228,7 +228,9 @@ export class MusicsController {
             ...metadataFilter,
             organizationId: tenant.organizationId,
             status,
-            userId: user.userId ?? user.id,
+            ...(!tenant.isOrganizationOverride
+              ? { userId: user.userId ?? user.id }
+              : {}),
           },
           {
             OR: [

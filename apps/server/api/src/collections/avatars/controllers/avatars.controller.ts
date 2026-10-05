@@ -243,7 +243,9 @@ export class AvatarsController {
         ...(tenant.isOrganizationOverride && tenant.brandId
           ? { brandId: tenant.brandId }
           : {}),
-        userId: user.userId ?? user.id,
+        ...(!tenant.isOrganizationOverride
+          ? { userId: user.userId ?? user.id }
+          : {}),
         ...IngredientFilterUtil.buildOriginFilter(query.origins),
       },
       orderBy: handleQuerySort(query.sort),

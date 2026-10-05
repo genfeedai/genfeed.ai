@@ -110,6 +110,12 @@ describe('WorkflowMarketplaceController', () => {
         userId: 'source-user',
         credentialId: 'source-credential',
         prompt: 'Keep this template prompt',
+        email: 'private-report@example.com',
+        voiceId: 'private-voice',
+        targetVoiceId: 'private-target-voice',
+        trendId: 'private-trend',
+        presetId: 'private-preset',
+        nested: { organizationId: 'nested-source-org' },
       };
       mockWorkflowsService.findAll.mockResolvedValue({
         docs: [
@@ -141,7 +147,17 @@ describe('WorkflowMarketplaceController', () => {
             currentVersion: {
               id: 'version-1',
               version: 1,
-              inputSchema: [],
+              inputSchema: [
+                {
+                  key: 'recipient',
+                  label: 'Recipient',
+                  type: 'string',
+                  required: true,
+                  description: 'Report recipient',
+                  defaultValue: { email: 'private-default@example.com' },
+                  validation: { options: ['private-validation-value'] },
+                },
+              ],
               graph: {
                 nodes: [
                   {
@@ -176,30 +192,44 @@ describe('WorkflowMarketplaceController', () => {
           id: 'marketplace-workflow',
           attributes: expect.objectContaining({
             executionCount: 42,
+            inputVariables: [
+              {
+                key: 'recipient',
+                label: 'Recipient',
+                type: 'string',
+                required: true,
+                description: 'Report recipient',
+              },
+            ],
             nodes: [
-              expect.objectContaining({
+              {
                 id: 'node-1',
-                data: expect.objectContaining({
-                  config: {
-                    organizationId: '',
-                    brandId: '',
-                    userId: '',
-                    credentialId: '',
-                    prompt: 'Keep this template prompt',
-                  },
-                }),
-              }),
+                type: 'genfeedAction',
+                position: { x: 1, y: 2 },
+                data: { label: 'Generate' },
+              },
             ],
           }),
         }),
       ]);
-      const serialized = JSON.stringify(response.data);
+      const serialized = JSON.stringify(response);
       for (const source of [
         'source-org',
         'source-user',
         'source-brand',
         'source-credential',
         'stale-secret',
+        'private-report@example.com',
+        'private-voice',
+        'private-target-voice',
+        'private-trend',
+        'private-preset',
+        'nested-source-org',
+        'private-default@example.com',
+        'private-validation-value',
+        'defaultValue',
+        'config',
+        'Keep this template prompt',
       ]) {
         expect(serialized).not.toContain(source);
       }
@@ -223,7 +253,7 @@ describe('WorkflowMarketplaceController', () => {
       expect(config.credentialId).toBe('source-credential');
     });
 
-    it('should return public template workflows', async () => {
+    it('queries only public templates with a current version', async () => {
       mockWorkflowsService.findAll.mockResolvedValue({
         docs: [],
         totalDocs: 0,
@@ -242,6 +272,7 @@ describe('WorkflowMarketplaceController', () => {
           { config: { equals: true, path: ['isTemplate'] } },
         ],
         isDeleted: false,
+        currentVersionId: { not: null },
       });
       expect(aggregateArg.where).not.toHaveProperty('isPublic');
       expect(aggregateArg.where).not.toHaveProperty('isTemplate');

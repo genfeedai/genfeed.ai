@@ -416,7 +416,12 @@ export class OrganizationsRelationshipsController {
   }
 
   @Get(':organizationId/ingredients')
-  @Cache({ tags: ['ingredients'], ttl: 120 })
+  @Cache({
+    keyGenerator: (req) =>
+      `organizations:ingredients:org:${req.params.organizationId}:user:${req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,
+    tags: ['ingredients'],
+    ttl: 120,
+  })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAllIngredients(
     @Req() request: Request,

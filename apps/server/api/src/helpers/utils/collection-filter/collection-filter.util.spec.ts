@@ -8,7 +8,7 @@ import {
   tenantReadRequest,
 } from '@api-test/helpers/tenant-read.fixture';
 import { AssetScope } from '@genfeedai/contracts';
-import { ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 describe('CollectionFilterUtil', () => {
   afterEach(() => {
@@ -74,6 +74,38 @@ describe('CollectionFilterUtil', () => {
   });
 
   describe('list organization resolution (#6176)', () => {
+    it.each(['', '  '])(
+      'rejects a missing session organization (%s) without an override with 400',
+      (organizationId) => {
+        const user = { ...adminUser, organizationId };
+        const resolve = () =>
+          CollectionFilterUtil.resolveListOrganizationId(
+            { organizationId: ' ' },
+            user,
+            tenantReadRequest(user),
+          );
+        expect(resolve).toThrow(BadRequestException);
+        expect(resolve).toThrow('An organization is required for this request');
+        expect(() =>
+          CollectionFilterUtil.resolveListCacheScope(tenantReadRequest(user)),
+        ).toThrow(BadRequestException);
+      },
+    );
+
+    it('allows a verified override without a session organization', () => {
+      const user = { ...adminUser, organizationId: '' };
+      expect(
+        CollectionFilterUtil.resolveListOrganizationId(
+          { organizationId: targetOrganizationId },
+          user,
+          tenantReadRequest(user),
+        ),
+      ).toMatchObject({
+        organizationId: targetOrganizationId,
+        isOrganizationOverride: true,
+      });
+    });
+
     it('trims organization and brand ids consistently with the interceptor', () => {
       expect(
         CollectionFilterUtil.resolveListOrganizationId(

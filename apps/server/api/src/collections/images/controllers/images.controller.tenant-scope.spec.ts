@@ -93,6 +93,7 @@ describe('ImagesController tenant reads (#6176)', () => {
     expect(fieldValues(mock.mock.calls[0]?.[0], 'brandId')).not.toContain(
       sessionBrandId,
     );
+    expect(fieldValues(mock.mock.calls[0]?.[0], 'userId')).toEqual([]);
   });
 
   it('uses an explicit target brand for latest reads', async () => {
@@ -136,4 +137,18 @@ describe('ImagesController tenant reads (#6176)', () => {
     expect(second).not.toBe(first);
     expect(switched).not.toBe(first);
   });
+  it.each([adminUser, memberUser])(
+    'keeps caller ownership for latest reads in the session organization',
+    async (user) => {
+      const { controller, mock } = setup();
+      const query = tenantReadQuery(ImagesQueryDto, {
+        latest: true,
+        organizationId: sessionOrganizationId,
+      });
+      await controller.findAll(tenantReadRequest(user, query), user, query);
+      expect(fieldValues(mock.mock.calls[0]?.[0], 'userId')).toContain(
+        user.userId,
+      );
+    },
+  );
 });

@@ -73,7 +73,9 @@ export class CaptionsController {
     const matchConditions: Record<string, unknown> = {
       isDeleted: false,
       organizationId: tenant.organizationId,
-      userId: user.userId ?? user.id,
+      ...(!tenant.isOrganizationOverride
+        ? { userId: user.userId ?? user.id }
+        : {}),
     };
 
     // Add language filter if provided

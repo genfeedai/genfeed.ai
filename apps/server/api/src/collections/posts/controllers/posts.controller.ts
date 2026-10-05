@@ -291,6 +291,11 @@ export class PostsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Query() query: PostsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -301,7 +306,7 @@ export class PostsController extends BaseCRUDController<
       request,
       PostListSerializer,
       (await this.evaluationProjection?.attachToPage(data, {
-        brandId: user.brandId,
+        brandId: tenant.isOrganizationOverride ? tenant.brandId : user.brandId,
         contentType: 'post',
       })) ?? data,
     );

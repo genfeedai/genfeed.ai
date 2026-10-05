@@ -74,8 +74,15 @@ export type FeaturedWorkflowDocument = IFeaturedWorkflowSummary & {
 /** Public marketplace projection; source tenant identity and runtime state stay private. */
 export type MarketplaceWorkflowDocument = Omit<
   FeaturedWorkflowDocument,
-  'featuredRank'
+  'featuredRank' | 'nodes' | 'inputVariables'
 > & {
+  nodes: (Pick<WorkflowVisualNode, 'id' | 'type' | 'position'> & {
+    data: Pick<WorkflowVisualNode['data'], 'label'>;
+  })[];
+  inputVariables: Pick<
+    WorkflowInputVariable,
+    'key' | 'label' | 'type' | 'required' | 'description'
+  >[];
   executionCount: number;
   createdAt: Date;
   updatedAt: Date;

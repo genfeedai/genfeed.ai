@@ -74,6 +74,7 @@ describe('OrganizationsSettingsController', () => {
 
   const mockOrganizationSettingsService = {
     ensureForOrganization: vi.fn(),
+    findOne: vi.fn(),
     patch: vi.fn(),
   };
 
@@ -253,7 +254,7 @@ describe('OrganizationsSettingsController', () => {
     });
 
     it('reads the URL organization for a superadmin active in another org', async () => {
-      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+      mockOrganizationSettingsService.findOne.mockResolvedValue(
         mockOrganizationSettings,
       );
 
@@ -262,9 +263,12 @@ describe('OrganizationsSettingsController', () => {
         organizationB,
       );
 
+      expect(organizationSettingsService.findOne).toHaveBeenCalledWith({
+        organizationId: organizationB,
+      });
       expect(
         organizationSettingsService.ensureForOrganization,
-      ).toHaveBeenCalledWith(organizationB);
+      ).not.toHaveBeenCalled();
     });
 
     it('serializes the setting returned by the canonical get-or-create policy', async () => {
@@ -272,7 +276,10 @@ describe('OrganizationsSettingsController', () => {
         mockOrganizationSettings,
       );
 
-      const result = await controller.getSettings(mockReq, organizationId);
+      const result = await controller.getSettings(
+        memberRequest(organizationId),
+        organizationId,
+      );
 
       expect(
         organizationSettingsService.ensureForOrganization,

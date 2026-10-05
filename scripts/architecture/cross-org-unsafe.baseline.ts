@@ -92,7 +92,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // organization.
     {
       file: 'apps/server/api/src/collections/workflows/controllers/workflow-marketplace.controller.ts',
-      line: 129,
+      line: 130,
     },
     // #6120: runAsSuperAdmin, the single generic-CRUD seam where a verified
     // superadmin reads, edits or removes another organization's row or a

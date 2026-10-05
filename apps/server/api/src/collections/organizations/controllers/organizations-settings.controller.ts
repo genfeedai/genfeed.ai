@@ -183,8 +183,22 @@ export class OrganizationsSettingsController {
     const ensuredData = await this.readForOrganization(
       req,
       resolvedOrganizationId,
-      async (orgId) =>
-        await this.organizationSettingsService.ensureForOrganization(orgId),
+      async (orgId) => {
+        const sessionOrganizationId =
+          req.context?.organizationId || req.user?.organizationId;
+        const data =
+          orgId === sessionOrganizationId
+            ? await this.organizationSettingsService.ensureForOrganization(
+                orgId,
+              )
+            : await this.organizationSettingsService.findOne({
+                organizationId: orgId,
+              });
+        if (!data) {
+          returnNotFound('Organization settings', orgId);
+        }
+        return data;
+      },
     );
 
     return serializeSingle(req, OrganizationSettingSerializer, ensuredData);

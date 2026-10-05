@@ -119,6 +119,7 @@ export class WorkflowMarketplaceController {
           { config: { equals: true, path: ['isTemplate'] } },
         ],
         isDeleted: false,
+        currentVersionId: { not: null },
       },
       orderBy: handleQuerySort(query.sort || '-executionCount'),
     };

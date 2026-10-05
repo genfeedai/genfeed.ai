@@ -41,6 +41,7 @@ describe('AvatarsController tenant reads (#6176)', () => {
     );
     expect(fieldValues(read, 'isDeleted')).not.toContain(true);
     expect(fieldValues(read, 'brandId')).not.toContain(sessionBrandId);
+    expect(fieldValues(read, 'userId')).toEqual([]);
   });
 
   it('rejects a member foreign organization before reading', async () => {
@@ -70,6 +71,23 @@ describe('AvatarsController tenant reads (#6176)', () => {
     ).not.toContain(targetOrganizationId);
     expect(fieldValues(mock.mock.calls[0]?.[0], 'isDeleted')).not.toContain(
       true,
+    );
+    expect(fieldValues(mock.mock.calls[0]?.[0], 'userId')).toContain(
+      user.userId,
+    );
+  });
+  it('keeps caller ownership for a superadmin querying the session organization', async () => {
+    const { controller, mock } = setup();
+    const query = tenantReadQuery(AvatarsQueryDto, {
+      organizationId: sessionOrganizationId,
+    });
+    await controller.findAll(
+      tenantReadRequest(adminUser, query),
+      adminUser,
+      query,
+    );
+    expect(fieldValues(mock.mock.calls[0]?.[0], 'userId')).toContain(
+      adminUser.userId,
     );
   });
 });

@@ -31,19 +31,65 @@ describe('Organization settings authorized path reads (#6176)', () => {
     const byok = vi.fn(() =>
       lazyTenantResult([{ provider: ByokProvider.OPENROUTER }], capture),
     );
+    const ensure = vi.fn(() => read());
     const controller = Object.assign(
       Object.create(
         OrganizationsSettingsController.prototype,
       ) as OrganizationsSettingsController,
       {
-        organizationSettingsService: { ensureForOrganization: read },
+        organizationSettingsService: {
+          ensureForOrganization: ensure,
+          findOne: read,
+        },
         brandsService: { findOne: read },
         subscriptionsService: { findOne: read },
         byokService: { getStatus: byok },
       },
     );
-    return { controller, capture, read, byok };
+    return { controller, capture, read, byok, ensure };
   }
+
+  it('reads foreign settings without creating or patching them', async () => {
+    const { controller, read, ensure } = setup();
+    const response = await controller.getSettings(
+      tenantReadRequest(adminUser),
+      targetOrganizationId,
+    );
+    expect(response.data?.id).toBe('settings');
+    expect(read).toHaveBeenCalledWith({ organizationId: targetOrganizationId });
+    expect(ensure).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 for missing foreign settings without self-healing', async () => {
+    const ensure = vi.fn();
+    const findOne = vi.fn().mockResolvedValue(null);
+    const { controller } = setup();
+    Object.assign(controller, {
+      organizationSettingsService: { ensureForOrganization: ensure, findOne },
+    });
+    await expect(
+      controller.getSettings(
+        tenantReadRequest(adminUser),
+        targetOrganizationId,
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+    expect(findOne).toHaveBeenCalledWith({
+      organizationId: targetOrganizationId,
+    });
+    expect(ensure).not.toHaveBeenCalled();
+  });
+
+  it.each([adminUser, memberUser])(
+    'self-heals only the caller session organization',
+    async (user) => {
+      const { controller, ensure } = setup();
+      await controller.getSettings(
+        tenantReadRequest(user),
+        sessionOrganizationId,
+      );
+      expect(ensure).toHaveBeenCalledWith(sessionOrganizationId);
+    },
+  );
 
   describe.each([
     'settings',

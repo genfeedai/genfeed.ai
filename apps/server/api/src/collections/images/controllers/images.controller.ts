@@ -153,7 +153,9 @@ export class ImagesController {
                     isDeleted,
                     organizationId: tenant.organizationId,
                     trainingId: null,
-                    userId: user.userId ?? user.id,
+                    ...(!tenant.isOrganizationOverride
+                      ? { userId: user.userId ?? user.id }
+                      : {}),
                   },
                 ],
               },

@@ -1,10 +1,14 @@
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
+import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
 import {
   adminUser,
   emptyPage,
   memberUser,
+  sessionBrandId,
   sessionOrganizationId,
+  targetBrandId,
   targetOrganizationId,
+  tenantReadQuery,
   tenantReadRequest,
 } from '@api-test/helpers/tenant-read.fixture';
 import { PostSerializer } from '@genfeedai/serializers';
@@ -82,4 +86,45 @@ describe('Post detail reads (#6176)', () => {
     ).rejects.toThrow(ForbiddenException);
     expect(findAll).not.toHaveBeenCalled();
   });
+});
+
+describe('Post list evaluation brands (#6176)', () => {
+  it.each([
+    {
+      organizationId: targetOrganizationId,
+      brandId: targetBrandId,
+      expectedBrandId: targetBrandId,
+    },
+    {
+      organizationId: targetOrganizationId,
+      brandId: undefined,
+      expectedBrandId: undefined,
+    },
+    {
+      organizationId: sessionOrganizationId,
+      brandId: undefined,
+      expectedBrandId: sessionBrandId,
+    },
+  ])(
+    'projects evaluations using the effective brand ($expectedBrandId)',
+    async ({ organizationId, brandId, expectedBrandId }) => {
+      const page = emptyPage();
+      const findAll = vi.fn().mockResolvedValue(page);
+      const attachToPage = vi.fn().mockResolvedValue(page);
+      const controller = Object.assign(
+        Object.create(PostsController.prototype) as PostsController,
+        { postsService: { findAll }, evaluationProjection: { attachToPage } },
+      );
+      const query = tenantReadQuery(PostsQueryDto, { organizationId, brandId });
+      await controller.findAll(
+        tenantReadRequest(adminUser, query),
+        adminUser,
+        query,
+      );
+      expect(attachToPage).toHaveBeenCalledWith(page, {
+        brandId: expectedBrandId,
+        contentType: 'post',
+      });
+    },
+  );
 });

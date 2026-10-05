@@ -152,7 +152,9 @@ export class VideosController {
               organizationId: tenant.organizationId,
               // Exclude training source videos by default
               trainingId: null,
-              userId: user.userId ?? user.id,
+              ...(!tenant.isOrganizationOverride
+                ? { userId: user.userId ?? user.id }
+                : {}),
             },
             IngredientFilterUtil.buildOriginFilter(query.origins),
           ],
