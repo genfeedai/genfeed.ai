@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => {
     clipboard: { copyToClipboard: vi.fn() },
     getService: vi.fn(() => Promise.resolve(service)),
     getVideosService: vi.fn(),
+    metadataService: { patchMetadata: vi.fn() },
+    getMetadataService: vi.fn(),
     logger: { error: vi.fn(), info: vi.fn() },
     notifications: { error: vi.fn(), success: vi.fn() },
     router: { push: vi.fn() },
@@ -32,7 +34,10 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock(
   '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services',
   () => ({
-    useIngredientServices: () => ({ getVideosService: mocks.getVideosService }),
+    useIngredientServices: () => ({
+      getVideosService: mocks.getVideosService,
+      getIngredientsService: mocks.getMetadataService,
+    }),
   }),
 );
 vi.mock(
@@ -93,6 +98,24 @@ describe('useIngredientDetail loading', () => {
     mocks.caches.clear();
     mocks.service.findOne.mockReset().mockResolvedValue({ id: 'image-1' });
     mocks.service.findAll.mockReset().mockResolvedValue([{ id: 'child-1' }]);
+  });
+
+  it('updates metadata through the root ingredients service while keeping category reads', async () => {
+    const updated = { id: 'image-1', metadataLabel: 'Updated' };
+    mocks.getMetadataService.mockResolvedValue(mocks.metadataService);
+    mocks.metadataService.patchMetadata.mockResolvedValue(updated);
+    const { result } = renderDetail();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await act(async () => {
+      await result.current.handleUpdateMetadata('label', 'Updated');
+    });
+    expect(mocks.metadataService.patchMetadata).toHaveBeenCalledWith(
+      'image-1',
+      { label: 'Updated' },
+    );
+    expect(mocks.getMetadataService).toHaveBeenCalledTimes(1);
+    expect(mocks.service.findOne).toHaveBeenCalledWith('image-1');
+    expect(result.current.ingredient).toEqual(updated);
   });
 
   it('loads the ingredient and children and caches the result', async () => {

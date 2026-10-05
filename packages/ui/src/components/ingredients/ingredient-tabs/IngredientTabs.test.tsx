@@ -1,13 +1,39 @@
 import '@testing-library/jest-dom/vitest';
 import { IngredientCategory } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type { TabsIngredientInfoProps } from '@genfeedai/props/content/ingredient.props';
 import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import IngredientTabs from '@ui/ingredients/ingredient-tabs/IngredientTabs';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+  root: { patchMetadata: vi.fn() },
+  category: { patchMetadata: vi.fn() },
+  getInstance: vi.fn(),
+  info: vi.fn<(props: TabsIngredientInfoProps) => void>(),
+}));
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: (factory: (token: string) => unknown) => async () =>
+    factory('token'),
+}));
+vi.mock('@genfeedai/services/content/ingredients.service', () => ({
+  IngredientsService: { getInstance: mocks.getInstance },
+}));
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({ success: vi.fn(), error: vi.fn() }),
+  },
+}));
+vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => path }),
+}));
 
 vi.mock('@ui/ingredients/tabs/info/IngredientTabsInfo', () => ({
-  default: () => <div data-testid="tabs-info" />,
+  default: (props: TabsIngredientInfoProps) => {
+    mocks.info(props);
+    return <div data-testid="tabs-info" />;
+  },
 }));
 
 vi.mock('@ui/ingredients/tabs/posts/IngredientTabsPosts', () => ({
@@ -51,6 +77,37 @@ describe('IngredientTabs', () => {
     metadataLabel: 'Test Image',
     metadataWidth: 1080,
   } as IIngredient;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.getInstance.mockImplementation((...args: string[]) =>
+      args.length === 1 ? mocks.root : mocks.category,
+    );
+  });
+
+  it('sends info edits to the registered root ingredients route and forwards the ingredient response', async () => {
+    const updated = { ...ingredient, metadataLabel: 'Updated' };
+    mocks.root.patchMetadata.mockResolvedValue(updated);
+    const onUpdate = vi.fn();
+    render(
+      <IngredientTabs
+        ingredient={ingredient}
+        onClose={vi.fn()}
+        onUpdate={onUpdate}
+      />,
+    );
+    const props = mocks.info.mock.calls.at(-1)?.[0];
+    expect(props?.onUpdateMetadata).toBeDefined();
+    await act(async () => {
+      await props?.onUpdateMetadata?.('label', 'Updated');
+    });
+    expect(mocks.getInstance).toHaveBeenCalledWith('token');
+    expect(mocks.root.patchMetadata).toHaveBeenCalledWith('ingredient-1', {
+      label: 'Updated',
+    });
+    expect(mocks.category.patchMetadata).not.toHaveBeenCalled();
+    expect(onUpdate).toHaveBeenCalledWith(updated);
+  });
 
   it('should render without crashing', () => {
     render(

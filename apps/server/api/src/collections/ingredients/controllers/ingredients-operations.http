@@ -1,20 +1,6 @@
 ### Genfeed API - Ingredients Operations Endpoints
-### Ingredient analytics, cloning, metadata management, tags, and bulk delete
+### Ingredient cloning, metadata management, tags, and bulk delete
 ### Protected by CombinedAuthGuard + RolesGuard + AssetAccessGuard
-
-########################################
-# Analytics
-########################################
-
-### Get Ingredient Analytics
-GET {{apiBaseUrl}}/ingredients/analytics
-Authorization: Bearer {{bearerToken}}
-
-
-### Get Ingredient Analytics by Category
-GET {{apiBaseUrl}}/ingredients/analytics?category=image
-Authorization: Bearer {{bearerToken}}
-
 
 ########################################
 # Clone
@@ -37,15 +23,14 @@ Authorization: Bearer {{bearerToken}}
 
 
 ### Update Metadata
+# Edits label and description; use Refresh Metadata for file properties
 PATCH {{apiBaseUrl}}/ingredients/{{testIngredientId}}/metadata
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
 {
-  "width": 1920,
-  "height": 1080,
-  "duration": 30.5,
-  "hasAudio": true
+  "label": "Campaign hero",
+  "description": "Approved hero asset for the campaign"
 }
 
 
@@ -107,7 +92,3 @@ Content-Type: application/json
 {
   "ids": []
 }
-
-
-### Test: Unauthorized Access
-GET {{apiBaseUrl}}/ingredients/analytics

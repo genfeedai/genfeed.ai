@@ -501,7 +501,7 @@ describe('IngredientsService', () => {
       const result = await service.bulkSoftDeleteScoped({
         ids: [],
         organizationId: 'org-1',
-        userId: 'user-1',
+        editor: { brandId: 'brand-1', userId: 'user-1' },
       });
 
       expect(result).toEqual({ deleted: [], failed: [] });
@@ -509,25 +509,35 @@ describe('IngredientsService', () => {
       expect(updateManyMock).not.toHaveBeenCalled();
     });
 
-    it('partitions owner-or-same-organization ids with one read and one write', async () => {
+    it('partitions editable ids within the active organization with one read and one write', async () => {
       ingredientDelegate.findMany.mockResolvedValue([
-        { id: 'ing-1' },
-        { id: 'ing-2' },
+        {
+          id: 'ing-1',
+          userId: 'user-1',
+          scope: AssetScope.USER,
+          brandId: 'brand-1',
+        },
+        {
+          id: 'ing-2',
+          userId: 'other-user',
+          scope: AssetScope.ORGANIZATION,
+          brandId: 'brand-1',
+        },
       ]);
 
       const result = await service.bulkSoftDeleteScoped({
         ids: ['ing-1', 'ing-2', 'ing-foreign'],
         organizationId: 'org-1',
-        userId: 'user-1',
+        editor: { brandId: 'brand-1', userId: 'user-1' },
       });
 
       expect(ingredientDelegate.findMany).toHaveBeenCalledTimes(1);
       expect(ingredientDelegate.findMany).toHaveBeenCalledWith({
-        select: { id: true },
+        select: { id: true, userId: true, scope: true, brandId: true },
         where: {
           id: { in: ['ing-1', 'ing-2', 'ing-foreign'] },
           isDeleted: false,
-          OR: [{ userId: 'user-1' }, { organizationId: 'org-1' }],
+          organizationId: 'org-1',
         },
       });
       expect(updateManyMock).toHaveBeenCalledTimes(1);
@@ -536,7 +546,7 @@ describe('IngredientsService', () => {
         where: {
           id: { in: ['ing-1', 'ing-2'] },
           isDeleted: false,
-          OR: [{ userId: 'user-1' }, { organizationId: 'org-1' }],
+          organizationId: 'org-1',
         },
       });
       expect(result).toEqual({
@@ -551,7 +561,7 @@ describe('IngredientsService', () => {
       const result = await service.bulkSoftDeleteScoped({
         ids: ['ing-foreign'],
         organizationId: 'org-1',
-        userId: 'user-1',
+        editor: { brandId: 'brand-1', userId: 'user-1' },
       });
 
       expect(updateManyMock).not.toHaveBeenCalled();
@@ -559,12 +569,19 @@ describe('IngredientsService', () => {
     });
 
     it('deduplicates writes but still reports every requested id', async () => {
-      ingredientDelegate.findMany.mockResolvedValue([{ id: 'ing-1' }]);
+      ingredientDelegate.findMany.mockResolvedValue([
+        {
+          id: 'ing-1',
+          userId: 'user-1',
+          scope: AssetScope.USER,
+          brandId: 'brand-1',
+        },
+      ]);
 
       const result = await service.bulkSoftDeleteScoped({
         ids: ['ing-1', 'ing-1'],
         organizationId: 'org-1',
-        userId: 'user-1',
+        editor: { brandId: 'brand-1', userId: 'user-1' },
       });
 
       expect(ingredientDelegate.findMany).toHaveBeenCalledWith(
@@ -577,6 +594,62 @@ describe('IngredientsService', () => {
         where: expect.objectContaining({ id: { in: ['ing-1'] } }),
       });
       expect(result.deleted).toEqual(['ing-1', 'ing-1']);
+    });
+    it('refuses private and other-brand assets while allowing shared assets', async () => {
+      ingredientDelegate.findMany.mockResolvedValue([
+        {
+          id: 'private',
+          userId: 'other-user',
+          scope: AssetScope.USER,
+          brandId: 'brand-1',
+        },
+        {
+          id: 'other-brand',
+          userId: 'other-user',
+          scope: AssetScope.BRAND,
+          brandId: 'brand-2',
+        },
+        {
+          id: 'brand',
+          userId: 'other-user',
+          scope: AssetScope.BRAND,
+          brandId: 'brand-1',
+        },
+        {
+          id: 'public',
+          userId: 'other-user',
+          scope: AssetScope.PUBLIC,
+          brandId: null,
+        },
+      ]);
+      const result = await service.bulkSoftDeleteScoped({
+        ids: ['private', 'other-brand', 'brand', 'public', 'missing'],
+        organizationId: 'org-1',
+        editor: { brandId: 'brand-1', userId: 'user-1' },
+      });
+      expect(result).toEqual({
+        deleted: ['brand', 'public'],
+        failed: ['private', 'other-brand', 'missing'],
+      });
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        for (const mock of [ingredientDelegate.findMany, updateManyMock]) {
+          const args = mock.mock.calls[0][0];
+          expect(args.where).toMatchObject({
+            organizationId: 'org-1',
+            isDeleted: false,
+          });
+          expect(args.where).not.toHaveProperty('OR');
+          expect(() =>
+            assertTenantScopedQuery({
+              args,
+              isCloud: true,
+              model: 'Ingredient',
+              tenantModelNames: new Set(['Ingredient']),
+              operation: mock === updateManyMock ? 'updateMany' : 'findMany',
+            }),
+          ).not.toThrow();
+        }
+      });
     });
   });
 
@@ -806,29 +879,6 @@ describe('IngredientsService', () => {
           where?: Record<string, unknown>;
         };
         expect(callArg.where).not.toHaveProperty('category');
-      });
-    });
-
-    describe('getKPIMetrics', () => {
-      it('passes Prisma-form UPPERCASE category to prisma.ingredient.count when app-form VIDEO supplied', async () => {
-        // getKPIMetrics calls count multiple times; verify all calls carry UPPERCASE
-        await service.getKPIMetrics('org-1', IngredientCategory.VIDEO);
-
-        for (const [callArg] of countMock.mock.calls as Array<
-          [{ where?: Record<string, unknown> }]
-        >) {
-          expect(callArg.where).toHaveProperty('category', 'VIDEO');
-        }
-      });
-
-      it('omits category from where when no category is given', async () => {
-        await service.getKPIMetrics('org-1');
-
-        for (const [callArg] of countMock.mock.calls as Array<
-          [{ where?: Record<string, unknown> }]
-        >) {
-          expect(callArg.where).not.toHaveProperty('category');
-        }
       });
     });
   });
