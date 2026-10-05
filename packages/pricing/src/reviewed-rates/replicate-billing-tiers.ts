@@ -151,8 +151,9 @@ const METRIC_UNITS: ReadonlyMap<string, MetricUnit> = new Map<
   Object.entries({
     audio_output_count: { unit: 'output' },
     image_output_count: { unit: 'output' },
-    input_token_count: { unit: 'input-token' },
-    output_token_count: { unit: 'output-token' },
+    image_input_megapixel_count: { unit: 'input-megapixel' },
+    token_input_count: { unit: 'input-token' },
+    token_output_count: { unit: 'output-token' },
     video_output_count: { unit: 'output' },
     video_output_duration_seconds: { isPerOutput: true, unit: 'second' },
     image_output_megapixel_count: { isPerOutput: true, unit: 'megapixel' },
@@ -262,7 +263,10 @@ export function mapReplicateBillingTiers(
       }
       // Labelled by billed unit, as the rate sheet labels them, so the same
       // prices read as the same rates whichever source stated them.
-      const component = metric.unit.endsWith('-token') ? metric.unit : 'output';
+      const component =
+        metric.unit.endsWith('-token') || metric.unit.startsWith('input-')
+          ? metric.unit
+          : 'output';
       const identity = JSON.stringify([
         component,
         Object.entries(when).sort(([left], [right]) =>

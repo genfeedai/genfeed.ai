@@ -89,6 +89,8 @@ describe('mapReplicateBillingTiers', () => {
     // Metric names are an exact allowlist: GPU time and look-alike names fail.
     for (const metric of [
       'gpu_seconds',
+      'run_time',
+      'input_token_count',
       'video_input_seconds',
       'image_input_megapixels',
       'toString',
@@ -152,13 +154,13 @@ describe('mapReplicateBillingTiers', () => {
             criteria: [],
             prices: [
               {
-                metric: 'input_token_count',
+                metric: 'token_input_count',
                 price: '$3.00',
                 title: 'per million input tokens',
                 type: 'per-million',
               },
               {
-                metric: 'output_token_count',
+                metric: 'token_output_count',
                 price: '$15.00',
                 title: 'per million output tokens',
                 type: 'per-million',
@@ -174,6 +176,29 @@ describe('mapReplicateBillingTiers', () => {
         { unit: 'input-token', unitPriceUsd: 0.000003 },
         { unit: 'output-token', unitPriceUsd: 0.000015 },
         { isPerOutput: true, unit: 'second', unitPriceUsd: 0.05 },
+      ],
+      status: 'ok',
+    });
+  });
+
+  it('maps the exact live metric names, including input megapixels', () => {
+    expect(
+      mapReplicateBillingTiers(
+        [
+          {
+            criteria: [],
+            prices: [
+              { metric: 'image_output_megapixel_count', price: '$0.012' },
+              { metric: 'image_input_megapixel_count', price: '$0.012' },
+            ],
+          },
+        ],
+        {},
+      ),
+    ).toMatchObject({
+      rates: [
+        { isPerOutput: true, unit: 'megapixel' },
+        { unit: 'input-megapixel' },
       ],
       status: 'ok',
     });
