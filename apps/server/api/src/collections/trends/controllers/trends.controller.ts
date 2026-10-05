@@ -105,6 +105,14 @@ export class TrendsController {
     @CurrentUser() user: User,
     @Query() query: GenerateTrendIdeasDto,
   ) {
+    if (
+      query.organizationId &&
+      query.organizationId.trim() !== user.organizationId.trim()
+    ) {
+      throw new BadRequestException(
+        'Trend ideas are generated in your active organization; switch organizations instead.',
+      );
+    }
     const organizationId = user.organizationId;
     // #5219/#5292: generation always has an explicit brand, resolved through
     // the single API-key/MCP/session resolver: query.brandId, else (API-key

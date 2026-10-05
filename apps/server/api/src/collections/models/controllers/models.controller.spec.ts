@@ -9,6 +9,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import {
   ModelCategory,
   ModelLifecycle,
@@ -17,7 +18,7 @@ import {
 import { ModelSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException } from '@nestjs/common';
+import { ForbiddenException, HttpException } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -442,7 +443,7 @@ describe('ModelsController', () => {
       });
     });
 
-    it('should not append org match stage when request context has no organizationId', async () => {
+    it('uses the session user organization when request context has no organizationId', async () => {
       const mockModels = {
         docs: [],
         hasNextPage: false,
@@ -464,50 +465,28 @@ describe('ModelsController', () => {
 
       const queryArg = modelsService.findAll.mock.calls[0][0];
 
-      expect(
-        (queryArg as { where: Record<string, unknown> }).where.OR,
-      ).toBeUndefined();
-    });
-
-    it('should filter foreign org models even when enabledModelIds is present', async () => {
-      // Simulates a scenario where enabledModelIds references a model from a different
-      // org (e.g. data corruption). The org filter is the last line of defense.
-      const scopedOrganizationId = mockOrgId;
-      const foreignOrgId = testId('org', 2);
-      const enabledModelId = testId('model');
-      const organizationSettings = {
-        enabledModelIds: [enabledModelId],
-        organizationId: foreignOrgId,
-      };
-      const settingsService = {
-        ensureForOrganization: vi.fn().mockResolvedValue(organizationSettings),
-      };
-
-      moduleRefGet.mockReturnValue(settingsService);
-
-      modelsService.findAll.mockResolvedValue(emptyPaginateResult);
-
-      const query = {
-        organizationId: foreignOrgId.toString(),
-      } as ModelsQueryDto;
-
-      await controller.findAll(mockRequest, mockRegularUser, query);
-
-      const queryArg = modelsService.findAll.mock.calls[0][0];
-
-      expect(moduleRefGet).not.toHaveBeenCalled();
-      expect(settingsService.ensureForOrganization).not.toHaveBeenCalled();
       expect(queryArg).toMatchObject({
         where: {
           OR: [
             { organizationId: null },
-            { organizationId: scopedOrganizationId },
+            { organizationId: mockRegularUser.organizationId },
           ],
         },
       });
-      expect(
-        (queryArg as { where: Record<string, unknown> }).where.id,
-      ).toBeUndefined();
+    });
+
+    it('rejects a foreign member organization before reading an allowlist or models', async () => {
+      await expect(
+        controller.findAll(
+          mockRequest,
+          mockRegularUser,
+          tenantReadQuery(ModelsQueryDto, {
+            organizationId: testId('org', 2),
+          }),
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      expect(moduleRefGet).not.toHaveBeenCalled();
+      expect(modelsService.findAll).not.toHaveBeenCalled();
     });
 
     it('self-heals missing settings through the canonical policy before filtering', async () => {
@@ -650,9 +629,15 @@ describe('ModelsController', () => {
 
       modelsService.findAll.mockResolvedValue(emptyPaginateResult);
 
-      await controller.findAll(mockRequest, mockRegularUser, {
-        organizationId: foreignOrgId,
-      } as ModelsQueryDto);
+      await expect(
+        controller.findAll(
+          mockRequest,
+          mockRegularUser,
+          tenantReadQuery(ModelsQueryDto, {
+            organizationId: foreignOrgId,
+          }),
+        ),
+      ).rejects.toThrow(ForbiddenException);
 
       expect(moduleRefGet).not.toHaveBeenCalled();
       expect(settingsService.ensureForOrganization).not.toHaveBeenCalled();

@@ -39,14 +39,14 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // the graph with source-org bindings blanked) leaves the service.
     {
       file: 'apps/server/api/src/collections/workflows/services/featured-workflows.service.ts',
-      line: 214,
+      line: 169,
     },
     // #5763: superadmin generation review is a read-only cross-tenant ledger
     // of original/enhanced/compiled prompts plus result images. Library
     // findAll, delete, and merge stay organization-scoped.
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 288,
+      line: 311,
     },
     // #5981: readPublicSources discovers only non-deleted ingredients that are
     // public (isPublic, scope PUBLIC, or on a visibility PUBLIC post) and keeps
@@ -86,13 +86,13 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin-only cross-organization workflow failure feed.
     {
       file: 'apps/server/api/src/collections/workflow-executions/controllers/workflow-executions.controller.ts',
-      line: 187,
+      line: 193,
     },
     // #6120: marketplace lists public workflow templates published by every
     // organization.
     {
       file: 'apps/server/api/src/collections/workflows/controllers/workflow-marketplace.controller.ts',
-      line: 125,
+      line: 130,
     },
     // #6120: runAsSuperAdmin, the single generic-CRUD seam where a verified
     // superadmin reads, edits or removes another organization's row or a
@@ -295,7 +295,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin operates on a bot in any organization.
     {
       file: 'apps/server/api/src/collections/bots/controllers/bots.controller.ts',
-      line: 276,
+      line: 294,
     },
     // #6120: superadmin list of another organization's credentials.
     {
@@ -337,7 +337,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin reads any organization's folder.
     {
       file: 'apps/server/api/src/collections/folders/controllers/folders.controller.ts',
-      line: 79,
+      line: 80,
     },
     // #6120: superadmin-only CRUD over platform (organization-less) font
     // families.

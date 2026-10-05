@@ -62,6 +62,11 @@ export class GifsController {
     @CurrentUser() user: User,
     @Query() query: GifsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
@@ -76,11 +81,9 @@ export class GifsController {
 
     // Use CollectionFilterUtil for common filtering patterns
     const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
-    const brandId = CollectionFilterUtil.buildBrandFilter(
-      query.brandId,
-      user,
-      'exists',
-    );
+    const brandId = tenant.isOrganizationOverride
+      ? tenant.brandId
+      : CollectionFilterUtil.buildBrandFilter(query.brandId, user, 'exists');
 
     // Use IngredientFilterUtil to build ingredient-specific filters
     const parentConditions = IngredientFilterUtil.buildParentFilter(
@@ -99,8 +102,8 @@ export class GifsController {
               {
                 AND: [
                   {
-                    organizationId: user.organizationId,
-                    brandId,
+                    organizationId: tenant.organizationId,
+                    ...(brandId ? { brandId } : {}),
                     category: CategoryPrismaUtil.toIngredientCategory(
                       IngredientCategory.GIF,
                     ),
@@ -124,7 +127,7 @@ export class GifsController {
                     isDeleted,
                     OR: [
                       {
-                        organizationId: user.organizationId,
+                        organizationId: tenant.organizationId,
                       },
                       { organizationId: null },
                     ],

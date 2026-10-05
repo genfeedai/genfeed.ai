@@ -45,7 +45,7 @@ export class VoicesController {
     @Req() request: Request,
     @CurrentUser() user: User,
   ): Promise<JsonApiCollectionResponse> {
-    const data = await this.voiceLibraryService.findAll(user, query);
+    const data = await this.voiceLibraryService.findAll(user, query, request);
     return serializeCollection(request, VoiceSerializer, data);
   }
 
@@ -56,7 +56,11 @@ export class VoicesController {
     @CurrentUser() user: User,
     @Query() query: VoicesQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    const data = await this.voiceLibraryService.findCloned(user, query);
+    const data = await this.voiceLibraryService.findCloned(
+      user,
+      query,
+      request,
+    );
     return serializeCollection(request, VoiceCloneSerializer, data);
   }
 
