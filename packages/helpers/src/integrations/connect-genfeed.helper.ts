@@ -58,7 +58,7 @@ Setup reference: https://github.com/genfeedai/agent/blob/main/llms-install.md
 
 Do this end to end:
 1. Inspect the selected client's existing Genfeed plugins, skills, and MCP configuration. Preserve unrelated configuration and use the existing Genfeed installation when present. Set up only this client; ask which client to use if you cannot identify it.
-2. Install the Genfeed playbook with ${GENFEED_SKILLS_INSTALL_COMMAND}. Select only the intended client in the installer. Skip this step if its installed Genfeed plugin already includes the playbook. Installing skills alone does not configure or authenticate MCP.
+2. Install the Genfeed playbook with ${GENFEED_SKILLS_INSTALL_COMMAND}. Select only the intended client in the installer. Skip this step if the playbook is already available through an installed Genfeed plugin, extension, or standalone skill. Installing skills alone does not configure or authenticate MCP.
 3. If Genfeed MCP is not already configured, add the remote Streamable HTTP server for the selected client using browser authorization:
    - Only if the selected client is Claude Code: ${claude.primaryCommand}
    - Only if the selected client is Codex: ${codex.primaryCommand}
