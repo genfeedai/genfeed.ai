@@ -1,5 +1,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ICredential, IPostingSet } from '@genfeedai/contracts/interfaces';
+import { isRecord, readString } from '@genfeedai/utils/data/extract.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import type { PublishingPostingSetsSectionProps } from '@props/scheduler/posting-set-picker.props';
@@ -18,16 +19,6 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : undefined;
-}
 
 function getCredentialLabel(credential: ICredential): string {
   const handle = credential.externalHandle?.replace(/^@/, '');

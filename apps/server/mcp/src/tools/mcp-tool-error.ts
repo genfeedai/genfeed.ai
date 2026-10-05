@@ -1,4 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getPublicAppUrl } from '@mcp/mcp/setup-page';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
 import { HttpException } from '@nestjs/common';
@@ -157,10 +158,6 @@ export function approvalPendingToolResult(
       `approvalId "${approval.id}" and decision "approve" (or "decline" to cancel).`,
     nextStepUrl: nextStepUrl('approval_pending'),
   });
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function constraintMessage(constraints: unknown): string | undefined {

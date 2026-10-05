@@ -1,3 +1,5 @@
+import { readRecordOrNull } from '@genfeedai/utils/data/extract.util';
+
 /**
  * Normalize X Activity (XAA) / Account Activity (AAA) payloads into inbound candidates.
  * Connect-later: shapes are tolerant of both generations of event JSON.
@@ -13,15 +15,6 @@ export type XActivityInboundCandidate = {
   parentPostId: string;
 };
 
-type LooseRecord = Record<string, unknown>;
-
-function asRecord(value: unknown): LooseRecord | null {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    return value as LooseRecord;
-  }
-  return null;
-}
-
 function asString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
@@ -33,7 +26,7 @@ function asString(value: unknown): string | undefined {
 export function extractInboundCandidatesFromXActivityPayload(
   payload: unknown,
 ): XActivityInboundCandidate[] {
-  const root = asRecord(payload);
+  const root = readRecordOrNull(payload);
   if (!root) {
     return [];
   }
@@ -56,7 +49,7 @@ export function extractInboundCandidatesFromXActivityPayload(
   const events = root.events ?? root.data;
   if (Array.isArray(events)) {
     for (const event of events) {
-      const record = asRecord(event);
+      const record = readRecordOrNull(event);
       if (!record) {
         continue;
       }
@@ -73,9 +66,9 @@ export function extractInboundCandidatesFromXActivityPayload(
         }
       }
       const post =
-        asRecord(record.post) ??
-        asRecord(record.data) ??
-        asRecord(record.tweet) ??
+        readRecordOrNull(record.post) ??
+        readRecordOrNull(record.data) ??
+        readRecordOrNull(record.tweet) ??
         record;
       const candidate = mapTweetLikeObject(post, forUserId);
       if (candidate) {
@@ -99,7 +92,7 @@ function mapTweetLikeObject(
   value: unknown,
   forUserId?: string,
 ): XActivityInboundCandidate | null {
-  const tweet = asRecord(value);
+  const tweet = readRecordOrNull(value);
   if (!tweet) {
     return null;
   }
@@ -108,7 +101,7 @@ function mapTweetLikeObject(
   const text =
     asString(tweet.text) ??
     asString(tweet.full_text) ??
-    asString(asRecord(tweet.extended_tweet)?.full_text);
+    asString(readRecordOrNull(tweet.extended_tweet)?.full_text);
   if (!id || !text) {
     return null;
   }
@@ -118,10 +111,10 @@ function mapTweetLikeObject(
   let parentPostId: string | undefined;
   if (Array.isArray(referenced)) {
     const replied = referenced.find((ref) => {
-      const row = asRecord(ref);
+      const row = readRecordOrNull(ref);
       return row && asString(row.type) === 'replied_to';
     });
-    parentPostId = asString(asRecord(replied)?.id);
+    parentPostId = asString(readRecordOrNull(replied)?.id);
   }
   parentPostId =
     parentPostId ??
@@ -134,7 +127,7 @@ function mapTweetLikeObject(
     return null;
   }
 
-  const user = asRecord(tweet.user) ?? asRecord(tweet.author);
+  const user = readRecordOrNull(tweet.user) ?? readRecordOrNull(tweet.author);
   const authorId =
     asString(tweet.author_id) ?? asString(user?.id_str) ?? asString(user?.id);
   const authorUsername =

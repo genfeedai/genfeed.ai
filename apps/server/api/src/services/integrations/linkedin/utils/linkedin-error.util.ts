@@ -1,5 +1,5 @@
 import { parseGrantedOAuthScopes } from '@genfeedai/helpers';
-import { readString } from '@genfeedai/utils/data/extract.util';
+import { isObjectLike, readString } from '@genfeedai/utils/data/extract.util';
 import type { AxiosError } from 'axios';
 
 interface LinkedInApiErrorBody {
@@ -32,10 +32,6 @@ const SCOPE_CODES = new Set([
 const ORGANIZATION_SELECTION_PATTERN =
   /organization.*(select|acl|admin)|no organization|company page/i;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
 export function parseLinkedinGrantedScopes(value: unknown): string[] {
   return parseGrantedOAuthScopes(value);
 }
@@ -49,14 +45,14 @@ export function getLinkedinApiError(
     | undefined;
   const data = axiosError?.response?.data;
 
-  if (isRecord(data)) {
+  if (isObjectLike(data)) {
     if (typeof data.error === 'string') {
       return {
         message: readString(data.error_description) ?? data.error,
         status: data.error,
       };
     }
-    if (isRecord(data.error)) {
+    if (isObjectLike(data.error)) {
       return {
         code: readCode(data.error.code) ?? readCode(data.serviceErrorCode),
         message: readString(data.error.message) ?? readString(data.message),
@@ -78,7 +74,7 @@ export function getLinkedinApiError(
     }
   }
 
-  if (isRecord(error) && typeof error.message === 'string') {
+  if (isObjectLike(error) && typeof error.message === 'string') {
     return { message: error.message };
   }
 

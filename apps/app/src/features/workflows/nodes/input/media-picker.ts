@@ -1,6 +1,7 @@
 'use client';
 
 import { IngredientCategory } from '@genfeedai/contracts';
+import { isObjectLike } from '@genfeedai/utils/data/extract.util';
 import { EnvironmentService } from '@services/core/environment.service';
 
 export type WorkflowMediaKind = 'image' | 'video';
@@ -60,10 +61,6 @@ type NodeDataLike = Record<string, unknown> & {
 
 const DEFAULT_MEDIA_SOURCE: WorkflowMediaSource = 'library';
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object';
-}
-
 function isWorkflowMediaSource(value: unknown): value is WorkflowMediaSource {
   return value === 'library' || value === 'brand-references' || value === 'url';
 }
@@ -74,7 +71,7 @@ function isWorkflowMediaItemCategory(
   return value === 'image' || value === 'reference' || value === 'video';
 }
 
-function readString(
+function readNonBlankField(
   record: Record<string, unknown>,
   key: string,
 ): string | null {
@@ -95,7 +92,7 @@ function readDimensions(
   key: string,
 ): WorkflowMediaDimensions | null {
   const value = record[key];
-  if (!isRecord(value)) {
+  if (!isObjectLike(value)) {
     return null;
   }
 
@@ -174,8 +171,8 @@ export function getWorkflowMediaConfig(
   nodeData: unknown,
   kind: WorkflowMediaKind,
 ): WorkflowMediaConfig {
-  const safeNodeData = isRecord(nodeData) ? (nodeData as NodeDataLike) : {};
-  const config = isRecord(safeNodeData.config) ? safeNodeData.config : {};
+  const safeNodeData = isObjectLike(nodeData) ? (nodeData as NodeDataLike) : {};
+  const config = isObjectLike(safeNodeData.config) ? safeNodeData.config : {};
   const fallbackUrl = inferTopLevelUrl(safeNodeData, kind);
   const source = isWorkflowMediaSource(config.source)
     ? config.source
@@ -192,20 +189,22 @@ export function getWorkflowMediaConfig(
     itemCategory: isWorkflowMediaItemCategory(config.itemCategory)
       ? config.itemCategory
       : null,
-    itemId: readString(config, 'itemId'),
-    label: readString(config, 'label') ?? readString(safeNodeData, 'filename'),
-    mimeType: readString(config, 'mimeType'),
+    itemId: readNonBlankField(config, 'itemId'),
+    label:
+      readNonBlankField(config, 'label') ??
+      readNonBlankField(safeNodeData, 'filename'),
+    mimeType: readNonBlankField(config, 'mimeType'),
     resolvedUrl: null,
     selectedResolvedUrl:
-      readString(config, 'selectedResolvedUrl') ??
-      (source === 'url' ? null : readString(config, 'resolvedUrl')),
+      readNonBlankField(config, 'selectedResolvedUrl') ??
+      (source === 'url' ? null : readNonBlankField(config, 'resolvedUrl')),
     source,
     thumbnailUrl:
-      readString(config, 'thumbnailUrl') ??
-      readString(safeNodeData, 'thumbnail'),
+      readNonBlankField(config, 'thumbnailUrl') ??
+      readNonBlankField(safeNodeData, 'thumbnail'),
     url:
-      readString(config, 'url') ??
-      (source === 'url' ? readString(config, 'resolvedUrl') : null) ??
+      readNonBlankField(config, 'url') ??
+      (source === 'url' ? readNonBlankField(config, 'resolvedUrl') : null) ??
       (source === 'url' ? fallbackUrl : null),
   };
 
@@ -325,7 +324,7 @@ export function toWorkflowMediaSelection(
   kind: WorkflowMediaKind,
   source: Exclude<WorkflowMediaSource, 'url'>,
 ): WorkflowMediaSelection | null {
-  if (!isRecord(item)) {
+  if (!isObjectLike(item)) {
     return null;
   }
 

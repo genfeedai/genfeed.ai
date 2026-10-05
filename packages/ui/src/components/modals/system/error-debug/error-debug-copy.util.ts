@@ -1,4 +1,5 @@
 import type { IErrorDebugInfo } from '@genfeedai/contracts/interfaces/modals/error-debug.interface';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 function stringifyJson(value: unknown): string {
   try {
@@ -6,10 +7,6 @@ function stringifyJson(value: unknown): string {
   } catch {
     return String(value);
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 const SENSITIVE_HEADER_KEYS = new Set([

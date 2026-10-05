@@ -24,7 +24,7 @@ const INGREDIENT_CATEGORIES = new Set([
   'VIDEO_EDIT',
 ]);
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function isPlainObjectRecord(value: unknown): value is Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value))
     return false;
   const prototype = Object.getPrototypeOf(value);
@@ -38,7 +38,7 @@ function ingredientIdentity(
     typeof record.type === 'string' &&
     INGREDIENT_TYPES.has(record.type) &&
     typeof record.id === 'string' &&
-    isRecord(record.attributes)
+    isPlainObjectRecord(record.attributes)
   )
     return record.id;
   if (
@@ -74,7 +74,7 @@ function assetIdentity(record: Record<string, unknown>): string | undefined {
   if (
     record.type === 'asset' &&
     typeof record.id === 'string' &&
-    isRecord(record.attributes)
+    isPlainObjectRecord(record.attributes)
   )
     return record.id;
   if (
@@ -98,7 +98,7 @@ function walkRecords(
     value.forEach((entry) => {
       walkRecords(entry, visit);
     });
-  else if (isRecord(value)) {
+  else if (isPlainObjectRecord(value)) {
     visit(value);
     Object.values(value).forEach((entry) => {
       walkRecords(entry, visit);
@@ -147,14 +147,14 @@ export function projectMediaResponse(
   const assetUrls = new Map(assets.map((asset) => [asset.assetId, asset.url]));
   const project = (input: unknown): unknown => {
     if (Array.isArray(input)) return input.map(project);
-    if (!isRecord(input)) return input;
+    if (!isPlainObjectRecord(input)) return input;
     const output = Object.fromEntries(
       Object.entries(input).map(([key, entry]) => [key, project(entry)]),
     );
     const isResource =
       typeof input.type === 'string' &&
       typeof input.id === 'string' &&
-      isRecord(input.attributes);
+      isPlainObjectRecord(input.attributes);
     const fields = isResource
       ? { ...(output.attributes as Record<string, unknown>) }
       : output;
@@ -230,7 +230,7 @@ function projectIngredient(
   ]) {
     if (field in fields) fields[field] = fields.cdnUrl;
   }
-  if (isRecord(fields.metadata))
+  if (isPlainObjectRecord(fields.metadata))
     fields.metadata = { ...fields.metadata, result: fields.cdnUrl };
   if (!hasCleanAccess) {
     for (const field of [

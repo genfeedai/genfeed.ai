@@ -1,5 +1,8 @@
 import { parseGrantedOAuthScopes } from '@genfeedai/helpers';
-import { readNonBlankString } from '@genfeedai/utils/data/extract.util';
+import {
+  isObjectLike,
+  readNonBlankString,
+} from '@genfeedai/utils/data/extract.util';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { AxiosError } from 'axios';
 
@@ -60,10 +63,6 @@ export type InstagramOAuthErrorLog = {
   transportCode?: string;
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
 function readFiniteNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value)
     ? value
@@ -76,7 +75,7 @@ function readInstagramResponse(error: unknown):
       status?: number;
     }
   | undefined {
-  if (!isRecord(error) || !isRecord(error.response)) {
+  if (!isObjectLike(error) || !isObjectLike(error.response)) {
     return undefined;
   }
 
@@ -91,8 +90,8 @@ function readInstagramErrorRecord(
 ): Record<string, unknown> | undefined {
   let current = readInstagramResponse(error)?.data;
 
-  for (let depth = 0; depth < 4 && isRecord(current); depth += 1) {
-    if (isRecord(current.error)) {
+  for (let depth = 0; depth < 4 && isObjectLike(current); depth += 1) {
+    if (isObjectLike(current.error)) {
       current = current.error;
       continue;
     }
@@ -113,7 +112,7 @@ function readInstagramErrorRecord(
 
 function readInstagramProviderStringCode(error: unknown): string | undefined {
   const data = readInstagramResponse(error)?.data;
-  if (!isRecord(data)) {
+  if (!isObjectLike(data)) {
     return undefined;
   }
 
@@ -126,7 +125,7 @@ function readInstagramProviderStringCode(error: unknown): string | undefined {
 
 function readInstagramProviderNumericCode(error: unknown): number | undefined {
   const data = readInstagramResponse(error)?.data;
-  return isRecord(data) ? readFiniteNumber(data.error_code) : undefined;
+  return isObjectLike(data) ? readFiniteNumber(data.error_code) : undefined;
 }
 
 function readInstagramProviderMessage(error: unknown): string {
@@ -138,7 +137,7 @@ function readInstagramProviderMessage(error: unknown): string {
   }
 
   const data = readInstagramResponse(error)?.data;
-  return isRecord(data)
+  return isObjectLike(data)
     ? (readNonBlankString(data.error_description) ?? '')
     : '';
 }
@@ -148,7 +147,7 @@ function readInstagramHttpStatus(error: unknown): number | undefined {
     return error.getStatus();
   }
 
-  if (!isRecord(error)) {
+  if (!isObjectLike(error)) {
     return undefined;
   }
 
@@ -156,7 +155,7 @@ function readInstagramHttpStatus(error: unknown): number | undefined {
 }
 
 function readInstagramTransportCode(error: unknown): string | undefined {
-  if (!isRecord(error)) {
+  if (!isObjectLike(error)) {
     return undefined;
   }
 
@@ -165,7 +164,7 @@ function readInstagramTransportCode(error: unknown): string | undefined {
 }
 
 function isInstagramNetworkFailure(error: unknown): boolean {
-  if (!isRecord(error)) {
+  if (!isObjectLike(error)) {
     return false;
   }
 

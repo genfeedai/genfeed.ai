@@ -4,6 +4,7 @@ import type {
   AgentUiActionOutcome,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
@@ -34,13 +35,7 @@ interface BrandIdentityValue {
   slug: string;
 }
 
-function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function readString(value: unknown): string {
+function readStringOrEmpty(value: unknown): string {
   return typeof value === 'string' ? value : '';
 }
 
@@ -62,16 +57,16 @@ export function BrandIdentityConfirmationCard({
   );
   const initialValue = useMemo<BrandIdentityValue>(
     () => ({
-      description: readString(proposal.description),
-      label: readString(proposal.label),
-      slug: readString(proposal.slug),
+      description: readStringOrEmpty(proposal.description),
+      label: readStringOrEmpty(proposal.label),
+      slug: readStringOrEmpty(proposal.slug),
     }),
     [proposal],
   );
   const confirmationCta = action.ctas?.find((cta) => cta.action);
   const sourceActionId =
-    readString(data.sourceActionId) ||
-    readString(confirmationCta?.payload?.sourceActionId) ||
+    readStringOrEmpty(data.sourceActionId) ||
+    readStringOrEmpty(confirmationCta?.payload?.sourceActionId) ||
     action.id;
   const [description, setDescription] = useState(initialValue.description);
   const [label, setLabel] = useState(initialValue.label);
@@ -197,14 +192,14 @@ export function BrandIdentityConfirmationCard({
         </p>
       ) : null}
 
-      {operation === 'rename' && readString(currentIdentity.label) ? (
+      {operation === 'rename' && readStringOrEmpty(currentIdentity.label) ? (
         <p className="mb-3 bg-background-tertiary px-3 py-2 text-xs text-muted-foreground">
           {translate('currentBrand')}{' '}
           <span className="font-medium text-foreground">
-            {readString(currentIdentity.label)}
+            {readStringOrEmpty(currentIdentity.label)}
           </span>
-          {readString(currentIdentity.slug)
-            ? ` (${readString(currentIdentity.slug)})`
+          {readStringOrEmpty(currentIdentity.slug)
+            ? ` (${readStringOrEmpty(currentIdentity.slug)})`
             : null}
         </p>
       ) : null}

@@ -1,9 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
 
-export function readNonEmptyString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
-
 export function assertArticleOwnershipIds(
   userId: string,
   organizationId: string,

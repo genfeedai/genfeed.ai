@@ -1,3 +1,5 @@
+import { readNonEmptyStringOrNull } from '@genfeedai/utils/data/extract.util';
+
 export const AD_PERFORMANCE_IDENTITY_KEY_VERSION = 'v1';
 
 export type AdPerformanceIdentityFields = {
@@ -9,9 +11,6 @@ export type AdPerformanceIdentityFields = {
   externalCampaignId: string | null;
   granularity: string | null;
 };
-
-const readString = (value: unknown): string | null =>
-  typeof value === 'string' && value.length > 0 ? value : null;
 
 export const readAdPerformanceDate = (value: unknown): Date | null => {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
@@ -35,14 +34,15 @@ export const readAdPerformanceDate = (value: unknown): Date | null => {
 export const resolveAdPerformanceIdentityFields = (
   data: Record<string, unknown>,
 ): AdPerformanceIdentityFields => ({
-  adPlatform: readString(data.adPlatform),
+  adPlatform: readNonEmptyStringOrNull(data.adPlatform),
   date: readAdPerformanceDate(data.date),
-  externalAccountId: readString(data.externalAccountId),
-  externalAdId: readString(data.externalAdId),
+  externalAccountId: readNonEmptyStringOrNull(data.externalAccountId),
+  externalAdId: readNonEmptyStringOrNull(data.externalAdId),
   externalAdSetId:
-    readString(data.externalAdSetId) ?? readString(data.externalAdGroupId),
-  externalCampaignId: readString(data.externalCampaignId),
-  granularity: readString(data.granularity),
+    readNonEmptyStringOrNull(data.externalAdSetId) ??
+    readNonEmptyStringOrNull(data.externalAdGroupId),
+  externalCampaignId: readNonEmptyStringOrNull(data.externalCampaignId),
+  granularity: readNonEmptyStringOrNull(data.granularity),
 });
 
 export const buildAdPerformanceIdentityKey = (
@@ -63,7 +63,7 @@ export const buildAdPerformanceIdentityKeyFromData = (
   data: Record<string, unknown>,
 ): string => {
   const identity = resolveAdPerformanceIdentityFields(data);
-  const researchSource = readString(data.researchSource);
+  const researchSource = readNonEmptyStringOrNull(data.researchSource);
   if (!researchSource) {
     return buildAdPerformanceIdentityKey(identity);
   }
@@ -72,8 +72,8 @@ export const buildAdPerformanceIdentityKeyFromData = (
     AD_PERFORMANCE_IDENTITY_KEY_VERSION,
     'research',
     researchSource,
-    readString(data.brandId) ?? '__organization__',
-    readString(data.researchSnapshotKey) ?? '',
+    readNonEmptyStringOrNull(data.brandId) ?? '__organization__',
+    readNonEmptyStringOrNull(data.researchSnapshotKey) ?? '',
     identity.adPlatform ?? '',
     identity.date ? identity.date.toISOString() : '',
     identity.granularity ?? '',

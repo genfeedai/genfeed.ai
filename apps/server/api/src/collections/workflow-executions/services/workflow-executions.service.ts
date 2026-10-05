@@ -24,7 +24,6 @@ import {
   composeEtaMetadata,
   readOptionalNumber,
   readOptionalString,
-  readRecord,
   toWorkflowExecutionProgressSnapshot,
   type WorkflowExecutionProgressRow,
   type WorkflowExecutionProgressSnapshot,
@@ -56,6 +55,7 @@ import {
   Prisma,
   WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,
 } from '@genfeedai/prisma';
+import { readRecordCopy } from '@genfeedai/utils/data/extract.util';
 import type { ExecutableNode } from '@genfeedai/workflows/engine';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -253,9 +253,12 @@ export class WorkflowExecutionsService extends BaseService<
       return null;
     }
 
-    const result = readRecord(execution.result);
-    const storedMetadata = readRecord(result.metadata);
-    const eta = composeEtaMetadata(execution, readRecord(storedMetadata.eta));
+    const result = readRecordCopy(execution.result);
+    const storedMetadata = readRecordCopy(result.metadata);
+    const eta = composeEtaMetadata(
+      execution,
+      readRecordCopy(storedMetadata.eta),
+    );
     const metadata = {
       ...storedMetadata,
       ...(Object.keys(eta).length > 0 ? { eta } : {}),
@@ -305,7 +308,7 @@ export class WorkflowExecutionsService extends BaseService<
 
     const pending: PendingReviewGateExecution[] = [];
     for (const row of rows) {
-      const result = readRecord(row.result);
+      const result = readRecordCopy(row.result);
       const metadata =
         result.metadata && typeof result.metadata === 'object'
           ? (result.metadata as Record<string, unknown>)
