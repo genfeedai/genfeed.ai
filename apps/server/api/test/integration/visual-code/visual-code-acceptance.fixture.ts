@@ -432,7 +432,7 @@ function createCapturedWorkflowQueue(name: string): CapturedWorkflowQueue {
   };
 }
 
-function createVisualRendererTransport(
+export function createVisualRendererTransport(
   calls: VisualCodeExternalCalls,
   png: Buffer,
   mp4: Buffer,
@@ -513,7 +513,11 @@ function createVisualRendererTransport(
         });
       }
       const receipt = receipts.get(id);
-      if (!receipt) throw new Error('Renderer fixture receipt absent');
+      if (!receipt)
+        return new Response(JSON.stringify({ error: 'not_found' }), {
+          status: 404,
+          headers: { 'content-type': 'application/json' },
+        });
       return json(receipt);
     }
     throw new Error(
