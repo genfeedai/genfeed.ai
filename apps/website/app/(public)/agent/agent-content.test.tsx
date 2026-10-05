@@ -103,7 +103,7 @@ describe('AgentContent', () => {
       screen.queryByRole('link', { name: /setup guide/i }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByText(/Give the Genfeed agent a brief/),
+      screen.getByText(/Ask the Genfeed agent for images, videos and posts/),
     ).toBeInTheDocument();
   });
 
