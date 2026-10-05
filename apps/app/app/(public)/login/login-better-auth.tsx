@@ -239,7 +239,9 @@ export default function LoginBetterAuth({
     setIsWaitingForDesktopSession(true);
 
     try {
-      await bridge.auth.login();
+      // Sign-in runs in the system browser (password managers work there);
+      // the shell reopens this continuation once the callback lands.
+      await bridge.auth.login(callbackURL === '/' ? undefined : callbackURL);
     } catch {
       isWaitingForDesktopSessionRef.current = false;
       setIsWaitingForDesktopSession(false);

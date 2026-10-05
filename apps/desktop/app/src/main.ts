@@ -1353,6 +1353,13 @@ const captureVisualQa = async (): Promise<void> => {
   );
 };
 
+/**
+ * The product path a system-browser sign-in started from (an OAuth consent
+ * request), reopened once its callback lands so the user is not dropped on
+ * the workspace root (#6276).
+ */
+let pendingAuthContinuation: string | null = null;
+
 const handleAuthCallback = async (
   rawUrl: string,
 ): Promise<DesktopAuthCallbackResult> => {
@@ -1379,10 +1386,12 @@ const handleAuthCallback = async (
   await persistDeviceIdentity(session);
   await emitSession();
   await emitBootstrap();
+  const continuation = pendingAuthContinuation;
+  pendingAuthContinuation = null;
   if (mainWindow) {
     await loadCanonicalApp(
       mainWindow,
-      appShellService.buildInitialUrl(session),
+      appShellService.buildInitialUrl(session, continuation),
     );
   }
   void new Notification({
@@ -1527,9 +1536,16 @@ const registerIpcHandlers = (): void => {
     DESKTOP_IPC_CHANNELS.authGetSession,
     async () => null,
   );
-  registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.authLogin, async () => {
-    await openValidatedExternalUrl(sessionService.getLoginUrl());
-  });
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.authLogin,
+    async (_event: unknown, continuation: unknown) => {
+      // Validated when the callback lands (`buildInitialUrl`); a new sign-in
+      // always replaces the previous destination.
+      pendingAuthContinuation =
+        typeof continuation === 'string' ? continuation : null;
+      await openValidatedExternalUrl(sessionService.getLoginUrl());
+    },
+  );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.authCompleteWithCode,
     async (_event: unknown, raw: unknown) => {

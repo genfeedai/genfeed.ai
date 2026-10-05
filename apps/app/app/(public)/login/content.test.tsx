@@ -313,6 +313,25 @@ describe('LoginPage', () => {
     expect(locationAssignMock).toHaveBeenCalledWith(APP_ROUTES.DESKTOP.LOCAL);
   });
 
+  it('hands the continuation to the desktop shell sign-in (#6276)', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    const consent = '/oauth/consent?client_id=c1&state=s1';
+    window.history.replaceState(
+      {},
+      '',
+      `/login?callbackUrl=${encodeURIComponent(consent)}`,
+    );
+    render(<LoginPage />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+    );
+
+    await waitFor(() => {
+      expect(desktopRuntimeMocks.login).toHaveBeenCalledWith(consent);
+    });
+  });
+
   it('subscribes before opening the system browser and can return to idle', async () => {
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
     render(<LoginPage />);

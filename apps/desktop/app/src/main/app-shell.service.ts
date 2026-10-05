@@ -18,6 +18,7 @@ import {
   createDesktopShellProxyServer,
   findFreeLoopbackPort,
 } from './app-shell-proxy';
+import { resolveDesktopAuthLandingUrl } from './auth-continuation.util';
 
 const mainDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -347,7 +348,10 @@ export class DesktopAppShellService {
     });
   }
 
-  buildInitialUrl(_session: IDesktopSession | null): string {
-    return new URL('/', this.appOrigin).toString();
+  buildInitialUrl(
+    _session: IDesktopSession | null,
+    continuation?: string | null,
+  ): string {
+    return resolveDesktopAuthLandingUrl(this.appOrigin, continuation);
   }
 }
