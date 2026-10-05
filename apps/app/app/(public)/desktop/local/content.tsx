@@ -32,6 +32,7 @@ export default function LocalDesktopContent() {
   const {
     isAvailable: isLocalWorkspaceAvailable,
     isEnabled: isLocalWorkspaceEnabled,
+    isHydrating: isLocalWorkspaceHydrating,
     isReady: isLocalWorkspaceReady,
   } = useDesktopLocalWorkspaceFlag();
   const [bootstrap, setBootstrap] = useState<IDesktopBootstrap | null>(null);
@@ -71,6 +72,10 @@ export default function LocalDesktopContent() {
   );
 
   useEffect(() => {
+    if (isLocalWorkspaceHydrating) {
+      return;
+    }
+
     // Cloud-only builds never show this page; leave without waiting for flags.
     if (
       !isLocalWorkspaceAvailable ||
@@ -90,6 +95,7 @@ export default function LocalDesktopContent() {
   }, [
     isLocalWorkspaceAvailable,
     isLocalWorkspaceEnabled,
+    isLocalWorkspaceHydrating,
     isLocalWorkspaceReady,
     loadLocalRuntime,
   ]);

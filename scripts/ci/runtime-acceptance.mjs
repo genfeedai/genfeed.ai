@@ -28,11 +28,13 @@ const GROUPS = [
   'dataset-smoke',
   'dataset-scale',
   'final',
+  'learning',
   'visual-isolation',
   'visual-connected',
   'agent-production',
   'brand-acceptance',
 ];
+const LEARNING_GROUPS = ['final', 'learning'];
 const DATASET_DIRECTORY = 'src/collections/content-learning/services/';
 const DATASET_UNIT = `${DATASET_DIRECTORY}learning-dataset.service.spec.ts`;
 const DATASET_PG = `${DATASET_DIRECTORY}learning-dataset.postgres.spec.ts`;
@@ -741,7 +743,7 @@ export function buildLearningRedisReceipt(
 ) {
   const ci = learningCiIdentity(env);
   requireThat(
-    identity.group === 'final' &&
+    LEARNING_GROUPS.includes(identity.group) &&
       SHA.test(identity.candidateSHA ?? '') &&
       JSON.stringify(identity.learningCi) === JSON.stringify(ci),
     'LEARNING_CI_IDENTITY_REQUIRED',
@@ -863,7 +865,7 @@ export function learningChildEnvironment(
   { runtimeUrl, racesUrl },
 ) {
   requireThat(
-    identity.group === 'final' &&
+    LEARNING_GROUPS.includes(identity.group) &&
       resource === identity.resources.learning &&
       resource.receipt?.candidateSHA === identity.candidateSHA &&
       resource.receipt.containerId === identity.resources.redis &&
@@ -1137,7 +1139,7 @@ const AGENT_TITLES = [
     'serializes approval against expiry and never publishes an expired draft',
   ].map((title) => `isolated PostgreSQL/Redis proactive runtime ${title}`),
 ];
-const REQUIRED = {
+export const REQUIRED = {
   'agent-production': [
     'dedicated-preparation',
     'agent-production-migration',
@@ -1163,6 +1165,7 @@ const REQUIRED = {
     'dataset-typecheck',
     'dataset-matrix',
   ],
+  learning: ['learning-runtime'],
   final: [
     'learning-runtime',
     'dataset-correctness',
@@ -1516,7 +1519,9 @@ export function parseDatasetRecords(output, mode) {
               (record.run === 0 ? 'matrix-warmup' : 'matrix-measurement'),
       'DATASET_PURPOSE',
     );
-    const cap = record.kind === 'owned' ? 30000 : 60000;
+    // Vincent 2026-10-05: consented 100k budget is 75s (CI ~1.15x Studio, full re-read contract kept).
+    const cap =
+      record.kind === 'owned' ? 30000 : record.size >= 100000 ? 75000 : 60000;
     for (const field of [
       'elapsedMs',
       'transactionElapsedMs',
@@ -1730,10 +1735,15 @@ export const FINAL_DATABASE_NAMES = [
   'genfeed_learning_runtime_test',
   'genfeed_learning_races_test',
 ];
+const LEARNING_DATABASE_NAMES = [
+  'genfeed_learning_runtime_test',
+  'genfeed_learning_races_test',
+];
 function validateFinalDatabase(identity, name, postgresId) {
   requireThat(
-    identity.group === 'final' &&
-      FINAL_DATABASE_NAMES.includes(name) &&
+    ((identity.group === 'final' && FINAL_DATABASE_NAMES.includes(name)) ||
+      (identity.group === 'learning' &&
+        LEARNING_DATABASE_NAMES.includes(name))) &&
       serviceId(identity.resources.postgres) === postgresId,
     'FINAL_DATABASE_OWNERSHIP',
   );
@@ -2149,7 +2159,7 @@ export async function runFinalLearningBounded({
   aggregateDeadline = identity.overallDeadline,
 }) {
   requireThat(
-    identity.group === 'final' &&
+    LEARNING_GROUPS.includes(identity.group) &&
       identity.resources.learning === resource &&
       resource?.receipt?.candidateSHA === identity.candidateSHA &&
       resource.receipt.containerId === identity.resources.redis,
@@ -2710,6 +2720,7 @@ export function validateTiming(group, value, now = Date.now()) {
   const startedAt = Number(value);
   const wall = {
     final: 3600000,
+    learning: 1200000,
     'dataset-diagnostic': 1200000,
     'dataset-scale': 2400000,
     'dataset-smoke': 1200000,
@@ -2788,6 +2799,13 @@ export async function createState(options, env) {
   );
   if (['agent-production', 'brand-acceptance'].includes(options.group))
     await verifyDedicatedSources(repo, options.group, env);
+  if (options.group === 'learning') {
+    learningCiIdentity(env);
+    await verifyFrozenSources(
+      repo,
+      requireLearningSourceContract().sourceInputs,
+    );
+  }
   if (options.group === 'final') {
     learningCiIdentity(env);
     await verifyFrozenSources(
@@ -2810,7 +2828,7 @@ export async function createState(options, env) {
     controlSHA,
     group: options.group,
     phase: 'prepared',
-    ...(options.group === 'final'
+    ...(LEARNING_GROUPS.includes(options.group)
       ? { learningCi: learningCiIdentity(env) }
       : {}),
     ...timing,
@@ -4877,7 +4895,7 @@ export async function verifyFinalLearningCleanup(
 export async function execution(identity, env) {
   if (['agent-production', 'brand-acceptance'].includes(identity.group))
     return executeDedicatedAcceptance(identity, env);
-  if (identity.group === 'final') {
+  if (LEARNING_GROUPS.includes(identity.group)) {
     requireLearningSourceContract();
     requireThat(
       JSON.stringify(identity.learningCi) ===
@@ -5228,7 +5246,7 @@ export async function execution(identity, env) {
     return readFile(stdoutPath, 'utf8');
   };
   const database = async (name) => {
-    if (identity.group === 'final')
+    if (LEARNING_GROUPS.includes(identity.group))
       return createFinalOwnedDatabase(identity, name, {
         credentials,
         persist: persistIdentity,
@@ -5408,7 +5426,7 @@ export async function execution(identity, env) {
       identity.resources.postgres = serviceId(
         env.RUNTIME_ACCEPTANCE_POSTGRES_ID,
       );
-      if (identity.group === 'final')
+      if (LEARNING_GROUPS.includes(identity.group))
         identity.resources.redis = serviceId(env.RUNTIME_ACCEPTANCE_REDIS_ID);
       await persistIdentity(identity);
     }
@@ -5437,7 +5455,7 @@ export async function execution(identity, env) {
         identity.repo,
         privateEnv,
       );
-    if (identity.group === 'final') {
+    const runLearningRuntime = async () => {
       const contract = requireLearningSourceContract();
       await verifyFrozenSources(identity.repo, contract.sourceInputs);
       const startedAt = Date.now();
@@ -5497,7 +5515,8 @@ export async function execution(identity, env) {
           hasFinalLearningTerminationProof(resource),
         'LEARNING_CLEANUP_REQUIRED',
       );
-    }
+    };
+    if (LEARNING_GROUPS.includes(identity.group)) await runLearningRuntime();
     if (
       [
         'final',
@@ -6527,7 +6546,7 @@ export async function execution(identity, env) {
         }
         activeGroups.delete(coordinator.pid);
       });
-    if (identity.group === 'final') {
+    if (LEARNING_GROUPS.includes(identity.group)) {
       const learning = identity.resources.learning;
       const learningClean =
         learning?.cleanupResult?.passed === true &&
@@ -6544,7 +6563,9 @@ export async function execution(identity, env) {
           code: 'LEARNING_CLEANUP_REQUIRED',
         });
       }
-      for (const mediaKind of ['image', 'video']) {
+      for (const mediaKind of identity.group === 'final'
+        ? ['image', 'video']
+        : []) {
         const result = selectFinalCrunCleanupResult(
           identity,
           commands,
@@ -6573,7 +6594,7 @@ export async function execution(identity, env) {
     }
     for (const resource of [...identity.resources.databases].reverse()) {
       const { name, created } = resource;
-      if (identity.group === 'final') {
+      if (LEARNING_GROUPS.includes(identity.group)) {
         await clean('database', () =>
           cleanupFinalOwnedDatabase(
             identity,
@@ -6665,6 +6686,7 @@ export async function execution(identity, env) {
     if (
       [
         'final',
+        'learning',
         'dataset-diagnostic',
         'dataset-smoke',
         'dataset-scale',
@@ -6819,9 +6841,9 @@ export function validateOutcome(outcome, receipt, identity) {
       'SUCCESS_RECEIPT_REQUIRED',
     );
   else requireThat(!receipt, 'FAILED_SUCCESS_RECEIPT');
-  if (outcome.status === 'passed' && identity.group === 'final') {
+  if (outcome.status === 'passed' && LEARNING_GROUPS.includes(identity.group)) {
     validateFinalLearningOutcome(outcome, identity);
-    validateFinalCrunOutcome(outcome, identity);
+    if (identity.group === 'final') validateFinalCrunOutcome(outcome, identity);
   }
   return outcome.status;
 }
@@ -7124,7 +7146,7 @@ export async function sealState(identity, env, log = () => {}) {
   const files = [];
   let total = 0;
   const allowlist = new Set(identity.evidence);
-  if (status === 'passed' && identity.group === 'final') {
+  if (status === 'passed' && LEARNING_GROUPS.includes(identity.group)) {
     requireThat(
       [
         identity.resources.learning.receiptRelative,
@@ -7137,7 +7159,9 @@ export async function sealState(identity, env, log = () => {}) {
       ].every((relative) => allowlist.has(relative)),
       'MISSING_LEARNING_EVIDENCE',
     );
-    for (const mediaKind of ['image', 'video']) {
+    for (const mediaKind of identity.group === 'final'
+      ? ['image', 'video']
+      : []) {
       const stage = `crun-${mediaKind}`;
       const index = outcome.commands.findIndex(
         (command) => command.stage === stage,
@@ -7222,6 +7246,7 @@ const QUALIFIED_CLI_GROUPS = new Set([
   'dataset-smoke',
   'dataset-scale',
   'final',
+  'learning',
   'agent-production',
   'brand-acceptance',
   'visual-isolation',

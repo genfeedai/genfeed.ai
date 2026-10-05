@@ -54,8 +54,11 @@ async function audit(electron: ElectronApplication) {
   );
 }
 
-for (const failure of ['rename', 'relaunch'] as const) {
-  test(`actual Electron runtime IPC and ${failure} recovery`, async ({
+// `cloud` runs the shipped cloud-only build; the local scenarios force local
+// mode on through the launcher's test-only override (see
+// isDesktopLocalModeEnabled in @genfeedai/contracts/desktop).
+for (const failure of ['cloud', 'rename', 'relaunch'] as const) {
+  test(`actual Electron runtime IPC and ${failure} ${failure === 'cloud' ? 'refusal of local mode' : 'recovery'}`, async ({
     baseURL,
   }, testInfo) => {
     if (!baseURL) throw new Error('The isolated shell URL is required.');
@@ -115,6 +118,9 @@ for (const failure of ['rename', 'relaunch'] as const) {
           GENFEED_DESKTOP_APP_PORT: new URL(baseURL).port,
           GENFEED_DESKTOP_CDN_URL: apiURL,
           GENFEED_DESKTOP_SENTRY_DSN: '',
+          ...(failure === 'cloud'
+            ? {}
+            : { GENFEED_RUNTIME_ACCEPTANCE_LOCAL_MODE: '1' }),
         },
       });
       const activeElectron = electron;
@@ -138,6 +144,12 @@ for (const failure of ['rename', 'relaunch'] as const) {
           return route.fulfill({ json: buildUnhandledApiMockBody(url.href) });
         await route.continue();
       });
+      if (failure !== 'cloud')
+        await context.addInitScript(() => {
+          (globalThis as { [key: symbol]: unknown })[
+            Symbol.for('genfeed.desktop.localModeTestOverride')
+          ] = true;
+        });
       await context.addCookies([
         { name: '__playwright_test', value: 'true', url: baseURL },
         {
@@ -149,7 +161,14 @@ for (const failure of ['rename', 'relaunch'] as const) {
       await control(electron, 'start');
       const page = await electron.firstWindow();
       await expect.poll(() => page.url()).toContain(baseURL);
-      await createAuthenticatedPage(page, context);
+      await page.waitForLoadState('networkidle');
+      // Electron pages have no Playwright baseURL, so navigations must be absolute.
+      await createAuthenticatedPage(
+        page,
+        context,
+        {},
+        new URL('/workspace', baseURL).href,
+      );
       const initial = await page.evaluate(() =>
         (window as AcceptanceWindow).genfeedDesktop.app.getRuntimeContext(),
       );
@@ -188,7 +207,9 @@ for (const failure of ['rename', 'relaunch'] as const) {
           },
         }),
       );
-      await page.goto('/test-org/brand-1/studio/generate');
+      await page.goto(
+        new URL('/test-org/brand-1/studio/generate', baseURL).href,
+      );
       await expect(page.getByTestId('topbar-credits-trigger')).toContainText(
         '500',
       );
@@ -196,6 +217,27 @@ for (const failure of ['rename', 'relaunch'] as const) {
         path: testInfo.outputPath(`electron-${failure}-cloud.png`),
         fullPage: true,
       });
+      if (failure === 'cloud') {
+        const refusal = await page.evaluate(() =>
+          (window as AcceptanceWindow).genfeedDesktop.app
+            .enableOfflineMode()
+            .then(
+              () => 'unexpected success',
+              (error: Error) => error.message,
+            ),
+        );
+        expect(refusal).toContain('Local mode is not available');
+        const stillCloud = await page.evaluate(() =>
+          (window as AcceptanceWindow).genfeedDesktop.app.getRuntimeContext(),
+        );
+        expect(stillCloud).toMatchObject({
+          status: 'ready',
+          runtimeMode: 'cloud',
+        });
+        expect((await audit(electron)).savedMode).toBe('cloud');
+        expect(pageErrors).toEqual([]);
+        return;
+      }
       await page.evaluate(async () => {
         const bridge = (window as AcceptanceWindow).genfeedDesktop;
         await bridge.app.enableOfflineMode();
@@ -217,7 +259,7 @@ for (const failure of ['rename', 'relaunch'] as const) {
       await page.route('**/v1/public/platform-flags**', (route) =>
         route.fulfill({ json: { desktop_local_workspace: true } }),
       );
-      await page.goto('/desktop/local');
+      await page.goto(new URL('/desktop/local', baseURL).href);
       await expect(
         page.getByTestId('desktop-local-generation-cost'),
       ).toHaveText('Local generation · no Genfeed credits');
@@ -228,7 +270,9 @@ for (const failure of ['rename', 'relaunch'] as const) {
         path: testInfo.outputPath(`electron-${failure}-local.png`),
         fullPage: true,
       });
-      await page.goto('/test-org/brand-1/studio/generate');
+      await page.goto(
+        new URL('/test-org/brand-1/studio/generate', baseURL).href,
+      );
       await expect(page.getByTestId('topbar-credits-trigger')).toHaveCount(0);
       const walletBeforeRecovery = walletRequests;
       await control(electron, 'defer');

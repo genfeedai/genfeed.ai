@@ -15,9 +15,7 @@ vi.mock('@/lib/platform-flags/use-platform-flags', () => ({
 
 vi.mock('@genfeedai/contracts/desktop', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@genfeedai/contracts/desktop')>()),
-  get IS_DESKTOP_LOCAL_MODE_ENABLED() {
-    return buildFlag.isLocalModeEnabled;
-  },
+  isDesktopLocalModeEnabled: () => buildFlag.isLocalModeEnabled,
 }));
 
 describe('useDesktopLocalWorkspaceFlag (#5468)', () => {
@@ -37,6 +35,7 @@ describe('useDesktopLocalWorkspaceFlag (#5468)', () => {
     expect(result.current).toEqual({
       isAvailable: true,
       isEnabled: false,
+      isHydrating: false,
       isReady: true,
     });
   });
@@ -49,6 +48,7 @@ describe('useDesktopLocalWorkspaceFlag (#5468)', () => {
     expect(result.current).toEqual({
       isAvailable: true,
       isEnabled: true,
+      isHydrating: false,
       isReady: false,
     });
   });
@@ -61,6 +61,7 @@ describe('useDesktopLocalWorkspaceFlag (#5468)', () => {
     expect(result.current).toEqual({
       isAvailable: false,
       isEnabled: false,
+      isHydrating: false,
       isReady: true,
     });
   });

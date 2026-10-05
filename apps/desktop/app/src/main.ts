@@ -28,7 +28,7 @@ import type {
 import {
   DESKTOP_APP_PROTOCOL_SCHEME,
   DESKTOP_IPC_CHANNELS,
-  IS_DESKTOP_LOCAL_MODE_ENABLED,
+  isDesktopLocalModeEnabled,
   parseDesktopThreadLink,
 } from '@genfeedai/contracts/desktop';
 import {
@@ -1099,7 +1099,7 @@ const createWindow = async (): Promise<void> => {
 
   buildDesktopMenu(
     mainWindow,
-    IS_DESKTOP_LOCAL_MODE_ENABLED ? openLocalWorkspaceFromMenu : null,
+    isDesktopLocalModeEnabled() ? openLocalWorkspaceFromMenu : null,
   );
 };
 

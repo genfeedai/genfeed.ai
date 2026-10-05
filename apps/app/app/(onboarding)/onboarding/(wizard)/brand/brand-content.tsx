@@ -8,7 +8,7 @@ import { getBrandOrganizationId } from '@contexts/user/brand-context/brand-conte
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { IS_DESKTOP_LOCAL_MODE_ENABLED } from '@genfeedai/contracts/desktop';
+import { isDesktopLocalModeEnabled } from '@genfeedai/contracts/desktop';
 import type { IOnboardingContextValue } from '@genfeedai/contracts/interfaces';
 import { resolveSignupBrandDomain } from '@genfeedai/helpers';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
@@ -116,7 +116,7 @@ function useGuideExit(
       if (!shouldContinue()) return;
       if (!token && isDesktopClient()) {
         push(
-          IS_DESKTOP_LOCAL_MODE_ENABLED
+          isDesktopLocalModeEnabled()
             ? APP_ROUTES.DESKTOP.LOCAL
             : APP_ROUTES.LOGIN,
         );
