@@ -60,6 +60,19 @@ function isBulkTagResult(
   return 'changed' in value && typeof value.changed === 'number';
 }
 
+function isBulkDeleteResult(
+  value: IBulkDeleteResult | JsonApiResponseDocument,
+): value is IBulkDeleteResult {
+  return (
+    'deleted' in value &&
+    Array.isArray(value.deleted) &&
+    'failed' in value &&
+    Array.isArray(value.failed) &&
+    'message' in value &&
+    typeof value.message === 'string'
+  );
+}
+
 export class IngredientsService<
   T extends Ingredient = Ingredient,
 > extends BaseService<T> {
@@ -497,8 +510,12 @@ export class IngredientsService<
   ): Promise<IBulkDeleteResult> {
     const body = IngredientBulkDeleteSerializer.serialize(data);
     return await this.instance
-      .delete<JsonApiResponseDocument>(``, { data: body })
-      .then((res) => this.extractResource<IBulkDeleteResult>(res.data));
+      .delete<IBulkDeleteResult | JsonApiResponseDocument>(``, { data: body })
+      .then((res) =>
+        isBulkDeleteResult(res.data)
+          ? res.data
+          : this.extractResource<IBulkDeleteResult>(res.data),
+      );
   }
 
   /**

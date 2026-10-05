@@ -13,6 +13,7 @@ import {
   toIngredientCreateData,
   toIngredientUpdateData,
 } from '@api/collections/ingredients/utils/ingredient-create-data.util';
+import { canEditAssetTags } from '@api/collections/ingredients/utils/ingredient-tag-edit-access.util';
 import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
@@ -571,19 +572,16 @@ export class IngredientsService extends BaseService<
   /**
    * Soft-delete a caller-supplied id list in two queries.
    *
-   * Replaces a per-id `findOne` + `patch` loop. Permission semantics are
-   * unchanged: an id is deletable when it exists, is not already deleted, and
-   * the caller either owns it or shares its organization. Everything else —
-   * missing, already deleted, or foreign on both axes — comes back in
-   * `failed`. `findByIds` cannot be reused here: it is organization-scoped
-   * only and would drop ingredients the caller owns in another org.
+   * Both queries require the active organization and live rows. The existing
+   * asset edit rule selects owned, same-brand, or organization-shared rows;
+   * inaccessible, missing, and already-deleted ids are reported as failed.
    */
   async bulkSoftDeleteScoped(params: {
     ids: string[];
     organizationId: string;
-    userId: string;
+    editor: { brandId: string; userId: string };
   }): Promise<{ deleted: string[]; failed: string[] }> {
-    const { ids, organizationId, userId } = params;
+    const { ids, organizationId, editor } = params;
 
     if (!ids || ids.length === 0) {
       return { deleted: [], failed: [] };
@@ -592,16 +590,19 @@ export class IngredientsService extends BaseService<
     const uniqueIds = [...new Set(ids)];
 
     const permitted = await this.prisma.ingredient.findMany({
-      select: { id: true },
-      where: {
-        id: { in: uniqueIds },
-        isDeleted: false,
-        OR: [{ userId }, { organizationId }],
-      },
+      select: { id: true, userId: true, scope: true, brandId: true },
+      where: scopedWhere(organizationId, { id: { in: uniqueIds } }),
     });
 
     const permittedIds = new Set(
-      permitted.map((row: { id: string }) => row.id),
+      permitted
+        .filter((row) =>
+          canEditAssetTags(row, {
+            brandId: editor.brandId,
+            userIds: [editor.userId],
+          }),
+        )
+        .map((row) => row.id),
     );
 
     const deleted: string[] = [];
@@ -620,11 +621,7 @@ export class IngredientsService extends BaseService<
       // visible at the mutation site.
       await this.prisma.ingredient.updateMany({
         data: { isDeleted: true },
-        where: {
-          id: { in: [...permittedIds] },
-          isDeleted: false,
-          OR: [{ userId }, { organizationId }],
-        },
+        where: scopedWhere(organizationId, { id: { in: [...permittedIds] } }),
       });
     }
 
@@ -682,125 +679,6 @@ export class IngredientsService extends BaseService<
       totalDocs,
       totalPages: Math.ceil(totalDocs / limit),
     };
-  }
-
-  /**
-   * Get KPI metrics for ingredients
-   */
-  async getKPIMetrics(
-    organizationId: string,
-    category?: string,
-  ): Promise<{
-    total: number;
-    generated: number;
-    rejected: number;
-    validated: number;
-    byCategory?: Record<
-      string,
-      { generated: number; rejected: number; validated: number }
-    >;
-  }> {
-    try {
-      this.logger.debug(`${this.constructorName} getKPIMetrics`, {
-        category,
-        organizationId,
-      });
-
-      const baseWhere: Prisma.IngredientWhereInput = scopedWhere(
-        organizationId,
-        {
-          ...CategoryPrismaUtil.toIngredientCategoryFilter(category),
-        },
-      );
-
-      if (category) {
-        const [total, generated, rejected, validated] = await Promise.all([
-          this.prisma.ingredient.count({ where: baseWhere }),
-          this.prisma.ingredient.count({
-            where: {
-              ...baseWhere,
-              status: IngredientStatus.GENERATED,
-            },
-          }),
-          this.prisma.ingredient.count({
-            where: {
-              ...baseWhere,
-              status: IngredientStatus.REJECTED,
-            },
-          }),
-          this.prisma.ingredient.count({
-            where: {
-              ...baseWhere,
-              status: IngredientStatus.VALIDATED,
-            },
-          }),
-        ]);
-
-        return { generated, rejected, total, validated };
-      }
-
-      // All categories
-      const [total, generated, rejected, validated] = await Promise.all([
-        this.prisma.ingredient.count({ where: baseWhere }),
-        this.prisma.ingredient.count({
-          where: {
-            ...baseWhere,
-            status: IngredientStatus.GENERATED,
-          },
-        }),
-        this.prisma.ingredient.count({
-          where: {
-            ...baseWhere,
-            status: IngredientStatus.REJECTED,
-          },
-        }),
-        this.prisma.ingredient.count({
-          where: {
-            ...baseWhere,
-            status: IngredientStatus.VALIDATED,
-          },
-        }),
-      ]);
-
-      // Build per-category breakdown
-      const categoryGroups = await this.prisma.ingredient.groupBy({
-        by: ['category', 'status'],
-        where: baseWhere,
-        _count: { id: true },
-      });
-
-      const byCategory: Record<
-        string,
-        { generated: number; rejected: number; validated: number }
-      > = {};
-
-      for (const group of categoryGroups) {
-        if (!group.category) continue;
-        if (!byCategory[group.category]) {
-          byCategory[group.category] = {
-            generated: 0,
-            rejected: 0,
-            validated: 0,
-          };
-        }
-        if (group.status === IngredientStatus.GENERATED) {
-          byCategory[group.category].generated = group._count.id;
-        } else if (group.status === IngredientStatus.REJECTED) {
-          byCategory[group.category].rejected = group._count.id;
-        } else if (group.status === IngredientStatus.VALIDATED) {
-          byCategory[group.category].validated = group._count.id;
-        }
-      }
-
-      return { byCategory, generated, rejected, total, validated };
-    } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} getKPIMetrics failed`, {
-        category,
-        error,
-        organizationId,
-      });
-      throw error;
-    }
   }
 
   /**

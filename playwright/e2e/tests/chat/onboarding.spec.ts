@@ -1,5 +1,8 @@
 import { orgPath } from '@e2e/utils/app-chrome';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  ONBOARDING_GREETING,
+} from '@genfeedai/contracts/constants';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
@@ -268,7 +271,7 @@ test.describe('Agent Onboarding', () => {
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('button', { name: 'Skip to workspace' }),
-    ).toBeVisible();
+    ).toHaveCount(0);
     await expect(
       authenticatedPage.getByLabel('Open workspace shortcuts'),
     ).toHaveCount(0);
@@ -304,7 +307,7 @@ test.describe('Agent Onboarding', () => {
     }
   });
 
-  test('keeps the empty onboarding hint spaced above the bottom composer', async ({
+  test('keeps the agent greeting spaced above the bottom composer', async ({
     authenticatedPage,
   }, testInfo) => {
     const threadId = 'thread-empty-first-post';
@@ -316,7 +319,7 @@ test.describe('Agent Onboarding', () => {
       waitUntil: 'domcontentloaded',
     });
     await assertNoErrorBoundaryFallback(authenticatedPage, threadPath);
-    const hint = authenticatedPage.getByTestId('onboarding-composer-card');
+    const hint = authenticatedPage.getByText(ONBOARDING_GREETING);
     const prompt = authenticatedPage.getByTestId('agent-chat-input-shell');
     await expect(hint).toBeVisible();
     for (const viewport of [
@@ -421,27 +424,23 @@ test.describe('Agent Onboarding', () => {
       ]);
 
       await authenticatedPage.route(
-        '**/agent/threads/turns/stream',
+        '**/threads/onboarding/kickoff',
         async (route) => {
           initialTurnRequest = route.request().postDataJSON() as Record<
             string,
             unknown
           >;
-          // `AgentTurnAcknowledgement`: the turn is queued, never answered.
           await route.fulfill({
-            body: JSON.stringify({
+            json: buildJsonApiResource({
+              id: threadId,
               brandId: 'brand-1',
-              clientRequestId:
-                initialTurnRequest?.clientRequestId ?? 'crid-onboarding-e2e',
-              contextId: 'ctx-onboarding-e2e',
+              organizationId: 'mock-org-id-e2e-test',
+              source: 'onboarding',
               contextVersion: 1,
-              executionId: 'run-onboarding-voice-e2e',
-              queuedAt: new Date().toISOString(),
-              status: 'queued',
-              threadId,
+              status: 'active',
+              title: 'Brand voice onboarding',
+              updatedAt: new Date().toISOString(),
             }),
-            contentType: 'application/json',
-            status: 202,
           });
         },
       );
@@ -522,17 +521,16 @@ test.describe('Agent Onboarding', () => {
       const onboardingPath = orgPath(APP_ROUTES.AGENT.ONBOARDING);
       const threadPath = `${onboardingPath}/${threadId}`;
 
+      await authenticatedPage.route(/\/threads(?:\?.*)?$/, (route) =>
+        route.fulfill({ json: { data: [] } }),
+      );
       await authenticatedPage.goto(onboardingPath);
       await authenticatedPage.waitForLoadState('domcontentloaded');
       await expect
         .poll(() => new URL(authenticatedPage.url()).pathname)
         .toBe(threadPath);
       await assertNoErrorBoundaryFallback(authenticatedPage, threadPath);
-      expect(initialTurnRequest).toMatchObject({
-        agentMode: 'auto',
-        brandId: 'brand-1',
-        source: 'onboarding',
-      });
+      expect(initialTurnRequest).toMatchObject({ brandId: 'brand-1' });
 
       // Prove the promoted thread route is durable, then interact with the
       // server-hydrated card. The route transition and the initial local turn

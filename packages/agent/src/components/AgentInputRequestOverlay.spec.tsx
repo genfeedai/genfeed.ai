@@ -68,6 +68,45 @@ function makeRequest(
 }
 
 describe('AgentInputRequestOverlay', () => {
+  it('keeps decorative option numbers out of single-choice accessible names', () => {
+    const onSubmit = vi.fn();
+    render(
+      <AgentInputRequestOverlay
+        onSubmit={onSubmit}
+        request={makeRequest({
+          allowFreeText: false,
+          options: [{ id: 'skip', label: 'Skip' }],
+        })}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^Skip$/ }));
+    expect(onSubmit).toHaveBeenCalledWith('Skip', ['skip']);
+  });
+
+  it('submits Skip alone even when multi-select is at its limit', async () => {
+    const onSubmit = vi.fn();
+    render(
+      <AgentInputRequestOverlay
+        onSubmit={onSubmit}
+        request={makeRequest({
+          allowFreeText: false,
+          isMultiSelect: true,
+          maxSelections: 1,
+          metadata: { submitImmediatelyOptionIds: ['skip'] },
+          options: [
+            { id: 'grow', label: 'Grow audience' },
+            { id: 'skip', label: 'Skip' },
+          ],
+        })}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Grow audience' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith('Skip', ['skip']),
+    );
+  });
+
   it('keeps pick-one cards in the conversation column for the inline variant', () => {
     const { container } = render(
       <AgentInputRequestOverlay
@@ -271,3 +310,32 @@ describe('button-only and multi-select input', () => {
     expect(onSubmit).toHaveBeenCalledWith('Dropzone only', ['dropzone']);
   });
 });
+
+it.each([false, true])(
+  'only immediately submits multi-select Skip when the request opts in: %s',
+  (optIn) => {
+    const onSubmit = vi.fn();
+    render(
+      <AgentInputRequestOverlay
+        onSubmit={onSubmit}
+        request={makeRequest({
+          allowFreeText: false,
+          isMultiSelect: true,
+          maxSelections: 1,
+          metadata: optIn ? { submitImmediatelyOptionIds: ['skip'] } : {},
+          options: [
+            { id: 'hybrid', label: 'Hybrid' },
+            { id: 'skip', label: 'Skip' },
+          ],
+        })}
+      />,
+    );
+    fireEvent.click(screen.getByText('Skip'));
+    if (optIn) expect(onSubmit).toHaveBeenCalledWith('Skip', ['skip']);
+    else {
+      expect(onSubmit).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByText('Submit answers'));
+      expect(onSubmit).toHaveBeenCalledWith('Skip', ['skip']);
+    }
+  },
+);

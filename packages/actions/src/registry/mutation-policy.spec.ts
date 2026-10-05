@@ -36,6 +36,17 @@ const MCP_QUEUED_WRITES = [
 ] as const;
 
 describe('mutation policy map', () => {
+  it('keeps the zero-cost Expert handoff a direct agent-only onboarding tool', () => {
+    expect(getToolByName('complete_brand_onboarding_step')).toMatchObject({
+      creditCost: 0,
+      mutationPolicy: 'direct',
+    });
+    expect(
+      CURATED_ACTION_CATALOG.find(
+        (tool) => tool.name === 'complete_brand_onboarding_step',
+      )?.surfaces,
+    ).toEqual(['agent']);
+  });
   it('creates brands directly and reads scan status without mutation', () => {
     expect(getToolByName('create_brand_from_url')).toMatchObject({
       creditCost: 1,

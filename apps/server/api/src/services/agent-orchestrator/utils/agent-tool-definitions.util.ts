@@ -127,6 +127,7 @@ export const CLOUD_ONLY_ONBOARDING_TOOLS: CuratedActionName[] = [
 ];
 
 export const ONBOARDING_ONLY_TOOLS: CuratedActionName[] = [
+  'complete_brand_onboarding_step',
   'scan_brand_url',
   'save_onboarding_answers',
 ];

@@ -5,10 +5,7 @@ import type {
   BrandGuidePanelProps,
   UseBrandGuideScanResult,
 } from '@genfeedai/props/onboarding/brand-guide.props';
-import type {
-  BrandOsGuideReadiness,
-  BrandOsSettingsCardProps,
-} from '@genfeedai/props/pages/brand-os-settings.props';
+import type { BrandOsSettingsCardProps } from '@genfeedai/props/pages/brand-os-settings.props';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandGuidePanel from './brand-guide-panel';
@@ -222,19 +219,7 @@ describe('saved guide panel composition', () => {
       );
   });
 });
-describe('first-run scan and approval-gated Continue', () => {
-  const readiness: BrandOsGuideReadiness = {
-    isLoaded: true,
-    canManage: true,
-    isApproved: false,
-    isDirty: false,
-    isBusy: false,
-  };
-  function report(patch: Partial<BrandOsGuideReadiness> = {}) {
-    const onReadinessChange = mocks.cardProps?.onReadinessChange;
-    if (!onReadinessChange) throw new Error('Missing readiness callback');
-    act(() => onReadinessChange({ ...readiness, ...patch }));
-  }
+describe('classic wizard scan and optional review', () => {
   function continueButton() {
     return screen.getByRole('button', { name: 'Continue' });
   }
@@ -299,44 +284,17 @@ describe('first-run scan and approval-gated Continue', () => {
     expect(mocks.cardProps?.isAutoSaveEnabled).toBe(true);
   });
 
-  it('blocks Continue until the guide is approved, saved and idle while Skip stays available', () => {
-    render(<BrandGuidePanel {...panelProps()} />);
-    expect(continueButton()).toBeDisabled();
-    report();
-    expect(continueButton()).toBeDisabled();
-    expect(
-      screen.getByText(
-        'Approve your brand guide to continue, or skip for now.',
-      ),
-    ).toBeInTheDocument();
-    for (const patch of [
-      { isApproved: true, isDirty: true },
-      { isApproved: true, isBusy: true },
-      { isApproved: true, isLoaded: false },
-    ]) {
-      report(patch);
-      expect(continueButton()).toBeDisabled();
-    }
-    expect(screen.getByRole('button', { name: 'Skip for now' })).toBeEnabled();
-    report({ isApproved: true });
-    expect(continueButton()).toBeEnabled();
-    expect(
-      screen.queryByText(
-        'Approve your brand guide to continue, or skip for now.',
-      ),
-    ).not.toBeInTheDocument();
-    fireEvent.click(continueButton());
-    expect(mocks.continue).toHaveBeenCalledTimes(1);
-  });
-
-  it('lets a member who cannot approve continue once the guide has loaded', () => {
-    render(<BrandGuidePanel {...panelProps()} />);
-    report({ canManage: false });
-    expect(continueButton()).toBeEnabled();
-    expect(
-      screen.queryByText(
-        'Approve your brand guide to continue, or skip for now.',
-      ),
-    ).not.toBeInTheDocument();
-  });
+  it.each(['idle', 'resolving', 'reconcile-error', 'observing'] as const)(
+    'allows Continue without review even while scan is %s',
+    (phase) => {
+      if (!mocks.scan) throw new Error('Missing scan');
+      mocks.scan.phase = phase;
+      mocks.scan.error = true;
+      render(<BrandGuidePanel {...panelProps()} />);
+      expect(mocks.cardProps?.onReadinessChange).toBeUndefined();
+      expect(continueButton()).toBeEnabled();
+      fireEvent.click(continueButton());
+      expect(mocks.continue).toHaveBeenCalledOnce();
+    },
+  );
 });

@@ -156,13 +156,30 @@ export function AgentInputRequestOverlay({
                   isDisabled={
                     isSubmitting ||
                     (request.isMultiSelect === true &&
+                      !(
+                        Array.isArray(
+                          request.metadata?.submitImmediatelyOptionIds,
+                        ) &&
+                        request.metadata.submitImmediatelyOptionIds.includes(
+                          option.id,
+                        )
+                      ) &&
                       !isSelected &&
                       selectedOptionIds.length >=
                         (request.maxSelections ?? visibleOptions.length))
                   }
                   aria-pressed={isSelected}
                   onClick={() => {
-                    if (request.isMultiSelect) toggleOption(option.id);
+                    if (
+                      Array.isArray(
+                        request.metadata?.submitImmediatelyOptionIds,
+                      ) &&
+                      request.metadata.submitImmediatelyOptionIds.includes(
+                        option.id,
+                      )
+                    )
+                      void submitAnswer(option.label, option.id);
+                    else if (request.isMultiSelect) toggleOption(option.id);
                     else void submitAnswer(option.label, option.id);
                   }}
                   className={cn(
@@ -176,7 +193,10 @@ export function AgentInputRequestOverlay({
                   )}
                 >
                   {!request.isMultiSelect ? (
-                    <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-foreground/[0.04] text-xs text-foreground/70">
+                    <span
+                      aria-hidden="true"
+                      className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-foreground/[0.04] text-xs text-foreground/70"
+                    >
                       {index + 1}
                     </span>
                   ) : null}

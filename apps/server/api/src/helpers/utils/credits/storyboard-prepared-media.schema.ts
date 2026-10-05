@@ -87,6 +87,7 @@ function validateRelationships(value: StoryboardPreparedMedia): void {
       { ...quantities, modelKey: quote.modelKey, provider: quote.provider },
       quote.marginMultiplier,
       quote.quotedAt,
+      { kind: 'dispatch', input },
     );
     requireMatch(
       recomputed.status === 'priced' &&

@@ -5356,6 +5356,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'workflowNodeContinuations',
       'workflowVersions',
       'workflows',
+      'workspaceInboxReads',
     ],
     enumFields: {
       accountType: { enumType: 'OrganizationCategory', isRequired: false },
@@ -7609,6 +7610,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'approvedOutputs',
       'children',
       'comments',
+      'inboxReads',
       'linkedExecutions',
       'linkedOutputs',
     ],
@@ -8100,6 +8102,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'workflowExecutions',
       'workflowVersions',
       'workflows',
+      'workspaceInboxReads',
     ],
     enumFields: {
       appSource: { enumType: 'AppSource', isRequired: true },
@@ -8578,6 +8581,28 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       organization: 'organizationId',
       user: 'userId',
       workflow: 'workflowId',
+    },
+  },
+  WorkspaceInboxRead: {
+    allFields: [
+      'createdAt',
+      'id',
+      'isDeleted',
+      'organization',
+      'organizationId',
+      'seenUpdatedAt',
+      'task',
+      'taskId',
+      'updatedAt',
+      'user',
+      'userId',
+    ],
+    listFields: [],
+    enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      task: 'taskId',
+      user: 'userId',
     },
   },
 };

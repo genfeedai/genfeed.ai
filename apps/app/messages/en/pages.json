@@ -310,7 +310,10 @@
         "relatedHashtags": "Related Hashtags",
         "sampleContent": "Sample Content",
         "metrics": {
-          "mentions": { "label": "Mentions", "description": "Total mentions" },
+          "mentions": {
+            "label": "Mentions",
+            "description": "Total mentions"
+          },
           "growthRate": {
             "label": "Growth Rate",
             "description": "Week-over-week"
@@ -323,7 +326,10 @@
             "label": "Engagement Rate",
             "description": "Average engagement"
           },
-          "reach": { "label": "Reach", "description": "Total reach" },
+          "reach": {
+            "label": "Reach",
+            "description": "Total reach"
+          },
           "impressions": {
             "label": "Impressions",
             "description": "Total impressions"
@@ -1283,7 +1289,7 @@
       "seedPlaceholder": "Seed (optional)",
       "chooseSource": "Choose a source image to edit.",
       "modelUnavailable": "An available editing default or selected model is required.",
-      "promptPlaceholder": "Describe the change to your source image\u2026",
+      "promptPlaceholder": "Describe the change to your source image…",
       "sourceImages": "Source images",
       "maskOptional": "Mask (optional)",
       "target": "Target: {name}",
@@ -2666,8 +2672,7 @@
         "saved": "Your brand guide has been saved.",
         "approved": "Your brand guide is approved.",
         "conflict": "This guide changed while you were editing. Your unsaved edits are still here.",
-        "reload": "Reload saved revision",
-        "approveToContinue": "Approve your brand guide to continue, or skip for now."
+        "reload": "Reload saved revision"
       },
       "preview": {
         "title": "Your first content",
@@ -2689,37 +2694,16 @@
       "errors": {
         "continue": "We couldn't set up your workspace. Check your connection and try again.",
         "skip": "We couldn't skip onboarding. Check your connection and try again.",
-        "starterAssets": "We couldn't start your first draft post and ad. You can generate them later from the library.",
         "title": "Onboarding could not continue"
       },
       "fields": {
-        "optional": "(optional)",
         "website": {
-          "help": "We'll extract your brand colors, logo, and voice",
           "label": "Website URL",
           "placeholder": "https://yoursite.com"
         }
       },
       "loading": {
-        "description": "We are setting up your workspace and drafting a first post and ad in the background. This only takes a moment.",
         "title": "Setting up your workspace"
-      },
-      "notices": {
-        "scrapeIssue": {
-          "codes": {
-            "BRAND_SCRAPE_EMPTY_CONTENT": "We didn't find enough content on your site, but your brand setup continued — you can add details anytime.",
-            "BRAND_SCRAPE_INVALID_URL": "That website address didn't look valid, but your brand setup continued — you can add details anytime.",
-            "BRAND_SCRAPE_SITE_BLOCKED": "Your site blocked our request to read it, but your brand setup continued — you can add details anytime.",
-            "BRAND_SCRAPE_SITE_UNREACHABLE": "We couldn't reach your site, but your brand setup continued — you can add details anytime.",
-            "BRAND_SCRAPE_TIMEOUT": "Your site took too long to respond, but your brand setup continued — you can add details anytime.",
-            "BRAND_SCRAPE_UNKNOWN": "We hit an unexpected issue while analyzing your site, but your brand setup continued — you can add details anytime.",
-            "BRAND_SCRAPE_UPSTREAM_PROVIDER_ERROR": "Your site was temporarily unavailable, but your brand setup continued — you can add details anytime."
-          }
-        }
-      },
-      "websitePrompt": {
-        "description": "We couldn't find a company site from your email. Add your website and we'll set everything up for you — or skip and start from a blank workspace.",
-        "title": "What's your website?"
       }
     },
     "expert": {
@@ -3062,6 +3046,12 @@
     "recentOutputsEmpty": "Recent outputs will appear here once the workspace starts routing work.",
     "requestChangesPrompt": "Please revise this task from the workspace inbox.",
     "inbox": {
+      "unread": "Unread",
+      "markRead": "Mark read",
+      "markAllRead": "Mark all read",
+      "readActions": "Read actions",
+      "readError": "Could not load or save inbox read status. Try again.",
+      "retry": "Retry",
       "viewsAriaLabel": "Inbox views",
       "views": {
         "unread": {

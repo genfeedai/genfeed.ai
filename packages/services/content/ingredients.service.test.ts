@@ -453,6 +453,21 @@ describe('IngredientsService', () => {
       expect(result).toMatchObject({ deletedCount: 2 });
     });
 
+    it('bulkDelete reads the plain response from the registered API route', async () => {
+      const response = {
+        deleted: ['a'],
+        failed: ['b'],
+        message: 'Successfully deleted 1 ingredient(s), failed to delete 1',
+      };
+      http.delete.mockResolvedValue(axiosResponse(response));
+      expect(
+        await service.bulkDelete({
+          ids: ['a', 'b'],
+          type: 'ingredients-delete',
+        }),
+      ).toEqual(response);
+    });
+
     it('getPosts GETs the posts using an ingredient', async () => {
       http.get.mockResolvedValue(
         axiosResponse(collectionDocument([{ id: 'post_1', label: 'Post' }])),

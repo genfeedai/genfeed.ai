@@ -44,6 +44,7 @@ import { VoicesModule } from '@api/collections/voices/voices.module';
 import { VotesModule } from '@api/collections/votes/votes.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { CommonModule } from '@api/common/common.module';
 import { RequestContextModule } from '@api/common/request-context.module';
 import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
 import { AiActionsModule } from '@api/endpoints/ai-actions/ai-actions.module';
@@ -168,6 +169,7 @@ import { Module } from '@nestjs/common';
     AgentWorkObjectService,
   ],
   imports: [
+    CommonModule,
     SignupPrefillModule,
     VisualProjectsCoreModule,
     PlatformSettingsModule,

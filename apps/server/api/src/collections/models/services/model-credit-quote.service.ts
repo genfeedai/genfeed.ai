@@ -40,6 +40,9 @@ export class ModelCreditQuoteService {
       normalizeModelProviderQuoteRequest(profile, modelKey, input),
       getRuntimeMarginMultiplier(),
       new Date().toISOString(),
+      input.providerInput
+        ? { kind: 'dispatch', input: input.providerInput }
+        : undefined,
     );
     if (quote.status === 'unresolved')
       throw this.unavailable(modelKey, quote.reason);

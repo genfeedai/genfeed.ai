@@ -15,6 +15,7 @@ export interface AppRailNavigationTarget {
 /** Count pill on one rail item, e.g. unread Messages conversations. */
 export interface AppRailBadge {
   count: number;
+  kind?: 'count' | 'dot';
   /** Accessible description of the count, already localized. */
   label: string;
 }

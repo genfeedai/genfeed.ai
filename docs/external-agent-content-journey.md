@@ -82,10 +82,29 @@ from public client and directory acceptance.
   `agent-generation-scope.service.spec.ts`
 - MCP `get_brands` no longer returns the first of two brands:
   `account-management.tool.spec.ts`
-- MCP image/video `resource_link` + structured artifact + text fallback:
+- MCP media `resource_link` + structured artifact + text fallback:
   `packages/helpers/src/media/media-artifact.helper.test.ts`
+- Completed MCP images: native base64 image content through `get_job_status`,
+  SDK result validation and card wrapping:
+  `apps/server/mcp/src/services/mcp-media-result.util.spec.ts`
 - CLI media wait catch-up: `packages/cli/tests/commands/media-wait-recovery.test.ts`
 - CLI connect browser URL: `packages/cli/tests/commands/connect.test.ts`
+
+## Image delivery
+
+Completed images from the configured `GENFEEDAI_CDN_URL` origin (default
+`https://cdn.genfeed.ai`) return MCP `image` content with base64 data and the
+verified MIME type, plus the original resource link. Only HTTPS URLs without
+credentials are fetched. Redirects are rejected, fetching times out after eight
+seconds, and streamed image data is capped at 3 MiB before base64 encoding.
+JPEG, PNG, GIF and WebP signatures must agree with the response Content-Type.
+
+`native_image` means an image block was actually returned. Larger images,
+unsupported formats, other origins and unavailable previews retain link delivery;
+extensionless URLs have no inferred MIME type. Video and audio keep file links.
+The MCP protocol supports image content but leaves its presentation to the client;
+a tool response cannot guarantee a final Markdown image will render. Live ChatGPT
+rendering must be verified after deployment and is not established by SDK parsing.
 
 ## Private harness
 

@@ -35,7 +35,7 @@ import {
   DEFAULT_AGENT_THREAD_MODE,
   type MemberRole,
 } from '@genfeedai/contracts';
-import { Calendar, ChartColumn, ClipboardCheck, Rocket } from 'lucide-react';
+import { Calendar, ChartColumn, ClipboardCheck } from 'lucide-react';
 import {
   createElement,
   useCallback,
@@ -65,15 +65,6 @@ const DEFAULT_AGENT_ACTIONS: SuggestedAction[] = [
     }),
     label: 'Check performance',
     prompt: 'Summarize my recent content performance',
-  },
-];
-
-const ONBOARDING_SUGGESTED_ACTIONS: SuggestedAction[] = [
-  {
-    icon: createElement(Rocket, { className: 'size-5 text-foreground/50' }),
-    label: 'Create my first post',
-    prompt:
-      'Create one image and one tweet based on my saved brand. Show me the draft before asking me to connect an account.',
   },
 ];
 
@@ -757,6 +748,5 @@ export function useAgentFullPage({
     showRuntimeSuggestedActions,
     showSetupPanel,
     workspacePlanningTaskId,
-    ONBOARDING_SUGGESTED_ACTIONS,
   };
 }

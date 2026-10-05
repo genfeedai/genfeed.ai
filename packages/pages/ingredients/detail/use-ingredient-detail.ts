@@ -41,7 +41,8 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
     IngredientsService.getInstance(type, token),
   );
 
-  const { getVideosService } = useIngredientServices();
+  const { getVideosService, getIngredientsService: getMetadataService } =
+    useIngredientServices();
 
   const ingredientCacheKey = useMemo(
     () => createCacheKey('ingredient', type, id),
@@ -289,7 +290,7 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
       setIsUpdating(true);
 
       try {
-        const service = await getIngredientsService();
+        const service = await getMetadataService();
         const data = await service.patchMetadata(ingredient.id, {
           [field]: value,
         });
@@ -304,7 +305,7 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
         setIsUpdating(false);
       }
     },
-    [ingredient, isUpdating, getIngredientsService, notificationsService],
+    [ingredient, isUpdating, getMetadataService, notificationsService],
   );
 
   return {

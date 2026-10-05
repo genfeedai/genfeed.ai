@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { testId } from '@helpers/testing/test-id.helper';
 import { cardResource } from '@mcp/ui/card-app';
 import { buildCardView } from '@mcp/ui/card-data';
 
@@ -121,6 +122,70 @@ it('renders image, video and audio controls using allowed origins', () => {
     { id: 'audio', category: 'MUSIC', url: 'https://cdn.genfeed.ai/music.mp3' },
   ]);
   expect(document.querySelector('audio')?.controls).toBe(true);
+});
+
+it('presents completed images without tool headings or opaque metadata', () => {
+  const imageId = testId('image');
+  result('get_job_status', {
+    category: 'IMAGE',
+    createdAt: '2026-10-05T11:45:12.000Z',
+    id: imageId,
+    status: 'GENERATED',
+    url: `https://cdn.genfeed.ai/ingredients/images/${imageId}`,
+  });
+
+  expect(document.querySelector('header')?.hidden).toBe(true);
+  expect(document.querySelector('.media-card h2')?.textContent).toBe('Image');
+  expect(document.querySelector('article')?.textContent).not.toContain(imageId);
+  expect(document.querySelector('article time')).toBeNull();
+  expect(document.querySelector('article .meta')).toBeNull();
+  expect(document.querySelector('article a')?.textContent).toBe('Open image ↗');
+  document.querySelector<HTMLButtonElement>('.media-actions button')?.click();
+  expect(document.querySelector('[role="dialog"] img')).not.toBeNull();
+});
+
+it('keeps media descriptions available on demand and restores other layouts', () => {
+  result('get_job_status', {
+    category: 'IMAGE',
+    description: 'A logo on a white background',
+    label: 'Genfeed logo',
+    status: 'GENERATED',
+    url: 'https://cdn.genfeed.ai/logo.jpg',
+  });
+  expect(document.querySelector('h2')?.textContent).toBe('Genfeed logo');
+  expect(
+    document.querySelector<HTMLDetailsElement>('article details')?.open,
+  ).toBe(false);
+  expect(document.querySelector('article details')?.textContent).toContain(
+    'A logo on a white background',
+  );
+  result('get_posts', { posts: [{ label: 'Launch' }] });
+  expect(document.querySelector('header')?.hidden).toBe(false);
+  expect(document.body.classList.contains('media-view')).toBe(false);
+  expect(document.querySelector('article.post')).not.toBeNull();
+});
+
+it('keeps a visible fallback when an attached post image fails', () => {
+  result('get_posts', {
+    posts: [
+      {
+        label: 'Launch',
+        media: [{ kind: 'image', url: 'https://cdn.genfeed.ai/missing.jpg' }],
+      },
+    ],
+  });
+  document.querySelector('article img')?.dispatchEvent(new Event('error'));
+  expect(document.querySelector('article .notice')?.textContent).toContain(
+    'Preview unavailable',
+  );
+});
+
+it('does not promise automatic updates when a pending job has no ID', () => {
+  result('generate', { kind: 'image', status: 'PROCESSING' });
+  expect(document.querySelector('.pending .notice')?.textContent).toBe(
+    'Still generating. Ask for the job status again to see the result.',
+  );
+  expect(document.querySelector('.bar.indeterminate')).toBeNull();
 });
 
 it('uses open-link for external media without loading unapproved origins', () => {

@@ -86,6 +86,8 @@ export interface MenuSharedProps extends BaseMenuProps, SidebarSizingProps {
 
 export interface MenuItemProps {
   badgeCount?: number;
+  badgeKind?: 'count' | 'dot';
+  badgeLabel?: string;
   /**
    * Neutral trailing count (Library shelf sizes). Distinct from `badgeCount`,
    * which renders an error badge and means "this needs your attention".

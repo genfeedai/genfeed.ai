@@ -13,6 +13,8 @@ import type { ReactElement } from 'react';
 
 export default function MenuItem({
   badgeCount,
+  badgeKind = 'count',
+  badgeLabel,
   count,
   isPulsing = false,
   href,
@@ -106,7 +108,11 @@ export default function MenuItem({
     isIconVariant ? 'mb-0' : 'mb-1',
   );
 
-  const accessibleLabel = isIconVariant ? label : undefined;
+  const accessibleLabel = isIconVariant
+    ? badgeKind === 'dot' && shouldRenderBadge && badgeLabel
+      ? label + ', ' + badgeLabel
+      : label
+    : undefined;
   const contentClasses = cn(baseClasses, activeClasses);
 
   const labelContent = isIconVariant ? (
@@ -120,7 +126,12 @@ export default function MenuItem({
         >
           {label}
         </span>
-        {shouldRenderBadge ? (
+        {shouldRenderBadge && badgeKind === 'dot' ? (
+          <span
+            aria-hidden="true"
+            className="ml-auto size-1.5 shrink-0 rounded-full bg-info"
+          />
+        ) : shouldRenderBadge ? (
           <Badge
             className="ml-auto min-w-5 justify-center px-1.5"
             size={ComponentSize.SM}
@@ -164,7 +175,15 @@ export default function MenuItem({
     >
       {iconNode}
       {labelContent}
-      {shouldRenderBadge && isIconVariant && !isHorizontalLayout ? (
+      {shouldRenderBadge &&
+      isIconVariant &&
+      !isHorizontalLayout &&
+      badgeKind === 'dot' ? (
+        <span
+          aria-hidden="true"
+          className="absolute right-1 top-1 size-1.5 rounded-full bg-info"
+        />
+      ) : shouldRenderBadge && isIconVariant && !isHorizontalLayout ? (
         <Badge
           className="absolute right-1 top-1 min-w-5 justify-center px-1.5"
           size={ComponentSize.SM}

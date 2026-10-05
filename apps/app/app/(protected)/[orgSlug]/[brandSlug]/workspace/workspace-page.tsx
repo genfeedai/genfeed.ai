@@ -74,6 +74,7 @@ function WorkspacePageContentContent({
   const {
     activeExecutions,
     activityItems,
+    inboxRead,
     busyTaskId,
     historyPreviewItems,
     inProgressTasks,
@@ -237,6 +238,20 @@ function WorkspacePageContentContent({
 
     return (
       <div className="flex flex-wrap items-center justify-end gap-2">
+        {isInboxSection ? (
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.SM}
+            disabled={
+              inboxRead.read.isPending ||
+              !inboxRead.state.data ||
+              !inboxRead.state.data?.unreadCount
+            }
+            onClick={() => inboxRead.read.mutate(null)}
+          >
+            {translate('inbox.markAllRead')}
+          </Button>
+        ) : null}
         <ButtonRefresh
           onClick={() => void refreshWorkspaceTasks()}
           isRefreshing={isWorkspaceRefreshing}
@@ -255,6 +270,9 @@ function WorkspacePageContentContent({
     );
   }, [
     isOverviewSection,
+    isInboxSection,
+    inboxRead,
+    translate,
     isWorkspaceRefreshing,
     refreshWorkspaceTasks,
     setTaskComposerOpen,
@@ -281,8 +299,15 @@ function WorkspacePageContentContent({
   );
   const workspaceInboxTableColumns = useMemo(
     () =>
-      getWorkspaceInboxTableColumns(translate, statusTranslate, statusLabels),
-    [translate, statusTranslate, statusLabels],
+      getWorkspaceInboxTableColumns(
+        translate,
+        statusTranslate,
+        statusLabels,
+        inboxRead.isUnread,
+        (task) => inboxRead.read.mutate([task]),
+        inboxRead.read.isPending || !inboxRead.state.data,
+      ),
+    [translate, statusTranslate, statusLabels, inboxRead],
   );
   const inboxTableColumns = hasInboxPaths
     ? workspaceInboxTableColumns
@@ -293,7 +318,7 @@ function WorkspacePageContentContent({
   const inboxTable = (
     <AppTable<Task>
       items={inboxTableItems}
-      isLoading={isWorkspaceTasksLoading}
+      isLoading={isWorkspaceTasksLoading || inboxRead.state.isLoading}
       emptyLabel={inboxEmpty.label}
       emptyDescription={inboxEmpty.description}
       emptyState={
@@ -306,6 +331,8 @@ function WorkspacePageContentContent({
       getRowKey={(task) => task.id}
       getItemId={(task) => task.id}
       onRowClick={(task) => {
+        if (inboxRead.state.data && inboxRead.isUnread(task))
+          inboxRead.read.mutate([task]);
         selectTaskFromTap(task.id);
         replaceTaskSearchParam(task.id);
       }}
@@ -323,6 +350,26 @@ function WorkspacePageContentContent({
       headerTabs={inboxHeaderTabs}
       right={isOverviewSection ? undefined : workspaceHeaderActions}
     >
+      {inboxRead.state.isError || inboxRead.read.isError ? (
+        <Alert type={AlertCategory.ERROR} className="mb-4">
+          {translate('inbox.readError')}
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.SM}
+            disabled={inboxRead.read.isPending}
+            onClick={() => {
+              if (
+                inboxRead.read.isError &&
+                inboxRead.read.variables !== undefined
+              )
+                inboxRead.read.mutate(inboxRead.read.variables);
+              else void inboxRead.state.refetch();
+            }}
+          >
+            {translate('inbox.retry')}
+          </Button>
+        </Alert>
+      ) : null}
       {workspaceActionError ? (
         <Alert type={AlertCategory.ERROR} className="mb-4">
           {workspaceActionError}
@@ -367,7 +414,7 @@ function WorkspacePageContentContent({
           {isOverviewSection && hasOverviewSignal ? (
             <WorkspaceTaskQueueCard
               busyTaskId={busyTaskId}
-              isLoading={isWorkspaceTasksLoading}
+              isLoading={isWorkspaceTasksLoading || inboxRead.state.isLoading}
               items={activityItems}
               mutateTask={mutateTask}
               openPlanningConversation={openPlanningConversation}

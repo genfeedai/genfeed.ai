@@ -11,6 +11,7 @@ import {
   runKeyFor,
 } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { AgentThreadMode } from '@genfeedai/contracts';
+import { ONBOARDING_GREETING } from '@genfeedai/contracts/constants';
 import {
   act,
   fireEvent,
@@ -186,6 +187,7 @@ vi.mock('../utils/extract-thread-assets', () => ({
 vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
   AgentChatInput: function MockAgentChatInput(props: {
     density?: string;
+    disabled?: boolean;
     placeholder?: string;
     onSend?: (content: string) => boolean;
     onStop?: () => void | Promise<void>;
@@ -196,6 +198,7 @@ vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
         chat-input
         <input
           aria-label="Composer paste"
+          disabled={props.disabled}
           placeholder={props.placeholder}
           onPaste={(event) => {
             composerSendResults.push(
@@ -217,6 +220,7 @@ vi.mock('@genfeedai/agent/components/AgentChatMessage', () => ({
   AgentChatMessage: function MockAgentChatMessage(props: {
     isRetryableUserPrompt?: boolean;
     message?: {
+      content?: string;
       role?: string;
       metadata?: {
         uiActions?: Array<{
@@ -239,6 +243,7 @@ vi.mock('@genfeedai/agent/components/AgentChatMessage', () => ({
     return (
       <div>
         message
+        <span>{props.message?.content}</span>
         {props.isRetryableUserPrompt ? (
           <button
             type="button"
@@ -324,6 +329,11 @@ vi.mock('@genfeedai/agent/components/AgentInputRequestOverlay', () => ({
 }));
 
 type StoreState = {
+  threadEventSequenceById: Record<string, number>;
+  threadUiBusyById: Record<string, boolean>;
+  applyThreadSnapshotState: ReturnType<typeof vi.fn>;
+  resetStreamState: ReturnType<typeof vi.fn>;
+  transitionRun: ReturnType<typeof vi.fn>;
   activeThreadId: string | null;
   addMessage: ReturnType<typeof vi.fn>;
   addWorkEvent: ReturnType<typeof vi.fn>;
@@ -366,7 +376,7 @@ type StoreState = {
     title: string;
   } | null;
   runsByThread: Record<string, AgentRunRecord>;
-  socketConnectionState: 'connected';
+  socketConnectionState: 'connected' | 'offline';
   setActiveThread: ReturnType<typeof vi.fn>;
   setActiveRun: ReturnType<typeof vi.fn>;
   setActiveRunStatus: ReturnType<typeof vi.fn>;
@@ -404,6 +414,11 @@ function setRun(patch: Partial<AgentRunRecord>): void {
 }
 
 const storeState: StoreState = {
+  threadEventSequenceById: {},
+  threadUiBusyById: {},
+  applyThreadSnapshotState: vi.fn(),
+  resetStreamState: vi.fn(),
+  transitionRun: vi.fn(),
   activeThreadId: 'thread-1',
   addMessage: vi.fn(),
   addWorkEvent: vi.fn(),
@@ -551,6 +566,12 @@ describe('AgentChatContainer', () => {
   });
 
   beforeEach(() => {
+    storeState.socketConnectionState = 'connected';
+    storeState.threadEventSequenceById = {};
+    storeState.threadUiBusyById = {};
+    storeState.applyThreadSnapshotState.mockReset();
+    storeState.resetStreamState.mockReset();
+    storeState.transitionRun.mockReset();
     isStreamingHookActive = false;
     scrollIntoViewMock.mockReset();
     pinConversationScrollToBottomMock.mockReset();
@@ -889,6 +910,28 @@ describe('AgentChatContainer', () => {
     expect(storeState.setError).not.toHaveBeenCalledWith(
       'Failed to submit the requested input.',
     );
+  });
+
+  it('keeps the URL card as the only onboarding text entry', () => {
+    storeState.pendingInputRequest = {
+      runId: 'run-url',
+      inputRequestId: 'url-request',
+      threadId: 'thread-1',
+      title: 'Your brand link',
+      prompt: 'Share a public link',
+      allowFreeText: true,
+      options: [],
+    };
+    const view = render(
+      <AgentChatContainer
+        apiService={createApiService() as never}
+        onboardingMode
+        isStreaming
+      />,
+    );
+    expect(
+      view.container.querySelector('[data-testid="agent-chat-input-shell"]'),
+    ).toBeNull();
   });
 
   it('pins the stream to the execution that continues an answered input request', async () => {
@@ -1455,39 +1498,104 @@ describe('AgentChatContainer', () => {
     );
   });
 
-  it('puts the onboarding card on the empty conversation prompt bar', () => {
-    const apiService = createApiService();
+  it('recovers a missing onboarding card over REST when the socket is offline', async () => {
+    storeState.socketConnectionState = 'offline';
+    storeState.pendingInputRequest = null;
+    const apiService = createApiService({
+      getThreadSnapshot: vi.fn().mockResolvedValue({
+        threadId: 'thread-1',
+        lastSequence: 4,
+        timeline: [],
+        activeRun: { runId: 'run-1', status: 'awaiting_input' },
+        pendingInputRequests: [
+          {
+            requestId: 'recovered-card',
+            title: 'Goals',
+            prompt: 'Choose',
+            options: [],
+            allowFreeText: false,
+          },
+        ],
+      }),
+    });
+    const view = render(
+      <AgentChatContainer apiService={apiService as never} onboardingMode />,
+    );
+    await waitFor(() =>
+      expect(storeState.setPendingInputRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inputRequestId: 'recovered-card',
+          threadId: 'thread-1',
+        }),
+      ),
+    );
+    expect(storeState.transitionRun).toHaveBeenCalledWith(
+      'thread-1',
+      expect.objectContaining({ status: 'awaiting_input' }),
+    );
+    view.unmount();
+  });
 
+  it('keeps onboarding REST input enabled while the socket is offline and no card is pending', () => {
+    storeState.socketConnectionState = 'offline';
+    storeState.pendingInputRequest = null;
+    const apiService = createApiService({
+      getThreadSnapshot: vi.fn().mockRejectedValue(new Error('offline')),
+    });
+    const view = render(
+      <AgentChatContainer apiService={apiService as never} onboardingMode />,
+    );
+    expect(screen.getByLabelText('Composer paste')).toBeEnabled();
+    view.unmount();
+  });
+
+  it('renders the shared greeting immediately during kickoff and reconciles once', () => {
     storeState.pendingInputRequest = null;
     storeState.messages = [];
-
-    const { container } = render(
+    const apiService = createApiService();
+    const { rerender } = render(
       <AgentChatContainer
         apiService={apiService as never}
-        emptyStateTitle="Welcome to GenFeed"
         onboardingMode
-        promptBarLayoutMode="surface-fixed"
+        isLoadingThread
       />,
     );
+    expect(screen.getAllByText(ONBOARDING_GREETING)).toHaveLength(1);
+    storeState.messages = [
+      buildAssistantMessage({ content: ONBOARDING_GREETING }),
+    ];
+    rerender(
+      <AgentChatContainer apiService={apiService as never} onboardingMode />,
+    );
+    expect(screen.getAllByText(ONBOARDING_GREETING)).toHaveLength(1);
+  });
 
-    expect(screen.getByTestId('onboarding-composer-card')).toBeInTheDocument();
+  it('hides the onboarding composer for a button-only pending request', () => {
+    if (storeState.pendingInputRequest)
+      storeState.pendingInputRequest.allowFreeText = false;
+    render(
+      <AgentChatContainer
+        apiService={createApiService() as never}
+        onboardingMode
+      />,
+    );
+    expect(screen.queryByTestId('chat-input')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /start with my first image/i }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: 'Submit requested input' }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the URL card and hides the separate onboarding composer', () => {
+    render(
+      <AgentChatContainer
+        apiService={createApiService() as never}
+        onboardingMode
+      />,
+    );
+    expect(screen.queryByTestId('chat-input')).not.toBeInTheDocument();
     expect(
-      screen.queryByText(/what best describes you/i),
-    ).not.toBeInTheDocument();
-    expect(
-      container.querySelectorAll('[data-layout-mode="surface-fixed"]').length,
-    ).toBe(1);
-    expect(
-      container.querySelector(
-        '[data-layout-mode="surface-fixed"] [data-testid="onboarding-composer-card"]',
-      ),
-    ).not.toBeNull();
-    expect(
-      screen.getByTestId('onboarding-composer-card').parentElement,
-    ).toHaveClass('pb-3');
+      screen.getByRole('button', { name: 'Submit requested input' }),
+    ).toBeInTheDocument();
   });
 
   it('keeps the empty-state composer full-width inside the centered column', () => {

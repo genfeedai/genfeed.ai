@@ -258,7 +258,12 @@ export class AgentThreadRuntimeController {
         continuation = await this.agentOrchestratorService.acceptChatStream(
           {
             threadId,
-            content: body.answer,
+            content:
+              inputRequest.fieldId === 'brandUrl' &&
+              body.optionIds?.length === 1 &&
+              body.optionIds[0].startsWith('https://')
+                ? body.optionIds[0]
+                : body.answer,
             clientRequestId: `input-response:${requestId}`,
             brandId: scope.brandId,
             expectedContextVersion: scope.contextVersion,

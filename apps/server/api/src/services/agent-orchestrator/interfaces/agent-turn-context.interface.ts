@@ -37,6 +37,7 @@ export interface ResolvedAgentChatTurn
 
 /** Inputs that select and compose one turn's system prompt. */
 export interface AgentTurnSystemPromptInput {
+  accountType?: string | null;
   agentTypeConfig: AgentTypeConfig | null;
   brandContext: AssembledBrandContext | null;
   brandId?: string;

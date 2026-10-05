@@ -33,12 +33,14 @@ test.describe('Onboarding Steps', () => {
     });
   }
 
-  test('brand step stays interactive after clicking', async ({
+  test('brand replay opens guide settings without an onboarding form', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, APP_ROUTES.ONBOARDING.BRAND);
-    await tryClick(authenticatedPage, 'button');
-    await expect(authenticatedPage.locator('body')).toBeVisible();
+    await authenticatedPage.goto(APP_ROUTES.ONBOARDING.BRAND);
+    await expect(authenticatedPage).toHaveURL(/\/settings\/kit$/);
+    await expect(authenticatedPage.locator('#brand-guide-website')).toHaveCount(
+      0,
+    );
   });
 
   test('providers step stays interactive after clicking', async ({

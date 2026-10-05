@@ -16,6 +16,13 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    selectedBrand: { organization: { slug: 'acme', accountType: 'CREATOR' } },
+    brands: [],
+  }),
+}));
+
 const useCurrentUserMock = vi.fn();
 vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => useCurrentUserMock(),
@@ -84,7 +91,7 @@ describe('OnboardingGuard', () => {
       );
       expect(result.current.canRender).toBe(isCompleted);
       expect(result.current.redirectTarget).toBe(
-        isCompleted ? null : '/onboarding/brand',
+        isCompleted ? null : '/acme/~/agent/onboarding',
       );
       expect(replaceMock).not.toHaveBeenCalled();
     },
@@ -128,7 +135,7 @@ describe('OnboardingGuard', () => {
     expect(replaceMock).not.toHaveBeenCalled();
   });
 
-  it('sends incomplete Cloud users without brand setup to the shared brand step', async () => {
+  it('sends incomplete Cloud users directly to the conversation', async () => {
     useCurrentUserMock.mockReturnValue({
       currentUser: {
         isOnboardingCompleted: false,
@@ -162,11 +169,11 @@ describe('OnboardingGuard', () => {
     );
 
     await waitFor(() => {
-      expect(replaceMock).toHaveBeenCalledWith('/onboarding/brand');
+      expect(replaceMock).toHaveBeenCalledWith('/acme/~/agent/onboarding');
     });
   });
 
-  it('leaves incomplete Cloud users on the agent workspace after brand setup', async () => {
+  it('keeps non-experts in the conversation until overall onboarding completes', async () => {
     useCurrentUserMock.mockReturnValue({
       currentUser: {
         isOnboardingCompleted: false,
@@ -200,10 +207,10 @@ describe('OnboardingGuard', () => {
     );
 
     await waitFor(() => {
-      expect(replaceMock).not.toHaveBeenCalled();
+      expect(replaceMock).toHaveBeenCalledWith('/acme/~/agent/onboarding');
     });
 
-    expect(await screen.findByText('Child')).toBeInTheDocument();
+    expect(screen.queryByText('Child')).not.toBeInTheDocument();
   });
 
   it('should allow onboarding routes without redirect loops', async () => {
@@ -282,10 +289,10 @@ describe('OnboardingGuard', () => {
     );
 
     await waitFor(() => {
-      expect(replaceMock).not.toHaveBeenCalled();
+      expect(replaceMock).toHaveBeenCalledWith('/acme/~/agent/onboarding');
     });
 
-    expect(await screen.findByText('Child')).toBeInTheDocument();
+    expect(replaceMock).not.toHaveBeenCalledWith('/onboarding/summary');
   });
 
   it('bypasses the gate entirely for the desktop client', async () => {

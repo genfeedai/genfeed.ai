@@ -14,7 +14,6 @@ import {
 } from '@ui/primitives/popover';
 import {
   Bell,
-  Check,
   CircleAlert,
   CircleCheck,
   Info,
@@ -26,8 +25,6 @@ import { type ReactNode, useState } from 'react';
 import { useNotificationInbox } from '@/components/shell/use-notification-inbox';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { useActivityMessageFormatter } from '@/hooks/i18n/useActivityMessageFormatter';
-
-const RUN_TOPICS = new Set(['agent.status', 'workflow.status']);
 
 function alertIcon(item: INotificationInboxItem): ReactNode {
   if (item.socialReply) {
@@ -84,17 +81,15 @@ export default function NotificationInboxMenu() {
           {unreadCount ? (
             <span
               aria-hidden="true"
-              className="absolute -right-1 -top-1 rounded-full bg-info px-1 text-[10px] text-info-foreground"
-            >
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
+              className="absolute right-0.5 top-0.5 size-1.5 rounded-full bg-info"
+            ></span>
           ) : null}
         </Button>
       </PopoverTrigger>
       <PopoverContent
         key={organizationId}
         align="end"
-        className="w-[min(28rem,calc(100vw-2rem))] p-0"
+        className="w-[min(28rem,calc(100vw-2rem))] overflow-hidden p-0"
         aria-label={translate('title')}
       >
         <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
@@ -181,90 +176,89 @@ export default function NotificationInboxMenu() {
                     : translate(
                         item.outcome === 'completed' ? 'completed' : 'failed',
                       ));
-              const sourceCopy =
-                item.sourceLabel ??
-                (item.sourceHref
-                  ? translate(
-                      socialReply
-                        ? 'socialReply.openSource'
-                        : RUN_TOPICS.has(item.topic)
-                          ? 'openSource'
-                          : 'openDetails',
-                    )
-                  : translate('unavailable'));
+              const description = item.failure
+                ? [item.failure.summary, item.failure.recovery]
+                    .filter(Boolean)
+                    .join(' ')
+                : item.activity?.value?.trim() ||
+                  item.sourceLabel?.trim() ||
+                  translate(
+                    socialReply
+                      ? 'descriptions.socialReply'
+                      : item.topic === 'billing.credits'
+                        ? 'descriptions.credits'
+                        : item.topic.startsWith('publishing.')
+                          ? 'descriptions.publishing'
+                          : item.outcome === 'completed'
+                            ? 'descriptions.completed'
+                            : 'descriptions.failed',
+                  );
               const body = (
                 <>
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted">
-                    {alertIcon(item)}
-                  </span>
+                  <span className="mt-0.5 shrink-0">{alertIcon(item)}</span>
                   <span className="min-w-0 flex-1 space-y-1">
-                    <span className="block min-w-0 text-xs font-medium leading-5 text-foreground">
-                      {title}
-                    </span>
-                    {item.failure ? (
-                      <span className="block space-y-1 text-xs text-muted-foreground">
-                        <span className="block">{item.failure.summary}</span>
-                        {item.failure.recovery ? (
-                          <span className="block">{item.failure.recovery}</span>
-                        ) : null}
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span className="min-w-0 truncate font-medium leading-5 text-foreground">
+                        {title}
                       </span>
-                    ) : null}
-                    <span className="block truncate text-xs text-muted-foreground underline-offset-2 group-hover:text-foreground group-hover:underline">
-                      {sourceCopy}
-                    </span>
-                  </span>
-                </>
-              );
-              return (
-                <li key={item.id} className="px-2 py-1">
-                  <div
-                    data-testid="notification-inbox-row"
-                    className="flex items-start gap-1 rounded-md px-1 py-1.5 hover:bg-hover"
-                  >
-                    {item.sourceHref ? (
-                      <Link
-                        href={item.sourceHref}
-                        onClick={() => {
-                          if (!item.readAt) read.mutate([item.id]);
-                          setOpen(false);
-                        }}
-                        className="group flex min-w-0 flex-1 items-start gap-2.5"
-                      >
-                        {body}
-                      </Link>
-                    ) : (
-                      <div className="flex min-w-0 flex-1 items-start gap-2.5">
-                        {body}
-                      </div>
-                    )}
-                    <div className="flex shrink-0 items-center gap-1">
                       <ClientFormattedDate
                         value={item.occurredAt}
                         format="relative"
                         fallback=""
                         className="shrink-0 text-xs text-muted-foreground"
                       />
-                      {!item.readAt ? (
-                        <>
-                          <span className="size-1.5 rounded-full bg-info">
-                            <span className="sr-only">
-                              {translate('unread')}
-                            </span>
-                          </span>
-                          <Button
-                            variant={ButtonVariant.GHOST}
-                            size={ButtonSize.ICON}
-                            className="size-6"
-                            ariaLabel={translate('markRead')}
-                            disabled={read.isPending}
-                            onClick={() => read.mutate([item.id])}
-                          >
-                            <Check aria-hidden="true" className="size-3.5" />
-                          </Button>
-                        </>
-                      ) : null}
-                    </div>
+                    </span>
+                    <span className="line-clamp-2 text-xs leading-4 text-muted-foreground">
+                      {description}
+                    </span>
+                    {!item.sourceHref ? (
+                      <span className="sr-only">
+                        {translate('unavailable')}
+                      </span>
+                    ) : null}
+                  </span>
+                </>
+              );
+              return (
+                <li
+                  key={item.id}
+                  data-testid="notification-inbox-row"
+                  className="flex items-stretch hover:bg-accent focus-within:bg-accent"
+                >
+                  <div className="flex w-8 shrink-0 items-start justify-center pt-2.5">
+                    {!item.readAt ? (
+                      <Button
+                        variant={ButtonVariant.UNSTYLED}
+                        size={ButtonSize.ICON}
+                        withWrapper={false}
+                        className="flex size-6 items-center justify-center rounded-sm"
+                        ariaLabel={translate('markRead')}
+                        title={translate('markRead')}
+                        disabled={read.isPending}
+                        onClick={() => read.mutate([item.id])}
+                      >
+                        <span className="size-1.5 rounded-full bg-info">
+                          <span className="sr-only">{translate('unread')}</span>
+                        </span>
+                      </Button>
+                    ) : null}
                   </div>
+                  {item.sourceHref ? (
+                    <Link
+                      href={item.sourceHref}
+                      onClick={() => {
+                        if (!item.readAt) read.mutate([item.id]);
+                        setOpen(false);
+                      }}
+                      className="flex min-w-0 flex-1 items-start gap-2.5 py-3 pr-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                    >
+                      {body}
+                    </Link>
+                  ) : (
+                    <div className="flex min-w-0 flex-1 items-start gap-2.5 py-3 pr-3">
+                      {body}
+                    </div>
+                  )}
                 </li>
               );
             })}

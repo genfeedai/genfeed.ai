@@ -454,6 +454,30 @@ describe('AgentWorkObjectService review and scope boundary', () => {
     );
   });
 
+  it.each(['agent', 'onboarding'])(
+    'opts Skip into immediate submit only for onboarding requests: %s',
+    async (source) => {
+      prisma.agentThread.findFirst.mockResolvedValue({ source });
+      await service.requestInput(
+        {
+          requestId: 'ask-1',
+          title: 'Goals',
+          prompt: 'Choose',
+          isMultiSelect: true,
+          options: [{ id: 'skip', label: 'Skip' }],
+        },
+        context as never,
+      );
+      const metadata =
+        publisher.publishInputRequest.mock.calls.at(-1)?.[0].metadata;
+      if (source === 'onboarding')
+        expect(metadata).toMatchObject({
+          submitImmediatelyOptionIds: ['skip'],
+        });
+      else expect(metadata).not.toHaveProperty('submitImmediatelyOptionIds');
+    },
+  );
+
   it('defaults to free text and a single selection', async () => {
     await service.requestInput(
       {

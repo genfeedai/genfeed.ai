@@ -1079,10 +1079,12 @@
     },
     "onboardingShell": {
       "brandName": "Genfeed",
-      "openingWorkspace": "Opening workspace…",
-      "skip": "Skip to workspace",
-      "skipError": "Could not finish setup. Please try again.",
-      "subtitle": "Your first brand post"
+      "startError": "Could not start your brand setup. Please try again.",
+      "continueToWorkspace": "Continue to workspace",
+      "continueExpertSetup": "Continue Expert setup",
+      "continueError": "Could not open your workspace. Please try again.",
+      "retry": "Try again",
+      "subtitle": "Let’s set up your brand"
     }
   },
   "automation": {
@@ -2063,6 +2065,13 @@
     "mediaAlt": "Post media"
   },
   "notificationInbox": {
+    "descriptions": {
+      "completed": "The run finished and its results are ready to review.",
+      "failed": "The run could not finish. Review its details for the cause.",
+      "socialReply": "New replies to your posts are ready to review in Messages.",
+      "credits": "Your credit balance needs attention.",
+      "publishing": "There is an update to your publishing activity."
+    },
     "title": "Notifications",
     "open": "Open notifications",
     "openCount": "Open notifications, {count} unread",

@@ -11,19 +11,33 @@ import { AgentDesktopRuntimeBar } from '@genfeedai/agent/components/AgentDesktop
 import { AgentWebLocalCliNotice } from '@genfeedai/agent/components/AgentWebLocalCliNotice';
 import type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
-import { OnboardingConversationCard } from '@genfeedai/agent/components/OnboardingConversationCard';
 import { AGENT_CONVERSATION_TRACK_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
+import { captureAgentStreamHydration } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
 import { useAgentRuntimeSelection } from '@genfeedai/agent/hooks/use-agent-runtime-selection';
 import { useOverlayElementHeight } from '@genfeedai/agent/hooks/use-overlay-element-height';
 import { useStableSocketConnectionState } from '@genfeedai/agent/hooks/use-stable-socket-connection-state';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
+import {
+  mapSnapshotPendingInputRequest,
+  mapSnapshotRunStatus,
+  readSnapshotRunError,
+} from '@genfeedai/agent/utils/agent-thread-snapshot.util';
+import type { TimelineEntry } from '@genfeedai/agent/utils/derive-timeline';
 import { getGenfeedDesktopBridge } from '@genfeedai/agent/utils/desktop-bridge.util';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { resolveComposerTranscriptPaddingPx } from '@genfeedai/agent/utils/resolve-composer-transcript-padding.util';
 import { AlertCategory } from '@genfeedai/contracts';
+import { ONBOARDING_GREETING } from '@genfeedai/contracts/constants';
 import Alert from '@ui/feedback/alert/Alert';
-import { type ReactElement, useCallback, useMemo, useState } from 'react';
+import {
+  type ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 export type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 
@@ -107,6 +121,85 @@ export function AgentChatContainer({
   const stableSocketConnectionState = useStableSocketConnectionState(
     container.socketConnectionState,
   );
+
+  useEffect(() => {
+    if (
+      !onboardingMode ||
+      !activeThreadId ||
+      container.pendingInputRequest ||
+      stableSocketConnectionState === 'connected'
+    )
+      return;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const recover = async () => {
+      const initial = useAgentChatStore.getState();
+      const initialRun = selectActiveRun(initial);
+      const canHydrate = captureAgentStreamHydration(activeThreadId);
+      try {
+        const snapshot = await apiService.getThreadSnapshot(
+          activeThreadId,
+          controller.signal,
+        );
+        const state = useAgentChatStore.getState();
+        const currentRun = selectActiveRun(state);
+        if (
+          controller.signal.aborted ||
+          state.activeThreadId !== activeThreadId ||
+          state.pendingInputRequest ||
+          state.threadUiBusyById[activeThreadId] ||
+          !canHydrate(snapshot) ||
+          ((initialRun.status === 'running' ||
+            initialRun.status === 'cancelling') &&
+            snapshot.activeRun?.runId !== initialRun.runId) ||
+          currentRun.runId !== initialRun.runId ||
+          currentRun.status !== initialRun.status ||
+          snapshot.lastSequence <
+            (state.threadEventSequenceById[activeThreadId] ?? 0)
+        )
+          return;
+        const card = mapSnapshotPendingInputRequest(snapshot);
+        const status = mapSnapshotRunStatus(snapshot.activeRun?.status);
+        if (
+          card ||
+          status === 'failed' ||
+          status === 'completed' ||
+          status === 'cancelled'
+        ) {
+          state.applyThreadSnapshotState(activeThreadId, snapshot);
+          state.resetStreamState();
+          state.transitionRun(activeThreadId, {
+            type: 'begin',
+            runId: snapshot.activeRun?.runId ?? null,
+            status,
+            startedAt: snapshot.activeRun?.startedAt,
+          });
+          state.transitionRun(activeThreadId, {
+            type: 'generating',
+            isGenerating: false,
+          });
+          state.setPendingInputRequest(card);
+          const error = readSnapshotRunError(snapshot);
+          if (error) state.setError(error);
+        }
+      } catch {
+        // Keep REST input available while snapshot recovery retries.
+      } finally {
+        if (!controller.signal.aborted) timer = setTimeout(recover, 2000);
+      }
+    };
+    void recover();
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [
+    activeThreadId,
+    apiService,
+    container.pendingInputRequest,
+    onboardingMode,
+    stableSocketConnectionState,
+  ]);
 
   const highlightedMessageId: string | null = null;
   const formattedError = useMemo(
@@ -200,19 +293,39 @@ export function AgentChatContainer({
     composerShell?.placement === 'overlay';
   // When the docked composer is visible, status/errors live above the glass
   // bar (Claude/T3 pattern) — not as sticky timeline chrome.
+  const hasOnboardingQuestion =
+    onboardingMode && Boolean(container.pendingInputRequest);
+  const [greetingCreatedAt] = useState(() => new Date().toISOString());
+  const greetingTimeline: TimelineEntry[] = [
+    {
+      kind: 'assistant-message',
+      id: 'onboarding-greeting',
+      createdAt: greetingCreatedAt,
+      message: {
+        id: 'onboarding-greeting',
+        threadId: activeThreadId ?? '',
+        role: 'assistant',
+        content: ONBOARDING_GREETING,
+        createdAt: greetingCreatedAt,
+      },
+    },
+  ];
   const isComposerDocked =
     (composerShell?.isComposerVisible ?? true) &&
     (onboardingMode || !container.isEmpty || isShellHostedComposer);
-  const shouldRenderInlineComposerFeedback = !isComposerDocked;
+  const shouldRenderInlineComposerFeedback =
+    !isComposerDocked || hasOnboardingQuestion;
   // Archived threads replace the prompt bar with restore chrome — always dock it
   // so empty archived threads still get Unarchive instead of a dead input.
   const isArchivedThread = Boolean(isReadOnly && archivedNotice);
-  const shouldShowDockedComposer = isComposerDocked || isArchivedThread;
+  const shouldShowDockedComposer =
+    !hasOnboardingQuestion && (isComposerDocked || isArchivedThread);
   const shouldShowArchivedComposer = isArchivedThread && Boolean(onUnarchive);
   const composerTranscriptPaddingPx = resolveComposerTranscriptPaddingPx({
     hasFollowUpChips:
       showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions),
-    isComposerVisible: composerShell?.isComposerVisible !== false,
+    isComposerVisible:
+      !hasOnboardingQuestion && composerShell?.isComposerVisible !== false,
     overlayHeightPx: composerOverlayHeightPx,
   });
 
@@ -242,14 +355,14 @@ export function AgentChatContainer({
           </div>
         ) : null}
 
-        {isLoadingThread && container.isEmpty ? (
+        {isLoadingThread && container.isEmpty && !onboardingMode ? (
           <div className="relative flex min-h-0 flex-1 overflow-hidden">
             <AgentConversationSkeleton
               isWideLayout={isWideLayout}
               title={container.activeThreadTitle}
             />
           </div>
-        ) : container.isEmpty ? (
+        ) : container.isEmpty && !onboardingMode ? (
           <AgentChatEmptyState
             composerPaddingPx={
               onboardingMode ? composerTranscriptPaddingPx : undefined
@@ -262,9 +375,7 @@ export function AgentChatContainer({
             knowledgeSection={knowledgeSection}
             chatAttachments={container.chatAttachments}
             clearAllAttachments={container.clearAllAttachments}
-            composerBanner={
-              onboardingMode ? <OnboardingConversationCard /> : runtimeBanner
-            }
+            composerBanner={runtimeBanner}
             dragHandlers={container.dragHandlers}
             dragState={container.dragState}
             emptyStateTitle={emptyStateTitle}
@@ -331,7 +442,10 @@ export function AgentChatContainer({
             onSelectCreditPack={onSelectCreditPack}
             onSubmitInputRequest={container.handleSubmitInputRequest}
             onUiAction={container.handleUiAction}
-            padBottomForComposer={composerShell?.isComposerVisible !== false}
+            padBottomForComposer={
+              !hasOnboardingQuestion &&
+              composerShell?.isComposerVisible !== false
+            }
             composerTranscriptPaddingPx={composerTranscriptPaddingPx}
             pendingInputRequest={container.pendingInputRequest}
             pendingUiActions={container.streamState.pendingUiActions}
@@ -346,7 +460,11 @@ export function AgentChatContainer({
               Boolean(onCreateFollowUpTasks) &&
               container.latestProposedPlan?.status === 'approved'
             }
-            timeline={container.timeline}
+            timeline={
+              onboardingMode && container.isEmpty
+                ? greetingTimeline
+                : container.timeline
+            }
           />
         )}
 
@@ -369,11 +487,7 @@ export function AgentChatContainer({
                 !isShellHostedComposer
               }
               composerBanner={
-                onboardingMode && container.isEmpty ? (
-                  <OnboardingConversationCard />
-                ) : onboardingMode ? undefined : (
-                  (runtimeBanner ?? undefined)
-                )
+                onboardingMode ? undefined : (runtimeBanner ?? undefined)
               }
               activeWorkEvent={activeWorkEvent}
               workEvents={container.workEvents}
@@ -397,7 +511,9 @@ export function AgentChatContainer({
               isAttachmentUploading={container.isAttachmentUploading}
               isBusy={container.isBusy}
               isComposerUnavailable={
-                isLoadingThread || stableSocketConnectionState !== 'connected'
+                (!onboardingMode && isLoadingThread) ||
+                (onboardingMode && !activeThreadId) ||
+                (!onboardingMode && stableSocketConnectionState !== 'connected')
               }
               followUps={container.followUpQueue.queue}
               isReadOnly={isReadOnly}

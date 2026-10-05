@@ -26,6 +26,7 @@ import {
   X_PLATFORM_HARNESS_PACK,
 } from '@genfeedai/harness';
 import { buildBrandKitDraftFromManualInput } from '@genfeedai/helpers';
+import { compileActionContract } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
@@ -157,11 +158,33 @@ function createContentGenerationRunnerFake(
           organizationId: request.organizationId,
           userId: request.userId ?? 'workflow-owner',
         };
-        const invoke = (actionId: string, input: Record<string, unknown>) => {
+        const invoke = async (
+          actionId: string,
+          input: Record<string, unknown>,
+        ) => {
           const executor = actionExecutors.get(actionId);
           if (!executor)
             throw new Error(`Missing action executor: ${actionId}`);
-          return executor({ context, input } as never);
+          const definition = getActionDefinition(actionId);
+          if (!definition) throw new Error(`Missing contract: ${actionId}`);
+          const contract = compileActionContract(actionId, {
+            inputSchema: definition.inputSchema as Readonly<
+              Record<string, unknown>
+            >,
+            outputSchema: definition.outputSchema as Readonly<
+              Record<string, unknown>
+            >,
+          });
+          const provenance = {
+            nodeId: actionId,
+            runId: 'regression-run',
+            workflowId: request.canonicalId,
+            workflowVersionId: 'regression-version',
+          };
+          contract.validateInput(input, provenance);
+          const output = await executor({ context, input } as never);
+          contract.validateOutput(output, provenance);
+          return output;
         };
         const loadedContext = await invoke(
           'content-intelligence.load-context',
@@ -181,10 +204,11 @@ function createContentGenerationRunnerFake(
         if (!plan.hasPatterns) {
           const freeformResults = await invoke(
             'content-intelligence.generate-freeform',
-            { state: loadedContext },
+            { dto: request.inputValues.dto, state: loadedContext },
           );
           return {
             result: await invoke('content-intelligence.finalize', {
+              dto: request.inputValues.dto,
               freeformResults,
             }),
           };
@@ -204,6 +228,7 @@ function createContentGenerationRunnerFake(
         }
         return {
           result: await invoke('content-intelligence.finalize', {
+            dto: request.inputValues.dto,
             patternResults: { results },
           }),
         };
@@ -595,6 +620,8 @@ describe('ContentGeneratorService', () => {
     expect(results[0].hashtags).toEqual(
       expect.arrayContaining(['marketing', 'productivity']),
     );
+    expect(Object.keys(results[0])).not.toContain('body');
+    expect(Object.keys(results[0])).not.toContain('cta');
   });
 
   it('passes provided hashtags through without extraction', async () => {
@@ -997,47 +1024,53 @@ describe('ContentGeneratorService strict onboarding saved brand context', () => 
     variationsCount: 1,
   };
 
-  it('carries strict mode through the runner and sends complete real approved A/B identity and voice to the provider', async () => {
-    const f = await fixture();
-    const formatBrief = vi.spyOn(f.realHarness.harness, 'formatBrief');
-    for (const version of [1, 2]) {
-      f.realHarness.findApproved.mockResolvedValueOnce(
-        approvedOnboardingRevision(version),
+  it.each(['twitter', 'linkedin'])(
+    'carries strict %s mode through canonical contracts and sends approved A/B identity and voice to the provider',
+    async (platform) => {
+      const f = await fixture();
+      const formatBrief = vi.spyOn(f.realHarness.harness, 'formatBrief');
+      for (const version of [1, 2]) {
+        f.realHarness.findApproved.mockResolvedValueOnce(
+          approvedOnboardingRevision(version),
+        );
+        await f.service.generateContentWorkflow(
+          'user-1',
+          'org-1',
+          { ...dto, platform } as never,
+          true,
+        );
+        const messages = f.llm.completeStructured.mock.calls.at(
+          -1,
+        )?.[0] as unknown as {
+          messages: Array<{ role: string; content: string }>;
+        };
+        const system = messages.messages.find(
+          (message) => message.role === 'system',
+        )?.content;
+        expect(system).toContain(`Approved identity ${version}`);
+        expect(system).toContain(`Approved offering ${version}`);
+        expect(system).toContain(`Distinctive voice ${version}`);
+        expect(system).not.toContain('Conflicting legacy');
+        expect(system).toBe(formatBrief.mock.results.at(-1)?.value);
+      }
+      expect(f.runner.runWorkflow).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          inputValues: expect.objectContaining({ requireBrandHarness: true }),
+        }),
       );
-      await f.service.generateContentWorkflow(
-        'user-1',
+      expect(f.assembly.assembleContext).not.toHaveBeenCalled();
+      expect(f.topPerformer.assembleContext).not.toHaveBeenCalled();
+      expect(f.realHarness.findApproved).toHaveBeenCalledWith(
         'org-1',
-        dto as never,
-        true,
+        'brand-1',
       );
-      const messages = f.llm.completeStructured.mock.calls.at(
-        -1,
-      )?.[0] as unknown as {
-        messages: Array<{ role: string; content: string }>;
-      };
-      const system = messages.messages.find(
-        (message) => message.role === 'system',
-      )?.content;
-      expect(system).toContain(`Approved identity ${version}`);
-      expect(system).toContain(`Approved offering ${version}`);
-      expect(system).toContain(`Distinctive voice ${version}`);
-      expect(system).not.toContain('Conflicting legacy');
-      expect(system).toBe(formatBrief.mock.results.at(-1)?.value);
-    }
-    expect(f.runner.runWorkflow).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        inputValues: expect.objectContaining({ requireBrandHarness: true }),
-      }),
-    );
-    expect(f.assembly.assembleContext).not.toHaveBeenCalled();
-    expect(f.topPerformer.assembleContext).not.toHaveBeenCalled();
-    expect(f.realHarness.findApproved).toHaveBeenCalledWith('org-1', 'brand-1');
-    expect(f.realHarness.findOne).toHaveBeenCalledWith({
-      id: 'brand-1',
-      isDeleted: false,
-      organizationId: 'org-1',
-    });
-  });
+      expect(f.realHarness.findOne).toHaveBeenCalledWith({
+        id: 'brand-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      });
+    },
+  );
 
   it('permits absent persona while preserving saved voice when no approval exists', async () => {
     const f = await fixture({ omitPersona: true });

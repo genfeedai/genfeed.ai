@@ -1,3 +1,4 @@
+import { CommonModule } from '@api/common/common.module';
 import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-orchestrator.module';
 import { AgentToolConfirmationService } from '@api/services/agent-orchestrator/tools/agent-tool-confirmation.service';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -14,6 +15,11 @@ type ConfirmationFactoryProvider = {
 };
 
 describe('AgentOrchestratorModule', () => {
+  it('provides shared user-access cache invalidation for the expert handoff', () => {
+    expect(
+      Reflect.getMetadata(MODULE_METADATA.IMPORTS, AgentOrchestratorModule),
+    ).toContain(CommonModule);
+  });
   it('constructs the confirmation application service through an explicit factory', () => {
     const providers = Reflect.getMetadata(
       MODULE_METADATA.PROVIDERS,

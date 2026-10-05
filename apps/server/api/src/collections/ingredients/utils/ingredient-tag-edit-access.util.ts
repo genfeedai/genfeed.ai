@@ -13,7 +13,7 @@ export interface TagEditor {
 }
 
 /**
- * Whether a member may change an asset's tags. The asset must already be in the
+ * Whether a member may edit an asset (tags or trash). The asset must already be in the
  * member's organization (callers query it that way); this mirrors
  * `AssetAccessGuard`, the edit gate on the single-asset tag route, so the bulk
  * route can never do more than the single one:

@@ -99,7 +99,9 @@ it('recovers only the reply produced by the tracked run', async () => {
     role: 'assistant' as const,
     threadId: 'thread-1',
   };
+  const onRecoveredReply = vi.fn();
   const deps = {
+    onRecoveredReply,
     apiService: {
       getMessages: vi.fn().mockResolvedValue([
         {
@@ -135,12 +137,14 @@ it('recovers only the reply produced by the tracked run', async () => {
 
   await resolveStreamFromMessages(pending, deps as never);
 
+  expect(onRecoveredReply).not.toHaveBeenCalled();
   expect(deps.setMessages).not.toHaveBeenCalled();
   expect(deps.scheduleCompletionWatchdog).toHaveBeenCalledOnce();
 
   deps.apiService.getMessages.mockResolvedValue([trackedReply]);
   await resolveStreamFromMessages(pending, deps as never);
 
+  expect(onRecoveredReply).toHaveBeenCalledWith(trackedReply, 'thread-1');
   expect(deps.setMessages).toHaveBeenCalledWith([trackedReply]);
   expect(deps.setActiveRun).toHaveBeenCalledWith('execution-2', {
     startedAt: '2026-09-23T15:08:00.000Z',

@@ -43,6 +43,9 @@ export default function IngredientTabs({
       token,
     ),
   );
+  const getMetadataService = useAuthedService((token) =>
+    IngredientsService.getInstance(token),
+  );
   const { href } = useOrgUrl();
 
   const [tab, setTab] = useState<
@@ -63,7 +66,7 @@ export default function IngredientTabs({
       const notification = NotificationsService.getInstance();
 
       try {
-        const service = await getIngredientsService();
+        const service = await getMetadataService();
         const data = await service.patchMetadata(ingredient.id, {
           [field]: value,
         });
@@ -83,7 +86,7 @@ export default function IngredientTabs({
         throw error;
       }
     },
-    [ingredient, isUpdating, onUpdate, getIngredientsService],
+    [ingredient, isUpdating, onUpdate, getMetadataService],
   );
 
   const handleUpdateSharing = useCallback(

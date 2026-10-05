@@ -22,6 +22,7 @@ const {
   currentUserState,
   getTokenMock,
   getMyOrganizationsMock,
+  updateAccountTypeMock,
   findOrganizationBrandsMock,
   hasAgentFirstOnboardingMock,
   hasOrganizationBillingMock,
@@ -50,6 +51,7 @@ const {
   },
   getTokenMock: vi.fn(),
   getMyOrganizationsMock: vi.fn(),
+  updateAccountTypeMock: vi.fn(),
   findOrganizationBrandsMock: vi.fn(),
   hasAgentFirstOnboardingMock: vi.fn(),
   hasOrganizationBillingMock: vi.fn(),
@@ -156,6 +158,7 @@ vi.mock('@services/organization/organizations.service', () => ({
     getInstance: vi.fn(() => ({
       findOrganizationBrands: findOrganizationBrandsMock,
       getMyOrganizations: getMyOrganizationsMock,
+      updateAccountType: updateAccountTypeMock,
     })),
   },
 }));
@@ -234,6 +237,8 @@ describe('PostSignupPage behavior', () => {
     managedCreateCheckoutSessionMock.mockReset();
     getTokenMock.mockReset();
     getMyOrganizationsMock.mockReset();
+    updateAccountTypeMock.mockReset();
+    updateAccountTypeMock.mockResolvedValue({});
     findOrganizationBrandsMock.mockReset();
     hasAgentFirstOnboardingMock.mockReset();
     hasOrganizationBillingMock.mockReset();
@@ -306,14 +311,14 @@ describe('PostSignupPage behavior', () => {
     });
   });
 
-  it('routes Community signups into the shared brand step and clears stale plan handoff', async () => {
+  it('routes Community signups directly into the conversation and clears stale plan handoff', async () => {
     localStorage.setItem(ONBOARDING_STORAGE_KEYS.selectedPlan, 'price_123');
     localStorage.setItem(ONBOARDING_STORAGE_KEYS.brandDomain, 'acme.co');
 
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(locationState.href).toBe('/onboarding/brand?auto=true');
+      expect(locationState.href).toBe('/acme/~/agent/onboarding');
     });
 
     expect(
@@ -389,7 +394,7 @@ describe('PostSignupPage behavior', () => {
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(locationState.href).toBe('/onboarding/brand?auto=true');
+      expect(locationState.href).toBe('/acme/~/agent/onboarding');
     });
 
     expect(
@@ -422,7 +427,7 @@ describe('PostSignupPage behavior', () => {
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(locationState.href).toBe('/onboarding/brand?auto=true');
+      expect(locationState.href).toBe('/acme/~/agent/onboarding');
     });
 
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
@@ -615,7 +620,7 @@ describe('PostSignupPage behavior', () => {
         quantity: null,
         stripePriceId: 'price_123',
         successUrl:
-          'http://localhost/onboarding/brand?checkout=completed&checkoutKind=plan',
+          'http://localhost/acme/~/agent/onboarding?checkout=completed&checkoutKind=plan',
       });
     });
     expect(locationState.href).toBe('https://checkout.stripe.test/session');
@@ -627,7 +632,7 @@ describe('PostSignupPage behavior', () => {
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(locationState.href).toBe('/onboarding/brand');
+      expect(locationState.href).toBe('/acme/~/agent/onboarding');
     });
 
     expect(
@@ -652,7 +657,7 @@ describe('PostSignupPage behavior', () => {
         quantity: 1000,
         stripePriceId: 'price_payg',
         successUrl:
-          'http://localhost/onboarding/brand?checkout=completed&checkoutKind=credits',
+          'http://localhost/acme/~/agent/onboarding?checkout=completed&checkoutKind=credits',
       });
     });
     expect(captureAnalyticsEventMock).toHaveBeenCalledWith('signup_completed', {
@@ -705,7 +710,7 @@ describe('PostSignupPage behavior', () => {
     );
   });
 
-  it('routes new SaaS signups to the shared brand step', async () => {
+  it('routes new SaaS signups directly to the conversation', async () => {
     isSaaSMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
     getMyOrganizationsMock.mockResolvedValue([
@@ -722,12 +727,52 @@ describe('PostSignupPage behavior', () => {
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(locationState.href).toBe('/onboarding/brand');
+      expect(locationState.href).toBe('/acme/~/agent/onboarding');
     });
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
   });
 
-  it('still opens the shared brand step when no SaaS org slug can be resolved', async () => {
+  it('retries account type once and clears the browser hint after success', async () => {
+    localStorage.setItem(ONBOARDING_STORAGE_KEYS.accountType, 'EXPERT');
+    updateAccountTypeMock
+      .mockRejectedValueOnce(new Error('Temporary failure'))
+      .mockResolvedValueOnce(undefined);
+    render(<PostSignupPage />);
+    await waitFor(() => expect(updateAccountTypeMock).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(window.location.href).toContain('/agent/onboarding'),
+    );
+    expect(
+      localStorage.getItem(ONBOARDING_STORAGE_KEYS.accountType),
+    ).toBeNull();
+  });
+
+  it('continues to the conversation after two account-type failures and retains the hint', async () => {
+    localStorage.setItem(ONBOARDING_STORAGE_KEYS.accountType, 'EXPERT');
+    updateAccountTypeMock.mockRejectedValue(new Error('Unavailable'));
+    render(<PostSignupPage />);
+    await waitFor(() =>
+      expect(window.location.href).toContain('/agent/onboarding'),
+    );
+    expect(updateAccountTypeMock).toHaveBeenCalledTimes(2);
+    expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.accountType)).toBe(
+      'EXPERT',
+    );
+  });
+
+  it('persists an Expert signup intent before starting the conversation', async () => {
+    searchParamsState.value = new URLSearchParams('accountType=EXPERT');
+    render(<PostSignupPage />);
+    await waitFor(() =>
+      expect(locationState.href).toBe('/acme/~/agent/onboarding'),
+    );
+    expect(updateAccountTypeMock).toHaveBeenCalledWith('org-1', 'EXPERT');
+    expect(updateAccountTypeMock.mock.invocationCallOrder[0]).toBeGreaterThan(
+      getMyOrganizationsMock.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  it('keeps protected agent bootstrap when no SaaS org slug can be resolved', async () => {
     isSaaSMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
     getMyOrganizationsMock.mockResolvedValue([]);
@@ -735,7 +780,7 @@ describe('PostSignupPage behavior', () => {
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(locationState.href).toBe('/onboarding/brand');
+      expect(locationState.href).toBe('/agent/onboarding');
     });
   });
 
@@ -763,7 +808,7 @@ describe('PostSignupPage behavior', () => {
         quantity: null,
         stripePriceId: 'price_123',
         successUrl:
-          'http://localhost/onboarding/brand?checkout=completed&checkoutKind=plan',
+          'http://localhost/acme/~/agent/onboarding?checkout=completed&checkoutKind=plan',
       });
     });
     expect(locationState.href).toBe('https://checkout.stripe.test/session');

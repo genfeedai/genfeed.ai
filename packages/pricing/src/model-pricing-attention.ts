@@ -146,6 +146,7 @@ export function classifyModelPricingAttention(
         },
         margin,
         quotedAt,
+        { kind: 'frozen' },
       );
       if (quote.status === 'unresolved') {
         attention.push({
@@ -172,6 +173,7 @@ export function classifyModelPricingAttention(
       { ...identity, ...quantities },
       margin,
       quotedAt,
+      { kind: 'frozen' },
     );
     if (quote.status === 'unresolved') {
       attention.push({

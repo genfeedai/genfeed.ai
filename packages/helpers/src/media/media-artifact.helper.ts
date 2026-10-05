@@ -1,4 +1,5 @@
 import type {
+  McpImageContentPart,
   McpMediaContentPart,
   McpMediaToolResult,
   MediaArtifactKind,
@@ -78,8 +79,8 @@ export function serializeMediaArtifact(
       height: readNumber(payload, 'height'),
       id,
       kind,
-      mimeType: inferImageMimeType(url),
-      renderMode: url ? 'native_image' : 'open_url',
+      mimeType: readString(payload, 'mimeType') ?? inferImageMimeType(url),
+      renderMode: url ? 'resource_link' : 'open_url',
       status,
       url,
       width: readNumber(payload, 'width'),
@@ -104,9 +105,9 @@ export function serializeMediaArtifact(
   };
 }
 
-function inferImageMimeType(url: string | undefined): string {
+function inferImageMimeType(url: string | undefined): string | undefined {
   if (!url) {
-    return 'image/png';
+    return undefined;
   }
   if (/\.jpe?g(\?|$)/i.test(url)) {
     return 'image/jpeg';
@@ -120,7 +121,7 @@ function inferImageMimeType(url: string | undefined): string {
   if (/\.avif(\?|$)/i.test(url)) {
     return 'image/avif';
   }
-  return 'image/png';
+  return /\.png(\?|$)/i.test(url) ? 'image/png' : undefined;
 }
 
 function textFallback(artifact: MediaArtifactResult): string {
@@ -141,6 +142,7 @@ function textFallback(artifact: MediaArtifactResult): string {
 
 export function toMcpMediaToolResult(
   payload: Record<string, unknown>,
+  image?: McpImageContentPart,
 ): McpMediaToolResult {
   const artifact = serializeMediaArtifact(payload);
   const content: McpMediaContentPart[] = [
@@ -151,6 +153,12 @@ export function toMcpMediaToolResult(
       type: 'text',
     },
   ];
+
+  if (artifact?.kind === 'image' && image) {
+    artifact.mimeType = image.mimeType;
+    artifact.renderMode = 'native_image';
+    content.push(image);
+  }
 
   if (artifact?.url) {
     content.push({

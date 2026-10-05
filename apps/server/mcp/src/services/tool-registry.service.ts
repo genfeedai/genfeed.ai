@@ -9,10 +9,7 @@ import {
 } from '@genfeedai/actions';
 import { formatAgentError } from '@genfeedai/agent/server';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
-import {
-  serializeMediaArtifact,
-  toMcpMediaToolResult,
-} from '@genfeedai/helpers';
+import { serializeMediaArtifact } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
@@ -23,6 +20,7 @@ import {
 } from '@mcp/mcp/resource-catalog';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
+import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
 import {
   agentGuideResource,
   jsonResource,
@@ -465,7 +463,13 @@ export class ToolRegistryService implements OnModuleInit {
       case 'ads-gateway':
         return handleAdsGatewayTool(this.clientService, name, args);
       case 'account-management':
-        return handleAccountManagementTool(this.clientService, name, args);
+        return handleAccountManagementTool(
+          this.clientService,
+          name,
+          args,
+          this.mediaOrigins(),
+          this.logger,
+        );
       case 'social-messages':
         return handleSocialMessagesTool(this.clientService, name, args);
       case 'clip-projects':
@@ -626,6 +630,12 @@ export class ToolRegistryService implements OnModuleInit {
     return { content: [{ text, type: 'text' }] };
   }
 
+  private mediaOrigins(): string[] {
+    return [
+      this.configService?.get('GENFEEDAI_CDN_URL') || 'https://cdn.genfeed.ai',
+    ];
+  }
+
   private toMcpResult(result: AgentToolResult) {
     if (!result.success) {
       const gated = toMcpToolErrorResult(
@@ -648,7 +658,7 @@ export class ToolRegistryService implements OnModuleInit {
 
     const payload = result.data ?? {};
     if (serializeMediaArtifact(payload)) {
-      return toMcpMediaToolResult(payload);
+      return toNativeMcpMediaResult(payload, this.mediaOrigins(), this.logger);
     }
     return {
       content: [

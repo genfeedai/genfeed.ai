@@ -235,26 +235,10 @@
     {
       "delegate": "ingredient",
       "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "594bb9426f9f672fb986",
-      "method": "findMany",
-      "model": "Ingredient",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "ff04d6aa2aaf837b3ac9",
       "method": "findMany",
       "model": "Ingredient",
       "reason": "unresolved-where"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "6754acd1589ab673f4a1",
-      "method": "updateMany",
-      "model": "Ingredient",
-      "reason": "missing-organization-id"
     },
     {
       "delegate": "listeningTopic",

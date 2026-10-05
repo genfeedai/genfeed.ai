@@ -1,38 +1,9 @@
 'use client';
 
-import {
-  isTaskInWorkspaceInboxQueue,
-  isUnreadWorkspaceInboxTask,
-  TasksService,
-} from '@genfeedai/services/management/tasks.service';
-import { resolveAuthToken } from '@helpers/auth/auth.helper';
-import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useQuery } from '@tanstack/react-query';
+import { useWorkspaceInboxRead } from '@hooks/data/tasks/use-workspace-inbox-read';
 
-const WORKSPACE_INBOX_REFRESH_MS = 60_000;
-
+/** The same recipient-scoped read state drives rows, menu and rail. */
 export function useWorkspaceInboxCount(): number {
-  const { getToken, orgId, userId } = useAuthIdentity();
-  const { data = [] } = useQuery({
-    refetchInterval: WORKSPACE_INBOX_REFRESH_MS,
-    staleTime: WORKSPACE_INBOX_REFRESH_MS / 2,
-    queryKey: [
-      'workspace-inbox-tasks',
-      userId ?? 'anonymous',
-      orgId ?? 'no-org',
-    ],
-    queryFn: async () => {
-      const token = await resolveAuthToken(getToken);
-      if (!token) {
-        return [];
-      }
-
-      return TasksService.getInstance(token).list({});
-    },
-  });
-
-  return data.filter(
-    (task) =>
-      isTaskInWorkspaceInboxQueue(task) && isUnreadWorkspaceInboxTask(task),
-  ).length;
+  const { state } = useWorkspaceInboxRead();
+  return state.data?.unreadCount ?? 0;
 }

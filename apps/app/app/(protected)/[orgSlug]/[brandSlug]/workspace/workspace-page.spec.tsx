@@ -19,6 +19,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 import WorkspacePageContent from './workspace-page';
 
+vi.mock('@hooks/data/tasks/use-workspace-inbox-read', async () => {
+  const { isUnreadWorkspaceInboxTask } = await import(
+    '@services/management/tasks.service'
+  );
+  return {
+    useWorkspaceInboxRead: () => ({
+      state: { data: { reads: [] }, isLoading: false, isError: false },
+      read: { isPending: false, isError: false, mutate: vi.fn() },
+      isUnread: isUnreadWorkspaceInboxTask,
+    }),
+  };
+});
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };

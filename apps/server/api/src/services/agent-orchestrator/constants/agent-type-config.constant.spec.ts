@@ -179,3 +179,9 @@ it('excludes URL scans from general default tools', () => {
     'scan_brand_url',
   );
 });
+
+it('excludes the Expert brand handoff from general default tools', () => {
+  expect(getAgentTypeConfig(AgentType.GENERAL).defaultTools).not.toContain(
+    'complete_brand_onboarding_step',
+  );
+});

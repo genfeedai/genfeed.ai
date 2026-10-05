@@ -93,10 +93,6 @@ describe('IngredientsOperationsController', () => {
         .fn()
         .mockResolvedValue({ deleted: [], failed: [] }),
       findOne: vi.fn().mockResolvedValue(mockIngredient),
-      getKPIMetrics: vi.fn().mockResolvedValue({
-        byCategory: {},
-        total: 100,
-      }),
       patch: vi.fn().mockResolvedValue(mockIngredient),
     },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
@@ -174,15 +170,6 @@ describe('IngredientsOperationsController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('getAnalytics', () => {
-    it('should return analytics data', async () => {
-      const result = await controller.getAnalytics(mockUser, 'image');
-
-      expect(ingredientsService.getKPIMetrics).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-  });
-
   describe('cloneIngredient', () => {
     it('uses the scoped original stored key and persists the new randomized clone key when activated', async () => {
       mockServices.configService.isAuthorizedMediaDeliveryEnabled = true;
@@ -209,7 +196,7 @@ describe('IngredientsOperationsController', () => {
         );
       });
       expect(mockServices.ingredientsService.findOne).toHaveBeenCalledWith(
-        { id: ingredientId, organizationId },
+        { id: ingredientId, isDeleted: false, organizationId },
         expect.any(Array),
       );
       expect(
@@ -369,7 +356,7 @@ describe('IngredientsOperationsController', () => {
       ).toHaveBeenCalledWith({
         ids: bulkDeleteDto.ids,
         organizationId,
-        userId,
+        editor: { brandId, userId },
       });
       expect(mockServices.ingredientsService.findOne).not.toHaveBeenCalled();
       expect(result.deleted).toEqual(bulkDeleteDto.ids);

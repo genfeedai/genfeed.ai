@@ -256,6 +256,7 @@ export * from './notifications/activity-alert-policy.interface';
 export * from './notifications/notification-inbox.interface';
 export * from './notifications/notification-preference.interface';
 export * from './notifications/system-notification-destination.interface';
+export * from './notifications/workspace-inbox-read.interface';
 export * from './onboarding/onboarding.interface';
 export * from './onboarding/onboarding-journey.interface';
 export * from './onboarding/onboarding-wizard.interface';

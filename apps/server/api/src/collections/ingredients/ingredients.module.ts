@@ -12,6 +12,7 @@ Workflow execution, state management, and cross-content type operations.
 import { FoldersModule } from '@api/collections/folders/folders.module';
 import { IngredientPerceptionController } from '@api/collections/ingredients/controllers/ingredient-perception.controller';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
+import { IngredientsOperationsController } from '@api/collections/ingredients/controllers/ingredients-operations.controller';
 import { IngredientsRelationshipsController } from '@api/collections/ingredients/controllers/ingredients-relationships.controller';
 import { IngredientsTagsController } from '@api/collections/ingredients/controllers/ingredients-tags.controller';
 import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
@@ -32,6 +33,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [
     IngredientsController,
+    IngredientsOperationsController,
     IngredientsRelationshipsController,
     IngredientExportsController,
     IngredientPerceptionController,

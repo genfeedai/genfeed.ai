@@ -755,6 +755,7 @@ contentLearningOperations ContentLearningOperation[]
   warmupAccountsCustomer    WarmupAccount[]           @relation("warmup_account_customer")
   lifecycleEmailPreference  LifecycleEmailPreference?
   lifecycleEmailDeliveries  LifecycleEmailDelivery[]
+  workspaceInboxReads       WorkspaceInboxRead[]
   notificationInboxItems    NotificationInboxItem[]
   notificationPreferences   NotificationPreference[]
   notificationDeliveries    NotificationDelivery[]
@@ -866,6 +867,7 @@ contentLearningBrandPreferences ContentLearningBrandPreference[]
   workflowArtifacts             WorkflowArtifact[]
   workflowNodeContinuations     WorkflowNodeContinuation[]
   notificationEvents            NotificationEvent[]
+  workspaceInboxReads           WorkspaceInboxRead[]
   notificationInboxItems        NotificationInboxItem[]
   notificationDeliveries        NotificationDelivery[]
   contentRuns                   ContentRun[]
@@ -5373,6 +5375,7 @@ model Task {
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
 
+  inboxReads       WorkspaceInboxRead[]
   comments         TaskComment[]
   linkedExecutions WorkflowExecution[] @relation("task_linked_executions")
   linkedOutputs    Ingredient[]        @relation("task_linked_outputs")
@@ -5399,10 +5402,30 @@ model Task {
   /// final write keeps failing is not retried forever. Reset with rolledUpAt.
   rollupAttempts       Int       @default(0)
 
+  @@unique([id, organizationId], map: "tasks_id_organizationId_key")
   @@unique([organizationId, identifier])
   @@index([organizationId, checkoutAgentId])
   @@index([status, rollupLeaseExpiresAt])
   @@map("tasks")
+}
+
+/// Per-recipient task versions acknowledged in the workspace inbox.
+model WorkspaceInboxRead {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  taskId         String
+  task           Task         @relation(fields: [taskId, organizationId], references: [id, organizationId])
+  seenUpdatedAt  DateTime
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, userId, taskId])
+  @@index([organizationId, userId, isDeleted])
+  @@map("workspace_inbox_reads")
 }
 
 model TaskComment {

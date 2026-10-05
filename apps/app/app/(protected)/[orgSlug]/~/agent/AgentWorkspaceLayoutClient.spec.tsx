@@ -1,8 +1,26 @@
+import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentRunRecord } from '@genfeedai/agent/stores/agent-chat.store.run';
-import { act, render, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { type PropsWithChildren, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentWorkspaceLayoutClient } from './AgentWorkspaceLayoutClient';
+import { useAgentWorkspace } from './agent-workspace-context';
+
+function BootstrapStatus() {
+  const { onboardingBootstrapError, retryOnboardingBootstrap } =
+    useAgentWorkspace();
+  return (
+    <button type="button" onClick={retryOnboardingBootstrap}>
+      {onboardingBootstrapError ? 'Retry setup' : 'Ready'}
+    </button>
+  );
+}
 
 const routerReplace = vi.fn();
 const sendMessage = vi.fn();
@@ -10,12 +28,16 @@ const patchMe = vi.fn();
 const touchSession = vi.fn();
 const getToken = vi.fn();
 const useAgentChatStreamSpy = vi.fn();
+let completionCallback: (() => void | Promise<void>) | undefined;
 // Hoisted: the `@genfeedai/agent` factory reads `getThreads` eagerly as a
 // property value, so a plain `const` would still be in its temporal dead zone
 // when the hoisted `vi.mock` runs.
-const { getThreads } = vi.hoisted(() => ({
-  getThreads: vi.fn(),
-}));
+const { getThreads, kickoffOnboarding, completeExpertBrandHandoff } =
+  vi.hoisted(() => ({
+    getThreads: vi.fn(),
+    kickoffOnboarding: vi.fn(),
+    completeExpertBrandHandoff: vi.fn(),
+  }));
 
 const navigationState = {
   params: {
@@ -29,6 +51,7 @@ const navigationState = {
 const storeState = {
   activeThreadId: 'thread-existing' as string | null,
   setError: vi.fn(),
+  upsertThread: vi.fn(),
   messages: [] as Array<{ content: string }>,
   runsByThread: {} as Record<string, AgentRunRecord>,
   stream: { isStreaming: false },
@@ -64,6 +87,7 @@ const brandState = {
   brands: AUTHORIZED_BRANDS,
   isBrandScopeResolved: true,
   organizationId: 'org-1',
+  accountType: 'CREATOR',
 };
 
 vi.mock('@genfeedai/auth-client/react', () => ({
@@ -93,7 +117,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
     organizationId: brandState.organizationId,
     selectedBrand: {
       id: 'brand-1',
-      organization: { slug: 'acme-org' },
+      organization: { slug: 'acme-org', accountType: brandState.accountType },
       slug: 'acme-creator',
     },
   }),
@@ -102,6 +126,8 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 vi.mock('@genfeedai/agent', () => ({
   AgentApiService: class AgentApiService {
     getThreads = getThreads;
+    kickoffOnboarding = kickoffOnboarding;
+    completeExpertBrandHandoff = completeExpertBrandHandoff;
   },
   AgentApiServiceProvider: ({ children }: PropsWithChildren) => <>{children}</>,
   isRenderableThreadId: (id: string) =>
@@ -118,7 +144,14 @@ vi.mock('@genfeedai/agent', () => ({
     (selector: (state: typeof storeState) => unknown) => selector(storeState),
     { getState: () => storeState },
   ),
-  useAgentChatStream: ({ apiService }: { apiService: unknown }) => {
+  useAgentChatStream: ({
+    apiService,
+    onOnboardingCompleted,
+  }: {
+    apiService: unknown;
+    onOnboardingCompleted?: () => void | Promise<void>;
+  }) => {
+    completionCallback = onOnboardingCompleted;
     useAgentChatStreamSpy(apiService);
     return { sendMessage };
   },
@@ -175,6 +208,9 @@ describe('AgentWorkspaceLayoutClient', () => {
     brandState.brands = AUTHORIZED_BRANDS;
     brandState.isBrandScopeResolved = true;
     brandState.organizationId = 'org-1';
+    brandState.accountType = 'CREATOR';
+    completeExpertBrandHandoff.mockReset();
+    completeExpertBrandHandoff.mockResolvedValue({ id: 'user-1' });
     routerReplace.mockReset();
     sendMessage.mockReset();
     sendMessage.mockResolvedValue(undefined);
@@ -184,8 +220,71 @@ describe('AgentWorkspaceLayoutClient', () => {
     getToken.mockReset();
     getToken.mockResolvedValue('token');
     useAgentChatStreamSpy.mockClear();
+    storeState.upsertThread.mockReset();
     getThreads.mockReset();
     getThreads.mockResolvedValue([]);
+    kickoffOnboarding.mockReset();
+    kickoffOnboarding.mockResolvedValue({
+      id: 'thread-kickoff',
+      contextVersion: 1,
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      status: 'active',
+      source: 'onboarding',
+    });
+  });
+
+  it('completes conversational onboarding before navigating to the workspace', async () => {
+    navigationState.pathname = '/agent/onboarding/thread-complete';
+    storeState.activeThreadId = 'thread-complete';
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'location');
+    const location = { href: '' };
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: location,
+    });
+    try {
+      render(
+        <AgentWorkspaceLayoutClient
+          agentApiService={{ getThreads, kickoffOnboarding } as never}
+        >
+          <p>Conversation</p>
+        </AgentWorkspaceLayoutClient>,
+      );
+      await act(async () => {
+        await completionCallback?.();
+      });
+      expect(patchMe).toHaveBeenCalledWith({ isOnboardingCompleted: true });
+      expect(location.href).toContain('/workspace/overview');
+    } finally {
+      if (descriptor) Object.defineProperty(window, 'location', descriptor);
+    }
+  });
+
+  it('preserves Expert steps on failure escape and never sets overall completion', async () => {
+    navigationState.pathname = '/agent/onboarding/thread-expert';
+    brandState.accountType = 'EXPERT';
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'location');
+    const location = { href: '' };
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: location,
+    });
+    try {
+      render(
+        <AgentWorkspaceLayoutClient>
+          <p>Expert recovery</p>
+        </AgentWorkspaceLayoutClient>,
+      );
+      await act(async () => {
+        await completionCallback?.();
+      });
+      expect(completeExpertBrandHandoff).toHaveBeenCalledWith('brand-1');
+      expect(patchMe).not.toHaveBeenCalled();
+      expect(location.href).toBe('/onboarding/positioning');
+    } finally {
+      if (descriptor) Object.defineProperty(window, 'location', descriptor);
+    }
   });
 
   it('reuses a protected-shell agent service when one is provided', () => {
@@ -868,12 +967,21 @@ describe('AgentWorkspaceLayoutClient', () => {
     storeState.activeThreadId = null;
     getThreads.mockResolvedValue([
       {
+        id: 'thread-other-brand-newer',
+        source: 'onboarding',
+        status: 'active',
+        organizationId: 'org-1',
+        brandId: 'brand-2',
+        updatedAt: '2026-08-06T09:00:00.000Z',
+      },
+      {
         id: 'thread-standard',
         source: 'agent',
         updatedAt: '2026-08-05T12:00:00.000Z',
       },
       {
         id: 'thread-onboarding-old',
+        brandId: 'brand-1',
         source: 'onboarding',
         status: 'active',
         organizationId: 'org-1',
@@ -881,6 +989,7 @@ describe('AgentWorkspaceLayoutClient', () => {
       },
       {
         id: 'thread-onboarding-latest',
+        brandId: 'brand-1',
         source: 'onboarding',
         status: 'active',
         organizationId: 'org-1',
@@ -920,6 +1029,7 @@ describe('AgentWorkspaceLayoutClient', () => {
       ...newerStandardThreads,
       {
         id: 'thread-onboarding-latest',
+        brandId: 'brand-1',
         source: 'onboarding',
         status: 'active',
         organizationId: 'org-1',
@@ -927,6 +1037,7 @@ describe('AgentWorkspaceLayoutClient', () => {
       },
       {
         id: 'thread-onboarding-old',
+        brandId: 'brand-1',
         source: 'onboarding',
         status: 'active',
         organizationId: 'org-1',
@@ -988,7 +1099,7 @@ describe('AgentWorkspaceLayoutClient', () => {
     expect(sendMessage).not.toHaveBeenCalled();
   });
 
-  it('starts only one first draft in Strict Mode', async () => {
+  it('starts only one kickoff in Strict Mode', async () => {
     navigationState.pathname = '/agent/onboarding';
     storeState.activeThreadId = null;
     render(
@@ -998,27 +1109,60 @@ describe('AgentWorkspaceLayoutClient', () => {
         </AgentWorkspaceLayoutClient>
       </StrictMode>,
     );
-    await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(kickoffOnboarding).toHaveBeenCalledTimes(1));
+    expect(sendMessage).not.toHaveBeenCalled();
   });
 
-  it('shows a recoverable error when onboarding cannot be loaded', async () => {
+  it('goes to workspace when kickoff reports onboarding is already complete', async () => {
     navigationState.pathname = '/agent/onboarding';
     storeState.activeThreadId = null;
-    getThreads.mockRejectedValue(new Error('Network unavailable'));
+    kickoffOnboarding.mockRejectedValueOnce(
+      new AgentApiRequestError({
+        status: 409,
+        message: 'Onboarding is already completed',
+      }),
+    );
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'location');
+    const location = { href: '' };
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: location,
+    });
+    try {
+      render(
+        <AgentWorkspaceLayoutClient
+          agentApiService={{ getThreads, kickoffOnboarding } as never}
+        >
+          <p>Conversation</p>
+        </AgentWorkspaceLayoutClient>,
+      );
+      await waitFor(() =>
+        expect(location.href).toContain('/workspace/overview'),
+      );
+      expect(patchMe).not.toHaveBeenCalled();
+    } finally {
+      if (descriptor) Object.defineProperty(window, 'location', descriptor);
+    }
+  });
+
+  it('exposes a retry action after a kickoff failure', async () => {
+    navigationState.pathname = '/agent/onboarding';
+    storeState.activeThreadId = null;
+    kickoffOnboarding.mockRejectedValueOnce(new Error('Network unavailable'));
     render(
       <AgentWorkspaceLayoutClient>
-        <div>child</div>
+        <BootstrapStatus />
       </AgentWorkspaceLayoutClient>,
     );
-    await waitFor(() =>
-      expect(storeState.setError).toHaveBeenCalledWith(
-        expect.stringContaining('could not open your first draft'),
-      ),
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry setup' }));
+    await waitFor(() => expect(kickoffOnboarding).toHaveBeenCalledTimes(2));
+    expect(routerReplace).toHaveBeenCalledWith(
+      '/acme-org/~/agent/onboarding/thread-kickoff',
     );
     expect(sendMessage).not.toHaveBeenCalled();
   });
 
-  it('automatically creates the first brand draft when no onboarding thread exists', async () => {
+  it('calls kickoff and routes to the thread without sending a visible user message', async () => {
     navigationState.pathname = '/agent/onboarding';
     storeState.activeThreadId = null;
 
@@ -1032,17 +1176,22 @@ describe('AgentWorkspaceLayoutClient', () => {
       expect(getThreads).toHaveBeenCalled();
     });
 
-    await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
-    expect(sendMessage).toHaveBeenCalledWith(
-      expect.stringContaining('one image and one tweet'),
+    await waitFor(() => expect(kickoffOnboarding).toHaveBeenCalledTimes(1));
+    expect(storeState.upsertThread).toHaveBeenCalledWith(
       expect.objectContaining({
+        id: 'thread-kickoff',
         brandId: 'brand-1',
-        agentMode: 'auto',
-        forceNewThread: true,
-        source: 'onboarding',
+        contextVersion: 1,
       }),
     );
-    expect(routerReplace).not.toHaveBeenCalled();
+    expect(kickoffOnboarding).toHaveBeenCalledWith(
+      'brand-1',
+      expect.any(AbortSignal),
+    );
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(routerReplace).toHaveBeenCalledWith(
+      '/acme-org/~/agent/onboarding/thread-kickoff',
+    );
   });
 
   it('does not look up a thread to resume when a prefill prompt is bootstrapping one', async () => {

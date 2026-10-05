@@ -331,6 +331,7 @@ function dispatchGrowthFamily(
       return handlers.onboardingHandler.checkOnboardingStatus(ctx);
     case 'complete_onboarding':
       return handlers.onboardingHandler.completeOnboarding(ctx);
+    case 'complete_brand_onboarding_step':
     case 'scan_brand_url':
     case 'save_onboarding_answers':
       return handlers.onboardingBrandSetupHandler.execute(

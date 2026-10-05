@@ -2,7 +2,6 @@
 import { BrandOsRevisionStatus, ButtonVariant } from '@genfeedai/contracts';
 import BrandOsSettingsCard from '@genfeedai/pages/brands/components/brand-kit/BrandOsSettingsCard';
 import type { BrandGuidePanelProps } from '@genfeedai/props/onboarding/brand-guide.props';
-import type { BrandOsGuideReadiness } from '@genfeedai/props/pages/brand-os-settings.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useTranslations } from 'next-intl';
@@ -25,9 +24,6 @@ export default function BrandGuidePanel({
   const touched = useRef(false);
   const autoStarted = useRef(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [readiness, setReadiness] = useState<BrandOsGuideReadiness | null>(
-    null,
-  );
   useEffect(() => {
     if (scan.scan?.url && !touched.current) onWebsiteUrlChange(scan.scan.url);
   }, [scan.scan?.url, onWebsiteUrlChange]);
@@ -58,12 +54,6 @@ export default function BrandGuidePanel({
     scan.phase === 'resolving' ||
     scan.phase === 'reconcile-error';
   const active = scan.phase === 'starting' || scan.phase === 'observing';
-  const canContinue = Boolean(
-    readiness?.isLoaded &&
-      !readiness.isBusy &&
-      !readiness.isDirty &&
-      (readiness.isApproved || !readiness.canManage),
-  );
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-semibold">{t('scan.title')}</h1>
@@ -135,7 +125,6 @@ export default function BrandGuidePanel({
           brandId={brandId}
           refreshKey={scan.refreshKey}
           isAutoSaveEnabled
-          onReadinessChange={setReadiness}
           onRefreshBrand={onRefreshBrand}
           onRevisionSaved={(revision) =>
             setNotice(
@@ -149,20 +138,17 @@ export default function BrandGuidePanel({
         />
       </section>
       {errorMessage && <p role="alert">{errorMessage}</p>}
-      {readiness?.isLoaded && readiness.canManage && !canContinue && (
-        <p>{t('review.approveToContinue')}</p>
-      )}
       <p>{t('preview.connectionOptional')}</p>
       <div className="flex flex-wrap gap-2">
         <Button
-          label={t('actions.continue')}
           data-brand-os-navigation={brandId}
-          isDisabled={isExiting || !canContinue}
+          label={t('actions.continue')}
+          isDisabled={isExiting}
           onClick={onContinue}
         />
         <Button
-          label={t('actions.skip')}
           data-brand-os-navigation={brandId}
+          label={t('actions.skip')}
           variant={ButtonVariant.SECONDARY}
           isDisabled={isExiting}
           onClick={onSkip}

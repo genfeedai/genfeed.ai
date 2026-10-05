@@ -1,8 +1,4 @@
-import type {
-  PostSignupIntent,
-  ResolvePostSignupIntentInput,
-} from '@genfeedai/props/onboarding/post-signup-routing.props';
-import { isFreePlanHandoff } from '@/lib/onboarding/onboarding-access.util';
+import type { PostSignupIntent } from '@genfeedai/props/onboarding/post-signup-routing.props';
 
 export type { PostSignupIntent } from '@genfeedai/props/onboarding/post-signup-routing.props';
 
@@ -11,15 +7,6 @@ export {
   hasPaidPlanIntent,
   isFreePlanHandoff,
 } from '@/lib/onboarding/onboarding-access.util';
-
-function extractDomain(email?: string | null): string | null {
-  if (!email?.includes('@')) {
-    return null;
-  }
-
-  const domain = email.split('@')[1]?.trim().toLowerCase();
-  return domain || null;
-}
 
 export function parseSelectedCredits(
   rawCredits?: string | null,
@@ -55,30 +42,4 @@ export function appendCheckoutReturnParams(
   );
 
   return `${url.pathname}${url.search}${url.hash}`;
-}
-
-export function resolvePostSignupIntent(
-  input: ResolvePostSignupIntentInput,
-): PostSignupIntent {
-  const selectedPlan = input.selectedPlan?.trim();
-  if (selectedPlan && !isFreePlanHandoff(selectedPlan)) {
-    return { kind: 'plan-checkout', stripePriceId: selectedPlan };
-  }
-
-  const credits = parseSelectedCredits(input.selectedCredits);
-  if (credits) {
-    return { credits, kind: 'credits-checkout' };
-  }
-
-  const domain = extractDomain(input.primaryEmail);
-  if (!domain) {
-    return { kind: 'manual-brand' };
-  }
-
-  const isPersonalEmail = input.personalEmailDomains.includes(domain);
-  if (isPersonalEmail) {
-    return { kind: 'manual-brand' };
-  }
-
-  return { domain, kind: 'auto-brand' };
 }
