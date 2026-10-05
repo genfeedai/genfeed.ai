@@ -111,6 +111,9 @@ vi.mock('@ui/primitives/switch', () => ({
   ),
 }));
 
+/** One module card on the page. */
+const CARD = '[data-testid^="flag-card-"]';
+
 describe('AdminFlagsPage (#5468)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -139,6 +142,46 @@ describe('AdminFlagsPage (#5468)', () => {
     expect(
       screen.getByRole('heading', { name: 'Platform' }),
     ).toBeInTheDocument();
+  });
+
+  it('groups each module with its own surfaces and features in one card', async () => {
+    render(<AdminFlagsPage />);
+
+    const studioSwitch = await screen.findByRole('switch', { name: 'Studio' });
+    const studioCard = studioSwitch.closest(CARD);
+    expect(studioCard).toHaveAttribute('data-testid', 'flag-card-studio');
+    for (const name of [
+      'Motion',
+      'Storyboard',
+      'Clips',
+      'Batch',
+      'Batch ideas',
+      'Editor',
+    ]) {
+      expect(screen.getByRole('switch', { name }).closest(CARD)).toBe(
+        studioCard,
+      );
+    }
+    expect(
+      screen.getByRole('switch', { name: 'Library canvas' }).closest(CARD),
+    ).toHaveAttribute('data-testid', 'flag-card-library');
+    expect(
+      screen.getByRole('switch', { name: 'Replies' }).closest(CARD),
+    ).toHaveAttribute('data-testid', 'flag-card-messages');
+  });
+
+  it('names the switched-off flag that keeps a nested row off', async () => {
+    mocks.getSettings.mockResolvedValue({ flags: { studio_batch: false } });
+    render(<AdminFlagsPage />);
+
+    const batchIdeas = await screen.findByRole('switch', {
+      name: 'Batch ideas',
+    });
+    expect(batchIdeas).toBeDisabled();
+    expect(batchIdeas.getAttribute('aria-description')).toContain(
+      'Needs Batch. Off while Batch is off.',
+    );
+    expect(screen.getByRole('switch', { name: 'Motion' })).toBeEnabled();
   });
 
   it('lists every Studio surface as its own switch', async () => {
