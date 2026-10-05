@@ -322,15 +322,23 @@ describe('proactive organization to strategy run and attributed draft integratio
             resultFilter?.path?.[1] === 'dispatchId'
               ? resultFilter.equals
               : undefined;
-          if (!dispatchId) return null;
+          const id = typeof where.id === 'string' ? where.id : undefined;
+          if (!id && !dispatchId) return null;
           for (const row of executions.values()) {
+            if (
+              row.organizationId !== where.organizationId ||
+              (where.isDeleted !== undefined &&
+                row.isDeleted !== where.isDeleted)
+            )
+              continue;
+            if (id) {
+              if (row.id === id) return row;
+              continue;
+            }
             const metadata = (row.result as Row | undefined)?.metadata as
               | Row
               | undefined;
-            if (
-              row.organizationId === where.organizationId &&
-              metadata?.dispatchId === dispatchId
-            ) {
+            if (metadata?.dispatchId === dispatchId) {
               return { id: row.id };
             }
           }
@@ -420,6 +428,7 @@ describe('proactive organization to strategy run and attributed draft integratio
         executions.set(id, {
           id,
           organizationId: input.organizationId,
+          isDeleted: false,
           userId: input.userId,
           startedAt: new Date(),
           status: 'RUNNING',
