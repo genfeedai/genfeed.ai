@@ -1,4 +1,4 @@
-import { IS_DESKTOP_LOCAL_MODE_ENABLED } from '@genfeedai/contracts/desktop';
+import { isDesktopLocalModeEnabled } from '@genfeedai/contracts/desktop';
 
 interface DesktopDataServiceSelection<TService> {
   cloudService: TService;
@@ -53,7 +53,7 @@ export const DESKTOP_LOCAL_MODE_DISABLED_MESSAGE =
   'Local mode is not available in this version of Genfeed Desktop. Sign in to use cloud mode.';
 
 export function assertDesktopLocalModeEnabled(
-  isLocalModeEnabled: boolean = IS_DESKTOP_LOCAL_MODE_ENABLED,
+  isLocalModeEnabled: boolean = isDesktopLocalModeEnabled(),
 ): void {
   if (!isLocalModeEnabled) {
     throw new Error(DESKTOP_LOCAL_MODE_DISABLED_MESSAGE);
@@ -105,7 +105,7 @@ export async function activateDesktopLocalMode(
   persistLocalMode: () => void,
   timeoutMs = LOCAL_RUNTIME_INIT_TIMEOUT_MS,
   invalidateAttempt: () => void = () => undefined,
-  isLocalModeEnabled: boolean = IS_DESKTOP_LOCAL_MODE_ENABLED,
+  isLocalModeEnabled: boolean = isDesktopLocalModeEnabled(),
 ): Promise<void> {
   assertDesktopLocalModeEnabled(isLocalModeEnabled);
   await withTimeout(
@@ -119,7 +119,7 @@ export async function activateDesktopLocalMode(
 
 export async function restoreDesktopRuntimeMode({
   initializeLocalRuntime,
-  isLocalModeEnabled = IS_DESKTOP_LOCAL_MODE_ENABLED,
+  isLocalModeEnabled = isDesktopLocalModeEnabled(),
   isLocalModeRequested,
   onLocalRuntimeError,
   persistCloudMode,

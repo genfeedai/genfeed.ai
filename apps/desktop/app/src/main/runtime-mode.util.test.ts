@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { IS_DESKTOP_LOCAL_MODE_ENABLED } from '@genfeedai/contracts/desktop';
+import {
+  DESKTOP_LOCAL_MODE_TEST_OVERRIDE,
+  IS_DESKTOP_LOCAL_MODE_ENABLED,
+  isDesktopLocalModeEnabled,
+} from '@genfeedai/contracts/desktop';
 import {
   activateDesktopLocalMode as activateDesktopLocalModeWithFlag,
   assertDesktopLocalModeEnabled,
@@ -273,6 +277,41 @@ describe('desktop cloud-only local mode flag', () => {
     expect(IS_DESKTOP_LOCAL_MODE_ENABLED).toBe(false);
   });
 
+  it('stays disabled without the acceptance launcher override', () => {
+    const overrides = globalThis as { [key: symbol]: unknown };
+    expect(overrides[DESKTOP_LOCAL_MODE_TEST_OVERRIDE]).toBeUndefined();
+    expect(isDesktopLocalModeEnabled()).toBe(false);
+    expect(() => assertDesktopLocalModeEnabled()).toThrow(
+      'Local mode is not available',
+    );
+  });
+
+  it('only honours an explicit true override and never reads env or the packaged app', () => {
+    const overrides = globalThis as { [key: symbol]: unknown };
+    try {
+      overrides[DESKTOP_LOCAL_MODE_TEST_OVERRIDE] = 'true';
+      expect(isDesktopLocalModeEnabled()).toBe(false);
+      overrides[DESKTOP_LOCAL_MODE_TEST_OVERRIDE] = true;
+      expect(isDesktopLocalModeEnabled()).toBe(true);
+      expect(() => assertDesktopLocalModeEnabled()).not.toThrow();
+    } finally {
+      delete overrides[DESKTOP_LOCAL_MODE_TEST_OVERRIDE];
+    }
+    const mainSource = readFileSync(
+      join(import.meta.dir, '../main.ts'),
+      'utf8',
+    );
+    const contractSource = readFileSync(
+      join(
+        import.meta.dir,
+        '../../../../../packages/contracts/src/desktop/index.ts',
+      ),
+      'utf8',
+    );
+    expect(mainSource).not.toContain('DESKTOP_LOCAL_MODE_TEST_OVERRIDE');
+    expect(contractSource).not.toMatch(/process\.env[^;]*LOCAL_MODE/);
+  });
+
   it('ignores a persisted local mode on startup without touching local data', async () => {
     let initialized = false;
     let persistedMode: 'cloud' | null = null;
@@ -367,7 +406,7 @@ describe('desktop cloud-only local mode flag', () => {
       /DESKTOP_IPC_CHANNELS\.appEnableOfflineMode,\s*async \(\) => \{\s*assertDesktopLocalModeEnabled\(\);/,
     );
     expect(source).toContain(
-      'IS_DESKTOP_LOCAL_MODE_ENABLED ? openLocalWorkspaceFromMenu : null',
+      'isDesktopLocalModeEnabled() ? openLocalWorkspaceFromMenu : null',
     );
   });
 });

@@ -1,7 +1,7 @@
 'use client';
 
 import { DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG } from '@genfeedai/contracts/constants';
-import { IS_DESKTOP_LOCAL_MODE_ENABLED } from '@genfeedai/contracts/desktop';
+import { isDesktopLocalModeEnabled } from '@genfeedai/contracts/desktop';
 import { usePlatformFlags } from '@/lib/platform-flags/use-platform-flags';
 
 interface DesktopLocalWorkspaceFlagState {
@@ -13,15 +13,15 @@ interface DesktopLocalWorkspaceFlagState {
 
 /**
  * Whether the desktop local workspace can be entered. `isAvailable` is the
- * build-time `IS_DESKTOP_LOCAL_MODE_ENABLED` switch; `isEnabled` additionally
+ * build-time local-mode switch (`isDesktopLocalModeEnabled`); `isEnabled` additionally
  * follows the Admin `desktop_local_workspace` feature flag (#5468).
  */
 export function useDesktopLocalWorkspaceFlag(): DesktopLocalWorkspaceFlagState {
   const { flags, isReady } = usePlatformFlags();
   return {
-    isAvailable: IS_DESKTOP_LOCAL_MODE_ENABLED,
+    isAvailable: isDesktopLocalModeEnabled(),
     isEnabled:
-      IS_DESKTOP_LOCAL_MODE_ENABLED &&
+      isDesktopLocalModeEnabled() &&
       flags[DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG],
     isReady,
   };

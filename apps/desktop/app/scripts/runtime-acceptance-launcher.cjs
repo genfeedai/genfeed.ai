@@ -34,6 +34,11 @@ const audit = {
 let dialogMode = 'cancel';
 let pendingDialog;
 let failRename = false;
+// Test-only: force local mode on for the local acceptance scenarios. Production
+// reads the flag through isDesktopLocalModeEnabled(), which honours this symbol
+// and nothing the shipped app reads from its environment.
+if (process.env.GENFEED_RUNTIME_ACCEPTANCE_LOCAL_MODE === '1')
+  globalThis[Symbol.for('genfeed.desktop.localModeTestOverride')] = true;
 let startMain;
 const started = new Promise((resolve) => {
   startMain = resolve;

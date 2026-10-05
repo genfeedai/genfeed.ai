@@ -3,7 +3,7 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import {
   type DesktopGenerationProviderKind,
-  IS_DESKTOP_LOCAL_MODE_ENABLED,
+  isDesktopLocalModeEnabled,
 } from '@genfeedai/contracts/desktop';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
@@ -155,7 +155,7 @@ export default function DesktopLocalProviderSettings(
   props: DesktopLocalProviderSettingsProps,
 ) {
   // Cloud-only builds expose no way into (or out of) local mode from settings.
-  if (!IS_DESKTOP_LOCAL_MODE_ENABLED) {
+  if (!isDesktopLocalModeEnabled()) {
     return null;
   }
 

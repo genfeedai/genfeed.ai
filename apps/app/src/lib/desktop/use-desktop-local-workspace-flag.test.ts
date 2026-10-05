@@ -15,9 +15,7 @@ vi.mock('@/lib/platform-flags/use-platform-flags', () => ({
 
 vi.mock('@genfeedai/contracts/desktop', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@genfeedai/contracts/desktop')>()),
-  get IS_DESKTOP_LOCAL_MODE_ENABLED() {
-    return buildFlag.isLocalModeEnabled;
-  },
+  isDesktopLocalModeEnabled: () => buildFlag.isLocalModeEnabled,
 }));
 
 describe('useDesktopLocalWorkspaceFlag (#5468)', () => {
