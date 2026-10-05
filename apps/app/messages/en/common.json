@@ -200,9 +200,8 @@
         "returnAction": "Return to {clientName}"
       },
       "signIn": {
-        "action": "Sign in to continue",
-        "description": "Sign in to review and authorize this connection.",
-        "title": "Sign in required"
+        "description": "Sign in or create a free account. You will review access next.",
+        "title": "Connect {clientName} to Genfeed"
       },
       "title": "Authorize Genfeed access"
     },

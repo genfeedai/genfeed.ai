@@ -143,6 +143,7 @@ export function WorkflowEditorSectionTopbar({
             }
             className="shrink-0"
             disabled={isRunning || isUnsavedEmpty}
+            data-testid="workflow-editor-run"
             icon={<Play className="size-4" />}
             onClick={onRun}
             size={ButtonSize.SM}

@@ -127,7 +127,8 @@ const desktopBridge: IGenfeedDesktopBridge = {
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.authCompleteWithCode, code),
     getSession: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.authGetSession),
-    login: async () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.authLogin),
+    login: async (continuation) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.authLogin, continuation),
     logout: async () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.authLogout),
     onDidChangeSession: (callback) => {
       const listener = (_event: unknown, session: unknown) => {

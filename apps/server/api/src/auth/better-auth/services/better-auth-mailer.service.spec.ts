@@ -120,6 +120,28 @@ describe('BetterAuthMailerService', () => {
     expect(new URL(resolved).searchParams.get('callbackURL')).toBe(callbackURL);
   });
 
+  it('keeps a magic-link callback whose verify redirect is a valid continuation (#6268)', () => {
+    const continuation = '/oauth/consent?client_id=c1&state=s1';
+    // The client pre-encodes the continuation once more for the verify decode.
+    const callbackURL = `https://app.genfeed.ai/?callbackUrl=${encodeURIComponent(encodeURIComponent(continuation))}`;
+    const resolved = resolveBrowserAuthActionUrl(
+      `https://api.genfeed.ai/v1/auth/magic-link/verify?token=tok&callbackURL=${encodeURIComponent(callbackURL)}`,
+      'https://app.genfeed.ai',
+    );
+
+    expect(new URL(resolved).searchParams.get('callbackURL')).toBe(callbackURL);
+  });
+
+  it('resets a magic-link callback whose verify redirect would split the continuation', () => {
+    const callbackURL = `https://app.genfeed.ai/?callbackUrl=${encodeURIComponent('/oauth/consent?client_id=c1&state=s1')}`;
+    const resolved = resolveBrowserAuthActionUrl(
+      `https://api.genfeed.ai/v1/auth/magic-link/verify?token=tok&callbackURL=${encodeURIComponent(callbackURL)}`,
+      'https://app.genfeed.ai',
+    );
+
+    expect(new URL(resolved).searchParams.get('callbackURL')).toBe('/');
+  });
+
   it('sends signup magic links with account creation copy', async () => {
     const notificationsService = {
       deliverEmail: vi.fn().mockResolvedValue('email_123'),

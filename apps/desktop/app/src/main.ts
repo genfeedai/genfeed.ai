@@ -1380,9 +1380,10 @@ const handleAuthCallback = async (
   await emitSession();
   await emitBootstrap();
   if (mainWindow) {
+    // Reopen the page the completed sign-in started from (#6276).
     await loadCanonicalApp(
       mainWindow,
-      appShellService.buildInitialUrl(session),
+      appShellService.buildInitialUrl(session, result.continuation),
     );
   }
   void new Notification({
@@ -1527,9 +1528,17 @@ const registerIpcHandlers = (): void => {
     DESKTOP_IPC_CHANNELS.authGetSession,
     async () => null,
   );
-  registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.authLogin, async () => {
-    await openValidatedExternalUrl(sessionService.getLoginUrl());
-  });
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.authLogin,
+    async (_event: unknown, continuation: unknown) => {
+      // Bound to this PKCE attempt; validated when its callback lands.
+      await openValidatedExternalUrl(
+        sessionService.getLoginUrl(
+          typeof continuation === 'string' ? continuation : undefined,
+        ),
+      );
+    },
+  );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.authCompleteWithCode,
     async (_event: unknown, raw: unknown) => {

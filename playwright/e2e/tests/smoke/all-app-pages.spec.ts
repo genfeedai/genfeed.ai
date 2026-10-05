@@ -4,7 +4,10 @@ import path from 'node:path';
 import type { Page, Response } from '@playwright/test';
 import { playwrightApiEndpoint } from '../../config/environment';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { buildUnhandledApiMockBody } from '../../utils/api-interceptor';
+import {
+  buildReferralProgramMockBody,
+  buildUnhandledApiMockBody,
+} from '../../utils/api-interceptor';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 const appRoot = path.join(process.cwd(), 'apps/app/app');
@@ -333,6 +336,14 @@ function getMockApiPort(): number {
 async function startMockApiServer(): Promise<Server | null> {
   const server = createServer((request, response) => {
     const url = request.url ?? '/';
+
+    if (
+      request.method === 'GET' &&
+      /^\/v1\/referrals\/me\/?$/.test(new URL(url, 'http://localhost').pathname)
+    ) {
+      jsonResponse(response, buildReferralProgramMockBody());
+      return;
+    }
 
     if (new URL(url, 'http://localhost').pathname === '/v1/costs/summary') {
       jsonResponse(response, buildUnhandledApiMockBody(url));
