@@ -90,7 +90,8 @@ export class AgentGenerationEstimateService {
       : isEdit
         ? ModelCategory.IMAGE_EDIT
         : ModelCategory.IMAGE;
-    if (!input.modelKey && !input.prompt?.trim()) {
+    // Only routing by prompt needs one; an edit default resolves without it.
+    if (!input.modelKey && !isEdit && !input.prompt?.trim()) {
       return unavailableQuote(
         AgentGenerationQuoteUnavailableReason.INSUFFICIENT_INPUT,
       );

@@ -36,7 +36,10 @@ export class EstimateGenerationCreditsDto {
 
   @IsString()
   @IsNotEmpty()
-  @ValidateIf((dto: EstimateGenerationCreditsDto) => !dto.modelKey)
+  @ValidateIf(
+    (dto: EstimateGenerationCreditsDto) =>
+      !dto.modelKey && dto.category !== ModelCategory.IMAGE_EDIT,
+  )
   @ApiProperty({
     description:
       'The prompt as the Agent wrote it. Required only when the server must route (no modelKey).',
