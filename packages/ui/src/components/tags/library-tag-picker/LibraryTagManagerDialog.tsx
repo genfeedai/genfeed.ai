@@ -9,7 +9,6 @@ import { TagsService } from '@genfeedai/services/content/tags.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
-import { ColorInput } from '@ui/primitives/color-input';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +20,11 @@ import {
 import { EditableText } from '@ui/primitives/editable-text';
 import { Input } from '@ui/primitives/input';
 import {
+  Popover,
+  PopoverPanelContent,
+  PopoverTrigger,
+} from '@ui/primitives/popover';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -31,6 +35,8 @@ import { Settings2, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import LibraryTagChip from './LibraryTagChip';
+import { dispatchLibraryTagUpdate } from './library-asset-tags-event';
+import TagColorPicker from './TagColorPicker';
 import { useLibraryTags } from './use-library-tags';
 
 type CreatableScope = TagScope.BRAND | TagScope.ORGANIZATION;
@@ -88,28 +94,32 @@ function TagManagerRow({
         </span>
       ) : (
         <>
-          <ColorInput
-            aria-label={translate('tagBackground', { label: tag.label })}
-            defaultValue={tag.backgroundColor}
-            onBlur={(event) => {
-              if (event.target.value !== tag.backgroundColor) {
-                void onUpdate(tag, {
-                  backgroundColor: event.target.value,
-                }).catch(ignoreReportedFailure);
-              }
-            }}
-          />
-          <ColorInput
-            aria-label={translate('tagText', { label: tag.label })}
-            defaultValue={tag.textColor}
-            onBlur={(event) => {
-              if (event.target.value !== tag.textColor) {
-                void onUpdate(tag, { textColor: event.target.value }).catch(
-                  ignoreReportedFailure,
-                );
-              }
-            }}
-          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                ariaLabel={translate('tagColor', { label: tag.label })}
+                className="size-6 shrink-0 rounded-full border border-foreground/20"
+                style={{
+                  backgroundColor: tag.backgroundColor || undefined,
+                }}
+                type="button"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+              />
+            </PopoverTrigger>
+            <PopoverPanelContent className="w-auto p-2">
+              <TagColorPicker
+                className="max-w-48"
+                onChange={(swatch) => {
+                  void onUpdate(tag, {
+                    backgroundColor: swatch.backgroundColor,
+                    textColor: swatch.textColor,
+                  }).catch(ignoreReportedFailure);
+                }}
+                value={tag.backgroundColor}
+              />
+            </PopoverPanelContent>
+          </Popover>
           <Button
             ariaLabel={
               isConfirmingDelete
@@ -168,7 +178,7 @@ export default function LibraryTagManagerDialog() {
       const service = await getTagsService();
       await service.patch(tag.id, changes);
       await refresh();
-      refreshLibraryAssets();
+      dispatchLibraryTagUpdate({ ...tag, ...changes });
     } catch (error: unknown) {
       logger.error('Failed to update Library tag', error);
       NotificationsService.getInstance().error(translate('manageFailed'));

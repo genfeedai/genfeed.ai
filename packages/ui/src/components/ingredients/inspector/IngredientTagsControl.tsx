@@ -2,7 +2,11 @@
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonVariant, TagBulkAction } from '@genfeedai/contracts';
-import type { IIngredient, ITag } from '@genfeedai/contracts/interfaces';
+import type {
+  IIngredient,
+  ITag,
+  ITagColorSwatch,
+} from '@genfeedai/contracts/interfaces';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
@@ -90,9 +94,12 @@ export default function IngredientTagsControl({
     void (state ? handleRemove(tag) : handleAdd(tag));
   };
 
-  const handleCreate = async (label: string): Promise<void> => {
+  const handleCreate = async (
+    label: string,
+    color: ITagColorSwatch | undefined,
+  ): Promise<void> => {
     try {
-      const tag = await createTag(label);
+      const tag = await createTag(label, undefined, color);
       await handleAdd(tag);
     } catch (error: unknown) {
       logger.error('Failed to create Library tag', error);
@@ -120,8 +127,8 @@ export default function IngredientTagsControl({
         <LibraryTagPicker
           isBusy={isWriting}
           isLoading={isLoading}
-          onCreate={(label) => {
-            void handleCreate(label);
+          onCreate={(label, color) => {
+            void handleCreate(label, color);
           }}
           onToggle={handleToggle}
           states={states}
@@ -129,7 +136,7 @@ export default function IngredientTagsControl({
           trigger={
             <Button
               ariaLabel={translate('addTag')}
-              className="h-control-sm gap-1 rounded-full border border-dashed border-foreground/25 px-2 text-xs text-foreground/60 hover:text-foreground"
+              className="inline-flex h-control-sm shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-dashed border-foreground/25 px-2.5 text-xs text-foreground/60 hover:text-foreground"
               icon={<Plus className="size-3" />}
               label={translate('addTag')}
               type="button"

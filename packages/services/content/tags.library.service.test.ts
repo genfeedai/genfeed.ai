@@ -112,4 +112,25 @@ describe('TagsService library tags (#6011)', () => {
       scope: TagScope.ORGANIZATION,
     });
   });
+
+  it('sends the swatch a member picked and nothing when none was', async () => {
+    http.post.mockResolvedValue(
+      axiosResponse(
+        resourceDocument({ label: 'Launch' }, { id: 'tag-5', type: 'tag' }),
+      ),
+    );
+
+    await service.createLibraryTag('Launch', TagScope.BRAND, {
+      backgroundColor: '#2563EB',
+      name: 'Blue',
+      textColor: '#FFFFFF',
+    });
+
+    expect(http.post).toHaveBeenCalledWith('', {
+      backgroundColor: '#2563EB',
+      label: 'Launch',
+      scope: TagScope.BRAND,
+      textColor: '#FFFFFF',
+    });
+  });
 });

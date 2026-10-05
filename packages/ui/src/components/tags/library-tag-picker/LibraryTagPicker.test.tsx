@@ -155,8 +155,24 @@ describe('LibraryTagPicker', () => {
     });
     fireEvent.click(screen.getByText('Create “Spring drop”'));
 
-    expect(onCreate).toHaveBeenCalledWith('Spring drop');
+    expect(onCreate).toHaveBeenCalledWith('Spring drop', undefined);
     expect(screen.getByLabelText('Search or create a tag')).toHaveValue('');
+  });
+
+  it('creates the tag in the color picked for it', () => {
+    const { onCreate } = renderPicker();
+
+    fireEvent.change(screen.getByLabelText('Search or create a tag'), {
+      target: { value: 'Spring drop' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Violet' }));
+    fireEvent.click(screen.getByText('Create “Spring drop”'));
+
+    expect(onCreate).toHaveBeenCalledWith('Spring drop', {
+      backgroundColor: '#7C3AED',
+      name: 'Violet',
+      textColor: '#FFFFFF',
+    });
   });
 
   it('does not offer to create a duplicate, however it is cased', () => {
