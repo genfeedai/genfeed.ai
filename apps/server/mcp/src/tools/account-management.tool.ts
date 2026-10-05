@@ -1,4 +1,5 @@
 import type { McpMediaToolResult } from '@genfeedai/contracts/interfaces';
+import type { LoggerService } from '@libs/logger/logger.service';
 import type { ClientService } from '@mcp/services/client.service';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
 
@@ -12,6 +13,7 @@ export function handleAccountManagementTool(
   name: string,
   args: Record<string, unknown>,
   mediaOrigins: readonly string[] = [],
+  logger?: Pick<LoggerService, 'warn'>,
 ) {
   const handlers: Record<
     string,
@@ -19,7 +21,11 @@ export function handleAccountManagementTool(
   > = {
     get_job_status: async (a) => {
       const status = await client.getJobStatus(a.jobId as string);
-      const artifact = await toNativeMcpMediaResult(status, mediaOrigins);
+      const artifact = await toNativeMcpMediaResult(
+        status,
+        mediaOrigins,
+        logger,
+      );
       const statusText =
         artifact.content[0]?.type === 'text'
           ? artifact.content[0].text

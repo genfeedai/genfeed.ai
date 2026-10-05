@@ -449,6 +449,7 @@ export class ToolRegistryService implements OnModuleInit {
           name,
           args,
           this.mediaOrigins(),
+          this.logger,
         );
       case 'social-messages':
         return handleSocialMessagesTool(this.clientService, name, args);
@@ -638,7 +639,7 @@ export class ToolRegistryService implements OnModuleInit {
 
     const payload = result.data ?? {};
     if (serializeMediaArtifact(payload)) {
-      return toNativeMcpMediaResult(payload, this.mediaOrigins());
+      return toNativeMcpMediaResult(payload, this.mediaOrigins(), this.logger);
     }
     return {
       content: [

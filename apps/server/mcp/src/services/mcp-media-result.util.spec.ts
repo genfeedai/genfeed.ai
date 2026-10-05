@@ -82,6 +82,39 @@ describe('native MCP image delivery', () => {
     expect(result.structuredContent.artifact?.renderMode).toBe('resource_link');
   });
 
+  it.each(['UPLOADED', 'VALIDATED'])(
+    'delivers native images for ready %s assets',
+    async (status) => {
+      mockFetch(
+        new Response(jpeg, { headers: { 'content-type': 'image/jpeg' } }),
+      );
+      const result = await toNativeMcpMediaResult(
+        { ...payload, status },
+        origins,
+      );
+      expect(result.structuredContent.artifact?.renderMode).toBe(
+        'native_image',
+      );
+    },
+  );
+
+  it('logs a bounded reason and asset id for a failed preview without URL credentials or query', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new Error('network error with sensitive URL')),
+    );
+    const logger = { warn: vi.fn() };
+    await toNativeMcpMediaResult(
+      { ...payload, url: `${url}?signed=fixture` },
+      origins,
+      logger,
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      'MCP native image preview unavailable',
+      { artifactId: payload.id, reason: 'fetch_failed' },
+    );
+  });
+
   it.each(['PROCESSING', 'FAILED'])(
     'does not fetch %s images',
     async (status) => {
