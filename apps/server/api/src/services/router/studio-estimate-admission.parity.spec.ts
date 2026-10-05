@@ -183,7 +183,7 @@ describe('Studio estimate parity with admission', () => {
     };
     const { height, width } = resolveStudioGenerationDimensions('16:9', '720p');
     const charged = await admissionCredits(
-      { duration: 5, height, outputs: 1, resolution: '720p', width },
+      { duration: 5, height, outputs: 1, width },
       modelKey,
     );
     const quote = await estimateService.estimate({
@@ -194,7 +194,6 @@ describe('Studio estimate parity with admission', () => {
       modelKey,
       organizationId: 'org-1',
       outputs: 1,
-      resolution: '720p',
       width,
     });
     expect(charged).toBe(60);

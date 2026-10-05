@@ -310,7 +310,8 @@ export default function StudioGenerateComposer({
   // ERROR, loading, Auto and Crun never block.
   const isEstimateBlocking =
     estimate.status === 'unavailable' &&
-    selectedModel?.provider !== 'crun' &&
+    selectedModel !== undefined &&
+    selectedModel.provider !== 'crun' &&
     (estimate.unavailableReason ===
       AgentGenerationQuoteUnavailableReason.PRICING_UNRESOLVED ||
       estimate.unavailableReason ===
