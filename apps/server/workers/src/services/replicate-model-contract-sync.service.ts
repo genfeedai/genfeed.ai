@@ -136,16 +136,7 @@ export class ReplicateModelContractSyncService {
       provider: ModelProvider.REPLICATE,
       reviewedProviderContractVersion: model.reviewedProviderContractVersion,
     });
-    const observedPricing: ReviewedProviderPricing | null = candidate.observed
-      ? {
-          currency: 'USD',
-          rates: candidate.observed.rates,
-          reviewStatus: 'pending',
-          sourceUrl: candidate.observed.sourceUrl,
-          verifiedAt: now.toISOString(),
-          version: candidate.version,
-        }
-      : null;
+    const observedPricing = this.observedPricing(candidate, now);
     const comparison =
       reviewed && observedPricing
         ? compareProviderRates(reviewed.pricing, observedPricing)
@@ -166,53 +157,16 @@ export class ReplicateModelContractSyncService {
           },
           where: { id: reviewed.contract.id },
         });
-      await prisma.model.update({
-        data: {
-          pendingProviderContractVersion: null,
-          providerPricingSyncedAt: now,
-          providerSchemaSyncedAt: now,
-          providerSyncFailedAt: null,
-          providerSyncFailureCode: null,
-          providerSyncStatus: 'fresh',
-        },
-        where: { id: model.id },
-      });
+      await this.markFresh(model.id, now);
       return { drifted: false, quarantined: false, version: candidate.version };
     }
 
-    const contract = await prisma.modelProviderContract.upsert({
-      create: {
-        billingUnit: candidate.billingUnit,
-        conditionalDimensions: {} as Prisma.InputJsonValue,
-        currency: candidate.currency,
-        endpoint,
-        inputSchema: candidate.inputSchema as Prisma.InputJsonValue,
-        lastSeenAt: now,
-        mappingStatus: candidate.mappingStatus,
-        modelId: model.id,
-        openapi: candidate.openapi as Prisma.InputJsonValue,
-        openapiVersion: candidate.openapiVersion,
-        outputSchema: candidate.outputSchema as Prisma.InputJsonValue,
-        pricing: candidate.pricing as Prisma.InputJsonValue,
-        pricingType: candidate.pricingType,
-        provider: ModelProvider.REPLICATE,
-        reviewStatus:
-          candidate.mappingStatus === 'supported' ? 'pending' : 'quarantined',
-        schemaFamily: candidate.schemaFamily,
-        unitPrice: candidate.unitPrice,
-        unitPriceMicros: candidate.unitPriceMicros,
-        unsupportedReason: candidate.unsupportedReason,
-        version: candidate.version,
-      },
-      update: { lastSeenAt: now },
-      where: {
-        provider_endpoint_version: {
-          endpoint,
-          provider: ModelProvider.REPLICATE,
-          version: candidate.version,
-        },
-      },
-    });
+    const contract = await this.upsertCandidate(
+      model.id,
+      endpoint,
+      candidate,
+      now,
+    );
     const quarantined = candidate.mappingStatus === 'quarantined';
 
     if (reviewed && comparison?.status === 'changed') {
@@ -268,17 +222,7 @@ export class ReplicateModelContractSyncService {
 
     if (model.reviewedProviderContractVersion === candidate.version) {
       // The exact contract that was reviewed, on evidence without readable rates.
-      await prisma.model.update({
-        data: {
-          pendingProviderContractVersion: null,
-          providerPricingSyncedAt: now,
-          providerSchemaSyncedAt: now,
-          providerSyncFailedAt: null,
-          providerSyncFailureCode: null,
-          providerSyncStatus: 'fresh',
-        },
-        where: { id: model.id },
-      });
+      await this.markFresh(model.id, now);
       return { drifted: false, quarantined: false, version: contract.version };
     }
 
@@ -312,6 +256,78 @@ export class ReplicateModelContractSyncService {
         version: contract.version,
       };
     return { drifted: false, quarantined, version: contract.version };
+  }
+
+  /** The rates this refresh read, shaped like a contract's pricing. */
+  private observedPricing(
+    candidate: CandidateContract,
+    now: Date,
+  ): ReviewedProviderPricing | null {
+    if (!candidate.observed) return null;
+    return {
+      currency: 'USD',
+      rates: candidate.observed.rates,
+      reviewStatus: 'pending',
+      sourceUrl: candidate.observed.sourceUrl,
+      verifiedAt: now.toISOString(),
+      version: candidate.version,
+    };
+  }
+
+  /** The reviewed rates were confirmed by this refresh. */
+  private async markFresh(modelId: string, now: Date): Promise<void> {
+    await this.modelsService.prisma.model.update({
+      data: {
+        pendingProviderContractVersion: null,
+        providerPricingSyncedAt: now,
+        providerSchemaSyncedAt: now,
+        providerSyncFailedAt: null,
+        providerSyncFailureCode: null,
+        providerSyncStatus: 'fresh',
+      },
+      where: { id: modelId },
+    });
+  }
+
+  private upsertCandidate(
+    modelId: string,
+    endpoint: string,
+    candidate: CandidateContract,
+    now: Date,
+  ) {
+    return this.modelsService.prisma.modelProviderContract.upsert({
+      create: {
+        billingUnit: candidate.billingUnit,
+        conditionalDimensions: {} as Prisma.InputJsonValue,
+        currency: candidate.currency,
+        endpoint,
+        inputSchema: candidate.inputSchema as Prisma.InputJsonValue,
+        lastSeenAt: now,
+        mappingStatus: candidate.mappingStatus,
+        modelId,
+        openapi: candidate.openapi as Prisma.InputJsonValue,
+        openapiVersion: candidate.openapiVersion,
+        outputSchema: candidate.outputSchema as Prisma.InputJsonValue,
+        pricing: candidate.pricing as Prisma.InputJsonValue,
+        pricingType: candidate.pricingType,
+        provider: ModelProvider.REPLICATE,
+        reviewStatus:
+          candidate.mappingStatus === 'supported' ? 'pending' : 'quarantined',
+        schemaFamily: candidate.schemaFamily,
+        unitPrice: candidate.unitPrice,
+        unitPriceMicros: candidate.unitPriceMicros,
+        unsupportedReason: candidate.unsupportedReason,
+        version: candidate.version,
+      },
+      update: { lastSeenAt: now },
+      where: {
+        provider_endpoint_version: {
+          endpoint,
+          provider: ModelProvider.REPLICATE,
+          version: candidate.version,
+        },
+      },
+    });
   }
 
   async recordFailure(

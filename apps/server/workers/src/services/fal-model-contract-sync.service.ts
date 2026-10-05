@@ -121,54 +121,16 @@ export class FalModelContractSyncService {
         },
         where: { id: reviewed.contract.id },
       });
-      await prisma.model.update({
-        data: {
-          pendingProviderContractVersion: null,
-          providerPricingSyncedAt: now,
-          providerSchemaSyncedAt: now,
-          providerSyncFailedAt: null,
-          providerSyncFailureCode: null,
-          providerSyncStatus: 'fresh',
-        },
-        where: { id: model.id },
-      });
+      await this.markFresh(model.id, now);
       return { drifted: false, quarantined: false, version: candidate.version };
     }
 
-    const contract = await prisma.modelProviderContract.upsert({
-      create: {
-        billingUnit: candidate.billingUnit,
-        conditionalDimensions:
-          candidate.conditionalDimensions as Prisma.InputJsonValue,
-        currency: candidate.currency,
-        endpoint: providerModel.endpoint_id,
-        inputSchema: candidate.inputSchema as Prisma.InputJsonValue,
-        lastSeenAt: now,
-        mappingStatus: candidate.mappingStatus,
-        modelId: model.id,
-        openapi: candidate.openapi as Prisma.InputJsonValue,
-        openapiVersion: candidate.openapiVersion,
-        outputSchema: candidate.outputSchema as Prisma.InputJsonValue,
-        pricing: toPrismaJson(candidate.pricing),
-        pricingType: candidate.pricingType,
-        provider: ModelProvider.FAL,
-        reviewStatus:
-          candidate.mappingStatus === 'supported' ? 'pending' : 'quarantined',
-        schemaFamily: candidate.schemaFamily,
-        unitPrice: candidate.unitPrice,
-        unitPriceMicros: candidate.unitPriceMicros,
-        unsupportedReason: candidate.unsupportedReason,
-        version: candidate.version,
-      },
-      update: { lastSeenAt: now },
-      where: {
-        provider_endpoint_version: {
-          endpoint: providerModel.endpoint_id,
-          provider: ModelProvider.FAL,
-          version: candidate.version,
-        },
-      },
-    });
+    const contract = await this.upsertCandidate(
+      model.id,
+      providerModel.endpoint_id,
+      candidate,
+      now,
+    );
 
     const quarantined = candidate.mappingStatus === 'quarantined';
 
@@ -225,17 +187,7 @@ export class FalModelContractSyncService {
 
     if (model.reviewedProviderContractVersion === candidate.version) {
       // The exact contract that was reviewed, on evidence without readable rates.
-      await prisma.model.update({
-        data: {
-          pendingProviderContractVersion: null,
-          providerPricingSyncedAt: now,
-          providerSchemaSyncedAt: now,
-          providerSyncFailedAt: null,
-          providerSyncFailureCode: null,
-          providerSyncStatus: 'fresh',
-        },
-        where: { id: model.id },
-      });
+      await this.markFresh(model.id, now);
       return { drifted: false, quarantined: false, version: contract.version };
     }
 
@@ -251,6 +203,63 @@ export class FalModelContractSyncService {
       where: { id: model.id },
     });
     return { drifted: false, quarantined, version: contract.version };
+  }
+
+  /** The reviewed rates were confirmed by this refresh. */
+  private async markFresh(modelId: string, now: Date): Promise<void> {
+    await this.modelsService.prisma.model.update({
+      data: {
+        pendingProviderContractVersion: null,
+        providerPricingSyncedAt: now,
+        providerSchemaSyncedAt: now,
+        providerSyncFailedAt: null,
+        providerSyncFailureCode: null,
+        providerSyncStatus: 'fresh',
+      },
+      where: { id: modelId },
+    });
+  }
+
+  private upsertCandidate(
+    modelId: string,
+    endpoint: string,
+    candidate: CandidateContract,
+    now: Date,
+  ) {
+    return this.modelsService.prisma.modelProviderContract.upsert({
+      create: {
+        billingUnit: candidate.billingUnit,
+        conditionalDimensions:
+          candidate.conditionalDimensions as Prisma.InputJsonValue,
+        currency: candidate.currency,
+        endpoint,
+        inputSchema: candidate.inputSchema as Prisma.InputJsonValue,
+        lastSeenAt: now,
+        mappingStatus: candidate.mappingStatus,
+        modelId,
+        openapi: candidate.openapi as Prisma.InputJsonValue,
+        openapiVersion: candidate.openapiVersion,
+        outputSchema: candidate.outputSchema as Prisma.InputJsonValue,
+        pricing: toPrismaJson(candidate.pricing),
+        pricingType: candidate.pricingType,
+        provider: ModelProvider.FAL,
+        reviewStatus:
+          candidate.mappingStatus === 'supported' ? 'pending' : 'quarantined',
+        schemaFamily: candidate.schemaFamily,
+        unitPrice: candidate.unitPrice,
+        unitPriceMicros: candidate.unitPriceMicros,
+        unsupportedReason: candidate.unsupportedReason,
+        version: candidate.version,
+      },
+      update: { lastSeenAt: now },
+      where: {
+        provider_endpoint_version: {
+          endpoint,
+          provider: ModelProvider.FAL,
+          version: candidate.version,
+        },
+      },
+    });
   }
 
   async recordFailure(

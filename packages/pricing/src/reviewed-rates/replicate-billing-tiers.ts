@@ -3,7 +3,7 @@ import type {
   ReviewedProviderRate,
 } from '@genfeedai/contracts/interfaces';
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function isJsonObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
@@ -34,9 +34,9 @@ function findBillingTiers(value: unknown, depth = 0): unknown[] | null {
     }
     return null;
   }
-  if (!isRecord(value)) return null;
+  if (!isJsonObject(value)) return null;
   const billingConfig = value.billingConfig;
-  if (isRecord(billingConfig) && Array.isArray(billingConfig.current_tiers))
+  if (isJsonObject(billingConfig) && Array.isArray(billingConfig.current_tiers))
     return billingConfig.current_tiers;
   for (const item of Object.values(value)) {
     const found = findBillingTiers(item, depth + 1);
@@ -86,7 +86,7 @@ function matchInputProperty(
   const names = new Map<string, string[]>();
   for (const [key, property] of Object.entries(properties)) {
     const labels = [words(key)];
-    if (isRecord(property) && typeof property.title === 'string')
+    if (isJsonObject(property) && typeof property.title === 'string')
       labels.push(words(property.title));
     names.set(key, labels);
   }
@@ -120,7 +120,7 @@ function coerceCriterionValue(
   )
     return { reason: `unsupported_criterion_value:${key}` };
   const value = raw as string | number | boolean;
-  const options = isRecord(property) ? property.enum : undefined;
+  const options = isJsonObject(property) ? property.enum : undefined;
   if (!Array.isArray(options)) return value;
   const member = options.find(
     (option) =>
@@ -196,7 +196,7 @@ export function mapReplicateBillingTiers(
   const selectorKeys = new Set<string>();
   const seen = new Set<string>();
   for (const rawTier of tiers) {
-    if (!isRecord(rawTier))
+    if (!isJsonObject(rawTier))
       return { reason: 'invalid_billing_tier', status: 'failed' };
     const criteria = Array.isArray(rawTier.criteria) ? rawTier.criteria : [];
     const prices = Array.isArray(rawTier.prices) ? rawTier.prices : [];
@@ -204,7 +204,7 @@ export function mapReplicateBillingTiers(
       return { reason: 'billing_tier_without_price', status: 'failed' };
     const when: Record<string, string | number | boolean> = {};
     for (const rawCriterion of criteria) {
-      if (!isRecord(rawCriterion) || typeof rawCriterion.title !== 'string')
+      if (!isJsonObject(rawCriterion) || typeof rawCriterion.title !== 'string')
         return { reason: 'invalid_billing_criterion', status: 'failed' };
       if (rawCriterion.type !== undefined && rawCriterion.type !== 'equals')
         return {
@@ -231,7 +231,7 @@ export function mapReplicateBillingTiers(
       selectorKeys.add(matched.key);
     }
     for (const rawPrice of prices) {
-      if (!isRecord(rawPrice) || typeof rawPrice.metric !== 'string')
+      if (!isJsonObject(rawPrice) || typeof rawPrice.metric !== 'string')
         return { reason: 'invalid_billing_price', status: 'failed' };
       const metric = mapMetric(rawPrice.metric);
       if (!metric)

@@ -258,12 +258,6 @@
     "symbol": "apps/server/telegram/src/services/telegram-bot-manager.service.ts"
   },
   {
-    "actual": 170,
-    "file": "apps/server/workers/src/crons/fal-model-watcher/cron.fal-model-watcher.service.ts",
-    "metric": "method-lines",
-    "symbol": "CronFalModelWatcherService.discoverNewModels"
-  },
-  {
     "actual": 161,
     "file": "apps/server/workers/src/crons/ingredients/cron.ingredients.service.ts",
     "metric": "method-lines",
@@ -276,7 +270,7 @@
     "symbol": "CronIngredientsService.refreshMissingMetadataDimensions"
   },
   {
-    "actual": 224,
+    "actual": 162,
     "file": "apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts",
     "metric": "method-lines",
     "symbol": "CronModelWatcherService.discoverNewModels"

@@ -5,6 +5,10 @@ import { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
 import type { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import {
+  findUnpriceableModelIds,
+  unpriceableModelsScope,
+} from '@api/collections/models/utils/model-pricing-attention.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -20,6 +24,11 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
+
+vi.mock('@api/collections/models/utils/model-pricing-attention.util', () => ({
+  findUnpriceableModelIds: vi.fn().mockResolvedValue([]),
+  unpriceableModelsScope: vi.fn(() => ({ isDeleted: false })),
+}));
 
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
@@ -153,7 +162,7 @@ describe('ModelsController', () => {
             approveRegistryModel: vi.fn(),
             getProviderContracts: vi.fn(),
             findAll: vi.fn(),
-            findUnpriceableModelIds: vi.fn().mockResolvedValue([]),
+            prisma: {},
             findOne: vi.fn(),
             patch: vi.fn(),
             rejectRegistryModel: vi.fn(),
@@ -428,7 +437,7 @@ describe('ModelsController', () => {
         totalPages: 1,
       };
       modelsService.findAll.mockResolvedValue(empty);
-      modelsService.findUnpriceableModelIds.mockResolvedValue(['red-model']);
+      vi.mocked(findUnpriceableModelIds).mockResolvedValue(['red-model']);
 
       await controller.findAll(mockRequest, mockRegularUser, {});
 
@@ -436,9 +445,7 @@ describe('ModelsController', () => {
         AND: [{ id: { notIn: ['red-model'] } }],
       });
       // Classified for exactly the rows the list returns: the caller's org.
-      expect(modelsService.findUnpriceableModelIds).toHaveBeenCalledWith(
-        mockOrgId,
-      );
+      expect(unpriceableModelsScope).toHaveBeenCalledWith(mockOrgId);
 
       modelsService.findAll.mockClear();
       await controller.findAll(mockSuperAdminRequest, mockSuperAdminUser, {});

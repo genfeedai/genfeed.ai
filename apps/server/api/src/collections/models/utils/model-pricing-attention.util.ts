@@ -1,13 +1,17 @@
+import { PRICING_ATTENTION_SELECT } from '@api/collections/models/services/public-model-catalog.types';
 import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   ModelBillablePricingProfile,
   ModelPricingAttention,
 } from '@genfeedai/contracts/interfaces';
 import {
   classifyModelPricingAttention,
+  getRuntimeMarginMultiplier,
   isModelPricingRed,
 } from '@genfeedai/pricing';
-import type { Model, ModelProviderContract } from '@genfeedai/prisma';
+import type { Model, ModelProviderContract, Prisma } from '@genfeedai/prisma';
+import { platformOrTenantScope } from '@libs/prisma/platform-scope';
 
 export type PricingAttentionModel = Pick<
   Model,
@@ -91,4 +95,43 @@ export function isModelRowPricingRed(
   return isModelPricingRed(
     classifyModelRowPricingAttention(model, contracts, margin, now),
   );
+}
+
+/**
+ * Ids of the rows matching `where` that the red classification marks
+ * unpriceable. The caller supplies a `where` that proves its organization to
+ * the CLOUD tenant guard (see `unpriceableModelsScope`).
+ */
+export async function findUnpriceableModelIds(
+  prisma: PrismaService,
+  where: Prisma.ModelWhereInput,
+): Promise<string[]> {
+  // tenant-scope-ignore: callers pass a platform-only or platform-plus-tenant `where` (organizationId:null or the platform-or-tenant arm) with isDeleted:false
+  const rows = await prisma.model.findMany({
+    select: PRICING_ATTENTION_SELECT,
+    where,
+  });
+  const now = new Date();
+  const margin = getRuntimeMarginMultiplier();
+  return rows
+    .filter((row) =>
+      isModelRowPricingRed(row, row.providerContracts, margin, now),
+    )
+    .map((row) => row.id);
+}
+
+/** Exactly the rows a caller's `/models` list can return: platform plus own. */
+export function unpriceableModelsScope(
+  organizationId?: string,
+): Prisma.ModelWhereInput {
+  return { isDeleted: false, ...platformOrTenantScope(organizationId) };
+}
+
+/** `where` narrowed to rows that are not unpriceable (red). */
+export async function withoutUnpriceableModels(
+  prisma: PrismaService,
+  where: Prisma.ModelWhereInput,
+): Promise<Prisma.ModelWhereInput> {
+  const ids = await findUnpriceableModelIds(prisma, where);
+  return ids.length ? { ...where, id: { notIn: ids } } : where;
 }

@@ -199,97 +199,10 @@ export class CronModelWatcherService {
       // pinned until an operator explicitly promotes the candidate.
       const syncedEndpoints: string[] = [];
       for (const listedModel of candidates.values()) {
-        // relation-alias-ok: `model` is the Replicate API payload, not a Prisma model.
-        const modelKey = `${listedModel.owner}/${listedModel.name}`;
-        let registryModel = existingModels.get(modelKey);
-        try {
-          const model = await this.hydrateReplicateSchema(listedModel);
-          const decision = await this.decideModelCategory(model);
-          const category = decision.category;
-          const knownCost =
-            this.modelPricingService.getKnownReplicateCost(modelKey);
-
-          if (!registryModel) {
-            const draft = await this.modelDiscoveryService.createDraftModel(
-              this.buildDiscoveryInput(model, modelKey, decision, knownCost),
-            );
-            if (!draft) continue;
-            summary.draftsCreated++;
-            registryModel = draft;
-            await this.sendDiscoveryNotification(
-              modelKey,
-              category,
-              draft.cost ?? 0,
-              knownCost ?? 0,
-              'replicate',
-            );
-          }
-
-          const unitPriceUsd =
-            knownCost ??
-            (typeof registryModel.providerCostUsd === 'number'
-              ? registryModel.providerCostUsd
-              : null);
-          const pricingType =
-            registryModel.pricingType ??
-            (knownCost !== null
-              ? this.modelPricingService.estimateFromProviderCost(
-                  knownCost,
-                  category,
-                ).pricingType
-              : null);
-          // The public model page states current rates per variant (#6196).
-          const billing =
-            await this.modelDiscoveryService.fetchReplicateBilling(
-              model.owner,
-              model.name,
-            );
-          const syncResult =
-            await this.replicateContractSyncService.synchronizeModel(
-              registryModel,
-              model,
-              category,
-              {
-                billing,
-                pricingType,
-                source:
-                  knownCost !== null
-                    ? 'curated-known-cost'
-                    : 'reviewed-registry',
-                unitPriceUsd,
-              },
-              summary.timestamp,
-            );
-          await this.sendPricingAlerts(syncResult, summary.timestamp);
-          summary.providerContractsSynchronized =
-            (summary.providerContractsSynchronized ?? 0) + 1;
-          if (syncResult.drifted) {
-            summary.providerContractsDrifted =
-              (summary.providerContractsDrifted ?? 0) + 1;
-          }
-          if (syncResult.quarantined) {
-            summary.providerContractsQuarantined =
-              (summary.providerContractsQuarantined ?? 0) + 1;
-          }
-          syncedEndpoints.push(modelKey);
-        } catch (error: unknown) {
-          summary.errors++;
-          if (registryModel?.id) {
-            await this.replicateContractSyncService.recordFailure(
-              'contract_sync_failed',
-              summary.timestamp,
-              registryModel.id,
-            );
-            await this.sendFailureAlert(
-              modelKey,
-              'contract_sync_failed',
-              summary.timestamp,
-            );
-          }
-          this.logger.error(`${url} failed to process model ${modelKey}`, {
-            reason: error instanceof Error ? error.name : 'unknown',
-          });
-        }
+        if (
+          await this.syncListedModel(listedModel, existingModels, summary, url)
+        )
+          syncedEndpoints.push(`${listedModel.owner}/${listedModel.name}`);
       }
 
       // Step 7: Keep the coarse discovery freshness marker in sync too.
@@ -405,6 +318,107 @@ export class CronModelWatcherService {
     }
 
     return allModels;
+  }
+
+  /**
+   * Draft (when new) and synchronize one Replicate listing row. Never throws;
+   * resolves true when the endpoint was synchronized.
+   */
+  private async syncListedModel(
+    listedModel: IReplicateModel,
+    existingModels: ReadonlyMap<string, ReplicateSyncModelRecord>,
+    summary: IModelDiscoveryRunSummary,
+    url: string,
+  ): Promise<boolean> {
+    // relation-alias-ok: `model` is the Replicate API payload, not a Prisma model.
+    const modelKey = `${listedModel.owner}/${listedModel.name}`;
+    let registryModel = existingModels.get(modelKey);
+    try {
+      const model = await this.hydrateReplicateSchema(listedModel);
+      const decision = await this.decideModelCategory(model);
+      const category = decision.category;
+      const knownCost =
+        this.modelPricingService.getKnownReplicateCost(modelKey);
+
+      if (!registryModel) {
+        const draft = await this.modelDiscoveryService.createDraftModel(
+          this.buildDiscoveryInput(model, modelKey, decision, knownCost),
+        );
+        if (!draft) return false;
+        summary.draftsCreated++;
+        registryModel = draft;
+        await this.sendDiscoveryNotification(
+          modelKey,
+          category,
+          draft.cost ?? 0,
+          knownCost ?? 0,
+          'replicate',
+        );
+      }
+
+      const unitPriceUsd =
+        knownCost ??
+        (typeof registryModel.providerCostUsd === 'number'
+          ? registryModel.providerCostUsd
+          : null);
+      const pricingType =
+        registryModel.pricingType ??
+        (knownCost !== null
+          ? this.modelPricingService.estimateFromProviderCost(
+              knownCost,
+              category,
+            ).pricingType
+          : null);
+      // The public model page states current rates per variant (#6196).
+      const billing = await this.modelDiscoveryService.fetchReplicateBilling(
+        model.owner,
+        model.name,
+      );
+      const syncResult =
+        await this.replicateContractSyncService.synchronizeModel(
+          registryModel,
+          model,
+          category,
+          {
+            billing,
+            pricingType,
+            source:
+              knownCost !== null ? 'curated-known-cost' : 'reviewed-registry',
+            unitPriceUsd,
+          },
+          summary.timestamp,
+        );
+      await this.sendPricingAlerts(syncResult, summary.timestamp);
+      summary.providerContractsSynchronized =
+        (summary.providerContractsSynchronized ?? 0) + 1;
+      if (syncResult.drifted) {
+        summary.providerContractsDrifted =
+          (summary.providerContractsDrifted ?? 0) + 1;
+      }
+      if (syncResult.quarantined) {
+        summary.providerContractsQuarantined =
+          (summary.providerContractsQuarantined ?? 0) + 1;
+      }
+      return true;
+    } catch (error: unknown) {
+      summary.errors++;
+      if (registryModel?.id) {
+        await this.replicateContractSyncService.recordFailure(
+          'contract_sync_failed',
+          summary.timestamp,
+          registryModel.id,
+        );
+        await this.sendFailureAlert(
+          modelKey,
+          'contract_sync_failed',
+          summary.timestamp,
+        );
+      }
+      this.logger.error(`${url} failed to process model ${modelKey}`, {
+        reason: error instanceof Error ? error.name : 'unknown',
+      });
+      return false;
+    }
   }
 
   /** Ops Discord for a model whose refresh threw or could not be fetched. */

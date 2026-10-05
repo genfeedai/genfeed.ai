@@ -4,6 +4,10 @@ import { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
 import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import { type ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import {
+  findUnpriceableModelIds,
+  unpriceableModelsScope,
+} from '@api/collections/models/utils/model-pricing-attention.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -298,8 +302,9 @@ export class ModelsController extends BaseCRUDController<
     if (!isSuperAdmin) {
       // Classify exactly the rows this list can return: platform rows plus
       // the caller's own organization.
-      const unpriceableIds = await this.modelsService.findUnpriceableModelIds(
-        authenticatedOrgId ?? undefined,
+      const unpriceableIds = await findUnpriceableModelIds(
+        this.modelsService.prisma,
+        unpriceableModelsScope(authenticatedOrgId ?? undefined),
       );
       if (unpriceableIds.length > 0) {
         const existingAnd = Array.isArray(where.AND) ? where.AND : [];

@@ -12,6 +12,10 @@ import {
   idsOf,
 } from '@api/collections/models/testing/cloud-guarded-delegate';
 import { findModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import {
+  findUnpriceableModelIds,
+  unpriceableModelsScope,
+} from '@api/collections/models/utils/model-pricing-attention.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ModelCategory,
@@ -248,30 +252,24 @@ describe('ModelsService under the CLOUD tenant guard', () => {
       const prisma = {
         model: buildGuardedDelegate('Model', rows),
       } as unknown as PrismaService;
-      const logger = {
-        debug: vi.fn(),
-        error: vi.fn(),
-        log: vi.fn(),
-        warn: vi.fn(),
-      } as unknown as LoggerService;
-      return new ModelsService(prisma, logger);
+      return prisma;
     }
 
     it('classifies platform and own rows for a tenant caller, never another organization', async () => {
-      const service = setupRed();
+      const prisma = setupRed();
 
       const ids = await runWithTenantContext({ organizationId: ORG }, () =>
-        service.findUnpriceableModelIds(ORG),
+        findUnpriceableModelIds(prisma, unpriceableModelsScope(ORG)),
       );
 
       expect([...ids].sort()).toEqual(['red-mine', 'red-platform']);
     });
 
     it('passes the real tenant guard without an organization argument inside a tenant request', async () => {
-      const service = setupRed();
+      const prisma = setupRed();
 
       const ids = await runWithTenantContext({ organizationId: ORG }, () =>
-        service.findUnpriceableModelIds(),
+        findUnpriceableModelIds(prisma, unpriceableModelsScope()),
       );
 
       expect([...ids].sort()).toEqual(['red-mine', 'red-platform']);

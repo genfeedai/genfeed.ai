@@ -165,59 +165,13 @@ export class CronFalModelWatcherService {
       // Step 6: Create missing drafts, then persist a versioned contract for
       // every endpoint. Candidate writes never replace reviewed runtime fields.
       for (const model of routableModels) {
-        let registryModel = existingFalModels.get(model.endpoint_id);
-        try {
-          if (!registryModel) {
-            const discoveryInput = await this.buildDiscoveryInput(model);
-            const draft =
-              await this.modelDiscoveryService.createDraftModel(discoveryInput);
-
-            if (!draft) continue;
-            summary.draftsCreated++;
-            registryModel = draft;
-            await this.sendDiscoveryNotification(
-              model.endpoint_id,
-              discoveryInput.category,
-              draft.cost ?? 0,
-            );
-          }
-
-          const syncResult = await this.falContractSyncService.synchronizeModel(
-            registryModel,
-            model,
-            pricingByEndpoint.get(model.endpoint_id) ?? [],
-            summary.timestamp,
-          );
-          await this.sendPricingAlerts(syncResult, summary.timestamp);
-          summary.providerContractsSynchronized =
-            (summary.providerContractsSynchronized ?? 0) + 1;
-          if (syncResult.drifted) {
-            summary.providerContractsDrifted =
-              (summary.providerContractsDrifted ?? 0) + 1;
-          }
-          if (syncResult.quarantined) {
-            summary.providerContractsQuarantined =
-              (summary.providerContractsQuarantined ?? 0) + 1;
-          }
-        } catch (error: unknown) {
-          summary.errors++;
-          if (registryModel?.id) {
-            await this.falContractSyncService.recordFailure(
-              'contract_sync_failed',
-              summary.timestamp,
-              registryModel.id,
-            );
-            await this.sendFailureAlert(
-              model.endpoint_id,
-              'contract_sync_failed',
-              summary.timestamp,
-            );
-          }
-          this.logger.error(
-            `${url} failed to process model ${model.endpoint_id}`,
-            { reason: error instanceof Error ? error.name : 'unknown' },
-          );
-        }
+        await this.syncRoutableModel(
+          model,
+          existingFalModels,
+          pricingByEndpoint,
+          summary,
+          url,
+        );
       }
 
       // Step 7: Log low-cardinality observability only. Raw schemas, pricing,
@@ -318,6 +272,68 @@ export class CronFalModelWatcherService {
       schema: model.openapi,
       tags: [...(category ? [category] : []), ...(model.metadata?.tags ?? [])],
     });
+  }
+
+  /** Draft (when new) and synchronize one routable fal endpoint; never throws. */
+  private async syncRoutableModel(
+    model: IFalModel,
+    existingFalModels: ReadonlyMap<string, FalSyncModelRecord>,
+    pricingByEndpoint: ReadonlyMap<string, Array<Record<string, unknown>>>,
+    summary: IModelDiscoveryRunSummary,
+    url: string,
+  ): Promise<void> {
+    let registryModel = existingFalModels.get(model.endpoint_id);
+    try {
+      if (!registryModel) {
+        const discoveryInput = await this.buildDiscoveryInput(model);
+        const draft =
+          await this.modelDiscoveryService.createDraftModel(discoveryInput);
+
+        if (!draft) return;
+        summary.draftsCreated++;
+        registryModel = draft;
+        await this.sendDiscoveryNotification(
+          model.endpoint_id,
+          discoveryInput.category,
+          draft.cost ?? 0,
+        );
+      }
+
+      const syncResult = await this.falContractSyncService.synchronizeModel(
+        registryModel,
+        model,
+        pricingByEndpoint.get(model.endpoint_id) ?? [],
+        summary.timestamp,
+      );
+      await this.sendPricingAlerts(syncResult, summary.timestamp);
+      summary.providerContractsSynchronized =
+        (summary.providerContractsSynchronized ?? 0) + 1;
+      if (syncResult.drifted) {
+        summary.providerContractsDrifted =
+          (summary.providerContractsDrifted ?? 0) + 1;
+      }
+      if (syncResult.quarantined) {
+        summary.providerContractsQuarantined =
+          (summary.providerContractsQuarantined ?? 0) + 1;
+      }
+    } catch (error: unknown) {
+      summary.errors++;
+      if (registryModel?.id) {
+        await this.falContractSyncService.recordFailure(
+          'contract_sync_failed',
+          summary.timestamp,
+          registryModel.id,
+        );
+        await this.sendFailureAlert(
+          model.endpoint_id,
+          'contract_sync_failed',
+          summary.timestamp,
+        );
+      }
+      this.logger.error(`${url} failed to process model ${model.endpoint_id}`, {
+        reason: error instanceof Error ? error.name : 'unknown',
+      });
+    }
   }
 
   /** Ops Discord for a model whose refresh threw. */
