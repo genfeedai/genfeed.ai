@@ -210,6 +210,7 @@ export class IngredientsOperationsController {
         ...(uploadMeta.s3Key ? { s3Key: uploadMeta.s3Key } : {}),
         status: IngredientStatus.GENERATED,
       });
+      await this.invalidateIngredientListCache();
 
       // Publish websocket update
       await this.getNotificationsPublisher().publishIngredientStatus(
@@ -233,6 +234,7 @@ export class IngredientsOperationsController {
       await this.ingredientsService.patch(newIngredientId, {
         status: IngredientStatus.FAILED,
       });
+      await this.invalidateIngredientListCache();
 
       // Publish websocket failure
       await this.getNotificationsPublisher().publishIngredientStatus(
@@ -322,6 +324,7 @@ export class IngredientsOperationsController {
 
       // Update the metadata
       await this.metadataService.patch(ingredient.metadataId, updateData);
+      await this.invalidateIngredientListCache();
 
       // Fetch the updated ingredient with metadata
       const updatedIngredient = await this.ingredientsService.findOne(

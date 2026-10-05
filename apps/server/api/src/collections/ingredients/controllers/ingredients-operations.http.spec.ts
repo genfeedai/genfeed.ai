@@ -119,7 +119,7 @@ describe('Ingredients operations registered HTTP boundary', () => {
       metadataData: { id: testId('metadata', 2) },
     });
     const assertScope = (args: unknown, operation: string) =>
-      runWithTenantContext({ organizationId, userId: canonicalUserId }, () =>
+      runWithTenantContext({ organizationId }, () =>
         assertTenantScopedQuery({
           args,
           operation,
@@ -356,6 +356,55 @@ describe('Ingredients operations registered HTTP boundary', () => {
       ),
     );
     expect(invalidateByTags).toHaveBeenCalledWith(['ingredients']);
+    expect(invalidateByTags).toHaveBeenCalledTimes(2);
+    expect(invalidateByTags.mock.invocationCallOrder[1]).toBeGreaterThan(
+      vi.mocked(service.patch).mock.invocationCallOrder[0],
+    );
+    expect(invalidateByTags.mock.invocationCallOrder[1]).toBeLessThan(
+      publishIngredientStatus.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('invalidates the Library after a clone fails before publishing failure', async () => {
+    uploadToS3.mockRejectedValueOnce(new Error('upload failed'));
+    await request(app.getHttpServer())
+      .post(`/ingredients/${ingredientId}/clone`)
+      .expect(201);
+    await vi.waitFor(() =>
+      expect(publishIngredientStatus).toHaveBeenCalledWith(
+        testId('ingredient', 2),
+        IngredientStatus.FAILED,
+        canonicalUserId,
+        expect.any(Object),
+      ),
+    );
+    expect(service.patch).toHaveBeenCalledWith(testId('ingredient', 2), {
+      status: IngredientStatus.FAILED,
+    });
+    expect(invalidateByTags).toHaveBeenCalledTimes(2);
+    expect(invalidateByTags.mock.invocationCallOrder[1]).toBeLessThan(
+      publishIngredientStatus.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('does not fail a generated clone when completion cache invalidation fails', async () => {
+    invalidateByTags
+      .mockResolvedValueOnce(1)
+      .mockRejectedValueOnce(new Error('cache unavailable'));
+    await request(app.getHttpServer())
+      .post(`/ingredients/${ingredientId}/clone`)
+      .expect(201);
+    await vi.waitFor(() =>
+      expect(publishIngredientStatus).toHaveBeenCalledWith(
+        testId('ingredient', 2),
+        IngredientStatus.GENERATED,
+        canonicalUserId,
+        expect.any(Object),
+      ),
+    );
+    expect(service.patch).not.toHaveBeenCalledWith(testId('ingredient', 2), {
+      status: IngredientStatus.FAILED,
+    });
   });
 
   it('refuses a same-user foreign-organization clone before creation', async () => {
@@ -389,6 +438,15 @@ describe('Ingredients operations registered HTTP boundary', () => {
     expect(response.body.data.id).toBe(ingredientId);
     expect(response.body.data.type).toBe('ingredient');
     expect(invalidateByTags).toHaveBeenCalledWith(['ingredients']);
+  });
+
+  it('keeps existing unbounded metadata values editable', async () => {
+    const fields = { label: 'x'.repeat(201), description: 'y'.repeat(2001) };
+    await request(app.getHttpServer())
+      .patch(`/ingredients/${ingredientId}/metadata`)
+      .send(fields)
+      .expect(200);
+    expect(metadataPatch).toHaveBeenCalledWith(metadataId, fields);
   });
 
   it('refuses metadata edits on another user’s private asset through AssetAccessGuard', async () => {
@@ -426,6 +484,18 @@ describe('Ingredients operations registered HTTP boundary', () => {
       { id: ingredientId, organizationId, isDeleted: false },
       expect.any(Array),
     );
+    expect(invalidateByTags).toHaveBeenCalledWith(['ingredients']);
+    expect(invalidateByTags.mock.invocationCallOrder[0]).toBeGreaterThan(
+      metadataPatch.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('keeps metadata refresh successful when cache invalidation fails', async () => {
+    invalidateByTags.mockRejectedValueOnce(new Error('cache unavailable'));
+    await request(app.getHttpServer())
+      .post(`/ingredients/${ingredientId}/metadata`)
+      .expect(201);
+    expect(metadataPatch).toHaveBeenCalled();
   });
 
   it('fails a keyless refresh before any media request with authorized delivery enabled', async () => {
@@ -436,5 +506,6 @@ describe('Ingredients operations registered HTTP boundary', () => {
       .expect(500);
     expect(extractMetadataFromUrl).not.toHaveBeenCalled();
     expect(metadataPatch).not.toHaveBeenCalled();
+    expect(invalidateByTags).not.toHaveBeenCalled();
   });
 });

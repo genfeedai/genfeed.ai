@@ -631,28 +631,25 @@ describe('IngredientsService', () => {
         deleted: ['brand', 'public'],
         failed: ['private', 'other-brand', 'missing'],
       });
-      runWithTenantContext(
-        { organizationId: 'org-1', userId: 'user-1' },
-        () => {
-          for (const mock of [ingredientDelegate.findMany, updateManyMock]) {
-            const args = mock.mock.calls[0][0];
-            expect(args.where).toMatchObject({
-              organizationId: 'org-1',
-              isDeleted: false,
-            });
-            expect(args.where).not.toHaveProperty('OR');
-            expect(() =>
-              assertTenantScopedQuery({
-                args,
-                isCloud: true,
-                model: 'Ingredient',
-                tenantModelNames: new Set(['Ingredient']),
-                operation: mock === updateManyMock ? 'updateMany' : 'findMany',
-              }),
-            ).not.toThrow();
-          }
-        },
-      );
+      runWithTenantContext({ organizationId: 'org-1' }, () => {
+        for (const mock of [ingredientDelegate.findMany, updateManyMock]) {
+          const args = mock.mock.calls[0][0];
+          expect(args.where).toMatchObject({
+            organizationId: 'org-1',
+            isDeleted: false,
+          });
+          expect(args.where).not.toHaveProperty('OR');
+          expect(() =>
+            assertTenantScopedQuery({
+              args,
+              isCloud: true,
+              model: 'Ingredient',
+              tenantModelNames: new Set(['Ingredient']),
+              operation: mock === updateManyMock ? 'updateMany' : 'findMany',
+            }),
+          ).not.toThrow();
+        }
+      });
     });
   });
 

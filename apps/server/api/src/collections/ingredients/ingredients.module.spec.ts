@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { IngredientExportsController } from '@api/collections/ingredients/controllers/ingredient-exports.controller';
 import { IngredientsOperationsController } from '@api/collections/ingredients/controllers/ingredients-operations.controller';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
@@ -12,7 +14,6 @@ import { MODULE_METADATA } from '@nestjs/common/constants';
 import { Test } from '@nestjs/testing';
 import type { NextFunction, Request, Response } from 'express';
 import request from 'supertest';
-import type {} from 'vite/client';
 
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getIsSuperAdmin: () => false,
@@ -116,19 +117,24 @@ describe('IngredientsModule controller registration', () => {
       MODULE_METADATA.CONTROLLERS,
       IngredientsModule,
     ) as unknown[];
-    const modules = import.meta.glob('./controllers/*.controller.ts', {
-      eager: true,
-    });
-    const controllers = Object.values(modules)
-      .flatMap((module) => Object.values(module as Record<string, unknown>))
-      .filter(
-        (value) =>
-          typeof value === 'function' &&
-          Reflect.getMetadata('path', value) !== undefined,
+    const directory = new URL('./controllers/', import.meta.url);
+    const controllers = readdirSync(fileURLToPath(directory))
+      .filter((file) => file.endsWith('.controller.ts'))
+      .flatMap((file) =>
+        [
+          ...readFileSync(new URL(file, directory), 'utf8').matchAll(
+            /export class (\w+Controller)\b/g,
+          ),
+        ].map((match) => match[1]),
       );
-    expect(controllers).toContain(IngredientsOperationsController);
+    expect(controllers).toContain(IngredientsOperationsController.name);
+
     for (const controller of controllers) {
-      expect(declared.filter((value) => value === controller)).toHaveLength(1);
+      expect(
+        declared.filter(
+          (value) => typeof value === 'function' && value.name === controller,
+        ),
+      ).toHaveLength(1);
     }
   });
 });
