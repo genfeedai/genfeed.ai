@@ -1,6 +1,9 @@
 'use client';
 
-import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import {
+  useIngredientOverlay,
+  usePostModal,
+} from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import {
   ButtonVariant,
   ComponentSize,
@@ -134,6 +137,7 @@ export default function IngredientInspectorRail({
   // handlers as the asset modal. Without them the quick actions render as
   // locked placeholders.
   const { openPostBatchModal } = usePostModal();
+  const { openIngredientOverlay } = useIngredientOverlay();
   const { handlers, loadingStates } = useIngredientActions({
     onPublishIngredient: openPostBatchModal,
   });
@@ -301,6 +305,7 @@ export default function IngredientInspectorRail({
           return undefined;
         }}
         onPublish={handlers.handlePublish}
+        onSeeDetails={openIngredientOverlay}
         selectedIngredient={ingredient}
       />
     </aside>
