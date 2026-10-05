@@ -9,18 +9,28 @@ describe('TaskOrchestratorService', () => {
     executions: Record<string, { metadata?: object; status: string }>;
     task: { linkedExecutionIds: string[]; status: string } | null;
   }) => {
+    const stored = task && {
+      assigneeUserId: 'user-1',
+      id: 'task-1',
+      outputType: 'image',
+      platforms: [],
+      request: 'a green apple',
+      ...task,
+    };
     const tasksService = {
-      findOne: vi.fn().mockResolvedValue(
-        task && {
-          assigneeUserId: 'user-1',
-          id: 'task-1',
-          outputType: 'image',
-          platforms: [],
-          request: 'a green apple',
-          ...task,
+      findOne: vi.fn(async () => stored),
+      // Persist the patch like the real service, so later reads see it.
+      recordTaskEvent: vi.fn(
+        async (
+          _id: string,
+          _organizationId: string,
+          _userId: string,
+          _event: { type: string },
+          patch: { status?: string },
+        ) => {
+          if (stored && patch.status) stored.status = patch.status;
         },
       ),
-      recordTaskEvent: vi.fn().mockResolvedValue(undefined),
     };
     const workflowExecutionsService = {
       findOne: vi.fn(async (where: { id: string }) => {
