@@ -610,6 +610,21 @@ describe('membership-scoped saved guide wizard', () => {
       expect(mocks.startBrandOsScan).not.toHaveBeenCalled();
     },
   );
+  it('refreshes completed user state before navigating after classic Skip', async () => {
+    const refresh = deferred<void>();
+    await show();
+    mocks.refetchUser.mockReturnValueOnce(refresh.promise);
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+    await waitFor(() => expect(mocks.refetchUser).toHaveBeenCalledTimes(1));
+    expect(mocks.patchMe).toHaveBeenCalledExactlyOnceWith({
+      isOnboardingCompleted: true,
+    });
+    expect(mocks.push).not.toHaveBeenCalled();
+    await act(async () => {
+      refresh.resolve();
+    });
+    expect(mocks.push).toHaveBeenCalledExactlyOnceWith('/');
+  });
   it.each(['token', 'current user id'] as const)(
     'web Skip fails without writes when missing %s',
     async (missing) => {

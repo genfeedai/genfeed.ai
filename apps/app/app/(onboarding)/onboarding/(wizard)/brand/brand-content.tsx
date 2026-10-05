@@ -66,6 +66,7 @@ function useGuideExit(
   handleStepComplete: IOnboardingContextValue['handleStepComplete'],
 ) {
   const { getToken } = useAuthIdentity();
+  const { refetchUser } = useCurrentUser();
   const { push } = useRouter();
   const t = useTranslations('pages.onboarding.brand');
   const [isExiting, setIsExiting] = useState(false);
@@ -138,6 +139,8 @@ function useGuideExit(
       await UsersService.getInstance(token).patchMe({
         isOnboardingCompleted: true,
       });
+      if (!shouldContinue()) return;
+      await refetchUser();
       if (shouldContinue()) push('/');
     } catch (error) {
       if (!shouldContinue()) return;
