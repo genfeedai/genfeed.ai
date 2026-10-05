@@ -5,19 +5,13 @@ import { WorkspaceInboxReadService } from './workspace-inbox-read.service';
 const updatedAt = new Date('2026-10-05T10:00:00.000Z');
 const version = { taskId: 'task-1', seenUpdatedAt: updatedAt.toISOString() };
 async function setup() {
-  const reads = {
-    findMany: vi.fn().mockResolvedValue([]),
-    createMany: vi.fn(),
-    updateMany: vi.fn(),
-  };
   const prisma = {
-    workspaceInboxRead: reads,
+    workspaceInboxRead: { findMany: vi.fn().mockResolvedValue([]) },
     task: {
       findMany: vi.fn().mockResolvedValue([{ id: 'task-1', updatedAt }]),
     },
-    $transaction: vi.fn(async (callback) =>
-      callback({ workspaceInboxRead: reads }),
-    ),
+    $executeRaw: vi.fn().mockResolvedValue(1),
+    $queryRaw: vi.fn().mockResolvedValue([{ unreadCount: 1 }]),
   };
   const module = await Test.createTestingModule({
     providers: [
@@ -25,24 +19,27 @@ async function setup() {
       { provide: PrismaService, useValue: prisma },
     ],
   }).compile();
-  return { prisma, reads, service: module.get(WorkspaceInboxReadService) };
+  return { prisma, service: module.get(WorkspaceInboxReadService) };
 }
 describe('WorkspaceInboxReadService', () => {
   it('scopes read history to the user, organization and live tasks', async () => {
-    const { service, reads } = await setup();
+    const { service, prisma } = await setup();
     await service.list('org-1', 'user-1');
-    expect(reads.findMany).toHaveBeenCalledWith({
+    expect(prisma.workspaceInboxRead.findMany).toHaveBeenCalledWith({
       select: { taskId: true, seenUpdatedAt: true },
       where: expect.objectContaining({
         organizationId: 'org-1',
         userId: 'user-1',
         isDeleted: false,
-        task: { organizationId: 'org-1', isDeleted: false },
+        task: expect.objectContaining({
+          organizationId: 'org-1',
+          isDeleted: false,
+        }),
       }),
     });
   });
-  it('records displayed versions without modifying tasks and never regresses a read version', async () => {
-    const { service, prisma, reads } = await setup();
+  it('validates displayed versions before writing', async () => {
+    const { service, prisma } = await setup();
     await service.markRead('org-1', 'user-1', [version]);
     expect(prisma.task.findMany).toHaveBeenCalledWith({
       select: { id: true, updatedAt: true },
@@ -52,59 +49,28 @@ describe('WorkspaceInboxReadService', () => {
         id: { in: ['task-1'] },
       }),
     });
-    expect(reads.createMany).toHaveBeenCalledWith({
-      data: [
-        {
-          organizationId: 'org-1',
-          userId: 'user-1',
-          taskId: 'task-1',
-          seenUpdatedAt: updatedAt,
-        },
-      ],
-      skipDuplicates: true,
-    });
-    expect(reads.updateMany).toHaveBeenCalledWith({
-      data: { seenUpdatedAt: updatedAt },
-      where: expect.objectContaining({
-        organizationId: 'org-1',
-        userId: 'user-1',
-        taskId: 'task-1',
-        isDeleted: false,
-        seenUpdatedAt: { lt: updatedAt },
-      }),
-    });
+    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.$executeRaw.mock.calls[0][0].values).toContainEqual(
+      updatedAt,
+    );
   });
-  it('counts unread tasks from all live inbox tasks and returns saved versions', async () => {
-    const { service, prisma, reads } = await setup();
-    reads.findMany.mockResolvedValue([
+  it('returns the database count and saved versions', async () => {
+    const { service, prisma } = await setup();
+    prisma.workspaceInboxRead.findMany.mockResolvedValue([
       { taskId: 'task-1', seenUpdatedAt: updatedAt },
-    ]);
-    prisma.task.findMany.mockResolvedValue([
-      { id: 'task-1', updatedAt },
-      { id: 'task-2', updatedAt },
     ]);
     expect(await service.list('org-1', 'user-1')).toEqual({
       id: 'org-1',
       unreadCount: 1,
       reads: [version],
     });
+    expect(prisma.task.findMany).not.toHaveBeenCalled();
   });
-  it('marks all inbox tasks read, including tasks outside any table page', async () => {
+  it('marks all read with one database write independent of queue size', async () => {
     const { service, prisma } = await setup();
-    const markRead = vi
-      .spyOn(service, 'markRead')
-      .mockResolvedValue({ id: 'org-1', unreadCount: 0, reads: [version] });
     await service.markAllRead('org-1', 'user-1');
-    expect(prisma.task.findMany).toHaveBeenCalledWith({
-      select: { id: true, updatedAt: true },
-      where: expect.objectContaining({
-        organizationId: 'org-1',
-        isDeleted: false,
-        dismissedAt: null,
-        reviewState: { not: 'dismissed' },
-      }),
-    });
-    expect(markRead).toHaveBeenCalledWith('org-1', 'user-1', [version]);
+    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.task.findMany).not.toHaveBeenCalled();
   });
   it('rejects cross-organization or missing tasks atomically', async () => {
     const { service, prisma } = await setup();
@@ -112,21 +78,19 @@ describe('WorkspaceInboxReadService', () => {
     await expect(
       service.markRead('org-1', 'user-1', [version]),
     ).rejects.toThrow('Invalid workspace inbox task version');
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.$executeRaw).not.toHaveBeenCalled();
   });
-  it('rejects future versions but acknowledges older versions without consuming a newer update', async () => {
-    const { service, prisma, reads } = await setup();
+  it('rejects future versions but acknowledges older displayed versions', async () => {
+    const { service, prisma } = await setup();
     await expect(
       service.markRead('org-1', 'user-1', [
         { ...version, seenUpdatedAt: '2026-10-05T10:01:00.000Z' },
       ]),
     ).rejects.toThrow('Invalid workspace inbox task version');
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.$executeRaw).not.toHaveBeenCalled();
     await service.markRead('org-1', 'user-1', [
       { ...version, seenUpdatedAt: '2026-10-05T09:59:00.000Z' },
     ]);
-    expect(reads.createMany.mock.calls[0][0].data[0].seenUpdatedAt).toEqual(
-      new Date('2026-10-05T09:59:00.000Z'),
-    );
+    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
   });
 });

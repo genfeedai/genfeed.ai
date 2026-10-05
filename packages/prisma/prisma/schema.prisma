@@ -5390,6 +5390,7 @@ model Task {
   checkoutRunId   String?
   checkedOutAt    DateTime?
 
+  @@unique([id, organizationId], map: "tasks_id_organizationId_key")
   @@unique([organizationId, identifier])
   @@index([organizationId, checkoutAgentId])
   @@map("tasks")
@@ -5403,7 +5404,7 @@ model WorkspaceInboxRead {
   userId         String
   user           User         @relation(fields: [userId], references: [id])
   taskId         String
-  task           Task         @relation(fields: [taskId], references: [id])
+  task           Task         @relation(fields: [taskId, organizationId], references: [id, organizationId])
   seenUpdatedAt  DateTime
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())

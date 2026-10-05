@@ -2,6 +2,7 @@ import type { WorkspaceInboxReadVersionDto } from '@api/collections/tasks/dto/wo
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { IWorkspaceInboxReadState } from '@genfeedai/contracts/interfaces';
+import { Prisma } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -14,30 +15,31 @@ export class WorkspaceInboxReadService {
   ): Promise<IWorkspaceInboxReadState> {
     const reads = await this.prisma.workspaceInboxRead.findMany({
       where: scopedWhere(organizationId, {
-        organizationId,
         userId,
-        isDeleted: false,
-        task: { organizationId, isDeleted: false },
+        task: {
+          organizationId,
+          isDeleted: false,
+          dismissedAt: null,
+          reviewState: { not: 'dismissed' },
+        },
       }),
       select: { taskId: true, seenUpdatedAt: true },
     });
-    const tasks = await this.prisma.task.findMany({
-      where: scopedWhere(organizationId, {
-        organizationId,
-        isDeleted: false,
-        dismissedAt: null,
-        reviewState: { not: 'dismissed' },
-      }),
-      select: { id: true, updatedAt: true },
-    });
-    const seenVersions = new Map(
-      reads.map((read) => [read.taskId, read.seenUpdatedAt.getTime()]),
-    );
+    const [count] = await this.prisma.$queryRaw<
+      { unreadCount: number }[]
+    >(Prisma.sql`
+      SELECT COUNT(*)::int AS "unreadCount"
+      FROM tasks t
+      LEFT JOIN workspace_inbox_reads r
+        ON r."taskId" = t.id AND r."organizationId" = ${organizationId}
+        AND r."userId" = ${userId} AND r."isDeleted" = false
+      WHERE t."organizationId" = ${organizationId} AND t."isDeleted" = false
+        AND t."dismissedAt" IS NULL AND t."reviewState" <> 'dismissed'
+        AND (r."seenUpdatedAt" IS NULL OR r."seenUpdatedAt" < t."updatedAt")
+    `);
     return {
-      unreadCount: tasks.filter(
-        (task) => task.updatedAt.getTime() > (seenVersions.get(task.id) ?? 0),
-      ).length,
       id: organizationId,
+      unreadCount: count?.unreadCount ?? 0,
       reads: reads.map((read) => ({
         taskId: read.taskId,
         seenUpdatedAt: read.seenUpdatedAt.toISOString(),
@@ -49,22 +51,14 @@ export class WorkspaceInboxReadService {
     organizationId: string,
     userId: string,
   ): Promise<IWorkspaceInboxReadState> {
-    const tasks = await this.prisma.task.findMany({
-      where: scopedWhere(organizationId, {
-        organizationId,
-        isDeleted: false,
-        dismissedAt: null,
-        reviewState: { not: 'dismissed' },
-      }),
-      select: { id: true, updatedAt: true },
-    });
-    return this.markRead(
+    return this.saveVersions(
       organizationId,
       userId,
-      tasks.map((task) => ({
-        taskId: task.id,
-        seenUpdatedAt: task.updatedAt.toISOString(),
-      })),
+      Prisma.sql`
+      SELECT id AS "taskId", "updatedAt" AS "seenUpdatedAt" FROM tasks
+      WHERE "organizationId" = ${organizationId} AND "isDeleted" = false
+        AND "dismissedAt" IS NULL AND "reviewState" <> 'dismissed'
+    `,
     );
   }
 
@@ -74,16 +68,15 @@ export class WorkspaceInboxReadService {
     reads: WorkspaceInboxReadVersionDto[],
   ): Promise<IWorkspaceInboxReadState> {
     const uniqueReads = new Map(reads.map((read) => [read.taskId, read]));
+    if (uniqueReads.size === 0) return this.list(organizationId, userId);
     const tasks = await this.prisma.task.findMany({
       where: scopedWhere(organizationId, {
-        organizationId,
-        isDeleted: false,
         id: { in: [...uniqueReads.keys()] },
       }),
       select: { id: true, updatedAt: true },
     });
-    // Acknowledge the displayed version, never a newer unseen update. Validate
-    // the entire batch before writing, including tenant ownership.
+    // Reject forged task ids or future versions before any write. A version
+    // acknowledged after a newer update leaves that newer update unread.
     if (
       tasks.length !== uniqueReads.size ||
       tasks.some((task) => {
@@ -93,27 +86,36 @@ export class WorkspaceInboxReadService {
     )
       throw new BadRequestException('Invalid workspace inbox task version');
 
-    await this.prisma.$transaction(async (transaction) => {
-      for (const task of tasks) {
-        const seenUpdatedAt = new Date(
-          uniqueReads.get(task.id)?.seenUpdatedAt ?? '',
-        );
-        const where = { organizationId, userId, taskId: task.id };
-        // Concurrent/older acknowledgements cannot overwrite a newer version.
-        await transaction.workspaceInboxRead.createMany({
-          data: [{ ...where, seenUpdatedAt }],
-          skipDuplicates: true,
-        });
-        await transaction.workspaceInboxRead.updateMany({
-          where: scopedWhere(organizationId, {
-            ...where,
-            isDeleted: false,
-            seenUpdatedAt: { lt: seenUpdatedAt },
-          }),
-          data: { seenUpdatedAt },
-        });
-      }
-    });
+    const versions = [...uniqueReads.values()].map(
+      (read) =>
+        Prisma.sql`(${read.taskId}::text, ${new Date(read.seenUpdatedAt)}::timestamp)`,
+    );
+    return this.saveVersions(
+      organizationId,
+      userId,
+      Prisma.sql`
+      SELECT * FROM (VALUES ${Prisma.join(versions)}) AS versions("taskId", "seenUpdatedAt")
+    `,
+    );
+  }
+
+  private async saveVersions(
+    organizationId: string,
+    userId: string,
+    versions: Prisma.Sql,
+  ): Promise<IWorkspaceInboxReadState> {
+    // One atomic, set-based write for any queue size. The live-task join also
+    // ignores tasks deleted after validation without marking other tenants.
+    await this.prisma.$executeRaw(Prisma.sql`
+      INSERT INTO workspace_inbox_reads (id, "organizationId", "userId", "taskId", "seenUpdatedAt", "updatedAt")
+      SELECT gen_random_uuid()::text, ${organizationId}, ${userId}, v."taskId", v."seenUpdatedAt", NOW()
+      FROM (${versions}) v
+      JOIN tasks t ON t.id = v."taskId" AND t."organizationId" = ${organizationId}
+      WHERE t."isDeleted" = false AND v."seenUpdatedAt" <= t."updatedAt"
+      ON CONFLICT ("organizationId", "userId", "taskId") DO UPDATE SET
+        "seenUpdatedAt" = GREATEST(workspace_inbox_reads."seenUpdatedAt", EXCLUDED."seenUpdatedAt"),
+        "isDeleted" = false, "updatedAt" = NOW()
+    `);
     return this.list(organizationId, userId);
   }
 }

@@ -16,6 +16,7 @@ describe('Workspace inbox read versions (real Postgres)', () => {
   let sql: Client;
   let prisma: PrismaClient;
   let inbox: WorkspaceInboxReadService;
+  let historicalRecipients: string[] = [];
 
   beforeAll(async () => {
     const connectionString = assertIsolatedDatabaseUrl();
@@ -26,17 +27,20 @@ describe('Workspace inbox read versions (real Postgres)', () => {
     // Only the tables referenced by this additive migration, in a uniquely
     // owned schema; no application or shared test tables are modified.
     await sql.query(`
-      CREATE TABLE users (id TEXT PRIMARY KEY);
-      CREATE TABLE organizations (id TEXT PRIMARY KEY);
+      CREATE TABLE users (id TEXT PRIMARY KEY, "isDeleted" BOOLEAN NOT NULL DEFAULT false);
+      CREATE TABLE organizations (id TEXT PRIMARY KEY, "isDeleted" BOOLEAN NOT NULL DEFAULT false);
+      CREATE TABLE members ("organizationId" TEXT NOT NULL, "userId" TEXT NOT NULL, "isDeleted" BOOLEAN NOT NULL DEFAULT false, "isActive" BOOLEAN NOT NULL DEFAULT true);
       CREATE TABLE tasks (
         id TEXT PRIMARY KEY, "organizationId" TEXT NOT NULL REFERENCES organizations(id),
         "updatedAt" TIMESTAMP(3) NOT NULL, "isDeleted" BOOLEAN NOT NULL DEFAULT false,
-        "dismissedAt" TIMESTAMP(3), "reviewState" TEXT NOT NULL DEFAULT 'none'
+        "dismissedAt" TIMESTAMP(3), "reviewState" TEXT NOT NULL DEFAULT 'none', "status" TEXT NOT NULL DEFAULT 'backlog'
       );
-      INSERT INTO users VALUES ('alice'), ('bob');
-      INSERT INTO organizations VALUES ('alpha'), ('bravo');
+      INSERT INTO users (id) VALUES ('alice'), ('bob');
+      INSERT INTO organizations (id) VALUES ('alpha'), ('bravo');
+      INSERT INTO members ("organizationId", "userId") VALUES ('alpha', 'alice'), ('alpha', 'bob');
       INSERT INTO tasks (id, "organizationId", "updatedAt") VALUES
         ('alpha-1', 'alpha', '${version}'), ('alpha-2', 'alpha', '${version}'), ('bravo-1', 'bravo', '${version}');
+      INSERT INTO tasks (id, "organizationId", "updatedAt", status) VALUES ('alpha-old', 'alpha', '${version}', 'done');
     `);
     await sql.query(
       readFileSync(
@@ -46,14 +50,27 @@ describe('Workspace inbox read versions (real Postgres)', () => {
         'utf8',
       ),
     );
+    historicalRecipients = (
+      await sql.query(
+        'SELECT "userId" FROM workspace_inbox_reads WHERE "taskId" = $1 ORDER BY "userId"',
+        ['alpha-old'],
+      )
+    ).rows.map((row: { userId: string }) => row.userId);
+    await sql.query('UPDATE tasks SET "isDeleted" = true WHERE id = $1', [
+      'alpha-old',
+    ]);
     prisma = new PrismaClient({
-      adapter: new PrismaPg({ connectionString }, { schema }),
+      adapter: new PrismaPg(
+        { connectionString, options: '-c search_path=' + schema + ',public' },
+        { schema },
+      ),
     });
     inbox = new WorkspaceInboxReadService(prisma as PrismaService);
   });
 
   beforeEach(async () => {
     await sql.query('TRUNCATE workspace_inbox_reads');
+    await sql.query("DELETE FROM tasks WHERE id LIKE 'bulk-%'");
     await sql.query('UPDATE tasks SET "updatedAt" = $1', [version]);
   });
 
@@ -63,6 +80,10 @@ describe('Workspace inbox read versions (real Postgres)', () => {
       await sql.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
       await sql.end();
     }
+  });
+
+  it('backfills historical completed tasks for existing recipients', () => {
+    expect(historicalRecipients).toEqual(['alice', 'bob']);
   });
 
   it('persists read state for one recipient without leaking it to another user or organization', async () => {
@@ -90,7 +111,7 @@ describe('Workspace inbox read versions (real Postgres)', () => {
     expect(
       (
         await sql.query(
-          'SELECT "reviewState" FROM tasks WHERE "organizationId" = $1',
+          'SELECT "reviewState" FROM tasks WHERE "organizationId" = $1 AND NOT "isDeleted"',
           ['alpha'],
         )
       ).rows,
@@ -120,6 +141,30 @@ describe('Workspace inbox read versions (real Postgres)', () => {
     expect((await inbox.list('alpha', 'alice')).reads).toEqual([
       { taskId: 'alpha-1', seenUpdatedAt: newerVersion },
     ]);
+  });
+
+  it('marks thousands of tasks read without a per-task write loop', async () => {
+    await sql.query(
+      'INSERT INTO tasks (id, "organizationId", "updatedAt") SELECT \'bulk-\' || n, \'alpha\', $1::timestamp FROM generate_series(1, 2000) n',
+      [version],
+    );
+    expect(await inbox.markAllRead('alpha', 'alice')).toMatchObject({
+      unreadCount: 0,
+    });
+    expect((await inbox.list('alpha', 'alice')).reads).toHaveLength(2002);
+  });
+
+  it('enforces task organization ownership in the database', async () => {
+    await expect(
+      prisma.workspaceInboxRead.create({
+        data: {
+          organizationId: 'alpha',
+          userId: 'alice',
+          taskId: 'bravo-1',
+          seenUpdatedAt: new Date(version),
+        },
+      }),
+    ).rejects.toThrow();
   });
 
   it('rejects an entire mixed-organization read batch without partial writes', async () => {
