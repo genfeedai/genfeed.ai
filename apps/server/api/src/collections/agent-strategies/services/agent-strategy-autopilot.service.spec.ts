@@ -3,7 +3,13 @@ import { AgentStrategyAutopilotExecutionService } from '@api/collections/agent-s
 import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
 import { AgentStrategyAutopilotPlanningService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-planning.service';
 import type { PostAccountTarget } from '@api/collections/posts/services/post-account-fanout.service';
-import { AgentAutonomyMode, Platform } from '@genfeedai/contracts';
+import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
+import {
+  AgentAutonomyMode,
+  applyExpertPublishApprovalDefault,
+  Platform,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 
 describe('AgentStrategyAutopilotService', () => {
   // Distinct ids per entity: the autopilot helpers read the Prisma scalar `id`,
@@ -156,6 +162,35 @@ describe('AgentStrategyAutopilotService', () => {
       log: vi.fn(),
       warn: vi.fn(),
     };
+    // The real shared publish policy over the rows it reads, so a test can
+    // withhold brand or channel permission exactly as production stores it.
+    const policyDb = {
+      agentStrategy: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: strategyId,
+          brandId,
+          config: { autonomyMode: baseStrategy.autonomyMode },
+          isActive: true,
+          policies: { publishPolicy: baseStrategy.publishPolicy },
+        }),
+      },
+      brand: {
+        findFirst: vi.fn().mockResolvedValue({
+          agentConfig: { autoPublish: { enabled: true } },
+        }),
+      },
+      credential: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValue({ id: credentialId, platform: 'TWITTER' }),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      persona: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
+    const autonomousPublishPolicy = new AutonomousPublishPolicyService(
+      policyDb as never,
+      activitiesService as never,
+    );
 
     const performanceService = new AgentStrategyAutopilotPerformanceService(
       agentStrategiesService as never,
@@ -179,6 +214,7 @@ describe('AgentStrategyAutopilotService', () => {
       postsService as never,
       postAccountFanoutService as never,
       batchGenerationService as never,
+      autonomousPublishPolicy,
       logger as never,
     );
 
@@ -203,12 +239,159 @@ describe('AgentStrategyAutopilotService', () => {
       evaluationsOperationsService,
       opportunitiesService,
       optimizersService,
+      policyDb,
       postAccountFanoutService,
       postsService,
       reportsService,
       service,
     };
   }
+
+  function queueStrongTextDraft(deps: ReturnType<typeof createService>) {
+    deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
+      {
+        id: opportunityId,
+        estimatedCreditCost: 10,
+        formatCandidates: ['text'],
+        platformCandidates: ['twitter'],
+        priorityScore: 90,
+        sourceType: 'evergreen',
+        status: 'queued',
+        topic: 'AI hooks',
+      },
+    ]);
+    deps.contentGatewayService.processManualRequest.mockResolvedValue({
+      posts: [
+        {
+          description: 'Strong post draft',
+          id: draftId,
+          targetAttachments: [],
+          targetSettings: { generation: { metadata: {} } },
+        },
+      ],
+      runs: ['run-1'],
+    });
+    deps.optimizersService.analyzeContent.mockResolvedValue({
+      breakdown: {
+        clarity: 85,
+        engagement: 84,
+        platformOptimization: 82,
+        readability: 86,
+      },
+      metadata: { hasCallToAction: true },
+      overallScore: 88,
+    });
+  }
+
+  function expectReviewHandoffWithoutScheduling(
+    deps: ReturnType<typeof createService>,
+    reason: string,
+  ) {
+    expect(deps.postsService.create).not.toHaveBeenCalled();
+    expect(deps.postsService.patch).not.toHaveBeenCalledWith(
+      draftId,
+      expect.objectContaining({
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    );
+    expect(
+      deps.batchGenerationService.createManualReviewBatch,
+    ).toHaveBeenCalledWith(
+      {
+        brandId,
+        items: [expect.objectContaining({ postId: draftId })],
+      },
+      userId,
+      organizationId,
+    );
+    expect(deps.opportunitiesService.updateStatus).toHaveBeenCalledWith(
+      opportunityId,
+      organizationId,
+      'approved',
+      expect.objectContaining({
+        decisionReason: expect.stringContaining(reason),
+      }),
+    );
+  }
+
+  it.each([
+    ['an Expert Path brand', applyExpertPublishApprovalDefault(undefined)],
+    ['a brand requiring approval', { enabled: true, isApprovalRequired: true }],
+    ['a brand without auto-publish', undefined],
+  ])(
+    'routes an auto-publish strategy draft to review for %s',
+    async (_label, autoPublish) => {
+      const deps = createService();
+      deps.policyDb.brand.findFirst.mockResolvedValue({
+        agentConfig: { autoPublish },
+      });
+      queueStrongTextDraft(deps);
+
+      await deps.service.executeQueuedRun({
+        organizationId,
+        runId: 'run-1',
+        strategyId,
+        userId,
+      });
+
+      expectReviewHandoffWithoutScheduling(
+        deps,
+        'Brand auto-publish is disabled.',
+      );
+    },
+  );
+
+  it('routes a draft to review when its channel was reverted to supervised', async () => {
+    const deps = createService();
+    deps.policyDb.agentStrategy.findFirst.mockResolvedValue({
+      id: strategyId,
+      brandId,
+      config: { autonomyMode: AgentAutonomyMode.AUTO_PUBLISH },
+      isActive: true,
+      policies: {
+        publishPolicy: {
+          ...baseStrategy.publishPolicy,
+          platformStates: {
+            [Platform.TWITTER]: {
+              approvalStreak: 0,
+              autoPublishEnabled: false,
+            },
+          },
+        },
+      },
+    });
+    queueStrongTextDraft(deps);
+
+    await deps.service.executeQueuedRun({
+      organizationId,
+      runId: 'run-1',
+      strategyId,
+      userId,
+    });
+
+    expectReviewHandoffWithoutScheduling(
+      deps,
+      'Autonomy mode requires human approval.',
+    );
+  });
+
+  it('routes a draft to review when the target account is not connected', async () => {
+    const deps = createService();
+    deps.policyDb.credential.findFirst.mockResolvedValue(null);
+    queueStrongTextDraft(deps);
+
+    await deps.service.executeQueuedRun({
+      organizationId,
+      runId: 'run-1',
+      strategyId,
+      userId,
+    });
+
+    expectReviewHandoffWithoutScheduling(
+      deps,
+      'Channel auto-publish is disabled.',
+    );
+  });
 
   it('returns early when monthly pacing budget is exhausted', async () => {
     const deps = createService();
