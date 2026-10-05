@@ -387,7 +387,7 @@ describe('Ingredients operations registered HTTP boundary', () => {
       label: 'Updated',
     });
     expect(response.body.data.id).toBe(ingredientId);
-    expect(response.body.data.type).toBe('ingredients');
+    expect(response.body.data.type).toBe('ingredient');
     expect(invalidateByTags).toHaveBeenCalledWith(['ingredients']);
   });
 

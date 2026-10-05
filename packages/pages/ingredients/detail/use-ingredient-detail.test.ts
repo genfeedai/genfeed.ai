@@ -114,10 +114,7 @@ describe('useIngredientDetail loading', () => {
       { label: 'Updated' },
     );
     expect(mocks.getMetadataService).toHaveBeenCalledTimes(1);
-    expect(mocks.service.findOne).toHaveBeenCalledWith(
-      'image-1',
-      expect.any(Object),
-    );
+    expect(mocks.service.findOne).toHaveBeenCalledWith('image-1');
     expect(result.current.ingredient).toEqual(updated);
   });
 
