@@ -98,7 +98,8 @@ describe.skipIf(!connectionString)(
       "description" text, "source" text, "metadata" jsonb, "expiresAt" timestamp(3) NOT NULL,
       "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamp(3) NOT NULL DEFAULT now(),
       "updatedAt" timestamp(3) NOT NULL DEFAULT now(), "workflowExecutionId" text,
-      "workflowNodeId" text, "workflowOperationId" text
+      "workflowNodeId" text, "workflowOperationId" text,
+      "recoveryNextAttemptAt" timestamp(3), "recoveryAttempts" integer NOT NULL DEFAULT 0
     )`);
       url.searchParams.set('options', `-c search_path=${schema}`);
       prisma = new PrismaClient({
