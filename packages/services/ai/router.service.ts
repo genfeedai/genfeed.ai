@@ -1,4 +1,8 @@
 import { ModelCategory } from '@genfeedai/contracts';
+import type {
+  AgentGenerationQuote,
+  AgentGenerationQuoteRequest,
+} from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 
@@ -111,6 +115,22 @@ export class RouterService extends HTTPBaseService {
   async selectModel(request: SelectModelRequest): Promise<ModelRecommendation> {
     return await this.instance
       .post<ModelRecommendation>('/select-model', request)
+      .then((res) => res.data);
+  }
+
+  /**
+   * The credits admission will charge for these exact settings (the server
+   * quote, never a client calculation). A pricing miss resolves with
+   * `isAvailable: false` and an `unavailableReason` code instead of throwing.
+   */
+  async estimateGenerationCredits(
+    request: AgentGenerationQuoteRequest,
+    signal?: AbortSignal,
+  ): Promise<AgentGenerationQuote> {
+    return await this.instance
+      .post<AgentGenerationQuote>('/estimate-generation-credits', request, {
+        signal,
+      })
       .then((res) => res.data);
   }
 

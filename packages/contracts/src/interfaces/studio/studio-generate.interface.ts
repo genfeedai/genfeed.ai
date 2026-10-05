@@ -6,7 +6,8 @@ import type {
   RouterPriority,
 } from '../..';
 import type { ImageEditSize } from '../../constants/image-edit-models.constant';
-import type { IBaseEntity, IIngredient, IModel, IQueryParams } from '../index';
+import type { AgentGenerationQuoteUnavailableReason } from '../ai/agent-generation-quote.interface';
+import type { IBaseEntity, IIngredient, IQueryParams } from '../index';
 import type { KnowledgeSelection } from '../knowledge-base/knowledge-retrieval.interface';
 import type { ImageEditingRecipe } from './image-editing.interface';
 
@@ -353,15 +354,12 @@ export type StudioGenerateDraftSaveStatus =
   /** The server rejected the draft; it will not be retried. */
   | 'failed';
 
-/** Inputs the composer already submits; no billing authorization or synthetic tariff. */
-export interface StudioGenerationCostInput {
-  isLoadingModels: boolean;
-  model?: IModel;
-  settings: StudioGenerateSettings;
-  type: StudioGenerateType;
-}
-
+/**
+ * What the Studio summary shows. Credits only ever come from the server quote
+ * admission charges; `unavailableReason` is that quote's code when it declined.
+ */
 export interface StudioGenerationCostEstimate {
   credits: number | null;
   status: 'auto' | 'loading' | 'unavailable' | 'estimated';
+  unavailableReason?: AgentGenerationQuoteUnavailableReason;
 }

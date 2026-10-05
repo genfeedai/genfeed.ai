@@ -60,5 +60,7 @@ export function useGenerationQuote(
     isEstimateAvailable: isCurrent && quote.isAvailable,
     isEstimatePending: isEnabled && Boolean(input.prompt) && !isCurrent,
     resolvedModelKey: isCurrent && quote.isAvailable ? quote.modelKey : null,
+    unavailableReason:
+      isCurrent && !quote.isAvailable ? quote.unavailableReason : undefined,
   };
 }

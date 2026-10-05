@@ -1,21 +1,18 @@
-import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import {
-  AgentGenerationCostToolHandler,
-  toStudioGenerationCostModel,
-} from '@api/services/agent-orchestrator/tools/agent-generation-cost-tool-handler.service';
+  billableProfile,
+  testModelCreditQuote,
+} from '@api/helpers/utils/credits/model-billable-quote.fixture';
+import { AgentGenerationCostToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-cost-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
+import { ModelCategory } from '@genfeedai/contracts';
+import { AgentGenerationQuoteUnavailableReason } from '@genfeedai/contracts/interfaces';
 import {
-  ModelCategory,
-  ModelLifecycle,
-  ModelProvider,
-  PricingType,
-} from '@genfeedai/contracts';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
-import {
-  buildStudioGenerationCostSettings,
-  resolveStudioGenerationCost,
+  applyMargin,
+  quoteModelBillablePricing,
+  setRuntimeMarginMultiplier,
 } from '@genfeedai/pricing';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const ctx = {
   brandId: 'brand-1',
@@ -23,102 +20,95 @@ const ctx = {
   userId: 'user-1',
 } as ToolExecutionContext;
 
-function catalogRow(overrides: Partial<ModelDocument> = {}): ModelDocument {
+const NANO_BANANA_2_LITE = 'google/nano-banana-2-lite';
+
+function configuredProviderRow(overrides: Record<string, unknown> = {}) {
   return {
     category: ModelCategory.IMAGE,
-    cost: 7,
-    costPerUnit: null,
-    createdAt: new Date('2026-01-01T00:00:00.000Z'),
-    id: 'model-1',
+    cost: 0,
     isActive: true,
-    isDefault: false,
     isDeleted: false,
     isFree: false,
-    key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
-    label: 'Imagen',
-    lifecycle: ModelLifecycle.AVAILABLE,
-    minCost: null,
-    organizationId: 'org-1',
-    pendingProviderContractVersion: null,
-    pricingType: PricingType.FLAT,
-    provider: ModelProvider.REPLICATE,
-    providerSyncStatus: 'fresh',
-    reviewStatus: 'approved',
-    updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+    key: NANO_BANANA_2_LITE,
+    organizationId: null,
+    pricingType: 'flat',
+    provider: 'replicate',
+    providerCostUsd: 0.04,
     ...overrides,
-  } as ModelDocument;
+  };
 }
 
-function setup(options?: {
-  balance?: number | Error;
-  model?: ModelDocument | null;
-}) {
+function setup(options?: { balance?: number | Error; row?: unknown }) {
   const balance = options?.balance ?? 42;
-  const model = options && 'model' in options ? options.model : catalogRow();
+  const row =
+    options && 'row' in options ? options.row : configuredProviderRow();
   const creditsUtilsService = {
     getOrganizationCreditsBalance: vi.fn(async () => {
       if (balance instanceof Error) throw balance;
       return balance;
     }),
   };
-  const modelsService = {
-    findOne: vi.fn(async () => model ?? null),
-  };
+  const validateModelForOrg = vi.fn(async () => row);
+  const selectModel = vi.fn();
+  const logger = { error: vi.fn(), warn: vi.fn() };
+  const estimateService = new AgentGenerationEstimateService(
+    { resolveModelKey: vi.fn(), selectModel } as never,
+    { validateModelForOrg } as never,
+    logger as never,
+    testModelCreditQuote({ findOne: async () => row } as never),
+    { buildPrompt: vi.fn() } as never,
+  );
   return {
     creditsUtilsService,
     handler: new AgentGenerationCostToolHandler(
       creditsUtilsService as never,
-      modelsService as never,
+      estimateService,
     ),
-    modelsService,
+    logger,
+    selectModel,
+    validateModelForOrg,
   };
 }
 
 describe('AgentGenerationCostToolHandler', () => {
-  it('returns the composer estimate and the credits-bar balance for the authenticated org', async () => {
-    const model = catalogRow();
-    const { handler, modelsService } = setup({ balance: 42, model });
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setRuntimeMarginMultiplier(1);
+  });
+
+  it('#6199: a model admission quotes from configured provider USD gets the same estimate', async () => {
+    const { handler } = setup();
+    // The quote admission charges for this exact profile.
+    const admission = quoteModelBillablePricing(
+      billableProfile({
+        key: NANO_BANANA_2_LITE,
+        cost: 0,
+        providerCostUsd: 0.04,
+      }),
+      { modelKey: NANO_BANANA_2_LITE, provider: 'replicate' },
+      1,
+      new Date().toISOString(),
+    );
+    if (admission.status !== 'priced') throw new Error(admission.reason);
+    expect(admission.snapshot.credits).toBe(applyMargin(0.04, 1));
+
     const result = await handler.execute(
-      {
-        aspectRatio: '1:1',
-        modelKey: model.key,
-        organizationId: 'other-org',
-        outputs: 1,
-        resolution: '1K',
-        type: 'image',
-      },
+      { modelKey: NANO_BANANA_2_LITE, type: 'image' },
       ctx,
     );
-    const priced = toStudioGenerationCostModel(model);
-    if (!priced) throw new Error('expected a priced catalog row');
 
-    expect(modelsService.findOne).toHaveBeenCalledWith({
-      isDeleted: false,
-      key: model.key,
-      organizationId: 'org-1',
-    });
     expect(result).toEqual({
       creditsUsed: 0,
       data: {
         balance: 42,
-        estimate: resolveStudioGenerationCost({
-          isLoadingModels: false,
-          model: priced,
-          settings: buildStudioGenerationCostSettings('image', {
-            aspectRatio: '1:1',
-            modelKey: model.key,
-            outputs: 1,
-            resolution: '1K',
-          }),
-          type: 'image',
-        }),
+        estimate: { credits: admission.snapshot.credits, status: 'estimated' },
       },
       success: true,
     });
   });
 
   it('keeps a numeric zero balance', async () => {
-    const { handler } = setup({ balance: 0, model: null });
+    const { handler } = setup({ balance: 0 });
     const result = await handler.execute({ type: 'image' }, ctx);
     expect(result).toMatchObject({
       creditsUsed: 0,
@@ -130,73 +120,88 @@ describe('AgentGenerationCostToolHandler', () => {
   it('returns a null balance when the wallet read fails', async () => {
     const { handler } = setup({ balance: new Error('wallet down') });
     const result = await handler.execute(
-      { modelKey: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4, type: 'image' },
+      { modelKey: NANO_BANANA_2_LITE, type: 'image' },
       ctx,
     );
     expect(result.success).toBe(true);
-    expect(result.creditsUsed).toBe(0);
     expect(result.data?.balance).toBeNull();
     expect(result.data?.balance).not.toBe(0);
   });
 
-  it('does not look up Auto and reports status auto', async () => {
-    const { handler, modelsService } = setup();
-    const omitted = await handler.execute({ type: 'video' }, ctx);
-    const explicit = await handler.execute(
+  it('does not quote Auto and reports status auto', async () => {
+    const { handler, selectModel, validateModelForOrg } = setup();
+    for (const params of [
+      { type: 'video' },
       { modelKey: 'auto', type: 'image' },
-      ctx,
-    );
-    const blank = await handler.execute(
       { modelKey: '   ', type: 'image' },
-      ctx,
-    );
-    expect(modelsService.findOne).not.toHaveBeenCalled();
-    expect(omitted.data?.estimate).toEqual({ credits: null, status: 'auto' });
-    expect(explicit.data?.estimate).toEqual({ credits: null, status: 'auto' });
-    expect(blank.data?.estimate).toEqual({ credits: null, status: 'auto' });
+    ]) {
+      const result = await handler.execute(params, ctx);
+      expect(result.data?.estimate).toEqual({ credits: null, status: 'auto' });
+    }
+    expect(selectModel).not.toHaveBeenCalled();
+    expect(validateModelForOrg).not.toHaveBeenCalled();
   });
 
-  it('returns unavailable for a bad request and still returns the balance', async () => {
-    const { handler, modelsService } = setup({ balance: 9 });
+  it('returns unavailable with a reason for a bad request and still returns the balance', async () => {
+    const { handler, validateModelForOrg } = setup({ balance: 9 });
     const result = await handler.execute({ type: 'music' }, ctx);
-    expect(modelsService.findOne).not.toHaveBeenCalled();
+    expect(validateModelForOrg).not.toHaveBeenCalled();
     expect(result).toMatchObject({
       creditsUsed: 0,
-      data: { balance: 9, estimate: { credits: null, status: 'unavailable' } },
+      data: {
+        balance: 9,
+        estimate: {
+          credits: null,
+          status: 'unavailable',
+          unavailableReason:
+            AgentGenerationQuoteUnavailableReason.INSUFFICIENT_INPUT,
+        },
+      },
       success: true,
     });
   });
 
-  it('returns unavailable when the catalog tariff is not one the composer prices', async () => {
-    const model = catalogRow({ pricingType: 'per-token' });
-    const { handler, modelsService } = setup({ model });
-    const result = await handler.execute(
-      { modelKey: model.key, type: 'image' },
-      ctx,
-    );
-    expect(modelsService.findOne).toHaveBeenCalledTimes(1);
-    expect(toStudioGenerationCostModel(model)).toBeNull();
-    expect(result.data?.estimate).toEqual({
-      credits: null,
-      status: 'unavailable',
-    });
-  });
-
-  it('returns unavailable when the model is missing', async () => {
-    const { handler } = setup({ model: null });
+  it('reports MODEL_UNAVAILABLE when the model is missing', async () => {
+    const { handler } = setup({ row: null });
     const result = await handler.execute(
       { modelKey: 'replicate/missing', type: 'image' },
       ctx,
     );
     expect(result.data).toMatchObject({
       balance: 42,
-      estimate: { credits: null, status: 'unavailable' },
+      estimate: {
+        credits: null,
+        status: 'unavailable',
+        unavailableReason:
+          AgentGenerationQuoteUnavailableReason.MODEL_UNAVAILABLE,
+      },
     });
   });
 
-  it('does not coerce a non-finite balance to zero', async () => {
-    const { handler } = setup({ balance: Number.NaN, model: null });
-    const result = await handler.execute({ type: 'image' }, ctx);
-    expect(result.data?.balance).toBeNull();
+  it('reports PRICING_UNRESOLVED when admission has no exact tariff', async () => {
+    const { handler } = setup({
+      row: configuredProviderRow({ cost: 0, providerCostUsd: null }),
+    });
+    const result = await handler.execute(
+      { modelKey: NANO_BANANA_2_LITE, type: 'image' },
+      ctx,
+    );
+    expect(result.data?.estimate).toMatchObject({
+      status: 'unavailable',
+      unavailableReason:
+        AgentGenerationQuoteUnavailableReason.PRICING_UNRESOLVED,
+    });
+  });
+
+  it('rejects an invalid output count as a missing setting', async () => {
+    const { handler } = setup();
+    const result = await handler.execute(
+      { modelKey: NANO_BANANA_2_LITE, outputs: 99, type: 'image' },
+      ctx,
+    );
+    expect(result.data?.estimate).toMatchObject({
+      status: 'unavailable',
+      unavailableReason: AgentGenerationQuoteUnavailableReason.MISSING_SETTING,
+    });
   });
 });

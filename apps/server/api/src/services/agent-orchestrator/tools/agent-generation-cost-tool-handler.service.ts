@@ -1,110 +1,17 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
-import { ModelsService } from '@api/collections/models/services/models.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
+import { resolveStudioGenerationDimensions } from '@genfeedai/contracts/constants';
 import {
-  ModelCategory,
-  ModelLifecycle,
-  ModelProvider,
-  PricingType,
-} from '@genfeedai/contracts';
-import type { AgentToolResult, IModel } from '@genfeedai/contracts/interfaces';
+  AgentGenerationQuoteUnavailableReason,
+  type AgentToolResult,
+} from '@genfeedai/contracts/interfaces';
 import type { StudioGenerationCostEstimate } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import {
-  buildStudioGenerationCostSettings,
-  resolveStudioGenerationCost,
+  buildStudioGenerationQuoteRequest,
+  isAutoStudioModelKey,
 } from '@genfeedai/pricing';
-import { Injectable } from '@nestjs/common';
-
-const UNAVAILABLE_ESTIMATE: StudioGenerationCostEstimate = {
-  credits: null,
-  status: 'unavailable',
-};
-
-function isEnumValue<T extends Record<string, string>>(
-  enumeration: T,
-  value: string,
-): value is T[keyof T] {
-  return (Object.values(enumeration) as string[]).includes(value);
-}
-
-function isoTimestamp(value: Date | string): string {
-  return value instanceof Date ? value.toISOString() : value;
-}
-
-function readReviewStatus(value: string | null): IModel['reviewStatus'] {
-  if (
-    value === 'approved' ||
-    value === 'legacy' ||
-    value === 'pending' ||
-    value === 'rejected'
-  ) {
-    return value;
-  }
-  return undefined;
-}
-
-function readProviderSyncStatus(
-  value: string | null,
-): IModel['providerSyncStatus'] {
-  if (
-    value === 'failed' ||
-    value === 'fresh' ||
-    value === 'quarantined' ||
-    value === 'review_required'
-  ) {
-    return value;
-  }
-  return undefined;
-}
-
-/** Catalog row the Generate composer already prices. Unknown tariffs stay unpriced. */
-export function toStudioGenerationCostModel(
-  model: ModelDocument,
-): IModel | null {
-  if (
-    !isEnumValue(ModelCategory, model.category) ||
-    !isEnumValue(ModelProvider, model.provider) ||
-    !isEnumValue(ModelLifecycle, model.lifecycle)
-  ) {
-    return null;
-  }
-  if (
-    typeof model.pricingType === 'string' &&
-    model.pricingType.length > 0 &&
-    !isEnumValue(PricingType, model.pricingType)
-  ) {
-    return null;
-  }
-
-  return {
-    category: model.category,
-    cost: model.cost,
-    costPerUnit: model.costPerUnit ?? undefined,
-    createdAt: isoTimestamp(model.createdAt),
-    id: model.id,
-    isActive: model.isActive,
-    isDefault: model.isDefault,
-    isDeleted: model.isDeleted,
-    isFree: model.isFree,
-    key: model.key,
-    label: model.label,
-    lifecycle: model.lifecycle,
-    minCost: model.minCost ?? undefined,
-    pendingProviderContractVersion:
-      model.pendingProviderContractVersion ?? undefined,
-    pricingType:
-      model.pricingType && isEnumValue(PricingType, model.pricingType)
-        ? model.pricingType
-        : undefined,
-    provider: model.provider,
-    providerSyncStatus: readProviderSyncStatus(model.providerSyncStatus),
-    reviewedProviderContractVersion:
-      model.reviewedProviderContractVersion ?? undefined,
-    reviewStatus: readReviewStatus(model.reviewStatus),
-    updatedAt: isoTimestamp(model.updatedAt),
-  };
-}
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 function readOptionalString(
   value: unknown,
@@ -129,13 +36,14 @@ function readFiniteBalance(value: number): number | null {
 
 /**
  * Read-only Studio estimate plus the credits-bar balance.
- * Prices nothing itself: both numbers come from the existing catalog estimate and wallet.
+ * Prices nothing itself: the estimate is the server quote admission charges
+ * (`AgentGenerationEstimateService`) and the balance is the wallet.
  */
 @Injectable()
 export class AgentGenerationCostToolHandler {
   constructor(
     private readonly creditsUtilsService: CreditsUtilsService,
-    private readonly modelsService: ModelsService,
+    private readonly estimateService: AgentGenerationEstimateService,
   ) {}
 
   async execute(
@@ -162,48 +70,78 @@ export class AgentGenerationCostToolHandler {
       !duration.ok ||
       !outputs.ok
     ) {
-      return this.result(balance, UNAVAILABLE_ESTIMATE);
+      return this.result(balance, {
+        credits: null,
+        status: 'unavailable',
+        unavailableReason:
+          AgentGenerationQuoteUnavailableReason.INSUFFICIENT_INPUT,
+      });
     }
 
-    const settings = buildStudioGenerationCostSettings(type, {
-      aspectRatio: aspectRatio.value,
-      duration: duration.value,
+    // Auto never prices here: the model, and so the quote, is not chosen yet.
+    if (isAutoStudioModelKey(modelKey.value)) {
+      return this.result(balance, { credits: null, status: 'auto' });
+    }
+
+    // The composer defaults for omitted inputs; dimensions come from the same
+    // function Studio submits with, so megapixel tariffs quote identically.
+    const resolvedAspectRatio =
+      aspectRatio.value ?? (type === 'video' ? '16:9' : '1:1');
+    const resolvedResolution =
+      resolution.value ?? (type === 'video' ? '720p' : '1K');
+    const dimensions = resolveStudioGenerationDimensions(
+      resolvedAspectRatio,
+      resolvedResolution,
+    );
+    const request = buildStudioGenerationQuoteRequest({
+      aspectRatio: resolvedAspectRatio,
+      duration: type === 'video' ? (duration.value ?? 5) : duration.value,
+      height: dimensions.height,
+      // Studio submits the toggle as false unless it is switched on.
+      isAudioEnabled:
+        type === 'video' ? params.isAudioEnabled === true : undefined,
       modelKey: modelKey.value,
-      outputs: outputs.value,
-      resolution: resolution.value,
+      outputs: outputs.value ?? 1,
+      resolution: resolvedResolution,
+      type,
+      width: dimensions.width,
     });
-    if (
-      settings.modelKey === '__auto_model__' ||
-      settings.modelKey === 'auto' ||
-      settings.modelKey === ''
-    ) {
+    if (!request) {
+      return this.result(balance, {
+        credits: null,
+        status: 'unavailable',
+        unavailableReason:
+          AgentGenerationQuoteUnavailableReason.INSUFFICIENT_INPUT,
+      });
+    }
+
+    try {
+      const quote = await this.estimateService.estimate({
+        ...request,
+        organizationId: ctx.organizationId,
+      });
       return this.result(
         balance,
-        resolveStudioGenerationCost({
-          isLoadingModels: false,
-          settings,
-          type,
-        }),
+        quote.isAvailable && quote.credits !== null
+          ? { credits: quote.credits, status: 'estimated' }
+          : {
+              credits: null,
+              status: 'unavailable',
+              unavailableReason: quote.unavailableReason,
+            },
       );
+    } catch (error: unknown) {
+      // Invalid output counts reject; the tool still answers with the balance.
+      if (error instanceof BadRequestException) {
+        return this.result(balance, {
+          credits: null,
+          status: 'unavailable',
+          unavailableReason:
+            AgentGenerationQuoteUnavailableReason.MISSING_SETTING,
+        });
+      }
+      throw error;
     }
-
-    const model = await this.modelsService.findOne({
-      isDeleted: false,
-      key: settings.modelKey,
-      organizationId: ctx.organizationId,
-    });
-    const priced = model ? toStudioGenerationCostModel(model) : null;
-    return this.result(
-      balance,
-      priced
-        ? resolveStudioGenerationCost({
-            isLoadingModels: false,
-            model: priced,
-            settings,
-            type,
-          })
-        : UNAVAILABLE_ESTIMATE,
-    );
   }
 
   private async readBalance(organizationId: string): Promise<number | null> {

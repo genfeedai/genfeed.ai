@@ -138,6 +138,13 @@
     "durationSeconds": "{seconds}s",
     "endFrame": "End Frame",
     "estimateUnavailable": "Estimate unavailable",
+    "estimateReasons": {
+      "ERROR": "The price check failed. Try again.",
+      "INSUFFICIENT_INPUT": "Add a prompt or choose a model to see a price.",
+      "MISSING_SETTING": "A setting this model's price depends on is missing or unsupported.",
+      "MODEL_UNAVAILABLE": "This model is not available for your workspace.",
+      "PRICING_UNRESOLVED": "This model has no confirmed price yet."
+    },
     "estimateLoading": "Calculating estimate…",
     "estimatedCredits": "~{credits} credits",
     "generateAria": "Generate image",

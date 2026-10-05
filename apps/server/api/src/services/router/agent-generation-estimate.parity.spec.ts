@@ -21,6 +21,7 @@ describe('AgentGenerationEstimateService parity with charging', () => {
     testModelCreditQuote({
       findOne: async () => validateModelForOrg(),
     } as never),
+    { buildPrompt: vi.fn() } as never,
   );
 
   function modelRow(parityCase: GenerationCreditParityCase) {

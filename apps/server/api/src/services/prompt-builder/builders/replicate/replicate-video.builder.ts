@@ -1,4 +1,5 @@
 import { BaseReplicateBuilder } from '@api/services/prompt-builder/builders/replicate/base-replicate.builder';
+import { normalizeProviderVideoDuration } from '@api/services/prompt-builder/builders/replicate/provider-video-duration.util';
 import {
   buildKlingAvatarV2Prompt,
   buildKlingMasterPrompt,
@@ -649,11 +650,8 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   ): Hailuo23Input {
     const aspectRatio = calculateAspectRatio(params.width, params.height);
     const normalizedRatio = normalizeAspectRatioForModel(model, aspectRatio);
-    const duration = DurationUtil.validateAndNormalize(
-      params.duration,
-      [6, 10],
-      6,
-    );
+    const duration =
+      normalizeProviderVideoDuration(model, params.duration) ?? 6;
 
     const input: Hailuo23Input = {
       aspect_ratio: normalizedRatio,
@@ -681,11 +679,8 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
     params: PromptBuilderParams,
     promptText: string,
   ): Hailuo23FastInput {
-    const duration = DurationUtil.validateAndNormalize(
-      params.duration,
-      [6, 10],
-      6,
-    );
+    const duration =
+      normalizeProviderVideoDuration(model, params.duration) ?? 6;
     const firstFrameImage = params.references?.[0]?.trim() ?? '';
     const input: Hailuo23FastInput = {
       duration,
@@ -815,11 +810,8 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   ): Veo31LiteInput {
     const aspectRatio = calculateAspectRatio(params.width, params.height);
     const normalizedRatio = normalizeAspectRatioForModel(model, aspectRatio);
-    const duration = DurationUtil.validateAndNormalize(
-      params.duration,
-      [4, 6, 8],
-      8,
-    );
+    const duration =
+      normalizeProviderVideoDuration(model, params.duration) ?? 8;
 
     const input: Veo31LiteInput = {
       aspect_ratio: normalizedRatio,
