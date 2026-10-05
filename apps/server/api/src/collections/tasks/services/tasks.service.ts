@@ -9,6 +9,14 @@ import {
   type TaskEventInput,
 } from '@api/collections/tasks/services/task-actions.service';
 import {
+  buildTaskColumnPatch,
+  readTaskConfigObject,
+  type StalledRollupScan,
+  TASK_CONFIG_FIELDS,
+  TASK_SCALAR_FIELDS,
+  type TaskConditionalPatch,
+} from '@api/collections/tasks/services/task-persistence.util';
+import {
   type PlanningThreadResult,
   TaskPlanningService,
 } from '@api/collections/tasks/services/task-planning.service';
@@ -20,7 +28,10 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
+import {
+  type Prisma,
+  WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,
+} from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
@@ -41,61 +52,6 @@ const STATUS_TRANSITIONS: Record<TaskStatus, readonly TaskStatus[]> = {
   in_review: ['in_progress', 'done', 'cancelled'],
   todo: ['in_progress', 'blocked', 'backlog', 'cancelled'],
 };
-
-const TASK_SCALAR_FIELDS = [
-  'assigneeAgentId',
-  'assigneeUserId',
-  'brandId',
-  'checkedOutAt',
-  'checkoutAgentId',
-  'checkoutRunId',
-  'completedAt',
-  'decomposition',
-  'description',
-  'dismissedAt',
-  'eventStream',
-  'failureReason',
-  'goalId',
-  'identifier',
-  'isDeleted',
-  'organizationId',
-  'parentId',
-  'planningThreadId',
-  'priority',
-  'progress',
-  'projectId',
-  'requestedChangesReason',
-  'reviewState',
-  'status',
-  'taskNumber',
-  'title',
-  'userId',
-] as const;
-
-const TASK_CONFIG_FIELDS = [
-  'chosenModel',
-  'chosenProvider',
-  'dismissedReason',
-  'elevenlabsVoiceId',
-  'executionPathUsed',
-  'heygenAvatarId',
-  'linkedApprovalIds',
-  'linkedEntities',
-  'linkedIssueId',
-  'outputType',
-  'outputTypeConfidence',
-  'outputTypeSource',
-  'platforms',
-  'qualityAssessment',
-  'request',
-  'resultPreview',
-  'reviewTriggered',
-  'routingSummary',
-  'skillsUsed',
-  'skillVariantIds',
-  'voiceId',
-  'voiceProvider',
-] as const;
 
 const TASK_RELATION_INCLUDE = {
   approvedOutputs: { select: { id: true } },
@@ -288,17 +244,8 @@ export class TasksService extends BaseService<
       this.validateStatusTransition(existing.status as TaskStatus, newStatus);
     }
 
-    const config = hasConfigPatch
-      ? {
-          ...this.readRecord(existing?.config),
-          ...this.readRecord(input.config),
-          ...configPatch,
-        }
-      : undefined;
-
     const persistencePatch: Record<string, unknown> = {
-      ...pickDefinedFields(input, TASK_SCALAR_FIELDS),
-      ...(config ? { config } : {}),
+      ...buildTaskColumnPatch(input, existing?.config),
       ...(input.approvedOutputIds !== undefined && {
         approvedOutputs: {
           set: input.approvedOutputIds.map((outputId) => ({ id: outputId })),
@@ -309,12 +256,17 @@ export class TasksService extends BaseService<
           set: input.linkedOutputIds.map((outputId) => ({ id: outputId })),
         },
       }),
+      // Linking executions starts a new cycle that still needs its rollup.
       ...(input.linkedExecutionIds !== undefined && {
         linkedExecutions: {
           set: input.linkedExecutionIds.map((executionId) => ({
             id: executionId,
           })),
         },
+        rolledUpAt: null,
+        rollupAttempts: 0,
+        rollupLeaseOwner: null,
+        rollupLeaseExpiresAt: null,
       }),
     };
 
@@ -439,6 +391,170 @@ export class TasksService extends BaseService<
       where: scopedWhere(organizationId, { id: taskId }),
     });
     return checkedOut ? this.normalizeTaskDocument(checkedOut) : null;
+  }
+
+  /**
+   * Claim the execution-rollup lease of an in-progress task and count the
+   * attempt. The predicate is part of the write, so among concurrent callers
+   * (API and workers) exactly one wins until the lease expires; an expired
+   * lease can be re-claimed, up to `maxAttempts` times per execution cycle.
+   * Returns the attempt number it won, or null.
+   */
+  async acquireRollupLease(input: {
+    expectedExecutionIds?: string[];
+    maxAttempts: number;
+    now?: Date;
+    organizationId: string;
+    owner: string;
+    taskId: string;
+    ttlMs: number;
+  }): Promise<number | null> {
+    const { maxAttempts, organizationId, owner, taskId, ttlMs } = input;
+    const now = input.now ?? new Date();
+    return this.prisma.$transaction(async (transaction) => {
+      const { count } = await transaction.task.updateMany({
+        data: {
+          rollupAttempts: { increment: 1 },
+          rollupLeaseExpiresAt: new Date(now.getTime() + ttlMs),
+          rollupLeaseOwner: owner,
+        },
+        where: scopedWhere(organizationId, {
+          id: taskId,
+          ...(input.expectedExecutionIds && {
+            AND: input.expectedExecutionIds.map((id) => ({
+              linkedExecutions: { some: { id } },
+            })),
+            linkedExecutions: {
+              every: {
+                id: { in: input.expectedExecutionIds },
+                status: {
+                  in: [
+                    PrismaWorkflowExecutionStatus.COMPLETED,
+                    PrismaWorkflowExecutionStatus.FAILED,
+                    PrismaWorkflowExecutionStatus.CANCELLED,
+                  ],
+                },
+              },
+              some: {},
+            },
+          }),
+          OR: [
+            { rollupLeaseExpiresAt: null },
+            { rollupLeaseExpiresAt: { lte: now } },
+          ],
+          rollupAttempts: { lt: maxAttempts },
+          rolledUpAt: null,
+          status: 'in_progress',
+        }),
+      });
+      if (count !== 1) return null;
+      const held = await transaction.task.findFirst({
+        select: { rollupAttempts: true },
+        where: scopedWhere(organizationId, {
+          id: taskId,
+          rollupLeaseOwner: owner,
+        }),
+      });
+      return held?.rollupAttempts ?? null;
+    });
+  }
+
+  /**
+   * In-progress tasks whose linked executions have all settled but that were
+   * never rolled up: the terminal event was lost, or a lease holder died or
+   * failed before its final write. System-wide (no tenant context); each
+   * candidate is then rolled up under its own organization.
+   */
+  async findStalledRollupCandidates(
+    options: StalledRollupScan,
+  ): Promise<Array<{ id: string; organizationId: string }>> {
+    // tenant-scope-ignore: platform-wide recovery sweep run by the workers schedule across every organization, like StalePendingSystemExecutionFinderService; each candidate is then rolled up under its own organizationId
+    return this.prisma.task.findMany({
+      orderBy: { updatedAt: 'asc' },
+      select: { id: true, organizationId: true },
+      take: options.limit,
+      where: this.stalledRollupWhere(options),
+    });
+  }
+
+  /** How many tasks the next recovery sweep could pick up (ignores the batch size). */
+  async countStalledRollupCandidates(
+    options: StalledRollupScan,
+  ): Promise<number> {
+    // tenant-scope-ignore: platform-wide recovery sweep count across every organization, the same scan as findStalledRollupCandidates
+    return this.prisma.task.count({ where: this.stalledRollupWhere(options) });
+  }
+
+  private stalledRollupWhere(
+    options: StalledRollupScan,
+  ): Prisma.TaskWhereInput {
+    const { createdAfter, maxAttempts, now, settledBefore } = options;
+    return {
+      createdAt: { gte: createdAfter },
+      isDeleted: false,
+      linkedExecutions: {
+        every: {
+          status: {
+            in: [
+              PrismaWorkflowExecutionStatus.COMPLETED,
+              PrismaWorkflowExecutionStatus.FAILED,
+              PrismaWorkflowExecutionStatus.CANCELLED,
+            ],
+          },
+        },
+        some: {},
+      },
+      OR: [
+        { rollupLeaseExpiresAt: null },
+        { rollupLeaseExpiresAt: { lte: now } },
+      ],
+      rollupAttempts: { lt: maxAttempts },
+      rolledUpAt: null,
+      status: 'in_progress',
+      updatedAt: { lte: settledBefore },
+    };
+  }
+
+  /**
+   * Apply a column/config patch only while the task still matches `expected`
+   * (checked inside the write). Returns null when it no longer matches, so a
+   * stale writer or an expired lease holder cannot overwrite a newer state.
+   */
+  async patchIfMatches(
+    taskId: string,
+    organizationId: string,
+    expected: { rollupLeaseOwner?: string; status: TaskStatus },
+    patch: TaskConditionalPatch,
+  ): Promise<TaskDocument | null> {
+    const { config, ...columns } = patch;
+    if (columns.status) {
+      this.validateStatusTransition(expected.status, columns.status);
+    }
+    const where = scopedWhere(organizationId, { id: taskId, ...expected });
+    return this.prisma.$transaction(async (transaction) => {
+      const existing = await transaction.task.findFirst({
+        select: { config: true },
+        where,
+      });
+      if (!existing) return null;
+      const { count } = await transaction.task.updateMany({
+        data: {
+          ...columns,
+          ...(config
+            ? {
+                config: { ...readTaskConfigObject(existing.config), ...config },
+              }
+            : {}),
+        },
+        where: scopedWhere(organizationId, { id: taskId, ...expected }),
+      });
+      if (count !== 1) return null;
+      const updated = await transaction.task.findFirst({
+        include: TASK_RELATION_INCLUDE,
+        where: scopedWhere(organizationId, { id: taskId }),
+      });
+      return updated ? this.normalizeTaskDocument(updated) : null;
+    });
   }
 
   async release(
@@ -574,6 +690,24 @@ export class TasksService extends BaseService<
       userId,
       event,
       patch,
+    );
+  }
+
+  async recordTaskEventIfMatches(
+    id: string,
+    organizationId: string,
+    userId: string,
+    event: TaskEventInput,
+    patch: TaskConditionalPatch,
+    expected: { rollupLeaseOwner?: string; status: TaskStatus },
+  ): Promise<TaskDocument | null> {
+    return this.taskActionsService.recordTaskEventIfMatches(
+      id,
+      organizationId,
+      userId,
+      event,
+      patch,
+      expected,
     );
   }
 

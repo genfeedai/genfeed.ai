@@ -10,15 +10,17 @@ describe('PlatformWorkflowSchedulesService', () => {
     workflowExecution: { findFirst: vi.fn(), findMany: vi.fn() },
   };
   const runner = { enqueueWorkflow: vi.fn() };
-  const logger = { error: vi.fn() };
+  const logger = { error: vi.fn(), log: vi.fn() };
   const continuations = { reconcile: vi.fn() };
   const pendingExecutions = { reconcile: vi.fn() };
+  const taskOrchestrator = { recoverStalledRollups: vi.fn() };
   const service = new PlatformWorkflowSchedulesService(
     prisma as never,
     runner as never,
     logger as never,
     continuations as never,
     pendingExecutions as never,
+    taskOrchestrator as never,
   );
   beforeEach(() => {
     vi.resetAllMocks();
@@ -322,6 +324,18 @@ describe('PlatformWorkflowSchedulesService', () => {
         orderBy: { id: 'asc' },
         take: 100,
       }),
+    );
+  });
+
+  it('runs the workspace task rollup recovery sweep', async () => {
+    taskOrchestrator.recoverStalledRollups.mockResolvedValue(2);
+
+    await service.recoverWorkspaceTaskRollups();
+
+    expect(taskOrchestrator.recoverStalledRollups).toHaveBeenCalledOnce();
+    expect(logger.log).toHaveBeenCalledWith(
+      'Recovered stalled workspace task rollups',
+      { recovered: 2 },
     );
   });
 });

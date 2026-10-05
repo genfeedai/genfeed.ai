@@ -124,6 +124,7 @@ import { HookRemixModule } from '@api/endpoints/v1/hook-remix/hook-remix.module'
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
 import { PreflightModule } from '@api/services/preflight/preflight.module';
+import { WorkspaceTaskRollupModule } from '@api/services/task-orchestration/workspace-task-rollup.module';
 import { AgentWorkflowsModule } from '@api/workflows/agent-workflows.module';
 import { Module } from '@nestjs/common';
 
@@ -253,6 +254,7 @@ import { Module } from '@nestjs/common';
     WorkflowExecutionsModule,
     AgentWorkflowsModule,
     PreflightModule,
+    WorkspaceTaskRollupModule,
     WorkflowsModule,
   ],
 })

@@ -5390,9 +5390,22 @@ model Task {
   checkoutRunId   String?
   checkedOutAt    DateTime?
 
+  /// Execution rollup lease: the holder may run the rollup for this task until
+  /// rollupLeaseExpiresAt; an expired lease can be re-claimed.
+  rollupLeaseOwner     String?
+  rollupLeaseExpiresAt DateTime?
+  /// When the current execution cycle was rolled up; cleared when executions
+  /// are (re)linked. A reopened task keeps it, so its old output is not
+  /// rolled up again.
+  rolledUpAt           DateTime?
+  /// Lease acquisitions in the current execution cycle; capped so a task whose
+  /// final write keeps failing is not retried forever. Reset with rolledUpAt.
+  rollupAttempts       Int       @default(0)
+
   @@unique([id, organizationId], map: "tasks_id_organizationId_key")
   @@unique([organizationId, identifier])
   @@index([organizationId, checkoutAgentId])
+  @@index([status, rollupLeaseExpiresAt])
   @@map("tasks")
 }
 

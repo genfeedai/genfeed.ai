@@ -434,6 +434,7 @@ export async function createProactiveProductionTurnFixture() {
       { PlatformWorkflowSchedulesService },
       { WorkflowContinuationReconcileService },
       { PendingWorkflowExecutionReconcileService },
+      { TaskOrchestratorService },
       { AgentTurnWorkflowExecutionService },
       { AgentOrchestratorContextService },
       { AgentOrchestratorStreamLoopService },
@@ -488,6 +489,7 @@ export async function createProactiveProductionTurnFixture() {
       import(
         '@workers/scheduling/pending-workflow-execution-reconcile.service'
       ),
+      import('@api/services/task-orchestration/task-orchestrator.service'),
       import(
         '@api/services/agent-orchestrator/agent-turn-workflow-execution.service'
       ),
@@ -557,6 +559,11 @@ export async function createProactiveProductionTurnFixture() {
         PlatformWorkflowSchedulesService,
         WorkflowContinuationReconcileService,
         PendingWorkflowExecutionReconcileService,
+        // The rollup sweep is outside this turn's scope; keep its graph out.
+        {
+          provide: TaskOrchestratorService,
+          useValue: { recoverStalledRollups: async () => 0 },
+        },
       ],
     });
     // All producers remain real; overrides are real UUID-owned Bull queues.

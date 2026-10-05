@@ -8,6 +8,7 @@ import type {
   TaskDecompositionResult,
 } from '@api/services/task-orchestration/interfaces/task-decomposition.interface';
 import { TaskDecompositionService } from '@api/services/task-orchestration/task-decomposition.service';
+import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
 import {
   WORKSPACE_TASK_ACTION_IDS,
   WORKSPACE_TASK_WORKFLOW_DEFINITIONS,
@@ -56,6 +57,7 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
     private readonly avatarVideoGenerationService: AvatarVideoGenerationService,
     private readonly nodeContinuations: WorkflowNodeContinuationService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
+    private readonly taskOrchestrator: TaskOrchestratorService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -249,7 +251,7 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
       .sort((left, right) => left.index - right.index)
       .map((entry) => this.readAgentExecutionState(entry.result).executionId);
 
-    return this.withTaskFailure(input, async () => {
+    const result = await this.withTaskFailure(input, async () => {
       await this.tasksService.recordTaskEvent(
         input.taskId,
         input.organizationId,
@@ -271,6 +273,18 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
       );
       return { executionIds, taskId: input.taskId };
     });
+
+    // An execution can settle before its link exists; its terminal event then
+    // matched no task and is never re-emitted, so roll those up now.
+    await this.taskOrchestrator
+      .reconcileTerminalExecutions(executionIds, input.organizationId)
+      .catch((error: unknown) => {
+        this.logger.error(
+          `${this.logContext}: Failed to reconcile executions for task ${input.taskId}`,
+          error,
+        );
+      });
+    return result;
   }
 
   private prepareFacecam(request: SystemWorkflowActionRequest): FacecamState {

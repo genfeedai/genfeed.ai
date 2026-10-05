@@ -5,6 +5,7 @@ import {
 import { PLATFORM_WORKFLOW_SCHEDULE_SOURCE } from '@api/collections/workflows/system-workflow-definition';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
+import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
@@ -63,6 +64,7 @@ export class PlatformWorkflowSchedulesService {
     private readonly logger: LoggerService,
     private readonly continuations: WorkflowContinuationReconcileService,
     private readonly pendingExecutions: PendingWorkflowExecutionReconcileService,
+    private readonly taskOrchestrator: TaskOrchestratorService,
   ) {}
 
   async reconcileContinuations(): Promise<void> {
@@ -71,6 +73,15 @@ export class PlatformWorkflowSchedulesService {
 
   async reconcilePendingExecutions(): Promise<void> {
     await this.pendingExecutions.reconcile();
+  }
+
+  async recoverWorkspaceTaskRollups(): Promise<void> {
+    const recovered = await this.taskOrchestrator.recoverStalledRollups();
+    if (recovered > 0) {
+      this.logger.log('Recovered stalled workspace task rollups', {
+        recovered,
+      });
+    }
   }
 
   async sweep(
