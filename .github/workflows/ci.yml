@@ -757,6 +757,7 @@ jobs:
         run: bun x prisma migrate deploy
         working-directory: packages/prisma
       - name: Start real API in CLOUD mode
+        id: cloud-api
         run: |
           set -euo pipefail
           node apps/server/dist/apps/api/main.js > "$RUNNER_TEMP/api.log" 2>&1 &
@@ -789,6 +790,8 @@ jobs:
           fi
       - name: Scan final API stdout for swallowed tenant errors
         if: always()
+        env:
+          CLOUD_SWEEP_API_BOOT_OUTCOME: ${{ steps.cloud-api.outcome }}
         run: node scripts/ci/cloud-tenant-guard-sweep/scan-log.mjs
       - name: Upload CLOUD tenant guard report and API log
         if: always()

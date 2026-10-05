@@ -119,7 +119,7 @@ export function sessionCookie(headers) {
     );
     if (match) return `better-auth.session_token=${match[1]}`;
   }
-  throw new Error('Better Auth sign-up returned no session cookie');
+  throw new Error('Better Auth returned no session cookie');
 }
 
 export function rows(response) {

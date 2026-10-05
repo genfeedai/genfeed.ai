@@ -6,8 +6,22 @@ import { pathToFileURL } from 'node:url';
 import { groupHits, logHits } from './core.mjs';
 
 // Run once more after CI stops the API so deferred logging is also evidence.
-// Missing evidence fails closed, including failures before the harness starts.
-export function scanFinalLog(apiLog, reportPath) {
+// Missing evidence fails closed unless CI already failed the API boot step.
+export function scanFinalLog(apiLog, reportPath, apiBootOutcome) {
+  if (apiBootOutcome === 'failure') {
+    const report = {
+      hasFailed: true,
+      hasSkipped: true,
+      skipReason: 'sweep skipped: API failed to boot',
+      failures: [],
+      requests: [],
+      apiLogHits: [],
+      tenantHitGroups: [],
+    };
+    mkdirSync(dirname(reportPath), { recursive: true });
+    writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
+    return report;
+  }
   let report;
   try {
     report = JSON.parse(readFileSync(reportPath, 'utf8'));
@@ -40,12 +54,15 @@ if (
   const report = scanFinalLog(
     `${process.env.RUNNER_TEMP}/api.log`,
     `${process.env.RUNNER_TEMP}/cloud-tenant-guard-report.json`,
+    process.env.CLOUD_SWEEP_API_BOOT_OUTCOME,
   );
+  if (report.hasSkipped) process.stdout.write(`${report.skipReason}\n`);
   for (const group of report.tenantHitGroups)
     process.stdout.write(
       `TENANT HIT ${group.model}.${group.operation} ${group.route}: ${group.messages.join('\n')}\n`,
     );
   for (const failure of report.failures)
     process.stdout.write(`FAIL ${failure}\n`);
-  process.exitCode = report.hasFailed ? 1 : 0;
+  // The boot step owns its failure; a skipped sweep is never a passing report.
+  process.exitCode = report.hasFailed && !report.hasSkipped ? 1 : 0;
 }

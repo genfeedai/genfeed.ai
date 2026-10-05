@@ -3,7 +3,49 @@ import test from 'node:test';
 
 import { seedFixture, sweepOrganizationAndGrants } from './fixture.mjs';
 
-test('HTTP fixture elevates before S auth, grants as a dual-org admin and verifies recipient availability', async () => {
+for (const [name, signIn, error] of [
+  ['rejected sign-in', { status: 403 }, /Sign in A: HTTP 403/],
+  [
+    'wrong identity',
+    { status: 200, userId: 'other-user' },
+    /canonical user id mismatch/,
+  ],
+  [
+    'missing session cookie',
+    { status: 200, userId: 'user-A' },
+    /no session cookie/,
+  ],
+]) {
+  test(`fixture stops before JWT resolution on ${name}`, async () => {
+    const calls = [];
+    const request = async (_actor, _method, path) => {
+      calls.push(path);
+      const isSignup = path.endsWith('sign-up/email');
+      return {
+        record: { status: isSignup ? 200 : signIn.status, hasTenantHit: false },
+        json: { user: { id: isSignup ? 'user-A' : signIn.userId } },
+        headers: new Headers(),
+        body: 'Sign-in failed',
+      };
+    };
+    const updates = [];
+    await assert.rejects(
+      seedFixture(request, {
+        user: { update: async (data) => updates.push(data) },
+      }),
+      error,
+    );
+    assert.deepEqual(updates, [
+      { where: { id: 'user-A' }, data: { emailVerified: true } },
+    ]);
+    assert.deepEqual(calls, [
+      '/v1/auth/sign-up/email',
+      '/v1/auth/sign-in/email',
+    ]);
+  });
+}
+
+test('HTTP fixture verifies before sign-in without a sign-up session, elevates before S auth, and verifies grants', async () => {
   const events = [];
   const members = [];
   const prisma = {
@@ -26,11 +68,43 @@ test('HTTP fixture elevates before S auth, grants as a dual-org admin and verifi
     let headers = new Headers();
     if (path.endsWith('sign-up/email')) {
       const label = options.body.name.split(' ').at(-1);
-      json = { user: { id: `user-${label}` } };
+      json = {
+        token: null,
+        user: { id: `user-${label}`, emailVerified: false },
+      };
+    } else if (path.endsWith('sign-in/email')) {
+      const label = options.body.email.match(/ci-cloud-(.+)@/)[1].toUpperCase();
+      assert.ok(
+        events.some(
+          (event) =>
+            event.type === 'user-update' &&
+            event.where.id === `user-${label}` &&
+            event.data.emailVerified === true,
+        ),
+      );
+      if (label === 'S')
+        assert.ok(
+          events.some(
+            (event) =>
+              event.type === 'user-update' &&
+              event.where.id === 'user-S' &&
+              event.data.platformRole === 'SUPERADMIN',
+          ),
+        );
+      json = { user: { id: `user-${label}`, emailVerified: true } };
       headers = new Headers({
         'set-cookie': `better-auth.session_token=ci-placeholder-${label}; Path=/`,
       });
     } else if (path.endsWith('/auth/token')) {
+      assert.ok(
+        events.some(
+          (event) =>
+            event.path === '/v1/auth/sign-in/email' &&
+            options.headers.cookie.includes(
+              `ci-placeholder-${event.body.email.match(/ci-cloud-(.+)@/)[1].toUpperCase()}`,
+            ),
+        ),
+      );
       json = { token: `ci-placeholder-jwt-${options.headers.cookie.at(-1)}` };
     } else if (path === '/v1/organizations?mine=true') {
       json = [
@@ -74,6 +148,16 @@ test('HTTP fixture elevates before S auth, grants as a dual-org admin and verifi
   assert.equal(fixture.orgS.personaId, 'cpersonaS12345');
   assert.notEqual(fixture.member.userId, fixture.member2.userId);
   assert.equal(members.length, 4);
+  assert.equal(
+    events.filter(
+      (event) =>
+        event.type === 'user-update' && event.data.emailVerified === true,
+    ).length,
+    5,
+  );
+  assert.ok(
+    events.every((event) => event.body?.isEmailVerificationRequired !== false),
+  );
   assert.deepEqual(
     members
       .filter((row) => row.userId === fixture.member2.userId)

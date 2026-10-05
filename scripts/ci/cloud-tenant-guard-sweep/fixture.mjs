@@ -13,16 +13,26 @@ export async function seedFixture(request, prisma) {
     const signedUp = requireSuccess(response, `Sign up ${label}`);
     const userId = signedUp?.user?.id;
     if (!userId) throw new Error(`Sign up ${label}: missing canonical user id`);
-    // Must precede the first authenticated request: both identity and request
-    // context cache the platform role. There is no HTTP elevation endpoint.
-    if (isSuperAdmin)
-      await prisma.user.update({
-        where: { id: userId },
-        data: { platformRole: 'SUPERADMIN' },
-      });
+    // CLOUD keeps verification required. Sign-up returns a user but no session;
+    // user.create.after awaits UserProvisioningListener before this response.
+    // Only these ephemeral users are verified directly; no mailer runs in CI.
+    // Elevate before sign-in/token resolution caches the platform role.
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        emailVerified: true,
+        ...(isSuperAdmin ? { platformRole: 'SUPERADMIN' } : {}),
+      },
+    });
+    const signedIn = await request(null, 'POST', '/v1/auth/sign-in/email', {
+      body: { email: credentials.email, password: credentials.password },
+    });
+    const session = requireSuccess(signedIn, `Sign in ${label}`);
+    if (session?.user?.id !== userId)
+      throw new Error(`Sign in ${label}: canonical user id mismatch`);
     const token = requireSuccess(
       await request(null, 'GET', '/v1/auth/token', {
-        headers: { cookie: sessionCookie(response.headers) },
+        headers: { cookie: sessionCookie(signedIn.headers) },
       }),
       `JWT ${label}`,
     )?.token;
@@ -68,7 +78,7 @@ export async function seedFixture(request, prisma) {
   // This also proves that the IP-bound platform role survived middleware.
   requireSuccess(
     await request(superadmin, 'PATCH', '/v1/admin/platform-settings', {
-      body: { isEmailVerificationRequired: false, flags: { agent: true } },
+      body: { flags: { agent: true } },
     }),
     'Configure CI platform settings',
   );

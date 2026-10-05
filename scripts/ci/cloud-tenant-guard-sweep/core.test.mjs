@@ -58,8 +58,33 @@ test('fake env covers every CLOUD-required schema key, including API overrides',
     ),
   );
   const keys = requiredEnvKeys(sources);
+  // Outside conditionalRequired(): services/microservices/microservices.service.ts,
+  // auth/better-auth/{better-auth.config,better-auth.module}.ts in the API,
+  // packages/libs/prisma/prisma.service.ts, services/batch-generation/batch-review-lock.ts,
+  // and packages/config/src/schemas/base.schema.ts.
+  keys.push(
+    'GENFEEDAI_MICROSERVICES_FILES_URL',
+    'GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL',
+    'GENFEEDAI_MICROSERVICES_MCP_URL',
+    'GENFEEDAI_API_KEY',
+    'BETTER_AUTH_SECRET',
+    'DATABASE_URL',
+    'PORT',
+    'TOKEN_ENCRYPTION_KEY',
+  );
   assert.ok(keys.length >= 40);
   assert.ok(keys.includes('ELEVENLABS_API_KEY'));
+  const microservicesSource = readFileSync(
+    new URL(
+      '../../../apps/server/api/src/services/microservices/microservices.service.ts',
+      import.meta.url,
+    ),
+    'utf8',
+  );
+  for (const [, key] of microservicesSource.matchAll(
+    /this\.getRequiredServiceUrl\(\s*'([^']+)'/g,
+  ))
+    assert.ok(keys.includes(key), `${key} needs a boot-requirement assertion`);
   for (const key of keys)
     assert.ok(env[key], `${key} is required in CLOUD mode`);
   assert.equal(env.NODE_ENV, 'test');
@@ -69,6 +94,24 @@ test('fake env covers every CLOUD-required schema key, including API overrides',
   assert.equal(env.ADMIN_ALLOWED_IPS, '127.0.0.1,::1');
   assert.ok(env.TOKEN_ENCRYPTION_KEY.length >= 32);
   assert.ok(env.BETTER_AUTH_SECRET.length >= 32);
+  for (const key of [
+    'GENFEEDAI_MICROSERVICES_FILES_URL',
+    'GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL',
+    'GENFEEDAI_MICROSERVICES_MCP_URL',
+  ]) {
+    const url = new URL(env[key]);
+    assert.ok(!['3010', '5432', '6379'].includes(url.port));
+  }
+  // Optional fail-fast paths stay unset: HarnessService loads built-ins;
+  // ConfigService/PrismaService require valid signing material only as a pair.
+  for (const key of [
+    'ALLOW_EMAIL_VERIFICATION_WITHOUT_MAILER',
+    'CONTENT_HARNESS_PACKAGES',
+    'GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID',
+    'GENFEEDAI_CDN_SIGNING_PRIVATE_KEY',
+    'GENFEEDAI_MEDIA_ISSUER_ENABLED',
+  ])
+    assert.equal(env[key], undefined);
   for (const [key, value] of Object.entries(env)) {
     if (/(?:KEY|SECRET|TOKEN|CLIENT_ID|APP_ID)$/.test(key))
       assert.ok(

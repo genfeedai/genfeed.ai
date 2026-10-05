@@ -1,5 +1,6 @@
 # Obviously fake, job-local values. Never use this file outside ephemeral CI.
-# Required keys are derived from the Joi schemas by core.test.mjs.
+# core.test.mjs covers Joi requirements plus fail-fast boot/config reads.
+# Peer microservices are deliberately absent; their localhost ports do not listen.
 ADMIN_ALLOWED_IPS=127.0.0.1,::1
 ARGIL_WEBHOOK_SECRET=ci-placeholder-argil-webhook-secret
 AWS_ACCESS_KEY_ID=ci-placeholder-aws-access-key-id
@@ -18,12 +19,15 @@ FACEBOOK_APP_ID=ci-placeholder-facebook-app-id
 FACEBOOK_APP_SECRET=ci-placeholder-facebook-app-secret
 FACEBOOK_GRAPH_URL=http://localhost:3999/ci-placeholder
 FACEBOOK_REDIRECT_URI=http://localhost:3999/ci-placeholder
+GENFEEDAI_API_KEY=ci-placeholder-internal-service-api-key
 GENFEEDAI_API_PUBLIC_URL=http://localhost:3010
 GENFEEDAI_API_URL=http://localhost:3010
 GENFEEDAI_APP_URL=http://localhost:3000
 GENFEEDAI_CDN_URL=http://localhost:3999/ci-placeholder
 GENFEEDAI_MCP_PUBLIC_URL=http://localhost:3014
+GENFEEDAI_MICROSERVICES_FILES_URL=http://localhost:3012
 GENFEEDAI_MICROSERVICES_MCP_URL=http://localhost:3014
+GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL=http://localhost:3011
 GENFEEDAI_WEBHOOKS_URL=http://localhost:3010
 GENFEED_CLOUD=true
 GOOGLE_OAUTH_CLIENT_ID=ci-placeholder-google-oauth-client-id
