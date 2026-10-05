@@ -298,14 +298,10 @@ describe('FoldersController', () => {
       // object; emitting them with bare scalars crashed Prisma in prod (#565).
       // Every branch of every OR clause must use scalar FK keys only.
       const relationAccessorKeys = ['brand', 'organization', 'user'];
-      const scenarios: Array<BaseQueryDto & Record<string, unknown>> = [
-        {},
-        { brandId: mockBrandId } as BaseQueryDto & {
-          brandId: string;
-        },
-        { organizationId: mockOrganizationId } as BaseQueryDto & {
-          organizationId: string;
-        },
+      const scenarios: BaseQueryDto[] = [
+        tenantReadQuery(BaseQueryDto, {}),
+        tenantReadQuery(BaseQueryDto, { brandId: mockBrandId }),
+        tenantReadQuery(BaseQueryDto, { organizationId: mockOrganizationId }),
       ];
 
       for (const query of scenarios) {
