@@ -8,6 +8,9 @@ import type {
 import {
   hashReviewedProviderRates,
   hasPendingProviderRateDrift,
+  parseReviewedVariantRules,
+  variantRuleFields,
+  variantRuleRange,
 } from '@genfeedai/pricing';
 import type { Model, ModelProviderContract } from '@genfeedai/prisma';
 import { platformOrTenantScope } from '@libs/prisma/platform-scope';
@@ -196,7 +199,28 @@ export function parseContractReviewedPricing(
       metadata.invariantSelectors.some((value) => typeof value !== 'string'))
   )
     return null;
+  const variantRules =
+    metadata.variantRules === undefined
+      ? undefined
+      : parseReviewedVariantRules(metadata.variantRules);
+  if (variantRules === null) return null;
+  if (
+    variantRules?.some((rule) => {
+      const applicable = rates.filter((rate) =>
+        Object.hasOwn(rate.when, rule.selectorKey),
+      );
+      return (
+        !applicable.length ||
+        applicable.some(
+          (rate) =>
+            !variantRuleRange(rule).includes(rate.when[rule.selectorKey]),
+        )
+      );
+    })
+  )
+    return null;
   return {
+    ...(variantRules ? { variantRules } : {}),
     version: contract.version,
     currency: 'USD',
     sourceUrl,
@@ -272,8 +296,16 @@ export function projectModelBillablePricingProfile(
       ? record(model.providerInputSchema).fields
       : record(model.providerInputSchema).properties,
   );
-  const requiredSelectorKeys = deriveRequiredSelectorKeys(properties, model);
   const reviewed = reviewedPricing(model, contract);
+  const ruleFields = variantRuleFields(reviewed?.variantRules ?? []);
+  const requiredSelectorKeys = [
+    ...new Set([
+      ...deriveRequiredSelectorKeys(properties, model).filter(
+        (key) => !ruleFields.has(key),
+      ),
+      ...(reviewed?.variantRules?.map((rule) => rule.selectorKey) ?? []),
+    ]),
+  ];
   const pendingContract = model.pendingProviderContractVersion
     ? contracts.find(
         (candidate) =>

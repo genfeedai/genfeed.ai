@@ -4,6 +4,8 @@ import type {
   ModelBillableQuoteRequest,
 } from '@genfeedai/contracts/interfaces';
 
+import { resolveVariantSelectors, variantRuleFields } from '@genfeedai/pricing';
+
 /** Shared price-relevant input projection; runtime validation supplies its frozen pricing profile. */
 export function normalizeModelProviderQuoteRequest(
   profile: ModelBillablePricingProfile,
@@ -31,8 +33,26 @@ export function normalizeModelProviderQuoteRequest(
     );
   }
   if (providerInput) {
-    const selectors = { ...quantities.selectors };
+    const rules = profile.reviewedPricing?.variantRules;
+    const ruleKeys = new Set(rules?.map((rule) => rule.selectorKey) ?? []);
+    const ruleFields = variantRuleFields(rules ?? []);
+    for (const key of ruleFields) {
+      if (!ruleKeys.has(key) && quantities.selectors)
+        delete quantities.selectors[key];
+    }
+    const resolved = rules
+      ? resolveVariantSelectors(
+          rules,
+          { kind: 'dispatch', input: providerInput },
+          quantities.selectors,
+        )
+      : undefined;
+    const selectors =
+      resolved?.status === 'ok'
+        ? { ...resolved.selectors }
+        : { ...quantities.selectors };
     for (const key of selectorKeys) {
+      if (ruleKeys.has(key) || ruleFields.has(key)) continue;
       const value =
         providerInput[key] ??
         (key === 'audio'

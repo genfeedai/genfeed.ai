@@ -13,6 +13,7 @@ import {
 import type {
   ReviewedProviderPricing,
   ReviewedProviderRate,
+  ReviewedVariantRule,
 } from '@genfeedai/contracts/interfaces';
 import {
   mapReplicateBillingTiers,
@@ -66,6 +67,7 @@ export interface ReplicateContractPricing {
 interface ObservedRates {
   invariantSelectors: string[];
   rates: ReviewedProviderRate[];
+  variantRules?: ReviewedVariantRule[];
   selectorKeys: string[];
   sourceUrl: string;
 }
@@ -379,6 +381,7 @@ export class ReplicateModelContractSyncService {
     const { billingFailure, observed } = this.observeRates(
       pricing.billing,
       schemas.input,
+      endpoint,
     );
 
     const hasCuratedPricing =
@@ -395,6 +398,9 @@ export class ReplicateModelContractSyncService {
       ? {
           currency: 'USD',
           rates: observed.rates,
+          ...(observed.variantRules
+            ? { variantRules: observed.variantRules }
+            : {}),
           source: REPLICATE_BILLING_SOURCE,
           sourceUrl: observed.sourceUrl,
           ...(observed.invariantSelectors.length
@@ -475,6 +481,7 @@ export class ReplicateModelContractSyncService {
   private observeRates(
     billing: ReplicateBillingObservation | undefined,
     inputSchema: Record<string, unknown>,
+    endpoint: string,
   ): { billingFailure: string | null; observed: ObservedRates | null } {
     if (!billing)
       return { billingFailure: 'no_billing_observation', observed: null };
@@ -483,7 +490,11 @@ export class ReplicateModelContractSyncService {
     const properties = isRecord(inputSchema.properties)
       ? inputSchema.properties
       : {};
-    const mapping = mapReplicateBillingTiers(billing.tiers, properties);
+    const mapping = mapReplicateBillingTiers(
+      billing.tiers,
+      properties,
+      endpoint,
+    );
     if (mapping.status === 'failed')
       return { billingFailure: mapping.reason, observed: null };
     const priced = new Set(mapping.selectorKeys);
@@ -495,6 +506,7 @@ export class ReplicateModelContractSyncService {
           (key) => !priced.has(key),
         ),
         rates: mapping.rates,
+        ...(mapping.variantRules ? { variantRules: mapping.variantRules } : {}),
         selectorKeys: mapping.selectorKeys,
         sourceUrl: billing.sourceUrl,
       },

@@ -38,6 +38,80 @@ export interface ReviewedProviderRate {
   roundUnitsTo?: number;
 }
 
+export type VariantScalar = string | number | boolean;
+
+export interface VariantFieldDerive {
+  kind: 'field';
+  field: string;
+  valueMap: Record<string, VariantScalar>;
+}
+
+export interface VariantPresenceDerive {
+  kind: 'presence';
+  field: string;
+  whenPresent: VariantScalar;
+  whenAbsent: VariantScalar;
+}
+
+export interface VariantCompositePart {
+  field: string;
+  mode: 'value' | 'presence';
+}
+
+export interface VariantCompositeCase {
+  when: VariantScalar[];
+  selector: VariantScalar;
+}
+
+export interface VariantCompositeDerive {
+  kind: 'composite';
+  parts: VariantCompositePart[];
+  cases: VariantCompositeCase[];
+}
+
+export interface ReplicateVariantSelector {
+  criterionTitle: string;
+  selectorKey: string;
+  derive: VariantFieldDerive | VariantPresenceDerive | VariantCompositeDerive;
+}
+
+export interface ReviewedVariantFieldDerive extends VariantFieldDerive {
+  fieldType: 'string' | 'number' | 'boolean';
+  default?: VariantScalar;
+}
+
+export interface ReviewedVariantPresenceDerive extends VariantPresenceDerive {
+  fieldType: 'array' | 'string';
+}
+
+export interface ReviewedVariantCompositePart extends VariantCompositePart {
+  fieldType: 'array' | 'string' | 'number' | 'boolean';
+  default?: VariantScalar;
+}
+
+export interface ReviewedVariantCompositeDerive {
+  kind: 'composite';
+  parts: ReviewedVariantCompositePart[];
+  cases: VariantCompositeCase[];
+}
+
+export interface ReviewedVariantRule {
+  criterionTitle: string;
+  selectorKey: string;
+  derive:
+    | ReviewedVariantFieldDerive
+    | ReviewedVariantPresenceDerive
+    | ReviewedVariantCompositeDerive;
+}
+
+export type VariantEvidence =
+  | { kind: 'dispatch'; input: Readonly<Record<string, unknown>> }
+  | { kind: 'frozen' };
+
+export type VariantSelectorResolution =
+  | { status: 'ok'; selectors: Record<string, VariantScalar> }
+  | { status: 'unresolved'; reason: string };
+
 export interface ReviewedProviderPricing {
   version?: string;
   invariantSelectors?: string[];
@@ -47,6 +121,7 @@ export interface ReviewedProviderPricing {
   reviewStatus: string;
   isFree?: boolean;
   rates: ReviewedProviderRate[];
+  variantRules?: ReviewedVariantRule[];
 }
 
 export type ProviderCostQuote =

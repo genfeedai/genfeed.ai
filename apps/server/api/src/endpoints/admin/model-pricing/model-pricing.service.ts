@@ -310,6 +310,7 @@ export function projectAdminModelPricing(
     },
     margin,
     retrievedAt,
+    { kind: 'frozen' },
   );
   const sampleQuote = quoteModelBillablePricing(
     profile,
@@ -324,6 +325,7 @@ export function projectAdminModelPricing(
     },
     margin,
     retrievedAt,
+    { kind: 'frozen' },
   );
   if (unitQuote.status === 'unresolved' && !hasReviewedRates)
     reasons.push(unitQuote.reason);

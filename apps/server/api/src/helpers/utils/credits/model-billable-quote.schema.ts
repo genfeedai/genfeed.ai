@@ -1,9 +1,70 @@
+import { parseReviewedVariantRules } from '@genfeedai/pricing';
 import { z } from 'zod';
 
 const selectors = z.record(
   z.string(),
   z.union([z.string(), z.number().finite(), z.boolean()]),
 );
+const variantScalar = z.union([z.string(), z.number().finite(), z.boolean()]);
+const variantPart = z
+  .object({
+    field: z.string().min(1),
+    mode: z.enum(['value', 'presence']),
+    fieldType: z.enum(['string', 'number', 'boolean', 'array']),
+    default: variantScalar.optional(),
+  })
+  .strict();
+const variantDerive = z.discriminatedUnion('kind', [
+  z
+    .object({
+      kind: z.literal('field'),
+      field: z.string().min(1),
+      fieldType: z.enum(['string', 'number', 'boolean']),
+      valueMap: z.record(z.string(), variantScalar),
+      default: variantScalar.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('presence'),
+      field: z.string().min(1),
+      fieldType: z.enum(['string', 'array']),
+      whenPresent: variantScalar,
+      whenAbsent: variantScalar,
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('composite'),
+      parts: z.array(variantPart).min(1),
+      cases: z
+        .array(
+          z
+            .object({ when: z.array(variantScalar), selector: variantScalar })
+            .strict(),
+        )
+        .min(1),
+    })
+    .strict(),
+]);
+const variantRules = z
+  .array(
+    z
+      .object({
+        criterionTitle: z.string().min(1),
+        selectorKey: z.string().min(1),
+        derive: variantDerive,
+      })
+      .strict(),
+  )
+  .min(1)
+  .superRefine((value, context) => {
+    if (!parseReviewedVariantRules(value))
+      context.addIssue({
+        code: 'custom',
+        message: 'Reviewed variant rules are invalid',
+      });
+  });
 const quantities = z.object({
   requests: z.number().int().positive().optional(),
   outputs: z.number().int().positive().optional(),
@@ -62,6 +123,7 @@ const profile = z.object({
       reviewStatus: z.string(),
       isFree: z.boolean().optional(),
       rates: z.array(rate),
+      variantRules: variantRules.optional(),
     })
     .nullable(),
   rateVersion: z.string().nullable(),

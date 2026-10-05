@@ -7,7 +7,7 @@ import ideogramOpenapi from '@api/services/prompt-builder/builders/replicate/fix
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelProvider } from '@genfeedai/contracts';
 import {
-  hashReviewedProviderRates,
+  hashReviewedRateSheetEntry,
   REVIEWED_RATE_SHEET_ENTRIES,
   type ReviewedRateSheetEntry,
 } from '@genfeedai/pricing';
@@ -95,7 +95,7 @@ async function seedEntry(
   if (!model) return false;
 
   const endpoint = model.endpoint || entry.endpoint;
-  const version = hashReviewedProviderRates(entry.rates);
+  const version = hashReviewedRateSheetEntry(entry);
   if (model.reviewedProviderContractVersion === version) return false;
 
   if (model.reviewedProviderContractVersion) {
@@ -115,8 +115,7 @@ async function seedEntry(
         )
       : null;
     // The reviewed contract already charges these rates.
-    if (parsed && hashReviewedProviderRates(parsed.rates) === version)
-      return false;
+    if (parsed && hashReviewedRateSheetEntry(parsed) === version) return false;
     // An operator approved something at or after the sheet's date.
     if (
       reviewed?.reviewedBy &&
@@ -210,6 +209,7 @@ async function seedEntry(
       pricing: {
         currency: 'USD',
         rates: entry.rates,
+        ...(entry.variantRules ? { variantRules: entry.variantRules } : {}),
         source: 'provider-model-page',
         sourceUrl: entry.sourceUrl,
         verifiedAt: entry.verifiedAt,

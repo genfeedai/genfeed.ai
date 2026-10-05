@@ -63,6 +63,7 @@ export function buildGenerationLineReservationIntent(
     { ...quote.quantities, modelKey: quote.modelKey, provider: quote.provider },
     quote.marginMultiplier,
     quote.quotedAt,
+    { kind: 'frozen' },
   );
   if (
     recomputed.status !== 'priced' ||

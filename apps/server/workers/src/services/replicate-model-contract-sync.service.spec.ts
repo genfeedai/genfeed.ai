@@ -525,3 +525,108 @@ describe('ReplicateModelContractSyncService', () => {
     });
   });
 });
+
+describe('Replicate derived billing refresh', () => {
+  const tiers = [
+    {
+      criteria: [
+        {
+          title: 'model variant',
+          type: 'equals',
+          subtype: 'string',
+          value: 'medium',
+        },
+      ],
+      prices: [
+        { metric: 'image_output_count', price: '$0.047', type: 'per-unit' },
+      ],
+    },
+  ];
+  const properties = {
+    prompt: { type: 'string' },
+    quality: {
+      type: 'string',
+      enum: ['auto', 'low', 'medium', 'high'],
+      default: 'auto',
+    },
+  };
+  it('threads endpoint identity and frozen rules into an approvable candidate', async () => {
+    const { service, modelProviderContract } = harness();
+    const result = await service.synchronizeModel(
+      {
+        ...registryModel(),
+        endpoint: 'openai/gpt-image-2',
+        key: 'openai/gpt-image-2',
+      },
+      providerModel(validOpenapi(properties)),
+      ModelCategory.IMAGE,
+      {
+        ...pricing(),
+        billing: {
+          sourceUrl: 'https://replicate.com/openai/gpt-image-2',
+          status: 'ok',
+          tiers,
+        },
+      },
+    );
+    expect(result.quarantined).toBe(false);
+    expect(modelProviderContract.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          mappingStatus: 'supported',
+          pricing: expect.objectContaining({
+            rates: [
+              expect.objectContaining({ when: { model_variant: 'medium' } }),
+            ],
+            variantRules: [
+              expect.objectContaining({
+                selectorKey: 'model_variant',
+                derive: expect.objectContaining({
+                  field: 'quality',
+                  default: 'auto',
+                }),
+              }),
+            ],
+          }),
+        }),
+      }),
+    );
+  });
+  it('changes contract identity on schema-default drift without deactivating the model', async () => {
+    const first = harness();
+    const second = harness();
+    const row = {
+      ...registryModel(),
+      endpoint: 'openai/gpt-image-2',
+      key: 'openai/gpt-image-2',
+    };
+    const billing = {
+      sourceUrl: 'https://replicate.com/openai/gpt-image-2',
+      status: 'ok' as const,
+      tiers,
+    };
+    const a = await first.service.synchronizeModel(
+      row,
+      providerModel(validOpenapi(properties)),
+      ModelCategory.IMAGE,
+      { ...pricing(), billing },
+    );
+    const b = await second.service.synchronizeModel(
+      row,
+      providerModel(
+        validOpenapi({
+          ...properties,
+          quality: { ...properties.quality, default: 'medium' },
+        }),
+      ),
+      ModelCategory.IMAGE,
+      { ...pricing(), billing },
+    );
+    expect(a.version).not.toBe(b.version);
+    for (const data of [
+      first.model.update.mock.calls[0]?.[0].data,
+      second.model.update.mock.calls[0]?.[0].data,
+    ])
+      expect(data).not.toHaveProperty('isActive');
+  });
+});

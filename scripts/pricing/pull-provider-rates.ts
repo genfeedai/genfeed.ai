@@ -85,6 +85,7 @@ async function pullEntry(
   const mapping = mapReplicateBillingTiers(
     tiers,
     await fetchInputProperties(endpoint, token),
+    endpoint,
   );
   if (mapping.status === 'failed')
     throw new Error(`cannot map ${endpoint}: ${mapping.reason}`);
@@ -92,6 +93,7 @@ async function pullEntry(
     endpoint,
     provider: 'replicate',
     rates: mapping.rates,
+    ...(mapping.variantRules ? { variantRules: mapping.variantRules } : {}),
     sourceUrl,
     verifiedAt: new Date().toISOString(),
     ...(existing?.invariantSelectors
