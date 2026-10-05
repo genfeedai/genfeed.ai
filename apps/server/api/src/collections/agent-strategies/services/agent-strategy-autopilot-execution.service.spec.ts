@@ -1,5 +1,9 @@
 import { AgentStrategyAutopilotExecutionService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-execution.service';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  AgentPublishDecision,
+  CredentialPlatform,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 
 // Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.Post so
 // `postsService.create`'s `normalizeData` resolves `category` as a genuine
@@ -47,6 +51,11 @@ describe('AgentStrategyAutopilotExecutionService publishTextDraft (#5193)', () =
     };
     const postsService = { create: postCreate, patch: postPatch };
     const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+    const autonomousPublishPolicy = {
+      resolveForTarget: vi.fn().mockResolvedValue({
+        result: { decision: AgentPublishDecision.PERMITTED },
+      }),
+    };
     const service = new AgentStrategyAutopilotExecutionService(
       {} as never,
       {} as never,
@@ -56,6 +65,7 @@ describe('AgentStrategyAutopilotExecutionService publishTextDraft (#5193)', () =
       postsService as never,
       postAccountFanoutService as never,
       {} as never,
+      autonomousPublishPolicy as never,
       logger as never,
     );
     vi.spyOn(
