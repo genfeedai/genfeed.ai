@@ -13,6 +13,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import {
   afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -65,7 +66,7 @@ describe.skipIf(!connectionString)(
         ],
       mediaUrlConfig: { cdnUrl: 'https://cdn.test' },
     } as unknown as ConfigService;
-    const guardedPrisma = new PrismaService(configService);
+    let guardedPrisma: PrismaService;
 
     const logger = {
       debug: vi.fn(),
@@ -73,10 +74,14 @@ describe.skipIf(!connectionString)(
       log: vi.fn(),
       warn: vi.fn(),
     };
-    const service = new OrganizationPaidAccessService(
-      guardedPrisma,
-      logger as never,
-    );
+    let service: OrganizationPaidAccessService;
+    beforeAll(() => {
+      guardedPrisma = new PrismaService(configService);
+      service = new OrganizationPaidAccessService(
+        guardedPrisma,
+        logger as never,
+      );
+    });
 
     let userId: string;
     let billingAccountId: string;
@@ -158,7 +163,7 @@ describe.skipIf(!connectionString)(
 
     afterAll(async () => {
       await prisma?.$disconnect();
-      await guardedPrisma.$disconnect();
+      await guardedPrisma?.$disconnect();
     });
 
     it('grants paid access to an organization linked to a billing account whose subscription belongs to a different organization', async () => {

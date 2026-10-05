@@ -29,6 +29,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import {
   afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -74,7 +75,7 @@ describe.skipIf(!connectionString)(
         ],
       mediaUrlConfig: { cdnUrl: 'https://cdn.test' },
     } as unknown as ConfigService;
-    const guardedPrisma = new PrismaService(configService);
+    let guardedPrisma: PrismaService;
 
     const logger = {
       debug: vi.fn(),
@@ -82,45 +83,55 @@ describe.skipIf(!connectionString)(
       log: vi.fn(),
       warn: vi.fn(),
     };
-    const billingAccounts = new BillingAccountsService(
-      guardedPrisma,
-      logger as never,
-    );
-    const transactionUtil = new TransactionUtil(guardedPrisma, logger as never);
-    const creditBalance = new CreditBalanceService(
-      guardedPrisma,
-      logger as never,
-    );
-    const creditTransactions = new CreditTransactionsService(
-      guardedPrisma,
-      logger as never,
-      creditBalance,
-      {
-        invalidate: vi.fn().mockResolvedValue(undefined),
-      } as unknown as CacheInvalidationService,
-    );
-    const creditReservations = new CreditReservationService(
-      guardedPrisma,
-      logger as never,
-      creditBalance,
-      creditTransactions,
-      transactionUtil,
-    );
-    const stripeWebhookBilling = new StripeWebhookBillingService(
-      guardedPrisma,
-      billingAccounts,
-    );
-    // The real controller (#5296) — not a hand-rolled call sequence — so a
-    // regression test that drives it exercises the exact tenant-context
-    // shape a real request produces: the interceptor sets the context from
-    // the SESSION organization, and `linkOrganization`'s body carries a
-    // different TARGET organization. `migrationService` is unused by
-    // `linkOrganization`/`getCurrent` and is never constructed through Nest
-    // DI here, so a stub is safe.
-    const billingAccountsController = new BillingAccountsController(
-      billingAccounts,
-      {} as BillingAccountMigrationService,
-    );
+    let billingAccounts: BillingAccountsService;
+    let creditReservations: CreditReservationService;
+    let stripeWebhookBilling: StripeWebhookBillingService;
+    let billingAccountsController: BillingAccountsController;
+    beforeAll(() => {
+      guardedPrisma = new PrismaService(configService);
+      billingAccounts = new BillingAccountsService(
+        guardedPrisma,
+        logger as never,
+      );
+      const transactionUtil = new TransactionUtil(
+        guardedPrisma,
+        logger as never,
+      );
+      const creditBalance = new CreditBalanceService(
+        guardedPrisma,
+        logger as never,
+      );
+      const creditTransactions = new CreditTransactionsService(
+        guardedPrisma,
+        logger as never,
+        creditBalance,
+        {
+          invalidate: vi.fn().mockResolvedValue(undefined),
+        } as unknown as CacheInvalidationService,
+      );
+      creditReservations = new CreditReservationService(
+        guardedPrisma,
+        logger as never,
+        creditBalance,
+        creditTransactions,
+        transactionUtil,
+      );
+      stripeWebhookBilling = new StripeWebhookBillingService(
+        guardedPrisma,
+        billingAccounts,
+      );
+      // The real controller (#5296) — not a hand-rolled call sequence — so a
+      // regression test that drives it exercises the exact tenant-context
+      // shape a real request produces: the interceptor sets the context from
+      // the SESSION organization, and `linkOrganization`'s body carries a
+      // different TARGET organization. `migrationService` is unused by
+      // `linkOrganization`/`getCurrent` and is never constructed through Nest
+      // DI here, so a stub is safe.
+      billingAccountsController = new BillingAccountsController(
+        billingAccounts,
+        {} as BillingAccountMigrationService,
+      );
+    });
 
     let userId: string;
     let actorMemberRoleId: string;
@@ -227,7 +238,7 @@ describe.skipIf(!connectionString)(
 
     afterAll(async () => {
       await prisma?.$disconnect();
-      await guardedPrisma.$disconnect();
+      await guardedPrisma?.$disconnect();
     });
 
     it('links an organization to a billing account end to end, inside a matching tenant context', async () => {
