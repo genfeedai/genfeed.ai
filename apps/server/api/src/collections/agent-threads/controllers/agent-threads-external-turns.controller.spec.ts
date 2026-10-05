@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import type { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
 import { AppendExternalAgentTurnDto } from '@api/collections/agent-threads/dto/append-external-agent-turn.dto';
+import type { AgentOnboardingKickoffService } from '@api/collections/agent-threads/services/agent-onboarding-kickoff.service';
 import type { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
 import type { AgentScopeContextService } from '@api/index';
@@ -70,6 +71,7 @@ describe('AgentThreadsController external turns', () => {
       {} as AgentMessagesService,
       {} as UsersService,
       { error: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
+      {} as AgentOnboardingKickoffService,
     );
   });
 

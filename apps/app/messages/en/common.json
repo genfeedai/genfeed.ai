@@ -1080,10 +1080,9 @@
     },
     "onboardingShell": {
       "brandName": "Genfeed",
-      "openingWorkspace": "Opening workspace…",
-      "skip": "Skip to workspace",
-      "skipError": "Could not finish setup. Please try again.",
-      "subtitle": "Your first brand post"
+      "startError": "Could not start your brand setup. Please try again.",
+      "retry": "Try again",
+      "subtitle": "Let’s set up your brand"
     }
   },
   "automation": {

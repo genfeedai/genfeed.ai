@@ -122,6 +122,8 @@ export class AgentTurnAcceptanceService {
     const thread = existingScope
       ? await this.loadThread(threadId, context)
       : await this.createThread(threadId, request, context, preparedScope);
+    if (thread.source === 'onboarding')
+      request = { ...request, source: 'onboarding' };
     const contextVersion = Number(thread.contextVersion ?? 1);
     const scope =
       existingScope ??
@@ -402,9 +404,18 @@ export class AgentTurnAcceptanceService {
   private async loadThread(
     threadId: string,
     context: AgentChatContext,
-  ): Promise<{ brandId: string | null; contextVersion: number }> {
+  ): Promise<{
+    brandId: string | null;
+    contextVersion: number;
+    source?: string | null;
+  }> {
     const thread = await this.prisma.agentThread.findFirstOrThrow({
-      select: { brandId: true, contextVersion: true, status: true },
+      select: {
+        brandId: true,
+        contextVersion: true,
+        status: true,
+        source: true,
+      },
       where: {
         id: threadId,
         isDeleted: false,
@@ -425,7 +436,11 @@ export class AgentTurnAcceptanceService {
     preparedScope: Awaited<
       ReturnType<AgentScopeContextService['prepareForTurn']>
     >,
-  ): Promise<{ brandId: string | null; contextVersion: number }> {
+  ): Promise<{
+    brandId: string | null;
+    contextVersion: number;
+    source?: string | null;
+  }> {
     const mode =
       request.agentMode ?? (await this.resolveDefaultAgentMode(context.userId));
     const createData = {

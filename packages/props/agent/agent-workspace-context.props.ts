@@ -4,6 +4,8 @@ export interface AgentWorkspaceContextValue {
   agentApiService: AgentApiService;
   isLoaded: boolean;
   isOnboarding: boolean;
+  onboardingBootstrapError: boolean;
+  retryOnboardingBootstrap: () => void;
   handleOAuthConnect: (platform: string) => Promise<void>;
   completeOnboardingFlow: () => Promise<void>;
 }

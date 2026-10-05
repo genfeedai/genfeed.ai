@@ -11,17 +11,18 @@ import { AgentDesktopRuntimeBar } from '@genfeedai/agent/components/AgentDesktop
 import { AgentWebLocalCliNotice } from '@genfeedai/agent/components/AgentWebLocalCliNotice';
 import type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
-import { OnboardingConversationCard } from '@genfeedai/agent/components/OnboardingConversationCard';
 import { AGENT_CONVERSATION_TRACK_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
 import { useAgentRuntimeSelection } from '@genfeedai/agent/hooks/use-agent-runtime-selection';
 import { useOverlayElementHeight } from '@genfeedai/agent/hooks/use-overlay-element-height';
 import { useStableSocketConnectionState } from '@genfeedai/agent/hooks/use-stable-socket-connection-state';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import type { TimelineEntry } from '@genfeedai/agent/utils/derive-timeline';
 import { getGenfeedDesktopBridge } from '@genfeedai/agent/utils/desktop-bridge.util';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { resolveComposerTranscriptPaddingPx } from '@genfeedai/agent/utils/resolve-composer-transcript-padding.util';
 import { AlertCategory } from '@genfeedai/contracts';
+import { ONBOARDING_GREETING } from '@genfeedai/contracts/constants';
 import Alert from '@ui/feedback/alert/Alert';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
 
@@ -200,19 +201,39 @@ export function AgentChatContainer({
     composerShell?.placement === 'overlay';
   // When the docked composer is visible, status/errors live above the glass
   // bar (Claude/T3 pattern) — not as sticky timeline chrome.
+  const isButtonOnlyQuestion =
+    onboardingMode && container.pendingInputRequest?.allowFreeText === false;
+  const [greetingCreatedAt] = useState(() => new Date().toISOString());
+  const greetingTimeline: TimelineEntry[] = [
+    {
+      kind: 'assistant-message',
+      id: 'onboarding-greeting',
+      createdAt: greetingCreatedAt,
+      message: {
+        id: 'onboarding-greeting',
+        threadId: activeThreadId ?? '',
+        role: 'assistant',
+        content: ONBOARDING_GREETING,
+        createdAt: greetingCreatedAt,
+      },
+    },
+  ];
   const isComposerDocked =
     (composerShell?.isComposerVisible ?? true) &&
     (onboardingMode || !container.isEmpty || isShellHostedComposer);
-  const shouldRenderInlineComposerFeedback = !isComposerDocked;
+  const shouldRenderInlineComposerFeedback =
+    !isComposerDocked || isButtonOnlyQuestion;
   // Archived threads replace the prompt bar with restore chrome — always dock it
   // so empty archived threads still get Unarchive instead of a dead input.
   const isArchivedThread = Boolean(isReadOnly && archivedNotice);
-  const shouldShowDockedComposer = isComposerDocked || isArchivedThread;
+  const shouldShowDockedComposer =
+    !isButtonOnlyQuestion && (isComposerDocked || isArchivedThread);
   const shouldShowArchivedComposer = isArchivedThread && Boolean(onUnarchive);
   const composerTranscriptPaddingPx = resolveComposerTranscriptPaddingPx({
     hasFollowUpChips:
       showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions),
-    isComposerVisible: composerShell?.isComposerVisible !== false,
+    isComposerVisible:
+      !isButtonOnlyQuestion && composerShell?.isComposerVisible !== false,
     overlayHeightPx: composerOverlayHeightPx,
   });
 
@@ -242,14 +263,14 @@ export function AgentChatContainer({
           </div>
         ) : null}
 
-        {isLoadingThread && container.isEmpty ? (
+        {isLoadingThread && container.isEmpty && !onboardingMode ? (
           <div className="relative flex min-h-0 flex-1 overflow-hidden">
             <AgentConversationSkeleton
               isWideLayout={isWideLayout}
               title={container.activeThreadTitle}
             />
           </div>
-        ) : container.isEmpty ? (
+        ) : container.isEmpty && !onboardingMode ? (
           <AgentChatEmptyState
             composerPaddingPx={
               onboardingMode ? composerTranscriptPaddingPx : undefined
@@ -262,9 +283,7 @@ export function AgentChatContainer({
             knowledgeSection={knowledgeSection}
             chatAttachments={container.chatAttachments}
             clearAllAttachments={container.clearAllAttachments}
-            composerBanner={
-              onboardingMode ? <OnboardingConversationCard /> : runtimeBanner
-            }
+            composerBanner={runtimeBanner}
             dragHandlers={container.dragHandlers}
             dragState={container.dragState}
             emptyStateTitle={emptyStateTitle}
@@ -331,7 +350,10 @@ export function AgentChatContainer({
             onSelectCreditPack={onSelectCreditPack}
             onSubmitInputRequest={container.handleSubmitInputRequest}
             onUiAction={container.handleUiAction}
-            padBottomForComposer={composerShell?.isComposerVisible !== false}
+            padBottomForComposer={
+              !isButtonOnlyQuestion &&
+              composerShell?.isComposerVisible !== false
+            }
             composerTranscriptPaddingPx={composerTranscriptPaddingPx}
             pendingInputRequest={container.pendingInputRequest}
             pendingUiActions={container.streamState.pendingUiActions}
@@ -346,7 +368,11 @@ export function AgentChatContainer({
               Boolean(onCreateFollowUpTasks) &&
               container.latestProposedPlan?.status === 'approved'
             }
-            timeline={container.timeline}
+            timeline={
+              onboardingMode && container.isEmpty
+                ? greetingTimeline
+                : container.timeline
+            }
           />
         )}
 
@@ -369,11 +395,7 @@ export function AgentChatContainer({
                 !isShellHostedComposer
               }
               composerBanner={
-                onboardingMode && container.isEmpty ? (
-                  <OnboardingConversationCard />
-                ) : onboardingMode ? undefined : (
-                  (runtimeBanner ?? undefined)
-                )
+                onboardingMode ? undefined : (runtimeBanner ?? undefined)
               }
               activeWorkEvent={activeWorkEvent}
               workEvents={container.workEvents}
@@ -397,7 +419,9 @@ export function AgentChatContainer({
               isAttachmentUploading={container.isAttachmentUploading}
               isBusy={container.isBusy}
               isComposerUnavailable={
-                isLoadingThread || stableSocketConnectionState !== 'connected'
+                isLoadingThread ||
+                (onboardingMode && !activeThreadId) ||
+                stableSocketConnectionState !== 'connected'
               }
               followUps={container.followUpQueue.queue}
               isReadOnly={isReadOnly}

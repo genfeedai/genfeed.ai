@@ -1,8 +1,25 @@
 import type { AgentRunRecord } from '@genfeedai/agent/stores/agent-chat.store.run';
-import { act, render, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { type PropsWithChildren, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentWorkspaceLayoutClient } from './AgentWorkspaceLayoutClient';
+import { useAgentWorkspace } from './agent-workspace-context';
+
+function BootstrapStatus() {
+  const { onboardingBootstrapError, retryOnboardingBootstrap } =
+    useAgentWorkspace();
+  return (
+    <button type="button" onClick={retryOnboardingBootstrap}>
+      {onboardingBootstrapError ? 'Retry setup' : 'Ready'}
+    </button>
+  );
+}
 
 const routerReplace = vi.fn();
 const sendMessage = vi.fn();
@@ -13,8 +30,9 @@ const useAgentChatStreamSpy = vi.fn();
 // Hoisted: the `@genfeedai/agent` factory reads `getThreads` eagerly as a
 // property value, so a plain `const` would still be in its temporal dead zone
 // when the hoisted `vi.mock` runs.
-const { getThreads } = vi.hoisted(() => ({
+const { getThreads, kickoffOnboarding } = vi.hoisted(() => ({
   getThreads: vi.fn(),
+  kickoffOnboarding: vi.fn(),
 }));
 
 const navigationState = {
@@ -29,6 +47,7 @@ const navigationState = {
 const storeState = {
   activeThreadId: 'thread-existing' as string | null,
   setError: vi.fn(),
+  upsertThread: vi.fn(),
   messages: [] as Array<{ content: string }>,
   runsByThread: {} as Record<string, AgentRunRecord>,
   stream: { isStreaming: false },
@@ -102,6 +121,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 vi.mock('@genfeedai/agent', () => ({
   AgentApiService: class AgentApiService {
     getThreads = getThreads;
+    kickoffOnboarding = kickoffOnboarding;
   },
   AgentApiServiceProvider: ({ children }: PropsWithChildren) => <>{children}</>,
   isRenderableThreadId: (id: string) =>
@@ -184,8 +204,18 @@ describe('AgentWorkspaceLayoutClient', () => {
     getToken.mockReset();
     getToken.mockResolvedValue('token');
     useAgentChatStreamSpy.mockClear();
+    storeState.upsertThread.mockReset();
     getThreads.mockReset();
     getThreads.mockResolvedValue([]);
+    kickoffOnboarding.mockReset();
+    kickoffOnboarding.mockResolvedValue({
+      id: 'thread-kickoff',
+      contextVersion: 1,
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      status: 'active',
+      source: 'onboarding',
+    });
   });
 
   it('reuses a protected-shell agent service when one is provided', () => {
@@ -988,7 +1018,7 @@ describe('AgentWorkspaceLayoutClient', () => {
     expect(sendMessage).not.toHaveBeenCalled();
   });
 
-  it('starts only one first draft in Strict Mode', async () => {
+  it('starts only one kickoff in Strict Mode', async () => {
     navigationState.pathname = '/agent/onboarding';
     storeState.activeThreadId = null;
     render(
@@ -998,27 +1028,28 @@ describe('AgentWorkspaceLayoutClient', () => {
         </AgentWorkspaceLayoutClient>
       </StrictMode>,
     );
-    await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(kickoffOnboarding).toHaveBeenCalledTimes(1));
+    expect(sendMessage).not.toHaveBeenCalled();
   });
 
-  it('shows a recoverable error when onboarding cannot be loaded', async () => {
+  it('exposes a retry action after a kickoff failure', async () => {
     navigationState.pathname = '/agent/onboarding';
     storeState.activeThreadId = null;
-    getThreads.mockRejectedValue(new Error('Network unavailable'));
+    kickoffOnboarding.mockRejectedValueOnce(new Error('Network unavailable'));
     render(
       <AgentWorkspaceLayoutClient>
-        <div>child</div>
+        <BootstrapStatus />
       </AgentWorkspaceLayoutClient>,
     );
-    await waitFor(() =>
-      expect(storeState.setError).toHaveBeenCalledWith(
-        expect.stringContaining('could not open your first draft'),
-      ),
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry setup' }));
+    await waitFor(() => expect(kickoffOnboarding).toHaveBeenCalledTimes(2));
+    expect(routerReplace).toHaveBeenCalledWith(
+      '/acme-org/~/agent/onboarding/thread-kickoff',
     );
     expect(sendMessage).not.toHaveBeenCalled();
   });
 
-  it('automatically creates the first brand draft when no onboarding thread exists', async () => {
+  it('calls kickoff and routes to the thread without sending a visible user message', async () => {
     navigationState.pathname = '/agent/onboarding';
     storeState.activeThreadId = null;
 
@@ -1032,17 +1063,22 @@ describe('AgentWorkspaceLayoutClient', () => {
       expect(getThreads).toHaveBeenCalled();
     });
 
-    await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
-    expect(sendMessage).toHaveBeenCalledWith(
-      expect.stringContaining('one image and one tweet'),
+    await waitFor(() => expect(kickoffOnboarding).toHaveBeenCalledTimes(1));
+    expect(storeState.upsertThread).toHaveBeenCalledWith(
       expect.objectContaining({
+        id: 'thread-kickoff',
         brandId: 'brand-1',
-        agentMode: 'auto',
-        forceNewThread: true,
-        source: 'onboarding',
+        contextVersion: 1,
       }),
     );
-    expect(routerReplace).not.toHaveBeenCalled();
+    expect(kickoffOnboarding).toHaveBeenCalledWith(
+      'brand-1',
+      expect.any(AbortSignal),
+    );
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(routerReplace).toHaveBeenCalledWith(
+      '/acme-org/~/agent/onboarding/thread-kickoff',
+    );
   });
 
   it('does not look up a thread to resume when a prefill prompt is bootstrapping one', async () => {

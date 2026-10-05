@@ -1,12 +1,6 @@
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { TasksService } from '@services/management/tasks.service';
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentWorkspacePageShell } from './AgentWorkspacePageShell';
@@ -99,6 +93,8 @@ vi.mock('@services/management/tasks.service', async () => {
 
 const completeOnboardingFlowMock = vi.fn();
 const handleOAuthConnectMock = vi.fn();
+const retryBootstrapMock = vi.fn();
+const bootstrapState = { hasError: false };
 
 vi.mock('./agent-workspace-context', () => ({
   useAgentWorkspace: () => ({
@@ -107,12 +103,16 @@ vi.mock('./agent-workspace-context', () => ({
     handleOAuthConnect: handleOAuthConnectMock,
     isLoaded: true,
     isOnboarding: true,
+    onboardingBootstrapError: bootstrapState.hasError,
+    retryOnboardingBootstrap: retryBootstrapMock,
   }),
 }));
 
 describe('AgentWorkspacePageShell', () => {
   beforeEach(() => {
     agentFullPageSpy.mockClear();
+    retryBootstrapMock.mockClear();
+    bootstrapState.hasError = false;
     agentChatState.activeThreadId = null;
     agentChatState.threads = [];
     composerShellBrandId = undefined;
@@ -145,30 +145,24 @@ describe('AgentWorkspacePageShell', () => {
     );
   });
 
-  it('finishes onboarding before opening the workspace without a social connection', async () => {
+  it('has no header Skip to workspace action', () => {
     render(<AgentWorkspacePageShell />);
-    fireEvent.click(screen.getByRole('button', { name: 'Skip to workspace' }));
-    await waitFor(() =>
-      expect(pushMock).toHaveBeenCalledWith('/test-org/~/workspace'),
-    );
-    expect(completeOnboardingFlowMock).toHaveBeenCalledTimes(1);
-    expect(handleOAuthConnectMock).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('button', { name: 'Skip to workspace' }),
+    ).not.toBeInTheDocument();
+    expect(completeOnboardingFlowMock).not.toHaveBeenCalled();
   });
 
-  it('keeps skip retryable when completing setup fails', async () => {
-    completeOnboardingFlowMock.mockRejectedValueOnce(
-      new Error('Network error'),
-    );
+  it('offers retry when kickoff fails without completing onboarding', () => {
+    bootstrapState.hasError = true;
     render(<AgentWorkspacePageShell />);
-    fireEvent.click(screen.getByRole('button', { name: 'Skip to workspace' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Could not finish setup',
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Could not start your brand setup',
     );
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(retryBootstrapMock).toHaveBeenCalledOnce();
+    expect(completeOnboardingFlowMock).not.toHaveBeenCalled();
     expect(pushMock).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Skip to workspace' }));
-    await waitFor(() =>
-      expect(pushMock).toHaveBeenCalledWith('/test-org/~/workspace'),
-    );
   });
 
   it('passes workspace wiring through to AgentFullPage', () => {

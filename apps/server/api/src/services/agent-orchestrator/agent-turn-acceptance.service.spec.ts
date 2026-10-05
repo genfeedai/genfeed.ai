@@ -78,6 +78,34 @@ describe('AgentTurnAcceptanceService', () => {
     agentMessagesService.addMessage.mockResolvedValue({});
   });
 
+  it('continues an authorized onboarding thread with onboarding tools even without a client source', async () => {
+    scopeService.prepareForTurn.mockResolvedValue({
+      existingScope: {
+        threadId: 'thread-1',
+        brandId: 'brand-1',
+        contextVersion: 1,
+      },
+    });
+    prisma.agentThread.findFirstOrThrow.mockResolvedValue({
+      brandId: 'brand-1',
+      contextVersion: 1,
+      status: 'active',
+      source: 'onboarding',
+    });
+    await service.accept(
+      {
+        threadId: 'thread-1',
+        clientRequestId: 'input-response:url',
+        content: 'https://acme.com',
+      },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+    expect(workflowRunner.enqueueWorkflow.mock.calls[0][0]).toMatchObject({
+      inputValues: { request: { source: 'onboarding' } },
+      metadata: { source: 'onboarding' },
+    });
+  });
+
   it('persists only the current turn normalized explicit selections', async () => {
     const context = { organizationId: 'org-1', userId: 'user-1' };
     await service.accept(

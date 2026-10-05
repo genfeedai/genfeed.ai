@@ -15,7 +15,7 @@ import {
   useAgentChatStream,
 } from '@genfeedai/agent';
 import { selectIsGenerating } from '@genfeedai/agent/stores/agent-chat.store.run';
-import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -30,7 +30,14 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { UsersService } from '@services/organization/users.service';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import {
@@ -131,7 +138,15 @@ function AgentWorkspaceLayoutClientContent({
     string | null | typeof UNSET_THREAD_BASELINE
   >(UNSET_THREAD_BASELINE);
   const pendingNavigationThreadRef = useRef<string | null>(null);
-  const hasAttemptedResumeRef = useRef(false);
+  const [onboardingBootstrapError, setOnboardingBootstrapError] =
+    useState(false);
+  const [onboardingRetry, setOnboardingRetry] = useState(0);
+  const hasAttemptedResumeRef = useRef<number | null>(null);
+  const retryOnboardingBootstrap = useCallback(() => {
+    hasAttemptedResumeRef.current = null;
+    setOnboardingBootstrapError(false);
+    setOnboardingRetry((attempt) => attempt + 1);
+  }, []);
   const hasAttemptedReturningBootstrapRef = useRef(false);
   const isJourneyRoute = pathname.startsWith(APP_ROUTES.AGENT.JOURNEY);
   const isOnboarding = pathname.startsWith(APP_ROUTES.AGENT.ONBOARDING);
@@ -246,7 +261,7 @@ function AgentWorkspaceLayoutClientContent({
     }
   }, [isJourneyRoute, isUnthreadedRoute, prefillPrompt]);
 
-  // Resume an existing draft before starting generation, including after reload.
+  // Resume an authorized onboarding thread, or ask the server to start one.
   useEffect(() => {
     if (
       !effectiveIsLoaded ||
@@ -255,14 +270,14 @@ function AgentWorkspaceLayoutClientContent({
       !isOnboardingEntryRoute ||
       prefillPrompt ||
       activeThreadId ||
-      hasAttemptedResumeRef.current
+      hasAttemptedResumeRef.current === onboardingRetry
     ) {
       return;
     }
 
-    hasAttemptedResumeRef.current = true;
+    hasAttemptedResumeRef.current = onboardingRetry;
     const controller = new AbortController();
-    let started = false;
+    let hasSettled = false;
     void agentApiService
       .getThreads(
         { source: ONBOARDING_THREAD_SOURCE, status: AgentThreadStatus.ACTIVE },
@@ -286,6 +301,8 @@ function AgentWorkspaceLayoutClientContent({
           brands,
         );
         if (resumable) {
+          useAgentChatStore.getState().upsertThread(resumable);
+          hasSettled = true;
           if (pendingNavigationThreadRef.current !== resumable.id) {
             pendingNavigationThreadRef.current = resumable.id;
             newRouteBaselineThreadRef.current = resumable.id;
@@ -303,32 +320,29 @@ function AgentWorkspaceLayoutClientContent({
             getBrandOrganizationId(brand) === organizationId &&
             (!brandId || getBrandEntityId(brand) === brandId),
         );
-        started = true;
-        // The stream outlives the entry route when its new thread gets a URL.
-        await sendMessage(
-          'Create my first post: one image and one tweet based on my saved brand. Show me the draft before asking me to connect an account.',
-          {
-            ...(selectedBrand
-              ? { brandId: getBrandEntityId(selectedBrand) }
-              : {}),
-            agentMode: AgentThreadMode.AUTO,
-            forceNewThread: true,
-            source: ONBOARDING_THREAD_SOURCE,
-          },
+        const thread = await agentApiService.kickoffOnboarding(
+          selectedBrand ? getBrandEntityId(selectedBrand) : undefined,
+          controller.signal,
         );
+        if (controller.signal.aborted) return;
+        if (!mostRecentAuthorizedThread([thread], organizationId, brands)) {
+          throw new Error('Onboarding thread scope is unavailable.');
+        }
+        hasSettled = true;
+        useAgentChatStore.getState().upsertThread(thread);
+        pendingNavigationThreadRef.current = thread.id;
+        newRouteBaselineThreadRef.current = thread.id;
+        replace(orgHref(`${APP_ROUTES.AGENT.ONBOARDING}/${thread.id}`));
       })
       .catch(() => {
         if (!controller.signal.aborted) {
-          useAgentChatStore
-            .getState()
-            .setError(
-              'We could not open your first draft. Try Create my first post again, or skip setup to open your workspace.',
-            );
+          hasSettled = true;
+          setOnboardingBootstrapError(true);
         }
       });
     return () => {
       controller.abort();
-      if (!started) hasAttemptedResumeRef.current = false;
+      if (!hasSettled) hasAttemptedResumeRef.current = null;
     };
   }, [
     activeThreadId,
@@ -342,13 +356,13 @@ function AgentWorkspaceLayoutClientContent({
     organizationId,
     prefillPrompt,
     replace,
-    sendMessage,
+    onboardingRetry,
   ]);
 
   // Allow another resume attempt once the operator leaves the entry route.
   useEffect(() => {
     if (!isOnboardingEntryRoute) {
-      hasAttemptedResumeRef.current = false;
+      hasAttemptedResumeRef.current = null;
     }
   }, [isOnboardingEntryRoute]);
 
@@ -623,6 +637,8 @@ function AgentWorkspaceLayoutClientContent({
     () => ({
       agentApiService,
       completeOnboardingFlow,
+      onboardingBootstrapError,
+      retryOnboardingBootstrap,
       handleOAuthConnect,
       isLoaded: effectiveIsLoaded,
       isOnboarding,
@@ -633,6 +649,8 @@ function AgentWorkspaceLayoutClientContent({
       isOnboarding,
       handleOAuthConnect,
       completeOnboardingFlow,
+      onboardingBootstrapError,
+      retryOnboardingBootstrap,
     ],
   );
 

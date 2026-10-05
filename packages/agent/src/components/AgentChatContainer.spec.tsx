@@ -11,6 +11,7 @@ import {
   runKeyFor,
 } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { AgentThreadMode } from '@genfeedai/contracts';
+import { ONBOARDING_GREETING } from '@genfeedai/contracts/constants';
 import {
   act,
   fireEvent,
@@ -217,6 +218,7 @@ vi.mock('@genfeedai/agent/components/AgentChatMessage', () => ({
   AgentChatMessage: function MockAgentChatMessage(props: {
     isRetryableUserPrompt?: boolean;
     message?: {
+      content?: string;
       role?: string;
       metadata?: {
         uiActions?: Array<{
@@ -239,6 +241,7 @@ vi.mock('@genfeedai/agent/components/AgentChatMessage', () => ({
     return (
       <div>
         message
+        <span>{props.message?.content}</span>
         {props.isRetryableUserPrompt ? (
           <button
             type="button"
@@ -1455,39 +1458,50 @@ describe('AgentChatContainer', () => {
     );
   });
 
-  it('puts the onboarding card on the empty conversation prompt bar', () => {
-    const apiService = createApiService();
-
+  it('renders the shared greeting immediately during kickoff and reconciles once', () => {
     storeState.pendingInputRequest = null;
     storeState.messages = [];
-
-    const { container } = render(
+    const apiService = createApiService();
+    const { rerender } = render(
       <AgentChatContainer
         apiService={apiService as never}
-        emptyStateTitle="Welcome to GenFeed"
         onboardingMode
-        promptBarLayoutMode="surface-fixed"
+        isLoadingThread
       />,
     );
+    expect(screen.getAllByText(ONBOARDING_GREETING)).toHaveLength(1);
+    storeState.messages = [
+      buildAssistantMessage({ content: ONBOARDING_GREETING }),
+    ];
+    rerender(
+      <AgentChatContainer apiService={apiService as never} onboardingMode />,
+    );
+    expect(screen.getAllByText(ONBOARDING_GREETING)).toHaveLength(1);
+  });
 
-    expect(screen.getByTestId('onboarding-composer-card')).toBeInTheDocument();
+  it('hides the onboarding composer for a button-only pending request', () => {
+    if (storeState.pendingInputRequest)
+      storeState.pendingInputRequest.allowFreeText = false;
+    render(
+      <AgentChatContainer
+        apiService={createApiService() as never}
+        onboardingMode
+      />,
+    );
+    expect(screen.queryByTestId('chat-input')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /start with my first image/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(/what best describes you/i),
-    ).not.toBeInTheDocument();
-    expect(
-      container.querySelectorAll('[data-layout-mode="surface-fixed"]').length,
-    ).toBe(1);
-    expect(
-      container.querySelector(
-        '[data-layout-mode="surface-fixed"] [data-testid="onboarding-composer-card"]',
-      ),
-    ).not.toBeNull();
-    expect(
-      screen.getByTestId('onboarding-composer-card').parentElement,
-    ).toHaveClass('pb-3');
+      screen.getByRole('button', { name: 'Submit requested input' }),
+    ).toBeInTheDocument();
+  });
+
+  it('allows the onboarding URL request in the composer', () => {
+    render(
+      <AgentChatContainer
+        apiService={createApiService() as never}
+        onboardingMode
+      />,
+    );
+    expect(screen.getByTestId('chat-input')).toBeInTheDocument();
   });
 
   it('keeps the empty-state composer full-width inside the centered column', () => {

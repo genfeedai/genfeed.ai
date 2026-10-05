@@ -68,6 +68,29 @@ function makeRequest(
 }
 
 describe('AgentInputRequestOverlay', () => {
+  it('submits Skip alone even when multi-select is at its limit', async () => {
+    const onSubmit = vi.fn();
+    render(
+      <AgentInputRequestOverlay
+        onSubmit={onSubmit}
+        request={makeRequest({
+          allowFreeText: false,
+          isMultiSelect: true,
+          maxSelections: 1,
+          options: [
+            { id: 'grow', label: 'Grow audience' },
+            { id: 'skip', label: 'Skip' },
+          ],
+        })}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Grow audience' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith('Skip', ['skip']),
+    );
+  });
+
   it('keeps pick-one cards in the conversation column for the inline variant', () => {
     const { container } = render(
       <AgentInputRequestOverlay

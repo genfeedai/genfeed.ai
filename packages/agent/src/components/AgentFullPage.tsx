@@ -86,7 +86,6 @@ export function AgentFullPage({
     showRuntimeSuggestedActions,
     showSetupPanel,
     workspacePlanningTaskId,
-    ONBOARDING_SUGGESTED_ACTIONS,
   } = useAgentFullPage({
     apiService,
     authReady,
@@ -141,12 +140,10 @@ export function AgentFullPage({
               }
               placeholder={
                 onboardingMode
-                  ? 'Tell us what to change, or ask for another version…'
+                  ? translate('onboardingUrlPlaceholder')
                   : 'Ask for help with content, review, or planning...'
               }
-              suggestedActions={
-                onboardingMode ? ONBOARDING_SUGGESTED_ACTIONS : resolvedActions
-              }
+              suggestedActions={onboardingMode ? [] : resolvedActions}
               showSuggestedActionsWhenNotEmpty={showRuntimeSuggestedActions}
               onCreateFollowUpTasks={onCreateFollowUpTasks}
               onOnboardingCompleted={onOnboardingCompleted}

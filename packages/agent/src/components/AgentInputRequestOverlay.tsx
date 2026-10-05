@@ -156,13 +156,16 @@ export function AgentInputRequestOverlay({
                   isDisabled={
                     isSubmitting ||
                     (request.isMultiSelect === true &&
+                      option.id !== 'skip' &&
                       !isSelected &&
                       selectedOptionIds.length >=
                         (request.maxSelections ?? visibleOptions.length))
                   }
                   aria-pressed={isSelected}
                   onClick={() => {
-                    if (request.isMultiSelect) toggleOption(option.id);
+                    if (option.id === 'skip')
+                      void submitAnswer(option.label, option.id);
+                    else if (request.isMultiSelect) toggleOption(option.id);
                     else void submitAnswer(option.label, option.id);
                   }}
                   className={cn(

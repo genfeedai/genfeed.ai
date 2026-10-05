@@ -29,8 +29,6 @@ export function AgentWorkspacePageShell({
   const { push } = useRouter();
   const translate = useTranslations('common.agent.onboardingShell');
   const logoUrl = useThemeLogo();
-  const [isSkipping, setIsSkipping] = useState(false);
-  const [skipError, setSkipError] = useState<string | null>(null);
   const { orgHref } = useOrgUrl();
   const { getToken } = useAuthIdentity();
   const {
@@ -39,6 +37,8 @@ export function AgentWorkspacePageShell({
     handleOAuthConnect,
     completeOnboardingFlow,
     isOnboarding,
+    onboardingBootstrapError,
+    retryOnboardingBootstrap,
   } = useAgentWorkspace();
   const handleBrandCreate = useAgentBrandCreate();
   // Knowledge is picked for the brand the next turn runs under: the composer's
@@ -67,18 +67,6 @@ export function AgentWorkspacePageShell({
     },
     [knowledgeBrandId],
   );
-  const handleSkip = useCallback(async () => {
-    setIsSkipping(true);
-    setSkipError(null);
-    try {
-      await completeOnboardingFlow();
-      push(orgHref('/workspace'));
-    } catch {
-      setSkipError(translate('skipError'));
-      setIsSkipping(false);
-    }
-  }, [completeOnboardingFlow, orgHref, push, translate]);
-
   const handleCreateFollowUpTasks = useCallback(
     async (taskId: string) => {
       const token = await resolveAuthToken(getToken);
@@ -145,20 +133,19 @@ export function AgentWorkspacePageShell({
               </p>
             </div>
           </div>
+        </header>
+      ) : null}
+      {isOnboarding && onboardingBootstrapError ? (
+        <div role="alert" className="flex items-center gap-3 px-4 py-2 text-sm">
+          <p>{translate('startError')}</p>
           <Button
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
-            onClick={() => void handleSkip()}
-            isDisabled={isSkipping}
+            onClick={retryOnboardingBootstrap}
           >
-            {isSkipping ? translate('openingWorkspace') : translate('skip')}
+            {translate('retry')}
           </Button>
-        </header>
-      ) : null}
-      {skipError ? (
-        <p role="alert" className="px-4 py-2 text-sm text-destructive">
-          {skipError}
-        </p>
+        </div>
       ) : null}
       <AgentFullPage
         apiService={agentApiService}
