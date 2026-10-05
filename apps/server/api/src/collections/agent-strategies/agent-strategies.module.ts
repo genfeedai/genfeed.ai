@@ -19,6 +19,7 @@ import { OptimizersModule } from '@api/collections/optimizers/optimizers.module'
 import { PostAccountFanoutModule } from '@api/collections/posts/post-account-fanout.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
+import { AutonomousPublishingModule } from '@api/services/autonomous-publishing/autonomous-publishing.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ContentGatewayModule } from '@api/services/content-gateway/content-gateway.module';
 import { Module } from '@nestjs/common';
@@ -35,6 +36,7 @@ import { Module } from '@nestjs/common';
     AgentStrategyPerformanceModule,
     AgentStrategiesCoreModule,
     ActivitiesModule,
+    AutonomousPublishingModule,
     ContentGatewayModule,
     BatchGenerationModule,
     ContentPerformanceModule,

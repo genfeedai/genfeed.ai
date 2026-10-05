@@ -11,15 +11,15 @@ describe('HomeHow', () => {
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: /brief to published\./i,
+        name: /watch it work\./i,
       }),
     ).toBeInTheDocument();
   });
 
-  it('renders the three-beat brief-to-learning lifecycle as an ordered list', () => {
+  it('renders the three-beat ask-to-growth lifecycle as an ordered list', () => {
     render(<HomeHow />);
 
-    for (const title of ['Brief', 'Create & review', 'Publish & learn']) {
+    for (const title of ['Ask', 'Create', 'Grow']) {
       expect(
         screen.getByRole('heading', { level: 3, name: title }),
       ).toBeInTheDocument();

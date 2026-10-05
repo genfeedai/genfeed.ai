@@ -277,7 +277,7 @@ test.describe('Posts — deep interactions', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('the new-post menu opens the newsletter composer modal', async ({
+  test('the unified new-post composer opens the newsletter composer modal', async ({
     authenticatedPage,
   }) => {
     // Newsletter creation is a modal (`ModalEnum.NEWSLETTER`) opened from
@@ -291,7 +291,10 @@ test.describe('Posts — deep interactions', () => {
       .getByRole('button', { name: 'New post', exact: true })
       .click();
     await authenticatedPage
-      .getByRole('menuitem', { name: 'Newsletter', exact: true })
+      .getByRole('button', { name: 'Newsletter', exact: true })
+      .click();
+    await authenticatedPage
+      .getByRole('button', { name: 'Continue', exact: true })
       .click();
     await settle(authenticatedPage);
 

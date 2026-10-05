@@ -3,6 +3,10 @@ import nano from '@api/services/integrations/crun/contracts/fixtures/nano-banana
 import pricing from '@api/services/integrations/crun/contracts/fixtures/pricing.json';
 import seedream from '@api/services/integrations/crun/contracts/fixtures/seedream-4-5.openapi.json';
 import veo from '@api/services/integrations/crun/contracts/fixtures/veo3-1-fast-t2v.openapi.json';
+import {
+  CRUN_IMAGE_MODEL_KEYS,
+  CRUN_VIDEO_MODEL_KEYS,
+} from '@genfeedai/contracts/interfaces/billing';
 
 export const CRUN_PRICING_SNAPSHOT = {
   ...pricing,
@@ -23,7 +27,7 @@ export const CRUN_IMAGE_MANIFEST = [
     mediaKind: 'image',
     schemaFamily: 'crun-image-v1',
     endpoint: 'google/nano-banana-pro',
-    key: 'crun/google/nano-banana-pro',
+    key: CRUN_IMAGE_MODEL_KEYS[0],
     label: 'Nano Banana Pro (Crun)',
     schemaUrl: 'https://docs.crun.ai/models/google/nano-banana-pro.json',
     capturedAt: '2026-10-01T00:00:00.000Z',
@@ -39,7 +43,7 @@ export const CRUN_IMAGE_MANIFEST = [
     mediaKind: 'image',
     schemaFamily: 'crun-image-v1',
     endpoint: 'bytedance/seedream-4-5',
-    key: 'crun/bytedance/seedream-4-5',
+    key: CRUN_IMAGE_MODEL_KEYS[1],
     label: 'Seedream 4.5 (Crun)',
     schemaUrl: 'https://docs.crun.ai/models/seedream/seedream-4.5.json',
     capturedAt: '2026-10-01T00:00:00.000Z',
@@ -58,7 +62,7 @@ export const CRUN_VIDEO_MANIFEST = [
     mediaKind: 'video',
     schemaFamily: 'crun-kling-video-v1',
     endpoint: 'kling/v2-5-turbo-pro',
-    key: 'crun/kling/v2-5-turbo-pro',
+    key: CRUN_VIDEO_MODEL_KEYS[0],
     label: 'Kling 2.5 Turbo Pro (Crun)',
     schemaUrl: 'https://docs.crun.ai/models/kling/v2-5-turbo-pro.json',
     capturedAt: '2026-10-01T00:00:00.000Z',
@@ -79,7 +83,7 @@ export const CRUN_VIDEO_MANIFEST = [
     mediaKind: 'video',
     schemaFamily: 'crun-veo-fast-video-v1',
     endpoint: 'google/veo3-1-fast-t2v',
-    key: 'crun/google/veo3-1-fast-t2v',
+    key: CRUN_VIDEO_MODEL_KEYS[1],
     label: 'Veo 3.1 Fast (Crun)',
     schemaUrl:
       'https://docs.crun.ai/models/google/veo-3-1-fast-text-to-video.json',
@@ -98,6 +102,28 @@ export const CRUN_VIDEO_MANIFEST = [
     },
   },
 ] as const;
+
+// Compile-time guard: every model key has exactly one manifest entry.
+type CrunManifestKeysMatch<
+  Keys extends string,
+  Entries extends { key: string },
+> = [Exclude<Keys, Entries['key']>, Exclude<Entries['key'], Keys>] extends [
+  never,
+  never,
+]
+  ? true
+  : never;
+export const CRUN_MANIFEST_KEYS_MATCH: [
+  CrunManifestKeysMatch<
+    (typeof CRUN_IMAGE_MODEL_KEYS)[number],
+    (typeof CRUN_IMAGE_MANIFEST)[number]
+  >,
+  CrunManifestKeysMatch<
+    (typeof CRUN_VIDEO_MODEL_KEYS)[number],
+    (typeof CRUN_VIDEO_MANIFEST)[number]
+  >,
+] = [true, true];
+
 export const CRUN_MODEL_MANIFEST = [
   ...CRUN_IMAGE_MANIFEST,
   ...CRUN_VIDEO_MANIFEST,

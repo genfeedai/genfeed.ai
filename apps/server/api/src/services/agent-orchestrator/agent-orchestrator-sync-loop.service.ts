@@ -334,6 +334,7 @@ export class AgentOrchestratorSyncLoopService {
           : undefined,
       ),
       resolveBlockedTools({ source: request.source }),
+      request.source,
     );
     const allowedToolNames = new Set(
       tools.map((tool) => tool.function.name as CuratedActionName),

@@ -1,7 +1,7 @@
 'use client';
 
 import { TagScope } from '@genfeedai/contracts';
-import type { ITag } from '@genfeedai/contracts/interfaces';
+import type { ITag, ITagColorSwatch } from '@genfeedai/contracts/interfaces';
 import {
   Command,
   CommandEmpty,
@@ -19,6 +19,7 @@ import { Check, Minus, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useMemo, useState } from 'react';
 import LibraryTagChip from './LibraryTagChip';
+import TagColorPicker from './TagColorPicker';
 
 /** How many of the targeted assets carry a tag. */
 export type LibraryTagPickerState = 'all' | 'some';
@@ -27,8 +28,8 @@ export interface LibraryTagPickerProps {
   /** Disables selecting and creating while a write is in flight. */
   isBusy?: boolean;
   isLoading?: boolean;
-  /** Create (or reuse) a tag with this label and apply it. */
-  onCreate: (label: string) => void;
+  /** Create (or reuse) a tag with this label and color, and apply it. */
+  onCreate: (label: string, color: ITagColorSwatch | undefined) => void;
   /** Toggle one tag on the targeted assets. */
   onToggle: (tag: ITag, state: LibraryTagPickerState | undefined) => void;
   /** Per tag id: carried by every targeted asset, or only some. */
@@ -60,6 +61,7 @@ export default function LibraryTagPicker({
   const translate = useTranslations('pages.library.tags');
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [color, setColor] = useState<ITagColorSwatch | undefined>();
 
   const trimmedQuery = query.trim();
   const hasExactMatch = useMemo(
@@ -75,6 +77,7 @@ export default function LibraryTagPicker({
     setIsOpen(nextOpen);
     if (!nextOpen) {
       setQuery('');
+      setColor(undefined);
     }
   };
 
@@ -82,8 +85,9 @@ export default function LibraryTagPicker({
     if (!canCreate || isBusy) {
       return;
     }
-    onCreate(trimmedQuery);
+    onCreate(trimmedQuery, color);
     setQuery('');
+    setColor(undefined);
   };
 
   return (
@@ -182,6 +186,17 @@ export default function LibraryTagPicker({
             </p>
           ) : null}
         </Command>
+        {/* Outside `Command` on purpose: cmdk handles Enter and arrow keys for
+            everything inside it, which would select an item instead of the
+            focused swatch. */}
+        {canCreate && !isLoading ? (
+          <div className="border-t border-border px-3 py-2">
+            <TagColorPicker
+              onChange={setColor}
+              value={color?.backgroundColor}
+            />
+          </div>
+        ) : null}
       </PopoverPanelContent>
     </Popover>
   );

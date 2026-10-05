@@ -10,6 +10,7 @@ import {
   DropdownDirection,
   type RouterPriority,
 } from '@genfeedai/contracts';
+import type { AgentGenerationQuoteUnavailableReason } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
@@ -68,6 +69,8 @@ type GenerationActionCardControlsProps = {
   /** `false` when the server could not price this generation (#4672). */
   isEstimateAvailable?: boolean;
   isEstimatePending?: boolean;
+  /** Server code explaining why the estimate is unavailable. */
+  estimateUnavailableReason?: AgentGenerationQuoteUnavailableReason;
   /** Concrete model the estimate (and Generate) would resolve to. */
   resolvedModelKey?: string | null;
   onDurationChange: (value: number) => void;
@@ -115,6 +118,7 @@ export function GenerationActionCardControls({
   estimatedCredits,
   isEstimateAvailable = false,
   isEstimatePending = false,
+  estimateUnavailableReason,
   resolvedModelKey,
   onDurationChange,
   resolution,
@@ -397,7 +401,11 @@ export function GenerationActionCardControls({
                     ? translate('estimatedCredits', {
                         credits: estimatedCredits,
                       })
-                    : translate('estimateUnavailable')}
+                    : estimateUnavailableReason
+                      ? translate(
+                          `estimateReasons.${estimateUnavailableReason}`,
+                        )
+                      : translate('estimateUnavailable')}
               </span>
             </span>
           ) : null}

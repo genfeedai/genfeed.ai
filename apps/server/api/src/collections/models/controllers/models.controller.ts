@@ -251,16 +251,21 @@ export class ModelsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Query() query: ModelsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     const findAllQuery = this.buildFindAllQuery(user, query);
     const where = { ...(findAllQuery.where ?? {}) } as Record<string, unknown>;
 
-    // Defense-in-depth: org-scoped tenant isolation
-    // Derive org from request context middleware, NOT from query params
+    // Only the authenticated organization may self-heal its model allowlist.
+    // Authorization and the effective read tenant were resolved above.
     const authenticatedOrgId = request.context?.organizationId
       ? request.context.organizationId
       : null;
     const isSuperAdmin = getIsSuperAdmin(user, request);
-    const requestedOrgId = query.organizationId;
+    const requestedOrgId = query.organizationId?.trim();
     const canReadRequestedOrg =
       Boolean(requestedOrgId) &&
       (isSuperAdmin || requestedOrgId === authenticatedOrgId);
@@ -301,10 +306,10 @@ export class ModelsController extends BaseCRUDController<
     // offered to anyone but a platform superadmin.
     if (!isSuperAdmin) {
       // Classify exactly the rows this list can return: platform rows plus
-      // the caller's own organization.
+      // the effective read tenant's own.
       const unpriceableIds = await findUnpriceableModelIds(
         this.modelsService.prisma,
-        unpriceableModelsScope(authenticatedOrgId ?? undefined),
+        unpriceableModelsScope(tenant.organizationId ?? undefined),
       );
       if (unpriceableIds.length > 0) {
         const existingAnd = Array.isArray(where.AND) ? where.AND : [];
@@ -312,10 +317,10 @@ export class ModelsController extends BaseCRUDController<
       }
     }
 
-    if (authenticatedOrgId) {
+    if (tenant.organizationId) {
       where.OR = [
         { organizationId: null },
-        { organizationId: authenticatedOrgId },
+        { organizationId: tenant.organizationId },
       ];
     }
 

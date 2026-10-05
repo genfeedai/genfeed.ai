@@ -17,6 +17,9 @@ packages/desktop-prisma/generated/
 **/src/**/*.d.ts
 # Next.js App Router source dirs — no compiled .js alongside .tsx
 apps/app/app/**/*.js
+# Keep the runtime-config.js route folder and its source files tracked.
+!apps/app/app/runtime-config.js/
+!apps/app/app/runtime-config.js/**
 apps/app/app/**/*.js.map
 apps/app/packages/**/*.js
 apps/app/packages/**/*.js.map

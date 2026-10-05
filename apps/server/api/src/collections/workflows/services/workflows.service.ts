@@ -699,12 +699,15 @@ export class WorkflowsService extends BaseService<
   }
 
   async getWorkflowStatistics(
-    userId: string,
+    userId: string | undefined,
     organizationId: string,
   ): Promise<Array<{ id: string; count: number }>> {
     const workflows = await this.prisma.workflow.findMany({
       select: { status: true },
-      where: scopedWhere(organizationId, { userId }),
+      where: scopedWhere(
+        organizationId,
+        userId === undefined ? {} : { userId },
+      ),
     });
 
     const counts = workflows.reduce<Map<string, number>>((acc, workflow) => {

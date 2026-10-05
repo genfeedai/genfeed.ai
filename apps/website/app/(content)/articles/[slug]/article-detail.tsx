@@ -74,7 +74,7 @@ interface AboutSocialLink {
 }
 
 const GENFEED_DESCRIPTION =
-  'The AI Content OS for discovering ideas, creating on-brand content, publishing everywhere, and learning what drives results.';
+  'The content agent that makes on-brand videos, images and posts to grow your audience and your revenue.';
 
 const GENFEED_SOCIAL_LINKS: readonly AboutSocialLink[] = [
   {

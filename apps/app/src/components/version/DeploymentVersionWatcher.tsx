@@ -1,5 +1,7 @@
 'use client';
 
+import { isDesktopClient } from '@genfeedai/config/deployment';
+
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
@@ -47,7 +49,7 @@ export default function DeploymentVersionWatcher() {
   const hasPromptedRef = useRef(false);
 
   useEffect(() => {
-    if (!CURRENT_BUILD_ID) {
+    if (isDesktopClient() || !CURRENT_BUILD_ID) {
       return;
     }
 

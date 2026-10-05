@@ -7,29 +7,14 @@ import { OnboardingPage } from '../../pages/onboarding.page';
 const ONBOARDING_API_ENDPOINT = playwrightApiEndpoint;
 const AGENT_HANDOFF_PATH = orgPath(APP_ROUTES.AGENT.ONBOARDING);
 
-/**
- * Onboarding Flow E2E Tests
- *
- * Web onboarding is agent-first: brand is the only wizard screen a cloud
- * operator is walked through, and continuing from it hands off to the
- * `/agent/onboarding` conversation. Providers and summary remain reachable as
- * their own destinations for Desktop and for operators who come back to them.
- *
- * The brand step itself auto-resolves one of two phases before it
- * auto-advances: `loading` for a work-domain signup (the `onboardingPage`
- * fixture), or `website-prompt` for a personal-inbox signup (the
- * `personalInboxOnboardingPage` fixture) that needs a website URL, or an
- * explicit skip, before the loading phase begins.
- *
- * All API calls are mocked via onboarding.fixture.ts.
- */
+/** Brand guide review, explicit handoff and the reachable wizard tail. */
 
 test.describe('Onboarding Flow', () => {
   for (const viewport of [
     { width: 1440, height: 900 },
     { width: 390, height: 844 },
   ]) {
-    test(`keeps the website prompt compact at ${viewport.width}px`, async ({
+    test(`keeps the website scan controls compact at ${viewport.width}px`, async ({
       personalInboxOnboardingPage,
     }, testInfo) => {
       await personalInboxOnboardingPage.setViewportSize(viewport);
@@ -37,20 +22,20 @@ test.describe('Onboarding Flow', () => {
         reducedMotion: 'reduce',
       });
       const wizard = new OnboardingPage(personalInboxOnboardingPage);
-      await wizard.waitForWebsitePromptPhase();
+      await wizard.waitForBrandGuide();
 
       await expect(
         personalInboxOnboardingPage.locator('body'),
       ).toHaveJSProperty('scrollWidth', viewport.width);
 
-      const continueBounds = await wizard.continueButton.boundingBox();
-      expect(continueBounds).not.toBeNull();
+      const scanBounds = await wizard.scanButton.boundingBox();
+      expect(scanBounds).not.toBeNull();
       expect(
-        (continueBounds?.y ?? Infinity) + (continueBounds?.height ?? Infinity),
+        (scanBounds?.y ?? Infinity) + (scanBounds?.height ?? Infinity),
       ).toBeLessThan(viewport.height);
 
       await personalInboxOnboardingPage.screenshot({
-        path: testInfo.outputPath(`brand-website-prompt-${viewport.width}.png`),
+        path: testInfo.outputPath(`brand-website-scan-${viewport.width}.png`),
         fullPage: true,
       });
     });
@@ -105,8 +90,8 @@ test.describe('Onboarding Flow', () => {
     }) => {
       const page = new OnboardingPage(onboardingPage);
 
-      // A work-domain signup skips the website prompt; brand setup runs and
-      // hands off to the agent on its own.
+      // A work-domain signup suggests a website; the operator approves the guide.
+      await page.approveAndContinueBrand();
       await page.assertAgentHandoff(AGENT_HANDOFF_PATH);
 
       // Completing brand first is what unlocks `/workspace` at the end of this
@@ -136,34 +121,42 @@ test.describe('Onboarding Flow', () => {
     test('should hand off to the agent for a work-domain signup', async ({
       onboardingPage,
     }) => {
-      // Setup starts during fixture navigation, so the loading step is not
-      // held here; the personal-inbox test below asserts it deterministically.
+      // Website scanning starts during fixture navigation.
       const page = new OnboardingPage(onboardingPage);
 
+      await page.approveAndContinueBrand();
       await page.assertAgentHandoff(AGENT_HANDOFF_PATH);
     });
 
-    test('should show the website prompt for a personal inbox and proceed to loading', async ({
+    test('should scan a personal inbox website and require guide approval before continuing', async ({
       personalInboxOnboardingPage,
     }) => {
       const page = new OnboardingPage(personalInboxOnboardingPage);
 
-      await page.waitForWebsitePromptPhase();
-      const releaseBrandSetup = await page.holdBrandSetup();
-      await page.continueFromWebsitePrompt('acme-studio.com');
-
-      await page.waitForLoadingPhase();
-      releaseBrandSetup();
+      await page.waitForBrandGuide();
+      await expect(page.websiteUrlInput).toHaveValue('');
+      const releaseScan = await page.holdWebsiteScan();
+      try {
+        await page.scanWebsite('acme-studio.com');
+        await page.assertScanPending();
+      } finally {
+        releaseScan();
+      }
+      await expect(
+        personalInboxOnboardingPage
+          .getByRole('status')
+          .filter({ hasText: 'Website details are ready to review.' }),
+      ).toBeVisible();
+      await page.approveAndContinueBrand();
       await page.assertAgentHandoff(AGENT_HANDOFF_PATH);
     });
 
     test('should allow skipping brand setup', async ({
       personalInboxOnboardingPage: onboardingPage,
     }) => {
-      // Skip from the website prompt: it waits for the operator, whereas the
-      // loading step auto-advances and would race the click.
+      // Skip remains available without approving the guide.
       const page = new OnboardingPage(onboardingPage);
-      await page.waitForWebsitePromptPhase();
+      await page.waitForBrandGuide();
       await page.skipStep();
 
       // Production returns to root after completing onboarding. The normal

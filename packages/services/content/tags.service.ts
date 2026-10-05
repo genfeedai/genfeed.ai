@@ -1,6 +1,10 @@
 import { type TagCategory, TagScope } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
-import type { IQueryParams, ITag } from '@genfeedai/contracts/interfaces';
+import type {
+  IQueryParams,
+  ITag,
+  ITagColorSwatch,
+} from '@genfeedai/contracts/interfaces';
 import { Tag } from '@genfeedai/models/content/tag.model';
 import { TagSerializer } from '@genfeedai/serializers';
 import {
@@ -40,13 +44,21 @@ export class TagsService extends BaseService<Tag> {
   /**
    * Create a tag in the active brand, or organization-wide with
    * `scope: 'organization'`. A label that already exists in the same scope
-   * returns that tag instead of a duplicate.
+   * returns that tag instead of a duplicate. Without a `color` the API picks
+   * one from the palette.
    */
   async createLibraryTag(
     label: string,
     scope: TagScope.BRAND | TagScope.ORGANIZATION = TagScope.BRAND,
+    color?: ITagColorSwatch,
   ): Promise<Tag> {
-    return await this.post({ label: label.trim(), scope });
+    return await this.post({
+      ...(color
+        ? { backgroundColor: color.backgroundColor, textColor: color.textColor }
+        : {}),
+      label: label.trim(),
+      scope,
+    });
   }
 
   /**

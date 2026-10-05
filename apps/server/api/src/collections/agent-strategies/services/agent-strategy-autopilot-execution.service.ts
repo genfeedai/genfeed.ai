@@ -35,6 +35,7 @@ import type { PostCreateInput } from '@api/collections/posts/services/posts.serv
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { scopedWhere } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
@@ -42,6 +43,7 @@ import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
+  AgentPublishDecision,
   ContentFormat,
   IngredientCategory,
   PersistedReviewDecision,
@@ -63,6 +65,7 @@ export class AgentStrategyAutopilotExecutionService {
     private readonly postsService: PostsService,
     private readonly postAccountFanoutService: PostAccountFanoutService,
     private readonly batchGenerationService: BatchGenerationService,
+    private readonly autonomousPublishPolicy: AutonomousPublishPolicyService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -451,14 +454,17 @@ export class AgentStrategyAutopilotExecutionService {
       userId,
     });
 
+    const blocker = publishResult.policyReason
+      ? `the publish policy requires review (${publishResult.policyReason})`
+      : 'no connected credential was available';
     await this.opportunitiesService.updateStatus(
       opportunityId,
       organizationId,
       'approved',
       {
         decisionReason: reviewHandoff
-          ? `Draft passed publish gate but no connected credential was available, so it was handed off to publishing inbox batch ${reviewHandoff.batchId}.`
-          : 'Draft passed publish gate but no connected credential was available.',
+          ? `Draft passed publish gate but ${blocker}, so it was handed off to publishing inbox batch ${reviewHandoff.batchId}.`
+          : `Draft passed publish gate but ${blocker}.`,
       },
     );
 
@@ -832,7 +838,7 @@ export class AgentStrategyAutopilotExecutionService {
     content: string,
     platforms: string[],
     userId: string,
-  ): Promise<{ postIds: string[]; scheduled: boolean }> {
+  ): Promise<{ policyReason?: string; postIds: string[]; scheduled: boolean }> {
     const createdPostIds: string[] = [];
     const draftId = getDraftId(draft);
     const brandId = getStrategyBrandId(strategy) ?? '';
@@ -862,6 +868,27 @@ export class AgentStrategyAutopilotExecutionService {
         agentStrategyId: getStrategyId(strategy),
         platforms: skipped.map((target) => target.platform),
       });
+    }
+    // The strategy's own autonomy is only intent: every account must also
+    // clear the shared autonomy × brand × channel policy, so a brand that
+    // requires approval (Expert Path's default), a platform reverted to
+    // supervised, or a disconnected account sends the draft to review.
+    for (const target of targets) {
+      const policy = await this.autonomousPublishPolicy.resolveForTarget({
+        brandId,
+        caption: target.caption,
+        credentialId: target.credentialId,
+        organizationId,
+        platform: target.platform,
+        strategyId: getStrategyId(strategy),
+      });
+      if (policy.result.decision !== AgentPublishDecision.PERMITTED) {
+        return {
+          policyReason: policy.result.reason,
+          postIds: [],
+          scheduled: false,
+        };
+      }
     }
     for (const target of targets) {
       const gate = await this.evaluateDraft(

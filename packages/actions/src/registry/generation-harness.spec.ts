@@ -60,4 +60,10 @@ describe('generation harness catalog', () => {
     });
     expect(tool?.parameters.required).not.toContain('harness');
   });
+
+  it('publishes the video audio toggle on get_generation_options so audio-on pricing is reachable', () => {
+    const properties = getToolByName('get_generation_options')?.parameters
+      .properties as Record<string, { type?: string }> | undefined;
+    expect(properties?.isAudioEnabled).toMatchObject({ type: 'boolean' });
+  });
 });

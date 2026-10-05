@@ -27,6 +27,7 @@ describe('BrandPersistenceService', () => {
     patch: ReturnType<typeof vi.fn>;
   };
   let organizationsService: {
+    findOne: ReturnType<typeof vi.fn>;
     generateUniqueSlug: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
@@ -53,6 +54,7 @@ describe('BrandPersistenceService', () => {
       patch: vi.fn(),
     };
     organizationsService = {
+      findOne: vi.fn(),
       generateUniqueSlug: vi.fn(),
       patch: vi.fn(),
     };
@@ -252,7 +254,67 @@ describe('BrandPersistenceService', () => {
     });
   });
 
+  it('preserves onboarding goals and tone saved before a forced guidance write', async () => {
+    brandsService.findOne.mockResolvedValue({
+      agentConfig: {
+        strategy: {
+          goals: ['Owner goal'],
+          platforms: ['linkedin'],
+          frequency: 'weekly',
+        },
+        voice: { tone: 'Owner tone' },
+      },
+    });
+    await service.updateBrandGuidance(
+      'brand_1',
+      'org_1',
+      {
+        sourceUrl: 'https://acme.example',
+        scrapedAt: new Date(),
+        brandVoice: { goals: ['Generated goal'], tone: 'Generated tone' },
+      } as IExtractedBrandData,
+      true,
+    );
+    expect(brandsService.updateAgentConfig).toHaveBeenCalledWith(
+      'brand_1',
+      'org_1',
+      expect.objectContaining({
+        strategy: expect.objectContaining({
+          goals: ['Owner goal'],
+          platforms: ['linkedin'],
+          frequency: 'weekly',
+        }),
+        voice: expect.objectContaining({ tone: 'Owner tone' }),
+      }),
+    );
+  });
+
   describe('syncOrgLabelAndSlug / syncBrandAndOrgSlug', () => {
+    it.each(['Established org', 'Default Organization'])(
+      'forced sync only renames provisioning organization: %s',
+      async (label) => {
+        organizationsService.findOne.mockResolvedValue({ label });
+        brandsService.generateUniqueSlug.mockResolvedValue('acme');
+        await service.syncBrandAndOrgSlug(
+          'Acme',
+          'org_1',
+          'brand_1',
+          'Acme',
+          true,
+        );
+        expect(organizationsService.findOne).toHaveBeenCalledWith({
+          id: 'org_1',
+          isDeleted: false,
+        });
+        expect(organizationsService.patch).toHaveBeenCalledTimes(
+          label === 'Default Organization' ? 1 : 0,
+        );
+        expect(brandsService.patch).toHaveBeenCalledWith('brand_1', {
+          slug: 'acme',
+        });
+      },
+    );
+
     it('syncs the organization label and slug only', async () => {
       organizationsService.generateUniqueSlug.mockResolvedValue('acme');
 

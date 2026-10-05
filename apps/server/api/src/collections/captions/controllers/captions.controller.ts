@@ -9,6 +9,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -58,6 +59,11 @@ export class CaptionsController {
     @CurrentUser() user: User,
     @Query() query: CaptionsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -66,8 +72,10 @@ export class CaptionsController {
     // Build match conditions
     const matchConditions: Record<string, unknown> = {
       isDeleted: false,
-      organizationId: user.organizationId,
-      userId: user.userId ?? user.id,
+      organizationId: tenant.organizationId,
+      ...(!tenant.isOrganizationOverride
+        ? { userId: user.userId ?? user.id }
+        : {}),
     };
 
     // Add language filter if provided

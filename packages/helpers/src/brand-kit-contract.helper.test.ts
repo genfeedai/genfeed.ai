@@ -71,6 +71,40 @@ function createCompleteBrand(): BrandKitSourceBrand {
 }
 
 describe('brand kit contract helpers', () => {
+  it('isolates field evidence and diagnostics from sibling fields and source arrays', () => {
+    const evidence: IBrandKitDraft['evidence'] = [
+      { sourceType: 'website', label: 'Homepage' },
+    ];
+    const diagnostics: IBrandKitDraft['diagnostics'] = [
+      { code: 'test', message: 'Check', severity: 'warning' },
+    ];
+    const draft = buildBrandKitDraftFromBrand(createCompleteBrand(), {
+      evidence,
+      fieldDiagnostics: { label: diagnostics, description: diagnostics },
+    });
+    const fields = Object.values(draft.fields);
+    expect(
+      new Set([draft.evidence, ...fields.map((field) => field.evidence)]).size,
+    ).toBe(fields.length + 1);
+    expect(draft.evidence).not.toBe(evidence);
+    for (const field of fields) expect(field.evidence).toEqual(evidence);
+    const label = draft.fields.label;
+    const description = draft.fields.description;
+    if (!label || !description) throw new Error('Missing fixture fields');
+    expect(label.diagnostics).not.toBe(diagnostics);
+    expect(label.diagnostics).not.toBe(description.diagnostics);
+    label.evidence.push({ sourceType: 'manual', label: 'Edited field' });
+    label.diagnostics.push({
+      code: 'edit',
+      message: 'Edit',
+      severity: 'warning',
+    });
+    expect(description.evidence).toEqual(evidence);
+    expect(draft.evidence).toEqual(evidence);
+    expect(description.diagnostics).toEqual(diagnostics);
+    expect(diagnostics).toHaveLength(1);
+  });
+
   it('maps an existing brand into the shared brand kit draft contract', () => {
     const draft = buildBrandKitDraftFromBrand(createCompleteBrand(), {
       draftId: 'draft-1',

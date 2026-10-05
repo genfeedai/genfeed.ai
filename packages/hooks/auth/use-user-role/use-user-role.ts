@@ -1,23 +1,23 @@
-import type { MemberRole } from '@genfeedai/contracts';
-import {
-  getAuthPublicData,
-  getPlaywrightAuthState,
-} from '@helpers/auth/auth.helper';
-import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
-import { useMemo } from 'react';
+import { useOptionalUser } from '@genfeedai/contexts/user/user-context/user-context';
+import { MemberRole } from '@genfeedai/contracts';
+import { getPlaywrightAuthState } from '@helpers/auth/auth.helper';
 
-export function useUserRole(): MemberRole | undefined {
-  const { user } = useAuthUser();
+export function useUserRole(): MemberRole | null | undefined {
+  const userContext = useOptionalUser();
   const playwrightAuth = getPlaywrightAuthState();
-
-  return useMemo(() => {
-    if (!user) {
-      return (playwrightAuth?.publicMetadata as Record<string, unknown> | null)
-        ?.role as MemberRole | undefined;
-    }
-    const publicData = getAuthPublicData(user);
-    return (publicData as unknown as Record<string, unknown>).role as
-      | MemberRole
-      | undefined;
-  }, [playwrightAuth?.publicMetadata, user]);
+  const publicMetadata = playwrightAuth?.publicMetadata;
+  const playwrightRole =
+    publicMetadata && 'role' in publicMetadata
+      ? publicMetadata.role
+      : undefined;
+  if (playwrightRole) {
+    return (
+      Object.values(MemberRole).find((role) => role === playwrightRole) ?? null
+    );
+  }
+  if (!userContext || userContext.memberRole === undefined) return undefined;
+  return (
+    Object.values(MemberRole).find((role) => role === userContext.memberRole) ??
+    null
+  );
 }

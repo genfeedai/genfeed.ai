@@ -10,6 +10,7 @@ import { TeamMentionsController } from '@api/collections/members/controllers/tea
 import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesModule } from '@api/collections/roles/roles.module';
+import { CommonModule } from '@api/common/common.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { Module } from '@nestjs/common';
 
@@ -20,7 +21,7 @@ import { Module } from '@nestjs/common';
     TeamMentionsController,
   ],
   exports: [InvitationService, MembersService],
-  imports: [NotificationsModule, RolesModule],
+  imports: [CommonModule, NotificationsModule, RolesModule],
   providers: [InvitationService, MembersService],
 })
 export class MembersModule {}

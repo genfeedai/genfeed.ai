@@ -18,13 +18,13 @@ vi.mock('next/image', () => ({
 }));
 
 describe('HomeProduct', () => {
-  it('explains the one-brief product mechanism after the output showcase', () => {
+  it('explains the one-prompt product mechanism after the output showcase', () => {
     render(<HomeProduct />);
 
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: /one brief\. every channel\./i,
+        name: /one prompt\. every feed\./i,
       }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('home-product-workspace')).toBeInTheDocument();

@@ -5,7 +5,6 @@ import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { SettingsPage } from '../../pages/settings.page';
 import { brandPath, orgSettingsRoute } from '../../utils/app-chrome';
-import { selectVisibleRadixOption } from '../../utils/radix-select';
 import { assertRouteRenders } from '../../utils/route-assertions';
 
 /**
@@ -175,7 +174,10 @@ test.describe('Settings Connections & Sub-Pages', () => {
       ).toBeVisible();
       await expect(
         settingsPage.canvas.getByRole('combobox', { name: 'Model type' }),
-      ).toContainText('All');
+      ).toContainText('Catalog');
+      await expect(
+        settingsPage.canvas.getByRole('tab', { name: /^All\b/ }),
+      ).toHaveAttribute('aria-selected', 'true');
       await expect(
         settingsPage.canvas.getByRole('heading', {
           exact: true,
@@ -190,13 +192,12 @@ test.describe('Settings Connections & Sub-Pages', () => {
       const settingsPage = new SettingsPage(authenticatedPage);
 
       await settingsPage.open(MODELS_ROUTE);
-      await selectVisibleRadixOption(
-        authenticatedPage,
-        settingsPage.canvas.getByRole('combobox', { name: 'Model type' }),
-        'Videos',
-      );
+      await settingsPage.canvas.getByRole('tab', { name: /^Video\b/ }).click();
 
-      await expect(authenticatedPage).toHaveURL(/[?&]type=videos(?:&|$)/);
+      await expect(authenticatedPage).toHaveURL(/[?&]type=video(?:&|$)/);
+      await expect(
+        settingsPage.canvas.getByRole('tab', { name: /^Video\b/ }),
+      ).toHaveAttribute('aria-selected', 'true');
       await expect(
         settingsPage.canvas.getByRole('heading', {
           exact: true,
@@ -213,8 +214,8 @@ test.describe('Settings Connections & Sub-Pages', () => {
       await settingsPage.open(`${MODELS_ROUTE}?type=images`);
 
       await expect(
-        settingsPage.canvas.getByRole('combobox', { name: 'Model type' }),
-      ).toContainText('Images');
+        settingsPage.canvas.getByRole('tab', { name: /^Image\b/ }),
+      ).toHaveAttribute('aria-selected', 'true');
       await expect(
         settingsPage.canvas.getByRole('heading', {
           exact: true,
@@ -230,8 +231,8 @@ test.describe('Settings Connections & Sub-Pages', () => {
       await settingsPage.open(`${MODELS_ROUTE}?type=videos`);
 
       await expect(
-        settingsPage.canvas.getByRole('combobox', { name: 'Model type' }),
-      ).toContainText('Videos');
+        settingsPage.canvas.getByRole('tab', { name: /^Video\b/ }),
+      ).toHaveAttribute('aria-selected', 'true');
       await expect(
         settingsPage.canvas.getByRole('heading', {
           exact: true,
@@ -443,11 +444,11 @@ test.describe('Organization Settings', () => {
     await expect(
       settingsPage.canvas.getByRole('heading', {
         exact: true,
-        name: 'Organization Information',
+        name: 'Organization',
       }),
     ).toBeVisible();
     await expect(
-      settingsPage.canvas.getByText('mock-org-id-e2e-test', { exact: true }),
+      settingsPage.canvas.getByText('@test-org', { exact: true }),
     ).toBeVisible();
     await expect(settingsPage.orgIdentityCard).toBeVisible();
   });

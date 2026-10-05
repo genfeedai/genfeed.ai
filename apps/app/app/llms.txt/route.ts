@@ -36,9 +36,6 @@ const LLMS_TXT = `# Genfeed Studio
 - \`robots.txt\` allows only \`/login\` and \`/sign-up\`.
 `;
 
-export const dynamic = 'force-static';
-export const revalidate = false;
-
 export function GET(): Response {
   return new Response(LLMS_TXT, {
     headers: {

@@ -150,6 +150,7 @@ export default function LibraryBrowser({
     <IngredientsHeaderProvider value={headerContextValue}>
       <IngredientsProvider value={contextValue}>
         <Container
+          className="@container/library"
           description={description}
           icon={Library}
           isTopbarPinned

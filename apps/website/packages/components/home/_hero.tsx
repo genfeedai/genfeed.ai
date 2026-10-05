@@ -33,16 +33,16 @@ export default function HomeHero(): React.ReactElement {
         >
           {/* The line break is a layout lock, not a sentence boundary. Keep the
               explicit space so the accessible name stays two spoken sentences
-              instead of "content.Get". */}
-          Ask for content. <br />
-          Get it published.
+              instead of "once.Show". */}
+          Ask once. <br />
+          Show up everywhere.
         </Heading>
         <Text
           as="p"
           className="animate-gen-stagger-in mx-auto mt-7 max-w-2xl text-base leading-7 text-surface/72 [--gen-stagger-delay:180ms] md:text-lg"
         >
-          Genfeed is an AI agent that makes on-brand videos, images, ads and
-          posts, then schedules them to 20+ channels.
+          Genfeed is a content agent that makes videos, images and posts to grow
+          your audience and your revenue.
         </Text>
 
         <div

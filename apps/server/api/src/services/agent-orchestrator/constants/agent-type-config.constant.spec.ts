@@ -167,3 +167,15 @@ describe('detectPlatformIntentSuffix', () => {
     expect(suffix).not.toContain(injection);
   });
 });
+
+it('excludes saving onboarding answers from general default tools', () => {
+  expect(getAgentTypeConfig(AgentType.GENERAL).defaultTools).not.toContain(
+    'save_onboarding_answers',
+  );
+});
+
+it('excludes URL scans from general default tools', () => {
+  expect(getAgentTypeConfig(AgentType.GENERAL).defaultTools).not.toContain(
+    'scan_brand_url',
+  );
+});

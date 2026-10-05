@@ -40,18 +40,28 @@ async function gotoAvatarLibrary(page: Page): Promise<void> {
 async function openAvatarRow(page: Page, label: string): Promise<void> {
   const row = page.locator('tr', { hasText: label });
   await expect(row).toBeVisible({ timeout: 30000 });
-  await row.locator('[data-testid="action-button"]').click();
+  await row.click();
+  const inspector = page.getByRole('complementary', {
+    name: 'Asset details',
+    exact: true,
+  });
+  await expect(
+    inspector.getByRole('heading', { name: label, exact: true }),
+  ).toBeVisible();
+  await inspector
+    .getByRole('button', { name: 'View full details', exact: true })
+    .click();
 
   // The details panel (IngredientTabsInfo) is open once its label field shows
   // this ingredient's metadata label — the positive signal the absence checks
   // below depend on.
-  await expect(page.getByText('Core Metadata')).toBeVisible();
+  await expect(
+    page.getByRole('textbox', { name: 'Label', exact: true }),
+  ).toBeVisible();
   await expect(page.locator('input[name="label"]')).toHaveValue(label);
 }
 
 test.describe('Avatar Library', () => {
-  test.describe.configure({ mode: 'serial' });
-
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
       credits: 1000,

@@ -1,7 +1,7 @@
 'use client';
 
 import type { TagScope } from '@genfeedai/contracts';
-import type { ITag } from '@genfeedai/contracts/interfaces';
+import type { ITag, ITagColorSwatch } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { TagsService } from '@genfeedai/services/content/tags.service';
@@ -55,9 +55,10 @@ export function useLibraryTags({
     async (
       label: string,
       scope?: TagScope.BRAND | TagScope.ORGANIZATION,
+      color?: ITagColorSwatch,
     ): Promise<ITag> => {
       const service = await getTagsService();
-      const tag = await service.createLibraryTag(label, scope);
+      const tag = await service.createLibraryTag(label, scope, color);
       await refresh();
       return tag;
     },

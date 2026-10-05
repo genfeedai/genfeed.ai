@@ -33,6 +33,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   serializeCollection,
@@ -84,7 +85,15 @@ export class CampaignsController {
     @CurrentUser() user: User,
     @Query() query: CampaignsQueryDto,
   ) {
-    const data = await this.service.list(user.organizationId, query);
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
+    const data = await this.service.list(tenant.organizationId, {
+      ...query,
+      brandId: tenant.brandId,
+    });
     return serializeCollection(request, CampaignSerializer, data);
   }
 

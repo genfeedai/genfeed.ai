@@ -83,6 +83,11 @@ export function isBetterAuthEnabled(): boolean {
     return runtimeEnabled;
   }
 
+  return readBetterAuthEnabledFromEnv();
+}
+
+/** Reads the environment directly, without the browser runtime override. */
+export function readBetterAuthEnabledFromEnv(): boolean {
   const configuredValue =
     process.env.BETTER_AUTH_ENABLED ??
     process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;

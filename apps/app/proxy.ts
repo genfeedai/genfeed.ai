@@ -1418,7 +1418,14 @@ async function routeBetterAuthRequest(
       }
     }
 
-    // `/onboarding/*` is public so a half-provisioned signup can reach it.
+    // `/onboarding/*` skips the bootstrap gate so a half-provisioned signup
+    // can reach it, but it still needs a session: the web onboarding layout
+    // renders nothing behind its auth gate, so a signed-out visitor (an email
+    // CTA opened in another browser) would sit on a blank page forever.
+    if (!hasSession && pathname.startsWith('/onboarding')) {
+      return redirectToLoginPreservingDestination(req);
+    }
+
     // `/onboarding/brand` is the shared brand step and stays reachable.
     // Other classic wizard paths still bounce agent-first users to the
     // agent surface after brand is confirmed.

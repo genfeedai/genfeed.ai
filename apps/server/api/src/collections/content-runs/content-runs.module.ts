@@ -61,7 +61,6 @@ import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.modu
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { XAdsModule } from '@api/services/integrations/x-ads/x-ads.module';
 import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
-import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
 import { RouterModule } from '@api/services/router/router.module';
 import { VideoStitchModule } from '@api/services/video-stitch/video-stitch.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
@@ -115,7 +114,6 @@ import { Module } from '@nestjs/common';
     StoryboardRunsService,
     StoryboardRunStoreService,
     StoryboardSourceService,
-    AgentGenerationEstimateService,
     BrandRemixSceneService,
     BrandRemixSceneStoreService,
     BrandRemixSceneQuoteService,

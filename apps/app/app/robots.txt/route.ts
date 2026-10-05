@@ -16,9 +16,6 @@ Content-Signal: ai-train=no, ai-input=no
 Sitemap: https://app.genfeed.ai/sitemap.xml
 `;
 
-export const dynamic = 'force-static';
-export const revalidate = false;
-
 export function GET(): Response {
   return new Response(ROBOTS_TXT, {
     headers: {

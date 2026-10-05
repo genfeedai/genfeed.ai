@@ -78,13 +78,13 @@ describe('HomeHero', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     const heading = screen.getByRole('heading', {
       level: 1,
-      name: /ask for content\. get it published\./i,
+      name: /ask once\. show up everywhere\./i,
     });
     expect(heading).toBeInTheDocument();
     expect(heading.querySelector('br')).toBeInTheDocument();
     expect(
       screen.getByText(
-        /genfeed is an ai agent that makes on-brand videos, images, ads and posts, then schedules them to 20\+ channels/i,
+        /genfeed is a content agent that makes videos, images and posts to grow your audience and your revenue/i,
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/— on brand —/)).not.toBeInTheDocument();

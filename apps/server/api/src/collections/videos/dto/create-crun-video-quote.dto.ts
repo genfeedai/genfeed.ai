@@ -6,9 +6,10 @@ import {
   finalizeCrunQuoteCommon,
   refineCrunQuoteCommon,
 } from '@api/services/integrations/crun/crun-quote-common.dto';
-import type {
-  CrunVideoQuoteControls,
-  CrunVideoQuoteRequest,
+import {
+  CRUN_VIDEO_MODEL_KEYS,
+  type CrunVideoQuoteControls,
+  type CrunVideoQuoteRequest,
 } from '@genfeedai/contracts/interfaces/billing';
 import { Type } from 'class-transformer';
 import {
@@ -61,7 +62,7 @@ export class CreateCrunVideoQuoteDto
   implements CrunVideoQuoteRequest
 {
   @IsString()
-  @IsIn(['crun/kling/v2-5-turbo-pro', 'crun/google/veo3-1-fast-t2v'])
+  @IsIn(CRUN_VIDEO_MODEL_KEYS)
   model!: CrunVideoQuoteRequest['model'];
   @IsString() @MinLength(1) @MaxLength(5000) text!: string;
   @IsObject()
@@ -84,7 +85,7 @@ export class CreateCrunVideoQuoteDto
 
 export const crunVideoQuoteIntentSchema = z
   .object({
-    model: z.enum(['crun/kling/v2-5-turbo-pro', 'crun/google/veo3-1-fast-t2v']),
+    model: z.enum(CRUN_VIDEO_MODEL_KEYS),
     text: z.string().trim().min(1).max(5000),
     references: z
       .array(crunQuoteEntityId)

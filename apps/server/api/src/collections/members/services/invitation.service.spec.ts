@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
+import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { ChannelDispatchInput } from '@api/services/activity-recording/activity-recording.types';
@@ -218,6 +219,9 @@ function buildService(prisma = buildPrisma()) {
   const sendEmail = vi.fn().mockResolvedValue(undefined);
   const notificationsService = { sendEmail };
   const activityRecorder = emailRecorder(sendEmail);
+  const accessBootstrapCacheService = {
+    invalidateForUser: vi.fn().mockResolvedValue(undefined),
+  };
 
   const logger = {
     debug: vi.fn(),
@@ -227,6 +231,7 @@ function buildService(prisma = buildPrisma()) {
   } as unknown as LoggerService;
 
   return {
+    accessBootstrapCacheService,
     configService,
     logger,
     notificationsService,
@@ -236,6 +241,7 @@ function buildService(prisma = buildPrisma()) {
       configService,
       activityRecorder as unknown as ActivityRecorderService,
       logger,
+      accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
     ),
   };
 }
@@ -593,7 +599,7 @@ describe('InvitationService', () => {
 
   describe('acceptInvitation', () => {
     it('accepts an invitation for an existing invited user and activates their member row', async () => {
-      const { prisma, service } = buildService();
+      const { accessBootstrapCacheService, prisma, service } = buildService();
       const invitation = makeInvitation({ tokenHash: hashToken('token-123') });
       const inactiveMember = makeMember({ isActive: false });
       const acceptedAt = new Date('2026-06-23T12:00:00.000Z');
@@ -612,6 +618,23 @@ describe('InvitationService', () => {
           acceptedByUserId: userId,
           tokenHash: hashToken('token-123'),
         }),
+      );
+
+      let transactionCommitted = false;
+      prisma.$transaction.mockImplementationOnce(
+        async (callback: (tx: MockPrisma) => Promise<unknown>) => {
+          const result = await callback(prisma);
+          expect(
+            accessBootstrapCacheService.invalidateForUser,
+          ).not.toHaveBeenCalled();
+          transactionCommitted = true;
+          return result;
+        },
+      );
+      accessBootstrapCacheService.invalidateForUser.mockImplementationOnce(
+        async () => {
+          expect(transactionCommitted).toBe(true);
+        },
       );
 
       const result = await service.acceptInvitation('token-123');
@@ -637,6 +660,9 @@ describe('InvitationService', () => {
         where: { id: memberId },
       });
       expect(prisma.setting.create).not.toHaveBeenCalled();
+      expect(
+        accessBootstrapCacheService.invalidateForUser,
+      ).toHaveBeenCalledExactlyOnceWith(userId);
       expect(result).toMatchObject({
         memberId,
         organizationId: orgId,
@@ -646,7 +672,7 @@ describe('InvitationService', () => {
     });
 
     it('creates a user, settings, and active member when no user exists', async () => {
-      const { prisma, service } = buildService();
+      const { accessBootstrapCacheService, prisma, service } = buildService();
       prisma.invitation.findUnique.mockResolvedValue(makeInvitation());
       prisma.invitation.updateMany.mockResolvedValue({ count: 1 });
       prisma.user.findFirst.mockResolvedValue(null);
@@ -687,6 +713,33 @@ describe('InvitationService', () => {
         },
       });
       expect(result.memberId).toBe(memberId);
+      expect(
+        accessBootstrapCacheService.invalidateForUser,
+      ).toHaveBeenCalledExactlyOnceWith(userId);
+    });
+
+    it('does not invalidate bootstrap when the transaction fails after updating membership', async () => {
+      const { accessBootstrapCacheService, prisma, service } = buildService();
+      prisma.invitation.findUnique.mockResolvedValue(makeInvitation());
+      prisma.invitation.updateMany.mockResolvedValue({ count: 1 });
+      prisma.user.findFirst.mockResolvedValue(makeUser());
+      prisma.user.update.mockResolvedValue(makeUser({ isInvited: false }));
+      prisma.member.findFirst.mockResolvedValue(
+        makeMember({ isActive: false }),
+      );
+      prisma.member.update.mockResolvedValue(makeMember({ isActive: true }));
+      prisma.invitation.update.mockRejectedValue(
+        new Error('Transaction failed'),
+      );
+
+      await expect(service.acceptInvitation('token-123')).rejects.toThrow(
+        'Transaction failed',
+      );
+
+      expect(prisma.member.update).toHaveBeenCalled();
+      expect(
+        accessBootstrapCacheService.invalidateForUser,
+      ).not.toHaveBeenCalled();
     });
 
     it('refuses to create a member when the org has no brand, with a 409 rather than a raw 500', async () => {

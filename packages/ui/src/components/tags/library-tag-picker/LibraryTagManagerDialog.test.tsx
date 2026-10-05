@@ -1,6 +1,6 @@
 import { TagScope } from '@genfeedai/contracts';
-import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
-import type { ITag } from '@genfeedai/contracts/interfaces';
+import { LIBRARY_TAG_UPDATED_EVENT } from '@genfeedai/contracts/constants';
+import type { ILibraryTagUpdate, ITag } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createContext, useContext } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -169,9 +169,9 @@ describe('LibraryTagManagerDialog', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renames a tag and refreshes the Library so cards pick it up', async () => {
-    const refreshed = vi.fn();
-    window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refreshed);
+  it('renames a tag and tells the Library so cards pick it up', async () => {
+    const updated = vi.fn();
+    window.addEventListener(LIBRARY_TAG_UPDATED_EVENT, updated);
     open();
 
     fireEvent.click(screen.getByRole('button', { name: 'Rename tag Launch' }));
@@ -181,32 +181,37 @@ describe('LibraryTagManagerDialog', () => {
         label: 'Launch renamed',
       }),
     );
-    await waitFor(() => expect(refreshed).toHaveBeenCalled());
+    await waitFor(() => expect(updated).toHaveBeenCalled());
+    const [event] = updated.mock.calls[0] as [CustomEvent<ILibraryTagUpdate>];
+    expect(event.detail).toEqual({ id: 'tag-brand', label: 'Launch renamed' });
     expect(refresh).toHaveBeenCalled();
-    window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refreshed);
+    window.removeEventListener(LIBRARY_TAG_UPDATED_EVENT, updated);
   });
 
-  it('recolors a tag when the color is committed, not while it is dragged', async () => {
+  it('recolors a tag from the palette, with a text color that reads on it', async () => {
+    const updated = vi.fn();
+    window.addEventListener(LIBRARY_TAG_UPDATED_EVENT, updated);
     open();
-    const input = screen.getByLabelText('Background color of Launch');
 
-    fireEvent.change(input, { target: { value: '#ff0000' } });
-    expect(tagsService.patch).not.toHaveBeenCalled();
-    fireEvent.blur(input);
+    fireEvent.click(screen.getByRole('button', { name: 'Color of Launch' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Blue' }));
 
     await waitFor(() =>
       expect(tagsService.patch).toHaveBeenCalledWith('tag-brand', {
-        backgroundColor: '#ff0000',
+        backgroundColor: '#2563EB',
+        textColor: '#FFFFFF',
       }),
     );
-  });
-
-  it('does not write when the color did not change', () => {
-    open();
-
-    fireEvent.blur(screen.getByLabelText('Text color of Launch'));
-
-    expect(tagsService.patch).not.toHaveBeenCalled();
+    await waitFor(() => expect(updated).toHaveBeenCalled());
+    // Only the changed fields travel, so a recolor can never replay a stale
+    // label over a rename that finished in the meantime.
+    const [event] = updated.mock.calls[0] as [CustomEvent<ILibraryTagUpdate>];
+    expect(event.detail).toEqual({
+      backgroundColor: '#2563EB',
+      id: 'tag-brand',
+      textColor: '#FFFFFF',
+    });
+    window.removeEventListener(LIBRARY_TAG_UPDATED_EVENT, updated);
   });
 
   it('asks twice before deleting, then keeps the assets', async () => {

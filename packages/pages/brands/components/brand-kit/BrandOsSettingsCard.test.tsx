@@ -24,7 +24,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandOsSettingsCard from './BrandOsSettingsCard';
 
 const mocks = vi.hoisted(() => ({
-  role: 'owner' as string | undefined,
+  role: 'owner' as string | null | undefined,
   getService: vi.fn(),
   listBrandOsRevisions: vi.fn(),
   updateBrandOsRevision: vi.fn(),
@@ -242,6 +242,40 @@ beforeEach(() => {
 });
 
 describe('Brand OS revision settings', () => {
+  it.each([MemberRole.OWNER, MemberRole.ADMIN])(
+    'allows %s to edit and approve without the read-only banner',
+    async (role) => {
+      mocks.role = role;
+      mocks.approveBrandOsRevision.mockResolvedValue(
+        revision({ status: 'APPROVED', approvedById: 'user-1' }),
+      );
+      await renderSettings();
+      expect(
+        screen.queryByText(/Only organization owners and admins/),
+      ).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Description')).toBeEnabled();
+      fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
+      await waitFor(() =>
+        expect(mocks.approveBrandOsRevision).toHaveBeenCalled(),
+      );
+    },
+  );
+
+  it.each([MemberRole.CREATOR, MemberRole.USER, null])(
+    'shows the read-only banner for resolved role %s',
+    async (role) => {
+      mocks.role = role;
+      await renderSettings();
+      expect(
+        screen.getByText(/Only organization owners and admins/),
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText('Description')).toBeDisabled();
+      expect(
+        screen.queryByRole('button', { name: 'Approve revision' }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
   it('keeps export unavailable before approval and preserves rejected save edits', async () => {
     mocks.updateBrandOsRevision.mockRejectedValueOnce(
       new Error('This draft changed. Refresh and try again.'),
@@ -1663,7 +1697,10 @@ describe('opt-in auto-save and guide readiness', () => {
 
   it.each([
     [MemberRole.OWNER, true],
+    [MemberRole.ADMIN, true],
+    [MemberRole.CREATOR, false],
     [MemberRole.USER, false],
+    [null, false],
   ] as const)(
     'reports an approved selected guide for %s',
     async (role, canManage) => {

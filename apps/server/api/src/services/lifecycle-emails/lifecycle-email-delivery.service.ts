@@ -443,29 +443,23 @@ export class LifecycleEmailDeliveryService {
   }
 
   private buildHtml(template: EmailTemplate, unsubscribeToken: string): string {
-    // A misconfigured API url must never turn the unsubscribe anchor into an
-    // arbitrary scheme; keep the notice either way, drop only the link.
+    // A misconfigured API url must never turn the unsubscribe link into an
+    // arbitrary scheme; keep an opt-out path either way, drop only the link.
     const unsubscribeUrl = sanitizeSystemEmailUrl(
       this.unsubscribeUrl(unsubscribeToken),
     );
-    const unsubscribeHtml = unsubscribeUrl
-      ? `No longer want lifecycle emails? <a href="${escapeSystemEmailHtml(unsubscribeUrl)}" style="color:#A1A1A1;text-decoration:underline;">Unsubscribe</a>.`
-      : 'No longer want lifecycle emails? Reply to this email to unsubscribe.';
-    const bodyHtml = [
-      ...template.paragraphs.map((paragraph) =>
-        buildSystemEmailParagraph(paragraph),
-      ),
-      `<p style="margin:8px 0 20px;color:#949494;font-size:12px;line-height:18px;">${unsubscribeHtml}</p>`,
-    ].join('');
+    const footerNote = `You are receiving this account lifecycle email because you signed up for Genfeed.ai.${unsubscribeUrl ? '' : ' Reply to this email to unsubscribe.'}`;
 
     return buildSystemEmailHtml({
       action: { label: template.actionLabel, url: template.actionUrl },
       appUrl: this.appUrl(),
-      bodyHtml,
-      footerNote:
-        'You are receiving this account lifecycle email because you signed up for Genfeed.ai.',
+      bodyHtml: template.paragraphs
+        .map((paragraph) => buildSystemEmailParagraph(paragraph))
+        .join(''),
+      footerNote,
       preheader: template.preheader,
       title: template.title,
+      ...(unsubscribeUrl ? { unsubscribeUrl } : {}),
     }).replaceAll(
       `href="${escapeSystemEmailHtml(template.actionUrl)}"`,
       'href="{{emailActionUrl}}"',

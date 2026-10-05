@@ -1,11 +1,9 @@
 import { Readable } from 'node:stream';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
-import {
-  IngredientCharacterFilterService,
-  resolveCharacterFilter,
-} from '@api/collections/ingredients/services/ingredient-character-filter.service';
+import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { buildVideoListAggregate } from '@api/collections/videos/controllers/video-list-query.util';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
@@ -39,7 +37,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
@@ -111,8 +108,10 @@ export class VideosController {
 
   @Get()
   @Cache({
-    keyGenerator: (req) =>
-      `videos:list:org:${(req.user?.organizationId as string | undefined) ?? 'global'}:brand:${(req.user?.brandId as string | undefined) ?? 'global'}:user:${req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,
+    keyGenerator: (req) => {
+      const tenant = CollectionFilterUtil.resolveListCacheScope(req);
+      return `videos:list:org:${tenant.organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`;
+    },
     tags: ['videos'],
     ttl: 300, // 5 minutes
   })
@@ -122,6 +121,11 @@ export class VideosController {
     @CurrentUser() user: User,
     @Query() query: VideosQueryDto,
   ): Promise<JsonApiCollectionResponse> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     // `latest=true` shorthand for brand-scoped user videos with training sources
     // excluded, ordered by createdAt desc and capped at 50. Unlike the standard
     // list route there is no organization OR-branch and no isDefault branch;
@@ -129,21 +133,25 @@ export class VideosController {
     // status/scope/folder/parent/search.
     if (query.latest) {
       const latestIsDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-      const latestBrand = user.brandId;
+      const latestBrand = tenant.isOrganizationOverride
+        ? tenant.brandId
+        : user.brandId;
 
       const latestAggregate = {
         where: {
           AND: [
             {
-              brandId: latestBrand,
+              ...(latestBrand ? { brandId: latestBrand } : {}),
               category: CategoryPrismaUtil.toIngredientCategory(
                 IngredientCategory.VIDEO,
               ),
               isDeleted: latestIsDeleted,
-              organizationId: user.organizationId,
+              organizationId: tenant.organizationId,
               // Exclude training source videos by default
               trainingId: null,
-              userId: user.userId ?? user.id,
+              ...(!tenant.isOrganizationOverride
+                ? { userId: user.userId ?? user.id }
+                : {}),
             },
             IngredientFilterUtil.buildOriginFilter(query.origins),
           ],
@@ -160,7 +168,9 @@ export class VideosController {
         request,
         VideoSerializer,
         (await this.evaluationProjection?.attachToPage(latestData, {
-          brandId: user.brandId,
+          brandId: tenant.isOrganizationOverride
+            ? tenant.brandId
+            : user.brandId,
           contentType: 'video',
         })) ?? latestData,
       );
@@ -171,83 +181,19 @@ export class VideosController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    // Handle multiple status values (comma-separated)
-    const status = QueryDefaultsUtil.parseStatusFilter(query.status);
-
-    //  KEEP COMMENTS FOR NOW
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-
-    // Use CollectionFilterUtil for common filtering patterns
-    const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
-    const brandId = CollectionFilterUtil.buildBrandFilter(
-      query.brandId,
+    const aggregate = await buildVideoListAggregate(
+      query,
       user,
-      'user',
+      tenant,
+      this.characterFilter,
     );
-
-    // Use IngredientFilterUtil to build ingredient-specific filters
-    const folderConditions = IngredientFilterUtil.buildFolderFilter(
-      query.folderId?.toString(),
-    );
-
-    const parentConditions = IngredientFilterUtil.buildParentFilter(
-      query.parentId?.toString(),
-    );
-
-    const trainingFilter = IngredientFilterUtil.buildTrainingFilter(
-      query.trainingId?.toString(),
-    );
-    const searchFilter = CollectionFilterUtil.buildSearchFilter(query.search, [
-      'metadata.label',
-      'metadata.description',
-      'prompt.prompt',
-    ]);
-
-    // Handle format filter based on metadata dimensions
-    // Format is now filtered after metadata lookup
-
-    const characterFilter = await resolveCharacterFilter(this.characterFilter, {
-      characterIds: query.characters,
-      // These lists do not authorize a `brandId` override, so availability
-      // always follows the session's active brand, never the query.
-      user,
-    });
-
-    const aggregate = {
-      where: {
-        AND: [
-          { organizationId: user.organizationId },
-          {
-            brandId,
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.VIDEO,
-            ),
-            isDeleted,
-            ...(scope !== undefined ? { scope } : {}),
-            status,
-            // ...(isEntityId(query.references)
-            //   ? { references: query.references }
-            //   : {}),
-          },
-          folderConditions,
-          parentConditions,
-          trainingFilter,
-          IngredientFilterUtil.buildOriginFilter(query.origins),
-          characterFilter,
-          IngredientFilterUtil.buildTagFilter(query.tags, query.tagMatch),
-          searchFilter.where,
-        ],
-      },
-      include: IngredientFilterUtil.buildLibraryTagsInclude(),
-      orderBy: handleQuerySort(query.sort),
-    };
 
     const data = await this.videosService.findAll(aggregate, options);
     return serializeCollection(
       request,
       VideoSerializer,
       (await this.evaluationProjection?.attachToPage(data, {
-        brandId: user.brandId,
+        brandId: tenant.isOrganizationOverride ? tenant.brandId : user.brandId,
         contentType: 'video',
       })) ?? data,
     );

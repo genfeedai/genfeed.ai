@@ -18,6 +18,7 @@ import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.uti
 import { BotPlatform, LivestreamTranscriptSource } from '@genfeedai/contracts';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 import {
   mergeLivestreamSessionContext,
@@ -79,9 +80,13 @@ export class BotsLivestreamService {
     botId: string,
     organizationId: string,
   ): Promise<LivestreamBotSessionDocument | null> {
-    const session = await this.prisma.livestreamBotSession.findFirst({
-      where: { botId, isDeleted: false, organizationId },
-    });
+    const session = await runWithTenantContext(
+      { organizationId },
+      async () =>
+        await this.prisma.livestreamBotSession.findFirst({
+          where: { botId, isDeleted: false, organizationId },
+        }),
+    );
 
     return session
       ? normalizeLivestreamSessionDocument(session as Record<string, unknown>)
@@ -97,12 +102,17 @@ export class BotsLivestreamService {
       );
     }
 
-    const updated = await this.prisma.livestreamBotSession.update({
-      where: scopedWhere(session.organizationId, { id: session.id }),
-      data: {
-        data: serializeLivestreamSessionData(session),
-      },
-    });
+    const organizationId = session.organizationId;
+    const updated = await runWithTenantContext(
+      { organizationId },
+      async () =>
+        await this.prisma.livestreamBotSession.update({
+          where: scopedWhere(organizationId, { id: session.id }),
+          data: {
+            data: serializeLivestreamSessionData(session),
+          },
+        }),
+    );
 
     const normalized = normalizeLivestreamSessionDocument(
       updated as Record<string, unknown>,
@@ -158,24 +168,28 @@ export class BotsLivestreamService {
       'Livestream bot',
     );
 
-    const created = await this.prisma.livestreamBotSession.create({
-      data: {
-        data: toPrismaJson(
-          serializeLivestreamSessionData({
-            context: { source: 'none' },
-            deliveryHistory: [],
-            platformStates: this.buildPlatformStates(normalizedBot),
-            status: 'stopped',
-            transcriptChunks: [],
-          }),
-        ),
-        botId,
-        brandId,
-        isDeleted: false,
-        organizationId,
-        userId,
-      },
-    });
+    const created = await runWithTenantContext(
+      { organizationId },
+      async () =>
+        await this.prisma.livestreamBotSession.create({
+          data: {
+            data: toPrismaJson(
+              serializeLivestreamSessionData({
+                context: { source: 'none' },
+                deliveryHistory: [],
+                platformStates: this.buildPlatformStates(normalizedBot),
+                status: 'stopped',
+                transcriptChunks: [],
+              }),
+            ),
+            botId,
+            brandId,
+            isDeleted: false,
+            organizationId,
+            userId,
+          },
+        }),
+    );
 
     return normalizeLivestreamSessionDocument(
       created as Record<string, unknown>,

@@ -64,9 +64,9 @@ const CAPABILITIES = [
 
 const HERO_VISUAL = (
   <EditorialPoster
-    detail="Every output lands in review before it publishes. Nothing goes out that you have not seen."
+    detail="Supervised by default. Switch on auto-publish when you trust it, channel by channel."
     eyebrow="Genfeed Agent"
-    footer={<span>Publishes to 20+ channels</span>}
+    footer={<span>Publishes to every channel you connect</span>}
     items={[
       {
         label: 'You say',
@@ -81,12 +81,13 @@ const HERO_VISUAL = (
         value: 'Your brand, your voice, the right ratio per channel.',
       },
       {
-        label: 'You approve',
-        value: 'Then it schedules and posts on its own.',
+        label: 'It ships',
+        value:
+          'On your approval, or on its own once you switch on auto-publish.',
       },
     ]}
     subtitle="Say what you want in a sentence"
-    title="It makes the content. You approve it."
+    title="It makes the content. It gets it out."
   />
 );
 
@@ -98,7 +99,7 @@ export default function AgentContent() {
           <MarketingArtwork page="/agent" isCompact kind="integration" />
         }
         compact
-        description="Give the Genfeed agent a brief. It creates images, videos, and posts with your brand context, holds drafts for review, and schedules the content you approve."
+        description="Ask the Genfeed agent for images, videos and posts. It makes them with your brand context and gets them out to your channels, with your sign-off until you hand it the keys."
         heroActions={<AgentFirstActions trackingName="agent_hero_click" />}
         heroVisual={HERO_VISUAL}
         title="Genfeed Agent"

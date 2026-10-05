@@ -34,3 +34,77 @@ export function resolveAgentGenerationDimensions(
     AGENT_GENERATION_ASPECT_RATIO_DIMENSIONS[DEFAULT_AGENT_IMAGE_ASPECT_RATIO]
   );
 }
+
+/** Long edge in pixels for each Studio resolution label. */
+const STUDIO_RESOLUTION_LONG_EDGE: Readonly<Record<string, number>> = {
+  '360p': 640,
+  '1080P': 1920,
+  '1080p': 1920,
+  '1K': 1024,
+  '2K': 2048,
+  '480P': 854,
+  '480p': 854,
+  '720p': 1280,
+  '768P': 1366,
+  '768p': 1366,
+  '4k': 3840,
+  high: 1920,
+  pro: 1920,
+  standard: 1280,
+};
+
+const STUDIO_DEFAULT_LONG_EDGE = 1024;
+const STUDIO_EDGE_MULTIPLE = 8;
+
+function snapStudioEdge(value: number): number {
+  return Math.max(
+    STUDIO_EDGE_MULTIPLE,
+    Math.round(value / STUDIO_EDGE_MULTIPLE) * STUDIO_EDGE_MULTIPLE,
+  );
+}
+
+export function resolveStudioLongEdge(resolution: string): number {
+  return STUDIO_RESOLUTION_LONG_EDGE[resolution] ?? STUDIO_DEFAULT_LONG_EDGE;
+}
+
+/**
+ * Pins the long edge to `longEdge` and derives the short edge from the ratio,
+ * snapped to a multiple of 8. Studio submits these dimensions, and the server
+ * estimate derives the same ones, so both quote identical megapixels.
+ */
+export function resolveStudioAspectDimensions(
+  aspectRatio: string,
+  longEdge: number = STUDIO_DEFAULT_LONG_EDGE,
+): GenerationExecutionDimensions {
+  const [rawHorizontal, rawVertical] = aspectRatio.split(':');
+  const horizontal = Number(rawHorizontal);
+  const vertical = Number(rawVertical);
+  if (
+    !Number.isFinite(horizontal) ||
+    !Number.isFinite(vertical) ||
+    horizontal <= 0 ||
+    vertical <= 0
+  ) {
+    return { height: longEdge, width: longEdge };
+  }
+  return horizontal >= vertical
+    ? {
+        height: snapStudioEdge((longEdge * vertical) / horizontal),
+        width: longEdge,
+      }
+    : {
+        height: longEdge,
+        width: snapStudioEdge((longEdge * horizontal) / vertical),
+      };
+}
+
+/** Executed pixel size for a Studio aspect ratio and resolution label. */
+export function resolveStudioGenerationDimensions(
+  aspectRatio: string,
+  resolution: string,
+): GenerationExecutionDimensions {
+  return resolveStudioAspectDimensions(
+    aspectRatio,
+    resolveStudioLongEdge(resolution),
+  );
+}

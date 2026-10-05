@@ -2,6 +2,7 @@ import {
   AccessBootstrapCachePayload,
   AccessBootstrapCacheService,
 } from '@api/common/services/access-bootstrap-cache.service';
+import { MemberRole } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -28,15 +29,25 @@ describe('AccessBootstrapCacheService', () => {
   const makePayload = (
     overrides: Partial<AccessBootstrapCachePayload> = {},
   ): AccessBootstrapCachePayload => ({
-    brandId: 'brand-1',
-    creditsBalance: 100,
-    hasEverHadCredits: true,
-    isOnboardingCompleted: true,
-    isSuperAdmin: false,
-    organizationId: 'org-1',
-    subscriptionStatus: 'active',
-    subscriptionTier: 'pro',
-    userId: 'user-1',
+    access: {
+      brandId: 'brand-1',
+      creditsBalance: 100,
+      hasEverHadCredits: true,
+      hasGeneratedFirstAsset: false,
+      hasDismissedAssetGate: false,
+      isOnboardingCompleted: true,
+      isSuperAdmin: false,
+      memberRole: MemberRole.OWNER,
+      organizationId: 'org-1',
+      subscriptionStatus: 'active',
+      subscriptionTier: 'pro',
+      userId: 'user-1',
+    },
+    brands: [],
+    currentUser: null,
+    fleetCapabilities: null,
+    settings: null,
+    streak: null,
     ...overrides,
   });
 

@@ -4,37 +4,34 @@ import type { IUser } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 import { User } from '@genfeedai/models/auth/user.model';
-import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
+import type {
+  UserBootstrapData,
+  UserContextValue,
+  UserProviderProps,
+} from '@genfeedai/props/contexts/user-context.props';
 import { AuthService } from '@genfeedai/services/auth/auth.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
 import { getPlaywrightAuthState } from '@helpers/auth/auth.helper';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, use, useCallback, useMemo } from 'react';
-import { loadClientProtectedBootstrap } from '../../providers/protected-bootstrap/client-protected-bootstrap';
+import {
+  clearClientProtectedBootstrapCache,
+  loadClientProtectedBootstrap,
+} from '../../providers/protected-bootstrap/client-protected-bootstrap';
 import { useContextAuthedService } from '../internal/context-authed-service';
 
-export interface UserContextValue {
-  currentUser: IUser | null;
-  isFirstLogin: boolean;
-  setIsFirstLogin: (value: boolean) => void;
-  isLoading: boolean;
-  refetchUser: () => Promise<void>;
-  mutateUser: (user: IUser) => void;
-}
+export type { UserContextValue } from '@genfeedai/props/contexts/user-context.props';
 
 const UserContext = createContext<UserContextValue | undefined>(undefined);
 const USER_CONTEXT_CACHE_TTL_MS = 60_000;
-
-interface UserProviderProps extends LayoutProps {
-  hasInitialBootstrap?: boolean;
-  initialCurrentUser?: IUser | null;
-}
 
 export function UserProvider({
   children,
   hasInitialBootstrap = false,
   initialCurrentUser = null,
+  initialMemberRole = null,
+  initialOrganizationId,
 }: UserProviderProps) {
   const {
     isLoaded: isAuthLoaded,
@@ -76,29 +73,33 @@ export function UserProvider({
     [authUserId, authUserUpdatedAt, effectiveOrgId],
   );
 
-  const {
-    data: currentUser = null,
-    isLoading,
-    refetch,
-  } = useQuery({
+  const { data, isLoading, refetch } = useQuery<UserBootstrapData>({
     enabled: shouldFetch,
-    initialData: hasInitialBootstrap ? initialUser : undefined,
+    initialData:
+      hasInitialBootstrap &&
+      (!initialCurrentUser || initialCurrentUser.id === authUserId) &&
+      (initialOrganizationId === undefined ||
+        initialOrganizationId === effectiveOrgId)
+        ? { currentUser: initialUser, memberRole: initialMemberRole }
+        : undefined,
     initialDataUpdatedAt: hasInitialBootstrap
       ? initialDataUpdatedAt
       : undefined,
     queryFn: async () => {
       if (!effectiveIsSignedIn || !authUserId) {
-        return null;
+        return { currentUser: null, memberRole: null };
       }
 
+      let memberRole: string | null = null;
       try {
         const bootstrap = await loadClientProtectedBootstrap(
           clientBootstrapCacheKey,
           getAuthService,
         );
 
+        memberRole = bootstrap?.accessState?.memberRole ?? null;
         if (bootstrap?.currentUser) {
-          return new User(bootstrap.currentUser);
+          return { currentUser: new User(bootstrap.currentUser), memberRole };
         }
       } catch (error) {
         logger.warn('Failed to load client protected bootstrap for user', {
@@ -111,20 +112,28 @@ export function UserProvider({
       const userData = await service.findMe();
 
       if (userData) {
-        return new User(userData);
+        return { currentUser: new User(userData), memberRole };
       }
 
-      return null;
+      return { currentUser: null, memberRole };
     },
     queryKey,
     staleTime: USER_CONTEXT_CACHE_TTL_MS,
   });
 
+  const currentUser = data?.currentUser ?? null;
+  const memberRole =
+    !effectiveIsAuthLoaded || isLoading
+      ? undefined
+      : (data?.memberRole ?? null);
   const isFirstLogin = currentUser?.settings?.isFirstLogin ?? false;
 
   const mutate = useCallback(
     (nextUser: User | null) => {
-      queryClient.setQueryData(queryKey, nextUser);
+      queryClient.setQueryData<UserBootstrapData>(queryKey, (previous) => ({
+        currentUser: nextUser,
+        memberRole: previous?.memberRole ?? null,
+      }));
     },
     [queryClient, queryKey],
   );
@@ -153,6 +162,7 @@ export function UserProvider({
   );
 
   const refetchUser = useCallback(async () => {
+    clearClientProtectedBootstrapCache();
     await refetch();
   }, [refetch]);
 
@@ -166,13 +176,22 @@ export function UserProvider({
   const contextValue = useMemo(
     () => ({
       currentUser,
+      memberRole,
       isFirstLogin,
       isLoading,
       mutateUser,
       refetchUser,
       setIsFirstLogin: patchMe,
     }),
-    [currentUser, isFirstLogin, isLoading, mutateUser, refetchUser, patchMe],
+    [
+      currentUser,
+      memberRole,
+      isFirstLogin,
+      isLoading,
+      mutateUser,
+      refetchUser,
+      patchMe,
+    ],
   );
 
   return (

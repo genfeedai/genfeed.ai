@@ -9,6 +9,7 @@ import type {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { FeaturedWorkflowsService } from '@api/collections/workflows/services/featured-workflows.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { toMarketplaceWorkflow } from '@api/collections/workflows/utils/workflow-marketplace-projection.util';
 import { withNextRunAt } from '@api/collections/workflows/utils/workflow-next-run.util';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -22,7 +23,10 @@ import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
-import { WorkflowSerializer } from '@genfeedai/serializers';
+import {
+  MarketplaceWorkflowSerializer,
+  WorkflowSerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
@@ -115,6 +119,7 @@ export class WorkflowMarketplaceController {
           { config: { equals: true, path: ['isTemplate'] } },
         ],
         isDeleted: false,
+        currentVersionId: { not: null },
       },
       orderBy: handleQuerySort(query.sort || '-executionCount'),
     };
@@ -125,6 +130,9 @@ export class WorkflowMarketplaceController {
       await crossOrgUnsafe(
         async () => await this.workflowsService.findAll(aggregate, options),
       );
-    return serializeCollection(request, WorkflowSerializer, data);
+    return serializeCollection(request, MarketplaceWorkflowSerializer, {
+      ...data,
+      docs: data.docs.map(toMarketplaceWorkflow),
+    });
   }
 }

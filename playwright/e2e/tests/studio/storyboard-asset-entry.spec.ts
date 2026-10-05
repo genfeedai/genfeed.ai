@@ -153,13 +153,30 @@ for (const kind of ['image', 'video'] as const) {
     await expect(card).toBeVisible();
     await card.getByRole('button', { name: 'More', exact: true }).focus();
     await page.keyboard.press('Enter');
+    if (kind === 'video') {
+      await page
+        .getByRole('menuitem', { name: 'Transform', exact: true })
+        .focus();
+      await page.keyboard.press('ArrowRight');
+    }
     const label = kind === 'video' ? 'Remix this video' : 'Add to Storyboard';
     const action = page.getByRole('menuitem', { name: label, exact: true });
     await expect(action).toBeVisible();
-    if (kind === 'video')
+    if (kind === 'video') {
+      await page.keyboard.press('ArrowLeft');
+      await page
+        .getByRole('menuitem', { name: 'Library', exact: true })
+        .focus();
+      await page.keyboard.press('ArrowRight');
       await expect(
         page.getByRole('menuitem', { name: 'Open in Editor', exact: true }),
       ).toBeVisible();
+      await page.keyboard.press('ArrowLeft');
+      await page
+        .getByRole('menuitem', { name: 'Transform', exact: true })
+        .focus();
+      await page.keyboard.press('ArrowRight');
+    }
     await expectNoErrorOverlay(page);
     await page.screenshot({
       path: testInfo.outputPath('entry-action.png'),

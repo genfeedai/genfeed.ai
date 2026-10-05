@@ -66,7 +66,10 @@ export default function AppHtmlDocument({
         {head}
         <ThemeDocumentBootstrapScript />
       </head>
-      <body className={bodyClassName}>{children}</body>
+      {/* The runtime bootstrap may add gf-desktop-shell before hydration. */}
+      <body className={bodyClassName} suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

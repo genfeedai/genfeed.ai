@@ -18,12 +18,11 @@ export default function HomeProduct(): React.ReactElement {
               as="h2"
               className="mt-5 text-5xl font-semibold leading-[0.98] tracking-[-0.045em] text-surface sm:text-6xl"
             >
-              One brief. <span className="block">Every channel.</span>
+              One prompt. <span className="block">Every feed.</span>
             </Heading>
             <Text className="mt-7 max-w-lg text-base leading-7 text-surface/72 md:text-lg">
-              Give Genfeed the idea, audience, and goal. It creates the
-              coordinated campaign, keeps every output on-brand, and prepares
-              each format for review.
+              Give Genfeed the idea, the audience and the goal. It makes the
+              whole campaign, on brand, in every format your channels need.
             </Text>
           </div>
 

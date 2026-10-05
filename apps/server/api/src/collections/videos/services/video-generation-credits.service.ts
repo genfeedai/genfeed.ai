@@ -14,6 +14,7 @@ import {
   reserveGenerationRequestCredits,
 } from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
+import { buildVideoQuoteSelectors } from '@api/helpers/utils/credits/video-quote-selectors.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
 import { ActivitySource, type ByokProvider } from '@genfeedai/contracts';
@@ -392,17 +393,7 @@ export class VideoGenerationCreditsService {
       requests: MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported
         ? 1
         : outputs,
-      selectors: {
-        ...(createVideoDto.resolution !== undefined
-          ? { resolution: createVideoDto.resolution }
-          : {}),
-        ...(createVideoDto.isAudioEnabled !== undefined
-          ? {
-              audio: createVideoDto.isAudioEnabled,
-              generate_audio: createVideoDto.isAudioEnabled,
-            }
-          : {}),
-      },
+      selectors: buildVideoQuoteSelectors(createVideoDto),
     });
     return {
       requiredCredits: modelQuote.credits,

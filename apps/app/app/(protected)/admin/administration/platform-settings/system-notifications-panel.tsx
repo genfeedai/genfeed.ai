@@ -109,7 +109,7 @@ export default function SystemNotificationsPanel() {
   }
 
   return (
-    <section className="mb-10 max-w-2xl space-y-4" aria-label={t('title')}>
+    <section className="max-w-2xl space-y-4" aria-label={t('title')}>
       <h2 className="text-lg font-semibold">{t('title')}</h2>
       <p className="text-sm text-muted-foreground">{t('description')}</p>
       {isLoading ? (

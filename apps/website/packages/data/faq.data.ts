@@ -19,7 +19,7 @@ export interface FAQCategory {
 const FAQ_ITEMS_GENERAL: FAQItem[] = [
   {
     answer:
-      'Genfeed is a content intelligence platform for serious creators. We help you discover trending topics, generate AI content (videos, images, voice, articles), distribute everywhere, track ROI, and optimize with AI insights, all in one platform.',
+      'Genfeed is a content agent for creators, founders and brands. Ask for videos, images, voice, articles or posts and it makes them on brand, gets them out across your channels, and learns what grows your audience and your revenue.',
     question: 'What is Genfeed?',
   },
   {
@@ -45,7 +45,7 @@ export const FAQ_ITEMS_CORE: FAQItem[] = [
   },
   {
     answer:
-      'AI generation has reached the point where a small team can produce professional, on-brand content at a fraction of the old cost and effort. Genfeed puts that capability in one workspace, so creators, marketers, and agencies can scale output without scaling headcount.',
+      'AI generation has reached the point where a small team can produce professional, on-brand content at a fraction of the old cost and effort. Genfeed puts that capability in one agent, so creators, marketers, and agencies can scale output without scaling headcount.',
     question: 'Why now? What changed?',
   },
 ];

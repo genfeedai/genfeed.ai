@@ -1,3 +1,4 @@
+import { BRAND_SOCIAL_HOSTS } from '@api/services/brand-scraper/brand-social-hosts.constant';
 import type {
   WebsiteScrapingResult,
   WebsiteStylesheetEvidence,
@@ -198,15 +199,6 @@ export class BrandWebsiteParserService {
   private extractSocialLinks(
     links: string[],
   ): WebsiteScrapingResult['socialLinks'] {
-    const socialHosts: Record<string, string[]> = {
-      facebook: ['facebook.com'],
-      instagram: ['instagram.com'],
-      linkedin: ['linkedin.com'],
-      tiktok: ['tiktok.com'],
-      twitter: ['twitter.com', 'x.com'],
-      youtube: ['youtube.com'],
-    };
-
     const result: WebsiteScrapingResult['socialLinks'] = {};
 
     for (const link of links) {
@@ -221,7 +213,7 @@ export class BrandWebsiteParserService {
       }
 
       const hostname = url.hostname.toLowerCase();
-      for (const [platform, hosts] of Object.entries(socialHosts)) {
+      for (const [platform, hosts] of Object.entries(BRAND_SOCIAL_HOSTS)) {
         const isSocialHost = hosts.some(
           (host) => hostname === host || hostname.endsWith(`.${host}`),
         );
