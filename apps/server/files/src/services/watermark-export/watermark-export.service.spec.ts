@@ -31,7 +31,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // real-render assertions below are skipped rather than failing on ENOENT.
 function resolveOnPath(binary: string): string | undefined {
   try {
-    execFileSync(binary, ['-version'], { stdio: 'ignore' });
+    execFileSync(binary, ['-version'], { stdio: 'ignore', timeout: 5_000 });
     return binary;
   } catch {
     return undefined;
@@ -39,11 +39,13 @@ function resolveOnPath(binary: string): string | undefined {
 }
 
 const resolvedFfmpegBinary =
-  ffmpegPath && existsSync(ffmpegPath) ? ffmpegPath : resolveOnPath('ffmpeg');
+  (ffmpegPath && existsSync(ffmpegPath)
+    ? resolveOnPath(ffmpegPath)
+    : undefined) ?? resolveOnPath('ffmpeg');
 const resolvedFfprobeBinary =
-  ffprobeStatic.path && existsSync(ffprobeStatic.path)
-    ? ffprobeStatic.path
-    : resolveOnPath('ffprobe');
+  (ffprobeStatic.path && existsSync(ffprobeStatic.path)
+    ? resolveOnPath(ffprobeStatic.path)
+    : undefined) ?? resolveOnPath('ffprobe');
 
 const original = () =>
   sharp({
