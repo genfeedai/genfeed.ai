@@ -918,7 +918,7 @@ describe('StudioGenerateComposer', () => {
     expect(screen.getByText('Auto · 1:1 · 1K · 1 output')).toBeVisible();
   });
 
-  it('updates image count, setup and total without using the estimate as a submit gate', () => {
+  it('updates image count, setup and total, and blocks Generate when admission would refuse the price', () => {
     const model = {
       category: ModelCategory.IMAGE,
       cost: 8,
@@ -975,7 +975,97 @@ describe('StudioGenerateComposer', () => {
     expect(
       screen.getByText('This model has no confirmed price yet.'),
     ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+    expect(baseProps.onSubmit).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['MODEL_UNAVAILABLE', true],
+    ['MISSING_SETTING', true],
+    ['ERROR', false],
+    [undefined, false],
+  ])(
+    'submit gate for estimate reason %s is blocked=%s',
+    (reason, isBlocked) => {
+      const model = {
+        category: ModelCategory.IMAGE,
+        cost: 8,
+        isActive: true,
+        key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+        label: 'Imagen 4',
+        lifecycle: ModelLifecycle.AVAILABLE,
+        provider: ModelProvider.REPLICATE,
+      };
+      estimateMocks.resolve.mockReturnValue({
+        credits: null,
+        status: 'unavailable',
+        unavailableReason: reason,
+      });
+      render(
+        <StudioGenerateComposer
+          {...baseProps}
+          models={[model] as never}
+          prompt="A product photo"
+          settings={{ ...settings, modelKey: model.key }}
+          type="image"
+        />,
+      );
+      const button = screen.getByRole('button', { name: 'Generate' });
+      if (isBlocked) expect(button).toBeDisabled();
+      else expect(button).toBeEnabled();
+    },
+  );
+
+  it('never blocks Generate while the estimate is loading', () => {
+    const model = {
+      category: ModelCategory.IMAGE,
+      cost: 8,
+      isActive: true,
+      key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+      label: 'Imagen 4',
+      lifecycle: ModelLifecycle.AVAILABLE,
+      provider: ModelProvider.REPLICATE,
+    };
+    render(
+      <StudioGenerateComposer
+        {...baseProps}
+        models={[model] as never}
+        prompt="A product photo"
+        settings={{ ...settings, modelKey: model.key }}
+        type="image"
+      />,
+    );
     expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
+  });
+
+  it('sends the audio toggle with a video estimate request', () => {
+    const model = {
+      category: ModelCategory.VIDEO,
+      cost: 50,
+      isActive: true,
+      key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+      label: 'Kling',
+      lifecycle: ModelLifecycle.AVAILABLE,
+      provider: ModelProvider.REPLICATE,
+    };
+    estimateMocks.resolve.mockReturnValue({ credits: 9, status: 'estimated' });
+    render(
+      <StudioGenerateComposer
+        {...baseProps}
+        models={[model] as never}
+        prompt="A reveal"
+        settings={{
+          ...settings,
+          duration: 5,
+          isAudioEnabled: true,
+          modelKey: model.key,
+        }}
+        type="video"
+      />,
+    );
+    expect(estimateMocks.resolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({ duration: 5, isAudioEnabled: true }),
+    );
   });
 
   describe('image editing composer', () => {
@@ -988,7 +1078,7 @@ describe('StudioGenerateComposer', () => {
       cost: 20,
       label: 'Ideogram 4.5',
     } as IModel;
-    it('shows the editing default and its full output cost in Auto mode', () => {
+    it('makes no estimate call in Auto even though an editing default exists', () => {
       estimateMocks.resolve.mockImplementation(
         (request: { outputs?: number }) => ({
           credits: 20 * (request.outputs ?? 1),
@@ -1008,14 +1098,10 @@ describe('StudioGenerateComposer', () => {
           type="image-edit"
         />,
       );
-      expect(screen.getByText('Estimated 60 credits')).toBeVisible();
-      expect(estimateMocks.resolve).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          category: 'image-edit',
-          modelKey: editModel.key,
-          outputs: 3,
-        }),
-      );
+      expect(
+        screen.getByText('Estimate available after model selection'),
+      ).toBeVisible();
+      expect(estimateMocks.resolve).not.toHaveBeenCalled();
       expect(screen.getByText('Ideogram 4.5 · 3 outputs')).toBeVisible();
     });
     it('blocks submission without a source and never offers prompt enhancement', () => {

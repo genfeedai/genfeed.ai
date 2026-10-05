@@ -261,29 +261,17 @@ export default function StudioGenerateComposer({
     type === 'image-edit' &&
     !isLoadingModels &&
     (isAutoMode ? !models.some((model) => model.isDefault) : !selectedModel);
-  const isSubmitBlocked =
-    isCrunRestoreBlocked ||
-    (selectedModel?.provider === 'crun' && !crunQuote?.getCurrentQuote()) ||
-    isEditSourceMissing ||
-    isEditingModelUnavailable ||
-    isRuntimeBlocked ||
-    isGenerating ||
-    isPromptEmpty ||
-    isFirstFrameMissing ||
-    isReferenceCombinationInvalid ||
-    isKling4KReferenceInvalid ||
-    isAwaitingModels ||
-    isListening ||
-    isTranscribing ||
-    isUploading;
   const costPromptData = buildStudioPromptData({
     brandId: '',
     promptText: '',
     settings: displaySettings,
     type,
   });
+  // Auto is judged on the user's own selection: the image-edit default that
+  // `displaySettings` substitutes is not a choice the user has made yet.
   const isServerPricedModel =
     !isLoadingModels &&
+    !isAutoStudioModelKey(settings.modelKey) &&
     selectedModel !== undefined &&
     selectedModel.key === displaySettings.modelKey &&
     selectedModel.provider !== 'crun';
@@ -294,6 +282,7 @@ export default function StudioGenerateComposer({
           aspectRatio: displaySettings.aspectRatio,
           duration: costPromptData.duration,
           height: costPromptData.height,
+          isAudioEnabled: displaySettings.isAudioEnabled,
           modelKey: displaySettings.modelKey,
           outputs: costPromptData.outputs,
           resolution: costPromptData.resolution,
@@ -307,7 +296,7 @@ export default function StudioGenerateComposer({
       ? { credits: null, status: 'unavailable' }
       : isLoadingModels
         ? { credits: null, status: 'loading' }
-        : isAutoStudioModelKey(displaySettings.modelKey)
+        : isAutoStudioModelKey(settings.modelKey)
           ? { credits: null, status: 'auto' }
           : !selectedModel || selectedModel.key !== displaySettings.modelKey
             ? {
@@ -317,6 +306,33 @@ export default function StudioGenerateComposer({
                   AgentGenerationQuoteUnavailableReason.MODEL_UNAVAILABLE,
               }
             : serverEstimate;
+  // Admission refuses these outright, so Generate waits instead of failing after submit.
+  // ERROR, loading, Auto and Crun never block.
+  const isEstimateBlocking =
+    estimate.status === 'unavailable' &&
+    selectedModel?.provider !== 'crun' &&
+    (estimate.unavailableReason ===
+      AgentGenerationQuoteUnavailableReason.PRICING_UNRESOLVED ||
+      estimate.unavailableReason ===
+        AgentGenerationQuoteUnavailableReason.MODEL_UNAVAILABLE ||
+      estimate.unavailableReason ===
+        AgentGenerationQuoteUnavailableReason.MISSING_SETTING);
+  const isSubmitBlocked =
+    isCrunRestoreBlocked ||
+    isEstimateBlocking ||
+    (selectedModel?.provider === 'crun' && !crunQuote?.getCurrentQuote()) ||
+    isEditSourceMissing ||
+    isEditingModelUnavailable ||
+    isRuntimeBlocked ||
+    isGenerating ||
+    isPromptEmpty ||
+    isFirstFrameMissing ||
+    isReferenceCombinationInvalid ||
+    isKling4KReferenceInvalid ||
+    isAwaitingModels ||
+    isListening ||
+    isTranscribing ||
+    isUploading;
 
   const scope = buildStudioGenerationSetupScope(type);
   const defaults = getDefaultGenerationSetupValues(type);

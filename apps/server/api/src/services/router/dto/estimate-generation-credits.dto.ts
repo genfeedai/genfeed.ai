@@ -1,6 +1,7 @@
 import { ModelCategory, RouterPriority } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsEnum,
   IsIn,
   IsInt,
@@ -136,4 +137,12 @@ export class EstimateGenerationCreditsDto {
     required: false,
   })
   readonly height?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Video audio toggle; priced as the audio selector',
+    required: false,
+  })
+  readonly isAudioEnabled?: boolean;
 }

@@ -9,6 +9,7 @@ import {
   calculateImageGenerationCredits,
   calculateVideoGenerationCredits,
 } from '@genfeedai/pricing';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { validate } from 'class-validator';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -24,6 +25,7 @@ describe('AgentGenerationEstimateService', () => {
     testModelCreditQuote({
       findOne: async () => validateModelForOrg(),
     } as never),
+    { buildPrompt: vi.fn() } as never,
   );
   const input = {
     category: ModelCategory.IMAGE as const,
@@ -281,8 +283,21 @@ describe('AgentGenerationEstimateService', () => {
       expect(quote.unavailableReason).toBeDefined();
     },
   );
-  it('hides model identity when organization policy rejects it', async () => {
-    validateModelForOrg.mockRejectedValue(new Error('not enabled'));
+  it.each([
+    new BadRequestException('Unknown model: x'),
+    new ForbiddenException('Model not enabled for this organization'),
+  ])(
+    'maps the registry rejection %s to MODEL_UNAVAILABLE without exposing a key',
+    async (rejection) => {
+      validateModelForOrg.mockRejectedValue(rejection);
+      expect(await service.estimate(input)).toEqual(
+        unavailable(AgentGenerationQuoteUnavailableReason.MODEL_UNAVAILABLE),
+      );
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
+  it('logs and reports ERROR for an unexpected registry failure', async () => {
+    validateModelForOrg.mockRejectedValue(new Error('db down'));
     expect(await service.estimate(input)).toEqual(
       unavailable(AgentGenerationQuoteUnavailableReason.ERROR),
     );

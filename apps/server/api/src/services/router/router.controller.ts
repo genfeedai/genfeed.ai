@@ -162,6 +162,7 @@ export class RouterController {
       category: body.category,
       duration: body.duration,
       height: body.height,
+      isAudioEnabled: body.isAudioEnabled,
       modelKey: body.modelKey,
       organizationId,
       outputs: body.outputs,

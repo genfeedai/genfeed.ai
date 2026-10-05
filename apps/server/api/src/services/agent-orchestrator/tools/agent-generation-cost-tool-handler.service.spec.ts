@@ -56,6 +56,7 @@ function setup(options?: { balance?: number | Error; row?: unknown }) {
     { validateModelForOrg } as never,
     logger as never,
     testModelCreditQuote({ findOne: async () => row } as never),
+    { buildPrompt: vi.fn() } as never,
   );
   return {
     creditsUtilsService,

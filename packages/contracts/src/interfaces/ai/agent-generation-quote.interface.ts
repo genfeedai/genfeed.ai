@@ -11,6 +11,8 @@ export interface AgentGenerationQuoteRequest {
   aspectRatio?: string;
   category: 'image' | 'image-edit' | 'video';
   duration?: number;
+  /** Video audio toggle; admission prices it as the `audio` selector. */
+  isAudioEnabled?: boolean;
   /** Executed pixel height; pair with `width` to quote exact dimensions. */
   height?: number;
   modelKey?: string;

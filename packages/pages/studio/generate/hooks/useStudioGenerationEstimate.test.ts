@@ -14,6 +14,10 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => async () =>
     factory('stub-token'),
 }));
+const authState = vi.hoisted(() => ({ orgId: 'org-a', userId: 'user-1' }));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => authState,
+}));
 vi.mock('@services/ai/router.service', () => ({
   RouterService: {
     getInstance: () => ({ estimateGenerationCredits: mockEstimate }),
@@ -34,6 +38,7 @@ describe('useStudioGenerationEstimate', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     mockEstimate.mockReset();
+    authState.orgId = 'org-a';
   });
   afterEach(() => vi.useRealTimers());
 
@@ -128,6 +133,34 @@ describe('useStudioGenerationEstimate', () => {
 
     expect(mockEstimate).toHaveBeenCalledTimes(2);
     expect(result.current).toEqual({ credits: 24, status: 'estimated' });
+  });
+
+  it('drops the cached quote and shows loading when the organization changes', async () => {
+    mockEstimate.mockResolvedValueOnce({
+      credits: 12,
+      isAvailable: true,
+      modelKey: 'google/nano-banana-2-lite',
+    });
+    mockEstimate.mockResolvedValueOnce({
+      credits: 30,
+      isAvailable: true,
+      modelKey: 'google/nano-banana-2-lite',
+    });
+    const { result, rerender } = renderHook(() =>
+      useStudioGenerationEstimate(nanoBanana),
+    );
+    await act(() =>
+      vi.advanceTimersByTimeAsync(STUDIO_ESTIMATE_DEBOUNCE_MS + 1),
+    );
+    expect(result.current).toEqual({ credits: 12, status: 'estimated' });
+
+    authState.orgId = 'org-b';
+    rerender();
+    expect(result.current).toEqual({ credits: null, status: 'loading' });
+    await act(() =>
+      vi.advanceTimersByTimeAsync(STUDIO_ESTIMATE_DEBOUNCE_MS + 1),
+    );
+    expect(result.current).toEqual({ credits: 30, status: 'estimated' });
   });
 
   it('makes no request without a concrete model', async () => {

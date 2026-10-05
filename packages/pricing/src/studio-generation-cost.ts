@@ -32,6 +32,7 @@ export interface StudioGenerationQuoteInput {
   aspectRatio?: string;
   duration?: number;
   height?: number;
+  isAudioEnabled?: boolean;
   modelKey: string | undefined;
   outputs?: number;
   resolution?: string;
@@ -50,6 +51,7 @@ export function buildStudioGenerationQuoteRequest({
   aspectRatio,
   duration,
   height,
+  isAudioEnabled,
   modelKey,
   outputs,
   resolution,
@@ -72,6 +74,7 @@ export function buildStudioGenerationQuoteRequest({
     return {
       ...base,
       ...(duration !== undefined ? { duration } : {}),
+      ...(isAudioEnabled !== undefined ? { isAudioEnabled } : {}),
       outputs: 1,
       resolution: resolveSubmittedVideoResolution(modelKey, resolution ?? ''),
     };

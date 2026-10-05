@@ -1,6 +1,7 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
+import { resolveStudioGenerationDimensions } from '@genfeedai/contracts/constants';
 import {
   AgentGenerationQuoteUnavailableReason,
   type AgentToolResult,
@@ -82,13 +83,28 @@ export class AgentGenerationCostToolHandler {
       return this.result(balance, { credits: null, status: 'auto' });
     }
 
+    // The composer defaults for omitted inputs; dimensions come from the same
+    // function Studio submits with, so megapixel tariffs quote identically.
+    const resolvedAspectRatio =
+      aspectRatio.value ?? (type === 'video' ? '16:9' : '1:1');
+    const resolvedResolution =
+      resolution.value ?? (type === 'video' ? '720p' : '1K');
+    const dimensions = resolveStudioGenerationDimensions(
+      resolvedAspectRatio,
+      resolvedResolution,
+    );
     const request = buildStudioGenerationQuoteRequest({
-      aspectRatio: aspectRatio.value,
-      duration: duration.value,
+      aspectRatio: resolvedAspectRatio,
+      duration: type === 'video' ? (duration.value ?? 5) : duration.value,
+      height: dimensions.height,
+      // Studio submits the toggle as false unless it is switched on.
+      isAudioEnabled:
+        type === 'video' ? params.isAudioEnabled === true : undefined,
       modelKey: modelKey.value,
-      outputs: outputs.value,
-      resolution: resolution.value,
+      outputs: outputs.value ?? 1,
+      resolution: resolvedResolution,
       type,
+      width: dimensions.width,
     });
     if (!request) {
       return this.result(balance, {

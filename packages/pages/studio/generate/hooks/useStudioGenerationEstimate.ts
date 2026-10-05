@@ -6,6 +6,7 @@ import {
   AgentGenerationQuoteUnavailableReason,
 } from '@genfeedai/contracts/interfaces';
 import type { StudioGenerationCostEstimate } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { RouterService } from '@services/ai/router.service';
 import { logger } from '@services/core/logger.service';
@@ -30,13 +31,19 @@ export function useStudioGenerationEstimate(
   const getRouterService = useAuthedService((token: string) =>
     RouterService.getInstance(token),
   );
+  const { orgId, userId } = useAuthIdentity();
   const [record, setRecord] = useState<EstimateRecord | null>(null);
-  const fingerprint = request ? JSON.stringify(request) : null;
+  // The quote is org-priced, so the scope is part of the identity: switching
+  // organization drops the cached answer instead of showing it as current.
+  const fingerprint = request
+    ? JSON.stringify([userId ?? null, orgId ?? null, request])
+    : null;
 
   useEffect(() => {
     if (!fingerprint) return;
     // The fingerprint is the request, so equal settings never re-request.
-    const body: AgentGenerationQuoteRequest = JSON.parse(fingerprint);
+    const [, , body]: [unknown, unknown, AgentGenerationQuoteRequest] =
+      JSON.parse(fingerprint);
     const controller = new AbortController();
     const timer = setTimeout(() => {
       void (async () => {

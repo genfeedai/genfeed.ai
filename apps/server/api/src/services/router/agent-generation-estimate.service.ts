@@ -5,6 +5,8 @@ import {
 } from '@api/collections/images/services/image-generation-provider.util';
 import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import { buildVideoQuoteSelectors } from '@api/helpers/utils/credits/video-quote-selectors.util';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { ModelCategory } from '@genfeedai/contracts';
 import {
@@ -25,6 +27,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -68,6 +71,7 @@ export class AgentGenerationEstimateService {
     private readonly modelRegistrationService: ModelRegistrationService,
     private readonly logger: LoggerService,
     private readonly modelCreditQuote: ModelCreditQuoteService,
+    private readonly promptBuilderService: PromptBuilderService,
   ) {}
 
   async estimate(
@@ -122,10 +126,25 @@ export class AgentGenerationEstimateService {
           AgentGenerationQuoteUnavailableReason.MODEL_UNAVAILABLE,
           modelKey,
         );
-      const model = await this.modelRegistrationService.validateModelForOrg(
-        modelKey,
-        input.organizationId,
-      );
+      let model: Awaited<
+        ReturnType<ModelRegistrationService['validateModelForOrg']>
+      >;
+      try {
+        model = await this.modelRegistrationService.validateModelForOrg(
+          modelKey,
+          input.organizationId,
+        );
+      } catch (error: unknown) {
+        // The registry rejects an unknown, foreign or not-enabled model by throwing.
+        if (
+          error instanceof BadRequestException ||
+          error instanceof ForbiddenException
+        )
+          return unavailableQuote(
+            AgentGenerationQuoteUnavailableReason.MODEL_UNAVAILABLE,
+          );
+        throw error;
+      }
       if (
         !model ||
         model.key !== modelKey ||
@@ -181,6 +200,7 @@ export class AgentGenerationEstimateService {
           : isEdit
             ? IMAGE_EDIT_QUALITY
             : input.quality;
+      const duration = input.duration ?? DEFAULT_AGENT_VIDEO_DURATION_SECONDS;
       const quote = await this.modelCreditQuote.quoteSnapshotByKey(modelKey, {
         ...dimensions,
         organizationId: input.organizationId,
@@ -188,15 +208,29 @@ export class AgentGenerationEstimateService {
         outputs,
         requests: isBatchSupported ? 1 : outputs,
         ...(isVideo
-          ? { duration: input.duration ?? DEFAULT_AGENT_VIDEO_DURATION_SECONDS }
-          : {}),
-        ...(selected !== undefined
           ? {
-              selectors: {
-                [isVideo || flux ? 'resolution' : 'quality']: selected,
-              },
+              duration,
+              // The same provider input admission quotes, so a provider that
+              // normalizes duration (Hailuo 5 s -> 6 s) is priced as executed.
+              providerInput: await this.buildVideoProviderInput(modelKey, {
+                ...dimensions,
+                duration,
+                isAudioEnabled: input.isAudioEnabled,
+                outputs,
+                resolution: input.resolution,
+              }),
+              selectors: buildVideoQuoteSelectors({
+                isAudioEnabled: input.isAudioEnabled,
+                resolution: input.resolution,
+              }),
             }
-          : {}),
+          : selected !== undefined
+            ? {
+                selectors: {
+                  [flux ? 'resolution' : 'quality']: selected,
+                },
+              }
+            : {}),
       });
       const credits = quote.credits;
 
@@ -221,6 +255,39 @@ export class AgentGenerationEstimateService {
         organizationId: input.organizationId,
       });
       return unavailableQuote(AgentGenerationQuoteUnavailableReason.ERROR);
+    }
+  }
+
+  /** The provider-built input admission quotes; absent when no builder serves the model. */
+  private async buildVideoProviderInput(
+    modelKey: string,
+    params: {
+      duration: number;
+      height: number;
+      isAudioEnabled?: boolean;
+      outputs: number;
+      resolution?: string;
+      width: number;
+    },
+  ): Promise<Record<string, unknown> | undefined> {
+    try {
+      const built = await this.promptBuilderService.buildPrompt(modelKey, {
+        ...params,
+        brandingMode: 'off',
+        modelCategory: ModelCategory.VIDEO,
+        prompt: 'Price estimate',
+        useTemplate: false,
+      });
+      return built.input as unknown as Record<string, unknown>;
+    } catch (error: unknown) {
+      this.logger.warn(
+        'Video estimate used the request without provider input',
+        {
+          error: error instanceof Error ? error.message : String(error),
+          modelKey,
+        },
+      );
+      return undefined;
     }
   }
 }

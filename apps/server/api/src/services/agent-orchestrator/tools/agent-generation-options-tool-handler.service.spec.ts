@@ -133,6 +133,7 @@ describe('AgentGenerationOptionsToolHandler', () => {
       { validateModelForOrg: vi.fn(async () => row) } as never,
       { error: vi.fn(), warn: vi.fn() } as never,
       testModelCreditQuote({ findOne: async () => row } as never),
+      { buildPrompt: vi.fn() } as never,
     );
     const handler = new AgentGenerationOptionsToolHandler(
       {
