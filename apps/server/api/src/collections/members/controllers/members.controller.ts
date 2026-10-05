@@ -62,8 +62,8 @@ export class MembersController {
   @Get()
   @Cache({
     keyGenerator: (req) => {
-      const user = req.user as { id?: string; organizationId?: string };
-      return `members:list:${CollectionFilterUtil.resolveListCacheScope(req).organizationId || 'unknown'}:${user?.id ?? 'unknown'}:query:${JSON.stringify(req.query)}`;
+      const tenant = CollectionFilterUtil.resolveListCacheScope(req);
+      return `members:list:org:${tenant.organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`;
     },
     tags: ['members'],
     ttl: 120,

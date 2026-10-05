@@ -418,7 +418,7 @@ export class OrganizationsRelationshipsController {
   @Get(':organizationId/ingredients')
   @Cache({
     keyGenerator: (req) =>
-      `organizations:ingredients:org:${req.params?.organizationId ?? 'missing'}:user:${req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,
+      `organizations:ingredients:org:${req.params?.organizationId ?? 'missing'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,
     tags: ['ingredients'],
     ttl: 120,
   })

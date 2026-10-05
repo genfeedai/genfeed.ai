@@ -1,5 +1,6 @@
 import { ImagesController } from '@api/collections/images/controllers/images.controller';
 import { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
+import type { CacheOptions } from '@api/shared/interfaces/cache/cache.interfaces';
 import {
   adminUser,
   emptyPage,
@@ -151,4 +152,77 @@ describe('ImagesController tenant reads (#6176)', () => {
       );
     },
   );
+});
+
+describe('images.controller.findAll cache authorization scope', () => {
+  const config: CacheOptions = Reflect.getMetadata(
+    'cache',
+    ImagesController.prototype.findAll,
+  );
+
+  it('separates members with different session brands and the same query', () => {
+    const query = { brandId: sessionBrandId, latest: 'true' };
+    const first = config.keyGenerator?.(tenantReadRequest(memberUser, query));
+    const second = config.keyGenerator?.(
+      tenantReadRequest(
+        {
+          ...memberUser,
+          id: 'another-member',
+          userId: 'another-member',
+          brandId: targetBrandId,
+        },
+        query,
+      ),
+    );
+    const switched = config.keyGenerator?.(
+      tenantReadRequest({ ...memberUser, brandId: targetBrandId }, query),
+    );
+    expect(first).toContain(sessionBrandId);
+    expect(second).not.toBe(first);
+    expect(switched).not.toBe(first);
+  });
+
+  it('separates session organizations under the same effective organization', () => {
+    const query = {
+      organizationId: targetOrganizationId,
+      brandId: targetBrandId,
+      latest: 'true',
+    };
+    const first = config.keyGenerator?.(tenantReadRequest(adminUser, query));
+    const second = config.keyGenerator?.(
+      tenantReadRequest(
+        { ...adminUser, organizationId: targetOrganizationId },
+        query,
+      ),
+    );
+    expect(first).toContain(targetOrganizationId);
+    expect(second).not.toBe(first);
+  });
+
+  it('separates callers within the same session scope', () => {
+    const query = { brandId: sessionBrandId, latest: 'true' };
+    const first = config.keyGenerator?.(tenantReadRequest(memberUser, query));
+    const second = config.keyGenerator?.(
+      tenantReadRequest(
+        { ...memberUser, id: 'another-member', userId: 'another-member' },
+        query,
+      ),
+    );
+    expect(first).toContain(memberUser.id);
+    expect(second).not.toBe(first);
+  });
+});
+
+it('separates latest-image queries with different requested brands', () => {
+  const config: CacheOptions = Reflect.getMetadata(
+    'cache',
+    ImagesController.prototype.findAll,
+  );
+  const query = { latest: 'true', organizationId: targetOrganizationId };
+  const first = config.keyGenerator?.(tenantReadRequest(adminUser, query));
+  const second = config.keyGenerator?.(
+    tenantReadRequest(adminUser, { ...query, brandId: targetBrandId }),
+  );
+  expect(first).toContain(targetOrganizationId);
+  expect(second).not.toBe(first);
 });

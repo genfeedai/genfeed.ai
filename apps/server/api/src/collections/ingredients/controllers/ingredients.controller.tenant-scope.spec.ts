@@ -1,5 +1,6 @@
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
+import type { CacheOptions } from '@api/shared/interfaces/cache/cache.interfaces';
 import {
   adminUser,
   emptyPage,
@@ -7,6 +8,7 @@ import {
   memberUser,
   sessionBrandId,
   sessionOrganizationId,
+  targetBrandId,
   targetOrganizationId,
   tenantReadQuery,
   tenantReadRequest,
@@ -53,6 +55,21 @@ describe('IngredientsController tenant reads (#6176)', () => {
     await expect(controller.findAll(request, query, user)).rejects.toThrow(
       ForbiddenException,
     );
+    expect(mock).not.toHaveBeenCalled();
+  });
+
+  it('rejects a member requesting another session brand before reading', async () => {
+    const { controller, mock } = setup();
+    const query = tenantReadQuery(IngredientsQueryDto, {
+      brandId: targetBrandId,
+    });
+    await expect(
+      controller.findAll(
+        tenantReadRequest(memberUser, query),
+        query,
+        memberUser,
+      ),
+    ).rejects.toThrow(ForbiddenException);
     expect(mock).not.toHaveBeenCalled();
   });
 
@@ -128,6 +145,21 @@ describe('IngredientsController.getSummary tenant reads (#6176)', () => {
     );
     expect(mock).not.toHaveBeenCalled();
   });
+  it('rejects a member requesting another session brand before counting', async () => {
+    const { controller, mock } = setup();
+    const query = tenantReadQuery(IngredientsQueryDto, {
+      brandId: targetBrandId,
+    });
+    await expect(
+      controller.getSummary(
+        tenantReadRequest(memberUser, query),
+        query,
+        memberUser,
+      ),
+    ).rejects.toThrow(ForbiddenException);
+    expect(mock).not.toHaveBeenCalled();
+  });
+
   it('retains the member session scope', async () => {
     const { controller, mock } = setup();
     const user = memberUser;
@@ -135,5 +167,121 @@ describe('IngredientsController.getSummary tenant reads (#6176)', () => {
     const request = tenantReadRequest(user);
     await controller.getSummary(request, query, user);
     expect(mock.mock.calls[0]?.[0]).toBe(sessionOrganizationId);
+  });
+});
+
+describe('ingredients.controller.findAll cache authorization scope', () => {
+  const config: CacheOptions = Reflect.getMetadata(
+    'cache',
+    IngredientsController.prototype.findAll,
+  );
+
+  it('separates members with different session brands and the same query', () => {
+    const query = { brandId: sessionBrandId };
+    const first = config.keyGenerator?.(tenantReadRequest(memberUser, query));
+    const second = config.keyGenerator?.(
+      tenantReadRequest(
+        {
+          ...memberUser,
+          id: 'another-member',
+          userId: 'another-member',
+          brandId: targetBrandId,
+        },
+        query,
+      ),
+    );
+    const switched = config.keyGenerator?.(
+      tenantReadRequest({ ...memberUser, brandId: targetBrandId }, query),
+    );
+    expect(first).toContain(sessionBrandId);
+    expect(second).not.toBe(first);
+    expect(switched).not.toBe(first);
+  });
+
+  it('separates session organizations under the same effective organization', () => {
+    const query = {
+      organizationId: targetOrganizationId,
+      brandId: targetBrandId,
+    };
+    const first = config.keyGenerator?.(tenantReadRequest(adminUser, query));
+    const second = config.keyGenerator?.(
+      tenantReadRequest(
+        { ...adminUser, organizationId: targetOrganizationId },
+        query,
+      ),
+    );
+    expect(first).toContain(targetOrganizationId);
+    expect(second).not.toBe(first);
+  });
+
+  it('separates callers within the same session scope', () => {
+    const query = { brandId: sessionBrandId };
+    const first = config.keyGenerator?.(tenantReadRequest(memberUser, query));
+    const second = config.keyGenerator?.(
+      tenantReadRequest(
+        { ...memberUser, id: 'another-member', userId: 'another-member' },
+        query,
+      ),
+    );
+    expect(first).toContain(memberUser.id);
+    expect(second).not.toBe(first);
+  });
+});
+
+describe('ingredients.controller.getSummary cache authorization scope', () => {
+  const config: CacheOptions = Reflect.getMetadata(
+    'cache',
+    IngredientsController.prototype.getSummary,
+  );
+
+  it('separates members with different session brands and the same query', () => {
+    const query = { brandId: sessionBrandId };
+    const first = config.keyGenerator?.(tenantReadRequest(memberUser, query));
+    const second = config.keyGenerator?.(
+      tenantReadRequest(
+        {
+          ...memberUser,
+          id: 'another-member',
+          userId: 'another-member',
+          brandId: targetBrandId,
+        },
+        query,
+      ),
+    );
+    const switched = config.keyGenerator?.(
+      tenantReadRequest({ ...memberUser, brandId: targetBrandId }, query),
+    );
+    expect(first).toContain(sessionBrandId);
+    expect(second).not.toBe(first);
+    expect(switched).not.toBe(first);
+  });
+
+  it('separates session organizations under the same effective organization', () => {
+    const query = {
+      organizationId: targetOrganizationId,
+      brandId: targetBrandId,
+    };
+    const first = config.keyGenerator?.(tenantReadRequest(adminUser, query));
+    const second = config.keyGenerator?.(
+      tenantReadRequest(
+        { ...adminUser, organizationId: targetOrganizationId },
+        query,
+      ),
+    );
+    expect(first).toContain(targetOrganizationId);
+    expect(second).not.toBe(first);
+  });
+
+  it('separates callers within the same session scope', () => {
+    const query = { brandId: sessionBrandId };
+    const first = config.keyGenerator?.(tenantReadRequest(memberUser, query));
+    const second = config.keyGenerator?.(
+      tenantReadRequest(
+        { ...memberUser, id: 'another-member', userId: 'another-member' },
+        query,
+      ),
+    );
+    expect(first).toContain(memberUser.id);
+    expect(second).not.toBe(first);
   });
 });

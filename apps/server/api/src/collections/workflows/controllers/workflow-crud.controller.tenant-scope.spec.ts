@@ -58,6 +58,7 @@ describe('WorkflowCrudController tenant reads (#6176)', () => {
     );
     expect(fieldValues(read, 'isDeleted')).not.toContain(true);
     expect(fieldValues(read, 'brandId')).not.toContain(sessionBrandId);
+    expect(fieldValues(read, 'userId')).toEqual([]);
   });
 
   it('rejects a member foreign organization before reading', async () => {
@@ -88,6 +89,54 @@ describe('WorkflowCrudController tenant reads (#6176)', () => {
     expect(fieldValues(mock.mock.calls[0]?.[0], 'isDeleted')).not.toContain(
       true,
     );
+    expect(fieldValues(mock.mock.calls[0]?.[0], 'userId')).toContain(
+      memberUser.userId,
+    );
+  });
+
+  it('keeps ownership for a superadmin reading the session organization', async () => {
+    const { controller, mock } = await setup();
+    const query = tenantReadQuery(WorkflowQueryDto, {
+      organizationId: sessionOrganizationId,
+    });
+    await controller.findAll(
+      tenantReadRequest(adminUser, query),
+      adminUser,
+      query,
+    );
+    expect(fieldValues(mock.mock.calls[0]?.[0], 'userId')).toContain(
+      adminUser.userId,
+    );
+  });
+
+  it('removes ownership and visibility restrictions for an override including system workflows', async () => {
+    const { controller, mock } = await setup();
+    const query = tenantReadQuery(WorkflowQueryDto, {
+      organizationId: targetOrganizationId,
+      includeSystem: true,
+    });
+    await controller.findAll(
+      tenantReadRequest(adminUser, query),
+      adminUser,
+      query,
+    );
+    expect(mock.mock.calls[0]?.[0].where).toEqual({
+      organizationId: targetOrganizationId,
+      isDeleted: false,
+    });
+  });
+
+  it('rejects an override when verified context denies superadmin privileges', async () => {
+    const { controller, mock } = await setup();
+    const query = tenantReadQuery(WorkflowQueryDto, {
+      organizationId: targetOrganizationId,
+    });
+    const request = tenantReadRequest(adminUser, query);
+    if (request.context) request.context.isSuperAdmin = false;
+    await expect(controller.findAll(request, adminUser, query)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(mock).not.toHaveBeenCalled();
   });
 });
 
@@ -137,6 +186,8 @@ describe.each(['system-catalog', 'statistics'] as const)(
       );
       expect(mock.mock.calls[0]).toContain(targetOrganizationId);
       expect(mock.mock.calls[0]).not.toContain(sessionOrganizationId);
+      if (branch === 'statistics')
+        expect(mock).toHaveBeenCalledWith(undefined, targetOrganizationId);
     });
 
     it('rejects a member foreign organization before reading', async () => {
@@ -167,6 +218,52 @@ describe.each(['system-catalog', 'statistics'] as const)(
         ),
       );
       expect(mock.mock.calls[0]).toContain(sessionOrganizationId);
+      if (branch === 'statistics')
+        expect(mock).toHaveBeenCalledWith(
+          memberUser.userId,
+          sessionOrganizationId,
+        );
     });
   },
 );
+
+describe('Workflow statistics caller ownership', () => {
+  function setup() {
+    const mock = vi.fn().mockResolvedValue([]);
+    const controller = Object.create(
+      WorkflowCrudController.prototype,
+    ) as WorkflowCrudController;
+    Object.assign(controller, {
+      workflowsService: { getWorkflowStatistics: mock },
+    });
+    return { controller, mock };
+  }
+
+  it('keeps ownership for a superadmin reading the session organization', async () => {
+    const { controller, mock } = setup();
+    const query = tenantReadQuery(WorkflowQueryDto, {
+      view: 'statistics',
+      organizationId: sessionOrganizationId,
+    });
+    await controller.findAll(
+      tenantReadRequest(adminUser, query),
+      adminUser,
+      query,
+    );
+    expect(mock).toHaveBeenCalledWith(adminUser.userId, sessionOrganizationId);
+  });
+
+  it('rejects an override when verified context denies superadmin privileges', async () => {
+    const { controller, mock } = setup();
+    const query = tenantReadQuery(WorkflowQueryDto, {
+      view: 'statistics',
+      organizationId: targetOrganizationId,
+    });
+    const request = tenantReadRequest(adminUser, query);
+    if (request.context) request.context.isSuperAdmin = false;
+    await expect(controller.findAll(request, adminUser, query)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(mock).not.toHaveBeenCalled();
+  });
+});

@@ -142,7 +142,7 @@ export class WorkflowCrudController {
     if (query.view === 'statistics') {
       return wrapError(async () => {
         const stats = await this.workflowsService.getWorkflowStatistics(
-          user.userId ?? user.id,
+          tenant.isOrganizationOverride ? undefined : (user.userId ?? user.id),
           tenant.organizationId,
         );
         return { data: stats };
@@ -164,7 +164,8 @@ export class WorkflowCrudController {
       includeSystem: query.includeSystem === true,
       isDeleted,
       organizationId: tenant.organizationId,
-      referencable: query.referencable === true,
+      referencable:
+        tenant.isOrganizationOverride || query.referencable === true,
       userId: user.userId ?? user.id,
     });
 

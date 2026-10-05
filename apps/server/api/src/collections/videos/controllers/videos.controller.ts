@@ -110,10 +110,7 @@ export class VideosController {
   @Cache({
     keyGenerator: (req) => {
       const tenant = CollectionFilterUtil.resolveListCacheScope(req);
-      const brandId =
-        tenant.brandId ??
-        (tenant.isOrganizationOverride ? undefined : req.user?.brandId);
-      return `videos:list:org:${tenant.organizationId || 'global'}:brand:${brandId ?? 'global'}:user:${req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`;
+      return `videos:list:org:${tenant.organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`;
     },
     tags: ['videos'],
     ttl: 300, // 5 minutes

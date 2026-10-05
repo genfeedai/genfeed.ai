@@ -91,10 +91,7 @@ export class IngredientsController {
   @Cache({
     keyGenerator: (req) => {
       const tenant = CollectionFilterUtil.resolveListCacheScope(req);
-      const brandId =
-        tenant.brandId ??
-        (tenant.isOrganizationOverride ? undefined : req.user?.brandId);
-      return `ingredients:list:org:${tenant.organizationId || 'global'}:brand:${brandId ?? 'global'}:query:${JSON.stringify(req.query)}`;
+      return `ingredients:list:org:${tenant.organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`;
     },
     tags: ['ingredients'],
     ttl: 60,
@@ -201,10 +198,7 @@ export class IngredientsController {
   @Cache({
     keyGenerator: (req) => {
       const tenant = CollectionFilterUtil.resolveListCacheScope(req);
-      const brandId =
-        tenant.brandId ??
-        (tenant.isOrganizationOverride ? undefined : req.user?.brandId);
-      return `ingredients:summary:org:${tenant.organizationId || 'global'}:brand:${brandId ?? 'global'}:query:${JSON.stringify(req.query)}`;
+      return `ingredients:summary:org:${tenant.organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`;
     },
     tags: ['ingredients'],
     ttl: 60,

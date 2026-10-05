@@ -68,10 +68,7 @@ export class ImagesController {
     keyGenerator: (req) => {
       if (req.query.latest !== 'true') return '';
       const tenant = CollectionFilterUtil.resolveListCacheScope(req);
-      const brandId = tenant.isOrganizationOverride
-        ? tenant.brandId
-        : req.user?.brandId;
-      return `images:latest:org:${tenant.organizationId || 'global'}:brand:${brandId ?? 'global'}:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}:origins:${JSON.stringify(req.query.origins ?? [])}`;
+      return `images:latest:org:${tenant.organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`;
     },
     tags: ['images'],
     ttl: 300, // 5 minutes

@@ -172,7 +172,7 @@ export class UsersRelationshipsController {
   @Get('me/brands')
   @Cache({
     keyGenerator: (req) =>
-      `users:me:brands:org:${CollectionFilterUtil.resolveListCacheScope(req).organizationId}:user:${req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,
+      `users:me:brands:org:${CollectionFilterUtil.resolveListCacheScope(req).organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,
     tags: ['accounts', 'users'],
     ttl: 1_800,
   })
