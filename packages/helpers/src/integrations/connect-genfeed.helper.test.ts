@@ -3,6 +3,7 @@ import {
   buildConnectGenfeedInstructions,
   buildGenfeedAgentSetupPrompt,
 } from './connect-genfeed.helper';
+import { deriveClaudeMcpResourceIdentifier } from './mcp-resource.helper';
 
 describe('buildGenfeedAgentSetupPrompt', () => {
   it('sets up only the chosen client and verifies without content writes', () => {
@@ -35,6 +36,15 @@ describe('buildGenfeedAgentSetupPrompt', () => {
 });
 
 describe('Claude setup endpoint separation', () => {
+  it('uses the canonical Claude resource throughout setup from a custom host root', () => {
+    const prompt = buildGenfeedAgentSetupPrompt('https://custom.example/');
+    expect(prompt).toContain(
+      'Claude endpoint: https://custom.example/mcp/claude',
+    );
+    expect(prompt).toContain('--scope user https://custom.example/mcp/claude');
+    expect(prompt).not.toContain('https://custom.example/claude');
+  });
+
   it.each([
     'https://mcp.genfeed.ai/mcp?toolsets=generation',
     'https://mcp.genfeed.ai/mcp/claude/?profile=full',
@@ -152,6 +162,33 @@ describe('buildConnectGenfeedInstructions', () => {
     );
     expect(instructions.primaryCommand).toBe(
       'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude',
+    );
+  });
+
+  it.each([
+    'https://custom.example',
+    'https://custom.example/',
+    'https://custom.example/?toolsets=generation#setup',
+  ])('connects Claude Code to /mcp/claude from host root %s', (endpoint) => {
+    const instructions = buildConnectGenfeedInstructions(
+      'claude-code',
+      endpoint,
+    );
+    expect(JSON.parse(instructions.configuration).url).toBe(
+      'https://custom.example/mcp/claude',
+    );
+  });
+
+  it('does not derive the Claude suffix twice after the app resolves a custom host root', () => {
+    const endpoint = deriveClaudeMcpResourceIdentifier(
+      'https://custom.example/',
+    );
+    const instructions = buildConnectGenfeedInstructions(
+      'claude-code',
+      endpoint,
+    );
+    expect(JSON.parse(instructions.configuration).url).toBe(
+      'https://custom.example/mcp/claude',
     );
   });
 

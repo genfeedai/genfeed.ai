@@ -105,11 +105,11 @@ export function buildConnectGenfeedInstructions(
     client === 'claude-code' ||
     normalizedPath.toLowerCase().endsWith('/mcp/claude');
   if (isClaude) {
-    url.pathname = normalizedPath.toLowerCase().endsWith('/mcp/claude')
-      ? normalizedPath.replace(/\/mcp\/claude$/i, '/mcp/claude')
-      : `${normalizedPath}/claude`;
     url.search = '';
     url.hash = '';
+    url.pathname = normalizedPath.toLowerCase().endsWith('/mcp/claude')
+      ? normalizedPath.replace(/\/mcp\/claude$/i, '/mcp/claude')
+      : new URL(deriveClaudeMcpResourceIdentifier(url.toString())).pathname;
     authMethod = 'oauth';
   }
   const mcpEndpoint = isClaude ? url.toString() : normalizeEndpoint(endpoint);
