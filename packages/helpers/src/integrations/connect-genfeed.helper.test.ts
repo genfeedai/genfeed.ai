@@ -12,7 +12,9 @@ describe('buildGenfeedAgentSetupPrompt', () => {
     );
     expect(prompt).toContain('for Codex.');
     expect(prompt).toContain('npx skills add genfeedai/agent');
-    expect(prompt).toContain('Skip this step if its installed Genfeed plugin');
+    expect(prompt).toContain(
+      'Skip this step if the playbook is already available',
+    );
     expect(prompt).toContain('Authenticate only the selected client');
     expect(prompt).toContain('read-only get_account and get_brands');
     expect(prompt).toContain(
