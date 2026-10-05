@@ -109,6 +109,7 @@ import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrato
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
 import { AgentMediaTransformService } from '@api/services/agent-orchestrator/tools/agent-media-transform.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
+import { AgentOnboardingBrandSetupToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-brand-setup-tool-handler.service';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
 import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
@@ -252,6 +253,7 @@ import { Module } from '@nestjs/common';
     AgentMediaGenerationToolHandler,
     AgentMediaTextGenerationService,
     AgentMediaTransformService,
+    AgentOnboardingBrandSetupToolHandler,
     AgentOnboardingToolHandler,
     AgentTransferToolHandler,
     AgentWorkflowToolCreateService,

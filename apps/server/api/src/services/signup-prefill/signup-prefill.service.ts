@@ -153,7 +153,7 @@ export class SignupPrefillService {
                   completedAt: new Date().toISOString(),
                 },
               );
-              return { ...state, status: 'failed' };
+              return { ...state, status: 'failed' as const };
             }
             state = await this.analyzePrefill(state);
             state = await this.applyPrefillDefaults(state);
@@ -264,6 +264,7 @@ export class SignupPrefillService {
       startedAt: new Date().toISOString(),
       status: 'running',
     });
+    const websiteUrl = options.websiteUrl ?? resolved.websiteUrl;
     return {
       brandDomain: resolved.domain,
       brandLabel,
@@ -277,9 +278,7 @@ export class SignupPrefillService {
             hasChosenBrandLabel: false,
           }
         : {}),
-      ...((options.websiteUrl ?? resolved.websiteUrl)
-        ? { websiteUrl: options.websiteUrl ?? resolved.websiteUrl }
-        : {}),
+      ...(websiteUrl ? { websiteUrl } : {}),
     };
   }
 

@@ -1,6 +1,4 @@
 import { AGENT_CREATED_BRAND_VISUAL_DEFAULTS } from '@api/collections/brands/constants/agent-created-brand.constant';
-import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
-import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -11,7 +9,6 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { buildFirstRunOnboardingImageBody } from '@api/helpers/utils/first-run-image-generation/first-run-image-generation.util';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import {
@@ -37,8 +34,6 @@ import {
 import { createOnboardingBrandDraft } from '@api/services/agent-orchestrator/tools/agent-onboarding-content.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import { SignupPrefillService } from '@api/services/signup-prefill/signup-prefill.service';
-import { normalizeOnboardingUrl } from '@api/services/signup-prefill/utils/normalize-onboarding-url.util';
 import {
   hasOrganizationBilling,
   isSelfHostedDeployment,
@@ -71,10 +66,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
-  InternalServerErrorException,
   Optional,
-  RequestTimeoutException,
-  ServiceUnavailableException,
 } from '@nestjs/common';
 
 /**
@@ -104,7 +96,6 @@ interface AgentBrandsServiceLike {
     userId: string,
     sourceActionId: string,
   ) => Promise<Record<string, unknown> | null>;
-  updateAgentConfig: BrandsService['updateAgentConfig'];
   resolveBrandKitAssets?: (
     brandId: string,
     organizationId: string,
@@ -146,8 +137,6 @@ export class AgentOnboardingToolHandler {
     private readonly videosService?: VideosService,
     @Optional()
     private readonly streamPublisher?: AgentStreamPublisherService,
-    private readonly brandDataMapper: BrandDataMapper = new BrandDataMapper(),
-    @Optional() private readonly signupPrefillService?: SignupPrefillService,
   ) {}
 
   private async publishToolProgress(data: {
@@ -161,181 +150,6 @@ export class AgentOnboardingToolHandler {
       return;
     }
     await this.streamPublisher.publishToolProgress(data);
-  }
-
-  async scanBrandUrl(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const currentBrandId = ctx.validatedScope?.brandId ?? ctx.brandId;
-    const brandId = readOptionalString(params.brandId) ?? currentBrandId;
-    let sourceUrl = '';
-    try {
-      if (typeof params.url !== 'string')
-        throw new BadRequestException('URL required');
-      sourceUrl = normalizeOnboardingUrl(params.url);
-      if (!brandId || (currentBrandId && brandId !== currentBrandId))
-        throw new NotFoundException('Brand');
-      if (!this.signupPrefillService)
-        throw new ServiceUnavailableException('Scan service unavailable');
-      const state = await this.signupPrefillService.scanBrandUrl(
-        {
-          brandId,
-          organizationId: ctx.organizationId,
-          userId: ctx.userId,
-        },
-        sourceUrl,
-      );
-      if (state.scrapeStatus !== 'scraped') {
-        return {
-          success: true,
-          creditsUsed: 0,
-          data: {
-            status: 'failed',
-            sourceUrl,
-            brandId,
-            reason: state.scrapeReason ?? 'scrape_failed',
-          },
-        };
-      }
-      const summary = state.summary;
-      if (!summary)
-        throw new InternalServerErrorException('Scan summary unavailable');
-      return {
-        success: true,
-        creditsUsed: 0,
-        data: { status: 'scanned', sourceUrl, brandId, summary },
-        nextActions: [
-          {
-            id: `brand-scan-${Date.now()}`,
-            type: 'completion_summary_card',
-            title: summary.name,
-            summaryText: summary.description ?? summary.name,
-            outcomeBullets: [
-              summary.primaryColor
-                ? `Primary color: ${summary.primaryColor}`
-                : '',
-              summary.secondaryColor
-                ? `Secondary color: ${summary.secondaryColor}`
-                : '',
-              summary.tone ? `Tone: ${summary.tone}` : '',
-            ].filter(Boolean),
-            ...(summary.logoUrl
-              ? {
-                  outputVariants: [
-                    {
-                      id: 'brand-logo',
-                      kind: 'image' as const,
-                      title: summary.name,
-                      url: summary.logoUrl,
-                    },
-                  ],
-                }
-              : {}),
-          },
-        ],
-      };
-    } catch (error: unknown) {
-      this.loggerService.warn('Onboarding brand scan failed', {
-        brandId,
-        error: error instanceof Error ? error.message : String(error),
-        organizationId: ctx.organizationId,
-        sourceUrl,
-      });
-      return {
-        success: true,
-        creditsUsed: 0,
-        data: {
-          status: 'failed',
-          sourceUrl,
-          brandId: brandId ?? null,
-          reason:
-            error instanceof RequestTimeoutException
-              ? 'timeout'
-              : error instanceof BadRequestException
-                ? 'invalid_url'
-                : error instanceof NotFoundException
-                  ? 'brand_not_found'
-                  : 'scan_failed',
-        },
-      };
-    }
-  }
-
-  async saveOnboardingAnswers(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const readShortString = (
-      value: unknown,
-      key: string,
-    ): string | undefined => {
-      if (value === undefined) return undefined;
-      if (
-        typeof value !== 'string' ||
-        !value.trim() ||
-        value.trim().length > 200
-      )
-        throw new BadRequestException(
-          `${key} must be a non-empty string of at most 200 characters.`,
-        );
-      return value.trim();
-    };
-    const readAnswers = (value: unknown, key: string): string[] | undefined => {
-      if (value === undefined) return undefined;
-      if (!Array.isArray(value) || value.length > 10)
-        throw new BadRequestException(
-          `${key} must contain at most 10 answers.`,
-        );
-      return value.map((item) => {
-        if (typeof item !== 'string')
-          throw new BadRequestException(`${key} must contain short strings.`);
-        return readShortString(item, key) ?? '';
-      });
-    };
-    const goals = readAnswers(params.goals, 'goals');
-    const platforms = readAnswers(params.platforms, 'platforms');
-    const frequency = readShortString(params.cadence, 'cadence');
-    const tone = readShortString(params.toneAdjustment, 'toneAdjustment');
-    const currentBrandId = ctx.validatedScope?.brandId ?? ctx.brandId;
-    const brandId =
-      readShortString(params.brandId, 'brandId') ?? currentBrandId;
-    if (!brandId || (currentBrandId && currentBrandId !== brandId))
-      throw new BadRequestException(
-        'Choose the current brand before saving onboarding answers.',
-      );
-    const brand = await this.brandsService.findOne({
-      id: brandId,
-      organizationId: ctx.organizationId,
-      isDeleted: false,
-    });
-    if (!brand)
-      throw new ForbiddenException(
-        'The brand is not available in this organization.',
-      );
-    const config = this.brandDataMapper.readBrandAgentConfig(brand.agentConfig);
-    const updated = await this.brandsService.updateAgentConfig(
-      brandId,
-      ctx.organizationId,
-      {
-        strategy: {
-          ...config.strategy,
-          ...(goals !== undefined ? { goals } : {}),
-          ...(platforms !== undefined ? { platforms } : {}),
-          ...(frequency !== undefined ? { frequency } : {}),
-        },
-        ...(tone !== undefined ? { voice: { ...config.voice, tone } } : {}),
-      },
-    );
-    if (!updated)
-      throw new ForbiddenException(
-        'The brand is not available in this organization.',
-      );
-    return {
-      creditsUsed: 0,
-      success: true,
-      data: { brandId, message: 'Onboarding answers saved.' },
-    };
   }
 
   async createBrand(
