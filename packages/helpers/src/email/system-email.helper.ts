@@ -1,4 +1,4 @@
-import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
+import { cdnAsset } from '../media/cdn/cdn.helper';
 
 export interface SystemEmailAction {
   label: string;
