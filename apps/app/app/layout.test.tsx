@@ -10,6 +10,7 @@ const appProvidersSpy = vi.fn();
 const htmlDocumentSpy = vi.fn();
 const headersMock = vi.fn(async () => new Headers());
 const runtimeConfigSpy = vi.fn();
+const intlProviderSpy = vi.fn();
 const insertHTML = vi.hoisted(() => vi.fn());
 
 vi.mock('next/navigation', () => ({
@@ -40,12 +41,17 @@ vi.mock('next/headers', () => ({
   }),
 }));
 
-// The real provider reads request-scoped config from i18n/request.ts, which
-// has no request to bind to under vitest.
 vi.mock('next-intl', () => ({
-  NextIntlClientProvider: ({ children }: { children: ReactNode }) => (
-    <div data-testid="next-intl-provider">{children}</div>
-  ),
+  NextIntlClientProvider: () => {
+    throw new Error('Root layout must use the client catalog boundary');
+  },
+}));
+
+vi.mock('../i18n/AppIntlProvider', () => ({
+  default: ({ children, ...props }: { children: ReactNode }) => {
+    intlProviderSpy(props);
+    return <div data-testid="next-intl-provider">{children}</div>;
+  },
 }));
 
 vi.mock('@ui/providers/AppProviders', () => ({
@@ -114,6 +120,7 @@ describe('app root layout', () => {
     appProvidersSpy.mockClear();
     htmlDocumentSpy.mockClear();
     runtimeConfigSpy.mockClear();
+    intlProviderSpy.mockClear();
     headersMock.mockResolvedValue(new Headers());
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
   });
@@ -266,6 +273,10 @@ describe('app root layout', () => {
     );
 
     expect(screen.getByTestId('next-intl-provider')).toBeTruthy();
+    expect(intlProviderSpy).toHaveBeenCalledWith({
+      locale: 'en',
+      timeZone: Intl.DateTimeFormat('en').resolvedOptions().timeZone,
+    });
   });
 
   it('marks the whole studio noindex, nofollow in the root metadata', async () => {

@@ -13,13 +13,13 @@ import AppProviders from '@ui/providers/AppProviders';
 import AppHtmlDocument from '@ui/shell/AppHtmlDocument';
 import { createAppMetadata, createPwaMetadata } from '@ui/shell/metadata';
 import type { Metadata, Viewport } from 'next';
-import { NextIntlClientProvider } from 'next-intl';
 import { Suspense } from 'react';
 import AnalyticsAnonymousSessionSync from '@/components/analytics/AnalyticsAnonymousSessionSync';
 import DesktopDragStrip from '@/components/desktop/DesktopDragStrip';
 import ServiceWorkerRegistrar from '@/components/pwa/ServiceWorkerRegistrar';
 import RuntimeConfigScript from '@/components/runtime/RuntimeConfigScript';
 import DeploymentVersionWatcher from '@/components/version/DeploymentVersionWatcher';
+import AppIntlProvider from '../i18n/AppIntlProvider';
 
 const { name, description } = metadataHelper;
 const pwaConfig = createPwaMetadata('app');
@@ -71,10 +71,14 @@ export default function RootLayout({ children }: LayoutProps) {
         </>
       }
     >
-      {/* Locale and messages are inherited from i18n/request.ts rather than
-          passed here, so server components keep resolving copy on the server
-          and only what client components actually read crosses the boundary. */}
-      <NextIntlClientProvider>
+      {/* The client module loads the offline catalog once instead of serializing
+          it into every prerendered route. Server translations still use request.ts. */}
+      <AppIntlProvider
+        locale={DEFAULT_LOCALE}
+        timeZone={
+          Intl.DateTimeFormat(DEFAULT_LOCALE).resolvedOptions().timeZone
+        }
+      >
         <Suspense fallback={null}>
           <AppProviders
             initialTheme={DEFAULT_THEME}
@@ -87,7 +91,7 @@ export default function RootLayout({ children }: LayoutProps) {
             {children}
           </AppProviders>
         </Suspense>
-      </NextIntlClientProvider>
+      </AppIntlProvider>
     </AppHtmlDocument>
   );
 }
