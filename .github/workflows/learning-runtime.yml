@@ -14,7 +14,7 @@ on:
     - cron: "23 3 * * *" # 03:23 UTC — after the e2e.yml (02:17) and Playwright full (02:47) nightlies
 
 concurrency:
-  group: learning-runtime-${{ github.ref }}
+  group: learning-runtime-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 permissions:
