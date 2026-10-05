@@ -1,4 +1,11 @@
+import { WORKFLOW_EXECUTION_TERMINAL_EVENT } from '@api/collections/workflow-executions/constants/workflow-execution-events.constants';
 import { WorkspaceTaskExecutionListener } from '@api/services/task-orchestration/listeners/workspace-task-execution.listener';
+
+import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
+import { WorkspaceTaskRollupModule } from '@api/services/task-orchestration/workspace-task-rollup.module';
+import { LoggerService } from '@libs/logger/logger.service';
+import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
+import { Test } from '@nestjs/testing';
 
 describe('WorkspaceTaskExecutionListener', () => {
   const makeListener = () => {
@@ -45,5 +52,41 @@ describe('WorkspaceTaskExecutionListener', () => {
       }),
     ).resolves.toBeUndefined();
     expect(logger.error).toHaveBeenCalledOnce();
+  });
+
+  it('receives a terminal event emitted by another provider in the same process (cancel through the API)', async () => {
+    const handleExecutionCompletion = vi.fn().mockResolvedValue(undefined);
+    const moduleRef = await Test.createTestingModule({
+      imports: [EventEmitterModule.forRoot()],
+      providers: [
+        WorkspaceTaskExecutionListener,
+        {
+          provide: TaskOrchestratorService,
+          useValue: { handleExecutionCompletion },
+        },
+        { provide: LoggerService, useValue: { error: vi.fn() } },
+      ],
+    }).compile();
+    await moduleRef.init();
+
+    await moduleRef
+      .get(EventEmitter2)
+      .emitAsync(WORKFLOW_EXECUTION_TERMINAL_EVENT, {
+        executionId: 'execution-1',
+        organizationId: 'org-1',
+        status: 'cancelled',
+      });
+
+    expect(handleExecutionCompletion).toHaveBeenCalledWith(
+      'execution-1',
+      'org-1',
+    );
+    await moduleRef.close();
+  });
+
+  it('is provided only by the rollup module that the API and workers import', () => {
+    expect(
+      Reflect.getMetadata('providers', WorkspaceTaskRollupModule),
+    ).toContain(WorkspaceTaskExecutionListener);
   });
 });

@@ -55,6 +55,12 @@ export class TaskOrchestratorService {
       return; // Run not linked to any workspace task
     }
 
+    // A rollup already moved the task on (or the user did); a late or
+    // duplicate event must not overwrite that, or re-run quality assessment.
+    if (task.status !== 'in_progress') {
+      return;
+    }
+
     const { executionStates, progress } = await this.buildTaskProgress(
       task.linkedExecutionIds.map((id) => id.toString()),
       organizationId,
@@ -179,6 +185,27 @@ export class TaskOrchestratorService {
     );
   }
 
+  /**
+   * Rolls up executions that settled before their links were persisted: their
+   * terminal event found no linked task and is never re-emitted.
+   */
+  async reconcileTerminalExecutions(
+    executionIds: string[],
+    organizationId: string,
+  ): Promise<void> {
+    for (const executionId of executionIds) {
+      const execution = await this.workflowExecutionsService.findOne(
+        scopedWhere(organizationId, { id: executionId }),
+      );
+      if (
+        execution &&
+        this.isTerminalStatus(this.normalizeExecutionStatus(execution.status))
+      ) {
+        await this.handleExecutionCompletion(executionId, organizationId);
+      }
+    }
+  }
+
   async handleExecutionStarted(
     executionId: string,
     organizationId: string,
@@ -217,23 +244,25 @@ export class TaskOrchestratorService {
     );
   }
 
+  private isTerminalStatus(status: WorkflowExecutionStatus): boolean {
+    return (
+      status === WorkflowExecutionStatus.COMPLETED ||
+      status === WorkflowExecutionStatus.FAILED ||
+      status === WorkflowExecutionStatus.CANCELLED
+    );
+  }
+
   private async areAllExecutionsFinished(
     executionIds: string[],
     organizationId: string,
   ): Promise<boolean> {
-    const terminalStatuses = new Set([
-      WorkflowExecutionStatus.COMPLETED,
-      WorkflowExecutionStatus.FAILED,
-      WorkflowExecutionStatus.CANCELLED,
-    ]);
-
     for (const executionId of executionIds) {
       const execution = await this.workflowExecutionsService.findOne(
         scopedWhere(organizationId, { id: executionId }),
       );
       if (
         !execution ||
-        !terminalStatuses.has(this.normalizeExecutionStatus(execution.status))
+        !this.isTerminalStatus(this.normalizeExecutionStatus(execution.status))
       ) {
         return false;
       }

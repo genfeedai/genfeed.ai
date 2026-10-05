@@ -17,6 +17,7 @@ describe('WorkspaceTaskWorkflowService', () => {
       {} as never,
       runner as never,
       {} as never,
+      {} as never,
     );
 
     service.onModuleInit();

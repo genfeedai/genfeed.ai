@@ -4,10 +4,8 @@ import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/w
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
-import { WorkspaceTaskExecutionListener } from '@api/services/task-orchestration/listeners/workspace-task-execution.listener';
 import { TaskDecompositionService } from '@api/services/task-orchestration/task-decomposition.service';
-import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
-import { WorkspaceTaskQualityService } from '@api/services/task-orchestration/workspace-task-quality.service';
+import { WorkspaceTaskRollupModule } from '@api/services/task-orchestration/workspace-task-rollup.module';
 import { WorkspaceTaskWorkflowService } from '@api/services/task-orchestration/workspace-task-workflow.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -16,8 +14,7 @@ import { Module } from '@nestjs/common';
 @Module({
   exports: [
     TaskDecompositionService,
-    TaskOrchestratorService,
-    WorkspaceTaskQualityService,
+    WorkspaceTaskRollupModule,
     VideoGenerationModule,
   ],
   imports: [
@@ -29,13 +26,8 @@ import { Module } from '@nestjs/common';
     VideoGenerationModule,
     WorkflowsModule,
     WorkflowExecutionsModule,
+    WorkspaceTaskRollupModule,
   ],
-  providers: [
-    TaskDecompositionService,
-    TaskOrchestratorService,
-    WorkspaceTaskExecutionListener,
-    WorkspaceTaskQualityService,
-    WorkspaceTaskWorkflowService,
-  ],
+  providers: [TaskDecompositionService, WorkspaceTaskWorkflowService],
 })
 export class TaskOrchestrationModule {}
