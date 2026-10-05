@@ -86,6 +86,10 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/helpers/src'),
       },
       {
+        find: '@genfeedai/utils',
+        replacement: path.resolve(serviceDir, '../../../packages/utils'),
+      },
+      {
         find: '@genfeedai/harness',
         replacement: path.resolve(serviceDir, '../../../packages/harness/src'),
       },
