@@ -1,6 +1,5 @@
 'use client';
 
-import { useContextAuthedService } from '@genfeedai/contexts/user/internal/context-authed-service';
 import type { IUser } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
@@ -14,12 +13,13 @@ import { AuthService } from '@genfeedai/services/auth/auth.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
 import { getPlaywrightAuthState } from '@helpers/auth/auth.helper';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { createContext, use, useCallback, useMemo } from 'react';
 import {
   clearClientProtectedBootstrapCache,
   loadClientProtectedBootstrap,
-} from '@providers/protected-bootstrap/client-protected-bootstrap';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createContext, use, useCallback, useMemo } from 'react';
+} from '../../providers/protected-bootstrap/client-protected-bootstrap';
+import { useContextAuthedService } from '../internal/context-authed-service';
 
 export type { UserContextValue } from '@genfeedai/props/contexts/user-context.props';
 

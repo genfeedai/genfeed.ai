@@ -5,6 +5,7 @@
  */
 
 import { InvitationService } from '@api/collections/members/services/invitation.service';
+import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { ChannelDispatchInput } from '@api/services/activity-recording/activity-recording.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -87,6 +88,9 @@ describeWithDatabase('Member invitation lifecycle integration', () => {
         },
       } as unknown as ActivityRecorderService,
       logger as unknown as LoggerService,
+      {
+        invalidateForUser: vi.fn().mockResolvedValue(undefined),
+      } as unknown as AccessBootstrapCacheService,
     );
   });
 
