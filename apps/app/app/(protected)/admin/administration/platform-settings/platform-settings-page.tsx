@@ -25,6 +25,10 @@ import {
   sellPriceForOneDollar,
 } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type {
+  PlatformSettingsFormTab,
+  PlatformSettingsTab,
+} from '@props/admin/platform-settings.props';
 
 import { AdminPlatformSettingsService } from '@services/admin/platform-settings.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
@@ -43,12 +47,44 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Text } from '@ui/typography/text';
 import { Banknote, CircleCheck, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import PlatformFeatureSettingsFields from './platform-feature-settings-fields';
+import PlatformSettingsGroup from './platform-settings-group';
 import SystemNotificationsPanel from './system-notifications-panel';
+
+/** Tabs whose fields belong to the one settings form, in display order. */
+const FORM_TABS: readonly PlatformSettingsFormTab[] = [
+  'billing',
+  'decisions',
+  'agent',
+  'media',
+  'providers',
+  'accounts',
+  'discord',
+];
+
+/** Notifications edit destinations with their own actions, outside the form. */
+const TABS: readonly PlatformSettingsTab[] = [...FORM_TABS, 'notifications'];
+
+function isFormTab(value: string): value is PlatformSettingsFormTab {
+  return FORM_TABS.some((tab) => tab === value);
+}
+
+function isSettingsTab(value: string): value is PlatformSettingsTab {
+  return TABS.some((tab) => tab === value);
+}
+
+/** The form tab holding the field with this element id, if it is rendered. */
+function formTabOfField(fieldId: string): PlatformSettingsFormTab | null {
+  const tab = document
+    .getElementById(fieldId)
+    ?.closest<HTMLElement>('[data-settings-tab]')?.dataset.settingsTab;
+  return tab && isFormTab(tab) ? tab : null;
+}
 
 /** Percent an operator would type for a multiplier, in the given input mode. */
 function percentInputFor(multiplier: number, mode: MarginInputMode): string {
@@ -131,6 +167,7 @@ function marginReadout(multiplier: number): string {
 }
 
 export default function PlatformSettingsPage() {
+  const [activeTab, setActiveTab] = useState<PlatformSettingsTab>('billing');
   const [marginInputMode, setMarginInputMode] = useState<MarginInputMode>(
     MarginInputMode.MARGIN,
   );
@@ -273,6 +310,7 @@ export default function PlatformSettingsPage() {
       generationMultiplier,
     );
     if ('error' in generationResolved) {
+      setActiveTab('billing');
       notificationsService.warning(
         `Generation margin: ${generationResolved.error}`,
       );
@@ -285,6 +323,7 @@ export default function PlatformSettingsPage() {
       agentChatMultiplier,
     );
     if ('error' in agentChatResolved) {
+      setActiveTab('billing');
       notificationsService.warning(
         `Agent chat margin: ${agentChatResolved.error}`,
       );
@@ -292,6 +331,12 @@ export default function PlatformSettingsPage() {
     }
 
     if (invalidFeatureFieldIds.size > 0) {
+      // Show the operator where the error is when it sits on another tab.
+      const [firstInvalidFieldId] = invalidFeatureFieldIds;
+      const invalidTab = formTabOfField(firstInvalidFieldId);
+      if (invalidTab) {
+        setActiveTab(invalidTab);
+      }
       notificationsService.warning(translate('features.invalidSubmit'));
       return;
     }
@@ -360,110 +405,138 @@ export default function PlatformSettingsPage() {
     ),
   );
 
-  return (
-    <Container
-      label="Platform settings"
-      description="Platform-wide business and infrastructure controls for operators"
-      icon={Banknote}
-    >
-      <SystemNotificationsPanel />
-      {isLoading ? (
-        <SkeletonCard showImage={false} />
-      ) : (
-        <Form
-          spacing="section"
-          className="max-w-xl"
-          onSubmit={handleSubmit}
-          noValidate
-        >
-          <Field
-            label="Margin input mode"
-            htmlFor="platform-margin-input-mode"
-            helpText="Changes how the two margin fields below are typed and read. Billing always stores and applies the multiplier — this never changes a price."
-          >
-            <Select
-              value={marginInputMode}
-              onValueChange={handleModeChange}
-              disabled={isSaving}
-            >
-              <SelectTrigger id="platform-margin-input-mode">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MARGIN_INPUT_MODES.map((mode) => (
-                  <SelectItem key={mode} value={mode}>
-                    {MARGIN_INPUT_MODE_LABELS[mode]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
+  const featureFieldsProps = {
+    isDisabled: isSaving,
+    isEmailDeliveryConfigured,
+    onChange: setFeatureSettings,
+    onValidityChange: handleFeatureFieldValidity,
+    settings: featureSettings,
+  };
 
-          <Field
-            label={`Generation ${modeUnit} (%)`}
-            htmlFor="platform-margin-multiplier-generation"
-            helpText={generationReadout}
+  function renderFormContent() {
+    if (isLoading) {
+      return <SkeletonCard showImage={false} />;
+    }
+
+    return (
+      <Form
+        spacing="section"
+        className="max-w-2xl"
+        onSubmit={handleSubmit}
+        noValidate
+      >
+        {FORM_TABS.map((tab) => (
+          // Inactive tabs stay mounted (hidden) so an edit, or a field's
+          // invalid text, survives switching tabs and saves with the rest.
+          <div
+            key={tab}
+            data-settings-tab={tab}
+            hidden={activeTab !== tab}
+            className="flex flex-col gap-8"
           >
-            <Input
-              id="platform-margin-multiplier-generation"
-              type="number"
-              step="1"
-              value={generationPercentInput}
-              onChange={(event) =>
-                setGenerationPercentInput(event.target.value)
-              }
-              disabled={isSaving}
+            {tab === 'billing' ? (
+              <PlatformSettingsGroup title={translate('marginsHeading')}>
+                <Field
+                  label="Margin input mode"
+                  htmlFor="platform-margin-input-mode"
+                  helpText="Changes how the two margin fields below are typed and read. Billing always stores and applies the multiplier — this never changes a price."
+                >
+                  <Select
+                    value={marginInputMode}
+                    onValueChange={handleModeChange}
+                    disabled={isSaving}
+                  >
+                    <SelectTrigger id="platform-margin-input-mode">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MARGIN_INPUT_MODES.map((mode) => (
+                        <SelectItem key={mode} value={mode}>
+                          {MARGIN_INPUT_MODE_LABELS[mode]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                <Field
+                  label={`Generation ${modeUnit} (%)`}
+                  htmlFor="platform-margin-multiplier-generation"
+                  helpText={generationReadout}
+                >
+                  <Input
+                    id="platform-margin-multiplier-generation"
+                    type="number"
+                    step="1"
+                    value={generationPercentInput}
+                    onChange={(event) =>
+                      setGenerationPercentInput(event.target.value)
+                    }
+                    disabled={isSaving}
+                  />
+                </Field>
+
+                <Field
+                  label={`Agent chat ${modeUnit} (%)`}
+                  htmlFor="platform-margin-multiplier-agent-chat"
+                  helpText={agentChatReadout}
+                >
+                  <Input
+                    id="platform-margin-multiplier-agent-chat"
+                    type="number"
+                    step="1"
+                    value={agentChatPercentInput}
+                    onChange={(event) =>
+                      setAgentChatPercentInput(event.target.value)
+                    }
+                    disabled={isSaving}
+                  />
+                </Field>
+              </PlatformSettingsGroup>
+            ) : null}
+
+            {tab === 'decisions' ? (
+              <PlatformSettingsGroup>
+                <Field
+                  label={translate('typedDecisionLabel')}
+                  htmlFor="platform-typed-decision-provider"
+                  helpText={translate('typedDecisionHelp')}
+                >
+                  <Select
+                    value={typedDecisionProvider}
+                    onValueChange={(value) =>
+                      setTypedDecisionProvider(
+                        parseTypedDecisionProvider(value),
+                      )
+                    }
+                    disabled={isSaving}
+                  >
+                    <SelectTrigger id="platform-typed-decision-provider">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TYPED_DECISION_PROVIDER_NAMES.map((provider) => (
+                        <SelectItem key={provider} value={provider}>
+                          {TYPED_DECISION_PROVIDER_LABELS[provider]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </PlatformSettingsGroup>
+            ) : null}
+
+            <PlatformFeatureSettingsFields
+              {...featureFieldsProps}
+              section={tab}
             />
-          </Field>
+          </div>
+        ))}
 
-          <Field
-            label={`Agent chat ${modeUnit} (%)`}
-            htmlFor="platform-margin-multiplier-agent-chat"
-            helpText={agentChatReadout}
-          >
-            <Input
-              id="platform-margin-multiplier-agent-chat"
-              type="number"
-              step="1"
-              value={agentChatPercentInput}
-              onChange={(event) => setAgentChatPercentInput(event.target.value)}
-              disabled={isSaving}
-            />
-          </Field>
-
-          <Field
-            label={translate('typedDecisionLabel')}
-            htmlFor="platform-typed-decision-provider"
-            helpText={translate('typedDecisionHelp')}
-          >
-            <Select
-              value={typedDecisionProvider}
-              onValueChange={(value) =>
-                setTypedDecisionProvider(parseTypedDecisionProvider(value))
-              }
-              disabled={isSaving}
-            >
-              <SelectTrigger id="platform-typed-decision-provider">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TYPED_DECISION_PROVIDER_NAMES.map((provider) => (
-                  <SelectItem key={provider} value={provider}>
-                    {TYPED_DECISION_PROVIDER_LABELS[provider]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-
-          <PlatformFeatureSettingsFields
-            settings={featureSettings}
-            onChange={setFeatureSettings}
-            onValidityChange={handleFeatureFieldValidity}
-            isDisabled={isSaving}
-            isEmailDeliveryConfigured={isEmailDeliveryConfigured}
-          />
-
+        <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-4 border-t border-border bg-background py-4">
+          <Text as="p" color="muted" size="sm">
+            {translate('saveHint')}
+          </Text>
           <Button
             type="submit"
             isDisabled={isSaving}
@@ -474,10 +547,33 @@ export default function PlatformSettingsPage() {
             ) : (
               <CircleCheck className="size-4" />
             )}
-            {isSaving ? 'Saving' : 'Save settings'}
+            {translate(isSaving ? 'savingButton' : 'saveButton')}
           </Button>
-        </Form>
-      )}
+        </div>
+      </Form>
+    );
+  }
+
+  return (
+    <Container
+      label="Platform settings"
+      description="Platform-wide business and infrastructure controls for operators"
+      icon={Banknote}
+      moduleChrome
+      headerTabs={{
+        activeTab,
+        fullWidth: false,
+        onTabChange: (tab) => {
+          if (isSettingsTab(tab)) {
+            setActiveTab(tab);
+          }
+        },
+        tabs: TABS.map((tab) => ({ id: tab, label: translate(`tabs.${tab}`) })),
+      }}
+    >
+      {activeTab === 'notifications' ? <SystemNotificationsPanel /> : null}
+      {/* The form stays mounted under Notifications so unsaved edits survive. */}
+      <div hidden={activeTab === 'notifications'}>{renderFormContent()}</div>
     </Container>
   );
 }

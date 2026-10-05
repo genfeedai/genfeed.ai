@@ -4258,10 +4258,12 @@
     "description": "Switch product modules, their surfaces and platform features on or off for every organization. Off hides it from the nav and its pages, and its API answers 404. A nested flag only applies while its parent is on. Superadmins keep access for inspection.",
     "sections": {
       "modules": {
-        "title": "Modules"
+        "title": "Modules",
+        "description": "Each card is one module in the app rail. Its switch gates the whole module; the rows inside switch its surfaces and features one by one."
       },
       "platform": {
-        "title": "Platform"
+        "title": "Platform",
+        "description": "Features across the app shell, independent of any module."
       }
     },
     "flags": {
@@ -4339,6 +4341,7 @@
       }
     },
     "inactiveUnderParent": "Off while {parent} is off.",
+    "needsParent": "Needs {parent}.",
     "status": {
       "on": "On",
       "off": "Off"
@@ -4352,7 +4355,6 @@
     "typedDecisionLabel": "Typed-decision provider",
     "typedDecisionHelp": "Off keeps every decision point on its deterministic path. A hosted provider also needs TYPESAFE_API_KEY on the server; switching takes effect within seconds, with no deploy.",
     "features": {
-      "intro": "Product feature switches. Changes apply to every server within 15 seconds, with no deploy.",
       "modes": {
         "off": "Off",
         "shadow": "Shadow — record only",
@@ -4415,14 +4417,16 @@
         "taskRoutingConfidenceLabel": "Task routing minimum confidence",
         "untrustedContentLabel": "Untrusted-content gate",
         "untrustedContentConfidenceLabel": "Untrusted-content minimum confidence",
-        "shadowCappedHelp": "Live is not available for this decision yet."
+        "shadowCappedHelp": "Live is not available for this decision yet.",
+        "shadowCappedHeading": "Shadow-only decisions"
       },
       "agent": {
         "heading": "Agent",
         "contextCompressionLabel": "Context compression",
         "contextCompressionHelp": "Summarise older thread turns so long conversations fit the model context.",
         "tokenStreamingLabel": "Token streaming",
-        "tokenStreamingHelp": "Stream model output token by token instead of simulated word chunks."
+        "tokenStreamingHelp": "Stream model output token by token instead of simulated word chunks.",
+        "contextHeading": "Context and output"
       },
       "platform": {
         "heading": "Accounts and alerts",
@@ -4431,10 +4435,10 @@
         "emailVerificationUnavailable": "Unavailable: no email provider is configured. Set RESEND_API_KEY on the notifications service to require email verification. Until then, sign-up and sign-in are never blocked, whatever this was set to before.",
         "systemEventsLabel": "Record system events",
         "systemEventsHelp": "Records signup and billing events for operator alerts. Events before recording started are never replayed.",
-        "systemEventsSince": "Recording since {date}"
+        "systemEventsSince": "Recording since {date}",
+        "emailHeading": "Email sender"
       },
       "runtime": {
-        "heading": "Runtime defaults and notification channels",
         "private": "Private",
         "public": "Public",
         "agentContextCompressionModel": "Agent compression model",
@@ -4464,6 +4468,20 @@
         "imageCompressionQuality": "Image compression quality",
         "paygFallbackCredits": "Legacy checkout fallback credits",
         "linkedinTrendSourceUrls": "LinkedIn trend source URLs (comma separated)"
+      },
+      "billing": {
+        "creditsHeading": "Credits"
+      },
+      "providers": {
+        "modelsHeading": "Default models",
+        "trainingHeading": "Model training",
+        "videoHeading": "Video conversion",
+        "sourcesHeading": "Trend sources"
+      },
+      "discord": {
+        "channelsHeading": "Channels",
+        "channelsHelp": "Discord channel IDs the platform posts operator updates to. Leave a channel empty to skip it.",
+        "webhooksHeading": "Webhooks"
       }
     },
     "notifications": {
@@ -4479,7 +4497,7 @@
       "actionFailed": "Notification action failed",
       "loading": "Loading notifications…",
       "reload": "Refresh",
-      "recordingDisabled": "Recording is disabled. Enable the system event recording window below to receive new events.",
+      "recordingDisabled": "Recording is disabled. Turn on Record system events in the Accounts & email tab to receive new events.",
       "deliveryDisabled": "Delivery is disabled in system notification settings.",
       "transportUnavailable": "The notification service is unavailable.",
       "ready": "Recording is enabled. Destinations receive the selected events.",
@@ -4511,7 +4529,21 @@
       "attempts": "{count} attempts",
       "retry": "Retry",
       "retryScheduled": "Retry scheduled"
-    }
+    },
+    "tabs": {
+      "billing": "Billing",
+      "decisions": "AI decisions",
+      "agent": "Agent",
+      "media": "Media & safety",
+      "providers": "Providers",
+      "accounts": "Accounts & email",
+      "discord": "Discord",
+      "notifications": "Notifications"
+    },
+    "marginsHeading": "Margins",
+    "saveHint": "Saves every tab at once. Changes apply to every server within 15 seconds, with no deploy.",
+    "saveButton": "Save settings",
+    "savingButton": "Saving"
   },
   "adminUsers": {
     "columns": {

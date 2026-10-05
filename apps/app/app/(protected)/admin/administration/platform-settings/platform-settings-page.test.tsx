@@ -1,7 +1,9 @@
 import * as domMatchers from '@testing-library/jest-dom/matchers';
 import '@testing-library/jest-dom/vitest';
 
-vi.mock('./system-notifications-panel', () => ({ default: () => null }));
+vi.mock('./system-notifications-panel', () => ({
+  default: () => <div data-testid="system-notifications-panel" />,
+}));
 
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -92,14 +94,33 @@ vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
     description,
+    headerTabs,
     label,
   }: {
     children: ReactNode;
     description: string;
+    headerTabs?: {
+      activeTab: string;
+      onTabChange: (tabId: string) => void;
+      tabs: { id: string; label: string }[];
+    };
     label: string;
   }) => (
     <section aria-label={label}>
       <p>{description}</p>
+      <div role="tablist">
+        {headerTabs?.tabs.map((tab) => (
+          <button
+            key={tab.id}
+            aria-selected={headerTabs.activeTab === tab.id}
+            onClick={() => headerTabs.onTabChange(tab.id)}
+            role="tab"
+            type="button"
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
       {children}
     </section>
   ),
@@ -227,6 +248,12 @@ vi.mock('@ui/primitives/select', () => {
     SelectValue: () => null,
   };
 });
+
+/** Switch the page to a settings tab once it has loaded. */
+async function openTab(name: string): Promise<void> {
+  await screen.findByRole('button', { name: /save settings/i });
+  fireEvent.click(screen.getByRole('tab', { name }));
+}
 
 describe('PlatformSettingsPage', () => {
   beforeEach(() => {
@@ -386,6 +413,90 @@ describe('PlatformSettingsPage', () => {
     expect(mocks.updateSettings).not.toHaveBeenCalled();
   });
 
+  describe('tabs', () => {
+    it('opens on Billing and shows one settings tab at a time', async () => {
+      render(<PlatformSettingsPage />);
+
+      await screen.findByRole('button', { name: /save settings/i });
+      expect(screen.getByRole('tab', { name: 'Billing' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+      expect(
+        screen.queryByRole('switch', { name: /media perception/i }),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('tab', { name: 'Media & safety' }));
+
+      expect(
+        screen.getByRole('switch', { name: /media perception/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('spinbutton', { name: 'Generation margin (%)' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps edits from every tab and saves them together', async () => {
+      render(<PlatformSettingsPage />);
+
+      await openTab('Media & safety');
+      fireEvent.click(
+        screen.getByRole('switch', { name: /media perception/i }),
+      );
+      fireEvent.click(screen.getByRole('tab', { name: 'Accounts & email' }));
+      fireEvent.click(
+        screen.getByRole('switch', { name: /record system events/i }),
+      );
+      fireEvent.click(screen.getByRole('tab', { name: 'Billing' }));
+      fireEvent.change(screen.getByLabelText('Generation margin (%)'), {
+        target: { value: '75' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+      await waitFor(() => expect(mocks.updateSettings).toHaveBeenCalled());
+      const [payload] = mocks.updateSettings.mock.calls[0] ?? [];
+      expect(payload).toMatchObject({
+        isMediaPerceptionEnabled: false,
+        marginMultiplierGeneration: 4,
+      });
+      expect(payload?.systemEventsEnabledAt).toEqual(expect.any(String));
+    });
+
+    it('opens the tab holding an invalid field when a save is refused', async () => {
+      render(<PlatformSettingsPage />);
+
+      await openTab('AI decisions');
+      fireEvent.change(
+        screen.getByLabelText('Untrusted-content minimum confidence'),
+        { target: { value: '1.5' } },
+      );
+      fireEvent.click(screen.getByRole('tab', { name: 'Billing' }));
+      fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+      expect(mocks.updateSettings).not.toHaveBeenCalled();
+      expect(screen.getByRole('tab', { name: 'AI decisions' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Enter a number from 0 to 1',
+      );
+    });
+
+    it('shows notifications on their own tab, without the settings form', async () => {
+      render(<PlatformSettingsPage />);
+
+      await openTab('Notifications');
+
+      expect(
+        screen.getByTestId('system-notifications-panel'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /save settings/i }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe('product feature switches (#5407)', () => {
     it('loads the stored switches', async () => {
       mocks.getSettings.mockResolvedValue({
@@ -404,9 +515,11 @@ describe('PlatformSettingsPage', () => {
       });
       render(<PlatformSettingsPage />);
 
+      await openTab('Media & safety');
       expect(
-        await screen.findByRole('switch', { name: /media perception/i }),
+        screen.getByRole('switch', { name: /media perception/i }),
       ).not.toBeChecked();
+      fireEvent.click(screen.getByRole('tab', { name: 'Accounts & email' }));
       expect(
         screen.getByRole('switch', { name: /require email verification/i }),
       ).toBeChecked();
@@ -435,7 +548,8 @@ describe('PlatformSettingsPage', () => {
       });
       render(<PlatformSettingsPage />);
 
-      const toggle = await screen.findByRole('switch', {
+      await openTab('Accounts & email');
+      const toggle = screen.getByRole('switch', {
         name: /require email verification/i,
       });
       expect(toggle).toBeDisabled();
@@ -460,7 +574,8 @@ describe('PlatformSettingsPage', () => {
       });
       render(<PlatformSettingsPage />);
 
-      const toggle = await screen.findByRole('switch', {
+      await openTab('Accounts & email');
+      const toggle = screen.getByRole('switch', {
         name: /require email verification/i,
       });
       expect(toggle).toBeEnabled();
@@ -480,7 +595,8 @@ describe('PlatformSettingsPage', () => {
       });
       render(<PlatformSettingsPage />);
 
-      const toggle = await screen.findByRole('switch', {
+      await openTab('Accounts & email');
+      const toggle = screen.getByRole('switch', {
         name: /require email verification/i,
       });
       expect(toggle).toBeEnabled();
@@ -490,8 +606,9 @@ describe('PlatformSettingsPage', () => {
     it('saves edited switches with the rest of the settings', async () => {
       render(<PlatformSettingsPage />);
 
+      await openTab('Media & safety');
       fireEvent.click(
-        await screen.findByRole('switch', { name: /media perception/i }),
+        screen.getByRole('switch', { name: /media perception/i }),
       );
       fireEvent.change(screen.getByTestId('platform-moderation-mode'), {
         target: { value: 'live' },
@@ -593,8 +710,9 @@ describe('PlatformSettingsPage', () => {
       const before = Date.now();
       render(<PlatformSettingsPage />);
 
+      await openTab('Accounts & email');
       fireEvent.click(
-        await screen.findByRole('switch', { name: /record system events/i }),
+        screen.getByRole('switch', { name: /record system events/i }),
       );
       fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
 
