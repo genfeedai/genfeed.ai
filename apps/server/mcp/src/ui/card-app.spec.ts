@@ -153,7 +153,9 @@ it('keeps media descriptions available on demand and restores other layouts', ()
     url: 'https://cdn.genfeed.ai/logo.jpg',
   });
   expect(document.querySelector('h2')?.textContent).toBe('Genfeed logo');
-  expect(document.querySelector('article details')?.open).toBe(false);
+  expect(
+    document.querySelector<HTMLDetailsElement>('article details')?.open,
+  ).toBe(false);
   expect(document.querySelector('article details')?.textContent).toContain(
     'A logo on a white background',
   );
