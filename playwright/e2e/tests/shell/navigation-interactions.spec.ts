@@ -307,19 +307,13 @@ test.describe('Shell — navigation interactions', () => {
         ).toBeVisible();
       } else {
         await expect(organization).toHaveCSS('text-transform', 'capitalize');
-        await expect(organization).toContainText(
-          LONG_ORGANIZATION_NAME.replace(' and ', ' And '),
-          {
-            useInnerText: true,
-          },
-        );
+        await expect(organization).toContainText(LONG_ORGANIZATION_NAME, {
+          useInnerText: false,
+        });
         await expect(brand).toHaveCSS('text-transform', 'capitalize');
-        await expect(brand).toContainText(
-          LONG_BRAND_NAME.replace(' and ', ' And '),
-          {
-            useInnerText: true,
-          },
-        );
+        await expect(brand).toContainText(LONG_BRAND_NAME, {
+          useInnerText: false,
+        });
       }
       await assertHealthy(authenticatedPage);
     });
