@@ -321,6 +321,29 @@ function shortSha(sha) {
   return String(sha ?? 'unknown').slice(0, 12);
 }
 
+function runKey(value) {
+  const key = String(value);
+  return /^[1-9]\d*$/u.test(key) ? key : null;
+}
+
+function countedGreenRunIds(state) {
+  const keys = Array.isArray(state.greenRunIds)
+    ? state.greenRunIds.map(runKey)
+    : null;
+  if (
+    keys?.every((key) => key !== null) &&
+    new Set(keys).size === keys.length &&
+    keys.length === Number(state.greenStreak) &&
+    keys.length <= RECOVERY_GREEN_THRESHOLD
+  ) {
+    return keys;
+  }
+
+  // Run IDs support equality, not ordering. Legacy streaks prove only their last ID.
+  const lastGreen = runKey(state.lastGreenRunId);
+  return Number(state.greenStreak) > 0 && lastGreen ? [lastGreen] : [];
+}
+
 export function buildScheduledFailureBody({ state, excerpt, reproduction }) {
   const recovery =
     state.status === 'suppressed'
@@ -777,6 +800,12 @@ export async function recordScheduledWorkflowGreen({
   occurredAt = new Date().toISOString(),
   core = console,
 }) {
+  const key = runKey(runId);
+  if (!key) {
+    throw new TypeError(
+      `Invalid scheduled green run ID for ${workflowIdentity}: ${String(runId)}`,
+    );
+  }
   const allIssues = await listTrackerIssues(github, {
     owner,
     repo,
@@ -800,17 +829,28 @@ export async function recordScheduledWorkflowGreen({
       recovered: [],
       closed: [],
       resetSuppressed: [],
+      skipped: [],
     };
   }
 
   const recovered = [];
   const closed = [];
   const resetSuppressed = [];
+  const skipped = [];
   for (const tracker of trackers) {
+    const counted = countedGreenRunIds(tracker.state);
+    if (key === runKey(tracker.state.lastRunId) || counted.includes(key)) {
+      core.info?.(
+        `Skipping already seen scheduled run ${key} for tracker #${tracker.issue.number}.`,
+      );
+      skipped.push(tracker.issue.number);
+      continue;
+    }
     if (tracker.state.status === 'suppressed') {
       const state = {
         ...tracker.state,
         greenStreak: 1,
+        greenRunIds: [key],
         transientStreak: 0,
         status: 'resolved',
         lastGreenAt: occurredAt,
@@ -830,11 +870,13 @@ export async function recordScheduledWorkflowGreen({
       continue;
     }
 
-    const greenStreak = (Number(tracker.state.greenStreak) || 0) + 1;
+    const greenRunIds = [...counted, key].slice(0, RECOVERY_GREEN_THRESHOLD);
+    const greenStreak = greenRunIds.length;
     const resolved = greenStreak >= RECOVERY_GREEN_THRESHOLD;
     const state = {
       ...tracker.state,
       greenStreak,
+      greenRunIds,
       status: resolved ? 'resolved' : 'active',
       lastGreenAt: occurredAt,
       lastGreenSha: sha,
@@ -870,9 +912,12 @@ export async function recordScheduledWorkflowGreen({
         ? 'closed'
         : recovered.length > 0
           ? 'recovering'
-          : 'reset-suppression',
+          : resetSuppressed.length > 0
+            ? 'reset-suppression'
+            : 'noop',
     recovered,
     closed,
     resetSuppressed,
+    skipped,
   };
 }
