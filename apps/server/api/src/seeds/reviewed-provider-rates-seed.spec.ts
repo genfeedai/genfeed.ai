@@ -6,8 +6,10 @@ import {
 import {
   applyMargin,
   hashReviewedProviderRates,
+  hashReviewedRateSheetEntry,
   quoteModelBillablePricing,
   REVIEWED_RATE_SHEET_ENTRIES,
+  type ReviewedRateSheetEntry,
 } from '@genfeedai/pricing';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -259,5 +261,91 @@ describe('reviewed provider rates seed', () => {
       outputSchema: { format: 'uri', type: 'string' },
       schemaFamily: 'replicate-video-v1',
     });
+  });
+});
+
+describe('rate sheet frozen variant metadata', () => {
+  const entry: ReviewedRateSheetEntry = {
+    endpoint: 'openai/gpt-image-2',
+    provider: 'replicate',
+    sourceUrl: 'https://replicate.com/openai/gpt-image-2',
+    verifiedAt: '2026-10-05T00:00:00.000Z',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.047,
+        when: { model_variant: 'medium' },
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'quality',
+          fieldType: 'string',
+          valueMap: { medium: 'medium' },
+          default: 'medium',
+        },
+      },
+    ],
+  };
+  it('adds a new contract when unchanged rates gain frozen variant rules', async () => {
+    const oldVersion = hashReviewedProviderRates(entry.rates);
+    const row = modelRow({
+      endpoint: entry.endpoint,
+      key: entry.endpoint,
+      providerInputSchema: {
+        properties: { quality: { enum: ['medium'], type: 'string' } },
+      },
+      reviewedProviderContractVersion: oldVersion,
+    });
+    const prisma = harness(row, {
+      provider: entry.provider,
+      endpoint: entry.endpoint,
+      version: oldVersion,
+      reviewedBy: RATE_SHEET_REVIEWER,
+      discoveredAt: new Date(entry.verifiedAt),
+      lastSeenAt: new Date(entry.verifiedAt),
+      pricing: {
+        currency: 'USD',
+        sourceUrl: entry.sourceUrl,
+        verifiedAt: entry.verifiedAt,
+        rates: entry.rates,
+      },
+    });
+    expect(await seedReviewedProviderRates(prisma as never, [entry])).toBe(1);
+    expect(prisma.modelProviderContract.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          version: hashReviewedRateSheetEntry(entry),
+          pricing: expect.objectContaining({
+            variantRules: entry.variantRules,
+          }),
+        }),
+        update: {},
+      }),
+    );
+    expect(prisma.model.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          reviewedProviderContractVersion: oldVersion,
+        }),
+        data: expect.objectContaining({
+          reviewedProviderContractVersion: hashReviewedRateSheetEntry(entry),
+        }),
+      }),
+    );
+  });
+  it('keeps unchanged metadata idempotent and preserves the existing operator/CAS guards', async () => {
+    const prisma = harness(
+      modelRow({
+        reviewedProviderContractVersion: hashReviewedRateSheetEntry(entry),
+      }),
+    );
+    expect(await seedReviewedProviderRates(prisma as never, [entry])).toBe(0);
+    expect(prisma.modelProviderContract.upsert).not.toHaveBeenCalled();
   });
 });

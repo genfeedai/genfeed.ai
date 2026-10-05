@@ -243,3 +243,61 @@ describe('enumerateReviewedVariantSelectors', () => {
     expect(merged).toEqual([{ resolution: '768P', duration: 6 }]);
   });
 });
+
+describe('derived variant catalog classification', () => {
+  function input(value = 'with_audio'): ModelPricingAttentionInput {
+    return {
+      ...base,
+      profile: {
+        ...profile,
+        key: 'google/veo-3.1',
+        requiredSelectorKeys: ['model_variant'],
+        reviewedPricing: {
+          currency: 'USD',
+          reviewStatus: 'approved',
+          version: profile.rateVersion ?? 'v1',
+          verifiedAt: '2026-10-05T00:00:00Z',
+          sourceUrl: 'https://replicate.com/google/veo-3.1',
+          rates: [
+            {
+              component: 'output',
+              unit: 'second',
+              unitPriceUsd: 0.4,
+              isPerOutput: true,
+              when: { model_variant: value },
+            },
+          ],
+          variantRules: [
+            {
+              criterionTitle: 'model variant',
+              selectorKey: 'model_variant',
+              derive: {
+                kind: 'field',
+                field: 'generate_audio',
+                fieldType: 'boolean',
+                valueMap: { true: 'with_audio', false: 'without_audio' },
+                default: true,
+              },
+            },
+          ],
+        },
+      },
+    };
+  }
+  it('keeps reviewed derived variants available without inventing dispatch inputs', () => {
+    expect(isModelPricingRed(classifyModelPricingAttention(input()))).toBe(
+      false,
+    );
+  });
+  it('still flags reviewed selector values outside their frozen rule domain', () => {
+    expect(classifyModelPricingAttention(input('unpriced'))).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          level: 'red',
+          reason:
+            'Frozen model_variant is missing or outside the reviewed domain',
+        }),
+      ]),
+    );
+  });
+});

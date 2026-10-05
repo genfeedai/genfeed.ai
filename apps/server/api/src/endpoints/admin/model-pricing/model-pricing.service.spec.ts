@@ -705,3 +705,63 @@ describe('operator model pricing projection', () => {
     });
   });
 });
+
+describe('derived reviewed variant report samples', () => {
+  it('reports canonical reviewed sample prices while admission separately requires dispatch evidence', () => {
+    const row = projectAdminModelPricing(
+      {
+        ...model,
+        key: 'openai/gpt-image-2',
+        endpoint: 'openai/gpt-image-2',
+        category: 'image',
+        hasAudioToggle: false,
+        hasResolutionOptions: false,
+        reviewedProviderContractVersion: 'v1',
+        providerInputSchema: {
+          properties: { quality: { type: 'string', enum: ['medium'] } },
+        },
+      } as unknown as Model,
+      [
+        {
+          ...contract,
+          provider: 'replicate',
+          endpoint: 'openai/gpt-image-2',
+          version: 'v1',
+          conditionalDimensions: { model_variant: ['medium'] },
+          pricing: {
+            currency: 'USD',
+            sourceUrl: 'https://replicate.com/openai/gpt-image-2',
+            verifiedAt: retrievedAt,
+            rates: [
+              {
+                component: 'output',
+                unit: 'output',
+                unitPriceUsd: 0.047,
+                when: { model_variant: 'medium' },
+              },
+            ],
+            variantRules: [
+              {
+                criterionTitle: 'model variant',
+                selectorKey: 'model_variant',
+                derive: {
+                  kind: 'field',
+                  field: 'quality',
+                  fieldType: 'string',
+                  valueMap: { medium: 'medium' },
+                  default: 'medium',
+                },
+              },
+            ],
+          },
+        } as unknown as ModelProviderContract,
+      ],
+      3.33,
+      retrievedAt,
+    );
+    expect(row.status).toBe('verified');
+    expect(row.effectiveUnitCredits).toBe(16);
+    expect(row.effectiveSampleCredits).toBe(16);
+    expect(row.attention.some((item) => item.level === 'red')).toBe(false);
+  });
+});

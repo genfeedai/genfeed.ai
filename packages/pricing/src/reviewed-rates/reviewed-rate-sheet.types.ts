@@ -1,4 +1,7 @@
-import type { ReviewedProviderRate } from '@genfeedai/contracts/interfaces';
+import type {
+  ReviewedProviderRate,
+  ReviewedVariantRule,
+} from '@genfeedai/contracts/interfaces';
 
 /**
  * One model's public provider list prices, keyed by `provider` + `endpoint`.
@@ -17,6 +20,7 @@ export interface ReviewedRateSheetEntry {
   /** When the prices were last read from `sourceUrl` (ISO date). */
   verifiedAt: string;
   rates: ReviewedProviderRate[];
+  variantRules?: ReviewedVariantRule[];
   /**
    * Schema selectors that never change the price. When omitted, the seed
    * derives them from the model's input schema.

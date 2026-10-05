@@ -1,7 +1,17 @@
 import type {
   ProviderBillingUnit,
   ReviewedProviderRate,
+  ReviewedVariantRule,
 } from '@genfeedai/contracts/interfaces';
+import {
+  freezeReplicateVariantRule,
+  variantCriterionSupported,
+} from './replicate-variant-rule';
+import {
+  DERIVED_CRITERION_TITLES,
+  REPLICATE_VARIANT_SELECTORS,
+} from './replicate-variant-selectors';
+import { variantOwn } from './variant-rule-validation';
 
 function isJsonObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -18,6 +28,7 @@ export type ReplicateBillingMapping =
       /** Selector keys the tiers price on. */
       selectorKeys: string[];
       rates: ReviewedProviderRate[];
+      variantRules?: ReviewedVariantRule[];
     }
   | { status: 'failed'; reason: string };
 
@@ -181,6 +192,57 @@ function tokenDivisor(price: Record<string, unknown>): number | null {
   return null;
 }
 
+function mapBillingCriterion(
+  criterion: Record<string, unknown>,
+  properties: Record<string, unknown>,
+  endpoint?: string,
+):
+  | {
+      key: string;
+      value: string | number | boolean;
+      rule?: ReviewedVariantRule;
+    }
+  | { reason: string } {
+  const title = String(criterion.title);
+  const matched = matchInputProperty(title, properties);
+  if (!('reason' in matched)) {
+    const value = coerceCriterionValue(
+      matched.key,
+      criterion.value,
+      criterion.subtype,
+      properties[matched.key],
+    );
+    return typeof value === 'object' ? value : { key: matched.key, value };
+  }
+  if (matched.reason.startsWith('ambiguous_')) return matched;
+  const entry =
+    endpoint && variantOwn(REPLICATE_VARIANT_SELECTORS, endpoint)
+      ? REPLICATE_VARIANT_SELECTORS[endpoint]?.find(
+          (candidate) => words(candidate.criterionTitle) === words(title),
+        )
+      : undefined;
+  if (!entry)
+    return DERIVED_CRITERION_TITLES.some(
+      (derived) => words(derived) === words(title),
+    )
+      ? { reason: 'model variant needs a resolver entry' }
+      : matched;
+  const expected = criterion.subtype ?? typeof criterion.value;
+  if (
+    !['string', 'number', 'boolean'].includes(String(expected)) ||
+    typeof criterion.value !== expected
+  )
+    return { reason: `unsupported_criterion_value:${entry.selectorKey}` };
+  const rule = freezeReplicateVariantRule(entry, properties);
+  if (!rule)
+    return {
+      reason: `Resolver field ${entry.derive.kind === 'composite' ? entry.derive.parts.map((part) => part.field).join('+') : entry.derive.field} does not match the provider input schema`,
+    };
+  if (!variantCriterionSupported(rule, criterion.value))
+    return { reason: 'model variant needs a resolver entry' };
+  return { key: rule.selectorKey, value: criterion.value, rule };
+}
+
 /**
  * Turn Replicate's `current_tiers[]` into reviewed rates. Every criterion must
  * map to exactly one input field and every price to a billed unit: anything
@@ -189,11 +251,13 @@ function tokenDivisor(price: Record<string, unknown>): number | null {
 export function mapReplicateBillingTiers(
   tiers: unknown[],
   inputProperties: Record<string, unknown>,
+  endpoint?: string,
 ): ReplicateBillingMapping {
   if (tiers.length === 0)
     return { reason: 'no_billing_tiers', status: 'failed' };
   const rates: ReviewedProviderRate[] = [];
   const selectorKeys = new Set<string>();
+  const variantRules = new Map<string, ReviewedVariantRule>();
   const seen = new Set<string>();
   for (const rawTier of tiers) {
     if (!isJsonObject(rawTier))
@@ -211,24 +275,21 @@ export function mapReplicateBillingTiers(
           reason: `unsupported_criterion_type:${String(rawCriterion.type)}`,
           status: 'failed',
         };
-      const matched = matchInputProperty(rawCriterion.title, inputProperties);
-      if ('reason' in matched)
-        return { reason: matched.reason, status: 'failed' };
-      const value = coerceCriterionValue(
-        matched.key,
-        rawCriterion.value,
-        rawCriterion.subtype,
-        inputProperties[matched.key],
+      const mapped = mapBillingCriterion(
+        rawCriterion,
+        inputProperties,
+        endpoint,
       );
-      if (typeof value === 'object')
-        return { reason: value.reason, status: 'failed' };
-      if (matched.key in when && when[matched.key] !== value)
+      if ('reason' in mapped)
+        return { reason: mapped.reason, status: 'failed' };
+      if (mapped.key in when && when[mapped.key] !== mapped.value)
         return {
-          reason: `conflicting_criterion:${matched.key}`,
+          reason: `conflicting_criterion:${mapped.key}`,
           status: 'failed',
         };
-      when[matched.key] = value;
-      selectorKeys.add(matched.key);
+      when[mapped.key] = mapped.value;
+      selectorKeys.add(mapped.key);
+      if (mapped.rule) variantRules.set(mapped.rule.selectorKey, mapped.rule);
     }
     for (const rawPrice of prices) {
       if (!isJsonObject(rawPrice) || typeof rawPrice.metric !== 'string')
@@ -288,5 +349,16 @@ export function mapReplicateBillingTiers(
       });
     }
   }
-  return { rates, selectorKeys: [...selectorKeys].sort(), status: 'ok' };
+  return {
+    rates,
+    selectorKeys: [...selectorKeys].sort(),
+    status: 'ok',
+    ...(variantRules.size
+      ? {
+          variantRules: [...variantRules.values()].sort((left, right) =>
+            left.selectorKey.localeCompare(right.selectorKey),
+          ),
+        }
+      : {}),
+  };
 }

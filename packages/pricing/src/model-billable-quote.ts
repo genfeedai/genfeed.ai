@@ -6,6 +6,7 @@ import type {
   ModelBillableQuoteRequest,
   ModelBillableQuoteSnapshot,
   ProviderQuoteDimensions,
+  VariantEvidence,
 } from '@genfeedai/contracts/interfaces';
 import {
   ceilDecimalPricingRatio,
@@ -17,6 +18,7 @@ import {
   quoteReviewedProviderPricing,
   selectorValuesEqual,
 } from './reviewed-provider-pricing';
+import { resolveVariantSelectors } from './reviewed-rates/variant-selectors';
 
 /**
  * A pending provider contract is price drift only when its normalized rates
@@ -66,6 +68,7 @@ export function quoteModelBillablePricing(
   input: ModelBillableQuoteRequest,
   marginMultiplier: number | null,
   quotedAt: string,
+  evidence?: VariantEvidence,
 ): ModelBillableQuote {
   const unresolved = (reason: string): ModelBillableQuote => ({
     status: 'unresolved',
@@ -118,6 +121,15 @@ export function quoteModelBillablePricing(
       return unresolved(
         'Provider rate verification date is missing or in the future',
       );
+    if (pricing.variantRules) {
+      const resolved = resolveVariantSelectors(
+        pricing.variantRules,
+        evidence,
+        selected,
+      );
+      if (resolved.status === 'unresolved') return resolved;
+      selected = resolved.selectors;
+    }
     const invariantSelectors = new Set(pricing.invariantSelectors ?? []);
     // A selector that is also a billable quantity is derived from the quantity
     // when absent, and the two must agree when both are given.
@@ -296,6 +308,13 @@ export function quoteModelBillablePricing(
         reviewedPricing: model.reviewedPricing
           ? {
               ...model.reviewedPricing,
+              ...(model.reviewedPricing.variantRules
+                ? {
+                    variantRules: structuredClone(
+                      model.reviewedPricing.variantRules,
+                    ),
+                  }
+                : {}),
               invariantSelectors: [
                 ...new Set([
                   ...(model.reviewedPricing.invariantSelectors ?? []),
@@ -414,6 +433,7 @@ export function quoteModelBillableCompletion(
     },
     snapshot.marginMultiplier,
     snapshot.quotedAt,
+    { kind: 'frozen' },
   );
   if (quote.status === 'unresolved') return quote;
   if (quote.snapshot.credits > snapshot.credits)
