@@ -23,15 +23,14 @@ Authorization: Bearer {{bearerToken}}
 
 
 ### Update Metadata
+# Edits label and description; use Refresh Metadata for file properties
 PATCH {{apiBaseUrl}}/ingredients/{{testIngredientId}}/metadata
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
 {
-  "width": 1920,
-  "height": 1080,
-  "duration": 30.5,
-  "hasAudio": true
+  "label": "Campaign hero",
+  "description": "Approved hero asset for the campaign"
 }
 
 
