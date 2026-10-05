@@ -12,6 +12,7 @@ import {
   QualityStatus,
   ReleaseTargetSource,
   SocialSourceType,
+  SubscriptionStatus,
   TargetAnalyticsCapability,
   TargetAnalyticsCollectionState,
   TargetAnalyticsFreshness,
@@ -37,6 +38,8 @@ import {
 } from '../config/environment';
 import {
   buildProtectedAppBootstrapPayload,
+  buildSubscriptionMockBody,
+  generateMockCreditsBreakdown,
   generateMockIngredient,
   generateMockOrganization,
   generateMockSubscription,
@@ -758,24 +761,37 @@ export async function mockActiveSubscription(
   page: Page,
   options: BillingMockOptions = {},
 ): Promise<void> {
-  const { plan = 'pro', credits = 500, hasPaymentMethod = true } = options;
+  const { plan = 'pro', credits = 500 } = options;
 
-  await routeApiPattern(page, '/subscriptions**', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        data: {
-          attributes: {
-            ...generateMockSubscription({ plan, status: 'active' }),
-            hasPaymentMethod,
-          },
-          id: 'mock-subscription',
-          type: 'subscriptions',
-        },
+  const handleSubscriptionRead = async (route: Route): Promise<void> => {
+    const cycleTotal = Math.floor(credits * 1.25);
+    const body = buildSubscriptionMockBody(
+      route.request().url(),
+      generateMockSubscription({ plan, status: SubscriptionStatus.ACTIVE }),
+      generateMockCreditsBreakdown({
+        credits: [{ balance: credits }],
+        cycleTotal,
+        planLimit: cycleTotal,
+        remainingPercent: cycleTotal > 0 ? (credits / cycleTotal) * 100 : 0,
+        total: credits,
       }),
+    );
+    if (route.request().method() !== 'GET' || body === undefined) {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      body: JSON.stringify(body),
       contentType: 'application/json',
       status: 200,
     });
-  });
+  };
+  await routeApiPattern(page, '/subscriptions**', handleSubscriptionRead);
+  await routeApiPattern(
+    page,
+    '/organizations/*/subscription',
+    handleSubscriptionRead,
+  );
 
   await routeApiPattern(page, '/credits/topbar-balances**', async (route) => {
     await route.fulfill({
@@ -796,24 +812,6 @@ export async function mockActiveSubscription(
           },
           id: 'topbar-balances',
           type: 'topbar-balances',
-        },
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
-
-  await routeApiPattern(page, '/credits**', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        data: {
-          attributes: {
-            available: credits,
-            total: Math.floor(credits * 1.25),
-            used: Math.floor(credits * 0.25),
-          },
-          id: 'mock-credits',
-          type: 'credits',
         },
       }),
       contentType: 'application/json',
@@ -878,21 +876,34 @@ export async function mockInsufficientCredits(page: Page): Promise<void> {
  * Mock for expired subscription
  */
 export async function mockExpiredSubscription(page: Page): Promise<void> {
-  await page.route('**/api.genfeed.ai/v1/subscriptions/**', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        data: {
-          attributes: {
-            ...generateMockSubscription({ plan: 'free', status: 'expired' }),
-          },
-          id: 'mock-subscription',
-          type: 'subscriptions',
-        },
+  const handleSubscriptionRead = async (route: Route): Promise<void> => {
+    const body = buildSubscriptionMockBody(
+      route.request().url(),
+      generateMockSubscription({
+        currentPeriodEnd: new Date(Date.now() - 86_400_000).toISOString(),
+        currentPeriodStart: new Date(
+          Date.now() - 31 * 86_400_000,
+        ).toISOString(),
+        plan: 'free',
+        status: SubscriptionStatus.CANCELLED,
       }),
+    );
+    if (route.request().method() !== 'GET' || body === undefined) {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({
+      body: JSON.stringify(body),
       contentType: 'application/json',
       status: 200,
     });
-  });
+  };
+  await routeApiPattern(page, '/subscriptions**', handleSubscriptionRead);
+  await routeApiPattern(
+    page,
+    '/organizations/*/subscription',
+    handleSubscriptionRead,
+  );
 }
 
 // ----------------------------------------------------------------------------

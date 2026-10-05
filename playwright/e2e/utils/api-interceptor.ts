@@ -5,6 +5,7 @@ import {
   BrandInterviewStatus,
   type IngredientCategory,
   Platform,
+  SubscriptionStatus,
 } from '@genfeedai/contracts';
 import { EXPERT_FIRST_SYSTEM_CREDIT_COST } from '@genfeedai/contracts/constants';
 import type {
@@ -18,6 +19,7 @@ import type {
   IBrandMemoryInsight,
   IByokProviderStatus,
   ICostReportSummary,
+  ICreditsBreakdown,
   IEmailPerformanceReport,
   IExpertPathStatus,
   ISystemNotificationOverview,
@@ -79,7 +81,7 @@ interface MockIngredient {
 
 interface MockSubscription {
   id: string;
-  status: string;
+  status: SubscriptionStatus;
   plan: string;
   currentPeriodStart: string;
   currentPeriodEnd: string;
@@ -288,7 +290,7 @@ export function generateMockSubscription(
     currentPeriodStart: now.toISOString(),
     id: 'mock-subscription-id-12345',
     plan: 'pro',
-    status: 'active',
+    status: SubscriptionStatus.ACTIVE,
     ...overrides,
   };
 }
@@ -328,6 +330,48 @@ function wrapCollectionInJsonApi<T>(
       totalCount: items.length,
     },
   };
+}
+
+export function generateMockCreditsBreakdown(
+  overrides: Partial<ICreditsBreakdown> = {},
+): ICreditsBreakdown {
+  return {
+    credits: [],
+    cycleTotal: 625,
+    planLimit: 625,
+    remainingPercent: 80,
+    total: 500,
+    ...overrides,
+  };
+}
+
+/** SubscriptionsController lists resources, but returns credits as plain JSON. */
+export function buildSubscriptionMockBody(
+  url: string,
+  subscription = generateMockSubscription(),
+  creditsBreakdown = generateMockCreditsBreakdown(),
+): unknown {
+  const pathname = new URL(url, 'http://localhost').pathname
+    .replace(/^\/v1(?=\/)/, '')
+    .replace(/\/$/, '');
+
+  if (pathname === '/subscriptions/current/credits') {
+    return { data: creditsBreakdown, success: true };
+  }
+
+  if (pathname === '/subscriptions') {
+    return wrapCollectionInJsonApi(
+      [subscription],
+      'subscription',
+      subscription.id,
+    );
+  }
+
+  if (/^\/organizations\/[^/]+\/subscription$/.test(pathname)) {
+    return wrapInJsonApi(subscription, 'subscription', subscription.id);
+  }
+
+  return undefined;
 }
 
 export function buildEmptyElementsAggregatePayload() {
@@ -540,6 +584,27 @@ async function _handleAuthRoutes(route: Route): Promise<void> {
 
 async function handleOrganizationRoutes(route: Route): Promise<void> {
   const url = route.request().url();
+  const subscriptionBody = buildSubscriptionMockBody(url);
+  if (subscriptionBody !== undefined) {
+    await route.fulfill({
+      body: JSON.stringify(subscriptionBody),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
+  // OrganizationsRelationshipsController serializes the mixed ingredient list.
+  if (/\/organizations\/[^/]+\/ingredients\/?$/.test(new URL(url).pathname)) {
+    await route.fulfill({
+      body: JSON.stringify(
+        wrapCollectionInJsonApi([], 'ingredient', 'ingredient'),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
 
   // Membership list: GET /organizations?mine=true (legacy /mine removed).
   if (
@@ -681,9 +746,19 @@ async function handleOrganizationRoutes(route: Route): Promise<void> {
     return;
   }
 
+  const organization = {
+    ...generateMockOrganization({ id: 'mock-org-id-e2e-test' }),
+    settings: generateMockOrganizationSettings(),
+  };
   await route.fulfill({
     body: JSON.stringify(
-      wrapInJsonApi(generateMockOrganization(), 'organizations', 'mock-org-id'),
+      isCollectionResourceRequest(url, 'organizations')
+        ? wrapCollectionInJsonApi(
+            [organization],
+            'organization',
+            organization.id,
+          )
+        : wrapInJsonApi(organization, 'organization', organization.id),
     ),
     contentType: 'application/json',
     status: 200,
@@ -926,34 +1001,10 @@ async function handleBillingRoutes(route: Route): Promise<void> {
     return;
   }
 
-  // `SubscriptionsService.getCreditsBreakdown` reads `res.data.data` as a plain
-  // breakdown, not a JSON:API resource; the Credits page renders `total`.
-  if (url.includes('/subscriptions/current/credits')) {
+  const subscriptionBody = buildSubscriptionMockBody(url);
+  if (subscriptionBody !== undefined) {
     await route.fulfill({
-      body: JSON.stringify({
-        data: {
-          credits: [],
-          cycleTotal: 625,
-          planLimit: 625,
-          remainingPercent: 80,
-          total: 500,
-        },
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-    return;
-  }
-
-  if (url.includes('/subscriptions')) {
-    await route.fulfill({
-      body: JSON.stringify(
-        wrapInJsonApi(
-          generateMockSubscription(),
-          'subscriptions',
-          'mock-subscription',
-        ),
-      ),
+      body: JSON.stringify(subscriptionBody),
       contentType: 'application/json',
       status: 200,
     });
@@ -1997,6 +2048,10 @@ function normalizeCostReportBoundary(value: string, endOfDay: boolean): Date {
  * call `.map` on an object and the page never paints.
  */
 export function buildUnhandledApiMockBody(url: string): unknown {
+  const subscriptionBody = buildSubscriptionMockBody(url);
+  if (subscriptionBody !== undefined) {
+    return subscriptionBody;
+  }
   const parsedUrl = new URL(url, 'http://localhost');
   if (
     parsedUrl.pathname === '/v1/costs/summary' ||
@@ -2427,8 +2482,30 @@ export async function setupApiMocks(
 
   // Core resource routes (prod api.genfeed.ai + local dev)
   await routeApi('/elements**', async (r) => {
+    if (!isCollectionResourceRequest(r.request().url(), 'elements')) {
+      await r.fallback();
+      return;
+    }
     await r.fulfill({
       body: JSON.stringify(buildEmptyElementsAggregatePayload()),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  // Element collection routes are not the /elements aggregate document.
+  await routeApi('/elements/scenes**', async (r) => {
+    if (
+      r.request().method() !== 'GET' ||
+      !isCollectionResourceRequest(r.request().url(), 'scenes')
+    ) {
+      await r.fallback();
+      return;
+    }
+    await r.fulfill({
+      body: JSON.stringify(
+        wrapCollectionInJsonApi([], 'element-scene', 'scene'),
+      ),
       contentType: 'application/json',
       status: 200,
     });

@@ -1,4 +1,9 @@
+import { SubscriptionStatus } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type {
+  ISubscription,
+  JsonApiSingleResponse,
+} from '@genfeedai/contracts/interfaces';
 import {
   mockActiveSubscription,
   mockExpiredSubscription,
@@ -43,6 +48,9 @@ test.describe('Billing Settings', () => {
       await settingsPage.goToBilling();
 
       await expect(authenticatedPage.getByText('Credits Left')).toBeVisible();
+      await expect(
+        settingsPage.canvas.getByText('500of 625', { exact: true }),
+      ).toBeVisible();
     });
 
     test('should display credit cycle context', async ({
@@ -58,7 +66,10 @@ test.describe('Billing Settings', () => {
       await settingsPage.goToBilling();
 
       await expect(
-        authenticatedPage.getByText(/credit cycle total/i),
+        authenticatedPage.getByText(
+          "Based on this cycle's total: subscription credits plus packs bought this cycle.",
+          { exact: true },
+        ),
       ).toBeVisible();
     });
   });
@@ -87,13 +98,33 @@ test.describe('Billing Settings', () => {
       const settingsPage = new SettingsPage(authenticatedPage);
 
       await mockExpiredSubscription(authenticatedPage);
+      const subscriptionResponse = authenticatedPage
+        .waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname ===
+            '/v1/organizations/mock-org-id-e2e-test/subscription',
+        )
+        .then(
+          (response) =>
+            response.json() as Promise<JsonApiSingleResponse<ISubscription>>,
+        );
 
       await settingsPage.goToBilling();
+      const subscriptionDocument = await subscriptionResponse;
+      expect(subscriptionDocument.data?.attributes.status).toBe(
+        SubscriptionStatus.CANCELLED,
+      );
+      expect(
+        Date.parse(
+          subscriptionDocument.data?.attributes.currentPeriodEnd ?? '',
+        ),
+      ).toBeLessThan(Date.now());
 
       await expect(authenticatedPage).toHaveURL(
         new RegExp(`${APP_ROUTES.SETTINGS.CREDITS}`),
       );
       await expect(authenticatedPage.locator('body')).toBeVisible();
+      await expect(authenticatedPage.getByText('Credits Left')).toBeVisible();
     });
   });
 
