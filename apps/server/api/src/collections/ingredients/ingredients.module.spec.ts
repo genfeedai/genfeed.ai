@@ -12,6 +12,7 @@ import { MODULE_METADATA } from '@nestjs/common/constants';
 import { Test } from '@nestjs/testing';
 import type { NextFunction, Request, Response } from 'express';
 import request from 'supertest';
+import type {} from 'vite/client';
 
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getIsSuperAdmin: () => false,

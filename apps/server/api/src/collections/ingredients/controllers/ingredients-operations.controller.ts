@@ -1,8 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BulkDeleteIngredientsDto } from '@api/collections/ingredients/dto/bulk-delete-ingredients.dto';
+import { UpdateIngredientMetadataDto } from '@api/collections/ingredients/dto/update-ingredient-metadata.dto';
 import type { IngredientMetadataDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { UpdateMetadataDto } from '@api/collections/metadata/dto/update-metadata.dto';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -13,10 +13,12 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   categoryToPlural,
   FileInputType,
@@ -24,10 +26,7 @@ import {
   inheritIngredientOrigin,
 } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
-import {
-  IngredientSerializer,
-  MetadataSerializer,
-} from '@genfeedai/serializers';
+import { IngredientSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -35,13 +34,11 @@ import {
   Body,
   Controller,
   Delete,
-  Get,
   HttpException,
   HttpStatus,
   Param,
   Patch,
   Post,
-  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -100,18 +97,8 @@ export class IngredientsOperationsController {
     return this.notificationsPublisher;
   }
 
-  @Get('analytics')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  getAnalytics(
-    @CurrentUser() user: User,
-    @Query('category') category?: string,
-  ) {
-    const organizationId = user.organizationId.toString();
-
-    return this.ingredientsService.getKPIMetrics(organizationId, category);
-  }
-
   @Post(':ingredientId/clone')
+  @UseGuards(AssetAccessGuard)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async cloneIngredient(
     @Req() request: Request,
@@ -122,10 +109,7 @@ export class IngredientsOperationsController {
     const callerOrganizationId = user.organizationId.toString();
 
     const ingredient = await this.ingredientsService.findOne(
-      {
-        id: ingredientId,
-        organizationId: callerOrganizationId,
-      },
+      scopedWhere(callerOrganizationId, { id: ingredientId }),
       [PopulatePatterns.metadataFull],
     );
 
@@ -162,7 +146,7 @@ export class IngredientsOperationsController {
       metadataData.id.toString(),
       ingredient.category,
       ingredientId,
-      user.userId ?? user.id,
+      user.userId,
       ingredient.s3Key ?? undefined,
     ).catch((error) => {
       this.loggerService.error(`${url} async processing failed`, {
@@ -170,6 +154,8 @@ export class IngredientsOperationsController {
         ingredientId: ingredientData.id,
       });
     });
+
+    await this.invalidateIngredientListCache();
 
     // Return immediately with PROCESSING status
     return serializeSingle(request, IngredientSerializer, ingredientData);
@@ -195,16 +181,11 @@ export class IngredientsOperationsController {
         originalIngredientId,
       });
 
-      let uploadUrl = `${this.configService.ingredientsEndpoint}/${categoryToPlural(category)}/${originalIngredientId}`;
-      if (this.configService.isAuthorizedMediaDeliveryEnabled) {
-        if (!originalStorageKey) {
-          throw new Error('The original ingredient has no stored media key');
-        }
-        uploadUrl =
-          await this.getFilesClientService().getPresignedDownloadUrlForObjectKey(
-            originalStorageKey,
-          );
-      }
+      const uploadUrl = await this.resolveSourceUrl(
+        category,
+        originalIngredientId,
+        originalStorageKey,
+      );
 
       const uploadMeta = await this.getFilesClientService().uploadToS3(
         newIngredientId,
@@ -278,13 +259,7 @@ export class IngredientsOperationsController {
 
     // Find the ingredient first to ensure it exists and belongs to the user or organization
     const ingredient = await this.ingredientsService.findOne(
-      {
-        id: ingredientId,
-        OR: [
-          { userId: user.userId ?? user.id },
-          { organizationId: user.organizationId },
-        ],
-      },
+      scopedWhere(user.organizationId, { id: ingredientId }),
       [PopulatePatterns.metadataFull],
     );
 
@@ -302,9 +277,12 @@ export class IngredientsOperationsController {
       );
     }
 
-    const ingredientUrl = `${this.configService.ingredientsEndpoint}/${categoryToPlural(ingredient.category)}/${ingredientId}`;
-
     try {
+      const ingredientUrl = await this.resolveSourceUrl(
+        ingredient.category,
+        ingredientId,
+        ingredient.s3Key ?? undefined,
+      );
       // Extract metadata from the file URL without re-uploading
       // Use extractMetadataFromUrl instead of uploadToS3 to avoid re-uploading existing files
       const uploadMeta =
@@ -347,9 +325,7 @@ export class IngredientsOperationsController {
 
       // Fetch the updated ingredient with metadata
       const updatedIngredient = await this.ingredientsService.findOne(
-        {
-          id: ingredientId,
-        },
+        scopedWhere(user.organizationId, { id: ingredientId }),
         [PopulatePatterns.metadataFull],
       );
 
@@ -374,17 +350,11 @@ export class IngredientsOperationsController {
     @Req() request: Request,
     @Param('ingredientId') ingredientId: string,
     @CurrentUser() user: User,
-    @Body() metadataDto: UpdateMetadataDto,
+    @Body() metadataDto: UpdateIngredientMetadataDto,
   ): Promise<JsonApiSingleResponse> {
     // Find the ingredient first to ensure it exists and belongs to the user or organization
     const ingredient = await this.ingredientsService.findOne(
-      {
-        id: ingredientId,
-        OR: [
-          { userId: user.userId ?? user.id },
-          { organizationId: user.organizationId },
-        ],
-      },
+      scopedWhere(user.organizationId, { id: ingredientId }),
       [PopulatePatterns.metadataFull],
     );
 
@@ -407,12 +377,12 @@ export class IngredientsOperationsController {
 
     await this.metadataService.patch(metadataId, metadataDto);
 
-    // Fetch the updated metadata
-    const updatedMetadata = await this.metadataService.findOne({
-      id: metadataId,
-    });
-
-    return serializeSingle(request, MetadataSerializer, updatedMetadata);
+    const updatedIngredient = await this.ingredientsService.findOne(
+      scopedWhere(user.organizationId, { id: ingredientId }),
+      [PopulatePatterns.metadataFull],
+    );
+    await this.invalidateIngredientListCache();
+    return serializeSingle(request, IngredientSerializer, updatedIngredient);
   }
 
   /**
@@ -427,22 +397,24 @@ export class IngredientsOperationsController {
   ): Promise<{ deleted: string[]; failed: string[]; message: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    // One scoped partition query + one soft-delete write, regardless of how
-    // many ids the caller supplies. Permission semantics are unchanged: an id
-    // is deletable when it exists, is not already deleted, and the caller
-    // either owns it or shares its organization.
+    // Read and write inside the active organization, applying the asset edit
+    // rule before trashing any selected row.
     const { deleted, failed } =
       await this.ingredientsService.bulkSoftDeleteScoped({
         ids: bulkDeleteDto.ids,
         organizationId: user.organizationId.toString(),
-        userId: (user.userId ?? user.id).toString(),
+        editor: { brandId: user.brandId, userId: user.userId },
       });
+
+    if (deleted.length > 0) {
+      await this.invalidateIngredientListCache();
+    }
 
     if (failed.length > 0) {
       this.loggerService.warn(`${url} skipped inaccessible ingredients`, {
         count: failed.length,
         orgId: user.organizationId,
-        userId: user.userId ?? user.id,
+        userId: user.userId,
       });
     }
 
@@ -461,5 +433,34 @@ export class IngredientsOperationsController {
       failed,
       message,
     };
+  }
+
+  private async resolveSourceUrl(
+    category: string,
+    ingredientId: string,
+    storageKey?: string,
+  ): Promise<string> {
+    if (this.configService.isAuthorizedMediaDeliveryEnabled) {
+      if (!storageKey) {
+        throw new Error('The original ingredient has no stored media key');
+      }
+      return this.getFilesClientService().getPresignedDownloadUrlForObjectKey(
+        storageKey,
+      );
+    }
+    return `${this.configService.ingredientsEndpoint}/${categoryToPlural(category)}/${ingredientId}`;
+  }
+
+  private async invalidateIngredientListCache(): Promise<void> {
+    try {
+      await this.moduleRef
+        .get(CacheService, { strict: false })
+        .invalidateByTags(['ingredients']);
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${this.constructorName} could not invalidate the Library list cache`,
+        { error },
+      );
+    }
   }
 }
