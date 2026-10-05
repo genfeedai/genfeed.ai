@@ -20,6 +20,9 @@ describe('auth callback URL helpers', () => {
 
   it('sends Google failures to the login page on the current origin', () => {
     expect(getAuthErrorCallbackURL()).toBe(`${window.location.origin}/login`);
+    expect(getAuthErrorCallbackURL('/oauth/consent?client_id=c&state=s')).toBe(
+      `${window.location.origin}/login?callbackUrl=${encodeURIComponent('/oauth/consent?client_id=c&state=s')}`,
+    );
   });
 
   it('maps Better Auth OAuth error codes to login copy', () => {

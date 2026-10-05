@@ -24,6 +24,7 @@ import {
 import {
   getAuthCallbackURL,
   toAbsoluteAuthCallbackURL,
+  toAbsoluteMagicLinkCallbackURL,
 } from '../auth-callback-url';
 import {
   AUTH_LINK_CLASS_NAME,
@@ -114,7 +115,7 @@ export default function SignUpBetterAuth({
         method: 'magic_link',
       });
       const result = await signIn.magicLink({
-        callbackURL: authCallbackURL,
+        callbackURL: toAbsoluteMagicLinkCallbackURL(callbackURL),
         email: normalizedEmail,
         metadata: SIGN_UP_MAGIC_LINK_METADATA,
       });

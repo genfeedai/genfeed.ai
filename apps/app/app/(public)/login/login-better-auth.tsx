@@ -1,6 +1,7 @@
 'use client';
 
 import { getSession, signIn } from '@genfeedai/auth-client';
+import { resolveAuthContinuation } from '@genfeedai/auth-client/callback';
 import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
@@ -36,6 +37,7 @@ import {
   getAuthFlowHref,
   resolveOAuthLoginErrorMessage,
   toAbsoluteAuthCallbackURL,
+  toAbsoluteMagicLinkCallbackURL,
 } from '../auth-callback-url';
 import {
   AUTH_LINK_CLASS_NAME,
@@ -102,7 +104,10 @@ function getInvitationNotice(
 export type { LoginBetterAuthProps };
 
 export default function LoginBetterAuth({
+  callbackURL: requestedCallbackURL,
+  description = LOGIN_DESCRIPTION,
   mode = 'chooser',
+  title = LOGIN_TITLE,
 }: LoginBetterAuthProps) {
   const translate = useTranslations('common');
   const searchParams = useSearchParams();
@@ -138,7 +143,9 @@ export default function LoginBetterAuth({
   } = useDesktopLocalWorkspaceFlag();
   const desktopSessionUnsubscribeRef = useRef<(() => void) | null>(null);
   const isWaitingForDesktopSessionRef = useRef(false);
-  const callbackURL = getAuthCallbackURL(searchParams);
+  const callbackURL =
+    resolveAuthContinuation(requestedCallbackURL ?? null) ??
+    getAuthCallbackURL(searchParams);
   const authCallbackURL = toAbsoluteAuthCallbackURL(callbackURL);
   const chooserHref = getAuthFlowHref('/login', callbackURL);
   const magicLinkHref = getAuthFlowHref('/login/magic-link', callbackURL);
@@ -332,7 +339,7 @@ export default function LoginBetterAuth({
 
     try {
       const result = await signIn.magicLink({
-        callbackURL: authCallbackURL,
+        callbackURL: toAbsoluteMagicLinkCallbackURL(callbackURL),
         email,
       });
       if (result?.error) {
@@ -391,7 +398,7 @@ export default function LoginBetterAuth({
     try {
       const result = await signIn.social({
         callbackURL: authCallbackURL,
-        errorCallbackURL: getAuthErrorCallbackURL(),
+        errorCallbackURL: getAuthErrorCallbackURL(callbackURL),
         provider,
       });
       if (result?.error) {
@@ -670,11 +677,7 @@ export default function LoginBetterAuth({
   }
 
   return (
-    <AuthFormLayout
-      description={LOGIN_DESCRIPTION}
-      logoSize="compact"
-      title={LOGIN_TITLE}
-    >
+    <AuthFormLayout description={description} logoSize="compact" title={title}>
       <div className="w-full space-y-4">
         {invitationNotice ? (
           <Alert type={invitationNotice.type}>{invitationNotice.message}</Alert>

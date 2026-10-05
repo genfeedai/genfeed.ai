@@ -1,5 +1,6 @@
 import {
   buildBrowserAuthCallbackURL,
+  buildMagicLinkCallbackURL,
   resolveAuthContinuation,
 } from '@genfeedai/auth-client/callback';
 import type { ISignupAttribution } from '@genfeedai/contracts/interfaces';
@@ -32,12 +33,18 @@ const OAUTH_INTERRUPTED_CODES = new Set([
   'state_generation_error',
 ]);
 
-export function getAuthErrorCallbackURL(): string {
+/**
+ * Where a failed or cancelled social sign-in lands. It keeps the continuation
+ * so a retry still returns to it (an OAuth consent request, for one).
+ */
+export function getAuthErrorCallbackURL(
+  callbackURL: string = ROOT_CALLBACK_URL,
+): string {
   const origin =
     typeof window === 'undefined'
       ? 'https://app.genfeed.ai'
       : window.location.origin;
-  return `${origin}${LOGIN_PATH}`;
+  return `${origin}${getAuthFlowHref(LOGIN_PATH, callbackURL)}`;
 }
 
 export function resolveOAuthLoginErrorMessage(
@@ -203,6 +210,15 @@ export function toAbsoluteAuthCallbackURL(callbackURL: string): string {
       ? 'https://app.genfeed.ai'
       : window.location.origin;
   return buildBrowserAuthCallbackURL(callbackURL, origin);
+}
+
+/** The `callbackURL` for `signIn.magicLink` (see `buildMagicLinkCallbackURL`). */
+export function toAbsoluteMagicLinkCallbackURL(callbackURL: string): string {
+  const origin =
+    typeof window === 'undefined'
+      ? 'https://app.genfeed.ai'
+      : window.location.origin;
+  return buildMagicLinkCallbackURL(callbackURL, origin);
 }
 
 /** Build the fixed public page URL used to complete a password reset. */
