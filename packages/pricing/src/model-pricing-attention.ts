@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { quoteModelBillablePricing } from './model-billable-quote';
 import { DEFAULT_GENERATION_MARGIN_MULTIPLIER } from './plans-pricing';
+import { selectorNumber } from './reviewed-provider-pricing';
 
 /** Providers whose rates the daily/weekly watcher refreshes from a machine-readable source. */
 const REFRESHED_PROVIDERS: ReadonlySet<string> = new Set(['replicate', 'fal']);
@@ -135,8 +136,8 @@ export function classifyModelPricingAttention(
           ...identity,
           ...quantities,
           // A duration-priced variant is quoted for its own duration.
-          ...(typeof selectors.duration === 'number'
-            ? { duration: selectors.duration }
+          ...(selectorNumber(selectors.duration) !== null
+            ? { duration: selectorNumber(selectors.duration) as number }
             : {}),
           ...(Object.keys(selectors).length ? { selectors } : {}),
         },

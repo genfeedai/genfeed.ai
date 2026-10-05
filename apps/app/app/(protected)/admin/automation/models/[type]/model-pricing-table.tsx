@@ -178,10 +178,12 @@ function ApproveRatesControl({ row }: { row: AdminModelPricingRow }) {
         });
     },
   });
-  if (row.pendingRateChanges.length === 0) return null;
+  if (row.pendingRateChanges.length === 0 && !row.isRateApprovalAvailable)
+    return null;
   return (
     <div className="mt-2 space-y-1">
       <p className="font-medium">{t('pendingPriceChanges')}</p>
+      {row.pendingRateChanges.length === 0 ? <p>{t('termsChanged')}</p> : null}
       <ul className="list-disc pl-4">
         {row.pendingRateChanges.map((change) => (
           <li key={`${change.component}:${change.variant}`}>
@@ -190,6 +192,7 @@ function ApproveRatesControl({ row }: { row: AdminModelPricingRow }) {
               oldPrice: priceOrNone(change.oldPriceUsd, t),
               variant: change.variant,
             })}
+            {change.hasTermsChange ? ` (${t('termsChanged')})` : ''}
           </li>
         ))}
       </ul>

@@ -65,8 +65,8 @@ export const HAILUO_2_3_FAST_INPUT_PROPERTIES = {
     type: 'boolean',
   },
   resolution: {
-    default: '768P',
-    enum: ['768P', '1080P'],
+    default: '768p',
+    enum: ['768p', '1080p'],
     title: 'Resolution',
     type: 'string',
   },

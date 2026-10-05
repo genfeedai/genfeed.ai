@@ -37,19 +37,19 @@ describe('mapReplicateBillingTiers', () => {
           component: 'output',
           unit: 'output',
           unitPriceUsd: 0.19,
-          when: { resolution: '768P', duration: 6 },
+          when: { resolution: '768p', duration: 6 },
         },
         {
           component: 'output',
           unit: 'output',
           unitPriceUsd: 0.32,
-          when: { resolution: '768P', duration: 10 },
+          when: { resolution: '768p', duration: 10 },
         },
         {
           component: 'output',
           unit: 'output',
           unitPriceUsd: 0.33,
-          when: { resolution: '1080P', duration: 6 },
+          when: { resolution: '1080p', duration: 6 },
         },
       ],
       selectorKeys: ['duration', 'resolution'],
@@ -202,5 +202,21 @@ describe('mapReplicateBillingTiers', () => {
       ],
       status: 'ok',
     });
+  });
+
+  it('stores the schema enum value when the billing label differs only by case', () => {
+    const result = mapReplicateBillingTiers(
+      HAILUO_2_3_FAST_BILLING_TIERS,
+      HAILUO_2_3_FAST_INPUT_PROPERTIES,
+    );
+    expect(result.status).toBe('ok');
+    if (result.status !== 'ok') return;
+    // The page says `768P`; the input schema's enum says `768p`.
+    expect(result.rates[0]?.when.resolution).toBe('768p');
+    expect(result.rates.map((rate) => rate.when.resolution)).toEqual([
+      '768p',
+      '768p',
+      '1080p',
+    ]);
   });
 });

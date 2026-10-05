@@ -29,7 +29,7 @@ function modelRow(overrides: Record<string, unknown> = {}) {
     providerInputSchema: {
       properties: {
         duration: { enum: [6, 10] },
-        resolution: { enum: ['768P', '1080P'] },
+        resolution: { enum: ['768p', '1080p'] },
       },
     },
     reviewedProviderContractVersion: null,
@@ -123,7 +123,7 @@ describe('reviewed provider rates seed', () => {
         {
           modelKey: 'minimax/hailuo-2.3-fast',
           provider: 'replicate',
-          selectors: { duration: 6, resolution: '768P' },
+          selectors: { duration: 6, resolution: '768p' },
         },
         3.33,
         '2026-12-31T00:00:00Z',

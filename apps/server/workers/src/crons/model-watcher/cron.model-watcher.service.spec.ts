@@ -385,6 +385,24 @@ describe('CronModelWatcherService', () => {
       );
     });
 
+    it('raises one deduped provider-level alert when the whole Replicate sync fails', async () => {
+      Reflect.get(
+        service,
+        'platformMarginService',
+      ).hydrate.mockRejectedValueOnce(new Error('boom'));
+
+      const result = await service.discoverNewModels();
+
+      expect(result.errors).toBe(1);
+      expect(notificationsService.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deduplicationKey: expect.stringMatching(
+            /^message\.model-pricing-unavailable\/provider:replicate\/The Replicate price refresh failed \(replicate_sync_failed\).*\/\d{4}-\d{2}-\d{2}$/,
+          ),
+        }),
+      );
+    });
+
     it('should ignore models already in DB', async () => {
       // Mock Replicate API returning only existing models
       globalThis.fetch = vi.fn().mockResolvedValueOnce({

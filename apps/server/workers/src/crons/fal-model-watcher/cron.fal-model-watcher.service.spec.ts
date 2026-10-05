@@ -437,6 +437,14 @@ describe('CronFalModelWatcherService', () => {
         'fal_sync_failed',
         expect.any(Date),
       );
+      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deduplicationKey: expect.stringContaining(
+            'message.model-pricing-unavailable/provider:fal/The fal price refresh failed (fal_sync_failed)',
+          ),
+          source: { id: 'provider:fal', type: 'model' },
+        }),
+      );
     });
 
     it('keeps processing after a single model fails', async () => {

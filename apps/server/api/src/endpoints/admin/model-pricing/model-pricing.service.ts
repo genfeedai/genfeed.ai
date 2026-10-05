@@ -16,6 +16,7 @@ import {
   hashReviewedProviderRates,
   hasPendingProviderRateDrift,
   quoteModelBillablePricing,
+  selectorNumber,
 } from '@genfeedai/pricing';
 import {
   type Model,
@@ -302,8 +303,7 @@ export function projectAdminModelPricing(
     {
       ...identity,
       ...variantSelectors,
-      duration:
-        typeof firstVariant?.duration === 'number' ? firstVariant.duration : 1,
+      duration: selectorNumber(firstVariant?.duration) ?? 1,
       width: 1000,
       height: 1000,
     },
@@ -315,8 +315,8 @@ export function projectAdminModelPricing(
     {
       ...identity,
       ...variantSelectors,
-      ...(typeof firstVariant?.duration === 'number'
-        ? { duration: firstVariant.duration }
+      ...(selectorNumber(firstVariant?.duration) !== null
+        ? { duration: selectorNumber(firstVariant?.duration) as number }
         : model.defaultDuration !== null
           ? { duration: model.defaultDuration }
           : {}),

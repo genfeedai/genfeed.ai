@@ -78,6 +78,8 @@ export interface ModelPricingRateChange {
   oldPriceUsd: number | null;
   /** Null when the variant disappeared. */
   newPriceUsd: number | null;
+  /** Included units, minimums, rounding or per-output billing changed. */
+  hasTermsChange?: boolean;
 }
 
 /** Red = the model cannot be priced. Orange = a price needs an operator's review. */

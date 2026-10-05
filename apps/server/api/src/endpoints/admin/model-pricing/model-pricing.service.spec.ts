@@ -184,17 +184,17 @@ describe('operator model pricing projection', () => {
       {
         c: 'video_output_count',
         price: 0.19,
-        when: { resolution: '768P', duration: 6 },
+        when: { resolution: '768p', duration: 6 },
       },
       {
         c: 'video_output_count',
         price: 0.32,
-        when: { resolution: '768P', duration: 10 },
+        when: { resolution: '768p', duration: 10 },
       },
       {
         c: 'video_output_count',
         price: 0.33,
-        when: { resolution: '1080P', duration: 6 },
+        when: { resolution: '1080p', duration: 6 },
       },
     ].map(({ c, price, when }) => ({
       component: c,
@@ -211,7 +211,7 @@ describe('operator model pricing projection', () => {
       providerInputSchema: {
         properties: {
           duration: { enum: [6, 10] },
-          resolution: { enum: ['768P', '1080P'] },
+          resolution: { enum: ['768p', '1080p'] },
         },
       },
     } as unknown as Model;
@@ -222,7 +222,7 @@ describe('operator model pricing projection', () => {
     ) =>
       ({
         ...contract,
-        conditionalDimensions: { resolution: ['768P', '1080P'] },
+        conditionalDimensions: { resolution: ['768p', '1080p'] },
         endpoint: 'minimax/hailuo-2.3-fast',
         provider: 'replicate',
         pricing: {
@@ -346,7 +346,7 @@ describe('operator model pricing projection', () => {
           {
             modelKey: 'minimax/hailuo-2.3-fast',
             provider: 'replicate',
-            selectors: { duration: 6, resolution: '768P' },
+            selectors: { duration: 6, resolution: '768p' },
           },
           3.33,
           '2026-10-05T00:00:00Z',
@@ -499,7 +499,7 @@ describe('operator model pricing projection', () => {
       component: 'output',
       unit: 'output',
       unitPriceUsd: price,
-      when: { resolution: '768P' },
+      when: { resolution: '768p' },
     });
     const contractOf = (version: string, price: number, status: string) =>
       ({
@@ -524,7 +524,7 @@ describe('operator model pricing projection', () => {
         endpoint: 'provider/model',
         pendingProviderContractVersion: pendingVersion,
         providerInputSchema: {
-          properties: { resolution: { enum: ['768P', '1080P'] } },
+          properties: { resolution: { enum: ['768p', '1080p'] } },
         },
         reviewedProviderContractVersion: 'rates-v1',
       }) as unknown as Model;

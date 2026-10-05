@@ -239,6 +239,12 @@ export class CronFalModelWatcherService {
         'fal_sync_failed',
         summary.timestamp,
       );
+      // One deduped provider-level alert: every fal rate is unconfirmed.
+      await this.sendFailureAlert(
+        'provider:fal',
+        'fal_sync_failed',
+        summary.timestamp,
+      );
       this.logger.error(`${url} failed`, {
         reason: error instanceof Error ? error.name : 'unknown',
       });

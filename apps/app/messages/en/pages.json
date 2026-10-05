@@ -4914,6 +4914,7 @@
     "confirmApproveRates": "Confirm approval",
     "cancelApproveRates": "Cancel",
     "approveRatesFailed": "Approval failed. Refresh the snapshot and try again.",
+    "termsChanged": "Billing terms changed",
     "approveRatesChanged": "Rates changed. Reload and review the new rates."
   },
   "generationReceipts": {

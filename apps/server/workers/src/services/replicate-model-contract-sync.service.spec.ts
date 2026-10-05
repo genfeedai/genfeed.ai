@@ -41,7 +41,7 @@ const HAILUO_2_3_FAST_BILLING_TIERS = [
 ];
 const HAILUO_2_3_FAST_INPUT_PROPERTIES = {
   duration: { enum: [6, 10], title: 'Duration', type: 'integer' },
-  resolution: { enum: ['768P', '1080P'], title: 'Resolution', type: 'string' },
+  resolution: { enum: ['768p', '1080p'], title: 'Resolution', type: 'string' },
 };
 
 function providerModel(openapi = validOpenapi()): IReplicateModel {
@@ -107,19 +107,19 @@ const reviewedRates: ReviewedProviderRate[] = [
     component: 'output',
     unit: 'output',
     unitPriceUsd: 0.19,
-    when: { resolution: '768P', duration: 6 },
+    when: { resolution: '768p', duration: 6 },
   },
   {
     component: 'output',
     unit: 'output',
     unitPriceUsd: 0.32,
-    when: { resolution: '768P', duration: 10 },
+    when: { resolution: '768p', duration: 10 },
   },
   {
     component: 'output',
     unit: 'output',
     unitPriceUsd: 0.33,
-    when: { resolution: '1080P', duration: 6 },
+    when: { resolution: '1080p', duration: 6 },
   },
 ];
 const reviewedVersion = hashReviewedProviderRates(reviewedRates);
@@ -387,7 +387,7 @@ describe('ReplicateModelContractSyncService', () => {
         {
           newPriceUsd: 0.21,
           oldPriceUsd: 0.19,
-          variant: 'duration=6 · resolution=768P',
+          variant: 'duration=6 · resolution=768p',
         },
       ],
       modelKey: 'google/imagen-4',

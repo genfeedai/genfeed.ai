@@ -186,6 +186,18 @@ describe('model pricing attention (#6196)', () => {
     );
   });
 
+  it('offers Approve with a terms-changed line when only billing terms changed', async () => {
+    fixture.getReport.mockResolvedValue(
+      report([{ ...orange, id: 'terms', pendingRateChanges: [] }]),
+    );
+    show();
+
+    expect(
+      await screen.findByRole('button', { name: 'Approve new price' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Billing terms changed')).toBeInTheDocument();
+  });
+
   it('shows old and new prices per variant', async () => {
     show();
 

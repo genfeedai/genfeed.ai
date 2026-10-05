@@ -694,8 +694,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
     };
 
     if (params.resolution) {
-      // Replicate's enum (and the reviewed rates) spell it `768P` / `1080P`.
-      input.resolution = params.resolution.toUpperCase();
+      input.resolution = params.resolution;
     }
 
     assertRequiredSchemaInput(model, input, params.modelInputSchema);

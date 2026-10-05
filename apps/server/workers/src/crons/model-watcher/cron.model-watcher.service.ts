@@ -316,6 +316,12 @@ export class CronModelWatcherService {
         'replicate_sync_failed',
         summary.timestamp,
       );
+      // One deduped provider-level alert: every Replicate rate is unconfirmed.
+      await this.sendFailureAlert(
+        'provider:replicate',
+        'replicate_sync_failed',
+        summary.timestamp,
+      );
       this.logger.error(`${url} failed`, {
         reason: error instanceof Error ? error.name : 'unknown',
       });

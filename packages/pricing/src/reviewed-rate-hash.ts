@@ -146,6 +146,16 @@ function variantLabel(when: Record<string, string | number | boolean>): string {
     : 'all variants';
 }
 
+function termsOf(rate: ReviewedProviderRate) {
+  const normalized = normalizeRate(rate);
+  return {
+    includedUnits: normalized.includedUnits,
+    isPerOutput: normalized.isPerOutput,
+    minimumUnits: normalized.minimumUnits,
+    roundUnitsTo: normalized.roundUnitsTo,
+  };
+}
+
 /** Per-variant difference between two rate sets; equal prices are omitted. */
 export function describeProviderRateChanges(
   oldRates: readonly ReviewedProviderRate[],
@@ -158,13 +168,18 @@ export function describeProviderRateChanges(
   const changes: ModelPricingRateChange[] = [];
   for (const [key, rate] of next) {
     const before = previous.get(key);
+    const hasTermsChange =
+      before !== undefined &&
+      canonicalJson(termsOf(before)) !== canonicalJson(termsOf(rate));
     if (
       before &&
+      !hasTermsChange &&
       normalizeRate(before).unitPriceUsd === normalizeRate(rate).unitPriceUsd
     )
       continue;
     changes.push({
       component: rate.component,
+      ...(hasTermsChange ? { hasTermsChange: true } : {}),
       newPriceUsd: rate.unitPriceUsd,
       oldPriceUsd: before?.unitPriceUsd ?? null,
       unit: rate.unit,

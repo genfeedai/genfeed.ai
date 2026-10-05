@@ -112,4 +112,30 @@ describe('describeProviderRateChanges', () => {
     ]);
     expect(describeProviderRateChanges(rates, [...rates])).toEqual([]);
   });
+
+  it('reports a billing-term change even when the price is unchanged', () => {
+    expect(
+      describeProviderRateChanges(rates, [
+        { ...first, minimumUnits: 5 },
+        second,
+      ]),
+    ).toEqual([
+      {
+        component: 'video_output_count',
+        hasTermsChange: true,
+        newPriceUsd: 0.19,
+        oldPriceUsd: 0.19,
+        unit: 'output',
+        variant: 'duration=6 · resolution=768P',
+      },
+    ]);
+    for (const change of [
+      { includedUnits: 1 },
+      { roundUnitsTo: 5 },
+      { isPerOutput: true },
+    ])
+      expect(
+        describeProviderRateChanges(rates, [{ ...first, ...change }, second]),
+      ).toHaveLength(1);
+  });
 });

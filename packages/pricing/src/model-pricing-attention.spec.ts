@@ -178,6 +178,35 @@ describe('classifyModelPricingAttention', () => {
   });
 });
 
+describe('numeric-string duration bands', () => {
+  it('samples a "10" band at ten seconds, not the default', () => {
+    const tenSecondRates: ReviewedProviderRate[] = [
+      {
+        component: 'output',
+        isPerOutput: true,
+        unit: 'second',
+        unitPriceUsd: 0.1,
+        when: { duration: '10' },
+      },
+    ];
+    const attention = classifyModelPricingAttention({
+      ...base,
+      profile: {
+        ...profile,
+        requiredSelectorKeys: [],
+        reviewedPricing: {
+          ...(profile.reviewedPricing as NonNullable<
+            typeof profile.reviewedPricing
+          >),
+          rates: tenSecondRates,
+        },
+      },
+    });
+    // Priced (not unresolved for a missing duration) at the band's own seconds.
+    expect(attention).toEqual([]);
+  });
+});
+
 describe('enumerateReviewedVariantSelectors', () => {
   it('lists each declared variant once and merges independent components', () => {
     expect(enumerateReviewedVariantSelectors(hailuoRates)).toHaveLength(3);

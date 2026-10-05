@@ -12,6 +12,16 @@ import {
 } from './decimal-pricing';
 import { applyMargin } from './plans-pricing';
 
+/** The number a selector value spells (`6` or `'6'`), else null. */
+export function selectorNumber(
+  value: string | number | boolean | undefined,
+): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'string' && /^\s*-?\d+(\.\d+)?\s*$/.test(value))
+    return Number(value);
+  return null;
+}
+
 /**
  * Selector values compare exactly (case-sensitive), except that a finite
  * numeric string equals the number it spells: `'6'` matches `6`.

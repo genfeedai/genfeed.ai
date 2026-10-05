@@ -50,7 +50,7 @@ describe('VideoGenerationCreditsService admission for minimax/hailuo-2.3-fast', 
       providerInputSchema: {
         properties: {
           duration: { enum: [6, 10] },
-          resolution: { enum: ['768P', '1080P'] },
+          resolution: { enum: ['768p', '1080p'] },
         },
       },
       reviewedProviderContractVersion: null,
@@ -115,7 +115,7 @@ describe('VideoGenerationCreditsService admission for minimax/hailuo-2.3-fast', 
     setRuntimeMarginMultiplier(MARGIN);
   });
 
-  it.each(['768P', '768p'])(
+  it.each(['768p'])(
     'charges applyMargin(0.19) for a start frame at %s, user duration 5 (provider 6)',
     async (resolution) => {
       const providerInput = builder.buildPrompt(
@@ -147,7 +147,7 @@ describe('VideoGenerationCreditsService admission for minimax/hailuo-2.3-fast', 
         providerInput as unknown as Record<string, unknown>,
       );
 
-      expect(providerInput).toMatchObject({ duration: 6, resolution: '768P' });
+      expect(providerInput).toMatchObject({ duration: 6, resolution: '768p' });
       expect(request.creditsConfig).toMatchObject({
         amount: applyMargin(0.19, MARGIN),
         deferred: false,

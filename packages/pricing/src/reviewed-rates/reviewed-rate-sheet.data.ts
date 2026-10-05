@@ -417,7 +417,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
         unit: 'output',
         unitPriceUsd: 0.19,
         when: {
-          resolution: '768P',
+          resolution: '768p',
           duration: 6,
         },
       },
@@ -426,7 +426,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
         unit: 'output',
         unitPriceUsd: 0.32,
         when: {
-          resolution: '768P',
+          resolution: '768p',
           duration: 10,
         },
       },
@@ -435,7 +435,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
         unit: 'output',
         unitPriceUsd: 0.33,
         when: {
-          resolution: '1080P',
+          resolution: '1080p',
           duration: 6,
         },
       },
