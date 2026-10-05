@@ -173,3 +173,9 @@ it('makes saving onboarding answers available to the general onboarding agent', 
     'save_onboarding_answers',
   );
 });
+
+it('makes URL scans available to the general onboarding agent', () => {
+  expect(getAgentTypeConfig(AgentType.GENERAL).defaultTools).toContain(
+    'scan_brand_url',
+  );
+});

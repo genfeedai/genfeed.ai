@@ -4,6 +4,7 @@ import {
   closedObjectSchema,
   enumSchema,
   JSON_DOCUMENT_SCHEMA,
+  NUMBER_SCHEMA,
   nullableSchema,
   STRING_SCHEMA,
 } from './schema-builders';
@@ -27,6 +28,10 @@ const STATUS = enumSchema([
 ] as const);
 const STATE = closedObjectSchema(
   {
+    deadlineAt: NUMBER_SCHEMA,
+    hasChosenBrandLabel: BOOLEAN_SCHEMA,
+    scrapeStatus: enumSchema(['scraped', 'failed'] as const),
+    scrapeReason: STRING_SCHEMA,
     brandDomain: nullableSchema(STRING_SCHEMA),
     brandLabel: STRING_SCHEMA,
     brandVoice: JSON_DOCUMENT_SCHEMA,
@@ -34,6 +39,7 @@ const STATE = closedObjectSchema(
     hasHarnessProfile: BOOLEAN_SCHEMA,
     request: REQUEST,
     scrapedData: JSON_DOCUMENT_SCHEMA,
+    summary: JSON_DOCUMENT_SCHEMA,
     status: STATUS,
     websiteUrl: STRING_SCHEMA,
   },
@@ -65,6 +71,8 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
     inputSchema: stateInput,
     outputSchema: closedObjectSchema(
       {
+        scrapeStatus: enumSchema(['scraped', 'failed'] as const),
+        scrapeReason: STRING_SCHEMA,
         brandDomain: nullableSchema(STRING_SCHEMA),
         brandId: STRING_SCHEMA,
         hasBrandVoice: BOOLEAN_SCHEMA,

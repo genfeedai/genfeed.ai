@@ -143,6 +143,7 @@ import { InstagramInspirationModule } from '@api/services/instagram-inspiration/
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
 import { SeoModule } from '@api/services/seo/seo.module';
+import { SignupPrefillModule } from '@api/services/signup-prefill/signup-prefill.module';
 import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
 import { TypedDecisionsModule } from '@api/services/typed-decisions/typed-decisions.module';
 import { UploadsModule } from '@api/services/uploads/uploads.module';
@@ -165,6 +166,7 @@ import { Module } from '@nestjs/common';
     AgentWorkObjectService,
   ],
   imports: [
+    SignupPrefillModule,
     VisualProjectsCoreModule,
     PlatformSettingsModule,
     ActivityRecordingModule,

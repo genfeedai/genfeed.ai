@@ -11,6 +11,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { buildFirstRunOnboardingImageBody } from '@api/helpers/utils/first-run-image-generation/first-run-image-generation.util';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import {
@@ -36,6 +37,8 @@ import {
 import { createOnboardingBrandDraft } from '@api/services/agent-orchestrator/tools/agent-onboarding-content.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import { SignupPrefillService } from '@api/services/signup-prefill/signup-prefill.service';
+import { normalizeOnboardingUrl } from '@api/services/signup-prefill/utils/normalize-onboarding-url.util';
 import {
   hasOrganizationBilling,
   isSelfHostedDeployment,
@@ -68,7 +71,10 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   Optional,
+  RequestTimeoutException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 
 /**
@@ -141,6 +147,7 @@ export class AgentOnboardingToolHandler {
     @Optional()
     private readonly streamPublisher?: AgentStreamPublisherService,
     private readonly brandDataMapper: BrandDataMapper = new BrandDataMapper(),
+    @Optional() private readonly signupPrefillService?: SignupPrefillService,
   ) {}
 
   private async publishToolProgress(data: {
@@ -154,6 +161,105 @@ export class AgentOnboardingToolHandler {
       return;
     }
     await this.streamPublisher.publishToolProgress(data);
+  }
+
+  async scanBrandUrl(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const currentBrandId = ctx.validatedScope?.brandId ?? ctx.brandId;
+    const brandId = readOptionalString(params.brandId) ?? currentBrandId;
+    let sourceUrl = '';
+    try {
+      if (typeof params.url !== 'string')
+        throw new BadRequestException('URL required');
+      sourceUrl = normalizeOnboardingUrl(params.url);
+      if (!brandId || (currentBrandId && brandId !== currentBrandId))
+        throw new NotFoundException('Brand');
+      if (!this.signupPrefillService)
+        throw new ServiceUnavailableException('Scan service unavailable');
+      const state = await this.signupPrefillService.scanBrandUrl(
+        {
+          brandId,
+          organizationId: ctx.organizationId,
+          userId: ctx.userId,
+        },
+        sourceUrl,
+      );
+      if (state.scrapeStatus !== 'scraped') {
+        return {
+          success: true,
+          creditsUsed: 0,
+          data: {
+            status: 'failed',
+            sourceUrl,
+            brandId,
+            reason: state.scrapeReason ?? 'scrape_failed',
+          },
+        };
+      }
+      const summary = state.summary;
+      if (!summary)
+        throw new InternalServerErrorException('Scan summary unavailable');
+      return {
+        success: true,
+        creditsUsed: 0,
+        data: { status: 'scanned', sourceUrl, brandId, summary },
+        nextActions: [
+          {
+            id: `brand-scan-${Date.now()}`,
+            type: 'completion_summary_card',
+            title: summary.name,
+            summaryText: summary.description ?? summary.name,
+            outcomeBullets: [
+              summary.primaryColor
+                ? `Primary color: ${summary.primaryColor}`
+                : '',
+              summary.secondaryColor
+                ? `Secondary color: ${summary.secondaryColor}`
+                : '',
+              summary.tone ? `Tone: ${summary.tone}` : '',
+            ].filter(Boolean),
+            ...(summary.logoUrl
+              ? {
+                  outputVariants: [
+                    {
+                      id: 'brand-logo',
+                      kind: 'image' as const,
+                      title: summary.name,
+                      url: summary.logoUrl,
+                    },
+                  ],
+                }
+              : {}),
+          },
+        ],
+      };
+    } catch (error: unknown) {
+      this.loggerService.warn('Onboarding brand scan failed', {
+        brandId,
+        error: error instanceof Error ? error.message : String(error),
+        organizationId: ctx.organizationId,
+        sourceUrl,
+      });
+      return {
+        success: true,
+        creditsUsed: 0,
+        data: {
+          status: 'failed',
+          sourceUrl,
+          brandId: brandId ?? null,
+          reason:
+            error instanceof RequestTimeoutException
+              ? 'timeout'
+              : error instanceof BadRequestException
+                ? 'invalid_url'
+                : error instanceof NotFoundException
+                  ? 'brand_not_found'
+                  : 'scan_failed',
+        },
+      };
+    }
   }
 
   async saveOnboardingAnswers(

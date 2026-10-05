@@ -2,6 +2,21 @@ import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 export const AGENT_ONBOARDING_TOOLS: SourceTool[] = [
   {
+    name: 'scan_brand_url',
+    creditCost: 0,
+    requiredRole: 'user',
+    description:
+      'Scan one public website, social profile, link page or product URL and prefill the current brand. Returns scanned identity details or an honest failure reason.',
+    parameters: {
+      type: 'object',
+      required: ['url'],
+      properties: {
+        url: { type: 'string', minLength: 1, maxLength: 2048 },
+        brandId: { type: 'string', minLength: 1, maxLength: 200 },
+      },
+    },
+  },
+  {
     name: 'save_onboarding_answers',
     creditCost: 0,
     requiredRole: 'user',

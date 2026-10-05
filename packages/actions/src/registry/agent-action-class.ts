@@ -91,6 +91,7 @@ const BRAND_CONTEXT_TOOL_NAMES = new Set<string>([
   'create_brand_from_url',
   'rename_brand',
   'submit_brand_interview_answer',
+  'scan_brand_url',
   'save_onboarding_answers',
   'skip_brand_interview_question',
   'start_brand_interview',

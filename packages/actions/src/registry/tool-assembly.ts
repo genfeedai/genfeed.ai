@@ -78,6 +78,7 @@ export function inferCategory(name: string): ToolCategory {
   if (
     name.includes('onboarding') ||
     name === 'create_brand' ||
+    name === 'scan_brand_url' ||
     name === 'rename_brand'
   )
     return 'onboarding';

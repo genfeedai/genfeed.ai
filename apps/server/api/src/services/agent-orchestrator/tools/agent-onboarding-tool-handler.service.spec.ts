@@ -1,3 +1,4 @@
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
@@ -11,6 +12,7 @@ import {
   ONBOARDING_JOURNEY_MISSIONS,
   type OnboardingJourneyMissionId,
 } from '@genfeedai/contracts/types';
+import { BadRequestException, RequestTimeoutException } from '@nestjs/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const CONTEXT: ToolExecutionContext = {
@@ -115,8 +117,10 @@ function createHandler(options?: {
           })),
       ),
   };
+  const signupPrefillService = { scanBrandUrl: vi.fn() };
+  const loggerService = { error: vi.fn(), warn: vi.fn() };
   const handler = new AgentOnboardingToolHandler(
-    { error: vi.fn(), warn: vi.fn() } as never,
+    loggerService as never,
     configService as never,
     brandsService as never,
     postsService as never,
@@ -130,9 +134,14 @@ function createHandler(options?: {
     organizationSettingsService as never,
     usersService as never,
     videosService as never,
+    undefined,
+    undefined,
+    signupPrefillService as never,
   );
 
   return {
+    loggerService,
+    signupPrefillService,
     brandsService,
     contentGeneratorService,
     credentialsService,
@@ -1175,5 +1184,118 @@ describe('saveOnboardingAnswers', () => {
       'current brand',
     );
     expect(brandsService.updateAgentConfig).not.toHaveBeenCalled();
+  });
+});
+
+describe('scan_brand_url', () => {
+  it('returns a compact summary and an existing card with the discovered logo and colors', async () => {
+    const h = createHandler();
+    h.signupPrefillService.scanBrandUrl.mockResolvedValue({
+      scrapeStatus: 'scraped',
+      status: 'completed',
+      summary: {
+        name: 'Acme',
+        description: 'Tools for makers',
+        tone: 'Friendly',
+        primaryColor: '#123456',
+        secondaryColor: '#654321',
+        logoUrl: 'https://acme.example/logo.png',
+      },
+    });
+    const result = await h.handler.scanBrandUrl(
+      { url: 'acme.example/product' },
+      { ...CONTEXT, brandId: 'brand-1' },
+    );
+    expect(h.signupPrefillService.scanBrandUrl).toHaveBeenCalledWith(
+      {
+        brandId: 'brand-1',
+        organizationId: 'organization-1',
+        userId: 'user-1',
+      },
+      'https://acme.example/product',
+    );
+    expect(result).toMatchObject({
+      success: true,
+      creditsUsed: 0,
+      data: {
+        status: 'scanned',
+        sourceUrl: 'https://acme.example/product',
+        brandId: 'brand-1',
+        summary: { name: 'Acme' },
+      },
+      nextActions: [
+        {
+          type: 'completion_summary_card',
+          title: 'Acme',
+          outcomeBullets: [
+            'Primary color: #123456',
+            'Secondary color: #654321',
+            'Tone: Friendly',
+          ],
+          outputVariants: [
+            { kind: 'image', url: 'https://acme.example/logo.png' },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('reports scrape failure as an agent-readable choice point', async () => {
+    const h = createHandler();
+    h.signupPrefillService.scanBrandUrl.mockResolvedValue({
+      scrapeStatus: 'failed',
+      scrapeReason: 'scrape_failed',
+    });
+    expect(
+      await h.handler.scanBrandUrl(
+        { url: 'https://acme.example' },
+        { ...CONTEXT, brandId: 'brand-1' },
+      ),
+    ).toMatchObject({
+      success: true,
+      data: { status: 'failed', reason: 'scrape_failed' },
+    });
+  });
+
+  it.each([
+    [new RequestTimeoutException('secret'), 'timeout'],
+    [new NotFoundException('secret'), 'brand_not_found'],
+    [new BadRequestException('secret'), 'invalid_url'],
+    [new Error('secret'), 'scan_failed'],
+    ['secret', 'scan_failed'],
+  ])('sanitizes %s into %s', async (error, reason) => {
+    const h = createHandler();
+    h.signupPrefillService.scanBrandUrl.mockRejectedValue(error);
+    const result = await h.handler.scanBrandUrl(
+      { url: 'https://acme.example' },
+      { ...CONTEXT, brandId: 'brand-1' },
+    );
+    expect(result).toMatchObject({
+      success: true,
+      data: { status: 'failed', reason },
+    });
+    expect(JSON.stringify(result)).not.toContain('secret');
+    expect(h.loggerService.warn).toHaveBeenCalledWith(
+      'Onboarding brand scan failed',
+      {
+        brandId: 'brand-1',
+        error: error instanceof Error ? error.message : String(error),
+        organizationId: CONTEXT.organizationId,
+        sourceUrl: 'https://acme.example/',
+      },
+    );
+  });
+
+  it('rejects a different thread brand before invoking prefill', async () => {
+    const h = createHandler();
+    const result = await h.handler.scanBrandUrl(
+      { url: 'https://acme.example', brandId: 'foreign-brand' },
+      { ...CONTEXT, brandId: 'brand-1' },
+    );
+    expect(result).toMatchObject({
+      success: true,
+      data: { status: 'failed', reason: 'brand_not_found' },
+    });
+    expect(h.signupPrefillService.scanBrandUrl).not.toHaveBeenCalled();
   });
 });

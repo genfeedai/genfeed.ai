@@ -197,6 +197,11 @@ export const CURATED_ACTION_CATALOG = [
   },
   { name: 'generate_monthly_content', surfaces: ['agent'], toolset: 'content' },
   {
+    name: 'scan_brand_url',
+    surfaces: ['agent'],
+    toolset: 'onboarding',
+  },
+  {
     name: 'save_onboarding_answers',
     surfaces: ['agent'],
     toolset: 'onboarding',

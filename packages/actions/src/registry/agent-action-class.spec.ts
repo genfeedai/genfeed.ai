@@ -8,6 +8,18 @@ import {
 import { getDeclaredMutationPolicy } from './mutation-policy';
 
 describe('getAgentActionClass', () => {
+  it('classifies URL prefill as a brand-context write with mode-aware approval', () => {
+    expect(getAgentActionClass('scan_brand_url')).toBe(
+      AGENT_ACTION_CLASS.BRAND_CONTEXT,
+    );
+    expect(getDeclaredMutationPolicy('scan_brand_url')).toBe('direct');
+    expect(
+      resolveEffectiveMutationPolicy('scan_brand_url', 'manual', 'direct'),
+    ).toBe('approval-required');
+    expect(
+      resolveEffectiveMutationPolicy('scan_brand_url', 'auto', 'direct'),
+    ).toBe('direct');
+  });
   it('applies existing brand-context confirmation rules to saved onboarding answers', () => {
     expect(getAgentActionClass('save_onboarding_answers')).toBe(
       AGENT_ACTION_CLASS.BRAND_CONTEXT,
