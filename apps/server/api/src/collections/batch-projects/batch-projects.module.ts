@@ -18,7 +18,6 @@ import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ByokModule } from '@api/services/byok/byok.module';
-import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
 import { RouterModule } from '@api/services/router/router.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
@@ -43,7 +42,6 @@ import { Module } from '@nestjs/common';
     WorkflowsModule,
   ],
   providers: [
-    AgentGenerationEstimateService,
     BatchProjectCreditsService,
     BatchProjectIdeaDispatchService,
     BatchProjectIdeaGenerationService,
