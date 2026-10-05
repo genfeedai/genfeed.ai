@@ -4,6 +4,7 @@ import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/w
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
+import { WorkspaceTaskExecutionListener } from '@api/services/task-orchestration/listeners/workspace-task-execution.listener';
 import { TaskDecompositionService } from '@api/services/task-orchestration/task-decomposition.service';
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
 import { WorkspaceTaskQualityService } from '@api/services/task-orchestration/workspace-task-quality.service';
@@ -32,6 +33,7 @@ import { Module } from '@nestjs/common';
   providers: [
     TaskDecompositionService,
     TaskOrchestratorService,
+    WorkspaceTaskExecutionListener,
     WorkspaceTaskQualityService,
     WorkspaceTaskWorkflowService,
   ],

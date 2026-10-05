@@ -1,5 +1,9 @@
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { WorkflowGenerationBillingService } from '@api/collections/credits/services/workflow-generation-billing.service';
+import {
+  WORKFLOW_EXECUTION_TERMINAL_EVENT,
+  type WorkflowExecutionTerminalEvent,
+} from '@api/collections/workflow-executions/constants/workflow-execution-events.constants';
 import type { WorkflowExecutionQueryDto } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
 import {
   CreateWorkflowExecutionDto,
@@ -60,6 +64,7 @@ import type { ExecutableNode } from '@genfeedai/workflows/engine';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 type WorkflowExecutionRuntimeStateRow = {
   creditsUsed: number | null;
@@ -145,6 +150,7 @@ export class WorkflowExecutionsService extends BaseService<
     private readonly agentStrategiesService: AgentStrategiesService,
     @Optional()
     private readonly generationBilling?: WorkflowGenerationBillingService,
+    @Optional() private readonly events?: EventEmitter2,
   ) {
     super(prisma, 'workflowExecution', logger);
   }
@@ -588,8 +594,26 @@ export class WorkflowExecutionsService extends BaseService<
       trigger: execution.trigger,
       workflowId: execution.workflowId,
     });
+    this.emitTerminal(
+      executionId,
+      execution.organizationId ?? organizationId,
+      error ? 'failed' : 'completed',
+    );
 
     return document;
+  }
+
+  private emitTerminal(
+    executionId: string,
+    organizationId: string,
+    status: WorkflowExecutionTerminalEvent['status'],
+  ): void {
+    const event: WorkflowExecutionTerminalEvent = {
+      executionId,
+      organizationId,
+      status,
+    };
+    this.events?.emit(WORKFLOW_EXECUTION_TERMINAL_EVENT, event);
   }
 
   private logEtaComparison(
@@ -642,6 +666,7 @@ export class WorkflowExecutionsService extends BaseService<
     const updated = await this.prisma.workflowExecution.findFirst({
       where: scopedWhere(organizationId, { id: executionId }),
     });
+    this.emitTerminal(executionId, organizationId, 'cancelled');
     return this.normalizeDocument(updated);
   }
 

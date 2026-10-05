@@ -12,6 +12,7 @@ import {
   HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
 } from '@genfeedai/contracts/interfaces';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
+import { WORKFLOW_EXECUTION_TERMINAL_EVENT } from '../constants/workflow-execution-events.constants';
 import { buildCustomerExecutionWhere } from './workflow-execution-query.util';
 import { WorkflowExecutionsService } from './workflow-executions.service';
 
@@ -74,6 +75,7 @@ describe('WorkflowExecutionsService', () => {
     const workflowEventWebhookService = {
       emitExecutionOutcome: vi.fn().mockResolvedValue(undefined),
     };
+    const events = { emit: vi.fn() };
     const commit = {
       activities: [],
       inbox: [],
@@ -94,8 +96,11 @@ describe('WorkflowExecutionsService', () => {
         workflowEventWebhookService as never,
         activityRecorder as never,
         { recordRun: vi.fn() } as never,
+        undefined,
+        events as never,
       ),
       activityRecorder,
+      events,
       workflowEventWebhookService,
     };
   };
@@ -239,6 +244,44 @@ describe('WorkflowExecutionsService', () => {
         }),
       }),
     );
+  });
+
+  it('emits the terminal event once per settled execution', async () => {
+    const { events, prisma, service } = makeService();
+
+    await service.completeExecution('execution-1', 'org-1');
+    await service.completeExecution('execution-2', 'org-1', 'Provider failed');
+    await service.cancelExecution('execution-3', 'org-1');
+    prisma.workflowExecution.updateMany.mockResolvedValue({ count: 0 });
+    await service.completeExecution('execution-4', 'org-1');
+    await service.cancelExecution('execution-5', 'org-1');
+
+    expect(events.emit.mock.calls).toEqual([
+      [
+        WORKFLOW_EXECUTION_TERMINAL_EVENT,
+        {
+          executionId: 'execution-1',
+          organizationId: 'org-1',
+          status: 'completed',
+        },
+      ],
+      [
+        WORKFLOW_EXECUTION_TERMINAL_EVENT,
+        {
+          executionId: 'execution-2',
+          organizationId: 'org-1',
+          status: 'failed',
+        },
+      ],
+      [
+        WORKFLOW_EXECUTION_TERMINAL_EVENT,
+        {
+          executionId: 'execution-3',
+          organizationId: 'org-1',
+          status: 'cancelled',
+        },
+      ],
+    ]);
   });
 
   it('leaves an already terminal execution unchanged on cancel', async () => {

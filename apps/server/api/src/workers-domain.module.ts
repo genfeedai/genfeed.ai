@@ -208,6 +208,7 @@ import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/im
 import { TrendDiscoveryHandler } from '@api/services/skill-executor/handlers/trend-discovery.handler';
 import { TrendRemixHandler } from '@api/services/skill-executor/handlers/trend-remix.handler';
 import { SkillWorkflowService } from '@api/services/skill-executor/skill-executor.service';
+import { WorkspaceTaskExecutionListener } from '@api/services/task-orchestration/listeners/workspace-task-execution.listener';
 import { TaskDecompositionService } from '@api/services/task-orchestration/task-decomposition.service';
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
 import { WorkspaceTaskQualityService } from '@api/services/task-orchestration/workspace-task-quality.service';
@@ -432,6 +433,7 @@ const WORKER_DOMAIN_SERVICES = [
   WorkflowSchedulerService,
   WorkflowTemplateSeederService,
   WorkflowWebhookService,
+  WorkspaceTaskExecutionListener,
   WorkspaceTaskQualityService,
   XActivitySubscriptionService,
   XActivityWebhookService,
