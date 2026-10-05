@@ -1,7 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
-import type { AgentOnboardingKickoffService } from '@api/collections/agent-threads/services/agent-onboarding-kickoff.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import type { AgentScopeContextService } from '@api/index';
@@ -19,7 +18,6 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
 }));
 
 describe('AgentThreadsController', () => {
-  const kickoff = vi.fn();
   let controller: AgentThreadsController;
   let service: {
     archiveAllThreads: ReturnType<typeof vi.fn>;
@@ -56,7 +54,6 @@ describe('AgentThreadsController', () => {
   };
 
   beforeEach(() => {
-    kickoff.mockReset();
     service = {
       archiveAllThreads: vi.fn(),
       create: vi.fn(),
@@ -104,27 +101,7 @@ describe('AgentThreadsController', () => {
       messagesService as unknown as AgentMessagesService,
       usersService as unknown as UsersService,
       loggerService as unknown as LoggerService,
-      { kickoff } as unknown as AgentOnboardingKickoffService,
     );
-  });
-
-  it('kickoff uses the canonical user and authenticated organization and serializes its thread', async () => {
-    kickoff.mockResolvedValue({
-      id: 'thread-onboarding',
-      source: 'onboarding',
-      organizationId: mockUser.organizationId,
-    });
-    const result = await controller.kickoffOnboarding(
-      { originalUrl: '/v1/agent/threads/onboarding/kickoff' } as never,
-      { brandId: 'brand_current' },
-      mockUser,
-    );
-    expect(kickoff).toHaveBeenCalledWith(
-      mockUserId,
-      'org_current',
-      'brand_current',
-    );
-    expect(result).toMatchObject({ data: { id: 'thread-onboarding' } });
   });
 
   it('should be defined', () => {

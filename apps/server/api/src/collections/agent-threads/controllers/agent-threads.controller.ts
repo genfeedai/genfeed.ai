@@ -2,10 +2,8 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AppendExternalAgentTurnDto } from '@api/collections/agent-threads/dto/append-external-agent-turn.dto';
 import { CreateAgentThreadDto } from '@api/collections/agent-threads/dto/create-agent-thread.dto';
-import { KickoffOnboardingDto } from '@api/collections/agent-threads/dto/kickoff-onboarding.dto';
 import { UpdateAgentModeDto } from '@api/collections/agent-threads/dto/update-agent-mode.dto';
 import { UpdateAgentThreadContextDto } from '@api/collections/agent-threads/dto/update-agent-thread-context.dto';
-import { AgentOnboardingKickoffService } from '@api/collections/agent-threads/services/agent-onboarding-kickoff.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { withAgentThreadExternalRuntime } from '@api/collections/agent-threads/utils/agent-thread-external-runtime.util';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -53,7 +51,6 @@ export class AgentThreadsController {
     private readonly agentMessagesService: AgentMessagesService,
     private readonly usersService: UsersService,
     private readonly loggerService: LoggerService,
-    private readonly onboardingKickoffService: AgentOnboardingKickoffService,
   ) {}
 
   @Get()
@@ -95,24 +92,6 @@ export class AgentThreadsController {
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'listThreads');
     }
-  }
-
-  @Post('onboarding/kickoff')
-  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
-  @ApiOperation({
-    summary: 'Start or resume the agent-first onboarding conversation',
-  })
-  async kickoffOnboarding(
-    @Req() req: Request,
-    @Body() body: KickoffOnboardingDto,
-    @CurrentUser() user: User,
-  ) {
-    const thread = await this.onboardingKickoffService.kickoff(
-      await this.resolveDatabaseUserId(user),
-      this.resolveOrganizationId(user),
-      body.brandId,
-    );
-    return serializeSingle(req, AgentThreadSerializer, thread);
   }
 
   @Patch('mode')
