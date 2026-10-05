@@ -445,7 +445,11 @@ describe('ModelsController', () => {
       modelsService.findAll.mockResolvedValue(empty);
       vi.mocked(findUnpriceableModelIds).mockResolvedValueOnce(['red-model']);
 
-      await controller.findAll(mockRequest, mockRegularUser, {});
+      await controller.findAll(
+        mockRequest,
+        mockRegularUser,
+        {} as ModelsQueryDto,
+      );
 
       expect(findAllWhere(modelsService)).toMatchObject({
         AND: [{ id: { notIn: ['red-model'] } }],
@@ -454,7 +458,11 @@ describe('ModelsController', () => {
       expect(unpriceableModelsScope).toHaveBeenCalledWith(mockOrgId);
 
       modelsService.findAll.mockClear();
-      await controller.findAll(mockSuperAdminRequest, mockSuperAdminUser, {});
+      await controller.findAll(
+        mockSuperAdminRequest,
+        mockSuperAdminUser,
+        {} as ModelsQueryDto,
+      );
 
       expect(findAllWhere(modelsService)).not.toHaveProperty('AND');
     });
