@@ -88,7 +88,12 @@ describe('reviewed provider rates seed', () => {
           reviewedProviderContractVersion: hailuoVersion,
           providerSyncStatus: 'fresh',
         }),
-        where: { id: 'model-1', isDeleted: false, organizationId: null },
+        where: {
+          id: 'model-1',
+          isDeleted: false,
+          organizationId: null,
+          reviewedProviderContractVersion: null,
+        },
       }),
     );
     const profile = projectModelBillablePricingProfile(

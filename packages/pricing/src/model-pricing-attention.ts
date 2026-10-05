@@ -134,6 +134,10 @@ export function classifyModelPricingAttention(
         {
           ...identity,
           ...quantities,
+          // A duration-priced variant is quoted for its own duration.
+          ...(typeof selectors.duration === 'number'
+            ? { duration: selectors.duration }
+            : {}),
           ...(Object.keys(selectors).length ? { selectors } : {}),
         },
         margin,

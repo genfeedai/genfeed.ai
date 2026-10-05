@@ -302,7 +302,8 @@ export function projectAdminModelPricing(
     {
       ...identity,
       ...variantSelectors,
-      duration: 1,
+      duration:
+        typeof firstVariant?.duration === 'number' ? firstVariant.duration : 1,
       width: 1000,
       height: 1000,
     },
@@ -314,9 +315,11 @@ export function projectAdminModelPricing(
     {
       ...identity,
       ...variantSelectors,
-      ...(model.defaultDuration !== null
-        ? { duration: model.defaultDuration }
-        : {}),
+      ...(typeof firstVariant?.duration === 'number'
+        ? { duration: firstVariant.duration }
+        : model.defaultDuration !== null
+          ? { duration: model.defaultDuration }
+          : {}),
     },
     margin,
     retrievedAt,
