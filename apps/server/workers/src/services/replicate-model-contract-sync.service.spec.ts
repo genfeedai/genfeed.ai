@@ -149,7 +149,13 @@ const billing = {
   tiers: HAILUO_2_3_FAST_BILLING_TIERS,
 };
 
-function harness(reviewed: typeof reviewedContract | null = null) {
+function harness(
+  reviewed:
+    | (Omit<typeof reviewedContract, 'outputSchema'> & {
+        outputSchema: Record<string, unknown>;
+      })
+    | null = null,
+) {
   const modelProviderContract = {
     findUnique: vi.fn(),
     update: vi.fn(),

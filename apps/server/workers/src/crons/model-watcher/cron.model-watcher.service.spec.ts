@@ -303,7 +303,7 @@ describe('CronModelWatcherService', () => {
             component: 'video_output_count',
             newPriceUsd: 0.21,
             oldPriceUsd: 0.19,
-            unit: 'output',
+            unit: 'output' as const,
             variant: 'duration=6 · resolution=768P',
           },
         ],
