@@ -1017,47 +1017,53 @@ describe('ContentGeneratorService strict onboarding saved brand context', () => 
     variationsCount: 1,
   };
 
-  it('carries strict mode through the runner and sends complete real approved A/B identity and voice to the provider', async () => {
-    const f = await fixture();
-    const formatBrief = vi.spyOn(f.realHarness.harness, 'formatBrief');
-    for (const version of [1, 2]) {
-      f.realHarness.findApproved.mockResolvedValueOnce(
-        approvedOnboardingRevision(version),
+  it.each(['twitter', 'linkedin'])(
+    'carries strict %s mode through canonical contracts and sends approved A/B identity and voice to the provider',
+    async (platform) => {
+      const f = await fixture();
+      const formatBrief = vi.spyOn(f.realHarness.harness, 'formatBrief');
+      for (const version of [1, 2]) {
+        f.realHarness.findApproved.mockResolvedValueOnce(
+          approvedOnboardingRevision(version),
+        );
+        await f.service.generateContentWorkflow(
+          'user-1',
+          'org-1',
+          { ...dto, platform } as never,
+          true,
+        );
+        const messages = f.llm.completeStructured.mock.calls.at(
+          -1,
+        )?.[0] as unknown as {
+          messages: Array<{ role: string; content: string }>;
+        };
+        const system = messages.messages.find(
+          (message) => message.role === 'system',
+        )?.content;
+        expect(system).toContain(`Approved identity ${version}`);
+        expect(system).toContain(`Approved offering ${version}`);
+        expect(system).toContain(`Distinctive voice ${version}`);
+        expect(system).not.toContain('Conflicting legacy');
+        expect(system).toBe(formatBrief.mock.results.at(-1)?.value);
+      }
+      expect(f.runner.runWorkflow).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          inputValues: expect.objectContaining({ requireBrandHarness: true }),
+        }),
       );
-      await f.service.generateContentWorkflow(
-        'user-1',
+      expect(f.assembly.assembleContext).not.toHaveBeenCalled();
+      expect(f.topPerformer.assembleContext).not.toHaveBeenCalled();
+      expect(f.realHarness.findApproved).toHaveBeenCalledWith(
         'org-1',
-        dto as never,
-        true,
+        'brand-1',
       );
-      const messages = f.llm.completeStructured.mock.calls.at(
-        -1,
-      )?.[0] as unknown as {
-        messages: Array<{ role: string; content: string }>;
-      };
-      const system = messages.messages.find(
-        (message) => message.role === 'system',
-      )?.content;
-      expect(system).toContain(`Approved identity ${version}`);
-      expect(system).toContain(`Approved offering ${version}`);
-      expect(system).toContain(`Distinctive voice ${version}`);
-      expect(system).not.toContain('Conflicting legacy');
-      expect(system).toBe(formatBrief.mock.results.at(-1)?.value);
-    }
-    expect(f.runner.runWorkflow).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        inputValues: expect.objectContaining({ requireBrandHarness: true }),
-      }),
-    );
-    expect(f.assembly.assembleContext).not.toHaveBeenCalled();
-    expect(f.topPerformer.assembleContext).not.toHaveBeenCalled();
-    expect(f.realHarness.findApproved).toHaveBeenCalledWith('org-1', 'brand-1');
-    expect(f.realHarness.findOne).toHaveBeenCalledWith({
-      id: 'brand-1',
-      isDeleted: false,
-      organizationId: 'org-1',
-    });
-  });
+      expect(f.realHarness.findOne).toHaveBeenCalledWith({
+        id: 'brand-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      });
+    },
+  );
 
   it('permits absent persona while preserving saved voice when no approval exists', async () => {
     const f = await fixture({ omitPersona: true });
