@@ -71,7 +71,7 @@ describe.skipIf(!connectionString)(
       "amount" double precision NOT NULL,"settledAmount" double precision,"status" "${schema}"."CreditReservationStatus" NOT NULL DEFAULT 'RESERVED',
       "workloadType" text,"workloadId" text,"idempotencyKey" text NOT NULL,"description" text,"source" text,"metadata" jsonb,
       "expiresAt" timestamp(3) NOT NULL,"isDeleted" boolean NOT NULL DEFAULT false,"createdAt" timestamp(3) NOT NULL DEFAULT now(),
-      "updatedAt" timestamp(3) NOT NULL DEFAULT now(),"workflowExecutionId" text,"workflowNodeId" text,"workflowOperationId" text)`);
+      "updatedAt" timestamp(3) NOT NULL DEFAULT now(),"workflowExecutionId" text,"workflowNodeId" text,"workflowOperationId" text,"recoveryNextAttemptAt" timestamp(3),"recoveryAttempts" integer NOT NULL DEFAULT 0)`);
       await pool.query(
         `CREATE UNIQUE INDEX ON "${schema}"."credit_reservations" ("organizationId","idempotencyKey") WHERE "isDeleted" = false`,
       );

@@ -11,6 +11,10 @@ import {
   runCrunBillingMutation,
 } from '@api/collections/credits/services/generation-crun-billing-guard';
 import { GenerationHoldRecoveryService } from '@api/collections/credits/services/generation-hold-recovery.service';
+import {
+  type HoldReconcileStats,
+  pollHoldAtCeiling,
+} from '@api/collections/credits/services/generation-hold-recovery-backoff.util';
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import type { ReservationCreditsConfig } from '@api/helpers/utils/credits/generation-credit-reservation.util';
@@ -24,7 +28,6 @@ import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
-  CreditHoldRecoveryAction,
   CreditReservationStatus,
   IngredientStatus,
 } from '@genfeedai/contracts';
@@ -71,13 +74,6 @@ const TERMINAL_FAILURE_STATUSES: readonly string[] = [
   IngredientStatus.REJECTED,
   IngredientStatus.ARCHIVED,
 ];
-interface HoldReconcileStats {
-  awaitingIntentProof: number;
-  pollsRemaining: number;
-  expiredIntentHolds: number;
-  recoveredIntentHolds: number;
-}
-
 /**
  * The one billing contract for async media generation (#5657).
  *
@@ -786,6 +782,8 @@ export class GenerationBillingService {
       organizationId: string;
       workloadId: string | null;
       metadata?: unknown;
+      recoveryAttempts?: number;
+      recoveryNextAttemptAt?: Date | null;
     }>,
     now: Date,
     stats: HoldReconcileStats,
@@ -859,21 +857,18 @@ export class GenerationBillingService {
           // wallet: an output that completes afterwards is charged late
           // (#5886), so expiry cannot give it away.
           if (isPastCeiling && !isFailureConfirmed) {
-            if (!this.holdRecovery || stats.pollsRemaining <= 0) {
-              stats.awaitingIntentProof += 1;
-              continue;
-            }
-            stats.pollsRemaining -= 1;
-            const action = await this.holdRecovery.recoverAtCeiling(
-              hold.organizationId,
-              hold.id,
+            const polled = await pollHoldAtCeiling(
+              {
+                holdRecovery: this.holdRecovery,
+                logger: this.logger,
+                prisma: this.prisma,
+              },
+              hold,
+              now,
+              stats,
             );
-            if (action) {
-              if (action === CreditHoldRecoveryAction.RELEASE)
-                stats.expiredIntentHolds += 1;
-              stats.recoveredIntentHolds += 1;
-              acted += 1;
-            }
+            if (polled === undefined) continue;
+            acted += polled;
           } else if (isFailureConfirmed) {
             await this.credits.releaseReservation({
               organizationId: hold.organizationId,

@@ -665,6 +665,94 @@ describe('GenerationBillingService', () => {
         expect(credits.releaseReservation).not.toHaveBeenCalled();
       });
 
+      it('polls a recoverable hold within two sweeps despite six unknown-status holds (#6168)', async () => {
+        const state = new Map<
+          string,
+          { recoveryAttempts: number; recoveryNextAttemptAt: Date | null }
+        >();
+        const holds = Array.from({ length: 7 }, (_, i) => {
+          state.set(`hold_${i}`, {
+            recoveryAttempts: 0,
+            recoveryNextAttemptAt: null,
+          });
+          return {
+            ...intentRow('heygen', DAY_MS + 1),
+            id: `hold_${i}`,
+            metadata: {
+              assetId: `asset_${i}`,
+              submissionIntent: { version: 1, provider: 'heygen' },
+            },
+            workloadId: `asset_${i}`,
+          };
+        });
+        prisma.creditReservation.findMany.mockImplementation(async () =>
+          holds.map((hold) => ({ ...hold, ...state.get(hold.id) })),
+        );
+        prisma.creditReservation.updateMany.mockImplementation(
+          async ({
+            data,
+            where,
+          }: {
+            data: {
+              recoveryAttempts: number;
+              recoveryNextAttemptAt: Date;
+            };
+            where: { id: string };
+          }) => {
+            state.set(where.id, data);
+            return { count: 1 };
+          },
+        );
+        prisma.ingredient.findMany.mockResolvedValue(
+          holds.map((hold) =>
+            ingredient(hold.workloadId, IngredientStatus.PROCESSING),
+          ),
+        );
+        holdRecovery.recoverAtCeiling.mockImplementation(
+          async (_organizationId: string, reservationId: string) =>
+            reservationId === 'hold_6'
+              ? CreditHoldRecoveryAction.RELEASE
+              : undefined,
+        );
+
+        await service.reconcile(NOW);
+        await service.reconcile(new Date(NOW.getTime() + 60_000));
+
+        expect(holdRecovery.recoverAtCeiling).toHaveBeenCalledWith(
+          'org_1',
+          'hold_6',
+        );
+        // Each unknown hold was polled once, not re-polled ahead of hold_6.
+        expect(holdRecovery.recoverAtCeiling).toHaveBeenCalledTimes(7);
+      });
+
+      it('backs off an unknown-status hold with doubling delay capped at six hours', async () => {
+        prisma.creditReservation.findMany.mockResolvedValue([
+          {
+            ...intentRow('heygen', DAY_MS + 1),
+            recoveryAttempts: 9,
+            recoveryNextAttemptAt: new Date(NOW.getTime() - 1),
+          },
+        ]);
+        prisma.creditReservation.updateMany.mockResolvedValue({ count: 1 });
+        holdRecovery.recoverAtCeiling.mockResolvedValue(undefined);
+
+        await service.reconcile(NOW);
+
+        expect(prisma.creditReservation.updateMany).toHaveBeenCalledWith({
+          data: {
+            recoveryAttempts: 10,
+            recoveryNextAttemptAt: new Date(NOW.getTime() + 6 * 3_600_000),
+          },
+          where: {
+            id: 'hold_intent',
+            isDeleted: false,
+            organizationId: 'org_1',
+            status: 'RESERVED',
+          },
+        });
+      });
+
       it('counts a hold still inside the ceiling as awaiting proof', async () => {
         prisma.creditReservation.findMany.mockResolvedValue([
           intentRow('heygen', DAY_MS - 1),
