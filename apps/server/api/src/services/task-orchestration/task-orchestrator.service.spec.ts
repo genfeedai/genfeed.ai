@@ -1,6 +1,7 @@
 import {
   STALLED_ROLLUP_BACKFILL_WINDOW_MS,
   TASK_ROLLUP_LEASE_TTL_MS,
+  TASK_ROLLUP_MAX_ATTEMPTS,
   TaskOrchestratorService,
 } from '@api/services/task-orchestration/task-orchestrator.service';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
@@ -15,6 +16,7 @@ type StoredTask = {
   qualityAssessment?: unknown;
   request: string;
   rolledUpAt: Date | null;
+  rollupAttempts: number;
   rollupLeaseExpiresAt: Date | null;
   rollupLeaseOwner: string | null;
   status: string;
@@ -40,55 +42,72 @@ function makeHarness(options: {
     platforms: [],
     request: 'a green apple',
     rolledUpAt: null,
+    rollupAttempts: 0,
     rollupLeaseExpiresAt: null,
     rollupLeaseOwner: null,
     status: options.status ?? 'in_progress',
   };
   const events: string[] = [];
-  let failNextFinalWrite = false;
+  let failFinalWrites = 0;
 
   const matches = (expected: Expected) =>
     task.status === expected.status &&
     (expected.rollupLeaseOwner === undefined ||
       task.rollupLeaseOwner === expected.rollupLeaseOwner);
 
+  const isStalled = (maxAttempts: number) => {
+    const isSettled = task.linkedExecutionIds.every((id) =>
+      ['COMPLETED', 'FAILED', 'CANCELLED'].includes(
+        options.executions[id]?.status ?? '',
+      ),
+    );
+    const isFree =
+      task.rollupLeaseExpiresAt === null || task.rollupLeaseExpiresAt <= now;
+    return (
+      task.status === 'in_progress' &&
+      task.rolledUpAt === null &&
+      task.rollupAttempts < maxAttempts &&
+      isSettled &&
+      isFree
+    );
+  };
+
   const tasksService = {
     acquireRollupLease: vi.fn(
-      async (_id: string, _org: string, owner: string, ttlMs: number) => {
+      async (input: { maxAttempts: number; owner: string; ttlMs: number }) => {
         const isFree =
           task.rollupLeaseExpiresAt === null ||
           task.rollupLeaseExpiresAt <= now;
-        if (task.status !== 'in_progress' || task.rolledUpAt || !isFree) {
-          return false;
+        if (
+          task.status !== 'in_progress' ||
+          task.rolledUpAt ||
+          task.rollupAttempts >= input.maxAttempts ||
+          !isFree
+        ) {
+          return null;
         }
-        task.rollupLeaseOwner = owner;
-        task.rollupLeaseExpiresAt = new Date(now.getTime() + ttlMs);
-        return true;
+        task.rollupAttempts += 1;
+        task.rollupLeaseOwner = input.owner;
+        task.rollupLeaseExpiresAt = new Date(now.getTime() + input.ttlMs);
+        return task.rollupAttempts;
       },
+    ),
+    countStalledRollupCandidates: vi.fn(
+      async (options: { maxAttempts: number }) =>
+        isStalled(options.maxAttempts) ? 1 : 0,
     ),
     findOne: vi.fn(async () => structuredClone(task)),
     findStalledRollupCandidates: vi.fn(
-      async (_options: {
+      async (options: {
         createdAfter: Date;
         limit: number;
+        maxAttempts: number;
         now: Date;
         settledBefore: Date;
-      }) => {
-        const isSettled = task.linkedExecutionIds.every((id) =>
-          ['COMPLETED', 'FAILED', 'CANCELLED'].includes(
-            options.executions[id].status,
-          ),
-        );
-        const isFree =
-          task.rollupLeaseExpiresAt === null ||
-          task.rollupLeaseExpiresAt <= now;
-        return task.status === 'in_progress' &&
-          task.rolledUpAt === null &&
-          isSettled &&
-          isFree
+      }) =>
+        isStalled(options.maxAttempts)
           ? [{ id: task.id, organizationId: 'org-1' }]
-          : [];
-      },
+          : [],
     ),
     recordTaskEventIfMatches: vi.fn(
       async (
@@ -99,8 +118,8 @@ function makeHarness(options: {
         patch: Record<string, unknown> & { config?: object },
         expected: Expected,
       ) => {
-        if (patch.status && failNextFinalWrite) {
-          failNextFinalWrite = false;
+        if (patch.status && failFinalWrites > 0) {
+          failFinalWrites -= 1;
           throw new Error('database unavailable');
         }
         if (!matches(expected)) return null;
@@ -145,10 +164,12 @@ function makeHarness(options: {
     /** Linking a new cycle of executions, as linkAgentExecutions does. */
     relink: () => {
       task.rolledUpAt = null;
+      task.rollupAttempts = 0;
     },
-    failNextFinalWrite: () => {
-      failNextFinalWrite = true;
+    failFinalWrites: (times: number) => {
+      failFinalWrites = times;
     },
+    logger,
     now: () => now,
     quality,
     service,
@@ -218,7 +239,7 @@ describe('TaskOrchestratorService rollup', () => {
   describe('failed final write', () => {
     it('keeps the task in progress under its lease, then the sweep finishes it after expiry', async () => {
       const h = makeHarness({ executions: { 'execution-1': completed } });
-      h.failNextFinalWrite();
+      h.failFinalWrites(1);
 
       await expect(
         h.service.handleExecutionCompletion('execution-1', 'org-1'),
@@ -242,6 +263,62 @@ describe('TaskOrchestratorService rollup', () => {
         expect.objectContaining({ gate: 'pass' }),
       );
       expect(h.task.rollupLeaseOwner).toBeNull();
+    });
+  });
+
+  describe('attempt cap', () => {
+    it('abandons a task whose final write keeps failing: logged once, then left alone', async () => {
+      const h = makeHarness({ executions: { 'execution-1': completed } });
+      h.failFinalWrites(10);
+
+      await expect(
+        h.service.handleExecutionCompletion('execution-1', 'org-1'),
+      ).rejects.toThrow();
+      for (let attempt = 2; attempt <= TASK_ROLLUP_MAX_ATTEMPTS; attempt += 1) {
+        h.advance(TASK_ROLLUP_LEASE_TTL_MS);
+        expect(await h.service.recoverStalledRollups()).toBe(0);
+      }
+
+      expect(h.task.rollupAttempts).toBe(TASK_ROLLUP_MAX_ATTEMPTS);
+      expect(h.task.status).toBe('in_progress');
+      expect(
+        h.logger.error.mock.calls.filter(([message]) =>
+          String(message).includes('abandoned'),
+        ),
+      ).toHaveLength(1);
+
+      // Capped: neither the sweep nor a new event touches it again.
+      h.advance(TASK_ROLLUP_LEASE_TTL_MS);
+      h.failFinalWrites(0);
+      expect(await h.service.recoverStalledRollups()).toBe(0);
+      await h.service.handleExecutionCompletion('execution-1', 'org-1');
+      expect(h.task.status).toBe('in_progress');
+      expect(h.quality.assess).toHaveBeenCalledTimes(TASK_ROLLUP_MAX_ATTEMPTS);
+      expect(
+        h.logger.error.mock.calls.filter(([message]) =>
+          String(message).includes('abandoned'),
+        ),
+      ).toHaveLength(1);
+    });
+
+    it('starts a fresh attempt budget when new executions are linked', async () => {
+      const h = makeHarness({ executions: { 'execution-1': completed } });
+      h.failFinalWrites(10);
+      await h.service
+        .handleExecutionCompletion('execution-1', 'org-1')
+        .catch(() => null);
+      for (let i = 1; i < TASK_ROLLUP_MAX_ATTEMPTS; i += 1) {
+        h.advance(TASK_ROLLUP_LEASE_TTL_MS);
+        await h.service.recoverStalledRollups();
+      }
+      h.advance(TASK_ROLLUP_LEASE_TTL_MS);
+      expect(await h.service.recoverStalledRollups()).toBe(0);
+
+      h.failFinalWrites(0);
+      h.relink();
+
+      expect(await h.service.recoverStalledRollups()).toBe(1);
+      expect(h.task.status).toBe('in_review');
     });
   });
 
@@ -379,6 +456,29 @@ describe('TaskOrchestratorService rollup', () => {
     expect(h.quality.assess).not.toHaveBeenCalled();
   });
 
+  it('logs how many tasks are eligible at the start of each sweep', async () => {
+    const stalled = makeHarness({ executions: { 'execution-1': completed } });
+    const running = makeHarness({
+      executions: {
+        'execution-1': { status: WorkflowExecutionStatus.RUNNING },
+      },
+    });
+
+    await stalled.service.recoverStalledRollups();
+    await running.service.recoverStalledRollups();
+
+    expect(stalled.logger.log.mock.calls[0]?.[0]).toBe(
+      'workspace-task-rollup-recovery: 1 eligible',
+    );
+    expect(running.logger.log.mock.calls[0]?.[0]).toBe(
+      'workspace-task-rollup-recovery: 0 eligible',
+    );
+  });
+
+  it('bounds the backfill to the last 7 days', () => {
+    expect(STALLED_ROLLUP_BACKFILL_WINDOW_MS).toBe(7 * 24 * 60 * 60 * 1000);
+  });
+
   it('asks the sweep for settled tasks idle past the grace window', async () => {
     const h = makeHarness({ executions: { 'execution-1': completed } });
 
@@ -391,6 +491,7 @@ describe('TaskOrchestratorService rollup', () => {
     expect(options?.createdAfter.getTime()).toBe(
       h.now().getTime() - STALLED_ROLLUP_BACKFILL_WINDOW_MS,
     );
-    expect(options?.limit).toBeGreaterThan(0);
+    expect(options?.limit).toBe(25);
+    expect(options?.maxAttempts).toBe(TASK_ROLLUP_MAX_ATTEMPTS);
   });
 });

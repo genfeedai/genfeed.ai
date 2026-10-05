@@ -21,6 +21,16 @@ export type TaskConditionalPatch = Pick<
   status?: TaskStatus;
 };
 
+/** Selection for the platform-wide stalled-rollup recovery scan. */
+export interface StalledRollupScan {
+  createdAfter: Date;
+  limit: number;
+  /** Attempts at or above this are abandoned and left alone. */
+  maxAttempts: number;
+  now: Date;
+  settledBefore: Date;
+}
+
 export function readTaskConfigObject(
   value: Prisma.JsonValue,
 ): Prisma.JsonObject {

@@ -41,6 +41,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 const LEASE_TTL_MS = 60_000;
+const MAX_ATTEMPTS = 3;
 
 describe('Workspace task rollup lease (real Postgres, #6265)', () => {
   let moduleRef: TestingModule;
@@ -69,6 +70,34 @@ describe('Workspace task rollup lease (real Postgres, #6265)', () => {
   afterAll(async () => {
     await moduleRef.close();
   });
+
+  /** Acquire with the production attempt cap; resolves to the attempt number or null. */
+  function lease(
+    taskId: string,
+    organizationId: string,
+    owner: string,
+    now?: Date,
+  ): Promise<number | null> {
+    return service.acquireRollupLease({
+      maxAttempts: MAX_ATTEMPTS,
+      now,
+      organizationId,
+      owner,
+      taskId,
+      ttlMs: LEASE_TTL_MS,
+    });
+  }
+
+  function scan(now: Date, overrides: { settledBefore?: Date } = {}) {
+    return {
+      createdAfter: new Date(now.getTime() - 24 * 60 * 60_000),
+      limit: 1000,
+      maxAttempts: MAX_ATTEMPTS,
+      now,
+      settledBefore:
+        overrides.settledBefore ?? new Date(now.getTime() - 2 * 60_000),
+    };
+  }
 
   async function seedTask(
     executionStatuses: WorkflowExecutionStatus[],
@@ -132,12 +161,7 @@ describe('Workspace task rollup lease (real Postgres, #6265)', () => {
 
     const results = await Promise.all(
       Array.from({ length: 12 }, (_, index) =>
-        service.acquireRollupLease(
-          taskId,
-          organizationId,
-          `owner-${index}`,
-          LEASE_TTL_MS,
-        ),
+        lease(taskId, organizationId, `owner-${index}`),
       ),
     );
 
@@ -150,33 +174,23 @@ describe('Workspace task rollup lease (real Postgres, #6265)', () => {
     ]);
     const start = new Date();
 
+    expect(await lease(taskId, organizationId, 'owner-a', start)).toBe(1);
     expect(
-      await service.acquireRollupLease(
-        taskId,
-        organizationId,
-        'owner-a',
-        LEASE_TTL_MS,
-        start,
-      ),
-    ).toBe(true);
-    expect(
-      await service.acquireRollupLease(
+      await lease(
         taskId,
         organizationId,
         'owner-b',
-        LEASE_TTL_MS,
         new Date(start.getTime() + LEASE_TTL_MS - 1),
       ),
-    ).toBe(false);
+    ).toBeNull();
     expect(
-      await service.acquireRollupLease(
+      await lease(
         taskId,
         organizationId,
         'owner-b',
-        LEASE_TTL_MS,
         new Date(start.getTime() + LEASE_TTL_MS),
       ),
-    ).toBe(true);
+    ).toBe(2);
 
     const row = await prisma.task.findUniqueOrThrow({ where: { id: taskId } });
     expect(row.rollupLeaseOwner).toBe('owner-b');
@@ -187,18 +201,11 @@ describe('Workspace task rollup lease (real Postgres, #6265)', () => {
       WorkflowExecutionStatus.COMPLETED,
     ]);
     const start = new Date();
-    await service.acquireRollupLease(
-      taskId,
-      organizationId,
-      'owner-a',
-      LEASE_TTL_MS,
-      start,
-    );
-    await service.acquireRollupLease(
+    await lease(taskId, organizationId, 'owner-a', start);
+    await lease(
       taskId,
       organizationId,
       'owner-b',
-      LEASE_TTL_MS,
       new Date(start.getTime() + LEASE_TTL_MS),
     );
     const finalPatch = {
@@ -249,12 +256,7 @@ describe('Workspace task rollup lease (real Postgres, #6265)', () => {
     const { organizationId, taskId } = await seedTask([
       WorkflowExecutionStatus.COMPLETED,
     ]);
-    await service.acquireRollupLease(
-      taskId,
-      organizationId,
-      'owner-a',
-      LEASE_TTL_MS,
-    );
+    await lease(taskId, organizationId, 'owner-a');
     await service.patchIfMatches(
       taskId,
       organizationId,
@@ -292,13 +294,7 @@ describe('Workspace task rollup lease (real Postgres, #6265)', () => {
     const leased = await seedTask([WorkflowExecutionStatus.COMPLETED], {
       updatedAt: idle,
     });
-    await service.acquireRollupLease(
-      leased.taskId,
-      leased.organizationId,
-      'owner-a',
-      LEASE_TTL_MS,
-      now,
-    );
+    await lease(leased.taskId, leased.organizationId, 'owner-a', now);
     await prisma.$executeRaw`UPDATE tasks SET "updatedAt" = ${idle} WHERE id = ${leased.taskId}`;
     const recent = await seedTask([WorkflowExecutionStatus.COMPLETED]);
     const reviewed = await seedTask([WorkflowExecutionStatus.COMPLETED], {
@@ -306,13 +302,11 @@ describe('Workspace task rollup lease (real Postgres, #6265)', () => {
       updatedAt: idle,
     });
 
-    const candidates = await service.findStalledRollupCandidates({
-      createdAfter: new Date(now.getTime() - 24 * 60 * 60_000),
-      limit: 1000,
-      now,
-      settledBefore: new Date(now.getTime() - 2 * 60_000),
-    });
+    const candidates = await service.findStalledRollupCandidates(scan(now));
     const ids = candidates.map((candidate) => candidate.id);
+    expect(await service.countStalledRollupCandidates(scan(now))).toBe(
+      candidates.length,
+    );
 
     expect(ids).toContain(stalled.taskId);
     expect(ids).not.toContain(running.taskId);
@@ -327,20 +321,12 @@ describe('Workspace task rollup lease (real Postgres, #6265)', () => {
     ]);
     const candidateIds = (now: Date) =>
       service
-        .findStalledRollupCandidates({
-          createdAfter: new Date(now.getTime() - 24 * 60 * 60_000),
-          limit: 1000,
-          now,
-          // Ignore the idle grace: this test is about the rollup cycle only.
-          settledBefore: new Date(now.getTime() + 60_000),
-        })
+        // Ignore the idle grace: this test is about the rollup cycle only.
+        .findStalledRollupCandidates(
+          scan(now, { settledBefore: new Date(now.getTime() + 60_000) }),
+        )
         .then((candidates) => candidates.map((candidate) => candidate.id));
-    await service.acquireRollupLease(
-      taskId,
-      organizationId,
-      'owner-a',
-      LEASE_TTL_MS,
-    );
+    await lease(taskId, organizationId, 'owner-a');
     await service.patchIfMatches(
       taskId,
       organizationId,
@@ -356,14 +342,7 @@ describe('Workspace task rollup lease (real Postgres, #6265)', () => {
     // PATCH status back to in_progress, as the tasks controller allows.
     await service.patch(taskId, { status: 'in_progress' });
     expect(await candidateIds(new Date())).not.toContain(taskId);
-    expect(
-      await service.acquireRollupLease(
-        taskId,
-        organizationId,
-        'owner-b',
-        LEASE_TTL_MS,
-      ),
-    ).toBe(false);
+    expect(await lease(taskId, organizationId, 'owner-b')).toBeNull();
 
     // Linking a new cycle of executions makes it eligible again.
     const task = await prisma.task.findUniqueOrThrow({
@@ -374,5 +353,38 @@ describe('Workspace task rollup lease (real Postgres, #6265)', () => {
       linkedExecutionIds: task.linkedExecutions.map(({ id }) => id),
     });
     expect(await candidateIds(new Date())).toContain(taskId);
+  });
+
+  it('stops leasing after the attempt cap and starts a fresh budget on relink', async () => {
+    const { organizationId, taskId } = await seedTask([
+      WorkflowExecutionStatus.COMPLETED,
+    ]);
+    const start = new Date();
+    const at = (attempt: number) =>
+      new Date(start.getTime() + attempt * LEASE_TTL_MS);
+
+    // Each expired lease is one failed attempt.
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+      expect(
+        await lease(taskId, organizationId, `owner-${attempt}`, at(attempt)),
+      ).toBe(attempt);
+    }
+    const afterCap = at(MAX_ATTEMPTS + 1);
+    expect(await lease(taskId, organizationId, 'owner-x', afterCap)).toBeNull();
+    expect(await service.findStalledRollupCandidates(scan(afterCap))).toEqual(
+      expect.not.arrayContaining([expect.objectContaining({ id: taskId })]),
+    );
+
+    // Linking a new cycle of executions resets the budget.
+    const task = await prisma.task.findUniqueOrThrow({
+      include: { linkedExecutions: { select: { id: true } } },
+      where: { id: taskId },
+    });
+    await service.patch(taskId, {
+      linkedExecutionIds: task.linkedExecutions.map(({ id }) => id),
+    });
+    const row = await prisma.task.findUniqueOrThrow({ where: { id: taskId } });
+    expect(row.rollupAttempts).toBe(0);
+    expect(await lease(taskId, organizationId, 'owner-y', afterCap)).toBe(1);
   });
 });

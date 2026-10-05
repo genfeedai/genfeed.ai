@@ -18,9 +18,13 @@ export const TASK_ROLLUP_LEASE_TTL_MS = 10 * 60 * 1000;
 const STALLED_ROLLUP_GRACE_MS = 2 * 60 * 1000;
 /**
  * How far back the recovery sweep reaches, by task creation time. It also
- * bounds the one-off backfill of tasks stuck before the rollup was restored.
+ * bounds the one-off backfill of tasks stuck before the rollup was restored;
+ * widen it here to reach older tasks.
  */
-export const STALLED_ROLLUP_BACKFILL_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+export const STALLED_ROLLUP_BACKFILL_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+/** Lease acquisitions per execution cycle before a rollup is abandoned. */
+export const TASK_ROLLUP_MAX_ATTEMPTS = 3;
+const RECOVERY_LOG_PREFIX = 'workspace-task-rollup-recovery';
 const STALLED_ROLLUP_BATCH_SIZE = 25;
 
 @Injectable()
@@ -131,12 +135,17 @@ export class TaskOrchestratorService {
    * Returns how many tasks it rolled up.
    */
   async recoverStalledRollups(now = new Date()): Promise<number> {
-    const candidates = await this.tasksService.findStalledRollupCandidates({
+    const scan = {
       createdAfter: new Date(now.getTime() - STALLED_ROLLUP_BACKFILL_WINDOW_MS),
       limit: STALLED_ROLLUP_BATCH_SIZE,
+      maxAttempts: TASK_ROLLUP_MAX_ATTEMPTS,
       now,
       settledBefore: new Date(now.getTime() - STALLED_ROLLUP_GRACE_MS),
-    });
+    };
+    const eligible = await this.tasksService.countStalledRollupCandidates(scan);
+    this.logger.log(`${RECOVERY_LOG_PREFIX}: ${eligible} eligible`);
+    const candidates =
+      await this.tasksService.findStalledRollupCandidates(scan);
     let rolledUp = 0;
     for (const candidate of candidates) {
       try {
@@ -204,16 +213,33 @@ export class TaskOrchestratorService {
   ): Promise<boolean> {
     const taskId = task.id.toString();
     const owner = randomUUID();
-    const isLeased = await this.tasksService.acquireRollupLease(
-      taskId,
+    const attempt = await this.tasksService.acquireRollupLease({
+      maxAttempts: TASK_ROLLUP_MAX_ATTEMPTS,
       organizationId,
       owner,
-      TASK_ROLLUP_LEASE_TTL_MS,
-    );
-    if (!isLeased) {
+      taskId,
+      ttlMs: TASK_ROLLUP_LEASE_TTL_MS,
+    });
+    if (attempt === null) {
       return false;
     }
 
+    try {
+      return await this.runLeasedRollup(task, organizationId, owner, attempt);
+    } catch (error: unknown) {
+      this.noteFailedAttempt(taskId, attempt);
+      throw error;
+    }
+  }
+
+  /** The leased part of a rollup; false when the lease was lost before the final write. */
+  private async runLeasedRollup(
+    task: TaskDocument,
+    organizationId: string,
+    owner: string,
+    attempt: number,
+  ): Promise<boolean> {
+    const taskId = task.id.toString();
     const { hasFailures, summaries } = await this.collectExecutionResults(
       task.linkedExecutionIds.map((id) => id.toString()),
       organizationId,
@@ -252,6 +278,7 @@ export class TaskOrchestratorService {
       this.logger.warn(
         `${this.logContext}: Task ${taskId} rollup lease expired before its final write`,
       );
+      this.noteFailedAttempt(taskId, attempt);
       return false;
     }
 
@@ -259,6 +286,18 @@ export class TaskOrchestratorService {
       `${this.logContext}: Task ${taskId} rollup complete — ${written.status}`,
     );
     return true;
+  }
+
+  /**
+   * The attempt that exhausts the cap is the last one that can ever run, so
+   * logging here reports an abandoned task exactly once.
+   */
+  private noteFailedAttempt(taskId: string, attempt: number): void {
+    if (attempt >= TASK_ROLLUP_MAX_ATTEMPTS) {
+      this.logger.error(
+        `${this.logContext}: Task ${taskId} rollup abandoned after ${attempt} attempts; left in_progress`,
+      );
+    }
   }
 
   private findTaskLinkedTo(

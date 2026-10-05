@@ -11,6 +11,7 @@ import {
 import {
   buildTaskColumnPatch,
   readTaskConfigObject,
+  type StalledRollupScan,
   TASK_CONFIG_FIELDS,
   TASK_SCALAR_FIELDS,
   type TaskConditionalPatch,
@@ -263,6 +264,7 @@ export class TasksService extends BaseService<
           })),
         },
         rolledUpAt: null,
+        rollupAttempts: 0,
       }),
     };
 
@@ -390,33 +392,50 @@ export class TasksService extends BaseService<
   }
 
   /**
-   * Claim the execution-rollup lease of an in-progress task. The predicate is
-   * part of the write, so among concurrent callers (API and workers) exactly
-   * one wins until the lease expires; an expired lease can be re-claimed.
+   * Claim the execution-rollup lease of an in-progress task and count the
+   * attempt. The predicate is part of the write, so among concurrent callers
+   * (API and workers) exactly one wins until the lease expires; an expired
+   * lease can be re-claimed, up to `maxAttempts` times per execution cycle.
+   * Returns the attempt number it won, or null.
    */
-  async acquireRollupLease(
-    taskId: string,
-    organizationId: string,
-    owner: string,
-    ttlMs: number,
-    now = new Date(),
-  ): Promise<boolean> {
-    const { count } = await this.delegate.updateMany({
-      data: {
-        rollupLeaseExpiresAt: new Date(now.getTime() + ttlMs),
-        rollupLeaseOwner: owner,
-      },
-      where: scopedWhere(organizationId, {
-        id: taskId,
-        OR: [
-          { rollupLeaseExpiresAt: null },
-          { rollupLeaseExpiresAt: { lte: now } },
-        ],
-        rolledUpAt: null,
-        status: 'in_progress',
-      }),
+  async acquireRollupLease(input: {
+    maxAttempts: number;
+    now?: Date;
+    organizationId: string;
+    owner: string;
+    taskId: string;
+    ttlMs: number;
+  }): Promise<number | null> {
+    const { maxAttempts, organizationId, owner, taskId, ttlMs } = input;
+    const now = input.now ?? new Date();
+    return this.prisma.$transaction(async (transaction) => {
+      const { count } = await transaction.task.updateMany({
+        data: {
+          rollupAttempts: { increment: 1 },
+          rollupLeaseExpiresAt: new Date(now.getTime() + ttlMs),
+          rollupLeaseOwner: owner,
+        },
+        where: scopedWhere(organizationId, {
+          id: taskId,
+          OR: [
+            { rollupLeaseExpiresAt: null },
+            { rollupLeaseExpiresAt: { lte: now } },
+          ],
+          rollupAttempts: { lt: maxAttempts },
+          rolledUpAt: null,
+          status: 'in_progress',
+        }),
+      });
+      if (count !== 1) return null;
+      const held = await transaction.task.findFirst({
+        select: { rollupAttempts: true },
+        where: scopedWhere(organizationId, {
+          id: taskId,
+          rollupLeaseOwner: owner,
+        }),
+      });
+      return held?.rollupAttempts ?? null;
     });
-    return count === 1;
   }
 
   /**
@@ -425,42 +444,54 @@ export class TasksService extends BaseService<
    * failed before its final write. System-wide (no tenant context); each
    * candidate is then rolled up under its own organization.
    */
-  async findStalledRollupCandidates(options: {
-    createdAfter: Date;
-    limit: number;
-    now: Date;
-    settledBefore: Date;
-  }): Promise<Array<{ id: string; organizationId: string }>> {
-    const { createdAfter, limit, now, settledBefore } = options;
+  async findStalledRollupCandidates(
+    options: StalledRollupScan,
+  ): Promise<Array<{ id: string; organizationId: string }>> {
     // tenant-scope-ignore: platform-wide recovery sweep run by the workers schedule across every organization, like StalePendingSystemExecutionFinderService; each candidate is then rolled up under its own organizationId
     return this.prisma.task.findMany({
       orderBy: { updatedAt: 'asc' },
       select: { id: true, organizationId: true },
-      take: limit,
-      where: {
-        isDeleted: false,
-        linkedExecutions: {
-          every: {
-            status: {
-              in: [
-                PrismaWorkflowExecutionStatus.COMPLETED,
-                PrismaWorkflowExecutionStatus.FAILED,
-                PrismaWorkflowExecutionStatus.CANCELLED,
-              ],
-            },
-          },
-          some: {},
-        },
-        OR: [
-          { rollupLeaseExpiresAt: null },
-          { rollupLeaseExpiresAt: { lte: now } },
-        ],
-        createdAt: { gte: createdAfter },
-        rolledUpAt: null,
-        status: 'in_progress',
-        updatedAt: { lte: settledBefore },
-      },
+      take: options.limit,
+      where: this.stalledRollupWhere(options),
     });
+  }
+
+  /** How many tasks the next recovery sweep could pick up (ignores the batch size). */
+  async countStalledRollupCandidates(
+    options: StalledRollupScan,
+  ): Promise<number> {
+    // tenant-scope-ignore: platform-wide recovery sweep count across every organization, the same scan as findStalledRollupCandidates
+    return this.prisma.task.count({ where: this.stalledRollupWhere(options) });
+  }
+
+  private stalledRollupWhere(
+    options: StalledRollupScan,
+  ): Prisma.TaskWhereInput {
+    const { createdAfter, maxAttempts, now, settledBefore } = options;
+    return {
+      createdAt: { gte: createdAfter },
+      isDeleted: false,
+      linkedExecutions: {
+        every: {
+          status: {
+            in: [
+              PrismaWorkflowExecutionStatus.COMPLETED,
+              PrismaWorkflowExecutionStatus.FAILED,
+              PrismaWorkflowExecutionStatus.CANCELLED,
+            ],
+          },
+        },
+        some: {},
+      },
+      OR: [
+        { rollupLeaseExpiresAt: null },
+        { rollupLeaseExpiresAt: { lte: now } },
+      ],
+      rollupAttempts: { lt: maxAttempts },
+      rolledUpAt: null,
+      status: 'in_progress',
+      updatedAt: { lte: settledBefore },
+    };
   }
 
   /**

@@ -5395,6 +5395,9 @@ model Task {
   /// are (re)linked. A reopened task keeps it, so its old output is not
   /// rolled up again.
   rolledUpAt           DateTime?
+  /// Lease acquisitions in the current execution cycle; capped so a task whose
+  /// final write keeps failing is not retried forever. Reset with rolledUpAt.
+  rollupAttempts       Int       @default(0)
 
   @@unique([organizationId, identifier])
   @@index([organizationId, checkoutAgentId])

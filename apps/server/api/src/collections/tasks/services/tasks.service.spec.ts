@@ -59,20 +59,51 @@ describe('TasksService tenant scoping', () => {
     expectCloudGuardPasses('Task', 'findFirst', task.findFirst);
   });
 
-  it('claims the rollup lease only for an in-progress task with no live lease', async () => {
+  it('claims the rollup lease and counts the attempt, only within the cap and for a free lease', async () => {
     const now = new Date('2026-10-05T12:00:00.000Z');
-    task.updateMany.mockResolvedValueOnce({ count: 1 });
-    task.updateMany.mockResolvedValueOnce({ count: 0 });
+    const transaction = {
+      task: {
+        findFirst: vi.fn().mockResolvedValue({ rollupAttempts: 2 }),
+        updateMany: vi
+          .fn()
+          .mockResolvedValueOnce({ count: 1 })
+          .mockResolvedValueOnce({ count: 0 }),
+      },
+    };
+    const leasing = new TasksService(
+      {
+        $transaction: vi.fn(async (run: (client: unknown) => unknown) =>
+          run(transaction),
+        ),
+        task,
+      } as unknown as PrismaService,
+      {
+        error: vi.fn(),
+        log: vi.fn(),
+        warn: vi.fn(),
+      } as unknown as LoggerService,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const input = {
+      maxAttempts: 3,
+      now,
+      organizationId: 'org-1',
+      taskId: 'task-1',
+      ttlMs: 60_000,
+    };
 
     await expect(
-      service.acquireRollupLease('task-1', 'org-1', 'owner-a', 60_000, now),
-    ).resolves.toBe(true);
+      leasing.acquireRollupLease({ ...input, owner: 'owner-a' }),
+    ).resolves.toBe(2);
     await expect(
-      service.acquireRollupLease('task-1', 'org-1', 'owner-b', 60_000, now),
-    ).resolves.toBe(false);
+      leasing.acquireRollupLease({ ...input, owner: 'owner-b' }),
+    ).resolves.toBeNull();
 
-    expect(task.updateMany).toHaveBeenNthCalledWith(1, {
+    expect(transaction.task.updateMany).toHaveBeenNthCalledWith(1, {
       data: {
+        rollupAttempts: { increment: 1 },
         rollupLeaseExpiresAt: new Date('2026-10-05T12:01:00.000Z'),
         rollupLeaseOwner: 'owner-a',
       },
@@ -84,6 +115,7 @@ describe('TasksService tenant scoping', () => {
           { rollupLeaseExpiresAt: { lte: now } },
         ],
         organizationId: 'org-1',
+        rollupAttempts: { lt: 3 },
         rolledUpAt: null,
         status: 'in_progress',
       },
