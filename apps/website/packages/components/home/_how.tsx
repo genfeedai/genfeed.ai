@@ -38,7 +38,7 @@ export default function HomeHow(): React.ReactElement {
           </Heading>
           <Text className="max-w-2xl text-base leading-7 gen-text-muted">
             Brand memory, drafts and results live in one workspace. Approve the
-            first posts. Once it has earned your trust, it publishes on its own.
+            first posts, then switch on auto-publish and it runs on its own.
           </Text>
         </div>
 
