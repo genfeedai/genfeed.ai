@@ -50,8 +50,16 @@ export class ApifyPinterestService {
   private normalizePinterestTrends(
     pins: ApifyPinterestPin[],
   ): ApifyTrendData[] {
+    // The seed queries overlap, so the same pin can come back more than once.
+    const seenPinIds = new Set<string>();
     return pins
-      .filter((pin) => !pin.pin?.is_promoted)
+      .filter((pin) => {
+        if (pin.pin?.is_promoted || seenPinIds.has(pin.id)) {
+          return false;
+        }
+        seenPinIds.add(pin.id);
+        return true;
+      })
       .map((pin) => {
         const repinCount = pin.pin?.repin_count || 0;
         const commentCount = pin.pin?.comment_count || 0;

@@ -132,12 +132,13 @@ describe('ApifyPinterestService', () => {
       );
     });
 
-    it('caps output to the requested total and drops promoted pins', async () => {
+    it('caps output to the requested total and drops promoted and repeated pins', async () => {
       mockBaseService.runActor.mockResolvedValue([
-        makePinterestPin({ isPromoted: true, title: 'Ad' }),
-        makePinterestPin({ title: 'One' }),
-        makePinterestPin({ title: 'Two' }),
-        makePinterestPin({ title: 'Three' }),
+        { ...makePinterestPin({ isPromoted: true, title: 'Ad' }), id: 'ad' },
+        { ...makePinterestPin({ title: 'One' }), id: 'one' },
+        { ...makePinterestPin({ title: 'One again' }), id: 'one' },
+        { ...makePinterestPin({ title: 'Two' }), id: 'two' },
+        { ...makePinterestPin({ title: 'Three' }), id: 'three' },
       ]);
 
       const result = await service.getPinterestTrends({ limit: 2 });
