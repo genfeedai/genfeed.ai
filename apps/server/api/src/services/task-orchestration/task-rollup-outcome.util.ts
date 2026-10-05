@@ -1,9 +1,11 @@
 import type { TaskEventInput } from '@api/collections/tasks/services/task-actions.service';
+import type { TaskConditionalPatch } from '@api/collections/tasks/services/task-persistence.util';
 import type { WorkspaceTaskQualityAssessmentResult } from '@api/services/task-orchestration/workspace-task-quality.service';
+import { toPrismaJson } from '@genfeedai/prisma';
 
 export interface TaskRollupOutcome {
   event: TaskEventInput;
-  patch: Record<string, unknown>;
+  patch: TaskConditionalPatch;
 }
 
 const EXECUTION_FAILURE_REASON = 'One or more workflow executions failed.';
@@ -20,6 +22,10 @@ export function buildRollupFailureOutcome(
       type: 'task_failed',
     },
     patch: {
+      config: {
+        reviewTriggered: true,
+        ...(resultPreview ? { resultPreview } : {}),
+      },
       failureReason: EXECUTION_FAILURE_REASON,
       progress: {
         activeRunCount: 0,
@@ -27,9 +33,7 @@ export function buildRollupFailureOutcome(
         percent: 100,
         stage: 'failed',
       },
-      resultPreview: resultPreview || undefined,
       reviewState: 'none',
-      reviewTriggered: true,
       status: 'failed',
     },
   };
@@ -51,20 +55,22 @@ export function buildRollupReviewOutcome(
     },
     patch: {
       completedAt,
+      config: {
+        qualityAssessment: toPrismaJson(qualityAssessment),
+        reviewTriggered: true,
+        ...(resultPreview ? { resultPreview } : {}),
+      },
       progress: {
         activeRunCount: 0,
         message: 'Generation finished. Awaiting review.',
         percent: 100,
         stage: 'review',
       },
-      qualityAssessment,
       requestedChangesReason:
         qualityAssessment.gate === 'pass'
           ? null
           : buildQualityReviewReason(qualityAssessment),
-      resultPreview: resultPreview || undefined,
       reviewState: 'pending_approval',
-      reviewTriggered: true,
       status: 'in_review',
     },
   };

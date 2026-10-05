@@ -5,6 +5,7 @@ import {
   type TaskDocument,
   type TaskStatus,
 } from '@api/collections/tasks/schemas/task.schema';
+import type { TaskConditionalPatch } from '@api/collections/tasks/services/task-persistence.util';
 import type { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -300,7 +301,7 @@ export class TaskActionsService {
     organizationId: string,
     userId: string,
     event: TaskEventInput,
-    patch: Record<string, unknown>,
+    patch: TaskConditionalPatch,
     expected: { rollupLeaseOwner?: string; status: TaskStatus },
   ): Promise<TaskDocument | null> {
     const updated = await this.tasksService.patchIfMatches(

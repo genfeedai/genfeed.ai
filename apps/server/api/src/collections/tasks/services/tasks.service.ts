@@ -10,8 +10,10 @@ import {
 } from '@api/collections/tasks/services/task-actions.service';
 import {
   buildTaskColumnPatch,
+  readTaskConfigObject,
   TASK_CONFIG_FIELDS,
   TASK_SCALAR_FIELDS,
+  type TaskConditionalPatch,
 } from '@api/collections/tasks/services/task-persistence.util';
 import {
   type PlanningThreadResult,
@@ -253,12 +255,14 @@ export class TasksService extends BaseService<
           set: input.linkedOutputIds.map((outputId) => ({ id: outputId })),
         },
       }),
+      // Linking executions starts a new cycle that still needs its rollup.
       ...(input.linkedExecutionIds !== undefined && {
         linkedExecutions: {
           set: input.linkedExecutionIds.map((executionId) => ({
             id: executionId,
           })),
         },
+        rolledUpAt: null,
       }),
     };
 
@@ -408,6 +412,7 @@ export class TasksService extends BaseService<
           { rollupLeaseExpiresAt: null },
           { rollupLeaseExpiresAt: { lte: now } },
         ],
+        rolledUpAt: null,
         status: 'in_progress',
       }),
     });
@@ -420,11 +425,14 @@ export class TasksService extends BaseService<
    * failed before its final write. System-wide (no tenant context); each
    * candidate is then rolled up under its own organization.
    */
-  async findStalledRollupCandidates(
-    now: Date,
-    settledBefore: Date,
-    limit: number,
-  ): Promise<Array<{ id: string; organizationId: string }>> {
+  async findStalledRollupCandidates(options: {
+    createdAfter: Date;
+    limit: number;
+    now: Date;
+    settledBefore: Date;
+  }): Promise<Array<{ id: string; organizationId: string }>> {
+    const { createdAfter, limit, now, settledBefore } = options;
+    // tenant-scope-ignore: platform-wide recovery sweep run by the workers schedule across every organization, like StalePendingSystemExecutionFinderService; each candidate is then rolled up under its own organizationId
     return this.prisma.task.findMany({
       orderBy: { updatedAt: 'asc' },
       select: { id: true, organizationId: true },
@@ -447,6 +455,8 @@ export class TasksService extends BaseService<
           { rollupLeaseExpiresAt: null },
           { rollupLeaseExpiresAt: { lte: now } },
         ],
+        createdAt: { gte: createdAfter },
+        rolledUpAt: null,
         status: 'in_progress',
         updatedAt: { lte: settledBefore },
       },
@@ -462,11 +472,11 @@ export class TasksService extends BaseService<
     taskId: string,
     organizationId: string,
     expected: { rollupLeaseOwner?: string; status: TaskStatus },
-    patch: Record<string, unknown>,
+    patch: TaskConditionalPatch,
   ): Promise<TaskDocument | null> {
-    const newStatus = patch.status as TaskStatus | undefined;
-    if (newStatus) {
-      this.validateStatusTransition(expected.status, newStatus);
+    const { config, ...columns } = patch;
+    if (columns.status) {
+      this.validateStatusTransition(expected.status, columns.status);
     }
     const where = scopedWhere(organizationId, { id: taskId, ...expected });
     return this.prisma.$transaction(async (transaction) => {
@@ -476,7 +486,14 @@ export class TasksService extends BaseService<
       });
       if (!existing) return null;
       const { count } = await transaction.task.updateMany({
-        data: buildTaskColumnPatch(patch, existing.config) as never,
+        data: {
+          ...columns,
+          ...(config
+            ? {
+                config: { ...readTaskConfigObject(existing.config), ...config },
+              }
+            : {}),
+        },
         where,
       });
       if (count !== 1) return null;
@@ -629,7 +646,7 @@ export class TasksService extends BaseService<
     organizationId: string,
     userId: string,
     event: TaskEventInput,
-    patch: Record<string, unknown>,
+    patch: TaskConditionalPatch,
     expected: { rollupLeaseOwner?: string; status: TaskStatus },
   ): Promise<TaskDocument | null> {
     return this.taskActionsService.recordTaskEventIfMatches(

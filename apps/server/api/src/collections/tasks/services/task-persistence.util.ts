@@ -1,4 +1,33 @@
+import type { TaskStatus } from '@api/collections/tasks/schemas/task.schema';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
+import type { Prisma } from '@genfeedai/prisma';
+
+/**
+ * A write guarded by `patchIfMatches`: typed columns plus a `config` patch
+ * merged into the stored config JSON.
+ */
+export type TaskConditionalPatch = Pick<
+  Prisma.TaskUncheckedUpdateManyInput,
+  | 'completedAt'
+  | 'failureReason'
+  | 'progress'
+  | 'requestedChangesReason'
+  | 'reviewState'
+  | 'rolledUpAt'
+  | 'rollupLeaseExpiresAt'
+  | 'rollupLeaseOwner'
+> & {
+  config?: Prisma.InputJsonObject;
+  status?: TaskStatus;
+};
+
+export function readTaskConfigObject(
+  value: Prisma.JsonValue,
+): Prisma.JsonObject {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value
+    : {};
+}
 
 /** Task columns a write may set directly. */
 export const TASK_SCALAR_FIELDS = [
@@ -25,8 +54,6 @@ export const TASK_SCALAR_FIELDS = [
   'projectId',
   'requestedChangesReason',
   'reviewState',
-  'rollupLeaseExpiresAt',
-  'rollupLeaseOwner',
   'status',
   'taskNumber',
   'title',

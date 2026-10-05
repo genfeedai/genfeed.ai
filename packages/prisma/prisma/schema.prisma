@@ -5391,6 +5391,10 @@ model Task {
   /// rollupLeaseExpiresAt; an expired lease can be re-claimed.
   rollupLeaseOwner     String?
   rollupLeaseExpiresAt DateTime?
+  /// When the current execution cycle was rolled up; cleared when executions
+  /// are (re)linked. A reopened task keeps it, so its old output is not
+  /// rolled up again.
+  rolledUpAt           DateTime?
 
   @@unique([organizationId, identifier])
   @@index([organizationId, checkoutAgentId])

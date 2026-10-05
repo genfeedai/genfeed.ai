@@ -84,6 +84,7 @@ describe('TasksService tenant scoping', () => {
           { rollupLeaseExpiresAt: { lte: now } },
         ],
         organizationId: 'org-1',
+        rolledUpAt: null,
         status: 'in_progress',
       },
     });
@@ -124,7 +125,7 @@ describe('TasksService tenant scoping', () => {
 
     await expect(
       conditional.patchIfMatches('task-1', 'org-1', expected, {
-        qualityAssessment: { gate: 'pass' },
+        config: { qualityAssessment: { gate: 'pass' } },
         rollupLeaseOwner: null,
         status: 'in_review',
       }),

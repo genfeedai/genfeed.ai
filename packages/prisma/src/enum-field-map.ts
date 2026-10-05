@@ -7594,6 +7594,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'projectId',
       'requestedChangesReason',
       'reviewState',
+      'rolledUpAt',
       'rollupLeaseExpiresAt',
       'rollupLeaseOwner',
       'status',

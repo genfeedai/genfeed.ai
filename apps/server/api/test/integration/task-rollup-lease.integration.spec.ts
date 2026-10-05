@@ -202,11 +202,12 @@ describe('Workspace task rollup lease (real Postgres, #6265)', () => {
       new Date(start.getTime() + LEASE_TTL_MS),
     );
     const finalPatch = {
-      qualityAssessment: { gate: 'pass' },
+      config: { qualityAssessment: { gate: 'pass' } },
       reviewState: 'pending_approval',
+      rolledUpAt: new Date(),
       rollupLeaseExpiresAt: null,
       rollupLeaseOwner: null,
-      status: 'in_review',
+      status: 'in_review' as const,
     };
 
     // The displaced holder A wakes up late: nothing changes.
@@ -305,11 +306,12 @@ describe('Workspace task rollup lease (real Postgres, #6265)', () => {
       updatedAt: idle,
     });
 
-    const candidates = await service.findStalledRollupCandidates(
+    const candidates = await service.findStalledRollupCandidates({
+      createdAfter: new Date(now.getTime() - 24 * 60 * 60_000),
+      limit: 1000,
       now,
-      new Date(now.getTime() - 2 * 60_000),
-      1000,
-    );
+      settledBefore: new Date(now.getTime() - 2 * 60_000),
+    });
     const ids = candidates.map((candidate) => candidate.id);
 
     expect(ids).toContain(stalled.taskId);
@@ -317,5 +319,60 @@ describe('Workspace task rollup lease (real Postgres, #6265)', () => {
     expect(ids).not.toContain(leased.taskId);
     expect(ids).not.toContain(recent.taskId);
     expect(ids).not.toContain(reviewed.taskId);
+  });
+
+  it('does not re-roll a reopened task until new executions are linked', async () => {
+    const { organizationId, taskId } = await seedTask([
+      WorkflowExecutionStatus.COMPLETED,
+    ]);
+    const candidateIds = (now: Date) =>
+      service
+        .findStalledRollupCandidates({
+          createdAfter: new Date(now.getTime() - 24 * 60 * 60_000),
+          limit: 1000,
+          now,
+          // Ignore the idle grace: this test is about the rollup cycle only.
+          settledBefore: new Date(now.getTime() + 60_000),
+        })
+        .then((candidates) => candidates.map((candidate) => candidate.id));
+    await service.acquireRollupLease(
+      taskId,
+      organizationId,
+      'owner-a',
+      LEASE_TTL_MS,
+    );
+    await service.patchIfMatches(
+      taskId,
+      organizationId,
+      { rollupLeaseOwner: 'owner-a', status: 'in_progress' },
+      {
+        rolledUpAt: new Date(),
+        rollupLeaseExpiresAt: null,
+        rollupLeaseOwner: null,
+        status: 'in_review',
+      },
+    );
+
+    // PATCH status back to in_progress, as the tasks controller allows.
+    await service.patch(taskId, { status: 'in_progress' });
+    expect(await candidateIds(new Date())).not.toContain(taskId);
+    expect(
+      await service.acquireRollupLease(
+        taskId,
+        organizationId,
+        'owner-b',
+        LEASE_TTL_MS,
+      ),
+    ).toBe(false);
+
+    // Linking a new cycle of executions makes it eligible again.
+    const task = await prisma.task.findUniqueOrThrow({
+      include: { linkedExecutions: { select: { id: true } } },
+      where: { id: taskId },
+    });
+    await service.patch(taskId, {
+      linkedExecutionIds: task.linkedExecutions.map(({ id }) => id),
+    });
+    expect(await candidateIds(new Date())).toContain(taskId);
   });
 });

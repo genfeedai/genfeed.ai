@@ -16,6 +16,11 @@ import { Injectable } from '@nestjs/common';
 export const TASK_ROLLUP_LEASE_TTL_MS = 10 * 60 * 1000;
 /** Leaves recently active tasks to the event-driven fast path. */
 const STALLED_ROLLUP_GRACE_MS = 2 * 60 * 1000;
+/**
+ * How far back the recovery sweep reaches, by task creation time. It also
+ * bounds the one-off backfill of tasks stuck before the rollup was restored.
+ */
+export const STALLED_ROLLUP_BACKFILL_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 const STALLED_ROLLUP_BATCH_SIZE = 25;
 
 @Injectable()
@@ -126,11 +131,12 @@ export class TaskOrchestratorService {
    * Returns how many tasks it rolled up.
    */
   async recoverStalledRollups(now = new Date()): Promise<number> {
-    const candidates = await this.tasksService.findStalledRollupCandidates(
+    const candidates = await this.tasksService.findStalledRollupCandidates({
+      createdAfter: new Date(now.getTime() - STALLED_ROLLUP_BACKFILL_WINDOW_MS),
+      limit: STALLED_ROLLUP_BATCH_SIZE,
       now,
-      new Date(now.getTime() - STALLED_ROLLUP_GRACE_MS),
-      STALLED_ROLLUP_BATCH_SIZE,
-    );
+      settledBefore: new Date(now.getTime() - STALLED_ROLLUP_GRACE_MS),
+    });
     let rolledUp = 0;
     for (const candidate of candidates) {
       try {
@@ -234,7 +240,12 @@ export class TaskOrchestratorService {
       organizationId,
       task.assigneeUserId ?? '',
       outcome.event,
-      { ...outcome.patch, rollupLeaseExpiresAt: null, rollupLeaseOwner: null },
+      {
+        ...outcome.patch,
+        rolledUpAt: new Date(),
+        rollupLeaseExpiresAt: null,
+        rollupLeaseOwner: null,
+      },
       { rollupLeaseOwner: owner, status: 'in_progress' },
     );
     if (!written) {

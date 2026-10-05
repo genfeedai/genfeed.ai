@@ -1,4 +1,5 @@
 import {
+  STALLED_ROLLUP_BACKFILL_WINDOW_MS,
   TASK_ROLLUP_LEASE_TTL_MS,
   TaskOrchestratorService,
 } from '@api/services/task-orchestration/task-orchestrator.service';
@@ -13,6 +14,7 @@ type StoredTask = {
   progress?: unknown;
   qualityAssessment?: unknown;
   request: string;
+  rolledUpAt: Date | null;
   rollupLeaseExpiresAt: Date | null;
   rollupLeaseOwner: string | null;
   status: string;
@@ -37,6 +39,7 @@ function makeHarness(options: {
     outputType: 'image',
     platforms: [],
     request: 'a green apple',
+    rolledUpAt: null,
     rollupLeaseExpiresAt: null,
     rollupLeaseOwner: null,
     status: options.status ?? 'in_progress',
@@ -55,7 +58,9 @@ function makeHarness(options: {
         const isFree =
           task.rollupLeaseExpiresAt === null ||
           task.rollupLeaseExpiresAt <= now;
-        if (task.status !== 'in_progress' || !isFree) return false;
+        if (task.status !== 'in_progress' || task.rolledUpAt || !isFree) {
+          return false;
+        }
         task.rollupLeaseOwner = owner;
         task.rollupLeaseExpiresAt = new Date(now.getTime() + ttlMs);
         return true;
@@ -63,7 +68,12 @@ function makeHarness(options: {
     ),
     findOne: vi.fn(async () => structuredClone(task)),
     findStalledRollupCandidates: vi.fn(
-      async (_now: Date, _settledBefore: Date, _limit: number) => {
+      async (_options: {
+        createdAfter: Date;
+        limit: number;
+        now: Date;
+        settledBefore: Date;
+      }) => {
         const isSettled = task.linkedExecutionIds.every((id) =>
           ['COMPLETED', 'FAILED', 'CANCELLED'].includes(
             options.executions[id].status,
@@ -72,7 +82,10 @@ function makeHarness(options: {
         const isFree =
           task.rollupLeaseExpiresAt === null ||
           task.rollupLeaseExpiresAt <= now;
-        return task.status === 'in_progress' && isSettled && isFree
+        return task.status === 'in_progress' &&
+          task.rolledUpAt === null &&
+          isSettled &&
+          isFree
           ? [{ id: task.id, organizationId: 'org-1' }]
           : [];
       },
@@ -83,7 +96,7 @@ function makeHarness(options: {
         _org: string,
         _user: string,
         event: { type: string },
-        patch: Record<string, unknown>,
+        patch: Record<string, unknown> & { config?: object },
         expected: Expected,
       ) => {
         if (patch.status && failNextFinalWrite) {
@@ -91,7 +104,8 @@ function makeHarness(options: {
           throw new Error('database unavailable');
         }
         if (!matches(expected)) return null;
-        Object.assign(task, patch);
+        const { config, ...columns } = patch;
+        Object.assign(task, columns, config);
         events.push(event.type);
         return structuredClone(task);
       },
@@ -124,6 +138,14 @@ function makeHarness(options: {
       vi.setSystemTime(now);
     },
     events,
+    /** A PATCH to in_progress, as the tasks controller allows. */
+    reopen: () => {
+      task.status = 'in_progress';
+    },
+    /** Linking a new cycle of executions, as linkAgentExecutions does. */
+    relink: () => {
+      task.rolledUpAt = null;
+    },
     failNextFinalWrite: () => {
       failNextFinalWrite = true;
     },
@@ -324,6 +346,27 @@ describe('TaskOrchestratorService rollup', () => {
     });
   });
 
+  describe('reopened task', () => {
+    it('is not rolled up again from the previous cycle until new executions are linked', async () => {
+      const h = makeHarness({ executions: { 'execution-1': completed } });
+      await h.service.handleExecutionCompletion('execution-1', 'org-1');
+      expect(h.task.status).toBe('in_review');
+      expect(h.task.rolledUpAt).not.toBeNull();
+
+      h.reopen();
+      h.advance(TASK_ROLLUP_LEASE_TTL_MS);
+      expect(await h.service.recoverStalledRollups()).toBe(0);
+      await h.service.reconcileTerminalExecutions(['execution-1'], 'org-1');
+      expect(h.task.status).toBe('in_progress');
+      expect(h.quality.assess).toHaveBeenCalledOnce();
+
+      h.relink();
+      expect(await h.service.recoverStalledRollups()).toBe(1);
+      expect(h.task.status).toBe('in_review');
+      expect(h.quality.assess).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it('ignores events for a task that already left in_progress', async () => {
     const h = makeHarness({
       executions: { 'execution-1': completed },
@@ -341,10 +384,13 @@ describe('TaskOrchestratorService rollup', () => {
 
     await h.service.recoverStalledRollups();
 
-    const [now, settledBefore, limit] =
+    const [options] =
       h.tasksService.findStalledRollupCandidates.mock.calls[0] ?? [];
-    expect(now).toEqual(h.now());
-    expect(settledBefore?.getTime()).toBeLessThan(h.now().getTime());
-    expect(limit).toBeGreaterThan(0);
+    expect(options?.now).toEqual(h.now());
+    expect(options?.settledBefore.getTime()).toBeLessThan(h.now().getTime());
+    expect(options?.createdAfter.getTime()).toBe(
+      h.now().getTime() - STALLED_ROLLUP_BACKFILL_WINDOW_MS,
+    );
+    expect(options?.limit).toBeGreaterThan(0);
   });
 });
