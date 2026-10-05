@@ -94,6 +94,7 @@ describe('useLibraryTags', () => {
     expect(tagsService.createLibraryTag).toHaveBeenCalledWith(
       'Launch',
       TagScope.ORGANIZATION,
+      undefined,
     );
     // Creating refreshes every Library tag list.
     await waitFor(() =>

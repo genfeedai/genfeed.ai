@@ -1,11 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
+import { buildImageListAggregate } from '@api/collections/images/controllers/image-list-query.util';
 import { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
-import {
-  IngredientCharacterFilterService,
-  resolveCharacterFilter,
-} from '@api/collections/ingredients/services/ingredient-character-filter.service';
+import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -23,8 +21,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { scopedWhere } from '@api/index';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { ActivityEntityModel, IngredientCategory } from '@genfeedai/contracts';
@@ -69,10 +65,11 @@ export class ImagesController {
   // images visible immediately. The keyGenerator returns '' for non-latest
   // requests, which the RedisCacheInterceptor treats as "do not cache".
   @Cache({
-    keyGenerator: (req) =>
-      req.query.latest === 'true'
-        ? `images:latest:org:${(req.user?.organizationId as string | undefined) ?? 'global'}:brand:${(req.user?.brandId as string | undefined) ?? 'global'}:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}:origins:${JSON.stringify(req.query.origins ?? [])}`
-        : '',
+    keyGenerator: (req) => {
+      if (req.query.latest !== 'true') return '';
+      const tenant = CollectionFilterUtil.resolveListCacheScope(req);
+      return `images:latest:org:${tenant.organizationId || 'global'}:sessionOrg:${req.user?.organizationId ?? 'global'}:brand:${req.user?.brandId ?? 'global'}:user:${req.user?.userId ?? req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`;
+    },
     tags: ['images'],
     ttl: 300, // 5 minutes
   })
@@ -82,6 +79,11 @@ export class ImagesController {
     @CurrentUser() user: User,
     @Query() query: ImagesQueryDto,
   ): Promise<JsonApiCollectionResponse> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
@@ -101,114 +103,20 @@ export class ImagesController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    // Handle multiple status values (comma-separated)
-    const status = QueryDefaultsUtil.parseStatusFilter(query.status);
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-
-    // Use CollectionFilterUtil for common filtering patterns
-    const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
-    const brandId = CollectionFilterUtil.buildBrandFilter(
-      query.brandId,
+    const aggregate = await buildImageListAggregate(
+      query,
       user,
-      'exists',
+      tenant,
+      imageCategory,
+      this.characterFilter,
     );
-
-    // Use IngredientFilterUtil to build ingredient-specific filters
-    const parentConditions = IngredientFilterUtil.buildParentFilter(
-      query.parentId,
-    );
-
-    const folderConditions = IngredientFilterUtil.buildFolderFilter(
-      query.folderId,
-    );
-
-    const trainingFilter = IngredientFilterUtil.buildTrainingFilter(
-      query.trainingId,
-    );
-
-    // Origin narrows the whole list, brand-default images included.
-    const originFilter = IngredientFilterUtil.buildOriginFilter(query.origins);
-
-    const characterFilter = await resolveCharacterFilter(this.characterFilter, {
-      characterIds: query.characters,
-      // These lists do not authorize a `brandId` override, so availability
-      // always follows the session's active brand, never the query.
-      user,
-    });
-
-    // Build isPublic filter for public gallery (getshareable.app)
-    const isPublicFilter =
-      query.isPublic !== undefined ? { isPublic: query.isPublic } : {};
-
-    const aggregate = {
-      where: {
-        AND: [
-          {
-            OR: [
-              {
-                AND: [
-                  {
-                    organizationId: user.organizationId,
-                    category: imageCategory,
-                    isDeleted,
-                    ...(query.isPublic === undefined && scope !== undefined
-                      ? { scope }
-                      : {}),
-                    brandId,
-                    status,
-                    ...isPublicFilter,
-                  },
-                  folderConditions,
-                  trainingFilter,
-                  ...(Object.keys(parentConditions).length > 0
-                    ? [parentConditions]
-                    : []),
-                ],
-              },
-              // Default images (only when not filtering by isPublic)
-              ...(query.isPublic === undefined
-                ? [
-                    {
-                      AND: [
-                        {
-                          category: imageCategory,
-                          isDefault: true,
-                          isDeleted,
-                          OR: [
-                            {
-                              organizationId: user.organizationId,
-                            },
-                            { organizationId: null },
-                          ],
-                          status,
-                          // Filter default images by brand when brand is specified
-                          ...(isEntityId(query.brandId) ? { brandId } : {}),
-                        },
-                        folderConditions,
-                        ...(Object.keys(parentConditions).length > 0
-                          ? [parentConditions]
-                          : []),
-                      ],
-                    },
-                  ]
-                : []),
-            ],
-          },
-          originFilter,
-          characterFilter,
-          IngredientFilterUtil.buildTagFilter(query.tags, query.tagMatch),
-        ],
-      },
-      include: IngredientFilterUtil.buildLibraryTagsInclude(),
-      orderBy: handleQuerySort(query.sort),
-    };
 
     const data = await this.imagesService.findAll(aggregate, options);
     return serializeCollection(
       request,
       IngredientSerializer,
       (await this.evaluationProjection?.attachToPage(data, {
-        brandId: user.brandId,
+        brandId: tenant.isOrganizationOverride ? tenant.brandId : user.brandId,
         contentType: 'image',
       })) ?? data,
     );
@@ -220,6 +128,14 @@ export class ImagesController {
     query: ImagesQueryDto,
     imageCategory: ReturnType<typeof CategoryPrismaUtil.toIngredientCategory>,
   ): Promise<JsonApiCollectionResponse> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
+    const brandId = tenant.isOrganizationOverride
+      ? tenant.brandId
+      : user.brandId;
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
     const aggregate = {
       where: {
@@ -229,24 +145,26 @@ export class ImagesController {
               {
                 AND: [
                   {
-                    brandId: user.brandId,
+                    ...(brandId ? { brandId } : {}),
                     category: imageCategory,
                     isDeleted,
-                    organizationId: user.organizationId,
+                    organizationId: tenant.organizationId,
                     trainingId: null,
-                    userId: user.userId ?? user.id,
+                    ...(!tenant.isOrganizationOverride
+                      ? { userId: user.userId ?? user.id }
+                      : {}),
                   },
                 ],
               },
               {
                 AND: [
                   {
-                    brandId: user.brandId,
+                    ...(brandId ? { brandId } : {}),
                     category: imageCategory,
                     isDefault: true,
                     isDeleted,
                     OR: [
-                      { organizationId: user.organizationId },
+                      { organizationId: tenant.organizationId },
                       { organizationId: null },
                     ],
                   },
@@ -268,7 +186,7 @@ export class ImagesController {
       request,
       IngredientSerializer,
       (await this.evaluationProjection?.attachToPage(data, {
-        brandId: user.brandId,
+        brandId: tenant.isOrganizationOverride ? tenant.brandId : user.brandId,
         contentType: 'image',
       })) ?? data,
     );

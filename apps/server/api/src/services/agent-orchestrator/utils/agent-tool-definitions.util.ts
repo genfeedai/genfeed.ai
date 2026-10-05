@@ -126,22 +126,32 @@ export const CLOUD_ONLY_ONBOARDING_TOOLS: CuratedActionName[] = [
   'generate_monthly_content',
 ];
 
+export const ONBOARDING_ONLY_TOOLS: CuratedActionName[] = [
+  'scan_brand_url',
+  'save_onboarding_answers',
+];
+
 export function resolveBlockedTools(options: {
   source?: string;
 }): CuratedActionName[] | undefined {
-  if (!isSelfHostedDeployment()) {
-    return undefined;
-  }
-
-  return options.source === 'onboarding'
-    ? CLOUD_ONLY_ONBOARDING_TOOLS
-    : CLOUD_ONLY_TOOLS;
+  const blocked =
+    options.source === 'onboarding' ? [] : [...ONBOARDING_ONLY_TOOLS];
+  if (isSelfHostedDeployment())
+    blocked.push(
+      ...(options.source === 'onboarding'
+        ? CLOUD_ONLY_ONBOARDING_TOOLS
+        : CLOUD_ONLY_TOOLS),
+    );
+  return blocked.length ? blocked : undefined;
 }
 
 export function buildToolDefinitions(
   allowedTools?: CuratedActionName[],
   blockedTools?: CuratedActionName[],
+  source?: string,
 ): OpenRouterTool[] {
+  if (source === 'onboarding' && allowedTools)
+    allowedTools = [...new Set([...allowedTools, ...ONBOARDING_ONLY_TOOLS])];
   const all = getToolDefinitions();
   const allowed = allowedTools
     ? all.filter((t) => allowedTools.includes(t.name as CuratedActionName))

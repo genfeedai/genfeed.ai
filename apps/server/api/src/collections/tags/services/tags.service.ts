@@ -4,6 +4,7 @@ import type { TagDocument } from '@api/collections/tags/schemas/tag.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { resolveTagScope, type TagCategory } from '@genfeedai/contracts';
+import { pickTagColor } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -121,17 +122,22 @@ export class TagsService extends BaseService<
     return row ? (this.normalizeDocument(row) as TagDocument) : null;
   }
 
+  /**
+   * A tag created without a color gets one from the picker palette, keyed by
+   * its label; the column default (black) reads as no pill on the dark theme.
+   */
   async createInScope(input: CreateScopedTagInput): Promise<TagDocument> {
+    const swatch = input.backgroundColor ? null : pickTagColor(input.label);
     const row = await this.prisma.tag.create({
       data: {
-        backgroundColor: input.backgroundColor,
+        backgroundColor: input.backgroundColor ?? swatch?.backgroundColor,
         brandId: input.brandId,
         category: input.category,
         description: input.description,
         key: input.key,
         label: input.label,
         organizationId: input.organizationId,
-        textColor: input.textColor,
+        textColor: input.textColor ?? swatch?.textColor,
         userId: input.userId,
       },
     });

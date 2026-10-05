@@ -236,6 +236,79 @@ describe('CronFalModelWatcherService', () => {
       );
     });
 
+    it('alerts ops Discord about a fal price change and a failed refresh', async () => {
+      mockFalResponse([
+        {
+          endpoint_id: 'fal-ai/flux/dev',
+          metadata: { category: 'text-to-image', status: 'active' },
+        },
+      ]);
+      falContractSyncService.synchronizeModel.mockResolvedValueOnce({
+        drifted: true,
+        priceChange: {
+          changes: [
+            {
+              component: 'output',
+              newPriceUsd: 0.03,
+              oldPriceUsd: 0.025,
+              unit: 'output',
+              variant: 'all variants',
+            },
+          ],
+          modelKey: 'fal-ai/flux/dev',
+          pendingRateHash: 'rates:sha256:fal',
+          provider: 'fal',
+          sourceUrl: 'https://api.fal.ai/v1/models/pricing',
+        },
+        quarantined: false,
+        refreshFailure: {
+          modelKey: 'fal-ai/flux/dev',
+          provider: 'fal',
+          reason: 'rates_unavailable:missing_pricing',
+        },
+        version: 'sha256:candidate',
+      });
+
+      await service.discoverNewModels();
+
+      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deduplicationKey:
+            'message.model-price-change/fal-ai/flux/dev/rates:sha256:fal',
+        }),
+      );
+      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deduplicationKey: expect.stringContaining(
+            'message.model-pricing-unavailable/fal-ai/flux/dev/',
+          ),
+        }),
+      );
+    });
+
+    it('alerts ops when a Fal sync throws', async () => {
+      mockFalResponse([
+        {
+          endpoint_id: 'fal-ai/flux/dev',
+          metadata: { category: 'text-to-image', status: 'active' },
+        },
+      ]);
+      falContractSyncService.synchronizeModel.mockRejectedValueOnce(
+        new Error('boom'),
+      );
+
+      const result = await service.discoverNewModels();
+
+      expect(result.errors).toBe(1);
+      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deduplicationKey: expect.stringContaining(
+            'message.model-pricing-unavailable/fal-ai/flux/dev/The fal price refresh failed (contract_sync_failed)',
+          ),
+        }),
+      );
+    });
+
     it('discovers Fal partner namespaces with collision-safe keys', async () => {
       mockFalResponse([
         {
@@ -363,6 +436,14 @@ describe('CronFalModelWatcherService', () => {
       expect(falContractSyncService.recordFailure).toHaveBeenCalledWith(
         'fal_sync_failed',
         expect.any(Date),
+      );
+      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deduplicationKey: expect.stringContaining(
+            'message.model-pricing-unavailable/provider:fal/The fal price refresh failed (fal_sync_failed)',
+          ),
+          source: { id: 'provider:fal', type: 'model' },
+        }),
       );
     });
 

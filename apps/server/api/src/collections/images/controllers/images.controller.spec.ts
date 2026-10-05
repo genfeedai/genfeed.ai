@@ -31,12 +31,22 @@ vi.mock('@api/helpers/utils/query-defaults/query-defaults.util', () => ({
   },
 }));
 
-vi.mock('@api/helpers/utils/collection-filter/collection-filter.util', () => ({
-  CollectionFilterUtil: {
-    buildBrandFilter: vi.fn(() => ({ not: null })),
-    buildScopeFilter: vi.fn(() => undefined),
+vi.mock(
+  '@api/helpers/utils/collection-filter/collection-filter.util',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@api/helpers/utils/collection-filter/collection-filter.util')
+      >();
+    return {
+      CollectionFilterUtil: {
+        ...actual.CollectionFilterUtil,
+        buildBrandFilter: vi.fn(() => ({ not: null })),
+        buildScopeFilter: vi.fn(() => undefined),
+      },
+    };
   },
-}));
+);
 
 vi.mock('@api/helpers/utils/ingredient-filter/ingredient-filter.util', () => ({
   IngredientFilterUtil: {

@@ -4,6 +4,10 @@ import { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
 import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import { type ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import {
+  findUnpriceableModelIds,
+  unpriceableModelsScope,
+} from '@api/collections/models/utils/model-pricing-attention.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -247,16 +251,21 @@ export class ModelsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Query() query: ModelsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     const findAllQuery = this.buildFindAllQuery(user, query);
     const where = { ...(findAllQuery.where ?? {}) } as Record<string, unknown>;
 
-    // Defense-in-depth: org-scoped tenant isolation
-    // Derive org from request context middleware, NOT from query params
+    // Only the authenticated organization may self-heal its model allowlist.
+    // Authorization and the effective read tenant were resolved above.
     const authenticatedOrgId = request.context?.organizationId
       ? request.context.organizationId
       : null;
     const isSuperAdmin = getIsSuperAdmin(user, request);
-    const requestedOrgId = query.organizationId;
+    const requestedOrgId = query.organizationId?.trim();
     const canReadRequestedOrg =
       Boolean(requestedOrgId) &&
       (isSuperAdmin || requestedOrgId === authenticatedOrgId);
@@ -293,10 +302,25 @@ export class ModelsController extends BaseCRUDController<
       }
     }
 
-    if (authenticatedOrgId) {
+    // Models that cannot be priced (red in the admin pricing panel) are not
+    // offered to anyone but a platform superadmin.
+    if (!isSuperAdmin) {
+      // Classify exactly the rows this list can return: platform rows plus
+      // the effective read tenant's own.
+      const unpriceableIds = await findUnpriceableModelIds(
+        this.modelsService.prisma,
+        unpriceableModelsScope(tenant.organizationId ?? undefined),
+      );
+      if (unpriceableIds.length > 0) {
+        const existingAnd = Array.isArray(where.AND) ? where.AND : [];
+        where.AND = [...existingAnd, { id: { notIn: unpriceableIds } }];
+      }
+    }
+
+    if (tenant.organizationId) {
       where.OR = [
         { organizationId: null },
-        { organizationId: authenticatedOrgId },
+        { organizationId: tenant.organizationId },
       ];
     }
 

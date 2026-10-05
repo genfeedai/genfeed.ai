@@ -386,6 +386,79 @@ describe('DiscordService', () => {
     });
   });
 
+  describe('model pricing alerts (#6196)', () => {
+    it('lists old and new prices per variant with the source link', async () => {
+      const { service } = await createService();
+
+      await service.sendModelPriceChangeNotification({
+        changes: [
+          {
+            newPriceUsd: 0.21,
+            oldPriceUsd: 0.19,
+            unit: 'output',
+            variant: 'duration=6 · resolution=768P',
+          },
+          {
+            newPriceUsd: null,
+            oldPriceUsd: 0.33,
+            unit: 'output',
+            variant: 'duration=6 · resolution=1080P',
+          },
+        ],
+        modelKey: 'minimax/hailuo-2.3-fast',
+        provider: 'replicate',
+        sourceUrl: 'https://replicate.com/minimax/hailuo-2.3-fast',
+      });
+
+      const embed = lastSendPayload().embeds?.[0] as {
+        fields: Array<{ name: string; value: string }>;
+        title: string;
+      };
+      expect(embed.title).toBe(
+        'Provider price changed: minimax/hailuo-2.3-fast',
+      );
+      const fields = new Map(embed.fields.map((f) => [f.name, f.value]));
+      expect(fields.get('Old → new price')).toBe(
+        'duration=6 · resolution=768P: $0.19 → $0.21 per output\nduration=6 · resolution=1080P: $0.33 → none per output',
+      );
+      expect(fields.get('Source')).toBe(
+        'https://replicate.com/minimax/hailuo-2.3-fast',
+      );
+    });
+
+    it('reports an unpriceable or unrefreshable model', async () => {
+      const { service } = await createService();
+
+      await service.sendModelPricingUnavailableNotification({
+        modelKey: 'minimax/hailuo-2.3-fast',
+        provider: 'replicate',
+        reason: 'unmapped_criterion:camera motion',
+      });
+
+      const embed = lastSendPayload().embeds?.[0] as {
+        description: string;
+        title: string;
+      };
+      expect(embed.title).toBe(
+        'Model pricing needs attention: minimax/hailuo-2.3-fast',
+      );
+      expect(embed.description).toBe('unmapped_criterion:camera motion');
+    });
+
+    it('skips when the models webhook is unavailable', async () => {
+      mockDiscordBotService.getModelsWebhook.mockResolvedValue(null);
+      const { service } = await createService();
+
+      await service.sendModelPricingUnavailableNotification({
+        modelKey: 'm',
+        provider: 'fal',
+        reason: 'r',
+      });
+
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+  });
+
   describe('sendModelDiscoveryNotification', () => {
     const basePayload = {
       category: 'image',

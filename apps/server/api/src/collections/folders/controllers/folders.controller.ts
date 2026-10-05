@@ -9,6 +9,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
@@ -168,49 +169,21 @@ export class FoldersController extends BaseCRUDController<
    * keep this query valid at the source, independent of downstream normalization.
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
-    const organizationId = user.organizationId;
-
-    // Check if brand or organization query params are provided
-    const requestedBrandId =
-      (query as unknown as Record<string, string | undefined>).brand || null;
-    const requestedOrganizationId =
-      (query as unknown as Record<string, string | undefined>).organization ||
-      null;
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(query, user);
     const isSuperAdmin = getIsSuperAdmin(user);
-
-    const matchStage: Record<string, unknown> & {
-      OR?: Array<Record<string, unknown>>;
-    } = {
+    const matchStage: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
     };
-
-    if (isSuperAdmin && (requestedBrandId || requestedOrganizationId)) {
-      const scopedOrganizationId = requestedOrganizationId || organizationId;
-      if (requestedBrandId) {
-        matchStage.OR = this.buildFolderScope(
-          scopedOrganizationId,
-          requestedBrandId,
-        );
-      } else {
-        matchStage.organizationId = scopedOrganizationId;
-      }
-    } else if (
-      (requestedBrandId && requestedBrandId !== user.brandId?.toString()) ||
-      (requestedOrganizationId && requestedOrganizationId !== organizationId)
-    ) {
+    if (!isSuperAdmin && tenant.brandId && tenant.brandId !== user.brandId) {
       matchStage.id = { in: [] };
-    } else if (requestedBrandId) {
-      // Brand context: show organization folders without brand + brand folders.
-      matchStage.OR = this.buildFolderScope(organizationId, requestedBrandId);
+    } else if (isSuperAdmin && query.organizationId && !tenant.brandId) {
+      matchStage.organizationId = tenant.organizationId;
     } else {
-      // Members stay in shared + current-brand scope even when the caller
-      // repeats its own organization in the query.
       matchStage.OR = this.buildFolderScope(
-        organizationId,
-        requestedBrandId || user.brandId,
+        tenant.organizationId,
+        tenant.brandId ?? user.brandId,
       );
     }
-
     return { where: matchStage, orderBy: { createdAt: -1, label: 1 } };
   }
 

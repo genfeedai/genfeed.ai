@@ -84,6 +84,50 @@ describe('AgentStreamPublisherService', () => {
     vi.useRealTimers();
   });
 
+  it('persists and streams button-only multi-select settings', async () => {
+    const organizationId = testId('org');
+    const threadId = testId('thread');
+    const userId = testId('user');
+    mockAgentThreadsService.findOne.mockResolvedValue({ organizationId });
+    await service.publishInputRequest({
+      inputRequestId: 'req-1',
+      threadId,
+      userId,
+      allowFreeText: false,
+      isMultiSelect: true,
+      maxSelections: 2,
+      title: 'Goals',
+      prompt: 'Choose goals',
+      options: [{ id: 'a', label: 'Awareness' }],
+    });
+    expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'input.requested',
+        organizationId,
+        threadId,
+        userId,
+        payload: expect.objectContaining({
+          allowFreeText: false,
+          isMultiSelect: true,
+          maxSelections: 2,
+        }),
+      }),
+    );
+    expect(mockRedisService.publish).toHaveBeenCalledWith(
+      CHANNEL,
+      expect.objectContaining({
+        type: 'agent:input_request',
+        data: expect.objectContaining({
+          threadId,
+          userId,
+          allowFreeText: false,
+          isMultiSelect: true,
+          maxSelections: 2,
+        }),
+      }),
+    );
+  });
+
   it('persists interrupted work separately from a clean cancellation', async () => {
     const organizationId = testId('org');
     const threadId = testId('thread');

@@ -10,6 +10,7 @@ import type { AgentKnowledgeToolHandler } from '@api/services/agent-orchestrator
 import type { AgentLivestreamToolHandler } from '@api/services/agent-orchestrator/tools/agent-livestream-tool-handler.service';
 import type { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import type { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
+import type { AgentOnboardingBrandSetupToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-brand-setup-tool-handler.service';
 import type { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import type { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
 import type { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
@@ -40,6 +41,7 @@ export type AgentToolDispatchHandlers = {
   livestreamHandler: AgentLivestreamToolHandler;
   mediaGenerationHandler: AgentMediaGenerationToolHandler;
   memoryGoalsHandler: AgentMemoryGoalsToolHandler;
+  onboardingBrandSetupHandler: AgentOnboardingBrandSetupToolHandler;
   onboardingHandler: AgentOnboardingToolHandler;
   prepareHandler: AgentPrepareToolHandler;
   proactiveHandler: AgentProactiveToolHandler;
@@ -329,6 +331,13 @@ function dispatchGrowthFamily(
       return handlers.onboardingHandler.checkOnboardingStatus(ctx);
     case 'complete_onboarding':
       return handlers.onboardingHandler.completeOnboarding(ctx);
+    case 'scan_brand_url':
+    case 'save_onboarding_answers':
+      return handlers.onboardingBrandSetupHandler.execute(
+        toolName,
+        params,
+        ctx,
+      );
     case 'generate_onboarding_content':
       return handlers.onboardingHandler.generateOnboardingContent(params, ctx);
     case 'present_payment_options':

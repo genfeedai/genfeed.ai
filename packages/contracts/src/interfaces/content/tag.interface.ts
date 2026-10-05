@@ -1,6 +1,8 @@
 import type { TagBulkAction, TagCategory, TagScope } from '../..';
 import type { IBaseEntity, IBrand, IOrganization, IUser } from '../index';
 
+export type { ITagColorSwatch } from './tag-color.interface';
+
 export interface ITag extends IBaseEntity {
   user: IUser;
   organization: IOrganization;
@@ -45,4 +47,13 @@ export interface ILibraryAssetTagsChange {
   /** Assets whose tags actually changed. */
   ingredientIds: string[];
   tag: ITag;
+}
+
+/**
+ * The fields of a Library tag that changed. Only these are merged into loaded
+ * assets, so an edit never replays fields it did not touch.
+ */
+export interface ILibraryTagUpdate
+  extends Partial<Pick<ITag, 'backgroundColor' | 'label' | 'textColor'>> {
+  id: string;
 }

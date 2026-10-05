@@ -21,6 +21,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -67,9 +68,19 @@ export class BatchProjectsController {
     @CurrentUser() user: User,
     @Query() query: BaseQueryDto,
   ) {
-    const result = await this.batchProjectsService.list(
-      this.requireScope(user),
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
       query,
+      user,
+      request,
+    );
+    const result = await this.batchProjectsService.list(
+      this.requireScope({
+        ...user,
+        organizationId: tenant.organizationId,
+        brandId:
+          tenant.brandId ?? (tenant.isOrganizationOverride ? '' : user.brandId),
+      }),
+      { ...query, brandId: tenant.brandId },
     );
     return serializeCollection(request, BatchProjectSerializer, result);
   }

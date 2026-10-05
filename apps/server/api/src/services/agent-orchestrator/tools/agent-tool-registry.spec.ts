@@ -22,6 +22,8 @@ describe('agent-tool-registry', () => {
     expect(names).toContain('create_brand');
     expect(names).toContain('rename_brand');
     expect(names).toContain('check_onboarding_status');
+    expect(names).toContain('scan_brand_url');
+    expect(names).toContain('save_onboarding_answers');
     expect(names).toContain('complete_onboarding');
     expect(names).toContain('create_brand_from_url');
     expect(names).toContain('get_brand_scan_status');
@@ -177,6 +179,8 @@ describe('agent-tool-registry', () => {
     expect(AGENT_CREDIT_COSTS.create_brand).toBe(0);
     expect(AGENT_CREDIT_COSTS.rename_brand).toBe(0);
     expect(AGENT_CREDIT_COSTS.check_onboarding_status).toBe(0);
+    expect(AGENT_CREDIT_COSTS.scan_brand_url).toBe(0);
+    expect(AGENT_CREDIT_COSTS.save_onboarding_answers).toBe(0);
     expect(AGENT_CREDIT_COSTS.complete_onboarding).toBe(0);
     expect(AGENT_CREDIT_COSTS.get_current_brand).toBe(0);
     expect(AGENT_CREDIT_COSTS.create_livestream_bot).toBe(0);

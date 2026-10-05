@@ -11,6 +11,8 @@ function makeDispatcher() {
     sendIngredientNotification: vi.fn().mockResolvedValue(true),
     sendLowCreditsAlert: vi.fn().mockResolvedValue(true),
     sendModelDiscoveryNotification: vi.fn().mockResolvedValue(true),
+    sendModelPriceChangeNotification: vi.fn().mockResolvedValue(true),
+    sendModelPricingUnavailableNotification: vi.fn().mockResolvedValue(true),
     sendRevenueNotification: vi.fn().mockResolvedValue(true),
     sendStreakNotification: vi.fn().mockResolvedValue(true),
     sendUserCreatedNotification: vi.fn().mockResolvedValue(true),
@@ -75,6 +77,52 @@ describe('ChannelMessageDispatcherService', () => {
     ).resolves.toEqual({ messageId: 'delivery/key', status: 'delivered' });
     expect(discord.sendRevenueNotification).toHaveBeenCalledWith(
       expect.objectContaining({ amountMinor: 4900 }),
+    );
+  });
+
+  it('routes provider price changes and pricing outages to the operator models channel', async () => {
+    const { discord, dispatcher } = makeDispatcher();
+    const change = {
+      newPriceUsd: 0.21,
+      oldPriceUsd: 0.19,
+      unit: 'output' as const,
+      variant: 'duration=6 · resolution=768P',
+      component: 'video_output_count',
+    };
+
+    await expect(
+      dispatcher.dispatch(
+        request({
+          action: 'model_price_change',
+          payload: {
+            changes: [change],
+            modelKey: 'minimax/hailuo-2.3-fast',
+            provider: 'replicate',
+            sourceUrl: 'https://replicate.com/minimax/hailuo-2.3-fast',
+          },
+          type: 'discord',
+        }),
+      ),
+    ).resolves.toEqual({ messageId: 'delivery/key', status: 'delivered' });
+    expect(discord.sendModelPriceChangeNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ changes: [change] }),
+    );
+
+    await dispatcher.dispatch(
+      request({
+        action: 'model_pricing_unavailable',
+        payload: {
+          modelKey: 'minimax/hailuo-2.3-fast',
+          provider: 'replicate',
+          reason: 'unmapped_criterion:camera motion',
+        },
+        type: 'discord',
+      }),
+    );
+    expect(
+      discord.sendModelPricingUnavailableNotification,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: 'unmapped_criterion:camera motion' }),
     );
   });
 

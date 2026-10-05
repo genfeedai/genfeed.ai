@@ -32,6 +32,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -88,7 +89,7 @@ export class SocialInboxController {
     @CurrentUser() user: User,
     @Query() query: SocialInboxQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    const scope = this.buildScope(user);
+    const scope = this.buildScope(user, query, request);
     const data = await this.socialInboxService.listConversations(scope, query);
     return serializeCollection(request, SocialConversationSerializer, data);
   }
@@ -102,7 +103,7 @@ export class SocialInboxController {
     @CurrentUser() user: User,
     @Query() query: SocialInboxUnreadCountQueryDto,
   ): Promise<JsonApiSingleResponse> {
-    const scope = this.buildScope(user);
+    const scope = this.buildScope(user, query, request);
     const data = await this.socialInboxService.countUnreadConversations(
       scope,
       query,
@@ -435,7 +436,16 @@ export class SocialInboxController {
     return { jobId, status: 'queued' };
   }
 
-  private buildScope(user: User): SocialInboxScope {
+  private buildScope(
+    user: User,
+    query: Pick<SocialInboxQueryDto, 'organizationId' | 'brandId'> = {},
+    request?: Request,
+  ): SocialInboxScope {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     if (!user.organizationId) {
       throw new UnauthorizedException(
         'Invalid organization context. Please sign in again.',
@@ -443,8 +453,10 @@ export class SocialInboxController {
     }
 
     return {
-      brandId: user.brandId,
-      organizationId: user.organizationId,
+      brandId:
+        tenant.brandId ??
+        (tenant.isOrganizationOverride ? undefined : user.brandId),
+      organizationId: tenant.organizationId,
       userId: user.userId ?? user.id,
     };
   }

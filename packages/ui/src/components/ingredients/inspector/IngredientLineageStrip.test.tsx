@@ -116,6 +116,33 @@ describe('IngredientLineageStrip', () => {
     expect(screen.getByText('Generated')).toBeInTheDocument();
   });
 
+  it("shows a video output's first frame, not the stock placeholder poster", () => {
+    setLineage({
+      items: [
+        asset({
+          category: IngredientCategory.VIDEO,
+          id: 'clip',
+          ingredientUrl: 'https://cdn.genfeed.ai/clip.mp4',
+          metadataLabel: 'Enhanced prompt',
+          origin: IngredientOrigin.GENERATED,
+          thumbnailUrl: 'https://assets.genfeed.ai/placeholders/portrait.jpg',
+        }),
+      ],
+    });
+
+    const { container } = render(
+      <IngredientLineageStrip
+        direction={IngredientLineageDirection.USED_IN}
+        ingredientId="sheet"
+      />,
+    );
+
+    expect(container.querySelector('video')?.getAttribute('src')).toBe(
+      'https://cdn.genfeed.ai/clip.mp4#t=0.001',
+    );
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
+
   it('shows a trashed reference as "Deleted reference" without a thumbnail', () => {
     setLineage({
       items: [

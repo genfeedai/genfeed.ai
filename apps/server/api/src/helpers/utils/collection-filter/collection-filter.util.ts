@@ -1,6 +1,11 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetScope } from '@genfeedai/contracts';
+import type { RequestWithBody } from '@libs/interfaces/http.interface';
 import { ForbiddenException } from '@nestjs/common';
+import type { Request } from 'express';
 
 /**
  * CollectionFilterUtil - Utility for building consistent collection query filters
@@ -74,19 +79,13 @@ export const CollectionFilterUtil = {
     },
     isSuperAdmin = user.isSuperAdmin === true,
   ): { organizationId?: string; brandId?: string } {
-    if (isSuperAdmin) {
-      return {
-        ...(query.organizationId
-          ? { organizationId: String(query.organizationId) }
-          : {}),
-        ...(query.brandId ? { brandId: String(query.brandId) } : {}),
-      };
-    }
-
+    const organizationId = query.organizationId?.trim();
+    const brandId = query.brandId?.trim();
+    const sessionOrganizationId = user.organizationId?.trim();
     if (
-      query.organizationId &&
-      user.organizationId &&
-      String(query.organizationId) !== String(user.organizationId)
+      !isSuperAdmin &&
+      organizationId &&
+      organizationId !== sessionOrganizationId
     ) {
       throw new ForbiddenException({
         detail: 'Access denied to this organization',
@@ -94,13 +93,82 @@ export const CollectionFilterUtil = {
       });
     }
 
-    const organizationId =
-      (query.organizationId && String(query.organizationId)) ||
-      (user.organizationId ? String(user.organizationId) : undefined);
-
     return {
-      ...(organizationId ? { organizationId } : {}),
-      ...(query.brandId ? { brandId: String(query.brandId) } : {}),
+      ...(organizationId || (!isSuperAdmin && sessionOrganizationId)
+        ? { organizationId: organizationId || sessionOrganizationId }
+        : {}),
+      ...(brandId ? { brandId } : {}),
+    };
+  },
+
+  /**
+   * Cache-key variant of `resolveListOrganizationId`: cache key generators get
+   * the raw request, before DTO validation, so read the override from it.
+   */
+  resolveListCacheScope(
+    request: RequestWithBody & { context?: { isSuperAdmin?: boolean } },
+  ) {
+    const user: AuthenticatedUser = {
+      brandId: request.user?.brandId ?? '',
+      id: request.user?.id ?? '',
+      isSuperAdmin: request.user?.isSuperAdmin,
+      organizationId: request.user?.organizationId ?? '',
+      userId: request.user?.userId ?? request.user?.id ?? '',
+    };
+    const isSuperAdmin =
+      request.context?.isSuperAdmin !== undefined
+        ? request.context.isSuperAdmin === true
+        : user.isSuperAdmin === true;
+    return CollectionFilterUtil.resolveListTenant(
+      {
+        brandId:
+          typeof request.query.brandId === 'string'
+            ? request.query.brandId
+            : undefined,
+        organizationId:
+          typeof request.query.organizationId === 'string'
+            ? request.query.organizationId
+            : undefined,
+      },
+      user,
+      isSuperAdmin,
+    );
+  },
+
+  /**
+   * Effective organization for a list read: a verified superadmin's
+   * `?organizationId=` override (the tenant `TenantContextInterceptor` pins),
+   * otherwise the session organization. Members naming another org get 403.
+   */
+  resolveListOrganizationId(
+    query: Pick<BaseQueryDto, 'organizationId' | 'brandId'>,
+    user: AuthenticatedUser,
+    request?: Request,
+  ) {
+    return CollectionFilterUtil.resolveListTenant(
+      query,
+      user,
+      getIsSuperAdmin(user, request),
+    );
+  },
+
+  resolveListTenant(
+    query: Pick<BaseQueryDto, 'organizationId' | 'brandId'>,
+    user: AuthenticatedUser,
+    isSuperAdmin: boolean,
+  ) {
+    const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+      query,
+      user,
+      isSuperAdmin,
+    );
+    const sessionOrganizationId = user.organizationId?.trim() ?? '';
+    const organizationId = scope.organizationId ?? sessionOrganizationId;
+    return {
+      brandId: scope.brandId,
+      isOrganizationOverride:
+        isSuperAdmin && organizationId !== sessionOrganizationId,
+      organizationId,
     };
   },
 
@@ -163,8 +231,10 @@ export const CollectionFilterUtil = {
       return null;
     }
 
-    const hasOrg = query.organizationId && isEntityId(query.organizationId);
-    const hasBrand = query.brandId && isEntityId(query.brandId);
+    const organizationId = query.organizationId?.trim();
+    const brandId = query.brandId?.trim();
+    const hasOrg = organizationId && isEntityId(organizationId);
+    const hasBrand = brandId && isEntityId(brandId);
 
     if (!hasOrg && !hasBrand) {
       return null;
@@ -173,11 +243,11 @@ export const CollectionFilterUtil = {
     const filter: Record<string, unknown> = {};
 
     if (hasOrg) {
-      filter.organizationId = String(query.organizationId);
+      filter.organizationId = organizationId;
     }
 
     if (hasBrand) {
-      filter.brandId = String(query.brandId);
+      filter.brandId = brandId;
     }
 
     return filter;

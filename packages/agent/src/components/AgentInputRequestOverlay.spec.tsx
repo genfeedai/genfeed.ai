@@ -93,7 +93,7 @@ describe('AgentInputRequestOverlay', () => {
     expect(screen.getByText('Recommended')).toBeInTheDocument();
     expect(screen.queryByText('Hybrid (Recommended)')).not.toBeInTheDocument();
     expect(onSubmit).toHaveBeenCalledTimes(1);
-    expect(onSubmit).toHaveBeenCalledWith('Hybrid');
+    expect(onSubmit).toHaveBeenCalledWith('Hybrid', ['hybrid']);
   });
 
   it('submits the free-text answer when provided', () => {
@@ -169,7 +169,7 @@ describe('ask transitions', () => {
     expect(screen.getByText('Dropzone only')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Dropzone only'));
     await waitFor(() =>
-      expect(onSubmit).toHaveBeenLastCalledWith('Dropzone only'),
+      expect(onSubmit).toHaveBeenLastCalledWith('Dropzone only', ['dropzone']),
     );
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
@@ -215,4 +215,59 @@ it('ignores a rejected answer belonging to the previous ask', async () => {
   );
   fireEvent.click(screen.getByText('Dropzone only'));
   expect(onSubmit).toHaveBeenCalledTimes(2);
+});
+
+describe('button-only and multi-select input', () => {
+  it('hides the free-text field on a button-only card', () => {
+    render(
+      <AgentInputRequestOverlay
+        onSubmit={vi.fn()}
+        request={makeRequest({ allowFreeText: false })}
+      />,
+    );
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.queryByText('Other')).not.toBeInTheDocument();
+    expect(screen.queryByText('Submit answers')).not.toBeInTheDocument();
+  });
+
+  it('toggles options then submits joined labels and their ids on confirmation', () => {
+    const onSubmit = vi.fn();
+    render(
+      <AgentInputRequestOverlay
+        onSubmit={onSubmit}
+        request={makeRequest({ allowFreeText: false, isMultiSelect: true })}
+      />,
+    );
+    expect(screen.getByText('Submit answers').closest('button')).toBeDisabled();
+    fireEvent.click(screen.getByText('Hybrid'));
+    fireEvent.click(screen.getByText('Dropzone only'));
+    expect(onSubmit).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Submit answers'));
+    expect(onSubmit).toHaveBeenCalledWith('Hybrid, Dropzone only', [
+      'hybrid',
+      'dropzone',
+    ]);
+  });
+
+  it('enforces the selection limit and permits deselecting a chip', () => {
+    const onSubmit = vi.fn();
+    render(
+      <AgentInputRequestOverlay
+        onSubmit={onSubmit}
+        request={makeRequest({
+          allowFreeText: false,
+          isMultiSelect: true,
+          maxSelections: 1,
+        })}
+      />,
+    );
+    fireEvent.click(screen.getByText('Hybrid'));
+    expect(
+      screen.getByRole('button', { name: /Dropzone only/ }),
+    ).toBeDisabled();
+    fireEvent.click(screen.getByText('Hybrid'));
+    fireEvent.click(screen.getByText('Dropzone only'));
+    fireEvent.click(screen.getByText('Submit answers'));
+    expect(onSubmit).toHaveBeenCalledWith('Dropzone only', ['dropzone']);
+  });
 });

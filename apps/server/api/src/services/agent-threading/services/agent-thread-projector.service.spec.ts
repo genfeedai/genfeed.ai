@@ -591,3 +591,32 @@ describe('AgentThreadProjectorService ui-action run states', () => {
     expect(snapshot.uiActionRuns).toEqual([]);
   });
 });
+
+it('retains button-only multi-select settings on projected pending requests', () => {
+  const projected = new AgentThreadProjectorService().applyEvent(null, {
+    commandId: 'ask',
+    eventId: 'ask',
+    occurredAt: '2026-10-05T10:00:00.000Z',
+    payload: {
+      requestId: 'req-1',
+      title: 'Goals',
+      prompt: 'Choose goals',
+      allowFreeText: false,
+      isMultiSelect: true,
+      maxSelections: 2,
+      options: [{ id: 'a', label: 'Awareness' }],
+    },
+    runId: 'run-1',
+    sequence: 1,
+    threadId: 'thread-1',
+    type: 'input.requested',
+  } as never);
+  expect(projected.pendingInputRequests).toEqual([
+    expect.objectContaining({
+      requestId: 'req-1',
+      allowFreeText: false,
+      isMultiSelect: true,
+      maxSelections: 2,
+    }),
+  ]);
+});

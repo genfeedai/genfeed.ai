@@ -432,6 +432,68 @@ describe('AgentWorkObjectService review and scope boundary', () => {
     expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
   });
 
+  it.each([
+    { allowFreeText: false, isMultiSelect: true, maxSelections: 2 },
+    { allowFreeText: true, isMultiSelect: false },
+  ])('threads question settings to the publisher %j', async (settings) => {
+    await service.requestInput(
+      {
+        requestId: 'ask-1',
+        title: 'Goals',
+        prompt: 'Choose goals',
+        options: [
+          { id: 'awareness', label: 'Awareness' },
+          { id: 'sales', label: 'Sales' },
+        ],
+        ...settings,
+      },
+      context as never,
+    );
+    expect(publisher.publishInputRequest).toHaveBeenCalledWith(
+      expect.objectContaining(settings),
+    );
+  });
+
+  it('defaults to free text and a single selection', async () => {
+    await service.requestInput(
+      {
+        requestId: 'ask-1',
+        title: 'Goals',
+        prompt: 'Choose',
+        options: [{ id: 'skip', label: 'Skip' }],
+      },
+      context as never,
+    );
+    expect(publisher.publishInputRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ allowFreeText: true, isMultiSelect: false }),
+    );
+  });
+
+  it.each([
+    { maxSelections: 0, isMultiSelect: true },
+    { maxSelections: 3, isMultiSelect: true },
+    { maxSelections: 1 },
+    { allowFreeText: 'false' },
+    { isMultiSelect: 1 },
+  ])('rejects invalid question settings %j', async (settings) => {
+    await expect(
+      service.requestInput(
+        {
+          requestId: 'ask-1',
+          title: 'Goals',
+          prompt: 'Choose',
+          options: [
+            { id: 'a', label: 'A' },
+            { id: 'b', label: 'B' },
+          ],
+          ...settings,
+        },
+        context as never,
+      ),
+    ).rejects.toThrow();
+    expect(publisher.publishInputRequest).not.toHaveBeenCalled();
+  });
+
   it.each([0, 6])('rejects %i choices before publishing', async (count) => {
     await expect(
       service.requestInput(

@@ -55,17 +55,47 @@ describe('TenantContextInterceptor', () => {
       await expect(
         readContext({
           context: { isSuperAdmin: true, organizationId: 'org-admin' },
-          query: { organizationId: 'org-target' },
+          query: { organizationId: '550e8400-e29b-41d4-a716-446655440002' },
           user: { isSuperAdmin: true, organizationId: 'org-admin' },
         }),
-      ).resolves.toEqual({ organizationId: 'org-target' });
+      ).resolves.toEqual({
+        organizationId: '550e8400-e29b-41d4-a716-446655440002',
+      });
     });
+
+    it('trims valid overrides before pinning', async () => {
+      const organizationId = '550e8400-e29b-41d4-a716-446655440002';
+      await expect(
+        readContext({
+          context: { isSuperAdmin: true, organizationId: 'org-admin' },
+          query: { organizationId: ` ${organizationId} ` },
+        }),
+      ).resolves.toEqual({ organizationId });
+    });
+
+    it.each([
+      'malformed',
+      '',
+      '   ',
+      ['550e8400-e29b-41d4-a716-446655440002'],
+      { id: 'anything' },
+    ])(
+      'keeps the session tenant for an invalid override %j',
+      async (organizationId) => {
+        await expect(
+          readContext({
+            context: { isSuperAdmin: true, organizationId: 'org-admin' },
+            query: { organizationId },
+          }),
+        ).resolves.toEqual({ organizationId: 'org-admin' });
+      },
+    );
 
     it('never lets a normal member override its session organization', async () => {
       await expect(
         readContext({
           context: { isSuperAdmin: false, organizationId: 'org-1' },
-          query: { organizationId: 'org-target' },
+          query: { organizationId: '550e8400-e29b-41d4-a716-446655440002' },
           user: { isSuperAdmin: false, organizationId: 'org-1' },
         }),
       ).resolves.toEqual({ organizationId: 'org-1' });
@@ -75,7 +105,7 @@ describe('TenantContextInterceptor', () => {
       await expect(
         readContext({
           context: { isSuperAdmin: true },
-          query: { organizationId: 'org-target' },
+          query: { organizationId: '550e8400-e29b-41d4-a716-446655440002' },
         }),
       ).resolves.toBeUndefined();
     });

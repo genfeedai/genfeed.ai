@@ -414,6 +414,8 @@ export class AgentStreamEffectsService {
 
   async publishStreamInputRequest(params: {
     allowFreeText?: boolean;
+    isMultiSelect?: boolean;
+    maxSelections?: number;
     context: AgentChatContext;
     fieldId?: string;
     inputRequestId: string;
@@ -432,6 +434,8 @@ export class AgentStreamEffectsService {
     try {
       await this.publishStreamInputRequestEvent({
         allowFreeText: params.allowFreeText,
+        isMultiSelect: params.isMultiSelect,
+        maxSelections: params.maxSelections,
         fieldId: params.fieldId,
         inputRequestId: params.inputRequestId,
         metadata: params.metadata,

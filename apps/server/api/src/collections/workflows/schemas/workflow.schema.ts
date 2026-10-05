@@ -71,6 +71,25 @@ export type FeaturedWorkflowDocument = IFeaturedWorkflowSummary & {
   nodes: WorkflowVisualNode[];
 };
 
+/** Public marketplace projection; source tenant identity and runtime state stay private. */
+type MarketplaceWorkflowProjection = Omit<
+  FeaturedWorkflowDocument,
+  'featuredRank' | 'nodes' | 'inputVariables'
+> & {
+  nodes: (Pick<WorkflowVisualNode, 'id' | 'type' | 'position'> & {
+    data: Pick<WorkflowVisualNode['data'], 'label'>;
+  })[];
+  inputVariables: Pick<
+    WorkflowInputVariable,
+    'key' | 'label' | 'type' | 'required' | 'description'
+  >[];
+  executionCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type { MarketplaceWorkflowProjection as MarketplaceWorkflowDocument };
+
 export type WorkflowVersionDocument = Omit<
   PrismaWorkflowVersion,
   'graph' | 'inputSchema'
