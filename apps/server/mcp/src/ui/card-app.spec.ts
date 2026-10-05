@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { testId } from '@helpers/testing/test-id.helper';
 import { cardResource } from '@mcp/ui/card-app';
 import { buildCardView } from '@mcp/ui/card-data';
 
@@ -124,19 +125,18 @@ it('renders image, video and audio controls using allowed origins', () => {
 });
 
 it('presents completed images without tool headings or opaque metadata', () => {
+  const imageId = testId('image');
   result('get_job_status', {
     category: 'IMAGE',
     createdAt: '2026-10-05T11:45:12.000Z',
-    id: 'cmuv2dbkm007r0enwjq2uu8lx',
+    id: imageId,
     status: 'GENERATED',
-    url: 'https://cdn.genfeed.ai/ingredients/images/cmuv2dbkm007r0enwjq2uu8lx',
+    url: `https://cdn.genfeed.ai/ingredients/images/${imageId}`,
   });
 
   expect(document.querySelector('header')?.hidden).toBe(true);
   expect(document.querySelector('.media-card h2')?.textContent).toBe('Image');
-  expect(document.querySelector('article')?.textContent).not.toContain(
-    'cmuv2dbkm007r0enwjq2uu8lx',
-  );
+  expect(document.querySelector('article')?.textContent).not.toContain(imageId);
   expect(document.querySelector('article time')).toBeNull();
   expect(document.querySelector('article .meta')).toBeNull();
   expect(document.querySelector('article a')?.textContent).toBe('Open image ↗');
