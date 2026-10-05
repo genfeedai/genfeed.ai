@@ -61,6 +61,7 @@ import {
   postgresClientInvocation,
   privateVitestReporterArguments,
   RAW_LIMIT,
+  REQUIRED,
   readPostgresCredentials,
   redactBytes,
   removeValidatedVisualRenderers,
@@ -1233,6 +1234,7 @@ const QUALIFIED_GROUPS = [
   'dataset-smoke',
   'dataset-scale',
   'final',
+  'learning',
   'agent-production',
   'brand-acceptance',
   'visual-isolation',
@@ -1414,7 +1416,7 @@ for (const group of ['visual-isolation', 'visual-connected'])
   });
 
 function frozenSourcePreflightCiEnvironment(group) {
-  if (group !== 'final') return {};
+  if (!['final', 'learning'].includes(group)) return {};
   return {
     GITHUB_ACTIONS: 'true',
     GITHUB_RUN_ID: '123',
@@ -1425,7 +1427,12 @@ function frozenSourcePreflightCiEnvironment(group) {
     RUNTIME_ACCEPTANCE_CI_JOB: 'runtime-acceptance',
   };
 }
-for (const group of ['final', 'agent-production', 'brand-acceptance'])
+for (const group of [
+  'final',
+  'learning',
+  'agent-production',
+  'brand-acceptance',
+])
   test(`actual ${group} preflight requires exact frozen source before private state`, async (t) => {
     const { options, env } = await preflightFixture(t);
     const contract = ownerContract();
@@ -1449,13 +1456,18 @@ for (const group of ['final', 'agent-production', 'brand-acceptance'])
     await assert.rejects(lstat(options.state));
     await assert.rejects(lstat(output));
   });
-for (const group of ['final', 'agent-production', 'brand-acceptance'])
+for (const group of [
+  'final',
+  'learning',
+  'agent-production',
+  'brand-acceptance',
+])
   test(`actual ${group} preflight rejects changed frozen bytes before private state`, async (t) => {
     const { options, env } = await preflightFixture(t);
     const contract = ownerContract();
     contract.brand = structuredClone(BRAND_SOURCE_CONTRACT.brand);
     const entry =
-      group === 'final'
+      group === 'final' || group === 'learning'
         ? LEARNING_SOURCE_CONTRACT.sourceInputs[0]
         : group === 'agent-production'
           ? AGENT_PRODUCTION_FILES[0]
@@ -3970,7 +3982,7 @@ test('final-only database routing preserves the diagnostic created acknowledgeme
   );
   assert.match(
     creation,
-    /if \(identity\.group === 'final'\)[\s\S]*createFinalOwnedDatabase/,
+    /if \(LEARNING_GROUPS\.includes\(identity\.group\)\)[\s\S]*createFinalOwnedDatabase/,
   );
   assert.match(
     creation,
@@ -3988,7 +4000,7 @@ test('final-only database routing preserves the diagnostic created acknowledgeme
   );
   assert.match(
     cleanup,
-    /if \(identity\.group === 'final'\)[\s\S]*cleanupFinalOwnedDatabase[\s\S]*continue;[\s\S]*if \(created\)/,
+    /if \(LEARNING_GROUPS\.includes\(identity\.group\)\)[\s\S]*cleanupFinalOwnedDatabase[\s\S]*continue;[\s\S]*if \(created\)/,
   );
 });
 
@@ -4460,7 +4472,7 @@ test('Crun production routing leaves diagnostic and other stages on untouched ge
   );
   const outer = source.slice(
     source.indexOf(
-      "    if (identity.group === 'final') {",
+      '    if (LEARNING_GROUPS.includes(identity.group)) {',
       source.indexOf('    const clean = async'),
     ),
     source.indexOf(
@@ -5005,6 +5017,125 @@ test('independent image cleanup acknowledgement precedes video spawn and final r
     mutate(copy.resources.crun);
     assert.throws(() => validateOutcome(outcome, outcome, copy));
   }
+});
+test('final REQUIRED stage list and order are unchanged by the learning group', () => {
+  assert.deepEqual(REQUIRED.final, [
+    'learning-runtime',
+    'dataset-correctness',
+    'dataset-typecheck',
+    'dataset-smoke',
+    'brand-preparation',
+    'brand-migration',
+    'brand-units',
+    'brand-contracts',
+    'brand-serializers',
+    'baseline-materialization-migration',
+    'storage',
+    'crun-image',
+    'crun-video',
+    'agent-preparation',
+    'agent',
+    'publisher',
+  ]);
+  assert.deepEqual(REQUIRED.learning, ['learning-runtime']);
+  assert.equal(validateTiming('final', Date.now()).overallDeadline > 0, true);
+  assert.equal(
+    validateTiming('learning', 1000, 1000).overallDeadline - 1000,
+    1200000,
+  );
+  assert.equal(DEDICATED_BUDGETS.learning, undefined);
+});
+test('learning outcome validates learning evidence only and never requires crun', async () => {
+  const { value, outcome } = await finalQualifiedFixture();
+  const learningIdentity = { ...value, group: 'learning' };
+  const learningOutcome = {
+    ...outcome,
+    group: 'learning',
+    completed: outcome.completed.filter(
+      (entry) => entry.stage === 'learning-runtime',
+    ),
+    commands: outcome.commands.filter(
+      (command) => command.stage === 'learning-runtime',
+    ),
+  };
+  assert.equal(
+    validateOutcome(learningOutcome, learningOutcome, learningIdentity),
+    'passed',
+  );
+  assert.throws(() => validateOutcome(learningOutcome, learningOutcome, value));
+  for (const mutate of [
+    (o) => {
+      o.completed = [];
+    },
+    (o) => {
+      o.completed[0].cases[0].passed += 1;
+    },
+    (o) => {
+      o.completed[0].cases[0].passedTitles[0] = 'extra';
+    },
+    (o) => {
+      o.cleanup.passed = false;
+    },
+  ]) {
+    const copy = structuredClone(learningOutcome);
+    mutate(copy);
+    assert.throws(() => validateOutcome(copy, copy, learningIdentity));
+  }
+  const missingCleanup = structuredClone(learningIdentity);
+  missingCleanup.resources.learning.blankVerified = false;
+  assert.throws(
+    () => validateOutcome(learningOutcome, learningOutcome, missingCleanup),
+    { code: 'LEARNING_CLEANUP_REQUIRED' },
+  );
+});
+test('learning group owns only the two learning databases', async () => {
+  const allocation = finalDatabaseFixture();
+  const learningIdentity = { ...allocation.identity, group: 'learning' };
+  for (const name of [
+    'genfeed_learning_runtime_test',
+    'genfeed_learning_races_test',
+  ])
+    await createFinalOwnedDatabase(learningIdentity, name, allocation.adapters);
+  assert.equal(learningIdentity.resources.databases.length, 2);
+  for (const name of [
+    'genfeed_dataset_5781_test',
+    'genfeed_crun_test',
+    'genfeed_agent_test',
+  ])
+    await assert.rejects(
+      createFinalOwnedDatabase(learningIdentity, name, allocation.adapters),
+      { code: 'FINAL_DATABASE_OWNERSHIP' },
+    );
+});
+test('learning-runtime workflow is a nightly plus dispatch wired to the learning group', async () => {
+  const workflow = await readFile(
+    new URL('../../.github/workflows/learning-runtime.yml', import.meta.url),
+    'utf8',
+  );
+  assert.match(
+    workflow,
+    /^on:\n {2}workflow_dispatch:\n {2}schedule:\n {4}- cron: "23 3 \* \* \*"/m,
+  );
+  assert.match(workflow, /timeout-minutes: 20\n {4}permissions:/);
+  assert.match(workflow, /--group learning\n/);
+  assert.match(
+    workflow,
+    /runtime-acceptance\.mjs learning --repo "\$ACCEPTANCE_REPO"/,
+  );
+  assert.doesNotMatch(workflow, /--group final|runtime-acceptance\.mjs final/);
+  assert.match(
+    workflow,
+    /RUNTIME_ACCEPTANCE_POSTGRES_ID: \$\{\{ job\.services\.postgres\.id \}\}/,
+  );
+  assert.match(
+    workflow,
+    /RUNTIME_ACCEPTANCE_REDIS_ID: \$\{\{ job\.services\.redis\.id \}\}/,
+  );
+  assert.match(workflow, /github\.event_name == 'schedule'/);
+  assert.match(
+    workflow,
+    /workflowIdentity: '\.github\/workflows\/learning-runtime\.yml'/,
+  );
 });
 test('final dispatcher awaits each supervised stage and blocks video after image failure within unchanged budgets', async () => {
   const source = await readFile(
