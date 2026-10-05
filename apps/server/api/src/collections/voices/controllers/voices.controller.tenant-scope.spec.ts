@@ -1,38 +1,50 @@
 import { VoicesController } from '@api/collections/voices/controllers/voices.controller';
-import type { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
+import { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dto';
+import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
+import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';
 import { VoiceLibraryService } from '@api/collections/voices/services/voice-library.service';
-import type { VoicesService } from '@api/collections/voices/services/voices.service';
+import { VoicesService } from '@api/collections/voices/services/voices.service';
 import {
   adminUser,
   emptyPage,
   memberUser,
   sessionOrganizationId,
   targetOrganizationId,
+  tenantReadQuery,
   tenantReadRequest,
 } from '@api-test/helpers/tenant-read.fixture';
 import { TenantIsolationError } from '@libs/prisma/tenant-guard';
 import { ForbiddenException } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
 
 describe('Voice library tenant reads (#6176)', () => {
-  function setup() {
+  async function setup() {
     const mock = vi
       .fn()
       .mockResolvedValue({ ...emptyPage(), docs: [{ id: 'voice-1' }] });
-    const library = new VoiceLibraryService(
-      { findAll: mock } as unknown as VoicesService,
-      {
-        findAll: vi.fn().mockResolvedValue([]),
-      } as unknown as ExternalVoiceCatalogService,
-    );
-    const controller = Object.create(
-      VoicesController.prototype,
-    ) as VoicesController;
-    Object.assign(controller, { voiceLibraryService: library });
+    const module = await Test.createTestingModule({
+      controllers: [VoicesController],
+      providers: [
+        VoiceLibraryService,
+        { provide: VoicesService, useValue: { findAll: mock } },
+        {
+          provide: ExternalVoiceCatalogService,
+          useValue: { findAll: vi.fn().mockResolvedValue([]) },
+        },
+        { provide: VoiceCloneService, useValue: {} },
+      ],
+    }).compile();
+    const controller = module.get<VoicesController>(VoicesController);
     return { controller, mock };
   }
 
   describe.each(['library', 'cloned'] as const)('%s', (route) => {
-    function read(controller: VoicesController, user = memberUser, query = {}) {
+    function read(
+      controller: VoicesController,
+      user = memberUser,
+      overrides: Partial<VoicesQueryDto> = {},
+    ) {
+      const query = tenantReadQuery(VoicesQueryDto, overrides);
       const request = tenantReadRequest(user, query);
       return route === 'library'
         ? controller.findAll(query, request, user)
@@ -40,7 +52,7 @@ describe('Voice library tenant reads (#6176)', () => {
     }
 
     it('reads the target tenant for a verified superadmin', async () => {
-      const { controller, mock } = setup();
+      const { controller, mock } = await setup();
       await read(controller, adminUser, {
         organizationId: targetOrganizationId,
       });
@@ -51,7 +63,7 @@ describe('Voice library tenant reads (#6176)', () => {
     });
 
     it('rejects a member foreign organization', async () => {
-      const { controller, mock } = setup();
+      const { controller, mock } = await setup();
       await expect(
         read(controller, memberUser, { organizationId: targetOrganizationId }),
       ).rejects.toThrow(ForbiddenException);
@@ -59,7 +71,7 @@ describe('Voice library tenant reads (#6176)', () => {
     });
 
     it('keeps the member session scope', async () => {
-      const { controller, mock } = setup();
+      const { controller, mock } = await setup();
       await read(controller);
       expect(mock.mock.calls[0]?.[0].where).toMatchObject({
         organizationId: sessionOrganizationId,
@@ -68,7 +80,7 @@ describe('Voice library tenant reads (#6176)', () => {
     });
 
     it('rethrows TenantIsolationError without masking its reason', async () => {
-      const { controller, mock } = setup();
+      const { controller, mock } = await setup();
       const error = new TenantIsolationError(
         'Ingredient',
         'findMany',

@@ -1,4 +1,13 @@
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { MembersService } from '@api/collections/members/services/members.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UsersRelationshipsController } from '@api/collections/users/controllers/users-relationships.controller';
+import { UsersService } from '@api/collections/users/services/users.service';
+import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
 import {
   adminUser,
   emptyPage,
@@ -7,32 +16,52 @@ import {
   sessionBrandId,
   sessionOrganizationId,
   targetOrganizationId,
+  tenantReadQuery,
   tenantReadRequest,
 } from '@api-test/helpers/tenant-read.fixture';
+import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
 
 describe('UsersRelationshipsController tenant reads (#6176)', () => {
-  function setup() {
+  async function setup() {
     const mock = vi.fn().mockResolvedValue(emptyPage());
-    const controller = Object.assign(
-      Object.create(
-        UsersRelationshipsController.prototype,
-      ) as UsersRelationshipsController,
-      {
-        brandsService: { findAll: mock },
-        loggerService: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
-        membersService: {
-          findOne: vi.fn().mockResolvedValue({ brands: [sessionBrandId] }),
+    const module = await Test.createTestingModule({
+      controllers: [UsersRelationshipsController],
+      providers: [
+        { provide: BrandsService, useValue: { findAll: mock } },
+        { provide: UsersService, useValue: {} },
+        { provide: OrganizationsService, useValue: {} },
+        { provide: SettingsService, useValue: {} },
+        {
+          provide: LoggerService,
+          useValue: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
         },
-      },
+        {
+          provide: MembersService,
+          useValue: {
+            findOne: vi.fn().mockResolvedValue({ brands: [sessionBrandId] }),
+          },
+        },
+        { provide: UserAccessCacheService, useValue: {} },
+        { provide: NotificationPreferenceService, useValue: {} },
+      ],
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
+    const controller = module.get<UsersRelationshipsController>(
+      UsersRelationshipsController,
     );
     return { controller, mock };
   }
 
   it('uses the target organization for a verified superadmin override', async () => {
-    const { controller, mock } = setup();
+    const { controller, mock } = await setup();
     const user = adminUser;
-    const query = { organizationId: targetOrganizationId };
+    const query = tenantReadQuery(BaseQueryDto, {
+      organizationId: targetOrganizationId,
+    });
     const request = tenantReadRequest(user, query);
     await controller.findMeBrands(user, request, query);
     const read = mock.mock.calls[0]?.[0];
@@ -45,9 +74,11 @@ describe('UsersRelationshipsController tenant reads (#6176)', () => {
   });
 
   it('rejects a member foreign organization before reading', async () => {
-    const { controller, mock } = setup();
+    const { controller, mock } = await setup();
     const user = memberUser;
-    const query = { organizationId: targetOrganizationId };
+    const query = tenantReadQuery(BaseQueryDto, {
+      organizationId: targetOrganizationId,
+    });
     const request = tenantReadRequest(user, query);
     await expect(controller.findMeBrands(user, request, query)).rejects.toThrow(
       ForbiddenException,
@@ -56,9 +87,9 @@ describe('UsersRelationshipsController tenant reads (#6176)', () => {
   });
 
   it('keeps the session organization for a member without an override', async () => {
-    const { controller, mock } = setup();
+    const { controller, mock } = await setup();
     const user = memberUser;
-    const query = {};
+    const query = tenantReadQuery(BaseQueryDto, {});
     const request = tenantReadRequest(user);
     await controller.findMeBrands(user, request, query);
     expect(fieldValues(mock.mock.calls[0]?.[0], 'organizationId')).toContain(

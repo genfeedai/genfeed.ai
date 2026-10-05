@@ -127,7 +127,7 @@ export class StudioLooksController {
 
   private getScope(
     user: User,
-    query: StudioLooksQueryDto = {},
+    query: Pick<StudioLooksQueryDto, 'organizationId' | 'brandId'> = {},
     request?: Request,
   ): StudioLookRequestScope {
     const tenant = CollectionFilterUtil.resolveListOrganizationId(

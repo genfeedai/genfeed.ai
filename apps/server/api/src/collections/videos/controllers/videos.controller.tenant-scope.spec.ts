@@ -1,4 +1,5 @@
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
+import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import {
   adminUser,
   emptyPage,
@@ -8,6 +9,7 @@ import {
   sessionOrganizationId,
   targetBrandId,
   targetOrganizationId,
+  tenantReadQuery,
   tenantReadRequest,
 } from '@api-test/helpers/tenant-read.fixture';
 import { ForbiddenException } from '@nestjs/common';
@@ -28,7 +30,9 @@ describe('VideosController tenant reads (#6176)', () => {
   it('uses the target organization for a verified superadmin override', async () => {
     const { controller, mock } = setup();
     const user = adminUser;
-    const query = { organizationId: targetOrganizationId };
+    const query = tenantReadQuery(VideosQueryDto, {
+      organizationId: targetOrganizationId,
+    });
     const request = tenantReadRequest(user, query);
     await controller.findAll(request, user, query);
     const read = mock.mock.calls[0]?.[0];
@@ -43,7 +47,9 @@ describe('VideosController tenant reads (#6176)', () => {
   it('rejects a member foreign organization before reading', async () => {
     const { controller, mock } = setup();
     const user = memberUser;
-    const query = { organizationId: targetOrganizationId };
+    const query = tenantReadQuery(VideosQueryDto, {
+      organizationId: targetOrganizationId,
+    });
     const request = tenantReadRequest(user, query);
     await expect(controller.findAll(request, user, query)).rejects.toThrow(
       ForbiddenException,
@@ -54,7 +60,7 @@ describe('VideosController tenant reads (#6176)', () => {
   it('keeps the session organization for a member without an override', async () => {
     const { controller, mock } = setup();
     const user = memberUser;
-    const query = {};
+    const query = tenantReadQuery(VideosQueryDto, {});
     const request = tenantReadRequest(user);
     await controller.findAll(request, user, query);
     expect(fieldValues(mock.mock.calls[0]?.[0], 'organizationId')).toContain(
@@ -70,10 +76,14 @@ describe('VideosController tenant reads (#6176)', () => {
 
   it('scopes latest reads to the target org without the session brand', async () => {
     const { controller, mock } = setup();
-    await controller.findAll(tenantReadRequest(adminUser), adminUser, {
-      latest: true,
-      organizationId: targetOrganizationId,
-    });
+    await controller.findAll(
+      tenantReadRequest(adminUser),
+      adminUser,
+      tenantReadQuery(VideosQueryDto, {
+        latest: true,
+        organizationId: targetOrganizationId,
+      }),
+    );
     expect(fieldValues(mock.mock.calls[0]?.[0], 'organizationId')).toContain(
       targetOrganizationId,
     );
@@ -87,11 +97,15 @@ describe('VideosController tenant reads (#6176)', () => {
 
   it('uses an explicit target brand for latest reads', async () => {
     const { controller, mock } = setup();
-    await controller.findAll(tenantReadRequest(adminUser), adminUser, {
-      latest: true,
-      organizationId: targetOrganizationId,
-      brandId: targetBrandId,
-    });
+    await controller.findAll(
+      tenantReadRequest(adminUser),
+      adminUser,
+      tenantReadQuery(VideosQueryDto, {
+        latest: true,
+        organizationId: targetOrganizationId,
+        brandId: targetBrandId,
+      }),
+    );
     expect(fieldValues(mock.mock.calls[0]?.[0], 'brandId')).toContain(
       targetBrandId,
     );

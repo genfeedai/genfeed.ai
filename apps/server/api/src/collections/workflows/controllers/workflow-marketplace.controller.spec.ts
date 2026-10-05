@@ -4,7 +4,9 @@ import { MostUsedWorkflowsQueryDto } from '@api/collections/workflows/dto/most-u
 import { FeaturedWorkflowsService } from '@api/collections/workflows/services/featured-workflows.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import { MemberRole } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -159,10 +161,13 @@ describe('WorkflowMarketplaceController', () => {
         totalDocs: 31,
         totalPages: 4,
       });
-      const response = await controller.getMarketplace(mockRequest, {
-        page: 2,
-        limit: 10,
-      });
+      const response = await controller.getMarketplace(
+        mockRequest,
+        tenantReadQuery(BaseQueryDto, {
+          page: 2,
+          limit: 10,
+        }),
+      );
       expect(response.links).toMatchObject({
         pagination: { page: 2, limit: 10, total: 31, pages: 4 },
       });

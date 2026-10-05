@@ -9,6 +9,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import {
   ModelCategory,
   ModelLifecycle,
@@ -476,9 +477,13 @@ describe('ModelsController', () => {
 
     it('rejects a foreign member organization before reading an allowlist or models', async () => {
       await expect(
-        controller.findAll(mockRequest, mockRegularUser, {
-          organizationId: testId('org', 2),
-        }),
+        controller.findAll(
+          mockRequest,
+          mockRegularUser,
+          tenantReadQuery(ModelsQueryDto, {
+            organizationId: testId('org', 2),
+          }),
+        ),
       ).rejects.toThrow(ForbiddenException);
       expect(moduleRefGet).not.toHaveBeenCalled();
       expect(modelsService.findAll).not.toHaveBeenCalled();
@@ -625,9 +630,13 @@ describe('ModelsController', () => {
       modelsService.findAll.mockResolvedValue(emptyPaginateResult);
 
       await expect(
-        controller.findAll(mockRequest, mockRegularUser, {
-          organizationId: foreignOrgId,
-        }),
+        controller.findAll(
+          mockRequest,
+          mockRegularUser,
+          tenantReadQuery(ModelsQueryDto, {
+            organizationId: foreignOrgId,
+          }),
+        ),
       ).rejects.toThrow(ForbiddenException);
 
       expect(moduleRefGet).not.toHaveBeenCalled();

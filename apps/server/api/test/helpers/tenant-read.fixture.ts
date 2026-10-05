@@ -1,5 +1,6 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { getTenantContext } from '@libs/prisma/tenant-context';
 
 export const sessionOrganizationId = '550e8400-e29b-41d4-a716-446655440001';
@@ -18,21 +19,33 @@ export const adminUser: AuthenticatedUser = {
   isSuperAdmin: true,
 };
 
+export function tenantReadQuery<T extends BaseQueryDto>(
+  QueryDto: new () => T,
+  overrides: Partial<T> = {},
+): T & Record<string, unknown> {
+  const queryFields: Record<string, unknown> = {};
+  return Object.assign(new QueryDto(), queryFields, overrides);
+}
+
 export function tenantReadRequest(
   user = memberUser,
   query: Record<string, unknown> = {},
 ): RequestWithContext {
   return {
     context: {
-      isSuperAdmin: user.isSuperAdmin,
-      organizationId: user.organizationId,
+      hydratedAt: Date.now(),
+      isSuperAdmin: user.isSuperAdmin ?? false,
+      organizationId: user.organizationId ?? '',
+      stripeSubscriptionStatus: 'active',
+      subscriptionTier: 'free',
+      userId: user.userId ?? user.id,
     },
     headers: {},
     originalUrl: '/v1/collection',
     params: {},
     query,
     user,
-  } as unknown as RequestWithContext;
+  } as RequestWithContext;
 }
 
 export function fieldValues(value: unknown, field: string): unknown[] {

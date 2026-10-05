@@ -1,4 +1,5 @@
 import { MembersController } from '@api/collections/members/controllers/members.controller';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import {
   adminUser,
   emptyPage,
@@ -7,6 +8,7 @@ import {
   sessionBrandId,
   sessionOrganizationId,
   targetOrganizationId,
+  tenantReadQuery,
   tenantReadRequest,
 } from '@api-test/helpers/tenant-read.fixture';
 import { ForbiddenException } from '@nestjs/common';
@@ -27,7 +29,9 @@ describe('MembersController tenant reads (#6176)', () => {
   it('uses the target organization for a verified superadmin override', async () => {
     const { controller, mock } = setup();
     const user = adminUser;
-    const query = { organizationId: targetOrganizationId };
+    const query = tenantReadQuery(BaseQueryDto, {
+      organizationId: targetOrganizationId,
+    });
     const request = tenantReadRequest(user, query);
     await controller.findAll(query, request, user);
     const read = mock.mock.calls[0]?.[0];
@@ -42,7 +46,9 @@ describe('MembersController tenant reads (#6176)', () => {
   it('rejects a member foreign organization before reading', async () => {
     const { controller, mock } = setup();
     const user = memberUser;
-    const query = { organizationId: targetOrganizationId };
+    const query = tenantReadQuery(BaseQueryDto, {
+      organizationId: targetOrganizationId,
+    });
     const request = tenantReadRequest(user, query);
     await expect(controller.findAll(query, request, user)).rejects.toThrow(
       ForbiddenException,
@@ -53,7 +59,7 @@ describe('MembersController tenant reads (#6176)', () => {
   it('keeps the session organization for a member without an override', async () => {
     const { controller, mock } = setup();
     const user = memberUser;
-    const query = {};
+    const query = tenantReadQuery(BaseQueryDto, {});
     const request = tenantReadRequest(user);
     await controller.findAll(query, request, user);
     expect(fieldValues(mock.mock.calls[0]?.[0], 'organizationId')).toContain(

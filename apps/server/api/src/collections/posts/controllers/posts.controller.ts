@@ -23,6 +23,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
@@ -312,7 +313,7 @@ export class PostsController extends BaseCRUDController<
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('postId') postId: string,
-    @Query() query: BaseQueryDto = {},
+    @Query() query: BrandScopeQueryDto = {},
   ): Promise<JsonApiSingleResponse> {
     const tenant = CollectionFilterUtil.resolveListOrganizationId(
       query,

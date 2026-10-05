@@ -1,4 +1,5 @@
 import { GifsController } from '@api/collections/gifs/controllers/gifs.controller';
+import { GifsQueryDto } from '@api/collections/gifs/dto/gifs-query.dto';
 import {
   adminUser,
   emptyPage,
@@ -7,6 +8,7 @@ import {
   sessionBrandId,
   sessionOrganizationId,
   targetOrganizationId,
+  tenantReadQuery,
   tenantReadRequest,
 } from '@api-test/helpers/tenant-read.fixture';
 import { ForbiddenException } from '@nestjs/common';
@@ -27,7 +29,9 @@ describe('GifsController tenant reads (#6176)', () => {
   it('uses the target organization for a verified superadmin override', async () => {
     const { controller, mock } = setup();
     const user = adminUser;
-    const query = { organizationId: targetOrganizationId };
+    const query = tenantReadQuery(GifsQueryDto, {
+      organizationId: targetOrganizationId,
+    });
     const request = tenantReadRequest(user, query);
     await controller.findAll(request, user, query);
     const read = mock.mock.calls[0]?.[0];
@@ -42,7 +46,9 @@ describe('GifsController tenant reads (#6176)', () => {
   it('rejects a member foreign organization before reading', async () => {
     const { controller, mock } = setup();
     const user = memberUser;
-    const query = { organizationId: targetOrganizationId };
+    const query = tenantReadQuery(GifsQueryDto, {
+      organizationId: targetOrganizationId,
+    });
     const request = tenantReadRequest(user, query);
     await expect(controller.findAll(request, user, query)).rejects.toThrow(
       ForbiddenException,
@@ -53,7 +59,7 @@ describe('GifsController tenant reads (#6176)', () => {
   it('keeps the session organization for a member without an override', async () => {
     const { controller, mock } = setup();
     const user = memberUser;
-    const query = {};
+    const query = tenantReadQuery(GifsQueryDto, {});
     const request = tenantReadRequest(user);
     await controller.findAll(request, user, query);
     expect(fieldValues(mock.mock.calls[0]?.[0], 'organizationId')).toContain(
