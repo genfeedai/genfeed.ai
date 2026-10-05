@@ -14,6 +14,24 @@ export const MCP_RESOURCE_URL_ENV_KEYS = [
 /** Path component of the MCP endpoint on every deployment. */
 export const MCP_RESOURCE_PATH = '/mcp';
 
+export function deriveClaudeMcpResourceIdentifier(
+  standardResource: string,
+): string {
+  return `${standardResource}/claude`;
+}
+
+export function resolveMcpAccessModeForResource(
+  resource: string,
+): 'standard' | 'claude' {
+  try {
+    return new URL(resource).pathname.endsWith('/mcp/claude')
+      ? 'claude'
+      : 'standard';
+  } catch {
+    return 'claude';
+  }
+}
+
 /** Well-known path for RFC 9728 protected-resource metadata. */
 export const OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH =
   '/.well-known/oauth-protected-resource';

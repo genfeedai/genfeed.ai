@@ -3,6 +3,7 @@ import { MCP_BRAND_ICON_FILES } from '@mcp/mcp/brand-icons';
 import {
   getMcpProtectedResourceMetadata,
   getMcpServerCard,
+  getPublicMcpResourceMetadataUrl,
   getPublicMcpUrl,
 } from '@mcp/mcp/setup-page';
 import type { Express, Request, Response } from 'express';
@@ -36,6 +37,16 @@ export function registerWellKnownRoutes(expressApp: Express): void {
         .json(getMcpProtectedResourceMetadata());
     });
   }
+
+  const claudePath = new URL(getPublicMcpResourceMetadataUrl('claude'))
+    .pathname;
+  expressApp.get(claudePath, (_req: Request, res: Response) => {
+    res
+      .set('Access-Control-Allow-Origin', '*')
+      .set('Cache-Control', 'public, max-age=300')
+      .status(200)
+      .json(getMcpProtectedResourceMetadata('claude'));
+  });
 
   // `serverInfo.icons` must be same-origin with the MCP server, so the
   // brand icons are served here rather than from the CDN.

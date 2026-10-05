@@ -119,6 +119,7 @@ export class McpController {
       tools: this.toolRegistry.getToolsForRoleAndToolsets(
         role,
         selection.toolsets,
+        request.authContext?.accessMode,
       ),
     };
   }

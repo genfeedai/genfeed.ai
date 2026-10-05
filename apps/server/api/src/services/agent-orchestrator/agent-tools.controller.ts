@@ -5,6 +5,7 @@ import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { assertApiKeyAgentPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
+import { assertMcpAccessModeAllowsTool } from '@api/helpers/utils/auth/mcp-access-mode.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { AgentScopeContextService } from '@api/index';
 import {
@@ -60,6 +61,7 @@ export class AgentToolsController {
     @CurrentUser() user: User,
     @Req() request: Request,
   ) {
+    assertMcpAccessModeAllowsTool(user, name, 'agent');
     assertApiKeyAgentPublishingScope(user, name, body.parameters ?? {});
 
     try {

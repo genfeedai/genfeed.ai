@@ -194,6 +194,7 @@ describe('OAuthAuthorizeService', () => {
           clientName: 'Claude',
           grantId: 'code-1',
           kind: 'mcp-oauth-session',
+          mcpAccessMode: 'standard',
           resource,
         },
         organizationId: 'org-1',
@@ -511,5 +512,39 @@ describe('OAuthAuthorizeService', () => {
         'code_challenge_method',
       ]);
     });
+  });
+});
+
+describe('Claude resource grant', () => {
+  it('binds the restricted resource and removes generation scopes before minting a key', async () => {
+    const { apiKeysService, service } = buildHarness();
+    const claudeResource = `${resource}/claude`;
+    const authorization = await service.decideAuthorization(
+      makeUser(),
+      decision({
+        resource: `${claudeResource}?profile=full`,
+        scope: 'images:create videos:create prompts:create posts:draft',
+      }),
+    );
+    const code = new URL(authorization.redirectUrl).searchParams.get('code');
+    const token = await service.exchangeToken({
+      client_id: clientId,
+      code: code as string,
+      code_verifier: verifier,
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri,
+      resource: claudeResource,
+    });
+    expect(token.scope).toBe('posts:draft');
+    expect(apiKeysService.createWithKey).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          resource: claudeResource,
+          mcpAccessMode: 'claude',
+        }),
+        scopes: ['posts:draft'],
+      }),
+      'mcp',
+    );
   });
 });

@@ -1,5 +1,8 @@
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
-import { resolveMcpResourceIdentifier } from '@genfeedai/helpers/integrations/mcp-resource.helper';
+import {
+  deriveClaudeMcpResourceIdentifier,
+  resolveMcpResourceIdentifier,
+} from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import type { ConfigService } from '@libs/config/config.service';
 
 const DEFAULT_API_URL = 'http://localhost:3010';
@@ -104,7 +107,11 @@ export function buildOAuthAuthorizationServerMetadata(
     ['GENFEED_DOCS_URL'],
     DEFAULT_DOCS_URL,
   );
-  const protectedResources = [resolveMcpResourceUrl(configService)];
+  const resource = resolveMcpResourceUrl(configService);
+  const protectedResources = [
+    resource,
+    deriveClaudeMcpResourceIdentifier(resource),
+  ];
   const agentAuthRegistrationUrl = `${issuer}/v1/agent/auth`;
   const agentAuthClaimUrl = `${agentAuthRegistrationUrl}/claim`;
   const agentAuthRevocationUrl = `${agentAuthRegistrationUrl}/revoke`;

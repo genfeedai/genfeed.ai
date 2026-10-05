@@ -1,4 +1,4 @@
-import { AGENT_CLIENT_EXAMPLE_PROMPTS } from '@data/agent-clients.data';
+import { isClaudeClient } from '@data/agent-clients.data';
 import { MARKETING_ASSETS } from '@data/marketing-assets.data';
 import type { AgentClientVisualProps } from '@props/agent-client.props';
 import { ArrowRight } from 'lucide-react';
@@ -7,6 +7,7 @@ import Image from 'next/image';
 export default function AgentClientExamples({
   client,
 }: AgentClientVisualProps): React.ReactElement {
+  const isClaude = isClaudeClient(client.slug);
   return (
     <section className="container mx-auto px-6 py-12 sm:py-20">
       <div className="mb-10 max-w-2xl">
@@ -14,7 +15,7 @@ export default function AgentClientExamples({
           02 / From a brief to something real
         </p>
         <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          Stay in {client.name}.<br />
+          Plan in {client.name}.<br />
           Create with Genfeed.
         </h2>
         <p className="mt-5 text-base leading-7 text-surface/75">
@@ -28,12 +29,16 @@ export default function AgentClientExamples({
             [
               'campaign',
               'A campaign with your visual identity',
-              'Generate product imagery from my brand guidelines and prepare three creative directions for review.',
+              isClaude
+                ? 'Write a product-image brief from my brand guidelines and give me the link to create it in Genfeed Studio.'
+                : 'Generate product imagery from my brand guidelines and prepare three creative directions for review.',
             ],
             [
               'creator',
               'A story built for the screen',
-              'Turn my launch brief into a vertical video concept, with a script and matching visuals.',
+              isClaude
+                ? 'Turn my launch brief into a video script and a shot list for creation in Genfeed Studio.'
+                : 'Turn my launch brief into a vertical video concept, with a script and matching visuals.',
             ],
           ] as const
         ).map(([asset, title, prompt]) => (
@@ -52,7 +57,9 @@ export default function AgentClientExamples({
             </div>
             <figcaption className="p-6">
               <p className="text-xs text-surface/65">
-                Illustrative generated output
+                {isClaude
+                  ? 'Illustrative output created in Genfeed Studio'
+                  : 'Illustrative generated output'}
               </p>
               <h3 className="mt-2 text-xl font-semibold">{title}</h3>
               <p className="mt-4 text-base leading-7 text-surface/75">
@@ -63,7 +70,7 @@ export default function AgentClientExamples({
         ))}
       </div>
       <div className="mt-10 grid gap-6 border-t border-edge/10 pt-8 md:grid-cols-2">
-        {AGENT_CLIENT_EXAMPLE_PROMPTS.map((prompt) => (
+        {client.examplePrompts.map((prompt) => (
           <p
             className="flex items-start gap-3 text-base leading-7 text-surface/75"
             key={prompt}

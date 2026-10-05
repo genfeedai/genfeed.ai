@@ -158,8 +158,9 @@ export default function DevelopersLandingPage(): React.ReactElement {
               </Code>
             </Pre>
             <p className="border-t border-edge/5 bg-background/95 px-4 py-3 text-xs text-surface/55">
-              One MCP endpoint. Claude, Cursor, or any MCP client can draft,
-              schedule, and publish through reviewed actions.
+              Connect Claude for drafts, scheduling and analytics, then open
+              Genfeed Studio for media creation. Cursor and other MCP clients
+              can also generate assets through the full connector.
             </p>
           </div>
         }

@@ -191,6 +191,7 @@
         },
         "clientLabel": "Requesting client",
         "returnsTo": "Returns to {host}",
+        "claudeNotice": "Claude can manage brands, drafts, scheduling and analytics. Image, video and audio creation stays in Genfeed Studio.",
         "scopesLabel": "Wants to access"
       },
       "result": {

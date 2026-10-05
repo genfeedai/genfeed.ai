@@ -1,8 +1,8 @@
 import {
   type AgentClient,
   type AgentClientFaq,
-  GENFEED_PUBLIC_MCP_URL,
   getAgentClientCommandBlocks,
+  isClaudeClient,
 } from '@data/agent-clients.data';
 import { getIntegrationBySlug } from '@data/integrations.data';
 
@@ -210,12 +210,15 @@ export function buildAgentClientChannelPage(
 
   const { keyName, noun, prompts } = CHANNEL_COPY[channelSlug];
   const lowerNoun = noun.toLowerCase();
+  const isClaude = isClaudeClient(client.slug);
   const channelName = integration.name;
 
   return {
     channelName,
     channelSlug,
-    description: `Connect ${client.name} to Genfeed for ${channelName}. Bring your brand context, media tools, and ${lowerNoun} into one creative workflow.`,
+    description: isClaude
+      ? `Plan ${channelName} content in ${client.name} with your brand context, drafts, existing assets and analytics. Create new media in Genfeed Studio.`
+      : `Connect ${client.name} to Genfeed for ${channelName}. Bring your brand context, media tools, and ${lowerNoun} into one creative workflow.`,
     faq: [
       {
         answer: `Yes. Once your ${channelName} account is connected in Genfeed, ${client.name} can draft, schedule, and publish ${channelName} ${lowerNoun} through the Genfeed MCP server.`,
@@ -228,7 +231,7 @@ export function buildAgentClientChannelPage(
         question: `Do I need a ${channelName} API key?`,
       },
       {
-        answer: `No. Genfeed holds ${lowerNoun} for review, and you approve before anything goes to ${channelName}, unless you set up a workflow that publishes directly.`,
+        answer: `No. Genfeed holds ${lowerNoun} for review, and you approve before anything goes to ${channelName}, ${isClaude ? 'and this connector cannot run publishing workflows.' : 'unless you set up a workflow that publishes directly.'}`,
         question: `Does ${client.name} publish to ${channelName} without my approval?`,
       },
       {
@@ -236,13 +239,19 @@ export function buildAgentClientChannelPage(
         question: `How do I connect ${client.name} to Genfeed?`,
       },
       {
-        answer: `Every client uses the same hosted MCP endpoint: ${GENFEED_PUBLIC_MCP_URL}.`,
+        answer: `Connect this client to: ${client.connectUrl}.`,
         question: 'What URL do I connect?',
       },
     ],
-    features: integration.features,
+    features: isClaude ? client.capabilities : integration.features,
     noun,
-    prompts,
+    prompts: isClaude
+      ? [
+          `Draft three ${channelName} posts from my brief and save them for review.`,
+          `Find existing assets for my ${channelName} campaign and prepare a scheduled release.`,
+          `Show my recent ${channelName} performance and suggest what to post next.`,
+        ]
+      : prompts,
     title: `${channelName} in ${client.name}, powered by Genfeed`,
   };
 }

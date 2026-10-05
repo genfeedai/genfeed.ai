@@ -467,3 +467,12 @@ are allowed by the widget CSP (the CDN defaults to `https://cdn.genfeed.ai`).
 Other HTTP(S) media URLs remain available through an explicit open-link action.
 The static HTML resource is public; all account data still comes from authenticated
 tool calls. It contains no bearer tokens or account cookies.
+
+
+## Claude, Claude Code and Cowork
+
+Connect to `https://mcp.genfeed.ai/mcp/claude` with browser OAuth. This connector supports brands, drafts, existing assets, scheduling and analytics. Create images, video and audio in [Genfeed Studio](https://app.genfeed.ai/studio/generate), then return to Claude to manage your content. Opening Studio does not start generation or spend credits.
+
+This is a custom connector; a public Claude directory listing is pending. Reconnect existing Claude installations using this URL. Existing connections to `/mcp` retain their original capabilities.
+
+The restriction is bound to the OAuth resource, persists across token refresh and is enforced on execution and discovery. Changing the toolset/profile or using the Claude token on `/mcp` does not enable generation. Workflows, batches, remix, arbitrary agent calls and approval redemption are unavailable through this connector. Other clients use the standard `/mcp` connector.

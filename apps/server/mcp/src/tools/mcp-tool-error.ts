@@ -10,6 +10,7 @@ import { HttpException } from '@nestjs/common';
  * Tool results put it on `structuredContent`.
  */
 export const MCP_TOOL_ERROR_CODES = [
+  'unavailable_in_connector',
   'unauthorized',
   'plan_required',
   'insufficient_credits',

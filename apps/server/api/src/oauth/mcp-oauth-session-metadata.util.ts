@@ -1,4 +1,13 @@
-import { MCP_OAUTH_SESSION_KIND } from '@genfeedai/contracts/constants';
+import {
+  type McpAccessMode,
+  mostRestrictiveMcpAccessMode,
+  parseMcpAccessMode,
+} from '@genfeedai/actions';
+import {
+  MCP_ACCESS_MODE_METADATA_KEY,
+  MCP_OAUTH_SESSION_KIND,
+} from '@genfeedai/contracts/constants';
+import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 
 /**
  * Identity of one OAuth consent, kept on every session key it produces.
@@ -8,16 +17,21 @@ import { MCP_OAUTH_SESSION_KIND } from '@genfeedai/contracts/constants';
  * ("Claude Code", "Codex", ...).
  */
 export type McpOAuthSessionLineage = {
+  accessMode?: McpAccessMode;
   clientName?: string | null;
   grantId: string;
 };
 
 export function buildMcpOAuthSessionMetadata(
   resource: string,
-  { clientName, grantId }: McpOAuthSessionLineage,
+  { accessMode, clientName, grantId }: McpOAuthSessionLineage,
 ): Record<string, string> {
   const name = clientName?.trim();
   return {
+    [MCP_ACCESS_MODE_METADATA_KEY]: mostRestrictiveMcpAccessMode(
+      accessMode,
+      resolveMcpAccessModeForResource(resource),
+    ),
     grantId,
     kind: MCP_OAUTH_SESSION_KIND,
     resource,
@@ -40,6 +54,7 @@ export function readMcpOAuthSessionLineage(
   };
 
   return {
+    accessMode: parseMcpAccessMode(record[MCP_ACCESS_MODE_METADATA_KEY]),
     clientName: readMetadataString('clientName'),
     grantId: readMetadataString('grantId') ?? fallbackGrantId,
   };

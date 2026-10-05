@@ -7,7 +7,10 @@ import {
 } from '@api/oauth/mcp-oauth-session-metadata.util';
 import { canonicalizeRequestedMcpResource } from '@api/oauth/oauth-metadata.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { mostRestrictiveMcpAccessMode } from '@genfeedai/actions';
 import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
+import { MCP_CLAUDE_SCOPE_CEILING } from '@genfeedai/contracts/constants';
+import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import type { McpOAuthRefreshToken } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -132,7 +135,7 @@ export class OAuthRefreshTokenService {
     ) {
       throw oauthError('invalid_target', 'Unsupported resource');
     }
-    const scopes = this.narrowScopes(record.scopes, dto.scope);
+    let scopes = this.narrowScopes(record.scopes, dto.scope);
 
     const apiKey = await this.apiKeysService.findActiveById(record.apiKeyId);
     if (
@@ -141,6 +144,17 @@ export class OAuthRefreshTokenService {
       apiKey.userId !== record.userId
     ) {
       throw invalidGrant();
+    }
+
+    const lineage = readMcpOAuthSessionLineage(apiKey.metadata, apiKey.id);
+    const accessMode = mostRestrictiveMcpAccessMode(
+      lineage.accessMode,
+      resolveMcpAccessModeForResource(record.resource),
+    );
+    if (accessMode === 'claude') {
+      scopes = scopes.filter((scope) =>
+        MCP_CLAUDE_SCOPE_CEILING.includes(scope),
+      );
     }
 
     // Single-use claim. Losing this race means another request presented the
@@ -173,10 +187,10 @@ export class OAuthRefreshTokenService {
         label: 'MCP OAuth',
         // Keys minted before grant lineage existed fall back to their own id,
         // which then stays stable for every later rotation.
-        metadata: buildMcpOAuthSessionMetadata(
-          record.resource,
-          readMcpOAuthSessionLineage(apiKey.metadata, apiKey.id),
-        ),
+        metadata: buildMcpOAuthSessionMetadata(record.resource, {
+          ...lineage,
+          accessMode,
+        }),
         organizationId: record.organizationId,
         rateLimit: apiKey.rateLimit ?? 120,
         scopes,

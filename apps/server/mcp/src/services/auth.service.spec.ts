@@ -65,6 +65,24 @@ describe('AuthService (MCP)', () => {
     const apiKey = `gf_${'a'.repeat(30)}`;
     const jwtToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${'a'.repeat(30)}`;
 
+    it.each(['claude', 'unexpected-mode'])(
+      'carries restricted whoami policy %s and fails closed',
+      async (mcpAccessMode) => {
+        mockHttpService.get.mockReturnValue(
+          whoamiResponse({
+            isApiKey: true,
+            organization: { id: 'org-123' },
+            user: { id: 'user-456' },
+            mcpAccessMode,
+          }),
+        );
+        expect(await service.authenticateRequest(apiKey)).toMatchObject({
+          valid: true,
+          accessMode: 'claude',
+        });
+      },
+    );
+
     it('should return invalid for short token', async () => {
       const result: AuthResult = await service.authenticateRequest('short');
       expect(result.valid).toBe(false);

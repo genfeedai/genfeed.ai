@@ -66,6 +66,7 @@ describe('ApiKeyAuthGuard', () => {
       hasTrustedMcpOriginProof: vi.fn().mockReturnValue(true),
       isIpAllowed: vi.fn(),
       isMcpOAuthSession: vi.fn().mockReturnValue(false),
+      readMcpAccessMode: vi.fn().mockReturnValue('standard'),
       resolveActionOrigin: vi.fn().mockReturnValue(ActionOrigin.API),
       // #5219: request-scoped brandId resolution — no key default brand by
       // default, falling back to some brand in the org (never the org id).
@@ -294,6 +295,7 @@ describe('ApiKeyAuthGuard', () => {
       expect(mutatedRequest.user).toEqual({
         actionOrigin: ActionOrigin.API,
         apiKeyId: mockApiKey.id.toString(),
+        mcpAccessMode: 'standard',
         // #5219: brandId is a resolved brand, never the organization id (the
         // prior bug here) — this key has no valid default brand, so it falls
         // back to some brand in the org.

@@ -324,4 +324,25 @@ describe('StreamableHttpService', () => {
       expect(serverInstances[0].close).toHaveBeenCalledOnce();
     });
   });
+  it.each([
+    {
+      authContext: { token: 'gf_test', accessMode: 'claude' },
+      routeAccessMode: 'standard',
+    },
+    {
+      authContext: { token: 'gf_test', accessMode: 'standard' },
+      routeAccessMode: 'claude',
+    },
+    { routeAccessMode: 'claude' },
+  ])('uses the stricter route/token policy for %j', async (request) => {
+    await service.handlePost(
+      {
+        body: { method: 'tools/list' },
+        toolsets: ['generation'],
+        ...request,
+      } as unknown as Request,
+      makeRes(),
+    );
+    expect(toolRegistryConstructorCalls.at(-1)?.[5]).toBe('claude');
+  });
 });

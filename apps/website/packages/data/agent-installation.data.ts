@@ -2,7 +2,7 @@ import type { AgentInstallation } from '@genfeedai/contracts/interfaces/website/
 
 const repository = 'https://github.com/genfeedai/agent';
 const connector =
-  'Add Genfeed as a custom remote connector with the MCP URL below, then sign in to Genfeed in your browser.';
+  'Add Genfeed as a custom remote connector with the Claude MCP URL below, then sign in to Genfeed in your browser. Use Claude for brands, drafts, scheduling and analytics; create media in Genfeed Studio. Genfeed is not yet listed in the public Claude directory.';
 
 export const agentInstallations = {
   chatgpt: {
@@ -32,7 +32,7 @@ export const agentInstallations = {
     destination: 'https://claude.ai/settings/connectors',
     destinationLabel: 'Open Claude connectors',
     instruction:
-      'Add the Genfeed custom connector in Claude, then enable it in Cowork. Use the MCP URL below and complete browser sign-in.',
+      'Add the Genfeed custom connector in Claude, then enable it in Cowork. Use the Claude MCP URL below and complete browser sign-in. Create media in Genfeed Studio.',
     label: 'Add to Cowork',
     method: 'Cowork connector',
   },

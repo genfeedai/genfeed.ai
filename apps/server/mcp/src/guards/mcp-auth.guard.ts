@@ -82,6 +82,7 @@ export class McpAuthGuard implements CanActivate {
     }
 
     request.authContext = {
+      accessMode: authResult.accessMode,
       organizationId: authResult.organizationId,
       role: authResult.role || 'user',
       token,

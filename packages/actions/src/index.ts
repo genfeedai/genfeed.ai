@@ -77,6 +77,14 @@ export {
   isCuratedActionName,
   isPublishingApprovalRequired,
 } from './registry/curated-action-catalog';
+export type { McpAccessMode } from './registry/mcp-access-modes';
+export {
+  CLAUDE_MCP_AGENT_TOOL_NAMES,
+  CLAUDE_MCP_TOOL_NAMES,
+  isToolAllowedInMcpAccessMode,
+  mostRestrictiveMcpAccessMode,
+  parseMcpAccessMode,
+} from './registry/mcp-access-modes';
 export {
   findInapplicableMediaGenerationParameters,
   getMediaGenerationCreditFloor,

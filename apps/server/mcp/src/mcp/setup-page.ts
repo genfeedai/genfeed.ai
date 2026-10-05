@@ -1,12 +1,20 @@
 import process from 'node:process';
-import { getToolsForRole, TOOLSETS } from '@genfeedai/actions';
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
+import {
+  getToolsForRole,
+  type McpAccessMode,
+  TOOLSETS,
+} from '@genfeedai/actions';
+import {
+  API_KEY_SCOPE_PRESETS,
+  MCP_CLAUDE_SCOPE_CEILING,
+} from '@genfeedai/contracts/constants';
 import type { McpResourceIdentifierResolution } from '@genfeedai/contracts/interfaces';
 import {
   buildConnectGenfeedChatPrompt,
   buildConnectGenfeedInstructions,
 } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
+  deriveClaudeMcpResourceIdentifier,
   OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH,
   resolveMcpResourceIdentifier,
 } from '@genfeedai/helpers/integrations/mcp-resource.helper';
@@ -138,12 +146,17 @@ function buildAgentSetupPrompt(params: {
 }): string {
   const { apiKeysUrl, mcpUrl } = params;
 
-  const claude = buildConnectGenfeedInstructions('claude-code', mcpUrl);
+  const claude = buildConnectGenfeedInstructions(
+    'claude-code',
+    getPublicClaudeMcpUrl(),
+  );
   const codex = buildConnectGenfeedInstructions('codex', mcpUrl);
 
   return `Set up the Genfeed MCP server on this machine.
 
 Endpoint: ${mcpUrl}
+Claude endpoint: ${getPublicClaudeMcpUrl()} (use this for every Claude client).
+Claude supports brands, drafts, scheduling and analytics. Create media in Genfeed Studio.
 Authentication: browser OAuth (no API key required)
 Guided connection flow: ${apiKeysUrl}
 
@@ -181,6 +194,10 @@ export function getPublicMcpUrl(): string {
   return resolvePublicMcpResource().identifier;
 }
 
+export function getPublicClaudeMcpUrl(): string {
+  return deriveClaudeMcpResourceIdentifier(getPublicMcpUrl());
+}
+
 export function getOAuthIssuerUrl(): string {
   return readFirstPublicUrl(
     ['GENFEEDAI_API_PUBLIC_URL', 'GENFEEDAI_API_URL'],
@@ -188,27 +205,40 @@ export function getOAuthIssuerUrl(): string {
   );
 }
 
-export function getPublicMcpResourceMetadataUrl(): string {
-  return new URL(
-    OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH,
-    getPublicMcpUrl(),
-  ).toString();
+export function getPublicMcpResourceMetadataUrl(
+  mode: McpAccessMode = 'standard',
+): string {
+  const path =
+    mode === 'claude'
+      ? `${OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH}${new URL(getPublicClaudeMcpUrl()).pathname}`
+      : OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH;
+  return new URL(path, getPublicMcpUrl()).toString();
 }
 
-export function getMcpWwwAuthenticateHeader(): string {
-  return `Bearer resource_metadata="${getPublicMcpResourceMetadataUrl()}", scope="${API_KEY_SCOPE_PRESETS.mcp.join(' ')}"`;
+export function getMcpWwwAuthenticateHeader(
+  mode: McpAccessMode = 'standard',
+): string {
+  const scopes =
+    mode === 'claude' ? MCP_CLAUDE_SCOPE_CEILING : API_KEY_SCOPE_PRESETS.mcp;
+  return `Bearer resource_metadata="${getPublicMcpResourceMetadataUrl(mode)}", scope="${scopes.join(' ')}"`;
 }
 
-export function getMcpProtectedResourceMetadata() {
+export function getMcpProtectedResourceMetadata(
+  mode: McpAccessMode = 'standard',
+) {
   return {
     authorization_servers: [getOAuthIssuerUrl()],
     bearer_methods_supported: ['header'],
-    resource: getPublicMcpUrl(),
+    resource: mode === 'claude' ? getPublicClaudeMcpUrl() : getPublicMcpUrl(),
     resource_documentation: `${getPublicDocsUrl()}/api-reference/mcp`,
     resource_name: 'Genfeed',
     resource_policy_uri: `${getPublicWebsiteUrl()}/privacy`,
     resource_tos_uri: `${getPublicWebsiteUrl()}/terms`,
-    scopes_supported: [...API_KEY_SCOPE_PRESETS.mcp],
+    scopes_supported: [
+      ...(mode === 'claude'
+        ? MCP_CLAUDE_SCOPE_CEILING
+        : API_KEY_SCOPE_PRESETS.mcp),
+    ],
   };
 }
 
@@ -342,7 +372,11 @@ export function renderSetupPage(): string {
   const docsGuideUrlSafe = escapeHtml(docsGuideUrl);
   const oauthDocsUrlSafe = escapeHtml(oauthDocsUrl);
 
-  const claude = buildConnectGenfeedInstructions('claude-code', mcpUrl);
+  const claudeUrlSafe = escapeHtml(getPublicClaudeMcpUrl());
+  const claude = buildConnectGenfeedInstructions(
+    'claude-code',
+    getPublicClaudeMcpUrl(),
+  );
   const codex = buildConnectGenfeedInstructions('codex', mcpUrl);
   const generic = buildConnectGenfeedInstructions('generic', mcpUrl);
   const chatPrompt = buildConnectGenfeedChatPrompt(mcpUrl);
@@ -801,7 +835,7 @@ ${postHogSnippet}
   <header class="hero">
     <p class="eyebrow">MCP server</p>
     <h1>Connect any AI agent to Genfeed.</h1>
-    <p class="lede">Create, schedule, publish, and measure content through your AI client — sign in with browser OAuth, no API key required.</p>
+    <p class="lede">Draft, schedule and measure content through your AI client. Claude uses your brands and existing assets; create images, video and audio in Genfeed Studio. Other clients can also generate through MCP.</p>
     <div class="hero-endpoint">
       <div class="${ui.codeBlock} endpoint-code" id="mcp-url">${mcpUrlSafe}</div>
       <button class="${ui.buttonSecondary} copy" type="button" id="mcp-url-copy" data-copy="${mcpUrlSafe}" aria-label="Copy MCP endpoint">Copy</button>
@@ -824,6 +858,7 @@ ${postHogSnippet}
     <div class="${ui.card}">
       <div class="tablist" role="tablist" aria-label="Client setup instructions">
         <button class="tab" id="tab-claude-code" type="button" role="tab" aria-selected="true" aria-controls="panel-claude-code" data-tab="claude-code">Claude Code</button>
+        <button class="tab" id="tab-claude-chat" type="button" role="tab" aria-selected="false" aria-controls="panel-claude-chat" data-tab="claude-chat">Claude &amp; Cowork</button>
         <button class="tab" id="tab-codex" type="button" role="tab" aria-selected="false" aria-controls="panel-codex" data-tab="codex">Codex</button>
         <button class="tab" id="tab-chat-agent" type="button" role="tab" aria-selected="false" aria-controls="panel-chat-agent" data-tab="chat-agent">Muse &amp; Grok Bot</button>
         <button class="tab" id="tab-other-clients" type="button" role="tab" aria-selected="false" aria-controls="panel-other-clients" data-tab="other-clients">Other clients</button>
@@ -840,7 +875,7 @@ ${postHogSnippet}
             <span class="step-number">01</span>
             <div>
               <p class="step-title">Add the MCP server</p>
-              <p class="step-copy">Registers the hosted endpoint in user scope with browser OAuth — no Authorization header.</p>
+              <p class="step-copy">Registers the Claude connector in user scope with browser OAuth. Use brands, drafts, scheduling and analytics here; create media in Genfeed Studio.</p>
               ${renderCommandBlock({ id: 'claude-code-command', label: 'Copy Claude Code command', textSafe: claudeCommandSafe, ui })}
             </div>
           </li>
@@ -852,6 +887,12 @@ ${postHogSnippet}
             </div>
           </li>
         </ol>
+      </section>
+
+      <section class="tabpanel" id="panel-claude-chat" role="tabpanel" aria-labelledby="tab-claude-chat" data-panel="claude-chat">
+        <h3 class="instruction-title">Claude and Cowork setup</h3>
+        <p class="step-copy">Add a custom connector in Claude with the URL below and complete browser OAuth. Use it for brands, drafts, scheduling and analytics. Create images, video and audio in Genfeed Studio. Reconnect existing installations with this URL. Genfeed is not yet listed in the public Claude directory.</p>
+        ${renderCommandBlock({ id: 'claude-chat-url', label: 'Copy Claude connector URL', textSafe: claudeUrlSafe, ui })}
       </section>
 
       <section class="tabpanel" id="panel-codex" role="tabpanel" aria-labelledby="tab-codex" data-panel="codex">
@@ -1081,6 +1122,9 @@ ${postHogSnippet}
     // substituted back for the real shell-quoted URL last.
     function rewriteAgentPrompt(text, currentUrl, currentShellUrl, nextUrl, nextShellUrl) {
       var placeholder = '__GENFEED_TOOLSET_URL_PLACEHOLDER__';
+      var claudeUrl = currentUrl.split('?')[0] + '/claude';
+      var claudePlaceholder = '__GENFEED_CLAUDE_URL_PLACEHOLDER__';
+      text = replaceAll(text, claudeUrl, claudePlaceholder);
       var next = replaceAll(
         text,
         '--scope user ' + currentShellUrl,
@@ -1089,7 +1133,7 @@ ${postHogSnippet}
       next = replaceAll(next, '--url ' + currentShellUrl, '--url ' + placeholder);
       next = replaceAll(next, currentUrl, nextUrl);
       next = replaceAll(next, placeholder, nextShellUrl);
-      return next;
+      return replaceAll(next, claudePlaceholder, claudeUrl);
     }
 
     function applyUrl(nextUrl) {
@@ -1115,7 +1159,7 @@ ${postHogSnippet}
         );
       }
 
-      ['claude-code-command', 'codex-command'].forEach(function (id) {
+      ['codex-command'].forEach(function (id) {
         var el = document.getElementById(id);
         if (!el) return;
         el.textContent = replaceAll(

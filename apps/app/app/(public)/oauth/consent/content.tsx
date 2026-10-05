@@ -5,7 +5,9 @@ import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import {
   API_KEY_SCOPE_OPTIONS,
   API_KEY_SCOPE_PRESETS,
+  MCP_CLAUDE_SCOPE_CEILING,
 } from '@genfeedai/contracts/constants';
+import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import type {
@@ -22,9 +24,17 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { redirectToOAuthClient } from './redirect';
 
-function getRequestedScopeLabels(scope: string | null): string[] {
+function getRequestedScopeLabels(
+  scope: string | null,
+  isClaude: boolean,
+): string[] {
+  const ceiling: readonly string[] = isClaude
+    ? MCP_CLAUDE_SCOPE_CEILING
+    : API_KEY_SCOPE_PRESETS.mcp;
   const requested = new Set(
-    scope?.split(/\s+/).filter(Boolean) ?? API_KEY_SCOPE_PRESETS.mcp,
+    (scope?.split(/\s+/).filter(Boolean) ?? ceiling).filter((candidate) =>
+      ceiling.includes(candidate),
+    ),
   );
   return API_KEY_SCOPE_OPTIONS.filter((option) =>
     option.scopes.some((candidate) => requested.has(candidate)),
@@ -66,9 +76,13 @@ export default function OAuthConsentContent() {
   const clientName =
     searchParams.get('client_name') || translate('clientName.fallback');
   const redirectUri = searchParams.get('redirect_uri');
+  const requestedResource = searchParams.get('resource');
+  const isClaude =
+    Boolean(requestedResource) &&
+    resolveMcpAccessModeForResource(requestedResource ?? '') === 'claude';
   const scopeLabels = useMemo(
-    () => getRequestedScopeLabels(searchParams.get('scope')),
-    [searchParams],
+    () => getRequestedScopeLabels(searchParams.get('scope'), isClaude),
+    [searchParams, isClaude],
   );
   // `state` is optional (RFC 6749 §4.1.1); PKCE is the CSRF protection.
   const requiredParams = [
@@ -261,6 +275,12 @@ export default function OAuthConsentContent() {
                 ))}
               </div>
             </div>
+
+            {isClaude && (
+              <p className="text-sm text-muted-foreground">
+                {translate('request.claudeNotice')}
+              </p>
+            )}
 
             {consentState.error && (
               <p className="text-sm text-destructive" role="alert">

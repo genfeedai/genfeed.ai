@@ -97,6 +97,20 @@ export class ApiKeysController {
       : {};
   }
 
+  private existingMcpOAuthMetadata(
+    apiKey: Parameters<ApiKeysService['resolveActionOrigin']>[0],
+  ): Record<string, unknown> {
+    const metadata = apiKey.metadata as Record<string, unknown> | undefined;
+    if (metadata?.kind !== 'mcp-oauth-session') return {};
+    return {
+      kind: metadata.kind,
+      resource: metadata.resource,
+      mcpAccessMode: metadata.mcpAccessMode,
+      grantId: metadata.grantId,
+      clientName: metadata.clientName,
+    };
+  }
+
   private trustedExistingOriginMetadata(
     apiKey: Parameters<ApiKeysService['resolveActionOrigin']>[0],
   ): Record<string, unknown> {
@@ -285,6 +299,7 @@ export class ApiKeysController {
               ...this.withoutReservedMetadata(updateApiKeyDto.metadata),
               ...this.existingConnectGenfeedMetadata(existingKey),
               ...this.trustedExistingOriginMetadata(existingKey),
+              ...this.existingMcpOAuthMetadata(existingKey),
             },
           }
         : {}),
@@ -326,7 +341,10 @@ export class ApiKeysController {
       !Array.isArray(existingKey.metadata)
         ? (existingKey.metadata as Record<string, unknown>)
         : undefined;
-    const metadata = this.withoutReservedMetadata(existingMetadata);
+    const metadata = {
+      ...this.withoutReservedMetadata(existingMetadata),
+      ...this.existingMcpOAuthMetadata(existingKey),
+    };
     const existingOrigin = this.apiKeysService.resolveActionOrigin(existingKey);
     const trustedOrigin =
       existingOrigin === ActionOrigin.CLI || existingOrigin === ActionOrigin.UI
