@@ -290,7 +290,7 @@ export async function setupOnboardingConversationMocks(
             : 'Let’s keep going.',
         createdAt: queuedAt,
         toolCalls,
-        metadata: { runId, toolCalls, uiActions },
+        metadata: { runId, uiActions },
       });
       await route.fulfill({
         json: {
