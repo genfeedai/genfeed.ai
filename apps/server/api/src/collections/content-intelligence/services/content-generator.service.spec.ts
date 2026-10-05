@@ -26,6 +26,7 @@ import {
   X_PLATFORM_HARNESS_PACK,
 } from '@genfeedai/harness';
 import { buildBrandKitDraftFromManualInput } from '@genfeedai/helpers';
+import { compileActionContract } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
@@ -157,11 +158,26 @@ function createContentGenerationRunnerFake(
           organizationId: request.organizationId,
           userId: request.userId ?? 'workflow-owner',
         };
-        const invoke = (actionId: string, input: Record<string, unknown>) => {
+        const invoke = async (
+          actionId: string,
+          input: Record<string, unknown>,
+        ) => {
           const executor = actionExecutors.get(actionId);
           if (!executor)
             throw new Error(`Missing action executor: ${actionId}`);
-          return executor({ context, input } as never);
+          const definition = getActionDefinition(actionId);
+          if (!definition) throw new Error(`Missing contract: ${actionId}`);
+          const contract = compileActionContract(actionId, definition);
+          const provenance = {
+            nodeId: actionId,
+            runId: 'regression-run',
+            workflowId: request.canonicalId,
+            workflowVersionId: 'regression-version',
+          };
+          contract.validateInput(input, provenance);
+          const output = await executor({ context, input } as never);
+          contract.validateOutput(output, provenance);
+          return output;
         };
         const loadedContext = await invoke(
           'content-intelligence.load-context',
@@ -181,10 +197,11 @@ function createContentGenerationRunnerFake(
         if (!plan.hasPatterns) {
           const freeformResults = await invoke(
             'content-intelligence.generate-freeform',
-            { state: loadedContext },
+            { dto: request.inputValues.dto, state: loadedContext },
           );
           return {
             result: await invoke('content-intelligence.finalize', {
+              dto: request.inputValues.dto,
               freeformResults,
             }),
           };
@@ -204,6 +221,7 @@ function createContentGenerationRunnerFake(
         }
         return {
           result: await invoke('content-intelligence.finalize', {
+            dto: request.inputValues.dto,
             patternResults: { results },
           }),
         };
