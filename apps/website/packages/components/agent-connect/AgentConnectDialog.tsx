@@ -129,6 +129,25 @@ export default function AgentConnectDialog({
                   value={client.chatPrompt}
                 />
               ) : null}
+              {client.skillsCommand ? (
+                <CommandBlock
+                  label="Install skills"
+                  value={client.skillsCommand}
+                />
+              ) : null}
+              {client.setupPrompt ? (
+                <>
+                  <p className="text-sm leading-6 text-surface/75">
+                    Skills add the Genfeed playbook. To connect your account
+                    too, paste the setup prompt into {client.name} with local
+                    shell access.
+                  </p>
+                  <CommandBlock
+                    label="Setup prompt"
+                    value={client.setupPrompt}
+                  />
+                </>
+              ) : null}
               <CommandBlock
                 label="Genfeed connector URL"
                 value={client.connectUrl}

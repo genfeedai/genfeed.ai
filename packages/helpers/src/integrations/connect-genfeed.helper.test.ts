@@ -1,7 +1,36 @@
 import {
   buildConnectGenfeedChatPrompt,
   buildConnectGenfeedInstructions,
+  buildGenfeedAgentSetupPrompt,
 } from './connect-genfeed.helper';
+
+describe('buildGenfeedAgentSetupPrompt', () => {
+  it('sets up only the chosen client and verifies without content writes', () => {
+    const prompt = buildGenfeedAgentSetupPrompt(
+      'https://mcp.genfeed.ai/mcp/',
+      'Codex',
+    );
+    expect(prompt).toContain('for Codex.');
+    expect(prompt).toContain('npx skills add genfeedai/agent');
+    expect(prompt).toContain('Skip this step if its installed Genfeed plugin');
+    expect(prompt).toContain('Authenticate only the selected client');
+    expect(prompt).toContain('read-only get_account_info and list_brands');
+    expect(prompt).toContain(
+      'Do not generate content, schedule, publish, or resolve approvals',
+    );
+    expect(prompt).not.toMatch(/GENFEED_API_KEY|Bearer/);
+  });
+
+  it('uses quoted endpoints in commands and rejects unsupported protocols', () => {
+    const prompt = buildGenfeedAgentSetupPrompt(
+      'https://mcp.genfeed.ai/mcp?toolsets=content',
+    );
+    expect(prompt).toContain(
+      "--url 'https://mcp.genfeed.ai/mcp?toolsets=content'",
+    );
+    expect(() => buildGenfeedAgentSetupPrompt('file:///tmp/mcp')).toThrow();
+  });
+});
 
 describe('buildConnectGenfeedChatPrompt', () => {
   it('names the normalized endpoint and OAuth without requesting a secret', () => {

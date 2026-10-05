@@ -50,6 +50,12 @@ describe('AgentConnectDialog', () => {
       within(dialog).getByRole('button', { name: 'Copy Codex plugin' }),
     ).toBeInTheDocument();
     expect(
+      within(dialog).getByRole('button', { name: 'Copy Install skills' }),
+    ).toBeInTheDocument();
+    expect(
+      [...dialog.querySelectorAll('code')].map((code) => code.textContent),
+    ).toContain(getAgentClient('codex').setupPrompt);
+    expect(
       within(dialog).getByText(/sign in or create your free Genfeed account/i),
     ).toBeInTheDocument();
     expect(
@@ -61,6 +67,19 @@ describe('AgentConnectDialog', () => {
     expect(
       within(dialog).getByRole('button', { name: 'Connect Claude' }),
     ).toBeInTheDocument();
+  });
+
+  it('keeps browser-only clients free of local shell installation prompts', () => {
+    const dialog = open();
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Connect Claude' }),
+    );
+    expect(
+      within(dialog).queryByRole('button', { name: 'Copy Install skills' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole('button', { name: 'Copy Setup prompt' }),
+    ).not.toBeInTheDocument();
   });
 
   it('gives Cursor the real install destination and chat agents their connection prompt', () => {

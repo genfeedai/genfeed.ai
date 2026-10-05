@@ -51,6 +51,8 @@ describe('agent clients', () => {
     expect(client.chatPrompt).toBeUndefined();
     expect(labels).toEqual([
       'Claude Code plugin',
+      'Install skills',
+      'Setup prompt',
       'Connect URL',
       'Install command',
       'Configuration',

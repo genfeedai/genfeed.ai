@@ -21,10 +21,9 @@ export const agentInstallations = {
     method: 'Claude connector',
   },
   'claude-code': {
-    command:
-      '/plugin marketplace add genfeedai/agent\n/plugin install genfeed@genfeed',
+    command: '/plugin install genfeed --marketplace genfeedai/agent',
     instruction:
-      'Paste these commands into Claude Code to install the Genfeed plugin and its playbook. Open /mcp, select Genfeed, and complete browser sign-in.',
+      'In Claude Code 2.1.275 or newer, paste this command to install Genfeed and its playbook. On older versions, run /plugin marketplace add genfeedai/agent, then /plugin install genfeed@genfeed. Open /mcp, select Genfeed, and complete browser sign-in.',
     label: 'Install in Claude Code',
     method: 'Claude Code plugin',
   },

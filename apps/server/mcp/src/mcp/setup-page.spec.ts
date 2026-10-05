@@ -285,7 +285,7 @@ describe('MCP setup page', () => {
     expect(html).toContain('id="agent-setup-prompt"');
     expect(html).toContain('data-copy-source="agent-setup-prompt"');
     expect(promptHtml).toContain(
-      'Set up the Genfeed MCP server on this machine.',
+      'Set up the Genfeed MCP server on this machine,',
     );
     expect(promptHtml).toContain(
       'Authentication: browser OAuth (no API key required)',
@@ -311,7 +311,10 @@ describe('MCP setup page', () => {
     expect(promptHtml).not.toContain('gf_live_');
     expect(promptHtml).toContain('genfeed login');
     expect(promptHtml).toContain('Do not paste a secret');
-    expect(promptHtml).toContain('genfeed keys create -p mcp');
+    expect(promptHtml).not.toContain('genfeed keys create');
+    expect(promptHtml).toContain('npx skills add genfeedai/agent');
+    expect(promptHtml).toContain('read-only get_account_info and list_brands');
+    expect(html).toContain('data-copy-source="skills-install-command"');
   });
 
   it('uses shared static UI surface primitives instead of local card CSS', () => {
