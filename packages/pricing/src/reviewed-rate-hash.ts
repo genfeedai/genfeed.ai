@@ -1,3 +1,4 @@
+import { stableStringify } from '@genfeedai/contracts/constants/canonical-json.constant';
 import type {
   ModelPricingRateChange,
   ProviderBillingUnit,
@@ -87,18 +88,6 @@ export function sha256Hex(input: string): string {
     .join('');
 }
 
-function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
-  if (value !== null && typeof value === 'object') {
-    const record = value as Record<string, unknown>;
-    return `{${Object.keys(record)
-      .sort()
-      .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
-      .join(',')}}`;
-  }
-  return JSON.stringify(value) ?? 'null';
-}
-
 interface NormalizedProviderRate {
   component: string;
   includedUnits: number;
@@ -132,7 +121,7 @@ function normalizeRate(rate: ReviewedProviderRate): NormalizedProviderRate {
 export function hashReviewedProviderRates(
   rates: readonly ReviewedProviderRate[],
 ): string {
-  const canonical = rates.map((rate) => canonicalJson(normalizeRate(rate)));
+  const canonical = rates.map((rate) => stableStringify(normalizeRate(rate)));
   canonical.sort();
   return `${REVIEWED_RATE_HASH_PREFIX}${sha256Hex(`[${canonical.join(',')}]`)}`;
 }
@@ -162,7 +151,7 @@ export function describeProviderRateChanges(
   newRates: readonly ReviewedProviderRate[],
 ): ModelPricingRateChange[] {
   const keyOf = (rate: ReviewedProviderRate) =>
-    canonicalJson([rate.component, rate.unit, rate.when]);
+    stableStringify([rate.component, rate.unit, rate.when]);
   const previous = new Map(oldRates.map((rate) => [keyOf(rate), rate]));
   const next = new Map(newRates.map((rate) => [keyOf(rate), rate]));
   const changes: ModelPricingRateChange[] = [];
@@ -170,7 +159,7 @@ export function describeProviderRateChanges(
     const before = previous.get(key);
     const hasTermsChange =
       before !== undefined &&
-      canonicalJson(termsOf(before)) !== canonicalJson(termsOf(rate));
+      stableStringify(termsOf(before)) !== stableStringify(termsOf(rate));
     if (
       before &&
       !hasTermsChange &&

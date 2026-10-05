@@ -24,6 +24,7 @@ import {
   Prisma,
 } from '@genfeedai/prisma';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
+import { platformOrTenantScope } from '@libs/prisma/platform-scope';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
@@ -499,14 +500,12 @@ export class AdminModelPricingService {
     return this.prisma.$transaction(async (transaction) => {
       const retrievedAt = new Date();
       const [model, setting] = await Promise.all([
-        // Superadmin action over the platform-global model registry.
-        crossOrgUnsafe(
-          async () =>
-            await transaction.model.findFirst({
-              where: { id: modelId, organizationId: null, isDeleted: false },
-              select: pricingModelSelect,
-            }),
-        ),
+        // Platform registry row, proven to the CLOUD tenant guard by the
+        // platform-or-tenant arm (no cross-organization hatch).
+        transaction.model.findFirst({
+          where: { id: modelId, isDeleted: false, ...platformOrTenantScope() },
+          select: pricingModelSelect,
+        }),
         transaction.platformSetting.findFirst({
           where: { key: 'platform', isDeleted: false },
           select: { marginMultiplierGeneration: true },
@@ -535,28 +534,24 @@ export class AdminModelPricingService {
       // Compare-and-set: promote only while the pending contract is still the
       // one the operator approved, so a refresh landing in between cannot be
       // approved unseen.
-      // Superadmin approval over the platform-global model registry.
-      const promoted = await crossOrgUnsafe(
-        async () =>
-          await transaction.model.updateMany({
-            data: {
-              pendingProviderContractVersion: null,
-              providerSyncFailedAt: null,
-              providerSyncFailureCode: null,
-              providerSyncStatus: 'fresh',
-              reviewedAt: retrievedAt,
-              reviewedBy: approvedBy,
-              reviewedProviderContractVersion: pendingContract.version,
-              reviewStatus: 'approved',
-            },
-            where: {
-              id: modelId,
-              isDeleted: false,
-              organizationId: null,
-              pendingProviderContractVersion: expectedPendingVersion,
-            },
-          }),
-      );
+      const promoted = await transaction.model.updateMany({
+        data: {
+          pendingProviderContractVersion: null,
+          providerSyncFailedAt: null,
+          providerSyncFailureCode: null,
+          providerSyncStatus: 'fresh',
+          reviewedAt: retrievedAt,
+          reviewedBy: approvedBy,
+          reviewedProviderContractVersion: pendingContract.version,
+          reviewStatus: 'approved',
+        },
+        where: {
+          id: modelId,
+          isDeleted: false,
+          ...platformOrTenantScope(),
+          pendingProviderContractVersion: expectedPendingVersion,
+        },
+      });
       if (promoted.count !== 1) throw new ConflictException(RATES_CHANGED);
       await transaction.modelProviderContract.update({
         data: {
@@ -572,13 +567,10 @@ export class AdminModelPricingService {
           },
         },
       });
-      const refreshed = await crossOrgUnsafe(
-        async () =>
-          await transaction.model.findFirst({
-            where: { id: modelId, organizationId: null, isDeleted: false },
-            select: pricingModelSelect,
-          }),
-      );
+      const refreshed = await transaction.model.findFirst({
+        where: { id: modelId, isDeleted: false, ...platformOrTenantScope() },
+        select: pricingModelSelect,
+      });
       if (!refreshed) throw new NotFoundException('Model', modelId);
       return projectAdminModelPricing(
         refreshed,
