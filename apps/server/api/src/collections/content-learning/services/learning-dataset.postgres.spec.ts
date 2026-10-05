@@ -1062,6 +1062,8 @@ describe.skipIf(!explicitUrl)(
       expect(maxBindParameters).toBeLessThanOrEqual(32767);
       expect(graphNodesMaxPass).toBe(kind === 'owned' ? 0 : 7 * size + 36);
       expect(graphEdgesMaxPass).toBe(kind === 'owned' ? 0 : 12 * size + 210);
+      // Vincent 2026-10-05: consented 100k budget is 75s (CI ~1.15x Studio, full re-read contract kept).
+      const budgetMs = kind === 'owned' ? 30000 : 75000;
       const queryBound =
         kind === 'owned'
           ? 8 + Math.ceil(size / 1000)
@@ -1076,10 +1078,8 @@ describe.skipIf(!explicitUrl)(
       expect(queries).toBeLessThanOrEqual(
         kind === 'owned' ? 8 + Math.ceil(size / 1000) : 6000,
       );
-      expect(elapsed).toBeLessThanOrEqual(kind === 'owned' ? 30000 : 60000);
-      expect(transactionElapsedMs).toBeLessThanOrEqual(
-        kind === 'owned' ? 30000 : 60000,
-      );
+      expect(elapsed).toBeLessThanOrEqual(budgetMs);
+      expect(transactionElapsedMs).toBeLessThanOrEqual(budgetMs);
       const entries = await prisma.contentLearningDatasetEntry.findMany({
         where: { datasetId: dataset.id },
         take: 1,

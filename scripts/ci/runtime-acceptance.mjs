@@ -1516,7 +1516,8 @@ export function parseDatasetRecords(output, mode) {
               (record.run === 0 ? 'matrix-warmup' : 'matrix-measurement'),
       'DATASET_PURPOSE',
     );
-    const cap = record.kind === 'owned' ? 30000 : 60000;
+    // Vincent 2026-10-05: consented 100k budget is 75s (CI ~1.15x Studio, full re-read contract kept).
+    const cap = record.kind === 'owned' ? 30000 : 75000;
     for (const field of [
       'elapsedMs',
       'transactionElapsedMs',
