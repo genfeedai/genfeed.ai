@@ -1,9 +1,5 @@
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { WorkflowGenerationBillingService } from '@api/collections/credits/services/workflow-generation-billing.service';
-import {
-  WORKFLOW_EXECUTION_TERMINAL_EVENT,
-  type WorkflowExecutionTerminalEvent,
-} from '@api/collections/workflow-executions/constants/workflow-execution-events.constants';
 import type { WorkflowExecutionQueryDto } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
 import {
   CreateWorkflowExecutionDto,
@@ -17,6 +13,7 @@ import { persistCreatedWorkflowExecutionWithAdmission } from '@api/collections/w
 import { recordProactiveRunCompletion } from '@api/collections/workflow-executions/services/proactive-run-accounting';
 import { readWorkflowAccounting } from '@api/collections/workflow-executions/services/workflow-accounting';
 import { captureMissingWorkflowCostEstimate } from '@api/collections/workflow-executions/services/workflow-cost-estimate';
+import { logWorkflowExecutionEtaComparison } from '@api/collections/workflow-executions/services/workflow-execution-eta-log.util';
 import { normalizeWorkflowExecution } from '@api/collections/workflow-executions/services/workflow-execution-normalization';
 import {
   buildWorkflowOutcomeInput,
@@ -36,6 +33,7 @@ import {
   readWorkflowExecutionStats,
   readWorkflowExecutionSummary,
 } from '@api/collections/workflow-executions/services/workflow-execution-summary.util';
+import { emitWorkflowExecutionTerminal } from '@api/collections/workflow-executions/services/workflow-execution-terminal-event.util';
 import type { WorkflowGenerationAdmissionCaptureInput } from '@api/collections/workflows/utils/workflow-generation-admission-capture.util';
 import { parseWorkflowExecutionRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
@@ -477,7 +475,8 @@ export class WorkflowExecutionsService extends BaseService<
     const durationMs = execution.startedAt
       ? completedAt.getTime() - execution.startedAt.getTime()
       : 0;
-    this.logEtaComparison(
+    logWorkflowExecutionEtaComparison(
+      this.logger,
       executionId,
       execution.workflowId,
       durationMs,
@@ -555,6 +554,11 @@ export class WorkflowExecutionsService extends BaseService<
     );
 
     if (!terminalTransition) return null;
+    emitWorkflowExecutionTerminal(this.events, this.logger, {
+      executionId,
+      organizationId: execution.organizationId ?? organizationId,
+      status: error ? 'failed' : 'completed',
+    });
     await this.generationBilling?.closeExecution(
       executionId,
       execution.organizationId,
@@ -594,43 +598,8 @@ export class WorkflowExecutionsService extends BaseService<
       trigger: execution.trigger,
       workflowId: execution.workflowId,
     });
-    this.emitTerminal(
-      executionId,
-      execution.organizationId ?? organizationId,
-      error ? 'failed' : 'completed',
-    );
 
     return document;
-  }
-
-  private emitTerminal(
-    executionId: string,
-    organizationId: string,
-    status: WorkflowExecutionTerminalEvent['status'],
-  ): void {
-    const event: WorkflowExecutionTerminalEvent = {
-      executionId,
-      organizationId,
-      status,
-    };
-    this.events?.emit(WORKFLOW_EXECUTION_TERMINAL_EVENT, event);
-  }
-
-  private logEtaComparison(
-    executionId: string,
-    workflowId: string,
-    durationMs: number,
-    rawEstimate: unknown,
-  ): void {
-    const estimatedDurationMs = readOptionalNumber(rawEstimate);
-    if (estimatedDurationMs === undefined) return;
-    this.logger?.log('Workflow execution eta comparison', {
-      durationDeltaMs: durationMs - estimatedDurationMs,
-      estimatedDurationMs,
-      executionId,
-      observedDurationMs: durationMs,
-      workflowId,
-    });
   }
 
   @HandleErrors('cancel execution', 'workflow-executions')
@@ -662,11 +631,15 @@ export class WorkflowExecutionsService extends BaseService<
     });
 
     if (transition.count !== 1) return this.normalizeDocument(existing);
+    emitWorkflowExecutionTerminal(this.events, this.logger, {
+      executionId,
+      organizationId,
+      status: 'cancelled',
+    });
     await this.generationBilling?.closeExecution(executionId, organizationId);
     const updated = await this.prisma.workflowExecution.findFirst({
       where: scopedWhere(organizationId, { id: executionId }),
     });
-    this.emitTerminal(executionId, organizationId, 'cancelled');
     return this.normalizeDocument(updated);
   }
 

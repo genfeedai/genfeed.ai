@@ -24,6 +24,7 @@ describe('TasksService tenant scoping', () => {
   const task = {
     findFirst: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
   };
   let service: TasksService;
 
@@ -56,6 +57,38 @@ describe('TasksService tenant scoping', () => {
       }),
     );
     expectCloudGuardPasses('Task', 'findFirst', task.findFirst);
+  });
+
+  it('claims a status transition with the expected status in the write predicate', async () => {
+    task.updateMany.mockResolvedValueOnce({ count: 1 });
+    task.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await expect(
+      service.claimStatusTransition(
+        'task-1',
+        'org-1',
+        'in_progress',
+        'in_review',
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      service.claimStatusTransition(
+        'task-1',
+        'org-1',
+        'in_progress',
+        'in_review',
+      ),
+    ).resolves.toBe(false);
+
+    expect(task.updateMany).toHaveBeenCalledWith({
+      data: { status: 'in_review' },
+      where: {
+        id: 'task-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        status: 'in_progress',
+      },
+    });
   });
 
   it('looks up tasks by identifier within the organization only', async () => {

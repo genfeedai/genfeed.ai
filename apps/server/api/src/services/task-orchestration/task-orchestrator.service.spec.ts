@@ -18,7 +18,15 @@ describe('TaskOrchestratorService', () => {
       ...task,
     };
     const tasksService = {
-      findOne: vi.fn(async () => stored),
+      findOne: vi.fn(async () => (stored ? { ...stored } : stored)),
+      // Compare-and-set, like the conditional write the real service issues.
+      claimStatusTransition: vi.fn(
+        async (_id: string, _org: string, from: string, to: string) => {
+          if (!stored || stored.status !== from) return false;
+          stored.status = to;
+          return true;
+        },
+      ),
       // Persist the patch like the real service, so later reads see it.
       recordTaskEvent: vi.fn(
         async (
@@ -86,6 +94,26 @@ describe('TaskOrchestratorService', () => {
 
     expect(tasksService.recordTaskEvent).not.toHaveBeenCalled();
     expect(quality.assess).not.toHaveBeenCalled();
+  });
+
+  it('runs the paid quality assessment once when the listener and reconcile race', async () => {
+    const { quality, service, tasksService } = makeService({
+      executions: { 'execution-1': completed },
+      task: { linkedExecutionIds: ['execution-1'], status: 'in_progress' },
+    });
+
+    await Promise.all([
+      service.handleExecutionCompletion('execution-1', 'org-1'),
+      service.reconcileTerminalExecutions(['execution-1'], 'org-1'),
+      service.handleExecutionCompletion('execution-1', 'org-1'),
+    ]);
+
+    expect(quality.assess).toHaveBeenCalledOnce();
+    expect(
+      tasksService.recordTaskEvent.mock.calls.filter(
+        ([, , , event]) => event.type === 'task_ready_for_review',
+      ),
+    ).toHaveLength(1);
   });
 
   describe('reconcileTerminalExecutions (finish-before-link)', () => {

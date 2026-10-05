@@ -24,7 +24,9 @@ describe('WorkflowExecutionsService', () => {
     warn: vi.fn(),
   };
 
-  const makeService = () => {
+  const makeService = (generationBilling?: {
+    closeExecution: ReturnType<typeof vi.fn>;
+  }) => {
     const workflowExecution = {
       create: vi.fn().mockResolvedValue({ id: 'execution-1' }),
       findFirst: vi.fn().mockResolvedValue({
@@ -96,7 +98,7 @@ describe('WorkflowExecutionsService', () => {
         workflowEventWebhookService as never,
         activityRecorder as never,
         { recordRun: vi.fn() } as never,
-        undefined,
+        generationBilling as never,
         events as never,
       ),
       activityRecorder,
@@ -281,6 +283,28 @@ describe('WorkflowExecutionsService', () => {
           status: 'cancelled',
         },
       ],
+    ]);
+  });
+
+  it('emits the terminal event even when billing close throws, on complete and cancel', async () => {
+    const billing = {
+      closeExecution: vi.fn().mockRejectedValue(new Error('billing down')),
+    };
+    const { events, service } = makeService(billing);
+
+    await service.completeExecution('execution-1', 'org-1').catch(() => null);
+    await service.cancelExecution('execution-2', 'org-1').catch(() => null);
+
+    expect(billing.closeExecution).toHaveBeenCalledTimes(2);
+    expect(events.emit.mock.calls.map(([, event]) => event)).toEqual([
+      expect.objectContaining({
+        executionId: 'execution-1',
+        status: 'completed',
+      }),
+      expect.objectContaining({
+        executionId: 'execution-2',
+        status: 'cancelled',
+      }),
     ]);
   });
 

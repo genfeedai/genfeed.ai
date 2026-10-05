@@ -104,6 +104,19 @@ export class TaskOrchestratorService {
       organizationId,
     );
 
+    // The listener and link-time reconcile can both reach this point (in the
+    // API or a worker). Only the caller that wins this conditional update runs
+    // the rollup, so the paid quality assessment executes once per task.
+    const isClaimed = await this.tasksService.claimStatusTransition(
+      task.id.toString(),
+      organizationId,
+      'in_progress',
+      hasFailures ? 'failed' : 'in_review',
+    );
+    if (!isClaimed) {
+      return;
+    }
+
     const resultPreview = summaries.filter(Boolean).join(' | ');
 
     if (hasFailures) {

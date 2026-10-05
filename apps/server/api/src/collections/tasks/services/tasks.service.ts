@@ -441,6 +441,24 @@ export class TasksService extends BaseService<
     return checkedOut ? this.normalizeTaskDocument(checkedOut) : null;
   }
 
+  /**
+   * Compare-and-set a task's status. The `from` predicate is part of the write,
+   * so of any number of concurrent callers (API and workers) exactly one
+   * observes `true` and may proceed with the work that status guards.
+   */
+  async claimStatusTransition(
+    taskId: string,
+    organizationId: string,
+    from: TaskStatus,
+    to: TaskStatus,
+  ): Promise<boolean> {
+    const { count } = await this.delegate.updateMany({
+      data: { status: to },
+      where: scopedWhere(organizationId, { id: taskId, status: from }),
+    });
+    return count === 1;
+  }
+
   async release(
     taskId: string,
     agentId: string,
