@@ -28,6 +28,7 @@ import type {
   SignupPrefillWorkflowInput,
 } from '@genfeedai/contracts/interfaces';
 import { resolveSignupBrandDomain } from '@genfeedai/helpers';
+import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { resolveSafeDestination } from '@libs/security/destination-guard';
@@ -179,8 +180,6 @@ export class SignupPrefillService {
           );
           this.assertDeadline(deadlineAt);
           if (!brand) throw new NotFoundException('Brand');
-          const readString = (value: unknown): string | undefined =>
-            typeof value === 'string' ? value : undefined;
           return {
             ...state,
             status: 'completed' as const,
