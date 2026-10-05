@@ -128,14 +128,18 @@ async function seedEntry(
     ? (model.providerInputSchema as Prisma.InputJsonValue)
     : ((fixture?.openapi.components.schemas.Input as Prisma.InputJsonValue) ??
       {});
-  const properties =
+  const schemaRecord: Record<string, unknown> =
     typeof inputSchema === 'object' &&
     inputSchema !== null &&
-    !Array.isArray(inputSchema) &&
-    typeof inputSchema.properties === 'object' &&
-    inputSchema.properties !== null &&
-    !Array.isArray(inputSchema.properties)
-      ? (inputSchema.properties as Record<string, unknown>)
+    !Array.isArray(inputSchema)
+      ? (inputSchema as Record<string, unknown>)
+      : {};
+  const rawProperties = schemaRecord.properties;
+  const properties: Record<string, unknown> =
+    typeof rawProperties === 'object' &&
+    rawProperties !== null &&
+    !Array.isArray(rawProperties)
+      ? (rawProperties as Record<string, unknown>)
       : {};
   const priced = new Set(entry.rates.flatMap((rate) => Object.keys(rate.when)));
   const invariantSelectors =

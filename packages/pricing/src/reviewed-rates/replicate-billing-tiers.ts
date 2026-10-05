@@ -63,7 +63,7 @@ export function extractReplicateBillingTiers(html: string): unknown[] | null {
 function words(value: string): string {
   return value
     .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 }
 
@@ -159,7 +159,7 @@ function parsePrice(raw: unknown): number | null {
   if (typeof text !== 'string') return null;
   const match = /^\s*\$?\s*([0-9][0-9,]*(?:\.[0-9]+)?)\s*$/.exec(text);
   if (!match?.[1]) return null;
-  const value = Number(match[1].replaceAll(',', ''));
+  const value = Number(match[1].replace(/,/g, ''));
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
