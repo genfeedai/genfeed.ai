@@ -40,6 +40,7 @@ import {
 import {
   calculateAspectRatio,
   convertRatioToOrientation,
+  DurationUtil,
   normalizeAspectRatioForModel,
 } from '@genfeedai/helpers';
 import { Injectable } from '@nestjs/common';
@@ -233,11 +234,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       calculatedRatio,
     );
     const aspectRatio = convertRatioToOrientation(normalizedRatio);
-    const seconds =
-      normalizeProviderVideoDuration(
-        MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
-        params.duration,
-      ) ?? 4;
+    const seconds = DurationUtil.validateSoraDuration(params.duration);
 
     const input: Sora2Input = {
       aspect_ratio: aspectRatio,
@@ -262,11 +259,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       calculatedRatio,
     );
     const aspectRatio = convertRatioToOrientation(normalizedRatio);
-    const seconds =
-      normalizeProviderVideoDuration(
-        MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO,
-        params.duration,
-      ) ?? 4;
+    const seconds = DurationUtil.validateSoraDuration(params.duration);
 
     const allowedResolutions = ['standard', 'high'];
     const resolution =

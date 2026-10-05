@@ -129,9 +129,10 @@ const estimateMocks = vi.hoisted(() => ({
 // The estimate is the server admission quote; the composer only requests it.
 vi.mock('@pages/studio/generate/hooks/useStudioGenerationEstimate', () => ({
   useStudioGenerationEstimate: (request: unknown) =>
-    request
-      ? estimateMocks.resolve(request)
-      : { credits: null, status: 'loading' },
+    (request ? estimateMocks.resolve(request) : undefined) ?? {
+      credits: null,
+      status: 'loading',
+    },
 }));
 
 vi.mock(

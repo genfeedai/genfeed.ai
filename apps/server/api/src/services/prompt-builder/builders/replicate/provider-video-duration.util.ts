@@ -23,11 +23,6 @@ const PROVIDER_VIDEO_DURATION_RULES: Readonly<
     allowed: [4, 6, 8],
     fallback: 8,
   },
-  [MODEL_KEYS.REPLICATE_OPENAI_SORA_2]: { allowed: [4, 8, 12], fallback: 4 },
-  [MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO]: {
-    allowed: [4, 8, 12],
-    fallback: 4,
-  },
 };
 
 /** Whether the provider's duration handling for this model is known here. */
