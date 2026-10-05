@@ -269,6 +269,16 @@ describe('proxy', () => {
     vi.unstubAllEnvs();
   });
 
+  it('excludes the runtime config script from the proxy matcher', async () => {
+    const { config } = await import('./proxy');
+
+    expect(
+      config.matcher.some((matcher) =>
+        new RegExp(`^${matcher}$`).test('/runtime-config.js'),
+      ),
+    ).toBe(false);
+  });
+
   it.each(['/api/version', '/v1', '/v1/auth/get-session', '/v1/health'])(
     'passes the same-origin API proxy route %s through without app auth routing',
     async (pathname) => {

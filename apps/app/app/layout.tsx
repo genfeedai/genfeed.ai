@@ -45,12 +45,14 @@ export const viewport: Viewport = pwaConfig.viewport;
 function createRuntimeConfigScript(): string {
   const config = {
     apiEndpoint: process.env.NEXT_PUBLIC_API_ENDPOINT,
-    betterAuthEnabled: isBetterAuthEnabled(),
+    ...(process.env.GENFEED_RUNTIME_CONFIG_ENDPOINT === '1'
+      ? {}
+      : { betterAuthEnabled: isBetterAuthEnabled() }),
   };
 
-  return `globalThis.__GENFEED_RUNTIME_CONFIG__=${JSON.stringify(
+  return `globalThis.__GENFEED_RUNTIME_CONFIG__=Object.assign(${JSON.stringify(
     config,
-  ).replaceAll('<', '\\u003c')};`;
+  ).replaceAll('<', '\\u003c')}, globalThis.__GENFEED_RUNTIME_CONFIG__||{});`;
 }
 
 export default function RootLayout({ children }: LayoutProps) {

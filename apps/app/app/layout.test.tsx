@@ -1,13 +1,19 @@
 import '@testing-library/jest-dom/vitest';
+import * as authConfig from '@genfeedai/auth-client/server';
 import { render, screen } from '@testing-library/react';
 import type { CreateAppMetadataOptions } from '@ui/shell/metadata';
-import type { ReactNode } from 'react';
+import { JSDOM } from 'jsdom';
+import type { ReactElement, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const appProvidersSpy = vi.fn();
 const htmlDocumentSpy = vi.fn();
 const headersMock = vi.fn(async () => new Headers());
 const runtimeConfigSpy = vi.fn();
+const insertHTML = vi.hoisted(() => vi.fn());
+
+vi.mock('next/navigation', () => ({ useServerInsertedHTML: insertHTML }));
+vi.mock('next/server', () => ({ connection: vi.fn(async () => undefined) }));
 
 vi.mock('./styles.css', () => ({}));
 
@@ -110,6 +116,7 @@ describe('app root layout', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllEnvs();
     if (originalDesktopShellEnv === undefined) {
       delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
@@ -118,6 +125,68 @@ describe('app root layout', () => {
 
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = originalDesktopShellEnv;
   });
+
+  it.each([
+    { flag: undefined, runtimeFirst: true },
+    { flag: undefined, runtimeFirst: false },
+    { flag: '1', runtimeFirst: true },
+    { flag: '1', runtimeFirst: false },
+  ])(
+    'preserves runtime auth and bootstrap fields (flag=$flag, runtimeFirst=$runtimeFirst)',
+    async ({ flag, runtimeFirst }) => {
+      vi.stubEnv('GENFEED_RUNTIME_CONFIG_ENDPOINT', flag);
+      vi.stubEnv('NEXT_PUBLIC_API_ENDPOINT', '/v1');
+      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '0');
+      vi.stubEnv('BETTER_AUTH_ENABLED', 'true');
+      vi.stubEnv('NEXT_PUBLIC_BETTER_AUTH_ENABLED', 'false');
+      vi.spyOn(authConfig, 'isBetterAuthEnabled').mockReturnValue(false);
+      const { default: RootLayout } = await import('./layout');
+      const { GET } = await import('./runtime-config.js/route');
+      const { default: RuntimeConfigScript } = await vi.importActual<
+        typeof import('@/components/runtime/RuntimeConfigScript')
+      >('@/components/runtime/RuntimeConfigScript');
+
+      render(RootLayout({ children: <div>App child</div> } as never));
+      const inlineSource = runtimeConfigSpy.mock.calls[0][0] as string;
+      if (flag === '1') {
+        expect(inlineSource).not.toContain('betterAuthEnabled');
+      } else {
+        expect(inlineSource).toContain('"betterAuthEnabled":false');
+      }
+
+      let bootstrapSource = '';
+      insertHTML.mockImplementation(
+        (
+          insert: () => ReactElement<{
+            dangerouslySetInnerHTML: { __html: string };
+          }> | null,
+        ) => {
+          bootstrapSource =
+            insert()?.props.dangerouslySetInnerHTML.__html ?? '';
+        },
+      );
+      render(<RuntimeConfigScript source={inlineSource} />);
+      expect(bootstrapSource).not.toBe('');
+      const runtimeSource = await (await GET()).text();
+      expect(runtimeSource).toContain('"betterAuthEnabled":true');
+      const dom = new JSDOM('', { runScripts: 'outside-only' });
+      try {
+        const scripts = runtimeFirst
+          ? [runtimeSource, bootstrapSource]
+          : [bootstrapSource, runtimeSource];
+        for (const source of scripts) dom.window.eval(source);
+        expect(
+          dom.window.eval('globalThis.__GENFEED_RUNTIME_CONFIG__'),
+        ).toEqual({
+          apiEndpoint: '/v1',
+          betterAuthEnabled: true,
+          clientSurface: 'web',
+        });
+      } finally {
+        dom.window.close();
+      }
+    },
+  );
 
   it.each(['1', '0', 'true', '', undefined])(
     'renders the blocking runtime override only for flag 1 (flag=%s)',
