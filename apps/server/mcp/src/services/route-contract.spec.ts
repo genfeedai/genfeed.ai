@@ -321,6 +321,14 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     controller: 'agentTools',
     tools: ['get_content_analytics'],
   },
+  // onboard_brand is MCP-only; each action proxies onto an onboarding agent
+  // tool through the same execute route (#6268).
+  {
+    method: 'Post',
+    sub: ':name/execute',
+    controller: 'agentTools',
+    tools: ['onboard_brand'],
+  },
 
   // ── Agent chat ──
   {
