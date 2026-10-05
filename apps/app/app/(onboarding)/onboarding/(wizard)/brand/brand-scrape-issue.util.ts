@@ -1,10 +1,7 @@
 import { BrandScrapeErrorCode } from '@genfeedai/contracts';
+import { isObjectLike } from '@genfeedai/utils/data/extract.util';
 
 const KNOWN_CODES = new Set<string>(Object.values(BrandScrapeErrorCode));
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
 
 /**
  * Reads the stable `BrandScrapeErrorCode` a rejected `/brands/:id/scrape`
@@ -16,11 +13,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function extractBrandScrapeErrorCode(
   error: unknown,
 ): string | undefined {
-  if (!isRecord(error) || !Array.isArray(error.errors)) {
+  if (!isObjectLike(error) || !Array.isArray(error.errors)) {
     return undefined;
   }
   const first = error.errors[0];
-  return isRecord(first) && typeof first.code === 'string'
+  return isObjectLike(first) && typeof first.code === 'string'
     ? first.code
     : undefined;
 }
@@ -48,7 +45,7 @@ export function resolveBrandScrapeIssueCode(
  * review).
  */
 function isClientTimeoutError(error: unknown): boolean {
-  return isRecord(error) && error.isTimeout === true;
+  return isObjectLike(error) && error.isTimeout === true;
 }
 
 /**

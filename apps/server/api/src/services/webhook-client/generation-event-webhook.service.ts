@@ -9,6 +9,7 @@ import {
   generationWebhookPayloadSchema,
   redactGenerationWebhookText,
 } from '@genfeedai/contracts/api-types/contracts/generation-webhook-events.contract';
+import { readNonBlankStringOrNull } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import {
@@ -144,17 +145,13 @@ function buildGenerationError(input: GenerationWebhookFailureInput) {
 function buildGenerationOutput(
   input: GenerationWebhookOutcomeInput,
 ): GenerationWebhookOutput | null {
-  const mimeType = readString(input.output?.mimeType);
-  const storageKey = readString(input.output?.storageKey);
-  const url = readString(input.output?.url);
+  const mimeType = readNonBlankStringOrNull(input.output?.mimeType);
+  const storageKey = readNonBlankStringOrNull(input.output?.storageKey);
+  const url = readNonBlankStringOrNull(input.output?.url);
 
   if (!mimeType && !storageKey && !url) {
     return null;
   }
 
   return { mimeType, storageKey, url };
-}
-
-function readString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value : null;
 }

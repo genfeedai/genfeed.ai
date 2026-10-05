@@ -3,6 +3,7 @@ import {
   IngredientStatus,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import type {
   BatchExecution,
   BatchExecutionItem,
@@ -20,12 +21,6 @@ type ChildResultEntry = {
   result?: Record<string, unknown>;
   status?: string;
 };
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
 
 function optionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;

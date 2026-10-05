@@ -5,7 +5,6 @@ import type {
 import {
   asDate,
   asNumber,
-  asRecord,
   asString,
   serializeDate,
 } from '@api/collections/content-plans/utils/content-plan-data.util';
@@ -17,6 +16,7 @@ import {
   type ContentPlanItem as PrismaContentPlanItem,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { readRecordCopy } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -207,7 +207,7 @@ export class ContentPlanItemsService {
   }
 
   private toDocument(doc: PrismaContentPlanItem): ContentPlanItemDocument {
-    const data = asRecord(doc.data);
+    const data = readRecordCopy(doc.data);
 
     return {
       ...doc,
@@ -242,7 +242,7 @@ export class ContentPlanItemsService {
     >,
     existingData?: unknown,
   ): Record<string, unknown> {
-    const payload = asRecord(existingData);
+    const payload = readRecordCopy(existingData);
 
     if (data.type !== undefined) {
       payload.type = data.type;

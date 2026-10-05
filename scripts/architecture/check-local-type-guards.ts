@@ -3,7 +3,8 @@
  *
  * `isRecord`, `readString`, `readRecord` and `asRecord` (plus their variants
  * `readNonEmptyString`, `readNonBlankString`, `readRawString`,
- * `readRecordOrNull`, `readRecordOrUndefined`) live in
+ * `readRecordOrNull`, `readRecordOrUndefined`, `isObjectLike`, `readRecordCopy` and the
+ * `*OrNull` string readers) live in
  * `@genfeedai/utils/data/extract.util`. Re-declaring them lets copies drift on
  * array, null and trimming handling.
  *
@@ -48,6 +49,11 @@ export const GUARDED_HELPER_NAMES = [
   'readRecord',
   'readRecordOrNull',
   'readRecordOrUndefined',
+  'isObjectLike',
+  'readNonEmptyStringOrNull',
+  'readTrimmedStringOrNull',
+  'readNonBlankStringOrNull',
+  'readRecordCopy',
 ] as const;
 
 // function, const/let/var and arrow-function declarations.

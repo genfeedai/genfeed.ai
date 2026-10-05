@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type {
   ScheduledReleaseControlAction,
   ValidateSchedulerTargetInput,
@@ -212,10 +213,6 @@ function updateChanges(
   }
 
   return changes;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function requiredNonEmptyRecord(

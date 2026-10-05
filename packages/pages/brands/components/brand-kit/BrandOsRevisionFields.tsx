@@ -2,6 +2,7 @@
 
 import type { IBrandKitAssetCandidate } from '@genfeedai/contracts/interfaces';
 import { BRAND_KIT_FIELD_OWNERSHIP } from '@genfeedai/contracts/interfaces';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type {
   BrandOsRevisionFieldsProps,
   BrandOsValueEditorProps,
@@ -12,10 +13,6 @@ import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function ValueEditor({
   label,

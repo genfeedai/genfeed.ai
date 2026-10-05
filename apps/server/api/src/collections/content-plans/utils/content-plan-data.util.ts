@@ -1,11 +1,3 @@
-export function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-
-  return { ...(value as Record<string, unknown>) };
-}
-
 export function asNumber(value: unknown): number | undefined;
 export function asNumber(value: unknown, fallback: number): number;
 export function asNumber(

@@ -1,26 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 
-import {
-  assertArticleOwnershipIds,
-  readNonEmptyString,
-} from './article-input-boundary.util';
+import { assertArticleOwnershipIds } from './article-input-boundary.util';
 
 describe('article-input-boundary.util', () => {
-  describe('readNonEmptyString', () => {
-    it('returns non-empty strings unchanged', () => {
-      expect(readNonEmptyString('article-slug')).toBe('article-slug');
-      expect(readNonEmptyString('   ')).toBe('   ');
-    });
-
-    it.each([undefined, null, '', 42, false, {}])(
-      'returns undefined for %p',
-      (value) => {
-        expect(readNonEmptyString(value)).toBeUndefined();
-      },
-    );
-  });
-
   describe('assertArticleOwnershipIds', () => {
     it('accepts non-blank ownership identifiers', () => {
       expect(() =>

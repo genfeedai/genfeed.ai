@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { cache } from 'react';
 
 /**
@@ -96,9 +97,6 @@ async function fetchJson(path: string): Promise<unknown> {
 
   return await response.json();
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const asString = (value: unknown): string =>
   typeof value === 'string' ? value : '';

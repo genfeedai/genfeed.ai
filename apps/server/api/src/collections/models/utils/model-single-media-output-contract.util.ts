@@ -1,5 +1,5 @@
 import type { SingleMediaOutputContractResult } from '@api/collections/models/utils/model-provider-output-contract.interface';
-import { isRecord } from '@libs/utils/provider-contract.util';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 const UNSUPPORTED_COMPOSITION = [
   '$ref',

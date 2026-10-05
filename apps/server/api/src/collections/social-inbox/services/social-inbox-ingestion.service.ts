@@ -6,7 +6,6 @@ import type {
   SocialMessageDocument,
 } from '@api/collections/social-inbox/schemas/social-inbox.schema';
 import {
-  asRecord,
   boundLimit,
   clamp,
   getAvailability,
@@ -44,6 +43,7 @@ import {
   CredentialPlatform as PrismaCredentialPlatform,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { isObjectLike, readRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -73,12 +73,8 @@ function accountFieldsFromCredential(
   };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
 function isProviderRateLimit(error: unknown): boolean {
-  if (!isRecord(error)) {
+  if (!isObjectLike(error)) {
     return false;
   }
 
@@ -93,7 +89,7 @@ function isProviderRateLimit(error: unknown): boolean {
     message.includes('429') ||
     message.includes('rate limit') ||
     message.includes('too many requests') ||
-    isRecord(error.rateLimit)
+    isObjectLike(error.rateLimit)
   );
 }
 
@@ -1484,7 +1480,7 @@ export class SocialInboxIngestionService {
       if (!freshConversation) {
         return;
       }
-      const freshMetadata = asRecord(freshConversation.metadata);
+      const freshMetadata = readRecord(freshConversation.metadata);
 
       await transaction.socialConversation.updateMany({
         data: {

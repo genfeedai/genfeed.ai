@@ -5,6 +5,7 @@ import {
 } from '@genfeedai/agent/dashboard/dashboard-openui';
 import { useAgentDashboardStore } from '@genfeedai/agent/stores/agent-dashboard.store';
 import type { AgentDashboardOperation } from '@genfeedai/contracts/interfaces';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 function normalizeDashboardOperation(
   operation: AgentDashboardOperation | string,
@@ -38,10 +39,6 @@ function isOpenUIDocumentPayload(blocks?: unknown): boolean {
     !Array.isArray(blocks) &&
     ('components' in blocks || 'version' in blocks)
   );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 // Bounds the `{ blocks }` unwrap so circular or deeply nested payloads fail

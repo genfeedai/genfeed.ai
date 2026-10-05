@@ -46,6 +46,10 @@ export default defineConfig({
         ),
       },
       {
+        find: /^@genfeedai\/utils\/(.*)$/,
+        replacement: path.resolve(mcpDir, '../../../packages/utils/$1'),
+      },
+      {
         find: /^@genfeedai\/ui\/(.*)$/,
         replacement: path.resolve(mcpDir, '../../../packages/ui/src/$1'),
       },

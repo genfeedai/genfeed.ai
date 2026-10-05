@@ -17,22 +17,22 @@ type GuardedArgs = {
   where?: Where;
 };
 
-function isRecord(value: unknown): value is Where {
+function isWhereRecord(value: unknown): value is Where {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function asList(value: unknown): Where[] {
-  return (Array.isArray(value) ? value : [value]).filter(isRecord);
+  return (Array.isArray(value) ? value : [value]).filter(isWhereRecord);
 }
 
 function matchesField(actual: unknown, expected: unknown): boolean {
-  if (!isRecord(expected)) {
+  if (!isWhereRecord(expected)) {
     return actual === expected;
   }
   if (Array.isArray(expected.path)) {
     const value = expected.path.reduce<unknown>(
       (current, segment) =>
-        isRecord(current) ? current[String(segment)] : undefined,
+        isWhereRecord(current) ? current[String(segment)] : undefined,
       actual,
     );
     if ('gt' in expected) {
