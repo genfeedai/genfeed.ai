@@ -5,6 +5,7 @@ import process from 'node:process';
 import {
   BRAND_FIDELITY_HARNESS_PACK,
   CORE_CONTENT_HARNESS_PACK,
+  type ComposeContentHarnessBriefOptions,
   type ContentHarnessActivationReport,
   type ContentHarnessBrief,
   type ContentHarnessContribution,
@@ -122,9 +123,12 @@ export class ContentHarnessService implements OnModuleInit {
     await this.getRegistryLoad();
   }
 
-  async composeBrief(input: ContentHarnessInput): Promise<ContentHarnessBrief> {
+  async composeBrief(
+    input: ContentHarnessInput,
+    options?: ComposeContentHarnessBriefOptions,
+  ): Promise<ContentHarnessBrief> {
     const registry = await this.getRegistry();
-    return await composeContentHarnessBrief(registry, input);
+    return await composeContentHarnessBrief(registry, input, options);
   }
 
   async composeBriefLayers(

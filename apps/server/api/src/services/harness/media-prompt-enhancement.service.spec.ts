@@ -338,6 +338,17 @@ describe('MediaPromptEnhancementService', () => {
     );
   });
 
+  it.each(['image', 'video'] as const)(
+    'requests only media-applicable packs for %s prompts',
+    async (contentType) => {
+      const { service, harness } = setup();
+      await service.enhance({ ...input, contentType });
+      expect(harness.resolveBrief).toHaveBeenCalledWith(
+        expect.objectContaining({ contentType, surface: 'media' }),
+      );
+    },
+  );
+
   describe('copywriting harness rules', () => {
     const LEAKED_RULES = [
       'Attach to demand that already exists',

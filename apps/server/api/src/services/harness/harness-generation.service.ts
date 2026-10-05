@@ -58,6 +58,7 @@ import type {
 } from '@genfeedai/harness';
 import {
   type ContentHarnessBrief,
+  type ContentHarnessSurface,
   type ContentKind,
   type ContentObjective,
   type HarnessSourceRecord,
@@ -95,6 +96,11 @@ export type ResolveHarnessBriefParams = {
   organizationId: string;
   persona?: PersonaSource | null;
   platform?: string;
+  /**
+   * `media` composes only packs applicable to image, video and audio prompts;
+   * copywriting packs are left out. Absent means every pack.
+   */
+  surface?: ContentHarnessSurface;
   topic?: string;
 };
 
@@ -727,6 +733,7 @@ export class HarnessGenerationService {
           persona: params.persona,
           profileContribution: profile?.contribution,
         }),
+        params.surface ? { surface: params.surface } : undefined,
       );
       // Operator-only receipt: pack IDs and versions, never pack contents.
       this.logger.log(`${this.constructorName} applied content harness packs`, {
