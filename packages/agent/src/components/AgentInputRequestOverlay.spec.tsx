@@ -79,7 +79,7 @@ describe('AgentInputRequestOverlay', () => {
         })}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Skip', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: /^Skip$/ }));
     expect(onSubmit).toHaveBeenCalledWith('Skip', ['skip']);
   });
 
