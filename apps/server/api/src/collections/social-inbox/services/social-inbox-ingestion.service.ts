@@ -1437,7 +1437,7 @@ export class SocialInboxIngestionService {
         data: {
           automationState: 'failed',
           metadata: {
-            ...asRecord(freshConversation.metadata),
+            ...readRecord(freshConversation.metadata),
             workflowTriggerError: errorMessage,
             workflowTriggerFailedAt: new Date().toISOString(),
           } as Prisma.InputJsonValue,

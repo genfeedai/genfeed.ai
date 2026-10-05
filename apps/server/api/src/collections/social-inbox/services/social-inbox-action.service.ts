@@ -219,7 +219,7 @@ export class SocialInboxActionService implements OnModuleInit {
     await this.prisma.socialMessage.update({
       data: {
         actionProvenance: {
-          ...asRecord(draft.actionProvenance),
+          ...readRecord(draft.actionProvenance),
           approvedAt: new Date().toISOString(),
           approvedBy: scope.userId,
           approvedMessageId: sent.id,
@@ -248,7 +248,7 @@ export class SocialInboxActionService implements OnModuleInit {
     const rejected = await this.prisma.socialMessage.update({
       data: {
         actionProvenance: {
-          ...asRecord(draft.actionProvenance),
+          ...readRecord(draft.actionProvenance),
           rejectedAt: new Date().toISOString(),
           rejectedBy: scope.userId,
         } as Prisma.InputJsonValue,
