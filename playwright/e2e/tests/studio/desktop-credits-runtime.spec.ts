@@ -1,4 +1,5 @@
 import { RouterPriority } from '@genfeedai/contracts';
+import type { ThemePreference } from '@genfeedai/contracts/constants';
 import { APP_ROUTES, MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type {
   IDesktopBootstrap,
@@ -6,6 +7,10 @@ import type {
   IDesktopSession,
   IGenfeedDesktopBridge,
 } from '@genfeedai/contracts/desktop';
+import type {
+  AgentGenerationQuote,
+  ISetting,
+} from '@genfeedai/contracts/interfaces';
 import type { BrowserContext, Page } from '@playwright/test';
 import { test as authenticatedTest, expect } from '../../fixtures/auth.fixture';
 import { buildProtectedAppBootstrapPayload } from '../../utils/api-interceptor';
@@ -42,6 +47,10 @@ interface DesktopNetworkObservation {
   walletRequests: number;
   generationRequests: number;
   pageErrors: string[];
+}
+interface ComposerFixtureOptions {
+  quote?: AgentGenerationQuote;
+  theme?: ThemePreference;
 }
 const test = authenticatedTest.extend<{
   desktopRuntime: DesktopFixtureOptions;
@@ -188,8 +197,15 @@ async function installBridge(
     { context, pending },
   );
 }
-async function mockComposer(page: Page) {
+async function mockComposer(page: Page, options: ComposerFixtureOptions = {}) {
   const key = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
+  if (options.quote) {
+    // RouterService reads the raw quote body, without a JSON:API wrapper.
+    await page.route(
+      '**/v1/router/estimate-generation-credits',
+      async (route) => route.fulfill({ json: options.quote }),
+    );
+  }
   await page.route('**/v1/models**', async (route) =>
     route.fulfill({
       json: {
@@ -217,6 +233,11 @@ async function mockComposer(page: Page) {
   );
   await page.route('**/v1/auth/bootstrap**', async (route) => {
     const bootstrap = buildProtectedAppBootstrapPayload();
+    if (options.theme) {
+      // Account preference sync overrides localStorage after hydration.
+      const settings = bootstrap.currentUser.settings as ISetting;
+      bootstrap.currentUser.settings = { ...settings, theme: options.theme };
+    }
     await route.fulfill({
       json: {
         ...bootstrap,
@@ -284,7 +305,14 @@ for (const theme of ['light', 'dark'] as const)
           (theme) => localStorage.setItem('theme', theme),
           theme,
         );
-        await mockComposer(page);
+        await mockComposer(page, {
+          quote: {
+            credits: 8,
+            isAvailable: true,
+            modelKey: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+          },
+          theme,
+        });
         let walletRequests = 0;
         let releaseWallet!: () => void;
         await page.route('**/v1/credits/topbar-balances**', async (route) => {
