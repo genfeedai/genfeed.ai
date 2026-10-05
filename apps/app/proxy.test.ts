@@ -1019,15 +1019,23 @@ describe('proxy', () => {
       },
     );
 
-    it('leaves signed-out visitors on the classic wizard route untouched', async () => {
-      mockIncompleteUser();
+    // The web onboarding layout renders nothing behind its auth gate, so a
+    // signed-out visitor (an onboarding email CTA opened in a fresh browser)
+    // must reach login instead of a permanent blank page.
+    it.each(['/onboarding', '/onboarding/brand'])(
+      'sends a signed-out web visitor on %s to login',
+      async (pathname) => {
+        mockIncompleteUser();
 
-      const { default: proxy } = await import('./proxy');
-      const response = await proxy(makeSignedOutRequest('/onboarding/brand'));
+        const { default: proxy } = await import('./proxy');
+        const response = await proxy(makeSignedOutRequest(pathname));
+        const location = response.headers.get('location');
 
-      expect(response.headers.get('location')).toBeNull();
-      expect(fetchMock).not.toHaveBeenCalled();
-    });
+        expect(location).not.toBeNull();
+        expect(new URL(location ?? '').pathname).toBe('/login');
+        expect(fetchMock).not.toHaveBeenCalled();
+      },
+    );
 
     it('renders the classic wizard for the desktop client on a self-hosted install', async () => {
       vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'true');
