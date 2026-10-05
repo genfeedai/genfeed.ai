@@ -322,7 +322,10 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
     outputSchema: GENERATED_PATTERN_STATE,
   },
   'content-intelligence.load-context': {
-    inputSchema: closedObjectSchema({ dto: JSON_DOCUMENT_SCHEMA }, ['dto']),
+    inputSchema: closedObjectSchema(
+      { dto: JSON_DOCUMENT_SCHEMA, requireBrandHarness: BOOLEAN_SCHEMA },
+      ['dto'],
+    ),
     outputSchema: CONTENT_CONTEXT,
   },
   'content-intelligence.load-patterns': {

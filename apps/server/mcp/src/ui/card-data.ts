@@ -10,7 +10,7 @@ import type {
 } from '@mcp/shared/interfaces/mcp-app.interface';
 
 // Bump the version whenever the view changes: hosts cache templates by URI.
-export const MCP_CARD_RESOURCE_URI = 'ui://genfeed/content-cards-v2.html';
+export const MCP_CARD_RESOURCE_URI = 'ui://genfeed/content-cards-v3.html';
 export const MCP_APP_MIME_TYPE = 'text/html;profile=mcp-app';
 
 /** Statuses of a media job that has not produced its output yet. */
@@ -191,7 +191,7 @@ function card(row: Record<string, unknown>, kind: McpCardKind): McpCard {
     ),
     title: (
       text(row, 'title', 'label', 'name') ||
-      `${kind.charAt(0).toUpperCase()}${kind.slice(1)}`
+      `${resolvedKind.charAt(0).toUpperCase()}${resolvedKind.slice(1)}`
     ).slice(0, 240),
     url,
   };

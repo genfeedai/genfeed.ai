@@ -696,12 +696,12 @@ export class ContentGeneratorService implements OnModuleInit {
       );
 
       return {
-        body: parsed.body ?? undefined,
+        ...(parsed.body != null ? { body: parsed.body } : {}),
         content: parsed.content,
-        cta: parsed.cta ?? undefined,
+        ...(parsed.cta != null ? { cta: parsed.cta } : {}),
         hashtags: dto.hashtags ?? extractHashtags(parsed.content),
-        hook: parsed.hook ?? undefined,
-        patternId: pattern.id?.toString(),
+        ...(parsed.hook != null ? { hook: parsed.hook } : {}),
+        ...(pattern.id ? { patternId: pattern.id.toString() } : {}),
         patternUsed: pattern.extractedFormula ?? 'pattern',
       };
     } catch (error: unknown) {
@@ -886,7 +886,7 @@ Return one variation per post.`;
     return {
       content,
       hashtags: dto.hashtags ?? [],
-      patternId: pattern.id?.toString(),
+      ...(pattern.id ? { patternId: pattern.id.toString() } : {}),
       patternUsed: pattern.extractedFormula ?? 'pattern',
     };
   }

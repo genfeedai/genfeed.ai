@@ -45,7 +45,7 @@ export function cardAppScript(origins: readonly string[]): string {
   }
   function applyContext(context) {
     if (!context) return;
-    if (['light', 'dark'].includes(context.theme)) document.body.dataset.theme = context.theme;
+    if (['light', 'dark'].includes(context.theme)) { document.body.dataset.theme = context.theme; document.documentElement.style.colorScheme = context.theme; }
     if (Array.isArray(context.availableDisplayModes)) displayModes = context.availableDisplayModes;
   }
   function element(tag, className, text) {
@@ -130,7 +130,7 @@ export function cardAppScript(origins: readonly string[]): string {
       if (item.kind === 'video') { media.playsInline = true; const poster = mediaUrl(item.thumbnailUrl); if (poster) media.poster = poster; }
     } else return null;
     media.src = preview;
-    media.addEventListener('error', () => { (wrapper || media).remove(); copy.append(element('p', 'notice', 'Preview unavailable. Open the media link to view it.')); resize(); }, { once: true });
+    media.addEventListener('error', () => { (wrapper || media).remove(); const expand = copy.querySelector('.media-actions button'); if (expand) expand.remove(); copy.append(element('p', 'notice', 'Preview unavailable. Open the media link to view it.')); resize(); }, { once: true });
     media.addEventListener('load', resize); media.addEventListener('loadedmetadata', resize);
     return wrapper || media;
   }
@@ -159,7 +159,8 @@ export function cardAppScript(origins: readonly string[]): string {
     const isStale = () => isDisposed || epoch !== renderEpoch || !article.isConnected;
     // The card is not attached yet on the first call, so only the epoch is
     // checked here; connection is re-checked when the timer fires.
-    if (isDisposed || epoch !== renderEpoch || !item.id) return;
+    if (isDisposed || epoch !== renderEpoch) return;
+    if (!item.id) { stopPolling(article); return; }
     if (attempt >= ${JOB_POLL_MAX_ATTEMPTS}) { stopPolling(article); return; }
     const timer = setTimeout(() => {
       pollTimers.delete(timer);
@@ -177,10 +178,42 @@ export function cardAppScript(origins: readonly string[]): string {
     pollTimers.add(timer);
   }
   function renderMediaCard(item, attempt = 0) {
-    const article = element('article', 'card');
+    const isMedia = ['image', 'video', 'audio', 'media'].includes(item.kind);
+    const article = element('article', isMedia ? 'card media-card' : 'card');
     const copy = element('div', 'copy');
     if (item.isPending) article.append(pendingElement(item));
-    else { const media = mediaElement(item, copy); if (media) article.append(media); }
+    else {
+      const media = mediaElement(item, copy);
+      if (media) {
+        const preview = element('div', 'media-preview'); preview.append(media); article.append(preview);
+      }
+    }
+    if (isMedia) {
+      const toolbar = element('div', 'media-toolbar');
+      toolbar.append(element('h2', '', item.title));
+      const actions = element('div', 'media-actions');
+      const zoom = article.querySelector('button.zoom');
+      if (zoom) {
+        const expand = element('button', 'gf-button gf-button-secondary', 'Expand'); expand.type = 'button';
+        expand.setAttribute('aria-label', 'Expand ' + item.title);
+        expand.addEventListener('click', () => openLightbox(mediaUrl(item.url) || mediaUrl(item.thumbnailUrl), item.title, expand));
+        actions.append(expand);
+      }
+      const url = safeUrl(item.url) || (item.kind === 'image' ? safeUrl(item.thumbnailUrl) : null);
+      if (url) {
+        const link = linkTo(url, 'Open ' + item.kind + ' ↗'); link.className = 'gf-button gf-button-secondary'; actions.append(link);
+      }
+      toolbar.append(actions); copy.append(toolbar);
+      // Status matters while waiting or on failure; a completed preview speaks for itself.
+      if (!item.isPending && item.status && !['generated', 'completed', 'ready', 'uploaded', 'validated'].includes(item.status.toLowerCase())) copy.append(element('p', 'notice', item.status));
+      if (item.description) {
+        const details = element('details'); details.append(element('summary', '', 'Details'), element('p', 'description', item.description));
+        details.addEventListener('toggle', resize); copy.append(details);
+      }
+      article.append(copy);
+      if (item.isPending) pollJob(item, article, attempt);
+      return article;
+    }
     copy.append(element('div', 'meta', [item.kind, item.platform, item.status].filter(Boolean).join(' · ')));
     copy.append(element('h2', '', item.title));
     description(item, copy);
@@ -220,7 +253,7 @@ export function cardAppScript(origins: readonly string[]): string {
     }
     const url = safeUrl(item.url);
     if (url) copy.append(linkTo(url, 'Open published post ↗'));
-    if (copy.childNodes.length) article.append(copy);
+    if (copy.childNodes.length || media) article.append(copy);
     return article;
   }
   function localDayKey(date) {
@@ -283,6 +316,7 @@ export function cardAppScript(origins: readonly string[]): string {
     if (isDisposed) return;
     clearPolls(); closeLightbox();
     root.replaceChildren(); root.className = ''; summary.replaceChildren(); document.getElementById('footer').textContent = '';
+    document.body.classList.remove('media-view'); document.querySelector('header').hidden = false;
     const view = result && result.structuredContent && result.structuredContent.genfeedCards;
     if (!result || result.isError || !view || !Array.isArray(view.cards)) {
       const content = result && Array.isArray(result.content) ? result.content : [];
@@ -290,6 +324,7 @@ export function cardAppScript(origins: readonly string[]): string {
       resize(); return;
     }
     document.getElementById('title').textContent = view.title || 'Genfeed content';
+    document.body.classList.toggle('media-view', view.layout === 'media'); document.querySelector('header').hidden = view.layout === 'media';
     if (view.layout === 'calendar') { renderCalendar(view); resize(); return; }
     root.className = view.layout === 'posts' ? 'posts' : '';
     notice.textContent = view.cards.length ? '' : 'No content found.';
@@ -322,7 +357,7 @@ export function cardAppScript(origins: readonly string[]): string {
     else if (message.id !== undefined && message.method) send({ id: message.id, error: { code: -32601, message: 'Method not supported' } });
   }
   window.addEventListener('message', onMessage);
-  request('ui/initialize', { appInfo: { name: 'Genfeed content cards', version: '2.0.0' }, appCapabilities: { availableDisplayModes: ['inline', 'fullscreen'] }, protocolVersion: '2026-01-26' }).then(result => {
+  request('ui/initialize', { appInfo: { name: 'Genfeed content cards', version: '3.0.0' }, appCapabilities: { availableDisplayModes: ['inline', 'fullscreen'] }, protocolVersion: '2026-01-26' }).then(result => {
     if (isDisposed) return;
     applyContext(result.hostContext); isInitialized = true;
     send({ method: 'ui/notifications/initialized', params: {} });

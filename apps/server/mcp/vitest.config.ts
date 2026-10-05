@@ -19,6 +19,20 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^@genfeedai\/actions$/,
+        replacement: path.resolve(
+          mcpDir,
+          '../../../packages/actions/src/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/helpers$/,
+        replacement: path.resolve(
+          mcpDir,
+          '../../../packages/helpers/src/index.ts',
+        ),
+      },
+      {
         find: /^@genfeedai\/contracts\/(.*)$/,
         replacement: path.resolve(mcpDir, '../../../packages/contracts/src/$1'),
       },

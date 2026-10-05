@@ -28,7 +28,7 @@ describe('media artifact helper', () => {
       expect(result.structuredContent.data.generationHarness).toEqual(receipt);
     },
   );
-  it('exposes a resource link for native image rendering plus structured metadata and text fallback', () => {
+  it('exposes a resource link without claiming native image content', () => {
     const result = toMcpMediaToolResult({
       id: 'img-1',
       kind: 'image',
@@ -52,9 +52,27 @@ describe('media artifact helper', () => {
       expect.objectContaining({
         id: 'img-1',
         kind: 'image',
-        renderMode: 'native_image',
+        renderMode: 'resource_link',
       }),
     );
+  });
+
+  it('does not invent a PNG MIME type for extensionless image URLs', () => {
+    const artifact = serializeMediaArtifact({
+      id: 'img-jpeg',
+      kind: 'image',
+      status: 'GENERATED',
+      url: 'https://cdn.genfeed.ai/ingredients/images/img-jpeg',
+    });
+    expect(artifact?.mimeType).toBeUndefined();
+    expect(artifact?.renderMode).toBe('resource_link');
+    expect(
+      serializeMediaArtifact({
+        id: 'img-jpeg',
+        kind: 'image',
+        mimeType: 'image/jpeg',
+      })?.mimeType,
+    ).toBe('image/jpeg');
   });
 
   it('returns a file link for video without claiming inline playback', () => {
