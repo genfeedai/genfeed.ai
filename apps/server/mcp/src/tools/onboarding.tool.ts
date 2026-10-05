@@ -3,16 +3,27 @@ export const ONBOARDING_TOOL_NAMES: ReadonlySet<string> = new Set([
   'onboard_brand',
 ]);
 
+/**
+ * The API caps a brand scan at 45 s (`SignupPrefillService`); the proxy waits
+ * longer so the result gate also fits and a scan that lands is never reported
+ * to the agent as a timeout.
+ */
+export const ONBOARD_BRAND_SCAN_TIMEOUT_MS = 75_000;
+
 const ONBOARD_BRAND_ACTIONS = {
   complete: { agentToolName: 'complete_onboarding', fields: [] },
   save_answers: {
     agentToolName: 'save_onboarding_answers',
     fields: ['brandId', 'goals', 'platforms', 'cadence', 'toneAdjustment'],
   },
-  scan_url: { agentToolName: 'scan_brand_url', fields: ['brandId', 'url'] },
+  scan_url: {
+    agentToolName: 'scan_brand_url',
+    fields: ['brandId', 'url'],
+    timeoutMs: ONBOARD_BRAND_SCAN_TIMEOUT_MS,
+  },
 } as const satisfies Record<
   string,
-  { agentToolName: string; fields: readonly string[] }
+  { agentToolName: string; fields: readonly string[]; timeoutMs?: number }
 >;
 
 type OnboardBrandAction = keyof typeof ONBOARD_BRAND_ACTIONS;
@@ -20,6 +31,7 @@ type OnboardBrandAction = keyof typeof ONBOARD_BRAND_ACTIONS;
 export interface OnboardBrandAgentCall {
   agentToolName: string;
   parameters: Record<string, unknown>;
+  timeoutMs?: number;
 }
 
 function isOnboardBrandAction(value: unknown): value is OnboardBrandAction {
@@ -43,12 +55,20 @@ export function resolveOnboardBrandCall(
     );
   }
 
-  const { agentToolName, fields } = ONBOARD_BRAND_ACTIONS[action];
+  const config: {
+    agentToolName: string;
+    fields: readonly string[];
+    timeoutMs?: number;
+  } = ONBOARD_BRAND_ACTIONS[action];
   const parameters: Record<string, unknown> = {};
-  for (const field of fields) {
+  for (const field of config.fields) {
     if (args[field] !== undefined) {
       parameters[field] = args[field];
     }
   }
-  return { agentToolName, parameters };
+  return {
+    agentToolName: config.agentToolName,
+    parameters,
+    ...(config.timeoutMs ? { timeoutMs: config.timeoutMs } : {}),
+  };
 }

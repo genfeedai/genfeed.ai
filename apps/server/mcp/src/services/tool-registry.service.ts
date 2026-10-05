@@ -440,10 +440,13 @@ export class ToolRegistryService implements OnModuleInit {
         return this.toMcpResult(result);
       }
       case 'onboarding': {
-        const { agentToolName, parameters } = resolveOnboardBrandCall(args);
+        const { agentToolName, parameters, timeoutMs } =
+          resolveOnboardBrandCall(args);
         const result = await this.clientService.executeAgentTool(
           agentToolName,
           parameters,
+          undefined,
+          timeoutMs,
         );
         return this.toMcpResult(result);
       }

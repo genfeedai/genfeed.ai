@@ -376,6 +376,8 @@ describe('ToolRegistryService', () => {
     expect(clientService.executeAgentTool).toHaveBeenLastCalledWith(
       'scan_brand_url',
       { brandId: 'brand-1', url: 'https://acme.example' },
+      undefined,
+      75_000,
     );
 
     await service.handleToolCall({
@@ -385,6 +387,8 @@ describe('ToolRegistryService', () => {
     expect(clientService.executeAgentTool).toHaveBeenLastCalledWith(
       'complete_onboarding',
       {},
+      undefined,
+      undefined,
     );
   });
 

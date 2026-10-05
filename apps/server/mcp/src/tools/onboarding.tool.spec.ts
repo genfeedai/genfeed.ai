@@ -1,4 +1,7 @@
-import { resolveOnboardBrandCall } from '@mcp/tools/onboarding.tool';
+import {
+  ONBOARD_BRAND_SCAN_TIMEOUT_MS,
+  resolveOnboardBrandCall,
+} from '@mcp/tools/onboarding.tool';
 
 describe('resolveOnboardBrandCall', () => {
   it('maps save_answers onto save_onboarding_answers with only its fields', () => {
@@ -30,7 +33,10 @@ describe('resolveOnboardBrandCall', () => {
     ).toEqual({
       agentToolName: 'scan_brand_url',
       parameters: { url: 'acme.example' },
+      timeoutMs: ONBOARD_BRAND_SCAN_TIMEOUT_MS,
     });
+    // The proxy outlives the API's 45 s scan deadline.
+    expect(ONBOARD_BRAND_SCAN_TIMEOUT_MS).toBeGreaterThan(45_000);
     expect(resolveOnboardBrandCall({ action: 'complete' })).toEqual({
       agentToolName: 'complete_onboarding',
       parameters: {},
