@@ -6,7 +6,7 @@ import type {
   IDesktopGenerationProviderPublicConfig,
   IDesktopGenerationProviderTestResult,
 } from '@genfeedai/contracts/desktop';
-import { sleep } from '@genfeedai/helpers';
+import { sleep } from '@genfeedai/helpers/async/sleep';
 import type { DesktopConfigService } from './config.service';
 
 const PROVIDER_CONFIG_KEY = 'desktop.generation.provider';
