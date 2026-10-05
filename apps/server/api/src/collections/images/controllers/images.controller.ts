@@ -1,11 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
+import { buildImageListAggregate } from '@api/collections/images/controllers/image-list-query.util';
 import { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
-import {
-  IngredientCharacterFilterService,
-  resolveCharacterFilter,
-} from '@api/collections/ingredients/services/ingredient-character-filter.service';
+import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -23,8 +21,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { scopedWhere } from '@api/index';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { ActivityEntityModel, IngredientCategory } from '@genfeedai/contracts';
@@ -110,109 +106,13 @@ export class ImagesController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    // Handle multiple status values (comma-separated)
-    const status = QueryDefaultsUtil.parseStatusFilter(query.status);
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-
-    // Use CollectionFilterUtil for common filtering patterns
-    const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
-    const brandId = tenant.isOrganizationOverride
-      ? tenant.brandId
-      : CollectionFilterUtil.buildBrandFilter(query.brandId, user, 'exists');
-
-    // Use IngredientFilterUtil to build ingredient-specific filters
-    const parentConditions = IngredientFilterUtil.buildParentFilter(
-      query.parentId,
+    const aggregate = await buildImageListAggregate(
+      query,
+      user,
+      tenant,
+      imageCategory,
+      this.characterFilter,
     );
-
-    const folderConditions = IngredientFilterUtil.buildFolderFilter(
-      query.folderId,
-    );
-
-    const trainingFilter = IngredientFilterUtil.buildTrainingFilter(
-      query.trainingId,
-    );
-
-    // Origin narrows the whole list, brand-default images included.
-    const originFilter = IngredientFilterUtil.buildOriginFilter(query.origins);
-
-    const characterFilter = await resolveCharacterFilter(this.characterFilter, {
-      characterIds: query.characters,
-      user: tenant.isOrganizationOverride
-        ? {
-            ...user,
-            organizationId: tenant.organizationId,
-            brandId: tenant.brandId ?? '',
-          }
-        : user,
-    });
-
-    // Build isPublic filter for public gallery (getshareable.app)
-    const isPublicFilter =
-      query.isPublic !== undefined ? { isPublic: query.isPublic } : {};
-
-    const aggregate = {
-      where: {
-        AND: [
-          {
-            OR: [
-              {
-                AND: [
-                  {
-                    organizationId: tenant.organizationId,
-                    category: imageCategory,
-                    isDeleted,
-                    ...(query.isPublic === undefined && scope !== undefined
-                      ? { scope }
-                      : {}),
-                    ...(brandId ? { brandId } : {}),
-                    status,
-                    ...isPublicFilter,
-                  },
-                  folderConditions,
-                  trainingFilter,
-                  ...(Object.keys(parentConditions).length > 0
-                    ? [parentConditions]
-                    : []),
-                ],
-              },
-              // Default images (only when not filtering by isPublic)
-              ...(query.isPublic === undefined
-                ? [
-                    {
-                      AND: [
-                        {
-                          category: imageCategory,
-                          isDefault: true,
-                          isDeleted,
-                          OR: [
-                            {
-                              organizationId: tenant.organizationId,
-                            },
-                            { organizationId: null },
-                          ],
-                          status,
-                          // Filter default images by brand when brand is specified
-                          ...(isEntityId(query.brandId) ? { brandId } : {}),
-                        },
-                        folderConditions,
-                        ...(Object.keys(parentConditions).length > 0
-                          ? [parentConditions]
-                          : []),
-                      ],
-                    },
-                  ]
-                : []),
-            ],
-          },
-          originFilter,
-          characterFilter,
-          IngredientFilterUtil.buildTagFilter(query.tags, query.tagMatch),
-        ],
-      },
-      include: IngredientFilterUtil.buildLibraryTagsInclude(),
-      orderBy: handleQuerySort(query.sort),
-    };
 
     const data = await this.imagesService.findAll(aggregate, options);
     return serializeCollection(

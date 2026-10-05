@@ -5,6 +5,7 @@ import { EditorProjectsService } from '@api/collections/editor-projects/editor-p
 import { type EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
 import { EditorRenderService } from '@api/collections/editor-projects/services/editor-render.service';
 import { RemotionCompositionsService } from '@api/collections/editor-projects/services/remotion-compositions.service';
+import { buildEditorProjectListAggregate } from '@api/collections/editor-projects/utils/editor-project-list-query.util';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -22,7 +23,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
@@ -37,7 +37,6 @@ import type {
   IEditorTrack,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-  SortObject,
 } from '@genfeedai/contracts/interfaces';
 import { EditorProjectSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
@@ -239,22 +238,7 @@ export class EditorProjectsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const aggregate = {
-      where: {
-        ...((tenant.isOrganizationOverride ? tenant.brandId : user.brandId)
-          ? {
-              brandId: tenant.isOrganizationOverride
-                ? tenant.brandId
-                : user.brandId,
-            }
-          : {}),
-        isDeleted: false,
-        organizationId: tenant.organizationId,
-      },
-      orderBy: query.sort
-        ? handleQuerySort(query.sort)
-        : ({ updatedAt: -1 } as SortObject),
-    };
+    const aggregate = buildEditorProjectListAggregate(query, user, tenant);
 
     const data: AggregatePaginateResult<EditorProjectDocument> =
       await this.editorProjectsService.findAll(aggregate, options);

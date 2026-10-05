@@ -1,11 +1,9 @@
 import { Readable } from 'node:stream';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
-import {
-  IngredientCharacterFilterService,
-  resolveCharacterFilter,
-} from '@api/collections/ingredients/services/ingredient-character-filter.service';
+import { IngredientCharacterFilterService } from '@api/collections/ingredients/services/ingredient-character-filter.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { buildVideoListAggregate } from '@api/collections/videos/controllers/video-list-query.util';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
@@ -39,7 +37,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { AuthorizedMediaUrlService } from '@api/services/media-urls/authorized-media-url.service';
@@ -185,78 +182,12 @@ export class VideosController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    // Handle multiple status values (comma-separated)
-    const status = QueryDefaultsUtil.parseStatusFilter(query.status);
-
-    //  KEEP COMMENTS FOR NOW
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-
-    // Use CollectionFilterUtil for common filtering patterns
-    const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
-    const brandId = tenant.isOrganizationOverride
-      ? tenant.brandId
-      : CollectionFilterUtil.buildBrandFilter(query.brandId, user, 'user');
-
-    // Use IngredientFilterUtil to build ingredient-specific filters
-    const folderConditions = IngredientFilterUtil.buildFolderFilter(
-      query.folderId?.toString(),
+    const aggregate = await buildVideoListAggregate(
+      query,
+      user,
+      tenant,
+      this.characterFilter,
     );
-
-    const parentConditions = IngredientFilterUtil.buildParentFilter(
-      query.parentId?.toString(),
-    );
-
-    const trainingFilter = IngredientFilterUtil.buildTrainingFilter(
-      query.trainingId?.toString(),
-    );
-    const searchFilter = CollectionFilterUtil.buildSearchFilter(query.search, [
-      'metadata.label',
-      'metadata.description',
-      'prompt.prompt',
-    ]);
-
-    // Handle format filter based on metadata dimensions
-    // Format is now filtered after metadata lookup
-
-    const characterFilter = await resolveCharacterFilter(this.characterFilter, {
-      characterIds: query.characters,
-      user: tenant.isOrganizationOverride
-        ? {
-            ...user,
-            organizationId: tenant.organizationId,
-            brandId: tenant.brandId ?? '',
-          }
-        : user,
-    });
-
-    const aggregate = {
-      where: {
-        AND: [
-          { organizationId: tenant.organizationId },
-          {
-            ...(brandId ? { brandId } : {}),
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.VIDEO,
-            ),
-            isDeleted,
-            ...(scope !== undefined ? { scope } : {}),
-            status,
-            // ...(isEntityId(query.references)
-            //   ? { references: query.references }
-            //   : {}),
-          },
-          folderConditions,
-          parentConditions,
-          trainingFilter,
-          IngredientFilterUtil.buildOriginFilter(query.origins),
-          characterFilter,
-          IngredientFilterUtil.buildTagFilter(query.tags, query.tagMatch),
-          searchFilter.where,
-        ],
-      },
-      include: IngredientFilterUtil.buildLibraryTagsInclude(),
-      orderBy: handleQuerySort(query.sort),
-    };
 
     const data = await this.videosService.findAll(aggregate, options);
     return serializeCollection(
