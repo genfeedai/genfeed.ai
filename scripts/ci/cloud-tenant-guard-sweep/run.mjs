@@ -15,8 +15,10 @@ import {
   readFileSync,
   writeFileSync,
 } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import process from 'node:process';
+import { pathToFileURL } from 'node:url';
 
 import {
   coverageErrors,
@@ -40,6 +42,16 @@ import {
   sweepOrganizationAndGrants,
 } from './fixture.mjs';
 import { createRequester, requireSuccess } from './http.mjs';
+
+// The repo root does not link every workspace package, so resolve the ones the
+// harness needs through the API workspace, which depends on both.
+const apiWorkspaceRequire = createRequire(
+  new URL('../../../apps/server/api/package.json', import.meta.url),
+);
+
+function importFromApiWorkspace(specifier) {
+  return import(pathToFileURL(apiWorkspaceRequire.resolve(specifier)).href);
+}
 
 const started = performance.now();
 const sweepSignal = AbortSignal.timeout(230_000);
@@ -79,11 +91,12 @@ try {
       'Sweep requires CI=true, GENFEED_CLOUD=true, NODE_ENV=test and the job-local ephemeral test database',
     );
   }
-  const { prisma: client } = await import('@genfeedai/prisma/client');
-  prisma = client;
-  const { getToolsForSurface, isReadOnlyToolName } = await import(
-    '@genfeedai/actions'
+  const { prisma: client } = await importFromApiWorkspace(
+    '@genfeedai/prisma/client',
   );
+  prisma = client;
+  const { getToolsForSurface, isReadOnlyToolName } =
+    await importFromApiWorkspace('@genfeedai/actions');
   const request = createRequester({
     baseUrl: 'http://127.0.0.1:3010',
     records,
