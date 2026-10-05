@@ -14,8 +14,13 @@ import type {
 } from '@workers/interfaces/model-discovery.interface';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
+import {
+  dispatchModelPriceChangeAlert,
+  dispatchModelPricingUnavailableAlert,
+} from '@workers/services/model-pricing-alerts.util';
 import { PlatformMarginService } from '@workers/services/platform-margin.service';
 import {
+  type ReplicateContractSyncResult,
   ReplicateModelContractSyncService,
   type ReplicateSyncModelRecord,
 } from '@workers/services/replicate-model-contract-sync.service';
@@ -101,6 +106,7 @@ export class CronModelWatcherService {
           endpoint: true,
           id: true,
           isActive: true,
+          isFree: true,
           key: true,
           pricingType: true,
           provider: true,
@@ -162,110 +168,22 @@ export class CronModelWatcherService {
           (model) => [`${model.owner}/${model.name}`, model] as const,
         ),
       );
-      for (const endpoint of existingModels.keys()) {
-        if (candidates.has(endpoint)) continue;
-        const [owner, name] = endpoint.split('/');
-        if (!owner || !name) {
-          summary.errors++;
-          continue;
-        }
-        const providerModel =
-          await this.modelDiscoveryService.fetchReplicateModel(owner, name);
-        if (providerModel) {
-          candidates.set(endpoint, providerModel);
-        } else {
-          summary.errors++;
-          await this.replicateContractSyncService.recordFailure(
-            'model_fetch_failed',
-            summary.timestamp,
-            existingModels.get(endpoint)?.id,
-          );
-        }
-      }
+      await this.fetchMissingRegistryModels(
+        candidates,
+        existingModels,
+        replicateModels.length,
+        summary,
+      );
 
       // Step 6: Create missing drafts, then persist a versioned schema/pricing
       // candidate for every observed endpoint. Reviewed runtime fields stay
       // pinned until an operator explicitly promotes the candidate.
       const syncedEndpoints: string[] = [];
       for (const listedModel of candidates.values()) {
-        // relation-alias-ok: `model` is the Replicate API payload, not a Prisma model.
-        const modelKey = `${listedModel.owner}/${listedModel.name}`;
-        let registryModel = existingModels.get(modelKey);
-        try {
-          const model = await this.hydrateReplicateSchema(listedModel);
-          const decision = await this.decideModelCategory(model);
-          const category = decision.category;
-          const knownCost =
-            this.modelPricingService.getKnownReplicateCost(modelKey);
-
-          if (!registryModel) {
-            const draft = await this.modelDiscoveryService.createDraftModel(
-              this.buildDiscoveryInput(model, modelKey, decision, knownCost),
-            );
-            if (!draft) continue;
-            summary.draftsCreated++;
-            registryModel = draft;
-            await this.sendDiscoveryNotification(
-              modelKey,
-              category,
-              draft.cost ?? 0,
-              knownCost ?? 0,
-              'replicate',
-            );
-          }
-
-          const unitPriceUsd =
-            knownCost ??
-            (typeof registryModel.providerCostUsd === 'number'
-              ? registryModel.providerCostUsd
-              : null);
-          const pricingType =
-            registryModel.pricingType ??
-            (knownCost !== null
-              ? this.modelPricingService.estimateFromProviderCost(
-                  knownCost,
-                  category,
-                ).pricingType
-              : null);
-          const syncResult =
-            await this.replicateContractSyncService.synchronizeModel(
-              registryModel,
-              model,
-              category,
-              {
-                pricingType,
-                source:
-                  knownCost !== null
-                    ? 'curated-known-cost'
-                    : 'reviewed-registry',
-                unitPriceUsd,
-              },
-              summary.timestamp,
-            );
-          summary.providerContractsSynchronized =
-            (summary.providerContractsSynchronized ?? 0) + 1;
-          if (syncResult.drifted) {
-            summary.providerContractsDrifted =
-              (summary.providerContractsDrifted ?? 0) + 1;
-          }
-          if (syncResult.quarantined) {
-            summary.providerContractsQuarantined =
-              (summary.providerContractsQuarantined ?? 0) + 1;
-          }
-          syncedEndpoints.push(modelKey);
-        } catch (error: unknown) {
-          summary.errors++;
-          if (registryModel?.id) {
-            await this.replicateContractSyncService.recordFailure(
-              'contract_sync_failed',
-              summary.timestamp,
-              registryModel.id,
-            );
-          }
-          this.logger.error(`${url} failed to process model ${modelKey}`, {
-            reason: error instanceof Error ? error.name : 'unknown',
-          });
-        }
+        if (
+          await this.syncListedModel(listedModel, existingModels, summary, url)
+        )
+          syncedEndpoints.push(`${listedModel.owner}/${listedModel.name}`);
       }
 
       // Step 7: Keep the coarse discovery freshness marker in sync too.
@@ -289,6 +207,12 @@ export class CronModelWatcherService {
     } catch (error: unknown) {
       summary.errors++;
       await this.replicateContractSyncService.recordFailure(
+        'replicate_sync_failed',
+        summary.timestamp,
+      );
+      // One deduped provider-level alert: every Replicate rate is unconfirmed.
+      await this.sendFailureAlert(
+        'provider:replicate',
         'replicate_sync_failed',
         summary.timestamp,
       );
@@ -375,6 +299,205 @@ export class CronModelWatcherService {
     }
 
     return allModels;
+  }
+
+  /**
+   * Draft (when new) and synchronize one Replicate listing row. Never throws;
+   * resolves true when the endpoint was synchronized.
+   */
+  private async syncListedModel(
+    listedModel: IReplicateModel,
+    existingModels: ReadonlyMap<string, ReplicateSyncModelRecord>,
+    summary: IModelDiscoveryRunSummary,
+    url: string,
+  ): Promise<boolean> {
+    // relation-alias-ok: `model` is the Replicate API payload, not a Prisma model.
+    const modelKey = `${listedModel.owner}/${listedModel.name}`;
+    let registryModel = existingModels.get(modelKey);
+    try {
+      const model = await this.hydrateReplicateSchema(listedModel);
+      const decision = await this.decideModelCategory(model);
+      const category = decision.category;
+      const knownCost =
+        this.modelPricingService.getKnownReplicateCost(modelKey);
+
+      if (!registryModel) {
+        const draft = await this.modelDiscoveryService.createDraftModel(
+          this.buildDiscoveryInput(model, modelKey, decision, knownCost),
+        );
+        if (!draft) return false;
+        summary.draftsCreated++;
+        registryModel = draft;
+        await this.sendDiscoveryNotification(
+          modelKey,
+          category,
+          draft.cost ?? 0,
+          knownCost ?? 0,
+          'replicate',
+        );
+      }
+
+      const unitPriceUsd =
+        knownCost ??
+        (typeof registryModel.providerCostUsd === 'number'
+          ? registryModel.providerCostUsd
+          : null);
+      const pricingType =
+        registryModel.pricingType ??
+        (knownCost !== null
+          ? this.modelPricingService.estimateFromProviderCost(
+              knownCost,
+              category,
+            ).pricingType
+          : null);
+      // The public model page states current rates per variant (#6196).
+      const billing = await this.modelDiscoveryService.fetchReplicateBilling(
+        model.owner,
+        model.name,
+      );
+      const syncResult =
+        await this.replicateContractSyncService.synchronizeModel(
+          registryModel,
+          model,
+          category,
+          {
+            billing,
+            pricingType,
+            source:
+              knownCost !== null ? 'curated-known-cost' : 'reviewed-registry',
+            unitPriceUsd,
+          },
+          summary.timestamp,
+        );
+      await this.sendPricingAlerts(syncResult, summary.timestamp);
+      summary.providerContractsSynchronized =
+        (summary.providerContractsSynchronized ?? 0) + 1;
+      if (syncResult.drifted) {
+        summary.providerContractsDrifted =
+          (summary.providerContractsDrifted ?? 0) + 1;
+      }
+      if (syncResult.quarantined) {
+        summary.providerContractsQuarantined =
+          (summary.providerContractsQuarantined ?? 0) + 1;
+      }
+      return true;
+    } catch (error: unknown) {
+      summary.errors++;
+      if (registryModel?.id) {
+        await this.replicateContractSyncService.recordFailure(
+          'contract_sync_failed',
+          summary.timestamp,
+          registryModel.id,
+        );
+        await this.sendFailureAlert(
+          modelKey,
+          'contract_sync_failed',
+          summary.timestamp,
+        );
+      }
+      this.logger.error(`${url} failed to process model ${modelKey}`, {
+        reason: error instanceof Error ? error.name : 'unknown',
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Fetch every registry endpoint the bounded listing missed. Failures are
+   * recorded per model; the alert is one deduped provider-level message when
+   * the whole provider is out (nothing listed, or every exact fetch failed),
+   * and per model otherwise.
+   */
+  private async fetchMissingRegistryModels(
+    candidates: Map<string, IReplicateModel>,
+    existingModels: ReadonlyMap<string, ReplicateSyncModelRecord>,
+    listedCount: number,
+    summary: IModelDiscoveryRunSummary,
+  ): Promise<void> {
+    const failed: string[] = [];
+    let attempted = 0;
+    for (const endpoint of existingModels.keys()) {
+      if (candidates.has(endpoint)) continue;
+      const [owner, name] = endpoint.split('/');
+      if (!owner || !name) {
+        summary.errors++;
+        continue;
+      }
+      attempted++;
+      const providerModel =
+        await this.modelDiscoveryService.fetchReplicateModel(owner, name);
+      if (providerModel) {
+        candidates.set(endpoint, providerModel);
+        continue;
+      }
+      summary.errors++;
+      failed.push(endpoint);
+      await this.replicateContractSyncService.recordFailure(
+        'model_fetch_failed',
+        summary.timestamp,
+        existingModels.get(endpoint)?.id,
+      );
+    }
+    if (failed.length === 0) return;
+    const isProviderWide =
+      failed.length === attempted ||
+      (listedCount === 0 && existingModels.size > 0);
+    for (const endpoint of isProviderWide ? ['provider:replicate'] : failed)
+      await this.sendFailureAlert(
+        endpoint,
+        'model_fetch_failed',
+        summary.timestamp,
+      );
+  }
+
+  /** Ops Discord for a model whose refresh threw or could not be fetched. */
+  private async sendFailureAlert(
+    modelKey: string,
+    code: string,
+    now: Date,
+  ): Promise<void> {
+    try {
+      await dispatchModelPricingUnavailableAlert(
+        this.activityRecorder,
+        {
+          modelKey,
+          provider: ModelProvider.REPLICATE,
+          reason: `The Replicate price refresh failed (${code}); the last approved rate keeps charging.`,
+        },
+        now,
+      );
+    } catch (error: unknown) {
+      this.logger.error(`${this.constructorName} failure alert failed`, {
+        error,
+      });
+    }
+  }
+
+  /**
+   * Ops Discord for a refresh that found a changed price or could not read one.
+   * Silently swallows errors: an alert failure must never fail the watcher.
+   */
+  private async sendPricingAlerts(
+    result: ReplicateContractSyncResult,
+    now: Date,
+  ): Promise<void> {
+    try {
+      if (result.priceChange)
+        await dispatchModelPriceChangeAlert(
+          this.activityRecorder,
+          result.priceChange,
+        );
+      if (result.refreshFailure)
+        await dispatchModelPricingUnavailableAlert(
+          this.activityRecorder,
+          result.refreshFailure,
+          now,
+        );
+    } catch (error: unknown) {
+      this.logger.error(`${this.constructorName} pricing alert failed`, {
+        error,
+      });
+    }
   }
 
   /**
