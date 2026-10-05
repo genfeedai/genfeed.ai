@@ -886,7 +886,7 @@ Return one variation per post.`;
     return {
       content,
       hashtags: dto.hashtags ?? [],
-      patternId: pattern.id?.toString(),
+      ...(pattern.id ? { patternId: pattern.id.toString() } : {}),
       patternUsed: pattern.extractedFormula ?? 'pattern',
     };
   }

@@ -167,7 +167,14 @@ function createContentGenerationRunnerFake(
             throw new Error(`Missing action executor: ${actionId}`);
           const definition = getActionDefinition(actionId);
           if (!definition) throw new Error(`Missing contract: ${actionId}`);
-          const contract = compileActionContract(actionId, definition);
+          const contract = compileActionContract(actionId, {
+            inputSchema: definition.inputSchema as Readonly<
+              Record<string, unknown>
+            >,
+            outputSchema: definition.outputSchema as Readonly<
+              Record<string, unknown>
+            >,
+          });
           const provenance = {
             nodeId: actionId,
             runId: 'regression-run',
