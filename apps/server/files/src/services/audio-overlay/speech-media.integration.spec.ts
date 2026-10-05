@@ -46,7 +46,10 @@ function resolveBinary(
   staticPath: string | null,
   binary: string,
 ): string | null {
-  if (staticPath && existsSync(staticPath)) return staticPath;
+  if (staticPath && existsSync(staticPath)) {
+    const executable = resolveExecutableOnPath(staticPath);
+    if (executable) return executable;
+  }
   return resolveExecutableOnPath(binary);
 }
 

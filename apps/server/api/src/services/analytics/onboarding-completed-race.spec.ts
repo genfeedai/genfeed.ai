@@ -58,7 +58,13 @@ describe('onboarding_completed cross-surface race (genfeedai/genfeed.ai#5311)', 
     const userAccessCacheService = {
       invalidateAll: vi.fn().mockResolvedValue(undefined),
     };
-    const organizationsService = { patch: vi.fn() };
+    const organizationsService = {
+      findOne: vi.fn().mockResolvedValue({
+        id: CONTEXT.organizationId,
+        accountType: 'CREATOR',
+      }),
+      patch: vi.fn(),
+    };
 
     // Real OnboardingCreditGrantsService (not mocked) so the agent-first path
     // exercises its actual `captureOnboardingCompletedBestEffort` delegation
@@ -103,6 +109,10 @@ describe('onboarding_completed cross-surface race (genfeedai/genfeed.ai#5311)', 
       handler.completeOnboarding(CONTEXT),
     ]);
 
+    expect(organizationsService.findOne).toHaveBeenCalledWith({
+      id: CONTEXT.organizationId,
+      isDeleted: false,
+    });
     expect(usersService.patchAll).toHaveBeenCalledTimes(2);
     expect(serverFunnelCaptureService.capture).toHaveBeenCalledTimes(1);
     expect(serverFunnelCaptureService.capture).toHaveBeenCalledWith({
