@@ -15,11 +15,9 @@ describe('homepage metadata', () => {
 
     const result = await PageModule.generateMetadata({}, parent);
 
-    expect(result.title).toBe(
-      'Genfeed.ai | Ask for content. Get it published.',
-    );
+    expect(result.title).toBe('Genfeed.ai | Ask once. Show up everywhere.');
     expect(result.description).toBe(
-      'Create on-brand videos, images, ads, and posts with Genfeed, review every draft, and schedule approved content across more than 20 channels.',
+      'Genfeed is a content agent that makes on-brand videos, images and posts to grow your audience and your revenue. Works in Claude, ChatGPT, Codex and Cursor.',
     );
     expect(result.openGraph?.description).toBe(result.description);
     expect(result.twitter?.description).toBe(result.description);

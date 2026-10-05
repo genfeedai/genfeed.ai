@@ -602,7 +602,7 @@ export function renderAgentConnectMarkdown(input: {
   lines.push('## Connect an agent');
   lines.push('');
   lines.push(
-    'Genfeed is the open-source AI operating system for content creation. Agents connect over MCP, draft and generate with review gates, and publish to connected channels.',
+    'Genfeed is an open-source content agent. Agents connect over MCP, draft and generate with review gates, and publish to connected channels.',
   );
   lines.push('');
   lines.push(`- MCP URL: ${GENFEED_PUBLIC_MCP_URL}`);

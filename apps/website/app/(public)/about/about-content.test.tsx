@@ -39,7 +39,7 @@ describe('AboutContent', () => {
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(
-      screen.getByText(/^Genfeed is an open-source AI content platform/),
+      screen.getByText(/^Genfeed is an open-source content agent/),
     ).toBeInTheDocument();
   });
 

@@ -170,7 +170,7 @@ function buildLlmsIndex(): string {
   lines.push('# Genfeed.ai');
   lines.push('');
   lines.push(
-    `> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start free, then ${PLAN_COPY.pro.name} from ${PLAN_COPY.pro.monthlyPrice} plus PAYG output.`,
+    `> Open-source content agent. Ask for videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start free, then ${PLAN_COPY.pro.name} from ${PLAN_COPY.pro.monthlyPrice} plus PAYG output.`,
   );
   lines.push('');
 
@@ -277,14 +277,14 @@ function buildLlmsFull(): string {
   s.push('# Genfeed.ai');
   s.push('');
   s.push(
-    `> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start free, then ${PLAN_COPY.pro.name} from ${PLAN_COPY.pro.monthlyPrice} plus PAYG output.`,
+    `> Open-source content agent. Ask for videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start free, then ${PLAN_COPY.pro.name} from ${PLAN_COPY.pro.monthlyPrice} plus PAYG output.`,
   );
   s.push('');
 
   s.push('## Overview');
   s.push('');
   s.push(
-    'Genfeed.ai is a complete content intelligence platform for creators, agencies, marketers, and founders. Generate professional videos, images, music, voice, and articles using 50+ cutting-edge AI models, then publish everywhere and track what converts.',
+    'Genfeed.ai is an open-source content agent for creators, agencies, marketers, and founders. Ask for professional videos, images, music, voice, and articles made with 50+ AI models; it gets them out across your channels and tracks what converts.',
   );
   s.push('');
   s.push('Key capabilities:');

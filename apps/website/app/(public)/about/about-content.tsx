@@ -288,12 +288,12 @@ export default function AboutContent() {
       <PageLayout
         heroMedia={<MarketingArtwork page="/about" kind="creator" />}
         title="About Genfeed"
-        description="Genfeed is an open-source AI content platform that generates, publishes, and measures video, image, voice, and written content for creators, agencies, and founders."
+        description="Genfeed is an open-source content agent that makes on-brand videos, images and posts for creators, agencies and founders, to grow their audience and their revenue."
       >
         <WebSection maxWidth="xl" className="gsap-section">
           <SectionHeader
             title="What Genfeed does"
-            description="One workspace for making content, posting it, and learning what works."
+            description="One agent that makes the content, gets it out, and learns what works."
             className="[&_h2]:text-4xl sm:[&_h2]:text-5xl"
           />
 

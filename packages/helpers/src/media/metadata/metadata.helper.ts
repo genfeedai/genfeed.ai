@@ -7,16 +7,16 @@ export const metadata = {
     default: `${WEBSITE_URL}/og`,
   },
   // Says what Genfeed is before it says what it has: "AI content studio" is a
-  // category every competitor also claims, and it names no mechanism, output
-  // or destination to a reader who arrived from a link.
+  // category every competitor also claims, and a scheduler is a category we
+  // deliberately do not compete in. Lead with the agent and the outcome.
   description:
-    'Create on-brand videos, images, ads, and posts with Genfeed, review every draft, and schedule approved content across more than 20 channels.',
+    'Genfeed is a content agent that makes on-brand videos, images and posts to grow your audience and your revenue. Works in Claude, ChatGPT, Codex and Cursor.',
   keywords: [
     'genfeed',
     'genfeed.ai',
     'AI content studio',
     'AI content generation',
-    'social media publishing',
+    'AI content agent',
     'content marketing platform',
     'AI video generator',
   ],
