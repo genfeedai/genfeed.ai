@@ -69,10 +69,22 @@ export class LinkedInTrendResolverService
         return toServerTrends(liveTopics);
       }
 
-      if (scrapedSources.some((result) => result.status === 'rejected'))
+      const failedSourceCount = scrapedSources.filter(
+        (result) => result.status === 'rejected',
+      ).length;
+      if (failedSourceCount > 0)
         recordTrendProviderOutcome('native_failed', 'native_failed');
       this.loggerService.warn(
         `${url} - public LinkedIn scrape returned no usable topics, returning no observed trends`,
+        {
+          failedSourceCount,
+          sourceCount: sourceUrls.length,
+          sourcesWithPosts: scrapedSources.filter(
+            (result) =>
+              result.status === 'fulfilled' &&
+              result.value.recentPosts.length > 0,
+          ).length,
+        },
       );
     } catch (error: unknown) {
       recordTrendProviderOutcome('native_failed', 'native_failed');
