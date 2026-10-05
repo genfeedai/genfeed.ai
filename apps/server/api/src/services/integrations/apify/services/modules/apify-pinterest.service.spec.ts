@@ -11,6 +11,7 @@ const makePinterestPin = (
   overrides: {
     commentCount?: number;
     description?: string;
+    id?: string;
     imageUrl?: string;
     isPromoted?: boolean;
     repinCount?: number;
@@ -28,7 +29,7 @@ const makePinterestPin = (
     ...overrides,
   };
   return {
-    id: '123',
+    id: values.id ?? '123',
     media: { images: { large: { url: values.imageUrl } } },
     pin: {
       comment_count: values.commentCount,
@@ -81,7 +82,7 @@ describe('ApifyPinterestService', () => {
     it('should return normalized trend data from pinterest pins', async () => {
       const pins = [
         makePinterestPin(),
-        makePinterestPin({ title: 'Another Pin' }),
+        makePinterestPin({ id: '456', title: 'Another Pin' }),
       ];
       mockBaseService.runActor.mockResolvedValue(pins);
 
