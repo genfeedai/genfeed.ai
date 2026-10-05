@@ -96,11 +96,30 @@ export type DesktopAuthCallbackResult =
   | {
       isOk: true;
       session: IDesktopSession;
+      /** Where the sign-in that just completed started (#6276). */
+      continuation?: string;
     };
 
 interface PendingDesktopAuth {
   codeVerifier: string;
+  /**
+   * Product path the shell reopens once this attempt completes. Bound to the
+   * attempt (and persisted with it) so a callback from an older sign-in can
+   * never take a newer one's destination, and a restart keeps it.
+   */
+  continuation?: string;
   state: string;
+}
+
+const MAX_CONTINUATION_LENGTH = 2048;
+
+/** Shape check only; the landing URL is validated where it is opened. */
+function readContinuation(value: unknown): string | undefined {
+  return typeof value === 'string' &&
+    value.startsWith('/') &&
+    value.length <= MAX_CONTINUATION_LENGTH
+    ? value
+    : undefined;
 }
 
 interface ResolvedDesktopUser {
@@ -530,10 +549,15 @@ export class DesktopSessionService {
     }
   }
 
-  getLoginUrl(): string {
+  getLoginUrl(continuation?: string): string {
     const codeVerifier = createCodeVerifier();
     const state = createState();
-    this.persistPendingAuth({ codeVerifier, state });
+    const validContinuation = readContinuation(continuation);
+    this.persistPendingAuth({
+      codeVerifier,
+      ...(validContinuation ? { continuation: validContinuation } : {}),
+      state,
+    });
 
     const url = new URL(this.environment.authEndpoint);
     const returnTo = `${DESKTOP_AUTH_SCHEME}://${DESKTOP_AUTH_PATH}`;
@@ -576,8 +600,12 @@ export class DesktopSessionService {
         return null;
       }
 
+      const continuation = readContinuation(
+        (parsed as PendingDesktopAuth).continuation,
+      );
       return {
         codeVerifier: (parsed as PendingDesktopAuth).codeVerifier,
+        ...(continuation ? { continuation } : {}),
         state: (parsed as PendingDesktopAuth).state,
       };
     } catch {
@@ -706,7 +734,11 @@ export class DesktopSessionService {
         );
       }
 
-      this.clearPendingAuth();
+      // A newer sign-in may have started while this exchange was in flight;
+      // only clear the attempt this callback belongs to.
+      if (this.getPendingAuth()?.state === pendingAuth.state) {
+        this.clearPendingAuth();
+      }
 
       const payload = parseDesktopAuthExchangeResponse(await response.json());
       const sessionCookie = parseSessionCookie(payload?.session);
@@ -733,7 +765,13 @@ export class DesktopSessionService {
           userName: payload.userName,
         });
 
-        return { isOk: true, session };
+        return {
+          isOk: true,
+          session,
+          ...(pendingAuth.continuation
+            ? { continuation: pendingAuth.continuation }
+            : {}),
+        };
       } catch {
         await this.clearPartialSession();
         return failedCallback(

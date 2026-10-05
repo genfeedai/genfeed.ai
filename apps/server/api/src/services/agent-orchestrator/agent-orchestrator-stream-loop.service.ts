@@ -193,7 +193,6 @@ export class AgentOrchestratorStreamLoopService {
       // A settlement failure must not make the outer catch retry a possibly
       // committed ledger write. Every settlement path is terminal.
       roundCredits = 0;
-
       return creditsToSettle;
     };
 
@@ -249,6 +248,7 @@ export class AgentOrchestratorStreamLoopService {
       const tools = buildToolDefinitions(
         mergeAllowedTools(baseTools, scopedTools),
         resolveBlockedTools({ source }),
+        source,
       );
       const allowedToolNames = new Set(
         tools.map((tool) => tool.function.name as CuratedActionName),

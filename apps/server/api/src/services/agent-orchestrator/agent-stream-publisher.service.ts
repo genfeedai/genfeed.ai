@@ -8,6 +8,7 @@ import type {
   AgentUIBlock,
   AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
+import type { AgentInputRequestPublishParams } from '@genfeedai/contracts/interfaces/ai/agent-input-request.interface';
 import {
   assetResponseIds,
   ingredientResponseIds,
@@ -754,28 +755,14 @@ export class AgentStreamPublisherService {
     });
   }
 
-  async publishInputRequest(data: {
-    allowFreeText?: boolean;
-    threadId: string;
-    fieldId?: string;
-    inputRequestId: string;
-    metadata?: Record<string, unknown>;
-    options?: Array<{
-      description?: string;
-      id: string;
-      label: string;
-    }>;
-    prompt: string;
-    recommendedOptionId?: string;
-    runId?: string;
-    title: string;
-    userId: string;
-  }) {
+  async publishInputRequest(data: AgentInputRequestPublishParams) {
     data = await this.projectMediaPayload(data);
     await this.persistThreadEvent(data.threadId, {
       commandId: `input-request:${data.inputRequestId}`,
       payload: {
         allowFreeText: data.allowFreeText,
+        isMultiSelect: data.isMultiSelect,
+        maxSelections: data.maxSelections,
         fieldId: data.fieldId,
         metadata: data.metadata,
         options: data.options,

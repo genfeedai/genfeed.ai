@@ -1489,30 +1489,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "54345f4d28a3905190f8",
-      "message": "Type 'BaseQueryDto & { brand: string; }' is not assignable to type 'BaseQueryDto & Record<string, unknown>'.   Type 'BaseQueryDto & { brand: string; }' is not assignable to type 'Record<string, unknown>'.     Index signature for type 'string' is missing in type 'BaseQueryDto & { brand: string; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "7bff9e156dd0deeade4f",
-      "message": "Type '{}' is not assignable to type 'BaseQueryDto & Record<string, unknown>'.   Type '{}' is missing the following properties from type 'BaseQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "f83238ce46e133ec10f3",
-      "message": "Type 'BaseQueryDto & { organization: string; }' is not assignable to type 'BaseQueryDto & Record<string, unknown>'.   Type 'BaseQueryDto & { organization: string; }' is not assignable to type 'Record<string, unknown>'.     Index signature for type 'string' is missing in type 'BaseQueryDto & { organization: string; }'.",
-      "workspace": "api"
-    },
-    {
       "code": 2739,
       "count": 1,
       "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
@@ -6558,14 +6534,6 @@
       "file": "apps/server/mcp/src/services/client.service.spec.ts",
       "fingerprint": "7eca033dc98a6440d89e",
       "message": "Type '\"twitter\"' is not assignable to type '\"all\" | Platform | undefined'.",
-      "workspace": "mcp"
-    },
-    {
-      "code": 2352,
-      "count": 4,
-      "file": "apps/server/mcp/src/services/tool-registry.service.spec.ts",
-      "fingerprint": "b63b22593c0f25339eb1",
-      "message": "Conversion of type 'AccountManagementToolResult | { content: { text: string; type: string; }[]; }' to type '{ isError: boolean; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property 'isError' is missing in type '{ content: { text: string; type: string; }[]; }' but required in type '{ isError: boolean; }'.",
       "workspace": "mcp"
     },
     {

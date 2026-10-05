@@ -61,8 +61,10 @@ export class LoginPage {
       name: /email\s*\/\s*password/i,
     });
 
-    // Logo
-    this.logo = page.locator('img[alt*="Genfeed"], img[alt*="logo"]');
+    // Next retains previous routes hidden in the DOM; use the active logo.
+    this.logo = page
+      .locator('img[alt*="Genfeed"], img[alt*="logo"]')
+      .filter({ visible: true });
 
     // Social login
     this.googleButton = page.locator(

@@ -509,6 +509,8 @@ export class AgentThreadProjectorService {
 
     const next = {
       allowFreeText: this.readBoolean(event.payload, 'allowFreeText'),
+      isMultiSelect: this.readBoolean(event.payload, 'isMultiSelect'),
+      maxSelections: this.readNumber(event.payload, 'maxSelections'),
       createdAt: event.occurredAt ?? new Date().toISOString(),
       fieldId: this.readString(event.payload, 'fieldId'),
       metadata: this.readRecord(event.payload, 'metadata'),
@@ -582,6 +584,14 @@ export class AgentThreadProjectorService {
   ): boolean | undefined {
     const value = payload?.[key];
     return typeof value === 'boolean' ? value : undefined;
+  }
+
+  private readNumber(
+    payload: Record<string, unknown> | undefined,
+    key: string,
+  ): number | undefined {
+    const value = payload?.[key];
+    return typeof value === 'number' ? value : undefined;
   }
 
   private readRecord(

@@ -27,7 +27,10 @@ import {
   LivestreamBotSessionSerializer,
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
+import {
+  crossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import {
   Body,
   Controller,
@@ -185,7 +188,10 @@ export class BotsController extends BaseCRUDController<
     @Param('id') id: string,
   ) {
     const bot = await this.findBotForMutation(user, id);
-    const session = await this.botsLivestreamService.getOrCreateSession(bot);
+    const session = await runWithTenantContext(
+      { organizationId: bot.organizationId },
+      async () => await this.botsLivestreamService.getOrCreateSession(bot),
+    );
     return serializeSingle(request, LivestreamBotSessionSerializer, session);
   }
 
@@ -197,7 +203,10 @@ export class BotsController extends BaseCRUDController<
     @Body() dto: BotLivestreamSessionPatchDto,
   ) {
     const bot = await this.findBotForMutation(user, id);
-    const session = await this.dispatchLivestreamSessionStatus(bot, dto);
+    const session = await runWithTenantContext(
+      { organizationId: bot.organizationId },
+      async () => await this.dispatchLivestreamSessionStatus(bot, dto),
+    );
     return serializeSingle(request, LivestreamBotSessionSerializer, session);
   }
 
@@ -209,9 +218,10 @@ export class BotsController extends BaseCRUDController<
     @Body() payload: BotLivestreamOverrideDto,
   ) {
     const bot = await this.findBotForMutation(user, id);
-    const session = await this.botsLivestreamService.setManualOverride(
-      bot,
-      payload,
+    const session = await runWithTenantContext(
+      { organizationId: bot.organizationId },
+      async () =>
+        await this.botsLivestreamService.setManualOverride(bot, payload),
     );
     return serializeSingle(request, LivestreamBotSessionSerializer, session);
   }
@@ -224,9 +234,10 @@ export class BotsController extends BaseCRUDController<
     @Body() payload: BotLivestreamTranscriptDto,
   ) {
     const bot = await this.findBotForMutation(user, id);
-    const session = await this.botsLivestreamService.ingestTranscriptChunk(
-      bot,
-      payload,
+    const session = await runWithTenantContext(
+      { organizationId: bot.organizationId },
+      async () =>
+        await this.botsLivestreamService.ingestTranscriptChunk(bot, payload),
     );
     return serializeSingle(request, LivestreamBotSessionSerializer, session);
   }
@@ -243,15 +254,19 @@ export class BotsController extends BaseCRUDController<
     @Body() payload: BotLivestreamRestreamChatIngestDto,
   ) {
     const bot = await this.findBotForMutation(user, id);
-    return this.botsRestreamChatService.ingestChatActions(
-      bot,
-      payload.actions.map((action) => ({
-        action: action.action,
-        author: action.author,
-        eventPayload: action.eventPayload,
-        payload: action.payload,
-        text: action.text,
-      })),
+    return runWithTenantContext(
+      { organizationId: bot.organizationId },
+      async () =>
+        await this.botsRestreamChatService.ingestChatActions(
+          bot,
+          payload.actions.map((action) => ({
+            action: action.action,
+            author: action.author,
+            eventPayload: action.eventPayload,
+            payload: action.payload,
+            text: action.text,
+          })),
+        ),
     );
   }
 
@@ -263,7 +278,10 @@ export class BotsController extends BaseCRUDController<
     @Body() payload: BotLivestreamSendNowDto,
   ) {
     const bot = await this.findBotForMutation(user, id);
-    const session = await this.botsLivestreamService.sendNow(bot, payload);
+    const session = await runWithTenantContext(
+      { organizationId: bot.organizationId },
+      async () => await this.botsLivestreamService.sendNow(bot, payload),
+    );
     return serializeSingle(request, LivestreamBotSessionSerializer, session);
   }
 

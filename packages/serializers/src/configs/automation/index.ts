@@ -7,6 +7,7 @@ export * from '@serializers/configs/automation/bot.config';
 export * from '@serializers/configs/automation/bot-activity.config';
 export * from '@serializers/configs/automation/brand-memory.config';
 export * from '@serializers/configs/automation/livestream-bot-session.config';
+export * from '@serializers/configs/automation/marketplace-workflow.config';
 export * from '@serializers/configs/automation/monitored-account.config';
 export * from '@serializers/configs/automation/outreach-campaign.config';
 export * from '@serializers/configs/automation/reply-bot-config.config';

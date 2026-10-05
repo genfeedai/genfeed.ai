@@ -9,6 +9,7 @@ import { MCP_CONTENT_TOOLS } from './content.tools';
 import { MCP_DISCOVERY_TOOLS } from './discovery.tools';
 import { MCP_EDITOR_TOOLS } from './editor.tools';
 import { MCP_GENERATION_TOOLS } from './generation.tools';
+import { MCP_ONBOARDING_TOOLS } from './onboarding.tools';
 import { MCP_OTHER_TOOLS } from './other.tools';
 import { MCP_REMIX_TOOLS } from './remix.tools';
 import { MCP_SCHEDULER_TOOLS } from './scheduler.tools';
@@ -23,6 +24,7 @@ export const MCP_ONLY_TOOLS: SourceTool[] = [
   ...MCP_CONTENT_TOOLS,
   ...MCP_DISCOVERY_TOOLS,
   ...MCP_OTHER_TOOLS,
+  ...MCP_ONBOARDING_TOOLS,
   ...MCP_WORKFLOW_TOOLS,
   ...MCP_SOCIAL_TOOLS,
   ...MCP_ADMIN_TOOLS,

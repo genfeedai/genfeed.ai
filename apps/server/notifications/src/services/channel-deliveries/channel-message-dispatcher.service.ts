@@ -177,8 +177,20 @@ export class ChannelMessageDispatcherService {
         }
         break;
       case 'model_discovery':
-        if ('modelKey' in payload) {
+        if ('modelKey' in payload && 'estimatedCost' in payload) {
           return this.discordService.sendModelDiscoveryNotification(payload);
+        }
+        break;
+      case 'model_price_change':
+        if ('modelKey' in payload && 'changes' in payload) {
+          return this.discordService.sendModelPriceChangeNotification(payload);
+        }
+        break;
+      case 'model_pricing_unavailable':
+        if ('modelKey' in payload && 'reason' in payload) {
+          return this.discordService.sendModelPricingUnavailableNotification(
+            payload,
+          );
         }
         break;
       case 'low_credits_alert':

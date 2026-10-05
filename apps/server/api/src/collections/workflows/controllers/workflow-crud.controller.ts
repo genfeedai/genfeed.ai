@@ -18,6 +18,7 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -115,6 +116,11 @@ export class WorkflowCrudController {
     | SystemWorkflowCatalogResponse
     | WorkflowStatisticsResponse
   > {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     assertCanIncludeSystemWorkflows(
       request,
       user,
@@ -127,7 +133,7 @@ export class WorkflowCrudController {
       return wrapError(async () => {
         const data =
           await this.systemWorkflowCatalogService.listCatalogForOrganization(
-            user.organizationId,
+            tenant.organizationId,
           );
         return { data };
       }, 'Failed to list system workflow catalog');
@@ -136,8 +142,8 @@ export class WorkflowCrudController {
     if (query.view === 'statistics') {
       return wrapError(async () => {
         const stats = await this.workflowsService.getWorkflowStatistics(
-          user.userId ?? user.id,
-          user.organizationId,
+          tenant.isOrganizationOverride ? undefined : (user.userId ?? user.id),
+          tenant.organizationId,
         );
         return { data: stats };
       }, 'Failed to load workflow statistics');
@@ -154,11 +160,12 @@ export class WorkflowCrudController {
     // (workflow-reference pickers). `includeSystem=true` is the admin list of
     // persisted system-workflow clones. Customer Automation never sees those.
     const where = buildWorkflowListWhere({
-      brandId: query.brandId,
+      brandId: tenant.brandId,
       includeSystem: query.includeSystem === true,
       isDeleted,
-      organizationId: user.organizationId,
-      referencable: query.referencable === true,
+      organizationId: tenant.organizationId,
+      referencable:
+        tenant.isOrganizationOverride || query.referencable === true,
       userId: user.userId ?? user.id,
     });
 

@@ -56,7 +56,7 @@ describe('VoicesController', () => {
     await expect(controller.findAll(query, request, user)).resolves.toBe(
       collection,
     );
-    expect(libraryService.findAll).toHaveBeenCalledWith(user, query);
+    expect(libraryService.findAll).toHaveBeenCalledWith(user, query, request);
     expect(serializeCollection).toHaveBeenCalledWith(
       request,
       VoiceSerializer,
@@ -71,7 +71,11 @@ describe('VoicesController', () => {
     await expect(
       controller.findClonedVoices(request, user, query),
     ).resolves.toBe(collection);
-    expect(libraryService.findCloned).toHaveBeenCalledWith(user, query);
+    expect(libraryService.findCloned).toHaveBeenCalledWith(
+      user,
+      query,
+      request,
+    );
     expect(serializeCollection).toHaveBeenCalledWith(
       request,
       VoiceCloneSerializer,

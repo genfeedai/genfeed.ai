@@ -385,6 +385,8 @@ export function mapSnapshotPendingInputRequest(
 
   return {
     allowFreeText: pendingInputRequest.allowFreeText,
+    isMultiSelect: pendingInputRequest.isMultiSelect,
+    maxSelections: pendingInputRequest.maxSelections,
     fieldId: pendingInputRequest.fieldId,
     inputRequestId: pendingInputRequest.requestId,
     metadata: pendingInputRequest.metadata,

@@ -5,6 +5,7 @@ import { EditorProjectsService } from '@api/collections/editor-projects/editor-p
 import { type EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
 import { EditorRenderService } from '@api/collections/editor-projects/services/editor-render.service';
 import { RemotionCompositionsService } from '@api/collections/editor-projects/services/remotion-compositions.service';
+import { buildEditorProjectListAggregate } from '@api/collections/editor-projects/utils/editor-project-list-query.util';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -14,6 +15,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -21,7 +23,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
@@ -36,7 +37,6 @@ import type {
   IEditorTrack,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-  SortObject,
 } from '@genfeedai/contracts/interfaces';
 import { EditorProjectSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
@@ -228,21 +228,17 @@ export class EditorProjectsController {
     @CurrentUser() user: User,
     @Query() query: BaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const aggregate = {
-      where: {
-        ...(user.brandId ? { brandId: user.brandId } : {}),
-        isDeleted: false,
-        organizationId: user.organizationId,
-      },
-      orderBy: query.sort
-        ? handleQuerySort(query.sort)
-        : ({ updatedAt: -1 } as SortObject),
-    };
+    const aggregate = buildEditorProjectListAggregate(query, user, tenant);
 
     const data: AggregatePaginateResult<EditorProjectDocument> =
       await this.editorProjectsService.findAll(aggregate, options);

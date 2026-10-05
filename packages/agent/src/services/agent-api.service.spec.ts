@@ -541,6 +541,34 @@ describe('AgentApiService', () => {
   });
 
   describe('respondToInputRequest', () => {
+    it('posts selected ids alongside the visible joined labels', async () => {
+      mockOk({
+        answer: 'Awareness, Sales',
+        requestId: 'req-1',
+        status: 'resolved',
+        threadId: 'thread-1',
+      });
+      await makeService().respondToInputRequest(
+        'thread-1',
+        'req-1',
+        'Awareness, Sales',
+        undefined,
+        { brandId: 'brand-1' },
+        ['a', 'b'],
+      );
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://api.test/agent/threads/thread-1/input-requests/req-1/responses',
+        expect.objectContaining({
+          body: JSON.stringify({
+            answer: 'Awareness, Sales',
+            brandId: 'brand-1',
+            optionIds: ['a', 'b'],
+          }),
+          method: 'POST',
+        }),
+      );
+    });
+
     it('posts a thread input response', async () => {
       const payload = {
         answer: 'Use hybrid',

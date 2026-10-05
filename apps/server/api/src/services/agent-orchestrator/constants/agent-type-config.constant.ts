@@ -103,7 +103,13 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
     defaultDailyCreditBudget: 100,
     defaultModel: VOLUME_AGENT_MODEL,
     defaultTools: [
-      ...getToolsForSurface('agent').map((tool) => tool.name),
+      ...getToolsForSurface('agent')
+        .filter(
+          (tool) =>
+            tool.name !== 'scan_brand_url' &&
+            tool.name !== 'save_onboarding_answers',
+        )
+        .map((tool) => tool.name),
       'capture_memory',
       'list_ads_research',
       'get_ad_research_detail',

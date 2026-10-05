@@ -1,11 +1,14 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dto';
+import { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dto';
 import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoiceLibraryService } from '@api/collections/voices/services/voice-library.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import { VoiceProvider } from '@genfeedai/contracts';
 import { VoiceProvider as DbVoiceProvider } from '@genfeedai/prisma';
+import { TenantIsolationError } from '@libs/prisma/tenant-guard';
 import { HttpStatus } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
 
 vi.mock('@api/helpers/utils/sort/sort.util', () => ({
   handleQuerySort: vi.fn(() => ({ createdAt: -1 })),
@@ -24,21 +27,28 @@ describe('VoiceLibraryService', () => {
   let catalogService: { findAll: ReturnType<typeof vi.fn> };
   let service: VoiceLibraryService;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     voicesService = { findAll: vi.fn().mockResolvedValue({ docs: [] }) };
     catalogService = { findAll: vi.fn().mockResolvedValue([]) };
-    service = new VoiceLibraryService(
-      voicesService as unknown as VoicesService,
-      catalogService as unknown as ExternalVoiceCatalogService,
-    );
+    const module = await Test.createTestingModule({
+      providers: [
+        VoiceLibraryService,
+        { provide: VoicesService, useValue: voicesService },
+        { provide: ExternalVoiceCatalogService, useValue: catalogService },
+      ],
+    }).compile();
+    service = module.get<VoiceLibraryService>(VoiceLibraryService);
   });
 
   it('builds the tenant-scoped cloned/generated voice query', async () => {
-    await service.findAll(user, {
-      isActive: true,
-      providers: [VoiceProvider.ELEVENLABS],
-      search: ' narrator ',
-    } as VoicesQueryDto);
+    await service.findAll(
+      user,
+      tenantReadQuery(VoicesQueryDto, {
+        isActive: true,
+        providers: [VoiceProvider.ELEVENLABS],
+        search: ' narrator ',
+      }),
+    );
 
     expect(voicesService.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -75,7 +85,7 @@ describe('VoiceLibraryService', () => {
   });
 
   it('scopes cloned voices by organizationId', async () => {
-    await service.findCloned(user, {} as VoicesQueryDto);
+    await service.findCloned(user, tenantReadQuery(VoicesQueryDto, {}));
 
     expect(voicesService.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -90,11 +100,27 @@ describe('VoiceLibraryService', () => {
     );
   });
 
+  it.each(['findAll', 'findCloned'] as const)(
+    'preserves tenant isolation errors in %s',
+    async (method) => {
+      const error = new TenantIsolationError(
+        'Ingredient',
+        'findMany',
+        'organization-id-mismatch',
+        'Mismatched tenant',
+      );
+      voicesService.findAll.mockRejectedValue(error);
+      await expect(
+        service[method](user, tenantReadQuery(VoicesQueryDto)),
+      ).rejects.toBe(error);
+    },
+  );
+
   it('keeps the established library failure response', async () => {
     voicesService.findAll.mockRejectedValue(new Error('database unavailable'));
 
     await expect(
-      service.findAll(user, {} as VoicesQueryDto),
+      service.findAll(user, tenantReadQuery(VoicesQueryDto, {})),
     ).rejects.toMatchObject({
       message: 'Failed to find voices',
       status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -119,11 +145,14 @@ describe('VoiceLibraryService', () => {
       },
     ]);
 
-    const result = await service.findAll(user, {
-      isActive: true,
-      limit: 12,
-      page: 1,
-    } as VoicesQueryDto);
+    const result = await service.findAll(
+      user,
+      tenantReadQuery(VoicesQueryDto, {
+        isActive: true,
+        limit: 12,
+        page: 1,
+      }),
+    );
 
     expect(catalogService.findAll).toHaveBeenCalledWith({
       isActive: true,
@@ -145,7 +174,10 @@ describe('VoiceLibraryService', () => {
       totalDocs: 1,
     });
 
-    const result = await service.findAll(user, {} as VoicesQueryDto);
+    const result = await service.findAll(
+      user,
+      tenantReadQuery(VoicesQueryDto, {}),
+    );
 
     expect(catalogService.findAll).not.toHaveBeenCalled();
     expect(result.docs).toEqual([{ id: 'cloned-1', isCloned: true }]);

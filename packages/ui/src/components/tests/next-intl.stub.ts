@@ -497,7 +497,9 @@ const UI_TEST_MESSAGES = {
         renameTag: 'Rename tag {label}',
         scopeBrand: 'This brand',
         scopeThisBrand: 'This brand',
+        colorLabel: 'Tag color',
         tagBackground: 'Background color of {label}',
+        tagColor: 'Color of {label}',
         tagText: 'Text color of {label}',
       },
       videoDetail: {

@@ -4,7 +4,9 @@ import { MostUsedWorkflowsQueryDto } from '@api/collections/workflows/dto/most-u
 import { FeaturedWorkflowsService } from '@api/collections/workflows/services/featured-workflows.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import { MemberRole } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -101,7 +103,157 @@ describe('WorkflowMarketplaceController', () => {
   });
 
   describe('getMarketplace', () => {
-    it('should return public template workflows', async () => {
+    it('returns only the sanitized version graph and display fields with pagination', async () => {
+      const config = {
+        organizationId: 'source-org',
+        brandId: 'source-brand',
+        userId: 'source-user',
+        credentialId: 'source-credential',
+        prompt: 'Keep this template prompt',
+        email: 'private-report@example.com',
+        voiceId: 'private-voice',
+        targetVoiceId: 'private-target-voice',
+        trendId: 'private-trend',
+        presetId: 'private-preset',
+        nested: { organizationId: 'nested-source-org' },
+      };
+      mockWorkflowsService.findAll.mockResolvedValue({
+        docs: [
+          {
+            id: 'marketplace-workflow',
+            label: 'Public template',
+            description: 'Template description',
+            thumbnail: 'thumbnail.png',
+            executionCount: 42,
+            organizationId: 'source-org',
+            userId: 'source-user',
+            brandId: 'source-brand',
+            config: { isPublic: true, isTemplate: true },
+            metadata: { private: 'data' },
+            schedule: '* * * * *',
+            versionId: 'private-version',
+            cloudSync: {},
+            trigger: 'private-trigger',
+            tasks: [],
+            lifecycle: 'published',
+            createdAt: new Date('2026-10-01'),
+            updatedAt: new Date('2026-10-02'),
+            nodes: [
+              {
+                id: 'stale-node',
+                data: { config: { credentialId: 'stale-secret' } },
+              },
+            ],
+            currentVersion: {
+              id: 'version-1',
+              version: 1,
+              inputSchema: [
+                {
+                  key: 'recipient',
+                  label: 'Recipient',
+                  type: 'string',
+                  required: true,
+                  description: 'Report recipient',
+                  defaultValue: { email: 'private-default@example.com' },
+                  validation: { options: ['private-validation-value'] },
+                },
+              ],
+              graph: {
+                nodes: [
+                  {
+                    id: 'node-1',
+                    type: 'genfeedAction',
+                    position: { x: 1, y: 2 },
+                    data: { label: 'Generate', config },
+                  },
+                ],
+                edges: [],
+              },
+            },
+          },
+        ],
+        limit: 10,
+        page: 2,
+        totalDocs: 31,
+        totalPages: 4,
+      });
+      const response = await controller.getMarketplace(
+        mockRequest,
+        tenantReadQuery(BaseQueryDto, {
+          page: 2,
+          limit: 10,
+        }),
+      );
+      expect(response.links).toMatchObject({
+        pagination: { page: 2, limit: 10, total: 31, pages: 4 },
+      });
+      expect(response.data).toEqual([
+        expect.objectContaining({
+          id: 'marketplace-workflow',
+          attributes: expect.objectContaining({
+            executionCount: 42,
+            inputVariables: [
+              {
+                key: 'recipient',
+                label: 'Recipient',
+                type: 'string',
+                required: true,
+                description: 'Report recipient',
+              },
+            ],
+            nodes: [
+              {
+                id: 'node-1',
+                type: 'genfeedAction',
+                position: { x: 1, y: 2 },
+                data: { label: 'Generate' },
+              },
+            ],
+          }),
+        }),
+      ]);
+      const serialized = JSON.stringify(response);
+      for (const source of [
+        'source-org',
+        'source-user',
+        'source-brand',
+        'source-credential',
+        'stale-secret',
+        'private-report@example.com',
+        'private-voice',
+        'private-target-voice',
+        'private-trend',
+        'private-preset',
+        'nested-source-org',
+        'private-default@example.com',
+        'private-validation-value',
+        'defaultValue',
+        'config',
+        'Keep this template prompt',
+      ]) {
+        expect(serialized).not.toContain(source);
+      }
+      const attributes = response.data[0]?.attributes;
+      for (const key of [
+        'organizationId',
+        'userId',
+        'brandId',
+        'credentials',
+        'config',
+        'schedule',
+        'metadata',
+        'versionId',
+        'cloudSync',
+        'trigger',
+        'tasks',
+        'lifecycle',
+      ]) {
+        expect(attributes).not.toHaveProperty(key);
+      }
+      expect(config.credentialId).toBe('source-credential');
+    });
+
+    it('queries only public templates with a current version', async () => {
       mockWorkflowsService.findAll.mockResolvedValue({
         docs: [],
         totalDocs: 0,
@@ -120,6 +272,7 @@ describe('WorkflowMarketplaceController', () => {
           { config: { equals: true, path: ['isTemplate'] } },
         ],
         isDeleted: false,
+        currentVersionId: { not: null },
       });
       expect(aggregateArg.where).not.toHaveProperty('isPublic');
       expect(aggregateArg.where).not.toHaveProperty('isTemplate');

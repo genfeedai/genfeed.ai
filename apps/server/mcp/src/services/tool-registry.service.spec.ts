@@ -141,6 +141,11 @@ const MOCK_TOOLS = [
     requiredRole: 'user',
     surfaces: { mcp: true },
   },
+  {
+    name: 'onboard_brand',
+    requiredRole: 'user',
+    surfaces: { mcp: true },
+  },
 ];
 
 const TOOLS_BY_NAME = new Map(MOCK_TOOLS.map((t) => [t.name, t]));
@@ -358,13 +363,52 @@ describe('ToolRegistryService', () => {
     ).toContain('generate');
   });
 
+  it('handleToolCall onboard_brand runs the agent tool for its action (#6268)', async () => {
+    await service.handleToolCall({
+      arguments: {
+        action: 'scan_url',
+        brandId: 'brand-1',
+        goals: ['ignored for a scan'],
+        url: 'https://acme.example',
+      },
+      name: 'onboard_brand',
+    });
+    expect(clientService.executeAgentTool).toHaveBeenLastCalledWith(
+      'scan_brand_url',
+      { brandId: 'brand-1', url: 'https://acme.example' },
+      undefined,
+      75_000,
+    );
+
+    await service.handleToolCall({
+      arguments: { action: 'complete', brandId: 'brand-1' },
+      name: 'onboard_brand',
+    });
+    expect(clientService.executeAgentTool).toHaveBeenLastCalledWith(
+      'complete_onboarding',
+      {},
+      undefined,
+      undefined,
+    );
+  });
+
+  it('handleToolCall onboard_brand rejects an unknown action without calling the API', async () => {
+    const result = await service.handleToolCall({
+      arguments: { action: 'skip' },
+      name: 'onboard_brand',
+    });
+
+    expect(result).toMatchObject({ isError: true });
+    expect(clientService.executeAgentTool).not.toHaveBeenCalled();
+  });
+
   it('handleToolCall get_video_analytics returns validation details when videoId missing', async () => {
     const result = await service.handleToolCall({
       arguments: {},
       name: 'get_video_analytics',
     });
 
-    expect((result as { isError: boolean }).isError).toBe(true);
+    expect(result).toMatchObject({ isError: true });
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('videoId required');
@@ -436,7 +480,7 @@ describe('ToolRegistryService', () => {
       name: 'get_content_analytics',
     });
 
-    expect((result as { isError: boolean }).isError).toBe(true);
+    expect(result).toMatchObject({ isError: true });
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('Content art-404 not found');
@@ -451,7 +495,7 @@ describe('ToolRegistryService', () => {
       name: 'get_content_analytics',
     });
 
-    expect((result as { isError: boolean }).isError).toBe(true);
+    expect(result).toMatchObject({ isError: true });
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('contentId and contentType required');
@@ -795,7 +839,7 @@ describe('ToolRegistryService', () => {
       name: 'does_not_exist',
     });
 
-    expect((result as { isError: boolean }).isError).toBe(true);
+    expect(result).toMatchObject({ isError: true });
   });
 
   it('handleToolCall create_article_draft queues a pending approval instead of executing', async () => {

@@ -68,6 +68,37 @@ export interface ModelPricingEvidence {
   rates: ReviewedProviderRate[] | null;
 }
 
+/** One variant whose provider price differs between two rate sets. */
+export interface ModelPricingRateChange {
+  /** Stable selector label, for example `duration=6 · resolution=768P`. */
+  variant: string;
+  component: string;
+  unit: ProviderBillingUnit;
+  /** Null when the variant is new. */
+  oldPriceUsd: number | null;
+  /** Null when the variant disappeared. */
+  newPriceUsd: number | null;
+  /** Included units, minimums, rounding or per-output billing changed. */
+  hasTermsChange?: boolean;
+}
+
+/** Red = the model cannot be priced. Orange = a price needs an operator's review. */
+export type ModelPricingAttentionLevel = 'red' | 'orange';
+
+export type ModelPricingAttentionCode =
+  | 'price_missing'
+  | 'zero_credits'
+  | 'unpriceable'
+  | 'price_change_pending'
+  | 'refresh_failed'
+  | 'refresh_stale';
+
+export interface ModelPricingAttention {
+  level: ModelPricingAttentionLevel;
+  code: ModelPricingAttentionCode;
+  reason: string;
+}
+
 export interface AdminModelPricingRow {
   id: string;
   key: string;
@@ -91,6 +122,17 @@ export interface AdminModelPricingRow {
   pending: ModelPricingEvidence | null;
   status: 'verified' | 'discrepant' | 'unresolved';
   reasons: string[];
+  /** Highest-severity attention item, or null when the model needs nothing. */
+  attentionLevel: ModelPricingAttentionLevel | null;
+  /** Red items first, then orange. */
+  attention: ModelPricingAttention[];
+  /** Variant-level difference between the reviewed and the pending provider rates. */
+  pendingRateChanges: ModelPricingRateChange[];
+  /** True when the pending contract holds different, parseable rates an operator can approve. */
+  isRateApprovalAvailable: boolean;
+  providerSyncStatus: string | null;
+  providerSyncFailureCode: string | null;
+  providerPricingSyncedAt: string | null;
 }
 
 export interface AdminModelPricingReport {

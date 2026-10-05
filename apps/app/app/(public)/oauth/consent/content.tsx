@@ -1,5 +1,6 @@
 'use client';
 
+import LoginBetterAuth from '@app/(public)/login/login-better-auth';
 import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import {
   API_KEY_SCOPE_OPTIONS,
@@ -16,11 +17,9 @@ import Card from '@ui/card/Card';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import { ArrowUpRight, Lock } from 'lucide-react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
-
 import { redirectToOAuthClient } from './redirect';
 
 function getRequestedScopeLabels(scope: string | null): string[] {
@@ -64,7 +63,6 @@ export default function OAuthConsentContent() {
   });
 
   const callbackPath = `/oauth/consent?${searchParams.toString()}`;
-  const loginHref = `/login?callbackUrl=${encodeURIComponent(callbackPath)}`;
   const clientName =
     searchParams.get('client_name') || translate('clientName.fallback');
   const redirectUri = searchParams.get('redirect_uri');
@@ -173,6 +171,19 @@ export default function OAuthConsentContent() {
     return <AuthFormLayout logoSize="compact">{null}</AuthFormLayout>;
   }
 
+  // Someone without a session signs in or signs up right here, with every
+  // login option. Each path lands back on this card, so a new account skips
+  // the web onboarding and the user still approves access once (#6268).
+  if (hasRequiredParams && !isSignedIn) {
+    return (
+      <LoginBetterAuth
+        callbackURL={callbackPath}
+        description={translate('signIn.description')}
+        title={translate('signIn.title', { clientName })}
+      />
+    );
+  }
+
   const { result } = consentState;
 
   return (
@@ -188,18 +199,6 @@ export default function OAuthConsentContent() {
             <p className="text-sm text-muted-foreground">
               {translate('invalid.description')}
             </p>
-          </div>
-        ) : !isSignedIn ? (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <h2 className="font-semibold">{translate('signIn.title')}</h2>
-              <p className="text-sm text-muted-foreground">
-                {translate('signIn.description')}
-              </p>
-            </div>
-            <Button asChild className="w-full" withWrapper={false}>
-              <Link href={loginHref}>{translate('signIn.action')}</Link>
-            </Button>
           </div>
         ) : result ? (
           <div className="space-y-4">

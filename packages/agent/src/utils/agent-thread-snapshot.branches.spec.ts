@@ -279,7 +279,9 @@ describe('mapSnapshotPendingInputRequest', () => {
           title: 'Old request',
         },
         {
-          allowFreeText: true,
+          allowFreeText: false,
+          isMultiSelect: true,
+          maxSelections: 2,
           createdAt: '2026-03-24T10:00:00.000Z',
           fieldId: 'field-1',
           metadata: { source: 'test' },
@@ -293,7 +295,9 @@ describe('mapSnapshotPendingInputRequest', () => {
     });
 
     expect(mapSnapshotPendingInputRequest(snapshot)).toEqual({
-      allowFreeText: true,
+      allowFreeText: false,
+      isMultiSelect: true,
+      maxSelections: 2,
       fieldId: 'field-1',
       inputRequestId: 'req-2',
       metadata: { source: 'test' },

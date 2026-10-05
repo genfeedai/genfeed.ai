@@ -11,10 +11,14 @@ import {
   ModalEnum,
   PageScope,
 } from '@genfeedai/contracts';
-import { LIBRARY_ASSET_TAGS_EVENT } from '@genfeedai/contracts/constants';
+import {
+  LIBRARY_ASSET_TAGS_EVENT,
+  LIBRARY_TAG_UPDATED_EVENT,
+} from '@genfeedai/contracts/constants';
 import type {
   IIngredient,
   ILibraryAssetTagsChange,
+  ILibraryTagUpdate,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useIngredientDeepLink } from '@hooks/data/ingredients/use-ingredient-deep-link/use-ingredient-deep-link';
@@ -33,7 +37,10 @@ import SelectionTagAction from '@ui/ingredients/list/selection-actions-bar/Selec
 import IngredientsListSidebar from '@ui/ingredients/list/sidebar/IngredientsListSidebar';
 import { LazyModalImageToVideo } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
-import { applyLibraryAssetTagsChange } from '@ui/tags/library-tag-picker/library-asset-tags-event';
+import {
+  applyLibraryAssetTagsChange,
+  applyLibraryTagUpdate,
+} from '@ui/tags/library-tag-picker/library-asset-tags-event';
 import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -225,8 +232,9 @@ export default function IngredientsList({
     return format(new Date(cachedAt), 'PPpp');
   }, [cachedAt]);
 
-  // The inspector and the bulk bar publish tag changes on `window`; applying
-  // them here updates cards, rows and the inspector without a refetch.
+  // The inspector, the bulk bar and tag management publish tag changes on
+  // `window`; applying them here updates cards, rows and the inspector without
+  // a refetch.
   useEffect(() => {
     const handleTagsChange = (event: Event) => {
       const change = (event as CustomEvent<ILibraryAssetTagsChange>).detail;
@@ -237,9 +245,18 @@ export default function IngredientsList({
       }
     };
 
+    const handleTagUpdate = (event: Event) => {
+      const update = (event as CustomEvent<ILibraryTagUpdate>).detail;
+      if (update) {
+        setIngredients((current) => applyLibraryTagUpdate(current, update));
+      }
+    };
+
     window.addEventListener(LIBRARY_ASSET_TAGS_EVENT, handleTagsChange);
+    window.addEventListener(LIBRARY_TAG_UPDATED_EVENT, handleTagUpdate);
     return () => {
       window.removeEventListener(LIBRARY_ASSET_TAGS_EVENT, handleTagsChange);
+      window.removeEventListener(LIBRARY_TAG_UPDATED_EVENT, handleTagUpdate);
     };
   }, [setIngredients]);
 

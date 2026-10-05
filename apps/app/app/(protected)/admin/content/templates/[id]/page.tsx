@@ -1,11 +1,8 @@
+import TemplateDetailRoute from '@app/(protected)/admin/content/templates/[id]/TemplateDetailRoute';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import type { DetailPageProps } from '@props/pages/page.props';
-import TemplateDetail from '@protected/content/templates/[id]/template-detail';
 
 export const generateMetadata = createPageMetadata('Template Detail');
 
-export default async function TemplateDetailPage({ params }: DetailPageProps) {
-  const { id } = await params;
-
-  return <TemplateDetail templateId={id} />;
+export default function TemplateDetailPage() {
+  return <TemplateDetailRoute />;
 }

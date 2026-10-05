@@ -6,9 +6,14 @@ import type { FolderDocument } from '@api/collections/folders/schemas/folder.sch
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { tenantReadQuery } from '@api-test/helpers/tenant-read.fixture';
 import { FolderSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, HttpException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  HttpException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -173,9 +178,12 @@ describe('FoldersController', () => {
     });
 
     it('scopes current-brand queries to the caller organization', () => {
-      const result = controller.buildFindAllQuery(mockUser, {
-        brand: mockBrandId,
-      } as BaseQueryDto & { brand: string });
+      const result = controller.buildFindAllQuery(
+        mockUser,
+        tenantReadQuery(BaseQueryDto, {
+          brandId: mockBrandId,
+        }),
+      );
 
       expect(result).toMatchObject({
         where: expect.objectContaining({
@@ -194,21 +202,23 @@ describe('FoldersController', () => {
     });
 
     it('rejects a requested foreign organization', () => {
-      const result = controller.buildFindAllQuery(mockUser, {
-        organization: 'org-1',
-      } as BaseQueryDto & { organization: string });
-
-      expect(result).toMatchObject({
-        where: expect.objectContaining({
-          id: { in: [] },
-        }),
-      });
+      expect(() =>
+        controller.buildFindAllQuery(
+          mockUser,
+          tenantReadQuery(BaseQueryDto, {
+            organizationId: foreignOrganizationId,
+          }),
+        ),
+      ).toThrow(ForbiddenException);
     });
 
     it('keeps ordinary members in current-brand scope when they request their organization', () => {
-      const result = controller.buildFindAllQuery(mockUser, {
-        organization: mockUser.organizationId,
-      } as BaseQueryDto & { organization: string });
+      const result = controller.buildFindAllQuery(
+        mockUser,
+        tenantReadQuery(BaseQueryDto, {
+          organizationId: mockUser.organizationId,
+        }),
+      );
 
       expect(result).toMatchObject({
         where: expect.objectContaining({
@@ -227,9 +237,12 @@ describe('FoldersController', () => {
     });
 
     it('allows a superadmin to list every folder in a selected organization', () => {
-      const result = controller.buildFindAllQuery(mockSuperAdmin, {
-        organization: foreignOrganizationId,
-      } as BaseQueryDto & { organization: string });
+      const result = controller.buildFindAllQuery(
+        mockSuperAdmin,
+        tenantReadQuery(BaseQueryDto, {
+          organizationId: foreignOrganizationId,
+        }),
+      );
 
       expect(result).toMatchObject({
         where: {
@@ -241,10 +254,13 @@ describe('FoldersController', () => {
     });
 
     it('allows a superadmin to scope a selected organization to one brand', () => {
-      const result = controller.buildFindAllQuery(mockSuperAdmin, {
-        brand: foreignBrandId,
-        organization: foreignOrganizationId,
-      } as BaseQueryDto & { brand: string; organization: string });
+      const result = controller.buildFindAllQuery(
+        mockSuperAdmin,
+        tenantReadQuery(BaseQueryDto, {
+          brandId: foreignBrandId,
+          organizationId: foreignOrganizationId,
+        }),
+      );
 
       expect(result).toMatchObject({
         where: expect.objectContaining({
@@ -263,9 +279,12 @@ describe('FoldersController', () => {
     });
 
     it('does not return folders for a requested foreign brand', () => {
-      const result = controller.buildFindAllQuery(mockUser, {
-        brand: foreignBrandId,
-      } as BaseQueryDto & { brand: string });
+      const result = controller.buildFindAllQuery(
+        mockUser,
+        tenantReadQuery(BaseQueryDto, {
+          brandId: foreignBrandId,
+        }),
+      );
 
       expect(result).toMatchObject({
         where: expect.objectContaining({
@@ -279,12 +298,10 @@ describe('FoldersController', () => {
       // object; emitting them with bare scalars crashed Prisma in prod (#565).
       // Every branch of every OR clause must use scalar FK keys only.
       const relationAccessorKeys = ['brand', 'organization', 'user'];
-      const scenarios: Array<BaseQueryDto & Record<string, unknown>> = [
-        {},
-        { brand: mockBrandId } as BaseQueryDto & {
-          brand: string;
-        },
-        { organization: 'org-1' } as BaseQueryDto & { organization: string },
+      const scenarios: BaseQueryDto[] = [
+        tenantReadQuery(BaseQueryDto, {}),
+        tenantReadQuery(BaseQueryDto, { brandId: mockBrandId }),
+        tenantReadQuery(BaseQueryDto, { organizationId: mockOrganizationId }),
       ];
 
       for (const query of scenarios) {

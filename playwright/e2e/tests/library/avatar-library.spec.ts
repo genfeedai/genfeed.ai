@@ -62,6 +62,8 @@ async function openAvatarRow(page: Page, label: string): Promise<void> {
 }
 
 test.describe('Avatar Library', () => {
+  test.describe.configure({ mode: 'serial' });
+
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
       credits: 1000,

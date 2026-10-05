@@ -421,6 +421,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['mcp'],
     toolset: 'social-inbox',
   },
+  { name: 'onboard_brand', surfaces: ['mcp'], toolset: 'core' },
   { name: 'open_in_editor', surfaces: ['mcp'], toolset: 'clips' },
   { name: 'open_studio_handoff', surfaces: ['agent'], toolset: 'ui' },
   { name: 'pause_outreach_sequence', surfaces: ['agent'], toolset: 'outreach' },
@@ -494,6 +495,12 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'rollback_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
   { name: 'save_brand_voice_profile', surfaces: ['agent'], toolset: 'brand' },
   { name: 'save_dashboard_layout', surfaces: ['agent'], toolset: 'ui' },
+  {
+    name: 'save_onboarding_answers',
+    surfaces: ['agent'],
+    toolset: 'onboarding',
+  },
+  { name: 'scan_brand_url', surfaces: ['agent'], toolset: 'onboarding' },
   { name: 'schedule_post', surfaces: ['agent'], toolset: 'content' },
   { name: 'score_seo', surfaces: ['agent'], toolset: 'content' },
   {

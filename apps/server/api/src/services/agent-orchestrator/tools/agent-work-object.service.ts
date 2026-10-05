@@ -320,6 +320,23 @@ export class AgentWorkObjectService {
       throw new BadRequestException(
         'The recommendation must be one of the choices.',
       );
+    for (const key of ['allowFreeText', 'isMultiSelect']) {
+      if (params[key] !== undefined && typeof params[key] !== 'boolean')
+        throw new BadRequestException(`${key} must be a boolean.`);
+    }
+    const isMultiSelect = params.isMultiSelect === true;
+    const maxSelections = params.maxSelections;
+    if (
+      maxSelections !== undefined &&
+      (typeof maxSelections !== 'number' ||
+        !Number.isInteger(maxSelections) ||
+        maxSelections < 1 ||
+        maxSelections > options.length ||
+        !isMultiSelect)
+    )
+      throw new BadRequestException(
+        'Use a valid selection limit for a multi-select question.',
+      );
     const inputRequestId = requiredString(params.requestId, 'requestId');
     await this.publisher.publishInputRequest({
       inputRequestId,
@@ -328,7 +345,9 @@ export class AgentWorkObjectService {
       runId: context.runId,
       title: requiredString(params.title, 'title'),
       prompt: requiredString(params.prompt, 'prompt'),
-      allowFreeText: true,
+      allowFreeText: params.allowFreeText !== false,
+      isMultiSelect,
+      ...(typeof maxSelections === 'number' ? { maxSelections } : {}),
       options,
       recommendedOptionId,
       metadata: {

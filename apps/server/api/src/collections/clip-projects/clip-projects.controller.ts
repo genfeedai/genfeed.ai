@@ -12,6 +12,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -95,6 +96,11 @@ export class ClipProjectsController {
     @CurrentUser() user: User,
     @Query() query: BaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -103,7 +109,10 @@ export class ClipProjectsController {
     const aggregate = {
       where: {
         isDeleted: false,
-        organizationId: user.organizationId,
+        organizationId: tenant.organizationId,
+        ...(tenant.isOrganizationOverride && tenant.brandId
+          ? { brandId: tenant.brandId }
+          : {}),
       },
       orderBy: query.sort
         ? handleQuerySort(query.sort)

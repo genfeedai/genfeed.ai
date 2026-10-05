@@ -208,6 +208,8 @@ const EXPECTED_SYSTEM_WORKFLOW_IDS: readonly string[] = [
   'agent.tool.revise_visual_code_project',
   'agent.tool.save_brand_voice_profile',
   'agent.tool.save_dashboard_layout',
+  'agent.tool.save_onboarding_answers',
+  'agent.tool.scan_brand_url',
   'agent.tool.schedule_post',
   'agent.tool.score_seo',
   'agent.tool.search_knowledge',

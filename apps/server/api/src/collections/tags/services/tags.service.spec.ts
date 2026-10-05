@@ -4,6 +4,7 @@ import {
 } from '@api/collections/tags/services/tags.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TagScope } from '@genfeedai/contracts';
+import { pickTagColor } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 
@@ -164,6 +165,41 @@ describe('TagsService', () => {
         label: 'Launch',
         organizationId,
         userId,
+      });
+    });
+
+    it('gives a tag created without a color its palette swatch', async () => {
+      prisma.tag.create.mockResolvedValue({ id: testId('tag') });
+
+      await service.createInScope({
+        brandId: null,
+        label: 'Launch',
+        organizationId,
+        userId,
+      });
+
+      const swatch = pickTagColor('Launch');
+      expect(prisma.tag.create.mock.calls[0]?.[0].data).toMatchObject({
+        backgroundColor: swatch.backgroundColor,
+        textColor: swatch.textColor,
+      });
+    });
+
+    it('keeps the colors its creator picked', async () => {
+      prisma.tag.create.mockResolvedValue({ id: testId('tag') });
+
+      await service.createInScope({
+        backgroundColor: '#123456',
+        brandId: null,
+        label: 'Launch',
+        organizationId,
+        textColor: '#FFFFFF',
+        userId,
+      });
+
+      expect(prisma.tag.create.mock.calls[0]?.[0].data).toMatchObject({
+        backgroundColor: '#123456',
+        textColor: '#FFFFFF',
       });
     });
   });

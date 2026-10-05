@@ -10,6 +10,7 @@ import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -55,7 +56,7 @@ export class StudioLooksController {
     @Query() query: StudioLooksQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     const data = await this.studioLooksService.listScoped(
-      this.getScope(user),
+      this.getScope(user, query, request),
       query.assetType,
       {
         customLabels,
@@ -124,9 +125,20 @@ export class StudioLooksController {
     };
   }
 
-  private getScope(user: User): StudioLookRequestScope {
-    const organizationId = user.organizationId?.trim();
-    const brandId = user.brandId?.trim();
+  private getScope(
+    user: User,
+    query: Pick<StudioLooksQueryDto, 'organizationId' | 'brandId'> = {},
+    request?: Request,
+  ): StudioLookRequestScope {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
+    const organizationId = tenant.organizationId;
+    const brandId = tenant.isOrganizationOverride
+      ? tenant.brandId
+      : user.brandId?.trim();
     const userId = (user.userId ?? user.id)?.trim();
 
     if (!organizationId || !userId) {

@@ -355,6 +355,122 @@ describe('AgentThreadEngineService', () => {
       options: [],
     };
 
+    it('accepts valid multi-select ids when free text is disabled and persists the ids', async () => {
+      const row = {
+        ...mockSnapshotRow,
+        data: {
+          ...mockSnapshotRow.data,
+          inputRequests: [
+            {
+              ...pendingRequest,
+              allowFreeText: false,
+              isMultiSelect: true,
+              maxSelections: 2,
+              options: [
+                { id: 'a', label: 'Awareness' },
+                { id: 'b', label: 'Sales' },
+              ],
+            },
+          ],
+        },
+      };
+      mockPrisma.agentThreadSnapshot.findFirst
+        .mockResolvedValueOnce(row)
+        .mockResolvedValueOnce(null);
+      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
+      const result = await service.resolveInputRequest({
+        answer: 'Awareness, Sales',
+        optionIds: ['a', 'b'],
+        organizationId: orgId,
+        requestId: 'req-1',
+        threadId,
+        userId: orgId,
+      });
+      expect(result.status).toBe('resolved');
+      expect(mockPrisma.agentThreadSnapshot.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            data: expect.objectContaining({
+              inputRequests: [
+                expect.objectContaining({
+                  answer: 'Awareness, Sales',
+                  optionIds: ['a', 'b'],
+                }),
+              ],
+            }),
+          }),
+        }),
+      );
+    });
+
+    it.each([
+      {
+        optionIds: ['unknown'],
+        answer: 'Unknown',
+        isMultiSelect: true,
+        maxSelections: 2,
+      },
+      {
+        optionIds: ['a', 'a'],
+        answer: 'Awareness, Awareness',
+        isMultiSelect: true,
+        maxSelections: 2,
+      },
+      {
+        optionIds: ['a', 'b'],
+        answer: 'Awareness, Sales',
+        isMultiSelect: true,
+        maxSelections: 1,
+      },
+      {
+        optionIds: ['a', 'b'],
+        answer: 'Awareness, Sales',
+        isMultiSelect: false,
+        maxSelections: 2,
+      },
+      {
+        optionIds: ['a'],
+        answer: 'Forged answer',
+        isMultiSelect: true,
+        maxSelections: 2,
+      },
+    ])(
+      'rejects invalid or excessive selection %j',
+      async ({ optionIds, answer, isMultiSelect, maxSelections }) => {
+        mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue({
+          ...mockSnapshotRow,
+          data: {
+            ...mockSnapshotRow.data,
+            inputRequests: [
+              {
+                ...pendingRequest,
+                allowFreeText: false,
+                isMultiSelect,
+                maxSelections,
+                options: [
+                  { id: 'a', label: 'Awareness' },
+                  { id: 'b', label: 'Sales' },
+                ],
+              },
+            ],
+          },
+        });
+        await expect(
+          service.resolveInputRequest({
+            answer,
+            optionIds,
+            organizationId: orgId,
+            requestId: 'req-1',
+            threadId,
+            userId: orgId,
+          }),
+        ).rejects.toThrow(BadRequestException);
+        expect(
+          mockPrisma.agentThreadSnapshot.updateMany,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
     it('resolves a pending input request', async () => {
       const snapshotWithRequest = {
         ...mockSnapshotRow,

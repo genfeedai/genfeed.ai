@@ -18,7 +18,6 @@ import { AccessStateProvider } from '@providers/access-state/access-state.provid
 import ApiStatusProvider from '@providers/api-status/api-status.provider';
 import ElementsProvider from '@providers/elements/elements.provider';
 import { GlobalModalsProvider } from '@providers/global-modals/global-modals.provider';
-import LocaleCookieSync from '@providers/locale-sync/locale-cookie-sync';
 import PromptBarProvider from '@providers/promptbar/promptbar.provider';
 import ThemePreferenceSync from '@providers/theme-sync/theme-preference-sync';
 import type { ReactNode } from 'react';
@@ -144,7 +143,6 @@ export default function ProtectedProviders({
   // still applies.
   content = (
     <GlobalModalsProvider>
-      <LocaleCookieSync />
       <ThemePreferenceSync />
       {content}
     </GlobalModalsProvider>
