@@ -13,7 +13,10 @@ import {
 } from './decimal-pricing';
 import { resolveBillableProviderCost } from './live-model-pricing';
 import { applyMargin } from './plans-pricing';
-import { quoteReviewedProviderPricing } from './reviewed-provider-pricing';
+import {
+  quoteReviewedProviderPricing,
+  selectorValuesEqual,
+} from './reviewed-provider-pricing';
 
 /**
  * A pending provider contract is price drift only when its normalized rates
@@ -143,8 +146,8 @@ export function quoteModelBillablePricing(
     credits = quote.credits;
     costSource = 'reviewed-provider';
     const selectedRates = pricing.rates.filter((rate) =>
-      Object.entries(rate.when).every(
-        ([key, value]) => input.selectors?.[key] === value,
+      Object.entries(rate.when).every(([key, value]) =>
+        selectorValuesEqual(input.selectors?.[key], value),
       ),
     );
     allocationBasis = selectedRates.every(
@@ -281,8 +284,8 @@ export function quoteModelBillablePricing(
               ],
               rates: model.reviewedPricing.rates
                 .filter((rate) =>
-                  Object.entries(rate.when).every(
-                    ([key, value]) => input.selectors?.[key] === value,
+                  Object.entries(rate.when).every(([key, value]) =>
+                    selectorValuesEqual(input.selectors?.[key], value),
                   ),
                 )
                 .map((rate) => ({ ...rate, when: { ...rate.when } })),

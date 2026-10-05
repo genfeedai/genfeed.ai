@@ -2,10 +2,12 @@ import {
   buildGuardedDelegate,
   type GuardedRow,
 } from '@api/collections/models/testing/cloud-guarded-delegate';
+import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
 import {
   AdminModelPricingService,
   projectAdminModelPricing,
 } from '@api/endpoints/admin/model-pricing/model-pricing.service';
+import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import {
   type Model,
   type ModelProviderContract,
@@ -273,6 +275,98 @@ describe('operator model pricing projection', () => {
       ]);
       expect(row.isRateApprovalAvailable).toBe(true);
       expect(row.effectiveSampleCredits).toBe(64);
+    });
+
+    it('shows a never-reviewed model red with its parsed pending rates and an Approve action', () => {
+      const unreviewed = {
+        ...hailuo,
+        pendingProviderContractVersion: 'rates-v2',
+        reviewedProviderContractVersion: null,
+      } as unknown as Model;
+      const row = projectAdminModelPricing(
+        unreviewed,
+        [rateContract('rates-v2', rates, { reviewStatus: 'pending' })],
+        3.33,
+        '2026-10-05T00:00:00Z',
+      );
+      expect(row.attentionLevel).toBe('red');
+      expect(row.attention[0]).toMatchObject({ code: 'price_missing' });
+      expect(row.pendingRateChanges).toHaveLength(3);
+      expect(row.pendingRateChanges[0]).toMatchObject({
+        newPriceUsd: 0.19,
+        oldPriceUsd: null,
+      });
+      expect(row.isRateApprovalAvailable).toBe(true);
+      expect(row.reasons.join(' ')).toContain('ready to approve');
+    });
+
+    it('prices at the approved rates on the next quote after approving a never-reviewed model', async () => {
+      const unreviewed = {
+        ...hailuo,
+        pendingProviderContractVersion: 'rates-v2',
+        reviewedProviderContractVersion: null,
+      } as unknown as Model;
+      const pending = rateContract('rates-v2', rates, {
+        reviewStatus: 'pending',
+      });
+      const findFirst = vi
+        .fn()
+        .mockResolvedValue({ ...unreviewed, providerContracts: [pending] });
+      const modelUpdate = vi.fn().mockResolvedValue({});
+      const transaction = {
+        model: { findFirst, update: modelUpdate },
+        modelProviderContract: { update: vi.fn().mockResolvedValue({}) },
+        platformSetting: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue({ marginMultiplierGeneration: 3.33 }),
+        },
+      };
+      await new AdminModelPricingService({
+        $transaction: async (
+          fn: (client: typeof transaction) => Promise<unknown>,
+        ) => fn(transaction),
+      } as never).approveRates('model', 'user-1');
+      const approvedVersion =
+        modelUpdate.mock.calls[0]?.[0].data.reviewedProviderContractVersion;
+      expect(approvedVersion).toBe('rates-v2');
+
+      const profile = projectModelBillablePricingProfile(
+        { ...unreviewed, reviewedProviderContractVersion: approvedVersion },
+        [{ ...pending, reviewStatus: 'approved' }],
+      );
+      expect(
+        quoteModelBillablePricing(
+          profile,
+          {
+            modelKey: 'minimax/hailuo-2.3-fast',
+            provider: 'replicate',
+            selectors: { duration: 6, resolution: '768P' },
+          },
+          3.33,
+          '2026-10-05T00:00:00Z',
+        ),
+      ).toMatchObject({
+        snapshot: { providerCostUsd: 0.19 },
+        status: 'priced',
+      });
+    });
+
+    it('keeps a never-reviewed model red with the mapping failure and no Approve when rates could not be read', () => {
+      const row = projectAdminModelPricing(
+        {
+          ...hailuo,
+          providerSyncFailureCode: 'rates_unavailable:unmapped_criterion:x',
+          reviewedProviderContractVersion: null,
+        } as unknown as Model,
+        [],
+        3.33,
+        '2026-10-05T00:00:00Z',
+      );
+      expect(row.attentionLevel).toBe('red');
+      expect(row.isRateApprovalAvailable).toBe(false);
+      expect(row.pendingRateChanges).toEqual([]);
+      expect(row.reasons.join(' ')).toContain('unmapped_criterion:x');
     });
 
     it('does not offer approval for a schema-only pending contract', () => {

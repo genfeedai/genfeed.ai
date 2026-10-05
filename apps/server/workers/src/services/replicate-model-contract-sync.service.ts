@@ -285,13 +285,30 @@ export class ReplicateModelContractSyncService {
         pendingProviderContractVersion: candidate.version,
         providerPricingSyncedAt: now,
         providerSchemaSyncedAt: now,
-        providerSyncFailedAt: null,
-        providerSyncFailureCode: null,
+        providerSyncFailedAt: candidate.billingFailure ? now : null,
+        providerSyncFailureCode: candidate.billingFailure
+          ? `rates_unavailable:${candidate.billingFailure}`
+          : null,
         providerSyncStatus: quarantined ? 'quarantined' : 'review_required',
       },
       where: { id: model.id },
     });
 
+    // An active model with no reviewed price is red: tell ops whether its
+    // rates were read (ready to approve) or why they could not be.
+    if (model.isActive)
+      return {
+        drifted: false,
+        quarantined,
+        refreshFailure: {
+          modelKey,
+          provider: ModelProvider.REPLICATE,
+          reason: candidate.observed
+            ? 'Price missing: provider rates were read and are ready to approve in admin'
+            : `Price missing: provider rates could not be read (${candidate.billingFailure ?? 'no_billing_observation'})`,
+        },
+        version: contract.version,
+      };
     return { drifted: false, quarantined, version: contract.version };
   }
 

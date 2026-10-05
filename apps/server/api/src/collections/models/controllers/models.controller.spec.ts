@@ -153,6 +153,7 @@ describe('ModelsController', () => {
             approveRegistryModel: vi.fn(),
             getProviderContracts: vi.fn(),
             findAll: vi.fn(),
+            findUnpriceableModelIds: vi.fn().mockResolvedValue([]),
             findOne: vi.fn(),
             patch: vi.fn(),
             rejectRegistryModel: vi.fn(),
@@ -411,6 +412,36 @@ describe('ModelsController', () => {
 
       expect(modelsService.findAll).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+
+    it('leaves unpriceable (red) models out of the list for everyone but a superadmin', async () => {
+      const empty = {
+        docs: [],
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: 10,
+        nextPage: null,
+        page: 1,
+        pagingCounter: 1,
+        prevPage: null,
+        totalDocs: 0,
+        totalPages: 1,
+      };
+      modelsService.findAll.mockResolvedValue(empty);
+      modelsService.findUnpriceableModelIds.mockResolvedValue(['red-model']);
+
+      await controller.findAll(mockRequest, mockRegularUser, {});
+
+      expect(modelsService.findAll.mock.calls[0][0].where).toMatchObject({
+        AND: [{ id: { notIn: ['red-model'] } }],
+      });
+
+      modelsService.findAll.mockClear();
+      await controller.findAll(mockSuperAdminRequest, mockSuperAdminUser, {});
+
+      expect(modelsService.findAll.mock.calls[0][0].where).not.toHaveProperty(
+        'AND',
+      );
     });
 
     it('should append org-scoped match stage when request context has organizationId', async () => {

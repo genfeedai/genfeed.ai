@@ -293,6 +293,19 @@ export class ModelsController extends BaseCRUDController<
       }
     }
 
+    // Models that cannot be priced (red in the admin pricing panel) are not
+    // offered to anyone but a platform superadmin.
+    if (!isSuperAdmin) {
+      const unpriceableIds = await this.modelsService.findUnpriceableModelIds({
+        isDeleted: false,
+        organizationId: null,
+      });
+      if (unpriceableIds.length > 0) {
+        const existingAnd = Array.isArray(where.AND) ? where.AND : [];
+        where.AND = [...existingAnd, { id: { notIn: unpriceableIds } }];
+      }
+    }
+
     if (authenticatedOrgId) {
       where.OR = [
         { organizationId: null },

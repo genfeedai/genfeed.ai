@@ -233,6 +233,32 @@ describe('ReplicateModelContractSyncService', () => {
     expect(create.pricing.rates).toHaveLength(3);
   });
 
+  it('tells ops an active never-reviewed model has rates ready to approve, or why they could not be read', async () => {
+    const ready = harness();
+    const readyResult = await ready.service.synchronizeModel(
+      registryModel(),
+      providerModel(validOpenapi(variantProperties)),
+      ModelCategory.IMAGE,
+      { ...pricing(), billing },
+    );
+    expect(readyResult.refreshFailure?.reason).toContain('ready to approve');
+
+    const failed = harness();
+    const failedResult = await failed.service.synchronizeModel(
+      registryModel(),
+      providerModel(validOpenapi(variantProperties)),
+      ModelCategory.IMAGE,
+      {
+        ...pricing(),
+        billing: { reason: 'no_billing_config', status: 'unavailable' },
+      },
+    );
+    expect(failedResult.refreshFailure?.reason).toContain('no_billing_config');
+    expect(failed.model.update.mock.calls[0]?.[0].data).toMatchObject({
+      providerSyncFailureCode: 'rates_unavailable:no_billing_config',
+    });
+  });
+
   it('keeps a stable version while only the verification date moves', async () => {
     const first = harness();
     const second = harness();

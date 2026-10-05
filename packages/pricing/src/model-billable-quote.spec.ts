@@ -328,6 +328,36 @@ describe('authoritative bill-time quote snapshots', () => {
       ).status,
     ).toBe('unresolved');
   });
+  it('matches selector values canonically: a numeric string equals its number, text is exact', () => {
+    const reviewed = {
+      ...model,
+      rateVersion: 'rate-v1',
+      requiresReviewedRates: true,
+      reviewedPricing: {
+        version: 'rate-v1',
+        currency: 'USD',
+        reviewStatus: 'approved',
+        sourceUrl: 'https://replicate.com/provider/avatar',
+        verifiedAt: date,
+        rates: [
+          {
+            component: 'output',
+            unit: 'output' as const,
+            unitPriceUsd: 0.19,
+            when: { resolution: '768P', duration: 6 },
+          },
+        ],
+      },
+    };
+    const quote = (selectors: Record<string, string | number | boolean>) =>
+      quoteModelBillablePricing(reviewed, { ...input, selectors }, 3.33, date)
+        .status;
+    expect(quote({ resolution: '768P', duration: 6 })).toBe('priced');
+    expect(quote({ resolution: '768P', duration: '6' })).toBe('priced');
+    expect(quote({ resolution: '768p', duration: 6 })).toBe('unresolved');
+    expect(quote({ resolution: '768P', duration: '6s' })).toBe('unresolved');
+    expect(quote({ resolution: '768P', duration: true })).toBe('unresolved');
+  });
   it('keeps charging the reviewed rate while a price change awaits approval', () => {
     const reviewed = {
       ...model,

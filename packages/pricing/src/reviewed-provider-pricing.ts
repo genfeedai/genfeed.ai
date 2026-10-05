@@ -12,6 +12,28 @@ import {
 } from './decimal-pricing';
 import { applyMargin } from './plans-pricing';
 
+/**
+ * Selector values compare exactly (case-sensitive), except that a finite
+ * numeric string equals the number it spells: `'6'` matches `6`.
+ */
+export function selectorValuesEqual(
+  selected: string | number | boolean | undefined,
+  declared: string | number | boolean,
+): boolean {
+  if (selected === declared) return true;
+  const numeric = (value: unknown): number | null =>
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && /^\s*-?\d+(\.\d+)?\s*$/.test(value)
+        ? Number(value)
+        : null;
+  if (typeof selected === 'boolean' || typeof declared === 'boolean')
+    return false;
+  if (typeof selected === typeof declared) return false;
+  const left = numeric(selected);
+  return left !== null && Number.isFinite(left) && left === numeric(declared);
+}
+
 function validQuantity(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }
@@ -101,8 +123,8 @@ export function quoteReviewedProviderPricing(
   const componentCosts: number[] = [];
   for (const [component, rates] of components) {
     const matches = rates.filter((rate) =>
-      Object.entries(rate.when).every(
-        ([key, value]) => input.selectors?.[key] === value,
+      Object.entries(rate.when).every(([key, value]) =>
+        selectorValuesEqual(input.selectors?.[key], value),
       ),
     );
     if (matches.length !== 1)

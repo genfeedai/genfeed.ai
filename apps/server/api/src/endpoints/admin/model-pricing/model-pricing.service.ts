@@ -244,25 +244,38 @@ export function projectAdminModelPricing(
   const pendingContract = contracts.find(
     (c) => c.version === model.pendingProviderContractVersion,
   );
-  const pendingPricing = profile.reviewedPricing
-    ? parseContractReviewedPricing(model, pendingContract)
-    : null;
+  const pendingPricing = parseContractReviewedPricing(model, pendingContract);
   const hasRateDrift = hasPendingProviderRateDrift(
     profile.reviewedPricing
       ? hashReviewedProviderRates(profile.reviewedPricing.rates)
       : null,
     pendingPricing ? hashReviewedProviderRates(pendingPricing.rates) : null,
   );
+  // A never-reviewed model whose refresh parsed the provider's rates: red until
+  // an operator approves them.
+  const hasUnreviewedRates =
+    !profile.reviewedPricing &&
+    pendingPricing !== null &&
+    pendingContract?.mappingStatus === 'supported';
   const pendingRateChanges =
-    hasRateDrift && profile.reviewedPricing && pendingPricing
+    (hasRateDrift || hasUnreviewedRates) && pendingPricing
       ? describeProviderRateChanges(
-          profile.reviewedPricing.rates,
+          profile.reviewedPricing?.rates ?? [],
           pendingPricing.rates,
         )
       : [];
   if (hasRateDrift)
     reasons.push(
       'The provider changed its price; the approved rate keeps charging until approved',
+    );
+  if (hasUnreviewedRates)
+    reasons.push('Provider rates were read and are ready to approve');
+  else if (
+    !profile.reviewedPricing &&
+    model.providerSyncFailureCode?.startsWith('rates_unavailable:')
+  )
+    reasons.push(
+      `Provider rates could not be read (${model.providerSyncFailureCode})`,
     );
   if (model.category === 'text')
     reasons.push(
@@ -401,7 +414,8 @@ export function projectAdminModelPricing(
     attention,
     pendingRateChanges,
     isRateApprovalAvailable:
-      hasRateDrift && pendingContract?.mappingStatus === 'supported',
+      (hasRateDrift || hasUnreviewedRates) &&
+      pendingContract?.mappingStatus === 'supported',
     providerSyncStatus: model.providerSyncStatus,
     providerSyncFailureCode: model.providerSyncFailureCode,
     providerPricingSyncedAt:

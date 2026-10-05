@@ -388,7 +388,7 @@ export class ModelsService extends BaseService<
   }
 
   /** Ids of catalog rows the shared red classification marks unpriceable. */
-  private async findUnpriceableModelIds(
+  async findUnpriceableModelIds(
     catalogWhere: Prisma.ModelWhereInput,
   ): Promise<string[]> {
     // tenant-scope-ignore: the pricing classification reads the same platform-only rows (organizationId:null, isDeleted:false) as the catalog query it narrows
