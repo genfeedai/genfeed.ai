@@ -91,9 +91,9 @@ export function enumerateReviewedVariantSelectors(
         if (compatible) Object.assign(selectors, compatible.when);
       }
       const identity = JSON.stringify(
-        Object.entries(selectors).sort(([left], [right]) =>
-          left.localeCompare(right),
-        ),
+        Object.entries(selectors)
+          .map(([key, value]) => [key, selectorNumber(value) ?? value])
+          .sort(([left], [right]) => String(left).localeCompare(String(right))),
       );
       if (seen.has(identity)) continue;
       seen.add(identity);

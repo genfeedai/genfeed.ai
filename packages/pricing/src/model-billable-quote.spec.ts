@@ -445,7 +445,8 @@ describe('authoritative bill-time quote snapshots', () => {
     expect(settle({ resolution: '768P', duration: 6 })).toBe('priced');
     expect(settle({ resolution: '768P', duration: '6' })).toBe('priced');
     expect(settle({ resolution: '768P' })).toBe('priced');
-    expect(settle({ duration: 6 })).toBe('priced');
+    // A non-derived selector cannot be dropped.
+    expect(settle({ duration: 6 })).toBe('unresolved');
     expect(settle({ resolution: '1080P', duration: 6 })).toBe('unresolved');
     expect(settle({ resolution: '768P', duration: 10 })).toBe('unresolved');
   });
