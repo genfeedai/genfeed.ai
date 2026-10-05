@@ -32,8 +32,8 @@ export class ApifyTwitterService {
   async getTwitterTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
     try {
       const input = {
-        country: options?.region || 'US',
-        maxItems: options?.limit || 20,
+        locations: [options?.region || 'US'],
+        maxTrendsPerLocation: options?.limit || 20,
       };
 
       const rawTrends = await this.baseService.runActor<ApifyTwitterTrend>(
@@ -272,23 +272,31 @@ export class ApifyTwitterService {
   private normalizeTwitterTrends(
     trends: ApifyTwitterTrend[],
   ): ApifyTrendData[] {
-    return trends.map((trend, index) => ({
-      growthRate: this.baseService.calculateGrowthRate(trend.tweetVolume || 0),
-      mentions: trend.tweetVolume || 0,
-      metadata: {
-        category: trend.category,
-        hashtags: trend.name.startsWith('#') ? [trend.name.substring(1)] : [],
-        rank: trend.rank || index + 1,
-        source: 'apify' as const,
-        trendType: trend.name.startsWith('#')
-          ? ('hashtag' as const)
-          : ('topic' as const),
-        urls: trend.url ? [trend.url] : [],
-      },
-      platform: 'twitter',
-      topic: trend.name,
-      viralityScore: 100 - index * 5, // Higher rank = higher virality
-    }));
+    return trends
+      .filter(
+        (trend): trend is ApifyTwitterTrend & { name: string } =>
+          Boolean(trend.name?.trim()) && !trend.isPromoted,
+      )
+      .map((trend, index) => {
+        const isHashtag = trend.isHashtag ?? trend.name.startsWith('#');
+        return {
+          growthRate: this.baseService.calculateGrowthRate(
+            trend.tweetVolume || 0,
+          ),
+          mentions: trend.tweetVolume || 0,
+          metadata: {
+            countryCode: trend.countryCode,
+            hashtags: isHashtag ? [trend.name.replace(/^#/, '')] : [],
+            rank: trend.rank || index + 1,
+            source: 'apify' as const,
+            trendType: isHashtag ? ('hashtag' as const) : ('topic' as const),
+            urls: trend.twitterSearchUrl ? [trend.twitterSearchUrl] : [],
+          },
+          platform: 'twitter',
+          topic: trend.name,
+          viralityScore: Math.max(0, 100 - index * 5), // Higher rank = higher virality
+        };
+      });
   }
 
   /**

@@ -158,15 +158,17 @@ export interface ApifyTikTokVideo {
 }
 
 /**
- * Twitter/X trend data from Apify
+ * Twitter/X trend row from automation-lab/twitter-trends-scraper
  */
 export interface ApifyTwitterTrend {
-  name: string;
-  url?: string;
-  tweetVolume?: number;
-  category?: string;
+  name?: string;
   rank?: number;
-  country?: string;
+  /** Approximate 24-hour post count; null when X does not publish it. */
+  tweetVolume?: number | null;
+  isHashtag?: boolean;
+  isPromoted?: boolean;
+  twitterSearchUrl?: string;
+  countryCode?: string;
 }
 
 /**
@@ -346,18 +348,32 @@ export interface ApifyRedditPost {
 }
 
 /**
- * Pinterest trend data from Apify
+ * Pin record from fatihtahta/pinterest-scraper-search
  */
 export interface ApifyPinterestPin {
   id: string;
+  url?: string;
   title?: string;
-  description?: string;
-  repinCount?: number;
-  commentCount?: number;
-  imageUrl?: string;
-  link?: string;
-  boardName?: string;
-  pinnerName?: string;
+  pin?: {
+    title?: string;
+    description?: string;
+    repin_count?: number;
+    comment_count?: number;
+    domain?: string;
+    is_promoted?: boolean;
+  };
+  media?: {
+    images?: Partial<
+      Record<
+        'large' | 'medium' | 'original' | 'small' | 'thumb',
+        ApifyPinterestImage
+      >
+    >;
+  };
+}
+
+export interface ApifyPinterestImage {
+  url?: string;
 }
 
 /**
