@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { DEFAULT_THEME } from '@genfeedai/contracts/constants';
+import AppHtmlDocument from '@ui/shell/AppHtmlDocument';
 import { JSDOM } from 'jsdom';
 import { ThemeProvider } from 'next-themes';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -9,18 +11,18 @@ import {
   ThemeStorageBootstrapScript,
 } from './ThemeBootstrapScript';
 
-function createDocument(prefersDark: boolean) {
-  const dom = new JSDOM(
-    '<!doctype html><html><head></head><body></body></html>',
-    {
-      runScripts: 'outside-only',
-      url: 'https://genfeed.ai',
-    },
-  );
+function createDocument(
+  isDark: boolean,
+  markup = '<!doctype html><html><head></head><body></body></html>',
+) {
+  const dom = new JSDOM(markup, {
+    runScripts: 'outside-only',
+    url: 'https://genfeed.ai',
+  });
 
   Object.defineProperty(dom.window, 'matchMedia', {
     configurable: true,
-    value: () => ({ matches: prefersDark }),
+    value: () => ({ matches: isDark }),
   });
 
   return dom;
@@ -84,6 +86,31 @@ describe('ThemeStorageBootstrapScript', () => {
 });
 
 describe('ThemeDocumentBootstrapScript', () => {
+  it.each([
+    ['light', true, 'light'],
+    ['dark', false, 'dark'],
+    ['system', true, 'dark'],
+    ['system', false, 'light'],
+  ])(
+    'stored %s with OS dark=%s overrides the static shell',
+    (stored, isDark, resolved) => {
+      const markup = renderToStaticMarkup(
+        <AppHtmlDocument initialTheme={DEFAULT_THEME} fontVariables="">
+          <div />
+        </AppHtmlDocument>,
+      );
+      const dom = createDocument(Boolean(isDark), markup);
+      expect(dom.window.document.documentElement.dataset.theme).toBeUndefined();
+      dom.window.localStorage.setItem('theme', String(stored));
+      executeScripts(dom, markup);
+      expect(dom.window.document.documentElement.dataset.theme).toBe(resolved);
+      expect(dom.window.document.documentElement.style.colorScheme).toBe(
+        resolved,
+      );
+      dom.window.close();
+    },
+  );
+
   it('applies storage before a root error document can paint', () => {
     const markup = renderToStaticMarkup(<ThemeDocumentBootstrapScript />);
     const dom = createDocument(false);

@@ -4,7 +4,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { BETTER_AUTH_BASE_PATH, getApiOrigin } from './config';
 
-export { isBetterAuthEnabled } from './config';
+export { isBetterAuthEnabled, readBetterAuthEnabledFromEnv } from './config';
 
 interface BetterAuthTokenResponse {
   token?: string;

@@ -8,9 +8,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 /**
- * Mirrors the stored locale preference into the cookie that
- * `resolveRequestLocale` reads on the server, the same way `ThemeCookieSync`
- * mirrors the theme.
+ * Mirrors the stored locale preference into the locale cookie, the same way
+ * `ThemeCookieSync` mirrors the theme.
  *
  * The preference lives in the database so it follows the user between devices,
  * but the server render must not wait on a database read. So the first visit

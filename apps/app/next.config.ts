@@ -487,6 +487,9 @@ config.generateBuildId = async () => {
   return buildId;
 };
 
+config.cacheComponents = true;
+config.partialPrefetching = true;
+
 config.experimental = {
   ...(config.experimental ?? {}),
   // Let bounded AI handlers return before the same-origin API proxy closes.
@@ -599,7 +602,7 @@ if (process.env.E2E_COVERAGE === '1') {
 
 // Resolves ./i18n/request.ts, next-intl's default request-config location. The
 // plugin only registers that alias — there is no `[locale]` segment and no
-// next-intl middleware, because locale rides on a cookie (epic #2497).
+// next-intl middleware, because the App Shell uses static English (epic #2497).
 const withNextIntl = createNextIntlPlugin();
 
 // Bundler-agnostic: withSerwist only appends esbuild to serverExternalPackages

@@ -69,6 +69,8 @@ BETTER_AUTH_ENABLED=false
 NEXT_PUBLIC_BETTER_AUTH_ENABLED=false
 ```
 
+BETTER_AUTH_ENABLED is read at container start and reaches the browser at runtime, while NEXT_PUBLIC_BETTER_AUTH_ENABLED is fixed when the image is built.
+
 That path needs no Better Auth account, no email provider, no Google OAuth
 client, and no cloud service. The seeded workspace opens locally.
 

@@ -1,11 +1,7 @@
 'use client';
 
-import LoginBetterAuth, {
-  type LoginBetterAuthProps,
-} from './login-better-auth';
+import LoginBetterAuth from '@app/(public)/login/login-better-auth';
 
-export default function LoginPage({
-  isDesktopShell = false,
-}: Pick<LoginBetterAuthProps, 'isDesktopShell'>) {
-  return <LoginBetterAuth isDesktopShell={isDesktopShell} mode="chooser" />;
+export default function LoginPage() {
+  return <LoginBetterAuth mode="chooser" />;
 }
