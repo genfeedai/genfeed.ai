@@ -310,10 +310,14 @@ test.describe('Shell — navigation interactions', () => {
         await expect(organization).toContainText(LONG_ORGANIZATION_NAME, {
           useInnerText: false,
         });
+        await expect(
+          organization.getByText(LONG_ORGANIZATION_NAME),
+        ).toBeVisible();
         await expect(brand).toHaveCSS('text-transform', 'capitalize');
         await expect(brand).toContainText(LONG_BRAND_NAME, {
           useInnerText: false,
         });
+        await expect(brand.getByText(LONG_BRAND_NAME)).toBeVisible();
       }
       await assertHealthy(authenticatedPage);
     });
