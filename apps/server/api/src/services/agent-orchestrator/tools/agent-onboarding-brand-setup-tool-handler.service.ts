@@ -3,12 +3,14 @@ import type { BrandsService } from '@api/collections/brands/services/brands.serv
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
 import { SignupPrefillService } from '@api/services/signup-prefill/signup-prefill.service';
 import { normalizeOnboardingUrl } from '@api/services/signup-prefill/utils/normalize-onboarding-url.util';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -56,6 +58,7 @@ export class AgentOnboardingBrandSetupToolHandler {
   ): Promise<AgentToolResult> {
     const currentBrandId = ctx.validatedScope?.brandId ?? ctx.brandId;
     const brandId = readOptionalString(params.brandId) ?? currentBrandId;
+    let creditsUsed = 0;
     let sourceUrl = '';
     try {
       if (typeof params.url !== 'string')
@@ -72,11 +75,14 @@ export class AgentOnboardingBrandSetupToolHandler {
           userId: ctx.userId,
         },
         sourceUrl,
+        (credits) => {
+          creditsUsed += credits;
+        },
       );
       if (state.scrapeStatus !== 'scraped') {
         return {
           success: true,
-          creditsUsed: 0,
+          creditsUsed,
           data: {
             status: 'failed',
             sourceUrl,
@@ -90,7 +96,7 @@ export class AgentOnboardingBrandSetupToolHandler {
         throw new InternalServerErrorException('Scan summary unavailable');
       return {
         success: true,
-        creditsUsed: 0,
+        creditsUsed,
         data: { status: 'scanned', sourceUrl, brandId, summary },
         nextActions: [
           {
@@ -127,11 +133,13 @@ export class AgentOnboardingBrandSetupToolHandler {
         brandId,
         error: error instanceof Error ? error.message : String(error),
         organizationId: ctx.organizationId,
-        sourceUrl,
+        sourceUrl: new BrandWebsiteParserService().sanitizeProvenanceUrl(
+          sourceUrl,
+        ),
       });
       return {
         success: true,
-        creditsUsed: 0,
+        creditsUsed,
         data: {
           status: 'failed',
           sourceUrl,
@@ -141,9 +149,13 @@ export class AgentOnboardingBrandSetupToolHandler {
               ? 'timeout'
               : error instanceof BadRequestException
                 ? 'invalid_url'
-                : error instanceof NotFoundException
-                  ? 'brand_not_found'
-                  : 'scan_failed',
+                : error instanceof ConflictException
+                  ? 'scan_in_progress'
+                  : error instanceof ForbiddenException
+                    ? 'forbidden'
+                    : error instanceof NotFoundException
+                      ? 'brand_not_found'
+                      : 'scan_failed',
         },
       };
     }
@@ -177,7 +189,8 @@ export class AgentOnboardingBrandSetupToolHandler {
       return value.map((item) => {
         if (typeof item !== 'string')
           throw new BadRequestException(`${key} must contain short strings.`);
-        return readShortString(item, key) ?? '';
+        readShortString(item, key);
+        return item.trim();
       });
     };
     const goals = readAnswers(params.goals, 'goals');

@@ -6,7 +6,12 @@ import {
   dispatchRegisteredAgentTool,
 } from '@api/services/agent-orchestrator/tools/agent-tool-dispatch.routes';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { BadRequestException, RequestTimeoutException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  RequestTimeoutException,
+} from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 const CONTEXT: ToolExecutionContext = {
@@ -170,6 +175,7 @@ describe('scan_brand_url', () => {
         userId: 'user-1',
       },
       'https://acme.example/product',
+      expect.any(Function),
     );
     expect(result).toMatchObject({
       success: true,
@@ -197,6 +203,45 @@ describe('scan_brand_url', () => {
     });
   });
 
+  it.each([0, 5])(
+    'reports actual settled spend %s including BYOK zero',
+    async (credits) => {
+      const h = createHandler();
+      h.signupPrefillService.scanBrandUrl.mockImplementation(
+        async (_request, _url, report: (credits: number) => void) => {
+          if (credits) report(credits);
+          return { scrapeStatus: 'scraped', summary: { name: 'Acme' } };
+        },
+      );
+      expect(
+        await h.handler.scanBrandUrl(
+          { url: 'https://acme.example' },
+          { ...CONTEXT, brandId: 'brand-1' },
+        ),
+      ).toMatchObject({ creditsUsed: credits });
+    },
+  );
+
+  it('keeps settled credits on a later scan failure and sanitizes logged URLs', async () => {
+    const h = createHandler();
+    h.signupPrefillService.scanBrandUrl.mockImplementation(
+      async (_request, _url, report: (credits: number) => void) => {
+        report(5);
+        throw new Error('persistence failed');
+      },
+    );
+    expect(
+      await h.handler.scanBrandUrl(
+        { url: 'https://acme.example/?token=secret' },
+        { ...CONTEXT, brandId: 'brand-1' },
+      ),
+    ).toMatchObject({ creditsUsed: 5, data: { reason: 'scan_failed' } });
+    expect(h.loggerService.warn).toHaveBeenCalledWith(
+      'Onboarding brand scan failed',
+      expect.objectContaining({ sourceUrl: 'https://acme.example/' }),
+    );
+  });
+
   it('reports scrape failure as an agent-readable choice point', async () => {
     const h = createHandler();
     h.signupPrefillService.scanBrandUrl.mockResolvedValue({
@@ -217,6 +262,8 @@ describe('scan_brand_url', () => {
   it.each([
     [new RequestTimeoutException('secret'), 'timeout'],
     [new NotFoundException('secret'), 'brand_not_found'],
+    [new ForbiddenException('secret'), 'forbidden'],
+    [new ConflictException('scan_in_progress'), 'scan_in_progress'],
     [new BadRequestException('secret'), 'invalid_url'],
     [new Error('secret'), 'scan_failed'],
     ['secret', 'scan_failed'],

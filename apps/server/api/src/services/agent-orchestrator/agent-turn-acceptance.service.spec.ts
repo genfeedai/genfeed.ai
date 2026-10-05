@@ -485,7 +485,57 @@ describe('AgentTurnAcceptanceService', () => {
     });
   });
 
-  it('resolves joined multi-select labels with valid ids on a button-only question', async () => {
+  it.each(['Awareness, Sales', 'awareness, SALES', 'Awareness, Sales, sales'])(
+    'resolves and deduplicates typed multi-select labels: %s',
+    async (content) => {
+      scopeService.prepareForTurn.mockResolvedValue({
+        existingScope: {
+          threadId: 'thread-1',
+          brandId: 'brand-1',
+          contextVersion: 1,
+        },
+      });
+      prisma.agentThread.findFirstOrThrow.mockResolvedValue({
+        id: 'thread-1',
+        brandId: 'brand-1',
+        contextVersion: 1,
+        status: 'active',
+      });
+      threadEngine.getSnapshot.mockResolvedValue({
+        pendingInputRequests: [
+          {
+            requestId: 'ask-source',
+            allowFreeText: false,
+            isMultiSelect: true,
+            options: [
+              { id: 'a', label: 'Awareness' },
+              { id: 'b', label: 'Sales' },
+            ],
+          },
+        ],
+      });
+      await service.accept(
+        {
+          threadId: 'thread-1',
+          clientRequestId: 'answer-1',
+          content,
+        },
+        { organizationId: 'org-1', userId: 'user-1' },
+      );
+      expect(threadEngine.resolveInputRequest).toHaveBeenCalledWith({
+        threadId: 'thread-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+        requestId: 'ask-source',
+        brandId: 'brand-1',
+        contextVersion: 1,
+        answer: 'Awareness, Sales',
+        optionIds: ['a', 'b'],
+      });
+    },
+  );
+
+  it('matches a multi-select label containing a comma', async () => {
     scopeService.prepareForTurn.mockResolvedValue({
       existingScope: {
         threadId: 'thread-1',
@@ -502,12 +552,12 @@ describe('AgentTurnAcceptanceService', () => {
     threadEngine.getSnapshot.mockResolvedValue({
       pendingInputRequests: [
         {
-          requestId: 'ask-source',
+          requestId: 'comma',
           allowFreeText: false,
           isMultiSelect: true,
           options: [
-            { id: 'a', label: 'Awareness' },
-            { id: 'b', label: 'Sales' },
+            { id: 'a', label: 'Sales, enterprise' },
+            { id: 'b', label: 'Awareness' },
           ],
         },
       ],
@@ -515,21 +565,17 @@ describe('AgentTurnAcceptanceService', () => {
     await service.accept(
       {
         threadId: 'thread-1',
-        clientRequestId: 'answer-1',
-        content: 'Awareness, Sales',
+        clientRequestId: 'comma-answer',
+        content: 'sales, enterprise, AWARENESS',
       },
       { organizationId: 'org-1', userId: 'user-1' },
     );
-    expect(threadEngine.resolveInputRequest).toHaveBeenCalledWith({
-      threadId: 'thread-1',
-      organizationId: 'org-1',
-      userId: 'user-1',
-      requestId: 'ask-source',
-      brandId: 'brand-1',
-      contextVersion: 1,
-      answer: 'Awareness, Sales',
-      optionIds: ['a', 'b'],
-    });
+    expect(threadEngine.resolveInputRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        answer: 'Sales, enterprise, Awareness',
+        optionIds: ['a', 'b'],
+      }),
+    );
   });
 
   it('propagates an enqueue failure instead of acknowledging the turn', async () => {

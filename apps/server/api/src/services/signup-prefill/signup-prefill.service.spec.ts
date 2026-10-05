@@ -14,7 +14,11 @@ import { compileActionContract } from '@genfeedai/workflows/engine';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { getTenantContext } from '@libs/prisma/tenant-context';
 import { resolveSafeDestination } from '@libs/security/destination-guard';
-import { BadRequestException, RequestTimeoutException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  RequestTimeoutException,
+} from '@nestjs/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@libs/security/destination-guard', () => ({
@@ -81,8 +85,9 @@ function createHarness() {
     findForBrand: vi.fn().mockResolvedValue([]),
     create: vi.fn(),
   };
+  const logger = { warn: vi.fn() };
   const service = new SignupPrefillService(
-    { warn: vi.fn() } as unknown as LoggerService,
+    logger as unknown as LoggerService,
     brands as unknown as BrandsService,
     scraper as unknown as BrandScraperService,
     mapper as unknown as BrandDataMapper,
@@ -100,6 +105,7 @@ function createHarness() {
   };
   return {
     service,
+    logger,
     state,
     scrapedData,
     generator,
@@ -139,6 +145,7 @@ describe('SignupPrefillService workflow scrape boundary', () => {
         scrapedAt: h.scrapedData.scrapedAt,
       }),
       { organizationId: 'org-1', userId: 'user-1' },
+      { deadlineAt: undefined, onCreditsSettled: expect.any(Function) },
     );
   });
   it('preserves JSON-safe scrape state through every downstream action', async () => {
@@ -186,6 +193,182 @@ describe('SignupPrefillService workflow scrape boundary', () => {
 });
 
 describe('SignupPrefillService explicit URL scan', () => {
+  it.each([
+    ['https://instagram.com/@acme', undefined, 'acme'],
+    ['https://instagram.com/acme', 'Instagram', 'acme'],
+    ['https://linktr.ee/acme', 'Linktree', 'acme'],
+    ['https://linkedin.com/company/acme', undefined, 'acme'],
+    ['https://beacons.ai/acme', undefined, 'acme'],
+    ['https://etsy.com/shop/acme', undefined, 'acme'],
+    ['https://youtube.com/@acme', 'Real company', 'Real company'],
+    ['https://instagram.com/', undefined, 'Acme'],
+  ])(
+    'uses profile identity for %s with company %s',
+    async (url, companyName, expected) => {
+      const h = createHarness();
+      h.scraper.scrapeWebsiteWithEvidence.mockResolvedValue({
+        data: { ...h.scrapedData, companyName },
+      });
+      const state = await h.service.scanBrandUrl(h.state.request, url);
+      expect(state.brandLabel).toBe(expected);
+      expect(h.persistence.syncBrandAndOrgSlug).toHaveBeenCalledWith(
+        expected,
+        'org-1',
+        'brand-1',
+        expected,
+        true,
+      );
+    },
+  );
+
+  it('reports settled analysis credits and passes the scan deadline', async () => {
+    const h = createHarness();
+    const report = vi.fn();
+    h.generator.analyzeBrandVoice.mockImplementation(
+      async (_data, _billing, options) => {
+        expect(options.deadlineAt).toEqual(expect.any(Number));
+        options.onCreditsSettled(1);
+        return { tone: 'Friendly' };
+      },
+    );
+    const state = await h.service.scanBrandUrl(
+      h.state.request,
+      'https://acme.example',
+      report,
+    );
+    expect(state.creditsUsed).toBe(1);
+    expect(report).toHaveBeenCalledWith(1);
+  });
+
+  it('rejects concurrent same-brand scans but releases the guard after completion', async () => {
+    const h = createHarness();
+    let complete: ((value: { data: typeof h.scrapedData }) => void) | undefined;
+    h.scraper.scrapeWebsiteWithEvidence.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+    );
+    const scan = h.service.scanBrandUrl(
+      h.state.request,
+      'https://acme.example',
+    );
+    await expect(
+      h.service.scanBrandUrl(h.state.request, 'https://acme.example'),
+    ).rejects.toBeInstanceOf(ConflictException);
+    for (let i = 0; i < 20 && !complete; i++) await Promise.resolve();
+    expect(complete).toBeDefined();
+    complete?.({ data: h.scrapedData });
+    await scan;
+    expect(
+      (await h.service.scanBrandUrl(h.state.request, 'https://acme.example'))
+        .status,
+    ).toBe('completed');
+  });
+
+  it('records failed markers for a persistence error using the latest answers', async () => {
+    const h = createHarness();
+    h.persistence.updateBrandWithScrapedData.mockImplementation(() => {
+      h.brands.findOne.mockResolvedValue({
+        agentConfig: {
+          strategy: { goals: ['Sales'] },
+          signupPrefill: { startedAt: 'new-marker' },
+        },
+        label: 'Acme',
+        description: '',
+        text: '',
+      });
+      throw new Error('write failed');
+    });
+    await expect(
+      h.service.scanBrandUrl(h.state.request, 'https://acme.example'),
+    ).rejects.toThrow('write failed');
+    expect(h.brands.updateAgentConfig).toHaveBeenLastCalledWith(
+      'brand-1',
+      'org-1',
+      expect.objectContaining({
+        signupPrefill: expect.objectContaining({
+          status: 'failed',
+          startedAt: 'new-marker',
+        }),
+      }),
+    );
+  });
+
+  it('preserves answers saved after prepare across defaults and final marker writes', async () => {
+    const h = createHarness();
+    h.scraper.scrapeWebsiteWithEvidence.mockImplementation(async () => {
+      h.brands.findOne.mockResolvedValue({
+        agentConfig: {
+          strategy: { goals: ['Sales'], platforms: ['linkedin'] },
+          voice: { tone: 'Owner tone' },
+        },
+        label: 'Acme',
+        description: '',
+        text: '',
+      });
+      return { data: h.scrapedData };
+    });
+    await h.service.scanBrandUrl(h.state.request, 'https://acme.example');
+    expect(
+      h.brands.updateAgentConfig.mock.calls.at(-1)?.[2],
+    ).not.toHaveProperty('strategy');
+    expect(
+      h.brands.updateAgentConfig.mock.calls.at(-1)?.[2],
+    ).not.toHaveProperty('voice');
+    for (const [, , config] of h.brands.updateAgentConfig.mock.calls.slice(
+      1,
+      -1,
+    )) {
+      expect(config).toMatchObject({
+        strategy: { goals: ['Sales'], platforms: ['linkedin'] },
+        voice: { tone: 'Owner tone' },
+      });
+    }
+  });
+
+  it('marks an analysis timeout failed and skips persistence', async () => {
+    const h = createHarness();
+    h.generator.analyzeBrandVoice.mockRejectedValue(
+      new RequestTimeoutException(),
+    );
+    await expect(
+      h.service.scanBrandUrl(h.state.request, 'https://acme.example'),
+    ).rejects.toBeInstanceOf(RequestTimeoutException);
+    expect(h.persistence.updateBrandWithScrapedData).not.toHaveBeenCalled();
+    expect(h.brands.updateAgentConfig).toHaveBeenLastCalledWith(
+      'brand-1',
+      'org-1',
+      expect.objectContaining({
+        signupPrefill: expect.objectContaining({ status: 'failed' }),
+      }),
+    );
+  });
+
+  it('rethrows a timeout reached while seeding the harness', async () => {
+    const h = createHarness();
+    h.harness.findForBrand.mockRejectedValue(new RequestTimeoutException());
+    await expect(h.service.applyPrefillHarness(h.state)).rejects.toBeInstanceOf(
+      RequestTimeoutException,
+    );
+  });
+
+  it('logs signup scrape error and sanitized URL detail', async () => {
+    const h = createHarness();
+    h.scraper.scrapeWebsite.mockRejectedValue(new Error('scrape broke'));
+    await h.service.scrapePrefill({
+      ...h.state,
+      websiteUrl: 'https://acme.example/?token=secret',
+    });
+    expect(h.logger.warn).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        error: 'scrape broke',
+        websiteUrl: 'https://acme.example/',
+      }),
+    );
+  });
+
   it('runs all stages, uses the scanned name and scopes persistence', async () => {
     const h = createHarness();
     h.persistence.updateBrandWithScrapedData.mockImplementation(() => {
@@ -422,14 +605,23 @@ describe('SignupPrefillService explicit URL scan', () => {
     'http://10.0.0.1',
     'http://metadata.google.internal',
     '',
-  ])('rejects invalid/private URL %s before brand writes', async (url) => {
-    const h = createHarness();
-    await expect(
-      h.service.scanBrandUrl(h.state.request, url),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    expect(h.brands.updateAgentConfig).not.toHaveBeenCalled();
-    expect(h.scraper.scrapeWebsiteWithEvidence).not.toHaveBeenCalled();
-  });
+  ])(
+    'rejects invalid/private URL %s and records failure without scraping',
+    async (url) => {
+      const h = createHarness();
+      await expect(
+        h.service.scanBrandUrl(h.state.request, url),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(h.brands.updateAgentConfig).toHaveBeenLastCalledWith(
+        'brand-1',
+        'org-1',
+        expect.objectContaining({
+          signupPrefill: expect.objectContaining({ status: 'failed' }),
+        }),
+      );
+      expect(h.scraper.scrapeWebsiteWithEvidence).not.toHaveBeenCalled();
+    },
+  );
 
   it('rejects a hostname resolving to a private destination using the shared guard', async () => {
     const h = createHarness();
@@ -439,7 +631,14 @@ describe('SignupPrefillService explicit URL scan', () => {
     await expect(
       h.service.scanBrandUrl(h.state.request, 'https://acme.example'),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(h.brands.findOne).not.toHaveBeenCalled();
+    expect(h.scraper.scrapeWebsiteWithEvidence).not.toHaveBeenCalled();
+    expect(h.brands.updateAgentConfig).toHaveBeenLastCalledWith(
+      'brand-1',
+      'org-1',
+      expect.objectContaining({
+        signupPrefill: expect.objectContaining({ status: 'failed' }),
+      }),
+    );
   });
 
   it('times out within 45 seconds and blocks later stages when the scraper eventually settles', async () => {
@@ -463,10 +662,27 @@ describe('SignupPrefillService explicit URL scan', () => {
     );
     await vi.advanceTimersByTimeAsync(45_000);
     await rejection;
+    expect(h.brands.updateAgentConfig).toHaveBeenLastCalledWith(
+      'brand-1',
+      'org-1',
+      expect.objectContaining({
+        signupPrefill: expect.objectContaining({ status: 'failed' }),
+      }),
+    );
+    await expect(
+      h.service.scanBrandUrl(h.state.request, 'https://acme.example'),
+    ).rejects.toBeInstanceOf(ConflictException);
     resolveScrape?.({ data: h.scrapedData });
     await vi.advanceTimersByTimeAsync(1);
     expect(h.generator.analyzeBrandVoice).not.toHaveBeenCalled();
     expect(h.persistence.updateBrandWithScrapedData).not.toHaveBeenCalled();
     expect(h.harness.create).not.toHaveBeenCalled();
+    expect(h.brands.updateAgentConfig).toHaveBeenLastCalledWith(
+      'brand-1',
+      'org-1',
+      expect.objectContaining({
+        signupPrefill: expect.objectContaining({ status: 'failed' }),
+      }),
+    );
   });
 });

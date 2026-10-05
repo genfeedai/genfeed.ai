@@ -28,6 +28,8 @@ const STATUS = enumSchema([
 ] as const);
 const STATE = closedObjectSchema(
   {
+    creditsUsed: NUMBER_SCHEMA,
+    isForced: BOOLEAN_SCHEMA,
     deadlineAt: NUMBER_SCHEMA,
     hasChosenBrandLabel: BOOLEAN_SCHEMA,
     scrapeStatus: enumSchema(['scraped', 'failed'] as const),

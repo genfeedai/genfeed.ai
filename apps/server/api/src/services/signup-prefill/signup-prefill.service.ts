@@ -7,6 +7,8 @@ import type { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dt
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import { BRAND_SOCIAL_HOSTS } from '@api/services/brand-scraper/brand-social-hosts.constant';
+import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import { buildPrefilledAgentConfig } from '@api/services/signup-prefill/utils/agent-config-defaults.util';
 import {
@@ -31,6 +33,7 @@ import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import { resolveSafeDestination } from '@libs/security/destination-guard';
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   RequestTimeoutException,
 } from '@nestjs/common';
@@ -63,6 +66,8 @@ export interface SignupPrefillResult {
 }
 
 export interface SignupPrefillState {
+  creditsUsed?: number;
+  isForced?: boolean;
   summary?: SignupPrefillSummary;
   deadlineAt?: number;
   hasChosenBrandLabel?: boolean;
@@ -103,6 +108,7 @@ const PREFILL_MARKER_KEY = 'signupPrefill';
  */
 @Injectable()
 export class SignupPrefillService {
+  private readonly inFlightScans = new Set<string>();
   private readonly context = { service: SignupPrefillService.name };
 
   constructor(
@@ -119,74 +125,86 @@ export class SignupPrefillService {
   async scanBrandUrl(
     request: SignupPrefillWorkflowInput,
     inputUrl: string,
+    onCreditsSettled?: (credits: number) => void,
   ): Promise<SignupPrefillState> {
+    const scanKey = `${request.organizationId}:${request.brandId}`;
+    if (this.inFlightScans.has(scanKey))
+      throw new ConflictException('scan_in_progress');
+    this.inFlightScans.add(scanKey);
+    let workSettled = false;
+    let callerSettled = false;
+    let work: Promise<SignupPrefillState> | undefined;
     const deadlineAt = Date.now() + 45_000;
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      return await Promise.race([
-        runWithTenantContext(
-          { organizationId: request.organizationId },
-          async () => {
-            const websiteUrl = normalizeOnboardingUrl(inputUrl);
-            try {
-              assertUrlNotPrivate(websiteUrl);
-              await resolveSafeDestination(websiteUrl);
-            } catch {
-              throw new BadRequestException(
-                'URL must point to a public HTTP(S) destination',
-              );
-            }
-            let state = await this.preparePrefill(request, {
-              isForced: true,
-              websiteUrl,
-              deadlineAt,
-            });
-            state = await this.scrapePrefill(state);
-            if (state.scrapeStatus === 'failed') {
-              this.assertDeadline(deadlineAt);
-              await this.writeMarker(
-                request.brandId,
-                request.organizationId,
-                state.config,
-                {
-                  status: 'failed',
-                  completedAt: new Date().toISOString(),
-                },
-              );
-              return { ...state, status: 'failed' as const };
-            }
-            state = await this.analyzePrefill(state);
-            state = await this.applyPrefillDefaults(state);
-            state = await this.applyPrefillPrompt(state);
-            state = await this.applyPrefillHarness(state);
-            await this.finalizePrefill(state);
-            this.assertDeadline(deadlineAt);
-            const brand = await this.brandsService.findOne(
-              {
-                id: request.brandId,
-                organizationId: request.organizationId,
-                isDeleted: false,
-              },
-              'none',
+      work = runWithTenantContext(
+        { organizationId: request.organizationId },
+        async () => {
+          const websiteUrl = normalizeOnboardingUrl(inputUrl);
+          try {
+            assertUrlNotPrivate(websiteUrl);
+            await resolveSafeDestination(websiteUrl);
+          } catch {
+            throw new BadRequestException(
+              'URL must point to a public HTTP(S) destination',
             );
+          }
+          let state = await this.preparePrefill(request, {
+            isForced: true,
+            websiteUrl,
+            deadlineAt,
+          });
+          state = await this.scrapePrefill(state);
+          if (state.scrapeStatus === 'failed') {
             this.assertDeadline(deadlineAt);
-            if (!brand) throw new NotFoundException('Brand');
-            const readString = (value: unknown): string | undefined =>
-              typeof value === 'string' ? value : undefined;
-            return {
-              ...state,
-              status: 'completed' as const,
-              summary: toPlainJson({
-                name: state.brandLabel,
-                description: readString(brand.description),
-                tone: state.config.voice?.tone,
-                primaryColor: readString(brand.primaryColor),
-                secondaryColor: readString(brand.secondaryColor),
-                logoUrl: state.scrapedData?.logoUrl,
-              }),
-            };
-          },
-        ),
+            await this.writeMarker(request.brandId, request.organizationId, {
+              status: 'failed',
+              completedAt: new Date().toISOString(),
+            });
+            return { ...state, status: 'failed' as const };
+          }
+          state = await this.analyzePrefill(state, onCreditsSettled);
+          state = await this.applyPrefillDefaults(state);
+          state = await this.applyPrefillPrompt(state);
+          state = await this.applyPrefillHarness(state);
+          await this.finalizePrefill(state);
+          this.assertDeadline(deadlineAt);
+          const brand = await this.brandsService.findOne(
+            {
+              id: request.brandId,
+              organizationId: request.organizationId,
+              isDeleted: false,
+            },
+            'none',
+          );
+          this.assertDeadline(deadlineAt);
+          if (!brand) throw new NotFoundException('Brand');
+          const readString = (value: unknown): string | undefined =>
+            typeof value === 'string' ? value : undefined;
+          return {
+            ...state,
+            status: 'completed' as const,
+            summary: toPlainJson({
+              name: state.brandLabel,
+              description: readString(brand.description),
+              tone: state.config.voice?.tone,
+              primaryColor: readString(brand.primaryColor),
+              secondaryColor: readString(brand.secondaryColor),
+              logoUrl: state.scrapedData?.logoUrl,
+            }),
+          };
+        },
+      )
+        .catch(async (error: unknown) => {
+          await this.markPrefillFailed(request.brandId, request.organizationId);
+          throw error;
+        })
+        .finally(() => {
+          workSettled = true;
+          if (callerSettled) this.inFlightScans.delete(scanKey);
+        });
+      return await Promise.race([
+        work,
         new Promise<never>((_resolve, reject) => {
           timer = setTimeout(
             () => reject(new RequestTimeoutException('Brand scan timed out')),
@@ -194,9 +212,80 @@ export class SignupPrefillService {
           );
         }),
       ]);
+    } catch (error: unknown) {
+      if (!workSettled)
+        await this.markPrefillFailed(request.brandId, request.organizationId);
+      throw error;
     } finally {
+      callerSettled = true;
+      if (!work || workSettled) this.inFlightScans.delete(scanKey);
       if (timer) clearTimeout(timer);
     }
+  }
+
+  private profileLabel(websiteUrl: string): string | undefined {
+    const url = new URL(websiteUrl);
+    const hosts = [
+      ...Object.values(BRAND_SOCIAL_HOSTS).flat(),
+      'youtu.be',
+      'linktr.ee',
+      'beacons.ai',
+      'bio.site',
+      'campsite.bio',
+      'amazon.com',
+      'etsy.com',
+      'gumroad.com',
+      'stan.store',
+    ];
+    if (
+      !hosts.some(
+        (host) => url.hostname === host || url.hostname.endsWith(`.${host}`),
+      )
+    )
+      return undefined;
+    const segments = url.pathname.split('/').filter(Boolean);
+    const prefixes = new Set([
+      'company',
+      'in',
+      'c',
+      'user',
+      'shop',
+      'stores',
+      '_u',
+    ]);
+    const segment = prefixes.has(segments[0] ?? '') ? segments[1] : segments[0];
+    if (
+      !segment ||
+      ['p', 'reel', 'reels', 'watch', 'shorts', 'dp', 'products'].includes(
+        segment,
+      )
+    )
+      return '';
+    return decodeURIComponent(segment).replace(/^@/, '').trim();
+  }
+
+  private scrapedCompanyLabel(
+    companyName: string | undefined,
+    websiteUrl: string,
+  ): string | undefined {
+    const name = companyName?.trim();
+    if (this.profileLabel(websiteUrl) === undefined) return name;
+    const hostName = new URL(websiteUrl).hostname
+      .replace(/^www\./, '')
+      .split('.')[0];
+    const platformNames = new Set([
+      hostName,
+      new URL(websiteUrl).hostname.replace(/^www\./, ''),
+      'linktree',
+      'beacons',
+      'youtube',
+      'facebook',
+      'instagram',
+      'tiktok',
+      'linkedin',
+      'twitter',
+    ]);
+    return name && !platformNames.has(name.toLowerCase()) ? name : undefined;
   }
 
   private assertDeadline(deadlineAt?: number): void {
@@ -251,19 +340,31 @@ export class SignupPrefillService {
         : request.brandDomain,
     });
     const currentLabel = typeof brand.label === 'string' ? brand.label : null;
+    const profileLabel = options.websiteUrl
+      ? this.profileLabel(options.websiteUrl)
+      : undefined;
     const brandLabel = options.isForced
-      ? resolved.brandName?.trim() || currentLabel?.trim() || 'Your brand'
+      ? (profileLabel !== undefined
+          ? profileLabel
+          : resolved.brandName?.trim()) ||
+        currentLabel?.trim() ||
+        'Your brand'
       : this.resolveBrandLabel(
           request.brandName,
           resolved.brandName,
           currentLabel,
         );
     this.assertDeadline(options.deadlineAt);
-    await this.writeMarker(request.brandId, request.organizationId, config, {
-      ...(resolved.domain ? { brandDomain: resolved.domain } : {}),
-      startedAt: new Date().toISOString(),
-      status: 'running',
-    });
+    await this.writeMarker(
+      request.brandId,
+      request.organizationId,
+      {
+        ...(resolved.domain ? { brandDomain: resolved.domain } : {}),
+        startedAt: new Date().toISOString(),
+        status: 'running',
+      },
+      options.deadlineAt,
+    );
     const websiteUrl = options.websiteUrl ?? resolved.websiteUrl;
     return {
       brandDomain: resolved.domain,
@@ -274,6 +375,7 @@ export class SignupPrefillService {
       ...(options.deadlineAt ? { deadlineAt: options.deadlineAt } : {}),
       ...(options.isForced
         ? {
+            isForced: true,
             // The explicit onboarding URL takes precedence over signup labels.
             hasChosenBrandLabel: false,
           }
@@ -300,11 +402,18 @@ export class SignupPrefillService {
             )
           ).data
         : await this.brandScraperService.scrapeWebsite(state.websiteUrl);
-    } catch {
+    } catch (error: unknown) {
+      if (error instanceof RequestTimeoutException) throw error;
       scrapeStatus = 'failed';
       this.loggerService.warn(
         'Signup prefill scrape failed — continuing with minimal brand data',
-        this.context,
+        {
+          ...this.context,
+          error: error instanceof Error ? error.message : String(error),
+          websiteUrl: new BrandWebsiteParserService().sanitizeProvenanceUrl(
+            state.websiteUrl,
+          ),
+        },
       );
       scrapedData = this.brandDataMapper.buildFallbackScrapedData(
         { brandUrl: state.websiteUrl },
@@ -316,7 +425,10 @@ export class SignupPrefillService {
       ...state,
       brandLabel:
         state.hasChosenBrandLabel === false && scrapeStatus === 'scraped'
-          ? scrapedData.companyName?.trim() || state.brandLabel
+          ? this.scrapedCompanyLabel(
+              scrapedData.companyName,
+              state.websiteUrl,
+            ) || state.brandLabel
           : state.brandLabel,
       scrapeStatus,
       ...(scrapeStatus === 'failed' ? { scrapeReason: 'scrape_failed' } : {}),
@@ -327,16 +439,27 @@ export class SignupPrefillService {
     };
   }
 
-  async analyzePrefill(state: SignupPrefillState): Promise<SignupPrefillState> {
+  async analyzePrefill(
+    state: SignupPrefillState,
+    onCreditsSettled?: (credits: number) => void,
+  ): Promise<SignupPrefillState> {
     this.assertDeadline(state.deadlineAt);
     if (!state.scrapedData) return state;
+    let creditsUsed = 0;
     const brandVoice = await this.analyzeBrandVoice(
       this.readScrapedData(state.scrapedData),
       state.request.organizationId,
       state.request.userId,
+      state.deadlineAt,
+      (credits) => {
+        creditsUsed += credits;
+        onCreditsSettled?.(credits);
+      },
     );
+    this.assertDeadline(state.deadlineAt);
     return {
       ...state,
+      ...(state.isForced ? { creditsUsed } : {}),
       ...(brandVoice ? { brandVoice } : {}),
     };
   }
@@ -351,6 +474,7 @@ export class SignupPrefillService {
       : undefined;
     if (scrapedData && state.websiteUrl) {
       await this.persistScrapedBrand({
+        isForced: state.isForced,
         deadlineAt: state.deadlineAt,
         brandId: state.request.brandId,
         brandLabel: state.brandLabel,
@@ -365,7 +489,6 @@ export class SignupPrefillService {
     const mergedConfig = await this.readAgentConfig(
       state.request.brandId,
       state.request.organizationId,
-      state.config,
     );
     const config = buildPrefilledAgentConfig({
       brandLabel: state.brandLabel,
@@ -434,7 +557,6 @@ export class SignupPrefillService {
     await this.writeMarker(
       state.request.brandId,
       state.request.organizationId,
-      state.config,
       {
         ...(state.brandDomain ? { brandDomain: state.brandDomain } : {}),
         completedAt: new Date().toISOString(),
@@ -443,6 +565,7 @@ export class SignupPrefillService {
         hasScrapedWebsite: Boolean(state.scrapedData),
         status: 'completed',
       },
+      state.deadlineAt,
     );
     return {
       ...(state.scrapeStatus ? { scrapeStatus: state.scrapeStatus } : {}),
@@ -473,10 +596,7 @@ export class SignupPrefillService {
         return;
       }
 
-      const config = this.brandDataMapper.readBrandAgentConfig(
-        brand.agentConfig,
-      );
-      await this.writeMarker(brandId, organizationId, config, {
+      await this.writeMarker(brandId, organizationId, {
         completedAt: new Date().toISOString(),
         status: 'failed',
       });
@@ -525,6 +645,8 @@ export class SignupPrefillService {
     scrapedData: IScrapedBrandData,
     organizationId: string,
     userId: string,
+    deadlineAt?: number,
+    onCreditsSettled?: (credits: number) => void,
   ): Promise<IBrandVoiceAnalysis | undefined> {
     const hasAnalyzableContent = Boolean(
       scrapedData.description ||
@@ -542,8 +664,10 @@ export class SignupPrefillService {
       return await this.masterPromptGeneratorService.analyzeBrandVoice(
         scrapedData,
         { organizationId, userId },
+        { deadlineAt, onCreditsSettled },
       );
     } catch (error: unknown) {
+      if (error instanceof RequestTimeoutException) throw error;
       this.loggerService.warn(
         'Signup prefill brand-voice analysis failed — keeping scraped data only',
         {
@@ -557,6 +681,7 @@ export class SignupPrefillService {
   }
 
   private async persistScrapedBrand(input: {
+    isForced?: boolean;
     deadlineAt?: number;
     brandId: string;
     brandLabel: string;
@@ -618,12 +743,15 @@ export class SignupPrefillService {
       input.brandId,
       input.organizationId,
       extractedData,
+      input.isForced,
     );
     this.assertDeadline(input.deadlineAt);
     await this.brandPersistenceService.syncBrandAndOrgSlug(
       input.brandLabel,
       input.organizationId,
       input.brandId,
+      input.brandLabel,
+      input.isForced,
     );
   }
 
@@ -716,6 +844,7 @@ export class SignupPrefillService {
 
       return true;
     } catch (error: unknown) {
+      if (error instanceof RequestTimeoutException) throw error;
       this.loggerService.warn(
         'Signup prefill could not seed the default harness profile',
         {
@@ -731,16 +860,14 @@ export class SignupPrefillService {
   private async readAgentConfig(
     brandId: string,
     organizationId: string,
-    fallback: BrandAgentConfig,
   ): Promise<BrandAgentConfig> {
     const brand = await this.brandsService.findOne(
       { id: brandId, organizationId, isDeleted: false },
       'none',
     );
 
-    return brand
-      ? this.brandDataMapper.readBrandAgentConfig(brand.agentConfig)
-      : fallback;
+    if (!brand) throw new NotFoundException('Brand');
+    return this.brandDataMapper.readBrandAgentConfig(brand.agentConfig);
   }
 
   private readMarker(
@@ -758,13 +885,14 @@ export class SignupPrefillService {
   private async writeMarker(
     brandId: string,
     organizationId: string,
-    config: BrandAgentConfig,
     marker: SignupPrefillMarker,
+    deadlineAt?: number,
   ): Promise<void> {
+    const currentConfig = await this.readAgentConfig(brandId, organizationId);
+    this.assertDeadline(deadlineAt);
     await this.brandsService.updateAgentConfig(brandId, organizationId, {
-      ...config,
       [PREFILL_MARKER_KEY]: {
-        ...(this.readMarker(config) ?? {}),
+        ...(this.readMarker(currentConfig) ?? {}),
         ...marker,
       },
     });

@@ -258,6 +258,7 @@ export * from './notifications/system-notification-destination.interface';
 export * from './onboarding/onboarding.interface';
 export * from './onboarding/onboarding-journey.interface';
 export * from './onboarding/onboarding-wizard.interface';
+export * from './onboarding/signup-prefill.interface';
 export * from './organization/account-health.interface';
 export * from './organization/brand.interface';
 export * from './organization/brand-interview.interface';

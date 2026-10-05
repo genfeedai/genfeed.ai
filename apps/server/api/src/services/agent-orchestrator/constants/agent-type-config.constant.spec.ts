@@ -168,14 +168,14 @@ describe('detectPlatformIntentSuffix', () => {
   });
 });
 
-it('makes saving onboarding answers available to the general onboarding agent', () => {
-  expect(getAgentTypeConfig(AgentType.GENERAL).defaultTools).toContain(
+it('excludes saving onboarding answers from general default tools', () => {
+  expect(getAgentTypeConfig(AgentType.GENERAL).defaultTools).not.toContain(
     'save_onboarding_answers',
   );
 });
 
-it('makes URL scans available to the general onboarding agent', () => {
-  expect(getAgentTypeConfig(AgentType.GENERAL).defaultTools).toContain(
+it('excludes URL scans from general default tools', () => {
+  expect(getAgentTypeConfig(AgentType.GENERAL).defaultTools).not.toContain(
     'scan_brand_url',
   );
 });
