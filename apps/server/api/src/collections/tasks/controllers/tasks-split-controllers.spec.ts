@@ -1,5 +1,6 @@
 import { TasksController } from '@api/collections/tasks/controllers/tasks.controller';
 import { TasksPlanningController } from '@api/collections/tasks/controllers/tasks-planning.controller';
+import { WorkspaceInboxReadController } from '@api/collections/tasks/controllers/workspace-inbox-read.controller';
 import { TasksModule } from '@api/collections/tasks/tasks.module';
 import { RequestMethod } from '@nestjs/common';
 import {
@@ -45,6 +46,10 @@ describe('Tasks split controllers', () => {
   it('registers the planning sibling before the wildcard CRUD controller', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, TasksModule),
-    ).toEqual([TasksPlanningController, TasksController]);
+    ).toEqual([
+      WorkspaceInboxReadController,
+      TasksPlanningController,
+      TasksController,
+    ]);
   });
 });
