@@ -194,7 +194,7 @@ describe('AppProtectedRail', () => {
     expect(appRailSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
         badges: {
-          workspace: { count: 4, label: 'workspaceBadge' },
+          workspace: { count: 4, kind: 'dot', label: 'workspaceBadge' },
           messages: { count: 0, label: '0 unread conversations' },
         },
         pinnedAppIds: ['studio'],

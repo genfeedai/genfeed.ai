@@ -105,9 +105,17 @@ function AppRailItem({
             <span
               aria-hidden="true"
               data-testid={`app-rail-badge-${app.id}`}
-              className="absolute -right-1 -top-1 rounded-full bg-info px-1 text-2xs tabular-nums text-info-foreground"
+              className={
+                badge.kind === 'dot'
+                  ? 'absolute right-0.5 top-0.5 size-1.5 rounded-full bg-info'
+                  : 'absolute -right-1 -top-1 rounded-full bg-info px-1 text-2xs tabular-nums text-info-foreground'
+              }
             >
-              {badge.count > 99 ? '99+' : badge.count}
+              {badge.kind === 'dot'
+                ? null
+                : badge.count > 99
+                  ? '99+'
+                  : badge.count}
             </span>
           ) : null}
           <span id={`app-rail-desc-${app.id}`} className="sr-only">
@@ -192,9 +200,17 @@ function AppRailMoreRow({
           <span
             aria-hidden="true"
             data-testid={`app-rail-badge-${item.app.id}`}
-            className="ml-auto rounded-full bg-info px-1 text-2xs tabular-nums text-info-foreground"
+            className={
+              badge.kind === 'dot'
+                ? 'ml-auto size-1.5 rounded-full bg-info'
+                : 'ml-auto rounded-full bg-info px-1 text-2xs tabular-nums text-info-foreground'
+            }
           >
-            {badge.count > 99 ? '99+' : badge.count}
+            {badge.kind === 'dot'
+              ? null
+              : badge.count > 99
+                ? '99+'
+                : badge.count}
           </span>
         ) : null}
       </Link>

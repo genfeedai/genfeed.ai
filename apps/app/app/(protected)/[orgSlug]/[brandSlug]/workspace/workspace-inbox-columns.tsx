@@ -1,8 +1,9 @@
 import { STATUS_PILL_CLASS } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-pills';
-import { ComponentSize } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { WorkspaceTranslate } from '@props/workspace/workspace-task.props';
 import type { Task, TaskStatus } from '@services/management/tasks.service';
 import Badge from '@ui/display/badge/Badge';
+import { Button } from '@ui/primitives/button';
 
 import {
   formatTaskStatus,
@@ -19,14 +20,26 @@ export function getWorkspaceInboxTableColumns(
   translate: WorkspaceTranslate,
   statusTranslate: WorkspaceTranslate,
   statusLabels: Record<TaskStatus, string>,
+  isUnread: (task: Task) => boolean,
+  markRead: (task: Task) => void,
+  isReadPending: boolean,
 ) {
   return [
     {
       key: 'title',
       header: translate('inbox.columns.task'),
       render: (task: Task) => (
-        <span className="block truncate font-medium text-foreground">
-          {task.title}
+        <span className="flex min-w-0 items-center gap-2.5">
+          <span className="flex w-1.5 shrink-0 items-center">
+            {isUnread(task) ? (
+              <span className="size-1.5 rounded-full bg-info">
+                <span className="sr-only">{translate('inbox.unread')}</span>
+              </span>
+            ) : null}
+          </span>
+          <span className="truncate font-medium text-foreground">
+            {task.title}
+          </span>
         </span>
       ),
     },
@@ -65,6 +78,26 @@ export function getWorkspaceInboxTableColumns(
           )}
         </span>
       ),
+    },
+    {
+      key: 'read',
+      header: <span className="sr-only">{translate('inbox.readActions')}</span>,
+      className: 'w-28 text-right',
+      render: (task: Task) =>
+        isUnread(task) ? (
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.SM}
+            withWrapper={false}
+            disabled={isReadPending}
+            onClick={(event) => {
+              event.stopPropagation();
+              markRead(task);
+            }}
+          >
+            {translate('inbox.markRead')}
+          </Button>
+        ) : null,
     },
   ];
 }

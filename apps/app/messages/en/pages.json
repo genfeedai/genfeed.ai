@@ -3062,6 +3062,12 @@
     "recentOutputsEmpty": "Recent outputs will appear here once the workspace starts routing work.",
     "requestChangesPrompt": "Please revise this task from the workspace inbox.",
     "inbox": {
+      "unread": "Unread",
+      "markRead": "Mark read",
+      "markAllRead": "Mark all read",
+      "readActions": "Read actions",
+      "readError": "Could not load or save inbox read status. Try again.",
+      "retry": "Retry",
       "viewsAriaLabel": "Inbox views",
       "views": {
         "unread": {
