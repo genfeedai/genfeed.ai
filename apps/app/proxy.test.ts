@@ -1152,8 +1152,7 @@ describe('proxy', () => {
       const response = await proxy(makeSignedInRequest('/settings'));
 
       expect(response.status).toBe(307);
-      expect(response.headers.get('location')).toBeNull();
-      expect(response.headers.get('x-middleware-next')).toBe('1');
+      expect(response.headers.get('location')).toBe('http://localhost:3000/');
     });
 
     it('does not route cloud-connected desktop users into web agent onboarding', async () => {
@@ -1337,7 +1336,8 @@ describe('proxy', () => {
 
     const response = await proxy(makeSignedInRequest('/'));
 
-    expect(response.headers.get('location')).toBe('http://localhost:3000/');
+    expect(response.headers.get('location')).toBeNull();
+    expect(response.headers.get('x-middleware-next')).toBe('1');
   });
 
   it('redirects signed-in root using the active brand when multiple brands exist', async () => {
