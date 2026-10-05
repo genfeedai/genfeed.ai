@@ -15,6 +15,16 @@ export const AGENT_WORK_OBJECT_TOOLS: SourceTool[] = [
         title: { type: 'string' },
         prompt: { type: 'string' },
         recommendedOptionId: { type: 'string' },
+        allowFreeText: {
+          type: 'boolean',
+          description: 'Allow a typed answer; defaults to true.',
+        },
+        isMultiSelect: {
+          type: 'boolean',
+          description:
+            'Allow multiple options before confirmation; defaults to false.',
+        },
+        maxSelections: { type: 'integer', minimum: 1, maximum: 5 },
         options: {
           type: 'array',
           maxItems: 5,

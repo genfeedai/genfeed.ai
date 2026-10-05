@@ -509,6 +509,11 @@ export class AgentThreadProjectorService {
 
     const next = {
       allowFreeText: this.readBoolean(event.payload, 'allowFreeText'),
+      isMultiSelect: this.readBoolean(event.payload, 'isMultiSelect'),
+      maxSelections:
+        typeof event.payload.maxSelections === 'number'
+          ? event.payload.maxSelections
+          : undefined,
       createdAt: event.occurredAt ?? new Date().toISOString(),
       fieldId: this.readString(event.payload, 'fieldId'),
       metadata: this.readRecord(event.payload, 'metadata'),

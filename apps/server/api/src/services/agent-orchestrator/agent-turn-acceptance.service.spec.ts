@@ -485,6 +485,53 @@ describe('AgentTurnAcceptanceService', () => {
     });
   });
 
+  it('resolves joined multi-select labels with valid ids on a button-only question', async () => {
+    scopeService.prepareForTurn.mockResolvedValue({
+      existingScope: {
+        threadId: 'thread-1',
+        brandId: 'brand-1',
+        contextVersion: 1,
+      },
+    });
+    prisma.agentThread.findFirstOrThrow.mockResolvedValue({
+      id: 'thread-1',
+      brandId: 'brand-1',
+      contextVersion: 1,
+      status: 'active',
+    });
+    threadEngine.getSnapshot.mockResolvedValue({
+      pendingInputRequests: [
+        {
+          requestId: 'ask-source',
+          allowFreeText: false,
+          isMultiSelect: true,
+          options: [
+            { id: 'a', label: 'Awareness' },
+            { id: 'b', label: 'Sales' },
+          ],
+        },
+      ],
+    });
+    await service.accept(
+      {
+        threadId: 'thread-1',
+        clientRequestId: 'answer-1',
+        content: 'Awareness, Sales',
+      },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+    expect(threadEngine.resolveInputRequest).toHaveBeenCalledWith({
+      threadId: 'thread-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+      requestId: 'ask-source',
+      brandId: 'brand-1',
+      contextVersion: 1,
+      answer: 'Awareness, Sales',
+      optionIds: ['a', 'b'],
+    });
+  });
+
   it('propagates an enqueue failure instead of acknowledging the turn', async () => {
     workflowRunner.enqueueWorkflow.mockRejectedValueOnce(
       new Error('redis unavailable'),

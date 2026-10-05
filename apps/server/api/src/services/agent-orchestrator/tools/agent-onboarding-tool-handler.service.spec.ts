@@ -63,6 +63,7 @@ function createHandler(options?: {
     patch: vi.fn().mockResolvedValue({}),
   };
   const brandsService = {
+    updateAgentConfig: vi.fn().mockResolvedValue({ id: 'brand-1' }),
     create: vi.fn(),
     findCreateByIdentityConfirmationSource: vi.fn().mockResolvedValue(null),
     findOne: vi.fn().mockResolvedValue(options?.brand ?? null),
@@ -1062,5 +1063,117 @@ describe('onboarding journey completion race (genfeedai/genfeed.ai#5311)', () =>
     expect(
       onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
     ).not.toHaveBeenCalled();
+  });
+});
+
+describe('saveOnboardingAnswers', () => {
+  it('merges supplied strategy answers and tone while preserving other keys', async () => {
+    const { handler, brandsService } = createHandler({
+      brand: {
+        id: 'brand-1',
+        agentConfig: {
+          persona: 'Founder',
+          strategy: {
+            goals: ['Old goal'],
+            platforms: ['x'],
+            frequency: 'daily',
+            topics: ['AI'],
+          },
+          voice: { tone: 'Formal', style: 'Concise', bannedPhrases: ['hype'] },
+        },
+      },
+    });
+    const result = await handler.saveOnboardingAnswers(
+      {
+        goals: [' Awareness '],
+        platforms: ['linkedin'],
+        cadence: 'weekly',
+        toneAdjustment: 'Friendly',
+      },
+      { ...CONTEXT, brandId: 'brand-1' },
+    );
+    expect(brandsService.findOne).toHaveBeenCalledWith({
+      id: 'brand-1',
+      organizationId: CONTEXT.organizationId,
+      isDeleted: false,
+    });
+    expect(brandsService.updateAgentConfig).toHaveBeenCalledWith(
+      'brand-1',
+      CONTEXT.organizationId,
+      {
+        strategy: {
+          goals: ['Awareness'],
+          platforms: ['linkedin'],
+          frequency: 'weekly',
+          topics: ['AI'],
+        },
+        voice: { tone: 'Friendly', style: 'Concise', bannedPhrases: ['hype'] },
+      },
+    );
+    expect(result).toMatchObject({
+      success: true,
+      creditsUsed: 0,
+      data: { brandId: 'brand-1' },
+    });
+  });
+
+  it('preserves omitted answers and does not rewrite other config sections', async () => {
+    const { handler, brandsService } = createHandler({
+      brand: {
+        agentConfig: {
+          strategy: { goals: ['Keep'], topics: ['AI'] },
+          voice: { tone: 'Keep' },
+          schedule: { timezone: 'UTC' },
+        },
+      },
+    });
+    await handler.saveOnboardingAnswers(
+      { platforms: [] },
+      { ...CONTEXT, brandId: 'brand-1' },
+    );
+    expect(brandsService.updateAgentConfig).toHaveBeenCalledWith(
+      'brand-1',
+      CONTEXT.organizationId,
+      {
+        strategy: { goals: ['Keep'], topics: ['AI'], platforms: [] },
+      },
+    );
+  });
+
+  it.each([
+    { goals: Array(11).fill('goal') },
+    { platforms: [null] },
+    { goals: [' '] },
+    { cadence: 'x'.repeat(201) },
+    { toneAdjustment: 42 },
+    { brandId: 42 },
+  ])('rejects malformed or oversized answers %j', async (params) => {
+    const { handler, brandsService } = createHandler();
+    await expect(
+      handler.saveOnboardingAnswers(params, { ...CONTEXT, brandId: 'brand-1' }),
+    ).rejects.toThrow();
+    expect(brandsService.updateAgentConfig).not.toHaveBeenCalled();
+  });
+
+  it('rejects a brand outside the current thread', async () => {
+    const { handler, brandsService } = createHandler();
+    await expect(
+      handler.saveOnboardingAnswers(
+        { brandId: 'other' },
+        { ...CONTEXT, brandId: 'brand-1' },
+      ),
+    ).rejects.toThrow();
+    expect(brandsService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('rejects unavailable foreign or deleted brands and a missing current brand', async () => {
+    const { handler, brandsService } = createHandler();
+    await expect(
+      handler.saveOnboardingAnswers({ brandId: 'foreign' }, CONTEXT),
+    ).rejects.toThrow('not available');
+    await expect(handler.saveOnboardingAnswers({}, CONTEXT)).rejects.toThrow(
+      'current brand',
+    );
+    expect(brandsService.updateAgentConfig).not.toHaveBeenCalled();
   });
 });

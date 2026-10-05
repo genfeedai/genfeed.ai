@@ -6,6 +6,7 @@ export const TOOL_LABELS: Record<string, string> = {
   present_work_object: 'Preparing your draft',
   ingest_source_media: 'Adding source to Library',
   batch_approve_reject: 'Batch Review Action',
+  save_onboarding_answers: 'Save Onboarding Answers',
   check_onboarding_status: 'Check Onboarding',
   complete_outreach_sequence: 'Complete outreach sequence',
   complete_onboarding: 'Complete Onboarding',

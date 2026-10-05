@@ -327,7 +327,22 @@ export class AgentTurnAcceptanceService {
             option.id === content ||
             option.label.toLowerCase() === content.toLowerCase(),
         );
-        if (pending.allowFreeText !== false || matchingOption) {
+        const selectedOptions =
+          pending.isMultiSelect === true
+            ? content
+                .split(', ')
+                .map((label) =>
+                  pending.options.find((option) => option.label === label),
+                )
+            : [];
+        const hasValidSelections =
+          selectedOptions.length > 0 &&
+          selectedOptions.every((option) => option !== undefined);
+        if (
+          pending.allowFreeText !== false ||
+          matchingOption ||
+          hasValidSelections
+        ) {
           await this.threadEngine.resolveInputRequest({
             threadId,
             organizationId: context.organizationId,
@@ -339,7 +354,16 @@ export class AgentTurnAcceptanceService {
                 }
               : {}),
             requestId: pending.requestId,
-            answer: matchingOption?.id ?? content,
+            answer: hasValidSelections
+              ? content
+              : (matchingOption?.id ?? content),
+            ...(hasValidSelections
+              ? {
+                  optionIds: selectedOptions.flatMap((option) =>
+                    option ? [option.id] : [],
+                  ),
+                }
+              : {}),
           });
         }
       }

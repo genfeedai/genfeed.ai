@@ -65,7 +65,10 @@ export type AgentChatContainerThreadViewProps = {
     price: string;
     credits: number;
   }) => void;
-  onSubmitInputRequest: (answer: string) => void | Promise<void>;
+  onSubmitInputRequest: (
+    answer: string,
+    optionIds?: string[],
+  ) => void | Promise<void>;
   onUiAction: AgentUiActionHandler;
   padBottomForComposer: boolean;
   composerTranscriptPaddingPx: number;

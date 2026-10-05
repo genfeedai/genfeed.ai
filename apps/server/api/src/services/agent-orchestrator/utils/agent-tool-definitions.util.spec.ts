@@ -31,6 +31,7 @@ describe('self-hosted onboarding tool boundary', () => {
     vi.stubEnv('GENFEED_CLOUD', undefined);
 
     const tools = resolveToolNames('onboarding');
+    expect(tools).toContain('save_onboarding_answers');
 
     expect(tools).not.toContain('present_payment_options');
     expect(tools).not.toContain('generate_monthly_content');
@@ -48,6 +49,7 @@ describe('self-hosted onboarding tool boundary', () => {
     vi.stubEnv('GENFEED_CLOUD', '1');
 
     const tools = resolveToolNames('onboarding');
+    expect(tools).toContain('save_onboarding_answers');
 
     expect(tools).toContain('present_payment_options');
     expect(tools).toContain('generate_monthly_content');

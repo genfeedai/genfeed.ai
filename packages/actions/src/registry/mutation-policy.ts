@@ -122,6 +122,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   generate_content_batch: 'approval-required',
   generate_monthly_content: 'direct',
   generate_onboarding_content: 'direct',
+  save_onboarding_answers: 'direct',
   initiate_oauth_connect: 'direct',
   install_official_workflow: 'approval-required',
   install_skills_pro_skill: 'approval-required',

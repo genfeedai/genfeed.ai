@@ -12,6 +12,7 @@ import type { AgentTurnAcknowledgement } from '@api/services/agent-orchestrator/
 import { AgentWorkObjectService } from '@api/services/agent-orchestrator/tools/agent-work-object.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import type { AgentWorkObjectActionPayload } from '@genfeedai/contracts/interfaces';
+import type { AgentInputRequestResponsePayload } from '@genfeedai/contracts/interfaces/ai/agent-input-request.interface';
 import { AgentThreadSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -205,11 +206,7 @@ export class AgentThreadRuntimeController {
     @Param('threadId') threadId: string,
     @Param('requestId') requestId: string,
     @Body()
-    body: {
-      answer: string;
-      brandId?: string | null;
-      expectedContextVersion?: number;
-    },
+    body: AgentInputRequestResponsePayload,
     @CurrentUser() user: User,
   ) {
     try {
@@ -233,6 +230,7 @@ export class AgentThreadRuntimeController {
       const inputRequest =
         await this.agentThreadEngineService.resolveInputRequest({
           answer: body.answer,
+          optionIds: body.optionIds,
           brandId: scope.brandId,
           contextVersion: scope.contextVersion,
           organizationId,

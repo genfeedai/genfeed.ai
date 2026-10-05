@@ -359,6 +359,7 @@
   },
   "inputRequest": {
     "interaction": "Choose one",
+    "chooseMultiple": "Choose options",
     "other": "Other",
     "recommended": "Recommended",
     "placeholderRecommended": "Type your own answer, or leave this blank to use \"{recommended}\"",

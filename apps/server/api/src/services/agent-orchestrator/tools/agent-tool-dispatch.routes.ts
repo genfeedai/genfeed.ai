@@ -329,6 +329,8 @@ function dispatchGrowthFamily(
       return handlers.onboardingHandler.checkOnboardingStatus(ctx);
     case 'complete_onboarding':
       return handlers.onboardingHandler.completeOnboarding(ctx);
+    case 'save_onboarding_answers':
+      return handlers.onboardingHandler.saveOnboardingAnswers(params, ctx);
     case 'generate_onboarding_content':
       return handlers.onboardingHandler.generateOnboardingContent(params, ctx);
     case 'present_payment_options':

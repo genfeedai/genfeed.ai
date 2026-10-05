@@ -17,6 +17,7 @@ import { AgentThreadStatusPublisherService } from '@api/services/agent-threading
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import { AgentThreadEventType } from '@api/services/agent-threading/types/agent-thread.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { ResolveAgentInputRequestParams } from '@genfeedai/contracts/interfaces/ai/agent-input-request.interface';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -71,16 +72,6 @@ type AppendedAgentThreadEvent =
       event: AgentThreadEventDocument;
       isCreated: true;
     };
-
-export interface ResolveAgentInputRequestParams {
-  brandId?: string;
-  contextVersion?: number;
-  threadId: string;
-  organizationId: string;
-  requestId: string;
-  answer: string;
-  userId: string;
-}
 
 /**
  * Adapts a raw Prisma AgentThreadEvent row into the shape expected by
@@ -174,11 +165,14 @@ function findInputRequestInSnapshot(
     title: req.title as string,
     prompt: req.prompt as string,
     allowFreeText: req.allowFreeText as boolean | undefined,
+    isMultiSelect: req.isMultiSelect as boolean | undefined,
+    maxSelections: req.maxSelections as number | undefined,
     recommendedOptionId: req.recommendedOptionId as string | undefined,
     options: (req.options as Record<string, unknown>[]) ?? [],
     fieldId: req.fieldId as string | undefined,
     metadata: req.metadata as Record<string, unknown> | undefined,
     answer: req.answer as string | undefined,
+    optionIds: req.optionIds as string[] | undefined,
     runId: req.runId as string | undefined,
     resolvedAt: req.resolvedAt as string | undefined,
     isDeleted: false,
@@ -527,8 +521,32 @@ export class AgentThreadEngineService {
     const options = Array.isArray(request.options)
       ? (request.options as Record<string, unknown>[])
       : [];
+    const optionIds = params.optionIds;
+    const hasOptionIds = optionIds !== undefined;
+    const isValidSelection =
+      Array.isArray(optionIds) &&
+      optionIds.length > 0 &&
+      new Set(optionIds).size === optionIds.length &&
+      optionIds.length <=
+        (request.isMultiSelect === true
+          ? typeof request.maxSelections === 'number'
+            ? request.maxSelections
+            : options.length
+          : 1) &&
+      optionIds.every(
+        (id) =>
+          typeof id === 'string' && options.some((option) => option.id === id),
+      ) &&
+      optionIds
+        .map((id) => options.find((option) => option.id === id)?.label)
+        .join(', ') === answer;
+    if (hasOptionIds && !isValidSelection)
+      throw new BadRequestException(
+        'Choose valid options within the selection limit.',
+      );
     if (
       request.allowFreeText === false &&
+      !isValidSelection &&
       !options.some((option) => option.id === answer || option.label === answer)
     )
       throw new BadRequestException('Choose one of the available options.');
@@ -540,6 +558,7 @@ export class AgentThreadEngineService {
           ? {
               ...item,
               answer,
+              ...(optionIds ? { optionIds } : {}),
               resolvedAt: new Date().toISOString(),
               status: 'resolved',
             }
@@ -583,6 +602,7 @@ export class AgentThreadEngineService {
       organizationId: params.organizationId,
       payload: {
         answer: params.answer,
+        ...(params.optionIds ? { optionIds: params.optionIds } : {}),
         requestId: params.requestId,
       },
       threadId: params.threadId,
@@ -768,6 +788,11 @@ export class AgentThreadEngineService {
 
         inputRequests.push({
           allowFreeText: this.readBoolean(event.payload, 'allowFreeText'),
+          isMultiSelect: this.readBoolean(event.payload, 'isMultiSelect'),
+          maxSelections:
+            typeof event.payload.maxSelections === 'number'
+              ? event.payload.maxSelections
+              : undefined,
           fieldId: this.readString(event.payload, 'fieldId'),
           metadata: this.readRecord(event.payload, 'metadata'),
           options: this.readArray(event.payload, 'options') ?? [],

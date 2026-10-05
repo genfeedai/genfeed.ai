@@ -167,3 +167,9 @@ describe('detectPlatformIntentSuffix', () => {
     expect(suffix).not.toContain(injection);
   });
 });
+
+it('makes saving onboarding answers available to the general onboarding agent', () => {
+  expect(getAgentTypeConfig(AgentType.GENERAL).defaultTools).toContain(
+    'save_onboarding_answers',
+  );
+});

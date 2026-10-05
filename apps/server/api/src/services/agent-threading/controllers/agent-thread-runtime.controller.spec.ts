@@ -30,6 +30,7 @@ describe('Threading AgentThreadRuntimeController', () => {
     cancelPreparedReview: vi.fn(),
     list: vi.fn(),
   };
+  const resolveInputRequest = vi.fn();
   let controller: AgentThreadRuntimeController;
   let usersService: { findOne: ReturnType<typeof vi.fn> };
   let agentOrchestratorService: {
@@ -39,6 +40,10 @@ describe('Threading AgentThreadRuntimeController', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resolveInputRequest.mockResolvedValue({
+      requestId: 'req-1',
+      status: 'resolved',
+    });
     usersService = {
       findOne: vi.fn().mockResolvedValue({ id: userId }),
     };
@@ -58,10 +63,7 @@ describe('Threading AgentThreadRuntimeController', () => {
         }),
         listEvents: vi.fn().mockResolvedValue([]),
         recordMemoryFlush: vi.fn().mockResolvedValue(undefined),
-        resolveInputRequest: vi.fn().mockResolvedValue({
-          requestId: 'req-1',
-          status: 'resolved',
-        }),
+        resolveInputRequest,
       } as never as AgentThreadEngineService,
       {
         assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
@@ -109,6 +111,25 @@ describe('Threading AgentThreadRuntimeController', () => {
       expect.objectContaining({ threadId, organizationId, userId }),
       'work-1',
       'review-A',
+    );
+  });
+
+  it('threads selected option ids to the engine while continuing with visible labels', async () => {
+    await controller.respondToInputRequest(
+      threadId,
+      'req-1',
+      { answer: 'Awareness, Sales', optionIds: ['a', 'b'] },
+      mockUser,
+    );
+    expect(resolveInputRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        answer: 'Awareness, Sales',
+        optionIds: ['a', 'b'],
+      }),
+    );
+    expect(agentOrchestratorService.acceptChatStream).toHaveBeenCalledWith(
+      expect.objectContaining({ content: 'Awareness, Sales' }),
+      { organizationId, userId },
     );
   });
 

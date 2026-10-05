@@ -1,4 +1,6 @@
 import { AGENT_CREATED_BRAND_VISUAL_DEFAULTS } from '@api/collections/brands/constants/agent-created-brand.constant';
+import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -96,6 +98,7 @@ interface AgentBrandsServiceLike {
     userId: string,
     sourceActionId: string,
   ) => Promise<Record<string, unknown> | null>;
+  updateAgentConfig: BrandsService['updateAgentConfig'];
   resolveBrandKitAssets?: (
     brandId: string,
     organizationId: string,
@@ -137,6 +140,7 @@ export class AgentOnboardingToolHandler {
     private readonly videosService?: VideosService,
     @Optional()
     private readonly streamPublisher?: AgentStreamPublisherService,
+    private readonly brandDataMapper: BrandDataMapper = new BrandDataMapper(),
   ) {}
 
   private async publishToolProgress(data: {
@@ -150,6 +154,82 @@ export class AgentOnboardingToolHandler {
       return;
     }
     await this.streamPublisher.publishToolProgress(data);
+  }
+
+  async saveOnboardingAnswers(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const readShortString = (
+      value: unknown,
+      key: string,
+    ): string | undefined => {
+      if (value === undefined) return undefined;
+      if (
+        typeof value !== 'string' ||
+        !value.trim() ||
+        value.trim().length > 200
+      )
+        throw new BadRequestException(
+          `${key} must be a non-empty string of at most 200 characters.`,
+        );
+      return value.trim();
+    };
+    const readAnswers = (value: unknown, key: string): string[] | undefined => {
+      if (value === undefined) return undefined;
+      if (!Array.isArray(value) || value.length > 10)
+        throw new BadRequestException(
+          `${key} must contain at most 10 answers.`,
+        );
+      return value.map((item) => {
+        if (typeof item !== 'string')
+          throw new BadRequestException(`${key} must contain short strings.`);
+        return readShortString(item, key) ?? '';
+      });
+    };
+    const goals = readAnswers(params.goals, 'goals');
+    const platforms = readAnswers(params.platforms, 'platforms');
+    const frequency = readShortString(params.cadence, 'cadence');
+    const tone = readShortString(params.toneAdjustment, 'toneAdjustment');
+    const currentBrandId = ctx.validatedScope?.brandId ?? ctx.brandId;
+    const brandId =
+      readShortString(params.brandId, 'brandId') ?? currentBrandId;
+    if (!brandId || (currentBrandId && currentBrandId !== brandId))
+      throw new BadRequestException(
+        'Choose the current brand before saving onboarding answers.',
+      );
+    const brand = await this.brandsService.findOne({
+      id: brandId,
+      organizationId: ctx.organizationId,
+      isDeleted: false,
+    });
+    if (!brand)
+      throw new ForbiddenException(
+        'The brand is not available in this organization.',
+      );
+    const config = this.brandDataMapper.readBrandAgentConfig(brand.agentConfig);
+    const updated = await this.brandsService.updateAgentConfig(
+      brandId,
+      ctx.organizationId,
+      {
+        strategy: {
+          ...config.strategy,
+          ...(goals !== undefined ? { goals } : {}),
+          ...(platforms !== undefined ? { platforms } : {}),
+          ...(frequency !== undefined ? { frequency } : {}),
+        },
+        ...(tone !== undefined ? { voice: { ...config.voice, tone } } : {}),
+      },
+    );
+    if (!updated)
+      throw new ForbiddenException(
+        'The brand is not available in this organization.',
+      );
+    return {
+      creditsUsed: 0,
+      success: true,
+      data: { brandId, message: 'Onboarding answers saved.' },
+    };
   }
 
   async createBrand(

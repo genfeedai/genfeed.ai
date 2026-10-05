@@ -2,6 +2,32 @@ import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 export const AGENT_ONBOARDING_TOOLS: SourceTool[] = [
   {
+    name: 'save_onboarding_answers',
+    creditCost: 0,
+    requiredRole: 'user',
+    description:
+      'Save the onboarding answers chosen by the user to the current brand strategy and voice, preserving other settings.',
+    parameters: {
+      type: 'object',
+      required: [],
+      properties: {
+        brandId: { type: 'string', minLength: 1, maxLength: 200 },
+        goals: {
+          type: 'array',
+          maxItems: 10,
+          items: { type: 'string', minLength: 1, maxLength: 200 },
+        },
+        platforms: {
+          type: 'array',
+          maxItems: 10,
+          items: { type: 'string', minLength: 1, maxLength: 200 },
+        },
+        cadence: { type: 'string', minLength: 1, maxLength: 200 },
+        toneAdjustment: { type: 'string', minLength: 1, maxLength: 200 },
+      },
+    },
+  },
+  {
     creditCost: 0,
     description:
       'Propose a starter brand identity from conversational onboarding details. Creation requires confirmation through the returned in-product action card.',

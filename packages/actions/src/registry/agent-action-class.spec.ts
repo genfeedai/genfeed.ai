@@ -8,6 +8,27 @@ import {
 import { getDeclaredMutationPolicy } from './mutation-policy';
 
 describe('getAgentActionClass', () => {
+  it('applies existing brand-context confirmation rules to saved onboarding answers', () => {
+    expect(getAgentActionClass('save_onboarding_answers')).toBe(
+      AGENT_ACTION_CLASS.BRAND_CONTEXT,
+    );
+    expect(getDeclaredMutationPolicy('save_onboarding_answers')).toBe('direct');
+    expect(
+      resolveEffectiveMutationPolicy(
+        'save_onboarding_answers',
+        'manual',
+        'direct',
+      ),
+    ).toBe('approval-required');
+    expect(
+      resolveEffectiveMutationPolicy(
+        'save_onboarding_answers',
+        'auto',
+        'direct',
+      ),
+    ).toBe('direct');
+  });
+
   it('classifies URL brand creation as brand context', () => {
     expect(getAgentActionClass('create_brand_from_url')).toBe(
       AGENT_ACTION_CLASS.BRAND_CONTEXT,
