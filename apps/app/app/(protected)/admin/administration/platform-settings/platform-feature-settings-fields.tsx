@@ -14,7 +14,7 @@ import type {
   PlatformNullableTextFeatureSettingKey,
   PlatformNumericFeatureSettingKey,
   PlatformRequiredTextFeatureSettingKey,
-  PlatformSettingsFormTab,
+  PlatformSettingsTab,
 } from '@props/admin/platform-settings.props';
 
 import Field from '@ui/primitives/field';
@@ -97,16 +97,12 @@ export default function PlatformFeatureSettingsFields({
     );
   }
 
-  function confidenceField(
-    id: string,
-    label: string,
-    key: PlatformNumericFeatureSettingKey,
-  ) {
+  /** A decision's minimum confidence, labelled by the group it sits in. */
+  function confidenceField(id: string, key: PlatformNumericFeatureSettingKey) {
     return (
       <PlatformNumberSettingField
         id={id}
-        label={label}
-        helpText={translate('confidenceHelp')}
+        label={translate('decisions.confidenceLabel')}
         min={confidence.min}
         max={confidence.max}
         value={settings[key]}
@@ -172,97 +168,114 @@ export default function PlatformFeatureSettingsFields({
     );
   }
 
+  /**
+   * One typed decision point as its own group: the group names the decision,
+   * the fields inside are just its mode and minimum confidence.
+   */
+  function decisionGroup(
+    label: string,
+    modeField: ReactNode,
+    confidenceKey?: PlatformNumericFeatureSettingKey,
+    confidenceId?: string,
+  ) {
+    return (
+      <PlatformSettingsGroup title={label}>
+        <div className="grid items-start gap-4 sm:grid-cols-2">
+          {modeField}
+          {confidenceKey && confidenceId
+            ? confidenceField(confidenceId, confidenceKey)
+            : null}
+        </div>
+      </PlatformSettingsGroup>
+    );
+  }
+
   function renderDecisions(): ReactNode {
+    const modeLabel = translate('decisions.modeLabel');
+    const shadowCappedHelp = translate('decisions.shadowCappedHelp');
+
     return (
       <>
-        <PlatformSettingsGroup>
-          {numberField(
-            'typedDecisionTimeoutMs',
-            translate('runtime.typedDecisionTimeoutMs'),
-            { isInteger: true, max: 60000, min: 1 },
-          )}
-        </PlatformSettingsGroup>
-        <PlatformSettingsGroup title={translate('decisions.heading')}>
+        {decisionGroup(
+          translate('decisions.agentAutoRoutingLabel'),
           <PlatformModeSettingField
             id="platform-agent-auto-routing-mode"
-            label={translate('decisions.agentAutoRoutingLabel')}
+            label={modeLabel}
             helpText={translate('decisions.agentAutoRoutingHelp')}
             modes={TYPED_DECISION_MODES}
             value={settings.agentAutoRoutingDecisionMode}
             isDisabled={isDisabled}
             onChange={(mode) => update('agentAutoRoutingDecisionMode', mode)}
-          />
+          />,
+        )}
+        {decisionGroup(
+          translate('decisions.modelDiscoveryLabel'),
           <PlatformModeSettingField
             id="platform-model-discovery-mode"
-            label={translate('decisions.modelDiscoveryLabel')}
+            label={modeLabel}
             modes={TYPED_DECISION_MODES}
             value={settings.modelDiscoveryDecisionMode}
             isDisabled={isDisabled}
             onChange={(mode) => update('modelDiscoveryDecisionMode', mode)}
-          />
-          {confidenceField(
-            'platform-model-discovery-min-confidence',
-            translate('decisions.modelDiscoveryConfidenceLabel'),
-            'modelDiscoveryMinConfidence',
-          )}
+          />,
+          'modelDiscoveryMinConfidence',
+          'platform-model-discovery-min-confidence',
+        )}
+        {decisionGroup(
+          translate('decisions.replyBotIntentLabel'),
           <PlatformModeSettingField
             id="platform-reply-bot-intent-mode"
-            label={translate('decisions.replyBotIntentLabel')}
+            label={modeLabel}
             modes={TYPED_DECISION_MODES}
             value={settings.replyBotIntentDecisionMode}
             isDisabled={isDisabled}
             onChange={(mode) => update('replyBotIntentDecisionMode', mode)}
-          />
-          {confidenceField(
-            'platform-reply-bot-intent-min-confidence',
-            translate('decisions.replyBotIntentConfidenceLabel'),
-            'replyBotIntentMinConfidence',
-          )}
-        </PlatformSettingsGroup>
-        <PlatformSettingsGroup
-          title={translate('decisions.shadowCappedHeading')}
-          description={translate('decisions.shadowCappedHelp')}
-        >
+          />,
+          'replyBotIntentMinConfidence',
+          'platform-reply-bot-intent-min-confidence',
+        )}
+        {decisionGroup(
+          translate('decisions.patternAnalyzerLabel'),
           <PlatformModeSettingField
             id="platform-pattern-analyzer-mode"
-            label={translate('decisions.patternAnalyzerLabel')}
+            label={modeLabel}
+            helpText={shadowCappedHelp}
             modes={SHADOW_CAPPED_DECISION_MODES}
             value={settings.patternAnalyzerDecisionMode}
             isDisabled={isDisabled}
             onChange={(mode) => update('patternAnalyzerDecisionMode', mode)}
-          />
-          {confidenceField(
-            'platform-pattern-analyzer-min-confidence',
-            translate('decisions.patternAnalyzerConfidenceLabel'),
-            'patternAnalyzerMinConfidence',
-          )}
+          />,
+          'patternAnalyzerMinConfidence',
+          'platform-pattern-analyzer-min-confidence',
+        )}
+        {decisionGroup(
+          translate('decisions.taskRoutingLabel'),
           <PlatformModeSettingField
             id="platform-task-routing-mode"
-            label={translate('decisions.taskRoutingLabel')}
+            label={modeLabel}
+            helpText={shadowCappedHelp}
             modes={SHADOW_CAPPED_DECISION_MODES}
             value={settings.taskRoutingDecisionMode}
             isDisabled={isDisabled}
             onChange={(mode) => update('taskRoutingDecisionMode', mode)}
-          />
-          {confidenceField(
-            'platform-task-routing-min-confidence',
-            translate('decisions.taskRoutingConfidenceLabel'),
-            'taskRoutingMinConfidence',
-          )}
+          />,
+          'taskRoutingMinConfidence',
+          'platform-task-routing-min-confidence',
+        )}
+        {decisionGroup(
+          translate('decisions.untrustedContentLabel'),
           <PlatformModeSettingField
             id="platform-untrusted-content-mode"
-            label={translate('decisions.untrustedContentLabel')}
+            label={modeLabel}
+            helpText={shadowCappedHelp}
             modes={SHADOW_CAPPED_DECISION_MODES}
             value={settings.untrustedContentDecisionMode}
             isDisabled={isDisabled}
             onChange={(mode) => update('untrustedContentDecisionMode', mode)}
-          />
-          {confidenceField(
-            'platform-untrusted-content-min-confidence',
-            translate('decisions.untrustedContentConfidenceLabel'),
-            'untrustedContentMinConfidence',
-          )}
-        </PlatformSettingsGroup>
+          />,
+          'untrustedContentMinConfidence',
+          'platform-untrusted-content-min-confidence',
+        )}
       </>
     );
   }
@@ -365,6 +378,9 @@ export default function PlatformFeatureSettingsFields({
               }
             />
           </Field>
+        </PlatformSettingsGroup>
+
+        <PlatformSettingsGroup title={translate('media.gatesHeading')}>
           <PlatformModeSettingField
             id="platform-media-gate-vision-mode"
             label={translate('media.visionGateLabel')}
@@ -383,11 +399,20 @@ export default function PlatformFeatureSettingsFields({
             isDisabled={isDisabled}
             onChange={(mode) => update('mediaTextGateDecisionMode', mode)}
           />
-          {confidenceField(
-            'platform-media-text-gate-min-confidence',
-            translate('media.textGateConfidenceLabel'),
-            'mediaTextGateMinConfidence',
-          )}
+          <PlatformNumberSettingField
+            id="platform-media-text-gate-min-confidence"
+            label={translate('media.textGateConfidenceLabel')}
+            helpText={translate('confidenceHelp')}
+            min={confidence.min}
+            max={confidence.max}
+            value={settings.mediaTextGateMinConfidence}
+            isDisabled={isDisabled}
+            onValidityChange={onValidityChange}
+            onCommit={updateNumber('mediaTextGateMinConfidence')}
+          />
+        </PlatformSettingsGroup>
+
+        <PlatformSettingsGroup title={translate('media.imagesHeading')}>
           {numberField(
             'imageCompressionQuality',
             translate('runtime.imageCompressionQuality'),
@@ -612,7 +637,7 @@ export default function PlatformFeatureSettingsFields({
     );
   }
 
-  function renderDiscord(): ReactNode {
+  function renderNotifications(): ReactNode {
     return (
       <>
         <PlatformSettingsGroup
@@ -658,13 +683,13 @@ export default function PlatformFeatureSettingsFields({
     );
   }
 
-  const SECTION_RENDERERS: Record<PlatformSettingsFormTab, () => ReactNode> = {
+  const SECTION_RENDERERS: Record<PlatformSettingsTab, () => ReactNode> = {
     accounts: renderAccounts,
     agent: renderAgent,
     billing: renderBilling,
     decisions: renderDecisions,
-    discord: renderDiscord,
     media: renderMedia,
+    notifications: renderNotifications,
     providers: renderProviders,
   };
 

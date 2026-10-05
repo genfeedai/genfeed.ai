@@ -25,10 +25,7 @@ import {
   sellPriceForOneDollar,
 } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type {
-  PlatformSettingsFormTab,
-  PlatformSettingsTab,
-} from '@props/admin/platform-settings.props';
+import type { PlatformSettingsTab } from '@props/admin/platform-settings.props';
 
 import { AdminPlatformSettingsService } from '@services/admin/platform-settings.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
@@ -53,37 +50,31 @@ import { useTranslations } from 'next-intl';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import PlatformFeatureSettingsFields from './platform-feature-settings-fields';
+import PlatformNumberSettingField from './platform-number-setting-field';
 import PlatformSettingsGroup from './platform-settings-group';
 import SystemNotificationsPanel from './system-notifications-panel';
 
-/** Tabs whose fields belong to the one settings form, in display order. */
-const FORM_TABS: readonly PlatformSettingsFormTab[] = [
+/** Settings tabs, in display order. Every tab's fields save together. */
+const TABS: readonly PlatformSettingsTab[] = [
   'billing',
   'decisions',
   'agent',
   'media',
   'providers',
   'accounts',
-  'discord',
+  'notifications',
 ];
-
-/** Notifications edit destinations with their own actions, outside the form. */
-const TABS: readonly PlatformSettingsTab[] = [...FORM_TABS, 'notifications'];
-
-function isFormTab(value: string): value is PlatformSettingsFormTab {
-  return FORM_TABS.some((tab) => tab === value);
-}
 
 function isSettingsTab(value: string): value is PlatformSettingsTab {
   return TABS.some((tab) => tab === value);
 }
 
-/** The form tab holding the field with this element id, if it is rendered. */
-function formTabOfField(fieldId: string): PlatformSettingsFormTab | null {
+/** The tab holding the field with this element id, if it is rendered. */
+function tabOfField(fieldId: string): PlatformSettingsTab | null {
   const tab = document
     .getElementById(fieldId)
     ?.closest<HTMLElement>('[data-settings-tab]')?.dataset.settingsTab;
-  return tab && isFormTab(tab) ? tab : null;
+  return tab && isSettingsTab(tab) ? tab : null;
 }
 
 /** Percent an operator would type for a multiplier, in the given input mode. */
@@ -333,7 +324,7 @@ export default function PlatformSettingsPage() {
     if (invalidFeatureFieldIds.size > 0) {
       // Show the operator where the error is when it sits on another tab.
       const [firstInvalidFieldId] = invalidFeatureFieldIds;
-      const invalidTab = formTabOfField(firstInvalidFieldId);
+      const invalidTab = tabOfField(firstInvalidFieldId);
       if (invalidTab) {
         setActiveTab(invalidTab);
       }
@@ -425,7 +416,7 @@ export default function PlatformSettingsPage() {
         onSubmit={handleSubmit}
         noValidate
       >
-        {FORM_TABS.map((tab) => (
+        {TABS.map((tab) => (
           // Inactive tabs stay mounted (hidden) so an edit, or a field's
           // invalid text, survives switching tabs and saves with the rest.
           <div
@@ -496,33 +487,56 @@ export default function PlatformSettingsPage() {
             ) : null}
 
             {tab === 'decisions' ? (
-              <PlatformSettingsGroup>
-                <Field
-                  label={translate('typedDecisionLabel')}
-                  htmlFor="platform-typed-decision-provider"
-                  helpText={translate('typedDecisionHelp')}
-                >
-                  <Select
-                    value={typedDecisionProvider}
-                    onValueChange={(value) =>
-                      setTypedDecisionProvider(
-                        parseTypedDecisionProvider(value),
-                      )
-                    }
-                    disabled={isSaving}
+              <PlatformSettingsGroup
+                title={translate('typedDecisionsHeading')}
+                description={translate('typedDecisionsHelp')}
+              >
+                <div className="grid items-start gap-4 sm:grid-cols-2">
+                  <Field
+                    label={translate('typedDecisionLabel')}
+                    htmlFor="platform-typed-decision-provider"
+                    helpText={translate('typedDecisionHelp')}
                   >
-                    <SelectTrigger id="platform-typed-decision-provider">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TYPED_DECISION_PROVIDER_NAMES.map((provider) => (
-                        <SelectItem key={provider} value={provider}>
-                          {TYPED_DECISION_PROVIDER_LABELS[provider]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
+                    <Select
+                      value={typedDecisionProvider}
+                      onValueChange={(value) =>
+                        setTypedDecisionProvider(
+                          parseTypedDecisionProvider(value),
+                        )
+                      }
+                      disabled={isSaving}
+                    >
+                      <SelectTrigger id="platform-typed-decision-provider">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TYPED_DECISION_PROVIDER_NAMES.map((provider) => (
+                          <SelectItem key={provider} value={provider}>
+                            {TYPED_DECISION_PROVIDER_LABELS[provider]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <PlatformNumberSettingField
+                    id="platform-typedDecisionTimeoutMs"
+                    label={translate('features.runtime.typedDecisionTimeoutMs')}
+                    min={1}
+                    max={60000}
+                    value={featureSettings.typedDecisionTimeoutMs}
+                    isInteger
+                    isDisabled={isSaving}
+                    onValidityChange={handleFeatureFieldValidity}
+                    onCommit={(value) => {
+                      if (value !== null) {
+                        setFeatureSettings((current) => ({
+                          ...current,
+                          typedDecisionTimeoutMs: value,
+                        }));
+                      }
+                    }}
+                  />
+                </div>
               </PlatformSettingsGroup>
             ) : null}
 
@@ -571,9 +585,11 @@ export default function PlatformSettingsPage() {
         tabs: TABS.map((tab) => ({ id: tab, label: translate(`tabs.${tab}`) })),
       }}
     >
-      {activeTab === 'notifications' ? <SystemNotificationsPanel /> : null}
-      {/* The form stays mounted under Notifications so unsaved edits survive. */}
-      <div hidden={activeTab === 'notifications'}>{renderFormContent()}</div>
+      <div className="flex flex-col gap-10">
+        {/* Destinations save on their own, so they sit outside the form. */}
+        {activeTab === 'notifications' ? <SystemNotificationsPanel /> : null}
+        {renderFormContent()}
+      </div>
     </Container>
   );
 }

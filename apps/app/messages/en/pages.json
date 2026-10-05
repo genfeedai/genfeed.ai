@@ -4352,7 +4352,7 @@
     "saved": "{label} switched {state}"
   },
   "platformSettings": {
-    "typedDecisionLabel": "Typed-decision provider",
+    "typedDecisionLabel": "Provider",
     "typedDecisionHelp": "Off keeps every decision point on its deterministic path. A hosted provider also needs TYPESAFE_API_KEY on the server; switching takes effect within seconds, with no deploy.",
     "features": {
       "modes": {
@@ -4365,30 +4365,32 @@
       "invalidInteger": "Enter a whole number from {min} to {max}",
       "invalidSubmit": "Fix the highlighted feature switch values before saving",
       "media": {
-        "heading": "Media checks",
+        "heading": "Perception",
         "perceptionLabel": "Media perception",
         "perceptionHelp": "Workers extract frames, on-screen text, transcripts and a scene description from new media. Off stops the sweep from queueing assets.",
-        "frameCountLabel": "Frames sampled per video",
-        "lookbackLabel": "Perception lookback (hours)",
-        "visionModelLabel": "Scene-description model",
+        "frameCountLabel": "Frames per video",
+        "lookbackLabel": "Lookback (hours)",
+        "visionModelLabel": "Scene model",
         "visionModelHelp": "Leave empty to use the default fast text model.",
-        "visionGateLabel": "Vision flags",
+        "visionGateLabel": "Vision gate",
         "visionGateHelp": "Live sends flagged assets to review. Costs one vision call per perceived asset.",
-        "textGateLabel": "Media text decisions",
+        "textGateLabel": "Text gate",
         "textGateHelp": "Brand safety and on-brand checks over transcripts and scene descriptions. Needs a typed-decision provider.",
-        "textGateConfidenceLabel": "Media text minimum confidence"
+        "textGateConfidenceLabel": "Text gate min confidence",
+        "gatesHeading": "Gates",
+        "imagesHeading": "Images"
       },
       "moderation": {
         "heading": "Moderation",
-        "providerLabel": "Moderation provider",
+        "providerLabel": "Provider",
         "providerHelp": "None sends no media off the server. OpenAI needs OPENAI_API_KEY on the server.",
         "providers": {
           "none": "None",
           "openai": "OpenAI omni-moderation"
         },
-        "modeLabel": "Moderation mode",
+        "modeLabel": "Mode",
         "modeHelp": "Shadow stores scores and logs what would flag. Live sends flagged assets to review.",
-        "thresholdsLabel": "Category thresholds",
+        "thresholdsLabel": "Thresholds",
         "thresholdsHelp": "Leave a category empty to keep its default. Lower is stricter.",
         "categories": {
           "drugs": "Drugs",
@@ -4404,24 +4406,19 @@
         }
       },
       "decisions": {
-        "heading": "Typed decisions",
+        "shadowCappedHelp": "Live is not available for this decision yet.",
+        "modeLabel": "Mode",
+        "confidenceLabel": "Min confidence",
         "agentAutoRoutingLabel": "Agent auto-routing",
         "agentAutoRoutingHelp": "Picks the chat model from the admin model registry. Shadow logs the pick without using it.",
-        "modelDiscoveryLabel": "Model discovery category",
-        "modelDiscoveryConfidenceLabel": "Model discovery minimum confidence",
-        "patternAnalyzerLabel": "Pattern analyzer labels",
-        "patternAnalyzerConfidenceLabel": "Pattern analyzer minimum confidence",
+        "modelDiscoveryLabel": "Model discovery",
         "replyBotIntentLabel": "Reply-bot intent",
-        "replyBotIntentConfidenceLabel": "Reply-bot intent minimum confidence",
-        "taskRoutingLabel": "Task routing output type",
-        "taskRoutingConfidenceLabel": "Task routing minimum confidence",
-        "untrustedContentLabel": "Untrusted-content gate",
-        "untrustedContentConfidenceLabel": "Untrusted-content minimum confidence",
-        "shadowCappedHelp": "Live is not available for this decision yet.",
-        "shadowCappedHeading": "Shadow-only decisions"
+        "patternAnalyzerLabel": "Pattern analyzer",
+        "taskRoutingLabel": "Task routing",
+        "untrustedContentLabel": "Untrusted content"
       },
       "agent": {
-        "heading": "Agent",
+        "heading": "Behaviour",
         "contextCompressionLabel": "Context compression",
         "contextCompressionHelp": "Summarise older thread turns so long conversations fit the model context.",
         "tokenStreamingLabel": "Token streaming",
@@ -4429,7 +4426,7 @@
         "contextHeading": "Context and output"
       },
       "platform": {
-        "heading": "Accounts and alerts",
+        "heading": "Accounts",
         "emailVerificationLabel": "Require email verification",
         "emailVerificationHelp": "Email and password accounts must verify their address before signing in. Needs a working notifications service to send the email.",
         "emailVerificationUnavailable": "Unavailable: no email provider is configured. Set RESEND_API_KEY on the notifications service to require email verification. Until then, sign-up and sign-in are never blocked, whatever this was set to before.",
@@ -4441,33 +4438,33 @@
       "runtime": {
         "private": "Private",
         "public": "Public",
-        "agentContextCompressionModel": "Agent compression model",
-        "agentContextWindowSize": "Recent messages kept in context",
-        "generationMaxTokens": "Maximum text generation tokens",
-        "typedDecisionTimeoutMs": "Typed decision timeout (ms)",
-        "trainingCreditsCost": "Training credits per 1,000 steps",
-        "customModelCreditsCost": "Custom model credits",
-        "replicateModelHardware": "Training model hardware",
-        "replicateModelVisibility": "Training model visibility",
-        "replicateTrainerModel": "Replicate trainer model",
-        "replicateTargetFps": "Video conversion frame rate",
-        "replicateTargetResolution": "Video conversion resolution",
-        "klingModel": "Kling default model",
-        "elevenlabsModel": "ElevenLabs default model",
-        "murekaModel": "Mureka default model",
-        "discordChannelIdDeployments": "Discord deployments channel",
-        "discordChannelIdPosts": "Discord posts channel",
-        "discordChannelIdStudio": "Discord studio channel",
-        "discordChannelIdUsers": "Discord users channel",
-        "discordChannelIdModels": "Discord models channel",
-        "discordBotAvatarUrl": "Discord notification avatar URL",
-        "discordWebhookNamePrefix": "Discord webhook name prefix",
-        "discordWebhookReason": "Discord webhook creation reason",
-        "emailFromAddress": "Email sender address",
-        "emailReplyToAddress": "Email reply-to address",
-        "imageCompressionQuality": "Image compression quality",
-        "paygFallbackCredits": "Legacy checkout fallback credits",
-        "linkedinTrendSourceUrls": "LinkedIn trend source URLs (comma separated)"
+        "agentContextCompressionModel": "Compression model",
+        "agentContextWindowSize": "Context window (messages)",
+        "generationMaxTokens": "Max output tokens",
+        "typedDecisionTimeoutMs": "Timeout (ms)",
+        "trainingCreditsCost": "Training (per 1,000 steps)",
+        "customModelCreditsCost": "Custom model",
+        "replicateModelHardware": "Hardware",
+        "replicateModelVisibility": "Visibility",
+        "replicateTrainerModel": "Trainer model",
+        "replicateTargetFps": "Frame rate",
+        "replicateTargetResolution": "Resolution",
+        "klingModel": "Kling",
+        "elevenlabsModel": "ElevenLabs",
+        "murekaModel": "Mureka",
+        "discordChannelIdDeployments": "Deployments",
+        "discordChannelIdPosts": "Posts",
+        "discordChannelIdStudio": "Studio",
+        "discordChannelIdUsers": "Users",
+        "discordChannelIdModels": "Models",
+        "discordBotAvatarUrl": "Avatar URL",
+        "discordWebhookNamePrefix": "Name prefix",
+        "discordWebhookReason": "Creation reason",
+        "emailFromAddress": "From",
+        "emailReplyToAddress": "Reply-to",
+        "imageCompressionQuality": "Compression quality",
+        "paygFallbackCredits": "PAYG fallback",
+        "linkedinTrendSourceUrls": "LinkedIn URLs (comma separated)"
       },
       "billing": {
         "creditsHeading": "Credits"
@@ -4479,9 +4476,9 @@
         "sourcesHeading": "Trend sources"
       },
       "discord": {
-        "channelsHeading": "Channels",
-        "channelsHelp": "Discord channel IDs the platform posts operator updates to. Leave a channel empty to skip it.",
-        "webhooksHeading": "Webhooks"
+        "channelsHeading": "Discord channels",
+        "channelsHelp": "Channel IDs for operator updates. Leave one empty to skip it.",
+        "webhooksHeading": "Discord webhooks"
       }
     },
     "notifications": {
@@ -4497,7 +4494,7 @@
       "actionFailed": "Notification action failed",
       "loading": "Loading notifications…",
       "reload": "Refresh",
-      "recordingDisabled": "Recording is disabled. Turn on Record system events in the Accounts & email tab to receive new events.",
+      "recordingDisabled": "Recording is disabled. Turn on Record system events in the Accounts tab to receive new events.",
       "deliveryDisabled": "Delivery is disabled in system notification settings.",
       "transportUnavailable": "The notification service is unavailable.",
       "ready": "Recording is enabled. Destinations receive the selected events.",
@@ -4532,18 +4529,19 @@
     },
     "tabs": {
       "billing": "Billing",
-      "decisions": "AI decisions",
+      "decisions": "AI",
       "agent": "Agent",
-      "media": "Media & safety",
+      "media": "Media",
       "providers": "Providers",
-      "accounts": "Accounts & email",
-      "discord": "Discord",
+      "accounts": "Accounts",
       "notifications": "Notifications"
     },
     "marginsHeading": "Margins",
     "saveHint": "Saves every tab at once. Changes apply to every server within 15 seconds, with no deploy.",
     "saveButton": "Save settings",
-    "savingButton": "Saving"
+    "savingButton": "Saving",
+    "typedDecisionsHeading": "Typed decisions",
+    "typedDecisionsHelp": "Each decision below runs Off, Shadow or Live. Min confidence is 0 to 1; a lower answer keeps the deterministic path."
   },
   "adminUsers": {
     "columns": {

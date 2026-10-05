@@ -4,18 +4,15 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { ReactNode } from 'react';
 
-/** Tabs of /admin platform settings that edit fields of the shared form. */
-export type PlatformSettingsFormTab =
+/** Tabs of /admin platform settings; every tab's fields save together. */
+export type PlatformSettingsTab =
   | 'billing'
   | 'decisions'
   | 'agent'
   | 'media'
   | 'providers'
   | 'accounts'
-  | 'discord';
-
-/** Every /admin platform settings tab; notifications save on their own. */
-export type PlatformSettingsTab = PlatformSettingsFormTab | 'notifications';
+  | 'notifications';
 
 /** Feature switches whose value is a nullable string, cleared to `null`. */
 export type PlatformNullableTextFeatureSettingKey = {
@@ -59,7 +56,7 @@ export interface PlatformFeatureSettingsFieldsProps {
   onChange: (next: IPlatformFeatureSettings) => void;
   /** Reports each numeric field's validity so the page can block a save. */
   onValidityChange: (fieldId: string, isValid: boolean) => void;
-  section: PlatformSettingsFormTab;
+  section: PlatformSettingsTab;
   settings: IPlatformFeatureSettings;
 }
 
