@@ -1,6 +1,6 @@
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { isActionContractFailureMessage } from '@genfeedai/workflows/engine';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import { isRecord } from '@workers/services/provider-contract.util';
 import { UnrecoverableError } from 'bullmq';
 
 /**
