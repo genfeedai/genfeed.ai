@@ -749,6 +749,7 @@ describe('OrganizationsSettingsController', () => {
 
       expect(subscriptionsService.findOne).toHaveBeenCalledWith({
         organizationId,
+        isDeleted: false,
       });
       expect(result).toBeDefined();
     });
@@ -774,6 +775,7 @@ describe('OrganizationsSettingsController', () => {
         {
           id: brandId,
           organizationId,
+          isDeleted: false,
         },
         'none',
       );

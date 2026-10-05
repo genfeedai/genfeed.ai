@@ -111,8 +111,13 @@ export class VideosController {
 
   @Get()
   @Cache({
-    keyGenerator: (req) =>
-      `videos:list:org:${(req.user?.organizationId as string | undefined) ?? 'global'}:brand:${(req.user?.brandId as string | undefined) ?? 'global'}:user:${req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,
+    keyGenerator: (req) => {
+      const tenant = CollectionFilterUtil.resolveListCacheScope(req);
+      const brandId =
+        tenant.brandId ??
+        (tenant.isOrganizationOverride ? undefined : req.user?.brandId);
+      return `videos:list:org:${tenant.organizationId || 'global'}:brand:${brandId ?? 'global'}:user:${req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`;
+    },
     tags: ['videos'],
     ttl: 300, // 5 minutes
   })
@@ -122,6 +127,11 @@ export class VideosController {
     @CurrentUser() user: User,
     @Query() query: VideosQueryDto,
   ): Promise<JsonApiCollectionResponse> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     // `latest=true` shorthand for brand-scoped user videos with training sources
     // excluded, ordered by createdAt desc and capped at 50. Unlike the standard
     // list route there is no organization OR-branch and no isDefault branch;
@@ -129,18 +139,20 @@ export class VideosController {
     // status/scope/folder/parent/search.
     if (query.latest) {
       const latestIsDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-      const latestBrand = user.brandId;
+      const latestBrand = tenant.isOrganizationOverride
+        ? tenant.brandId
+        : user.brandId;
 
       const latestAggregate = {
         where: {
           AND: [
             {
-              brandId: latestBrand,
+              ...(latestBrand ? { brandId: latestBrand } : {}),
               category: CategoryPrismaUtil.toIngredientCategory(
                 IngredientCategory.VIDEO,
               ),
               isDeleted: latestIsDeleted,
-              organizationId: user.organizationId,
+              organizationId: tenant.organizationId,
               // Exclude training source videos by default
               trainingId: null,
               userId: user.userId ?? user.id,
@@ -160,7 +172,9 @@ export class VideosController {
         request,
         VideoSerializer,
         (await this.evaluationProjection?.attachToPage(latestData, {
-          brandId: user.brandId,
+          brandId: tenant.isOrganizationOverride
+            ? tenant.brandId
+            : user.brandId,
           contentType: 'video',
         })) ?? latestData,
       );
@@ -179,11 +193,9 @@ export class VideosController {
 
     // Use CollectionFilterUtil for common filtering patterns
     const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
-    const brandId = CollectionFilterUtil.buildBrandFilter(
-      query.brandId,
-      user,
-      'user',
-    );
+    const brandId = tenant.isOrganizationOverride
+      ? tenant.brandId
+      : CollectionFilterUtil.buildBrandFilter(query.brandId, user, 'user');
 
     // Use IngredientFilterUtil to build ingredient-specific filters
     const folderConditions = IngredientFilterUtil.buildFolderFilter(
@@ -208,17 +220,21 @@ export class VideosController {
 
     const characterFilter = await resolveCharacterFilter(this.characterFilter, {
       characterIds: query.characters,
-      // These lists do not authorize a `brandId` override, so availability
-      // always follows the session's active brand, never the query.
-      user,
+      user: tenant.isOrganizationOverride
+        ? {
+            ...user,
+            organizationId: tenant.organizationId,
+            brandId: tenant.brandId ?? '',
+          }
+        : user,
     });
 
     const aggregate = {
       where: {
         AND: [
-          { organizationId: user.organizationId },
+          { organizationId: tenant.organizationId },
           {
-            brandId,
+            ...(brandId ? { brandId } : {}),
             category: CategoryPrismaUtil.toIngredientCategory(
               IngredientCategory.VIDEO,
             ),
@@ -247,7 +263,7 @@ export class VideosController {
       request,
       VideoSerializer,
       (await this.evaluationProjection?.attachToPage(data, {
-        brandId: user.brandId,
+        brandId: tenant.isOrganizationOverride ? tenant.brandId : user.brandId,
         contentType: 'video',
       })) ?? data,
     );

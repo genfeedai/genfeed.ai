@@ -71,6 +71,16 @@ export type FeaturedWorkflowDocument = IFeaturedWorkflowSummary & {
   nodes: WorkflowVisualNode[];
 };
 
+/** Public marketplace projection; source tenant identity and runtime state stay private. */
+export type MarketplaceWorkflowDocument = Omit<
+  FeaturedWorkflowDocument,
+  'featuredRank'
+> & {
+  executionCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type WorkflowVersionDocument = Omit<
   PrismaWorkflowVersion,
   'graph' | 'inputSchema'

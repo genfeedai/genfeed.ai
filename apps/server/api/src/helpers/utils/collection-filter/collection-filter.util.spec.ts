@@ -1,4 +1,12 @@
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
+import {
+  adminUser,
+  memberUser,
+  sessionOrganizationId,
+  targetBrandId,
+  targetOrganizationId,
+  tenantReadRequest,
+} from '@api-test/helpers/tenant-read.fixture';
 import { AssetScope } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
 
@@ -62,6 +70,78 @@ describe('CollectionFilterUtil', () => {
           { brandId: brandA, isSuperAdmin: false, organizationId: orgA },
         ),
       ).toEqual({ organizationId: orgA });
+    });
+  });
+
+  describe('list organization resolution (#6176)', () => {
+    it('trims organization and brand ids consistently with the interceptor', () => {
+      expect(
+        CollectionFilterUtil.resolveListOrganizationId(
+          {
+            organizationId: ` ${targetOrganizationId} `,
+            brandId: ` ${targetBrandId} `,
+          },
+          adminUser,
+          tenantReadRequest(adminUser),
+        ),
+      ).toEqual({
+        organizationId: targetOrganizationId,
+        brandId: targetBrandId,
+        isOrganizationOverride: true,
+      });
+      expect(
+        CollectionFilterUtil.buildAdminFilter(adminUser, {
+          organizationId: ` ${targetOrganizationId} `,
+          brandId: ` ${targetBrandId} `,
+        }),
+      ).toEqual({
+        organizationId: targetOrganizationId,
+        brandId: targetBrandId,
+      });
+    });
+
+    it('treats a trimmed session org as the same tenant for members', () => {
+      expect(
+        CollectionFilterUtil.resolveListOrganizationId(
+          { organizationId: ` ${sessionOrganizationId} ` },
+          memberUser,
+        ),
+      ).toMatchObject({
+        organizationId: sessionOrganizationId,
+        isOrganizationOverride: false,
+      });
+    });
+
+    it('uses the verified request flag rather than a user flag', () => {
+      expect(() =>
+        CollectionFilterUtil.resolveListOrganizationId(
+          { organizationId: targetOrganizationId },
+          adminUser,
+          tenantReadRequest(memberUser),
+        ),
+      ).toThrow(ForbiddenException);
+      expect(
+        CollectionFilterUtil.resolveListOrganizationId(
+          { organizationId: targetOrganizationId },
+          memberUser,
+          tenantReadRequest(adminUser),
+        ),
+      ).toMatchObject({
+        organizationId: targetOrganizationId,
+        isOrganizationOverride: true,
+      });
+    });
+
+    it('falls back to the session org for omitted or whitespace-only overrides', () => {
+      expect(
+        CollectionFilterUtil.resolveListOrganizationId(
+          { organizationId: '  ' },
+          adminUser,
+        ),
+      ).toMatchObject({
+        organizationId: sessionOrganizationId,
+        isOrganizationOverride: false,
+      });
     });
   });
 

@@ -5,6 +5,7 @@ import { type IngredientDocument } from '@api/collections/ingredients/schemas/in
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -223,6 +224,11 @@ export class AvatarsController {
     @CurrentUser() user: User,
     @Query() query: AvatarsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -233,7 +239,10 @@ export class AvatarsController {
       where: {
         category: IngredientCategory.AVATAR,
         isDeleted,
-        organizationId: user.organizationId,
+        organizationId: tenant.organizationId,
+        ...(tenant.isOrganizationOverride && tenant.brandId
+          ? { brandId: tenant.brandId }
+          : {}),
         userId: user.userId ?? user.id,
         ...IngredientFilterUtil.buildOriginFilter(query.origins),
       },

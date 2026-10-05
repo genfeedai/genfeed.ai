@@ -9,6 +9,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -62,7 +63,7 @@ export class MembersController {
   @Cache({
     keyGenerator: (req) => {
       const user = req.user as { id?: string; organizationId?: string };
-      return `members:list:${user?.organizationId ?? 'unknown'}:${user?.id ?? 'unknown'}:query:${JSON.stringify(req.query)}`;
+      return `members:list:${CollectionFilterUtil.resolveListCacheScope(req).organizationId || 'unknown'}:${user?.id ?? 'unknown'}:query:${JSON.stringify(req.query)}`;
     },
     tags: ['members'],
     ttl: 120,
@@ -73,7 +74,11 @@ export class MembersController {
     @Req() request: Request,
     @CurrentUser() user: User,
   ): Promise<JsonApiCollectionResponse> {
-    const organizationId = user.organizationId;
+    const { organizationId } = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
 
     if (!isEntityId(organizationId)) {
       return returnNotFound(this.constructorName, 'organization');

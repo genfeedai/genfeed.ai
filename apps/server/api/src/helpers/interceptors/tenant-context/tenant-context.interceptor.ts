@@ -1,6 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
+import { isEntityId } from '@genfeedai/contracts/api-types';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
   type CallHandler,
@@ -44,7 +45,7 @@ function readSuperAdminOrganizationOverride(
   }
 
   const override: unknown = request.query?.organizationId;
-  return typeof override === 'string' && override.trim()
+  return typeof override === 'string' && isEntityId(override.trim())
     ? override.trim()
     : undefined;
 }

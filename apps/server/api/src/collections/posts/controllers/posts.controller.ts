@@ -312,11 +312,18 @@ export class PostsController extends BaseCRUDController<
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('postId') postId: string,
+    @Query() query: BaseQueryDto = {},
   ): Promise<JsonApiSingleResponse> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     // Build findAll query to fetch post with ingredients, credential, and evaluation
     const pipeline = {
       where: {
         id: postId,
+        organizationId: tenant.organizationId,
         isDeleted: false,
       },
     };
@@ -339,20 +346,20 @@ export class PostsController extends BaseCRUDController<
     const post = result.docs[0];
 
     // Check organization access
-    if (post.organizationId.toString() !== user.organizationId.toString()) {
+    if (post.organizationId.toString() !== tenant.organizationId.toString()) {
       throw new HttpException(
         {
           detail: 'You do not have access to this post',
           title: 'Access denied',
         },
-        HttpStatus.FORBIDDEN,
+        HttpStatus.NOT_FOUND,
       );
     }
 
     // Fetch all children of this post, sorted by order
     const children = await this.postsService.getChildren(
       postId,
-      user.organizationId,
+      tenant.organizationId,
       [
         PopulatePatterns.ingredientsMinimal,
         PopulatePatterns.credentialMinimal,
@@ -366,7 +373,7 @@ export class PostsController extends BaseCRUDController<
     try {
       analytics = await this.postAnalyticsService.getPostAnalyticsSummary(
         postId,
-        user.organizationId,
+        tenant.organizationId,
       );
     } catch (error: unknown) {
       this.loggerService.warn(
@@ -397,7 +404,7 @@ export class PostsController extends BaseCRUDController<
       request,
       this.serializer,
       (await this.evaluationProjection?.attachToItem(postWithChildren, {
-        brandId: user.brandId,
+        brandId: tenant.isOrganizationOverride ? tenant.brandId : user.brandId,
         contentType: 'post',
       })) ?? postWithChildren,
     );

@@ -5,6 +5,7 @@ import { VoiceLibraryService } from '@api/collections/voices/services/voice-libr
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { VoiceProvider } from '@genfeedai/contracts';
 import { VoiceProvider as DbVoiceProvider } from '@genfeedai/prisma';
+import { TenantIsolationError } from '@libs/prisma/tenant-guard';
 import { HttpStatus } from '@nestjs/common';
 
 vi.mock('@api/helpers/utils/sort/sort.util', () => ({
@@ -89,6 +90,20 @@ describe('VoiceLibraryService', () => {
       expect.any(Object),
     );
   });
+
+  it.each(['findAll', 'findCloned'] as const)(
+    'preserves tenant isolation errors in %s',
+    async (method) => {
+      const error = new TenantIsolationError(
+        'Ingredient',
+        'findMany',
+        'organization-id-mismatch',
+        'Mismatched tenant',
+      );
+      voicesService.findAll.mockRejectedValue(error);
+      await expect(service[method](user, {})).rejects.toBe(error);
+    },
+  );
 
   it('keeps the established library failure response', async () => {
     voicesService.findAll.mockRejectedValue(new Error('database unavailable'));

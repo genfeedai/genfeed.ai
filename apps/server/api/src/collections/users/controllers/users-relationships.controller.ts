@@ -22,6 +22,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -170,6 +171,8 @@ export class UsersRelationshipsController {
 
   @Get('me/brands')
   @Cache({
+    keyGenerator: (req) =>
+      `users:me:brands:org:${CollectionFilterUtil.resolveListCacheScope(req).organizationId}:user:${req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,
     tags: ['accounts', 'users'],
     ttl: 1_800,
   })
@@ -183,6 +186,11 @@ export class UsersRelationshipsController {
     @Req() request: Request,
     @Query() query: BaseQueryDto,
   ) {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -192,8 +200,9 @@ export class UsersRelationshipsController {
     let member: { brands?: string[] } | null = null;
     try {
       member = (await this.membersService.findOne({
-        organizationId: user.organizationId,
+        organizationId: tenant.organizationId,
         userId: user.userId ?? user.id,
+        isDeleted: false,
       })) as { brands?: string[] } | null;
     } catch (error: unknown) {
       this.loggerService.error(
@@ -211,7 +220,7 @@ export class UsersRelationshipsController {
           isDeleted,
           isSuperAdmin: getIsSuperAdmin(user, request),
           memberBrandIds: member?.brands,
-          organizationId: user.organizationId,
+          organizationId: tenant.organizationId,
         }),
       },
       options,

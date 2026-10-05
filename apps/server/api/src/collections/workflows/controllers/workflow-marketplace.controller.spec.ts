@@ -101,6 +101,123 @@ describe('WorkflowMarketplaceController', () => {
   });
 
   describe('getMarketplace', () => {
+    it('returns only the sanitized version graph and display fields with pagination', async () => {
+      const config = {
+        organizationId: 'source-org',
+        brandId: 'source-brand',
+        userId: 'source-user',
+        credentialId: 'source-credential',
+        prompt: 'Keep this template prompt',
+      };
+      mockWorkflowsService.findAll.mockResolvedValue({
+        docs: [
+          {
+            id: 'marketplace-workflow',
+            label: 'Public template',
+            description: 'Template description',
+            thumbnail: 'thumbnail.png',
+            executionCount: 42,
+            organizationId: 'source-org',
+            userId: 'source-user',
+            brandId: 'source-brand',
+            config: { isPublic: true, isTemplate: true },
+            metadata: { private: 'data' },
+            schedule: '* * * * *',
+            versionId: 'private-version',
+            cloudSync: {},
+            trigger: 'private-trigger',
+            tasks: [],
+            lifecycle: 'published',
+            createdAt: new Date('2026-10-01'),
+            updatedAt: new Date('2026-10-02'),
+            nodes: [
+              {
+                id: 'stale-node',
+                data: { config: { credentialId: 'stale-secret' } },
+              },
+            ],
+            currentVersion: {
+              id: 'version-1',
+              version: 1,
+              inputSchema: [],
+              graph: {
+                nodes: [
+                  {
+                    id: 'node-1',
+                    type: 'genfeedAction',
+                    position: { x: 1, y: 2 },
+                    data: { label: 'Generate', config },
+                  },
+                ],
+                edges: [],
+              },
+            },
+          },
+        ],
+        limit: 10,
+        page: 2,
+        totalDocs: 31,
+        totalPages: 4,
+      });
+      const response = await controller.getMarketplace(mockRequest, {
+        page: 2,
+        limit: 10,
+      });
+      expect(response.links).toMatchObject({
+        pagination: { page: 2, limit: 10, total: 31, pages: 4 },
+      });
+      expect(response.data).toEqual([
+        expect.objectContaining({
+          id: 'marketplace-workflow',
+          attributes: expect.objectContaining({
+            executionCount: 42,
+            nodes: [
+              expect.objectContaining({
+                id: 'node-1',
+                data: expect.objectContaining({
+                  config: {
+                    organizationId: '',
+                    brandId: '',
+                    userId: '',
+                    credentialId: '',
+                    prompt: 'Keep this template prompt',
+                  },
+                }),
+              }),
+            ],
+          }),
+        }),
+      ]);
+      const serialized = JSON.stringify(response.data);
+      for (const source of [
+        'source-org',
+        'source-user',
+        'source-brand',
+        'source-credential',
+        'stale-secret',
+      ]) {
+        expect(serialized).not.toContain(source);
+      }
+      const attributes = response.data[0]?.attributes;
+      for (const key of [
+        'organizationId',
+        'userId',
+        'brandId',
+        'credentials',
+        'config',
+        'schedule',
+        'metadata',
+        'versionId',
+        'cloudSync',
+        'trigger',
+        'tasks',
+        'lifecycle',
+      ]) {
+        expect(attributes).not.toHaveProperty(key);
+      }
+      expect(config.credentialId).toBe('source-credential');
+    });
+
     it('should return public template workflows', async () => {
       mockWorkflowsService.findAll.mockResolvedValue({
         docs: [],

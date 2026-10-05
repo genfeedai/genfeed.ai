@@ -8,6 +8,8 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -16,6 +18,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import { WatchlistPlatform } from '@genfeedai/contracts';
 import { WatchlistSerializer } from '@genfeedai/serializers';
 import {
+  BadRequestException,
   Body,
   ConflictException,
   Controller,
@@ -45,16 +48,30 @@ export class WatchlistsController {
     @CurrentUser() user: User,
     @Query() query: BrandScopeQueryDto = {},
   ) {
-    const brand = user.brandId;
-    const brandId = query.brandId || brand;
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      req,
+    );
+    CollectionFilterUtil.buildAuthorizedBrandFilter(
+      tenant.brandId,
+      user,
+      getIsSuperAdmin(user, req),
+    );
+    const brandId =
+      tenant.brandId ??
+      (tenant.isOrganizationOverride ? undefined : user.brandId);
 
     if (!brandId) {
+      if (tenant.isOrganizationOverride) {
+        throw new BadRequestException('Brand ID is required');
+      }
       throw new NotFoundException({ message: 'Account ID is required' });
     }
 
     const items = await this.service.findAllByAccount(
       brandId,
-      user.organizationId,
+      tenant.organizationId,
     );
     return serializeCollection(req, WatchlistSerializer, { docs: items });
   }
@@ -68,9 +85,15 @@ export class WatchlistsController {
     @Req() req: Request,
     @CurrentUser() user: User,
     @Param('watchlistId') watchlistId: string,
+    @Query() query: BrandScopeQueryDto = {},
   ) {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      req,
+    );
     const item = await this.service.findOne(
-      scopedWhere(user.organizationId, { id: watchlistId }),
+      scopedWhere(tenant.organizationId, { id: watchlistId }),
     );
     if (!item) {
       throw new NotFoundException('Watchlist item');

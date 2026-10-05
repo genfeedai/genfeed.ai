@@ -73,7 +73,7 @@ export class MusicsController {
     };
     const data: AggregatePaginateResult<MusicDocument> =
       await this.musicsService.findAll(
-        this.buildFindAllQuery(user, query),
+        this.buildFindAllQuery(user, query, request),
         options,
       );
 
@@ -166,13 +166,20 @@ export class MusicsController {
   /**
    * Override buildFindAllQuery to add music-specific filtering
    */
-  public buildFindAllQuery(user: User, query: MusicQueryDto) {
-    // Use CollectionFilterUtil for common filtering patterns
-    const brandId = CollectionFilterUtil.buildBrandFilter(
-      query.brandId,
+  public buildFindAllQuery(
+    user: User,
+    query: MusicQueryDto,
+    request?: Request,
+  ) {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
       user,
-      'user',
+      request,
     );
+    // Use CollectionFilterUtil for common filtering patterns
+    const brandId = tenant.isOrganizationOverride
+      ? tenant.brandId
+      : CollectionFilterUtil.buildBrandFilter(query.brandId, user, 'user');
 
     // Ingredient.isDefault is a non-nullable Boolean column; { not: null } is not
     // a valid Prisma filter shape for it (only nullable fields accept `not: null`)
@@ -213,19 +220,19 @@ export class MusicsController {
         ...IngredientFilterUtil.buildOriginFilter(query.origins),
         OR: [
           {
-            brandId,
+            ...(brandId ? { brandId } : {}),
             category: CategoryPrismaUtil.toIngredientCategory(
               IngredientCategory.MUSIC,
             ),
             isDeleted: query.isDeleted ?? false,
             ...metadataFilter,
-            organizationId: user.organizationId,
+            organizationId: tenant.organizationId,
             status,
             userId: user.userId ?? user.id,
           },
           {
             OR: [
-              { organizationId: user.organizationId },
+              { organizationId: tenant.organizationId },
               { organizationId: null },
             ],
             category: CategoryPrismaUtil.toIngredientCategory(

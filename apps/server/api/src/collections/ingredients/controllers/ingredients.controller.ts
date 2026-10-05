@@ -89,8 +89,13 @@ export class IngredientsController {
    */
   @Get()
   @Cache({
-    keyGenerator: (req) =>
-      `ingredients:list:org:${(req.user?.organizationId as string | undefined) ?? 'global'}:brand:${(req.user?.brandId as string | undefined) ?? 'global'}:query:${JSON.stringify(req.query)}`,
+    keyGenerator: (req) => {
+      const tenant = CollectionFilterUtil.resolveListCacheScope(req);
+      const brandId =
+        tenant.brandId ??
+        (tenant.isOrganizationOverride ? undefined : req.user?.brandId);
+      return `ingredients:list:org:${tenant.organizationId || 'global'}:brand:${brandId ?? 'global'}:query:${JSON.stringify(req.query)}`;
+    },
     tags: ['ingredients'],
     ttl: 60,
   })
@@ -102,16 +107,23 @@ export class IngredientsController {
     @Query() query: IngredientsQueryDto,
     @CurrentUser() user: User,
   ) {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const brandId = CollectionFilterUtil.buildAuthorizedBrandFilter(
-      query.brandId,
-      user,
-      getIsSuperAdmin(user, request),
-    );
+    const brandId = tenant.isOrganizationOverride
+      ? tenant.brandId
+      : CollectionFilterUtil.buildAuthorizedBrandFilter(
+          query.brandId,
+          user,
+          getIsSuperAdmin(user, request),
+        );
 
     // `categories` is the multi-select Library type axis; `category` stays for
     // single-type callers. Both normalize to Prisma labels.
@@ -133,7 +145,13 @@ export class IngredientsController {
     const characterFilter = await resolveCharacterFilter(this.characterFilter, {
       characterIds: query.characters,
       explicitBrandId: typeof brandId === 'string' ? brandId : undefined,
-      user,
+      user: tenant.isOrganizationOverride
+        ? {
+            ...user,
+            organizationId: tenant.organizationId,
+            brandId: tenant.brandId ?? '',
+          }
+        : user,
     });
 
     const aggregate = {
@@ -145,8 +163,8 @@ export class IngredientsController {
         // prepend `isDeleted: false` and make the Trash place always empty.
         isDeleted: QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted),
         AND: [
-          { organizationId: user.organizationId },
-          { brandId },
+          { organizationId: tenant.organizationId },
+          brandId ? { brandId } : {},
           categoryFilter,
           // A selected shelf owns the status axis outright.
           LibraryShelfUtil.buildShelfFilter(query.shelf),
@@ -167,7 +185,7 @@ export class IngredientsController {
       request,
       IngredientSerializer,
       (await this.evaluationProjection?.attachToPage(data, {
-        brandId: user.brandId,
+        brandId: tenant.isOrganizationOverride ? tenant.brandId : user.brandId,
       })) ?? data,
     );
   }
@@ -181,8 +199,13 @@ export class IngredientsController {
    */
   @Get('summary')
   @Cache({
-    keyGenerator: (req) =>
-      `ingredients:summary:org:${(req.user?.organizationId as string | undefined) ?? 'global'}:brand:${(req.user?.brandId as string | undefined) ?? 'global'}:query:${JSON.stringify(req.query)}`,
+    keyGenerator: (req) => {
+      const tenant = CollectionFilterUtil.resolveListCacheScope(req);
+      const brandId =
+        tenant.brandId ??
+        (tenant.isOrganizationOverride ? undefined : req.user?.brandId);
+      return `ingredients:summary:org:${tenant.organizationId || 'global'}:brand:${brandId ?? 'global'}:query:${JSON.stringify(req.query)}`;
+    },
     tags: ['ingredients'],
     ttl: 60,
   })
@@ -194,18 +217,24 @@ export class IngredientsController {
     @Query() query: IngredientsQueryDto,
     @CurrentUser() user: User,
   ): Promise<ILibrarySummary> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     // Counters follow the same brand scope as the list: an explicit brand when
     // asked for, otherwise the caller's brand, otherwise any branded asset.
-    const brandFilter: Prisma.IngredientWhereInput = {
-      brandId: CollectionFilterUtil.buildAuthorizedBrandFilter(
-        query.brandId,
-        user,
-        getIsSuperAdmin(user, request),
-      ),
-    };
+    const brandId = tenant.isOrganizationOverride
+      ? tenant.brandId
+      : CollectionFilterUtil.buildAuthorizedBrandFilter(
+          query.brandId,
+          user,
+          getIsSuperAdmin(user, request),
+        );
+    const brandFilter: Prisma.IngredientWhereInput = brandId ? { brandId } : {};
 
     return this.ingredientsService.getLibrarySummary(
-      user.organizationId,
+      tenant.organizationId,
       brandFilter,
     );
   }

@@ -8,13 +8,16 @@ import {
   toLibraryVoiceDocument,
 } from '@api/collections/voices/utils/voice-provider.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { scopedWhere } from '@api/index';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { IngredientCategory, VoiceProvider } from '@genfeedai/contracts';
+import { TenantIsolationError } from '@libs/prisma/tenant-guard';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import type { Request } from 'express';
 
 @Injectable()
 export class VoiceLibraryService {
@@ -26,7 +29,13 @@ export class VoiceLibraryService {
   async findAll(
     user: User,
     query: VoicesQueryDto,
+    request?: Request,
   ): Promise<AggregatePaginateResult<IngredientDocument>> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -35,12 +44,15 @@ export class VoiceLibraryService {
     try {
       const normalizedSearch = query.search?.trim();
       const sort = query.sort || 'metadata.label: 1, createdAt: -1';
-      const where: Record<string, unknown> = scopedWhere(user.organizationId, {
-        OR: [{ isCloned: true }, { externalVoiceCatalogId: { not: null } }],
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.VOICE,
-        ),
-      });
+      const where: Record<string, unknown> = scopedWhere(
+        tenant.organizationId,
+        {
+          OR: [{ isCloned: true }, { externalVoiceCatalogId: { not: null } }],
+          category: CategoryPrismaUtil.toIngredientCategory(
+            IngredientCategory.VOICE,
+          ),
+        },
+      );
 
       if (query.isDefault !== undefined) {
         where.isDefault = Boolean(query.isDefault);
@@ -95,7 +107,10 @@ export class VoiceLibraryService {
         providers: requestedProviders,
         search: normalizedSearch,
       });
-    } catch (_error: unknown) {
+    } catch (error: unknown) {
+      if (error instanceof TenantIsolationError) {
+        throw error;
+      }
       throw new HttpException(
         'Failed to find voices',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -152,7 +167,13 @@ export class VoiceLibraryService {
   async findCloned(
     user: User,
     query: VoicesQueryDto,
+    request?: Request,
   ): Promise<AggregatePaginateResult<IngredientDocument>> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -162,7 +183,10 @@ export class VoiceLibraryService {
       return await this.voicesService.findAll(
         {
           orderBy: { createdAt: -1 as const },
-          where: scopedWhere(user.organizationId, {
+          where: scopedWhere(tenant.organizationId, {
+            ...(tenant.isOrganizationOverride && tenant.brandId
+              ? { brandId: tenant.brandId }
+              : {}),
             category: CategoryPrismaUtil.toIngredientCategory(
               IngredientCategory.VOICE,
             ),
@@ -171,7 +195,10 @@ export class VoiceLibraryService {
         },
         options,
       );
-    } catch (_error: unknown) {
+    } catch (error: unknown) {
+      if (error instanceof TenantIsolationError) {
+        throw error;
+      }
       throw new HttpException(
         'Failed to find cloned voices',
         HttpStatus.INTERNAL_SERVER_ERROR,

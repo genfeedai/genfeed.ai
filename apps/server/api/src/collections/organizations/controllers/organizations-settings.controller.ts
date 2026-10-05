@@ -42,6 +42,7 @@ import {
   SubscriptionSerializer,
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { runWithTenantContext } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Body,
@@ -153,6 +154,21 @@ export class OrganizationsSettingsController {
     return organizationId;
   }
 
+  private readForOrganization<T>(
+    request: RequestWithContext,
+    organizationId: string,
+    read: (resolvedOrganizationId: string) => Promise<T>,
+  ): Promise<T> {
+    const resolvedOrganizationId = this.resolveOrganizationId(
+      request,
+      organizationId,
+    );
+    return runWithTenantContext(
+      { organizationId: resolvedOrganizationId },
+      async () => await read(resolvedOrganizationId),
+    );
+  }
+
   @Get(':organizationId/settings')
   // No @SetMetadata = available to all organization members (guard checks membership)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -164,10 +180,12 @@ export class OrganizationsSettingsController {
       req,
       organizationId,
     );
-    const ensuredData =
-      await this.organizationSettingsService.ensureForOrganization(
-        resolvedOrganizationId,
-      );
+    const ensuredData = await this.readForOrganization(
+      req,
+      resolvedOrganizationId,
+      async (orgId) =>
+        await this.organizationSettingsService.ensureForOrganization(orgId),
+    );
 
     return serializeSingle(req, OrganizationSettingSerializer, ensuredData);
   }
@@ -273,12 +291,18 @@ export class OrganizationsSettingsController {
       req,
       organizationId,
     );
-    const brandSettings = await this.brandsService.findOne(
-      {
-        id: brandId,
-        organizationId: resolvedOrganizationId,
-      },
-      'none',
+    const brandSettings = await this.readForOrganization(
+      req,
+      resolvedOrganizationId,
+      async (orgId) =>
+        await this.brandsService.findOne(
+          {
+            id: brandId,
+            organizationId: orgId,
+            isDeleted: false,
+          },
+          'none',
+        ),
     );
 
     if (!brandSettings) {
@@ -310,9 +334,15 @@ export class OrganizationsSettingsController {
       req,
       organizationId,
     );
-    const data = await this.subscriptionsService.findOne({
-      organizationId: resolvedOrganizationId,
-    });
+    const data = await this.readForOrganization(
+      req,
+      resolvedOrganizationId,
+      async (orgId) =>
+        await this.subscriptionsService.findOne({
+          organizationId: orgId,
+          isDeleted: false,
+        }),
+    );
 
     return serializeSingle(req, SubscriptionSerializer, data);
   }
@@ -324,8 +354,10 @@ export class OrganizationsSettingsController {
     @Req() req: RequestWithContext,
     @Param('organizationId') organizationId: string,
   ): Promise<IByokProviderStatus[]> {
-    return this.byokService.getStatus(
-      this.resolveOrganizationId(req, organizationId),
+    return this.readForOrganization(
+      req,
+      organizationId,
+      async (orgId) => await this.byokService.getStatus(orgId),
     );
   }
 
@@ -338,8 +370,10 @@ export class OrganizationsSettingsController {
     @Param('organizationId') organizationId: string,
     @Param('provider', new ParseEnumPipe(ByokProvider)) provider: ByokProvider,
   ): Promise<IByokProviderStatus> {
-    const statuses = await this.byokService.getStatus(
-      this.resolveOrganizationId(req, organizationId),
+    const statuses = await this.readForOrganization(
+      req,
+      organizationId,
+      async (orgId) => await this.byokService.getStatus(orgId),
     );
     const status = statuses.find((s) => s.provider === provider);
 

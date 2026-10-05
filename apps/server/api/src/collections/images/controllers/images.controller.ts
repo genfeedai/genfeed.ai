@@ -69,10 +69,14 @@ export class ImagesController {
   // images visible immediately. The keyGenerator returns '' for non-latest
   // requests, which the RedisCacheInterceptor treats as "do not cache".
   @Cache({
-    keyGenerator: (req) =>
-      req.query.latest === 'true'
-        ? `images:latest:org:${(req.user?.organizationId as string | undefined) ?? 'global'}:brand:${(req.user?.brandId as string | undefined) ?? 'global'}:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}:origins:${JSON.stringify(req.query.origins ?? [])}`
-        : '',
+    keyGenerator: (req) => {
+      if (req.query.latest !== 'true') return '';
+      const tenant = CollectionFilterUtil.resolveListCacheScope(req);
+      const brandId = tenant.isOrganizationOverride
+        ? tenant.brandId
+        : req.user?.brandId;
+      return `images:latest:org:${tenant.organizationId || 'global'}:brand:${brandId ?? 'global'}:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}:origins:${JSON.stringify(req.query.origins ?? [])}`;
+    },
     tags: ['images'],
     ttl: 300, // 5 minutes
   })
@@ -82,6 +86,11 @@ export class ImagesController {
     @CurrentUser() user: User,
     @Query() query: ImagesQueryDto,
   ): Promise<JsonApiCollectionResponse> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { query });
 
@@ -107,11 +116,9 @@ export class ImagesController {
 
     // Use CollectionFilterUtil for common filtering patterns
     const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
-    const brandId = CollectionFilterUtil.buildBrandFilter(
-      query.brandId,
-      user,
-      'exists',
-    );
+    const brandId = tenant.isOrganizationOverride
+      ? tenant.brandId
+      : CollectionFilterUtil.buildBrandFilter(query.brandId, user, 'exists');
 
     // Use IngredientFilterUtil to build ingredient-specific filters
     const parentConditions = IngredientFilterUtil.buildParentFilter(
@@ -131,9 +138,13 @@ export class ImagesController {
 
     const characterFilter = await resolveCharacterFilter(this.characterFilter, {
       characterIds: query.characters,
-      // These lists do not authorize a `brandId` override, so availability
-      // always follows the session's active brand, never the query.
-      user,
+      user: tenant.isOrganizationOverride
+        ? {
+            ...user,
+            organizationId: tenant.organizationId,
+            brandId: tenant.brandId ?? '',
+          }
+        : user,
     });
 
     // Build isPublic filter for public gallery (getshareable.app)
@@ -148,13 +159,13 @@ export class ImagesController {
               {
                 AND: [
                   {
-                    organizationId: user.organizationId,
+                    organizationId: tenant.organizationId,
                     category: imageCategory,
                     isDeleted,
                     ...(query.isPublic === undefined && scope !== undefined
                       ? { scope }
                       : {}),
-                    brandId,
+                    ...(brandId ? { brandId } : {}),
                     status,
                     ...isPublicFilter,
                   },
@@ -176,7 +187,7 @@ export class ImagesController {
                           isDeleted,
                           OR: [
                             {
-                              organizationId: user.organizationId,
+                              organizationId: tenant.organizationId,
                             },
                             { organizationId: null },
                           ],
@@ -208,7 +219,7 @@ export class ImagesController {
       request,
       IngredientSerializer,
       (await this.evaluationProjection?.attachToPage(data, {
-        brandId: user.brandId,
+        brandId: tenant.isOrganizationOverride ? tenant.brandId : user.brandId,
         contentType: 'image',
       })) ?? data,
     );
@@ -220,6 +231,14 @@ export class ImagesController {
     query: ImagesQueryDto,
     imageCategory: ReturnType<typeof CategoryPrismaUtil.toIngredientCategory>,
   ): Promise<JsonApiCollectionResponse> {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      request,
+    );
+    const brandId = tenant.isOrganizationOverride
+      ? tenant.brandId
+      : user.brandId;
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
     const aggregate = {
       where: {
@@ -229,10 +248,10 @@ export class ImagesController {
               {
                 AND: [
                   {
-                    brandId: user.brandId,
+                    ...(brandId ? { brandId } : {}),
                     category: imageCategory,
                     isDeleted,
-                    organizationId: user.organizationId,
+                    organizationId: tenant.organizationId,
                     trainingId: null,
                     userId: user.userId ?? user.id,
                   },
@@ -241,12 +260,12 @@ export class ImagesController {
               {
                 AND: [
                   {
-                    brandId: user.brandId,
+                    ...(brandId ? { brandId } : {}),
                     category: imageCategory,
                     isDefault: true,
                     isDeleted,
                     OR: [
-                      { organizationId: user.organizationId },
+                      { organizationId: tenant.organizationId },
                       { organizationId: null },
                     ],
                   },
@@ -268,7 +287,7 @@ export class ImagesController {
       request,
       IngredientSerializer,
       (await this.evaluationProjection?.attachToPage(data, {
-        brandId: user.brandId,
+        brandId: tenant.isOrganizationOverride ? tenant.brandId : user.brandId,
         contentType: 'image',
       })) ?? data,
     );
