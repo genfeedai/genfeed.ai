@@ -221,6 +221,7 @@ describe('operator model pricing projection', () => {
         ...contract,
         conditionalDimensions: { resolution: ['768P', '1080P'] },
         endpoint: 'minimax/hailuo-2.3-fast',
+        provider: 'replicate',
         pricing: {
           currency: 'USD',
           rates: list,

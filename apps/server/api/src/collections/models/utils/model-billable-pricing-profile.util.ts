@@ -91,10 +91,7 @@ function unit(value: unknown): ProviderBillingUnit | null {
  * (never its schema or provider version) to detect a provider price change.
  */
 export function parseContractReviewedPricing(
-  model: Pick<
-    PricingModel,
-    'endpoint' | 'isFree' | 'provider' | 'reviewedProviderContractVersion'
-  >,
+  model: Pick<PricingModel, 'endpoint' | 'isFree' | 'provider'>,
   contract: Omit<PricingContract, 'reviewStatus' | 'mappingStatus'> | undefined,
 ): ReviewedProviderPricing | null {
   if (
@@ -229,7 +226,10 @@ function reviewedPricing(
 /** Schema selectors that must be chosen before a variant can be priced. */
 export function deriveRequiredSelectorKeys(
   properties: Record<string, unknown>,
-  flags: { hasAudioToggle?: boolean; hasResolutionOptions?: boolean } = {},
+  flags: {
+    hasAudioToggle?: boolean | null;
+    hasResolutionOptions?: boolean | null;
+  } = {},
 ): string[] {
   const requiredSelectorKeys = [
     'resolution',

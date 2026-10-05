@@ -100,6 +100,10 @@ describe('CronModelWatcherService', () => {
                   url: `https://replicate.com/${owner}/${name}`,
                 }),
               ),
+            fetchReplicateBilling: vi.fn().mockResolvedValue({
+              reason: 'no_billing_config',
+              status: 'unavailable',
+            }),
             fetchReplicateSchema: vi.fn(),
             touchLastSyncedAt: vi.fn().mockResolvedValue(undefined),
           },
@@ -286,6 +290,72 @@ describe('CronModelWatcherService', () => {
       expect(replicateContractSyncService.synchronizeModel).toHaveBeenCalled();
       expect(result.providerContractsDrifted).toBe(1);
       expect(result.providerContractsSynchronized).toBe(2);
+    });
+
+    it('alerts ops Discord once per price change and per refresh failure, with the rates the page stated', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValueOnce({
+        json: () => Promise.resolve({ next: null, results: [] }),
+        ok: true,
+      } as Response);
+      const priceChange = {
+        changes: [
+          {
+            component: 'video_output_count',
+            newPriceUsd: 0.21,
+            oldPriceUsd: 0.19,
+            unit: 'output',
+            variant: 'duration=6 · resolution=768P',
+          },
+        ],
+        modelKey: 'google/imagen-4',
+        pendingRateHash: 'rates:sha256:abc',
+        provider: 'replicate',
+        sourceUrl: 'https://replicate.com/google/imagen-4',
+      };
+      replicateContractSyncService.synchronizeModel.mockResolvedValueOnce({
+        drifted: true,
+        priceChange,
+        quarantined: false,
+        version: 'sha256:changed',
+      });
+      replicateContractSyncService.synchronizeModel.mockResolvedValueOnce({
+        drifted: false,
+        quarantined: false,
+        refreshFailure: {
+          modelKey: 'google/imagen-4',
+          provider: 'replicate',
+          reason: 'rates_unavailable:unmapped_criterion:camera motion',
+        },
+        version: 'sha256:current',
+      });
+
+      await service.discoverNewModels();
+
+      expect(notificationsService.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deduplicationKey:
+            'message.model-price-change/google/imagen-4/rates:sha256:abc',
+          organizationId: null,
+          messages: [
+            expect.objectContaining({
+              message: expect.objectContaining({
+                action: 'model_price_change',
+                payload: expect.objectContaining({
+                  changes: priceChange.changes,
+                  modelKey: 'google/imagen-4',
+                }),
+              }),
+            }),
+          ],
+        }),
+      );
+      expect(notificationsService.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deduplicationKey: expect.stringMatching(
+            /^message\.model-pricing-unavailable\/google\/imagen-4\/rates_unavailable:unmapped_criterion:camera motion\/\d{4}-\d{2}-\d{2}$/,
+          ),
+        }),
+      );
     });
 
     it('should ignore models already in DB', async () => {

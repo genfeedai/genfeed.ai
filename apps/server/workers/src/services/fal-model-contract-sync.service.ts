@@ -96,10 +96,10 @@ export class FalModelContractSyncService {
         endpoint: model.endpoint,
         isFree: model.isFree ?? false,
         provider: ModelProvider.FAL,
-        reviewedProviderContractVersion: model.reviewedProviderContractVersion,
       },
       {
-        conditionalDimensions: candidate.conditionalDimensions,
+        conditionalDimensions:
+          candidate.conditionalDimensions as Prisma.JsonValue,
         discoveredAt: now,
         endpoint: providerModel.endpoint_id,
         lastSeenAt: now,

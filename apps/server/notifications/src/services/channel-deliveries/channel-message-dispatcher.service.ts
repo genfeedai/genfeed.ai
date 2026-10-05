@@ -176,7 +176,7 @@ export class ChannelMessageDispatcherService {
         }
         break;
       case 'model_discovery':
-        if ('modelKey' in payload) {
+        if ('modelKey' in payload && 'estimatedCost' in payload) {
           return this.discordService.sendModelDiscoveryNotification(payload);
         }
         break;
