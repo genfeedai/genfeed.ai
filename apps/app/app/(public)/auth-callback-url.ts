@@ -1,5 +1,6 @@
 import {
   buildBrowserAuthCallbackURL,
+  buildMagicLinkCallbackURL,
   resolveAuthContinuation,
 } from '@genfeedai/auth-client/callback';
 import type { ISignupAttribution } from '@genfeedai/contracts/interfaces';
@@ -209,6 +210,15 @@ export function toAbsoluteAuthCallbackURL(callbackURL: string): string {
       ? 'https://app.genfeed.ai'
       : window.location.origin;
   return buildBrowserAuthCallbackURL(callbackURL, origin);
+}
+
+/** The `callbackURL` for `signIn.magicLink` (see `buildMagicLinkCallbackURL`). */
+export function toAbsoluteMagicLinkCallbackURL(callbackURL: string): string {
+  const origin =
+    typeof window === 'undefined'
+      ? 'https://app.genfeed.ai'
+      : window.location.origin;
+  return buildMagicLinkCallbackURL(callbackURL, origin);
 }
 
 /** Build the fixed public page URL used to complete a password reset. */

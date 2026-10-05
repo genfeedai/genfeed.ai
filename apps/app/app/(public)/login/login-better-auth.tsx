@@ -37,6 +37,7 @@ import {
   getAuthFlowHref,
   resolveOAuthLoginErrorMessage,
   toAbsoluteAuthCallbackURL,
+  toAbsoluteMagicLinkCallbackURL,
 } from '../auth-callback-url';
 import {
   AUTH_LINK_CLASS_NAME,
@@ -336,7 +337,7 @@ export default function LoginBetterAuth({
 
     try {
       const result = await signIn.magicLink({
-        callbackURL: authCallbackURL,
+        callbackURL: toAbsoluteMagicLinkCallbackURL(callbackURL),
         email,
       });
       if (result?.error) {

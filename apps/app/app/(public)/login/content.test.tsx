@@ -100,6 +100,13 @@ const absoluteCallback = (path: string) => {
   return `${window.location.origin}/?callbackUrl=${encodeURIComponent(path)}`;
 };
 
+// Magic links pre-encode the continuation once more: Better Auth decodes the
+// verify callback twice (see buildMagicLinkCallbackURL).
+const absoluteMagicLinkCallback = (path: string) =>
+  path === '/'
+    ? absoluteCallback('/')
+    : `${window.location.origin}/?callbackUrl=${encodeURIComponent(encodeURIComponent(path))}`;
+
 describe('LoginPage', () => {
   const originalLocation = window.location;
 
@@ -632,7 +639,7 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({
-        callbackURL: absoluteCallback('/'),
+        callbackURL: absoluteMagicLinkCallback('/'),
         email: 'user@example.com',
       });
     });
@@ -655,7 +662,7 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({
-        callbackURL: absoluteCallback('/oauth/cli?port=4321'),
+        callbackURL: absoluteMagicLinkCallback('/oauth/cli?port=4321'),
         email: 'cli@example.com',
       });
     });
