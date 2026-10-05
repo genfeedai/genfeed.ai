@@ -84,7 +84,7 @@ export class AgentOnboardingBrandSetupToolHandler {
           title: 'Your brand is ready',
           summaryText:
             'Continue with your positioning interview and source corpus.',
-          ctas: [{ label: 'Continue', href: '/onboarding/positioning' }],
+          primaryCta: { label: 'Continue', href: '/onboarding/positioning' },
         },
       ],
     };

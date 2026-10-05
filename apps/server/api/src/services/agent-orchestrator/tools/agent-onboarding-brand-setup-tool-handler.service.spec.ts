@@ -368,9 +368,10 @@ describe('Expert brand handoff', () => {
     expect(h.usersService.patchAll).not.toHaveBeenCalled();
     // Outcome copy keeps the required Expert handoff visible in the transcript.
     expect(result.nextActions?.[0].summaryText).toContain('positioning');
-    expect(result.nextActions?.[0].ctas).toEqual([
-      { label: 'Continue', href: '/onboarding/positioning' },
-    ]);
+    expect(result.nextActions?.[0].primaryCta).toEqual({
+      label: 'Continue',
+      href: '/onboarding/positioning',
+    });
   });
   it('rejects non-experts and never writes progress', async () => {
     const h = createHandler({ brand: { id: 'brand-1' } });
