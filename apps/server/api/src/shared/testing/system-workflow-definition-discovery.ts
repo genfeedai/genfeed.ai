@@ -1,4 +1,4 @@
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { buildSocialInboxOutboundWorkflowDefinition } from '@api/collections/social-inbox/services/social-inbox-outbound-workflow-definition';
 import { WORKFLOW_ARTIFACT_ACTION_IDS } from '@api/collections/workflows/services/workflow-artifact-lifecycle.service';
@@ -107,4 +107,99 @@ export async function collectSystemWorkflowDefinitions(): Promise<
     }
   }
   return [...definitions.values()];
+}
+
+type Constructor = new (...args: unknown[]) => Record<string, unknown>;
+
+/** Permissive stand-in for any injected dependency: every access and call yields another stand-in. */
+function createPermissiveStub(): unknown {
+  const stub: unknown = new Proxy(() => stub, {
+    apply: () => stub,
+    get: (_target, property) => (property === 'then' ? undefined : stub),
+  });
+  return stub;
+}
+
+export type ServiceRegisteredDefinitions = {
+  definitions: SystemWorkflowGraphDefinition[];
+  /** Source files (relative to the scanned roots) that call registerWorkflow(. */
+  registeringFiles: string[];
+  /** Source files that contributed at least one captured definition. */
+  contributingFiles: string[];
+};
+
+/**
+ * Captures definitions that services register from their constructor,
+ * `onModuleInit` or `onApplicationBootstrap` (analytics refresh, content
+ * learning, public YouTube clips, ...). Every file that calls
+ * `registerWorkflow(` is imported; each exported class is built with a
+ * capturing runner for its `SystemWorkflowRunnerService` dependency and
+ * permissive stubs for the rest, then its lifecycle hooks run.
+ */
+export async function collectServiceRegisteredDefinitions(
+  runnerClass: unknown,
+): Promise<ServiceRegisteredDefinitions> {
+  const registeringFiles = SOURCE_ROOTS.flatMap((root) =>
+    readdirSync(root, { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => `${entry.parentPath}/${entry.name}`)
+      .filter(
+        (file) =>
+          /\.ts$/.test(file) &&
+          !/\.(?:spec|test)\.ts$|\.d\.ts$/.test(file) &&
+          readFileSync(file, 'utf8').includes('registerWorkflow('),
+      ),
+  ).sort();
+
+  const captured = new Map<string, SystemWorkflowGraphDefinition>();
+  const contributing = new Set<string>();
+  let currentFile = '';
+  const capturingRunner: unknown = new Proxy(
+    {},
+    {
+      get: (_target, property) =>
+        property === 'registerWorkflow'
+          ? (definition: unknown) => {
+              if (isSystemWorkflowDefinition(definition)) {
+                captured.set(definition.canonicalId, definition);
+                contributing.add(currentFile);
+              }
+            }
+          : property === 'then'
+            ? undefined
+            : createPermissiveStub(),
+    },
+  );
+
+  for (const file of registeringFiles) {
+    currentFile = file;
+    const exports = readRecord(await import(/* @vite-ignore */ file));
+    for (const exported of Object.values(exports)) {
+      if (typeof exported !== 'function' || !exported.prototype) {
+        continue;
+      }
+      const paramTypes: unknown[] =
+        Reflect.getMetadata('design:paramtypes', exported) ?? [];
+      const args = paramTypes.map((type) =>
+        type === runnerClass ? capturingRunner : createPermissiveStub(),
+      );
+      try {
+        const instance = new (exported as Constructor)(...args);
+        for (const hook of ['onModuleInit', 'onApplicationBootstrap']) {
+          const method = instance[hook];
+          if (typeof method === 'function') {
+            await Promise.resolve(method.call(instance)).catch(() => undefined);
+          }
+        }
+      } catch {
+        // Not a constructible service, or its hook needs real collaborators.
+      }
+    }
+  }
+
+  return {
+    contributingFiles: [...contributing].sort(),
+    definitions: [...captured.values()],
+    registeringFiles,
+  };
 }

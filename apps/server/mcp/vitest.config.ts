@@ -25,6 +25,15 @@ export default defineConfig({
       { find: '@', replacement: path.resolve(mcpDir, './src') },
       { find: '@config', replacement: path.resolve(mcpDir, './src/config') },
       {
+        // Subpaths resolve to the source directory; only the bare specifier is
+        // the barrel. Must precede the bare entry.
+        find: /^@genfeedai\/contracts\/constants\/(.*)$/,
+        replacement: path.resolve(
+          mcpDir,
+          '../../../packages/contracts/src/constants/$1',
+        ),
+      },
+      {
         find: '@genfeedai/contracts/constants',
         replacement: path.resolve(
           mcpDir,
