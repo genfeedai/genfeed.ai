@@ -222,7 +222,10 @@ describe('composeContentHarnessBrief surfaces', () => {
   function buildRegistry(): ContentHarnessRegistry {
     const registry = new ContentHarnessRegistry();
     registry.registerPack(CORE_CONTENT_HARNESS_PACK);
-    registry.registerPack(VIRAL_PSYCHOLOGY_HARNESS_PACK);
+    registry.registerPack({
+      ...VIRAL_PSYCHOLOGY_HARNESS_PACK,
+      surfaces: ['copy'],
+    });
     return registry;
   }
 

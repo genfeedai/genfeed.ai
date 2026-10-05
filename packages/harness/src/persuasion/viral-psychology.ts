@@ -229,8 +229,7 @@ function buildViralPsychologyContribution(
  * Built-in viral-psychology pack: the demand → choice → consumption →
  * conversion craft layer. Platform-agnostic, so it composes with
  * `X_PLATFORM_HARNESS_PACK` and with brand packs rather than replacing them.
- * Registered by default in the API harness service. Copy-only: its rules are
- * about words and hooks, so media prompts must never receive them.
+ * Registered by default in the API harness service.
  */
 export const VIRAL_PSYCHOLOGY_HARNESS_PACK: ContentHarnessPack = {
   capabilities: [
@@ -243,6 +242,5 @@ export const VIRAL_PSYCHOLOGY_HARNESS_PACK: ContentHarnessPack = {
   description:
     'Viral-psychology pack: demand, hook choice, retention structure, and conversion craft as directives and score keys.',
   id: 'viral-psychology',
-  surfaces: ['copy'],
   version: '1.0.0',
 };
