@@ -1,3 +1,7 @@
+import {
+  captureTrendRefreshEvidence,
+  withTrendRefreshAttempt,
+} from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { LinkedInTrendResolverService } from '@api/services/integrations/linkedin/services/linkedin-trend-resolver.service';
 import { runtimeSettingsMock } from '@api-test/helpers/runtime-settings.mock';
@@ -100,6 +104,27 @@ describe('LinkedInTrendResolverService', () => {
       expect.stringContaining('no usable topics'),
       { failedSourceCount: 1, sourceCount: 8, sourcesWithPosts: 0 },
     );
+  });
+
+  it('records a native failure when every page loads but yields no posts', async () => {
+    brandScraperService.scrapeLinkedIn.mockResolvedValue({
+      recentPosts: [],
+      sourceUrl: 'https://www.linkedin.com/company/empty/',
+    });
+
+    const captured = await captureTrendRefreshEvidence(() =>
+      withTrendRefreshAttempt('linkedin', 'trends', 'global', () =>
+        service.resolve(),
+      ),
+    );
+
+    expect(captured.result).toEqual([]);
+    expect(captured.evidence).toEqual([
+      expect.objectContaining({
+        outcome: 'native_failed',
+        reason: 'native_failed',
+      }),
+    ]);
   });
 
   it('returns no trends when every scrape fails', async () => {
