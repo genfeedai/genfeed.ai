@@ -60,18 +60,18 @@ Do this end to end:
 1. Inspect the selected client's existing Genfeed plugins, skills, and MCP configuration. Preserve unrelated configuration and use the existing Genfeed installation when present. Set up only this client; ask which client to use if you cannot identify it.
 2. Install the Genfeed playbook with ${GENFEED_SKILLS_INSTALL_COMMAND}. Select only the intended client in the installer. Skip this step if its installed Genfeed plugin already includes the playbook. Installing skills alone does not configure or authenticate MCP.
 3. If Genfeed MCP is not already configured, add the remote Streamable HTTP server for the selected client using browser authorization:
-   - Claude Code: ${claude.primaryCommand}
-   - Codex: ${codex.primaryCommand}
-   - Equivalent Codex user-level ~/.codex/config.toml:
+   - Only if the selected client is Claude Code: ${claude.primaryCommand}
+   - Only if the selected client is Codex: ${codex.primaryCommand}
+   - For Codex only, equivalent user-level ~/.codex/config.toml:
 
 ${codex.configuration}
 
 For other local clients, follow their supported remote MCP configuration using the endpoint above. Do not duplicate a server provided by an installed plugin.
-4. ${claude.authorizationInstruction}
-   ${codex.authorizationInstruction}
+4. Only for Claude Code: ${claude.authorizationInstruction}
+   Only for Codex: ${codex.authorizationInstruction}
    For other clients, open their OAuth connection flow. Authenticate only the selected client.
 5. Ask the user to complete consent in their browser. Never request tokens or passwords in this chat. If authorization is denied or expires, restart the client authorization flow.
-6. Verify access with read-only get_account_info and list_brands calls (list my Genfeed brands). A copied command, registered plugin source, or server list entry alone does not verify authorization.
+6. Verify access with read-only get_account and get_brands calls (list my Genfeed brands); request only the profile section from get_account. A copied command, registered plugin source, or server list entry alone does not verify authorization.
 7. Do not generate content, schedule, publish, or resolve approvals during setup. Report skill installation, MCP configuration, and authenticated verification separately, including any remaining user step. If OAuth is unsupported, direct the user to Genfeed's guided setup for the advanced manual-key path.`;
 }
 

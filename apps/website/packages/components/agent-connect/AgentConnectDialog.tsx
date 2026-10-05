@@ -1,6 +1,10 @@
 'use client';
 
-import { type AgentClient, agentClients } from '@data/agent-clients.data';
+import {
+  AGENT_CLIENT_SKILLS_ONLY_COPY,
+  type AgentClient,
+  agentClients,
+} from '@data/agent-clients.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentConnectDialogProps } from '@props/agent-client.props';
 import CommandBlock from '@public/agent-clients/agent-client-command-block';
@@ -130,10 +134,15 @@ export default function AgentConnectDialog({
                 />
               ) : null}
               {client.skillsCommand ? (
-                <CommandBlock
-                  label="Install skills"
-                  value={client.skillsCommand}
-                />
+                <>
+                  <p className="text-sm leading-6 text-surface/75">
+                    {AGENT_CLIENT_SKILLS_ONLY_COPY}
+                  </p>
+                  <CommandBlock
+                    label="Skills-only alternative"
+                    value={client.skillsCommand}
+                  />
+                </>
               ) : null}
               {client.setupPrompt ? (
                 <>

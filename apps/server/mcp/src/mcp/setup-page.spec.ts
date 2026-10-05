@@ -313,7 +313,7 @@ describe('MCP setup page', () => {
     expect(promptHtml).toContain('Do not paste a secret');
     expect(promptHtml).not.toContain('genfeed keys create');
     expect(promptHtml).toContain('npx skills add genfeedai/agent');
-    expect(promptHtml).toContain('read-only get_account_info and list_brands');
+    expect(promptHtml).toContain('read-only get_account and get_brands');
     expect(html).toContain('data-copy-source="skills-install-command"');
   });
 

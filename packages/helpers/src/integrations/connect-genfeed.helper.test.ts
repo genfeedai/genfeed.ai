@@ -14,7 +14,7 @@ describe('buildGenfeedAgentSetupPrompt', () => {
     expect(prompt).toContain('npx skills add genfeedai/agent');
     expect(prompt).toContain('Skip this step if its installed Genfeed plugin');
     expect(prompt).toContain('Authenticate only the selected client');
-    expect(prompt).toContain('read-only get_account_info and list_brands');
+    expect(prompt).toContain('read-only get_account and get_brands');
     expect(prompt).toContain(
       'Do not generate content, schedule, publish, or resolve approvals',
     );

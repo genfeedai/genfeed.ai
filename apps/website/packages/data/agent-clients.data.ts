@@ -30,6 +30,8 @@ export const GENFEED_MCP_DOCS_URL = 'https://docs.genfeed.ai/api-reference/mcp';
 export const GENFEED_AUTH_DOCS_URL = 'https://genfeed.ai/auth.md';
 
 export const AGENT_CLIENT_MANUAL_KEY_HEADING = 'Advanced: scoped API key';
+export const AGENT_CLIENT_SKILLS_ONLY_COPY =
+  'Packaged Genfeed plugins already include the playbook. Use this skills-only alternative when connecting through MCP without a Genfeed plugin.';
 
 export const AGENT_CLIENT_SLUGS = [
   'claude',
@@ -443,7 +445,10 @@ export function getAgentClientCommandBlocks(
   }
 
   if (client.skillsCommand) {
-    blocks.push({ label: 'Install skills', value: client.skillsCommand });
+    blocks.push({
+      label: 'Skills-only alternative',
+      value: client.skillsCommand,
+    });
   }
   if (client.setupPrompt) {
     blocks.push({ label: 'Setup prompt', value: client.setupPrompt });

@@ -2,6 +2,7 @@
 
 import {
   AGENT_CLIENT_MANUAL_KEY_HEADING,
+  AGENT_CLIENT_SKILLS_ONLY_COPY,
   getAgentClientManualBlocks,
 } from '@data/agent-clients.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
@@ -70,7 +71,15 @@ export default function AgentClientSetup({
             />
           ) : null}
           {client.skillsCommand ? (
-            <CommandBlock label="Install skills" value={client.skillsCommand} />
+            <>
+              <p className="text-sm leading-6 text-surface/75">
+                {AGENT_CLIENT_SKILLS_ONLY_COPY}
+              </p>
+              <CommandBlock
+                label="Skills-only alternative"
+                value={client.skillsCommand}
+              />
+            </>
           ) : null}
           {client.setupPrompt ? (
             <>

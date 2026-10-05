@@ -50,7 +50,9 @@ describe('AgentConnectDialog', () => {
       within(dialog).getByRole('button', { name: 'Copy Codex plugin' }),
     ).toBeInTheDocument();
     expect(
-      within(dialog).getByRole('button', { name: 'Copy Install skills' }),
+      within(dialog).getByRole('button', {
+        name: 'Copy Skills-only alternative',
+      }),
     ).toBeInTheDocument();
     expect(
       [...dialog.querySelectorAll('code')].map((code) => code.textContent),
@@ -75,7 +77,9 @@ describe('AgentConnectDialog', () => {
       within(dialog).getByRole('button', { name: 'Connect Claude' }),
     );
     expect(
-      within(dialog).queryByRole('button', { name: 'Copy Install skills' }),
+      within(dialog).queryByRole('button', {
+        name: 'Copy Skills-only alternative',
+      }),
     ).not.toBeInTheDocument();
     expect(
       within(dialog).queryByRole('button', { name: 'Copy Setup prompt' }),
