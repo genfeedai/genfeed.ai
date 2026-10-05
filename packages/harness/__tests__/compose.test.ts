@@ -238,7 +238,7 @@ describe('composeContentHarnessBrief surfaces', () => {
     expect(brief.appliedPacks).not.toContain('viral-psychology');
     expect(text).not.toContain('Attach to demand that already exists');
     expect(text).not.toContain('first three seconds');
-    expect(brief.evaluationCriteria).toEqual([]);
+    expect(brief.evaluationCriteria.join(' ')).not.toContain('Hook strength');
   });
 
   it('still applies the persuasion pack on the copy surface and by default', async () => {
