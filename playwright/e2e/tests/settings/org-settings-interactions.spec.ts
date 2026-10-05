@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { buildReferralProgramMockBody } from '../../utils/api-interceptor';
 import { assertHealthy } from '../../utils/interaction-helpers';
 import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
 
@@ -108,6 +109,22 @@ test.describe('Organization & Personal Settings — Interactions', () => {
     await fillFirstTextField(authenticatedPage, 'E2E Org Name');
     await clickSave(authenticatedPage);
 
+    await assertHealthy(authenticatedPage);
+  });
+
+  test('referrals settings renders the mocked share link', async ({
+    authenticatedPage,
+  }) => {
+    await goToSettings(authenticatedPage, `${SETTINGS}/referrals`);
+
+    const referralLink = authenticatedPage.getByRole('textbox', {
+      name: 'Referral link',
+      exact: true,
+    });
+    await expect(referralLink).toBeVisible();
+    await expect(referralLink).toHaveValue(
+      buildReferralProgramMockBody().data.attributes.shareUrl,
+    );
     await assertHealthy(authenticatedPage);
   });
 

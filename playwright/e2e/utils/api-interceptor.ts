@@ -22,6 +22,7 @@ import type {
   ICreditsBreakdown,
   IEmailPerformanceReport,
   IExpertPathStatus,
+  IReferralProgram,
   ISystemNotificationOverview,
   ITrendHashtag,
   ITrendSound,
@@ -330,6 +331,27 @@ function wrapCollectionInJsonApi<T>(
       totalCount: items.length,
     },
   };
+}
+
+export function buildReferralProgramMockBody(): JsonApiDocument<IReferralProgram> {
+  const program: IReferralProgram = {
+    code: 'e2e-referral-code',
+    convertedCount: 0,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    earnedCredits: 0,
+    id: 'mock-referral-program',
+    isDeleted: false,
+    pendingCredits: 0,
+    recentRewards: [],
+    referralCount: 0,
+    reversedCredits: 0,
+    rewardRatePercent: 10,
+    rewardWindowMonths: 12,
+    settlementDelayDays: 7,
+    shareUrl: 'https://genfeed.ai/sign-up?ref=e2e-referral-code',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  };
+  return wrapInJsonApi(program, 'referral-program', program.id);
 }
 
 export function generateMockCreditsBreakdown(
@@ -2059,6 +2081,9 @@ export function buildUnhandledApiMockBody(url: string): unknown {
     return subscriptionBody;
   }
   const parsedUrl = new URL(url, 'http://localhost');
+  if (/^(?:\/v1)?\/referrals\/me\/?$/.test(parsedUrl.pathname)) {
+    return buildReferralProgramMockBody();
+  }
   if (
     parsedUrl.pathname === '/v1/costs/summary' ||
     parsedUrl.pathname === '/costs/summary'
@@ -2546,6 +2571,18 @@ export async function setupApiMocks(
   await routeApi('/billing**', handleBillingRoutes);
 
   await routeApi('/subscriptions**', handleBillingRoutes);
+
+  await routeApi('/referrals/me**', async (r) => {
+    if (r.request().method() !== 'GET') {
+      await r.fallback();
+      return;
+    }
+    await r.fulfill({
+      body: JSON.stringify(buildReferralProgramMockBody()),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
 
   await routeApi('/credits**', handleBillingRoutes);
 
