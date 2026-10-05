@@ -32,11 +32,6 @@ describe('ApifyInstagramService', () => {
     videoViewCount: 50000,
   };
 
-  const mockHashtag = {
-    mediaCount: 500000,
-    name: 'trending',
-  };
-
   const mockComment = {
     id: 'comment-1',
     likesCount: 10,
@@ -86,16 +81,33 @@ describe('ApifyInstagramService', () => {
     expect(service).toBeDefined();
   });
 
-  it('getInstagramTrends normalizes hashtags to trend format', async () => {
-    baseService.runActor.mockResolvedValue([mockHashtag]);
+  it('getInstagramTrends aggregates post hashtags into trends', async () => {
+    baseService.runActor.mockResolvedValue([
+      { ...mockPost, url: 'https://instagram.com/p/1' },
+      {
+        ...mockPost,
+        hashtags: ['#Trending'],
+        id: 'post-2',
+        url: 'https://instagram.com/p/2',
+      },
+    ]);
     const result = await service.getInstagramTrends({ limit: 5 });
-    expect(result).toHaveLength(1);
+    expect(result.map((trend) => trend.topic)).toEqual(['trending', 'reels']);
     expect(result[0]).toMatchObject({
-      mentions: 500000,
+      mentions: 2,
+      metadata: {
+        engagement: 2100,
+        hashtags: ['trending'],
+        postCount: 2,
+        trendType: 'hashtag',
+        urls: ['https://instagram.com/p/1', 'https://instagram.com/p/2'],
+      },
       platform: 'instagram',
-      topic: 'trending',
     });
-    expect(result[0].metadata.trendType).toBe('hashtag');
+    expect(baseService.calculateViralityScore).toHaveBeenCalledWith(
+      100000,
+      2100,
+    );
     expect(baseService.runActor).toHaveBeenCalledWith(
       'apify/instagram-hashtag-scraper',
       expect.objectContaining({
@@ -105,11 +117,27 @@ describe('ApifyInstagramService', () => {
     );
   });
 
+  it('getInstagramTrends skips posts with no hashtag instead of emitting an empty topic', async () => {
+    baseService.runActor.mockResolvedValue([
+      { ...mockPost, hashtags: undefined, id: 'post-no-tags' },
+      { ...mockPost, hashtags: [], id: 'post-empty-tags' },
+      { ...mockPost, hashtags: ['#', '  '], id: 'post-blank-tags' },
+      { ...mockPost, hashtags: ['fitness'], id: 'post-tagged' },
+    ]);
+
+    const result = await service.getInstagramTrends({ limit: 5 });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ mentions: 1, topic: 'fitness' });
+    expect(result.every((trend) => trend.topic)).toBe(true);
+  });
+
   it('getInstagramTrends caps total output to the requested limit', async () => {
     baseService.runActor.mockResolvedValue([
-      { mediaCount: 10, name: 'seed-1' },
-      { mediaCount: 40, name: 'seed-2' },
-      { mediaCount: 30, name: 'seed-3' },
+      { ...mockPost, hashtags: ['seed-1'], id: 'post-1' },
+      { ...mockPost, hashtags: ['seed-2', 'seed-3'], id: 'post-2' },
+      { ...mockPost, hashtags: ['seed-2', 'seed-3'], id: 'post-3' },
+      { ...mockPost, hashtags: ['seed-2'], id: 'post-4' },
     ]);
 
     const result = await service.getInstagramTrends({ limit: 2 });

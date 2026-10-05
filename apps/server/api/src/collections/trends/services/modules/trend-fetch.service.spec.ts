@@ -682,6 +682,98 @@ describe('TrendFetchService', () => {
     vi.useRealTimers();
   });
 
+  describe('per-row trend persistence', () => {
+    const instagramTrend = (topic: string | undefined) => ({
+      growthRate: 10,
+      mentions: 3,
+      metadata: { hashtags: topic ? [topic] : [], source: 'apify' },
+      platform: 'instagram',
+      topic,
+    });
+
+    beforeEach(() => {
+      mockPrisma.trend.create.mockImplementation(({ data }) =>
+        Promise.resolve({ data, id: `trend-${data.topic}` }),
+      );
+    });
+
+    it('skips an Instagram trend with no hashtag topic and saves the rest of the batch', async () => {
+      mockApifyService.getInstagramTrends.mockResolvedValue([
+        instagramTrend('reels'),
+        instagramTrend(undefined),
+        instagramTrend('  '),
+        instagramTrend('fitness'),
+      ]);
+
+      const result = await service.fetchAndCacheTrends(
+        undefined,
+        undefined,
+        undefined,
+        { platforms: ['instagram'] },
+      );
+
+      expect(mockPrisma.trend.create).toHaveBeenCalledTimes(2);
+      expect(result.map((trend) => trend.topic)).toEqual(['reels', 'fitness']);
+      expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+        expect.objectContaining({
+          outcome: 'fallback_available',
+          platform: 'instagram',
+        }),
+      ]);
+    });
+
+    it('records persistence failure when every Instagram row lacks a topic', async () => {
+      mockApifyService.getInstagramTrends.mockResolvedValue([
+        instagramTrend(undefined),
+        instagramTrend(' '),
+      ]);
+
+      const result = await service.fetchAndCacheTrends(
+        undefined,
+        undefined,
+        undefined,
+        { platforms: ['instagram'] },
+      );
+
+      expect(result).toEqual([]);
+      expect(mockPrisma.trend.create).not.toHaveBeenCalled();
+      expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+        expect.objectContaining({
+          lastSuccessfulRefreshAt: null,
+          outcome: 'fallback_failed',
+          platform: 'instagram',
+          reason: 'persistence_failed',
+        }),
+      ]);
+    });
+
+    it('keeps the rest of the batch when one row fails to save', async () => {
+      mockApifyService.getInstagramTrends.mockResolvedValue([
+        instagramTrend('reels'),
+        instagramTrend('broken'),
+        instagramTrend('fitness'),
+      ]);
+      mockPrisma.trend.create.mockImplementation(({ data }) =>
+        data.topic === 'broken'
+          ? Promise.reject(new Error('invalid row'))
+          : Promise.resolve({ data, id: `trend-${data.topic}` }),
+      );
+
+      const result = await service.fetchAndCacheTrends(
+        undefined,
+        undefined,
+        undefined,
+        { platforms: ['instagram'] },
+      );
+
+      expect(mockPrisma.trend.create).toHaveBeenCalledTimes(3);
+      expect(result.map((trend) => trend.topic)).toEqual(['reels', 'fitness']);
+      expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+        expect.not.objectContaining({ reason: 'persistence_failed' }),
+      ]);
+    });
+  });
+
   describe('fetchPlatformTrends cost containment', () => {
     it('caches an empty result so a failing scrape does not re-run every call', async () => {
       mockApifyService.getTikTokTrends.mockResolvedValue([]);
