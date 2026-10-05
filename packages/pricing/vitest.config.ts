@@ -9,6 +9,13 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
       },
       {
+        find: '@genfeedai/contracts/constants/canonical-json.constant',
+        replacement: path.resolve(
+          __dirname,
+          '../contracts/src/constants/canonical-json.constant.ts',
+        ),
+      },
+      {
         find: '@genfeedai/contracts/constants',
         replacement: path.resolve(
           __dirname,

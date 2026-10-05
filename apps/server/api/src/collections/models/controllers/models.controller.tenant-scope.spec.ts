@@ -20,7 +20,11 @@ describe('ModelsController tenant reads (#6176)', () => {
       ModelsController.prototype,
     ) as ModelsController;
     Object.assign(controller, {
-      modelsService: { findAll: mock },
+      modelsService: {
+        findAll: mock,
+        // Red-model classification reads the same tenant rows (nothing red here).
+        prisma: { model: { findMany: vi.fn().mockResolvedValue([]) } },
+      },
       loggerService: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
       organizationSettingsService: {
         findOne: vi.fn().mockResolvedValue({ enabledModelIds: ['model-1'] }),

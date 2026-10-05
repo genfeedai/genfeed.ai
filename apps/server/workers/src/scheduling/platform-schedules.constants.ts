@@ -128,7 +128,7 @@ export const PLATFORM_SCHEDULE_CATALOG = {
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.FAL_MODEL_DISCOVERY]: {
-    pattern: '0 7 * * 0',
+    pattern: '0 7 * * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.GLOBAL_TRENDS_REFRESH]: {
@@ -199,7 +199,7 @@ export const PLATFORM_SCHEDULE_CATALOG = {
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.REPLICATE_MODEL_DISCOVERY]: {
-    pattern: '0 6 * * 0',
+    pattern: '0 6 * * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.REVIEW_GATE_TIMEOUT]: {

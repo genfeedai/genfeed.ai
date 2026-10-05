@@ -135,7 +135,7 @@ describe('RouterService', () => {
           async (key: string) =>
             billableProfile({
               key,
-              hasPendingRate: key === 'google/nano-banana-2-lite',
+              cost: key === 'google/nano-banana-2-lite' ? 0 : 10,
             }),
         );
 
@@ -143,6 +143,43 @@ describe('RouterService', () => {
           category: ModelCategory.IMAGE,
           prioritize: 'quality',
           prompt: 'A minimalist logo',
+        });
+
+        expect(result.selectedModel).toBe('google/imagen-4');
+      });
+
+      it('keeps a model with reviewed pricing routable while a provider price change awaits approval', async () => {
+        modelsService.findAllActive.mockResolvedValue([
+          createMockModel({ key: 'google/imagen-4', qualityTier: 'ultra' }),
+        ]);
+        modelsService.findBillablePricingProfile.mockResolvedValue(
+          billableProfile({
+            hasPendingRate: true,
+            key: 'google/imagen-4',
+            requiresReviewedRates: true,
+            reviewedPricing: {
+              currency: 'USD',
+              isFree: false,
+              rates: [
+                {
+                  component: 'output',
+                  unit: 'output',
+                  unitPriceUsd: 0.1,
+                  when: {},
+                },
+              ],
+              reviewStatus: 'approved',
+              sourceUrl: 'https://example.test/rates',
+              verifiedAt: '2026-10-01T00:00:00.000Z',
+              version: 'rate-v1',
+            },
+          }),
+        );
+
+        const result = await service.selectModel({
+          category: ModelCategory.IMAGE,
+          prioritize: 'quality',
+          prompt: 'A logo',
         });
 
         expect(result.selectedModel).toBe('google/imagen-4');

@@ -37,10 +37,11 @@ const contract = {
     },
   ],
   conditionalDimensions: { resolution: '720p' },
-  discoveredAt: new Date('2026-09-30T00:00:00Z'),
+  discoveredAt: new Date('2026-08-01T00:00:00Z'),
+  lastSeenAt: new Date('2026-09-30T00:00:00Z'),
 } as unknown as ModelProviderContract;
 describe('raw reviewed provider pricing adapter', () => {
-  it('adapts exact approved Fal account evidence using immutable discovery date, not refreshed observation', () => {
+  it('adapts exact approved Fal account evidence, dated by the last observation of these exact rates', () => {
     const profile = projectModelBillablePricingProfile(model, [contract]);
     expect(profile.cost).toBe(99);
     expect(profile.requiresReviewedRates).toBe(true);
@@ -103,14 +104,67 @@ describe('raw reviewed provider pricing adapter', () => {
       'generate_audio',
     ]);
   });
-  it('keeps pending drift and unpriced selectable dimensions explicit', () => {
+  it('keeps unpriced selectable dimensions explicit when a pending contract is unreadable', () => {
     const profile = projectModelBillablePricingProfile(
       { ...model, pendingProviderContractVersion: 'rate-v2' },
       [],
     );
-    expect(profile.hasPendingRate).toBe(true);
+    expect(profile.hasPendingRate).toBe(false);
     expect(profile.requiresReviewedRates).toBe(true);
     expect(profile.reviewedPricing).toBeNull();
+  });
+  it('does not call a schema-only pending contract a price change', () => {
+    const profile = projectModelBillablePricingProfile(
+      { ...model, pendingProviderContractVersion: 'schema-v2' },
+      [
+        contract,
+        {
+          ...contract,
+          version: 'schema-v2',
+          reviewStatus: 'pending',
+          lastSeenAt: new Date('2026-10-04T00:00:00Z'),
+        },
+      ],
+    );
+    expect(profile.hasPendingRate).toBe(false);
+    expect(profile.reviewedPricing?.rates[0]?.unitPriceUsd).toBe(0.2);
+  });
+  it('flags a changed provider price as pending and keeps charging the reviewed rate', () => {
+    const profile = projectModelBillablePricingProfile(
+      { ...model, pendingProviderContractVersion: 'price-v2' },
+      [
+        contract,
+        {
+          ...contract,
+          version: 'price-v2',
+          reviewStatus: 'pending',
+          pricing: [
+            {
+              currency: 'USD',
+              unit: 'second',
+              unitPrice: '0.3',
+              endpoint: 'fal-ai/model',
+              conditionalDimensions: { resolution: '720p' },
+            },
+          ],
+        },
+      ],
+    );
+    expect(profile.hasPendingRate).toBe(true);
+    expect(profile.reviewedPricing?.rates[0]?.unitPriceUsd).toBe(0.2);
+    expect(
+      quoteModelBillablePricing(
+        profile,
+        {
+          modelKey: 'fal/model',
+          provider: 'fal',
+          duration: 5,
+          selectors: { resolution: '720p' },
+        },
+        1,
+        '2026-12-30T00:00:00Z',
+      ),
+    ).toMatchObject({ status: 'priced', snapshot: { providerCostUsd: 1 } });
   });
   it('prices a never-reviewed model from its configured row despite a synced pending candidate', () => {
     // Production shape: the Replicate watcher stamps a pending contract on

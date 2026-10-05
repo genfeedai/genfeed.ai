@@ -456,6 +456,8 @@ describe('ModelsService', () => {
   });
 
   it('reads the public catalog through a narrow, platform-only projection', async () => {
+    // First read: the private pricing classification (nothing unpriceable).
+    modelDelegate.findMany.mockResolvedValueOnce([]);
     modelDelegate.findMany.mockResolvedValue([
       makeModel({
         capabilities: ['text-to-image'],
@@ -496,7 +498,7 @@ describe('ModelsService', () => {
         organizationId: null,
       },
     });
-    const findManyArgs = modelDelegate.findMany.mock.calls[0]?.[0];
+    const findManyArgs = modelDelegate.findMany.mock.calls[1]?.[0];
     if (!findManyArgs) {
       throw new Error('Expected public catalog query');
     }
@@ -505,6 +507,44 @@ describe('ModelsService', () => {
     expect(findManyArgs.select).not.toHaveProperty('providerSyncStatus');
     expect(result.docs[0]).not.toHaveProperty('providerCostUsd');
     expect(result.totalDocs).toBe(1);
+  });
+
+  it('leaves unpriceable (red) models out of the public catalog, server-side', async () => {
+    const priced = makeModel({
+      cost: 5,
+      id: 'priced',
+      isFree: false,
+      providerContracts: [],
+      providerCostUsd: 0.04,
+      pricingType: 'flat',
+    });
+    const unpriceable = makeModel({
+      cost: 0,
+      id: 'unpriceable',
+      isFree: false,
+      key: 'minimax/hailuo-2.3-fast',
+      providerContracts: [],
+      providerCostUsd: null,
+      pricingType: 'flat',
+    });
+    modelDelegate.findMany.mockResolvedValueOnce([priced, unpriceable]);
+    modelDelegate.findMany.mockResolvedValue([priced]);
+    modelDelegate.count.mockResolvedValue(1);
+
+    const result = await service.findPublicCatalog(
+      { category: ModelCategory.IMAGE },
+      { limit: 100, page: 1, pagination: true },
+    );
+
+    const catalogWhere = modelDelegate.findMany.mock.calls[1]?.[0]?.where;
+    expect(catalogWhere).toMatchObject({
+      id: { notIn: ['unpriceable'] },
+      isActive: true,
+      isPublic: true,
+      organizationId: null,
+    });
+    expect(modelDelegate.count).toHaveBeenCalledWith({ where: catalogWhere });
+    expect(result.docs.map((doc) => doc.id)).toEqual(['priced']);
   });
 
   it('clears only competing defaults in the same registry scope', async () => {
