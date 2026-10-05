@@ -247,7 +247,15 @@ for (const colorScheme of ['light', 'dark'] as const) {
         path: testInfo.outputPath('after-retry.png'),
         fullPage: true,
       });
-      if (colorScheme === 'light' && viewport.width === 1440) {
+      const devOverlay = page.getByRole('button', {
+        name: 'Open issues overlay',
+        exact: true,
+      });
+      if (
+        colorScheme === 'light' &&
+        viewport.width === 1440 &&
+        (await devOverlay.isVisible())
+      ) {
         await page
           .getByRole('button', { name: 'Open issues overlay', exact: true })
           .click();

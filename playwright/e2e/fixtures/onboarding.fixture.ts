@@ -1,5 +1,6 @@
 import { OrganizationCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { ISetting } from '@genfeedai/contracts/interfaces';
 import {
   type BrowserContext,
   test as base,
@@ -20,6 +21,7 @@ import {
   setupExpertPathApiMocks,
 } from '../utils/expert-path-mocks';
 import { setupStrictNetworkGuard } from '../utils/network-guard';
+import { setupOnboardingBrandGuideMocks } from '../utils/onboarding-brand-guide-mocks';
 
 /**
  * Onboarding Fixtures for Playwright E2E Tests
@@ -225,7 +227,7 @@ async function setupBetterAuthMocksForOnboarding(
             .join(' '),
           publicMetadata: {
             isOnboardingCompleted: false,
-            role: 'member',
+            role: 'owner',
           },
         },
       }),
@@ -365,7 +367,9 @@ async function setupOnboardingApiMocks(
     }
 
     await route.fulfill({
-      body: JSON.stringify(mockUser),
+      body: JSON.stringify({
+        data: { type: 'user', id: mockUser.id, attributes: mockUser },
+      }),
       contentType: 'application/json',
       status: 200,
     });
@@ -392,10 +396,23 @@ async function setupOnboardingApiMocks(
     });
   });
 
-  // PATCH /users/*/settings
+  // UsersRelationshipsController returns a single SettingSerializer resource.
+  let userSettings = generateMockApiUser().settings;
   await page.route('**/api.genfeed.ai/*/users/*/settings', async (route) => {
+    if (route.request().method() === 'PATCH') {
+      const body = route.request().postDataJSON() as {
+        data: { attributes: Partial<ISetting> };
+      };
+      userSettings = { ...userSettings, ...body.data.attributes };
+    }
     await route.fulfill({
-      body: JSON.stringify({ success: true }),
+      body: JSON.stringify({
+        data: {
+          type: 'setting',
+          id: userSettings.id,
+          attributes: userSettings,
+        },
+      }),
       contentType: 'application/json',
       status: 200,
     });
@@ -511,6 +528,7 @@ async function injectBetterAuthState(
               imageUrl: userData.imageUrl,
               lastName: userData.lastName,
               publicMetadata: {
+                role: 'owner',
                 isOnboardingCompleted: false,
               },
             },
@@ -635,6 +653,7 @@ async function startOnboardingSession(
 
   await setupOnboardingApiMocks(page, progressState, options.email);
   await options.registerExtraMocks?.(page);
+  await setupOnboardingBrandGuideMocks(page);
 
   // Bootstrap by navigating to onboarding start
   await page.goto(APP_ROUTES.ONBOARDING.BRAND, {

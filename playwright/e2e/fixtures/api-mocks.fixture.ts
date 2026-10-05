@@ -1117,6 +1117,12 @@ export async function mockAnalyticsData(page: Page): Promise<void> {
     });
   });
 
+  // AnalyticsAdminController serializes brand leaderboard rows as a collection.
+  // An empty-state overview still reads it, so it must beat /analytics/**.
+  await routeApiPattern(page, '/analytics/brands/leaderboard**', (route) =>
+    route.fulfill({ json: { data: [] } }),
+  );
+
   // `/analytics/top` (AnalyticsService.getTopContent, used by useTopPosts) is a
   // JSON:API *collection* — registered after the broad `/analytics/**` handler
   // above so it wins (Playwright matches routes in reverse registration order).

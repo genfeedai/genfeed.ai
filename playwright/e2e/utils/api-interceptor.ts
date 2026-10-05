@@ -1169,6 +1169,12 @@ async function handleAnalyticsRoutes(route: Route): Promise<void> {
     return;
   }
 
+  // AnalyticsController serializes platform rows as a collection.
+  if (new URL(url).pathname.endsWith('/analytics/platforms')) {
+    await route.fulfill({ json: { data: [] } });
+    return;
+  }
+
   if (url.includes('/leaderboard') || url.includes('/top')) {
     await route.fulfill({
       body: JSON.stringify(

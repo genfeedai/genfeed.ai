@@ -6,7 +6,6 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath, currentRoute } from '../../utils/app-chrome';
-import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 /**
  * E2E Tests for Library Media Types
@@ -183,32 +182,30 @@ test.describe('Library Media Types', () => {
       );
     });
   });
+});
 
-  test.describe('Unauthenticated Access', () => {
-    test('should redirect unauthenticated user from library captions', async ({
-      unauthenticatedPage,
-    }) => {
-      skipIfPlaywrightAuthBypassed();
-      await unauthenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.CAPTIONS));
+test.describe('Library Media Types — Unauthenticated Access', () => {
+  test('should redirect unauthenticated user from library captions', async ({
+    unauthenticatedPage,
+  }) => {
+    await unauthenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.CAPTIONS));
 
-      // Should redirect to login
-      await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
-        timeout: 15000,
-      });
-      expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
+    // Should redirect to login
+    await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
+      timeout: 15000,
     });
+    expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
+  });
 
-    test('should redirect unauthenticated user from library voices', async ({
-      unauthenticatedPage,
-    }) => {
-      skipIfPlaywrightAuthBypassed();
-      await unauthenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.VOICES));
+  test('should redirect unauthenticated user from library voices', async ({
+    unauthenticatedPage,
+  }) => {
+    await unauthenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.VOICES));
 
-      // Should redirect to login
-      await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
-        timeout: 15000,
-      });
-      expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
+    // Should redirect to login
+    await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
+      timeout: 15000,
     });
+    expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
   });
 });

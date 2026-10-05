@@ -5,7 +5,6 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath } from '../../utils/app-chrome';
-import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 test.describe('Brand Skills settings', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -34,14 +33,18 @@ test.describe('Brand Skills settings', () => {
       .getByText('YouTube Script Setup', { exact: true })
       .click();
     await expect(
-      authenticatedPage.getByRole('button', { name: /Test With Agent/i }),
+      authenticatedPage.getByRole('button', {
+        name: 'Open agent',
+        exact: true,
+      }),
     ).toBeVisible();
   });
+});
 
+test.describe('Brand Skills settings — unauthenticated access', () => {
   test('redirects unauthenticated users from the skills route', async ({
     unauthenticatedPage,
   }) => {
-    skipIfPlaywrightAuthBypassed();
     await unauthenticatedPage.goto(APP_ROUTES.SETTINGS.SKILLS, {
       waitUntil: 'domcontentloaded',
     });

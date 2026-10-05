@@ -12,12 +12,12 @@ const ROUTED_ORGANIZATION_STORAGE_KEY =
   'genfeed:routed-organization-context:v1';
 
 /**
- * The organization switcher lives in the app rail (#5346) and renders the
+ * The organization switcher lives in the topbar (#5777) and renders the
  * active organization as an initial tile; its full name is the accessible name.
  */
 function organizationSwitcher(page: Page) {
   return page
-    .getByTestId('desktop-app-rail')
+    .getByTestId('app-topbar-shell')
     .getByTestId('organization-switcher-trigger');
 }
 

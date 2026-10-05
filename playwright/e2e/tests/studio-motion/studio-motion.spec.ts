@@ -103,13 +103,11 @@ test('Motion reviews exact output cost and retains source on a revision conflict
     })
     .check();
   await page.getByRole('button', { name: 'Confirm and start' }).click();
-  await expect(
-    page.getByRole('dialog', { name: 'Request failed' }),
-  ).toBeVisible();
-  await page
-    .getByRole('dialog', { name: 'Request failed' })
-    .getByRole('button', { name: 'Close', exact: true })
-    .click();
+  const failure = page
+    .getByRole('alert')
+    .filter({ hasText: /^The request failed\.$/ });
+  await expect(failure).toBeVisible();
+  await expect(failure).toHaveText('The request failed.');
   await expect(
     page.getByRole('textbox', { name: 'Prompt', exact: true }),
   ).toHaveValue('Animate a title');

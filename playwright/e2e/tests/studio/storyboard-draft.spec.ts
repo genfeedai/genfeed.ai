@@ -9,6 +9,7 @@ import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/sto
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type { IEditorProject } from '@genfeedai/contracts/interfaces';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 // biome-ignore lint/suspicious/noUndeclaredEnvVars: this direct Playwright visual fixture input is outside Turbo caching.
 const previewFixtureDirectory = process.env.STORYBOARD_PREVIEW_FIXTURE_DIR;
@@ -838,7 +839,8 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
     (mutations.at(-2)?.revision ?? 0) + 1,
   );
   expect(pageErrors).toEqual([]);
-  await expect(page.locator('nextjs-portal')).not.toContainText(/error/i);
+  await assertNoErrorBoundaryFallback(page, new URL(page.url()).pathname);
+  await expect(page.locator('[data-nextjs-dialog]')).toHaveCount(0);
 });
 
 test('requires decoded still responses and permits a loaded shot while a 404, 403 or decode failure blocks full playback', async ({
