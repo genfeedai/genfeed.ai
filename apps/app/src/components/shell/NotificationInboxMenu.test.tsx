@@ -96,15 +96,14 @@ describe('NotificationInboxMenu', () => {
     ];
     await open();
     expect(screen.getByText('Credits are running low')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /View details/ })).toHaveAttribute(
-      'href',
-      '/acme/workspace/activity',
-    );
+    expect(
+      screen.getByRole('link', { name: /Credits are running low/ }),
+    ).toHaveAttribute('href', '/acme/workspace/activity');
   });
   it('washes the full notification row on hover, including time and mark-read', async () => {
     await open();
     const row = screen.getByTestId('notification-inbox-row');
-    expect(row).toHaveClass('hover:bg-hover');
+    expect(row).toHaveClass('hover:bg-accent');
     expect(row).toContainElement(screen.getByRole('link', { name: /My task/ }));
     expect(row).toContainElement(
       screen.getByRole('button', { name: 'Mark read' }),
@@ -141,10 +140,9 @@ describe('NotificationInboxMenu', () => {
       },
     ];
     await open();
-    expect(screen.getByRole('link', { name: /Open run/ })).toHaveAttribute(
-      'href',
-      '/acme/brand/library/images?asset=img-1',
-    );
+    expect(
+      screen.getByRole('link', { name: /Workflow completed/ }),
+    ).toHaveAttribute('href', '/acme/brand/library/images?asset=img-1');
     expect(
       screen.queryByRole('button', { name: 'Mark read' }),
     ).toBeInTheDocument();
@@ -163,9 +161,10 @@ describe('NotificationInboxMenu', () => {
     ];
     await open();
     expect(screen.getByText('3 new replies on @acme')).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /Reply in Messages/ }),
-    ).toHaveAttribute('href', '/acme/brand/messages');
+    expect(screen.getByRole('link', { name: /new repl/ })).toHaveAttribute(
+      'href',
+      '/acme/brand/messages',
+    );
   });
   it('marks an unread item read when its link is opened', async () => {
     current.history.data.pages[0].items = [
@@ -180,7 +179,7 @@ describe('NotificationInboxMenu', () => {
       },
     ];
     const user = await open();
-    const link = screen.getByRole('link', { name: /Reply in Messages/ });
+    const link = screen.getByRole('link', { name: /new repl/ });
     link.addEventListener('click', (event) => event.preventDefault());
     await user.click(link);
     expect(current.read.mutate).toHaveBeenCalledWith(['item-1']);
@@ -238,6 +237,29 @@ describe('NotificationInboxMenu', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Retry' }));
     expect(current.history.refetch).toHaveBeenCalled();
+  });
+  it('uses a left dot and a two-line description without an action label', async () => {
+    current.history.data.pages[0].items = [
+      {
+        ...item,
+        failure: {
+          title: 'Run failed',
+          summary: 'The agent hit an error while running.',
+          recovery: 'Inspect the failing step before trying again.',
+        },
+      },
+    ];
+    await open();
+    expect(screen.getByText(/The agent hit an error/)).toHaveClass(
+      'line-clamp-2',
+    );
+    expect(screen.queryByText('Open run')).not.toBeInTheDocument();
+    expect(screen.queryByText('1')).not.toBeInTheDocument();
+    const row = screen.getByTestId('notification-inbox-row');
+    expect(row.firstElementChild).toContainElement(
+      screen.getByRole('button', { name: 'Mark read' }),
+    );
+    expect(row).not.toHaveClass('rounded-md');
   });
   it('supports keyboard opening and escape to return focus', async () => {
     const user = userEvent.setup();

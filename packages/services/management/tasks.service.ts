@@ -1,3 +1,7 @@
+import type {
+  IWorkspaceInboxRead,
+  IWorkspaceInboxReadState,
+} from '@genfeedai/contracts/interfaces';
 import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import {
   BaseService,
@@ -259,6 +263,26 @@ export class TasksService extends BaseService<
 
   async updateTask(id: string, input: Partial<CreateTaskInput>): Promise<Task> {
     return this.patch(id, input);
+  }
+
+  async findInboxReadState(
+    signal?: AbortSignal,
+  ): Promise<IWorkspaceInboxReadState> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      '/inbox/read-state',
+      { signal },
+    );
+    return this.extractResource<IWorkspaceInboxReadState>(response.data);
+  }
+
+  async markInboxRead(
+    reads: IWorkspaceInboxRead[],
+  ): Promise<IWorkspaceInboxReadState> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      '/inbox/read-state',
+      { reads },
+    );
+    return this.extractResource<IWorkspaceInboxReadState>(response.data);
   }
 
   async getInbox(limit?: number): Promise<Task[]> {

@@ -9,10 +9,12 @@ import { TaskCommentsModule } from '@api/collections/task-comments/task-comments
 import { TaskCountersModule } from '@api/collections/task-counters/task-counters.module';
 import { TasksController } from '@api/collections/tasks/controllers/tasks.controller';
 import { TasksPlanningController } from '@api/collections/tasks/controllers/tasks-planning.controller';
+import { WorkspaceInboxReadController } from '@api/collections/tasks/controllers/workspace-inbox-read.controller';
 import { TaskActionsService } from '@api/collections/tasks/services/task-actions.service';
 import { TaskPlanningService } from '@api/collections/tasks/services/task-planning.service';
 import { TaskRoutingService } from '@api/collections/tasks/services/task-routing.service';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
+import { WorkspaceInboxReadService } from '@api/collections/tasks/services/workspace-inbox-read.service';
 import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
@@ -23,7 +25,11 @@ import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [TasksPlanningController, TasksController],
+  controllers: [
+    WorkspaceInboxReadController,
+    TasksPlanningController,
+    TasksController,
+  ],
   exports: [TasksService],
   imports: [
     PlatformSettingsModule,
@@ -43,6 +49,7 @@ import { Module } from '@nestjs/common';
     LoggerModule,
   ],
   providers: [
+    WorkspaceInboxReadService,
     TaskActionsService,
     TaskPlanningService,
     TaskRoutingService,

@@ -2,6 +2,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { UseWorkspacePageContentParams } from '@genfeedai/props/workspace/workspace-page.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useWorkspaceInboxRead } from '@hooks/data/tasks/use-workspace-inbox-read';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import * as Sentry from '@sentry/nextjs';
@@ -26,7 +27,6 @@ import {
   applyRealtimeTaskUpdate,
   DEFAULT_REVIEW_INBOX,
   isTaskInInboxQueue,
-  isUnreadInboxTask,
   useWorkspaceSectionCopy,
   type WorkspaceTaskRealtimePayload,
 } from './workspace-task.helpers';
@@ -70,6 +70,7 @@ export function useWorkspacePageContent({
   void initialTimeSeriesData;
 
   const { getToken } = useAuthIdentity();
+  const inboxRead = useWorkspaceInboxRead();
   const { subscribe } = useSocketManager();
   const { organizationId, brandId } = useBrand();
   const pathname = usePathname();
@@ -169,8 +170,8 @@ export function useWorkspacePageContent({
   );
 
   const unreadInboxTasks = useMemo(
-    () => queueTasks.filter(isUnreadInboxTask),
-    [queueTasks],
+    () => (inboxRead.state.data ? queueTasks.filter(inboxRead.isUnread) : []),
+    [queueTasks, inboxRead.state.data, inboxRead.isUnread],
   );
 
   const recentInboxTasks = useMemo(
@@ -455,6 +456,7 @@ export function useWorkspacePageContent({
 
   return {
     activityItems,
+    inboxRead,
     busyTaskId,
     defaultInboxView,
     historyPreviewItems,

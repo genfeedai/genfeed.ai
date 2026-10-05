@@ -37,6 +37,14 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   }),
 }));
 
+vi.mock('@hooks/data/tasks/use-workspace-inbox-read', () => ({
+  useWorkspaceInboxRead: () => ({
+    state: { data: { reads: [] } },
+    isUnread: (task: { status: string; reviewState: string }) =>
+      task.status !== 'done' || task.reviewState === 'pending_approval',
+  }),
+}));
+
 import { useWorkspaceInboxCount } from './use-workspace-inbox-count';
 
 describe('useWorkspaceInboxCount', () => {

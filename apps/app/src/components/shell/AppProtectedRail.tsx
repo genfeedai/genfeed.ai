@@ -100,6 +100,7 @@ function AppProtectedRailContent({
       badges={{
         workspace: {
           count: workspaceCount,
+          kind: 'dot',
           label: translateRail('workspaceBadge', { count: workspaceCount }),
         },
         messages: {

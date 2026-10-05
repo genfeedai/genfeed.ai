@@ -7,3 +7,4 @@ export * from '@serializers/server/management/prompt.serializer';
 export * from '@serializers/server/management/tag.serializer';
 export * from '@serializers/server/management/task.serializer';
 export * from '@serializers/server/management/task-comment.serializer';
+export * from '@serializers/server/management/workspace-inbox-read.serializer';
