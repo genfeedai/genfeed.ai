@@ -40,6 +40,9 @@ test.describe('Expert Path Onboarding', () => {
         .click();
     }
     await expect(
+      expertOnboardingPage.getByRole('link', { name: 'Continue', exact: true }),
+    ).toBeVisible();
+    await expect(
       expertOnboardingPage.getByRole('button', {
         name: 'Create my first post',
         exact: true,

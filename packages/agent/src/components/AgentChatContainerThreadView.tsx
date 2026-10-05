@@ -24,7 +24,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { ArrowDown } from 'lucide-react';
-import type { ReactElement, RefObject } from 'react';
+import { type ReactElement, type RefObject, useEffect, useRef } from 'react';
 
 export type AgentChatContainerThreadViewProps = {
   activeThreadTitle: string | null;
@@ -103,6 +103,7 @@ export function AgentChatContainerThreadView({
   isSubmittingInputRequest,
   latestProposedPlan,
   messagesEndRef,
+  onboardingMode,
   onApprovePlan,
   onBrandCreate,
   onCopy,
@@ -128,6 +129,23 @@ export function AgentChatContainerThreadView({
   showFollowUpButton,
   timeline,
 }: AgentChatContainerThreadViewProps): ReactElement {
+  const inputCardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (onboardingMode && pendingInputRequest?.inputRequestId)
+      inputCardRef.current?.scrollIntoView?.({ block: 'end' });
+  }, [onboardingMode, pendingInputRequest?.inputRequestId]);
+  const inputCard =
+    pendingInputRequest && shouldShowInputRequestOverlay ? (
+      <div ref={inputCardRef}>
+        <AgentInputRequestOverlay
+          key={pendingInputRequest.inputRequestId}
+          isSubmitting={isSubmittingInputRequest}
+          onSubmit={onSubmitInputRequest}
+          request={pendingInputRequest}
+          variant="inline"
+        />
+      </div>
+    ) : null;
   return (
     <div
       className={cn(
@@ -156,15 +174,7 @@ export function AgentChatContainerThreadView({
           {activeThreadTitle ? (
             <h2 className="sr-only">{activeThreadTitle}</h2>
           ) : null}
-          {pendingInputRequest && shouldShowInputRequestOverlay ? (
-            <AgentInputRequestOverlay
-              key={pendingInputRequest.inputRequestId}
-              isSubmitting={isSubmittingInputRequest}
-              onSubmit={onSubmitInputRequest}
-              request={pendingInputRequest}
-              variant="inline"
-            />
-          ) : null}
+          {!onboardingMode ? inputCard : null}
 
           {latestProposedPlan ? (
             <AgentPlanReviewSection
@@ -206,6 +216,7 @@ export function AgentChatContainerThreadView({
             // Docked composer status owns busy chrome — hide pure Thinking rows.
             suppressThinkingPlaceholder={padBottomForComposer}
           />
+          {onboardingMode ? inputCard : null}
         </div>
       </div>
 
@@ -223,6 +234,7 @@ export function AgentChatContainerThreadView({
             withWrapper={false}
             onClick={scrollToBottom}
           />
+          {onboardingMode ? inputCard : null}
         </div>
       ) : null}
     </div>

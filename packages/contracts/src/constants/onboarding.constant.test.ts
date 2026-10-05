@@ -8,7 +8,6 @@ import {
   hasCompletedBrandOnboardingStep,
   isExpertAccountType,
   isOnboardingStepKey,
-  isSharedBrandOnboardingPath,
   ONBOARDING_STEP_LABELS,
   ONBOARDING_STEPS,
   PERSONAL_EMAIL_DOMAINS,
@@ -60,12 +59,6 @@ describe('onboarding.constant', () => {
   });
 
   describe('shared brand routing', () => {
-    it('treats /onboarding and /onboarding/brand as the shared brand entry', () => {
-      expect(isSharedBrandOnboardingPath('/onboarding/brand')).toBe(true);
-      expect(isSharedBrandOnboardingPath('/onboarding')).toBe(true);
-      expect(isSharedBrandOnboardingPath('/onboarding/providers')).toBe(false);
-    });
-
     it('detects the brand wizard step', () => {
       expect(hasCompletedBrandOnboardingStep(undefined)).toBe(false);
       expect(hasCompletedBrandOnboardingStep([])).toBe(false);

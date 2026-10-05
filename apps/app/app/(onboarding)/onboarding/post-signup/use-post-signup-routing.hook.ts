@@ -117,10 +117,18 @@ export function usePostSignupRouting(): PostSignupRoutingState {
         localStorage.getItem(ONBOARDING_STORAGE_KEYS.accountType),
       );
     if (activeOrganization && accountType) {
-      await OrganizationsService.getInstance(token).updateAccountType(
-        activeOrganization.id,
-        accountType,
-      );
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          await OrganizationsService.getInstance(token).updateAccountType(
+            activeOrganization.id,
+            accountType,
+          );
+          localStorage.removeItem(ONBOARDING_STORAGE_KEYS.accountType);
+          break;
+        } catch (error) {
+          logger.error('Failed to apply onboarding account type', error);
+        }
+      }
     }
     return activeOrganization?.slug ?? null;
   }, [getToken, requestedAccountType]);

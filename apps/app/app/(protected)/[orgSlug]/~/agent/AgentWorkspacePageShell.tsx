@@ -18,7 +18,7 @@ import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAgentWorkspace } from './agent-workspace-context';
 
 const EMPTY_KNOWLEDGE_SELECTION: KnowledgeSelection = {};
@@ -38,9 +38,53 @@ export function AgentWorkspacePageShell({
     completeOnboardingFlow,
     isOnboarding,
     onboardingBootstrapError,
+    onboardingStartFailures,
     retryOnboardingBootstrap,
   } = useAgentWorkspace();
   const handleBrandCreate = useAgentBrandCreate();
+  const [turnFailures, setTurnFailures] = useState(0);
+  const [isContinuing, setIsContinuing] = useState(false);
+  const [escapeError, setEscapeError] = useState(false);
+  const failureSeen = useRef(false);
+  const turnError = useAgentChatStore((state) => state.error);
+  const pendingCard = useAgentChatStore((state) => state.pendingInputRequest);
+  const lastSuccessfulCardId = useRef(pendingCard?.inputRequestId ?? null);
+  useEffect(() => {
+    if (
+      pendingCard &&
+      pendingCard.inputRequestId !== lastSuccessfulCardId.current
+    ) {
+      lastSuccessfulCardId.current = pendingCard.inputRequestId;
+      setTurnFailures(0);
+    }
+  }, [pendingCard]);
+  const latestAssistantReplyId = useAgentChatStore((state) => {
+    const message = state.messages.at(-1);
+    return message?.role === 'assistant' ? message.id : null;
+  });
+  useEffect(() => {
+    if (latestAssistantReplyId) setTurnFailures(0);
+  }, [latestAssistantReplyId]);
+  useEffect(() => {
+    if (!isOnboarding) return;
+    if (turnError && !failureSeen.current) {
+      failureSeen.current = true;
+      setTurnFailures((count) => count + 1);
+    } else if (!turnError) {
+      failureSeen.current = false;
+    }
+  }, [isOnboarding, turnError]);
+  const handleContinueToWorkspace = useCallback(async () => {
+    setIsContinuing(true);
+    setEscapeError(false);
+    try {
+      await completeOnboardingFlow();
+    } catch {
+      setEscapeError(true);
+    } finally {
+      setIsContinuing(false);
+    }
+  }, [completeOnboardingFlow]);
   // Knowledge is picked for the brand the next turn runs under: the composer's
   // brand when it sets one (new threads adopt it), otherwise the open thread's.
   const composerShell = useConversationComposerShell();
@@ -145,6 +189,20 @@ export function AgentWorkspacePageShell({
           >
             {translate('retry')}
           </Button>
+        </div>
+      ) : null}
+      {isOnboarding && (onboardingStartFailures >= 3 || turnFailures >= 3) ? (
+        <div className="flex shrink-0 items-center gap-3 px-4 py-2">
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            isDisabled={isContinuing}
+            onClick={handleContinueToWorkspace}
+          >
+            {translate('continueToWorkspace')}
+          </Button>
+          {escapeError ? (
+            <p role="alert">{translate('continueError')}</p>
+          ) : null}
         </div>
       ) : null}
       <AgentFullPage

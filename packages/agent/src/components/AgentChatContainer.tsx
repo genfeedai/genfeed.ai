@@ -12,11 +12,18 @@ import { AgentWebLocalCliNotice } from '@genfeedai/agent/components/AgentWebLoca
 import type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { AGENT_CONVERSATION_TRACK_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
+import { captureAgentStreamHydration } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
 import { useAgentRuntimeSelection } from '@genfeedai/agent/hooks/use-agent-runtime-selection';
 import { useOverlayElementHeight } from '@genfeedai/agent/hooks/use-overlay-element-height';
 import { useStableSocketConnectionState } from '@genfeedai/agent/hooks/use-stable-socket-connection-state';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { selectActiveRun } from '@genfeedai/agent/stores/agent-chat.store.run';
+import {
+  mapSnapshotPendingInputRequest,
+  mapSnapshotRunStatus,
+  readSnapshotRunError,
+} from '@genfeedai/agent/utils/agent-thread-snapshot.util';
 import type { TimelineEntry } from '@genfeedai/agent/utils/derive-timeline';
 import { getGenfeedDesktopBridge } from '@genfeedai/agent/utils/desktop-bridge.util';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
@@ -24,7 +31,13 @@ import { resolveComposerTranscriptPaddingPx } from '@genfeedai/agent/utils/resol
 import { AlertCategory } from '@genfeedai/contracts';
 import { ONBOARDING_GREETING } from '@genfeedai/contracts/constants';
 import Alert from '@ui/feedback/alert/Alert';
-import { type ReactElement, useCallback, useMemo, useState } from 'react';
+import {
+  type ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 export type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 
@@ -108,6 +121,85 @@ export function AgentChatContainer({
   const stableSocketConnectionState = useStableSocketConnectionState(
     container.socketConnectionState,
   );
+
+  useEffect(() => {
+    if (
+      !onboardingMode ||
+      !activeThreadId ||
+      container.pendingInputRequest ||
+      stableSocketConnectionState === 'connected'
+    )
+      return;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const recover = async () => {
+      const initial = useAgentChatStore.getState();
+      const initialRun = selectActiveRun(initial);
+      const canHydrate = captureAgentStreamHydration(activeThreadId);
+      try {
+        const snapshot = await apiService.getThreadSnapshot(
+          activeThreadId,
+          controller.signal,
+        );
+        const state = useAgentChatStore.getState();
+        const currentRun = selectActiveRun(state);
+        if (
+          controller.signal.aborted ||
+          state.activeThreadId !== activeThreadId ||
+          state.pendingInputRequest ||
+          state.threadUiBusyById[activeThreadId] ||
+          !canHydrate(snapshot) ||
+          ((initialRun.status === 'running' ||
+            initialRun.status === 'cancelling') &&
+            snapshot.activeRun?.runId !== initialRun.runId) ||
+          currentRun.runId !== initialRun.runId ||
+          currentRun.status !== initialRun.status ||
+          snapshot.lastSequence <
+            (state.threadEventSequenceById[activeThreadId] ?? 0)
+        )
+          return;
+        const card = mapSnapshotPendingInputRequest(snapshot);
+        const status = mapSnapshotRunStatus(snapshot.activeRun?.status);
+        if (
+          card ||
+          status === 'failed' ||
+          status === 'completed' ||
+          status === 'cancelled'
+        ) {
+          state.applyThreadSnapshotState(activeThreadId, snapshot);
+          state.resetStreamState();
+          state.transitionRun(activeThreadId, {
+            type: 'begin',
+            runId: snapshot.activeRun?.runId ?? null,
+            status,
+            startedAt: snapshot.activeRun?.startedAt,
+          });
+          state.transitionRun(activeThreadId, {
+            type: 'generating',
+            isGenerating: false,
+          });
+          state.setPendingInputRequest(card);
+          const error = readSnapshotRunError(snapshot);
+          if (error) state.setError(error);
+        }
+      } catch {
+        // Keep REST input available while snapshot recovery retries.
+      } finally {
+        if (!controller.signal.aborted) timer = setTimeout(recover, 2000);
+      }
+    };
+    void recover();
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [
+    activeThreadId,
+    apiService,
+    container.pendingInputRequest,
+    onboardingMode,
+    stableSocketConnectionState,
+  ]);
 
   const highlightedMessageId: string | null = null;
   const formattedError = useMemo(
@@ -419,9 +511,9 @@ export function AgentChatContainer({
               isAttachmentUploading={container.isAttachmentUploading}
               isBusy={container.isBusy}
               isComposerUnavailable={
-                isLoadingThread ||
+                (!onboardingMode && isLoadingThread) ||
                 (onboardingMode && !activeThreadId) ||
-                stableSocketConnectionState !== 'connected'
+                (!onboardingMode && stableSocketConnectionState !== 'connected')
               }
               followUps={container.followUpQueue.queue}
               isReadOnly={isReadOnly}

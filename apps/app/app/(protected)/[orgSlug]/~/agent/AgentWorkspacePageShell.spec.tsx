@@ -24,6 +24,9 @@ const getTokenMock = vi.fn();
 const createFollowUpTasksMock = vi.fn();
 
 const agentChatState = {
+  messages: [] as Array<{ id: string; role: string }>,
+  error: null as string | null,
+  pendingInputRequest: null as object | null,
   activeThreadId: null as string | null,
   threads: [] as Array<{ brandId?: string | null; id: string }>,
 };
@@ -94,7 +97,7 @@ vi.mock('@services/management/tasks.service', async () => {
 const completeOnboardingFlowMock = vi.fn();
 const handleOAuthConnectMock = vi.fn();
 const retryBootstrapMock = vi.fn();
-const bootstrapState = { hasError: false };
+const bootstrapState = { hasError: false, failures: 0 };
 
 vi.mock('./agent-workspace-context', () => ({
   useAgentWorkspace: () => ({
@@ -104,6 +107,7 @@ vi.mock('./agent-workspace-context', () => ({
     isLoaded: true,
     isOnboarding: true,
     onboardingBootstrapError: bootstrapState.hasError,
+    onboardingStartFailures: bootstrapState.failures,
     retryOnboardingBootstrap: retryBootstrapMock,
   }),
 }));
@@ -113,6 +117,10 @@ describe('AgentWorkspacePageShell', () => {
     agentFullPageSpy.mockClear();
     retryBootstrapMock.mockClear();
     bootstrapState.hasError = false;
+    bootstrapState.failures = 0;
+    agentChatState.messages = [];
+    agentChatState.error = null;
+    agentChatState.pendingInputRequest = null;
     agentChatState.activeThreadId = null;
     agentChatState.threads = [];
     composerShellBrandId = undefined;
@@ -163,6 +171,46 @@ describe('AgentWorkspacePageShell', () => {
     expect(retryBootstrapMock).toHaveBeenCalledOnce();
     expect(completeOnboardingFlowMock).not.toHaveBeenCalled();
     expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it('only offers workspace escape after three failed kickoff attempts', async () => {
+    bootstrapState.hasError = true;
+    bootstrapState.failures = 2;
+    const view = render(<AgentWorkspacePageShell />);
+    expect(
+      screen.queryByRole('button', { name: 'Continue to workspace' }),
+    ).not.toBeInTheDocument();
+    bootstrapState.failures = 3;
+    view.rerender(<AgentWorkspacePageShell />);
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Continue to workspace' }),
+      ),
+    );
+    expect(completeOnboardingFlowMock).toHaveBeenCalledOnce();
+  });
+
+  it('offers escape after three consecutive failed turns and clears the count on a recovered card', () => {
+    agentChatState.pendingInputRequest = { inputRequestId: 'same-failed-card' };
+    const view = render(<AgentWorkspacePageShell />);
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      agentChatState.error = `Failure ${attempt}`;
+      view.rerender(<AgentWorkspacePageShell />);
+      if (attempt < 3)
+        expect(
+          screen.queryByRole('button', { name: 'Continue to workspace' }),
+        ).not.toBeInTheDocument();
+      agentChatState.error = null;
+      view.rerender(<AgentWorkspacePageShell />);
+    }
+    expect(
+      screen.getByRole('button', { name: 'Continue to workspace' }),
+    ).toBeInTheDocument();
+    agentChatState.pendingInputRequest = { inputRequestId: 'recovered' };
+    view.rerender(<AgentWorkspacePageShell />);
+    expect(
+      screen.queryByRole('button', { name: 'Continue to workspace' }),
+    ).not.toBeInTheDocument();
   });
 
   it('passes workspace wiring through to AgentFullPage', () => {

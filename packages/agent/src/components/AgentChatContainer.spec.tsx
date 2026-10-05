@@ -187,6 +187,7 @@ vi.mock('../utils/extract-thread-assets', () => ({
 vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
   AgentChatInput: function MockAgentChatInput(props: {
     density?: string;
+    disabled?: boolean;
     placeholder?: string;
     onSend?: (content: string) => boolean;
     onStop?: () => void | Promise<void>;
@@ -197,6 +198,7 @@ vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
         chat-input
         <input
           aria-label="Composer paste"
+          disabled={props.disabled}
           placeholder={props.placeholder}
           onPaste={(event) => {
             composerSendResults.push(
@@ -327,6 +329,11 @@ vi.mock('@genfeedai/agent/components/AgentInputRequestOverlay', () => ({
 }));
 
 type StoreState = {
+  threadEventSequenceById: Record<string, number>;
+  threadUiBusyById: Record<string, boolean>;
+  applyThreadSnapshotState: ReturnType<typeof vi.fn>;
+  resetStreamState: ReturnType<typeof vi.fn>;
+  transitionRun: ReturnType<typeof vi.fn>;
   activeThreadId: string | null;
   addMessage: ReturnType<typeof vi.fn>;
   addWorkEvent: ReturnType<typeof vi.fn>;
@@ -369,7 +376,7 @@ type StoreState = {
     title: string;
   } | null;
   runsByThread: Record<string, AgentRunRecord>;
-  socketConnectionState: 'connected';
+  socketConnectionState: 'connected' | 'offline';
   setActiveThread: ReturnType<typeof vi.fn>;
   setActiveRun: ReturnType<typeof vi.fn>;
   setActiveRunStatus: ReturnType<typeof vi.fn>;
@@ -407,6 +414,11 @@ function setRun(patch: Partial<AgentRunRecord>): void {
 }
 
 const storeState: StoreState = {
+  threadEventSequenceById: {},
+  threadUiBusyById: {},
+  applyThreadSnapshotState: vi.fn(),
+  resetStreamState: vi.fn(),
+  transitionRun: vi.fn(),
   activeThreadId: 'thread-1',
   addMessage: vi.fn(),
   addWorkEvent: vi.fn(),
@@ -554,6 +566,12 @@ describe('AgentChatContainer', () => {
   });
 
   beforeEach(() => {
+    storeState.socketConnectionState = 'connected';
+    storeState.threadEventSequenceById = {};
+    storeState.threadUiBusyById = {};
+    storeState.applyThreadSnapshotState.mockReset();
+    storeState.resetStreamState.mockReset();
+    storeState.transitionRun.mockReset();
     isStreamingHookActive = false;
     scrollIntoViewMock.mockReset();
     pinConversationScrollToBottomMock.mockReset();
@@ -1478,6 +1496,57 @@ describe('AgentChatContainer', () => {
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
       'true',
     );
+  });
+
+  it('recovers a missing onboarding card over REST when the socket is offline', async () => {
+    storeState.socketConnectionState = 'offline';
+    storeState.pendingInputRequest = null;
+    const apiService = createApiService({
+      getThreadSnapshot: vi.fn().mockResolvedValue({
+        threadId: 'thread-1',
+        lastSequence: 4,
+        timeline: [],
+        activeRun: { runId: 'run-1', status: 'awaiting_input' },
+        pendingInputRequests: [
+          {
+            requestId: 'recovered-card',
+            title: 'Goals',
+            prompt: 'Choose',
+            options: [],
+            allowFreeText: false,
+          },
+        ],
+      }),
+    });
+    const view = render(
+      <AgentChatContainer apiService={apiService as never} onboardingMode />,
+    );
+    await waitFor(() =>
+      expect(storeState.setPendingInputRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inputRequestId: 'recovered-card',
+          threadId: 'thread-1',
+        }),
+      ),
+    );
+    expect(storeState.transitionRun).toHaveBeenCalledWith(
+      'thread-1',
+      expect.objectContaining({ status: 'awaiting_input' }),
+    );
+    view.unmount();
+  });
+
+  it('keeps onboarding REST input enabled while the socket is offline and no card is pending', () => {
+    storeState.socketConnectionState = 'offline';
+    storeState.pendingInputRequest = null;
+    const apiService = createApiService({
+      getThreadSnapshot: vi.fn().mockRejectedValue(new Error('offline')),
+    });
+    const view = render(
+      <AgentChatContainer apiService={apiService as never} onboardingMode />,
+    );
+    expect(screen.getByLabelText('Composer paste')).toBeEnabled();
+    view.unmount();
   });
 
   it('renders the shared greeting immediately during kickoff and reconciles once', () => {

@@ -84,6 +84,18 @@ function fixture(email = 'user@acme.com', brandDomain?: string) {
 }
 
 describe('AgentOnboardingKickoffService', () => {
+  it('rejects completed users before scope preparation or thread creation', async () => {
+    const { service, prisma, tx, scope } = fixture();
+    prisma.user.findFirst.mockResolvedValue({
+      email: 'user@acme.com',
+      isOnboardingCompleted: true,
+    } as never);
+    await expect(
+      service.kickoff('user-1', 'org-1', 'brand-1'),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(scope.prepareForTurn).not.toHaveBeenCalled();
+    expect(tx.agentThread.create).not.toHaveBeenCalled();
+  });
   it('creates one assistant greeting and resolvable URL request without a run', async () => {
     const { service, tx } = fixture();
     await service.kickoff('user-1', 'org-1', 'brand-1');

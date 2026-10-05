@@ -674,15 +674,18 @@ describe('membership-scoped saved guide wizard', () => {
       isOnboardingCompleted: true,
     });
   });
-  it('does not make optional dirty guide review an onboarding navigation gate', async () => {
+  it('guards dirty guide navigation without requiring approval', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     await show();
     fireEvent.change(screen.getByLabelText('Description'), {
       target: { value: 'Unsaved' },
     });
     fireEvent.click(await enabledContinue());
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(mocks.updateOnboarding).not.toHaveBeenCalled();
+    confirm.mockReturnValue(true);
+    fireEvent.click(await enabledContinue());
     await waitFor(() => expect(mocks.updateOnboarding).toHaveBeenCalledOnce());
-    expect(confirm).not.toHaveBeenCalled();
     expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
   });
   it('auto-saves optional corrections while Continue remains available', async () => {

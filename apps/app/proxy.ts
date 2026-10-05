@@ -815,6 +815,7 @@ type OnboardingRedirectState = {
   completedSteps: string[];
   shouldRedirect: boolean;
   isCompleted?: boolean;
+  isAvailable?: boolean;
 };
 
 async function readOnboardingRedirectState(
@@ -824,7 +825,7 @@ async function readOnboardingRedirectState(
   const bootstrapRead = await readBootstrap(token, req);
 
   if (!bootstrapRead.isAvailable) {
-    return { completedSteps: [], shouldRedirect: false };
+    return { completedSteps: [], shouldRedirect: false, isAvailable: false };
   }
 
   const bootstrap = bootstrapRead.bootstrap;
@@ -962,6 +963,7 @@ async function redirectSignedInUserToAgentOnboarding(
   cacheKey?: string | null,
 ): Promise<NextResponse | null> {
   const onboardingState = await readOnboardingRedirectState(token, req);
+  if (onboardingState.isAvailable === false) return null;
   if (
     onboardingState.isCompleted ||
     ONBOARDING_STEPS.every((step) =>

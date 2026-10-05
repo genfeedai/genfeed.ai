@@ -14,6 +14,7 @@ import {
   useAgentChatStore,
   useAgentChatStream,
 } from '@genfeedai/agent';
+import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import { selectIsGenerating } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { clearClientProtectedBootstrapCache } from '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap';
 import { AgentThreadStatus } from '@genfeedai/contracts';
@@ -142,6 +143,7 @@ function AgentWorkspaceLayoutClientContent({
   const [onboardingBootstrapError, setOnboardingBootstrapError] =
     useState(false);
   const [onboardingRetry, setOnboardingRetry] = useState(0);
+  const [onboardingStartFailures, setOnboardingStartFailures] = useState(0);
   const hasAttemptedResumeRef = useRef<number | null>(null);
   const retryOnboardingBootstrap = useCallback(() => {
     hasAttemptedResumeRef.current = null;
@@ -298,9 +300,17 @@ function AgentWorkspaceLayoutClientContent({
           liveState.stream.isStreaming
         )
           return;
+        const selectedBrand = brands.find(
+          (brand) =>
+            getBrandOrganizationId(brand) === organizationId &&
+            (!brandId || getBrandEntityId(brand) === brandId),
+        );
         const resumable = mostRecentAuthorizedThread(
           threads.filter(
-            (thread) => thread.source === ONBOARDING_THREAD_SOURCE,
+            (thread) =>
+              thread.source === ONBOARDING_THREAD_SOURCE &&
+              thread.brandId ===
+                (selectedBrand ? getBrandEntityId(selectedBrand) : brandId),
           ),
           organizationId,
           brands,
@@ -308,6 +318,7 @@ function AgentWorkspaceLayoutClientContent({
         if (resumable) {
           useAgentChatStore.getState().upsertThread(resumable);
           hasSettled = true;
+          setOnboardingStartFailures(0);
           if (pendingNavigationThreadRef.current !== resumable.id) {
             pendingNavigationThreadRef.current = resumable.id;
             newRouteBaselineThreadRef.current = resumable.id;
@@ -320,11 +331,6 @@ function AgentWorkspaceLayoutClientContent({
           }
           return;
         }
-        const selectedBrand = brands.find(
-          (brand) =>
-            getBrandOrganizationId(brand) === organizationId &&
-            (!brandId || getBrandEntityId(brand) === brandId),
-        );
         const thread = await agentApiService.kickoffOnboarding(
           selectedBrand ? getBrandEntityId(selectedBrand) : undefined,
           controller.signal,
@@ -334,14 +340,21 @@ function AgentWorkspaceLayoutClientContent({
           throw new Error('Onboarding thread scope is unavailable.');
         }
         hasSettled = true;
+        setOnboardingStartFailures(0);
         useAgentChatStore.getState().upsertThread(thread);
         pendingNavigationThreadRef.current = thread.id;
         newRouteBaselineThreadRef.current = thread.id;
         replace(orgHref(`${APP_ROUTES.AGENT.ONBOARDING}/${thread.id}`));
       })
-      .catch(() => {
+      .catch((error) => {
         if (!controller.signal.aborted) {
           hasSettled = true;
+          if (error instanceof AgentApiRequestError && error.status === 409) {
+            clearClientProtectedBootstrapCache();
+            window.location.href = activeHref(APP_ROUTES.WORKSPACE.OVERVIEW);
+            return;
+          }
+          setOnboardingStartFailures((count) => count + 1);
           setOnboardingBootstrapError(true);
         }
       });
@@ -351,6 +364,7 @@ function AgentWorkspaceLayoutClientContent({
     };
   }, [
     activeThreadId,
+    activeHref,
     agentApiService,
     brandId,
     brands,
@@ -643,6 +657,7 @@ function AgentWorkspaceLayoutClientContent({
       agentApiService,
       completeOnboardingFlow,
       onboardingBootstrapError,
+      onboardingStartFailures,
       retryOnboardingBootstrap,
       handleOAuthConnect,
       isLoaded: effectiveIsLoaded,
@@ -655,6 +670,7 @@ function AgentWorkspaceLayoutClientContent({
       handleOAuthConnect,
       completeOnboardingFlow,
       onboardingBootstrapError,
+      onboardingStartFailures,
       retryOnboardingBootstrap,
     ],
   );

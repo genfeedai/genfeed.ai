@@ -732,6 +732,34 @@ describe('PostSignupPage behavior', () => {
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
   });
 
+  it('retries account type once and clears the browser hint after success', async () => {
+    localStorage.setItem(ONBOARDING_STORAGE_KEYS.accountType, 'EXPERT');
+    updateAccountTypeMock
+      .mockRejectedValueOnce(new Error('Temporary failure'))
+      .mockResolvedValueOnce(undefined);
+    render(<PostSignupPage />);
+    await waitFor(() => expect(updateAccountTypeMock).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(window.location.href).toContain('/agent/onboarding'),
+    );
+    expect(
+      localStorage.getItem(ONBOARDING_STORAGE_KEYS.accountType),
+    ).toBeNull();
+  });
+
+  it('continues to the conversation after two account-type failures and retains the hint', async () => {
+    localStorage.setItem(ONBOARDING_STORAGE_KEYS.accountType, 'EXPERT');
+    updateAccountTypeMock.mockRejectedValue(new Error('Unavailable'));
+    render(<PostSignupPage />);
+    await waitFor(() =>
+      expect(window.location.href).toContain('/agent/onboarding'),
+    );
+    expect(updateAccountTypeMock).toHaveBeenCalledTimes(2);
+    expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.accountType)).toBe(
+      'EXPERT',
+    );
+  });
+
   it('persists an Expert signup intent before starting the conversation', async () => {
     searchParamsState.value = new URLSearchParams('accountType=EXPERT');
     render(<PostSignupPage />);

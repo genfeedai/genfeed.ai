@@ -15,7 +15,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { resolveSignupBrandDomain } from '@genfeedai/helpers';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AgentOnboardingKickoffService {
@@ -34,6 +34,12 @@ export class AgentOnboardingKickoffService {
       where: { userId, organizationId, isActive: true, isDeleted: false },
     });
     if (!member) throw new NotFoundException('Organization membership');
+    const onboardingUser = await this.prisma.user.findFirst({
+      where: { id: userId, isDeleted: false },
+      select: { isOnboardingCompleted: true },
+    });
+    if (onboardingUser?.isOnboardingCompleted)
+      throw new ConflictException('Onboarding is already completed');
     const brand = await this.prisma.brand.findFirst({
       where: {
         ...(requestedBrandId ? { id: requestedBrandId } : {}),

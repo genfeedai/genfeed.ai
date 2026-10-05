@@ -98,6 +98,25 @@ export class AgentTurnAcceptanceService {
     private readonly settingsService?: SettingsService,
   ) {}
 
+  private async resolveOnboardingSource(
+    request: AgentChatRequest & { clientRequestId: string },
+    source: string | null | undefined,
+    userId: string,
+  ) {
+    if (source !== 'onboarding' && request.source !== 'onboarding')
+      return request;
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, isDeleted: false },
+      select: { isOnboardingCompleted: true },
+    });
+    return {
+      ...request,
+      source: user?.isOnboardingCompleted
+        ? ('agent' as const)
+        : ('onboarding' as const),
+    };
+  }
+
   async accept(
     request: AgentChatRequest & { clientRequestId: string },
     context: AgentChatContext,
@@ -122,8 +141,11 @@ export class AgentTurnAcceptanceService {
     const thread = existingScope
       ? await this.loadThread(threadId, context)
       : await this.createThread(threadId, request, context, preparedScope);
-    if (thread.source === 'onboarding')
-      request = { ...request, source: 'onboarding' };
+    request = await this.resolveOnboardingSource(
+      request,
+      thread.source,
+      context.userId,
+    );
     const contextVersion = Number(thread.contextVersion ?? 1);
     const scope =
       existingScope ??

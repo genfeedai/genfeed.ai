@@ -335,7 +335,7 @@ export function createAgentStreamController(
         )
           return;
         setError(
-          'Could not finish setup. Use Skip to workspace to try again, or sign in again if your session expired.',
+          'Could not finish setup. Reload the page to open your workspace, or sign in again if your session expired.',
         );
       }
     }

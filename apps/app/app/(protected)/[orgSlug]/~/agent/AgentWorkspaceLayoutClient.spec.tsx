@@ -1,3 +1,4 @@
+import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentRunRecord } from '@genfeedai/agent/stores/agent-chat.store.run';
 import {
   act,
@@ -933,12 +934,21 @@ describe('AgentWorkspaceLayoutClient', () => {
     storeState.activeThreadId = null;
     getThreads.mockResolvedValue([
       {
+        id: 'thread-other-brand-newer',
+        source: 'onboarding',
+        status: 'active',
+        organizationId: 'org-1',
+        brandId: 'brand-2',
+        updatedAt: '2026-08-06T09:00:00.000Z',
+      },
+      {
         id: 'thread-standard',
         source: 'agent',
         updatedAt: '2026-08-05T12:00:00.000Z',
       },
       {
         id: 'thread-onboarding-old',
+        brandId: 'brand-1',
         source: 'onboarding',
         status: 'active',
         organizationId: 'org-1',
@@ -946,6 +956,7 @@ describe('AgentWorkspaceLayoutClient', () => {
       },
       {
         id: 'thread-onboarding-latest',
+        brandId: 'brand-1',
         source: 'onboarding',
         status: 'active',
         organizationId: 'org-1',
@@ -985,6 +996,7 @@ describe('AgentWorkspaceLayoutClient', () => {
       ...newerStandardThreads,
       {
         id: 'thread-onboarding-latest',
+        brandId: 'brand-1',
         source: 'onboarding',
         status: 'active',
         organizationId: 'org-1',
@@ -992,6 +1004,7 @@ describe('AgentWorkspaceLayoutClient', () => {
       },
       {
         id: 'thread-onboarding-old',
+        brandId: 'brand-1',
         source: 'onboarding',
         status: 'active',
         organizationId: 'org-1',
@@ -1065,6 +1078,38 @@ describe('AgentWorkspaceLayoutClient', () => {
     );
     await waitFor(() => expect(kickoffOnboarding).toHaveBeenCalledTimes(1));
     expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('goes to workspace when kickoff reports onboarding is already complete', async () => {
+    navigationState.pathname = '/agent/onboarding';
+    storeState.activeThreadId = null;
+    kickoffOnboarding.mockRejectedValueOnce(
+      new AgentApiRequestError({
+        status: 409,
+        message: 'Onboarding is already completed',
+      }),
+    );
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'location');
+    const location = { href: '' };
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: location,
+    });
+    try {
+      render(
+        <AgentWorkspaceLayoutClient
+          agentApiService={{ getThreads, kickoffOnboarding } as never}
+        >
+          <p>Conversation</p>
+        </AgentWorkspaceLayoutClient>,
+      );
+      await waitFor(() =>
+        expect(location.href).toContain('/workspace/overview'),
+      );
+      expect(patchMe).not.toHaveBeenCalled();
+    } finally {
+      if (descriptor) Object.defineProperty(window, 'location', descriptor);
+    }
   });
 
   it('exposes a retry action after a kickoff failure', async () => {

@@ -294,3 +294,32 @@ describe('button-only and multi-select input', () => {
     expect(onSubmit).toHaveBeenCalledWith('Dropzone only', ['dropzone']);
   });
 });
+
+it.each([false, true])(
+  'only immediately submits multi-select Skip when the request opts in: %s',
+  (optIn) => {
+    const onSubmit = vi.fn();
+    render(
+      <AgentInputRequestOverlay
+        onSubmit={onSubmit}
+        request={makeRequest({
+          allowFreeText: false,
+          isMultiSelect: true,
+          maxSelections: 1,
+          metadata: optIn ? { submitImmediatelyOptionIds: ['skip'] } : {},
+          options: [
+            { id: 'hybrid', label: 'Hybrid' },
+            { id: 'skip', label: 'Skip' },
+          ],
+        })}
+      />,
+    );
+    fireEvent.click(screen.getByText('Skip'));
+    if (optIn) expect(onSubmit).toHaveBeenCalledWith('Skip', ['skip']);
+    else {
+      expect(onSubmit).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByText('Submit answers'));
+      expect(onSubmit).toHaveBeenCalledWith('Skip', ['skip']);
+    }
+  },
+);

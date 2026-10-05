@@ -141,11 +141,13 @@ export default function BrandGuidePanel({
       <p>{t('preview.connectionOptional')}</p>
       <div className="flex flex-wrap gap-2">
         <Button
+          data-brand-os-navigation={brandId}
           label={t('actions.continue')}
           isDisabled={isExiting}
           onClick={onContinue}
         />
         <Button
+          data-brand-os-navigation={brandId}
           label={t('actions.skip')}
           variant={ButtonVariant.SECONDARY}
           isDisabled={isExiting}

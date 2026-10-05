@@ -31,6 +31,15 @@ const QUESTIONS = {
   ],
 } as const;
 
+const QUESTION_OPTION_IDS: Record<string, string> = {
+  'TikTok / YouTube': 'short_video',
+  'A few times a week': 'few_times_week',
+  'Keep it as found': 'keep',
+  'More casual': 'casual',
+  'More professional': 'professional',
+  Bolder: 'bold',
+};
+
 export async function setupOnboardingConversationMocks(
   page: Page,
   options: ConversationMockOptions,
@@ -122,7 +131,7 @@ export async function setupOnboardingConversationMocks(
           prompt: 'Choose your next step.',
           allowFreeText: false,
           options: [
-            { id: 'first_post', label: 'Create my first post' },
+            { id: 'create_first_post', label: 'Create my first post' },
             { id: 'workspace', label: 'Go to my workspace' },
           ],
         },
@@ -134,13 +143,17 @@ export async function setupOnboardingConversationMocks(
         title: stage,
         prompt: 'Choose what fits your brand.',
         allowFreeText: false,
+        metadata: { ...common.metadata, submitImmediatelyOptionIds: ['skip'] },
         isMultiSelect: stage === 'goals' || stage === 'platforms',
-        maxSelections: stage === 'goals' ? 3 : 4,
+        ...(stage === 'goals' || stage === 'platforms'
+          ? { maxSelections: stage === 'goals' ? 3 : 4 }
+          : {}),
         options: labels.map((label) => ({
           id:
             label === 'Skip'
               ? 'skip'
-              : label.toLowerCase().replaceAll(' ', '_'),
+              : (QUESTION_OPTION_IDS[label] ??
+                label.toLowerCase().replaceAll(' ', '_')),
           label,
         })),
       },

@@ -1032,6 +1032,20 @@ describe('proxy', () => {
     );
 
     it.each(['/onboarding', '/onboarding/brand'])(
+      'keeps %s in place when onboarding bootstrap is unavailable',
+      async (pathname) => {
+        fetchMock.mockImplementation(async (input: string | URL) => {
+          if (String(input).endsWith('/auth/token'))
+            return new Response(JSON.stringify({ token: BEARER_TOKEN }));
+          return new Response('Unavailable', { status: 503 });
+        });
+        const { default: proxy } = await import('./proxy');
+        const response = await proxy(makeSignedInRequest(pathname));
+        expect(response.headers.get('location')).toBeNull();
+      },
+    );
+
+    it.each(['/onboarding', '/onboarding/brand'])(
       'routes a completed user replay at %s to brand guide settings',
       async (pathname) => {
         fetchMock.mockImplementation(async (input: string | URL) => {

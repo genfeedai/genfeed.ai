@@ -46,6 +46,7 @@ interface OnboardingFixtures {
    * `/onboarding/brand` — the shipped app never does that.
    */
   onboardingPage: Page;
+  desktopOnboardingPage: Page;
 
   /**
    * The same page with the bootstrap organization typed `EXPERT`, plus the
@@ -60,7 +61,6 @@ interface OnboardingFixtures {
    * no brand signal and the brand step shows the website prompt instead of
    * skipping straight to the loading step.
    */
-  personalInboxOnboardingPage: Page;
 }
 
 /** Per-page onboarding progress recorded from the app's own PATCH calls. */
@@ -591,6 +591,7 @@ async function startOnboardingSession(
     accountType?: string;
     baseURL?: string;
     email?: string;
+    desktop?: boolean;
     registerExtraMocks?: (page: Page) => Promise<void>;
   } = {},
 ): Promise<() => void> {
@@ -628,6 +629,19 @@ async function startOnboardingSession(
       sessionStorage.setItem('e2e_onboarding_account_type_seeded', '1');
       localStorage.setItem('gf_onboarding_account_type', accountType);
     }, options.accountType);
+  }
+
+  if (options.desktop) {
+    await page.addInitScript(() => {
+      let runtimeConfig: Record<string, unknown> = {};
+      Object.defineProperty(globalThis, '__GENFEED_RUNTIME_CONFIG__', {
+        configurable: true,
+        get: () => ({ ...runtimeConfig, clientSurface: 'desktop' }),
+        set: (value: Record<string, unknown>) => {
+          runtimeConfig = value;
+        },
+      });
+    });
   }
 
   // Set up Better Auth mocks with isOnboardingCompleted: false
@@ -678,6 +692,15 @@ async function startOnboardingSession(
 }
 
 export const test = base.extend<OnboardingFixtures>({
+  desktopOnboardingPage: async ({ page, context, baseURL }, runFixture) => {
+    const assertNoBlockedRequests = await startOnboardingSession(
+      page,
+      context,
+      { baseURL, desktop: true },
+    );
+    await runFixture(page);
+    assertNoBlockedRequests();
+  },
   expertOnboardingPage: async ({ page, context, baseURL }, runFixture) => {
     const expertState = createExpertPathMockState();
     const assertNoBlockedRequests = await startOnboardingSession(
@@ -700,20 +723,6 @@ export const test = base.extend<OnboardingFixtures>({
       page,
       context,
       { baseURL },
-    );
-
-    await runFixture(page);
-    assertNoBlockedRequests();
-  },
-
-  personalInboxOnboardingPage: async (
-    { page, context, baseURL },
-    runFixture,
-  ) => {
-    const assertNoBlockedRequests = await startOnboardingSession(
-      page,
-      context,
-      { baseURL, email: 'onboarding@gmail.com' },
     );
 
     await runFixture(page);

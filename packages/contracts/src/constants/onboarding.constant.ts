@@ -70,17 +70,6 @@ export function isOnboardingStepKey(
   );
 }
 
-/**
- * Shared wizard entry paths. Agent-first surfaces redirect these entries
- * into the conversation, or into brand settings for completed users.
- */
-export function isSharedBrandOnboardingPath(pathname: string): boolean {
-  return (
-    pathname === APP_ROUTES.ONBOARDING.BRAND ||
-    pathname === APP_ROUTES.ONBOARDING.ROOT
-  );
-}
-
 export function hasCompletedBrandOnboardingStep(
   completedSteps?: readonly string[] | null,
 ): boolean {
