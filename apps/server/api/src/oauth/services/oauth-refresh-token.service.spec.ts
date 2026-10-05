@@ -791,6 +791,37 @@ describe('OAuthRevokeTokenDto', () => {
 
 describe('Claude refresh restriction', () => {
   it.each(['https://mcp.genfeed.ai/mcp/claude', resource])(
+    'rejects an unsupported-only grant on %s without consuming or revoking it',
+    async (grantResource) => {
+      const { apiKeysService, seedApiKey, seedRefreshToken, service } =
+        buildHarness();
+      const key = seedApiKey({
+        metadata: {
+          kind: 'mcp-oauth-session',
+          mcpAccessMode: 'claude',
+          resource: grantResource,
+        },
+        scopes: ['images:create'],
+      });
+      const row = seedRefreshToken('refresh-unsupported-claude', {
+        apiKeyId: key.id,
+        resource: grantResource,
+        scopes: ['images:create'],
+      });
+
+      await expect(
+        service.refresh(refreshGrant('refresh-unsupported-claude')),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ error: 'invalid_scope' }),
+      });
+      expect(row.consumedAt).toBeNull();
+      expect(row.revokedAt).toBeNull();
+      expect(key.isRevoked).toBe(false);
+      expect(apiKeysService.rotateWithKey).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['https://mcp.genfeed.ai/mcp/claude', resource])(
     'never widens restricted credentials bound to %s',
     async (boundResource) => {
       const { service, seedApiKey, seedRefreshToken, apiKeysService } =

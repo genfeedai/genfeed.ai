@@ -155,6 +155,9 @@ export class OAuthRefreshTokenService {
       scopes = scopes.filter((scope) =>
         MCP_CLAUDE_SCOPE_CEILING.includes(scope),
       );
+      if (scopes.length === 0) {
+        throw oauthError('invalid_scope', 'No supported scopes remain');
+      }
     }
 
     // Single-use claim. Losing this race means another request presented the
