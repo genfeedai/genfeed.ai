@@ -123,6 +123,46 @@ it('renders image, video and audio controls using allowed origins', () => {
   expect(document.querySelector('audio')?.controls).toBe(true);
 });
 
+it('presents completed images without tool headings or opaque metadata', () => {
+  result('get_job_status', {
+    category: 'IMAGE',
+    createdAt: '2026-10-05T11:45:12.000Z',
+    id: 'cmuv2dbkm007r0enwjq2uu8lx',
+    status: 'GENERATED',
+    url: 'https://cdn.genfeed.ai/ingredients/images/cmuv2dbkm007r0enwjq2uu8lx',
+  });
+
+  expect(document.querySelector('header')?.hidden).toBe(true);
+  expect(document.querySelector('.media-card h2')?.textContent).toBe('Image');
+  expect(document.querySelector('article')?.textContent).not.toContain(
+    'cmuv2dbkm007r0enwjq2uu8lx',
+  );
+  expect(document.querySelector('article time')).toBeNull();
+  expect(document.querySelector('article .meta')).toBeNull();
+  expect(document.querySelector('article a')?.textContent).toBe('Open image ↗');
+  document.querySelector<HTMLButtonElement>('.media-actions button')?.click();
+  expect(document.querySelector('[role="dialog"] img')).not.toBeNull();
+});
+
+it('keeps media descriptions available on demand and restores other layouts', () => {
+  result('get_job_status', {
+    category: 'IMAGE',
+    description: 'A logo on a white background',
+    label: 'Genfeed logo',
+    status: 'GENERATED',
+    url: 'https://cdn.genfeed.ai/logo.jpg',
+  });
+  expect(document.querySelector('h2')?.textContent).toBe('Genfeed logo');
+  expect(document.querySelector('article details')?.open).toBe(false);
+  expect(document.querySelector('article details')?.textContent).toContain(
+    'A logo on a white background',
+  );
+  result('get_posts', { posts: [{ label: 'Launch' }] });
+  expect(document.querySelector('header')?.hidden).toBe(false);
+  expect(document.body.classList.contains('media-view')).toBe(false);
+  expect(document.querySelector('article.post')).not.toBeNull();
+});
+
 it('uses open-link for external media without loading unapproved origins', () => {
   result('list_assets', [
     { category: 'IMAGE', url: 'https://external.example/image.png' },
