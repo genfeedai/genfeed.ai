@@ -144,20 +144,23 @@ interface MetricUnit {
  * example `gpu_seconds`, or an unknown `*_seconds` / `*_megapixel*` name) fails
  * the mapping, so a rate is never read from a metric that bills something else.
  */
-const METRIC_UNITS: Readonly<Record<string, MetricUnit>> = {
-  audio_output_count: { unit: 'output' },
-  image_output_count: { unit: 'output' },
-  input_token_count: { unit: 'input-token' },
-  output_token_count: { unit: 'output-token' },
-  video_output_count: { unit: 'output' },
-  video_output_duration_seconds: { isPerOutput: true, unit: 'second' },
-  image_output_megapixel_count: { isPerOutput: true, unit: 'megapixel' },
-};
+const METRIC_UNITS: ReadonlyMap<string, MetricUnit> = new Map<
+  string,
+  MetricUnit
+>(
+  Object.entries({
+    audio_output_count: { unit: 'output' },
+    image_output_count: { unit: 'output' },
+    input_token_count: { unit: 'input-token' },
+    output_token_count: { unit: 'output-token' },
+    video_output_count: { unit: 'output' },
+    video_output_duration_seconds: { isPerOutput: true, unit: 'second' },
+    image_output_megapixel_count: { isPerOutput: true, unit: 'megapixel' },
+  }),
+);
 
 function mapMetric(metric: string): MetricUnit | null {
-  return Object.hasOwn(METRIC_UNITS, metric)
-    ? (METRIC_UNITS[metric] ?? null)
-    : null;
+  return METRIC_UNITS.get(metric) ?? null;
 }
 
 function parsePrice(raw: unknown): number | null {
