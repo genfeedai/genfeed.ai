@@ -1,5 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { StreaksService } from '@api/collections/streaks/services/streaks.service';
@@ -18,6 +19,7 @@ import {
   BatchGenerationService,
   ReviewInboxSummary,
 } from '@api/services/batch-generation/batch-generation.service';
+import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import type { IAnalytics, IBrand } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 import { toPlainJson } from '@serializers/helpers/plain-json.helper';
@@ -149,6 +151,17 @@ export class AuthBootstrapService {
     });
   }
 
+  private async resolveMemberRole(
+    organizationId: string,
+    userId: string,
+  ): Promise<string | null> {
+    const member = (await this.membersService.findOne(
+      { isActive: true, isDeleted: false, organizationId, userId },
+      [PopulateBuilder.withFields('role', ['id', 'key', 'label'])],
+    )) as (MemberDocument & { role?: { key?: string } | null }) | null;
+    return member?.role?.key ?? null;
+  }
+
   private serializeRecord<T>(value: T | null | undefined): T | null {
     if (value == null) {
       return null;
@@ -209,7 +222,7 @@ export class AuthBootstrapService {
     const hasValidOrganizationId = Boolean(organizationId);
     const isSuperAdmin = user ? getIsSuperAdmin(user, request) : false;
 
-    const [dbUser, organizationSettings, creditsBalance, brands] =
+    const [dbUser, organizationSettings, creditsBalance, brands, memberRole] =
       await Promise.all([
         hasValidUserId
           ? this.usersService.findOne(
@@ -232,6 +245,9 @@ export class AuthBootstrapService {
         hasValidUserId && hasValidOrganizationId
           ? this.getAccessibleBrands(organizationId, userId, isSuperAdmin)
           : [],
+        hasValidUserId && hasValidOrganizationId
+          ? this.resolveMemberRole(organizationId, userId)
+          : null,
       ]);
 
     const matchedBrand = brands.find(
@@ -251,6 +267,7 @@ export class AuthBootstrapService {
           organizationSettings?.hasGeneratedFirstAsset === true,
         isOnboardingCompleted: dbUser?.isOnboardingCompleted === true,
         isSuperAdmin,
+        memberRole,
         organizationId,
         subscriptionStatus,
         subscriptionTier:

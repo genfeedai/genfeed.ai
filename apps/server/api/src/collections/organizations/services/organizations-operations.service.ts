@@ -9,6 +9,7 @@ import type { OrganizationDocument } from '@api/collections/organizations/schema
 import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
+import { resolveOrganizationCreatorRole } from '@api/collections/roles/utils/resolve-organization-creator-role.util';
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
@@ -239,12 +240,13 @@ export class OrganizationsOperationsService {
       userId,
     } as unknown as Parameters<BrandsService['create']>[0]);
 
-    const role = await this.findProvisioningRole();
+    const role = await resolveOrganizationCreatorRole(this.rolesService);
     await this.membersService.create({
       currentBrandId: brand.id.toString(),
       isActive: true,
       organizationId: organization.id,
       roleId: String(role.id),
+      roleKey: role.key,
       userId,
     } as unknown as Parameters<MembersService['create']>[0]);
 
@@ -377,20 +379,6 @@ export class OrganizationsOperationsService {
       resource: 'organizations',
       upgradeTier: getUpgradeTierForLimit('organizations', tier),
     });
-  }
-
-  private async findProvisioningRole() {
-    const role =
-      (await this.rolesService.findOne({ key: 'admin' })) ??
-      (await this.rolesService.findOne({ key: 'user' }));
-    if (!role) {
-      throw new HttpException(
-        { detail: 'No role found to assign', title: 'Internal Server Error' },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    return role;
   }
 
   private isOrganizationOwner(

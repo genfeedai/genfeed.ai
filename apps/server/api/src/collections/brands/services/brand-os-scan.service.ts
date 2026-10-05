@@ -28,6 +28,7 @@ import {
   Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   ConflictException,
@@ -59,6 +60,7 @@ export class BrandOsScanService {
     private readonly prisma: PrismaService,
     private readonly scraper: BrandScraperService,
     private readonly revisions: BrandOsRevisionsService,
+    private readonly logger: LoggerService,
   ) {}
 
   async start(input: BrandOsScanInput): Promise<IBrandOnboardingScan> {
@@ -121,7 +123,10 @@ export class BrandOsScanService {
             : error instanceof BadRequestException
               ? 'brand_scan.invalid_content'
               : 'brand_scan.failed';
-      return { scan: await this.failScan(normalized, code), scrapedData: null };
+      return {
+        scan: await this.failScan(normalized, code, error),
+        scrapedData: null,
+      };
     }
   }
 
@@ -337,6 +342,7 @@ export class BrandOsScanService {
   private async failScan(
     input: BrandOsScanInput,
     code: BrandOsScanFailureCode,
+    error?: unknown,
   ): Promise<IBrandOnboardingScan> {
     return this.prisma.$transaction(async (tx) => {
       const brand = await this.lockBrand(
@@ -355,7 +361,7 @@ export class BrandOsScanService {
         current,
         this.isExpired(current.startedAt) ? 'brand_scan.timed_out' : code,
       );
-      await this.writeMarker(tx, brand, failed);
+      await this.writeMarker(tx, brand, failed, error);
       return this.toScan(failed);
     });
   }
@@ -489,6 +495,7 @@ export class BrandOsScanService {
     tx: Prisma.TransactionClient,
     brand: Brand,
     marker: BrandOsScanMarker,
+    error?: unknown,
   ): Promise<void> {
     await tx.brand.update({
       where: {
@@ -503,6 +510,20 @@ export class BrandOsScanService {
         }),
       },
     });
+    if (marker.status === 'failed') {
+      const message =
+        error instanceof Error
+          ? error.message
+          : (marker.errorCode ?? 'brand_scan.failed');
+      this.logger.warn('Brand OS scan failed', {
+        brandId: brand.id,
+        organizationId: brand.organizationId,
+        code: marker.errorCode,
+        error: message
+          .replace(/https?:\/\/[^\s"'<>]+/gi, '[website]')
+          .slice(0, 500),
+      });
+    }
   }
   private async readApproved(
     tx: Prisma.TransactionClient,
@@ -595,7 +616,7 @@ export class BrandOsScanService {
         availability: candidate.availability,
       }).slice(0, 4000),
     }));
-    draft.evidence.push(...evidence.evidence, ...fontEvidence);
+    draft.evidence.push(...evidence.evidence);
     draft.diagnostics.push(...evidence.diagnostics);
     draft.readiness.diagnostics.push(...evidence.diagnostics);
     if (draft.fields.fontFamily) {

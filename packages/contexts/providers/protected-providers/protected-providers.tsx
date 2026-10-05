@@ -188,6 +188,8 @@ export default function ProtectedProviders({
     <UserProvider
       hasInitialBootstrap={hasInitialBootstrap}
       initialCurrentUser={initialBootstrap?.currentUser}
+      initialMemberRole={initialBootstrap?.accessState?.memberRole}
+      initialOrganizationId={initialBootstrap?.organizationId}
     >
       {content}
     </UserProvider>

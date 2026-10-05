@@ -69,6 +69,7 @@ function createWrapper() {
 
 describe('AccessStateProvider', () => {
   const initialAccessState: AccessBootstrapState = {
+    memberRole: 'owner',
     brandId: 'brand_123',
     creditsBalance: 100,
     hasDismissedAssetGate: false,

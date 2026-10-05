@@ -162,10 +162,69 @@ describe('AuthBootstrapService', () => {
     mockGetSubscriptionTier.mockReturnValue('');
   });
 
+  it.each(['owner', 'admin'])(
+    'resolves %s from the active membership in the requested organization',
+    async (role) => {
+      membersService.findOne.mockImplementation(
+        async (filter: Record<string, unknown>) =>
+          filter.organizationId === 'org_active' &&
+          filter.userId === 'user_1' &&
+          filter.isActive === true &&
+          filter.isDeleted === false
+            ? { role: { key: role } }
+            : null,
+      );
+      const result = await service.getBootstrap({
+        context: { organizationId: 'org_active', userId: 'user_1' },
+        user: { id: 'user_1' },
+      } as never);
+      expect(result.access.memberRole).toBe(role);
+      expect(membersService.findOne).toHaveBeenCalledWith(
+        {
+          isActive: true,
+          isDeleted: false,
+          organizationId: 'org_active',
+          userId: 'user_1',
+        },
+        expect.any(Array),
+      );
+    },
+  );
+
+  it('returns no role when only another organization has an active membership', async () => {
+    membersService.findOne.mockImplementation(
+      async (filter: Record<string, unknown>) =>
+        filter.organizationId === 'org_other'
+          ? { role: { key: 'owner' } }
+          : null,
+    );
+    const result = await service.getBootstrap({
+      context: { organizationId: 'org_active', userId: 'user_1' },
+      user: { id: 'user_1', organizationId: 'org_other' },
+    } as never);
+    expect(result.access.memberRole).toBeNull();
+    expect(membersService.findOne).not.toHaveBeenCalledWith(
+      expect.objectContaining({ organizationId: 'org_other' }),
+      expect.anything(),
+    );
+  });
+
+  it('returns no role and skips membership lookups without an organization', async () => {
+    const result = await service.getBootstrap({
+      context: { userId: 'user_1' },
+      user: { id: 'user_1' },
+    } as never);
+    expect(result.access.memberRole).toBeNull();
+    expect(membersService.findOne).not.toHaveBeenCalled();
+  });
+
   it('returns the expanded cached bootstrap payload when present', async () => {
     const cached: AccessBootstrapCachePayload = {
       access: {
         brandId: 'brand_1',
+        memberRole: null,
+        hasDismissedAssetGate: false,
+        hasGeneratedFirstAsset: false,
         creditsBalance: 42,
         hasEverHadCredits: true,
         isOnboardingCompleted: true,
@@ -200,6 +259,9 @@ describe('AuthBootstrapService', () => {
     const cached = {
       access: {
         brandId: 'brand_1',
+        memberRole: null,
+        hasDismissedAssetGate: false,
+        hasGeneratedFirstAsset: false,
         creditsBalance: 0,
         hasEverHadCredits: false,
         isOnboardingCompleted: true,
@@ -235,6 +297,9 @@ describe('AuthBootstrapService', () => {
     const cached: AccessBootstrapCachePayload = {
       access: {
         brandId: 'brand_1',
+        memberRole: null,
+        hasDismissedAssetGate: false,
+        hasGeneratedFirstAsset: false,
         creditsBalance: 42,
         hasEverHadCredits: true,
         isOnboardingCompleted: true,
@@ -336,6 +401,7 @@ describe('AuthBootstrapService', () => {
       context: {
         brandId,
         isSuperAdmin: false,
+        memberRole: null,
         organizationId,
         stripeSubscriptionStatus: SubscriptionStatus.TRIALING,
         subscriptionTier: '',
@@ -366,6 +432,7 @@ describe('AuthBootstrapService', () => {
         hasGeneratedFirstAsset: false,
         isOnboardingCompleted: true,
         isSuperAdmin: false,
+        memberRole: null,
         organizationId,
         subscriptionStatus: SubscriptionStatus.TRIALING,
         subscriptionTier: SubscriptionTier.PRO,
@@ -443,6 +510,7 @@ describe('AuthBootstrapService', () => {
       context: {
         brandId,
         isSuperAdmin: false,
+        memberRole: null,
         organizationId,
         stripeSubscriptionStatus: SubscriptionStatus.ACTIVE,
         subscriptionTier: '',
@@ -482,6 +550,7 @@ describe('AuthBootstrapService', () => {
     await service.getBootstrap({
       context: {
         isSuperAdmin: false,
+        memberRole: null,
         organizationId,
         userId,
       },
@@ -518,6 +587,7 @@ describe('AuthBootstrapService', () => {
       context: {
         brandId: '',
         isSuperAdmin: false,
+        memberRole: null,
         organizationId,
         stripeSubscriptionStatus: '',
         subscriptionTier: '',
@@ -542,10 +612,13 @@ describe('AuthBootstrapService', () => {
     const bootstrapPayload: AccessBootstrapCachePayload = {
       access: {
         brandId,
+        hasGeneratedFirstAsset: false,
+        hasDismissedAssetGate: false,
         creditsBalance: 0,
         hasEverHadCredits: false,
         isOnboardingCompleted: true,
         isSuperAdmin: false,
+        memberRole: null,
         organizationId,
         subscriptionStatus: SubscriptionStatus.ACTIVE,
         subscriptionTier: SubscriptionTier.PRO,
@@ -617,10 +690,13 @@ describe('AuthBootstrapService', () => {
     accessBootstrapCacheService.get.mockResolvedValue({
       access: {
         brandId,
+        hasGeneratedFirstAsset: false,
+        hasDismissedAssetGate: false,
         creditsBalance: 0,
         hasEverHadCredits: false,
         isOnboardingCompleted: true,
         isSuperAdmin: false,
+        memberRole: null,
         organizationId,
         subscriptionStatus: SubscriptionStatus.ACTIVE,
         subscriptionTier: SubscriptionTier.PRO,

@@ -17,11 +17,13 @@ import type {
   IBrandVoiceAnalysis,
   IExtractedBrandData,
   IScrapedBrandData,
+  IScrapedBrandDataJson,
   SignupPrefillWorkflowInput,
 } from '@genfeedai/contracts/interfaces';
 import { resolveSignupBrandDomain } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 
 export type SignupPrefillStatus =
   | 'completed'
@@ -54,7 +56,7 @@ export interface SignupPrefillState {
   config: BrandAgentConfig;
   hasHarnessProfile?: boolean;
   request: SignupPrefillWorkflowInput;
-  scrapedData?: IScrapedBrandData;
+  scrapedData?: IScrapedBrandDataJson;
   status: SignupPrefillStatus;
   websiteUrl?: string;
 }
@@ -151,19 +153,23 @@ export class SignupPrefillService {
 
   async scrapePrefill(state: SignupPrefillState): Promise<SignupPrefillState> {
     if (state.status !== 'running' || !state.websiteUrl) return state;
+    const scrapedData = await this.scrapeBrandWebsite(
+      state.websiteUrl,
+      state.brandLabel,
+    );
     return {
       ...state,
-      scrapedData: await this.scrapeBrandWebsite(
-        state.websiteUrl,
-        state.brandLabel,
-      ),
+      scrapedData: toPlainJson({
+        ...scrapedData,
+        scrapedAt: scrapedData.scrapedAt.toISOString(),
+      }),
     };
   }
 
   async analyzePrefill(state: SignupPrefillState): Promise<SignupPrefillState> {
     if (!state.scrapedData) return state;
     const brandVoice = await this.analyzeBrandVoice(
-      state.scrapedData,
+      this.readScrapedData(state.scrapedData),
       state.request.organizationId,
       state.request.userId,
     );
@@ -177,13 +183,16 @@ export class SignupPrefillService {
     state: SignupPrefillState,
   ): Promise<SignupPrefillState> {
     if (state.status !== 'running') return state;
-    if (state.scrapedData && state.websiteUrl) {
+    const scrapedData = state.scrapedData
+      ? this.readScrapedData(state.scrapedData)
+      : undefined;
+    if (scrapedData && state.websiteUrl) {
       await this.persistScrapedBrand({
         brandId: state.request.brandId,
         brandLabel: state.brandLabel,
         brandVoice: state.brandVoice,
         organizationId: state.request.organizationId,
-        scrapedData: state.scrapedData,
+        scrapedData,
         userId: state.request.userId,
         websiteUrl: state.websiteUrl,
       });
@@ -196,7 +205,7 @@ export class SignupPrefillService {
     const config = buildPrefilledAgentConfig({
       brandLabel: state.brandLabel,
       existingConfig: mergedConfig,
-      scrapedData: state.scrapedData,
+      scrapedData,
       timezone: 'UTC',
     });
     await this.brandsService.updateAgentConfig(
@@ -215,7 +224,7 @@ export class SignupPrefillService {
         state.request.brandId,
         state.brandLabel,
         state.config,
-        state.scrapedData,
+        state.scrapedData ? this.readScrapedData(state.scrapedData) : undefined,
       );
     }
     return state;
@@ -230,7 +239,9 @@ export class SignupPrefillService {
       brandId: state.request.brandId,
       brandLabel: state.brandLabel,
       organizationId: state.request.organizationId,
-      scrapedData: state.scrapedData,
+      scrapedData: state.scrapedData
+        ? this.readScrapedData(state.scrapedData)
+        : undefined,
       userId: state.request.userId,
     });
     return { ...state, hasHarnessProfile };
@@ -326,6 +337,10 @@ export class SignupPrefillService {
     }
 
     return domainName?.trim() || current || 'Your brand';
+  }
+
+  private readScrapedData(data: IScrapedBrandDataJson): IScrapedBrandData {
+    return { ...data, scrapedAt: new Date(data.scrapedAt) };
   }
 
   private async scrapeBrandWebsite(

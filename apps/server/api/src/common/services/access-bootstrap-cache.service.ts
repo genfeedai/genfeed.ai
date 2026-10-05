@@ -17,6 +17,7 @@ import { Injectable } from '@nestjs/common';
 export interface AccessBootstrapStatePayload {
   userId: string;
   organizationId: string;
+  memberRole: string | null;
   brandId: string;
   isSuperAdmin: boolean;
   isOnboardingCompleted: boolean;

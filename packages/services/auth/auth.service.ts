@@ -13,6 +13,7 @@ import { HTTPBaseService } from '@services/core/interceptor.service';
 export interface AccessBootstrapState {
   userId: string;
   organizationId: string;
+  memberRole: string | null;
   brandId: string;
   isSuperAdmin: boolean;
   isOnboardingCompleted: boolean;
