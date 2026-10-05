@@ -206,6 +206,7 @@ function buildHandler(overrides: {
   members?: unknown;
   personas?: unknown;
   transactions?: unknown;
+  users?: unknown;
 }): AgentWorkspaceToolHandler {
   // Default brand lookups resolve any id inside the organization and members
   // have no current brand, so tests opt into other behavior explicitly.
@@ -227,6 +228,7 @@ function buildHandler(overrides: {
     (overrides.transactions ?? {}) as HandlerArgs[6],
     (overrides.ingredients ?? {}) as HandlerArgs[7],
     overrides.characterFilter as HandlerArgs[8],
+    overrides.users as HandlerArgs[9],
   );
 }
 
@@ -710,6 +712,42 @@ describe('AgentWorkspaceToolHandler.getAccount', () => {
     expect((session.data as { profile: { role: string } }).profile.role).toBe(
       'admin',
     );
+  });
+
+  it('reports whether the caller finished onboarding (#6268)', async () => {
+    const users = {
+      findOne: vi.fn().mockResolvedValue({ isOnboardingCompleted: false }),
+    };
+    const handler = buildHandler({ users });
+    const result = await handler.getAccount({ include: ['profile'] }, baseCtx);
+
+    expect(users.findOne).toHaveBeenCalledWith({ id: 'user-1' });
+    expect(
+      (result.data as { profile: { isOnboardingCompleted: boolean } }).profile
+        .isOnboardingCompleted,
+    ).toBe(false);
+
+    users.findOne.mockResolvedValueOnce({ isOnboardingCompleted: true });
+    const done = await handler.getAccount({ include: ['profile'] }, baseCtx);
+    expect(
+      (done.data as { profile: { isOnboardingCompleted: boolean } }).profile
+        .isOnboardingCompleted,
+    ).toBe(true);
+  });
+
+  it('omits the onboarding flag when the user lookup fails', async () => {
+    const users = { findOne: vi.fn().mockRejectedValue(new Error('down')) };
+    const handler = buildHandler({ users });
+    const result = await handler.getAccount({ include: ['profile'] }, baseCtx);
+
+    expect(result.data).toEqual({
+      profile: {
+        brandId: 'brand-b',
+        organizationId: 'org-1',
+        role: '',
+        userId: 'user-1',
+      },
+    });
   });
 
   it('fails closed to an empty role and rejects unknown sections', async () => {

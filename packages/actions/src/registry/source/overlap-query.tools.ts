@@ -9,7 +9,7 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Get account details in one call: profile (user, organization, scoped brand, role), credits (current balance) and usage (balance, 7 and 30 day credit spend, trend and spend breakdown by source). Defaults to all three; pass include to fetch fewer.',
+      'Get account details in one call: profile (user, organization, scoped brand, role, isOnboardingCompleted), credits (current balance) and usage (balance, 7 and 30 day credit spend, trend and spend breakdown by source). Defaults to all three; pass include to fetch fewer.',
     name: 'get_account',
     parameters: {
       properties: {
