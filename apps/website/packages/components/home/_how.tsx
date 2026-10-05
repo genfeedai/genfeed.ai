@@ -7,19 +7,19 @@ const EYEBROW_CLASS =
 
 const HOW_STEPS: HowStep[] = [
   {
-    description: 'Describe the campaign or drop in a reference.',
+    description: 'Say what you want, or drop in a reference.',
     step: '01',
-    title: 'Brief',
+    title: 'Ask',
   },
   {
-    description: 'Genfeed creates every format. You review and refine.',
+    description: 'Genfeed makes every format, on brand.',
     step: '02',
-    title: 'Create & review',
+    title: 'Create',
   },
   {
-    description: 'Schedule everywhere and learn what should come next.',
+    description: 'It gets everything out and learns what to make next.',
     step: '03',
-    title: 'Publish & learn',
+    title: 'Grow',
   },
 ];
 
@@ -34,10 +34,11 @@ export default function HomeHow(): React.ReactElement {
             as="h2"
             className="text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
           >
-            Brief to published.
+            Watch it work.
           </Heading>
           <Text className="max-w-2xl text-base leading-7 gen-text-muted">
-            Three steps, one workspace.
+            Brand memory, drafts and results live in one workspace. Approve the
+            first posts, then switch on auto-publish and it runs on its own.
           </Text>
         </div>
 
