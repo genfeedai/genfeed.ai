@@ -616,7 +616,7 @@ export class BrandOsScanService {
         availability: candidate.availability,
       }).slice(0, 4000),
     }));
-    draft.evidence.push(...evidence.evidence);
+    draft.evidence.push(...evidence.evidence, ...fontEvidence);
     draft.diagnostics.push(...evidence.diagnostics);
     draft.readiness.diagnostics.push(...evidence.diagnostics);
     if (draft.fields.fontFamily) {
