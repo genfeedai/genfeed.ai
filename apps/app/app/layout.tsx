@@ -75,7 +75,9 @@ export default function RootLayout({ children }: LayoutProps) {
           it into every prerendered route. Server translations still use request.ts. */}
       <AppIntlProvider
         locale={DEFAULT_LOCALE}
-        timeZone={Intl.DateTimeFormat().resolvedOptions().timeZone}
+        timeZone={
+          Intl.DateTimeFormat(DEFAULT_LOCALE).resolvedOptions().timeZone
+        }
       >
         <Suspense fallback={null}>
           <AppProviders
