@@ -9,6 +9,10 @@ import {
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  type McpAccessMode,
+  mostRestrictiveMcpAccessMode,
+} from '@genfeedai/actions';
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   ActionOrigin,
@@ -20,6 +24,7 @@ import {
   CONNECT_GENFEED_VERIFICATION_METADATA_KEY,
   MCP_OAUTH_SESSION_KIND,
 } from '@genfeedai/contracts/constants';
+import { resolveMcpAccessModeForResource } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { getApiRateLimitForTier } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
@@ -439,8 +444,19 @@ export class ApiKeysService extends BaseService<
     return metadata.kind === MCP_OAUTH_SESSION_KIND;
   }
 
-  hasTrustedMcpOriginProof(supplied: unknown): boolean {
-    if (!isCloudDeployment()) {
+  readMcpAccessMode(apiKey: ApiKeyDocument): McpAccessMode {
+    if (!this.isMcpOAuthSession(apiKey)) return 'standard';
+    const metadata = apiKey.metadata as Record<string, unknown>;
+    return mostRestrictiveMcpAccessMode(
+      metadata.mcpAccessMode,
+      typeof metadata.resource === 'string'
+        ? resolveMcpAccessModeForResource(metadata.resource)
+        : 'claude',
+    );
+  }
+
+  hasTrustedMcpOriginProof(supplied: unknown, requireProof = false): boolean {
+    if (!requireProof && !isCloudDeployment()) {
       return true;
     }
 

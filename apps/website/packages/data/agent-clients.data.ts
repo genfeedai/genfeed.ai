@@ -21,6 +21,9 @@ import {
  * emit a second URL or a `?profile=` query.
  */
 export const GENFEED_PUBLIC_MCP_URL = 'https://mcp.genfeed.ai/mcp';
+export const GENFEED_CLAUDE_MCP_URL = `${GENFEED_PUBLIC_MCP_URL}/claude`;
+export const isClaudeClient = (slug: AgentClientSlug): boolean =>
+  ['claude', 'claude-code', 'claude-cowork'].includes(slug);
 
 export const GENFEED_AGENT_REPOSITORY_URL =
   'https://github.com/genfeedai/agent';
@@ -66,6 +69,8 @@ export interface AgentClientCommandBlock {
 
 export interface AgentClient {
   about: string;
+  capabilities: readonly string[];
+  examplePrompts: readonly string[];
   /** Paste-into-chat prompt for agents that build their own connector. */
   chatPrompt?: string;
   connectInstruction: string;
@@ -99,6 +104,19 @@ export const AGENT_CLIENT_EXAMPLE_PROMPTS = [
   'Generate a vertical product video for TikTok and schedule it for Friday at 9am.',
   'Show last week’s best-performing posts across my connected channels.',
   'Turn this podcast transcript into an X thread and a YouTube Shorts script.',
+] as const;
+
+export const CLAUDE_CLIENT_CAPABILITIES = [
+  'Use your brand context to draft posts and articles for review.',
+  'Find existing assets and schedule content on connected channels.',
+  'Read analytics to plan your next campaign.',
+  'Open Genfeed Studio to create images, video and audio, then bring the assets back to your content.',
+] as const;
+export const CLAUDE_CLIENT_EXAMPLE_PROMPTS = [
+  'Draft three LinkedIn posts from my latest article and save them for review.',
+  'Find my existing product video and prepare a release for Friday at 9am.',
+  'Show last week’s best-performing posts across my connected channels.',
+  'Write an image brief and give me the link to create it in Genfeed Studio.',
 ] as const;
 
 const HELPER_CLIENT: Record<AgentClientSlug, ConnectGenfeedClient> = {
@@ -140,33 +158,38 @@ interface AgentClientCopy {
 
 function buildClient(copy: AgentClientCopy): AgentClient {
   const helperClient = HELPER_CLIENT[copy.slug];
+  const isClaude = isClaudeClient(copy.slug);
+  const connectUrl = isClaude ? GENFEED_CLAUDE_MCP_URL : GENFEED_PUBLIC_MCP_URL;
   const oauth = buildConnectGenfeedInstructions(
     helperClient,
-    GENFEED_PUBLIC_MCP_URL,
+    connectUrl,
     'oauth',
   );
   const isOAuthOnly =
+    isClaude ||
     copy.isChatConnector ||
     ['chatgpt', 'claude', 'claude-cowork', 'grok'].includes(copy.slug);
   const installation: AgentInstallation = { ...agentInstallations[copy.slug] };
   if (copy.slug === 'cursor')
-    installation.destination = buildCursorInstallUrl(GENFEED_PUBLIC_MCP_URL);
+    installation.destination = buildCursorInstallUrl(connectUrl);
   const manualKey = isOAuthOnly
     ? undefined
-    : buildConnectGenfeedInstructions(
-        helperClient,
-        GENFEED_PUBLIC_MCP_URL,
-        'manual-key',
-      );
+    : buildConnectGenfeedInstructions(helperClient, connectUrl, 'manual-key');
   const chatPrompt = copy.isChatConnector
-    ? buildConnectGenfeedChatPrompt(GENFEED_PUBLIC_MCP_URL)
+    ? buildConnectGenfeedChatPrompt(connectUrl)
     : undefined;
   const connectInstruction = installation.instruction;
   return {
     about: copy.about,
+    capabilities: isClaude
+      ? CLAUDE_CLIENT_CAPABILITIES
+      : AGENT_CLIENT_CAPABILITIES,
+    examplePrompts: isClaude
+      ? CLAUDE_CLIENT_EXAMPLE_PROMPTS
+      : AGENT_CLIENT_EXAMPLE_PROMPTS,
     chatPrompt,
     connectInstruction,
-    connectUrl: GENFEED_PUBLIC_MCP_URL,
+    connectUrl: connectUrl,
     description: copy.description,
     setupPrompt: isOAuthOnly
       ? undefined
@@ -186,7 +209,7 @@ function buildClient(copy: AgentClientCopy): AgentClient {
         question: `What is ${copy.name}?`,
       },
       {
-        answer: `Every client uses the same hosted MCP endpoint: ${GENFEED_PUBLIC_MCP_URL}.`,
+        answer: `Connect this client to: ${connectUrl}.`,
         question: 'What URL do I connect?',
       },
       {
@@ -196,9 +219,19 @@ function buildClient(copy: AgentClientCopy): AgentClient {
         question: `Do I need an API key to use Genfeed with ${copy.name}?`,
       },
       {
-        answer: `No. ${copy.name} drafts posts and Genfeed holds them for review. You approve before anything publishes, unless you set up a workflow that publishes directly.`,
+        answer: `No. ${copy.name} drafts posts and Genfeed holds them for review. You approve before anything publishes, ${isClaude ? 'and this connector cannot run publishing workflows.' : 'unless you set up a workflow that publishes directly.'}`,
         question: `Can ${copy.name} publish without my approval?`,
       },
+      ...(isClaude
+        ? [
+            {
+              question:
+                'Can Claude create images, video or audio through this connector?',
+              answer:
+                'Create those assets in Genfeed Studio, then use Claude to draft, schedule and measure content with your existing assets. The Claude connector does not run media generation, batches or workflows. Reconnect existing installations with the Claude URL shown here.',
+            },
+          ]
+        : []),
       ...copy.extraFaq,
       {
         answer:
@@ -216,10 +249,7 @@ function buildClient(copy: AgentClientCopy): AgentClient {
     name: copy.name,
     oauth,
     preview:
-      chatPrompt ??
-      installation.command ??
-      oauth.primaryCommand ??
-      GENFEED_PUBLIC_MCP_URL,
+      chatPrompt ?? installation.command ?? oauth.primaryCommand ?? connectUrl,
     slug: copy.slug,
     title: `Genfeed for ${copy.name}`,
   };
@@ -230,7 +260,7 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     about:
       'Claude is Anthropic’s AI assistant on the web, desktop, and mobile. It can add a remote MCP server as a custom connector, so Genfeed tools work inside a normal Claude chat.',
     description:
-      'Bring your brand, content library, and creative tools into Claude. Connect Genfeed to create images, video, and campaigns from one conversation.',
+      'Draft, schedule and measure content in Claude with your Genfeed brands and existing assets. Create images, video and audio in Genfeed Studio.',
     extraFaq: [
       {
         answer:
@@ -243,13 +273,13 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
   },
   {
     about:
-      'Claude Code is Anthropic’s agentic coding tool for the terminal and IDE. It adds a remote MCP server with one command, so the session that ships code can also draft, generate, and schedule posts.',
+      'Claude Code is Anthropic’s agentic coding tool for the terminal and IDE. It adds a remote MCP server with one command, so the session that ships code can also draft posts, schedule existing assets and read analytics.',
     description:
-      'Add Genfeed’s creative tools to Claude Code. Install the plugin to access your brands, generate media, and prepare content alongside your code.',
+      'Manage brands, drafts, scheduling and analytics in Claude Code. Create images, video and audio in Genfeed Studio.',
     extraFaq: [
       {
         answer:
-          'Run the verify command on this page after you return from the browser. If OAuth is unavailable, use the advanced manual-key path. The key stays in GENFEED_API_KEY and is not pasted into the command.',
+          'Run the verify command after browser sign-in, then ask Claude Code to list your brands. The Claude connector requires its own OAuth connection; reconnect older installations with the Claude URL. Never paste a key into chat.',
         question: 'How do I know Claude Code is connected?',
       },
     ],
@@ -260,11 +290,11 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     about:
       'Claude Cowork is Anthropic’s desktop agent for knowledge work outside the terminal. It uses the same remote MCP connectors as Claude, so Genfeed connects with the shared URL.',
     description:
-      'Give Cowork access to your Genfeed workspace. Turn briefs, files, and research into on-brand content with a connected creative workflow.',
+      'Plan campaigns, draft posts and schedule existing assets with Cowork and Genfeed. Create images, video and audio in Genfeed Studio.',
     extraFaq: [
       {
         answer:
-          'No. Cowork uses the same hosted MCP URL and generic Streamable HTTP configuration as other clients that do not have a dedicated command.',
+          'Cowork uses the Claude connector URL shown here. It supports brands, drafts, scheduling and analytics; media creation happens in Genfeed Studio.',
         question: 'Does Cowork use a different endpoint?',
       },
     ],
@@ -528,7 +558,7 @@ export function buildAgentClientJsonLd(client: AgentClient, url: string) {
           name: 'Genfeed MCP Server',
           offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
           operatingSystem: 'Web',
-          url: GENFEED_PUBLIC_MCP_URL,
+          url: client.connectUrl,
         },
         description: client.description,
         isPartOf: {
@@ -630,7 +660,10 @@ export function renderAgentConnectMarkdown(input: {
   lines.push('');
   lines.push(`- MCP URL: ${GENFEED_PUBLIC_MCP_URL}`);
   lines.push(
-    '- Auth: OAuth in the browser. The advanced path is a scoped API key exported as GENFEED_API_KEY.',
+    `- Claude, Claude Code and Cowork: ${GENFEED_CLAUDE_MCP_URL}. Brands, drafts, scheduling and analytics; create media in Genfeed Studio.`,
+  );
+  lines.push(
+    '- Auth: OAuth in the browser. Claude requires OAuth. For other clients, the advanced path is a scoped API key exported as GENFEED_API_KEY.',
   );
   lines.push(`- Pricing: ${input.pricingSummary}`);
   lines.push(`- Agent repository: ${GENFEED_AGENT_REPOSITORY_URL}`);

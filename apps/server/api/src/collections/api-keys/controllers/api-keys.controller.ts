@@ -74,6 +74,11 @@ export class ApiKeysController {
       [API_KEY_ACTION_ORIGIN_METADATA_KEY]: _actionOrigin,
       [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: _actionOriginProof,
       [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: _connectGenfeedVerification,
+      kind: _kind,
+      mcpAccessMode: _mcpAccessMode,
+      resource: _resource,
+      grantId: _grantId,
+      clientName: _clientName,
       ...safeMetadata
     } = metadata;
     return safeMetadata;
@@ -95,6 +100,20 @@ export class ApiKeysController {
       !Array.isArray(verification)
       ? { [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: verification }
       : {};
+  }
+
+  private existingMcpOAuthMetadata(
+    apiKey: Parameters<ApiKeysService['resolveActionOrigin']>[0],
+  ): Record<string, unknown> {
+    const metadata = apiKey.metadata as Record<string, unknown> | undefined;
+    if (metadata?.kind !== 'mcp-oauth-session') return {};
+    return {
+      kind: metadata.kind,
+      resource: metadata.resource,
+      mcpAccessMode: metadata.mcpAccessMode,
+      grantId: metadata.grantId,
+      clientName: metadata.clientName,
+    };
   }
 
   private trustedExistingOriginMetadata(
@@ -285,6 +304,7 @@ export class ApiKeysController {
               ...this.withoutReservedMetadata(updateApiKeyDto.metadata),
               ...this.existingConnectGenfeedMetadata(existingKey),
               ...this.trustedExistingOriginMetadata(existingKey),
+              ...this.existingMcpOAuthMetadata(existingKey),
             },
           }
         : {}),
@@ -326,7 +346,10 @@ export class ApiKeysController {
       !Array.isArray(existingKey.metadata)
         ? (existingKey.metadata as Record<string, unknown>)
         : undefined;
-    const metadata = this.withoutReservedMetadata(existingMetadata);
+    const metadata = {
+      ...this.withoutReservedMetadata(existingMetadata),
+      ...this.existingMcpOAuthMetadata(existingKey),
+    };
     const existingOrigin = this.apiKeysService.resolveActionOrigin(existingKey);
     const trustedOrigin =
       existingOrigin === ActionOrigin.CLI || existingOrigin === ActionOrigin.UI

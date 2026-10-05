@@ -240,7 +240,8 @@ describe('MCP setup page', () => {
         );
         expect(html).toContain(`codex mcp add genfeed --url ${identifier}`);
         expect(html).toContain(`var baseMcpUrl = "${identifier}";`);
-        expect(html).not.toContain(`${identifier}/`);
+        expect(html).not.toContain(`${identifier}/mcp`);
+        expect(html).toContain(`${identifier}/claude`);
       },
     );
 
@@ -315,6 +316,10 @@ describe('MCP setup page', () => {
     expect(promptHtml).toContain('npx skills add genfeedai/agent');
     expect(promptHtml).toContain('read-only get_account and get_brands');
     expect(html).toContain('data-copy-source="skills-install-command"');
+    expect(html).toContain('For non-Claude clients only');
+    expect(html).toContain(
+      'Do not install this skills bundle into any Claude client',
+    );
   });
 
   it('uses shared static UI surface primitives instead of local card CSS', () => {
@@ -487,7 +492,12 @@ describe('MCP setup page', () => {
         `MCP server URL: ${selectedUrl}\n`,
       );
       expect(JSON.parse(text('generic-client-config')).url).toBe(selectedUrl);
-      expect(text('claude-code-command')).toContain(`'${selectedUrl}'`);
+      expect(text('claude-code-command')).toContain(
+        'https://mcp.genfeed.ai/mcp/claude',
+      );
+      expect(text('agent-setup-prompt')).toContain(
+        'Claude endpoint: https://mcp.genfeed.ai/mcp/claude',
+      );
       expect(text('codex-command')).toContain(`--url '${selectedUrl}'`);
       expect(text('agent-setup-prompt')).toContain(`Endpoint: ${selectedUrl}`);
 

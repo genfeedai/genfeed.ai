@@ -3,6 +3,7 @@ import type {
   ConnectGenfeedClient,
   ConnectGenfeedInstructions,
 } from '@genfeedai/contracts/interfaces';
+import { deriveClaudeMcpResourceIdentifier } from './mcp-resource.helper';
 
 const ENVIRONMENT_VARIABLE = 'GENFEED_API_KEY';
 export const GENFEED_SKILLS_INSTALL_COMMAND = 'npx skills add genfeedai/agent';
@@ -46,19 +47,40 @@ export function buildGenfeedAgentSetupPrompt(
   endpoint: string,
   clientName = 'the local agent I am using',
 ): string {
-  const mcpEndpoint = normalizeEndpoint(endpoint);
+  const standardUrl = new URL(normalizeEndpoint(endpoint));
+  if (
+    standardUrl.pathname
+      .replace(/\/+$/, '')
+      .toLowerCase()
+      .endsWith('/mcp/claude')
+  ) {
+    standardUrl.pathname = standardUrl.pathname.replace(
+      /\/mcp\/claude\/*$/i,
+      '/mcp',
+    );
+    standardUrl.search = '';
+    standardUrl.hash = '';
+  }
+  const mcpEndpoint = normalizeEndpoint(standardUrl.toString());
   const claude = buildConnectGenfeedInstructions('claude-code', mcpEndpoint);
+  standardUrl.search = '';
+  standardUrl.hash = '';
+  const claudeEndpoint = deriveClaudeMcpResourceIdentifier(
+    normalizeEndpoint(standardUrl.toString()),
+  );
   const codex = buildConnectGenfeedInstructions('codex', mcpEndpoint);
 
   return `Set up the Genfeed MCP server on this machine, with its agent playbook, for ${clientName}.
 
 Endpoint: ${mcpEndpoint}
+Claude endpoint: ${claudeEndpoint} (use this for every Claude client).
+Claude supports brands, drafts, scheduling and analytics. Create media in Genfeed Studio.
 Authentication: browser OAuth (no API key required)
 Setup reference: https://github.com/genfeedai/agent/blob/main/llms-install.md
 
 Do this end to end:
 1. Inspect the selected client's existing Genfeed plugins, skills, and MCP configuration. Preserve unrelated configuration and use the existing Genfeed installation when present. Set up only this client; ask which client to use if you cannot identify it.
-2. Install the Genfeed playbook with ${GENFEED_SKILLS_INSTALL_COMMAND}. Select only the intended client in the installer. Skip this step if the playbook is already available through an installed Genfeed plugin, extension, or standalone skill. Installing skills alone does not configure or authenticate MCP.
+2. For Claude Code, install the dedicated content plugin with /plugin install genfeed --marketplace genfeedai/agent (Claude Code 2.1.275 or newer). For Claude chat, Desktop, Cowork and other Claude clients, skip playbook installation and connect through their supported OAuth flow instead. Never run skills add for any Claude client. For non-Claude clients, install the Genfeed playbook with ${GENFEED_SKILLS_INSTALL_COMMAND} and select only the intended client in the installer. Skip this step if the playbook is already available through an installed Genfeed plugin, extension, or standalone skill. Installing skills alone does not configure or authenticate MCP.
 3. If Genfeed MCP is not already configured, add the remote Streamable HTTP server for the selected client using browser authorization:
    - Only if the selected client is Claude Code: ${claude.primaryCommand}
    - Only if the selected client is Codex: ${codex.primaryCommand}
@@ -66,13 +88,13 @@ Do this end to end:
 
 ${codex.configuration}
 
-For other local clients, follow their supported remote MCP configuration using the endpoint above. Do not duplicate a server provided by an installed plugin.
+For other clients, follow their supported remote MCP configuration. Claude and Cowork must use the Claude endpoint; other clients use the standard endpoint above. Do not duplicate a server provided by an installed plugin.
 4. Only for Claude Code: ${claude.authorizationInstruction}
    Only for Codex: ${codex.authorizationInstruction}
    For other clients, open their OAuth connection flow. Authenticate only the selected client.
 5. Ask the user to complete consent in their browser. Never request tokens or passwords in this chat. If authorization is denied or expires, restart the client authorization flow.
 6. Verify access with read-only get_account and get_brands calls (list my Genfeed brands); request only the profile section from get_account. A copied command, registered plugin source, or server list entry alone does not verify authorization.
-7. Do not generate content, schedule, publish, or resolve approvals during setup. Report skill installation, MCP configuration, and authenticated verification separately, including any remaining user step. If OAuth is unsupported, direct the user to Genfeed's guided setup for the advanced manual-key path.`;
+7. Do not generate content, schedule, publish, or resolve approvals during setup. Report skill installation, MCP configuration, and authenticated verification separately, including any remaining user step. Claude requires OAuth. If another client does not support OAuth, direct its user to Genfeed's guided setup for the advanced manual-key path.`;
 }
 
 export function buildConnectGenfeedInstructions(
@@ -80,7 +102,20 @@ export function buildConnectGenfeedInstructions(
   endpoint: string,
   authMethod: ConnectGenfeedAuthMethod = 'oauth',
 ): ConnectGenfeedInstructions {
-  const mcpEndpoint = normalizeEndpoint(endpoint);
+  const url = new URL(normalizeEndpoint(endpoint));
+  const normalizedPath = url.pathname.replace(/\/+$/, '');
+  const isClaude =
+    client === 'claude-code' ||
+    normalizedPath.toLowerCase().endsWith('/mcp/claude');
+  if (isClaude) {
+    url.search = '';
+    url.hash = '';
+    url.pathname = normalizedPath.toLowerCase().endsWith('/mcp/claude')
+      ? normalizedPath.replace(/\/mcp\/claude$/i, '/mcp/claude')
+      : new URL(deriveClaudeMcpResourceIdentifier(url.toString())).pathname;
+    authMethod = 'oauth';
+  }
+  const mcpEndpoint = isClaude ? url.toString() : normalizeEndpoint(endpoint);
   const shellEndpoint = /^[A-Za-z0-9:/._-]+$/.test(mcpEndpoint)
     ? mcpEndpoint
     : `'${mcpEndpoint.replace(/'/g, `'"'"'`)}'`;
@@ -91,7 +126,7 @@ export function buildConnectGenfeedInstructions(
         ? 'Run codex mcp login genfeed if authorization did not open during setup. Sign in and approve access in your browser, then return to Codex.'
         : client === 'claude-code'
           ? 'Open /mcp inside Claude Code, select genfeed, and authenticate. Sign in and approve access in your browser, then return to Claude Code.'
-          : 'Add this endpoint as a remote Streamable HTTP server in your client, choose OAuth, and complete browser sign-in and consent. If your client does not support OAuth, use the advanced manual-key path.';
+          : `Add this endpoint as a remote Streamable HTTP server in your client, choose OAuth, and complete browser sign-in and consent.${isClaude ? ' The Claude connector requires OAuth; update your client if OAuth is unsupported.' : ' If your client does not support OAuth, use the advanced manual-key path.'}`;
     return {
       authMethod,
       authorizationInstruction,
@@ -121,23 +156,6 @@ export function buildConnectGenfeedInstructions(
   }
 
   const environmentCommand = `read -s ${ENVIRONMENT_VARIABLE} && export ${ENVIRONMENT_VARIABLE}`;
-
-  if (client === 'claude-code') {
-    return {
-      authMethod,
-      authorizationInstruction:
-        'Configure your client with the scoped key, then verify the connection.',
-      client,
-      configuration: [
-        'Remote Streamable HTTP server: genfeed',
-        `Endpoint: ${mcpEndpoint}`,
-        `Authorization: Bearer $${ENVIRONMENT_VARIABLE}`,
-      ].join('\n'),
-      environmentCommand,
-      primaryCommand: `claude mcp add --transport http genfeed --scope user ${shellEndpoint} --header "Authorization: Bearer $${ENVIRONMENT_VARIABLE}"`,
-      verifyCommand: 'claude mcp list',
-    };
-  }
 
   if (client === 'codex') {
     return {

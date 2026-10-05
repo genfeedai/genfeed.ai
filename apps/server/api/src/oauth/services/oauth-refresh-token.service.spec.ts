@@ -338,6 +338,7 @@ describe('OAuthRefreshTokenService', () => {
           // A legacy key without lineage anchors the grant to its own id.
           grantId: original.id,
           kind: 'mcp-oauth-session',
+          mcpAccessMode: 'standard',
           resource,
         },
         organizationId: 'org-1',
@@ -786,4 +787,73 @@ describe('OAuthRevokeTokenDto', () => {
       'token_type_hint',
     ]);
   });
+});
+
+describe('Claude refresh restriction', () => {
+  it.each(['https://mcp.genfeed.ai/mcp/claude', resource])(
+    'rejects an unsupported-only grant on %s without consuming or revoking it',
+    async (grantResource) => {
+      const { apiKeysService, seedApiKey, seedRefreshToken, service } =
+        buildHarness();
+      const key = seedApiKey({
+        metadata: {
+          kind: 'mcp-oauth-session',
+          mcpAccessMode: 'claude',
+          resource: grantResource,
+        },
+        scopes: ['images:create'],
+      });
+      const row = seedRefreshToken('refresh-unsupported-claude', {
+        apiKeyId: key.id,
+        resource: grantResource,
+        scopes: ['images:create'],
+      });
+
+      await expect(
+        service.refresh(refreshGrant('refresh-unsupported-claude')),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ error: 'invalid_scope' }),
+      });
+      expect(row.consumedAt).toBeNull();
+      expect(row.revokedAt).toBeNull();
+      expect(key.isRevoked).toBe(false);
+      expect(apiKeysService.rotateWithKey).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['https://mcp.genfeed.ai/mcp/claude', resource])(
+    'never widens restricted credentials bound to %s',
+    async (boundResource) => {
+      const { service, seedApiKey, seedRefreshToken, apiKeysService } =
+        buildHarness();
+      const key = seedApiKey({
+        metadata: {
+          kind: 'mcp-oauth-session',
+          resource: boundResource,
+          mcpAccessMode: 'claude',
+        },
+        scopes: ['posts:draft', 'images:create'],
+      });
+      seedRefreshToken('restricted-refresh', {
+        apiKeyId: key.id,
+        resource: boundResource,
+        scopes: ['posts:draft', 'images:create'],
+      });
+      const token = await service.refresh(
+        refreshGrant('restricted-refresh', { resource: boundResource }),
+      );
+      expect(token.scope).toBe('posts:draft');
+      expect(apiKeysService.rotateWithKey).toHaveBeenCalledWith(
+        key.id,
+        expect.objectContaining({
+          scopes: ['posts:draft'],
+          metadata: expect.objectContaining({
+            mcpAccessMode: 'claude',
+            resource: boundResource,
+          }),
+        }),
+        'mcp',
+      );
+    },
+  );
 });

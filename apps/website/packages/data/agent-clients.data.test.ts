@@ -3,6 +3,7 @@ import {
   AGENT_CLIENT_SLUGS,
   agentClients,
   buildAgentClientJsonLd,
+  GENFEED_CLAUDE_MCP_URL,
   GENFEED_PUBLIC_MCP_URL,
   getAgentClient,
   getAgentClientCommandBlocks,
@@ -42,7 +43,7 @@ describe('agent clients', () => {
     },
   );
 
-  it('keeps the dedicated install command and manual key path for Claude Code', () => {
+  it('keeps the dedicated install command and requires browser OAuth for Claude Code', () => {
     const client = getAgentClient('claude-code');
     const labels = getAgentClientCommandBlocks(client).map(
       (block) => block.label,
@@ -51,14 +52,12 @@ describe('agent clients', () => {
     expect(client.chatPrompt).toBeUndefined();
     expect(labels).toEqual([
       'Claude Code plugin',
-      'Skills-only alternative',
-      'Setup prompt',
       'Connect URL',
       'Install command',
       'Configuration',
       'Verify',
     ]);
-    expect(getAgentClientManualBlocks(client).length).toBeGreaterThan(0);
+    expect(getAgentClientManualBlocks(client)).toEqual([]);
   });
 
   it('emits FAQPage and HowTo structured data from the page content', () => {
@@ -87,4 +86,21 @@ describe('agent clients', () => {
     expect(museSection).toContain('**Paste into Meta Muse**');
     expect(museSection).not.toContain('Advanced: scoped API key');
   });
+});
+
+describe('Claude content connector copy', () => {
+  it.each(['claude', 'claude-code', 'claude-cowork'] as const)(
+    'uses the restricted endpoint and Studio handoff for %s',
+    (slug) => {
+      const client = getAgentClient(slug);
+      expect(client.connectUrl).toBe(GENFEED_CLAUDE_MCP_URL);
+      expect(client.oauth.configuration).toContain(GENFEED_CLAUDE_MCP_URL);
+      expect(client.description).toContain('Genfeed Studio');
+      expect(client.capabilities.join(' ')).toContain('Genfeed Studio');
+      expect(client.examplePrompts.join(' ')).not.toMatch(
+        /generate a|execute.*workflow/i,
+      );
+      expect(client.examplePrompts.join(' ')).toContain('Genfeed Studio');
+    },
+  );
 });

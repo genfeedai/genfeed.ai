@@ -14,6 +14,7 @@ import type {
   ConnectGenfeedVerificationResult,
 } from '@genfeedai/contracts/interfaces';
 import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
+import { deriveClaudeMcpResourceIdentifier } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
 import type { VerifiedMcpConnection } from '@genfeedai/props/home/operational-home.props';
@@ -123,7 +124,10 @@ export default function ConnectGenfeedFlow() {
         : false,
   });
   const deployment = getDeployment();
-  const endpoint = EnvironmentService.mcpEndpoint;
+  const endpoint =
+    client === 'claude-code'
+      ? deriveClaudeMcpResourceIdentifier(EnvironmentService.mcpEndpoint)
+      : EnvironmentService.mcpEndpoint;
   const hasProductApiAccess =
     isSelfHostedDeployment() || hasApiAccess(settings?.subscriptionTier);
   const instructions = buildConnectGenfeedInstructions(
@@ -242,6 +246,7 @@ export default function ConnectGenfeedFlow() {
   const handleClientChange = (value: string) => {
     const nextClient = value as ConnectGenfeedClient;
     setClient(nextClient);
+    if (nextClient === 'claude-code') setAuthMethod('oauth');
     setVerification(null);
     // The announced agent is already in the known set; resume polling so the
     // next client's connection can be detected.
@@ -456,7 +461,9 @@ export default function ConnectGenfeedFlow() {
         ariaLabel={translate('authMethodLabel')}
         items={[
           { id: 'oauth', label: translate('browserAuthorization') },
-          { id: 'manual-key', label: translate('manualKey') },
+          ...(client === 'claude-code'
+            ? []
+            : [{ id: 'manual-key', label: translate('manualKey') }]),
         ]}
         onTabChange={function handleAuthMethodChange(value) {
           setAuthMethod(value === 'manual-key' ? 'manual-key' : 'oauth');

@@ -69,6 +69,13 @@ export const CONNECT_GENFEED_VERIFICATION_METADATA_KEY = 'connectGenfeed';
 /** API-key `metadata.kind` of the session key minted by the MCP OAuth token exchange. */
 export const MCP_OAUTH_SESSION_KIND = 'mcp-oauth-session';
 
+export const MCP_ACCESS_MODE_METADATA_KEY = 'mcpAccessMode';
+export const MCP_CLAUDE_SCOPE_CEILING: readonly string[] =
+  API_KEY_SCOPE_PRESETS.mcp.filter(
+    (scope) =>
+      !['images:create', 'videos:create', 'prompts:create'].includes(scope),
+  );
+
 export type ApiKeyScopePreset = keyof typeof API_KEY_SCOPE_PRESETS;
 export type ApiKeyScopePresetValue =
   (typeof API_KEY_SCOPE_PRESETS)[ApiKeyScopePreset][number];

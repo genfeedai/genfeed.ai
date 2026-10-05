@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { type McpAccessMode, parseMcpAccessMode } from '@genfeedai/actions';
 import {
   hasExplicitApiKeyAdminScope,
   MCP_ACTION_ORIGIN_PROOF_HEADER,
@@ -20,6 +21,7 @@ export type McpRole = 'user' | 'admin' | 'superadmin';
 
 export interface AuthResult {
   valid: boolean;
+  accessMode?: McpAccessMode;
   userId?: string;
   organizationId?: string;
   role?: McpRole;
@@ -123,6 +125,7 @@ export class AuthService {
 
         const isApiKey = data.isApiKey === true || isUserIssuedApiKey;
         const result: AuthResult = {
+          accessMode: parseMcpAccessMode(data.mcpAccessMode),
           isApiKey,
           organizationId,
           role: this.resolveRole(

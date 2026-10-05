@@ -52,6 +52,7 @@ export class ApiKeyAuthGuard implements CanActivate {
       this.apiKeysService.isMcpOAuthSession(apiKey) &&
       !this.apiKeysService.hasTrustedMcpOriginProof(
         request.headers[MCP_ACTION_ORIGIN_PROOF_HEADER],
+        this.apiKeysService.readMcpAccessMode(apiKey) === 'claude',
       )
     ) {
       throw new UnauthorizedException(
@@ -109,6 +110,7 @@ export class ApiKeyAuthGuard implements CanActivate {
     request.user = {
       actionOrigin: this.apiKeysService.resolveActionOrigin(apiKey),
       apiKeyId,
+      mcpAccessMode: this.apiKeysService.readMcpAccessMode(apiKey),
       brandId: requestScopedBrandId ?? '',
       id: apiKey.userId,
       isApiKey: true,

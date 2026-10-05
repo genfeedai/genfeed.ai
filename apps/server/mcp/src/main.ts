@@ -32,6 +32,7 @@ import {
 } from '@mcp/services/rate-limit.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
+import { mcpAccessModeMiddleware } from '@mcp/shared/middleware/mcp-access-mode.middleware';
 import { toolsetsQueryMiddleware } from '@mcp/shared/middleware/toolsets-query.middleware';
 import {
   classifyMcpToolFailure,
@@ -105,7 +106,11 @@ async function main(): Promise<void> {
     next: NextFunction,
   ) => {
     if (
-      rejectMcpRequestIfApiKeyInUrl(req, res, getMcpWwwAuthenticateHeader())
+      rejectMcpRequestIfApiKeyInUrl(
+        req,
+        res,
+        getMcpWwwAuthenticateHeader(req.routeAccessMode),
+      )
     ) {
       return;
     }
@@ -144,7 +149,10 @@ async function main(): Promise<void> {
         return;
       }
 
-      res.setHeader('WWW-Authenticate', getMcpWwwAuthenticateHeader());
+      res.setHeader(
+        'WWW-Authenticate',
+        getMcpWwwAuthenticateHeader(req.routeAccessMode),
+      );
       const message =
         'Unauthorized. Authorize this client with Genfeed OAuth, or send a Genfeed API key as a bearer token.';
       const unauthorized = classifyMcpToolFailure({ message, status: 401 });
@@ -162,9 +170,17 @@ async function main(): Promise<void> {
 
     const authResult = await authService.authenticateRequest(token);
 
-    if (!authResult.valid) {
-      res.setHeader('WWW-Authenticate', getMcpWwwAuthenticateHeader());
-      const message = authResult.error || 'Invalid token';
+    if (
+      !authResult.valid ||
+      (req.routeAccessMode === 'claude' && authResult.accessMode !== 'claude')
+    ) {
+      res.setHeader(
+        'WWW-Authenticate',
+        getMcpWwwAuthenticateHeader(req.routeAccessMode),
+      );
+      const message = authResult.valid
+        ? 'Authorize the Claude connector with its own browser OAuth connection. Existing standard tokens and manual API keys cannot be used here.'
+        : authResult.error || 'Invalid token';
       const unauthorized = classifyMcpToolFailure({ message, status: 401 });
       res.status(401).json(
         unauthorized
@@ -179,6 +195,7 @@ async function main(): Promise<void> {
     }
 
     req.authContext = {
+      accessMode: authResult.accessMode,
       organizationId: authResult.organizationId,
       role: authResult.role || 'user',
       token,
@@ -195,8 +212,9 @@ async function main(): Promise<void> {
   // authenticated caller and an unauthenticated public discovery request
   // (`tools/list`). A bare URL resolves to the default profile.
   expressApp.post(
-    '/mcp',
+    ['/mcp', '/mcp/claude'],
     express.json({ limit: '1mb' }),
+    mcpAccessModeMiddleware,
     toolsetsQueryMiddleware,
     mcpAuthMiddleware,
     (req: Request, res: Response) => {
@@ -210,7 +228,8 @@ async function main(): Promise<void> {
   );
 
   expressApp.get(
-    '/mcp',
+    ['/mcp', '/mcp/claude'],
+    mcpAccessModeMiddleware,
     toolsetsQueryMiddleware,
     mcpAuthMiddleware,
     (req: Request, res: Response) => {
@@ -224,7 +243,8 @@ async function main(): Promise<void> {
   );
 
   expressApp.delete(
-    '/mcp',
+    ['/mcp', '/mcp/claude'],
+    mcpAccessModeMiddleware,
     toolsetsQueryMiddleware,
     mcpAuthMiddleware,
     (req: Request, res: Response) => {

@@ -1,4 +1,5 @@
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
+import type { McpAccessMode } from '@genfeedai/actions';
 import type { ActionOrigin } from '@genfeedai/contracts';
 
 export interface IAuthenticatedEmailAddress {
@@ -16,6 +17,7 @@ export interface AuthenticatedUser {
   brandId: string;
   isSuperAdmin?: boolean;
   apiKeyId?: string;
+  mcpAccessMode?: McpAccessMode;
   actionOrigin?: ActionOrigin;
   scopes?: string[];
   stripeSubscriptionId?: string;

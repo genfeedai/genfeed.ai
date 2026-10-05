@@ -437,7 +437,7 @@ export const products: Product[] = [
       {
         problem: 'Every agent needs its own custom integration',
         solution:
-          'One hosted MCP URL works in Claude, ChatGPT, Codex, Cursor, Gemini, Meta Muse, Grok Bot, and any Streamable HTTP client',
+          'Connect Claude for brands, drafts, scheduling and analytics, with media creation in Genfeed Studio. Other agents use the full creative connector',
       },
       {
         problem: 'Pasting API keys into chats and config files',
@@ -453,7 +453,7 @@ export const products: Product[] = [
     category: 'Developer Tools',
     cta: 'Connect your agent',
     description:
-      'Connect any AI agent to Genfeed with the Model Context Protocol. One hosted MCP URL, browser OAuth, and tools to generate, schedule, publish, and measure content.',
+      'Connect any AI agent to Genfeed with the Model Context Protocol. Browser OAuth and tools to draft, schedule, publish and measure content. Claude connects to content operations and opens Genfeed Studio for media creation; other agents can generate through MCP.',
     features: [
       {
         description:
@@ -512,7 +512,7 @@ export const products: Product[] = [
     relatedProducts: ['chatgpt', 'hire-agents', 'studio'],
     seoTitle: 'MCP Server: Connect Any AI Agent to Genfeed',
     slug: 'mcp',
-    tagline: 'One hosted MCP server for every AI agent',
+    tagline: 'Your content workspace, connected to your agent',
     targetAudience: [
       'AI engineers building agents',
       'Developers creating automations',

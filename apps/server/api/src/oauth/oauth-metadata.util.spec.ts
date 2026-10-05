@@ -43,6 +43,7 @@ describe('OAuth metadata', () => {
     ]);
     expect(metadata.protected_resources).toEqual([
       'https://mcp.genfeed.ai/mcp',
+      'https://mcp.genfeed.ai/mcp/claude',
     ]);
     expect(metadata.agent_auth).toEqual({
       claim_endpoint: 'https://api.genfeed.ai/v1/agent/auth/claim',
@@ -109,7 +110,10 @@ describe('OAuth metadata', () => {
         expect(
           buildOAuthAuthorizationServerMetadata(serviceConfig)
             .protected_resources,
-        ).toEqual(['https://mcp.genfeed.ai/mcp']);
+        ).toEqual([
+          'https://mcp.genfeed.ai/mcp',
+          'https://mcp.genfeed.ai/mcp/claude',
+        ]);
       },
     );
 

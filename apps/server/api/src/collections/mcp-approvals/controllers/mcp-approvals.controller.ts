@@ -9,6 +9,7 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { assertMcpAccessModeAllowsTool } from '@api/helpers/utils/auth/mcp-access-mode.util';
 import { scopedWhere } from '@api/index';
 import { MemberRole } from '@genfeedai/contracts';
 import { McpApprovalStatus } from '@genfeedai/prisma';
@@ -66,6 +67,7 @@ export class McpApprovalsController {
     @CurrentUser() user: User,
     @Body() dto: CreateMcpApprovalDto,
   ): Promise<{ data: McpApprovalResponse }> {
+    assertMcpAccessModeAllowsTool(user, dto.toolName, 'mcp');
     const organization = user.organizationId;
     const userId = user.userId ?? user.id;
     const result = await this.service.createPending(

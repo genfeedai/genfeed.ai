@@ -3,6 +3,7 @@ import {
   buildConnectGenfeedInstructions,
   buildGenfeedAgentSetupPrompt,
 } from './connect-genfeed.helper';
+import { deriveClaudeMcpResourceIdentifier } from './mcp-resource.helper';
 
 describe('buildGenfeedAgentSetupPrompt', () => {
   it('sets up only the chosen client and verifies without content writes', () => {
@@ -32,6 +33,42 @@ describe('buildGenfeedAgentSetupPrompt', () => {
     );
     expect(() => buildGenfeedAgentSetupPrompt('file:///tmp/mcp')).toThrow();
   });
+});
+
+describe('Claude setup endpoint separation', () => {
+  it('uses the canonical Claude resource throughout setup from a custom host root', () => {
+    const prompt = buildGenfeedAgentSetupPrompt('https://custom.example/');
+    expect(prompt).toContain(
+      'Claude endpoint: https://custom.example/mcp/claude',
+    );
+    expect(prompt).toContain('--scope user https://custom.example/mcp/claude');
+    expect(prompt).not.toContain('https://custom.example/claude');
+  });
+
+  it.each([
+    'https://mcp.genfeed.ai/mcp?toolsets=generation',
+    'https://mcp.genfeed.ai/mcp/claude/?profile=full',
+    'https://mcp.genfeed.ai/MCP/Claude/?profile=full',
+  ])(
+    'keeps Claude restricted while offering standard Codex setup for %s',
+    (endpoint) => {
+      const prompt = buildGenfeedAgentSetupPrompt(endpoint, 'Claude Code');
+      expect(prompt).toContain(
+        'Claude endpoint: https://mcp.genfeed.ai/mcp/claude',
+      );
+      expect(prompt).toContain(
+        '/plugin install genfeed --marketplace genfeedai/agent',
+      );
+      expect(prompt).toContain('codex mcp add genfeed --url');
+      expect(prompt).not.toContain(
+        'codex mcp add genfeed --url https://mcp.genfeed.ai/mcp/claude',
+      );
+      expect(prompt).not.toContain('generation/claude');
+      expect(prompt).toContain('Claude requires OAuth');
+      expect(prompt).toContain('Never run skills add for any Claude client');
+      expect(prompt).toContain('For non-Claude clients, install');
+    },
+  );
 });
 
 describe('buildConnectGenfeedChatPrompt', () => {
@@ -85,7 +122,7 @@ describe('buildConnectGenfeedInstructions', () => {
     );
     expect(codex.authorizationInstruction).toContain('codex mcp login genfeed');
     expect(claude.primaryCommand).toBe(
-      'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp',
+      'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude',
     );
     expect(claude.authorizationInstruction).toContain('/mcp');
   });
@@ -100,24 +137,60 @@ describe('buildConnectGenfeedInstructions', () => {
     );
   });
 
-  it('builds a secret-safe Claude Code command', () => {
+  it.each(['claude-code', 'generic'] as const)(
+    'requires OAuth for %s on the Claude connector',
+    (client) => {
+      const instructions = buildConnectGenfeedInstructions(
+        client,
+        'https://mcp.genfeed.ai/mcp/claude/?profile=full',
+        'manual-key',
+      );
+      expect(instructions.authMethod).toBe('oauth');
+      expect(instructions.environmentCommand).toBe('');
+      expect(JSON.parse(instructions.configuration).url).toBe(
+        'https://mcp.genfeed.ai/mcp/claude',
+      );
+      expect(JSON.stringify(instructions)).not.toMatch(
+        /GENFEED_API_KEY|Bearer|manual-key|profile/,
+      );
+    },
+  );
+
+  it('moves Claude Code from the full endpoint to the dedicated resource', () => {
     const instructions = buildConnectGenfeedInstructions(
       'claude-code',
-      'https://mcp.genfeed.ai/mcp',
-      'manual-key',
+      'https://mcp.genfeed.ai/mcp?toolsets=generation',
     );
+    expect(instructions.primaryCommand).toBe(
+      'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude',
+    );
+  });
 
-    expect(instructions.primaryCommand).toContain(
-      'claude mcp add --transport http genfeed',
+  it.each([
+    'https://custom.example',
+    'https://custom.example/',
+    'https://custom.example/?toolsets=generation#setup',
+  ])('connects Claude Code to /mcp/claude from host root %s', (endpoint) => {
+    const instructions = buildConnectGenfeedInstructions(
+      'claude-code',
+      endpoint,
     );
-    expect(instructions.primaryCommand).toContain(
-      'Authorization: Bearer $GENFEED_API_KEY',
+    expect(JSON.parse(instructions.configuration).url).toBe(
+      'https://custom.example/mcp/claude',
     );
-    expect(instructions.environmentCommand).toBe(
-      'read -s GENFEED_API_KEY && export GENFEED_API_KEY',
+  });
+
+  it('does not derive the Claude suffix twice after the app resolves a custom host root', () => {
+    const endpoint = deriveClaudeMcpResourceIdentifier(
+      'https://custom.example/',
     );
-    expect(instructions.environmentCommand).not.toContain('paste-key');
-    expect(instructions.primaryCommand).not.toContain('gf_');
+    const instructions = buildConnectGenfeedInstructions(
+      'claude-code',
+      endpoint,
+    );
+    expect(JSON.parse(instructions.configuration).url).toBe(
+      'https://custom.example/mcp/claude',
+    );
   });
 
   it('builds Codex CLI and TOML configuration from the same endpoint', () => {

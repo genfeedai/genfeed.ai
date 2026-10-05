@@ -160,10 +160,10 @@ Used together, the agent plans with the skill and executes with the tools: the
 schedules it. The `openclaw-integration` skill exists specifically to teach an
 agent how to drive the Genfeed MCP surface.
 
-Connect the server once and every installed skill can reach it:
+Claude uses the dedicated OAuth connector for brands, drafts, existing assets, scheduling and analytics. Media creation happens in Genfeed Studio; creative skills do not enable generation through this connector. Open `/mcp` after adding it and complete browser authorization:
 
 ```bash
-claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp --header "Authorization: Bearer $GENFEED_API_KEY"
+claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude
 ```
 
 Agents that only need discovery — no key, no tool calls — can read

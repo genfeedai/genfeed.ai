@@ -567,3 +567,47 @@ describe('ApiKeysService', () => {
     });
   });
 });
+
+describe('MCP OAuth policy metadata', () => {
+  it('keeps missing-mode legacy keys standard, binds Claude resource and fails closed on corrupt policy', () => {
+    const { service } = createHarness();
+    const key = (metadata: Record<string, unknown>) =>
+      ({ metadata }) as Parameters<ApiKeysService['readMcpAccessMode']>[0];
+    expect(
+      service.readMcpAccessMode(
+        key({
+          kind: 'mcp-oauth-session',
+          resource: 'https://mcp.genfeed.ai/mcp',
+        }),
+      ),
+    ).toBe('standard');
+    expect(
+      service.readMcpAccessMode(
+        key({
+          kind: 'mcp-oauth-session',
+          resource: 'https://mcp.genfeed.ai/mcp/claude',
+        }),
+      ),
+    ).toBe('claude');
+    expect(
+      service.readMcpAccessMode(
+        key({
+          kind: 'mcp-oauth-session',
+          resource: 'https://mcp.genfeed.ai/mcp',
+          mcpAccessMode: 'other',
+        }),
+      ),
+    ).toBe('claude');
+    expect(service.readMcpAccessMode(key({ kind: 'mcp-oauth-session' }))).toBe(
+      'claude',
+    );
+  });
+  it('requires real MCP proof for restricted sessions even outside cloud', () => {
+    const { service } = createHarness();
+    Object.defineProperty(service, 'configService', {
+      value: { get: vi.fn().mockReturnValue('test-mcp-secret') },
+    });
+    expect(service.hasTrustedMcpOriginProof(undefined, true)).toBe(false);
+    expect(service.hasTrustedMcpOriginProof('wrong-proof', true)).toBe(false);
+  });
+});

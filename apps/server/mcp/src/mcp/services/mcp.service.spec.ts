@@ -66,9 +66,10 @@ describe('MCPService', () => {
 
       expect(example).toBeDefined();
       expect(example.name).toBe('Genfeed.ai MCP Server');
-      expect(example.installation.clientExamples.claudeCode.command).toContain(
-        'claude mcp add --transport http genfeed',
+      expect(example.installation.clientExamples.claudeCode.command).toBe(
+        'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude',
       );
+      expect(example.installation.steps.join(' ')).toContain('browser OAuth');
       expect(example.installation.clientExamples.codex.command).toContain(
         'codex mcp add genfeed --url https://mcp.genfeed.ai/mcp',
       );

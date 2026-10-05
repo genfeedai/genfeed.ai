@@ -56,6 +56,7 @@ export class AuthWhoamiController {
     return {
       data: {
         isApiKey,
+        mcpAccessMode: user?.mcpAccessMode,
         organization: {
           id: user?.organizationId || '',
           name: '',

@@ -54,22 +54,21 @@ it to yourself over MCP.
    cp .env.example .env && docker compose --env-file .env -f compose.yml up -d
 3. Wait for http://localhost:3000 to answer. The seed creates one user,
    organization (slug `default`), and brand.
-4. Ask me to open http://localhost:3000/default/~/settings/api-keys, create a key
-   with the **MCP** preset, and paste it back. Never read it out of a file.
-5. Register the server with that key:
-   claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp \
-     --header "Authorization: Bearer $GENFEED_API_KEY"
+4. For Claude Code, register its dedicated content connector:
+   claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp/claude
+5. Open /mcp, select genfeed and complete browser OAuth. For other clients,
+   configure the standard http://localhost:3014/mcp endpoint and authorize in
+   the browser; a scoped API-key fallback is available for those clients.
 6. List the Genfeed tools to confirm the connection, then stop.
 
 Reference: https://github.com/genfeedai/genfeed.ai/blob/master/docs/self-hosting.md
 Docs index for agents: https://docs.genfeed.ai/llms.txt
 ````
 
-Already on the hosted product? Skip the install — create the key at
-[app.genfeed.ai](https://app.genfeed.ai) and point the same client at
-`https://mcp.genfeed.ai/mcp`.
+Already on the hosted product? Skip installation and authorize with browser OAuth.
+Claude uses `https://mcp.genfeed.ai/mcp/claude` for brands, drafts, existing assets, scheduling and analytics; create media in [Genfeed Studio](https://app.genfeed.ai/studio/generate). Other clients use `https://mcp.genfeed.ai/mcp` for the full toolset.
 
-The MCP preset is approval-first: an agent can generate, draft, and schedule, but
+The standard MCP preset is approval-first: an agent can generate, draft, and schedule, but
 publishing waits for a human. What each surface exposes and why is in
 [Agent Surface](docs/agent-surface.md).
 

@@ -1,11 +1,20 @@
 import type { ToolsetName } from '@genfeedai/actions';
+import {
+  type McpAccessMode,
+  mostRestrictiveMcpAccessMode,
+} from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import {
+  buildClaudeMcpServerInstructions,
   getMcpServerInfo,
   MCP_SERVER_INSTRUCTIONS,
 } from '@mcp/mcp/server-identity';
-import { getPublicMcpUrl, getPublicWebsiteUrl } from '@mcp/mcp/setup-page';
+import {
+  getPublicAppUrl,
+  getPublicMcpUrl,
+  getPublicWebsiteUrl,
+} from '@mcp/mcp/setup-page';
 import { ClientService } from '@mcp/services/client.service';
 import { PostHogAnalyticsService } from '@mcp/services/posthog-analytics.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
@@ -104,7 +113,11 @@ export class StreamableHttpService {
     // Parsed by `toolsetsQueryMiddleware` before authentication runs, so this
     // is populated for unauthenticated public `tools/list` requests too.
     const toolsets = request.toolsets ?? [];
-    const server = this.buildServer(authContext, toolsets);
+    const server = this.buildServer(
+      authContext,
+      toolsets,
+      request.routeAccessMode,
+    );
     const transport = new StreamableHTTPServerTransport({
       enableJsonResponse: true,
       sessionIdGenerator: undefined,
@@ -134,7 +147,12 @@ export class StreamableHttpService {
   private buildServer(
     authContext?: McpAuthContext,
     toolsets: readonly ToolsetName[] = [],
+    routeAccessMode: McpAccessMode = 'standard',
   ): Server {
+    const accessMode = mostRestrictiveMcpAccessMode(
+      routeAccessMode,
+      authContext?.accessMode,
+    );
     const clientService = this.createClientService(authContext?.token);
     const toolRegistry = new ToolRegistryService(
       clientService,
@@ -142,6 +160,7 @@ export class StreamableHttpService {
       authContext?.role ?? 'user',
       toolsets,
       this.configService,
+      accessMode,
     );
 
     const serverInfo = getMcpServerInfo(
@@ -153,7 +172,10 @@ export class StreamableHttpService {
         resources: {},
         tools: {},
       },
-      instructions: MCP_SERVER_INSTRUCTIONS,
+      instructions:
+        accessMode === 'claude'
+          ? buildClaudeMcpServerInstructions(getPublicAppUrl())
+          : MCP_SERVER_INSTRUCTIONS,
     });
 
     server.setRequestHandler(ListToolsRequestSchema, () => ({

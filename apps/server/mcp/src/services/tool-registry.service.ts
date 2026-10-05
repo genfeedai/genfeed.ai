@@ -3,11 +3,14 @@ import {
   getToolsetNames,
   getToolsForSurface,
   getToolsForToolsets,
+  isToolAllowedInMcpAccessMode,
+  type McpAccessMode,
   type McpToolOutput,
   type ToolsetName,
   toMcpTools,
 } from '@genfeedai/actions';
 import { formatAgentError } from '@genfeedai/agent/server';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { serializeMediaArtifact } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -18,12 +21,14 @@ import {
   McpResourceUri,
   PUBLIC_MCP_RESOURCES,
 } from '@mcp/mcp/resource-catalog';
+import { getPublicAppUrl } from '@mcp/mcp/setup-page';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
 import {
   agentGuideResource,
   jsonResource,
+  markdownResource,
 } from '@mcp/services/mcp-resource-contents.util';
 import { finalizeMcpToolResult } from '@mcp/services/mcp-tool-result.util';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
@@ -44,6 +49,7 @@ import { EDITOR_TOOL_NAMES, handleEditorTool } from '@mcp/tools/editor.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import {
   approvalPendingToolResult,
+  mcpToolErrorResult,
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
@@ -227,6 +233,7 @@ export class ToolRegistryService implements OnModuleInit {
     // profile list, not an empty selection.
     @Optional() private readonly requestToolsets: readonly ToolsetName[] = [],
     @Optional() private readonly configService?: ConfigService,
+    @Optional() private readonly requestAccessMode: McpAccessMode = 'standard',
   ) {}
 
   /**
@@ -235,7 +242,11 @@ export class ToolRegistryService implements OnModuleInit {
    * cannot invoke.
    */
   getAllTools(): McpToolOutput[] {
-    return toMcpTools(getToolsForSurface('mcp')).map(withCardMetadata);
+    return toMcpTools(getToolsForSurface('mcp'))
+      .filter((tool) =>
+        isToolAllowedInMcpAccessMode(this.requestAccessMode, tool.name),
+      )
+      .map(withCardMetadata);
   }
 
   /**
@@ -270,9 +281,16 @@ export class ToolRegistryService implements OnModuleInit {
   getToolsForRoleAndToolsets(
     role: McpRole,
     toolsets: readonly ToolsetName[],
+    accessMode: McpAccessMode = this.requestAccessMode,
   ): McpToolOutput[] {
     return ToolRegistryService.filterToolsByRole(
-      toMcpTools(getToolsForToolsets('mcp', toolsets)).map(withCardMetadata),
+      toMcpTools(
+        accessMode === 'claude'
+          ? getToolsForSurface('mcp')
+          : getToolsForToolsets('mcp', toolsets),
+      )
+        .filter((tool) => isToolAllowedInMcpAccessMode(accessMode, tool.name))
+        .map(withCardMetadata),
       role,
     );
   }
@@ -321,6 +339,14 @@ export class ToolRegistryService implements OnModuleInit {
     this.logger.debug(`Handling tool call: ${name}`, args);
 
     try {
+      if (!isToolAllowedInMcpAccessMode(this.requestAccessMode, name)) {
+        return mcpToolErrorResult({
+          code: 'unavailable_in_connector',
+          message:
+            'This tool is unavailable through the Claude connector. Create images, video and audio in Genfeed Studio, then return here to manage your content.',
+          nextStepUrl: `${getPublicAppUrl()}${APP_ROUTES.STUDIO.GENERATE}`,
+        });
+      }
       const canonicalTool = getToolByName(name);
       if (!canonicalTool?.surfaces.mcp) {
         throw new Error(`Unknown tool: ${name}`);
@@ -690,7 +716,12 @@ export class ToolRegistryService implements OnModuleInit {
             ],
           };
         case McpResourceUri.AGENT_GUIDE:
-          return agentGuideResource(uri);
+          return this.requestAccessMode === 'claude'
+            ? markdownResource(
+                uri,
+                `# Genfeed for Claude\nManage brands, drafts, scheduling and analytics with existing assets. Create images, video and audio in [Genfeed Studio](${getPublicAppUrl()}${APP_ROUTES.STUDIO.GENERATE}). This connector cannot run generation, workflows, batches, remix or approval redemption.`,
+              )
+            : agentGuideResource(uri);
 
         case McpResourceUri.VIDEO_ANALYTICS:
           return jsonResource(

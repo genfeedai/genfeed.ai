@@ -1,10 +1,45 @@
 import {
   buildProtectedResourceMetadataPaths,
+  deriveClaudeMcpResourceIdentifier,
   deriveMcpResourceIdentifier,
   MCP_RESOURCE_URL_ENV_KEYS,
   McpResourceConfigurationError,
   resolveMcpResourceIdentifier,
 } from './mcp-resource.helper';
+
+describe('deriveClaudeMcpResourceIdentifier', () => {
+  it.each([
+    ['https://custom.example', 'https://custom.example/mcp/claude'],
+    ['https://custom.example/', 'https://custom.example/mcp/claude'],
+    ['https://custom.example/mcp/', 'https://custom.example/mcp/claude'],
+    ['https://custom.example/mcp/claude/', 'https://custom.example/mcp/claude'],
+    ['https://custom.example/MCP/Claude/', 'https://custom.example/mcp/claude'],
+    [
+      'https://custom.example/?toolsets=generation#setup',
+      'https://custom.example/mcp/claude',
+    ],
+    [
+      'https://custom.example/mcp/claude?toolsets=generation#setup',
+      'https://custom.example/mcp/claude',
+    ],
+    [
+      'https://custom.example/genfeed',
+      'https://custom.example/genfeed/mcp/claude',
+    ],
+    [
+      'https://custom.example/genfeed/mcp/',
+      'https://custom.example/genfeed/mcp/claude',
+    ],
+  ])('resolves %s through the standard MCP resource', (endpoint, expected) => {
+    expect(deriveClaudeMcpResourceIdentifier(endpoint)).toBe(expected);
+  });
+
+  it('preserves protocol validation for the Claude resource', () => {
+    expect(() => deriveClaudeMcpResourceIdentifier('file:///tmp/mcp')).toThrow(
+      McpResourceConfigurationError,
+    );
+  });
+});
 
 describe('deriveMcpResourceIdentifier', () => {
   it.each([

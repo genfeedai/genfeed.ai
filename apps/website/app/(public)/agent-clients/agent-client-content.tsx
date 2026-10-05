@@ -1,7 +1,4 @@
-import {
-  AGENT_CLIENT_CAPABILITIES,
-  agentClients,
-} from '@data/agent-clients.data';
+import { agentClients } from '@data/agent-clients.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentClientContentProps } from '@props/agent-client.props';
 import AgentClientExamples from '@public/agent-clients/agent-client-examples';
@@ -73,7 +70,7 @@ export default function AgentClientContent({
             Connected to Genfeed, {client.name} can:
           </p>
           <NeuralGrid columns={2}>
-            {AGENT_CLIENT_CAPABILITIES.map((capability) => (
+            {client.capabilities.map((capability) => (
               <NeuralGridItem key={capability} padding="lg">
                 <p className="text-base leading-7 text-surface/75">
                   {capability}
@@ -111,7 +108,7 @@ export default function AgentClientContent({
         <WebSection className="gsap-section" maxWidth="xl" py="md">
           <SectionHeader
             className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
-            description="Every client connects to the same Genfeed MCP server."
+            description="Connect your agent to your Genfeed workspace."
             title="Use Genfeed with other AI agents"
           />
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">

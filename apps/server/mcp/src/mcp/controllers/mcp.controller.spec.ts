@@ -306,6 +306,7 @@ describe('McpController', () => {
       expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith(
         'superadmin',
         [...DEFAULT_MCP_PROFILE_TOOLSETS],
+        'standard',
       );
       expect(result).toEqual({ tools: roleTools.superadmin });
       expect(rawToolSourceMocks.getToolsForSurface).not.toHaveBeenCalled();
@@ -317,9 +318,11 @@ describe('McpController', () => {
         typeof controller.getTools
       >[0]);
 
-      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith('user', [
-        ...DEFAULT_MCP_PROFILE_TOOLSETS,
-      ]);
+      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith(
+        'user',
+        [...DEFAULT_MCP_PROFILE_TOOLSETS],
+        'standard',
+      );
       expect(result).toEqual({ tools: roleTools.user });
     });
 
@@ -328,9 +331,11 @@ describe('McpController', () => {
         {} as unknown as Parameters<typeof controller.getTools>[0],
       );
 
-      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith('user', [
-        ...DEFAULT_MCP_PROFILE_TOOLSETS,
-      ]);
+      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith(
+        'user',
+        [...DEFAULT_MCP_PROFILE_TOOLSETS],
+        'standard',
+      );
       expect(result).toEqual({ tools: roleTools.user });
     });
 
@@ -342,10 +347,23 @@ describe('McpController', () => {
 
       controller.getTools(request);
 
-      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith('user', [
-        'content',
-        'generation',
-      ]);
+      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith(
+        'user',
+        ['content', 'generation'],
+        'standard',
+      );
+    });
+
+    it('threads Claude OAuth policy into REST tool listing', () => {
+      controller.getTools({
+        authContext: { role: 'user', accessMode: 'claude' },
+        query: { profile: 'full' },
+      } as unknown as Parameters<typeof controller.getTools>[0]);
+      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith(
+        'user',
+        [],
+        'claude',
+      );
     });
 
     it('rejects an unknown toolset name with a 400', () => {
@@ -375,11 +393,13 @@ describe('McpController', () => {
         1,
         'user',
         [...DIRECTORY_MCP_PROFILE_TOOLSETS],
+        'standard',
       );
       expect(getToolsForRoleAndToolsetsMock).toHaveBeenNthCalledWith(
         2,
         'user',
         [],
+        'standard',
       );
     });
 
@@ -389,9 +409,11 @@ describe('McpController', () => {
         query: { profile: 'full', toolsets: 'content' },
       } as unknown as Parameters<typeof controller.getTools>[0]);
 
-      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith('user', [
-        'content',
-      ]);
+      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith(
+        'user',
+        ['content'],
+        'standard',
+      );
     });
 
     it('rejects an unknown profile with a 400', () => {

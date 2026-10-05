@@ -1,6 +1,13 @@
 import process from 'node:process';
-import { getToolsForRole, TOOLSETS } from '@genfeedai/actions';
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
+import {
+  getToolsForRole,
+  type McpAccessMode,
+  TOOLSETS,
+} from '@genfeedai/actions';
+import {
+  API_KEY_SCOPE_PRESETS,
+  MCP_CLAUDE_SCOPE_CEILING,
+} from '@genfeedai/contracts/constants';
 import type { McpResourceIdentifierResolution } from '@genfeedai/contracts/interfaces';
 import {
   buildConnectGenfeedChatPrompt,
@@ -9,6 +16,7 @@ import {
   GENFEED_SKILLS_INSTALL_COMMAND,
 } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
+  deriveClaudeMcpResourceIdentifier,
   OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH,
   resolveMcpResourceIdentifier,
 } from '@genfeedai/helpers/integrations/mcp-resource.helper';
@@ -163,6 +171,10 @@ export function getPublicMcpUrl(): string {
   return resolvePublicMcpResource().identifier;
 }
 
+export function getPublicClaudeMcpUrl(): string {
+  return deriveClaudeMcpResourceIdentifier(getPublicMcpUrl());
+}
+
 export function getOAuthIssuerUrl(): string {
   return readFirstPublicUrl(
     ['GENFEEDAI_API_PUBLIC_URL', 'GENFEEDAI_API_URL'],
@@ -170,27 +182,40 @@ export function getOAuthIssuerUrl(): string {
   );
 }
 
-export function getPublicMcpResourceMetadataUrl(): string {
-  return new URL(
-    OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH,
-    getPublicMcpUrl(),
-  ).toString();
+export function getPublicMcpResourceMetadataUrl(
+  mode: McpAccessMode = 'standard',
+): string {
+  const path =
+    mode === 'claude'
+      ? `${OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH}${new URL(getPublicClaudeMcpUrl()).pathname}`
+      : OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH;
+  return new URL(path, getPublicMcpUrl()).toString();
 }
 
-export function getMcpWwwAuthenticateHeader(): string {
-  return `Bearer resource_metadata="${getPublicMcpResourceMetadataUrl()}", scope="${API_KEY_SCOPE_PRESETS.mcp.join(' ')}"`;
+export function getMcpWwwAuthenticateHeader(
+  mode: McpAccessMode = 'standard',
+): string {
+  const scopes =
+    mode === 'claude' ? MCP_CLAUDE_SCOPE_CEILING : API_KEY_SCOPE_PRESETS.mcp;
+  return `Bearer resource_metadata="${getPublicMcpResourceMetadataUrl(mode)}", scope="${scopes.join(' ')}"`;
 }
 
-export function getMcpProtectedResourceMetadata() {
+export function getMcpProtectedResourceMetadata(
+  mode: McpAccessMode = 'standard',
+) {
   return {
     authorization_servers: [getOAuthIssuerUrl()],
     bearer_methods_supported: ['header'],
-    resource: getPublicMcpUrl(),
+    resource: mode === 'claude' ? getPublicClaudeMcpUrl() : getPublicMcpUrl(),
     resource_documentation: `${getPublicDocsUrl()}/api-reference/mcp`,
     resource_name: 'Genfeed',
     resource_policy_uri: `${getPublicWebsiteUrl()}/privacy`,
     resource_tos_uri: `${getPublicWebsiteUrl()}/terms`,
-    scopes_supported: [...API_KEY_SCOPE_PRESETS.mcp],
+    scopes_supported: [
+      ...(mode === 'claude'
+        ? MCP_CLAUDE_SCOPE_CEILING
+        : API_KEY_SCOPE_PRESETS.mcp),
+    ],
   };
 }
 
@@ -324,7 +349,11 @@ export function renderSetupPage(): string {
   const docsGuideUrlSafe = escapeHtml(docsGuideUrl);
   const oauthDocsUrlSafe = escapeHtml(oauthDocsUrl);
 
-  const claude = buildConnectGenfeedInstructions('claude-code', mcpUrl);
+  const claudeUrlSafe = escapeHtml(getPublicClaudeMcpUrl());
+  const claude = buildConnectGenfeedInstructions(
+    'claude-code',
+    getPublicClaudeMcpUrl(),
+  );
   const codex = buildConnectGenfeedInstructions('codex', mcpUrl);
   const generic = buildConnectGenfeedInstructions('generic', mcpUrl);
   const chatPrompt = buildConnectGenfeedChatPrompt(mcpUrl);
@@ -783,7 +812,7 @@ ${postHogSnippet}
   <header class="hero">
     <p class="eyebrow">MCP server</p>
     <h1>Connect any AI agent to Genfeed.</h1>
-    <p class="lede">Create, schedule, publish, and measure content through your AI client — sign in with browser OAuth, no API key required.</p>
+    <p class="lede">Draft, schedule and measure content through your AI client. Claude uses your brands and existing assets; create images, video and audio in Genfeed Studio. Other clients can also generate through MCP.</p>
     <div class="hero-endpoint">
       <div class="${ui.codeBlock} endpoint-code" id="mcp-url">${mcpUrlSafe}</div>
       <button class="${ui.buttonSecondary} copy" type="button" id="mcp-url-copy" data-copy="${mcpUrlSafe}" aria-label="Copy MCP endpoint">Copy</button>
@@ -806,6 +835,7 @@ ${postHogSnippet}
     <div class="${ui.card}">
       <div class="tablist" role="tablist" aria-label="Client setup instructions">
         <button class="tab" id="tab-claude-code" type="button" role="tab" aria-selected="true" aria-controls="panel-claude-code" data-tab="claude-code">Claude Code</button>
+        <button class="tab" id="tab-claude-chat" type="button" role="tab" aria-selected="false" aria-controls="panel-claude-chat" data-tab="claude-chat">Claude &amp; Cowork</button>
         <button class="tab" id="tab-codex" type="button" role="tab" aria-selected="false" aria-controls="panel-codex" data-tab="codex">Codex</button>
         <button class="tab" id="tab-chat-agent" type="button" role="tab" aria-selected="false" aria-controls="panel-chat-agent" data-tab="chat-agent">Muse &amp; Grok Bot</button>
         <button class="tab" id="tab-other-clients" type="button" role="tab" aria-selected="false" aria-controls="panel-other-clients" data-tab="other-clients">Other clients</button>
@@ -822,7 +852,7 @@ ${postHogSnippet}
             <span class="step-number">01</span>
             <div>
               <p class="step-title">Add the MCP server</p>
-              <p class="step-copy">Registers the hosted endpoint in user scope with browser OAuth — no Authorization header.</p>
+              <p class="step-copy">Registers the Claude connector in user scope with browser OAuth. Use brands, drafts, scheduling and analytics here; create media in Genfeed Studio.</p>
               ${renderCommandBlock({ id: 'claude-code-command', label: 'Copy Claude Code command', textSafe: claudeCommandSafe, ui })}
             </div>
           </li>
@@ -834,6 +864,12 @@ ${postHogSnippet}
             </div>
           </li>
         </ol>
+      </section>
+
+      <section class="tabpanel" id="panel-claude-chat" role="tabpanel" aria-labelledby="tab-claude-chat" data-panel="claude-chat">
+        <h3 class="instruction-title">Claude and Cowork setup</h3>
+        <p class="step-copy">Add a custom connector in Claude with the URL below and complete browser OAuth. Use it for brands, drafts, scheduling and analytics. Create images, video and audio in Genfeed Studio. Reconnect existing installations with this URL. Genfeed is not yet listed in the public Claude directory.</p>
+        ${renderCommandBlock({ id: 'claude-chat-url', label: 'Copy Claude connector URL', textSafe: claudeUrlSafe, ui })}
       </section>
 
       <section class="tabpanel" id="panel-codex" role="tabpanel" aria-labelledby="tab-codex" data-panel="codex">
@@ -888,7 +924,7 @@ ${postHogSnippet}
       <section class="tabpanel" id="panel-other-clients" role="tabpanel" aria-labelledby="tab-other-clients" data-panel="other-clients">
         <div class="setup-title-row">
           <h3 class="instruction-title">Other MCP clients</h3>
-          <span class="${ui.badge}">Claude.ai, ChatGPT, Cursor, Gemini</span>
+          <span class="${ui.badge}">ChatGPT, Cursor, Gemini</span>
         </div>
         <ol class="steps">
           <li class="step">
@@ -920,7 +956,7 @@ ${postHogSnippet}
             <div>
               <p class="step-title">Give this to a local shell agent</p>
               <p class="step-copy">Drop this into Claude Code, Codex, or another local agent with shell access. It installs the playbook for your selected client, configures Genfeed, starts browser authorization, and verifies access with read-only calls.</p>
-              <p class="step-copy">For skills only, run this command and select your client. Skip it if a Genfeed plugin already includes the playbook. Skills alone do not connect or authenticate MCP.</p>
+              <p class="step-copy">For non-Claude clients only, run this command and select your client. Skip it if a Genfeed plugin already includes the playbook. Claude Code uses the dedicated Genfeed plugin; other Claude clients connect with OAuth. Do not install this skills bundle into any Claude client. Skills alone do not connect or authenticate MCP.</p>
               ${renderCommandBlock({ id: 'skills-install-command', label: 'Copy skills install command', textSafe: escapeHtml(GENFEED_SKILLS_INSTALL_COMMAND), ui })}
               ${renderCommandBlock({ id: 'agent-setup-prompt', label: 'Copy agent setup prompt', multiline: true, textSafe: agentSetupPromptSafe, ui })}
             </div>
@@ -940,7 +976,7 @@ ${postHogSnippet}
   <section class="section toolsets-section" aria-label="Advanced toolset configuration">
     <details class="toolsets">
       <summary>Advanced: limit which toolsets load</summary>
-      <p class="section-copy">Narrow <code class="${ui.inlineCode}">tools/list</code> to just the toolsets your agent needs. Leave everything unchecked for the default profile on the bare URL, or add <code class="${ui.inlineCode}">?profile=full</code> for every tool.</p>
+      <p class="section-copy">For the standard connector only; Claude has a fixed catalog and does not accept these selectors. Narrow <code class="${ui.inlineCode}">tools/list</code> to just the toolsets your agent needs. Leave everything unchecked for the default profile on the bare URL, or add <code class="${ui.inlineCode}">?profile=full</code> for every tool.</p>
       <div class="${ui.card}">
         <div class="toolset-picker" role="group" aria-label="Toolsets to include">
           ${toolsetOptions}
@@ -950,7 +986,7 @@ ${postHogSnippet}
   </section>
 
   <footer class="site-footer">
-    <p class="footer-note">OAuth login only — the manual API-key fallback lives in guided setup. For the CLI, run <code class="${ui.inlineCode}">genfeed login</code>. Keep tokens out of shared logs.</p>
+    <p class="footer-note">Claude requires browser OAuth. Other clients can use the manual API-key fallback in guided setup. For the CLI, run <code class="${ui.inlineCode}">genfeed login</code>. Keep tokens out of shared logs.</p>
     <div class="footer-links">
       <a href="${docsUrlSafe}" rel="noopener noreferrer">Documentation</a>
       <a href="${docsGuideUrlSafe}" rel="noopener noreferrer">MCP guide</a>
@@ -1065,6 +1101,9 @@ ${postHogSnippet}
     // substituted back for the real shell-quoted URL last.
     function rewriteAgentPrompt(text, currentUrl, currentShellUrl, nextUrl, nextShellUrl) {
       var placeholder = '__GENFEED_TOOLSET_URL_PLACEHOLDER__';
+      var claudeUrl = currentUrl.split('?')[0] + '/claude';
+      var claudePlaceholder = '__GENFEED_CLAUDE_URL_PLACEHOLDER__';
+      text = replaceAll(text, claudeUrl, claudePlaceholder);
       var next = replaceAll(
         text,
         '--scope user ' + currentShellUrl,
@@ -1073,7 +1112,7 @@ ${postHogSnippet}
       next = replaceAll(next, '--url ' + currentShellUrl, '--url ' + placeholder);
       next = replaceAll(next, currentUrl, nextUrl);
       next = replaceAll(next, placeholder, nextShellUrl);
-      return next;
+      return replaceAll(next, claudePlaceholder, claudeUrl);
     }
 
     function applyUrl(nextUrl) {
@@ -1099,7 +1138,7 @@ ${postHogSnippet}
         );
       }
 
-      ['claude-code-command', 'codex-command'].forEach(function (id) {
+      ['codex-command'].forEach(function (id) {
         var el = document.getElementById(id);
         if (!el) return;
         el.textContent = replaceAll(

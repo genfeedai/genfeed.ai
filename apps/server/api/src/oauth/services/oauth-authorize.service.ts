@@ -15,7 +15,14 @@ import {
 } from '@api/oauth/oauth-metadata.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
+import {
+  API_KEY_SCOPE_PRESETS,
+  MCP_CLAUDE_SCOPE_CEILING,
+} from '@genfeedai/contracts/constants';
+import {
+  deriveClaudeMcpResourceIdentifier,
+  resolveMcpAccessModeForResource,
+} from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { ConfigService } from '@libs/config/config.service';
 import {
   BadRequestException,
@@ -92,7 +99,7 @@ export class OAuthAuthorizeService {
       dto.client_id,
       dto.redirect_uri,
     );
-    this.assertResource(dto.resource);
+    const resource = this.assertResource(dto.resource);
 
     const consentUrl = new URL(
       '/oauth/consent',
@@ -102,6 +109,9 @@ export class OAuthAuthorizeService {
       if (typeof value === 'string') {
         consentUrl.searchParams.set(key, value);
       }
+    }
+    if (resolveMcpAccessModeForResource(resource) === 'claude') {
+      consentUrl.searchParams.set('access_mode', 'claude');
     }
     if (client.clientName) {
       consentUrl.searchParams.set('client_name', client.clientName);
@@ -132,7 +142,7 @@ export class OAuthAuthorizeService {
       throw new UnauthorizedException('User identity is incomplete');
     }
 
-    const scopes = this.clampScopes(dto.scope);
+    const scopes = this.clampScopes(dto.scope, resource);
     const code = toBase64Url(randomBytes(32));
     const expiresAt = new Date(Date.now() + MCP_OAUTH_CODE_TTL_MS);
     const userName = [user.firstName, user.lastName].filter(Boolean).join(' ');
@@ -260,14 +270,21 @@ export class OAuthAuthorizeService {
   /** Returns the canonical resource the grant is bound to. */
   private assertResource(requested: string): string {
     const resource = canonicalizeRequestedMcpResource(requested);
-    if (resource !== resolveMcpResourceUrl(this.configService)) {
+    const standard = resolveMcpResourceUrl(this.configService);
+    if (
+      resource !== standard &&
+      resource !== deriveClaudeMcpResourceIdentifier(standard)
+    ) {
       throw oauthError('invalid_target', 'Unsupported resource');
     }
     return resource;
   }
 
-  private clampScopes(scope?: string): string[] {
-    const ceiling = API_KEY_SCOPE_PRESETS.mcp as readonly string[];
+  private clampScopes(scope: string | undefined, resource: string): string[] {
+    const ceiling =
+      resolveMcpAccessModeForResource(resource) === 'claude'
+        ? MCP_CLAUDE_SCOPE_CEILING
+        : API_KEY_SCOPE_PRESETS.mcp;
     const requested = scope
       ? Array.from(new Set(scope.split(/\s+/).filter(Boolean)))
       : [...ceiling];

@@ -1,4 +1,4 @@
-import type { ToolsetName } from '@genfeedai/actions';
+import type { McpAccessMode, ToolsetName } from '@genfeedai/actions';
 import type { McpRole } from '@mcp/services/auth.service';
 import type { Request } from 'express';
 
@@ -8,6 +8,7 @@ import type { Request } from 'express';
  * discovery request (`isPublicMcpRequest`).
  */
 export interface McpAuthContext {
+  accessMode?: McpAccessMode;
   token?: string;
   userId?: string;
   organizationId?: string;
@@ -25,5 +26,6 @@ export interface McpAuthContext {
  */
 export interface McpRequest extends Request {
   authContext?: McpAuthContext;
+  routeAccessMode?: McpAccessMode;
   toolsets?: readonly ToolsetName[];
 }
