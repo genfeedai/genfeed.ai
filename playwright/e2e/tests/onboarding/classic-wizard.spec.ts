@@ -1,4 +1,3 @@
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { expect, test } from '../../fixtures/onboarding.fixture';
 import { OnboardingPage } from '../../pages/onboarding.page';
 
@@ -32,8 +31,8 @@ test.describe('Desktop classic onboarding', () => {
     await expect(wizard.skipButton).toBeVisible();
     await expect(wizard.skipButton).toHaveAttribute('data-brand-os-navigation');
     await wizard.skipStep();
-    await expect
-      .poll(() => new URL(desktopOnboardingPage.url()).pathname)
-      .toBe(APP_ROUTES.ROOT);
+    await expect(desktopOnboardingPage).toHaveURL(
+      /\/test-org\/brand-1\/workspace\/overview$/,
+    );
   });
 });

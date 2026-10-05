@@ -15,19 +15,15 @@ function fixture() {
     findOne: vi.fn().mockResolvedValue({ accountType: 'EXPERT' }),
   };
   const users = {
-    findOne: vi
-      .fn()
-      .mockResolvedValue({
-        id: 'user-1',
-        isOnboardingCompleted: false,
-        onboardingStepsCompleted: ['positioning'],
-      }),
-    patch: vi
-      .fn()
-      .mockResolvedValue({
-        id: 'user-1',
-        onboardingStepsCompleted: ['positioning', 'brand'],
-      }),
+    findOne: vi.fn().mockResolvedValue({
+      id: 'user-1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: ['positioning'],
+    }),
+    patch: vi.fn().mockResolvedValue({
+      id: 'user-1',
+      onboardingStepsCompleted: ['positioning', 'brand'],
+    }),
   };
   const cache = { invalidateAll: vi.fn() };
   const service = new AgentOnboardingBrandHandoffService(
