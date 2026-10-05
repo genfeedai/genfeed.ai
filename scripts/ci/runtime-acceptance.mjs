@@ -1517,7 +1517,8 @@ export function parseDatasetRecords(output, mode) {
       'DATASET_PURPOSE',
     );
     // Vincent 2026-10-05: consented 100k budget is 75s (CI ~1.15x Studio, full re-read contract kept).
-    const cap = record.kind === 'owned' ? 30000 : 75000;
+    const cap =
+      record.kind === 'owned' ? 30000 : record.size >= 100000 ? 75000 : 60000;
     for (const field of [
       'elapsedMs',
       'transactionElapsedMs',

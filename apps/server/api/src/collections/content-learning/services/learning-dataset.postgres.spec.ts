@@ -1063,7 +1063,8 @@ describe.skipIf(!explicitUrl)(
       expect(graphNodesMaxPass).toBe(kind === 'owned' ? 0 : 7 * size + 36);
       expect(graphEdgesMaxPass).toBe(kind === 'owned' ? 0 : 12 * size + 210);
       // Vincent 2026-10-05: consented 100k budget is 75s (CI ~1.15x Studio, full re-read contract kept).
-      const budgetMs = kind === 'owned' ? 30000 : 75000;
+      const budgetMs =
+        kind === 'owned' ? 30000 : size >= 100000 ? 75000 : 60000;
       const queryBound =
         kind === 'owned'
           ? 8 + Math.ceil(size / 1000)
