@@ -2,6 +2,7 @@
 'use client';
 
 import { isSaaS } from '@genfeedai/config/deployment';
+import { MemberRole } from '@genfeedai/contracts';
 import type { AccessBootstrapState } from '@genfeedai/services/auth/auth.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
 import {
@@ -69,7 +70,7 @@ function createWrapper() {
 
 describe('AccessStateProvider', () => {
   const initialAccessState: AccessBootstrapState = {
-    memberRole: 'owner',
+    memberRole: MemberRole.OWNER,
     brandId: 'brand_123',
     creditsBalance: 100,
     hasDismissedAssetGate: false,

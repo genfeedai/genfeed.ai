@@ -111,6 +111,49 @@ describe('MembersService', () => {
     ).not.toHaveBeenCalled();
   });
 
+  it('invalidates the removed member user bootstrap after soft deletion', async () => {
+    const member = {
+      id: 'member-1',
+      isDeleted: true,
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+    prisma.member.update.mockResolvedValue(member);
+
+    await expect(service.remove('member-1')).resolves.toMatchObject(member);
+
+    expect(prisma.member.update).toHaveBeenCalledWith({
+      data: { isDeleted: true },
+      where: { id: 'member-1' },
+    });
+    expect(accessBootstrapCacheService.invalidateForUser).toHaveBeenCalledWith(
+      'user-1',
+    );
+    expect(prisma.member.update.mock.invocationCallOrder[0]).toBeLessThan(
+      accessBootstrapCacheService.invalidateForUser.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('does not invalidate bootstrap when removal finds no member', async () => {
+    prisma.member.update.mockResolvedValue(null);
+
+    await expect(service.remove('member-1')).resolves.toBeNull();
+
+    expect(
+      accessBootstrapCacheService.invalidateForUser,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('does not invalidate bootstrap when removal fails', async () => {
+    prisma.member.update.mockRejectedValue(new Error('Removal failed'));
+
+    await expect(service.remove('member-1')).rejects.toThrow('Removal failed');
+
+    expect(
+      accessBootstrapCacheService.invalidateForUser,
+    ).not.toHaveBeenCalled();
+  });
+
   it('returns active organization members as team mentions', async () => {
     prisma.member.findMany.mockResolvedValue([
       {

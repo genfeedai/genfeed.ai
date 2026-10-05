@@ -1,6 +1,5 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { StreaksService } from '@api/collections/streaks/services/streaks.service';
@@ -20,7 +19,9 @@ import {
   ReviewInboxSummary,
 } from '@api/services/batch-generation/batch-generation.service';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
+import { MemberRole } from '@genfeedai/contracts';
 import type { IAnalytics, IBrand } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 
@@ -47,6 +48,10 @@ type OverviewBootstrapCacheEntry = {
   expiresAt: number;
   payload: OverviewBootstrapPayload;
 };
+
+type BootstrapMemberWithRole = Prisma.MemberGetPayload<{
+  include: { role: true };
+}>;
 
 const OVERVIEW_BOOTSTRAP_CACHE_TTL_MS = 10_000;
 const OVERVIEW_BOOTSTRAP_CACHE_MAX_ENTRIES = 100;
@@ -154,12 +159,15 @@ export class AuthBootstrapService {
   private async resolveMemberRole(
     organizationId: string,
     userId: string,
-  ): Promise<string | null> {
+  ): Promise<MemberRole | null> {
     const member = (await this.membersService.findOne(
       { isActive: true, isDeleted: false, organizationId, userId },
       [PopulateBuilder.withFields('role', ['id', 'key', 'label'])],
-    )) as (MemberDocument & { role?: { key?: string } | null }) | null;
-    return member?.role?.key ?? null;
+    )) as BootstrapMemberWithRole | null;
+    return (
+      Object.values(MemberRole).find((role) => role === member?.role?.key) ??
+      null
+    );
   }
 
   private serializeRecord<T>(value: T | null | undefined): T | null {

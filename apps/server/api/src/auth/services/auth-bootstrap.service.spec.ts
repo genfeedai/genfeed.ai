@@ -1,6 +1,10 @@
 import { AuthBootstrapService } from '@api/auth/services/auth-bootstrap.service';
 import type { AccessBootstrapCachePayload } from '@api/common/services/access-bootstrap-cache.service';
-import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
+import {
+  MemberRole,
+  SubscriptionStatus,
+  SubscriptionTier,
+} from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -14,6 +18,14 @@ const {
 }));
 
 vi.mock('@genfeedai/contracts', () => ({
+  MemberRole: {
+    ADMIN: 'admin',
+    ANALYTICS: 'analytics',
+    CREATOR: 'creator',
+    OWNER: 'owner',
+    SUPPORT: 'support',
+    USER: 'user',
+  },
   SubscriptionStatus: {
     ACTIVE: 'ACTIVE',
     CANCELLED: 'CANCELLED',
@@ -162,7 +174,7 @@ describe('AuthBootstrapService', () => {
     mockGetSubscriptionTier.mockReturnValue('');
   });
 
-  it.each(['owner', 'admin'])(
+  it.each(Object.values(MemberRole))(
     'resolves %s from the active membership in the requested organization',
     async (role) => {
       membersService.findOne.mockImplementation(
@@ -188,6 +200,20 @@ describe('AuthBootstrapService', () => {
         },
         expect.any(Array),
       );
+    },
+  );
+
+  it.each([{ role: { key: 'unknown-role' } }, { role: null }, {}])(
+    'returns no role for an invalid or missing populated role: %j',
+    async (member) => {
+      membersService.findOne.mockResolvedValue(member);
+
+      const result = await service.getBootstrap({
+        context: { organizationId: 'org_active', userId: 'user_1' },
+        user: { id: 'user_1' },
+      } as never);
+
+      expect(result.access.memberRole).toBeNull();
     },
   );
 

@@ -2,6 +2,7 @@ import {
   AccessBootstrapCachePayload,
   AccessBootstrapCacheService,
 } from '@api/common/services/access-bootstrap-cache.service';
+import { MemberRole } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -36,7 +37,7 @@ describe('AccessBootstrapCacheService', () => {
       hasDismissedAssetGate: false,
       isOnboardingCompleted: true,
       isSuperAdmin: false,
-      memberRole: 'owner',
+      memberRole: MemberRole.OWNER,
       organizationId: 'org-1',
       subscriptionStatus: 'active',
       subscriptionTier: 'pro',

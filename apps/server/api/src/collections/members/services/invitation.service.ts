@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { claimWarmupWorkspace } from '@api/endpoints/admin/warmup-accounts/warmup-workspace';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
@@ -165,6 +166,7 @@ export class InvitationService {
     private readonly configService: ConfigService,
     private readonly activityRecorder: ActivityRecorderService,
     private readonly logger: LoggerService,
+    private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
   ) {}
 
   async createInvitation(
@@ -396,7 +398,7 @@ export class InvitationService {
     }
     const tokenHash = hashToken(normalizedToken);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const invitation = await tx.invitation.findUnique({
         include: { organization: { select: { label: true } } },
         where: { tokenHash },
@@ -451,6 +453,9 @@ export class InvitationService {
         userId: user.id,
       };
     });
+
+    await this.accessBootstrapCacheService.invalidateForUser(result.userId);
+    return result;
   }
 
   private buildWarmupRedirect(destination: string): string {

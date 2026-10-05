@@ -73,6 +73,14 @@ export class MembersService extends BaseService<
     return member;
   }
 
+  override async remove(id: string): Promise<MemberDocument | null> {
+    const member = await super.remove(id);
+    if (member?.userId) {
+      await this.accessBootstrapCacheService.invalidateForUser(member.userId);
+    }
+    return member;
+  }
+
   protected override normalizeData(data: unknown): Record<string, unknown> {
     const normalized = super.normalizeData(data) as Record<string, unknown>;
     const { brandIds, ...memberData } = normalized;
