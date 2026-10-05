@@ -336,12 +336,19 @@ export function quoteModelBillableCompletion(
   });
   const { completedOutputs, successfulRequests } = completion;
   const admittedSelectors = snapshot.quantities.selectors ?? {};
+  const supplied = completion.selectors;
   if (
-    completion.selectors !== undefined &&
-    (Object.keys(completion.selectors).length !==
-      Object.keys(admittedSelectors).length ||
-      Object.entries(completion.selectors).some(
-        ([key, value]) => admittedSelectors[key] !== value,
+    supplied !== undefined &&
+    // Supplied values must match canonically (`'6'` equals `6`); a
+    // quantity-backed selector (duration) may be left to its quantity.
+    (Object.entries(supplied).some(
+      ([key, value]) =>
+        admittedSelectors[key] === undefined ||
+        !selectorValuesEqual(value, admittedSelectors[key]),
+    ) ||
+      Object.keys(admittedSelectors).some(
+        (key) =>
+          supplied[key] === undefined && !(key in QUANTITY_BACKED_SELECTORS),
       ))
   )
     return unresolved('Completion selectors differ from the admitted variant');

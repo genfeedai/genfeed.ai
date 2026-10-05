@@ -408,6 +408,48 @@ describe('authoritative bill-time quote snapshots', () => {
       'unresolved',
     );
   });
+  it('settles a completion canonically: "6" matches 6 and a derived duration may be omitted', () => {
+    const reviewed = {
+      ...model,
+      rateVersion: 'rate-v1',
+      requiresReviewedRates: true,
+      reviewedPricing: {
+        version: 'rate-v1',
+        currency: 'USD',
+        reviewStatus: 'approved',
+        sourceUrl: 'https://replicate.com/minimax/hailuo-2.3-fast',
+        verifiedAt: date,
+        rates: [
+          {
+            component: 'output',
+            unit: 'output' as const,
+            unitPriceUsd: 0.19,
+            when: { resolution: '768P', duration: 6 },
+          },
+        ],
+      },
+    };
+    const admitted = quoteModelBillablePricing(
+      reviewed,
+      { ...input, duration: 6, selectors: { resolution: '768P' } },
+      3.33,
+      date,
+    );
+    if (admitted.status !== 'priced') throw new Error(admitted.reason);
+    const settle = (selectors: Record<string, string | number | boolean>) =>
+      quoteModelBillableCompletion(admitted.snapshot, {
+        completedOutputs: 1,
+        selectors,
+        successfulRequests: 1,
+      }).status;
+    expect(settle({ resolution: '768P', duration: 6 })).toBe('priced');
+    expect(settle({ resolution: '768P', duration: '6' })).toBe('priced');
+    expect(settle({ resolution: '768P' })).toBe('priced');
+    expect(settle({ duration: 6 })).toBe('priced');
+    expect(settle({ resolution: '1080P', duration: 6 })).toBe('unresolved');
+    expect(settle({ resolution: '768P', duration: 10 })).toBe('unresolved');
+  });
+
   it('keeps charging the reviewed rate while a price change awaits approval', () => {
     const reviewed = {
       ...model,

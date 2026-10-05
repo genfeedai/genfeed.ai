@@ -71,7 +71,7 @@ export function classifyModelRowPricingAttention(
     category: model.category,
     defaultDuration: model.defaultDuration,
     hasTokenPricing:
-      (model.inputCostPerMillionTokens ?? 0) > 0 &&
+      (model.inputCostPerMillionTokens ?? 0) > 0 ||
       (model.outputCostPerMillionTokens ?? 0) > 0,
     isActive: model.isActive,
     isFree: model.isFree,

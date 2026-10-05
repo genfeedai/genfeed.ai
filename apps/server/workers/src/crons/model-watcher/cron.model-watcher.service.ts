@@ -168,31 +168,12 @@ export class CronModelWatcherService {
           (model) => [`${model.owner}/${model.name}`, model] as const,
         ),
       );
-      for (const endpoint of existingModels.keys()) {
-        if (candidates.has(endpoint)) continue;
-        const [owner, name] = endpoint.split('/');
-        if (!owner || !name) {
-          summary.errors++;
-          continue;
-        }
-        const providerModel =
-          await this.modelDiscoveryService.fetchReplicateModel(owner, name);
-        if (providerModel) {
-          candidates.set(endpoint, providerModel);
-        } else {
-          summary.errors++;
-          await this.replicateContractSyncService.recordFailure(
-            'model_fetch_failed',
-            summary.timestamp,
-            existingModels.get(endpoint)?.id,
-          );
-          await this.sendFailureAlert(
-            endpoint,
-            'model_fetch_failed',
-            summary.timestamp,
-          );
-        }
-      }
+      await this.fetchMissingRegistryModels(
+        candidates,
+        existingModels,
+        replicateModels.length,
+        summary,
+      );
 
       // Step 6: Create missing drafts, then persist a versioned schema/pricing
       // candidate for every observed endpoint. Reviewed runtime fields stay
@@ -419,6 +400,54 @@ export class CronModelWatcherService {
       });
       return false;
     }
+  }
+
+  /**
+   * Fetch every registry endpoint the bounded listing missed. Failures are
+   * recorded per model; the alert is one deduped provider-level message when
+   * the whole provider is out (nothing listed, or every exact fetch failed),
+   * and per model otherwise.
+   */
+  private async fetchMissingRegistryModels(
+    candidates: Map<string, IReplicateModel>,
+    existingModels: ReadonlyMap<string, ReplicateSyncModelRecord>,
+    listedCount: number,
+    summary: IModelDiscoveryRunSummary,
+  ): Promise<void> {
+    const failed: string[] = [];
+    let attempted = 0;
+    for (const endpoint of existingModels.keys()) {
+      if (candidates.has(endpoint)) continue;
+      const [owner, name] = endpoint.split('/');
+      if (!owner || !name) {
+        summary.errors++;
+        continue;
+      }
+      attempted++;
+      const providerModel =
+        await this.modelDiscoveryService.fetchReplicateModel(owner, name);
+      if (providerModel) {
+        candidates.set(endpoint, providerModel);
+        continue;
+      }
+      summary.errors++;
+      failed.push(endpoint);
+      await this.replicateContractSyncService.recordFailure(
+        'model_fetch_failed',
+        summary.timestamp,
+        existingModels.get(endpoint)?.id,
+      );
+    }
+    if (failed.length === 0) return;
+    const isProviderWide =
+      failed.length === attempted ||
+      (listedCount === 0 && existingModels.size > 0);
+    for (const endpoint of isProviderWide ? ['provider:replicate'] : failed)
+      await this.sendFailureAlert(
+        endpoint,
+        'model_fetch_failed',
+        summary.timestamp,
+      );
   }
 
   /** Ops Discord for a model whose refresh threw or could not be fetched. */

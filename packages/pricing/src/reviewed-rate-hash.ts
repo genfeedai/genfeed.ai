@@ -4,6 +4,7 @@ import type {
   ProviderBillingUnit,
   ReviewedProviderRate,
 } from '@genfeedai/contracts/interfaces';
+import { selectorNumber } from './reviewed-provider-pricing';
 
 /** Prefix that marks a contract version as the hash of its normalized rates. */
 export const REVIEWED_RATE_HASH_PREFIX = 'rates:sha256:';
@@ -109,7 +110,13 @@ function normalizeRate(rate: ReviewedProviderRate): NormalizedProviderRate {
     unit: rate.unit,
     // Ten decimals keeps float noise from reading as a price change.
     unitPriceUsd: Number(rate.unitPriceUsd.toFixed(10)),
-    when: { ...rate.when },
+    // `6` and `'6'` are the same selector value, so they hash alike.
+    when: Object.fromEntries(
+      Object.entries(rate.when).map(([key, value]) => [
+        key,
+        selectorNumber(value) ?? value,
+      ]),
+    ),
   };
 }
 
@@ -151,7 +158,7 @@ export function describeProviderRateChanges(
   newRates: readonly ReviewedProviderRate[],
 ): ModelPricingRateChange[] {
   const keyOf = (rate: ReviewedProviderRate) =>
-    stableStringify([rate.component, rate.unit, rate.when]);
+    stableStringify([rate.component, rate.unit, normalizeRate(rate).when]);
   const previous = new Map(oldRates.map((rate) => [keyOf(rate), rate]));
   const next = new Map(newRates.map((rate) => [keyOf(rate), rate]));
   const changes: ModelPricingRateChange[] = [];

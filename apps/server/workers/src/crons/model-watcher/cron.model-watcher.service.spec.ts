@@ -403,6 +403,25 @@ describe('CronModelWatcherService', () => {
       );
     });
 
+    it('sends one provider-level alert, not one per model, when every exact fetch fails', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValueOnce({
+        json: () => Promise.resolve({ next: null, results: [] }),
+        ok: true,
+      } as Response);
+      modelDiscoveryService.fetchReplicateModel.mockResolvedValue(null);
+
+      await service.discoverNewModels();
+
+      const keys = notificationsService.dispatch.mock.calls.map(
+        (call) => call[0].deduplicationKey,
+      );
+      const fetchAlerts = keys.filter((key) =>
+        key.includes('(model_fetch_failed)'),
+      );
+      expect(fetchAlerts).toHaveLength(1);
+      expect(fetchAlerts[0]).toContain('/provider:replicate/');
+    });
+
     it('should ignore models already in DB', async () => {
       // Mock Replicate API returning only existing models
       globalThis.fetch = vi.fn().mockResolvedValueOnce({

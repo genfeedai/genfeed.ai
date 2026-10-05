@@ -270,12 +270,6 @@
     "symbol": "CronIngredientsService.refreshMissingMetadataDimensions"
   },
   {
-    "actual": 162,
-    "file": "apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts",
-    "metric": "method-lines",
-    "symbol": "CronModelWatcherService.discoverNewModels"
-  },
-  {
     "actual": 209,
     "file": "apps/server/workers/src/crons/tiktok/cron.tiktok-status.service.ts",
     "metric": "method-lines",

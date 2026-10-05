@@ -37,10 +37,10 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = `;
 
 function parseArgs(argv: string[]): { isDryRun: boolean; model?: string } {
   const modelIndex = argv.indexOf('--model');
-  return {
-    isDryRun: argv.includes('--dry-run'),
-    model: modelIndex >= 0 ? argv[modelIndex + 1] : undefined,
-  };
+  const model = modelIndex >= 0 ? argv[modelIndex + 1] : undefined;
+  if (modelIndex >= 0 && (!model || model.startsWith('--')))
+    throw new Error('--model needs a value, for example --model owner/name');
+  return { isDryRun: argv.includes('--dry-run'), model };
 }
 
 async function fetchInputProperties(

@@ -6,7 +6,10 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { quoteModelBillablePricing } from './model-billable-quote';
 import { DEFAULT_GENERATION_MARGIN_MULTIPLIER } from './plans-pricing';
-import { selectorNumber } from './reviewed-provider-pricing';
+import {
+  selectorNumber,
+  selectorValuesEqual,
+} from './reviewed-provider-pricing';
 
 /** Providers whose rates the daily/weekly watcher refreshes from a machine-readable source. */
 const REFRESHED_PROVIDERS: ReadonlySet<string> = new Set(['replicate', 'fal']);
@@ -55,7 +58,7 @@ function conflicts(
   right: Record<string, string | number | boolean>,
 ): boolean {
   return Object.entries(right).some(
-    ([key, value]) => key in left && left[key] !== value,
+    ([key, value]) => key in left && !selectorValuesEqual(left[key], value),
   );
 }
 

@@ -207,6 +207,27 @@ describe('numeric-string duration bands', () => {
   });
 });
 
+describe('selector merging across components', () => {
+  it('treats duration 6 and "6" as the same value when merging components', () => {
+    expect(
+      enumerateReviewedVariantSelectors([
+        {
+          component: 'output',
+          unit: 'output',
+          unitPriceUsd: 0.1,
+          when: { duration: 6 },
+        },
+        {
+          component: 'extras',
+          unit: 'reference',
+          unitPriceUsd: 0.01,
+          when: { duration: '6', mode: 'pro' },
+        },
+      ]),
+    ).toEqual([{ duration: 6, mode: 'pro' }]);
+  });
+});
+
 describe('enumerateReviewedVariantSelectors', () => {
   it('lists each declared variant once and merges independent components', () => {
     expect(enumerateReviewedVariantSelectors(hailuoRates)).toHaveLength(3);

@@ -58,6 +58,17 @@ describe('hashReviewedProviderRates', () => {
     );
   });
 
+  it('hashes numerically equal selector values alike, so 6 and "6" are not drift', () => {
+    const stringy: ReviewedProviderRate[] = [
+      { ...first, when: { resolution: '768P', duration: '6' } },
+      { ...second, when: { resolution: '768P', duration: '10' } },
+    ];
+    expect(hashReviewedProviderRates(stringy)).toBe(
+      hashReviewedProviderRates(rates),
+    );
+    expect(describeProviderRateChanges(rates, stringy)).toEqual([]);
+  });
+
   it('changes when a price, selector or unit changes', () => {
     const base = hashReviewedProviderRates(rates);
     expect(
