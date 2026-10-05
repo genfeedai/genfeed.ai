@@ -527,6 +527,44 @@ describe('LoginPage', () => {
     );
   });
 
+  it('sends every path to an embedding page callback (#6268)', async () => {
+    const consent = '/oauth/consent?client_id=oauth_client&state=s1';
+    render(
+      <LoginBetterAuth
+        callbackURL={consent}
+        description="Sign in or create a free account."
+        title="Connect Claude to Genfeed"
+      />,
+    );
+    const encoded = `callbackUrl=${encodeURIComponent(consent)}`;
+
+    expect(screen.getByText('Connect Claude to Genfeed')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Magic Link' })).toHaveAttribute(
+      'href',
+      `/login/magic-link?${encoded}`,
+    );
+    expect(screen.getByRole('link', { name: 'Sign up' })).toHaveAttribute(
+      'href',
+      `/sign-up?${encoded}`,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
+    await waitFor(() => {
+      expect(authClientMocks.social).toHaveBeenCalledWith(
+        expect.objectContaining({ callbackURL: absoluteCallback(consent) }),
+      );
+    });
+  });
+
+  it('ignores an off-site embedding callback', () => {
+    render(<LoginBetterAuth callbackURL="https://evil.example/steal" />);
+
+    expect(screen.getByRole('link', { name: 'Magic Link' })).toHaveAttribute(
+      'href',
+      '/login/magic-link',
+    );
+  });
+
   it('shows an interrupted Google sign-in when Better Auth bounced with state_mismatch', () => {
     window.history.replaceState({}, '', '/login?error=state_mismatch');
 
