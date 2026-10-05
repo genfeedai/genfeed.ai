@@ -35,6 +35,7 @@ describe('useDesktopLocalWorkspaceFlag (#5468)', () => {
     expect(result.current).toEqual({
       isAvailable: true,
       isEnabled: false,
+      isHydrating: false,
       isReady: true,
     });
   });
@@ -47,6 +48,7 @@ describe('useDesktopLocalWorkspaceFlag (#5468)', () => {
     expect(result.current).toEqual({
       isAvailable: true,
       isEnabled: true,
+      isHydrating: false,
       isReady: false,
     });
   });
@@ -59,6 +61,7 @@ describe('useDesktopLocalWorkspaceFlag (#5468)', () => {
     expect(result.current).toEqual({
       isAvailable: false,
       isEnabled: false,
+      isHydrating: false,
       isReady: true,
     });
   });
