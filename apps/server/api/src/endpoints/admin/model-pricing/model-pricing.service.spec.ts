@@ -699,9 +699,9 @@ describe('operator model pricing projection', () => {
           }),
       } as never);
 
-      await expect(service.approveRates('missing', 'user-1')).rejects.toThrow(
-        'not found',
-      );
+      await expect(
+        service.approveRates('missing', 'user-1', 'rates-v2'),
+      ).rejects.toThrow('not found');
     });
   });
 });

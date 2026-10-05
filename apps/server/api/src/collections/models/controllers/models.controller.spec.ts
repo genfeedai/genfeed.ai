@@ -71,6 +71,12 @@ vi.mock('@helpers/utils/response/response.util', () => ({
   setTopLinks: vi.fn((_req, opts) => opts),
 }));
 
+function findAllWhere(service: { findAll: { mock: { calls: unknown[][] } } }) {
+  const call = service.findAll.mock.calls[0];
+  const query = call ? (call[0] as { where: object }) : { where: {} };
+  return query.where;
+}
+
 describe('ModelsController', () => {
   let controller: ModelsController;
   let modelsService: vi.Mocked<ModelsService>;
@@ -441,7 +447,7 @@ describe('ModelsController', () => {
 
       await controller.findAll(mockRequest, mockRegularUser, {});
 
-      expect(modelsService.findAll.mock.calls[0][0].where).toMatchObject({
+      expect(findAllWhere(modelsService)).toMatchObject({
         AND: [{ id: { notIn: ['red-model'] } }],
       });
       // Classified for exactly the rows the list returns: the caller's org.
@@ -450,9 +456,7 @@ describe('ModelsController', () => {
       modelsService.findAll.mockClear();
       await controller.findAll(mockSuperAdminRequest, mockSuperAdminUser, {});
 
-      expect(modelsService.findAll.mock.calls[0][0].where).not.toHaveProperty(
-        'AND',
-      );
+      expect(findAllWhere(modelsService)).not.toHaveProperty('AND');
     });
 
     it('should append org-scoped match stage when request context has organizationId', async () => {
