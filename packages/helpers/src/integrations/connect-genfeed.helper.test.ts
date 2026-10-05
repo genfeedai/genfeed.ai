@@ -1,7 +1,62 @@
 import {
   buildConnectGenfeedChatPrompt,
   buildConnectGenfeedInstructions,
+  buildGenfeedAgentSetupPrompt,
 } from './connect-genfeed.helper';
+
+describe('buildGenfeedAgentSetupPrompt', () => {
+  it('sets up only the chosen client and verifies without content writes', () => {
+    const prompt = buildGenfeedAgentSetupPrompt(
+      'https://mcp.genfeed.ai/mcp/',
+      'Codex',
+    );
+    expect(prompt).toContain('for Codex.');
+    expect(prompt).toContain('npx skills add genfeedai/agent');
+    expect(prompt).toContain(
+      'Skip this step if the playbook is already available',
+    );
+    expect(prompt).toContain('Authenticate only the selected client');
+    expect(prompt).toContain('read-only get_account and get_brands');
+    expect(prompt).toContain(
+      'Do not generate content, schedule, publish, or resolve approvals',
+    );
+    expect(prompt).not.toMatch(/GENFEED_API_KEY|Bearer/);
+  });
+
+  it('uses quoted endpoints in commands and rejects unsupported protocols', () => {
+    const prompt = buildGenfeedAgentSetupPrompt(
+      'https://mcp.genfeed.ai/mcp?toolsets=content',
+    );
+    expect(prompt).toContain(
+      "--url 'https://mcp.genfeed.ai/mcp?toolsets=content'",
+    );
+    expect(() => buildGenfeedAgentSetupPrompt('file:///tmp/mcp')).toThrow();
+  });
+});
+
+describe('Claude setup endpoint separation', () => {
+  it.each([
+    'https://mcp.genfeed.ai/mcp?toolsets=generation',
+    'https://mcp.genfeed.ai/mcp/claude/?profile=full',
+  ])(
+    'keeps Claude restricted while offering standard Codex setup for %s',
+    (endpoint) => {
+      const prompt = buildGenfeedAgentSetupPrompt(endpoint, 'Claude Code');
+      expect(prompt).toContain(
+        'Claude endpoint: https://mcp.genfeed.ai/mcp/claude',
+      );
+      expect(prompt).toContain(
+        '/plugin install genfeed --marketplace genfeedai/agent',
+      );
+      expect(prompt).toContain('codex mcp add genfeed --url');
+      expect(prompt).not.toContain(
+        'codex mcp add genfeed --url https://mcp.genfeed.ai/mcp/claude',
+      );
+      expect(prompt).not.toContain('generation/claude');
+      expect(prompt).toContain('Claude requires OAuth');
+    },
+  );
+});
 
 describe('buildConnectGenfeedChatPrompt', () => {
   it('names the normalized endpoint and OAuth without requesting a secret', () => {

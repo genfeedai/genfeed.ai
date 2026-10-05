@@ -10,6 +10,8 @@ import type { AgentInstallation } from '@genfeedai/contracts/interfaces/website/
 import {
   buildConnectGenfeedChatPrompt,
   buildConnectGenfeedInstructions,
+  buildGenfeedAgentSetupPrompt,
+  GENFEED_SKILLS_INSTALL_COMMAND,
 } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 
 /**
@@ -31,6 +33,8 @@ export const GENFEED_MCP_DOCS_URL = 'https://docs.genfeed.ai/api-reference/mcp';
 export const GENFEED_AUTH_DOCS_URL = 'https://genfeed.ai/auth.md';
 
 export const AGENT_CLIENT_MANUAL_KEY_HEADING = 'Advanced: scoped API key';
+export const AGENT_CLIENT_SKILLS_ONLY_COPY =
+  'Packaged Genfeed plugins already include the playbook. Use this skills-only alternative when connecting through MCP without a Genfeed plugin.';
 
 export const AGENT_CLIENT_SLUGS = [
   'claude',
@@ -82,6 +86,8 @@ export interface AgentClient {
   name: string;
   oauth: ConnectGenfeedInstructions;
   preview: string;
+  setupPrompt?: string;
+  skillsCommand?: string;
   slug: AgentClientSlug;
   title: string;
 }
@@ -185,6 +191,13 @@ function buildClient(copy: AgentClientCopy): AgentClient {
     connectInstruction,
     connectUrl: connectUrl,
     description: copy.description,
+    setupPrompt: isOAuthOnly
+      ? undefined
+      : buildGenfeedAgentSetupPrompt(GENFEED_PUBLIC_MCP_URL, copy.name),
+    skillsCommand:
+      isOAuthOnly || installation.command === GENFEED_SKILLS_INSTALL_COMMAND
+        ? undefined
+        : GENFEED_SKILLS_INSTALL_COMMAND,
     logo: CLIENT_LOGOS[copy.slug],
     faq: [
       {
@@ -459,6 +472,16 @@ export function getAgentClientCommandBlocks(
       label: client.installation.method,
       value: client.installation.command,
     });
+  }
+
+  if (client.skillsCommand) {
+    blocks.push({
+      label: 'Skills-only alternative',
+      value: client.skillsCommand,
+    });
+  }
+  if (client.setupPrompt) {
+    blocks.push({ label: 'Setup prompt', value: client.setupPrompt });
   }
 
   blocks.push({ label: 'Connect URL', value: client.connectUrl });

@@ -1,6 +1,10 @@
 'use client';
 
-import { type AgentClient, agentClients } from '@data/agent-clients.data';
+import {
+  AGENT_CLIENT_SKILLS_ONLY_COPY,
+  type AgentClient,
+  agentClients,
+} from '@data/agent-clients.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentConnectDialogProps } from '@props/agent-client.props';
 import CommandBlock from '@public/agent-clients/agent-client-command-block';
@@ -128,6 +132,30 @@ export default function AgentConnectDialog({
                   label={`Paste into ${client.name}`}
                   value={client.chatPrompt}
                 />
+              ) : null}
+              {client.skillsCommand ? (
+                <>
+                  <p className="text-sm leading-6 text-surface/75">
+                    {AGENT_CLIENT_SKILLS_ONLY_COPY}
+                  </p>
+                  <CommandBlock
+                    label="Skills-only alternative"
+                    value={client.skillsCommand}
+                  />
+                </>
+              ) : null}
+              {client.setupPrompt ? (
+                <>
+                  <p className="text-sm leading-6 text-surface/75">
+                    Skills add the Genfeed playbook. To connect your account
+                    too, paste the setup prompt into {client.name} with local
+                    shell access.
+                  </p>
+                  <CommandBlock
+                    label="Setup prompt"
+                    value={client.setupPrompt}
+                  />
+                </>
               ) : null}
               <CommandBlock
                 label="Genfeed connector URL"

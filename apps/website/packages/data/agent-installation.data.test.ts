@@ -20,7 +20,7 @@ describe('platform installation contracts', () => {
 
   it('distinguishes packaged installs from registration and skill-only setup', () => {
     expect(getAgentClient('claude-code').installation.command).toContain(
-      '/plugin install genfeed@genfeed',
+      '/plugin install genfeed --marketplace genfeedai/agent',
     );
     expect(getAgentClient('codex').installation.instruction).toContain(
       'Registration alone does not install',

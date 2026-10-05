@@ -12,6 +12,8 @@ import type { McpResourceIdentifierResolution } from '@genfeedai/contracts/inter
 import {
   buildConnectGenfeedChatPrompt,
   buildConnectGenfeedInstructions,
+  buildGenfeedAgentSetupPrompt,
+  GENFEED_SKILLS_INSTALL_COMMAND,
 } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
   deriveClaudeMcpResourceIdentifier,
@@ -146,35 +148,10 @@ function buildAgentSetupPrompt(params: {
 }): string {
   const { apiKeysUrl, mcpUrl } = params;
 
-  const claude = buildConnectGenfeedInstructions(
-    'claude-code',
-    getPublicClaudeMcpUrl(),
-  );
-  const codex = buildConnectGenfeedInstructions('codex', mcpUrl);
+  return `${buildGenfeedAgentSetupPrompt(mcpUrl)}
 
-  return `Set up the Genfeed MCP server on this machine.
-
-Endpoint: ${mcpUrl}
-Claude endpoint: ${getPublicClaudeMcpUrl()} (use this for every Claude client).
-Claude supports brands, drafts, scheduling and analytics. Create media in Genfeed Studio.
-Authentication: browser OAuth (no API key required)
 Guided connection flow: ${apiKeysUrl}
-
-Do this end to end:
-1. Detect whether Claude Code, Codex, or both are installed. Inspect existing Genfeed configuration before changing it; preserve unrelated servers.
-2. Add Genfeed as a remote Streamable HTTP MCP server using browser authorization:
-   - Claude Code: ${claude.primaryCommand}
-   - Codex: ${codex.primaryCommand}
-   - Equivalent Codex user-level ~/.codex/config.toml:
-
-${codex.configuration}
-
-3. ${claude.authorizationInstruction}
-4. ${codex.authorizationInstruction}
-5. Ask the user to complete consent in their browser. Never request tokens or passwords in this chat. If authorization is denied or expires, restart the client authorization flow.
-6. Verify access with a scoped read: list my Genfeed brands. A copied command or server list entry alone does not verify authorization.
-7. Report exactly what changed and any remaining authorization or verification step. Claude requires OAuth. If another client does not support OAuth, direct its user to the advanced manual-key path in guided setup.
-8. For the Genfeed CLI, run genfeed login with no flags. The human approves in the browser. Do not paste a secret into this chat. After login, genfeed keys create -p mcp still mints a scoped key.`;
+For the Genfeed CLI, only if requested separately, run genfeed login with no flags. The human approves in the browser. Do not paste a secret into this chat.`;
 }
 
 /**
@@ -978,7 +955,9 @@ ${postHogSnippet}
             <span class="step-number">01</span>
             <div>
               <p class="step-title">Give this to a local shell agent</p>
-              <p class="step-copy">Drop this into Claude Code, Codex, or another local agent with shell access. It detects the client, configures Genfeed, starts browser authorization, and verifies access with a scoped read.</p>
+              <p class="step-copy">Drop this into Claude Code, Codex, or another local agent with shell access. It installs the playbook for your selected client, configures Genfeed, starts browser authorization, and verifies access with read-only calls.</p>
+              <p class="step-copy">For skills only, run this command and select your client. Skip it if a Genfeed plugin already includes the playbook. Skills alone do not connect or authenticate MCP.</p>
+              ${renderCommandBlock({ id: 'skills-install-command', label: 'Copy skills install command', textSafe: escapeHtml(GENFEED_SKILLS_INSTALL_COMMAND), ui })}
               ${renderCommandBlock({ id: 'agent-setup-prompt', label: 'Copy agent setup prompt', multiline: true, textSafe: agentSetupPromptSafe, ui })}
             </div>
           </li>

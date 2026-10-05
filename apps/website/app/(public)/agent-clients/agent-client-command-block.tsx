@@ -27,7 +27,7 @@ export default function CommandBlock({
           Copy
         </Button>
       </div>
-      <Pre className="overflow-x-auto bg-background/80 p-5 text-sm leading-6">
+      <Pre className="max-h-80 overflow-auto bg-background/80 p-5 text-sm leading-6">
         <Code className="whitespace-pre-wrap bg-transparent text-surface/85 [overflow-wrap:anywhere]">
           {value}
         </Code>
