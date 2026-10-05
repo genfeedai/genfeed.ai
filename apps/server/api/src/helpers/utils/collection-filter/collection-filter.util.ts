@@ -4,7 +4,7 @@ import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetScope } from '@genfeedai/contracts';
 import type { RequestWithBody } from '@libs/interfaces/http.interface';
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import type { Request } from 'express';
 
 /**
@@ -164,11 +164,6 @@ export const CollectionFilterUtil = {
     );
     const sessionOrganizationId = user.organizationId?.trim() ?? '';
     const organizationId = scope.organizationId ?? sessionOrganizationId;
-    if (!organizationId) {
-      throw new BadRequestException(
-        'An organization is required for this request',
-      );
-    }
     return {
       brandId: scope.brandId,
       isOrganizationOverride:

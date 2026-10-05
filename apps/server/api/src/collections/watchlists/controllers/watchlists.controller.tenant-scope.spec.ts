@@ -58,6 +58,18 @@ describe('WatchlistsController tenant reads (#6176)', () => {
     expect(mock.mock.calls[0]?.[1]).toBe(sessionOrganizationId);
   });
 
+  it.each(['', '  '])(
+    'rejects a missing organization (%s) before listing',
+    async (organizationId) => {
+      const { controller, mock } = setup();
+      const user = { ...memberUser, organizationId };
+      await expect(
+        controller.findAll(tenantReadRequest(user), user),
+      ).rejects.toThrow(BadRequestException);
+      expect(mock).not.toHaveBeenCalled();
+    },
+  );
+
   it('requires an explicit brand for a cross-organization list', async () => {
     const { controller, mock } = setup();
     const user = adminUser;
@@ -94,6 +106,17 @@ describe('Watchlist detail reads (#6176)', () => {
     Object.assign(controller, { service: { findOne } });
     return { controller, findOne };
   }
+  it.each(['', '  '])(
+    'rejects a missing organization (%s) before reading',
+    async (organizationId) => {
+      const { controller, findOne } = setup();
+      const user = { ...memberUser, organizationId };
+      await expect(
+        controller.findOne(tenantReadRequest(user), user, id),
+      ).rejects.toThrow(BadRequestException);
+      expect(findOne).not.toHaveBeenCalled();
+    },
+  );
   it('returns 404 for a superadmin foreign row without override', async () => {
     const { controller, findOne } = setup();
     await expect(

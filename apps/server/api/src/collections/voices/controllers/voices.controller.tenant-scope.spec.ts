@@ -14,7 +14,7 @@ import {
   tenantReadRequest,
 } from '@api-test/helpers/tenant-read.fixture';
 import { TenantIsolationError } from '@libs/prisma/tenant-guard';
-import { ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
 describe('Voice library tenant reads (#6176)', () => {
@@ -78,6 +78,17 @@ describe('Voice library tenant reads (#6176)', () => {
         isDeleted: false,
       });
     });
+
+    it.each(['', '  '])(
+      'rejects a missing organization (%s) before reading',
+      async (organizationId) => {
+        const { controller, mock } = await setup();
+        await expect(
+          read(controller, { ...memberUser, organizationId }),
+        ).rejects.toThrow(BadRequestException);
+        expect(mock).not.toHaveBeenCalled();
+      },
+    );
 
     it('rethrows TenantIsolationError without masking its reason', async () => {
       const { controller, mock } = await setup();

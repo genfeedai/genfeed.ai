@@ -53,6 +53,11 @@ export class WatchlistsController {
       user,
       req,
     );
+    if (!tenant.organizationId) {
+      throw new BadRequestException(
+        'An organization is required for this request',
+      );
+    }
     CollectionFilterUtil.buildAuthorizedBrandFilter(
       tenant.brandId,
       user,
@@ -92,6 +97,11 @@ export class WatchlistsController {
       user,
       req,
     );
+    if (!tenant.organizationId) {
+      throw new BadRequestException(
+        'An organization is required for this request',
+      );
+    }
     const item = await this.service.findOne(
       scopedWhere(tenant.organizationId, { id: watchlistId }),
     );

@@ -16,7 +16,12 @@ import { scopedWhere } from '@api/index';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { IngredientCategory, VoiceProvider } from '@genfeedai/contracts';
 import { TenantIsolationError } from '@libs/prisma/tenant-guard';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from '@nestjs/common';
 import type { Request } from 'express';
 
 @Injectable()
@@ -36,6 +41,11 @@ export class VoiceLibraryService {
       user,
       request,
     );
+    if (!tenant.organizationId) {
+      throw new BadRequestException(
+        'An organization is required for this request',
+      );
+    }
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -174,6 +184,11 @@ export class VoiceLibraryService {
       user,
       request,
     );
+    if (!tenant.organizationId) {
+      throw new BadRequestException(
+        'An organization is required for this request',
+      );
+    }
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
