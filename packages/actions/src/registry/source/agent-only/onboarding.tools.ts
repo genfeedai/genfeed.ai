@@ -2,6 +2,14 @@ import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 export const AGENT_ONBOARDING_TOOLS: SourceTool[] = [
   {
+    name: 'complete_brand_onboarding_step',
+    creditCost: 0,
+    requiredRole: 'user',
+    description:
+      'Complete the Expert brand conversation and hand off to positioning. Does not complete overall onboarding.',
+    parameters: { type: 'object', required: [], properties: {} },
+  },
+  {
     name: 'scan_brand_url',
     creditCost: 0,
     requiredRole: 'user',

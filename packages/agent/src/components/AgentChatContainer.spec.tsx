@@ -894,6 +894,28 @@ describe('AgentChatContainer', () => {
     );
   });
 
+  it('keeps the URL card as the only onboarding text entry', () => {
+    storeState.pendingInputRequest = {
+      runId: 'run-url',
+      inputRequestId: 'url-request',
+      threadId: 'thread-1',
+      title: 'Your brand link',
+      prompt: 'Share a public link',
+      allowFreeText: true,
+      options: [],
+    };
+    const view = render(
+      <AgentChatContainer
+        apiService={createApiService() as never}
+        onboardingMode
+        isStreaming
+      />,
+    );
+    expect(
+      view.container.querySelector('[data-testid="agent-chat-input-shell"]'),
+    ).toBeNull();
+  });
+
   it('pins the stream to the execution that continues an answered input request', async () => {
     const apiService = createApiService({
       respondToInputRequest: vi.fn().mockResolvedValue({
@@ -1494,14 +1516,17 @@ describe('AgentChatContainer', () => {
     ).toBeInTheDocument();
   });
 
-  it('allows the onboarding URL request in the composer', () => {
+  it('keeps the URL card and hides the separate onboarding composer', () => {
     render(
       <AgentChatContainer
         apiService={createApiService() as never}
         onboardingMode
       />,
     );
-    expect(screen.getByTestId('chat-input')).toBeInTheDocument();
+    expect(screen.queryByTestId('chat-input')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Submit requested input' }),
+    ).toBeInTheDocument();
   });
 
   it('keeps the empty-state composer full-width inside the centered column', () => {

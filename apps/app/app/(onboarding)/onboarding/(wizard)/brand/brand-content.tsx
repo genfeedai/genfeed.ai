@@ -1,4 +1,5 @@
 'use client';
+import OnboardingRootPage from '@app/(onboarding)/onboarding/(wizard)/page';
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import {
   type BrandContextType,
@@ -6,7 +7,10 @@ import {
 } from '@contexts/user/brand-context/brand-context';
 import { getBrandOrganizationId } from '@contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { isDesktopClient } from '@genfeedai/config/deployment';
+import {
+  hasAgentFirstOnboarding,
+  isDesktopClient,
+} from '@genfeedai/config/deployment';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { isDesktopLocalModeEnabled } from '@genfeedai/contracts/desktop';
 import type { IOnboardingContextValue } from '@genfeedai/contracts/interfaces';
@@ -17,6 +21,7 @@ import type {
   BrandGuideScope,
 } from '@genfeedai/props/onboarding/brand-guide.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { UsersService } from '@services/organization/users.service';
@@ -218,6 +223,9 @@ function BrandContentContent() {
   );
 }
 export default function BrandContent() {
+  const isAgentModuleEnabled = useFeatureFlag('agent');
+  if (hasAgentFirstOnboarding(isAgentModuleEnabled))
+    return <OnboardingRootPage />;
   return (
     <Suspense fallback={null}>
       <BrandContentContent />

@@ -41,6 +41,7 @@ const modelAccess = {
 };
 
 function createService(options?: {
+  accountType?: string;
   brandContext?: { defaultModel?: string } | null;
   initialBrandId?: string;
   builtSystemPrompt?: string;
@@ -77,6 +78,13 @@ function createService(options?: {
     } as never,
     { findOneById: vi.fn() } as never,
     modelAccess as never,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    {
+      findOne: vi.fn().mockResolvedValue({ accountType: options?.accountType }),
+    } as never,
   );
 }
 
@@ -688,5 +696,31 @@ describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', 
 
     expect(registry.resolveModelKey).toHaveBeenCalledWith('strategy-model');
     expect(registry.resolveOverrideModelKey).not.toHaveBeenCalled();
+  });
+});
+
+describe('Expert onboarding prompt', () => {
+  it.each(['true', 'false'])(
+    'uses persisted account type on cloud=%s',
+    async (cloud) => {
+      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', cloud);
+      const result = await createService({
+        accountType: 'EXPERT',
+      }).resolveSystemPromptAndModel(ONBOARDING_REQUEST, CONTEXT);
+      expect(result.systemPrompt).toContain('Account type: EXPERT');
+      expect(result.systemPrompt).toContain(
+        'call complete_brand_onboarding_step',
+      );
+      expect(result.systemPrompt).toContain('single Continue button');
+    },
+  );
+  it('does not override the ordinary onboarding handoff', async () => {
+    const result = await createService({
+      accountType: 'CREATOR',
+    }).resolveSystemPromptAndModel(ONBOARDING_REQUEST, CONTEXT);
+    expect(result.systemPrompt).not.toContain('Account type: EXPERT');
+    expect(result.systemPrompt).toContain(
+      'Go to my workspace calls complete_onboarding',
+    );
   });
 });

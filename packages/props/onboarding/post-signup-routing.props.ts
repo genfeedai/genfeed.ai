@@ -1,15 +1,6 @@
 export type PostSignupIntent =
   | { kind: 'plan-checkout'; stripePriceId: string }
-  | { kind: 'credits-checkout'; credits: number }
-  | { kind: 'auto-brand'; domain: string }
-  | { kind: 'manual-brand' };
-
-export interface ResolvePostSignupIntentInput {
-  personalEmailDomains: readonly string[];
-  primaryEmail?: string | null;
-  selectedCredits?: string | null;
-  selectedPlan?: string | null;
-}
+  | { kind: 'credits-checkout'; credits: number };
 
 export type PostSignupRoutingState = {
   showFallback: boolean;

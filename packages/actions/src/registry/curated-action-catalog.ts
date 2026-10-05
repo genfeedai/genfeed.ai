@@ -76,6 +76,11 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'content',
   },
+  {
+    name: 'complete_brand_onboarding_step',
+    surfaces: ['agent'],
+    toolset: 'onboarding',
+  },
   { name: 'complete_onboarding', surfaces: ['agent'], toolset: 'onboarding' },
   {
     name: 'complete_outreach_sequence',

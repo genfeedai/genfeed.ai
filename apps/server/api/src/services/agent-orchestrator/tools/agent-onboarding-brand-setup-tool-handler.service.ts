@@ -1,11 +1,15 @@
 import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { UsersService } from '@api/collections/users/services/users.service';
+import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
 import { SignupPrefillService } from '@api/services/signup-prefill/signup-prefill.service';
 import { normalizeOnboardingUrl } from '@api/services/signup-prefill/utils/normalize-onboarding-url.util';
+import { isExpertAccountType } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -21,6 +25,7 @@ import {
 } from '@nestjs/common';
 
 const BRAND_SETUP_TOOLS = [
+  'complete_brand_onboarding_step',
   'scan_brand_url',
   'save_onboarding_answers',
 ] as const;
@@ -37,6 +42,10 @@ export class AgentOnboardingBrandSetupToolHandler {
     >,
     private readonly brandDataMapper: BrandDataMapper,
     @Optional() private readonly signupPrefillService?: SignupPrefillService,
+    @Optional() private readonly organizationsService?: OrganizationsService,
+    @Optional() private readonly usersService?: UsersService,
+    @Optional()
+    private readonly userAccessCacheService?: UserAccessCacheService,
   ) {}
 
   execute(
@@ -45,11 +54,60 @@ export class AgentOnboardingBrandSetupToolHandler {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     switch (toolName) {
+      case 'complete_brand_onboarding_step':
+        return this.completeBrandOnboardingStep(ctx);
       case 'scan_brand_url':
         return this.scanBrandUrl(params, ctx);
       case 'save_onboarding_answers':
         return this.saveOnboardingAnswers(params, ctx);
     }
+  }
+
+  async completeBrandOnboardingStep(
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const organization = await this.organizationsService?.findOne({
+      id: ctx.organizationId,
+      isDeleted: false,
+    });
+    if (!isExpertAccountType(organization?.accountType)) {
+      throw new ForbiddenException('Expert onboarding is required');
+    }
+    const brandId = ctx.validatedScope?.brandId ?? ctx.brandId;
+    if (
+      !brandId ||
+      !(await this.brandsService.findOne({
+        id: brandId,
+        organizationId: ctx.organizationId,
+        isDeleted: false,
+      }))
+    ) {
+      throw new BadRequestException('A saved brand is required');
+    }
+    const user = await this.usersService?.findOne({ id: ctx.userId });
+    if (!user || !this.usersService)
+      throw new BadRequestException('User unavailable');
+    const completedSteps = [
+      ...new Set([...(user.onboardingStepsCompleted ?? []), 'brand']),
+    ];
+    await this.usersService.patch(ctx.userId, {
+      onboardingStepsCompleted: completedSteps,
+      ...(!user.onboardingStartedAt ? { onboardingStartedAt: new Date() } : {}),
+    });
+    await this.userAccessCacheService?.invalidateAll(ctx.userId);
+    return {
+      success: true,
+      creditsUsed: 0,
+      data: { completedStep: 'brand', href: '/onboarding/positioning' },
+      nextActions: [
+        {
+          id: `expert-handoff-${ctx.threadId}`,
+          type: 'completion_summary_card',
+          title: 'Your brand is ready',
+          ctas: [{ label: 'Continue', href: '/onboarding/positioning' }],
+        },
+      ],
+    };
   }
 
   async scanBrandUrl(

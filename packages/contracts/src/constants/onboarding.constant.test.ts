@@ -109,7 +109,7 @@ describe('onboarding.constant', () => {
       ).toBe('/');
     });
 
-    it('forces incomplete Cloud users onto the shared brand form', () => {
+    it('sends incomplete Cloud users directly to the conversation', () => {
       expect(
         resolveForcedOnboardingHref({
           brandDomain: 'acme.co',
@@ -117,7 +117,7 @@ describe('onboarding.constant', () => {
           hasAgentFirstOnboarding: true,
           orgSlug: 'acme',
         }),
-      ).toBe('/onboarding/brand?auto=true');
+      ).toBe('/acme/~/agent/onboarding');
     });
 
     it('forces Cloud users who already confirmed brand into the agent', () => {
@@ -129,6 +129,26 @@ describe('onboarding.constant', () => {
         }),
       ).toBe('/acme/~/agent/onboarding');
     });
+
+    it.each([OrganizationCategory.EXPERT, OrganizationCategory.CREATOR])(
+      'starts %s in the conversation before brand completion',
+      (accountType) => {
+        expect(
+          resolveForcedOnboardingHref({
+            accountType,
+            completedSteps: [],
+            hasAgentFirstOnboarding: true,
+            orgSlug: 'acme',
+          }),
+        ).toBe('/acme/~/agent/onboarding');
+        expect(
+          resolveForcedOnboardingHref({
+            accountType,
+            hasAgentFirstOnboarding: true,
+          }),
+        ).toBe('/agent/onboarding');
+      },
+    );
 
     it('resumes Desktop at the first incomplete wizard step', () => {
       expect(

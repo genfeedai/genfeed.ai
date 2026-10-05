@@ -10,6 +10,7 @@ export const TOOL_LABELS: Record<string, string> = {
   save_onboarding_answers: 'Save Onboarding Answers',
   check_onboarding_status: 'Check Onboarding',
   complete_outreach_sequence: 'Complete outreach sequence',
+  complete_brand_onboarding_step: 'Complete Brand Setup',
   complete_onboarding: 'Complete Onboarding',
   connect_social_account: 'Connect Account',
   create_brand: 'Create Brand',

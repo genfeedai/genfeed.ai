@@ -201,8 +201,8 @@ export function AgentChatContainer({
     composerShell?.placement === 'overlay';
   // When the docked composer is visible, status/errors live above the glass
   // bar (Claude/T3 pattern) — not as sticky timeline chrome.
-  const isButtonOnlyQuestion =
-    onboardingMode && container.pendingInputRequest?.allowFreeText === false;
+  const hasOnboardingQuestion =
+    onboardingMode && Boolean(container.pendingInputRequest);
   const [greetingCreatedAt] = useState(() => new Date().toISOString());
   const greetingTimeline: TimelineEntry[] = [
     {
@@ -222,18 +222,18 @@ export function AgentChatContainer({
     (composerShell?.isComposerVisible ?? true) &&
     (onboardingMode || !container.isEmpty || isShellHostedComposer);
   const shouldRenderInlineComposerFeedback =
-    !isComposerDocked || isButtonOnlyQuestion;
+    !isComposerDocked || hasOnboardingQuestion;
   // Archived threads replace the prompt bar with restore chrome — always dock it
   // so empty archived threads still get Unarchive instead of a dead input.
   const isArchivedThread = Boolean(isReadOnly && archivedNotice);
   const shouldShowDockedComposer =
-    !isButtonOnlyQuestion && (isComposerDocked || isArchivedThread);
+    !hasOnboardingQuestion && (isComposerDocked || isArchivedThread);
   const shouldShowArchivedComposer = isArchivedThread && Boolean(onUnarchive);
   const composerTranscriptPaddingPx = resolveComposerTranscriptPaddingPx({
     hasFollowUpChips:
       showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions),
     isComposerVisible:
-      !isButtonOnlyQuestion && composerShell?.isComposerVisible !== false,
+      !hasOnboardingQuestion && composerShell?.isComposerVisible !== false,
     overlayHeightPx: composerOverlayHeightPx,
   });
 
@@ -351,7 +351,7 @@ export function AgentChatContainer({
             onSubmitInputRequest={container.handleSubmitInputRequest}
             onUiAction={container.handleUiAction}
             padBottomForComposer={
-              !isButtonOnlyQuestion &&
+              !hasOnboardingQuestion &&
               composerShell?.isComposerVisible !== false
             }
             composerTranscriptPaddingPx={composerTranscriptPaddingPx}

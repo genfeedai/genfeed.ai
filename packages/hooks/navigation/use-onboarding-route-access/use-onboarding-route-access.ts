@@ -3,12 +3,16 @@
 import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import {
+  getBrandOrganizationAccountType,
+  getBrandOrganizationSlug,
+} from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import {
-  APP_ROUTES,
   getResumeStep,
-  hasCompletedBrandOnboardingStep,
   ONBOARDING_STEPS,
+  resolveForcedOnboardingHref,
 } from '@genfeedai/contracts/constants';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
@@ -32,6 +36,8 @@ export function useOnboardingRouteAccess(pathname: string) {
     isSuperAdmin,
     needsOnboarding,
   } = useAccessState();
+  const { selectedBrand, brands } = useBrand();
+  const brand = selectedBrand ?? brands[0];
   const isOnboardingRoute = pathname.startsWith('/onboarding');
   const isBillingEnabled = hasOrganizationBillingHint();
 
@@ -65,17 +71,16 @@ export function useOnboardingRouteAccess(pathname: string) {
         return null;
       }
 
-      // Cloud / Community share `/onboarding/brand` with Desktop. After that
-      // step the agent workspace owns the rest of first-run; this guard must
-      // not pull those users into providers/summary.
       if (hasAgentFirstOnboarding(isAgentModuleEnabled)) {
-        if (
-          !hasCompletedBrandOnboardingStep(currentUser.onboardingStepsCompleted)
-        ) {
-          return APP_ROUTES.ONBOARDING.BRAND;
-        }
-
-        return null;
+        const href = resolveForcedOnboardingHref({
+          accountType: getBrandOrganizationAccountType(brand),
+          completedSteps: currentUser.onboardingStepsCompleted,
+          hasAgentFirstOnboarding: true,
+          orgSlug: getBrandOrganizationSlug(brand),
+        });
+        return pathname === href || pathname.startsWith(`${href}/`)
+          ? null
+          : href;
       }
 
       if (isSuperAdmin || isSubscribed) {
@@ -102,6 +107,8 @@ export function useOnboardingRouteAccess(pathname: string) {
     return null;
   }, [
     accessState,
+    brand,
+    pathname,
     currentUser,
     effectiveIsAuthLoaded,
     effectiveIsSignedIn,

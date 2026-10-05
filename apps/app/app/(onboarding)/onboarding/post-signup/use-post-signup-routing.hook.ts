@@ -11,7 +11,6 @@ import {
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
   hasAgentFirstOnboarding,
-  isSaaS,
   isSelfHostedDeployment,
 } from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
@@ -112,12 +111,21 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       organizations.find((organization) => organization.isActive) ??
       organizations[0];
 
+    const accountType =
+      requestedAccountType ??
+      parseOnboardingAccountType(
+        localStorage.getItem(ONBOARDING_STORAGE_KEYS.accountType),
+      );
+    if (activeOrganization && accountType) {
+      await OrganizationsService.getInstance(token).updateAccountType(
+        activeOrganization.id,
+        accountType,
+      );
+    }
     return activeOrganization?.slug ?? null;
-  }, [getToken]);
+  }, [getToken, requestedAccountType]);
 
-  // Base href for post-checkout returns. SaaS resumes in agent-first
-  // onboarding; Community/Desktop retain the deterministic wizard until their
-  // local/BYOK onboarding reaches parity.
+  // Checkout returns use the same surface-specific onboarding destination.
   const resolveCheckoutReturnHref = useCallback(async (): Promise<string> => {
     const completedSteps = currentUser?.onboardingStepsCompleted ?? [];
     const hasCompletedAllOnboardingSteps =
@@ -128,19 +136,27 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       return '/';
     }
 
-    const orgSlug = isSaaS() ? await resolveActiveOrgSlug() : null;
+    const orgSlug = hasAgentFirstOnboarding(isAgentModuleEnabled)
+      ? await resolveActiveOrgSlug()
+      : null;
 
     return resolveForcedOnboardingHref({
+      accountType:
+        requestedAccountType ??
+        localStorage.getItem(ONBOARDING_STORAGE_KEYS.accountType),
       brandDomain: localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
       completedSteps,
       hasAgentFirstOnboarding: hasAgentFirstOnboarding(isAgentModuleEnabled),
       orgSlug,
     });
-  }, [currentUser, resolveActiveOrgSlug, isAgentModuleEnabled]);
+  }, [
+    currentUser,
+    resolveActiveOrgSlug,
+    isAgentModuleEnabled,
+    requestedAccountType,
+  ]);
 
-  // Default first-run destination. Every surface starts at `/onboarding/brand`.
-  // SaaS (#1726) and Community (#1835) then continue in the agent workspace;
-  // the desktop client keeps providers/summary until #2380.
+  // Cloud and Community start in the conversation; Desktop keeps the wizard.
   const resolveOnboardingHref = useCallback(async (): Promise<string> => {
     const completedSteps = currentUser?.onboardingStepsCompleted ?? [];
     const hasCompletedAllOnboardingSteps =
@@ -156,12 +172,20 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       : null;
 
     return resolveForcedOnboardingHref({
+      accountType:
+        requestedAccountType ??
+        localStorage.getItem(ONBOARDING_STORAGE_KEYS.accountType),
       brandDomain: localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
       completedSteps,
       hasAgentFirstOnboarding: hasAgentFirstOnboarding(isAgentModuleEnabled),
       orgSlug,
     });
-  }, [currentUser, resolveActiveOrgSlug, isAgentModuleEnabled]);
+  }, [
+    currentUser,
+    resolveActiveOrgSlug,
+    isAgentModuleEnabled,
+    requestedAccountType,
+  ]);
 
   // A signup CTA's account type (e.g. Expert) survives cross-device magic
   // links through the callback URL; keep it for the brand step.

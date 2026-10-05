@@ -72,6 +72,7 @@ describe('self-hosted onboarding tool boundary', () => {
     const tools = resolveToolNames('agent');
 
     expect(resolveBlockedTools({ source: 'agent' })).toEqual([
+      'complete_brand_onboarding_step',
       'scan_brand_url',
       'save_onboarding_answers',
     ]);
@@ -101,7 +102,11 @@ describe('self-hosted onboarding tool boundary', () => {
         'onboarding',
       ).map((tool) => tool.function.name),
     ).toEqual(
-      expect.arrayContaining(['scan_brand_url', 'save_onboarding_answers']),
+      expect.arrayContaining([
+        'complete_brand_onboarding_step',
+        'scan_brand_url',
+        'save_onboarding_answers',
+      ]),
     );
     expect(
       buildToolDefinitions(
@@ -297,4 +302,13 @@ describe('auto-routing request shape', () => {
       expect.objectContaining({ id: 'auto-router' }),
     ]);
   });
+});
+
+it('blocks the Expert brand handoff outside onboarding', () => {
+  expect(resolveBlockedTools({ source: 'workspace' })).toContain(
+    'complete_brand_onboarding_step',
+  );
+  expect(resolveBlockedTools({ source: 'onboarding' }) ?? []).not.toContain(
+    'complete_brand_onboarding_step',
+  );
 });

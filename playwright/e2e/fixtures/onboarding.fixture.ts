@@ -22,6 +22,7 @@ import {
 } from '../utils/expert-path-mocks';
 import { setupStrictNetworkGuard } from '../utils/network-guard';
 import { setupOnboardingBrandGuideMocks } from '../utils/onboarding-brand-guide-mocks';
+import { setupOnboardingConversationMocks } from '../utils/onboarding-conversation-mocks';
 
 /**
  * Onboarding Fixtures for Playwright E2E Tests
@@ -654,6 +655,17 @@ async function startOnboardingSession(
   await setupOnboardingApiMocks(page, progressState, options.email);
   await options.registerExtraMocks?.(page);
   await setupOnboardingBrandGuideMocks(page);
+  await setupOnboardingConversationMocks(page, {
+    organizationId: MOCK_SESSION.organizationId,
+    isExpert: options.accountType === OrganizationCategory.EXPERT,
+    onComplete: () => {
+      progressState.isOnboardingCompleted = true;
+      progressState.completedSteps = ['brand'];
+    },
+    onBrandComplete: () => {
+      progressState.completedSteps = ['brand'];
+    },
+  });
 
   // Bootstrap by navigating to onboarding start
   await page.goto(APP_ROUTES.ONBOARDING.BRAND, {

@@ -15,6 +15,7 @@ import {
   useAgentChatStream,
 } from '@genfeedai/agent';
 import { selectIsGenerating } from '@genfeedai/agent/stores/agent-chat.store.run';
+import { clearClientProtectedBootstrapCache } from '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -207,7 +208,11 @@ function AgentWorkspaceLayoutClientContent({
     });
     completedRef.current = true;
     await getToken({ forceRefresh: true }).catch(() => null);
-  }, [getToken]);
+    if (isOnboarding) {
+      clearClientProtectedBootstrapCache();
+      window.location.href = activeHref(APP_ROUTES.WORKSPACE.OVERVIEW);
+    }
+  }, [getToken, isOnboarding, activeHref]);
 
   const { sendMessage } = useAgentChatStream({
     apiService: agentApiService,

@@ -720,7 +720,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/onboarding/brand',
+      'http://localhost:3000/acme/~/agent/onboarding',
     );
   });
 
@@ -896,11 +896,11 @@ describe('proxy', () => {
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/onboarding/brand',
+        'http://localhost:3000/acme/~/agent/onboarding',
       );
     });
 
-    it('pulls an incomplete SaaS user off agent onboarding until brand is confirmed', async () => {
+    it('keeps an incomplete SaaS user on the conversation before brand completion', async () => {
       vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
       mockIncompleteUser();
 
@@ -909,10 +909,8 @@ describe('proxy', () => {
         makeSignedInRequest('/acme/~/agent/onboarding'),
       );
 
-      expect(response.status).toBe(307);
-      expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/onboarding/brand',
-      );
+      expect(response.status).toBe(200);
+      expect(response.headers.get('location')).toBeNull();
     });
 
     it('lets a SaaS user stay on agent onboarding after the shared brand step', async () => {
@@ -952,7 +950,7 @@ describe('proxy', () => {
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/onboarding/brand',
+        'http://localhost:3000/acme/~/agent/onboarding',
       );
     });
 
@@ -968,19 +966,21 @@ describe('proxy', () => {
     });
 
     it.each(['/onboarding', '/onboarding/brand'])(
-      'keeps the shared brand entry %s reachable for a signed-in Community user',
+      'redirects the shared brand entry %s into the Community conversation',
       async (pathname) => {
         mockIncompleteUser();
 
         const { default: proxy } = await import('./proxy');
         const response = await proxy(makeSignedInRequest(pathname));
 
-        expect(response.headers.get('location')).toBeNull();
+        expect(response.headers.get('location')).toBe(
+          'http://localhost:3000/acme/~/agent/onboarding',
+        );
       },
     );
 
     it.each(['/onboarding/providers', '/onboarding/summary'])(
-      'does not bounce a signed-in user to brand setup when bootstrap cannot be read from %s',
+      'keeps protected agent bootstrap when onboarding state cannot be read from %s',
       async (pathname) => {
         fetchMock.mockImplementation(async (input: string | URL) => {
           const url = String(input);
@@ -998,7 +998,9 @@ describe('proxy', () => {
         const { default: proxy } = await import('./proxy');
         const response = await proxy(makeSignedInRequest(pathname));
 
-        expect(response.headers.get('location')).toBeNull();
+        expect(response.headers.get('location')).toBe(
+          'http://localhost:3000/agent/onboarding',
+        );
       },
     );
 
@@ -1012,7 +1014,7 @@ describe('proxy', () => {
 
         expect(response.status).toBe(307);
         expect(response.headers.get('location')).toBe(
-          'http://localhost:3000/onboarding/brand',
+          'http://localhost:3000/acme/~/agent/onboarding',
         );
       },
     );
@@ -1026,6 +1028,37 @@ describe('proxy', () => {
         const response = await proxy(makeSignedInRequest(pathname));
 
         expect(response.headers.get('location')).toBeNull();
+      },
+    );
+
+    it.each(['/onboarding', '/onboarding/brand'])(
+      'routes a completed user replay at %s to brand guide settings',
+      async (pathname) => {
+        fetchMock.mockImplementation(async (input: string | URL) => {
+          const url = String(input);
+          if (url.endsWith('/auth/token'))
+            return new Response(JSON.stringify({ token: BEARER_TOKEN }));
+          if (url.endsWith('/auth/bootstrap'))
+            return new Response(
+              JSON.stringify({
+                access: { brandId: 'brand-1', isOnboardingCompleted: true },
+                currentUser: { id: 'user-1', isOnboardingCompleted: true },
+                brands: [
+                  {
+                    id: 'brand-1',
+                    slug: 'brand',
+                    organization: { slug: 'acme' },
+                  },
+                ],
+              }),
+            );
+          return new Response('not found', { status: 404 });
+        });
+        const { default: proxy } = await import('./proxy');
+        const response = await proxy(makeSignedInRequest(pathname));
+        expect(response.headers.get('location')).toBe(
+          'http://localhost:3000/acme/brand/settings/kit',
+        );
       },
     );
 
@@ -1069,13 +1102,15 @@ describe('proxy', () => {
       expect(response.headers.get('location')).toBeNull();
     });
 
-    it('renders the classic wizard when the Community workspace slug cannot be resolved', async () => {
+    it('uses protected agent bootstrap when the Community workspace slug cannot be resolved', async () => {
       mockIncompleteUser([]);
 
       const { default: proxy } = await import('./proxy');
       const response = await proxy(makeSignedInRequest('/onboarding/brand'));
 
-      expect(response.headers.get('location')).toBeNull();
+      expect(response.headers.get('location')).toBe(
+        'http://localhost:3000/agent/onboarding',
+      );
     });
 
     it('does not consult a runtime flag before opening SaaS agent onboarding', async () => {
@@ -1088,7 +1123,7 @@ describe('proxy', () => {
       );
 
       expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/onboarding/brand',
+        'http://localhost:3000/acme/~/agent/onboarding',
       );
       expect(fetchMock).not.toHaveBeenCalledWith(
         expect.stringContaining('/feature-flags/'),
@@ -1104,9 +1139,7 @@ describe('proxy', () => {
       const response = await proxy(makeSignedInRequest('/settings'));
 
       expect(response.status).toBe(307);
-      expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/onboarding/brand',
-      );
+      expect(response.headers.get('location')).toBe('http://localhost:3000/');
     });
 
     it('does not route cloud-connected desktop users into web agent onboarding', async () => {
@@ -1290,9 +1323,7 @@ describe('proxy', () => {
 
     const response = await proxy(makeSignedInRequest('/'));
 
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/onboarding/brand',
-    );
+    expect(response.headers.get('location')).toBe('http://localhost:3000/');
   });
 
   it('redirects signed-in root using the active brand when multiple brands exist', async () => {
@@ -1671,7 +1702,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/onboarding/brand',
+      'http://localhost:3000/acme/~/agent/onboarding',
     );
   });
 
@@ -1713,7 +1744,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/onboarding/brand',
+      'http://localhost:3000/acme/~/agent/onboarding',
     );
   });
 

@@ -27,6 +27,7 @@ const patchMe = vi.fn();
 const touchSession = vi.fn();
 const getToken = vi.fn();
 const useAgentChatStreamSpy = vi.fn();
+let completionCallback: (() => void | Promise<void>) | undefined;
 // Hoisted: the `@genfeedai/agent` factory reads `getThreads` eagerly as a
 // property value, so a plain `const` would still be in its temporal dead zone
 // when the hoisted `vi.mock` runs.
@@ -138,7 +139,14 @@ vi.mock('@genfeedai/agent', () => ({
     (selector: (state: typeof storeState) => unknown) => selector(storeState),
     { getState: () => storeState },
   ),
-  useAgentChatStream: ({ apiService }: { apiService: unknown }) => {
+  useAgentChatStream: ({
+    apiService,
+    onOnboardingCompleted,
+  }: {
+    apiService: unknown;
+    onOnboardingCompleted?: () => void | Promise<void>;
+  }) => {
+    completionCallback = onOnboardingCompleted;
     useAgentChatStreamSpy(apiService);
     return { sendMessage };
   },
@@ -216,6 +224,33 @@ describe('AgentWorkspaceLayoutClient', () => {
       status: 'active',
       source: 'onboarding',
     });
+  });
+
+  it('completes conversational onboarding before navigating to the workspace', async () => {
+    navigationState.pathname = '/agent/onboarding/thread-complete';
+    storeState.activeThreadId = 'thread-complete';
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'location');
+    const location = { href: '' };
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: location,
+    });
+    try {
+      render(
+        <AgentWorkspaceLayoutClient
+          agentApiService={{ getThreads, kickoffOnboarding } as never}
+        >
+          <p>Conversation</p>
+        </AgentWorkspaceLayoutClient>,
+      );
+      await act(async () => {
+        await completionCallback?.();
+      });
+      expect(patchMe).toHaveBeenCalledWith({ isOnboardingCompleted: true });
+      expect(location.href).toContain('/workspace/overview');
+    } finally {
+      if (descriptor) Object.defineProperty(window, 'location', descriptor);
+    }
   });
 
   it('reuses a protected-shell agent service when one is provided', () => {

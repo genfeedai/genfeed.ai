@@ -71,10 +71,8 @@ export function isOnboardingStepKey(
 }
 
 /**
- * `/onboarding/brand` is the shared brand-setup step for every surface
- * (Cloud browser, Community, Desktop-cloud, Desktop-local). Skip still
- * completes the onboarding *gate*; this route stays reachable so the
- * operator can come back and run brand setup later.
+ * Shared wizard entry paths. Agent-first surfaces redirect these entries
+ * into the conversation, or into brand settings for completed users.
  */
 export function isSharedBrandOnboardingPath(pathname: string): boolean {
   return (
@@ -170,8 +168,8 @@ export function resolveOnboardingContinueHref(input: {
 
 /**
  * Forced first-run destination while onboarding is still incomplete.
- * Completed users are not sent here — they re-enter `/onboarding/brand`
- * themselves (journey card, `/onboarding` replay).
+ * Completed users review their guide in settings. Experts resume positioning
+ * only after the conversation completes the brand step.
  */
 export function resolveForcedOnboardingHref(input: {
   accountType?: OrganizationCategory | string | null;
@@ -180,6 +178,14 @@ export function resolveForcedOnboardingHref(input: {
   hasAgentFirstOnboarding: boolean;
   orgSlug?: string | null;
 }): string {
+  if (
+    input.hasAgentFirstOnboarding &&
+    (!isExpertAccountType(input.accountType) ||
+      !hasCompletedBrandOnboardingStep(input.completedSteps))
+  ) {
+    return resolveAgentOnboardingHref(input.orgSlug);
+  }
+
   if (isExpertAccountType(input.accountType)) {
     const steps = resolveOnboardingSteps(input);
     const completedSteps = input.completedSteps ?? [];
@@ -191,14 +197,6 @@ export function resolveForcedOnboardingHref(input: {
       getResumeStep(completedSteps, steps),
       input.brandDomain,
     );
-  }
-
-  if (input.hasAgentFirstOnboarding) {
-    if (hasCompletedBrandOnboardingStep(input.completedSteps)) {
-      return resolveAgentOnboardingHref(input.orgSlug);
-    }
-
-    return buildOnboardingResumeHref('brand', input.brandDomain);
   }
 
   return buildOnboardingResumeHref(

@@ -11,6 +11,7 @@ import { AgentStrategiesService } from '@api/collections/agent-strategies/servic
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { resolveEffectiveAgentExecutionConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentScopeContextService } from '@api/index';
 import { AgentMessageBusService } from '@api/services/agent-campaign/agent-message-bus.service';
@@ -50,6 +51,7 @@ import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dt
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { AgentMessageRole, AgentType } from '@genfeedai/contracts';
+import { isExpertAccountType } from '@genfeedai/contracts/constants';
 import type { ResolvedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -89,6 +91,7 @@ export class AgentOrchestratorContextService {
     private readonly threadContextCompressorService?: ThreadContextCompressorService,
     @Optional()
     private readonly skillRuntimeService?: SkillRuntimeService,
+    @Optional() private readonly organizationsService?: OrganizationsService,
   ) {}
 
   /**
@@ -204,7 +207,15 @@ export class AgentOrchestratorContextService {
       policy,
       strategy?.skillSlugs,
     );
+    const onboardingOrganization =
+      request.source === 'onboarding'
+        ? await this.organizationsService?.findOne({
+            id: context.organizationId,
+            isDeleted: false,
+          })
+        : null;
     const systemPrompt = this.composeTurnSystemPrompt({
+      accountType: onboardingOrganization?.accountType,
       agentTypeConfig,
       brandContext,
       brandId: policy.brandId,
@@ -289,6 +300,7 @@ export class AgentOrchestratorContextService {
     const { agentTypeConfig, brandContext, replyStyle, request } = input;
     if (request.source === 'onboarding') {
       return this.composeOnboardingSystemPrompt({
+        accountType: input.accountType,
         brandContext,
         brandId: input.brandId,
         replyStyle,
@@ -437,6 +449,7 @@ export class AgentOrchestratorContextService {
     return history;
   }
   private composeOnboardingSystemPrompt(input: {
+    accountType?: string | null;
     brandContext:
       | Parameters<AgentContextAssemblyService['buildSystemPrompt']>[1]
       | null;
@@ -446,9 +459,12 @@ export class AgentOrchestratorContextService {
     const onboardingPrompt = isSelfHostedDeployment()
       ? COMMUNITY_ONBOARDING_SYSTEM_PROMPT
       : ONBOARDING_SYSTEM_PROMPT;
-    const scopedPrompt = input.brandId
-      ? `${onboardingPrompt}\n\nCurrent brand ID: ${input.brandId}. Use this saved brand; do not create a duplicate.`
+    const accountPrompt = isExpertAccountType(input.accountType)
+      ? `${onboardingPrompt}\n\nAccount type: EXPERT. Replace the normal handoff: after save_onboarding_answers call complete_brand_onboarding_step. Show only its single Continue button to /onboarding/positioning. Never offer Create my first post or Go to my workspace and never call complete_onboarding for an Expert.`
       : onboardingPrompt;
+    const scopedPrompt = input.brandId
+      ? `${accountPrompt}\n\nCurrent brand ID: ${input.brandId}. Use this saved brand; do not create a duplicate.`
+      : accountPrompt;
     return composeAgentGuardrails(
       input.brandContext
         ? this.contextAssemblyService.buildSystemPrompt(

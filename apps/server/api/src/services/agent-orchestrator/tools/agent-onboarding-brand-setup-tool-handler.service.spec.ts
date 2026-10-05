@@ -26,13 +26,30 @@ function createHandler(options?: { brand?: Record<string, unknown> }) {
   };
   const signupPrefillService = { scanBrandUrl: vi.fn() };
   const loggerService = { error: vi.fn(), warn: vi.fn() };
+  const organizationsService = {
+    findOne: vi.fn().mockResolvedValue({ accountType: 'EXPERT' }),
+    patch: vi.fn(),
+  };
+  const usersService = { findOne: vi.fn(), patch: vi.fn(), patchAll: vi.fn() };
+  const userAccessCacheService = { invalidateAll: vi.fn() };
   const handler = new AgentOnboardingBrandSetupToolHandler(
     loggerService as never,
     brandsService as never,
     new BrandDataMapper(),
     signupPrefillService as never,
+    organizationsService as never,
+    usersService as never,
+    userAccessCacheService as never,
   );
-  return { handler, brandsService, signupPrefillService, loggerService };
+  return {
+    handler,
+    brandsService,
+    signupPrefillService,
+    loggerService,
+    organizationsService,
+    usersService,
+    userAccessCacheService,
+  };
 }
 
 describe('saveOnboardingAnswers', () => {
@@ -321,4 +338,53 @@ describe('brand setup dispatch', () => {
       expect(execute).toHaveBeenCalledWith(toolName, params, CONTEXT);
     },
   );
+});
+
+describe('Expert brand handoff', () => {
+  it('persists brand progress without completing onboarding and returns a single positioning CTA', async () => {
+    const h = createHandler({ brand: { id: 'brand-1' } });
+    h.usersService.findOne.mockResolvedValue({
+      id: CONTEXT.userId,
+      onboardingStepsCompleted: ['positioning', 'brand'],
+      onboardingStartedAt: new Date(),
+    });
+    const result = await h.handler.completeBrandOnboardingStep({
+      ...CONTEXT,
+      brandId: 'brand-1',
+      threadId: 'thread-1',
+    });
+    expect(h.brandsService.findOne).toHaveBeenCalledWith({
+      id: 'brand-1',
+      organizationId: CONTEXT.organizationId,
+      isDeleted: false,
+    });
+    expect(h.usersService.patch).toHaveBeenCalledWith(CONTEXT.userId, {
+      onboardingStepsCompleted: ['positioning', 'brand'],
+    });
+    expect(h.userAccessCacheService.invalidateAll).toHaveBeenCalledWith(
+      CONTEXT.userId,
+    );
+    expect(h.organizationsService.patch).not.toHaveBeenCalled();
+    expect(h.usersService.patchAll).not.toHaveBeenCalled();
+    expect(result.nextActions?.[0].ctas).toEqual([
+      { label: 'Continue', href: '/onboarding/positioning' },
+    ]);
+  });
+  it('rejects non-experts and never writes progress', async () => {
+    const h = createHandler({ brand: { id: 'brand-1' } });
+    h.organizationsService.findOne.mockResolvedValue({
+      accountType: 'CREATOR',
+    });
+    await expect(
+      h.handler.completeBrandOnboardingStep(CONTEXT),
+    ).rejects.toThrow('Expert onboarding');
+    expect(h.usersService.patch).not.toHaveBeenCalled();
+  });
+  it('requires a saved brand before advancing', async () => {
+    const h = createHandler();
+    await expect(
+      h.handler.completeBrandOnboardingStep(CONTEXT),
+    ).rejects.toThrow('saved brand');
+    expect(h.usersService.patch).not.toHaveBeenCalled();
+  });
 });

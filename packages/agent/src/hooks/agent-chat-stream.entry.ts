@@ -370,6 +370,30 @@ export function createAgentStreamController(
     const generation = entry.ownerGeneration;
     await resolveStreamFromMessagesFn(pending, {
       apiService,
+      onRecoveredReply: async (message, threadId) => {
+        const hasInputRequest = message.metadata?.toolCalls?.some(
+          (call) =>
+            call.toolName === 'request_input' && call.status === 'completed',
+        );
+        const snapshot = hasInputRequest
+          ? await apiService.getThreadSnapshot(threadId).catch(() => null)
+          : null;
+        if (
+          !isCurrentAgentStreamEntry(entry) ||
+          entry.ownerGeneration !== generation
+        )
+          return;
+        if (snapshot && isThreadVisible(threadId)) {
+          setPendingInputRequest(mapSnapshotPendingInputRequest(snapshot));
+        }
+        await completeOnboardingIfNeeded(
+          (message.metadata?.toolCalls ?? []).flatMap((call) =>
+            call.status === 'completed' || call.status === 'failed'
+              ? [{ status: call.status, toolName: call.toolName }]
+              : [],
+          ),
+        );
+      },
       cleanupSubscriptions: releaseCompletedSubscriptions,
       clearCompletionWatchdog,
       clearPendingInputRequest,
