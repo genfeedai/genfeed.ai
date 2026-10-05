@@ -390,6 +390,7 @@ export interface AgentChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   metadata?: AgentChatMessageMetadata;
+  toolCalls?: AgentToolCallSummary[];
   createdAt: string;
 }
 

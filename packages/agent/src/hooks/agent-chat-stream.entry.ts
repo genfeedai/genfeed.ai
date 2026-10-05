@@ -371,7 +371,14 @@ export function createAgentStreamController(
     await resolveStreamFromMessagesFn(pending, {
       apiService,
       onRecoveredReply: async (message, threadId) => {
-        const hasInputRequest = message.metadata?.toolCalls?.some(
+        const toolCalls =
+          message.toolCalls ??
+          (message.metadata?.toolCalls ?? []).flatMap((call) =>
+            call.status === 'completed' || call.status === 'failed'
+              ? [{ status: call.status, toolName: call.name }]
+              : [],
+          );
+        const hasInputRequest = toolCalls.some(
           (call) =>
             call.toolName === 'request_input' && call.status === 'completed',
         );
@@ -386,13 +393,7 @@ export function createAgentStreamController(
         if (snapshot && isThreadVisible(threadId)) {
           setPendingInputRequest(mapSnapshotPendingInputRequest(snapshot));
         }
-        await completeOnboardingIfNeeded(
-          (message.metadata?.toolCalls ?? []).flatMap((call) =>
-            call.status === 'completed' || call.status === 'failed'
-              ? [{ status: call.status, toolName: call.toolName }]
-              : [],
-          ),
-        );
+        await completeOnboardingIfNeeded(toolCalls);
       },
       cleanupSubscriptions: releaseCompletedSubscriptions,
       clearCompletionWatchdog,

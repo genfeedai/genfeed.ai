@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
 import {
+  type AgentChatMessage,
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
@@ -171,29 +172,27 @@ describe('useAgentChatStream', () => {
 
   it('restores the next input card and onboarding completion from a recovered reply', async () => {
     vi.useFakeTimers();
-    const reply = {
+    const reply: AgentChatMessage = {
       id: 'reply-complete',
       threadId: 'thread-onboarding',
       role: 'assistant',
       content: 'Your brand is ready',
       createdAt: new Date().toISOString(),
-      metadata: {
-        runId: 'run-onboarding',
-        toolCalls: [
-          {
-            toolName: 'request_input',
-            status: 'completed',
-            creditsUsed: 0,
-            durationMs: 1,
-          },
-          {
-            toolName: 'complete_onboarding',
-            status: 'completed',
-            creditsUsed: 0,
-            durationMs: 1,
-          },
-        ],
-      },
+      metadata: { runId: 'run-onboarding' },
+      toolCalls: [
+        {
+          toolName: 'request_input',
+          status: 'completed',
+          creditsUsed: 0,
+          durationMs: 1,
+        },
+        {
+          toolName: 'complete_onboarding',
+          status: 'completed',
+          creditsUsed: 0,
+          durationMs: 1,
+        },
+      ],
     };
     const apiService = createApiService({
       chatStream: vi.fn().mockResolvedValue({
