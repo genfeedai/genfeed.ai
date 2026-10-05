@@ -31,6 +31,7 @@ import {
   readUsableCdnAssetUrl,
   toMediaResponseRecord,
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
+import { completeAgentOnboarding } from '@api/services/agent-orchestrator/tools/agent-onboarding-completion.util';
 import { createOnboardingBrandDraft } from '@api/services/agent-orchestrator/tools/agent-onboarding-content.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
@@ -617,44 +618,12 @@ export class AgentOnboardingToolHandler {
       claimedMissions.every((mission) => mission.isCompleted);
 
     if (journeyCompleted) {
-      if (this.organizationsService) {
-        await this.organizationsService.patch(ctx.organizationId, {
-          onboardingCompleted: true,
-        });
-      }
-
-      if (this.usersService) {
-        const dbUser = await this.usersService.findOne({
-          id: ctx.userId,
-        });
-
-        if (dbUser?.id) {
-          // Atomic claim: `isOnboardingCompleted: false` is part of the WHERE
-          // clause, so the false->true transition itself is the concurrency
-          // fence (mirrors AssetGateService#markFirstAssetGenerated). A
-          // racing completion call — this journey re-check firing twice, or
-          // `completeOnboarding` below — matches 0 rows and never
-          // double-fires the funnel event or clobbers the already-persisted
-          // completion time.
-          const { modifiedCount } = await this.usersService.patchAll(
-            { id: dbUser.id, isOnboardingCompleted: false },
-            {
-              isOnboardingCompleted: true,
-              onboardingCompletedAt: new Date(),
-              onboardingStepsCompleted: ['brand', 'plan'],
-            },
-          );
-
-          if (modifiedCount === 1) {
-            this.onboardingCreditGrantsService.captureOnboardingCompletedBestEffort(
-              String(dbUser.id),
-            );
-          }
-        }
-      }
-
-      // isOnboardingCompleted is persisted on the User row above (epic #735,
-      // Phase C — no legacy auth provider identity write-back).
+      await completeAgentOnboarding(
+        ctx,
+        this.onboardingCreditGrantsService,
+        this.organizationsService,
+        this.usersService,
+      );
     }
 
     return {
@@ -733,55 +702,12 @@ export class AgentOnboardingToolHandler {
   async completeOnboarding(
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (this.organizationsService) {
-      await this.organizationsService.patch(ctx.organizationId, {
-        onboardingCompleted: true,
-      });
-    }
-
-    let dbUserId: string | null = null;
-    if (this.usersService) {
-      const dbUser = await this.usersService.findOne({
-        id: ctx.userId,
-      });
-
-      if (dbUser) {
-        dbUserId = String(dbUser.id);
-
-        // Atomic claim: `isOnboardingCompleted: false` is part of the WHERE
-        // clause, so the false->true transition itself is the concurrency
-        // fence. A racing completion call — this tool firing twice, or the
-        // journey re-check above — matches 0 rows and never double-fires the
-        // funnel event or clobbers the already-persisted completion time.
-        const { modifiedCount } = await this.usersService.patchAll(
-          { id: dbUser.id, isOnboardingCompleted: false },
-          {
-            isOnboardingCompleted: true,
-            onboardingCompletedAt: new Date(),
-            onboardingStepsCompleted: ['brand', 'plan'],
-          },
-        );
-
-        if (modifiedCount === 1) {
-          this.onboardingCreditGrantsService.captureOnboardingCompletedBestEffort(
-            dbUserId,
-          );
-        }
-      }
-    }
-
-    // isOnboardingCompleted is persisted on the User row above (epic #735,
-    // Phase C — no legacy auth provider identity write-back).
-
-    return {
-      creditsUsed: 0,
-      data: {
-        onboardingCompleted: true,
-        organizationId: ctx.organizationId,
-        userId: dbUserId ?? ctx.userId,
-      },
-      success: true,
-    };
+    return completeAgentOnboarding(
+      ctx,
+      this.onboardingCreditGrantsService,
+      this.organizationsService,
+      this.usersService,
+    );
   }
 
   /**

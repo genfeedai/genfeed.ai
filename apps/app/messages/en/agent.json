@@ -11,6 +11,7 @@
     "unsupportedCard": "This card type is not supported yet."
   },
   "fullPage": {
+    "onboardingUrlPlaceholder": "Paste a public URL…",
     "outputs": "Outputs"
   },
   "activityFeed": {

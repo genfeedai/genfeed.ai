@@ -288,7 +288,7 @@ export class AgentWorkObjectService {
     context: ToolExecutionContext,
   ) {
     const scope = this.scope(context);
-    await this.thread(scope);
+    const thread = await this.thread(scope);
     const options = Array.isArray(params.options)
       ? params.options.map((value) => {
           const option = record(value);
@@ -352,6 +352,9 @@ export class AgentWorkObjectService {
       recommendedOptionId,
       metadata: {
         kind: 'consequential',
+        ...(thread.source === 'onboarding'
+          ? { submitImmediatelyOptionIds: ['skip'] }
+          : {}),
         brandId: scope.brandId,
         contextVersion: context.validatedScope?.contextVersion,
       },

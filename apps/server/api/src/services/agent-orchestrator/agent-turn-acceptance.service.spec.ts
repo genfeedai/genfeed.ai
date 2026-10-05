@@ -13,6 +13,7 @@ describe('AgentTurnAcceptanceService', () => {
     warn: vi.fn(),
   };
   const prisma = {
+    user: { findFirst: vi.fn() },
     agentThread: {
       findFirstOrThrow: vi.fn(),
       upsert: vi.fn(),
@@ -36,6 +37,7 @@ describe('AgentTurnAcceptanceService', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    prisma.user.findFirst.mockResolvedValue({ isOnboardingCompleted: false });
     threadEngine.getSnapshot.mockResolvedValue({ pendingInputRequests: [] });
     service = new AgentTurnAcceptanceService(
       logger as never,
@@ -76,6 +78,64 @@ describe('AgentTurnAcceptanceService', () => {
         }),
     );
     agentMessagesService.addMessage.mockResolvedValue({});
+  });
+
+  it('continues an authorized onboarding thread with onboarding tools even without a client source', async () => {
+    scopeService.prepareForTurn.mockResolvedValue({
+      existingScope: {
+        threadId: 'thread-1',
+        brandId: 'brand-1',
+        contextVersion: 1,
+      },
+    });
+    prisma.agentThread.findFirstOrThrow.mockResolvedValue({
+      brandId: 'brand-1',
+      contextVersion: 1,
+      status: 'active',
+      source: 'onboarding',
+    });
+    await service.accept(
+      {
+        threadId: 'thread-1',
+        clientRequestId: 'input-response:url',
+        content: 'https://acme.com',
+      },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+    expect(workflowRunner.enqueueWorkflow.mock.calls[0][0]).toMatchObject({
+      inputValues: { request: { source: 'onboarding' } },
+      metadata: { source: 'onboarding' },
+    });
+  });
+
+  it('uses standard tools when a completed user reopens an onboarding thread', async () => {
+    prisma.user.findFirst.mockResolvedValue({ isOnboardingCompleted: true });
+    scopeService.prepareForTurn.mockResolvedValue({
+      existingScope: {
+        threadId: 'thread-1',
+        brandId: 'brand-1',
+        contextVersion: 1,
+      },
+    });
+    prisma.agentThread.findFirstOrThrow.mockResolvedValue({
+      brandId: 'brand-1',
+      contextVersion: 1,
+      status: 'active',
+      source: 'onboarding',
+    });
+    await service.accept(
+      {
+        threadId: 'thread-1',
+        clientRequestId: 'replay',
+        content: 'Hello',
+        source: 'onboarding',
+      },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+    expect(workflowRunner.enqueueWorkflow.mock.calls[0][0]).toMatchObject({
+      inputValues: { request: { source: 'agent' } },
+      metadata: { source: 'agent' },
+    });
   });
 
   it('persists only the current turn normalized explicit selections', async () => {

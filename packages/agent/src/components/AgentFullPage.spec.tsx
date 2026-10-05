@@ -1383,14 +1383,13 @@ describe('AgentFullPage', () => {
     expect(screen.getByText('surface-fixed')).toBeInTheDocument();
   });
 
-  it('invites refinement of the first brand draft during onboarding', () => {
+  it('accepts a URL without a first-post suggested action during onboarding', () => {
     render(
       <AgentFullPage apiService={createApiService() as never} onboardingMode />,
     );
 
-    expect(
-      screen.getByText('Tell us what to change, or ask for another version…'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Paste a public URL…')).toBeInTheDocument();
+    expect(screen.queryByText('Create my first post')).not.toBeInTheDocument();
   });
 
   it('does not clear draft conversation state again while waiting to navigate away from /agent/new', async () => {

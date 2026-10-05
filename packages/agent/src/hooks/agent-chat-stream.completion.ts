@@ -18,6 +18,10 @@ import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 
 export type ResolveStreamFromMessagesDeps = {
   apiService: AgentApiService;
+  onRecoveredReply?: (
+    message: AgentChatMessage,
+    threadId: string,
+  ) => Promise<void>;
   cleanupSubscriptions: () => void;
   clearCompletionWatchdog: () => void;
   clearPendingInputRequest: () => void;
@@ -201,6 +205,16 @@ export async function resolveStreamFromMessages(
         startedAt: pending.startedAt,
         status: failure ? 'failed' : 'completed',
       });
+    }
+    if (
+      recoveredAssistantMessage &&
+      !failure &&
+      deps.isCurrentPending(pending)
+    ) {
+      await deps.onRecoveredReply?.(
+        recoveredAssistantMessage,
+        pending.threadId,
+      );
     }
   } catch (error) {
     if (!deps.isCurrentPending(pending)) {

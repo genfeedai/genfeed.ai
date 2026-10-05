@@ -43,6 +43,11 @@ export class AgentApiService extends AgentBaseApiService {
   }
 
   // Threads / chat
+  kickoffOnboarding = threadsApi.kickoffOnboarding.bind(null, this);
+  completeExpertBrandHandoff = threadsApi.completeExpertBrandHandoff.bind(
+    null,
+    this,
+  );
   createThread = threadsApi.createThread.bind(null, this);
   sendMessage = threadsApi.sendMessage.bind(null, this);
   chat = threadsApi.chat.bind(null, this);

@@ -2,7 +2,6 @@ import { brandPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { expect, test } from '../../fixtures/onboarding.fixture';
 import { ExpertOnboardingPage } from '../../pages/expert-onboarding.page';
-import { OnboardingPage } from '../../pages/onboarding.page';
 
 /**
  * Expert Path Onboarding E2E (epic #4534)
@@ -26,8 +25,49 @@ test.describe('Expert Path Onboarding', () => {
   }) => {
     const expert = new ExpertOnboardingPage(expertOnboardingPage);
 
-    // The expert must approve the brand guide and explicitly continue.
-    await new OnboardingPage(expertOnboardingPage).approveAndContinueBrand();
+    await expect(
+      expertOnboardingPage.getByRole('heading', {
+        name: 'Your brand link',
+        level: 3,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expertOnboardingPage
+      .getByRole('textbox', { name: 'Other', exact: true })
+      .fill('https://genfeed.ai');
+    await expertOnboardingPage
+      .getByRole('button', { name: 'Use this answer', exact: true })
+      .click();
+    for (const title of ['goals', 'platforms', 'cadence', 'tone']) {
+      await expect(
+        expertOnboardingPage.getByRole('heading', {
+          name: title,
+          exact: true,
+          level: 3,
+        }),
+      ).toBeVisible();
+      await expertOnboardingPage
+        .getByRole('button', { name: 'Skip', exact: true })
+        .click();
+    }
+    await expect(
+      expertOnboardingPage.getByRole('link', { name: 'Continue', exact: true }),
+    ).toBeVisible();
+    await expect(
+      expertOnboardingPage.getByRole('button', {
+        name: 'Create my first post',
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await expect(
+      expertOnboardingPage.getByRole('button', {
+        name: 'Go to my workspace',
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await expertOnboardingPage
+      .getByRole('link', { name: 'Continue', exact: true })
+      .click();
 
     await expert.assertOnPath(APP_ROUTES.ONBOARDING.POSITIONING);
     await expert.assertStepBadge(2, 4);

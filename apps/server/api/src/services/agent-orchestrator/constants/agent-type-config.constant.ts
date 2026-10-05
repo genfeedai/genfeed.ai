@@ -106,6 +106,7 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
       ...getToolsForSurface('agent')
         .filter(
           (tool) =>
+            tool.name !== 'complete_brand_onboarding_step' &&
             tool.name !== 'scan_brand_url' &&
             tool.name !== 'save_onboarding_answers',
         )

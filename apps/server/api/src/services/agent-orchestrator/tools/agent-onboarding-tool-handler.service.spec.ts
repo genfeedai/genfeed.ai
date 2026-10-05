@@ -91,7 +91,10 @@ function createHandler(options?: {
     get: vi.fn(() => 'test'),
     ingredientsEndpoint: 'https://cdn.example.com/ingredients',
   };
-  const organizationsService = { patch: vi.fn() };
+  const organizationsService = {
+    findOne: vi.fn().mockResolvedValue({ accountType: 'CREATOR' }),
+    patch: vi.fn(),
+  };
   const usersService = {
     findOne: vi.fn(),
     patch: vi.fn(),
@@ -141,6 +144,7 @@ function createHandler(options?: {
     imagesService,
     onboardingCreditGrantsService,
     organizationSettingsService,
+    organizationsService,
     postsService,
     usersService,
     videosService,
@@ -853,6 +857,22 @@ describe('Agent onboarding create_brand identity', () => {
 });
 
 describe('completeOnboarding funnel capture (genfeedai/genfeed.ai#4969, #5311)', () => {
+  it('rejects Expert completion before handoff without any completion writes', async () => {
+    const { handler, organizationsService, usersService } = createHandler();
+    organizationsService.findOne.mockResolvedValue({ accountType: 'EXPERT' });
+    usersService.findOne.mockResolvedValue({
+      id: CONTEXT.userId,
+      onboardingStepsCompleted: ['brand', 'positioning', 'corpus'],
+    });
+    const result = await handler.completeOnboarding(CONTEXT);
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringContaining('complete_brand_onboarding_step'),
+    });
+    expect(organizationsService.patch).not.toHaveBeenCalled();
+    expect(usersService.patchAll).not.toHaveBeenCalled();
+  });
+
   it('delegates the onboarding_completed capture exactly once for a user completing for the first time', async () => {
     const { handler, onboardingCreditGrantsService, usersService } =
       createHandler();
@@ -993,6 +1013,23 @@ describe('onboarding journey completion race (genfeedai/genfeed.ai#5311)', () =>
       video: { id: 'video-1' },
     });
   }
+
+  it('does not let completed journey missions bypass required Expert steps', async () => {
+    const h = createCompletableHandler();
+    (
+      h.organizationsService.findOne as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({ accountType: 'EXPERT' });
+    (h.usersService.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'user-1',
+      isOnboardingCompleted: false,
+    });
+    await h.handler.checkOnboardingStatus(CONTEXT);
+    expect(h.usersService.patchAll).not.toHaveBeenCalled();
+    expect(h.organizationsService.patch).not.toHaveBeenCalled();
+    expect(
+      h.onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
+    ).not.toHaveBeenCalled();
+  });
 
   it('claims the false->true transition atomically and captures once when the journey completes', async () => {
     const { handler, onboardingCreditGrantsService, usersService } =

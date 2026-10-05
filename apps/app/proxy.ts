@@ -12,7 +12,6 @@ import {
   hasCompletedBrandOnboardingStep,
   isExpertAccountType,
   isPersonalSettingsPath,
-  isSharedBrandOnboardingPath,
   ONBOARDING_STEPS,
   parsePlatformFlags,
   parseScopedAppPath,
@@ -815,6 +814,8 @@ type OnboardingRedirectState = {
   accountType?: string | null;
   completedSteps: string[];
   shouldRedirect: boolean;
+  isCompleted?: boolean;
+  isAvailable?: boolean;
 };
 
 async function readOnboardingRedirectState(
@@ -824,7 +825,7 @@ async function readOnboardingRedirectState(
   const bootstrapRead = await readBootstrap(token, req);
 
   if (!bootstrapRead.isAvailable) {
-    return { completedSteps: [], shouldRedirect: false };
+    return { completedSteps: [], shouldRedirect: false, isAvailable: false };
   }
 
   const bootstrap = bootstrapRead.bootstrap;
@@ -839,7 +840,7 @@ async function readOnboardingRedirectState(
     bootstrap?.access?.isOnboardingCompleted === true ||
     bootstrap?.currentUser?.isOnboardingCompleted === true
   ) {
-    return { completedSteps, shouldRedirect: false };
+    return { completedSteps, shouldRedirect: false, isCompleted: true };
   }
 
   if (!bootstrap?.currentUser) {
@@ -856,13 +857,15 @@ async function readOnboardingRedirectState(
 }
 
 /**
- * Incomplete Expert Path users resume on their own wizard steps instead of
- * the agent onboarding handoff every other agent-first account type takes.
+ * Experts resume their wizard only after the conversation completes brand setup.
  */
 function resolveExpertOnboardingRedirectPath(
   onboardingState: OnboardingRedirectState,
 ): string | null {
-  if (!isExpertAccountType(onboardingState.accountType)) {
+  if (
+    !isExpertAccountType(onboardingState.accountType) ||
+    !hasCompletedBrandOnboardingStep(onboardingState.completedSteps)
+  ) {
     return null;
   }
 
@@ -937,12 +940,6 @@ function isClassicWizardPath(pathname: string): boolean {
     return false;
   }
 
-  // Shared brand setup stays reachable on every surface, including after
-  // Skip completes the onboarding gate so the operator can come back.
-  if (isSharedBrandOnboardingPath(pathname)) {
-    return false;
-  }
-
   if (
     MODE_AGNOSTIC_ONBOARDING_PATHS.some(
       (path) => pathname === path || pathname.startsWith(`${path}/`),
@@ -958,8 +955,7 @@ function isClassicWizardPath(pathname: string): boolean {
 
 /**
  * Send a signed-in agent-first user from the classic wizard to the agent
- * onboarding surface. Returns null when the workspace slug cannot be resolved,
- * so the caller renders the wizard rather than bouncing to a broken path.
+ * onboarding surface, keeping unresolved scope in the protected bootstrap.
  */
 async function redirectSignedInUserToAgentOnboarding(
   req: NextRequest,
@@ -967,11 +963,26 @@ async function redirectSignedInUserToAgentOnboarding(
   cacheKey?: string | null,
 ): Promise<NextResponse | null> {
   const onboardingState = await readOnboardingRedirectState(token, req);
-  if (!hasCompletedBrandOnboardingStep(onboardingState.completedSteps)) {
-    if (!onboardingState.shouldRedirect) {
-      return null;
-    }
-    return redirectDroppingSearch(req, APP_ROUTES.ONBOARDING.BRAND);
+  if (onboardingState.isAvailable === false) return null;
+  if (
+    onboardingState.isCompleted ||
+    ONBOARDING_STEPS.every((step) =>
+      onboardingState.completedSteps.includes(step),
+    )
+  ) {
+    const resolution = await resolveActiveWorkspaceSlugs(
+      bootstrapScopeAuthority(token, req),
+      cacheKey,
+      req,
+      { preferAvailableBrand: true, skipSlugCookie: true },
+    );
+    const slugs = resolution?.slugs;
+    return redirectDroppingSearch(
+      req,
+      slugs?.brandSlug
+        ? `/${slugs.orgSlug}/${slugs.brandSlug}/settings/kit`
+        : '/settings/kit',
+    );
   }
 
   const expertPath = resolveExpertOnboardingRedirectPath(onboardingState);
@@ -987,7 +998,7 @@ async function redirectSignedInUserToAgentOnboarding(
     req,
   );
   if (!agentOnboarding) {
-    return null;
+    return redirectDroppingSearch(req, APP_ROUTES.AGENT.ONBOARDING);
   }
 
   const response = redirectDroppingSearch(req, agentOnboarding.path);
@@ -1260,10 +1271,6 @@ async function redirectSignedInUserToDefaultRoute(
       !isDesktopSurface &&
       hasAgentFirstOnboarding(await readIsAgentModuleEnabled())
     ) {
-      if (!hasCompletedBrandOnboardingStep(onboardingState.completedSteps)) {
-        return redirectDroppingSearch(req, APP_ROUTES.ONBOARDING.BRAND);
-      }
-
       const expertPath = resolveExpertOnboardingRedirectPath(onboardingState);
       if (expertPath) {
         return redirectDroppingSearch(req, expertPath);
@@ -1426,9 +1433,8 @@ async function routeBetterAuthRequest(
       return redirectToLoginPreservingDestination(req);
     }
 
-    // `/onboarding/brand` is the shared brand step and stays reachable.
-    // Other classic wizard paths still bounce agent-first users to the
-    // agent surface after brand is confirmed.
+    // Agent-first users enter the conversation from root, brand and classic
+    // wizard routes. Completed users review their guide in brand settings.
     if (
       hasSession &&
       isClassicWizardPath(pathname) &&
@@ -1482,21 +1488,13 @@ async function routeBetterAuthRequest(
         return redirectPreservingSearch(req, ONBOARDING_PATH);
       }
 
-      const hasBrand = hasCompletedBrandOnboardingStep(
-        onboardingState.completedSteps,
-      );
-
-      if (!hasBrand) {
-        return redirectPreservingSearch(req, APP_ROUTES.ONBOARDING.BRAND);
-      }
-
       const expertPath = resolveExpertOnboardingRedirectPath(onboardingState);
       if (expertPath) {
         return redirectPreservingSearch(req, expertPath);
       }
 
       // The agent onboarding surface is itself a protected route — stay there
-      // after brand exists. If the URL org is a leftover stub (or a stale slug
+      // throughout first-run. If the URL org is a leftover stub (or a stale slug
       // cookie), move the user onto their membership org.
       if (isAgentOnboardingPath(pathname)) {
         const agentOnboarding = await resolveAgentOnboardingRedirect(

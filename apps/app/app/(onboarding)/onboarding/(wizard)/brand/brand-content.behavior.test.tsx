@@ -71,7 +71,7 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
 }));
 vi.mock('@genfeedai/config/deployment', () => ({
   isDesktopClient: () => mocks.desktop,
-  hasAgentFirstOnboarding: () => true,
+  hasAgentFirstOnboarding: () => false,
 }));
 vi.mock(
   '@genfeedai/hooks/feature-flags/use-feature-flag/use-feature-flag',
@@ -610,6 +610,21 @@ describe('membership-scoped saved guide wizard', () => {
       expect(mocks.startBrandOsScan).not.toHaveBeenCalled();
     },
   );
+  it('refreshes completed user state before navigating after classic Skip', async () => {
+    const refresh = deferred<void>();
+    await show();
+    mocks.refetchUser.mockReturnValueOnce(refresh.promise);
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+    await waitFor(() => expect(mocks.refetchUser).toHaveBeenCalledTimes(1));
+    expect(mocks.patchMe).toHaveBeenCalledExactlyOnceWith({
+      isOnboardingCompleted: true,
+    });
+    expect(mocks.push).not.toHaveBeenCalled();
+    await act(async () => {
+      refresh.resolve();
+    });
+    expect(mocks.push).toHaveBeenCalledExactlyOnceWith('/');
+  });
   it.each(['token', 'current user id'] as const)(
     'web Skip fails without writes when missing %s',
     async (missing) => {
@@ -674,33 +689,28 @@ describe('membership-scoped saved guide wizard', () => {
       isOnboardingCompleted: true,
     });
   });
-  it('dirty cancel stops the real Skip gate dispatch before the handler and keeps Continue closed', async () => {
+  it('guards dirty guide navigation without requiring approval', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    approvedGuide();
     await show();
-    await enabledContinue();
     fireEvent.change(screen.getByLabelText('Description'), {
       target: { value: 'Unsaved' },
     });
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
-    expect(confirm).toHaveBeenCalledTimes(1);
-    expect(mocks.getToken).not.toHaveBeenCalled();
+    fireEvent.click(await enabledContinue());
+    expect(confirm).toHaveBeenCalledOnce();
     expect(mocks.updateOnboarding).not.toHaveBeenCalled();
-    expect(mocks.patchSettings).not.toHaveBeenCalled();
-    expect(mocks.patchMe).not.toHaveBeenCalled();
+    confirm.mockReturnValue(true);
+    fireEvent.click(await enabledContinue());
+    await waitFor(() => expect(mocks.updateOnboarding).toHaveBeenCalledOnce());
+    expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
   });
-  it('auto-saves corrections and unlocks Continue only after explicit approval', async () => {
+  it('auto-saves optional corrections while Continue remains available', async () => {
     await show();
     const button = screen.getByRole('button', { name: 'Continue' });
-    await screen.findByText(
-      'Approve your brand guide to continue, or skip for now.',
-    );
-    expect(button).toBeDisabled();
+    expect(button).toBeEnabled();
     fireEvent.change(screen.getByLabelText('Description'), {
       target: { value: 'Auto-saved correction' },
     });
-    expect(button).toBeDisabled();
+    expect(button).toBeEnabled();
     await waitFor(
       () => expect(mocks.updateBrandOsRevision).toHaveBeenCalledTimes(1),
       { timeout: 4000 },
@@ -720,7 +730,7 @@ describe('membership-scoped saved guide wizard', () => {
       }),
     );
     await screen.findByText('Your brand guide has been saved.');
-    expect(button).toBeDisabled();
+    expect(button).toBeEnabled();
     expect(mocks.approveBrandOsRevision).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Approve revision' }));
     await screen.findByText('Your brand guide is approved.');

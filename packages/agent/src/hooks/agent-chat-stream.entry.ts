@@ -335,7 +335,7 @@ export function createAgentStreamController(
         )
           return;
         setError(
-          'Could not finish setup. Use Skip to workspace to try again, or sign in again if your session expired.',
+          'Could not finish setup. Reload the page to open your workspace, or sign in again if your session expired.',
         );
       }
     }
@@ -370,6 +370,31 @@ export function createAgentStreamController(
     const generation = entry.ownerGeneration;
     await resolveStreamFromMessagesFn(pending, {
       apiService,
+      onRecoveredReply: async (message, threadId) => {
+        const toolCalls =
+          message.toolCalls ??
+          (message.metadata?.toolCalls ?? []).flatMap((call) =>
+            call.status === 'completed' || call.status === 'failed'
+              ? [{ status: call.status, toolName: call.name }]
+              : [],
+          );
+        const hasInputRequest = toolCalls.some(
+          (call) =>
+            call.toolName === 'request_input' && call.status === 'completed',
+        );
+        const snapshot = hasInputRequest
+          ? await apiService.getThreadSnapshot(threadId).catch(() => null)
+          : null;
+        if (
+          !isCurrentAgentStreamEntry(entry) ||
+          entry.ownerGeneration !== generation
+        )
+          return;
+        if (snapshot && isThreadVisible(threadId)) {
+          setPendingInputRequest(mapSnapshotPendingInputRequest(snapshot));
+        }
+        await completeOnboardingIfNeeded(toolCalls);
+      },
       cleanupSubscriptions: releaseCompletedSubscriptions,
       clearCompletionWatchdog,
       clearPendingInputRequest,

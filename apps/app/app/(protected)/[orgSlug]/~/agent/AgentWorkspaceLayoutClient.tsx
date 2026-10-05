@@ -4,6 +4,7 @@ import {
 } from '@contexts/user/brand-context/brand-context';
 import {
   getBrandEntityId,
+  getBrandOrganizationAccountType,
   getBrandOrganizationId,
 } from '@contexts/user/brand-context/brand-context.helpers';
 import {
@@ -14,11 +15,14 @@ import {
   useAgentChatStore,
   useAgentChatStream,
 } from '@genfeedai/agent';
+import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import { selectIsGenerating } from '@genfeedai/agent/stores/agent-chat.store.run';
-import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
+import { clearClientProtectedBootstrapCache } from '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
+  isExpertAccountType,
 } from '@genfeedai/contracts/constants';
 import { useAgentOAuthConnect } from '@genfeedai/hooks/agent/use-agent-oauth-connect';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
@@ -30,7 +34,14 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { UsersService } from '@services/organization/users.service';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import {
@@ -113,7 +124,13 @@ function AgentWorkspaceLayoutClientContent({
     [rawPathname],
   );
   const { replace } = useRouter();
-  const { brandId, brands, isBrandScopeResolved, organizationId } = useBrand();
+  const {
+    brandId,
+    brands,
+    isBrandScopeResolved,
+    organizationId,
+    selectedBrand,
+  } = useBrand();
   const {
     activeHref,
     brandSlug: routeBrandSlug,
@@ -131,10 +148,25 @@ function AgentWorkspaceLayoutClientContent({
     string | null | typeof UNSET_THREAD_BASELINE
   >(UNSET_THREAD_BASELINE);
   const pendingNavigationThreadRef = useRef<string | null>(null);
-  const hasAttemptedResumeRef = useRef(false);
+  const [onboardingBootstrapError, setOnboardingBootstrapError] =
+    useState(false);
+  const [onboardingRetry, setOnboardingRetry] = useState(0);
+  const [onboardingStartFailures, setOnboardingStartFailures] = useState(0);
+  const hasAttemptedResumeRef = useRef<number | null>(null);
+  const retryOnboardingBootstrap = useCallback(() => {
+    hasAttemptedResumeRef.current = null;
+    setOnboardingBootstrapError(false);
+    setOnboardingRetry((attempt) => attempt + 1);
+  }, []);
   const hasAttemptedReturningBootstrapRef = useRef(false);
   const isJourneyRoute = pathname.startsWith(APP_ROUTES.AGENT.JOURNEY);
   const isOnboarding = pathname.startsWith(APP_ROUTES.AGENT.ONBOARDING);
+  const isExpertOnboarding = isExpertAccountType(
+    getBrandOrganizationAccountType(
+      selectedBrand ??
+        brands.find((brand) => getBrandEntityId(brand) === brandId),
+    ),
+  );
   const isOnboardingEntryRoute = pathname === APP_ROUTES.AGENT.ONBOARDING;
   const isStandardNewRoute =
     pathname === APP_ROUTES.AGENT.ROOT || pathname === APP_ROUTES.AGENT.NEW;
@@ -186,13 +218,30 @@ function AgentWorkspaceLayoutClientContent({
     if (!effectiveToken) {
       throw new Error('Please sign in again to finish setup.');
     }
-    // Onboarding completion cascade lives behind PATCH /users/me (REST audit #1354).
-    await UsersService.getInstance(effectiveToken).patchMe({
-      isOnboardingCompleted: true,
-    });
+    if (isOnboarding && isExpertOnboarding) {
+      await agentApiService.completeExpertBrandHandoff(brandId);
+    } else {
+      // Onboarding completion cascade lives behind PATCH /users/me (REST audit #1354).
+      await UsersService.getInstance(effectiveToken).patchMe({
+        isOnboardingCompleted: true,
+      });
+    }
     completedRef.current = true;
     await getToken({ forceRefresh: true }).catch(() => null);
-  }, [getToken]);
+    if (isOnboarding) {
+      clearClientProtectedBootstrapCache();
+      window.location.href = isExpertOnboarding
+        ? APP_ROUTES.ONBOARDING.POSITIONING
+        : activeHref(APP_ROUTES.WORKSPACE.OVERVIEW);
+    }
+  }, [
+    getToken,
+    isOnboarding,
+    isExpertOnboarding,
+    agentApiService,
+    brandId,
+    activeHref,
+  ]);
 
   const { sendMessage } = useAgentChatStream({
     apiService: agentApiService,
@@ -246,7 +295,7 @@ function AgentWorkspaceLayoutClientContent({
     }
   }, [isJourneyRoute, isUnthreadedRoute, prefillPrompt]);
 
-  // Resume an existing draft before starting generation, including after reload.
+  // Resume an authorized onboarding thread, or ask the server to start one.
   useEffect(() => {
     if (
       !effectiveIsLoaded ||
@@ -255,14 +304,14 @@ function AgentWorkspaceLayoutClientContent({
       !isOnboardingEntryRoute ||
       prefillPrompt ||
       activeThreadId ||
-      hasAttemptedResumeRef.current
+      hasAttemptedResumeRef.current === onboardingRetry
     ) {
       return;
     }
 
-    hasAttemptedResumeRef.current = true;
+    hasAttemptedResumeRef.current = onboardingRetry;
     const controller = new AbortController();
-    let started = false;
+    let hasSettled = false;
     void agentApiService
       .getThreads(
         { source: ONBOARDING_THREAD_SOURCE, status: AgentThreadStatus.ACTIVE },
@@ -278,14 +327,25 @@ function AgentWorkspaceLayoutClientContent({
           liveState.stream.isStreaming
         )
           return;
+        const selectedBrand = brands.find(
+          (brand) =>
+            getBrandOrganizationId(brand) === organizationId &&
+            (!brandId || getBrandEntityId(brand) === brandId),
+        );
         const resumable = mostRecentAuthorizedThread(
           threads.filter(
-            (thread) => thread.source === ONBOARDING_THREAD_SOURCE,
+            (thread) =>
+              thread.source === ONBOARDING_THREAD_SOURCE &&
+              thread.brandId ===
+                (selectedBrand ? getBrandEntityId(selectedBrand) : brandId),
           ),
           organizationId,
           brands,
         );
         if (resumable) {
+          useAgentChatStore.getState().upsertThread(resumable);
+          hasSettled = true;
+          setOnboardingStartFailures(0);
           if (pendingNavigationThreadRef.current !== resumable.id) {
             pendingNavigationThreadRef.current = resumable.id;
             newRouteBaselineThreadRef.current = resumable.id;
@@ -298,40 +358,40 @@ function AgentWorkspaceLayoutClientContent({
           }
           return;
         }
-        const selectedBrand = brands.find(
-          (brand) =>
-            getBrandOrganizationId(brand) === organizationId &&
-            (!brandId || getBrandEntityId(brand) === brandId),
+        const thread = await agentApiService.kickoffOnboarding(
+          selectedBrand ? getBrandEntityId(selectedBrand) : undefined,
+          controller.signal,
         );
-        started = true;
-        // The stream outlives the entry route when its new thread gets a URL.
-        await sendMessage(
-          'Create my first post: one image and one tweet based on my saved brand. Show me the draft before asking me to connect an account.',
-          {
-            ...(selectedBrand
-              ? { brandId: getBrandEntityId(selectedBrand) }
-              : {}),
-            agentMode: AgentThreadMode.AUTO,
-            forceNewThread: true,
-            source: ONBOARDING_THREAD_SOURCE,
-          },
-        );
+        if (controller.signal.aborted) return;
+        if (!mostRecentAuthorizedThread([thread], organizationId, brands)) {
+          throw new Error('Onboarding thread scope is unavailable.');
+        }
+        hasSettled = true;
+        setOnboardingStartFailures(0);
+        useAgentChatStore.getState().upsertThread(thread);
+        pendingNavigationThreadRef.current = thread.id;
+        newRouteBaselineThreadRef.current = thread.id;
+        replace(orgHref(`${APP_ROUTES.AGENT.ONBOARDING}/${thread.id}`));
       })
-      .catch(() => {
+      .catch((error) => {
         if (!controller.signal.aborted) {
-          useAgentChatStore
-            .getState()
-            .setError(
-              'We could not open your first draft. Try Create my first post again, or skip setup to open your workspace.',
-            );
+          hasSettled = true;
+          if (error instanceof AgentApiRequestError && error.status === 409) {
+            clearClientProtectedBootstrapCache();
+            window.location.href = activeHref(APP_ROUTES.WORKSPACE.OVERVIEW);
+            return;
+          }
+          setOnboardingStartFailures((count) => count + 1);
+          setOnboardingBootstrapError(true);
         }
       });
     return () => {
       controller.abort();
-      if (!started) hasAttemptedResumeRef.current = false;
+      if (!hasSettled) hasAttemptedResumeRef.current = null;
     };
   }, [
     activeThreadId,
+    activeHref,
     agentApiService,
     brandId,
     brands,
@@ -342,13 +402,13 @@ function AgentWorkspaceLayoutClientContent({
     organizationId,
     prefillPrompt,
     replace,
-    sendMessage,
+    onboardingRetry,
   ]);
 
   // Allow another resume attempt once the operator leaves the entry route.
   useEffect(() => {
     if (!isOnboardingEntryRoute) {
-      hasAttemptedResumeRef.current = false;
+      hasAttemptedResumeRef.current = null;
     }
   }, [isOnboardingEntryRoute]);
 
@@ -623,16 +683,24 @@ function AgentWorkspaceLayoutClientContent({
     () => ({
       agentApiService,
       completeOnboardingFlow,
+      onboardingBootstrapError,
+      onboardingStartFailures,
+      retryOnboardingBootstrap,
       handleOAuthConnect,
       isLoaded: effectiveIsLoaded,
       isOnboarding,
+      isExpertOnboarding,
     }),
     [
       agentApiService,
       effectiveIsLoaded,
       isOnboarding,
+      isExpertOnboarding,
       handleOAuthConnect,
       completeOnboardingFlow,
+      onboardingBootstrapError,
+      onboardingStartFailures,
+      retryOnboardingBootstrap,
     ],
   );
 

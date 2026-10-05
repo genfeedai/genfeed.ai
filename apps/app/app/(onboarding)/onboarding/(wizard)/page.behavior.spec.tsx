@@ -3,10 +3,6 @@ import { render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  authUser: { isLoaded: true, user: { publicMetadata: {} } } as {
-    isLoaded: boolean;
-    user: { publicMetadata: Record<string, unknown> } | null;
-  },
   currentUser: { isLoading: false } as {
     isLoading: boolean;
     currentUser?: { onboardingStepsCompleted: string[] };
@@ -23,8 +19,25 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => mocks.currentUser,
 }));
 
-vi.mock('@hooks/auth/use-auth-user/use-auth-user', () => ({
-  useAuthUser: () => mocks.authUser,
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    isBrandScopeResolved: true,
+    selectedBrand: {
+      id: 'brand-1',
+      slug: 'brand',
+      organization: { slug: 'acme', accountType: 'CREATOR' },
+    },
+    brands: [],
+  }),
+}));
+vi.mock('@genfeedai/config/deployment', () => ({
+  hasAgentFirstOnboarding: () => true,
+}));
+vi.mock('@hooks/feature-flags/use-feature-flag/use-feature-flag', () => ({
+  useFeatureFlag: () => true,
+}));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({ getToken: vi.fn() }),
 }));
 
 import OnboardingRootPage from './page';
@@ -32,7 +45,6 @@ import OnboardingRootPage from './page';
 describe('OnboardingRootPage routing', () => {
   beforeEach(() => {
     mocks.replace.mockClear();
-    mocks.authUser = { isLoaded: true, user: { publicMetadata: {} } };
     mocks.currentUser = {
       currentUser: {
         onboardingStepsCompleted: [...ONBOARDING_STEPS],
@@ -45,11 +57,11 @@ describe('OnboardingRootPage routing', () => {
     vi.clearAllMocks();
   });
 
-  it('replays the full wizard from the first step for a fully-onboarded user', async () => {
+  it('opens brand settings when every onboarding step is already complete', async () => {
     render(<OnboardingRootPage />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/brand/settings/kit');
     });
     expect(mocks.replace).not.toHaveBeenCalledWith('/onboarding/summary');
   });
@@ -63,7 +75,7 @@ describe('OnboardingRootPage routing', () => {
     render(<OnboardingRootPage />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/agent/onboarding');
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
     });
   });
 });

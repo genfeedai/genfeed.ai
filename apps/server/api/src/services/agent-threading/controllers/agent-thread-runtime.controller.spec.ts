@@ -93,6 +93,24 @@ describe('Threading AgentThreadRuntimeController', () => {
     );
   });
 
+  it('continues the kickoff domain choice as its URL rather than its button label', async () => {
+    resolveInputRequest.mockResolvedValue({
+      requestId: 'onboarding-url:thread_current',
+      fieldId: 'brandUrl',
+      status: 'resolved',
+    });
+    await controller.respondToInputRequest(
+      threadId,
+      'onboarding-url:thread_current',
+      { answer: 'Use acme.com', optionIds: ['https://acme.com'] },
+      mockUser,
+    );
+    expect(agentOrchestratorService.acceptChatStream).toHaveBeenCalledWith(
+      expect.objectContaining({ content: 'https://acme.com' }),
+      { organizationId, userId },
+    );
+  });
+
   it('binds failed review dispatch cleanup to its prepared token', async () => {
     workObjects.action.mockResolvedValue('review-A');
     agentOrchestratorService.handleThreadUiAction.mockRejectedValue(

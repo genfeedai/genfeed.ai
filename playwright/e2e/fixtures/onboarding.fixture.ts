@@ -22,6 +22,7 @@ import {
 } from '../utils/expert-path-mocks';
 import { setupStrictNetworkGuard } from '../utils/network-guard';
 import { setupOnboardingBrandGuideMocks } from '../utils/onboarding-brand-guide-mocks';
+import { setupOnboardingConversationMocks } from '../utils/onboarding-conversation-mocks';
 
 /**
  * Onboarding Fixtures for Playwright E2E Tests
@@ -45,6 +46,7 @@ interface OnboardingFixtures {
    * `/onboarding/brand` — the shipped app never does that.
    */
   onboardingPage: Page;
+  desktopOnboardingPage: Page;
 
   /**
    * The same page with the bootstrap organization typed `EXPERT`, plus the
@@ -59,7 +61,6 @@ interface OnboardingFixtures {
    * no brand signal and the brand step shows the website prompt instead of
    * skipping straight to the loading step.
    */
-  personalInboxOnboardingPage: Page;
 }
 
 /** Per-page onboarding progress recorded from the app's own PATCH calls. */
@@ -209,7 +210,7 @@ async function setupBetterAuthMocksForOnboarding(
     name: 'Test Organization',
   });
 
-  await page.route('**/v1/auth/session**', async (route) => {
+  await page.route('**/v1/auth/get-session**', async (route) => {
     await route.fulfill({
       body: JSON.stringify({
         session: {
@@ -253,51 +254,42 @@ async function setupOnboardingApiMocks(
   // --- Onboarding-specific routes (registered AFTER generic setupApiMocks) ---
 
   // POST /onboarding/account-type
-  await page.route(
-    '**/api.genfeed.ai/*/onboarding/account-type',
-    async (route) => {
-      if (route.request().method() === 'POST') {
-        await route.fulfill({
-          body: JSON.stringify({ success: true }),
-          contentType: 'application/json',
-          status: 200,
-        });
-        return;
-      }
+  await page.route('**/v1/onboarding/account-type', async (route) => {
+    if (route.request().method() === 'POST') {
       await route.fulfill({
         body: JSON.stringify({ success: true }),
         contentType: 'application/json',
         status: 200,
       });
-    },
-  );
+      return;
+    }
+    await route.fulfill({
+      body: JSON.stringify({ success: true }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
 
   // POST /onboarding/brand-setup
-  await page.route(
-    '**/api.genfeed.ai/*/onboarding/brand-setup',
-    async (route) => {
-      await route.fulfill({
-        body: JSON.stringify(MOCK_BRAND_SCRAPE_RESPONSE),
-        contentType: 'application/json',
-        status: 200,
-      });
-    },
-  );
+  await page.route('**/v1/onboarding/brand-setup', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(MOCK_BRAND_SCRAPE_RESPONSE),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
 
   // POST /onboarding/complete-funnel
-  await page.route(
-    '**/api.genfeed.ai/*/onboarding/complete-funnel',
-    async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({ success: true }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    },
-  );
+  await page.route('**/v1/onboarding/complete-funnel', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ success: true }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
 
   // GET/PATCH /users/*/onboarding
-  await page.route('**/api.genfeed.ai/*/users/*/onboarding', async (route) => {
+  await page.route('**/v1/users/*/onboarding', async (route) => {
     const method = route.request().method();
 
     if (method === 'PATCH' || method === 'PUT') {
@@ -332,7 +324,7 @@ async function setupOnboardingApiMocks(
   });
 
   // PATCH /users/me
-  await page.route('**/api.genfeed.ai/*/users/me', async (route) => {
+  await page.route('**/v1/users/me', async (route) => {
     const method = route.request().method();
     const mockUser = {
       ...generateOnboardingMockUser(state.completedSteps, email),
@@ -344,6 +336,8 @@ async function setupOnboardingApiMocks(
         | OnboardingProgressRequestPayload
         | undefined;
 
+      const savedSteps = readCompletedSteps(route.request());
+      if (savedSteps) state.completedSteps = savedSteps;
       if (typeof body?.isOnboardingCompleted === 'boolean') {
         state.isOnboardingCompleted = body.isOnboardingCompleted;
       }
@@ -376,7 +370,7 @@ async function setupOnboardingApiMocks(
   });
 
   // POST /users/me/avatar (presigned URL)
-  await page.route('**/api.genfeed.ai/*/users/me/avatar', async (route) => {
+  await page.route('**/v1/users/me/avatar', async (route) => {
     await route.fulfill({
       body: JSON.stringify({
         publicUrl: 'https://cdn.genfeed.ai/avatars/mock-avatar.jpg',
@@ -388,7 +382,7 @@ async function setupOnboardingApiMocks(
   });
 
   // POST /users/me/explore
-  await page.route('**/api.genfeed.ai/*/users/me/explore', async (route) => {
+  await page.route('**/v1/users/me/explore', async (route) => {
     await route.fulfill({
       body: JSON.stringify({ success: true }),
       contentType: 'application/json',
@@ -398,7 +392,7 @@ async function setupOnboardingApiMocks(
 
   // UsersRelationshipsController returns a single SettingSerializer resource.
   let userSettings = generateMockApiUser().settings;
-  await page.route('**/api.genfeed.ai/*/users/*/settings', async (route) => {
+  await page.route('**/v1/users/*/settings', async (route) => {
     if (route.request().method() === 'PATCH') {
       const body = route.request().postDataJSON() as {
         data: { attributes: Partial<ISetting> };
@@ -419,7 +413,7 @@ async function setupOnboardingApiMocks(
   });
 
   // POST /services/*/connect (OAuth)
-  await page.route('**/api.genfeed.ai/*/services/*/connect', async (route) => {
+  await page.route('**/v1/services/*/connect', async (route) => {
     await route.fulfill({
       body: JSON.stringify({ url: 'https://mock-oauth.example.com/auth' }),
       contentType: 'application/json',
@@ -428,28 +422,22 @@ async function setupOnboardingApiMocks(
   });
 
   // POST /services/stripe/checkout
-  await page.route(
-    '**/api.genfeed.ai/*/services/stripe/checkout',
-    async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({ url: '/onboarding/success' }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    },
-  );
+  await page.route('**/v1/services/stripe/checkout', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ url: '/onboarding/success' }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
 
   // POST /stripe/create-checkout-session
-  await page.route(
-    '**/api.genfeed.ai/*/stripe/create-checkout-session',
-    async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({ url: '/onboarding/success' }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    },
-  );
+  await page.route('**/v1/stripe/create-checkout-session', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ url: '/onboarding/success' }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
 }
 
 async function setupAuthCookies(context: BrowserContext): Promise<void> {
@@ -590,6 +578,7 @@ async function startOnboardingSession(
     accountType?: string;
     baseURL?: string;
     email?: string;
+    desktop?: boolean;
     registerExtraMocks?: (page: Page) => Promise<void>;
   } = {},
 ): Promise<() => void> {
@@ -629,8 +618,18 @@ async function startOnboardingSession(
     }, options.accountType);
   }
 
-  // Set up Better Auth mocks with isOnboardingCompleted: false
-  await setupBetterAuthMocksForOnboarding(page, options.email);
+  if (options.desktop) {
+    await page.addInitScript(() => {
+      let runtimeConfig: Record<string, unknown> = {};
+      Object.defineProperty(globalThis, '__GENFEED_RUNTIME_CONFIG__', {
+        configurable: true,
+        get: () => ({ ...runtimeConfig, clientSurface: 'desktop' }),
+        set: (value: Record<string, unknown>) => {
+          runtimeConfig = value;
+        },
+      });
+    });
+  }
 
   // Register generic routes first. Playwright checks matching routes in
   // reverse registration order, so the stateful onboarding routes below get
@@ -651,9 +650,22 @@ async function startOnboardingSession(
     },
   });
 
+  // Better Auth session routes must win over generic API mocks.
+  await setupBetterAuthMocksForOnboarding(page, options.email);
   await setupOnboardingApiMocks(page, progressState, options.email);
   await options.registerExtraMocks?.(page);
   await setupOnboardingBrandGuideMocks(page);
+  await setupOnboardingConversationMocks(page, {
+    organizationId: MOCK_SESSION.organizationId,
+    isExpert: options.accountType === OrganizationCategory.EXPERT,
+    onComplete: () => {
+      progressState.isOnboardingCompleted = true;
+      progressState.completedSteps = ['brand'];
+    },
+    onBrandComplete: () => {
+      progressState.completedSteps = ['brand'];
+    },
+  });
 
   // Bootstrap by navigating to onboarding start
   await page.goto(APP_ROUTES.ONBOARDING.BRAND, {
@@ -666,6 +678,15 @@ async function startOnboardingSession(
 }
 
 export const test = base.extend<OnboardingFixtures>({
+  desktopOnboardingPage: async ({ page, context, baseURL }, runFixture) => {
+    const assertNoBlockedRequests = await startOnboardingSession(
+      page,
+      context,
+      { baseURL, desktop: true },
+    );
+    await runFixture(page);
+    assertNoBlockedRequests();
+  },
   expertOnboardingPage: async ({ page, context, baseURL }, runFixture) => {
     const expertState = createExpertPathMockState();
     const assertNoBlockedRequests = await startOnboardingSession(
@@ -688,20 +709,6 @@ export const test = base.extend<OnboardingFixtures>({
       page,
       context,
       { baseURL },
-    );
-
-    await runFixture(page);
-    assertNoBlockedRequests();
-  },
-
-  personalInboxOnboardingPage: async (
-    { page, context, baseURL },
-    runFixture,
-  ) => {
-    const assertNoBlockedRequests = await startOnboardingSession(
-      page,
-      context,
-      { baseURL, email: 'onboarding@gmail.com' },
     );
 
     await runFixture(page);
