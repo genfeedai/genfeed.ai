@@ -1,5 +1,4 @@
-import { seedImageEditingContract } from '@api/seeds/image-editing-contract-seed';
-import { seedFlux3ImageContract } from './flux-3-image-contract-seed';
+import { seedReviewedProviderRates } from '@api/seeds/reviewed-provider-rates-seed';
 /**
  * Upserts the unified model catalog into the `Model` registry on boot.
  *
@@ -15,7 +14,6 @@ import { ModelLifecycle } from '@genfeedai/contracts';
 import {
   getModelCatalogForDeployment,
   isRetiredAgentChatModel,
-  MODEL_KEYS,
   type ModelCatalogSeedEntry,
   shouldUseLowestCostModelDefaults,
 } from '@genfeedai/contracts/constants';
@@ -76,6 +74,23 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
           this.context,
         );
       }
+    }
+
+    // The checked-in rate sheet seeds approved contracts for every row it
+    // covers, including operator-discovered ones outside the catalog.
+    try {
+      const rated = await seedReviewedProviderRates(this.prisma);
+      if (rated > 0)
+        this.logger.log(
+          `Reviewed provider rates seeded (${rated} registry rows)`,
+          this.context,
+        );
+    } catch (error) {
+      this.logger.error(
+        'Reviewed provider rate seed failed — rates keep their last approved contract',
+        error instanceof Error ? error : new Error(String(error)),
+        this.context,
+      );
     }
 
     // Every entry failing is an outage (database down, schema drift), not a
@@ -359,23 +374,10 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
     }
 
     // tenant-scope-ignore: the seeded catalog is the platform-wide registry (organizationId null) and `key` is its only unique index
-    const seededModel = await this.prisma.model.upsert({
+    await this.prisma.model.upsert({
       create: createData,
       update: updateData,
       where: { key: entry.key },
     });
-    if (
-      entry.key === MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5 &&
-      seededModel?.id
-    )
-      await seedImageEditingContract(this.prisma, seededModel.id);
-    if (
-      [
-        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE,
-        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
-      ].some((key) => key === entry.key) &&
-      seededModel?.id
-    )
-      await seedFlux3ImageContract(this.prisma, seededModel.id, entry.key);
   }
 }

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  extractReplicateBillingTiers,
+  mapReplicateBillingTiers,
+} from './replicate-billing-tiers';
+import {
   HAILUO_2_3_FAST_BILLING_TIERS,
   HAILUO_2_3_FAST_INPUT_PROPERTIES,
   HAILUO_2_3_FAST_PAGE_HTML,
-} from './replicate-billing-config.fixture';
-import {
-  extractReplicateBillingTiers,
-  mapReplicateBillingTiers,
-} from './replicate-billing-config.util';
+} from './replicate-billing-tiers.fixture';
 
 describe('extractReplicateBillingTiers', () => {
   it('reads billingConfig.current_tiers out of the page props script', () => {
