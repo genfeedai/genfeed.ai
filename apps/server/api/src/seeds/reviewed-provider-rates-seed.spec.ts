@@ -37,13 +37,28 @@ function modelRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function harness(row: ReturnType<typeof modelRow> | null, reviewed?: unknown) {
+function harness(
+  row: ReturnType<typeof modelRow> | null,
+  reviewed?: unknown,
+  observed?: unknown[],
+) {
   const prisma = {
     model: {
       findFirst: vi.fn().mockResolvedValue(row),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     modelProviderContract: {
+      findMany: vi.fn().mockResolvedValue(
+        observed === undefined
+          ? [
+              {
+                inputSchema: {},
+                openapi: {},
+                outputSchema: { type: 'string' },
+              },
+            ]
+          : observed,
+      ),
       findUnique: vi.fn().mockResolvedValue(reviewed ?? null),
       upsert: vi.fn().mockResolvedValue({}),
     },
@@ -178,5 +193,66 @@ describe('reviewed provider rates seed', () => {
     expect(
       prisma.model.updateMany.mock.calls[0]?.[0].data.providerInputSchema,
     ).toHaveProperty('properties.resolution');
+  });
+
+  it('does not overwrite an operator approval that lands during seeding (compare-and-set)', async () => {
+    const prisma = harness(modelRow());
+    prisma.model.updateMany.mockResolvedValue({ count: 0 });
+    const warn = vi.fn();
+
+    expect(
+      await seedReviewedProviderRates(prisma as never, [hailuo], { warn }),
+    ).toBe(0);
+    expect(prisma.model.updateMany.mock.calls[0]?.[0].where).toMatchObject({
+      id: 'model-1',
+      reviewedProviderContractVersion: null,
+    });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('changed'));
+  });
+
+  it('never promotes a contract without an output schema and keeps the model red', async () => {
+    const prisma = harness(modelRow(), undefined, [
+      { inputSchema: {}, openapi: {}, outputSchema: {} },
+    ]);
+    const warn = vi.fn();
+
+    expect(
+      await seedReviewedProviderRates(prisma as never, [hailuo], { warn }),
+    ).toBe(0);
+    expect(prisma.modelProviderContract.upsert).not.toHaveBeenCalled();
+    expect(prisma.model.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          providerSyncFailureCode: 'rates_unavailable:missing output schema',
+        }),
+      }),
+    );
+    expect(prisma.model.updateMany.mock.calls[0]?.[0].data).not.toHaveProperty(
+      'reviewedProviderContractVersion',
+    );
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('missing output schema'),
+    );
+  });
+
+  it('takes the output schema from the latest observed provider contract', async () => {
+    const prisma = harness(modelRow(), undefined, [
+      { inputSchema: {}, openapi: {}, outputSchema: {} },
+      {
+        inputSchema: { properties: {} },
+        openapi: { openapi: '3.0.2' },
+        outputSchema: { format: 'uri', type: 'string' },
+        schemaFamily: 'replicate-video-v1',
+      },
+    ]);
+
+    await seedReviewedProviderRates(prisma as never, [hailuo]);
+
+    expect(
+      prisma.modelProviderContract.upsert.mock.calls[0]?.[0].create,
+    ).toMatchObject({
+      outputSchema: { format: 'uri', type: 'string' },
+      schemaFamily: 'replicate-video-v1',
+    });
   });
 });

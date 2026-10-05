@@ -259,7 +259,9 @@ export class RouterService {
           modelKey,
           organizationId,
         );
-        if (!profile || profile.hasPendingRate) {
+        // A pending provider price change (orange) keeps charging its approved
+        // rate, so it stays routable; only an unpriceable model is skipped.
+        if (!profile) {
           return false;
         }
         if (profile.reviewedPricing) {

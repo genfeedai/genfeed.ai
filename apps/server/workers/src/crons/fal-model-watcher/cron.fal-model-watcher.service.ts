@@ -207,6 +207,11 @@ export class CronFalModelWatcherService {
               summary.timestamp,
               registryModel.id,
             );
+            await this.sendFailureAlert(
+              model.endpoint_id,
+              'contract_sync_failed',
+              summary.timestamp,
+            );
           }
           this.logger.error(
             `${url} failed to process model ${model.endpoint_id}`,
@@ -307,6 +312,29 @@ export class CronFalModelWatcherService {
       schema: model.openapi,
       tags: [...(category ? [category] : []), ...(model.metadata?.tags ?? [])],
     });
+  }
+
+  /** Ops Discord for a model whose refresh threw. */
+  private async sendFailureAlert(
+    modelKey: string,
+    code: string,
+    now: Date,
+  ): Promise<void> {
+    try {
+      await dispatchModelPricingUnavailableAlert(
+        this.activityRecorder,
+        {
+          modelKey,
+          provider: ModelProvider.FAL,
+          reason: `The fal price refresh failed (${code}); the last approved rate keeps charging.`,
+        },
+        now,
+      );
+    } catch (error: unknown) {
+      this.logger.error(`${this.constructorName} failure alert failed`, {
+        error,
+      });
+    }
   }
 
   /**

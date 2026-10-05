@@ -13,6 +13,10 @@ import {
 } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
 
+export interface RateSeedLogger {
+  warn(message: string): void;
+}
+
 /** Marks a contract the sheet wrote, as opposed to one an operator approved. */
 export const RATE_SHEET_REVIEWER = 'rate-sheet';
 
@@ -66,6 +70,7 @@ function isEmptySchema(value: unknown): boolean {
 async function seedEntry(
   prisma: PrismaService,
   entry: ReviewedRateSheetEntry,
+  logger?: RateSeedLogger,
 ): Promise<boolean> {
   // tenant-scope-ignore: the rate sheet seeds the platform-wide registry (organizationId null) rows only
   const model = await prisma.model.findFirst({
@@ -124,10 +129,43 @@ async function seedEntry(
 
   const fixture = SCHEMA_FIXTURES[entry.endpoint];
   const hasSchema = !isEmptySchema(model.providerInputSchema);
+  // A contract is never promoted without an output schema: take it from the
+  // shipped fixture, else from the latest provider contract observed for this
+  // endpoint. With neither the model stays red.
+  const observed = fixture
+    ? []
+    : await prisma.modelProviderContract.findMany({
+        orderBy: { lastSeenAt: 'desc' },
+        take: 20,
+        where: { endpoint, provider: entry.provider },
+      });
+  const usableObserved =
+    observed.find((candidate) => !isEmptySchema(candidate.outputSchema)) ??
+    null;
+  const outputSchema = fixture
+    ? (fixture.openapi.components.schemas.Output as Prisma.InputJsonValue)
+    : (usableObserved?.outputSchema as Prisma.InputJsonValue | undefined);
+  if (outputSchema === undefined || isEmptySchema(outputSchema)) {
+    await prisma.model.updateMany({
+      data: {
+        providerSyncFailedAt: new Date(),
+        providerSyncFailureCode: 'rates_unavailable:missing output schema',
+        providerSyncStatus: 'failed',
+      },
+      where: { id: model.id, isDeleted: false, organizationId: null },
+    });
+    logger?.warn(
+      `Rate sheet entry ${entry.endpoint} not promoted: missing output schema`,
+    );
+    return false;
+  }
   const inputSchema: Prisma.InputJsonValue = hasSchema
     ? (model.providerInputSchema as Prisma.InputJsonValue)
-    : ((fixture?.openapi.components.schemas.Input as Prisma.InputJsonValue) ??
-      {});
+    : fixture
+      ? (fixture.openapi.components.schemas.Input as Prisma.InputJsonValue)
+      : !isEmptySchema(usableObserved?.inputSchema)
+        ? (usableObserved?.inputSchema as Prisma.InputJsonValue)
+        : {};
   const schemaRecord: Record<string, unknown> =
     typeof inputSchema === 'object' &&
     inputSchema !== null &&
@@ -163,10 +201,12 @@ async function seedEntry(
       lastSeenAt: verifiedAt,
       mappingStatus: 'supported',
       modelId: model.id,
-      openapi: (fixture?.openapi ?? {}) as Prisma.InputJsonValue,
-      openapiVersion: fixture?.openapi.openapi ?? null,
-      outputSchema: (fixture?.openapi.components.schemas.Output ??
+      openapi: (fixture?.openapi ??
+        usableObserved?.openapi ??
         {}) as Prisma.InputJsonValue,
+      openapiVersion:
+        fixture?.openapi.openapi ?? usableObserved?.openapiVersion ?? null,
+      outputSchema,
       pricing: {
         currency: 'USD',
         rates: entry.rates,
@@ -183,7 +223,8 @@ async function seedEntry(
       reviewStatus: 'approved',
       reviewedAt: verifiedAt,
       reviewedBy: RATE_SHEET_REVIEWER,
-      schemaFamily: fixture?.schemaFamily ?? 'rate-sheet',
+      schemaFamily:
+        fixture?.schemaFamily ?? usableObserved?.schemaFamily ?? 'rate-sheet',
       unitPrice: single ? String(single.unitPriceUsd) : null,
       unitPriceMicros: single
         ? BigInt(Math.round(single.unitPriceUsd * 1_000_000))
@@ -199,7 +240,9 @@ async function seedEntry(
       },
     },
   });
-  await prisma.model.updateMany({
+  // Compare-and-set on the pointer we read: if an operator approved something
+  // since, the sheet does not overwrite it.
+  const promoted = await prisma.model.updateMany({
     data: {
       endpoint,
       ...(hasSchema || !fixture
@@ -212,8 +255,19 @@ async function seedEntry(
       reviewedProviderContractVersion: version,
       reviewStatus: 'approved',
     },
-    where: { id: model.id, isDeleted: false, organizationId: null },
+    where: {
+      id: model.id,
+      isDeleted: false,
+      organizationId: null,
+      reviewedProviderContractVersion: model.reviewedProviderContractVersion,
+    },
   });
+  if (promoted.count !== 1) {
+    logger?.warn(
+      `Rate sheet entry ${entry.endpoint} skipped: the reviewed contract changed during seeding`,
+    );
+    return false;
+  }
   return true;
 }
 
@@ -225,6 +279,7 @@ async function seedEntry(
 export async function seedReviewedProviderRates(
   prisma: PrismaService,
   entries: readonly ReviewedRateSheetEntry[] = REVIEWED_RATE_SHEET_ENTRIES,
+  logger?: RateSeedLogger,
 ): Promise<number> {
   let written = 0;
   for (const entry of entries)
@@ -232,6 +287,6 @@ export async function seedReviewedProviderRates(
       entry.provider === ModelProvider.REPLICATE ||
       entry.provider === ModelProvider.FAL
     )
-      if (await seedEntry(prisma, entry)) written += 1;
+      if (await seedEntry(prisma, entry, logger)) written += 1;
   return written;
 }

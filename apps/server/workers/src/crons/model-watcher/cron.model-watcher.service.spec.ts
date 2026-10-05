@@ -358,6 +358,33 @@ describe('CronModelWatcherService', () => {
       );
     });
 
+    it('alerts ops once per model and reason when a sync throws or a model cannot be fetched', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValueOnce({
+        json: () => Promise.resolve({ next: null, results: [] }),
+        ok: true,
+      } as Response);
+      replicateContractSyncService.synchronizeModel.mockRejectedValueOnce(
+        new Error('boom'),
+      );
+      modelDiscoveryService.fetchReplicateModel.mockResolvedValueOnce(null);
+
+      await service.discoverNewModels();
+
+      const keys = notificationsService.dispatch.mock.calls.map(
+        (call) => call[0].deduplicationKey,
+      );
+      expect(keys).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(
+            /^message\.model-pricing-unavailable\/.+\/The Replicate price refresh failed \(model_fetch_failed\).*\/\d{4}-\d{2}-\d{2}$/,
+          ),
+          expect.stringMatching(
+            /^message\.model-pricing-unavailable\/.+\/The Replicate price refresh failed \(contract_sync_failed\).*\/\d{4}-\d{2}-\d{2}$/,
+          ),
+        ]),
+      );
+    });
+
     it('should ignore models already in DB', async () => {
       // Mock Replicate API returning only existing models
       globalThis.fetch = vi.fn().mockResolvedValueOnce({

@@ -98,6 +98,20 @@ const orange = row({
   id: 'orange',
   isRateApprovalAvailable: true,
   key: 'minimax/hailuo-2.3-fast',
+  pending: {
+    billingUnit: 'output',
+    conditionalDimensions: {},
+    currency: 'USD',
+    mappingStatus: 'supported',
+    observedAt: '2026-10-05T00:00:00Z',
+    rates: null,
+    reviewStatus: 'pending',
+    source: 'replicate-billing-config',
+    sourceUrl: 'https://replicate.com/minimax/hailuo-2.3-fast',
+    unitPrice: null,
+    verifiedAt: '2026-10-05T00:00:00Z',
+    version: 'rates-v2',
+  },
   pendingRateChanges: [
     {
       component: 'video_output_count',
@@ -163,7 +177,7 @@ describe('model pricing attention (#6196)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm approval' }));
 
     await waitFor(() =>
-      expect(fixture.approveRates).toHaveBeenCalledWith('orange'),
+      expect(fixture.approveRates).toHaveBeenCalledWith('orange', 'rates-v2'),
     );
     await waitFor(() =>
       expect(
@@ -178,5 +192,22 @@ describe('model pricing attention (#6196)', () => {
     expect(
       await screen.findByText('duration=6 · resolution=768P: $0.19 → $0.21'),
     ).toBeInTheDocument();
+  });
+
+  it('asks the operator to reload when the rates changed under them (409)', async () => {
+    fixture.approveRates.mockRejectedValueOnce({ response: { status: 409 } });
+    show();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Approve new price' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm approval' }));
+
+    expect(
+      await screen.findByText(
+        'Rates changed. Reload and review the new rates.',
+      ),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(fixture.getReport).toHaveBeenCalledTimes(2));
   });
 });

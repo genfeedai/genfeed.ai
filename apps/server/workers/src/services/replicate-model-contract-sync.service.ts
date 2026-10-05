@@ -30,6 +30,7 @@ import { isRecord } from '@workers/services/provider-contract.util';
 import {
   compareProviderRates,
   loadReviewedRateContract,
+  reviewedSchemaRepair,
 } from '@workers/services/provider-rate-sync.util';
 
 export interface ReplicateSyncModelRecord {
@@ -157,6 +158,7 @@ export class ReplicateModelContractSyncService {
         await prisma.modelProviderContract.update({
           data: {
             lastSeenAt: now,
+            ...(reviewedSchemaRepair(reviewed.contract, candidate) ?? {}),
             pricing: {
               ...reviewedPricing,
               verifiedAt: now.toISOString(),

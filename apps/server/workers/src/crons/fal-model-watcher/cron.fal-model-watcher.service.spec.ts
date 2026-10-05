@@ -286,6 +286,29 @@ describe('CronFalModelWatcherService', () => {
       );
     });
 
+    it('alerts ops when a Fal sync throws', async () => {
+      mockFalResponse([
+        {
+          endpoint_id: 'fal-ai/flux/dev',
+          metadata: { category: 'text-to-image', status: 'active' },
+        },
+      ]);
+      falContractSyncService.synchronizeModel.mockRejectedValueOnce(
+        new Error('boom'),
+      );
+
+      const result = await service.discoverNewModels();
+
+      expect(result.errors).toBe(1);
+      expect(activityRecorder.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deduplicationKey: expect.stringContaining(
+            'message.model-pricing-unavailable/fal-ai/flux/dev/The fal price refresh failed (contract_sync_failed)',
+          ),
+        }),
+      );
+    });
+
     it('discovers Fal partner namespaces with collision-safe keys', async () => {
       mockFalResponse([
         {

@@ -6,6 +6,7 @@ import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorato
 import { ModelPricingReportSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Param,
@@ -18,6 +19,9 @@ import type { Request } from 'express';
 import { z } from 'zod';
 
 const modelIdSchema = z.string().trim().min(1).max(200);
+const approveBodySchema = z
+  .object({ expectedPendingVersion: z.string().min(1).max(500) })
+  .strict();
 
 @Controller('admin/model-pricing')
 @UseGuards(IpWhitelistGuard, SuperAdminGuard)
@@ -44,12 +48,20 @@ export class AdminModelPricingController {
   async approveRates(
     @Req() request: Request,
     @Param('modelId') modelId: string,
+    @Body() body: unknown,
   ) {
     if (!modelIdSchema.safeParse(modelId).success)
       throw new BadRequestException('Invalid identifier');
+    const parsed = approveBodySchema.safeParse(body);
+    if (!parsed.success)
+      throw new BadRequestException('expectedPendingVersion is required');
     const approvedBy = request.context?.userId;
     if (!approvedBy) throw new UnauthorizedException();
-    await this.pricing.approveRates(modelId, approvedBy);
+    await this.pricing.approveRates(
+      modelId,
+      approvedBy,
+      parsed.data.expectedPendingVersion,
+    );
     return serializeSingle(
       request,
       ModelPricingReportSerializer,

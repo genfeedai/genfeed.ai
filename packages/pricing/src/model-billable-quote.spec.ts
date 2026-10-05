@@ -358,6 +358,56 @@ describe('authoritative bill-time quote snapshots', () => {
     expect(quote({ resolution: '768P', duration: '6s' })).toBe('unresolved');
     expect(quote({ resolution: '768P', duration: true })).toBe('unresolved');
   });
+  it('derives a quantity-backed selector from the billed quantity and rejects a disagreement', () => {
+    const reviewed = {
+      ...model,
+      rateVersion: 'rate-v1',
+      requiresReviewedRates: true,
+      reviewedPricing: {
+        version: 'rate-v1',
+        currency: 'USD',
+        reviewStatus: 'approved',
+        sourceUrl: 'https://replicate.com/minimax/hailuo-2.3-fast',
+        verifiedAt: date,
+        rates: [
+          {
+            component: 'output',
+            unit: 'output' as const,
+            unitPriceUsd: 0.19,
+            when: { resolution: '768P', duration: 6 },
+          },
+        ],
+      },
+    };
+    const quote = (request: Record<string, unknown>) =>
+      quoteModelBillablePricing(
+        reviewed,
+        { ...input, ...request } as ModelBillableQuoteRequest,
+        3.33,
+        date,
+      );
+    expect(
+      quote({ duration: 6, selectors: { resolution: '768P' } }),
+    ).toMatchObject({
+      snapshot: {
+        credits: 64,
+        quantities: { selectors: { duration: 6, resolution: '768P' } },
+      },
+      status: 'priced',
+    });
+    expect(
+      quote({ duration: 6, selectors: { duration: 6, resolution: '768P' } })
+        .status,
+    ).toBe('priced');
+    expect(
+      quote({ duration: 5, selectors: { duration: 6, resolution: '768P' } })
+        .status,
+    ).toBe('unresolved');
+    // Without any duration the variant stays unresolved.
+    expect(quote({ selectors: { resolution: '768P' } }).status).toBe(
+      'unresolved',
+    );
+  });
   it('keeps charging the reviewed rate while a price change awaits approval', () => {
     const reviewed = {
       ...model,

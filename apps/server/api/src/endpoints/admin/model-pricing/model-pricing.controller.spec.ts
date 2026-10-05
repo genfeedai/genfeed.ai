@@ -58,9 +58,15 @@ describe('private operator pricing boundary', () => {
       protocol: 'https',
     } as never;
 
-    const response = await controller.approveRates(request, 'model-1');
+    const response = await controller.approveRates(request, 'model-1', {
+      expectedPendingVersion: 'rates-v2',
+    });
 
-    expect(approveRates).toHaveBeenCalledWith('model-1', 'operator-1');
+    expect(approveRates).toHaveBeenCalledWith(
+      'model-1',
+      'operator-1',
+      'rates-v2',
+    );
     expect(getReport).toHaveBeenCalledWith(
       'https://api.example/v1/admin/model-pricing',
     );
@@ -75,8 +81,25 @@ describe('private operator pricing boundary', () => {
     } as never);
 
     await expect(
-      controller.approveRates({ context: {} } as never, 'model-1'),
+      controller.approveRates({ context: {} } as never, 'model-1', {
+        expectedPendingVersion: 'rates-v2',
+      }),
     ).rejects.toThrow();
+    expect(approveRates).not.toHaveBeenCalled();
+  });
+  it('requires the pending version the operator reviewed', async () => {
+    const approveRates = vi.fn();
+    const controller = new AdminModelPricingController({
+      approveRates,
+    } as never);
+
+    await expect(
+      controller.approveRates(
+        { context: { userId: 'operator-1' } } as never,
+        'model-1',
+        {},
+      ),
+    ).rejects.toThrow('expectedPendingVersion');
     expect(approveRates).not.toHaveBeenCalled();
   });
 });

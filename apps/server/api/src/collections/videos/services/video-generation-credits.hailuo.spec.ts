@@ -63,6 +63,13 @@ describe('VideoGenerationCreditsService admission for minimax/hailuo-2.3-fast', 
           updateMany: vi.fn().mockResolvedValue({ count: 1 }),
         },
         modelProviderContract: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              inputSchema: {},
+              openapi: {},
+              outputSchema: { type: 'string' },
+            },
+          ]),
           findUnique: vi.fn().mockResolvedValue(null),
           upsert,
         },

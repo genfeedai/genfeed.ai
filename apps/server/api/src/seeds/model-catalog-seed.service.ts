@@ -79,7 +79,9 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
     // The checked-in rate sheet seeds approved contracts for every row it
     // covers, including operator-discovered ones outside the catalog.
     try {
-      const rated = await seedReviewedProviderRates(this.prisma);
+      const rated = await seedReviewedProviderRates(this.prisma, undefined, {
+        warn: (message) => this.logger.warn(message, this.context),
+      });
       if (rated > 0)
         this.logger.log(
           `Reviewed provider rates seeded (${rated} registry rows)`,

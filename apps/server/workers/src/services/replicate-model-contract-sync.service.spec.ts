@@ -128,7 +128,10 @@ const reviewedContract = {
   endpoint: 'google/imagen-4',
   id: 'reviewed-contract',
   lastSeenAt: new Date('2026-10-01T00:00:00Z'),
+  inputSchema: { properties: {} },
   mappingStatus: 'supported',
+  openapi: { openapi: '3.0.2' },
+  outputSchema: { format: 'uri', type: 'string' },
   pricing: {
     currency: 'USD',
     rates: reviewedRates,
@@ -310,6 +313,24 @@ describe('ReplicateModelContractSyncService', () => {
     });
     expect(update.data).not.toHaveProperty('isActive');
     expect(update.data).not.toHaveProperty('isDefault');
+  });
+
+  it('repairs an empty output schema on the reviewed contract when the same rates are observed', async () => {
+    const { modelProviderContract, service } = harness({
+      ...reviewedContract,
+      outputSchema: {},
+    });
+
+    await service.synchronizeModel(
+      registryModel(reviewedVersion),
+      providerModel(validOpenapi(variantProperties)),
+      ModelCategory.IMAGE,
+      { ...pricing(), billing },
+    );
+
+    expect(modelProviderContract.update.mock.calls[0]?.[0].data).toMatchObject({
+      outputSchema: { format: 'uri', type: 'string' },
+    });
   });
 
   it('does not block or deactivate on a schema-only change', async () => {

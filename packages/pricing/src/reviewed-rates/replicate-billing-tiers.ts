@@ -139,19 +139,25 @@ interface MetricUnit {
   isPerOutput?: boolean;
 }
 
-function mapMetric(metric: string, label: string): MetricUnit | null {
-  const text = `${metric} ${label}`.toLowerCase();
-  if (/input[_\s-]*token/.test(text)) return { unit: 'input-token' };
-  if (/output[_\s-]*token/.test(text)) return { unit: 'output-token' };
-  if (/second/.test(metric.toLowerCase()))
-    return { isPerOutput: true, unit: 'second' };
-  if (/megapixel/.test(metric.toLowerCase()))
-    return { isPerOutput: true, unit: 'megapixel' };
-  if (
-    /(^|_)(output|image|video|audio)[a-z_]*_count$/.test(metric.toLowerCase())
-  )
-    return { unit: 'output' };
-  return null;
+/**
+ * Exact Replicate metric names this mapper understands. Anything else (for
+ * example `gpu_seconds`, or an unknown `*_seconds` / `*_megapixel*` name) fails
+ * the mapping, so a rate is never read from a metric that bills something else.
+ */
+const METRIC_UNITS: Readonly<Record<string, MetricUnit>> = {
+  audio_output_count: { unit: 'output' },
+  image_output_count: { unit: 'output' },
+  input_token_count: { unit: 'input-token' },
+  output_token_count: { unit: 'output-token' },
+  video_output_count: { unit: 'output' },
+  video_output_duration_seconds: { isPerOutput: true, unit: 'second' },
+  image_output_megapixel_count: { isPerOutput: true, unit: 'megapixel' },
+};
+
+function mapMetric(metric: string): MetricUnit | null {
+  return Object.hasOwn(METRIC_UNITS, metric)
+    ? (METRIC_UNITS[metric] ?? null)
+    : null;
 }
 
 function parsePrice(raw: unknown): number | null {
@@ -223,10 +229,7 @@ export function mapReplicateBillingTiers(
     for (const rawPrice of prices) {
       if (!isRecord(rawPrice) || typeof rawPrice.metric !== 'string')
         return { reason: 'invalid_billing_price', status: 'failed' };
-      const metric = mapMetric(
-        rawPrice.metric,
-        `${String(rawPrice.title ?? '')}`,
-      );
+      const metric = mapMetric(rawPrice.metric);
       if (!metric)
         return {
           reason: `unmapped_metric:${rawPrice.metric}`,

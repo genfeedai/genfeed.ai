@@ -26,9 +26,13 @@ export class AdminModelPricingService extends HTTPBaseService {
   }
 
   /** Promote a model's pending provider rates; returns the refreshed report. */
-  async approveRates(modelId: string): Promise<AdminModelPricingReport> {
+  async approveRates(
+    modelId: string,
+    expectedPendingVersion: string,
+  ): Promise<AdminModelPricingReport> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `${encodeURIComponent(modelId)}/approve-rates`,
+      { expectedPendingVersion },
     );
     return deserializeResource<AdminModelPricingReport>(response.data);
   }

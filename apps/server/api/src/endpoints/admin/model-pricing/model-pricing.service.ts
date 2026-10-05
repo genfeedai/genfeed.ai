@@ -24,7 +24,11 @@ import {
 } from '@genfeedai/prisma';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 const pricingContractSelect = {
   provider: true,
@@ -124,6 +128,8 @@ type PricingContract = Pick<
   | 'pricing'
 >;
 
+const RATES_CHANGED =
+  'Provider rates changed since they were loaded; reload and review again';
 const NO_PROVIDER_RATE_ACTION =
   'No pending provider rates differ from the approved ones';
 
@@ -485,6 +491,7 @@ export class AdminModelPricingService {
   async approveRates(
     modelId: string,
     approvedBy: string,
+    expectedPendingVersion: string,
   ): Promise<AdminModelPricingRow> {
     return this.prisma.$transaction(async (transaction) => {
       const retrievedAt = new Date();
@@ -503,6 +510,9 @@ export class AdminModelPricingService {
         }),
       ]);
       if (!model) throw new NotFoundException('Model', modelId);
+      // The operator approves the exact rates they saw, never a newer refresh.
+      if (model.pendingProviderContractVersion !== expectedPendingVersion)
+        throw new ConflictException(RATES_CHANGED);
       const margin = configuredMargin(setting);
       const before = projectAdminModelPricing(
         model,
@@ -519,6 +529,28 @@ export class AdminModelPricingService {
         !model.pendingProviderContractVersion
       )
         throw new BadRequestException(NO_PROVIDER_RATE_ACTION);
+      // Compare-and-set: promote only while the pending contract is still the
+      // one the operator approved, so a refresh landing in between cannot be
+      // approved unseen.
+      const promoted = await transaction.model.updateMany({
+        data: {
+          pendingProviderContractVersion: null,
+          providerSyncFailedAt: null,
+          providerSyncFailureCode: null,
+          providerSyncStatus: 'fresh',
+          reviewedAt: retrievedAt,
+          reviewedBy: approvedBy,
+          reviewedProviderContractVersion: pendingContract.version,
+          reviewStatus: 'approved',
+        },
+        where: {
+          id: modelId,
+          isDeleted: false,
+          organizationId: null,
+          pendingProviderContractVersion: expectedPendingVersion,
+        },
+      });
+      if (promoted.count !== 1) throw new ConflictException(RATES_CHANGED);
       await transaction.modelProviderContract.update({
         data: {
           reviewStatus: 'approved',
@@ -532,19 +564,6 @@ export class AdminModelPricingService {
             version: pendingContract.version,
           },
         },
-      });
-      await transaction.model.update({
-        data: {
-          pendingProviderContractVersion: null,
-          providerSyncFailedAt: null,
-          providerSyncFailureCode: null,
-          providerSyncStatus: 'fresh',
-          reviewedAt: retrievedAt,
-          reviewedBy: approvedBy,
-          reviewedProviderContractVersion: pendingContract.version,
-          reviewStatus: 'approved',
-        },
-        where: { id: modelId, isDeleted: false, organizationId: null },
       });
       const refreshed = await crossOrgUnsafe(
         async () =>

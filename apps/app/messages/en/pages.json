@@ -4913,7 +4913,8 @@
     "approveRates": "Approve new price",
     "confirmApproveRates": "Confirm approval",
     "cancelApproveRates": "Cancel",
-    "approveRatesFailed": "Approval failed. Refresh the snapshot and try again."
+    "approveRatesFailed": "Approval failed. Refresh the snapshot and try again.",
+    "approveRatesChanged": "Rates changed. Reload and review the new rates."
   },
   "generationReceipts": {
     "title": "Generation receipts",

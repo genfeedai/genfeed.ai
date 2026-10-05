@@ -37,7 +37,10 @@ const reviewedContract = {
   endpoint: 'fal-ai/per-image',
   id: 'reviewed-contract',
   lastSeenAt: new Date('2026-09-01T00:00:00Z'),
+  inputSchema: { type: 'object' },
   mappingStatus: 'supported',
+  openapi: { openapi: '3.0.0' },
+  outputSchema: { type: 'object' },
   pricing: [
     {
       conditionalDimensions: {},

@@ -186,6 +186,11 @@ export class CronModelWatcherService {
             summary.timestamp,
             existingModels.get(endpoint)?.id,
           );
+          await this.sendFailureAlert(
+            endpoint,
+            'model_fetch_failed',
+            summary.timestamp,
+          );
         }
       }
 
@@ -274,6 +279,11 @@ export class CronModelWatcherService {
               'contract_sync_failed',
               summary.timestamp,
               registryModel.id,
+            );
+            await this.sendFailureAlert(
+              modelKey,
+              'contract_sync_failed',
+              summary.timestamp,
             );
           }
           this.logger.error(`${url} failed to process model ${modelKey}`, {
@@ -389,6 +399,29 @@ export class CronModelWatcherService {
     }
 
     return allModels;
+  }
+
+  /** Ops Discord for a model whose refresh threw or could not be fetched. */
+  private async sendFailureAlert(
+    modelKey: string,
+    code: string,
+    now: Date,
+  ): Promise<void> {
+    try {
+      await dispatchModelPricingUnavailableAlert(
+        this.activityRecorder,
+        {
+          modelKey,
+          provider: ModelProvider.REPLICATE,
+          reason: `The Replicate price refresh failed (${code}); the last approved rate keeps charging.`,
+        },
+        now,
+      );
+    } catch (error: unknown) {
+      this.logger.error(`${this.constructorName} failure alert failed`, {
+        error,
+      });
+    }
   }
 
   /**

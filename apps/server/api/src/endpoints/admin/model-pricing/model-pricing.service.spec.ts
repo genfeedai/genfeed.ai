@@ -14,6 +14,7 @@ import {
   Prisma,
 } from '@genfeedai/prisma';
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
+import { ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/prisma', async () => {
@@ -312,9 +313,13 @@ describe('operator model pricing projection', () => {
       const findFirst = vi
         .fn()
         .mockResolvedValue({ ...unreviewed, providerContracts: [pending] });
-      const modelUpdate = vi.fn().mockResolvedValue({});
+      const modelUpdate = vi.fn().mockResolvedValue({ count: 1 });
       const transaction = {
-        model: { findFirst, update: modelUpdate },
+        model: {
+          findFirst,
+          update: modelUpdate,
+          updateMany: modelUpdate,
+        },
         modelProviderContract: { update: vi.fn().mockResolvedValue({}) },
         platformSetting: {
           findFirst: vi
@@ -326,7 +331,7 @@ describe('operator model pricing projection', () => {
         $transaction: async (
           fn: (client: typeof transaction) => Promise<unknown>,
         ) => fn(transaction),
-      } as never).approveRates('model', 'user-1');
+      } as never).approveRates('model', 'user-1', 'rates-v2');
       const approvedVersion =
         modelUpdate.mock.calls[0]?.[0].data.reviewedProviderContractVersion;
       expect(approvedVersion).toBe('rates-v2');
@@ -528,10 +533,14 @@ describe('operator model pricing projection', () => {
       const findFirst = vi
         .fn()
         .mockResolvedValue({ ...row, providerContracts: contracts });
-      const modelUpdate = vi.fn().mockResolvedValue({});
+      const modelUpdate = vi.fn().mockResolvedValue({ count: 1 });
       const contractUpdate = vi.fn().mockResolvedValue({});
       const transaction = {
-        model: { findFirst, update: modelUpdate },
+        model: {
+          findFirst,
+          update: modelUpdate,
+          updateMany: modelUpdate,
+        },
         modelProviderContract: { update: contractUpdate },
         platformSetting: {
           findFirst: vi
@@ -556,7 +565,7 @@ describe('operator model pricing projection', () => {
         ],
       );
 
-      await service.approveRates('model', 'user-1');
+      await service.approveRates('model', 'user-1', 'rates-v2');
 
       expect(contractUpdate).toHaveBeenCalledWith({
         data: {
@@ -577,6 +586,7 @@ describe('operator model pricing projection', () => {
         id: 'model',
         isDeleted: false,
         organizationId: null,
+        pendingProviderContractVersion: 'rates-v2',
       });
       expect(update.data).toMatchObject({
         pendingProviderContractVersion: null,
@@ -603,10 +613,43 @@ describe('operator model pricing projection', () => {
         ],
       );
 
-      await expect(service.approveRates('model', 'user-1')).rejects.toThrow(
-        'No pending provider rates differ',
-      );
+      await expect(
+        service.approveRates('model', 'user-1', 'rates-v2'),
+      ).rejects.toThrow('No pending provider rates differ');
       expect(modelUpdate).not.toHaveBeenCalled();
+    });
+
+    it('refuses a stale request for rates the operator did not review', async () => {
+      const { contractUpdate, modelUpdate, service } = transactionFor(
+        pendingModel('rates-v3'),
+        [
+          contractOf('rates-v1', 0.19, 'approved'),
+          contractOf('rates-v3', 0.25, 'pending'),
+        ],
+      );
+
+      await expect(
+        service.approveRates('model', 'user-1', 'rates-v2'),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(modelUpdate).not.toHaveBeenCalled();
+      expect(contractUpdate).not.toHaveBeenCalled();
+    });
+
+    it('refuses when a refresh lands between the read and the promotion', async () => {
+      const { contractUpdate, modelUpdate, service } = transactionFor(
+        pendingModel('rates-v2'),
+        [
+          contractOf('rates-v1', 0.19, 'approved'),
+          contractOf('rates-v2', 0.21, 'pending'),
+        ],
+      );
+      // The compare-and-set finds the pending pointer already moved.
+      modelUpdate.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.approveRates('model', 'user-1', 'rates-v2'),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(contractUpdate).not.toHaveBeenCalled();
     });
 
     it('reports an unknown model as not found', async () => {

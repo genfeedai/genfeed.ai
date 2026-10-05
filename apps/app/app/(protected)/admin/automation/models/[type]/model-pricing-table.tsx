@@ -132,6 +132,16 @@ function AttentionBadge({ row }: { row: AdminModelPricingRow }) {
   return null;
 }
 
+function isRatesChanged(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const response: unknown = Reflect.get(error, 'response');
+  return (
+    typeof response === 'object' &&
+    response !== null &&
+    Reflect.get(response, 'status') === 409
+  );
+}
+
 function priceOrNone(value: number | null, t: PricingTranslate): string {
   return value === null
     ? t('noPrice')
@@ -150,10 +160,22 @@ function ApproveRatesControl({ row }: { row: AdminModelPricingRow }) {
     AdminModelPricingService.getInstance(token),
   );
   const mutation = useMutation({
-    mutationFn: async () => (await getService()).approveRates(row.id),
+    mutationFn: async () => {
+      const expectedPendingVersion = row.pending?.version;
+      if (!expectedPendingVersion) throw new Error('No pending rates');
+      return (await getService()).approveRates(row.id, expectedPendingVersion);
+    },
     onSuccess: (report) => {
       setIsConfirming(false);
       queryClient.setQueryData(ADMIN_MODEL_PRICING_QUERY_KEY, report);
+    },
+    onError: (error) => {
+      // 409: the refresh found newer rates than the operator reviewed.
+      setIsConfirming(false);
+      if (isRatesChanged(error))
+        void queryClient.invalidateQueries({
+          queryKey: ADMIN_MODEL_PRICING_QUERY_KEY,
+        });
     },
   });
   if (row.pendingRateChanges.length === 0) return null;
@@ -202,7 +224,13 @@ function ApproveRatesControl({ row }: { row: AdminModelPricingRow }) {
           )}
         </div>
       ) : null}
-      {mutation.error ? <p role="alert">{t('approveRatesFailed')}</p> : null}
+      {mutation.error ? (
+        <p role="alert">
+          {isRatesChanged(mutation.error)
+            ? t('approveRatesChanged')
+            : t('approveRatesFailed')}
+        </p>
+      ) : null}
     </div>
   );
 }

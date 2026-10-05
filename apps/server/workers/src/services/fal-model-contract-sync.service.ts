@@ -26,6 +26,7 @@ import {
 import {
   compareProviderRates,
   loadReviewedRateContract,
+  reviewedSchemaRepair,
 } from '@workers/services/provider-rate-sync.util';
 
 export interface FalSyncModelRecord {
@@ -116,7 +117,10 @@ export class FalModelContractSyncService {
     if (reviewed && comparison?.status === 'unchanged') {
       // The same rates observed again: roll the verification forward.
       await prisma.modelProviderContract.update({
-        data: { lastSeenAt: now },
+        data: {
+          lastSeenAt: now,
+          ...(reviewedSchemaRepair(reviewed.contract, candidate) ?? {}),
+        },
         where: { id: reviewed.contract.id },
       });
       await prisma.model.update({

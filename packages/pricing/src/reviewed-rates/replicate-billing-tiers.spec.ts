@@ -86,6 +86,19 @@ describe('mapReplicateBillingTiers', () => {
         properties,
       ),
     ).toEqual({ reason: 'unmapped_metric:gpu_hours', status: 'failed' });
+    // Metric names are an exact allowlist: GPU time and look-alike names fail.
+    for (const metric of [
+      'gpu_seconds',
+      'video_input_seconds',
+      'image_input_megapixels',
+      'toString',
+    ])
+      expect(
+        mapReplicateBillingTiers(
+          [{ criteria: [], prices: [{ metric, price: '$1.00' }] }],
+          properties,
+        ),
+      ).toEqual({ reason: `unmapped_metric:${metric}`, status: 'failed' });
     expect(
       mapReplicateBillingTiers(
         [

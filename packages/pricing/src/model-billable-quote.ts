@@ -57,6 +57,9 @@ export function allocateBillableCredits(
   );
 }
 
+/** Selector keys whose value is a billable quantity of the same request. */
+const QUANTITY_BACKED_SELECTORS = { duration: 'duration' } as const;
+
 /** One immutable bill-time result for admission, display, and settlement. */
 export function quoteModelBillablePricing(
   model: ModelBillablePricingProfile,
@@ -91,6 +94,7 @@ export function quoteModelBillablePricing(
     return unresolved('Request/output count is invalid');
   // `hasPendingRate` is review metadata only: a detected provider price change
   // keeps charging the last approved rate until an operator approves the new one.
+  let selected = input.selectors;
   const { modelKey: _key, provider: _provider, ...suppliedQuantities } = input;
   const quantities: ProviderQuoteDimensions = {
     ...suppliedQuantities,
@@ -115,10 +119,30 @@ export function quoteModelBillablePricing(
         'Provider rate verification date is missing or in the future',
       );
     const invariantSelectors = new Set(pricing.invariantSelectors ?? []);
+    // A selector that is also a billable quantity is derived from the quantity
+    // when absent, and the two must agree when both are given.
+    const declaredSelectorKeys = new Set([
+      ...pricing.rates.flatMap((rate) => Object.keys(rate.when)),
+      ...invariantSelectors,
+    ]);
+    for (const [key, quantity] of Object.entries(QUANTITY_BACKED_SELECTORS)) {
+      const amount = input[quantity];
+      if (!declaredSelectorKeys.has(key) || typeof amount !== 'number')
+        continue;
+      const explicit = selected?.[key];
+      if (explicit === undefined) {
+        selected = { ...selected, [key]: amount };
+      } else if (!selectorValuesEqual(explicit, amount)) {
+        return unresolved(
+          `Selected ${key} disagrees with the billed ${quantity}`,
+        );
+      }
+    }
+    quantities.selectors = selected ? { ...selected } : undefined;
+    if (quantities.selectors === undefined) delete quantities.selectors;
     if (
       model.requiredSelectorKeys.some(
-        (key) =>
-          !invariantSelectors.has(key) && input.selectors?.[key] === undefined,
+        (key) => !invariantSelectors.has(key) && selected?.[key] === undefined,
       )
     )
       return unresolved(
@@ -128,9 +152,7 @@ export function quoteModelBillablePricing(
       ...pricing.rates.flatMap((rate) => Object.keys(rate.when)),
       ...(pricing.invariantSelectors ?? []),
     ]);
-    if (
-      Object.keys(input.selectors ?? {}).some((key) => !selectorKeys.has(key))
-    )
+    if (Object.keys(selected ?? {}).some((key) => !selectorKeys.has(key)))
       return unresolved(
         'Selected pricing dimension has no reviewed applicability',
       );
@@ -147,7 +169,7 @@ export function quoteModelBillablePricing(
     costSource = 'reviewed-provider';
     const selectedRates = pricing.rates.filter((rate) =>
       Object.entries(rate.when).every(([key, value]) =>
-        selectorValuesEqual(input.selectors?.[key], value),
+        selectorValuesEqual(selected?.[key], value),
       ),
     );
     allocationBasis = selectedRates.every(
@@ -159,7 +181,7 @@ export function quoteModelBillablePricing(
     if (
       model.requiresReviewedRates ||
       model.requiredSelectorKeys.length > 0 ||
-      Object.keys(input.selectors ?? {}).length
+      Object.keys(selected ?? {}).length
     )
       return unresolved('Selected variant requires reviewed provider rates');
     if (
@@ -285,7 +307,7 @@ export function quoteModelBillablePricing(
               rates: model.reviewedPricing.rates
                 .filter((rate) =>
                   Object.entries(rate.when).every(([key, value]) =>
-                    selectorValuesEqual(input.selectors?.[key], value),
+                    selectorValuesEqual(selected?.[key], value),
                   ),
                 )
                 .map((rate) => ({ ...rate, when: { ...rate.when } })),
