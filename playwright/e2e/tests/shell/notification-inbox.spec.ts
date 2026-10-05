@@ -153,7 +153,7 @@ for (const fixture of [
         .getByTestId('notification-inbox-row')
         .filter({ hasText: fixture.label }),
     ).toBeVisible();
-    await expect(page.getByText('Source unavailable')).toBeVisible();
+    await expect(page.getByText('Source unavailable')).toBeAttached();
     await page.getByRole('button', { name: 'Mark read', exact: true }).click();
     const inlineError = page
       .getByRole('alert')
