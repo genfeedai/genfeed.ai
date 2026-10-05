@@ -6,10 +6,10 @@ import type { PostAccountTarget } from '@api/collections/posts/services/post-acc
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import {
   AgentAutonomyMode,
-  applyExpertPublishApprovalDefault,
   Platform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { applyExpertPublishApprovalDefault } from '@genfeedai/contracts/constants';
 
 describe('AgentStrategyAutopilotService', () => {
   // Distinct ids per entity: the autopilot helpers read the Prisma scalar `id`,
