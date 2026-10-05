@@ -14,11 +14,14 @@ describe('Claude endpoint routing', () => {
       expect(next).not.toHaveBeenCalled();
     },
   );
-  it('assigns the public Claude route before authentication', () => {
-    const req = { path: '/mcp/claude', query: {} } as unknown as McpRequest;
-    const next = vi.fn();
-    mcpAccessModeMiddleware(req, {} as Response, next);
-    expect(req.routeAccessMode).toBe('claude');
-    expect(next).toHaveBeenCalledOnce();
-  });
+  it.each(['/mcp/claude', '/mcp/claude/', '/MCP/CLAUDE', '/Mcp/Claude/'])(
+    'assigns the public Claude route %s before authentication',
+    (path) => {
+      const req = { path, query: {} } as unknown as McpRequest;
+      const next = vi.fn();
+      mcpAccessModeMiddleware(req, {} as Response, next);
+      expect(req.routeAccessMode).toBe('claude');
+      expect(next).toHaveBeenCalledOnce();
+    },
+  );
 });

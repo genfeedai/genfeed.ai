@@ -361,7 +361,7 @@ const briefs: readonly SeoArticleBrief[] = [
   },
   {
     answer:
-      'Add Genfeed to Claude Code with one command: claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp. Then open /mcp, select genfeed, and authenticate in your browser. Verify with claude mcp list and by asking Claude Code to list your Genfeed brands. From there Claude Code can draft captions, images, and schedules through Genfeed, which holds every draft for review before it publishes. Codex users reach the same server with codex mcp add and codex mcp login.',
+      'Add Genfeed to Claude Code with one command: claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude. Then open /mcp, select genfeed, and authenticate in your browser. Verify with claude mcp list and by asking Claude Code to list your Genfeed brands. From there Claude Code can draft captions and schedule existing assets through Genfeed; create images, video and audio in Genfeed Studio, which holds every draft for review before it publishes. Codex users use the standard /mcp endpoint with codex mcp add and codex mcp login.',
     category: ArticleCategory.TUTORIAL,
     decisionRows: [
       {
@@ -464,13 +464,13 @@ const briefs: readonly SeoArticleBrief[] = [
         heading: 'Keep a review gate between the CLI and the publish button',
         paragraphs: [
           'Genfeed holds generated captions, images, and schedules as drafts by default, so Claude Code can prepare and even queue content without a person’s attention being the only thing standing between a prompt and a published post.',
-          'Treat the scoped API key fallback the same way you would treat any credential: store it only in GENFEED_API_KEY, never paste it into a claude mcp add command, a prompt, or a committed config file.',
+          'Claude requires browser OAuth on the dedicated /mcp/claude endpoint. The scoped API key fallback applies to other clients; keep credentials out of prompts and committed config files.',
         ],
       },
       {
         heading: 'Troubleshooting the MCP connection',
         paragraphs: [
-          'If /mcp does not list genfeed, confirm the server was added with claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp and that the scope matches where you are running Claude Code — a project-scoped and a user-scoped entry are tracked separately.',
+          'If /mcp does not list genfeed, confirm the server was added with claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude and that the scope matches where you are running Claude Code — a project-scoped and a user-scoped entry are tracked separately.',
           'If claude mcp list shows genfeed but a brand request fails, the OAuth session likely expired. Re-run /mcp, select genfeed, and re-authenticate in the browser rather than assuming the server is down.',
         ],
       },
@@ -500,7 +500,7 @@ const briefs: readonly SeoArticleBrief[] = [
       {
         action: 'Add the server.',
         detail:
-          'Run claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp in your terminal.',
+          'Run claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude in your terminal.',
       },
       {
         action: 'Open the MCP menu.',

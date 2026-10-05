@@ -6,7 +6,8 @@ export function mcpAccessModeMiddleware(
   res: Response,
   next: NextFunction,
 ): void {
-  req.routeAccessMode = req.path === '/mcp/claude' ? 'claude' : 'standard';
+  const route = req.path.replace(/\/+$/, '').toLowerCase();
+  req.routeAccessMode = route === '/mcp/claude' ? 'claude' : 'standard';
   if (
     req.routeAccessMode === 'claude' &&
     (req.query.profile !== undefined || req.query.toolsets !== undefined)

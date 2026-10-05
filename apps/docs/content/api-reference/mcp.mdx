@@ -26,7 +26,7 @@ through `/.well-known/oauth-protected-resource`.
 ### Claude Code
 
 ```bash
-claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp
+claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude
 ```
 
 Open `/mcp` inside Claude Code, select `genfeed`, and authenticate. Follow the
@@ -87,8 +87,10 @@ What a spec-compliant client can rely on:
   pointing at that metadata. Authorization-server metadata is at
   `https://api.genfeed.ai/.well-known/oauth-authorization-server`. Both
   documents are readable cross-origin.
-- **Resource identifier (RFC 8707).** The `resource` is always
-  `https://mcp.genfeed.ai/mcp`. Send it on the authorize and token requests.
+- **Resource identifier (RFC 8707).** The `resource` is
+  `https://mcp.genfeed.ai/mcp` for the standard connector or
+  `https://mcp.genfeed.ai/mcp/claude` for Claude. Claude discovery is at
+  `/.well-known/oauth-protected-resource/mcp/claude`. Send it on the authorize and token requests.
 - **Registration (RFC 7591).** `POST /v1/oauth/register` with `redirect_uris`;
   `token_endpoint_auth_method` is `none`.
 - **Authorization.** `code_challenge_method` must be `S256`. `state` is
@@ -120,7 +122,7 @@ Client syntax was checked against Codex CLI 0.153.2 (`mcp add --help` and
 
 ## Advanced: manual API key
 
-Use this for headless environments or clients without browser OAuth. Select
+Use this for headless environments or non-Claude clients without browser OAuth. The Claude connector requires browser OAuth. Select
 **Advanced: manual API key** in [Connect Genfeed](https://app.genfeed.ai/connect)
 to create or select a scoped key and run the authenticated verification check.
 Keys remain copy-once. See [API Keys](/api-reference/api-keys) for rotation and revocation.
@@ -135,15 +137,10 @@ read -s GENFEED_API_KEY && export GENFEED_API_KEY
 Then choose your client:
 
 ```bash
-claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp --header "Authorization: Bearer $GENFEED_API_KEY"
-```
-
-```bash
 codex mcp add genfeed --url https://mcp.genfeed.ai/mcp --bearer-token-env-var GENFEED_API_KEY
 ```
 
-The Claude command expands the key into client configuration; protect that local
-configuration. Codex reads the named environment variable. Do not paste credentials
+Codex reads the named environment variable. Do not paste credentials
 into chats, commits, or shared logs. Inspect and update an existing Genfeed server
 entry before switching authentication methods; preserve unrelated servers.
 
@@ -379,9 +376,7 @@ with a broader `?toolsets=` selection so the tool appears in future
 
 ### Connect with a toolset selection
 
-```bash
-claude mcp add --transport http genfeed --scope user 'https://mcp.genfeed.ai/mcp?toolsets=content,generation,analytics,brand,scheduler'
-```
+The toolset selector applies to the standard connector. Claude uses the fixed `/mcp/claude` catalog.
 
 ```bash
 codex mcp add genfeed --url 'https://mcp.genfeed.ai/mcp?toolsets=content,generation,analytics,brand,scheduler'
@@ -473,6 +468,6 @@ tool calls. It contains no bearer tokens or account cookies.
 
 Connect to `https://mcp.genfeed.ai/mcp/claude` with browser OAuth. This connector supports brands, drafts, existing assets, scheduling and analytics. Create images, video and audio in [Genfeed Studio](https://app.genfeed.ai/studio/generate), then return to Claude to manage your content. Opening Studio does not start generation or spend credits.
 
-This is a custom connector; a public Claude directory listing is pending. Reconnect existing Claude installations using this URL. Existing connections to `/mcp` retain their original capabilities.
+This is a custom connector; Genfeed is not yet submitted or published in the public Claude directory. Reconnect existing Claude installations using this URL. Existing connections to `/mcp` retain their original capabilities.
 
 The restriction is bound to the OAuth resource, persists across token refresh and is enforced on execution and discovery. Changing the toolset/profile or using the Claude token on `/mcp` does not enable generation. Workflows, batches, remix, arbitrary agent calls and approval redemption are unavailable through this connector. Other clients use the standard `/mcp` connector.

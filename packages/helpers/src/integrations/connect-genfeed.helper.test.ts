@@ -54,7 +54,7 @@ describe('buildConnectGenfeedInstructions', () => {
     );
     expect(codex.authorizationInstruction).toContain('codex mcp login genfeed');
     expect(claude.primaryCommand).toBe(
-      'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp',
+      'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude',
     );
     expect(claude.authorizationInstruction).toContain('/mcp');
   });
@@ -69,24 +69,33 @@ describe('buildConnectGenfeedInstructions', () => {
     );
   });
 
-  it('builds a secret-safe Claude Code command', () => {
+  it.each(['claude-code', 'generic'] as const)(
+    'requires OAuth for %s on the Claude connector',
+    (client) => {
+      const instructions = buildConnectGenfeedInstructions(
+        client,
+        'https://mcp.genfeed.ai/mcp/claude/?profile=full',
+        'manual-key',
+      );
+      expect(instructions.authMethod).toBe('oauth');
+      expect(instructions.environmentCommand).toBe('');
+      expect(JSON.parse(instructions.configuration).url).toBe(
+        'https://mcp.genfeed.ai/mcp/claude',
+      );
+      expect(JSON.stringify(instructions)).not.toMatch(
+        /GENFEED_API_KEY|Bearer|manual-key|profile/,
+      );
+    },
+  );
+
+  it('moves Claude Code from the full endpoint to the dedicated resource', () => {
     const instructions = buildConnectGenfeedInstructions(
       'claude-code',
-      'https://mcp.genfeed.ai/mcp',
-      'manual-key',
+      'https://mcp.genfeed.ai/mcp?toolsets=generation',
     );
-
-    expect(instructions.primaryCommand).toContain(
-      'claude mcp add --transport http genfeed',
+    expect(instructions.primaryCommand).toBe(
+      'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude',
     );
-    expect(instructions.primaryCommand).toContain(
-      'Authorization: Bearer $GENFEED_API_KEY',
-    );
-    expect(instructions.environmentCommand).toBe(
-      'read -s GENFEED_API_KEY && export GENFEED_API_KEY',
-    );
-    expect(instructions.environmentCommand).not.toContain('paste-key');
-    expect(instructions.primaryCommand).not.toContain('gf_');
   });
 
   it('builds Codex CLI and TOML configuration from the same endpoint', () => {

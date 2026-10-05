@@ -45,7 +45,20 @@ export function buildConnectGenfeedInstructions(
   endpoint: string,
   authMethod: ConnectGenfeedAuthMethod = 'oauth',
 ): ConnectGenfeedInstructions {
-  const mcpEndpoint = normalizeEndpoint(endpoint);
+  const url = new URL(normalizeEndpoint(endpoint));
+  const normalizedPath = url.pathname.replace(/\/+$/, '');
+  const isClaude =
+    client === 'claude-code' ||
+    normalizedPath.toLowerCase().endsWith('/mcp/claude');
+  if (isClaude) {
+    url.pathname = normalizedPath.toLowerCase().endsWith('/mcp/claude')
+      ? normalizedPath.replace(/\/mcp\/claude$/i, '/mcp/claude')
+      : `${normalizedPath}/claude`;
+    url.search = '';
+    url.hash = '';
+    authMethod = 'oauth';
+  }
+  const mcpEndpoint = isClaude ? url.toString() : normalizeEndpoint(endpoint);
   const shellEndpoint = /^[A-Za-z0-9:/._-]+$/.test(mcpEndpoint)
     ? mcpEndpoint
     : `'${mcpEndpoint.replace(/'/g, `'"'"'`)}'`;
@@ -56,7 +69,7 @@ export function buildConnectGenfeedInstructions(
         ? 'Run codex mcp login genfeed if authorization did not open during setup. Sign in and approve access in your browser, then return to Codex.'
         : client === 'claude-code'
           ? 'Open /mcp inside Claude Code, select genfeed, and authenticate. Sign in and approve access in your browser, then return to Claude Code.'
-          : 'Add this endpoint as a remote Streamable HTTP server in your client, choose OAuth, and complete browser sign-in and consent. If your client does not support OAuth, use the advanced manual-key path.';
+          : `Add this endpoint as a remote Streamable HTTP server in your client, choose OAuth, and complete browser sign-in and consent.${isClaude ? ' The Claude connector requires OAuth; update your client if OAuth is unsupported.' : ' If your client does not support OAuth, use the advanced manual-key path.'}`;
     return {
       authMethod,
       authorizationInstruction,
@@ -86,23 +99,6 @@ export function buildConnectGenfeedInstructions(
   }
 
   const environmentCommand = `read -s ${ENVIRONMENT_VARIABLE} && export ${ENVIRONMENT_VARIABLE}`;
-
-  if (client === 'claude-code') {
-    return {
-      authMethod,
-      authorizationInstruction:
-        'Configure your client with the scoped key, then verify the connection.',
-      client,
-      configuration: [
-        'Remote Streamable HTTP server: genfeed',
-        `Endpoint: ${mcpEndpoint}`,
-        `Authorization: Bearer $${ENVIRONMENT_VARIABLE}`,
-      ].join('\n'),
-      environmentCommand,
-      primaryCommand: `claude mcp add --transport http genfeed --scope user ${shellEndpoint} --header "Authorization: Bearer $${ENVIRONMENT_VARIABLE}"`,
-      verifyCommand: 'claude mcp list',
-    };
-  }
 
   if (client === 'codex') {
     return {

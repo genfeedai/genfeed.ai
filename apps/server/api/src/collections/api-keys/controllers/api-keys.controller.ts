@@ -74,6 +74,11 @@ export class ApiKeysController {
       [API_KEY_ACTION_ORIGIN_METADATA_KEY]: _actionOrigin,
       [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: _actionOriginProof,
       [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: _connectGenfeedVerification,
+      kind: _kind,
+      mcpAccessMode: _mcpAccessMode,
+      resource: _resource,
+      grantId: _grantId,
+      clientName: _clientName,
       ...safeMetadata
     } = metadata;
     return safeMetadata;

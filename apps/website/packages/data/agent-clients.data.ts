@@ -640,7 +640,7 @@ export function renderAgentConnectMarkdown(input: {
     `- Claude, Claude Code and Cowork: ${GENFEED_CLAUDE_MCP_URL}. Brands, drafts, scheduling and analytics; create media in Genfeed Studio.`,
   );
   lines.push(
-    '- Auth: OAuth in the browser. The advanced path is a scoped API key exported as GENFEED_API_KEY.',
+    '- Auth: OAuth in the browser. Claude requires OAuth. For other clients, the advanced path is a scoped API key exported as GENFEED_API_KEY.',
   );
   lines.push(`- Pricing: ${input.pricingSummary}`);
   lines.push(`- Agent repository: ${GENFEED_AGENT_REPOSITORY_URL}`);

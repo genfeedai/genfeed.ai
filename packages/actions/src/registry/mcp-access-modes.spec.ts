@@ -6,7 +6,7 @@ import {
   mostRestrictiveMcpAccessMode,
   parseMcpAccessMode,
 } from './mcp-access-modes';
-import { getToolByName, getToolsForSurface } from './tool-registry';
+import { getToolsForSurface } from './tool-registry';
 
 describe('Claude MCP access policy', () => {
   it('fails closed for unknown modes and never widens a restricted grant', () => {
@@ -22,7 +22,9 @@ describe('Claude MCP access policy', () => {
   });
 
   it('allows only existing content operations and read-only assets', () => {
-    const catalog = new Set(getToolsForSurface('mcp').map((tool) => tool.name));
+    const catalog = new Set<string>(
+      getToolsForSurface('mcp').map((tool) => tool.name),
+    );
     for (const name of CLAUDE_MCP_TOOL_NAMES) {
       expect(catalog.has(name), name).toBe(true);
       expect([
@@ -32,7 +34,9 @@ describe('Claude MCP access policy', () => {
         'inspiration',
         'agent-chat',
         'skills-pro',
-      ]).not.toContain(getToolByName(name)?.toolset);
+      ]).not.toContain(
+        getToolsForSurface('mcp').find((tool) => tool.name === name)?.toolset,
+      );
     }
     for (const name of [
       'generate',

@@ -173,7 +173,7 @@ ${codex.configuration}
 4. ${codex.authorizationInstruction}
 5. Ask the user to complete consent in their browser. Never request tokens or passwords in this chat. If authorization is denied or expires, restart the client authorization flow.
 6. Verify access with a scoped read: list my Genfeed brands. A copied command or server list entry alone does not verify authorization.
-7. Report exactly what changed and any remaining authorization or verification step. If OAuth is unsupported, direct the user to the advanced manual-key path in guided setup.
+7. Report exactly what changed and any remaining authorization or verification step. Claude requires OAuth. If another client does not support OAuth, direct its user to the advanced manual-key path in guided setup.
 8. For the Genfeed CLI, run genfeed login with no flags. The human approves in the browser. Do not paste a secret into this chat. After login, genfeed keys create -p mcp still mints a scoped key.`;
 }
 
@@ -947,7 +947,7 @@ ${postHogSnippet}
       <section class="tabpanel" id="panel-other-clients" role="tabpanel" aria-labelledby="tab-other-clients" data-panel="other-clients">
         <div class="setup-title-row">
           <h3 class="instruction-title">Other MCP clients</h3>
-          <span class="${ui.badge}">Claude.ai, ChatGPT, Cursor, Gemini</span>
+          <span class="${ui.badge}">ChatGPT, Cursor, Gemini</span>
         </div>
         <ol class="steps">
           <li class="step">
@@ -997,7 +997,7 @@ ${postHogSnippet}
   <section class="section toolsets-section" aria-label="Advanced toolset configuration">
     <details class="toolsets">
       <summary>Advanced: limit which toolsets load</summary>
-      <p class="section-copy">Narrow <code class="${ui.inlineCode}">tools/list</code> to just the toolsets your agent needs. Leave everything unchecked for the default profile on the bare URL, or add <code class="${ui.inlineCode}">?profile=full</code> for every tool.</p>
+      <p class="section-copy">For the standard connector only; Claude has a fixed catalog and does not accept these selectors. Narrow <code class="${ui.inlineCode}">tools/list</code> to just the toolsets your agent needs. Leave everything unchecked for the default profile on the bare URL, or add <code class="${ui.inlineCode}">?profile=full</code> for every tool.</p>
       <div class="${ui.card}">
         <div class="toolset-picker" role="group" aria-label="Toolsets to include">
           ${toolsetOptions}
@@ -1007,7 +1007,7 @@ ${postHogSnippet}
   </section>
 
   <footer class="site-footer">
-    <p class="footer-note">OAuth login only — the manual API-key fallback lives in guided setup. For the CLI, run <code class="${ui.inlineCode}">genfeed login</code>. Keep tokens out of shared logs.</p>
+    <p class="footer-note">Claude requires browser OAuth. Other clients can use the manual API-key fallback in guided setup. For the CLI, run <code class="${ui.inlineCode}">genfeed login</code>. Keep tokens out of shared logs.</p>
     <div class="footer-links">
       <a href="${docsUrlSafe}" rel="noopener noreferrer">Documentation</a>
       <a href="${docsGuideUrlSafe}" rel="noopener noreferrer">MCP guide</a>

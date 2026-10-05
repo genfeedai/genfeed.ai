@@ -394,6 +394,25 @@ describe('ConnectGenfeedFlow', () => {
     ).toBeInTheDocument();
   });
 
+  it('switches Claude from manual keys to its dedicated OAuth resource', async () => {
+    render(<ConnectGenfeedFlow />);
+    await userEvent.click(
+      screen.getByRole('tab', { name: 'Advanced: manual API key' }),
+    );
+    await userEvent.click(screen.getByRole('tab', { name: 'Claude Code' }));
+    expect(
+      screen.queryByRole('tab', { name: 'Advanced: manual API key' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude',
+      ),
+    ).toBeInTheDocument();
+    expect(mocks.statusOptions).toHaveBeenLastCalledWith('org-1', {
+      pollIntervalMs: 4000,
+    });
+  });
+
   it('switches OAuth clients and provides an unsupported-client fallback', async () => {
     render(<ConnectGenfeedFlow />);
     await userEvent.click(screen.getByRole('tab', { name: 'Claude Code' }));
