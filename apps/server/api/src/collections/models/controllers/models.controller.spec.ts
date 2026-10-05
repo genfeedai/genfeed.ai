@@ -437,7 +437,7 @@ describe('ModelsController', () => {
         totalPages: 1,
       };
       modelsService.findAll.mockResolvedValue(empty);
-      vi.mocked(findUnpriceableModelIds).mockResolvedValue(['red-model']);
+      vi.mocked(findUnpriceableModelIds).mockResolvedValueOnce(['red-model']);
 
       await controller.findAll(mockRequest, mockRegularUser, {});
 
