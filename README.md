@@ -68,7 +68,7 @@ Docs index for agents: https://docs.genfeed.ai/llms.txt
 Already on the hosted product? Skip installation and authorize with browser OAuth.
 Claude uses `https://mcp.genfeed.ai/mcp/claude` for brands, drafts, existing assets, scheduling and analytics; create media in [Genfeed Studio](https://app.genfeed.ai/studio/generate). Other clients use `https://mcp.genfeed.ai/mcp` for the full toolset.
 
-The MCP preset is approval-first: an agent can generate, draft, and schedule, but
+The standard MCP preset is approval-first: an agent can generate, draft, and schedule, but
 publishing waits for a human. What each surface exposes and why is in
 [Agent Surface](docs/agent-surface.md).
 

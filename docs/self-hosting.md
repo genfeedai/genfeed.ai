@@ -141,7 +141,7 @@ Unconfigured providers fail closed; they are not required to run Community.
 
 Turning off the login wall (`BETTER_AUTH_ENABLED=false`) does **not** disable
 MCP authentication. `apps/server/mcp` still requires
-`Authorization: Bearer <gf_... API key>` on `/mcp`. Missing or invalid tokens
+`Authorization: Bearer <token>` on the standard `/mcp` endpoint, which accepts OAuth or scoped API keys. The `/mcp/claude` endpoint requires its own resource-bound OAuth token. Missing or invalid tokens
 return JSON-RPC `-32001` with a `WWW-Authenticate` header.
 
 The Community seed creates organization slug `default`

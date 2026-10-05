@@ -361,7 +361,7 @@ const briefs: readonly SeoArticleBrief[] = [
   },
   {
     answer:
-      'Add Genfeed to Claude Code with one command: claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude. Then open /mcp, select genfeed, and authenticate in your browser. Verify with claude mcp list and by asking Claude Code to list your Genfeed brands. From there Claude Code can draft captions and schedule existing assets through Genfeed; create images, video and audio in Genfeed Studio, which holds every draft for review before it publishes. Codex users use the standard /mcp endpoint with codex mcp add and codex mcp login.',
+      'Add Genfeed to Claude Code with one command: claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp/claude. Then open /mcp, select genfeed, and authenticate in your browser. Verify with claude mcp list and by asking Claude Code to list your Genfeed brands. From there Claude Code can draft captions and schedule existing assets through Genfeed; create images, video and audio in Genfeed Studio. Genfeed holds content drafts for review before publishing. Codex users use the standard /mcp endpoint with codex mcp add and codex mcp login.',
     category: ArticleCategory.TUTORIAL,
     decisionRows: [
       {
@@ -370,8 +370,8 @@ const briefs: readonly SeoArticleBrief[] = [
         tradeoff: 'Needs a browser session available when you connect',
       },
       {
-        choice: 'Scoped API key in GENFEED_API_KEY',
-        fit: 'Headless environments, CI, or automation without a browser',
+        choice: 'Scoped API key for Codex or other clients',
+        fit: 'Headless non-Claude clients; Claude requires browser OAuth',
         tradeoff:
           'You own key rotation and scope; never paste it into a command or chat',
       },
@@ -391,7 +391,7 @@ const briefs: readonly SeoArticleBrief[] = [
       {
         question: 'Do I need an API key to connect Claude Code to Genfeed?',
         answer:
-          'No, not by default. The hosted MCP server authenticates through OAuth in your browser. A scoped API key in GENFEED_API_KEY is only a fallback for headless setups without a browser.',
+          'No. The Claude connector requires browser OAuth on /mcp/claude and does not accept manual API keys. Codex and other clients can use a scoped API key on the standard endpoint for headless setups.',
       },
       {
         question: 'What does --scope user do?',
@@ -434,7 +434,7 @@ const briefs: readonly SeoArticleBrief[] = [
     ],
     intro: [
       'Claude Code and Codex are coding-agent CLIs, not social apps, so connecting one to Genfeed is a command-line task rather than a settings toggle: add the server, authenticate once in a browser, and verify the connection before asking either tool to do anything with your content.',
-      'Genfeed’s hosted MCP server takes remote Streamable HTTP and OAuth, so a typical setup needs no API key. A scoped API key remains available as a fallback for headless environments where no browser is available — kept in an environment variable, never typed into a command.',
+      'Genfeed’s Claude connector uses remote Streamable HTTP and browser OAuth, with no manual-key fallback. Codex and other clients use the standard endpoint and can choose a scoped API key for headless use. Create media separately in Genfeed Studio, then use Claude with existing assets.',
     ],
     label:
       'How to Schedule Social Media Posts From Claude Code (MCP Setup Guide)',
@@ -463,7 +463,7 @@ const briefs: readonly SeoArticleBrief[] = [
       {
         heading: 'Keep a review gate between the CLI and the publish button',
         paragraphs: [
-          'Genfeed holds generated captions, images, and schedules as drafts by default, so Claude Code can prepare and even queue content without a person’s attention being the only thing standing between a prompt and a published post.',
+          'Claude Code drafts captions and requests scheduling with existing assets. Genfeed applies workspace permissions and approval requirements before execution; the Claude connector cannot generate media or redeem pending approvals.',
           'Claude requires browser OAuth on the dedicated /mcp/claude endpoint. The scoped API key fallback applies to other clients; keep credentials out of prompts and committed config files.',
         ],
       },
