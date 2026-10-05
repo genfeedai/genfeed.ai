@@ -1,10 +1,19 @@
 import type { HarnessPackRegistry } from '@genfeedai/contracts/interfaces/ai/harness-pack-registry.interface';
 import type {
+  ComposeContentHarnessBriefOptions,
   ContentHarnessBrief,
   ContentHarnessContribution,
   ContentHarnessInput,
   ContentHarnessPack,
+  ContentHarnessSurface,
 } from './types';
+
+export function isHarnessPackForSurface(
+  pack: Pick<ContentHarnessPack, 'surfaces'>,
+  surface: ContentHarnessSurface | undefined,
+): boolean {
+  return !surface || !pack.surfaces || pack.surfaces.includes(surface);
+}
 
 function mergeUnique(
   target: string[],
@@ -92,6 +101,7 @@ function hasContribution(contribution: ContentHarnessContribution): boolean {
 export async function composeContentHarnessBrief(
   registry: HarnessPackRegistry<ContentHarnessPack>,
   input: ContentHarnessInput,
+  options?: ComposeContentHarnessBriefOptions,
 ): Promise<ContentHarnessBrief> {
   let aggregate: ContentHarnessContribution = {
     evaluationCriteria: [],
@@ -106,7 +116,9 @@ export async function composeContentHarnessBrief(
     aggregate = mergeContribution(aggregate, input.identityContribution);
   }
 
-  const packs = registry.list();
+  const packs = registry
+    .list()
+    .filter((pack) => isHarnessPackForSurface(pack, options?.surface));
   const appliedPacks: string[] = [];
   for (const pack of packs) {
     if (!pack.contribute) {

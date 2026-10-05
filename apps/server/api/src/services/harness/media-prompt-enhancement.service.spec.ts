@@ -1,5 +1,15 @@
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
+import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
+import { ContentHarnessService } from '@api/services/harness/harness.service';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
-import { PromptEnhancementResponseError } from '@api/services/prompt-enhancement/prompt-enhancement.service';
+import {
+  PromptEnhancementResponseError,
+  PromptEnhancementService,
+} from '@api/services/prompt-enhancement/prompt-enhancement.service';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -333,6 +343,91 @@ describe('MediaPromptEnhancementService', () => {
     expect(logger.warn).toHaveBeenCalledWith(
       'Media prompt enhancement failed; generating with original prompt',
       expect.objectContaining({ stage: 'response' }),
+    );
+  });
+
+  it.each(['image', 'video'] as const)(
+    'requests only media-applicable packs for %s prompts',
+    async (contentType) => {
+      const { service, harness } = setup();
+      await service.enhance({ ...input, contentType });
+      expect(harness.resolveBrief).toHaveBeenCalledWith(
+        expect.objectContaining({ contentType, surface: 'media' }),
+      );
+    },
+  );
+
+  describe('copywriting harness rules', () => {
+    const LEAKED_RULES = [
+      'Attach to demand that already exists',
+      'Assume the first three seconds decide everything',
+    ];
+
+    async function enhanceWithRealPacks(contentType: 'image' | 'video') {
+      const logger: Partial<LoggerService> = {
+        error: vi.fn(),
+        log: vi.fn(),
+        warn: vi.fn(),
+      };
+      const config: Partial<ConfigService> = { get: vi.fn() };
+      const brands: Partial<BrandsService> = {
+        findOne: vi.fn().mockResolvedValue({ id: 'brand', label: 'Brand' }),
+      };
+      const profiles: Partial<HarnessProfilesService> = {
+        resolveContributionForBrand: vi.fn().mockResolvedValue(null),
+      };
+      const settings: Partial<GenerationHarnessSettingsService> = {
+        get: vi.fn().mockResolvedValue({ isEnabled: true, source: 'brand' }),
+      };
+      const promptEnhancement: Partial<PromptEnhancementService> = {
+        enhance: vi.fn().mockResolvedValue({
+          result: 'A red bicycle at dawn',
+          tokensUsed: 1,
+          isByok: false,
+        }),
+      };
+      const contentHarness = new ContentHarnessService(
+        config as ConfigService,
+        logger as LoggerService,
+      );
+      const harness = new HarnessGenerationService(
+        contentHarness,
+        logger as LoggerService,
+        brands as BrandsService,
+        profiles as HarnessProfilesService,
+      );
+      const service = new MediaPromptEnhancementService(
+        settings as GenerationHarnessSettingsService,
+        harness,
+        contentHarness,
+        promptEnhancement as PromptEnhancementService,
+        logger as LoggerService,
+      );
+      const receipt = await service.enhance({ ...input, contentType });
+      const copyBrief = await harness.resolveBrief({
+        brandId: input.brandId,
+        contentType: 'post',
+        organizationId: input.organizationId,
+      });
+      return { copyBrief, receipt };
+    }
+
+    it.each(['video', 'image'] as const)(
+      'keeps persuasion rules out of the %s provider prompt',
+      async (contentType) => {
+        const { copyBrief, receipt } = await enhanceWithRealPacks(contentType);
+
+        expect(receipt.status).toBe('applied');
+        expect(receipt.enhancedPrompt).toContain('A red bicycle at dawn');
+        for (const rule of LEAKED_RULES) {
+          expect(receipt.enhancedPrompt).not.toContain(rule);
+        }
+        expect(receipt.appliedPacks.map((pack) => pack.id)).not.toContain(
+          'viral-psychology',
+        );
+        // Copy generation still gets the pack.
+        expect(copyBrief?.appliedPacks).toContain('viral-psychology');
+      },
     );
   });
 });
