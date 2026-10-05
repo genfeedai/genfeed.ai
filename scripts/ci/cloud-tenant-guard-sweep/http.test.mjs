@@ -159,3 +159,148 @@ test('extracts Better Auth session cookie and reads JSON:API resources', () => {
   );
   assert.throws(() => entity({ data: [] }, 'Brand'), /no entity id/);
 });
+
+test('fixture and warm-up use 60s per attempt while controls and tools retain short budgets', async (t) => {
+  const deadlines = [];
+  t.mock.method(AbortSignal, 'timeout', (ms) => {
+    deadlines.push(ms);
+    return new AbortController().signal;
+  });
+  const request = createRequester({
+    baseUrl: 'http://localhost:3010',
+    records: [],
+    fetchImpl: async () => new Response('{}'),
+  });
+  await request(null, 'POST', '/v1/auth/sign-up/email', { phase: 'fixture' });
+  await request(null, 'GET', '/v1/auth/token', { phase: 'fixture' });
+  await request(null, 'GET', '/v1/openapi.json', { phase: 'warmup' });
+  await request(null, 'GET', '/v1/organizations', { phase: 'controls' });
+  await request(null, 'POST', '/v1/organizations', { phase: 'controls' });
+  await request(null, 'POST', '/v1/agent-tools/tool/execute', {
+    phase: 'tool',
+  });
+  assert.deepEqual(deadlines, [60000, 60000, 60000, 5000, 10000, 10000]);
+});
+
+test('fixture retries network, HTTP 0 and 502-504 failures exactly twice with backoff', async () => {
+  for (const status of [0, 502, 503, 504]) {
+    const records = [];
+    const waits = [];
+    let calls = 0;
+    const request = createRequester({
+      baseUrl: 'http://localhost:3010',
+      records,
+      phase: 'fixture',
+      wait: async (ms) => waits.push(ms),
+      fetchImpl: async () => {
+        calls++;
+        if (!status) throw new TypeError('fetch failed');
+        return new Response('Upstream unavailable', { status });
+      },
+    });
+    const result = await request(null, 'POST', '/v1/auth/sign-up/email');
+    assert.equal(result.record.status, status);
+    assert.equal(calls, 3);
+    assert.deepEqual(waits, [1000, 2000]);
+    assert.deepEqual(
+      records.map((record) => Boolean(record.isRetry)),
+      [true, true, false],
+    );
+    assert.ok(records.every((record) => record.durationMs >= 0));
+  }
+  const records = [];
+  const request = createRequester({
+    baseUrl: 'http://localhost:3010',
+    records,
+    phase: 'fixture',
+    wait: async () => {},
+    fetchImpl: async () =>
+      records.length === 0
+        ? { status: 0, text: async () => '', headers: new Headers() }
+        : new Response('{}'),
+  });
+  assert.equal(
+    (await request(null, 'GET', '/v1/auth/token')).record.status,
+    200,
+  );
+  assert.equal(records.length, 2);
+});
+
+test('setup never retries tenant-isolation markers or other HTTP failures', async () => {
+  for (const [status, body] of [
+    [502, 'Tenant isolation: update on Brand is missing organizationId'],
+    [503, 'TenantIsolationError'],
+    [400, 'Invalid input'],
+    [401, 'Unauthorized'],
+    [409, 'Duplicate user'],
+    [429, 'Rate limited'],
+    [500, 'Internal error'],
+  ]) {
+    const records = [];
+    const request = createRequester({
+      baseUrl: 'http://localhost:3010',
+      records,
+      phase: 'fixture',
+      fetchImpl: async () => new Response(body, { status }),
+      wait: async () => assert.fail('Must not retry'),
+    });
+    const result = await request(null, 'POST', '/v1/auth/sign-up/email');
+    assert.equal(records.length, 1);
+    assert.throws(() => requireSuccess(result, 'Sign up A'), /Sign up A: HTTP/);
+  }
+});
+
+test('sweep does not retry transport or 502-504 failures', async () => {
+  for (const status of [0, 502, 503, 504]) {
+    const records = [];
+    const request = createRequester({
+      baseUrl: 'http://localhost:3010',
+      records,
+      fetchImpl: async () => {
+        if (!status) throw new TypeError('fetch failed');
+        return new Response('{}', { status });
+      },
+      wait: async () => assert.fail('Must not retry'),
+    });
+    await request(null, 'GET', '/v1/brands', { phase: 'get' });
+    assert.equal(records.length, 1);
+  }
+});
+
+test('exhausted fixture body timeouts retain timing and fail with request details', async (t) => {
+  const deadlines = [];
+  t.mock.method(AbortSignal, 'timeout', (ms) => {
+    deadlines.push(ms);
+    return new AbortController().signal;
+  });
+  let clock = 0;
+  const records = [];
+  const request = createRequester({
+    baseUrl: 'http://localhost:3010',
+    records,
+    phase: 'fixture',
+    now: () => clock,
+    wait: async () => {},
+    fetchImpl: async () => ({
+      text: async () => {
+        clock += 60002;
+        throw new DOMException('Body deadline', 'TimeoutError');
+      },
+    }),
+  });
+  const result = await request(null, 'POST', '/v1/auth/sign-up/email');
+  assert.deepEqual(deadlines, [60000, 60000, 60000]);
+  assert.equal(records.length, 3);
+  assert.ok(records.every((record) => record.isTimeout));
+  assert.throws(
+    () => requireSuccess(result, 'Sign up A'),
+    (error) => {
+      assert.match(
+        error.message,
+        /POST \/v1\/auth\/sign-up\/email, 60002 ms, request timed out/,
+      );
+      assert.equal(error.record, result.record);
+      return true;
+    },
+  );
+});

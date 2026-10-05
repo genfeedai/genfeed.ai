@@ -1,7 +1,111 @@
+import { readFileSync } from 'node:fs';
+import { setTimeout as delay } from 'node:timers/promises';
+
+import { tenantHit } from './core.mjs';
 import { entity, requireSuccess, rows, sessionCookie } from './http.mjs';
 
-export async function seedFixture(request, prisma) {
-  async function signup(label, isSuperAdmin = false) {
+export async function warmup(request) {
+  requireSuccess(
+    await request(null, 'GET', '/v1/health', { phase: 'warmup' }),
+    'Warm-up health',
+  );
+  return requireSuccess(
+    await request(null, 'GET', '/v1/openapi.json', { phase: 'warmup' }),
+    'Warm-up OpenAPI',
+  );
+}
+
+export function printFixtureFailure(
+  error,
+  records,
+  apiLog,
+  write = (text) => process.stdout.write(text),
+) {
+  const record =
+    error.record ??
+    records
+      .filter((record) => ['fixture', 'warmup'].includes(record.phase))
+      .at(-1);
+  write(`Fixture failed: ${error}\n`);
+  if (record)
+    write(
+      `Failing setup request: ${record.method} ${record.path} status=${record.status} duration=${record.durationMs}ms\n`,
+    );
+  if (!apiLog) return;
+  try {
+    const tail = readFileSync(apiLog, 'utf8')
+      .split('\n')
+      .filter((line) => line.trim())
+      .slice(-20);
+    write(`Last 20 non-empty API log lines (${apiLog}):\n${tail.join('\n')}\n`);
+  } catch (logError) {
+    write(`Cannot read fixture API log: ${logError}\n`);
+  }
+}
+
+export async function fixtureDatabase(
+  label,
+  run,
+  { timeoutMs = 60_000, wait = delay } = {},
+) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const started = performance.now();
+    let timer;
+    try {
+      return await Promise.race([
+        Promise.resolve().then(run),
+        new Promise((_, reject) => {
+          timer = setTimeout(
+            () =>
+              reject(
+                new Error(`Database setup timed out after ${timeoutMs} ms`),
+              ),
+            timeoutMs,
+          );
+        }),
+      ]);
+    } catch (error) {
+      // Only known connection failures are safe to retry. A local deadline
+      // does not cancel a Prisma write, so it must fail rather than replay it.
+      const isNetworkError = [
+        'P1001',
+        'P1002',
+        'P1017',
+        'ECONNRESET',
+        'ECONNREFUSED',
+        'ETIMEDOUT',
+      ].includes(error.code);
+      if (isNetworkError && !tenantHit(String(error)) && attempt < 2) {
+        clearTimeout(timer);
+        await wait(1_000 * 2 ** attempt);
+        continue;
+      }
+      const failure = new Error(`${label}: ${error}`);
+      failure.record = {
+        method: 'DB',
+        path: label,
+        status: 0,
+        durationMs: Math.round(performance.now() - started),
+        phase: 'fixture',
+      };
+      throw failure;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
+async function fixtureResults(tasks) {
+  const results = await Promise.allSettled(tasks);
+  const rejected = results.find((result) => result.status === 'rejected');
+  if (rejected) throw rejected.reason;
+  return results.map((result) => result.value);
+}
+
+export async function seedFixture(sendRequest, prisma) {
+  const request = (actor, method, path, options = {}) =>
+    sendRequest(actor, method, path, { ...options, phase: 'fixture' });
+  async function signup(label) {
     const credentials = {
       email: `ci-cloud-${label.toLowerCase()}@example.invalid`,
       name: `CI Cloud ${label}`,
@@ -12,31 +116,52 @@ export async function seedFixture(request, prisma) {
     });
     const signedUp = requireSuccess(response, `Sign up ${label}`);
     const userId = signedUp?.user?.id;
-    if (!userId) throw new Error(`Sign up ${label}: missing canonical user id`);
+    if (!userId)
+      throw Object.assign(
+        new Error(`Sign up ${label}: missing canonical user id`),
+        { record: response.record },
+      );
+    return { label, credentials, userId };
+  }
+
+  async function authenticate({ label, credentials, userId }) {
     // CLOUD keeps verification required. Sign-up returns a user but no session;
     // user.create.after awaits UserProvisioningListener before this response.
     // Only these ephemeral users are verified directly; no mailer runs in CI.
     // Elevate before sign-in/token resolution caches the platform role.
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        emailVerified: true,
-        ...(isSuperAdmin ? { platformRole: 'SUPERADMIN' } : {}),
-      },
-    });
+    await fixtureDatabase(`Verify/elevate ${label}`, () =>
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          emailVerified: true,
+          ...(label === 'S' ? { platformRole: 'SUPERADMIN' } : {}),
+        },
+      }),
+    );
     const signedIn = await request(null, 'POST', '/v1/auth/sign-in/email', {
       body: { email: credentials.email, password: credentials.password },
     });
     const session = requireSuccess(signedIn, `Sign in ${label}`);
     if (session?.user?.id !== userId)
-      throw new Error(`Sign in ${label}: canonical user id mismatch`);
-    const token = requireSuccess(
-      await request(null, 'GET', '/v1/auth/token', {
-        headers: { cookie: sessionCookie(signedIn.headers) },
-      }),
-      `JWT ${label}`,
-    )?.token;
-    if (!token) throw new Error(`JWT ${label}: no token`);
+      throw Object.assign(
+        new Error(`Sign in ${label}: canonical user id mismatch`),
+        { record: signedIn.record },
+      );
+    let cookie;
+    try {
+      cookie = sessionCookie(signedIn.headers);
+    } catch (error) {
+      error.record = signedIn.record;
+      throw error;
+    }
+    const tokenResponse = await request(null, 'GET', '/v1/auth/token', {
+      headers: { cookie },
+    });
+    const token = requireSuccess(tokenResponse, `JWT ${label}`)?.token;
+    if (!token)
+      throw Object.assign(new Error(`JWT ${label}: no token`), {
+        record: tokenResponse.record,
+      });
     return { label, token, userId };
   }
 
@@ -69,12 +194,28 @@ export async function seedFixture(request, prisma) {
     };
   }
 
-  const userA = await signup('A');
-  const orgA = await workspace(userA);
-  const userB = await signup('B');
-  const orgB = await workspace(userB);
-  const superadmin = await signup('S', true);
-  const orgS = await workspace(superadmin);
+  const authTasks = [];
+  let authResults;
+  try {
+    // Serialize provisioning only. Verification/sign-in/token requests overlap
+    // subsequent sign-ups, and all started work is drained before reporting.
+    for (const label of ['A', 'B', 'M', 'M2', 'S']) {
+      authTasks.push(authenticate(await signup(label)));
+      authTasks.at(-1).catch(() => {});
+    }
+  } finally {
+    authResults = await Promise.allSettled(authTasks);
+  }
+  const rejected = authResults.find((result) => result.status === 'rejected');
+  if (rejected) throw rejected.reason;
+  const [userA, userB, member, member2, superadmin] = authResults.map(
+    (result) => result.value,
+  );
+  const [orgA, orgB, orgS] = await fixtureResults([
+    workspace(userA),
+    workspace(userB),
+    workspace(superadmin),
+  ]);
   // This also proves that the IP-bound platform role survived middleware.
   requireSuccess(
     await request(superadmin, 'PATCH', '/v1/admin/platform-settings', {
@@ -94,8 +235,6 @@ export async function seedFixture(request, prisma) {
     ),
     'S persona',
   ).id;
-  const member = await signup('M');
-  const member2 = await signup('M2');
   // Adding an existing user to an organization has no direct HTTP endpoint.
   // Reuse the provisioned admin role: M owns neither A nor B.
   const roles = rows(
@@ -118,33 +257,44 @@ export async function seedFixture(request, prisma) {
         ),
         'Role',
       );
-  for (const actor of [member, member2]) {
-    for (const organization of [orgA, orgB]) {
-      const membership = await prisma.member.create({
-        data: {
-          organizationId: organization.organizationId,
-          userId: actor.userId,
-          roleId: role.id,
-          roleKey: role.key,
-          currentBrandId: organization.brandId,
-          brands: { connect: { id: organization.brandId } },
-          isActive: true,
-          isDeleted: false,
-        },
-      });
-      if (
-        (actor === member && organization === orgA) ||
-        (actor === member2 && organization === orgB)
-      )
-        organization.memberId = membership.id;
-    }
-    await prisma.user.update({
-      where: { id: actor.userId },
-      data: {
-        lastUsedOrganizationId: (actor === member ? orgA : orgB).organizationId,
-      },
-    });
-  }
+  await fixtureResults(
+    [member, member2].map(async (actor) => {
+      await fixtureResults(
+        [orgA, orgB].map(async (organization) => {
+          const membership = await fixtureDatabase(
+            `Membership ${actor.label}/${organization.organizationId}`,
+            () =>
+              prisma.member.create({
+                data: {
+                  organizationId: organization.organizationId,
+                  userId: actor.userId,
+                  roleId: role.id,
+                  roleKey: role.key,
+                  currentBrandId: organization.brandId,
+                  brands: { connect: { id: organization.brandId } },
+                  isActive: true,
+                  isDeleted: false,
+                },
+              }),
+          );
+          if (
+            (actor === member && organization === orgA) ||
+            (actor === member2 && organization === orgB)
+          )
+            organization.memberId = membership.id;
+        }),
+      );
+      await fixtureDatabase(`Active organization ${actor.label}`, () =>
+        prisma.user.update({
+          where: { id: actor.userId },
+          data: {
+            lastUsedOrganizationId: (actor === member ? orgA : orgB)
+              .organizationId,
+          },
+        }),
+      );
+    }),
+  );
   const persona = entity(
     requireSuccess(
       await request(userA, 'POST', '/v1/personas', {

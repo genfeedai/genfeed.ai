@@ -9,17 +9,22 @@ export function createRequester({
   wait = delay,
   timeoutMs,
   sweepSignal,
+  phase = 'controls',
+  now = () => performance.now(),
 }) {
   return async function request(actor, method, path, options = {}) {
     const url = new URL(path, baseUrl);
     if (url.origin !== new URL(baseUrl).origin)
       throw new Error(`Off-origin sweep request: ${url.origin}`);
     let outcome;
+    const requestPhase = options.phase ?? phase;
+    const isSetup = ['fixture', 'warmup'].includes(requestPhase);
     for (let attempt = 0; attempt < 3; attempt++) {
       sweepSignal?.throwIfAborted();
       let record;
+      const started = now();
       const timeoutSignal = AbortSignal.timeout(
-        timeoutMs ?? (method === 'GET' ? 5_000 : 10_000),
+        timeoutMs ?? (isSetup ? 60_000 : method === 'GET' ? 5_000 : 10_000),
       );
       const signal = sweepSignal
         ? AbortSignal.any([timeoutSignal, sweepSignal])
@@ -46,7 +51,7 @@ export function createRequester({
           method,
           path,
           status: response.status,
-          phase: options.phase ?? 'fixture',
+          phase: requestPhase,
           route: options.route ?? path,
           hasTenantHit: Boolean(message),
           message,
@@ -64,28 +69,39 @@ export function createRequester({
           method,
           path,
           status: 0,
-          phase: options.phase ?? 'fixture',
+          phase: requestPhase,
           route: options.route ?? path,
-          hasTenantHit: false,
-          message: null,
+          hasTenantHit: Boolean(tenantHit(String(error))),
+          message: tenantHit(String(error)),
           isTimeout: signal.aborted || error.name === 'TimeoutError',
           error: String(error),
         };
         outcome = { record, body: '', json: null };
       }
-      // Retry only a throttled request, whose handler has not run. All
-      // attempts remain in the report, including any unexpected guard hit.
-      if (record.status === 429 && !record.hasTenantHit && attempt < 2) {
+      record.durationMs = Math.round(now() - started);
+      // Setup tolerates transient cold-start failures; sweep requests retain
+      // their short deadlines and retry only throttling. Preserve every attempt.
+      const isRetryable = isSetup
+        ? [0, 502, 503, 504].includes(record.status)
+        : record.status === 429;
+      if (
+        isRetryable &&
+        !record.hasTenantHit &&
+        attempt < 2 &&
+        !sweepSignal?.aborted
+      ) {
         records.push({ ...record, isRetry: true });
         const seconds = Number(
-          outcome.headers.get('retry-after') ??
-            outcome.headers.get('x-retry-after') ??
+          outcome.headers?.get('retry-after') ??
+            outcome.headers?.get('x-retry-after') ??
             10,
         );
         await wait(
           // A long Retry-After must not turn a bounded sweep into an hour.
-          Math.min(1, Math.max(0, Number.isFinite(seconds) ? seconds : 1)) *
-            1_000,
+          isSetup
+            ? 1_000 * 2 ** attempt
+            : Math.min(1, Math.max(0, Number.isFinite(seconds) ? seconds : 1)) *
+                1_000,
           { signal: sweepSignal },
         );
         continue;
@@ -104,9 +120,12 @@ export function requireSuccess(result, label) {
     result.json?.success === false ||
     result.json?.errors
   ) {
-    throw new Error(
-      `${label}: HTTP ${result.record.status} ${result.record.message ?? result.body.slice(0, 500)}`,
+    const { method, path, status, durationMs, isTimeout } = result.record;
+    const error = new Error(
+      `${label}: HTTP ${status} (${method} ${path}, ${durationMs} ms${isTimeout ? ', request timed out' : ''}) ${result.record.message ?? result.record.error ?? result.body.slice(0, 500)}`,
     );
+    error.record = result.record;
+    throw error;
   }
   return result.json;
 }

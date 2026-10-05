@@ -571,3 +571,58 @@ test('phase durations include failed phases and render total seconds', async () 
   assert.match(durationSummary(durations), /gets: 1.25s/);
   assert.match(durationSummary(durations), /total: 2.00s/);
 });
+
+test('fixture and warm-up timeouts cannot inflate or dilute the sweep ratio gate', () => {
+  const setup = Array.from({ length: 200 }, (_, index) => ({
+    phase: index % 2 ? 'fixture' : 'warmup',
+    isTimeout: index < 100,
+    status: index < 100 ? 0 : 200,
+  }));
+  assert.deepEqual(timeoutStats(setup), {
+    count: 0,
+    requests: 0,
+    ratio: 0,
+    hasExceededLimit: false,
+  });
+  const sweep = Array.from({ length: 100 }, (_, index) => ({
+    phase: 'get',
+    isTimeout: index < 5,
+  }));
+  assert.deepEqual(timeoutStats([...setup, ...sweep]), {
+    count: 5,
+    requests: 100,
+    ratio: 0.05,
+    hasExceededLimit: false,
+  });
+  sweep[5].isTimeout = true;
+  assert.equal(timeoutStats([...setup, ...sweep]).ratio, 0.06);
+  assert.equal(timeoutStats([...setup, ...sweep]).hasExceededLimit, true);
+  const controls = [{ phase: 'controls', isTimeout: true }, { phase: 'tool' }];
+  assert.equal(timeoutStats([...setup, ...controls]).ratio, 0.5);
+});
+
+test('coverage gate ignores fixture timeouts but still fails above 5% sweep timeouts', () => {
+  const requests = ['M:A', 'M2:B', 'S', 'S:A'].flatMap((actor) =>
+    Array.from({ length: 100 }, () => ({ actor, phase: 'get', status: 200 })),
+  );
+  requests.push(
+    ...['M:A', 'S'].flatMap((actor) =>
+      Array.from({ length: 20 }, () => ({ actor, phase: 'tool', status: 200 })),
+    ),
+  );
+  const setup = Array.from({ length: 1000 }, (_, index) => ({
+    phase: index % 2 ? 'fixture' : 'warmup',
+    status: 0,
+    isTimeout: true,
+  }));
+  assert.deepEqual(coverageErrors([...setup, ...requests], 100, 20), []);
+  for (let index = 0; index < 23; index++) {
+    requests[index].isTimeout = true;
+    requests[index].status = 0;
+  }
+  assert.ok(
+    coverageErrors([...setup, ...requests], 100, 20).some((message) =>
+      message.includes('maximum 5%'),
+    ),
+  );
+});

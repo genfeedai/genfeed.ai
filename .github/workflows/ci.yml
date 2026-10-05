@@ -712,7 +712,7 @@ jobs:
   cloud-tenant-guard:
     name: Cloud Tenant Guard Sweep
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     needs: plan
     if: needs.plan.outputs.api_tests == 'true'
     services:
@@ -776,7 +776,7 @@ jobs:
           tail -n 200 "$RUNNER_TEMP/api.log"
           exit 1
       - name: Sweep handlers with tenant enforcement enabled
-        timeout-minutes: 6
+        timeout-minutes: 8
         run: bun run ci:cloud-tenant-guard-sweep
       - name: Stop API
         if: always()

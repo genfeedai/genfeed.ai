@@ -38,10 +38,12 @@ import {
 } from './core.mjs';
 import {
   activate,
+  printFixtureFailure,
   seedFixture,
   sweepOrganizationAndGrants,
+  warmup,
 } from './fixture.mjs';
-import { createRequester, requireSuccess } from './http.mjs';
+import { createRequester } from './http.mjs';
 
 // The repo root does not link every workspace package, so resolve the ones the
 // harness needs through the API workspace, which depends on both.
@@ -54,8 +56,10 @@ function importFromApiWorkspace(specifier) {
 }
 
 const started = performance.now();
-const sweepSignal = AbortSignal.timeout(230_000);
+let sweepSignal;
+let isSetup = true;
 const durations = {
+  warmup: 0,
   fixture: 0,
   discovery: 0,
   gets: 0,
@@ -97,19 +101,28 @@ try {
   prisma = client;
   const { getToolsForSurface, isReadOnlyToolName } =
     await importFromApiWorkspace('@genfeedai/actions');
+  const setupRequest = createRequester({
+    baseUrl: 'http://127.0.0.1:3010',
+    records,
+    phase: 'fixture',
+  });
+  let document;
+  try {
+    document = await measure('warmup', () => warmup(setupRequest));
+  } finally {
+    process.stdout.write(`API warm-up: ${durations.warmup} ms\n`);
+  }
+  const fixture = await measure('fixture', () =>
+    seedFixture(setupRequest, prisma),
+  );
+  isSetup = false;
+  sweepSignal = AbortSignal.timeout(230_000);
   const request = createRequester({
     baseUrl: 'http://127.0.0.1:3010',
     records,
     sweepSignal,
   });
-  const fixture = await measure('fixture', () => seedFixture(request, prisma));
-  const document = await measure('discovery', async () =>
-    requireSuccess(
-      await request(fixture.member, 'GET', '/v1/openapi.json'),
-      'Live OpenAPI',
-    ),
-  );
-  const routes = getRoutes(document);
+  const routes = await measure('discovery', async () => getRoutes(document));
   skipped.push(
     ...routes
       .filter((route) => route.skipReason)
@@ -192,6 +205,7 @@ try {
   failures.push(...coverageErrors(records, routeCount, toolCount));
 } catch (error) {
   failures.push(String(error));
+  if (isSetup) printFixtureFailure(error, records, apiLog);
 } finally {
   if (prisma)
     await prisma
@@ -207,7 +221,7 @@ try {
   const warnings = records.filter(
     (result) => result.status >= 500 && !result.hasTenantHit,
   );
-  if (sweepSignal.aborted)
+  if (sweepSignal?.aborted)
     failures.push('Sweep exceeded its 230-second wall-clock budget');
   const timeouts = timeoutStats(records);
   durations.total = Math.round(performance.now() - started);

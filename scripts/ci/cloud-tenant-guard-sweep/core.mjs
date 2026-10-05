@@ -340,8 +340,12 @@ export async function sweepTools(
 }
 
 export function timeoutStats(requests) {
-  // Count logical requests, so 429 retries cannot dilute missing evidence.
-  const attempted = requests.filter((result) => !result.isRetry);
+  // Setup failures stop the fixture separately. Neither setup attempts nor
+  // retries may inflate or dilute the sweep's missing-evidence ratio.
+  const attempted = requests.filter(
+    (result) =>
+      !result.isRetry && !['fixture', 'warmup'].includes(result.phase),
+  );
   const count = attempted.filter((result) => result.isTimeout).length;
   return {
     count,

@@ -344,10 +344,10 @@ test('CLOUD guard boots the real API with ephemeral services and uploads evidenc
   const workflow = readWorkflow('ci.yml');
   const job = jobBlock(workflow, 'cloud-tenant-guard', 'ci.yml');
   assert.match(job, /^ {4}name: Cloud Tenant Guard Sweep$/m);
-  assert.match(job, /^ {4}timeout-minutes: 20$/m);
+  assert.match(job, /^ {4}timeout-minutes: 15$/m);
   assert.match(
     job,
-    /Sweep handlers with tenant enforcement enabled\n {8}timeout-minutes: 6/,
+    /Sweep handlers with tenant enforcement enabled\n {8}timeout-minutes: 8/,
   );
   assert.match(
     workflow,
