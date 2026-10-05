@@ -172,7 +172,7 @@ test.describe('Shell — navigation interactions', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('app rail lists every app with Agent first and navigates', async ({
+  test('app rail lists daily apps with Workspace first and navigates', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
@@ -189,7 +189,7 @@ test.describe('Shell — navigation interactions', () => {
     });
 
     const firstLink = rail.getByRole('link').first();
-    await expect(firstLink).toHaveAttribute('aria-label', /^Agent/);
+    await expect(firstLink).toHaveAttribute('aria-label', /^Workspace/);
     await expect(
       rail.getByRole('link', { name: /^Workspace/ }),
     ).toHaveAttribute('aria-current', 'page');
@@ -306,12 +306,20 @@ test.describe('Shell — navigation interactions', () => {
           authenticatedPage.getByTestId('mobile-app-rail'),
         ).toBeVisible();
       } else {
-        await expect(organization).toContainText(LONG_ORGANIZATION_NAME, {
-          useInnerText: true,
-        });
-        await expect(brand).toContainText(LONG_BRAND_NAME, {
-          useInnerText: true,
-        });
+        await expect(organization).toHaveCSS('text-transform', 'capitalize');
+        await expect(organization).toContainText(
+          LONG_ORGANIZATION_NAME.replace(' and ', ' And '),
+          {
+            useInnerText: true,
+          },
+        );
+        await expect(brand).toHaveCSS('text-transform', 'capitalize');
+        await expect(brand).toContainText(
+          LONG_BRAND_NAME.replace(' and ', ' And '),
+          {
+            useInnerText: true,
+          },
+        );
       }
       await assertHealthy(authenticatedPage);
     });

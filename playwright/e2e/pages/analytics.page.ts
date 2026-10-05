@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
 import { brandPath, sidebarLocator } from '../utils/app-chrome';
 
@@ -91,7 +92,13 @@ export class AnalyticsPage {
   async gotoSection(
     section: 'overview' | 'trends' | 'hooks' | 'insights' | 'accounts',
   ): Promise<void> {
-    await this.page.goto(brandPath(`/analytics/${section}`));
+    await this.page.goto(
+      brandPath(
+        section === 'trends'
+          ? APP_ROUTES.DISCOVERY.TRENDS
+          : `/analytics/${section}`,
+      ),
+    );
     await this.waitForPageLoad();
   }
 
@@ -125,8 +132,15 @@ export class AnalyticsPage {
   }
 
   async navigateToTrends(): Promise<void> {
-    await this.trendsTab.click();
-    await this.page.waitForURL(/\/analytics\/trends(?:[/?#]|$)/);
+    await this.page
+      .getByTestId('desktop-app-rail')
+      .getByTestId('app-rail-more')
+      .click();
+    await this.page.getByRole('link', { name: /^Discovery/ }).click();
+    await sidebarLocator(this.page)
+      .getByRole('link', { name: 'Trends', exact: true })
+      .click();
+    await this.page.waitForURL(/\/discovery\/trends(?:[/?#]|$)/);
   }
 
   async navigateToHooks(): Promise<void> {

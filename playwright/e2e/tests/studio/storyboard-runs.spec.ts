@@ -97,7 +97,9 @@ test.describe('Storyboard runs', () => {
             status: 404,
             contentType: 'application/json',
             body: JSON.stringify({
-              errors: [{ status: '404', title: 'Not found' }],
+              errors: [
+                { status: '404', title: 'Not found', detail: 'Run not found.' },
+              ],
             }),
           });
       },

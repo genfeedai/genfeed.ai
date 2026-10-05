@@ -8,11 +8,8 @@ import {
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type { IEditorProject } from '@genfeedai/contracts/interfaces';
-import {
-  createAuthenticatedPage,
-  expect,
-  test,
-} from '../../fixtures/auth.fixture';
+import { expect, test } from '../../fixtures/auth.fixture';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 // biome-ignore lint/suspicious/noUndeclaredEnvVars: this direct Playwright visual fixture input is outside Turbo caching.
 const previewFixtureDirectory = process.env.STORYBOARD_PREVIEW_FIXTURE_DIR;
@@ -51,7 +48,7 @@ const time = '2026-09-30T00:00:00.000Z';
 const run: StoryboardRun = {
   id: 'draft-coffee',
   brandId: 'brand-1',
-  organizationId: 'org-1',
+  organizationId: 'mock-org-id-e2e-test',
   createdAt: time,
   updatedAt: time,
   config: {
@@ -59,7 +56,7 @@ const run: StoryboardRun = {
     version: 1,
     revision: 1,
     clientRequestId: 'f86c1871-d577-4dca-b79d-6d9f295a58cc',
-    createdByUserId: 'user-1',
+    createdByUserId: 'mock-user-id-e2e-test',
     submittedInputHash: 'a'.repeat(64),
     state: 'storyboard',
     sourceSnapshot: {
@@ -110,10 +107,6 @@ test('edits and approves a persisted draft through the actual route with loaded 
   authenticatedPage: page,
 }, testInfo) => {
   test.setTimeout(180_000);
-  await createAuthenticatedPage(page, page.context(), {
-    organizationId: 'org-1',
-    userId: 'user-1',
-  });
   let current = structuredClone(run);
   const writes: string[] = [];
   const pageErrors: string[] = [];
@@ -179,7 +172,7 @@ test('edits and approves a persisted draft through the actual route with loaded 
             type: 'images',
             attributes: {
               brandId: 'brand-1',
-              organizationId: 'org-1',
+              organizationId: 'mock-org-id-e2e-test',
               category: 'IMAGE',
               isDeleted: false,
               cdnUrl: `https://cdn.genfeed.ai/fixture/${id}.jpg`,
@@ -494,10 +487,6 @@ test('edits and approves a persisted draft through the actual route with loaded 
 test('creates an unpaid brief draft and saves added shots through the real routes', async ({
   authenticatedPage: page,
 }) => {
-  await createAuthenticatedPage(page, page.context(), {
-    organizationId: 'org-1',
-    userId: 'user-1',
-  });
   let created: StoryboardRun | undefined;
   const mutations: string[] = [];
   await page.route('**/brands/brand-1/storyboard-runs**', async (route) => {
@@ -602,10 +591,6 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
   authenticatedPage: page,
 }, testInfo) => {
   test.setTimeout(180_000);
-  await createAuthenticatedPage(page, page.context(), {
-    organizationId: 'org-1',
-    userId: 'user-1',
-  });
   let current = structuredClone(run);
   const mutations: { path: string; revision: number }[] = [];
   const pageErrors: string[] = [];
@@ -715,7 +700,7 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
             type: 'images',
             attributes: {
               brandId: 'brand-1',
-              organizationId: 'org-1',
+              organizationId: 'mock-org-id-e2e-test',
               category: 'IMAGE',
               isDeleted: false,
               cdnUrl: `https://cdn.genfeed.ai/fixture/${id}.jpg`,
@@ -761,6 +746,7 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
     .toBe('First in-flight title');
   await title.fill('Latest edit while saving');
   await sidebar.click();
+  await expect(page).toHaveURL(/\/studio\/generate$/);
   release?.();
   await expect
     .poll(() => current.config.plan.title)
@@ -799,6 +785,7 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
   const writesBeforeReopen = mutations.length;
   await page.getByRole('radio', { name: 'Your edit', exact: true }).click();
   await sidebar.click();
+  await expect(page).toHaveURL(/\/studio\/generate$/);
   await page.goBack();
   await expect(
     page.getByText('Review concurrent edits', { exact: true }),
@@ -852,17 +839,14 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
     (mutations.at(-2)?.revision ?? 0) + 1,
   );
   expect(pageErrors).toEqual([]);
-  await expect(page.locator('nextjs-portal')).not.toContainText(/error/i);
+  await assertNoErrorBoundaryFallback(page, new URL(page.url()).pathname);
+  await expect(page.locator('[data-nextjs-dialog]')).toHaveCount(0);
 });
 
 test('requires decoded still responses and permits a loaded shot while a 404, 403 or decode failure blocks full playback', async ({
   authenticatedPage: page,
 }) => {
   test.setTimeout(120_000);
-  await createAuthenticatedPage(page, page.context(), {
-    organizationId: 'org-1',
-    userId: 'user-1',
-  });
   let failure: '404' | '403' | 'decode' | undefined = '404';
   const pageErrors: string[] = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
@@ -904,7 +888,7 @@ test('requires decoded still responses and permits a loaded shot while a 404, 40
             type: 'images',
             attributes: {
               brandId: 'brand-1',
-              organizationId: 'org-1',
+              organizationId: 'mock-org-id-e2e-test',
               category: 'IMAGE',
               isDeleted: false,
               cdnUrl: `https://cdn.genfeed.ai/fixture/${id}.jpg`,

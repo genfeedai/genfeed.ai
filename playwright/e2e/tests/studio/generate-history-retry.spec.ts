@@ -57,16 +57,26 @@ for (const colorScheme of ['light', 'dark'] as const) {
       }, colorScheme);
       await mockActiveSubscription(page, { credits: 1000, plan: 'pro' });
       let galleryRequests = 0;
+      const requestsByCategory: Record<string, number> = {};
       let release!: () => void;
       const pending = new Promise<void>((resolve) => {
         release = resolve;
       });
       const gallery = async (route: Route) => {
+        const url = new URL(route.request().url());
         if (
           route.request().method() !== 'GET' ||
-          !new URL(route.request().url()).searchParams.has('categories')
+          !url.searchParams.has('categories')
         ) {
           await route.fallback();
+          return;
+        }
+        // All loads one bounded page per category. Only the video page fails;
+        // its initial read and keyboard retry are the two requests counted below.
+        const category = url.searchParams.get('categories') ?? '';
+        requestsByCategory[category] = (requestsByCategory[category] ?? 0) + 1;
+        if (category !== 'VIDEO') {
+          await route.fulfill({ json: { data: [] } });
           return;
         }
         galleryRequests += 1;
@@ -221,6 +231,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
       ).toHaveCount(0);
       await expectHistoryHasNoBlockingErrors(page);
       expect(galleryRequests).toBe(2);
+      expect(requestsByCategory).toEqual({
+        GIF: 2,
+        IMAGE: 2,
+        MUSIC: 2,
+        VIDEO: 2,
+        VOICE: 2,
+      });
       await expect(composer).toBeEnabled();
       await composer.fill('Composer remains usable after history recovery');
       await expect(composer).toHaveText(
@@ -230,7 +247,15 @@ for (const colorScheme of ['light', 'dark'] as const) {
         path: testInfo.outputPath('after-retry.png'),
         fullPage: true,
       });
-      if (colorScheme === 'light' && viewport.width === 1440) {
+      const devOverlay = page.getByRole('button', {
+        name: 'Open issues overlay',
+        exact: true,
+      });
+      if (
+        colorScheme === 'light' &&
+        viewport.width === 1440 &&
+        (await devOverlay.isVisible())
+      ) {
         await page
           .getByRole('button', { name: 'Open issues overlay', exact: true })
           .click();

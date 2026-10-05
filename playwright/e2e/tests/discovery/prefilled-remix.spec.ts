@@ -194,7 +194,7 @@ async function routeTikTokTrend(page: Page): Promise<void> {
 }
 
 async function openTikTokTrendFeed(page: Page): Promise<void> {
-  await page.goto(`${BRAND_BASE}/analytics/trends/platforms/tiktok`);
+  await page.goto(`${BRAND_BASE}/discovery/trends/platforms/tiktok`);
   await page
     .getByTestId('section-topbar')
     .filter({
@@ -362,6 +362,27 @@ async function routeRemixRun(
 }
 
 test.describe('Discovery prefilled remix handoff', () => {
+  test.beforeEach(async ({ authenticatedPage }) => {
+    // Discovery runs are absent from the native storyboard collection; a 404
+    // selects the supported legacy Remix renderer.
+    await authenticatedPage.route(
+      '**/brands/brand-1/storyboard-runs/*',
+      (route) =>
+        route.fulfill({
+          status: 404,
+          json: {
+            errors: [
+              {
+                status: '404',
+                title: 'Not Found',
+                detail: 'Storyboard run not found',
+              },
+            ],
+          },
+        }),
+    );
+  });
+
   test('takes an eligible TikTok trend through Review approval to a Publishing draft', async ({
     authenticatedPage,
   }) => {
@@ -752,7 +773,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     ).toBeVisible();
     await expect
       .poll(() => new URL(authenticatedPage.url()).pathname)
-      .toBe(`${BRAND_BASE}/analytics/trends/platforms/tiktok`);
+      .toBe(`${BRAND_BASE}/discovery/trends/platforms/tiktok`);
   });
 
   test('restores grouped processing outputs and reconciles completion', async ({
@@ -828,7 +849,7 @@ test.describe('Discovery prefilled remix handoff', () => {
 
     const panel = authenticatedPage.getByRole('region', { name: 'Remix run' });
     await expect(panel).toBeVisible();
-    await expect(panel.getByText('variant-restored-1')).toBeVisible();
+    await expect(panel.getByText('Output 1', { exact: true })).toBeVisible();
     await expect(panel.getByText('Processing')).toBeVisible();
     isReady = true;
     await expect(

@@ -2,22 +2,7 @@ import { APP_ROUTES, ONBOARDING_STEPS } from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
-/**
- * Page Object Model for the onboarding wizard screens
- * (brand → providers → summary) plus the success screen.
- *
- * On web the wizard is agent-first: brand is the only screen a cloud operator
- * is walked through, and continuing from it hands off to the
- * `/agent/onboarding` conversation. Providers and summary stay reachable as
- * their own destinations, so specs enter that tail directly via `goto()`.
- *
- * The brand step itself resolves one of two phases before it auto-advances:
- * `loading` for a work-domain signup (skips straight through), or
- * `website-prompt` for a personal-inbox signup, which needs a website URL
- * (or an explicit skip) before the loading phase begins.
- *
- * @module onboarding.page
- */
+/** Wizard pages and the approval-gated brand guide (#6013). */
 
 export class OnboardingPage {
   readonly page: Page;
@@ -30,6 +15,7 @@ export class OnboardingPage {
   readonly loadingSpinner: Locator;
 
   readonly websiteUrlInput: Locator;
+  readonly scanButton: Locator;
 
   readonly providerCards: Locator;
   readonly providerContinueButton: Locator;
@@ -48,7 +34,10 @@ export class OnboardingPage {
     this.skipButton = page.getByRole('button', { name: /Skip for now/i });
     this.loadingSpinner = page.locator('.animate-spin');
 
-    this.websiteUrlInput = page.locator('#brand-website-url');
+    this.websiteUrlInput = page.getByLabel('Website URL', { exact: true });
+    this.scanButton = page.getByRole('button', {
+      name: /^Scan website(?: again)?$/i,
+    });
 
     this.providerCards = page.locator('.provider-card');
     this.providerContinueButton = page.getByRole('button', {
@@ -102,49 +91,52 @@ export class OnboardingPage {
       .toBe(expectedPath);
   }
 
-  /**
-   * Work-domain signups skip the website prompt entirely — the brand step
-   * lands on the loading phase as soon as `currentUser` resolves and
-   * auto-advances the wizard from there.
-   */
-  async waitForLoadingPhase(): Promise<void> {
-    await expect(this.headline).toHaveText('Setting up your workspace');
+  async assertScanPending(): Promise<void> {
+    await expect(this.headline).toHaveText('Review your brand guide');
+    await expect(this.scanButton).toBeDisabled();
+    await expect(this.websiteUrlInput).toBeDisabled();
   }
 
-  /**
-   * Personal-inbox signups (gmail.com, …) see this instead of the loading
-   * phase — `resolveSignupBrandDomain` found no brand signal to seed from.
-   */
-  async waitForWebsitePromptPhase(): Promise<void> {
-    await expect(this.headline).toHaveText("What's your website?");
+  async waitForBrandGuide(): Promise<void> {
+    await expect(this.headline).toHaveText('Review your brand guide');
+    await expect(this.websiteUrlInput).toBeEnabled();
   }
 
-  /**
-   * Holds brand setup on its loading step: setup awaits the organization
-   * account-type PATCH, so that response waits until the returned release
-   * runs. Register it before the action that starts setup.
-   */
-  async holdBrandSetup(): Promise<() => void> {
+  /** Hold the scan response while asserting the pending controls. */
+  async holdWebsiteScan(): Promise<() => void> {
     let release: () => void = () => {};
     const isReleased = new Promise<void>((resolve) => {
       release = resolve;
     });
 
-    await this.page.route(/\/organizations\/[^/?]+$/, async (route) => {
-      if (route.request().method() === 'PATCH') {
-        await isReleased;
-      }
-      await route.fallback();
-    });
+    await this.page.route(
+      /\/brands\/brand-1\/brand-os\/scan$/,
+      async (route) => {
+        if (route.request().method() === 'POST') {
+          await isReleased;
+        }
+        await route.fallback();
+      },
+    );
 
     return release;
   }
 
-  /** Continues from the website prompt, optionally filling in a website. */
-  async continueFromWebsitePrompt(websiteUrl?: string): Promise<void> {
+  /** Start a website scan from the brand guide. */
+  async scanWebsite(websiteUrl?: string): Promise<void> {
     if (websiteUrl) {
       await this.websiteUrlInput.fill(websiteUrl);
     }
+    await this.scanButton.click();
+  }
+
+  async approveAndContinueBrand(): Promise<void> {
+    await expect(this.headline).toHaveText('Review your brand guide');
+    await expect(this.continueButton).toBeDisabled();
+    await this.page
+      .getByRole('button', { name: /^Approve revision$/i })
+      .click();
+    await expect(this.continueButton).toBeEnabled();
     await this.continueButton.click();
   }
 
