@@ -141,7 +141,7 @@ describe('app root layout', () => {
       vi.stubEnv('NEXT_PUBLIC_BETTER_AUTH_ENABLED', 'false');
       vi.spyOn(authConfig, 'isBetterAuthEnabled').mockReturnValue(false);
       const { default: RootLayout } = await import('./layout');
-      const { GET } = await import('./runtime-config.js/route');
+      const { GET } = await import('@app/runtime-config.js/route');
       const { default: RuntimeConfigScript } = await vi.importActual<
         typeof import('@/components/runtime/RuntimeConfigScript')
       >('@/components/runtime/RuntimeConfigScript');
