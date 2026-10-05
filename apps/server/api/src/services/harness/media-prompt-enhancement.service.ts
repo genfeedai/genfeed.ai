@@ -98,6 +98,7 @@ export class MediaPromptEnhancementService {
         contentType: input.contentType,
         topic: input.prompt,
         includeContentMemory: true,
+        surface: 'media',
         ...(knowledgeSelection ? { knowledgeSelection } : {}),
       });
       if (!brief) throw new Error('Harness brief is unavailable');

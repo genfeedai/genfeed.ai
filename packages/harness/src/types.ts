@@ -148,11 +148,25 @@ export interface ContentHarnessBrief {
   };
 }
 
+/**
+ * Where a composed brief is consumed. `copy` is text the audience reads (post
+ * copy, scripts, hooks); `media` is a prompt sent to an image, video or audio
+ * model. Copywriting rules in a media prompt are read as scene content.
+ */
+export type ContentHarnessSurface = 'copy' | 'media';
+
+export interface ComposeContentHarnessBriefOptions {
+  /** Only packs applicable to this surface contribute; absent means all. */
+  surface?: ContentHarnessSurface;
+}
+
 export interface ContentHarnessPack {
   id: string;
   version: string;
   description?: string;
   capabilities?: string[];
+  /** Surfaces this pack contributes to. Absent means every surface. */
+  surfaces?: ContentHarnessSurface[];
   contribute?:
     | ((
         input: ContentHarnessInput,

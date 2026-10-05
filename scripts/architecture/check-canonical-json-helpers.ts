@@ -4,7 +4,8 @@
  * Canonical JSON feeds persisted integrity hashes, idempotency keys and
  * logical-write keys, so copies that disagree on edge cases silently break
  * those hashes. Use `stableStringify` / `sha256Hex` from
- * `@libs/utils/canonical-hash.util`. Files that legitimately keep their own
+ * `@libs/utils/canonical-hash.util` (or `stableStringify` from
+ * `@genfeedai/contracts/constants/canonical-json.constant` where libs is not a dependency). Files that legitimately keep their own
  * implementation are listed below with the reason; a stale entry also fails.
  */
 
@@ -12,7 +13,12 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 
-const SHARED_HELPER_FILE = 'packages/libs/utils/canonical-hash.util.ts';
+// The canonical implementation lives in contracts so packages that cannot
+// depend on libs (e.g. @genfeedai/actions) share it; libs re-exports it.
+const SHARED_HELPER_FILES = new Set([
+  'packages/contracts/src/constants/canonical-json.constant.ts',
+  'packages/libs/utils/canonical-hash.util.ts',
+]);
 
 const DEFAULT_INCLUDE_GLOBS = [
   'apps/**/*.{ts,tsx}',
@@ -62,16 +68,6 @@ export type CanonicalJsonOptions = {
 };
 
 export const CANONICAL_JSON_ALLOWANCES: CanonicalJsonAllowance[] = [
-  {
-    file: 'apps/server/api/src/collections/workflows/workflow-version-definition.ts',
-    reason:
-      'Persisted contentHash: no null fallback, so a nested undefined serializes as the text "undefined". Not byte-identical to the shared helper; unifying needs a rehash decision (#5912).',
-  },
-  {
-    file: 'packages/actions/src/server/logical-write-key.ts',
-    reason:
-      'Persisted logical-write keys: same undefined divergence as workflow-version-definition, and packages/actions has no dependency on libs/utils (#5912).',
-  },
   {
     file: 'apps/server/api/src/agent-artifacts/agent-artifact-material.util.ts',
     reason:
@@ -162,7 +158,7 @@ export function runCheckCanonicalJsonHelpers(
     }
     const { file } = occurrences[0];
     filesWithMatches.add(file);
-    if (file === SHARED_HELPER_FILE || allowed.has(file)) {
+    if (SHARED_HELPER_FILES.has(file) || allowed.has(file)) {
       continue;
     }
     violations.push({

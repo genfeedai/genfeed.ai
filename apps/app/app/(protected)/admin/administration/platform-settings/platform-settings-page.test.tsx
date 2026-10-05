@@ -1,10 +1,18 @@
 import * as domMatchers from '@testing-library/jest-dom/matchers';
 import '@testing-library/jest-dom/vitest';
 
-vi.mock('./system-notifications-panel', () => ({ default: () => null }));
+vi.mock('./system-notifications-panel', () => ({
+  default: () => <div data-testid="system-notifications-panel" />,
+}));
 
 import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import {
   type ButtonHTMLAttributes,
   Children,
@@ -92,14 +100,33 @@ vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
     description,
+    headerTabs,
     label,
   }: {
     children: ReactNode;
     description: string;
+    headerTabs?: {
+      activeTab: string;
+      onTabChange: (tabId: string) => void;
+      tabs: { id: string; label: string }[];
+    };
     label: string;
   }) => (
     <section aria-label={label}>
       <p>{description}</p>
+      <div role="tablist">
+        {headerTabs?.tabs.map((tab) => (
+          <button
+            key={tab.id}
+            aria-selected={headerTabs.activeTab === tab.id}
+            onClick={() => headerTabs.onTabChange(tab.id)}
+            role="tab"
+            type="button"
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
       {children}
     </section>
   ),
@@ -227,6 +254,19 @@ vi.mock('@ui/primitives/select', () => {
     SelectValue: () => null,
   };
 });
+
+/** A short-labelled field inside the settings group titled `group`. */
+function fieldIn(group: string, label: string): HTMLElement {
+  return within(screen.getByRole('region', { name: group })).getByLabelText(
+    label,
+  );
+}
+
+/** Switch the page to a settings tab once it has loaded. */
+async function openTab(name: string): Promise<void> {
+  await screen.findByRole('button', { name: /save settings/i });
+  fireEvent.click(screen.getByRole('tab', { name }));
+}
 
 describe('PlatformSettingsPage', () => {
   beforeEach(() => {
@@ -386,6 +426,100 @@ describe('PlatformSettingsPage', () => {
     expect(mocks.updateSettings).not.toHaveBeenCalled();
   });
 
+  describe('tabs', () => {
+    it('opens on Billing and shows one settings tab at a time', async () => {
+      render(<PlatformSettingsPage />);
+
+      await screen.findByRole('button', { name: /save settings/i });
+      expect(screen.getByRole('tab', { name: 'Billing' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+      expect(
+        screen.queryByRole('switch', { name: /media perception/i }),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('tab', { name: 'Media' }));
+
+      expect(
+        screen.getByRole('switch', { name: /media perception/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('spinbutton', { name: 'Generation margin (%)' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps edits from every tab and saves them together', async () => {
+      render(<PlatformSettingsPage />);
+
+      await openTab('Media');
+      fireEvent.click(
+        screen.getByRole('switch', { name: /media perception/i }),
+      );
+      fireEvent.click(screen.getByRole('tab', { name: 'Accounts' }));
+      fireEvent.click(
+        screen.getByRole('switch', { name: /record system events/i }),
+      );
+      fireEvent.click(screen.getByRole('tab', { name: 'Billing' }));
+      fireEvent.change(screen.getByLabelText('Generation margin (%)'), {
+        target: { value: '75' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+      await waitFor(() => expect(mocks.updateSettings).toHaveBeenCalled());
+      const [payload] = mocks.updateSettings.mock.calls[0] ?? [];
+      expect(payload).toMatchObject({
+        isMediaPerceptionEnabled: false,
+        marginMultiplierGeneration: 4,
+      });
+      expect(payload?.systemEventsEnabledAt).toEqual(expect.any(String));
+    });
+
+    it('opens the tab holding an invalid field when a save is refused', async () => {
+      render(<PlatformSettingsPage />);
+
+      await openTab('AI');
+      fireEvent.change(fieldIn('Untrusted content', 'Min confidence'), {
+        target: { value: '1.5' },
+      });
+      fireEvent.click(screen.getByRole('tab', { name: 'Billing' }));
+      fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+      expect(mocks.updateSettings).not.toHaveBeenCalled();
+      expect(screen.getByRole('tab', { name: 'AI' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Enter a number from 0 to 1',
+      );
+    });
+
+    it('keeps destinations and Discord channels together under Notifications', async () => {
+      render(<PlatformSettingsPage />);
+
+      await screen.findByRole('button', { name: /save settings/i });
+      expect(
+        screen.queryByTestId('system-notifications-panel'),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('tab', { name: 'Notifications' }));
+      expect(
+        screen.getByTestId('system-notifications-panel'),
+      ).toBeInTheDocument();
+      fireEvent.change(fieldIn('Discord channels', 'Deployments'), {
+        target: { value: '123' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+      await waitFor(() =>
+        expect(mocks.updateSettings).toHaveBeenCalledWith(
+          expect.objectContaining({ discordChannelIdDeployments: '123' }),
+        ),
+      );
+    });
+  });
+
   describe('product feature switches (#5407)', () => {
     it('loads the stored switches', async () => {
       mocks.getSettings.mockResolvedValue({
@@ -404,9 +538,11 @@ describe('PlatformSettingsPage', () => {
       });
       render(<PlatformSettingsPage />);
 
+      await openTab('Media');
       expect(
-        await screen.findByRole('switch', { name: /media perception/i }),
+        screen.getByRole('switch', { name: /media perception/i }),
       ).not.toBeChecked();
+      fireEvent.click(screen.getByRole('tab', { name: 'Accounts' }));
       expect(
         screen.getByRole('switch', { name: /require email verification/i }),
       ).toBeChecked();
@@ -415,9 +551,8 @@ describe('PlatformSettingsPage', () => {
       );
       expect(screen.getByLabelText('Sexual')).toHaveValue(0.4);
       expect(screen.getByLabelText('Violence')).toHaveValue(null);
-      expect(
-        screen.getByLabelText('Task routing minimum confidence'),
-      ).toHaveValue(0.9);
+      fireEvent.click(screen.getByRole('tab', { name: 'AI' }));
+      expect(fieldIn('Task routing', 'Min confidence')).toHaveValue(0.9);
       expect(
         screen.getByText('Recording since 2026-09-20T10:00:00.000Z'),
       ).toBeInTheDocument();
@@ -435,7 +570,8 @@ describe('PlatformSettingsPage', () => {
       });
       render(<PlatformSettingsPage />);
 
-      const toggle = await screen.findByRole('switch', {
+      await openTab('Accounts');
+      const toggle = screen.getByRole('switch', {
         name: /require email verification/i,
       });
       expect(toggle).toBeDisabled();
@@ -460,7 +596,8 @@ describe('PlatformSettingsPage', () => {
       });
       render(<PlatformSettingsPage />);
 
-      const toggle = await screen.findByRole('switch', {
+      await openTab('Accounts');
+      const toggle = screen.getByRole('switch', {
         name: /require email verification/i,
       });
       expect(toggle).toBeEnabled();
@@ -480,7 +617,8 @@ describe('PlatformSettingsPage', () => {
       });
       render(<PlatformSettingsPage />);
 
-      const toggle = await screen.findByRole('switch', {
+      await openTab('Accounts');
+      const toggle = screen.getByRole('switch', {
         name: /require email verification/i,
       });
       expect(toggle).toBeEnabled();
@@ -490,8 +628,9 @@ describe('PlatformSettingsPage', () => {
     it('saves edited switches with the rest of the settings', async () => {
       render(<PlatformSettingsPage />);
 
+      await openTab('Media');
       fireEvent.click(
-        await screen.findByRole('switch', { name: /media perception/i }),
+        screen.getByRole('switch', { name: /media perception/i }),
       );
       fireEvent.change(screen.getByTestId('platform-moderation-mode'), {
         target: { value: 'live' },
@@ -499,10 +638,10 @@ describe('PlatformSettingsPage', () => {
       fireEvent.change(screen.getByLabelText('Violence'), {
         target: { value: '0.55' },
       });
-      fireEvent.change(
-        screen.getByLabelText('Reply-bot intent minimum confidence'),
-        { target: { value: '0.7' } },
-      );
+      fireEvent.click(screen.getByRole('tab', { name: 'AI' }));
+      fireEvent.change(fieldIn('Reply-bot intent', 'Min confidence'), {
+        target: { value: '0.7' },
+      });
       fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
 
       await waitFor(() => {
@@ -564,9 +703,8 @@ describe('PlatformSettingsPage', () => {
     it('blocks saving while a switch value is invalid', async () => {
       render(<PlatformSettingsPage />);
 
-      const input = await screen.findByLabelText(
-        'Untrusted-content minimum confidence',
-      );
+      await openTab('AI');
+      const input = fieldIn('Untrusted content', 'Min confidence');
       fireEvent.change(input, { target: { value: '1.5' } });
 
       expect(
@@ -593,8 +731,9 @@ describe('PlatformSettingsPage', () => {
       const before = Date.now();
       render(<PlatformSettingsPage />);
 
+      await openTab('Accounts');
       fireEvent.click(
-        await screen.findByRole('switch', { name: /record system events/i }),
+        screen.getByRole('switch', { name: /record system events/i }),
       );
       fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
 
