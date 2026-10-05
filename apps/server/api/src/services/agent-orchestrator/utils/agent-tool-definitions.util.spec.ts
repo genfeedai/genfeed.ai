@@ -31,6 +31,8 @@ describe('self-hosted onboarding tool boundary', () => {
     vi.stubEnv('GENFEED_CLOUD', undefined);
 
     const tools = resolveToolNames('onboarding');
+    expect(tools).toContain('scan_brand_url');
+    expect(tools).toContain('save_onboarding_answers');
 
     expect(tools).not.toContain('present_payment_options');
     expect(tools).not.toContain('generate_monthly_content');
@@ -48,6 +50,8 @@ describe('self-hosted onboarding tool boundary', () => {
     vi.stubEnv('GENFEED_CLOUD', '1');
 
     const tools = resolveToolNames('onboarding');
+    expect(tools).toContain('scan_brand_url');
+    expect(tools).toContain('save_onboarding_answers');
 
     expect(tools).toContain('present_payment_options');
     expect(tools).toContain('generate_monthly_content');
@@ -62,14 +66,50 @@ describe('self-hosted onboarding tool boundary', () => {
     expect(tools).toContain('generate_monthly_content');
   });
 
-  it('does not block any tool on cloud non-onboarding turns', () => {
+  it('blocks onboarding-only tools on cloud non-onboarding turns', () => {
     vi.stubEnv('GENFEED_CLOUD', '1');
 
     const tools = resolveToolNames('agent');
 
-    expect(resolveBlockedTools({ source: 'agent' })).toBeUndefined();
+    expect(resolveBlockedTools({ source: 'agent' })).toEqual([
+      'scan_brand_url',
+      'save_onboarding_answers',
+    ]);
     expect(tools).toContain('present_payment_options');
     expect(tools).toContain('generate_monthly_content');
+  });
+
+  it.each([undefined, 'agent', 'proactive'])(
+    'blocks onboarding writes for source %s in both deployment modes',
+    (source) => {
+      for (const cloud of [undefined, '1']) {
+        vi.stubEnv('GENFEED_CLOUD', cloud);
+        expect(resolveToolNames(source)).not.toContain('scan_brand_url');
+        expect(resolveToolNames(source)).not.toContain(
+          'save_onboarding_answers',
+        );
+      }
+    },
+  );
+
+  it('adds onboarding tools to a general allow-list only on onboarding turns', () => {
+    const allowed: CuratedActionName[] = ['get_brand_context'];
+    expect(
+      buildToolDefinitions(
+        allowed,
+        resolveBlockedTools({ source: 'onboarding' }),
+        'onboarding',
+      ).map((tool) => tool.function.name),
+    ).toEqual(
+      expect.arrayContaining(['scan_brand_url', 'save_onboarding_answers']),
+    );
+    expect(
+      buildToolDefinitions(
+        allowed,
+        resolveBlockedTools({ source: 'agent' }),
+        'agent',
+      ).map((tool) => tool.function.name),
+    ).toEqual(['get_brand_context']);
   });
 
   it('applies blocked tools after an allow-list', () => {

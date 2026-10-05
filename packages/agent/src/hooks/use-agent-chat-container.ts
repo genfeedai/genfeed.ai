@@ -692,7 +692,7 @@ export function useAgentChatContainer({
   const sendFollowUpNow = followUpQueue.sendNow;
 
   const handleSubmitInputRequest = useCallback(
-    async (answer: string) => {
+    async (answer: string, optionIds?: string[]) => {
       const normalizedAnswer = answer.trim();
       const request = pendingInputRequest;
       if (!normalizedAnswer || !request) {
@@ -730,6 +730,7 @@ export function useAgentChatContainer({
               expectedContextVersion: thread?.contextVersion,
             };
           })(),
+          optionIds,
         );
         if (handoff) {
           if (response?.executionId) {

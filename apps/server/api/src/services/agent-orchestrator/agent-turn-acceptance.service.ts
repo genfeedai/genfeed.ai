@@ -19,6 +19,7 @@ import {
   normalizeAgentThreadMode,
 } from '@genfeedai/contracts';
 import {
+  type AgentInputRequestOption,
   toAgentScopeMetadata,
   type ValidatedAgentScope,
 } from '@genfeedai/contracts/interfaces';
@@ -26,6 +27,29 @@ import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+
+function matchMultiSelectOptions(
+  content: string,
+  options: AgentInputRequestOption[],
+): AgentInputRequestOption[] {
+  let remaining = content.trim();
+  const selected = new Map<string, AgentInputRequestOption>();
+  const sorted = [...options].sort((a, b) => b.label.length - a.label.length);
+  while (remaining) {
+    const option = sorted.find((candidate) => {
+      const label = candidate.label.toLowerCase();
+      const text = remaining.toLowerCase();
+      return text === label || text.startsWith(`${label},`);
+    });
+    if (!option) return [];
+    selected.set(option.id, option);
+    remaining = remaining
+      .slice(option.label.length)
+      .replace(/^,\s*/, '')
+      .trim();
+  }
+  return [...selected.values()];
+}
 
 const AGENT_TURN_WORKFLOW_ID = 'agent.turn.execute';
 const ARCHIVED_THREAD_WRITE_ERROR =
@@ -327,7 +351,18 @@ export class AgentTurnAcceptanceService {
             option.id === content ||
             option.label.toLowerCase() === content.toLowerCase(),
         );
-        if (pending.allowFreeText !== false || matchingOption) {
+        const selectedOptions =
+          pending.isMultiSelect === true
+            ? matchMultiSelectOptions(content, pending.options)
+            : [];
+        const hasValidSelections =
+          selectedOptions.length > 0 &&
+          selectedOptions.every((option) => option !== undefined);
+        if (
+          pending.allowFreeText !== false ||
+          matchingOption ||
+          hasValidSelections
+        ) {
           await this.threadEngine.resolveInputRequest({
             threadId,
             organizationId: context.organizationId,
@@ -339,7 +374,16 @@ export class AgentTurnAcceptanceService {
                 }
               : {}),
             requestId: pending.requestId,
-            answer: matchingOption?.id ?? content,
+            answer: hasValidSelections
+              ? selectedOptions.map((option) => option.label).join(', ')
+              : (matchingOption?.id ?? content),
+            ...(hasValidSelections
+              ? {
+                  optionIds: selectedOptions.flatMap((option) =>
+                    option ? [option.id] : [],
+                  ),
+                }
+              : {}),
           });
         }
       }

@@ -656,6 +656,8 @@ export function attachAgentStreamSubscriptions(
           deps.setActiveRunStatus('awaiting_input');
           deps.setPendingInputRequest({
             allowFreeText: payload.allowFreeText,
+            isMultiSelect: payload.isMultiSelect,
+            maxSelections: payload.maxSelections,
             fieldId: payload.fieldId,
             inputRequestId: payload.inputRequestId,
             metadata: payload.metadata,

@@ -832,6 +832,7 @@ describe('AgentChatContainer', () => {
         'Use the hybrid prompt bar',
         undefined,
         { brandId: null, expectedContextVersion: 1 },
+        undefined,
       );
     });
 
@@ -1191,6 +1192,7 @@ describe('AgentChatContainer', () => {
       'https://www.youtube.com/watch?v=demo',
       undefined,
       expect.any(Object),
+      undefined,
     );
     expect(sendStreaming).not.toHaveBeenCalled();
     await act(async () => resolveAnswer?.());

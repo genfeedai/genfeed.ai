@@ -227,10 +227,12 @@ export class BrandPersistenceService {
     brandId: string,
     organizationId: string,
     extractedData: IExtractedBrandData,
+    preserveOnboardingAnswers = false,
   ): Promise<void> {
     const brand = await this.brandsService.findOne({
       id: brandId,
       organizationId,
+      isDeleted: false,
     });
 
     if (!brand) {
@@ -241,10 +243,26 @@ export class BrandPersistenceService {
       brand.agentConfig,
     );
 
+    const mergedConfig = this.brandDataMapper.mergeExtractedVoice(
+      brandAgentConfig,
+      extractedData,
+    );
+    if (preserveOnboardingAnswers) {
+      if (brandAgentConfig.strategy)
+        mergedConfig.strategy = {
+          ...mergedConfig.strategy,
+          ...brandAgentConfig.strategy,
+        };
+      if (brandAgentConfig.voice?.tone !== undefined)
+        mergedConfig.voice = {
+          ...mergedConfig.voice,
+          tone: brandAgentConfig.voice.tone,
+        };
+    }
     await this.brandsService.updateAgentConfig(
       brandId,
       organizationId,
-      this.brandDataMapper.mergeExtractedVoice(brandAgentConfig, extractedData),
+      mergedConfig,
     );
   }
 
@@ -274,8 +292,20 @@ export class BrandPersistenceService {
     organizationId: string,
     brandId: string,
     organizationLabel = label,
+    onlyPlaceholderOrganization = false,
   ): Promise<void> {
-    await this.syncOrgLabelAndSlug(organizationLabel, organizationId);
+    const organization = onlyPlaceholderOrganization
+      ? await this.organizationsService.findOne({
+          id: organizationId,
+          isDeleted: false,
+        })
+      : undefined;
+    if (
+      !onlyPlaceholderOrganization ||
+      organization?.label === 'Default Organization'
+    ) {
+      await this.syncOrgLabelAndSlug(organizationLabel, organizationId);
+    }
 
     const brandSlug = await this.brandsService.generateUniqueSlug(
       label,

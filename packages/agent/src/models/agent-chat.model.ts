@@ -69,6 +69,8 @@ export interface AgentInputOption {
 
 export interface AgentInputRequest {
   allowFreeText?: boolean;
+  isMultiSelect?: boolean;
+  maxSelections?: number;
   fieldId?: string;
   threadId: string;
   inputRequestId: string;
@@ -504,6 +506,8 @@ export interface AgentThreadSnapshot {
     title: string;
     prompt: string;
     allowFreeText?: boolean;
+    isMultiSelect?: boolean;
+    maxSelections?: number;
     recommendedOptionId?: string;
     options: AgentInputOption[];
     fieldId?: string;

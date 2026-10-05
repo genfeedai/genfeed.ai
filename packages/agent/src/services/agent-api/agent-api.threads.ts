@@ -422,6 +422,7 @@ export async function respondToInputRequest(
   answer: string,
   signal?: AbortSignal,
   scope?: AgentScopePayload,
+  optionIds?: string[],
 ): Promise<{
   answer: string | null;
   /** Execution that continues the turn with this answer, when one started. */
@@ -443,7 +444,11 @@ export async function respondToInputRequest(
   }>(
     `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/input-requests/${requestId}/responses`,
     {
-      body: JSON.stringify({ answer, ...(scope ?? {}) }),
+      body: JSON.stringify({
+        answer,
+        ...(scope ?? {}),
+        ...(optionIds ? { optionIds } : {}),
+      }),
       method: 'POST',
       signal,
     },

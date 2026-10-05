@@ -76,7 +76,10 @@ type AgentChatPromptBarProps = {
   isSubmittingInputRequest: boolean;
   latestProposedPlan: AgentProposedPlan | null;
   onClearError: () => void;
-  onSubmitInputRequest: (answer: string) => void | Promise<void>;
+  onSubmitInputRequest: (
+    answer: string,
+    optionIds?: string[],
+  ) => void | Promise<void>;
   pendingInputRequest: AgentInputRequest | null;
   socketConnectionState: AgentSocketConnectionState;
   creditsAvailable?: number | null;

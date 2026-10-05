@@ -16,7 +16,9 @@ import { AgentThreadProjectorService } from '@api/services/agent-threading/servi
 import { AgentThreadStatusPublisherService } from '@api/services/agent-threading/services/agent-thread-status-publisher.service';
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import { AgentThreadEventType } from '@api/services/agent-threading/types/agent-thread.types';
+import { validateAgentInputAnswer } from '@api/services/agent-threading/utils/validate-agent-input-answer.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { ResolveAgentInputRequestParams } from '@genfeedai/contracts/interfaces/ai/agent-input-request.interface';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -71,16 +73,6 @@ type AppendedAgentThreadEvent =
       event: AgentThreadEventDocument;
       isCreated: true;
     };
-
-export interface ResolveAgentInputRequestParams {
-  brandId?: string;
-  contextVersion?: number;
-  threadId: string;
-  organizationId: string;
-  requestId: string;
-  answer: string;
-  userId: string;
-}
 
 /**
  * Adapts a raw Prisma AgentThreadEvent row into the shape expected by
@@ -174,11 +166,14 @@ function findInputRequestInSnapshot(
     title: req.title as string,
     prompt: req.prompt as string,
     allowFreeText: req.allowFreeText as boolean | undefined,
+    isMultiSelect: req.isMultiSelect as boolean | undefined,
+    maxSelections: req.maxSelections as number | undefined,
     recommendedOptionId: req.recommendedOptionId as string | undefined,
     options: (req.options as Record<string, unknown>[]) ?? [],
     fieldId: req.fieldId as string | undefined,
     metadata: req.metadata as Record<string, unknown> | undefined,
     answer: req.answer as string | undefined,
+    optionIds: req.optionIds as string[] | undefined,
     runId: req.runId as string | undefined,
     resolvedAt: req.resolvedAt as string | undefined,
     isDeleted: false,
@@ -500,38 +495,8 @@ export class AgentThreadEngineService {
     }
 
     const request = inputRequests[reqIndex];
-    const metadata =
-      request.metadata && typeof request.metadata === 'object'
-        ? (request.metadata as Record<string, unknown>)
-        : {};
-    if (
-      typeof metadata.brandId === 'string' &&
-      metadata.brandId !== params.brandId
-    )
-      throw new BadRequestException(
-        'This choice belongs to another brand context.',
-      );
-    if (
-      typeof metadata.contextVersion === 'number' &&
-      metadata.contextVersion !== params.contextVersion
-    )
-      throw new BadRequestException(
-        'The thread context changed. Request the choice again.',
-      );
-
-    const answer =
-      typeof params.answer === 'string' ? params.answer.trim() : '';
-    if (!answer) throw new BadRequestException('An answer is required.');
-    if (request.status === 'resolved' && request.answer !== answer)
-      throw new BadRequestException('This request was already answered.');
-    const options = Array.isArray(request.options)
-      ? (request.options as Record<string, unknown>[])
-      : [];
-    if (
-      request.allowFreeText === false &&
-      !options.some((option) => option.id === answer || option.label === answer)
-    )
-      throw new BadRequestException('Choose one of the available options.');
+    const answer = validateAgentInputAnswer(request, params);
+    const optionIds = params.optionIds;
     params = { ...params, answer };
     // Same-answer retries repair event delivery without rewriting snapshot state.
     if (request.status === 'pending') {
@@ -540,6 +505,7 @@ export class AgentThreadEngineService {
           ? {
               ...item,
               answer,
+              ...(optionIds ? { optionIds } : {}),
               resolvedAt: new Date().toISOString(),
               status: 'resolved',
             }
@@ -583,6 +549,7 @@ export class AgentThreadEngineService {
       organizationId: params.organizationId,
       payload: {
         answer: params.answer,
+        ...(params.optionIds ? { optionIds: params.optionIds } : {}),
         requestId: params.requestId,
       },
       threadId: params.threadId,
@@ -768,6 +735,8 @@ export class AgentThreadEngineService {
 
         inputRequests.push({
           allowFreeText: this.readBoolean(event.payload, 'allowFreeText'),
+          isMultiSelect: this.readBoolean(event.payload, 'isMultiSelect'),
+          maxSelections: this.readNumber(event.payload, 'maxSelections'),
           fieldId: this.readString(event.payload, 'fieldId'),
           metadata: this.readRecord(event.payload, 'metadata'),
           options: this.readArray(event.payload, 'options') ?? [],
@@ -910,6 +879,14 @@ export class AgentThreadEngineService {
   ): boolean | undefined {
     const value = payload?.[key];
     return typeof value === 'boolean' ? value : undefined;
+  }
+
+  private readNumber(
+    payload: Record<string, unknown> | undefined,
+    key: string,
+  ): number | undefined {
+    const value = payload?.[key];
+    return typeof value === 'number' ? value : undefined;
   }
 
   private readRecord(

@@ -30,6 +30,7 @@ import { AgentKnowledgeToolHandler } from '@api/services/agent-orchestrator/tool
 import { AgentLivestreamToolHandler } from '@api/services/agent-orchestrator/tools/agent-livestream-tool-handler.service';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
+import { AgentOnboardingBrandSetupToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-brand-setup-tool-handler.service';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
 import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
@@ -270,6 +271,9 @@ export class AgentToolExecutorService implements OnModuleInit {
 
   @Inject(AgentBrandContextToolHandler)
   private readonly brandContextHandler!: AgentBrandContextToolHandler;
+
+  @Inject(AgentOnboardingBrandSetupToolHandler)
+  private readonly onboardingBrandSetupHandler!: AgentOnboardingBrandSetupToolHandler;
 
   constructor(
     private readonly loggerService: LoggerService,
@@ -695,6 +699,7 @@ export class AgentToolExecutorService implements OnModuleInit {
         livestreamHandler: this.livestreamHandler,
         mediaGenerationHandler: this.mediaGenerationHandler,
         memoryGoalsHandler: this.memoryGoalsHandler,
+        onboardingBrandSetupHandler: this.onboardingBrandSetupHandler,
         onboardingHandler: this.onboardingHandler,
         prepareHandler: this.prepareHandler,
         proactiveHandler: this.proactiveHandler,
