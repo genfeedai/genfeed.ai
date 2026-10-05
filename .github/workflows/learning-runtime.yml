@@ -1,0 +1,215 @@
+# Nightly learning runtime acceptance — reporting only.
+#
+# Runs just the frozen content-learning runtime suites (the `learning` group of
+# scripts/ci/runtime-acceptance.mjs) against isolated PostgreSQL and Redis
+# services, so the hosted learning proof is exercised daily instead of only
+# inside the one-hour `final` acceptance. This workflow is NOT reusable and is
+# never needed by full-suite.yml or release.yml.
+
+name: Learning Runtime Acceptance
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 3 * * *" # 03:23 UTC — after the e2e.yml (02:17) and Playwright full (02:47) nightlies
+
+concurrency:
+  group: learning-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  learning-runtime:
+    name: Learning Runtime Acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: genfeed
+          POSTGRES_PASSWORD: genfeed_local
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TURBO_TOKEN: ''
+      RUNTIME_ACCEPTANCE_CI_RUN_ID: ${{ github.run_id }}
+      RUNTIME_ACCEPTANCE_CI_RUN_ATTEMPT: ${{ github.run_attempt }}
+      RUNTIME_ACCEPTANCE_CI_JOB: ${{ github.job }}
+      RUNTIME_ACCEPTANCE_POSTGRES_USER: genfeed
+      RUNTIME_ACCEPTANCE_POSTGRES_PASSWORD: genfeed_local
+      ACCEPTANCE_REPO: ${{ github.workspace }}
+      CANDIDATE_SHA: ${{ github.sha }}
+      CONTROL_SHA: ${{ github.sha }}
+    steps:
+      - name: Anchor acceptance job deadline
+        run: |
+          {
+            echo "RUNTIME_ACCEPTANCE_JOB_STARTED_MS=$(date +%s%3N)"
+            echo "ACCEPTANCE_STATE=$RUNNER_TEMP/runtime-acceptance"
+          } >> "$GITHUB_ENV"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Setup preflight Node.js 24.x
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.x'
+      - name: Validate learning prerequisites before dependency setup
+        id: preflight
+        run: node scripts/ci/runtime-acceptance.mjs preflight --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA" --group learning
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+      - name: Build packages
+        run: bunx turbo run build --filter="./packages/*"
+      - name: Run learning runtime acceptance
+        env:
+          RUNTIME_ACCEPTANCE_POSTGRES_ID: ${{ job.services.postgres.id }}
+          RUNTIME_ACCEPTANCE_REDIS_ID: ${{ job.services.redis.id }}
+        run: node scripts/ci/runtime-acceptance.mjs learning --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Seal available runtime evidence
+        id: seal
+        if: always() && steps.preflight.outputs.prepared == 'true'
+        run: node scripts/ci/runtime-acceptance.mjs seal --repo "$ACCEPTANCE_REPO" --state "$ACCEPTANCE_STATE" --candidate-sha "$CANDIDATE_SHA" --control-sha "$CONTROL_SHA"
+      - name: Retain runtime evidence
+        id: upload
+        if: always() && steps.preflight.outputs.prepared == 'true' && steps.seal.outcome != 'skipped'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: learning-runtime-acceptance-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/runtime-acceptance/public/receipt.json
+            ${{ runner.temp }}/runtime-acceptance/public/evidence.json
+          retention-days: 7
+          if-no-files-found: error
+
+  # Scheduled-only failure reporter. One stable fingerprint per failed job; a
+  # repeat run updates the canonical bounded tracker instead of opening another.
+  nightly-failure-report:
+    name: Report nightly learning runtime failure
+    needs: [learning-runtime]
+    if: >-
+      !cancelled()
+      && github.event_name == 'schedule'
+      && (needs.learning-runtime.result == 'failure'
+        || needs.learning-runtime.result == 'cancelled')
+    # Serialize label lookup + issue lookup/mutation across scheduled runs and
+    # rerun attempts. Keep all pending reporters queued.
+    concurrency:
+      group: nightly-learning-runtime-failure-reporter
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout workflow helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Mint reporter token (Genfeed bot App)
+        id: reporter-token
+        uses: ./.github/actions/reporter-token
+        with:
+          client-id: ${{ secrets.GENFEED_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.GENFEED_BOT_PRIVATE_KEY }}
+
+      - name: Create or update the bounded learning runtime tracker
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          REPOSITORY_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          github-token: ${{ steps.reporter-token.outputs.token }}
+          script: |
+            const repositoryGithub = getOctokit(process.env.REPOSITORY_TOKEN);
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const {
+              collectScheduledRunFailures,
+              reportScheduledFailure,
+            } = await import(
+              pathToFileURL(
+                path.join(
+                  process.env.GITHUB_WORKSPACE,
+                  'scripts/ci/scheduled-failure-tracker.mjs',
+                ),
+              ).href,
+            );
+            const { owner, repo } = context.repo;
+            const jobs = await repositoryGithub.paginate(
+              repositoryGithub.rest.actions.listJobsForWorkflowRun,
+              {
+                owner,
+                repo,
+                run_id: Number(process.env.RUN_ID),
+                filter: 'latest',
+                per_page: 100,
+              },
+            );
+            const failedJobs = jobs.filter(
+              (job) =>
+                job.name === 'Learning Runtime Acceptance' &&
+                ['failure', 'cancelled', 'timed_out'].includes(job.conclusion),
+            );
+            const failures = await collectScheduledRunFailures({
+              github: repositoryGithub,
+              owner,
+              repo,
+              jobs: failedJobs.map((job) => ({
+                ...job,
+                trackerJob: 'learning-runtime',
+                fallbackExcerpt:
+                  job.conclusion === 'failure'
+                    ? `Learning runtime acceptance failed: ${job.name}.`
+                    : `Timed out or cancelled: ${job.name}.`,
+              })),
+              core,
+            });
+            for (const failure of failures) {
+              await reportScheduledFailure({
+                github: repositoryGithub,
+                projectGithub: github,
+                owner,
+                repo,
+                trackerLabel: 'nightly-learning-runtime-failure',
+                trackerDescription: 'Scheduled learning runtime acceptance failures',
+                workflowIdentity: '.github/workflows/learning-runtime.yml',
+                failedJob: failure.failedJob,
+                excerpt: failure.excerpt,
+                identitySignature: failure.identitySignature,
+                sha: process.env.SOURCE_SHA,
+                runId: Number(process.env.RUN_ID),
+                runAttempt: Number(process.env.RUN_ATTEMPT),
+                runUrl: process.env.RUN_URL,
+                reproduction:
+                  'Dispatch the Learning Runtime Acceptance workflow on the same SHA.',
+                core,
+              });
+            }

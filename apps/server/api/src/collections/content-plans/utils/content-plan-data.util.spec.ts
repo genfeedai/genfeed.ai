@@ -1,7 +1,6 @@
 import {
   asDate,
   asNumber,
-  asRecord,
   asString,
   dateToTime,
   serializeDate,
@@ -9,13 +8,6 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('content-plan-data.util', () => {
-  it('copies plain objects and rejects arrays or primitives', () => {
-    expect(asRecord({ a: 1 })).toEqual({ a: 1 });
-    expect(asRecord([1, 2])).toEqual({});
-    expect(asRecord(null)).toEqual({});
-    expect(asRecord('x')).toEqual({});
-  });
-
   it('parses finite numbers and optional fallbacks', () => {
     expect(asNumber(4)).toBe(4);
     expect(asNumber('12.5')).toBe(12.5);

@@ -6,7 +6,6 @@ import { ApifyInstagramService } from '@api/services/integrations/apify/services
 import { ApifyLinkedInService } from '@api/services/integrations/apify/services/modules/apify-linkedin.service';
 import { ApifyPinterestService } from '@api/services/integrations/apify/services/modules/apify-pinterest.service';
 import { ApifyRedditService } from '@api/services/integrations/apify/services/modules/apify-reddit.service';
-import { ApifyRunBudgetService } from '@api/services/integrations/apify/services/modules/apify-run-budget.service';
 import { ApifyTikTokService } from '@api/services/integrations/apify/services/modules/apify-tiktok.service';
 import { ApifyTwitterService } from '@api/services/integrations/apify/services/modules/apify-twitter.service';
 import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
@@ -22,7 +21,6 @@ const BaseModule = createServiceModule(ApifyService, {
   additionalProviders: [
     ApifyAdsService,
     ResearchCollectionRunner,
-    ApifyRunBudgetService,
     ApifyBaseService,
     ApifyTikTokService,
     ApifyInstagramService,

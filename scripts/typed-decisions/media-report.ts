@@ -8,6 +8,7 @@ import {
   MEDIA_TEXT_DECISION_QUESTIONS,
   type MediaTextDecisionName,
 } from '@genfeedai/contracts/api-types/contracts';
+import { readRecordOrUndefined } from '@genfeedai/utils/data/extract.util';
 import { CONFIDENCE_BIN_COUNT, formatAccuracy } from './report';
 
 /** The threshold policy (docs/operations/media-gates.md). */
@@ -71,12 +72,6 @@ const QUESTION_NAMES = new Set<string>(
   Object.keys(MEDIA_TEXT_DECISION_QUESTIONS),
 );
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
-
 function isQuestionName(value: string): value is MediaTextDecisionName {
   return QUESTION_NAMES.has(value);
 }
@@ -89,7 +84,7 @@ export function parseModerationRow(
   line: string,
   index: number,
 ): ModerationFixtureRow {
-  const row = asRecord(JSON.parse(line));
+  const row = readRecordOrUndefined(JSON.parse(line));
   const expected = row?.expected;
   const text = row?.text;
   const url = row?.url;
@@ -226,9 +221,9 @@ export function parseMediaTextRow(
   line: string,
   index: number,
 ): MediaTextBenchmarkCase[] {
-  const row = asRecord(JSON.parse(line));
-  const state = asRecord(row?.state);
-  const expected = asRecord(row?.expected);
+  const row = readRecordOrUndefined(JSON.parse(line));
+  const state = readRecordOrUndefined(row?.state);
+  const expected = readRecordOrUndefined(row?.expected);
   if (!row || !state || !expected) {
     throw new Error(
       `Media text row ${index + 1} needs object \`state\` and \`expected\``,

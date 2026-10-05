@@ -8,6 +8,8 @@
     "outDir": "../dist/apps/mcp",
     "paths": {
       "@genfeedai/ui/*": ["../../../packages/ui/src/*"],
+      "@genfeedai/utils": ["../../../packages/utils/index.ts"],
+      "@genfeedai/utils/*": ["../../../packages/utils/*"],
       "@libs/*": ["../../../packages/libs/*"],
       "@mcp/*": ["./src/*"],
       "@ui/*": ["../../../packages/ui/src/*"]

@@ -3,6 +3,7 @@ import {
   isImageEditSize,
   normalizeMusicSettings,
 } from '@genfeedai/contracts/constants';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type {
   StudioGenerateSettings,
   StudioGenerateType,
@@ -39,10 +40,6 @@ export function getDefaultStudioGenerateState(): StudioGeneratePersistedState {
     }, {} as StudioGenerateSettingsByType),
     type: resolveStudioGenerateType(undefined),
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function pickString(

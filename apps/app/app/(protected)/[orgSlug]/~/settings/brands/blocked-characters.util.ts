@@ -1,10 +1,7 @@
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type { BlockedCharacter } from '@props/characters/characters-page.props';
 
 export const BRAND_OWNS_SHARED_CHARACTERS = 'brand_owns_shared_characters';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 /**
  * The shared characters that block a brand deletion, read from the JSON:API

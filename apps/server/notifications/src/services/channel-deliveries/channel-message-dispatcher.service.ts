@@ -26,12 +26,12 @@ const NOT_CONFIGURED = 'channel_not_configured';
 
 type Payload = IChannelDeliveryRequest['message']['payload'];
 
-function readString(payload: Payload, key: string): string | undefined {
+function readPayloadString(payload: Payload, key: string): string | undefined {
   const value: unknown = Reflect.get(payload, key);
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
-function readRecord(
+function readPayloadRecord(
   payload: Payload,
   key: string,
 ): Record<string, unknown> | undefined {
@@ -101,8 +101,9 @@ export class ChannelMessageDispatcherService {
       throw new InvalidChannelMessageError('Unsupported message action');
     }
     const chatId =
-      request.destination ?? readString(request.message.payload, 'chatId');
-    const text = readString(request.message.payload, 'message');
+      request.destination ??
+      readPayloadString(request.message.payload, 'chatId');
+    const text = readPayloadString(request.message.payload, 'message');
     if (!chatId || !text) {
       throw new InvalidChannelMessageError('Message needs a chat and text');
     }
@@ -115,14 +116,14 @@ export class ChannelMessageDispatcherService {
   ): Promise<boolean> {
     switch (action) {
       case 'ingredient_notification': {
-        const cdnUrl = readString(payload, 'cdnUrl');
-        const ingredient = readRecord(payload, 'ingredient');
+        const cdnUrl = readPayloadString(payload, 'cdnUrl');
+        const ingredient = readPayloadRecord(payload, 'ingredient');
         const ingredientId =
           typeof ingredient?.id === 'string' ? ingredient.id : '';
         if (!cdnUrl || !ingredient || !ingredientId) {
           throw new InvalidChannelMessageError('Ingredient payload incomplete');
         }
-        const category = readString(payload, 'category');
+        const category = readPayloadString(payload, 'category');
         return this.discordService.sendIngredientNotification(
           Object.values(IngredientCategory).find(
             (value) => value === category,
@@ -202,7 +203,7 @@ export class ChannelMessageDispatcherService {
       case 'streak_broken':
       case 'streak_freeze_used':
       case 'streak_milestone': {
-        const card = readRecord(payload, 'card');
+        const card = readPayloadRecord(payload, 'card');
         return this.discordService.sendStreakNotification({
           color: typeof card?.color === 'number' ? card.color : 0xf97316,
           description: String(card?.description ?? ''),
@@ -230,7 +231,7 @@ export class ChannelMessageDispatcherService {
     if (!email) {
       throw new InvalidChannelMessageError('Unsupported email message');
     }
-    const to = request.destination ?? readString(payload, 'to');
+    const to = request.destination ?? readPayloadString(payload, 'to');
     if (!to) {
       throw new InvalidChannelMessageError('Email needs a recipient');
     }
@@ -247,13 +248,13 @@ export class ChannelMessageDispatcherService {
   private renderPlainEmail(
     payload: Payload,
   ): { from?: string; html: string; subject: string; text?: string } | null {
-    const html = readString(payload, 'html');
+    const html = readPayloadString(payload, 'html');
     if (!html) return null;
     return {
-      from: readString(payload, 'from'),
+      from: readPayloadString(payload, 'from'),
       html,
-      subject: readString(payload, 'subject') ?? 'Genfeed notification',
-      text: readString(payload, 'text'),
+      subject: readPayloadString(payload, 'subject') ?? 'Genfeed notification',
+      text: readPayloadString(payload, 'text'),
     };
   }
 

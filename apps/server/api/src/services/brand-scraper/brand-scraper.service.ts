@@ -32,6 +32,16 @@ import * as cheerio from 'cheerio';
 import { buildLogoDevLogoUrl } from './logo-dev-logo.util';
 
 const WEBSITE_TIMEOUT_MS = 60_000;
+/**
+ * Logged-out LinkedIn company pages put each update's text in the activity
+ * card commentary. The surrounding card also holds the author, follower count,
+ * reactions and button labels, so it is never read as the post body.
+ */
+const LINKEDIN_POST_TEXT_SELECTOR =
+  '[data-test-id="main-feed-activity-card__commentary"]';
+const LINKEDIN_POST_MIN_LENGTH = 20;
+const LINKEDIN_POST_MAX_LENGTH = 500;
+const LINKEDIN_MAX_RECENT_POSTS = 10;
 const MAX_STYLESHEETS = 5;
 
 const BROWSER_USER_AGENT =
@@ -266,22 +276,24 @@ export class BrandScraperService {
         }
       });
 
-      // Extract recent post snippets from structured data
-      $('article, [class*="feed-shared-text"]').each((_i, el) => {
-        const text = $(el).text().trim();
-        if (text.length > 20 && text.length < 500) {
-          result.recentPosts.push(text);
+      const recentPosts = new Set<string>();
+      $(LINKEDIN_POST_TEXT_SELECTOR).each((_i, el) => {
+        const text = $(el).text().replace(/\s+/g, ' ').trim();
+        if (text.length >= LINKEDIN_POST_MIN_LENGTH) {
+          recentPosts.add(text.slice(0, LINKEDIN_POST_MAX_LENGTH));
         }
       });
-      result.recentPosts = result.recentPosts.slice(0, 10);
+      result.recentPosts = [...recentPosts].slice(0, LINKEDIN_MAX_RECENT_POSTS);
 
       this.loggerService.log(`${caller} completed`, {
         companyName: result.companyName,
+        recentPostCount: result.recentPosts.length,
+        url: normalizedUrl,
       });
 
       return result;
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      this.loggerService.error(`${caller} failed`, error, { url });
       throw error;
     }
   }

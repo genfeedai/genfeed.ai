@@ -19,6 +19,7 @@ import type {
   QueuedClipDraftSave,
   SaveClipDraftPayload,
 } from '@genfeedai/props/studio/clips-api.props';
+import { readString } from '@genfeedai/utils/data/extract.util';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useDocumentVisibility } from '@hooks/ui/use-document-visibility/use-document-visibility';
@@ -32,7 +33,6 @@ import type {
 } from '@props/studio/clips.props';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { ClipsApiService } from './services/clips-api.service';
 
@@ -49,11 +49,6 @@ function isHeygenProvider(provider?: string | null): boolean {
   return provider?.toLowerCase() === 'heygen';
 }
 
-function readNonEmptyString(value?: string | null): string | undefined {
-  const trimmed = value?.trim();
-  return trimmed && trimmed.length > 0 ? trimmed : undefined;
-}
-
 function resolveHeygenVoiceRef(
   ref:
     | NonNullable<IBrand['agentConfig']>['defaultVoiceRef']
@@ -68,7 +63,7 @@ function resolveHeygenVoiceRef(
     return undefined;
   }
 
-  return readNonEmptyString(ref.externalVoiceId);
+  return readString(ref.externalVoiceId);
 }
 
 /**
@@ -80,7 +75,7 @@ function resolveHeygenVoiceFallback(
   provider?: string | null,
   voiceId?: string | null,
 ): string | undefined {
-  return isHeygenProvider(provider) ? readNonEmptyString(voiceId) : undefined;
+  return isHeygenProvider(provider) ? readString(voiceId) : undefined;
 }
 
 export function resolveStudioClipIdentityDefaults({
@@ -88,9 +83,9 @@ export function resolveStudioClipIdentityDefaults({
   settings,
 }: StudioClipIdentityContext): StudioClipIdentityDefaults {
   const brandConfig = selectedBrand?.agentConfig;
-  const brandAvatarId = readNonEmptyString(brandConfig?.heygenAvatarId);
+  const brandAvatarId = readString(brandConfig?.heygenAvatarId);
   const brandVoiceId =
-    readNonEmptyString(brandConfig?.heygenVoiceId) ??
+    readString(brandConfig?.heygenVoiceId) ??
     resolveHeygenVoiceRef(brandConfig?.defaultVoiceRef) ??
     resolveHeygenVoiceFallback(
       brandConfig?.defaultVoiceProvider,

@@ -5,22 +5,13 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import { PostVisibility } from '@genfeedai/contracts';
 import { validateChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { isRecord, readString } from '@genfeedai/utils/data/extract.util';
 
 const VISIBILITY_VALUES = [
   PostVisibility.PRIVATE,
   PostVisibility.PUBLIC,
   PostVisibility.UNLISTED,
 ] as const;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : undefined;
-}
 
 function readVisibility(value: unknown): PostVisibility {
   return value === PostVisibility.PRIVATE ||

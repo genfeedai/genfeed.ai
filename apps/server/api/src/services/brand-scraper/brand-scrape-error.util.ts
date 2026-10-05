@@ -3,6 +3,7 @@ import type {
   IBrandScrapeWarning,
   IScrapedBrandData,
 } from '@genfeedai/contracts/interfaces';
+import { isObjectLike } from '@genfeedai/utils/data/extract.util';
 
 /**
  * Network-transport error codes Node/undici attach to a failed fetch. Every
@@ -38,12 +39,8 @@ const MAX_RETRIES_MESSAGE_PATTERN = /max retries.*exceeded/i;
  */
 const DESTINATION_DID_NOT_RESOLVE_PATTERN = /did not resolve/i;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
 function readErrorName(error: unknown): string | undefined {
-  return isRecord(error) && typeof error.name === 'string'
+  return isObjectLike(error) && typeof error.name === 'string'
     ? error.name
     : undefined;
 }
@@ -52,7 +49,7 @@ function readErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
-  return isRecord(error) && typeof error.message === 'string'
+  return isObjectLike(error) && typeof error.message === 'string'
     ? error.message
     : String(error);
 }
@@ -62,14 +59,14 @@ function readErrorMessage(error: unknown): string {
  * `TypeError: fetch failed`; some runtimes set `error.code` directly.
  */
 function readTransportCode(error: unknown): string | undefined {
-  if (!isRecord(error)) {
+  if (!isObjectLike(error)) {
     return undefined;
   }
   if (typeof error.code === 'string') {
     return error.code;
   }
   const cause = error.cause;
-  return isRecord(cause) && typeof cause.code === 'string'
+  return isObjectLike(cause) && typeof cause.code === 'string'
     ? cause.code
     : undefined;
 }

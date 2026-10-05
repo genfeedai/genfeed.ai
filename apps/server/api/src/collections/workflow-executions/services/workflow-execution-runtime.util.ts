@@ -24,12 +24,6 @@ export type WorkflowExecutionScalarRow = {
   remainingDurationMs?: number | null;
 };
 
-export function readRecord(raw: unknown): Record<string, unknown> {
-  return raw !== null && typeof raw === 'object' && !Array.isArray(raw)
-    ? { ...(raw as Record<string, unknown>) }
-    : {};
-}
-
 export function readNodeResults(raw: unknown): WorkflowNodeResult[] {
   return Array.isArray(raw)
     ? raw.filter(

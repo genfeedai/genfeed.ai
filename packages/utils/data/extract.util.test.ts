@@ -8,14 +8,19 @@ import {
   getNestedValue,
   getNumberByPaths,
   getStringByPaths,
+  isObjectLike,
   isRecord,
   readNonBlankString,
+  readNonBlankStringOrNull,
   readNonEmptyString,
+  readNonEmptyStringOrNull,
   readRawString,
   readRecord,
+  readRecordCopy,
   readRecordOrNull,
   readRecordOrUndefined,
   readString,
+  readTrimmedStringOrNull,
 } from './extract.util';
 
 describe('extract utilities', () => {
@@ -30,6 +35,30 @@ describe('extract utilities', () => {
     expect(readNonBlankString('   ')).toBeUndefined();
     expect(readRawString('')).toBe('');
     expect(readRawString(null)).toBeUndefined();
+  });
+
+  it('reads null-returning string variants', () => {
+    expect(readNonEmptyStringOrNull('  a ')).toBe('  a ');
+    expect(readNonEmptyStringOrNull('')).toBeNull();
+    expect(readNonEmptyStringOrNull(1)).toBeNull();
+    expect(readTrimmedStringOrNull('  a ')).toBe('a');
+    expect(readTrimmedStringOrNull('   ')).toBeNull();
+    expect(readNonBlankStringOrNull('  a ')).toBe('  a ');
+    expect(readNonBlankStringOrNull('   ')).toBeNull();
+    expect(readNonBlankStringOrNull(null)).toBeNull();
+  });
+
+  it('copies records and accepts arrays only as object-like', () => {
+    const input = { a: 1 };
+    const copy = readRecordCopy(input);
+    expect(copy).toEqual(input);
+    expect(copy).not.toBe(input);
+    expect(readRecordCopy([])).toEqual({});
+    expect(readRecordCopy(null)).toEqual({});
+    expect(isObjectLike([])).toBe(true);
+    expect(isObjectLike(input)).toBe(true);
+    expect(isObjectLike(null)).toBe(false);
+    expect(isObjectLike('x')).toBe(false);
   });
 
   it('reads records without treating arrays or null as records', () => {

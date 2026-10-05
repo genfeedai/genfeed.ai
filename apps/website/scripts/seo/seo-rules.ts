@@ -14,6 +14,7 @@
  * - breadcrumb JSON-LD pointing at URLs that do not resolve
  */
 
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type { PageFacts } from './page-parser';
 
 export const TITLE_MIN_LENGTH = 30;
@@ -305,10 +306,6 @@ const REQUIRED_SCHEMA_FIELDS: Record<string, readonly string[]> = {
 const ONE_OF_SCHEMA_FIELDS: Record<string, readonly (readonly string[])[]> = {
   SoftwareApplication: [['offers', 'aggregateRating', 'review']],
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function typesOf(node: Record<string, unknown>): string[] {
   const raw = node['@type'];

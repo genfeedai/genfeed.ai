@@ -34,13 +34,13 @@ export function readMcpOAuthSessionLineage(
     metadata && typeof metadata === 'object' && !Array.isArray(metadata)
       ? (metadata as Record<string, unknown>)
       : {};
-  const readString = (key: string): string | undefined => {
+  const readMetadataString = (key: string): string | undefined => {
     const value = record[key];
     return typeof value === 'string' && value.length > 0 ? value : undefined;
   };
 
   return {
-    clientName: readString('clientName'),
-    grantId: readString('grantId') ?? fallbackGrantId,
+    clientName: readMetadataString('clientName'),
+    grantId: readMetadataString('grantId') ?? fallbackGrantId,
   };
 }

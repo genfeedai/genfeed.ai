@@ -8,6 +8,7 @@ import {
 import { ModelProvider } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { Injectable } from '@nestjs/common';
 import {
   mapFalPricing,
@@ -19,10 +20,7 @@ import type {
   ModelPriceChangeAlert,
   ModelPricingUnavailableAlert,
 } from '@workers/services/model-pricing-alerts.util';
-import {
-  hashProviderContract,
-  isRecord,
-} from '@workers/services/provider-contract.util';
+import { hashProviderContract } from '@workers/services/provider-contract.util';
 import {
   compareProviderRates,
   loadReviewedRateContract,

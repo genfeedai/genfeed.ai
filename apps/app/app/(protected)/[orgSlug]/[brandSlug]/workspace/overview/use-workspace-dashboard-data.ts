@@ -5,6 +5,7 @@ import type {
   IPlatformComparison,
   ITimeSeriesApiDataPoint,
 } from '@genfeedai/contracts/interfaces';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { getDateRangeKeys } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAnalytics } from '@hooks/data/analytics/use-analytics/use-analytics';
@@ -16,10 +17,6 @@ import {
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function readFiniteNumber(
   source: Record<string, unknown>,

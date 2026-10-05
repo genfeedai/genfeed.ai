@@ -1,4 +1,5 @@
 import { Platform } from '@genfeedai/contracts';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type { BaseApiClient } from './base-api-client';
 import type {
   LinkedInAccountIdentity,
@@ -185,8 +186,4 @@ function asRecordList(value: unknown): Record<string, unknown>[] {
   }
 
   return value.filter(isRecord);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }

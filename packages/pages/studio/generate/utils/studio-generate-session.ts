@@ -1,6 +1,7 @@
 import { IngredientStatus } from '@genfeedai/contracts';
 import { isEntityId } from '@genfeedai/contracts/api-types';
 import { readImageEditingRecipe } from '@genfeedai/contracts/constants';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import type {
   StudioGenerateJob,
   StudioGenerateRecipe,
@@ -13,10 +14,6 @@ export const STUDIO_GENERATE_SESSION_KEY = 'genfeed.studio.generate.session.v1';
 export const STUDIO_GENERATE_SESSION_LIMIT = 48;
 
 const SESSION_STATUSES = new Set<string>(Object.values(IngredientStatus));
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function pickOptionalString(value: unknown): string | undefined {
   if (typeof value !== 'string') {

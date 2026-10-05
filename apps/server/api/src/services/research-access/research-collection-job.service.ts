@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 
 const MICRO_USD_COLUMN_MAX = 2_147_483_647;
 
-/** How long the owner may resolve a token, reserve budget, and start the actor. */
+/** How long the owner may resolve a token, pass admission, and start the actor. */
 export const RESEARCH_COLLECTION_LEASE_MS = 15 * 60 * 1000;
 
 export const RESEARCH_COLLECTION_JOB_STATUS = {

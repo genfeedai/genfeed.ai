@@ -1,5 +1,4 @@
 import type { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
-import type { ApifyRunBudgetService } from '@api/services/integrations/apify/services/modules/apify-run-budget.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
 import { ServiceUnavailableException } from '@nestjs/common';
@@ -48,9 +47,6 @@ describe('ResearchCollectionRunner', () => {
     markAmbiguous: vi.fn(),
     markStarting: vi.fn().mockResolvedValue(true),
   };
-  const budget = {
-    consumeRun: vi.fn(),
-  };
   const baseService = {
     assertRegisteredHostedActor: vi.fn(),
     assertCollectionAdmission: vi.fn(),
@@ -67,14 +63,13 @@ describe('ResearchCollectionRunner', () => {
   const runner = new ResearchCollectionRunner(
     access as unknown as ResearchAccessService,
     jobs as unknown as ResearchCollectionJobService,
-    budget as unknown as ApifyRunBudgetService,
     baseService as unknown as ApifyBaseService,
     http as unknown as HttpService,
     logger as unknown as LoggerService,
   );
 
   beforeEach(() => {
-    for (const group of [access, jobs, budget, baseService, http, logger]) {
+    for (const group of [access, jobs, baseService, http, logger]) {
       for (const mock of Object.values(group)) {
         mock.mockReset();
       }
@@ -215,10 +210,6 @@ describe('ResearchCollectionRunner', () => {
       source: 'hosted',
       token: 'token',
     });
-    budget.consumeRun.mockResolvedValue({
-      isAllowed: true,
-      maxTotalChargeUsd: 0.25,
-    });
     jobs.markAmbiguous.mockResolvedValue(new Date(Date.now() + 15 * 60 * 1000));
     http.post.mockReturnValue(throwError(() => new Error('timeout')));
 
@@ -247,7 +238,6 @@ describe('ResearchCollectionRunner', () => {
     await expect(
       runner.run('org-1', job.actorId, { query: 'acme' }),
     ).rejects.toThrow('research_collection_recovery_pending');
-    expect(budget.consumeRun).not.toHaveBeenCalled();
     expect(http.post).not.toHaveBeenCalled();
   });
 
@@ -578,9 +568,6 @@ describe('ResearchCollectionRunner', () => {
       source: 'hosted',
       token: 'token',
     });
-    budget.consumeRun.mockResolvedValue({
-      isAllowed: true,
-    });
   }
   it('denied entry recovers accounting only for the exact scoped existing run', async () => {
     recordedRun();
@@ -607,7 +594,6 @@ describe('ResearchCollectionRunner', () => {
       }),
     );
     expect(jobs.claim).not.toHaveBeenCalled();
-    expect(budget.consumeRun).not.toHaveBeenCalled();
     expect(http.post).not.toHaveBeenCalled();
     expect(http.get).toHaveBeenCalledTimes(1);
   });
@@ -729,7 +715,6 @@ describe('ResearchCollectionRunner', () => {
     );
     expect(http.get).not.toHaveBeenCalled();
     expect(http.post).not.toHaveBeenCalled();
-    expect(budget.consumeRun).not.toHaveBeenCalled();
   });
 
   it('account suspension only blocks new admission and never recorded accounting', async () => {
@@ -740,7 +725,6 @@ describe('ResearchCollectionRunner', () => {
     await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
       'account suspended',
     );
-    expect(budget.consumeRun).not.toHaveBeenCalled();
     expect(http.post).not.toHaveBeenCalled();
     vi.clearAllMocks();
     recordedRun();
@@ -760,7 +744,6 @@ describe('ResearchCollectionRunner', () => {
       .mockReturnValueOnce(of({ data: [] }));
     await expect(runner.run('org-1', job.actorId, {})).resolves.toEqual([]);
     expect(baseService.assertCollectionAdmission).not.toHaveBeenCalled();
-    expect(budget.consumeRun).not.toHaveBeenCalled();
   });
   it('takes the confirmed submission timestamp after admission latency', async () => {
     newRun();
@@ -790,9 +773,9 @@ describe('ResearchCollectionRunner', () => {
       )
       .mockReturnValueOnce(of({ data: [] }));
     await expect(runner.run('org-1', job.actorId, {})).resolves.toEqual([]);
-    expect(budget.consumeRun.mock.invocationCallOrder[0]).toBeLessThan(
-      jobs.confirmSubmission.mock.invocationCallOrder[0],
-    );
+    expect(
+      baseService.assertCollectionAdmission.mock.invocationCallOrder[0],
+    ).toBeLessThan(jobs.confirmSubmission.mock.invocationCallOrder[0]);
     expect(jobs.confirmSubmission.mock.invocationCallOrder[0]).toBeLessThan(
       http.post.mock.invocationCallOrder[0],
     );
@@ -986,12 +969,6 @@ describe('deferred collection start', () => {
         .mockReturnValueOnce(of({ data: [{ id: 'ad-1' }] })),
       post: vi.fn(() => from(posted)),
     };
-    const budget = {
-      consumeRun: vi.fn().mockResolvedValue({
-        isAllowed: true,
-        maxTotalChargeUsd: 0.25,
-      }),
-    };
     const runner = new ResearchCollectionRunner(
       {
         decide: vi.fn().mockResolvedValue({
@@ -1000,7 +977,6 @@ describe('deferred collection start', () => {
         }),
       } as unknown as ResearchAccessService,
       new ResearchCollectionJobService(prisma as never),
-      budget as unknown as ApifyRunBudgetService,
       {
         assertRegisteredHostedActor: vi.fn(),
         assertCollectionAdmission: vi.fn(),
@@ -1129,12 +1105,6 @@ describe('pre-migration collection rows', () => {
       },
     };
     const http = { get: vi.fn(), post: vi.fn() };
-    const budget = {
-      consumeRun: vi.fn().mockResolvedValue({
-        isAllowed: true,
-        maxTotalChargeUsd: 0.25,
-      }),
-    };
     const runner = new ResearchCollectionRunner(
       {
         decide: vi.fn().mockResolvedValue({
@@ -1143,7 +1113,6 @@ describe('pre-migration collection rows', () => {
         }),
       } as unknown as ResearchAccessService,
       new ResearchCollectionJobService(prisma as never),
-      budget as unknown as ApifyRunBudgetService,
       {
         assertRegisteredHostedActor: vi.fn(),
         assertCollectionAdmission: vi.fn(),
@@ -1160,7 +1129,6 @@ describe('pre-migration collection rows', () => {
       { warn: vi.fn() } as unknown as LoggerService,
     );
     return {
-      budget,
       http,
       read: () => row,
       runner,

@@ -9,9 +9,8 @@ import {
 } from '@api/services/integrations/linkedin/services/linkedin-inbox.constants';
 import { replaceMarkup } from '@api/shared/utils/string/strip-markup.util';
 import { Platform, SocialConversationType } from '@genfeedai/contracts';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { BadRequestException } from '@nestjs/common';
-
-type JsonRecord = Record<string, unknown>;
 
 const SUPPORTED_PLATFORMS = new Set([
   'instagram',
@@ -57,12 +56,6 @@ export function clamp(
   max: number,
 ): string | undefined {
   return value ? value.slice(0, max) : undefined;
-}
-
-export function asRecord(value: unknown): JsonRecord {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as JsonRecord)
-    : {};
 }
 
 export function boundPage(page = 1): number {
@@ -209,7 +202,7 @@ export function getAvailability(params: {
 export function readAvailability(
   conversation: SocialConversationDocument,
 ): SocialConversationAvailability {
-  const stored = asRecord(conversation.availability);
+  const stored = readRecord(conversation.availability);
   const derived = getAvailability(conversation);
 
   const platform = normalizePlatform(conversation.platform);
