@@ -39,12 +39,22 @@ vi.mock('@api/helpers/utils/query-defaults/query-defaults.util', () => ({
   },
 }));
 
-vi.mock('@api/helpers/utils/collection-filter/collection-filter.util', () => ({
-  CollectionFilterUtil: {
-    buildBrandFilter: vi.fn(() => ({ not: null })),
-    buildScopeFilter: vi.fn(() => ({ not: null })),
+vi.mock(
+  '@api/helpers/utils/collection-filter/collection-filter.util',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@api/helpers/utils/collection-filter/collection-filter.util')
+      >();
+    return {
+      CollectionFilterUtil: {
+        ...actual.CollectionFilterUtil,
+        buildBrandFilter: vi.fn(() => ({ not: null })),
+        buildScopeFilter: vi.fn(() => ({ not: null })),
+      },
+    };
   },
-}));
+);
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';

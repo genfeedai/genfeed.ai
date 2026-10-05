@@ -74,13 +74,13 @@ describe('VideosController tenant reads (#6176)', () => {
       latest: true,
       organizationId: targetOrganizationId,
     });
+    expect(fieldValues(mock.mock.calls[0]?.[0], 'organizationId')).toContain(
+      targetOrganizationId,
+    );
     expect(
-      fieldValues(mock.mock.mock.calls[0]?.[0], 'organizationId'),
-    ).toContain(targetOrganizationId);
-    expect(
-      fieldValues(mock.mock.mock.calls[0]?.[0], 'organizationId'),
+      fieldValues(mock.mock.calls[0]?.[0], 'organizationId'),
     ).not.toContain(sessionOrganizationId);
-    expect(fieldValues(mock.mock.mock.calls[0]?.[0], 'brandId')).not.toContain(
+    expect(fieldValues(mock.mock.calls[0]?.[0], 'brandId')).not.toContain(
       sessionBrandId,
     );
   });
@@ -92,7 +92,7 @@ describe('VideosController tenant reads (#6176)', () => {
       organizationId: targetOrganizationId,
       brandId: targetBrandId,
     });
-    expect(fieldValues(mock.mock.mock.calls[0]?.[0], 'brandId')).toContain(
+    expect(fieldValues(mock.mock.calls[0]?.[0], 'brandId')).toContain(
       targetBrandId,
     );
   });
