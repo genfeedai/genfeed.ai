@@ -251,8 +251,11 @@ export function mapReplicateBillingTiers(
           };
         unitPriceUsd = quoted / divisor;
       }
+      // Labelled by billed unit, as the rate sheet labels them, so the same
+      // prices read as the same rates whichever source stated them.
+      const component = metric.unit.endsWith('-token') ? metric.unit : 'output';
       const identity = JSON.stringify([
-        rawPrice.metric,
+        component,
         Object.entries(when).sort(([left], [right]) =>
           left.localeCompare(right),
         ),
@@ -264,7 +267,7 @@ export function mapReplicateBillingTiers(
         };
       seen.add(identity);
       rates.push({
-        component: rawPrice.metric,
+        component,
         unit: metric.unit,
         unitPriceUsd,
         when: { ...when },

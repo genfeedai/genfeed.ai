@@ -34,19 +34,19 @@ describe('mapReplicateBillingTiers', () => {
     ).toEqual({
       rates: [
         {
-          component: 'video_output_count',
+          component: 'output',
           unit: 'output',
           unitPriceUsd: 0.19,
           when: { resolution: '768P', duration: 6 },
         },
         {
-          component: 'video_output_count',
+          component: 'output',
           unit: 'output',
           unitPriceUsd: 0.32,
           when: { resolution: '768P', duration: 10 },
         },
         {
-          component: 'video_output_count',
+          component: 'output',
           unit: 'output',
           unitPriceUsd: 0.33,
           when: { resolution: '1080P', duration: 6 },

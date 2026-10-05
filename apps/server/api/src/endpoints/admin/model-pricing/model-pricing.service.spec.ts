@@ -394,4 +394,140 @@ describe('operator model pricing projection', () => {
     expect(configured.isConversionPolicyConfigured).toBe(true);
     expect(configured.marginMultiplierGeneration).toBe(3.75);
   });
+
+  describe('approving pending provider rates (#6196)', () => {
+    const rate = (price: number) => ({
+      component: 'output',
+      unit: 'output',
+      unitPriceUsd: price,
+      when: { resolution: '768P' },
+    });
+    const contractOf = (version: string, price: number, status: string) =>
+      ({
+        ...contract,
+        conditionalDimensions: {},
+        endpoint: 'provider/model',
+        pricing: {
+          currency: 'USD',
+          rates: [rate(price)],
+          source: 'replicate-billing-config',
+          sourceUrl: 'https://replicate.com/provider/model',
+          verifiedAt: '2026-10-01T00:00:00.000Z',
+        },
+        provider: 'replicate',
+        reviewStatus: status,
+        unitPrice: null,
+        version,
+      }) as unknown as ModelProviderContract;
+    const pendingModel = (pendingVersion: string) =>
+      ({
+        ...model,
+        endpoint: 'provider/model',
+        pendingProviderContractVersion: pendingVersion,
+        providerInputSchema: {
+          properties: { resolution: { enum: ['768P', '1080P'] } },
+        },
+        reviewedProviderContractVersion: 'rates-v1',
+      }) as unknown as Model;
+
+    function transactionFor(row: Model, contracts: ModelProviderContract[]) {
+      const findFirst = vi
+        .fn()
+        .mockResolvedValue({ ...row, providerContracts: contracts });
+      const modelUpdate = vi.fn().mockResolvedValue({});
+      const contractUpdate = vi.fn().mockResolvedValue({});
+      const transaction = {
+        model: { findFirst, update: modelUpdate },
+        modelProviderContract: { update: contractUpdate },
+        platformSetting: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue({ marginMultiplierGeneration: 3.33 }),
+        },
+      };
+      const service = new AdminModelPricingService({
+        $transaction: async (
+          fn: (client: typeof transaction) => Promise<unknown>,
+        ) => fn(transaction),
+      } as never);
+      return { contractUpdate, modelUpdate, service };
+    }
+
+    it('promotes the pending contract, recording the approver and time', async () => {
+      const { contractUpdate, modelUpdate, service } = transactionFor(
+        pendingModel('rates-v2'),
+        [
+          contractOf('rates-v1', 0.19, 'approved'),
+          contractOf('rates-v2', 0.21, 'pending'),
+        ],
+      );
+
+      await service.approveRates('model', 'user-1');
+
+      expect(contractUpdate).toHaveBeenCalledWith({
+        data: {
+          reviewStatus: 'approved',
+          reviewedAt: expect.any(Date),
+          reviewedBy: 'user-1',
+        },
+        where: {
+          provider_endpoint_version: {
+            endpoint: 'provider/model',
+            provider: 'replicate',
+            version: 'rates-v2',
+          },
+        },
+      });
+      const update = modelUpdate.mock.calls[0]?.[0];
+      expect(update.where).toEqual({
+        id: 'model',
+        isDeleted: false,
+        organizationId: null,
+      });
+      expect(update.data).toMatchObject({
+        pendingProviderContractVersion: null,
+        providerSyncStatus: 'fresh',
+        reviewedBy: 'user-1',
+        reviewedProviderContractVersion: 'rates-v2',
+      });
+      // Registry fields are never touched by a rate approval.
+      for (const field of [
+        'isActive',
+        'isDefault',
+        'providerInputSchema',
+        'providerCostUsd',
+      ])
+        expect(update.data).not.toHaveProperty(field);
+    });
+
+    it('refuses when no pending rates differ from the approved ones', async () => {
+      const { modelUpdate, service } = transactionFor(
+        pendingModel('rates-v2'),
+        [
+          contractOf('rates-v1', 0.19, 'approved'),
+          contractOf('rates-v2', 0.19, 'pending'),
+        ],
+      );
+
+      await expect(service.approveRates('model', 'user-1')).rejects.toThrow(
+        'No pending provider rates differ',
+      );
+      expect(modelUpdate).not.toHaveBeenCalled();
+    });
+
+    it('reports an unknown model as not found', async () => {
+      const findFirst = vi.fn().mockResolvedValue(null);
+      const service = new AdminModelPricingService({
+        $transaction: async (fn: (client: unknown) => Promise<unknown>) =>
+          fn({
+            model: { findFirst },
+            platformSetting: { findFirst: vi.fn().mockResolvedValue(null) },
+          }),
+      } as never);
+
+      await expect(service.approveRates('missing', 'user-1')).rejects.toThrow(
+        'not found',
+      );
+    });
+  });
 });
