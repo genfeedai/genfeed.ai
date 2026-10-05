@@ -2,7 +2,6 @@ import '@testing-library/jest-dom/vitest';
 import * as authConfig from '@genfeedai/auth-client/server';
 import { render, screen } from '@testing-library/react';
 import type { CreateAppMetadataOptions } from '@ui/shell/metadata';
-import { JSDOM } from 'jsdom';
 import type { ReactElement, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -169,22 +168,28 @@ describe('app root layout', () => {
       expect(bootstrapSource).not.toBe('');
       const runtimeSource = await (await GET()).text();
       expect(runtimeSource).toContain('"betterAuthEnabled":true');
-      const dom = new JSDOM('', { runScripts: 'outside-only' });
-      try {
-        const scripts = runtimeFirst
-          ? [runtimeSource, bootstrapSource]
-          : [bootstrapSource, runtimeSource];
-        for (const source of scripts) dom.window.eval(source);
-        expect(
-          dom.window.eval('globalThis.__GENFEED_RUNTIME_CONFIG__'),
-        ).toEqual({
-          apiEndpoint: '/v1',
-          betterAuthEnabled: true,
-          clientSurface: 'web',
-        });
-      } finally {
-        dom.window.close();
+      const fakeGlobal = {
+        __GENFEED_RUNTIME_CONFIG__: {},
+        document: {
+          body: { classList: { add: vi.fn() } },
+          addEventListener: vi.fn(),
+        },
+        window: {},
+      };
+      const scripts = runtimeFirst
+        ? [runtimeSource, bootstrapSource]
+        : [bootstrapSource, runtimeSource];
+      for (const source of scripts) {
+        new Function(
+          'globalThis',
+          `const { window, document } = globalThis;\n${source}`,
+        )(fakeGlobal);
       }
+      expect(fakeGlobal.__GENFEED_RUNTIME_CONFIG__).toEqual({
+        apiEndpoint: '/v1',
+        betterAuthEnabled: true,
+        clientSurface: 'web',
+      });
     },
   );
 
