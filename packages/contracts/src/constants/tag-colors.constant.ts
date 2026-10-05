@@ -1,4 +1,4 @@
-import type { ITagColorSwatch } from '../interfaces/content/tag.interface';
+import type { ITagColorSwatch } from '../interfaces/content/tag-color.interface';
 
 /**
  * The colors a Library tag can take from its picker. Each pairs a background
