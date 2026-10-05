@@ -48,6 +48,7 @@ describe('Claude setup endpoint separation', () => {
   it.each([
     'https://mcp.genfeed.ai/mcp?toolsets=generation',
     'https://mcp.genfeed.ai/mcp/claude/?profile=full',
+    'https://mcp.genfeed.ai/MCP/Claude/?profile=full',
   ])(
     'keeps Claude restricted while offering standard Codex setup for %s',
     (endpoint) => {

@@ -12,6 +12,16 @@ describe('deriveClaudeMcpResourceIdentifier', () => {
     ['https://custom.example', 'https://custom.example/mcp/claude'],
     ['https://custom.example/', 'https://custom.example/mcp/claude'],
     ['https://custom.example/mcp/', 'https://custom.example/mcp/claude'],
+    ['https://custom.example/mcp/claude/', 'https://custom.example/mcp/claude'],
+    ['https://custom.example/MCP/Claude/', 'https://custom.example/mcp/claude'],
+    [
+      'https://custom.example/?toolsets=generation#setup',
+      'https://custom.example/mcp/claude',
+    ],
+    [
+      'https://custom.example/mcp/claude?toolsets=generation#setup',
+      'https://custom.example/mcp/claude',
+    ],
     [
       'https://custom.example/genfeed',
       'https://custom.example/genfeed/mcp/claude',
@@ -22,6 +32,12 @@ describe('deriveClaudeMcpResourceIdentifier', () => {
     ],
   ])('resolves %s through the standard MCP resource', (endpoint, expected) => {
     expect(deriveClaudeMcpResourceIdentifier(endpoint)).toBe(expected);
+  });
+
+  it('preserves protocol validation for the Claude resource', () => {
+    expect(() => deriveClaudeMcpResourceIdentifier('file:///tmp/mcp')).toThrow(
+      McpResourceConfigurationError,
+    );
   });
 });
 

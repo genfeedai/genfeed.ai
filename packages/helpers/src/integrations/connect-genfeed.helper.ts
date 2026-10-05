@@ -54,7 +54,10 @@ export function buildGenfeedAgentSetupPrompt(
       .toLowerCase()
       .endsWith('/mcp/claude')
   ) {
-    standardUrl.pathname = standardUrl.pathname.replace(/\/claude\/*$/i, '');
+    standardUrl.pathname = standardUrl.pathname.replace(
+      /\/mcp\/claude\/*$/i,
+      '/mcp',
+    );
     standardUrl.search = '';
     standardUrl.hash = '';
   }

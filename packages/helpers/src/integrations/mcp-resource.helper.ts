@@ -17,7 +17,11 @@ export const MCP_RESOURCE_PATH = '/mcp';
 export function deriveClaudeMcpResourceIdentifier(
   standardResource: string,
 ): string {
-  return `${deriveMcpResourceIdentifier(standardResource)}/claude`;
+  const url = new URL(standardResource);
+  url.search = '';
+  url.hash = '';
+  url.pathname = url.pathname.replace(/\/mcp(?:\/claude)?\/*$/i, '/mcp');
+  return `${deriveMcpResourceIdentifier(url.toString())}/claude`;
 }
 
 export function resolveMcpAccessModeForResource(
