@@ -165,6 +165,29 @@ it('keeps media descriptions available on demand and restores other layouts', ()
   expect(document.querySelector('article.post')).not.toBeNull();
 });
 
+it('keeps a visible fallback when an attached post image fails', () => {
+  result('get_posts', {
+    posts: [
+      {
+        label: 'Launch',
+        media: [{ kind: 'image', url: 'https://cdn.genfeed.ai/missing.jpg' }],
+      },
+    ],
+  });
+  document.querySelector('article img')?.dispatchEvent(new Event('error'));
+  expect(document.querySelector('article .notice')?.textContent).toContain(
+    'Preview unavailable',
+  );
+});
+
+it('does not promise automatic updates when a pending job has no ID', () => {
+  result('generate', { kind: 'image', status: 'PROCESSING' });
+  expect(document.querySelector('.pending .notice')?.textContent).toBe(
+    'Still generating. Ask for the job status again to see the result.',
+  );
+  expect(document.querySelector('.bar.indeterminate')).toBeNull();
+});
+
 it('uses open-link for external media without loading unapproved origins', () => {
   result('list_assets', [
     { category: 'IMAGE', url: 'https://external.example/image.png' },

@@ -45,7 +45,7 @@ export function cardAppScript(origins: readonly string[]): string {
   }
   function applyContext(context) {
     if (!context) return;
-    if (['light', 'dark'].includes(context.theme)) document.body.dataset.theme = context.theme;
+    if (['light', 'dark'].includes(context.theme)) { document.body.dataset.theme = context.theme; document.documentElement.style.colorScheme = context.theme; }
     if (Array.isArray(context.availableDisplayModes)) displayModes = context.availableDisplayModes;
   }
   function element(tag, className, text) {
@@ -159,7 +159,8 @@ export function cardAppScript(origins: readonly string[]): string {
     const isStale = () => isDisposed || epoch !== renderEpoch || !article.isConnected;
     // The card is not attached yet on the first call, so only the epoch is
     // checked here; connection is re-checked when the timer fires.
-    if (isDisposed || epoch !== renderEpoch || !item.id) return;
+    if (isDisposed || epoch !== renderEpoch) return;
+    if (!item.id) { stopPolling(article); return; }
     if (attempt >= ${JOB_POLL_MAX_ATTEMPTS}) { stopPolling(article); return; }
     const timer = setTimeout(() => {
       pollTimers.delete(timer);
@@ -252,7 +253,7 @@ export function cardAppScript(origins: readonly string[]): string {
     }
     const url = safeUrl(item.url);
     if (url) copy.append(linkTo(url, 'Open published post ↗'));
-    if (copy.childNodes.length) article.append(copy);
+    if (copy.childNodes.length || media) article.append(copy);
     return article;
   }
   function localDayKey(date) {
