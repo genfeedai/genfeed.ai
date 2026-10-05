@@ -85,13 +85,14 @@ describe('AgentStreamPublisherService', () => {
   });
 
   it('persists and streams button-only multi-select settings', async () => {
-    mockAgentThreadsService.findOne.mockResolvedValue({
-      organizationId: 'org-1',
-    });
+    const organizationId = testId('org');
+    const threadId = testId('thread');
+    const userId = testId('user');
+    mockAgentThreadsService.findOne.mockResolvedValue({ organizationId });
     await service.publishInputRequest({
       inputRequestId: 'req-1',
-      threadId: 'thread-1',
-      userId: 'user-1',
+      threadId,
+      userId,
       allowFreeText: false,
       isMultiSelect: true,
       maxSelections: 2,
@@ -102,6 +103,9 @@ describe('AgentStreamPublisherService', () => {
     expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'input.requested',
+        organizationId,
+        threadId,
+        userId,
         payload: expect.objectContaining({
           allowFreeText: false,
           isMultiSelect: true,
@@ -114,6 +118,8 @@ describe('AgentStreamPublisherService', () => {
       expect.objectContaining({
         type: 'agent:input_request',
         data: expect.objectContaining({
+          threadId,
+          userId,
           allowFreeText: false,
           isMultiSelect: true,
           maxSelections: 2,

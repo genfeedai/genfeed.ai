@@ -789,10 +789,7 @@ export class AgentThreadEngineService {
         inputRequests.push({
           allowFreeText: this.readBoolean(event.payload, 'allowFreeText'),
           isMultiSelect: this.readBoolean(event.payload, 'isMultiSelect'),
-          maxSelections:
-            typeof event.payload.maxSelections === 'number'
-              ? event.payload.maxSelections
-              : undefined,
+          maxSelections: this.readNumber(event.payload, 'maxSelections'),
           fieldId: this.readString(event.payload, 'fieldId'),
           metadata: this.readRecord(event.payload, 'metadata'),
           options: this.readArray(event.payload, 'options') ?? [],
@@ -935,6 +932,14 @@ export class AgentThreadEngineService {
   ): boolean | undefined {
     const value = payload?.[key];
     return typeof value === 'boolean' ? value : undefined;
+  }
+
+  private readNumber(
+    payload: Record<string, unknown> | undefined,
+    key: string,
+  ): number | undefined {
+    const value = payload?.[key];
+    return typeof value === 'number' ? value : undefined;
   }
 
   private readRecord(
