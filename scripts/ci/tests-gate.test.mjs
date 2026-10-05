@@ -23,6 +23,7 @@ const ALL_SUCCESS_ENV = {
   TEST_WORKSPACES_RESULT: 'success',
   TEST_APP_RESULT: 'success',
   TEST_API_RESULT: 'success',
+  CLOUD_TENANT_GUARD_RESULT: 'success',
   BUILD_RESULT: 'success',
 };
 
@@ -47,6 +48,7 @@ const CANCELLED_RUN_ENV = {
   TEST_WORKSPACES_RESULT: 'cancelled',
   TEST_APP_RESULT: 'cancelled',
   TEST_API_RESULT: 'cancelled',
+  CLOUD_TENANT_GUARD_RESULT: 'cancelled',
   BUILD_RESULT: 'cancelled',
 };
 
@@ -85,6 +87,7 @@ test('accepts skipped jobs only when the plan marks them inapplicable', () => {
     TEST_APP_RESULT: 'skipped',
     PLAN_API_TESTS: 'false',
     TEST_API_RESULT: 'skipped',
+    CLOUD_TENANT_GUARD_RESULT: 'skipped',
     PLAN_SPEC_TYPECHECK: 'false',
     SPEC_TYPECHECK_RESULT: 'skipped',
   });
@@ -94,6 +97,7 @@ test('accepts skipped jobs only when the plan marks them inapplicable', () => {
     'Workspace tests',
     'App tests',
     'API tests',
+    'Cloud Tenant Guard Sweep',
     'Spec typecheck',
   ]) {
     assert.equal(classificationOf(result, name), 'not applicable');
@@ -105,6 +109,7 @@ test('rejects a skipped job the plan marked applicable', () => {
     ['TEST_WORKSPACES_RESULT', 'Workspace tests'],
     ['TEST_APP_RESULT', 'App tests'],
     ['TEST_API_RESULT', 'API tests'],
+    ['CLOUD_TENANT_GUARD_RESULT', 'Cloud Tenant Guard Sweep'],
     ['SPEC_TYPECHECK_RESULT', 'Spec typecheck'],
   ]) {
     const result = evaluate({ [key]: 'skipped' });
@@ -253,6 +258,24 @@ test('fails when the spec typecheck ratchet fails', () => {
   assert.deepEqual(result.failures, ['Spec typecheck failure']);
 });
 
+test('CLOUD sweep failure and cancellation block the aggregate gate', () => {
+  for (const result of ['failure', 'cancelled']) {
+    const evaluation = evaluate({ CLOUD_TENANT_GUARD_RESULT: result });
+    assert.equal(evaluation.passed, false);
+    assert.deepEqual(evaluation.failures, [
+      `Cloud Tenant Guard Sweep ${result}`,
+    ]);
+  }
+  assert.throws(
+    () =>
+      createTestsGateJobs({
+        ...ALL_SUCCESS_ENV,
+        CLOUD_TENANT_GUARD_RESULT: undefined,
+      }),
+    /CLOUD_TENANT_GUARD_RESULT/,
+  );
+});
+
 test('a plan that never finished fails the gate on its own row', () => {
   const result = evaluate({
     PLAN_RESULT: 'failure',
@@ -264,6 +287,7 @@ test('a plan that never finished fails the gate on its own row', () => {
     TEST_WORKSPACES_RESULT: 'skipped',
     TEST_APP_RESULT: 'skipped',
     TEST_API_RESULT: 'skipped',
+    CLOUD_TENANT_GUARD_RESULT: 'skipped',
     STATIC_CHECKS_RESULT: 'skipped',
     BUILD_RESULT: 'skipped',
   });
@@ -291,6 +315,10 @@ test('keeps the workflow contract stable', () => {
 
   assert.match(workflow, /^ {2}tests-gate:\n/m);
   assert.match(workflow, /^ {4}name: Tests Gate\n/m);
+  assert.match(
+    workflow,
+    /^ {10}CLOUD_TENANT_GUARD_RESULT: \$\{\{ needs\.cloud-tenant-guard\.result \}\}$/m,
+  );
   // Ready pull requests and merge groups reach a conclusive gate. The `push`
   // arm is dormant (the Full Suite no longer runs on master pushes); drafts and
   // the Full Suite dispatch/release path (workflow_dispatch) do not.
@@ -306,6 +334,7 @@ test('keeps the workflow contract stable', () => {
     'test-workspaces',
     'test-app',
     'test-api',
+    'cloud-tenant-guard',
     'build',
   ]) {
     assert.match(workflow, new RegExp(`^ {6}- ${job}$`, 'm'));

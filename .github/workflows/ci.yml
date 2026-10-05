@@ -709,6 +709,97 @@ jobs:
             --maxWorkers=2 "${SELECTION[@]}" \
             --shard=${{ matrix.shard }}/${{ matrix.total }}
 
+  cloud-tenant-guard:
+    name: Cloud Tenant Guard Sweep
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: plan
+    if: needs.plan.outputs.api_tests == 'true'
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: genfeed
+          POSTGRES_PASSWORD: genfeed_local
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+      # Build uploads only OpenAPI, not API dist. Keep this job independent:
+      # waiting for all of Build would serialize unrelated package/docs work.
+      # Workflow-level TURBO_TOKEN/TURBO_TEAM apply here; cache hits are expected.
+      # Runtime CLOUD configuration is loaded only after compilation.
+      - name: Build API (compiled bundle)
+        run: bunx turbo run build --filter=@genfeedai/api
+      - name: Validate synthetic CLOUD configuration
+        run: node --test scripts/ci/cloud-tenant-guard-sweep/core.test.mjs
+      - name: Load job-local placeholder environment
+        run: |
+          sed '/^#/d; /^$/d' scripts/ci/cloud-tenant-guard-sweep/cloud-sweep.placeholders >> "$GITHUB_ENV"
+      - name: Apply Prisma migrations to test DB
+        run: bun x prisma migrate deploy
+        working-directory: packages/prisma
+      - name: Start real API in CLOUD mode
+        run: |
+          set -euo pipefail
+          node apps/server/dist/apps/api/main.js > "$RUNNER_TEMP/api.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/cloud-api.pid"
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3010/v1/health >/dev/null 2>&1; then
+              echo "CLOUD API healthy after ~$((attempt * 2))s"
+              exit 0
+            fi
+            if ! kill -0 "$(cat "$RUNNER_TEMP/cloud-api.pid")" 2>/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          echo "::error::CLOUD API did not become healthy within 120s"
+          tail -n 200 "$RUNNER_TEMP/api.log"
+          exit 1
+      - name: Sweep handlers with tenant enforcement enabled
+        timeout-minutes: 6
+        run: bun run ci:cloud-tenant-guard-sweep
+      - name: Stop API
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/cloud-api.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/cloud-api.pid")" 2>/dev/null || true
+            for _ in $(seq 1 10); do
+              if ! kill -0 "$(cat "$RUNNER_TEMP/cloud-api.pid")" 2>/dev/null; then break; fi
+              sleep 1
+            done
+          fi
+      - name: Scan final API stdout for swallowed tenant errors
+        if: always()
+        run: node scripts/ci/cloud-tenant-guard-sweep/scan-log.mjs
+      - name: Upload CLOUD tenant guard report and API log
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cloud-tenant-guard-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/api.log
+            ${{ runner.temp }}/cloud-tenant-guard-report.json
+          retention-days: 7
+
   # Build, plus the OpenAPI documentation gate (#1247) whenever the API is in
   # scope. The spec is a generated artifact and is NOT committed: it is emitted
   # fresh from the compiled bundle (headless — no DB/Redis), must be
@@ -775,6 +866,7 @@ jobs:
       - test-workspaces
       - test-app
       - test-api
+      - cloud-tenant-guard
       - build
     if: >-
       ${{ always()
@@ -818,6 +910,7 @@ jobs:
           TEST_WORKSPACES_RESULT: ${{ needs.test-workspaces.result }}
           TEST_APP_RESULT: ${{ needs.test-app.result }}
           TEST_API_RESULT: ${{ needs.test-api.result }}
+          CLOUD_TENANT_GUARD_RESULT: ${{ needs.cloud-tenant-guard.result }}
           BUILD_RESULT: ${{ needs.build.result }}
         shell: bash
         run: node scripts/ci/tests-gate.mjs | tee -a "$GITHUB_STEP_SUMMARY"

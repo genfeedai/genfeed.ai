@@ -19,4 +19,6 @@ paths = [
   '''package-lock\.json''',
   '''\.spec\.ts$''',
   '''\.test\.ts$''',
+  # Synthetic credentials for the ephemeral CLOUD guard CI job only.
+  '''^scripts/ci/cloud-tenant-guard-sweep/cloud-sweep\.placeholders$''',
 ]

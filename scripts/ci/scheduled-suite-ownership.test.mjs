@@ -90,6 +90,16 @@ test('every scheduled workflow belongs to a declared suite family', () => {
     assert.ok(workflow.crons.length > 0, `${workflow.name} has no cron`);
 });
 
+test('CLOUD handler sweep remains CI-owned with no duplicate scheduled job', () => {
+  assert.ok(byName.get('ci.yml').jobs.includes('cloud-tenant-guard'));
+  assert.equal(byName.get('ci.yml').isScheduled, false);
+  for (const workflow of scheduled)
+    assert.ok(
+      !workflow.jobs.includes('cloud-tenant-guard'),
+      `${workflow.name} duplicates the CI sweep`,
+    );
+});
+
 test('every suite family keeps exactly one scheduled owner that still defines its job', () => {
   for (const [family, owner] of Object.entries(SUITE_FAMILY_OWNERS)) {
     const workflow = byName.get(owner.workflow);

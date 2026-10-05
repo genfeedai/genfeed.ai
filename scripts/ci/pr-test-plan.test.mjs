@@ -96,6 +96,24 @@ test('escalates only lockfile, turbo, vitest config, bun setup, and the planner'
   }
 });
 
+test('CLOUD guard harness changes exercise the API test plan', () => {
+  for (const file of [
+    'scripts/ci/cloud-tenant-guard-sweep/run.mjs',
+    'scripts/ci/cloud-tenant-guard-sweep/cloud-sweep.env',
+  ]) {
+    assert.deepEqual(classifyChangedFiles([file]), {
+      api: true,
+      app: true,
+      forceFull: true,
+    });
+    assert.equal(
+      createPrTestPlan({ base: 'base-sha', changedFiles: [file] }).apiTests
+        .applicable,
+      true,
+    );
+  }
+});
+
 test('includes deleted paths in change classification input', async () => {
   const calls = [];
   const files = await readChangedFiles('base-sha', async (command, args) => {

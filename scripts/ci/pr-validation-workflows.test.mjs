@@ -338,6 +338,53 @@ test('adopts a fair pull-request validation budget with a stricter ratchet targe
   );
 });
 
+test('CLOUD guard boots the real API with ephemeral services and uploads evidence', () => {
+  const workflow = readWorkflow('ci.yml');
+  const job = jobBlock(workflow, 'cloud-tenant-guard', 'ci.yml');
+  assert.match(job, /^ {4}name: Cloud Tenant Guard Sweep$/m);
+  assert.match(job, /^ {4}timeout-minutes: 20$/m);
+  assert.match(
+    job,
+    /Sweep handlers with tenant enforcement enabled\n {8}timeout-minutes: 6/,
+  );
+  assert.match(
+    workflow,
+    /^ {2}TURBO_TOKEN: \$\{\{ secrets\.TURBO_TOKEN \}\}$/m,
+  );
+  assert.match(workflow, /^ {2}TURBO_TEAM: \$\{\{ vars\.TURBO_TEAM \}\}$/m);
+  assert.match(job, /^ {4}needs: plan$/m);
+  assert.match(job, /^ {4}if: needs\.plan\.outputs\.api_tests == 'true'$/m);
+  assert.match(job, /image: pgvector\/pgvector:pg17/);
+  assert.match(job, /image: redis:7/);
+  assert.match(job, /uses: \.\/\.github\/actions\/setup-bun-env/);
+  assert.match(job, /bunx turbo run build --filter=@genfeedai\/api/);
+  assert.match(
+    job,
+    /bun x prisma migrate deploy\n {8}working-directory: packages\/prisma/,
+  );
+  assert.match(job, /cloud-sweep\.placeholders >> "\$GITHUB_ENV"/);
+  assert.match(
+    job,
+    /node apps\/server\/dist\/apps\/api\/main\.js > "\$RUNNER_TEMP\/api\.log"/,
+  );
+  assert.match(job, /seq 1 60/);
+  assert.match(job, /curl -fsS http:\/\/127\.0\.0\.1:3010\/v1\/health/);
+  assert.match(job, /bun run ci:cloud-tenant-guard-sweep/);
+  assert.match(
+    job,
+    /Scan final API stdout for swallowed tenant errors\n {8}if: always\(\)\n {8}run: node scripts\/ci\/cloud-tenant-guard-sweep\/scan-log\.mjs/,
+  );
+  assert.match(job, /if: always\(\)[\s\S]*uses: actions\/upload-artifact@/);
+  assert.match(job, /\$\{\{ runner\.temp \}\}\/api\.log/);
+  assert.match(
+    job,
+    /\$\{\{ runner\.temp \}\}\/cloud-tenant-guard-report\.json/,
+  );
+  assert.doesNotMatch(job, /continue-on-error/);
+  const gate = jobBlock(workflow, 'tests-gate', 'ci.yml');
+  assert.match(gate, /^ {6}- cloud-tenant-guard$/m);
+});
+
 test('caps the CI job inventory at twenty jobs', () => {
   // Runner-slot starvation is a head-count problem: every job occupies a
   // slot for its full queue+setup+run span. New validation belongs inside an

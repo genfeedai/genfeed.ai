@@ -82,6 +82,11 @@ export function createTestsGateJobs(env) {
       result: readResult(env, 'TEST_API_RESULT'),
       applicable: planned('PLAN_API_TESTS'),
     },
+    {
+      name: 'Cloud Tenant Guard Sweep',
+      result: readResult(env, 'CLOUD_TENANT_GUARD_RESULT'),
+      applicable: planned('PLAN_API_TESTS'),
+    },
     ...[...TEMPORARILY_DISABLED_TEST_GROUPS].map((group) => ({
       name: DORMANT_SURFACE_NAMES[group] ?? `${group} tests`,
       result: 'skipped',

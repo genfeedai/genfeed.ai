@@ -18,6 +18,7 @@ const FORCE_FULL_PATTERNS = [
   /(^|\/)vitest\.(?:config|setup)\.[cm]?[jt]sx?$/,
   /^\.github\/actions\/setup-bun-env\//,
   /^scripts\/ci\/(?:pr-test-plan|tests-gate)\.mjs$/,
+  /^scripts\/ci\/cloud-tenant-guard-sweep\//,
 ];
 
 // Keep dormant surface definitions in the planner so they can be restored
