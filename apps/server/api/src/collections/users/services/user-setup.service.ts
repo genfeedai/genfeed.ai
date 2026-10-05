@@ -22,9 +22,10 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
+import { resolveOrganizationCreatorRole } from '@api/collections/roles/utils/resolve-organization-creator-role.util';
 import type { SettingDocument } from '@api/collections/settings/schemas/setting.schema';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
-import { MemberRole, OrganizationCategory } from '@genfeedai/contracts';
+import { OrganizationCategory } from '@genfeedai/contracts';
 import { DEFAULT_THEME } from '@genfeedai/contracts/constants';
 import { resolveSignupWorkspaceLabel } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -383,7 +384,9 @@ export class UserSetupService {
       return existing;
     }
 
-    const roleToAssign = await this.resolveSignupMemberRole();
+    const roleToAssign = await resolveOrganizationCreatorRole(
+      this.rolesService,
+    );
 
     const member = await this.membersService.create({
       currentBrandId,
@@ -400,32 +403,5 @@ export class UserSetupService {
     );
 
     return member;
-  }
-
-  /**
-   * Prefer admin, then owner (the role self-hosted seed always creates). Both
-   * roles satisfy the organization-administration boundary required while
-   * linking the signup workspace to its billing account. If the catalog is
-   * empty, create admin so first-time signup can still attach a membership row.
-   */
-  private async resolveSignupMemberRole(): Promise<{
-    id: string;
-    key: string;
-  }> {
-    const roleKeys = [MemberRole.ADMIN, MemberRole.OWNER];
-
-    for (const key of roleKeys) {
-      const role = await this.rolesService.findOne({ key });
-      if (role?.id) {
-        return { id: String(role.id), key: role.key };
-      }
-    }
-
-    const created = await this.rolesService.create({
-      key: MemberRole.ADMIN,
-      label: 'Admin',
-    });
-
-    return { id: String(created.id), key: created.key };
   }
 }

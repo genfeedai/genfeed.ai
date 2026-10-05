@@ -105,6 +105,7 @@ export function GenerationActionCard({
     estimatedCredits,
     isEstimateAvailable,
     isEstimatePending,
+    estimateUnavailableReason,
     resolvedModelKey,
     endFrameId,
     textareaRef,
@@ -291,6 +292,7 @@ export function GenerationActionCard({
             estimatedCredits={estimatedCredits}
             isEstimateAvailable={isEstimateAvailable}
             isEstimatePending={isEstimatePending}
+            estimateUnavailableReason={estimateUnavailableReason}
             resolvedModelKey={resolvedModelKey}
             onDurationChange={handleDurationChange}
             resolution={resolution}

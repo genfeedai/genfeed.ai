@@ -347,24 +347,6 @@ test.describe('Analytics Overview', () => {
         '18',
       );
 
-      // A URL-pattern check alone would still pass on an "Organization
-      // unavailable" fallback (its suggested link also contains "trends" in
-      // the path), so also assert the real surface rendered and that no
-      // ErrorBoundary fired. Each step waits for its own page to settle
-      // (`waitForPageLoad`) before the next click, since these are
-      // client-side transitions racing the analytics section's per-page
-      // data fetches under parallel load.
-      await analyticsPage.navigateToTrends();
-      await expect(authenticatedPage).toHaveURL(/analytics\/trends/);
-      await analyticsPage.waitForPageLoad();
-      await expect(
-        analyticsPage.sectionHeading('Social Media Trends'),
-      ).toBeVisible();
-      await assertNoErrorBoundaryFallback(
-        authenticatedPage,
-        brandPath('/analytics/trends'),
-      );
-
       await analyticsPage.navigateToHooks();
       await expect(authenticatedPage).toHaveURL(/analytics\/hooks/);
       await analyticsPage.waitForPageLoad();
@@ -412,11 +394,28 @@ test.describe('Analytics Overview', () => {
         authenticatedPage,
         new URL(authenticatedPage.url()).pathname,
       );
+      // A URL-pattern check alone would still pass on an "Organization
+      // unavailable" fallback (its suggested link also contains "trends" in
+      // the path), so also assert the real surface rendered and that no
+      // ErrorBoundary fired. Each step waits for its own page to settle
+      // (`waitForPageLoad`) before the next click, since these are
+      // client-side transitions racing the analytics section's per-page
+      // data fetches under parallel load.
+      await analyticsPage.navigateToTrends();
+      await expect(authenticatedPage).toHaveURL(/discovery\/trends/);
+      await analyticsPage.waitForPageLoad();
+      await expect(
+        analyticsPage.sectionHeading('Social Media Trends'),
+      ).toBeVisible();
+      await assertNoErrorBoundaryFallback(
+        authenticatedPage,
+        brandPath(APP_ROUTES.DISCOVERY.TRENDS),
+      );
     });
 
     test('should display trends page', async ({ authenticatedPage }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
-      const route = brandPath('/analytics/trends');
+      const route = brandPath(APP_ROUTES.DISCOVERY.TRENDS);
 
       await analyticsPage.gotoSection('trends');
 
@@ -504,7 +503,7 @@ test.describe('Analytics Overview — Protected Routes', () => {
   test('should redirect unauthenticated user from trends page', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.ANALYTICS.TRENDS);
+    await unauthenticatedPage.goto(APP_ROUTES.DISCOVERY.TRENDS);
 
     await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
       timeout: 15000,
@@ -512,7 +511,7 @@ test.describe('Analytics Overview — Protected Routes', () => {
     expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
     await assertNoErrorBoundaryFallback(
       unauthenticatedPage,
-      APP_ROUTES.ANALYTICS.TRENDS,
+      APP_ROUTES.DISCOVERY.TRENDS,
     );
   });
 });

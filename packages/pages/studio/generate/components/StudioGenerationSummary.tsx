@@ -116,7 +116,11 @@ export default function StudioGenerationSummary({
             ? translate('summary.estimateAfterSelection')
             : estimate.status === 'loading'
               ? translate('summary.estimateLoading')
-              : translate('summary.estimateUnavailable');
+              : estimate.unavailableReason
+                ? translate(
+                    `summary.estimateReasons.${estimate.unavailableReason}`,
+                  )
+                : translate('summary.estimateUnavailable');
 
   return (
     <div

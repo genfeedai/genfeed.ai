@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type {
   WorkflowDocument,
   WorkflowEdge,
@@ -19,6 +19,7 @@ import {
   isEngineNativeNodeType,
   validateWorkflow,
 } from '@genfeedai/workflows/engine';
+import { sha256Hex, stableStringify } from '@libs/utils/canonical-hash.util';
 
 export interface WorkflowDefinitionInput {
   edgeStyle?: EdgeStyle;
@@ -117,20 +118,6 @@ function assertValidWorkflowGraph(graph: WorkflowVersionGraph): void {
   }
 }
 
-function stableStringify(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
-  }
-  if (value !== null && typeof value === 'object') {
-    const record = value as Record<string, unknown>;
-    return `{${Object.keys(record)
-      .sort()
-      .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
-      .join(',')}}`;
-  }
-  return JSON.stringify(value);
-}
-
 export function buildWorkflowVersionDefinition(
   input: WorkflowDefinitionInput,
 ): {
@@ -146,9 +133,9 @@ export function buildWorkflowVersionDefinition(
   };
   assertValidWorkflowGraph(graph);
   const inputSchema = input.inputVariables ?? [];
-  const contentHash = `sha256:v1:${createHash('sha256')
-    .update(stableStringify({ graph, inputSchema }))
-    .digest('hex')}`;
+  const contentHash = `sha256:v1:${sha256Hex(
+    stableStringify({ graph, inputSchema }),
+  )}`;
 
   return { contentHash, graph, inputSchema };
 }

@@ -7,6 +7,7 @@ export * from '@serializers/attributes/automation/bot.attributes';
 export * from '@serializers/attributes/automation/bot-activity.attributes';
 export * from '@serializers/attributes/automation/brand-memory.attributes';
 export * from '@serializers/attributes/automation/livestream-bot-session.attributes';
+export * from '@serializers/attributes/automation/marketplace-workflow.attributes';
 export * from '@serializers/attributes/automation/monitored-account.attributes';
 export * from '@serializers/attributes/automation/outreach-campaign.attributes';
 export * from '@serializers/attributes/automation/reply-bot-config.attributes';

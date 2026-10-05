@@ -28,7 +28,7 @@ describe('UserSetupService', () => {
   const mockBrand = { id: brandId, organizationId: orgId };
   // Shaped like a Prisma row with canonical scalar foreign keys.
   const mockMember = { id: memberId, organizationId: orgId, userId: userId };
-  const mockRole = { id: roleId, key: 'admin' };
+  const mockRole = { id: roleId, key: 'owner' };
 
   const mockOrganizationsService = {
     create: vi.fn(),
@@ -265,9 +265,20 @@ describe('UserSetupService', () => {
         expect.objectContaining({
           organizationId: orgId,
           roleId,
-          roleKey: 'admin',
+          roleKey: 'owner',
           userId,
         }),
+      );
+    });
+
+    it('prefers the owner role without looking up admin', async () => {
+      await service.initializeUserResources(userId);
+      expect(mockRolesService.findOne).toHaveBeenCalledWith({ key: 'owner' });
+      expect(mockRolesService.findOne).not.toHaveBeenCalledWith({
+        key: 'admin',
+      });
+      expect(mockMembersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ roleKey: 'owner' }),
       );
     });
 
@@ -298,23 +309,23 @@ describe('UserSetupService', () => {
       });
     });
 
-    it('falls back to owner when the admin role is missing', async () => {
-      const ownerRole = { id: 'role_owner', key: 'owner' };
+    it('falls back to admin only when the owner role is missing', async () => {
+      const adminRole = { id: 'role_admin', key: 'admin' };
       mockRolesService.findOne
-        .mockResolvedValueOnce(null) // admin not found
-        .mockResolvedValueOnce(ownerRole);
+        .mockResolvedValueOnce(null) // owner not found
+        .mockResolvedValueOnce(adminRole);
 
       await service.initializeUserResources(userId);
 
       expect(mockRolesService.findOne).toHaveBeenCalledTimes(2);
       expect(mockRolesService.findOne).toHaveBeenNthCalledWith(1, {
-        key: 'admin',
-      });
-      expect(mockRolesService.findOne).toHaveBeenNthCalledWith(2, {
         key: 'owner',
       });
+      expect(mockRolesService.findOne).toHaveBeenNthCalledWith(2, {
+        key: 'admin',
+      });
       expect(mockMembersService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ roleKey: 'owner' }),
+        expect.objectContaining({ roleKey: 'admin' }),
       );
     });
 
@@ -345,21 +356,21 @@ describe('UserSetupService', () => {
       expect(events).toEqual(['member-reactivated', 'billing']);
     });
 
-    it('should create an admin role when the catalog is empty', async () => {
-      const createdAdmin = { id: 'role_admin_created', key: 'admin' };
+    it('should create an owner role when the catalog is empty', async () => {
+      const createdOwner = { id: 'role_owner_created', key: 'owner' };
       mockRolesService.findOne.mockResolvedValue(null);
-      mockRolesService.create.mockResolvedValue(createdAdmin);
+      mockRolesService.create.mockResolvedValue(createdOwner);
 
       await service.initializeUserResources(userId);
 
       expect(mockRolesService.create).toHaveBeenCalledWith({
-        key: 'admin',
-        label: 'Admin',
+        key: 'owner',
+        label: 'Owner',
       });
       expect(mockMembersService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          roleId: 'role_admin_created',
-          roleKey: 'admin',
+          roleId: 'role_owner_created',
+          roleKey: 'owner',
         }),
       );
     });

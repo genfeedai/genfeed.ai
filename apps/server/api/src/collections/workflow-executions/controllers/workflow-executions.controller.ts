@@ -16,6 +16,7 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -123,6 +124,11 @@ export class WorkflowExecutionsController {
     @Query('limit') limit?: string | number,
     @Query('offset') offset?: string | number,
   ) {
+    const tenant = CollectionFilterUtil.resolveListOrganizationId(
+      query,
+      user,
+      req,
+    );
     if (query.view === 'statistics') {
       const dayStart = new Date(query.dayStart ?? '');
       const dayEnd = new Date(query.dayEnd ?? '');
@@ -138,7 +144,7 @@ export class WorkflowExecutionsController {
       }
       return {
         data: await this.workflowExecutionsService.getCustomerSummary(
-          user.organizationId,
+          tenant.organizationId,
           query,
           dayStart,
           dayEnd,
@@ -149,7 +155,7 @@ export class WorkflowExecutionsController {
       limit !== undefined ? Number(limit) : (query.limit ?? undefined);
     const parsedOffset = offset !== undefined ? Number(offset) : 0;
     const result = await this.workflowExecutionsService.findAll(
-      this.buildFindAllQuery(user.organizationId, query),
+      this.buildFindAllQuery(tenant.organizationId, query),
       {
         customLabels,
         ...QueryDefaultsUtil.getPaginationDefaults({

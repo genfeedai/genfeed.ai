@@ -582,7 +582,9 @@ describe('attachAgentStreamSubscriptions', () => {
     attachAgentStreamSubscriptions(deps);
 
     emit('agent:input_request', {
-      allowFreeText: true,
+      allowFreeText: false,
+      isMultiSelect: true,
+      maxSelections: 2,
       inputRequestId: 'req-1',
       options: [],
       prompt: 'Pick a direction',
@@ -600,7 +602,13 @@ describe('attachAgentStreamSubscriptions', () => {
     );
     expect(deps.setActiveRunStatus).toHaveBeenCalledWith('awaiting_input');
     expect(deps.setPendingInputRequest).toHaveBeenCalledWith(
-      expect.objectContaining({ inputRequestId: 'req-1', title: 'Choose' }),
+      expect.objectContaining({
+        inputRequestId: 'req-1',
+        title: 'Choose',
+        allowFreeText: false,
+        isMultiSelect: true,
+        maxSelections: 2,
+      }),
     );
     expect(deps.addWorkEvent).toHaveBeenCalledWith(
       expect.objectContaining({

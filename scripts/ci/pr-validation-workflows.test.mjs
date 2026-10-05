@@ -6,6 +6,8 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { runInNewContext } from 'node:vm';
 
+import { RECOVERY_GREEN_THRESHOLD } from './scheduled-failure-tracker.mjs';
+
 import './coverage-failure-reporter.test.mjs';
 import './full-suite-evidence.test.mjs';
 import './nightly-e2e-failure-reporter.test.mjs';
@@ -1557,6 +1559,74 @@ test('dispatch diagnostics select exactly one acceptance job without exporting r
       assert.equal(e2eExpression(condition, context), false);
     }
   }
+});
+
+test('learning runtime scheduled reporter and recovery partition every source result', () => {
+  const workflow = readWorkflow('learning-runtime.yml');
+  const reporter = jobBlock(
+    workflow,
+    'nightly-failure-report',
+    'learning-runtime.yml',
+  );
+  const recovery = jobBlock(
+    workflow,
+    'nightly-recovery-report',
+    'learning-runtime.yml',
+  );
+  const conditions = [reporter, recovery].map((block) => {
+    const condition = block.match(/^ {4}if: >-\n((?: {6}.*\n)+)/m)?.[1];
+    assert.ok(condition);
+    assert.match(condition, /^\s*!cancelled\(\)/);
+    return condition;
+  });
+
+  for (const event of ['schedule', 'workflow_dispatch']) {
+    for (const result of ['success', 'failure', 'cancelled', 'skipped']) {
+      const context = {
+        github: { event_name: event },
+        needs: { 'learning-runtime': { result } },
+      };
+      const [reports, recovers] = conditions.map((condition) =>
+        e2eExpression(condition, context),
+      );
+      assert.equal(
+        reports,
+        event === 'schedule' && ['failure', 'cancelled'].includes(result),
+      );
+      assert.equal(recovers, event === 'schedule' && result === 'success');
+      assert.equal(reports && recovers, false);
+    }
+  }
+
+  for (const block of [reporter, recovery]) {
+    assert.match(block, /needs: \[learning-runtime\]/);
+    assert.match(
+      block,
+      /group: nightly-learning-runtime-failure-reporter\n {6}cancel-in-progress: false/,
+    );
+  }
+  assert.match(
+    recovery,
+    /permissions:\n {6}contents: read\n {6}issues: write\n {4}steps:/,
+  );
+  assert.match(recovery, /github-token: \$\{\{ github\.token \}\}/);
+  assert.match(recovery, /persist-credentials: false/);
+  assert.match(recovery, /scripts\/ci\/scheduled-failure-tracker\.mjs/);
+  assert.match(recovery, /await recordScheduledWorkflowGreen\(\{\s*github,/);
+  assert.doesNotMatch(
+    recovery,
+    /actions: read|secrets\.|reporter-token|continue-on-error|catch\s*\(/,
+  );
+  assert.deepEqual(
+    [...workflow.matchAll(/workflowIdentity: '([^']+)'/g)].map(
+      (match) => match[1],
+    ),
+    [
+      '.github/workflows/learning-runtime.yml',
+      '.github/workflows/learning-runtime.yml',
+    ],
+  );
+  assert.equal(RECOVERY_GREEN_THRESHOLD, 3);
 });
 
 test('normal E2E defaults and callers retain every original selection predicate', () => {

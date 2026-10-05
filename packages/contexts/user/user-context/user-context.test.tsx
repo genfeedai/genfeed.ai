@@ -14,11 +14,14 @@ const useAuthMock = vi.fn();
 const useUserMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useAuth: () => useAuthMock(),
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => useAuthMock(),
+}));
+vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
+  useAuthUser: () => useUserMock(),
 }));
 
-vi.mock('../internal/context-authed-service', () => ({
+vi.mock('@genfeedai/contexts/user/internal/context-authed-service', () => ({
   useContextAuthedService: () => useAuthedServiceMock,
 }));
 
@@ -34,12 +37,10 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   },
 }));
 
-vi.mock(
-  '../../providers/protected-bootstrap/client-protected-bootstrap',
-  () => ({
-    loadClientProtectedBootstrap: vi.fn().mockResolvedValue(null),
-  }),
-);
+vi.mock('@providers/protected-bootstrap/client-protected-bootstrap', () => ({
+  clearClientProtectedBootstrapCache: vi.fn(),
+  loadClientProtectedBootstrap: vi.fn().mockResolvedValue(null),
+}));
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -69,6 +70,7 @@ describe('UserProvider', () => {
       isLoaded: true,
       isSignedIn: true,
       orgId: 'org_123',
+      userId: 'user_123',
     });
     useUserMock.mockReturnValue({
       user: {

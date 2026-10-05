@@ -184,7 +184,7 @@ describe('AppLayout', () => {
       // topbar row.
       top: 'calc(var(--desktop-titlebar-height) + var(--shell-inset, 0px) + var(--shell-edge, 0px))',
     });
-    expect(screen.getAllByTestId('menu-component')).toHaveLength(2);
+    expect(screen.getAllByTestId('menu-component')).toHaveLength(1);
     expect(screen.queryByTestId('desktop-app-rail')).not.toBeInTheDocument();
     expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
       '--desktop-rail-width': '0px',
@@ -402,7 +402,7 @@ describe('AppLayout', () => {
     expect(
       screen.queryByTestId('desktop-sidebar-rail'),
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId('mobile-app-rail')).toBeInTheDocument();
+    expect(screen.queryByTestId('mobile-app-rail')).not.toBeInTheDocument();
   });
 
   it('puts the app rail in the mobile drawer and closes the drawer on navigation', () => {
@@ -416,14 +416,16 @@ describe('AppLayout', () => {
       </AppLayout>,
     );
 
+    expect(screen.queryByTestId('mobile-app-rail')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('menu-component')).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+
     const mobileRail = screen.getByTestId('mobile-app-rail');
     const drawer = mobileRail.parentElement?.parentElement;
 
     // Clears the 40px fixed topbar that overlaps the top of the drawer.
     expect(mobileRail).toHaveClass('pt-[var(--shell-topbar-height)]');
-    expect(drawer).toHaveClass('hidden');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
     expect(drawer).toHaveClass('flex');
     // The drawer renders before the desktop rounded block, so the mobile menu
     // is the first menu-component, next to the rail.
@@ -439,7 +441,15 @@ describe('AppLayout', () => {
     expect(mobileRailItem).not.toBeNull();
     fireEvent.click(mobileRailItem as Element);
 
-    expect(drawer).toHaveClass('hidden');
+    expect(drawer).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mobile-app-rail')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('menu-component')).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    expect(screen.getByTestId('mobile-app-rail')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close navigation' }));
+    expect(screen.queryByTestId('mobile-app-rail')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('menu-component')).toHaveLength(1);
   });
 
   it('marks the workspace shell root without renaming the nav column', () => {

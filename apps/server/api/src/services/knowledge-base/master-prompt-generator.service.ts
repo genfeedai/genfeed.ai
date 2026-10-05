@@ -25,7 +25,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Injectable, RequestTimeoutException } from '@nestjs/common';
 
 export const DEFAULT_BRAND_VOICE_ANALYSIS = {
   audience: 'General audience',
@@ -64,6 +64,11 @@ Respond in JSON format with an array of prompts:
  * - Brand voice analysis (tone, voice, audience, values)
  * - Master prompts for content generation
  */
+interface BrandVoiceAnalysisOptions {
+  deadlineAt?: number;
+  onCreditsSettled?: (credits: number) => void;
+}
+
 type MasterPromptBillingContext = {
   /** Brand the generation is attributed to; omit when no brand exists yet. */
   brandId?: string;
@@ -90,11 +95,13 @@ export class MasterPromptGeneratorService {
   async analyzeBrandVoice(
     brandData: IExtractedBrandData,
     billingContext?: MasterPromptBillingContext,
+    options?: BrandVoiceAnalysisOptions,
   ): Promise<IExtractedBrandData['brandVoice']> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} starting`);
 
     try {
+      this.assertAnalysisDeadline(options?.deadlineAt);
       const brandContext = this.buildBrandContext(brandData);
 
       // Construct prompt for Replicate text model
@@ -111,6 +118,7 @@ export class MasterPromptGeneratorService {
         await this.assertBrandProfileCreditsAvailable(billingContext);
       }
 
+      this.assertAnalysisDeadline(options?.deadlineAt);
       const content = await this.replicateService.generateTextCompletionSync(
         DEFAULT_TEXT_MODEL,
         input,
@@ -121,9 +129,12 @@ export class MasterPromptGeneratorService {
         throw new Error('No response from Replicate');
       }
 
+      this.assertAnalysisDeadline(options?.deadlineAt);
       const analysis = parseGeneratedBrandProfile(content);
       if (!byok) {
         await this.settleBrandProfileCredits(billingContext);
+        if (billingContext)
+          options?.onCreditsSettled?.(BRAND_PROFILE_GENERATION_CREDIT_COST);
       }
 
       this.loggerService.log(`${caller} completed`, { analysis });
@@ -145,12 +156,20 @@ export class MasterPromptGeneratorService {
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
 
-      if (error instanceof InsufficientCreditsException) {
+      if (
+        error instanceof InsufficientCreditsException ||
+        error instanceof RequestTimeoutException
+      ) {
         throw error;
       }
 
       return structuredClone(DEFAULT_BRAND_VOICE_ANALYSIS);
     }
+  }
+
+  private assertAnalysisDeadline(deadlineAt?: number): void {
+    if (deadlineAt !== undefined && Date.now() >= deadlineAt)
+      throw new RequestTimeoutException('Brand scan timed out');
   }
 
   /**

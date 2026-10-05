@@ -19,6 +19,7 @@ import {
   type Prisma,
   toPrismaJson,
 } from '@genfeedai/prisma';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
 const ORG = 'scan-org';
@@ -230,10 +231,12 @@ function harness(initial: BrandOsRevision[] = []) {
     prisma as unknown as PrismaService,
     {} as BrandKitAssetsService,
   );
+  const logger = { warn: vi.fn() };
   const service = new BrandOsScanService(
     prisma as unknown as PrismaService,
     scraper as unknown as BrandScraperService,
     revisions,
+    logger as unknown as LoggerService,
   );
   const input = {
     organizationId: ORG,
@@ -243,7 +246,17 @@ function harness(initial: BrandOsRevision[] = []) {
   };
   const marker = () =>
     JSON.parse(JSON.stringify(state.brand.agentConfig)).brandOsScan;
-  return { service, revisions, scraper, prisma, tx, state, input, marker };
+  return {
+    service,
+    revisions,
+    scraper,
+    prisma,
+    tx,
+    state,
+    input,
+    marker,
+    logger,
+  };
 }
 
 describe('BrandOsScanService durable bounded scan', () => {
@@ -537,6 +550,59 @@ describe('BrandOsScanService durable bounded scan', () => {
     );
     expect(h.state.rows).toHaveLength(0);
   });
+  it('keeps a realistic no-baseline scrape below the projection cap', async () => {
+    const h = harness();
+    const realistic = envelope();
+    realistic.evidence = Array.from({ length: 17 }, (_, index) => ({
+      sourceType: 'website' as const,
+      label: `Homepage section ${index}`,
+      url: 'https://acme.example/',
+      excerpt: 'Brand details and product positioning. '.repeat(50),
+    }));
+    realistic.fontCandidates = Array.from({ length: 16 }, (_, index) => ({
+      family: `Acme Font ${index}`,
+      sourceUrl: 'https://cdn.example/fonts.css',
+      weight: '100 900',
+      style: 'normal',
+      availability: 'unknown' as const,
+    }));
+    realistic.data.fontCandidates = realistic.fontCandidates.map(
+      (candidate) => candidate.family,
+    );
+    realistic.data.referenceImageUrls = Array.from(
+      { length: 9 },
+      (_, index) => `https://acme.example/reference-${index}.png`,
+    );
+    h.scraper.scrapeWebsiteWithEvidence.mockResolvedValue(realistic);
+    const scan = await h.service.start(h.input);
+    expect(['ready', 'partial']).toContain(scan.status);
+    expect(h.state.rows).toHaveLength(1);
+    const content = h.state.rows[0].content as unknown as IBrandKitDraft;
+    expect(Buffer.byteLength(JSON.stringify(content), 'utf8')).toBeLessThan(
+      100_000,
+    );
+    expect(
+      content.fields.description?.evidence.some(
+        (entry) => entry.label === 'Homepage section 0',
+      ),
+    ).toBe(false);
+    expect(
+      content.fields.description?.evidence.some(
+        (entry) => entry.label === 'Discovered font candidate',
+      ),
+    ).toBe(false);
+    expect(
+      content.fields.fontFamily?.evidence.filter(
+        (entry) => entry.label === 'Discovered font candidate',
+      ),
+    ).toHaveLength(16);
+    expect(
+      content.evidence.filter((entry) =>
+        entry.label.startsWith('Homepage section'),
+      ),
+    ).toHaveLength(17);
+  });
+
   it('rejects oversize normalized UTF8 content without trimming owner content', async () => {
     const h = harness();
     const large = envelope();
@@ -548,6 +614,14 @@ describe('BrandOsScanService durable bounded scan', () => {
       'brand_scan.content_too_large',
     );
     expect(h.state.rows).toHaveLength(0);
+    expect(h.logger.warn).toHaveBeenCalledWith(
+      'Brand OS scan failed',
+      expect.objectContaining({
+        brandId: BRAND,
+        organizationId: ORG,
+        code: 'brand_scan.content_too_large',
+      }),
+    );
   });
   it('reports invalid content from a corrupt approved draft without changing it', async () => {
     const before = approved();
@@ -732,6 +806,24 @@ describe('BrandOsScanService durable bounded scan', () => {
     expect(scan.errorCode).toBe('brand_scan.failed');
     expect(JSON.stringify(h.marker())).not.toContain('hidden-secret');
   });
+  it('logs failure diagnostics without website query strings or scraped data', async () => {
+    const h = harness();
+    h.scraper.scrapeWebsiteWithEvidence.mockRejectedValue(
+      new Error('Fetch failed for https://acme.example/?token=hidden-secret'),
+    );
+    const scan = await h.service.start(h.input);
+    expect(scan.status).toBe('failed');
+    expect(h.logger.warn).toHaveBeenCalledWith('Brand OS scan failed', {
+      brandId: BRAND,
+      organizationId: ORG,
+      code: 'brand_scan.failed',
+      error: 'Fetch failed for [website]',
+    });
+    expect(JSON.stringify(h.logger.warn.mock.calls)).not.toContain(
+      'hidden-secret',
+    );
+  });
+
   it('does not reset malformed stored markers', async () => {
     const h = harness();
     h.state.brand.agentConfig = storedJson({

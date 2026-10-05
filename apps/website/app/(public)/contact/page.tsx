@@ -47,12 +47,11 @@ export default function ContactPage() {
       <WebSection maxWidth="lg" py="md">
         <div className="mx-auto mb-10 max-w-3xl space-y-4 text-base leading-7 text-muted-foreground">
           <p>
-            Genfeed is the open-source AI content operating system for creation,
-            automation, publishing, and analytics. The public documentation and
-            GitHub repository are the fastest routes for implementation
-            questions; direct email is available when a request involves an
-            account, a private security detail, personal data, or a commercial
-            engagement.
+            Genfeed is the open-source content agent for creators, founders and
+            brands. The public documentation and GitHub repository are the
+            fastest routes for implementation questions; direct email is
+            available when a request involves an account, a private security
+            detail, personal data, or a commercial engagement.
           </p>
           <p>
             Messages should include the product surface, expected behavior,

@@ -55,6 +55,9 @@ import { useMemo } from 'react';
 
 import { LIBRARY_TYPE_CHIPS } from './library-browser.config';
 
+/** Filter triggers compact until the Library page is wide enough for full ones. */
+const FILTER_WIDTH_CLASS = 'w-22 @[64rem]/library:w-32';
+
 const GRID_VIEW_OPTION = {
   icon: <LayoutGrid className={SHELL_ICON_CLASS} />,
   type: ViewType.GRID,
@@ -198,13 +201,16 @@ export default function LibraryBrowserToolbar({
   }, [isCanvasEnabled, translate]);
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-2">
+    // Tiers key off the Library page width (`@container/library` on the layout
+    // Container), so opening the inspector compacts the row instead of
+    // wrapping it. Items only wrap as a last resort on narrow widths.
+    <div className="flex shrink-0 flex-wrap items-center gap-2 @[44rem]/library:flex-nowrap">
       <div className="flex min-w-0 items-center gap-1.5">
         <DropdownMultiSelect
           className={cn(
             fieldControlClassName,
             fieldControlTriggerClassName,
-            'w-32',
+            FILTER_WIDTH_CLASS,
           )}
           name="categories"
           onChange={(_name, values) => {
@@ -232,7 +238,7 @@ export default function LibraryBrowserToolbar({
           className={cn(
             fieldControlClassName,
             fieldControlTriggerClassName,
-            'w-32',
+            FILTER_WIDTH_CLASS,
           )}
           name="origins"
           onChange={(_name, values) => {
@@ -267,7 +273,7 @@ export default function LibraryBrowserToolbar({
             className={cn(
               fieldControlClassName,
               fieldControlTriggerClassName,
-              'w-32',
+              FILTER_WIDTH_CLASS,
             )}
             isSearchEnabled
             name="characters"
@@ -310,7 +316,7 @@ export default function LibraryBrowserToolbar({
             className={cn(
               fieldControlClassName,
               fieldControlTriggerClassName,
-              'w-32',
+              FILTER_WIDTH_CLASS,
             )}
             isSearchEnabled
             name="tags"
@@ -373,7 +379,10 @@ export default function LibraryBrowserToolbar({
       ) : null}
 
       <Select value={sort} onValueChange={onSortChange}>
-        <SelectTrigger aria-label={translate('sortAria')} className="w-40">
+        <SelectTrigger
+          aria-label={translate('sortAria')}
+          className="w-28 @[64rem]/library:w-40"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

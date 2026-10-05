@@ -216,6 +216,9 @@ async function injectBetterAuthState(
         writable: false,
       });
 
+      // Opaque-origin setup pages (about:blank) cannot access localStorage.
+      // Seed tokens on the next real app navigation instead.
+      if (window.location.origin === 'null') return;
       localStorage.setItem(
         '__better_auth_client_jwt',
         `mock-jwt-${sessionData.sessionId}`,

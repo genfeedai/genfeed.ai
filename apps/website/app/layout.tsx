@@ -28,11 +28,11 @@ export const metadata = createAppMetadata({
   metadataBase: 'https://genfeed.ai',
   overrides: {
     keywords:
-      'genfeed,genfeed.ai,AI content studio,AI content generation,AI video generator,social media publishing,content marketing platform,content analytics',
+      'genfeed,genfeed.ai,AI content agent,AI content generation,AI video generator,content marketing platform,content analytics',
     openGraph: {
       description,
       images: {
-        alt: 'Genfeed.ai - the AI content studio',
+        alt: 'Genfeed.ai - the content agent for your brand',
         height: 630,
         type: 'image/png',
         url: cards.default,

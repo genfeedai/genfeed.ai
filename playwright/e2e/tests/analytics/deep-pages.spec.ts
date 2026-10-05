@@ -490,14 +490,14 @@ test.describe('Analytics Deep Pages', () => {
       authenticatedPage,
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
-      const route = brandPath(APP_ROUTES.ANALYTICS.TREND_TURNOVER);
+      const route = brandPath(APP_ROUTES.DISCOVERY.TREND_TURNOVER);
 
       await authenticatedPage.goto(route);
       await analyticsPage.waitForPageLoad();
 
       await expect(authenticatedPage).toHaveURL(/trend-turnover/);
       await expect(
-        analyticsPage.sectionHeading('Trend Turnover Dashboard'),
+        analyticsPage.sectionHeading('Trend Turnover'),
       ).toBeVisible();
       await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
@@ -506,7 +506,7 @@ test.describe('Analytics Deep Pages', () => {
       authenticatedPage,
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
-      const route = brandPath(APP_ROUTES.ANALYTICS.TREND_TURNOVER);
+      const route = brandPath(APP_ROUTES.DISCOVERY.TREND_TURNOVER);
       const main = authenticatedPage.locator('main');
 
       // `GET /trends/turnover` (`TrendsService.getTurnoverStats`,

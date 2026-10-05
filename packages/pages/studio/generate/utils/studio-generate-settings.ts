@@ -6,6 +6,8 @@ import {
   isFlux3ImageModel,
   normalizeMusicSettings,
   resolveMusicSettings,
+  resolveStudioAspectDimensions,
+  resolveStudioLongEdge,
 } from '@genfeedai/contracts/constants';
 import {
   getDefaultImageQuality,
@@ -38,34 +40,6 @@ export const STUDIO_VIDEO_DURATIONS = [5, 8, 10] as const;
 
 export const STUDIO_MAX_OUTPUTS = 8;
 
-/** Long edge in pixels for each resolution label. */
-const RESOLUTION_LONG_EDGE: Record<string, number> = {
-  '360p': 640,
-  '1080P': 1920,
-  '1080p': 1920,
-  '1K': 1024,
-  '2K': 2048,
-  '480P': 854,
-  '480p': 854,
-  '720p': 1280,
-  '768P': 1366,
-  '768p': 1366,
-  '4k': 3840,
-  high: 1920,
-  pro: 1920,
-  standard: 1280,
-};
-
-const DEFAULT_LONG_EDGE = 1024;
-const EDGE_MULTIPLE = 8;
-
-function snapToMultiple(value: number): number {
-  return Math.max(
-    EDGE_MULTIPLE,
-    Math.round(value / EDGE_MULTIPLE) * EDGE_MULTIPLE,
-  );
-}
-
 function parseAspectRatio(
   aspectRatio: string,
 ): { horizontal: number; vertical: number } | null {
@@ -85,34 +59,7 @@ function parseAspectRatio(
   return { horizontal, vertical };
 }
 
-/**
- * Pins the long edge to `longEdge` and derives the short edge from the ratio,
- * snapped to a multiple of 8 so diffusion models never get a ragged size.
- */
-export function resolveAspectDimensions(
-  aspectRatio: string,
-  longEdge: number = DEFAULT_LONG_EDGE,
-): { height: number; width: number } {
-  const parsed = parseAspectRatio(aspectRatio);
-
-  if (!parsed) {
-    return { height: longEdge, width: longEdge };
-  }
-
-  const { horizontal, vertical } = parsed;
-
-  if (horizontal >= vertical) {
-    return {
-      height: snapToMultiple((longEdge * vertical) / horizontal),
-      width: longEdge,
-    };
-  }
-
-  return {
-    height: longEdge,
-    width: snapToMultiple((longEdge * horizontal) / vertical),
-  };
-}
+export const resolveAspectDimensions = resolveStudioAspectDimensions;
 
 export function resolveIngredientFormat(aspectRatio: string): IngredientFormat {
   const parsed = parseAspectRatio(aspectRatio);
@@ -126,9 +73,7 @@ export function resolveIngredientFormat(aspectRatio: string): IngredientFormat {
     : IngredientFormat.PORTRAIT;
 }
 
-export function resolveLongEdge(resolution: string): number {
-  return RESOLUTION_LONG_EDGE[resolution] ?? DEFAULT_LONG_EDGE;
-}
+export const resolveLongEdge = resolveStudioLongEdge;
 
 export function getStudioAspectRatios(
   type: StudioGenerateType,

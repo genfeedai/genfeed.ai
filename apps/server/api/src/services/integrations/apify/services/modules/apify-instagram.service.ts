@@ -1,6 +1,5 @@
 import type {
   ApifyInstagramComment,
-  ApifyInstagramHashtag,
   ApifyInstagramPost,
   ApifyNormalizedInstagramComment,
   ApifyTrendData,
@@ -34,7 +33,10 @@ export class ApifyInstagramService {
   ) {}
 
   /**
-   * Get Instagram trending hashtags
+   * Get Instagram trending hashtags.
+   *
+   * The hashtag scraper returns posts, not hashtag summaries, so the trends
+   * are the hashtags those posts carry, ranked by how many posts use them.
    */
   async getInstagramTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
     try {
@@ -52,14 +54,12 @@ export class ApifyInstagramService {
         ),
       };
 
-      const rawData = await this.baseService.runActor<ApifyInstagramHashtag>(
+      const rawPosts = await this.baseService.runActor<ApifyInstagramPost>(
         this.baseService.ACTORS.INSTAGRAM_HASHTAG,
         input,
       );
 
-      return this.normalizeInstagramTrends(rawData)
-        .sort((left, right) => right.mentions - left.mentions)
-        .slice(0, requestedLimit);
+      return this.normalizeInstagramTrends(rawPosts).slice(0, requestedLimit);
     } catch (error: unknown) {
       this.baseService.loggerService.error(
         `${this.constructorName}.getInstagramTrends failed`,
@@ -243,24 +243,70 @@ export class ApifyInstagramService {
   }
 
   private normalizeInstagramTrends(
-    hashtags: ApifyInstagramHashtag[],
+    posts: ApifyInstagramPost[],
   ): ApifyTrendData[] {
-    return hashtags.map((hashtag) => ({
-      growthRate: this.baseService.calculateGrowthRate(hashtag.mediaCount || 0),
-      mentions: hashtag.mediaCount || 0,
-      metadata: {
-        hashtags: [hashtag.name],
-        postCount: hashtag.mediaCount,
-        source: 'apify' as const,
-        trendType: 'hashtag' as const,
-      },
-      platform: 'instagram',
-      topic: hashtag.name,
-      viralityScore: this.baseService.calculateViralityScore(
-        hashtag.mediaCount || 0,
-        1,
-      ),
-    }));
+    const hashtagStats = new Map<
+      string,
+      {
+        engagement: number;
+        postCount: number;
+        sampleContent?: string;
+        urls: string[];
+        views: number;
+      }
+    >();
+
+    for (const post of posts) {
+      const hashtags = new Set(
+        (post.hashtags ?? [])
+          .map((hashtag) => hashtag.replace(/^#/, '').trim().toLowerCase())
+          .filter(Boolean),
+      );
+
+      // A post without hashtags carries no hashtag trend.
+      for (const hashtag of hashtags) {
+        const stats = hashtagStats.get(hashtag) ?? {
+          engagement: 0,
+          postCount: 0,
+          urls: [],
+          views: 0,
+        };
+        stats.engagement += (post.likesCount || 0) + (post.commentsCount || 0);
+        stats.postCount += 1;
+        stats.sampleContent ??= post.caption?.substring(0, 280);
+        stats.views += post.videoViewCount || 0;
+        if (post.url) {
+          stats.urls.push(post.url);
+        }
+        hashtagStats.set(hashtag, stats);
+      }
+    }
+
+    return Array.from(hashtagStats)
+      .sort(
+        ([, left], [, right]) =>
+          right.postCount - left.postCount ||
+          right.engagement - left.engagement,
+      )
+      .map(([hashtag, stats]) => ({
+        growthRate: this.baseService.calculateGrowthRate(stats.engagement),
+        mentions: stats.postCount,
+        metadata: {
+          engagement: stats.engagement,
+          hashtags: [hashtag],
+          postCount: stats.postCount,
+          sampleContent: stats.sampleContent,
+          source: 'apify' as const,
+          trendType: 'hashtag' as const,
+          urls: stats.urls,
+        },
+        platform: 'instagram',
+        topic: hashtag,
+        viralityScore: this.baseService.calculateViralityScore(
+          stats.views,
+          stats.engagement,
+        ),
+      }));
   }
 
   private normalizeInstagramVideos(

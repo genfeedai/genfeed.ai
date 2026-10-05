@@ -1,9 +1,14 @@
 import { CreateMemberDto } from '@api/collections/members/dto/create-member.dto';
 import { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto';
 import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type {
+  PopulateInput,
+  PrismaUpdate,
+} from '@api/shared/services/base/base-query-normalization.adapter';
 import type { AgentTeamMentionItem } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -44,8 +49,36 @@ export class MembersService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
+    private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
   ) {
     super(prisma, 'member', logger);
+  }
+
+  override async patch(
+    id: string,
+    updateDto: Partial<UpdateMemberDto> | PrismaUpdate,
+    populate: PopulateInput = [],
+  ): Promise<MemberDocument> {
+    const member = await super.patch(id, updateDto, populate);
+    if (
+      member?.userId &&
+      ('roleId' in updateDto ||
+        'roleKey' in updateDto ||
+        'role' in updateDto ||
+        'isActive' in updateDto ||
+        'isDeleted' in updateDto)
+    ) {
+      await this.accessBootstrapCacheService.invalidateForUser(member.userId);
+    }
+    return member;
+  }
+
+  override async remove(id: string): Promise<MemberDocument | null> {
+    const member = await super.remove(id);
+    if (member?.userId) {
+      await this.accessBootstrapCacheService.invalidateForUser(member.userId);
+    }
+    return member;
   }
 
   protected override normalizeData(data: unknown): Record<string, unknown> {

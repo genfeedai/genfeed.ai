@@ -30,7 +30,8 @@ export default function HomeAsks(): React.ReactElement {
             </Heading>
             <Text className="max-w-2xl text-base leading-7 gen-text-muted">
               Say what you want in a sentence. The agent makes it, keeps it on
-              brand, and puts it in front of you before it goes out.
+              brand, and gets it out, with your sign-off until you hand it the
+              keys.
             </Text>
           </div>
 

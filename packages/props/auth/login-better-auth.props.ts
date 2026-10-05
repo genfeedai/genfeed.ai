@@ -8,6 +8,5 @@ export type InvitationNotice = {
 };
 
 export interface LoginBetterAuthProps {
-  isDesktopShell?: boolean;
   mode?: LoginMode;
 }

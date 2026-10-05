@@ -1,9 +1,28 @@
 import { TagBulkAction } from '@genfeedai/contracts';
-import { LIBRARY_ASSET_TAGS_EVENT } from '@genfeedai/contracts/constants';
+import {
+  LIBRARY_ASSET_TAGS_EVENT,
+  LIBRARY_TAG_UPDATED_EVENT,
+} from '@genfeedai/contracts/constants';
 import type {
   IIngredient,
   ILibraryAssetTagsChange,
+  ILibraryTagUpdate,
+  ITag,
 } from '@genfeedai/contracts/interfaces';
+
+/**
+ * A copy of a row with new tags. List rows are `Ingredient` model instances
+ * whose media URLs and labels are prototype getters; an object spread would
+ * drop them, blanking the card and inspector previews. The copy keeps the
+ * row's prototype.
+ */
+function withTags(ingredient: IIngredient, tags: ITag[]): IIngredient {
+  return Object.assign(
+    Object.create(Object.getPrototypeOf(ingredient)) as IIngredient,
+    ingredient,
+    { tags },
+  );
+}
 
 /**
  * Tell the Library list that tags changed on some assets. The inspector lives
@@ -43,10 +62,42 @@ export function applyLibraryAssetTagsChange(
       (tag) => tag.id !== change.tag.id,
     );
 
-    return {
-      ...ingredient,
-      tags:
-        change.action === TagBulkAction.ADD ? [...others, change.tag] : others,
-    };
+    return withTags(
+      ingredient,
+      change.action === TagBulkAction.ADD ? [...others, change.tag] : others,
+    );
   });
+}
+
+/** Tell the Library list that a tag was renamed or recolored. */
+export function dispatchLibraryTagUpdate(update: ILibraryTagUpdate): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent<ILibraryTagUpdate>(LIBRARY_TAG_UPDATED_EVENT, {
+      detail: update,
+    }),
+  );
+}
+
+/**
+ * Merge the changed fields of a tag into every row that carries it. Rows
+ * without it keep their identity.
+ */
+export function applyLibraryTagUpdate(
+  ingredients: IIngredient[],
+  update: ILibraryTagUpdate,
+): IIngredient[] {
+  return ingredients.map((ingredient) =>
+    ingredient.tags?.some((existing) => existing.id === update.id)
+      ? withTags(
+          ingredient,
+          ingredient.tags.map((existing) =>
+            existing.id === update.id ? { ...existing, ...update } : existing,
+          ),
+        )
+      : ingredient,
+  );
 }

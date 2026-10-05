@@ -1,3 +1,4 @@
+import type { EdgeStyle } from '@genfeedai/contracts/types';
 export type NodeInputType =
   | 'image'
   | 'video'
@@ -147,10 +148,18 @@ export interface WorkflowData {
 
 export interface MarketplaceWorkflow {
   id: string;
-  label: string;
-  description?: string;
+  label: string | null;
+  description: string | null;
+  thumbnail: string | null;
   executionCount: number;
-  nodes?: Array<{ type: string }>;
-  user?: { firstName?: string; lastName?: string };
+  edgeStyle?: EdgeStyle;
+  inputVariables: WorkflowInputVariable[];
+  nodes: Array<
+    Omit<WorkflowVisualNode, 'data'> & {
+      data: Pick<WorkflowNodeData, 'label' | 'config' | 'inputVariableKeys'>;
+    }
+  >;
+  edges: WorkflowEdge[];
   createdAt: string;
+  updatedAt: string;
 }

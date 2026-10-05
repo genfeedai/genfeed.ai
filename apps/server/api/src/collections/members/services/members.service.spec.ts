@@ -23,6 +23,7 @@ describe('MembersService', () => {
     warn: vi.fn(),
   };
 
+  const accessBootstrapCacheService = { invalidateForUser: vi.fn() };
   let service: MembersService;
 
   beforeEach(() => {
@@ -30,7 +31,12 @@ describe('MembersService', () => {
     prisma.member.create.mockReset();
     prisma.member.findMany.mockReset();
     prisma.member.update.mockReset();
-    service = new MembersService(prisma as never, logger as never);
+    accessBootstrapCacheService.invalidateForUser.mockReset();
+    service = new MembersService(
+      prisma as never,
+      logger as never,
+      accessBootstrapCacheService as never,
+    );
   });
 
   it('maps canonical brandIds to a Prisma relation set on create', async () => {
@@ -73,6 +79,79 @@ describe('MembersService', () => {
       data: { brands: { set: [] } },
       where: { id: 'member-1' },
     });
+  });
+
+  it.each([{ roleId: 'role_admin' }, { isActive: false }])(
+    'invalidates the affected user bootstrap after a membership change: %j',
+    async (update) => {
+      prisma.member.update.mockResolvedValue({
+        id: 'member-1',
+        userId: 'user-1',
+        organizationId: 'org-1',
+      });
+      await service.patch('member-1', update);
+      expect(
+        accessBootstrapCacheService.invalidateForUser,
+      ).toHaveBeenCalledWith('user-1');
+      expect(prisma.member.update.mock.invocationCallOrder[0]).toBeLessThan(
+        accessBootstrapCacheService.invalidateForUser.mock
+          .invocationCallOrder[0],
+      );
+    },
+  );
+
+  it('does not invalidate bootstrap for brand assignment changes', async () => {
+    prisma.member.update.mockResolvedValue({
+      id: 'member-1',
+      userId: 'user-1',
+    });
+    await service.patch('member-1', { brandIds: [] });
+    expect(
+      accessBootstrapCacheService.invalidateForUser,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('invalidates the removed member user bootstrap after soft deletion', async () => {
+    const member = {
+      id: 'member-1',
+      isDeleted: true,
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+    prisma.member.update.mockResolvedValue(member);
+
+    await expect(service.remove('member-1')).resolves.toMatchObject(member);
+
+    expect(prisma.member.update).toHaveBeenCalledWith({
+      data: { isDeleted: true },
+      where: { id: 'member-1' },
+    });
+    expect(accessBootstrapCacheService.invalidateForUser).toHaveBeenCalledWith(
+      'user-1',
+    );
+    expect(prisma.member.update.mock.invocationCallOrder[0]).toBeLessThan(
+      accessBootstrapCacheService.invalidateForUser.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('does not invalidate bootstrap when removal finds no member', async () => {
+    prisma.member.update.mockResolvedValue(null);
+
+    await expect(service.remove('member-1')).resolves.toBeNull();
+
+    expect(
+      accessBootstrapCacheService.invalidateForUser,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('does not invalidate bootstrap when removal fails', async () => {
+    prisma.member.update.mockRejectedValue(new Error('Removal failed'));
+
+    await expect(service.remove('member-1')).rejects.toThrow('Removal failed');
+
+    expect(
+      accessBootstrapCacheService.invalidateForUser,
+    ).not.toHaveBeenCalled();
   });
 
   it('returns active organization members as team mentions', async () => {

@@ -592,6 +592,7 @@ export function useGenerationActionCard({
     isEstimateAvailable,
     isEstimatePending,
     resolvedModelKey,
+    unavailableReason: estimateUnavailableReason,
   } = useGenerationQuote(
     apiService,
     estimateInput,
@@ -1254,6 +1255,7 @@ export function useGenerationActionCard({
     estimatedCredits,
     isEstimateAvailable,
     isEstimatePending,
+    estimateUnavailableReason,
     resolvedModelKey,
     referenceIds,
     referenceNotice,

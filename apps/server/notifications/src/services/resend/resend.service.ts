@@ -65,7 +65,7 @@ const RESEND_RETRYABILITY_OVERRIDES: Partial<
 
 const RETRYABLE_RESEND_STATUS_CODES = new Set([408, 425, 429]);
 
-export const RESEND_DEFAULT_FROM = 'Genfeed <no-reply@genfeed.ai>';
+export const RESEND_DEFAULT_FROM = 'Genfeed <no-reply@send.genfeed.ai>';
 export const RESEND_DEVELOPMENT_FROM = 'Genfeed <beth.t@example.com>';
 
 export function resolveResendFromAddress(options: {
@@ -160,6 +160,18 @@ export class ResendService {
         error instanceof ResendEmailDeliveryError
           ? error
           : ResendEmailDeliveryError.fromCause(error);
+      let providerMessage = deliveryError.message;
+      for (const sensitiveValue of [
+        this.configService.get('RESEND_API_KEY'),
+        payload.to,
+      ]) {
+        if (sensitiveValue) {
+          providerMessage = providerMessage.replaceAll(
+            sensitiveValue,
+            '[REDACTED]',
+          );
+        }
+      }
 
       this.loggerService.error(
         `${url} failed`,
@@ -167,6 +179,7 @@ export class ResendService {
         {
           provider: 'resend',
           providerCode: deliveryError.providerCode,
+          providerMessage,
           retryable: deliveryError.retryable,
           statusCode: deliveryError.statusCode,
         },

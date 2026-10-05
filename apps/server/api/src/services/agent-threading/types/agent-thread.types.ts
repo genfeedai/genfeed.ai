@@ -78,6 +78,8 @@ export interface AgentPendingInputRequest {
   title: string;
   prompt: string;
   allowFreeText?: boolean;
+  isMultiSelect?: boolean;
+  maxSelections?: number;
   recommendedOptionId?: string;
   options: AgentInputOption[];
   fieldId?: string;

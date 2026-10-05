@@ -1,5 +1,7 @@
 'use client';
 
+import { isDesktopClient } from '@genfeedai/config/deployment';
+
 import { logger } from '@services/core/logger.service';
 import { useEffect } from 'react';
 
@@ -37,6 +39,7 @@ export function isIgnorableServiceWorkerError(error: unknown): boolean {
 export default function ServiceWorkerRegistrar() {
   useEffect(() => {
     if (
+      isDesktopClient() ||
       !IS_ENABLED ||
       typeof navigator === 'undefined' ||
       !('serviceWorker' in navigator)

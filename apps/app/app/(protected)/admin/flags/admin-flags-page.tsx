@@ -19,17 +19,18 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
-import { Switch } from '@ui/primitives/switch';
 import { Heading } from '@ui/typography/heading';
+import { Text } from '@ui/typography/text';
 import { ToggleRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { notifyPlatformFlagsChanged } from '@/lib/platform-flags/platform-flags-sync';
+import AdminFlagCard from './admin-flag-card';
 
 const MODULE_FLAG_KEY_SET = new Set<PlatformFlagKey>(PLATFORM_MODULE_FLAG_KEYS);
 
-/** Top-level flags; nested flags render under their parent. */
+/** Top-level flags, one card each; nested flags list inside their card. */
 const TOP_LEVEL_FLAG_KEYS = PLATFORM_FLAG_KEYS.filter(
   (key) => PLATFORM_FLAG_PARENTS[key] === undefined,
 );
@@ -45,9 +46,17 @@ const FLAG_SECTIONS = [
   },
 ] as const;
 
+/** Every flag nested under `key`, depth first, flattened into one list. */
+function nestedFlagKeysOf(key: PlatformFlagKey): PlatformFlagKey[] {
+  return getPlatformFlagChildren(key).flatMap((child) => [
+    child,
+    ...nestedFlagKeysOf(child),
+  ]);
+}
+
 /**
  * Admin → Flags (#5468): every platform-wide on/off switch on one page —
- * modules with their surfaces and features nested underneath, then
+ * one card per module with its surfaces and features listed inside, then
  * shell-wide features. Each switch saves at once, like a PostHog toggle; the
  * API and every app shell pick the change up within the settings cache TTL.
  */
@@ -129,37 +138,6 @@ export default function AdminFlagsPage() {
 
   const effectiveFlags = resolvePlatformFlags(flags);
 
-  function renderFlag(key: PlatformFlagKey): ReactElement {
-    const parent = PLATFORM_FLAG_PARENTS[key];
-    const isParentOff = parent !== undefined && !effectiveFlags[parent];
-    const children = getPlatformFlagChildren(key);
-    const description = translate(`flags.${key}.description`);
-
-    return (
-      <div key={key} className="flex flex-col gap-4">
-        <Switch
-          aria-label={translate(`flags.${key}.label`)}
-          label={translate(`flags.${key}.label`)}
-          description={
-            isParentOff
-              ? `${description} ${translate('inactiveUnderParent', {
-                  parent: translate(`flags.${parent}.label`),
-                })}`
-              : description
-          }
-          isChecked={flags[key]}
-          isDisabled={savingKey !== null || isParentOff}
-          onCheckedChange={(isOn) => handleToggle(key, isOn)}
-        />
-        {children.length > 0 ? (
-          <div className="flex flex-col gap-4 border-l border-border pl-6">
-            {children.map(renderFlag)}
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
   function renderContent(): ReactElement {
     if (isLoading) {
       return <SkeletonCard showImage={false} />;
@@ -175,13 +153,30 @@ export default function AdminFlagsPage() {
     }
 
     return (
-      <div className="flex max-w-xl flex-col gap-10">
+      <div className="flex flex-col gap-10">
         {FLAG_SECTIONS.map((section) => (
-          <section key={section.id} className="flex flex-col gap-6">
-            <Heading size="md">
-              {translate(`sections.${section.id}.title`)}
-            </Heading>
-            {section.keys.map(renderFlag)}
+          <section key={section.id} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <Heading size="md">
+                {translate(`sections.${section.id}.title`)}
+              </Heading>
+              <Text as="p" color="muted" size="sm">
+                {translate(`sections.${section.id}.description`)}
+              </Text>
+            </div>
+            <div className="grid items-start gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+              {section.keys.map((key) => (
+                <AdminFlagCard
+                  key={key}
+                  flagKey={key}
+                  nestedKeys={nestedFlagKeysOf(key)}
+                  flags={flags}
+                  effectiveFlags={effectiveFlags}
+                  isDisabled={savingKey !== null}
+                  onToggle={handleToggle}
+                />
+              ))}
+            </div>
           </section>
         ))}
       </div>

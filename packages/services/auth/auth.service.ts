@@ -1,4 +1,4 @@
-import type { ReviewDecision } from '@genfeedai/contracts';
+import type { MemberRole, ReviewDecision } from '@genfeedai/contracts';
 import type {
   IAnalytics,
   IBrand,
@@ -13,6 +13,7 @@ import { HTTPBaseService } from '@services/core/interceptor.service';
 export interface AccessBootstrapState {
   userId: string;
   organizationId: string;
+  memberRole: MemberRole | null;
   brandId: string;
   isSuperAdmin: boolean;
   isOnboardingCompleted: boolean;

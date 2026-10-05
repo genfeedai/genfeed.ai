@@ -8,6 +8,7 @@ import type {
 import { describe, expect, it, vi } from 'vitest';
 import {
   applyLibraryAssetTagsChange,
+  applyLibraryTagUpdate,
   dispatchLibraryAssetTagsChange,
 } from './library-asset-tags-event';
 
@@ -71,6 +72,81 @@ describe('applyLibraryAssetTagsChange', () => {
 
     expect(result[0]).toBe(rows[0]);
     expect(result[1]).toBe(rows[1]);
+  });
+});
+
+/** Like the list's `Ingredient` model: the media URL is a prototype getter. */
+class ModelAsset {
+  id: string;
+  tags?: ITag[];
+  private readonly url = 'https://cdn.genfeed.ai/a.jpg';
+
+  constructor(id: string, tags?: ITag[]) {
+    this.id = id;
+    this.tags = tags;
+  }
+
+  get ingredientUrl(): string {
+    return this.url;
+  }
+}
+
+describe('applyLibraryAssetTagsChange with model instances', () => {
+  it('keeps the getters the previews read, so a tag change never blanks them', () => {
+    const row = new ModelAsset('a') as unknown as IIngredient;
+
+    const [result] = applyLibraryAssetTagsChange([row], {
+      action: TagBulkAction.ADD,
+      ingredientIds: ['a'],
+      tag,
+    });
+
+    expect(result).not.toBe(row);
+    expect(result?.tags).toEqual([tag]);
+    expect(result?.ingredientUrl).toBe('https://cdn.genfeed.ai/a.jpg');
+  });
+});
+
+describe('applyLibraryTagUpdate', () => {
+  const recolor = { backgroundColor: '#2563EB', id: tag.id };
+
+  it('merges the changed fields into every asset that carries the tag', () => {
+    const untouched = asset('b', [other]);
+    const result = applyLibraryTagUpdate(
+      [asset('a', [other, tag]), untouched],
+      recolor,
+    );
+
+    expect(result[0]?.tags).toEqual([
+      other,
+      { ...tag, backgroundColor: '#2563EB' },
+    ]);
+    expect(result[1]).toBe(untouched);
+  });
+
+  it('keeps the getters of the rows it rewrites', () => {
+    const [result] = applyLibraryTagUpdate(
+      [new ModelAsset('a', [tag]) as unknown as IIngredient],
+      recolor,
+    );
+
+    expect(result?.tags?.[0]?.backgroundColor).toBe('#2563EB');
+    expect(result?.ingredientUrl).toBe('https://cdn.genfeed.ai/a.jpg');
+  });
+
+  it('does not undo a rename when a recolor lands after it', () => {
+    const rows = [asset('a', [tag])];
+
+    const renamed = applyLibraryTagUpdate(rows, {
+      id: tag.id,
+      label: 'S1E13',
+    });
+    const [result] = applyLibraryTagUpdate(renamed, recolor);
+
+    expect(result?.tags?.[0]).toMatchObject({
+      backgroundColor: '#2563EB',
+      label: 'S1E13',
+    });
   });
 });
 

@@ -7,6 +7,7 @@ import { MasterPromptGeneratorService } from '@api/services/knowledge-base/maste
 import { ByokProvider } from '@genfeedai/contracts';
 import type { IExtractedBrandData } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { RequestTimeoutException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -163,6 +164,77 @@ describe('MasterPromptGeneratorService', () => {
 
     const result = await service.analyzeBrandVoice(makeBrandData());
     expect(result.tone).toBe('Professional');
+  });
+
+  it.each([false, true])(
+    'reports settled profile spend with BYOK=%s',
+    async (byok) => {
+      if (byok)
+        mockTextGenerationCreditsService.resolveDispatch.mockResolvedValue({
+          keys: { [ByokProvider.OPENROUTER]: 'org-key' },
+        });
+      mockReplicateService.generateTextCompletionSync.mockResolvedValue(
+        JSON.stringify(makeProfileResponse()),
+      );
+      const onCreditsSettled = vi.fn();
+      await service.analyzeBrandVoice(
+        makeBrandData(),
+        { organizationId: 'org-1', userId: 'user-1' },
+        { onCreditsSettled },
+      );
+      if (byok) expect(onCreditsSettled).not.toHaveBeenCalled();
+      else expect(onCreditsSettled).toHaveBeenCalledWith(1);
+    },
+  );
+
+  it('does not report spend for a fallback analysis', async () => {
+    mockReplicateService.generateTextCompletionSync.mockRejectedValueOnce(
+      new Error('provider failed'),
+    );
+    const onCreditsSettled = vi.fn();
+    await service.analyzeBrandVoice(
+      makeBrandData(),
+      { organizationId: 'org-1', userId: 'user-1' },
+      { onCreditsSettled },
+    );
+    expect(onCreditsSettled).not.toHaveBeenCalled();
+    expect(
+      mockCreditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('rethrows deadline expiry and does not settle late analysis credits', async () => {
+    const deadlineAt = Date.now() + 1000;
+    mockReplicateService.generateTextCompletionSync.mockImplementationOnce(
+      async () => {
+        vi.spyOn(Date, 'now').mockReturnValue(deadlineAt);
+        return JSON.stringify(makeProfileResponse());
+      },
+    );
+    await expect(
+      service.analyzeBrandVoice(
+        makeBrandData(),
+        { organizationId: 'org-1', userId: 'user-1' },
+        { deadlineAt },
+      ),
+    ).rejects.toBeInstanceOf(RequestTimeoutException);
+    expect(
+      mockCreditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
+  it('does not dispatch analysis after an already-expired deadline', async () => {
+    await expect(
+      service.analyzeBrandVoice(
+        makeBrandData(),
+        { organizationId: 'org-1', userId: 'user-1' },
+        { deadlineAt: Date.now() - 1 },
+      ),
+    ).rejects.toBeInstanceOf(RequestTimeoutException);
+    expect(
+      mockReplicateService.generateTextCompletionSync,
+    ).not.toHaveBeenCalled();
   });
 
   it('charges exactly one credit after a valid profile is built', async () => {

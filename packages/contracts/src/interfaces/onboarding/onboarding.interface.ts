@@ -71,6 +71,12 @@ export interface IScrapedBrandData {
   scrapedAt: Date;
 }
 
+/** Workflow wire representation: optional keys are omitted and the timestamp is ISO 8601. */
+export interface IScrapedBrandDataJson
+  extends Omit<IScrapedBrandData, 'scrapedAt'> {
+  scrapedAt: string;
+}
+
 export interface IBrandVoiceAnalysis {
   tone: string;
   voice: string;

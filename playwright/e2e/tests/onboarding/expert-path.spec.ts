@@ -2,6 +2,7 @@ import { brandPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { expect, test } from '../../fixtures/onboarding.fixture';
 import { ExpertOnboardingPage } from '../../pages/expert-onboarding.page';
+import { OnboardingPage } from '../../pages/onboarding.page';
 
 /**
  * Expert Path Onboarding E2E (epic #4534)
@@ -25,12 +26,9 @@ test.describe('Expert Path Onboarding', () => {
   }) => {
     const expert = new ExpertOnboardingPage(expertOnboardingPage);
 
-    // --- Brand ---------------------------------------------------------------
-    // The brand step auto-advances. The fixture seeds the EXPERT account-type
-    // hint the marketing CTA leaves in localStorage, so brand setup keeps the
-    // Expert Path instead of defaulting to CREATOR.
+    // The expert must approve the brand guide and explicitly continue.
+    await new OnboardingPage(expertOnboardingPage).approveAndContinueBrand();
 
-    // An expert never hands off to the agent conversation after brand setup.
     await expert.assertOnPath(APP_ROUTES.ONBOARDING.POSITIONING);
     await expert.assertStepBadge(2, 4);
 

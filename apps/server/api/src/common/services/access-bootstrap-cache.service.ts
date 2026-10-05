@@ -3,6 +3,7 @@ import {
   invalidateRedisSnapshot,
   storeRedisSnapshot,
 } from '@api/common/services/redis-cache-snapshot.helper';
+import type { MemberRole } from '@genfeedai/contracts';
 import type {
   IBrand,
   IFleetCapabilities,
@@ -17,6 +18,7 @@ import { Injectable } from '@nestjs/common';
 export interface AccessBootstrapStatePayload {
   userId: string;
   organizationId: string;
+  memberRole: MemberRole | null;
   brandId: string;
   isSuperAdmin: boolean;
   isOnboardingCompleted: boolean;

@@ -31,6 +31,49 @@ describe('system email helpers', () => {
     expect(html).toContain('https://app.genfeed.ai/settings');
     expect(html).toContain('Ignore this email if you did not request it.');
   });
+
+  it('heads the card with the raster brand mark, never an SVG', () => {
+    const html = buildSystemEmailHtml({
+      bodyHtml: buildSystemEmailParagraph('Body'),
+      title: 'Title',
+    });
+
+    expect(html).toContain(
+      'src="https://cdn.genfeed.ai/assets/branding/logo.jpg"',
+    );
+    expect(html).not.toContain('.svg');
+  });
+
+  it('renders the unsubscribe link in the footer, after the action', () => {
+    const html = buildSystemEmailHtml({
+      action: {
+        label: 'Start onboarding',
+        url: 'https://app.genfeed.ai/onboarding',
+      },
+      bodyHtml: buildSystemEmailParagraph('Welcome.'),
+      title: 'Welcome',
+      unsubscribeUrl:
+        'https://api.genfeed.ai/lifecycle-emails/unsubscribe?token=t',
+    });
+
+    const actionIndex = html.indexOf('Start onboarding');
+    const unsubscribeIndex = html.indexOf(
+      'href="https://api.genfeed.ai/lifecycle-emails/unsubscribe?token=t"',
+    );
+    expect(unsubscribeIndex).toBeGreaterThan(actionIndex);
+    expect(html.slice(unsubscribeIndex)).toContain('>Unsubscribe</a>');
+  });
+
+  it('drops an unsubscribe link with an untrusted scheme', () => {
+    const html = buildSystemEmailHtml({
+      bodyHtml: buildSystemEmailParagraph('Welcome.'),
+      title: 'Welcome',
+      unsubscribeUrl: 'javascript:alert(1)',
+    });
+
+    expect(html).not.toContain('javascript:');
+    expect(html).not.toContain('Unsubscribe');
+  });
 });
 
 describe('sanitizeSystemEmailUrl', () => {

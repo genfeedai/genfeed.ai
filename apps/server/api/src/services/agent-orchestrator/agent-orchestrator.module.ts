@@ -109,6 +109,7 @@ import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrato
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
 import { AgentMediaTransformService } from '@api/services/agent-orchestrator/tools/agent-media-transform.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
+import { AgentOnboardingBrandSetupToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-brand-setup-tool-handler.service';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
 import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
@@ -142,7 +143,9 @@ import { MediaPromptEnhancementModule } from '@api/services/harness/media-prompt
 import { InstagramInspirationModule } from '@api/services/instagram-inspiration/instagram-inspiration.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
+import { RouterModule } from '@api/services/router/router.module';
 import { SeoModule } from '@api/services/seo/seo.module';
+import { SignupPrefillModule } from '@api/services/signup-prefill/signup-prefill.module';
 import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
 import { TypedDecisionsModule } from '@api/services/typed-decisions/typed-decisions.module';
 import { UploadsModule } from '@api/services/uploads/uploads.module';
@@ -165,6 +168,7 @@ import { Module } from '@nestjs/common';
     AgentWorkObjectService,
   ],
   imports: [
+    SignupPrefillModule,
     VisualProjectsCoreModule,
     PlatformSettingsModule,
     ActivityRecordingModule,
@@ -234,6 +238,7 @@ import { Module } from '@nestjs/common';
     SeoModule,
     SkillRuntimeModule,
     TypedDecisionsModule,
+    RouterModule,
   ],
   providers: [
     AgentBrandContextSnapshotService,
@@ -250,6 +255,7 @@ import { Module } from '@nestjs/common';
     AgentMediaGenerationToolHandler,
     AgentMediaTextGenerationService,
     AgentMediaTransformService,
+    AgentOnboardingBrandSetupToolHandler,
     AgentOnboardingToolHandler,
     AgentTransferToolHandler,
     AgentWorkflowToolCreateService,

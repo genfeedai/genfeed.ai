@@ -101,6 +101,7 @@ export class TrainingsController extends BaseCRUDController<
    * Override buildFindAllQuery to support both user and organization filtering
    */
   public buildFindAllQuery(user: User, query: TrainingsQueryDto) {
+    CollectionFilterUtil.resolveListOrganizationId(query, user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(user, query);
 
     // Build ownership OR conditions (used when adminFilter is null)

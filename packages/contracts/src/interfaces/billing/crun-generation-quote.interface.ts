@@ -1,5 +1,16 @@
 import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces/knowledge-base/knowledge-retrieval.interface';
 
+export const CRUN_IMAGE_MODEL_KEYS = [
+  'crun/google/nano-banana-pro',
+  'crun/bytedance/seedream-4-5',
+] as const;
+export type CrunImageModelKey = (typeof CRUN_IMAGE_MODEL_KEYS)[number];
+export const CRUN_VIDEO_MODEL_KEYS = [
+  'crun/kling/v2-5-turbo-pro',
+  'crun/google/veo3-1-fast-t2v',
+] as const;
+export type CrunVideoModelKey = (typeof CRUN_VIDEO_MODEL_KEYS)[number];
+
 export const CRUN_QUOTE_REASON_CODES = [
   'CRUN_DISABLED',
   'CRUN_MODEL_UNAVAILABLE',
@@ -66,7 +77,7 @@ export interface CrunVideoQuoteControls {
 
 export interface CrunVideoQuoteRequest
   extends Omit<CrunImageQuoteRequest, 'model' | 'references' | 'crunControls'> {
-  model: 'crun/kling/v2-5-turbo-pro' | 'crun/google/veo3-1-fast-t2v';
+  model: CrunVideoModelKey;
   references?: string[];
   endFrame?: string;
   parentId?: string;

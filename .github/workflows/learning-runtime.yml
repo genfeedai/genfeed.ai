@@ -14,7 +14,7 @@ on:
     - cron: "23 3 * * *" # 03:23 UTC — after the e2e.yml (02:17) and Playwright full (02:47) nightlies
 
 concurrency:
-  group: learning-runtime-${{ github.ref }}
+  group: learning-runtime-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 permissions:
@@ -213,3 +213,57 @@ jobs:
                 core,
               });
             }
+
+  # Scheduled-only recovery shares the failure reporter's queue. The tracker
+  # closes only after three consecutive scheduled greens for this identity.
+  nightly-recovery-report:
+    name: Record nightly learning runtime recovery
+    needs: [learning-runtime]
+    if: >-
+      !cancelled()
+      && github.event_name == 'schedule'
+      && needs.learning-runtime.result == 'success'
+    concurrency:
+      group: nightly-learning-runtime-failure-reporter
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout workflow helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Record one consecutive scheduled green
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const { recordScheduledWorkflowGreen } = await import(
+              pathToFileURL(
+                path.join(
+                  process.env.GITHUB_WORKSPACE,
+                  'scripts/ci/scheduled-failure-tracker.mjs',
+                ),
+              ).href,
+            );
+            const { owner, repo } = context.repo;
+            await recordScheduledWorkflowGreen({
+              github,
+              owner,
+              repo,
+              workflowIdentity: '.github/workflows/learning-runtime.yml',
+              sha: process.env.SOURCE_SHA,
+              runId: Number(process.env.RUN_ID),
+              runUrl: process.env.RUN_URL,
+              core,
+            });

@@ -15,10 +15,12 @@ import {
   getIngredientPreviewUrl,
   isRasterPreviewUrl,
 } from '@genfeedai/utils/media/ingredient-preview.util';
+import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import IngredientOriginBadge from '@ui/ingredients/ingredient-origin-badge';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import { Button } from '@ui/primitives/button';
-import { ImageOff } from 'lucide-react';
+import { Film, ImageOff } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
@@ -36,13 +38,20 @@ function IngredientLineageItem({ ingredient }: IngredientLineageItemProps) {
   const translate = useTranslations('pages.library.inspector');
   const isTrashed = ingredient.isDeleted === true;
   const grant = useAuthorizedMediaPreview(isTrashed ? null : ingredient);
-  const previewUrl = isTrashed
-    ? undefined
-    : grant
-      ? isRasterPreviewUrl(grant.url)
-        ? grant.url
-        : undefined
-      : getIngredientPreviewUrl(ingredient);
+  const isVideo = !isTrashed && isVideoIngredient(ingredient);
+  // A video has no stored poster, and the model's stock thumbnail is a generic
+  // placeholder, so its first frame is the preview.
+  const videoUrl = isVideo
+    ? (grant ? grant.url : ingredient.ingredientUrl) || undefined
+    : undefined;
+  const previewUrl =
+    isTrashed || isVideo
+      ? undefined
+      : grant
+        ? isRasterPreviewUrl(grant.url)
+          ? grant.url
+          : undefined
+        : getIngredientPreviewUrl(ingredient);
   const label = isTrashed
     ? translate('deletedReference')
     : ingredient.metadataLabel || translate('untitled');
@@ -50,7 +59,22 @@ function IngredientLineageItem({ ingredient }: IngredientLineageItemProps) {
   return (
     <li className="flex w-24 shrink-0 flex-col gap-1.5">
       <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-foreground/4">
-        {previewUrl ? (
+        {videoUrl ? (
+          <VideoPlayer
+            ariaLabel={label}
+            className="size-full"
+            config={{
+              controls: false,
+              loop: false,
+              muted: true,
+              playsInline: true,
+              preload: 'metadata',
+            }}
+            mediaClassName="object-cover"
+            mediaProps={{ tabIndex: -1 }}
+            src={`${videoUrl.split('#')[0]}#t=0.001`}
+          />
+        ) : previewUrl ? (
           <Image
             alt={label}
             className="object-cover outline-media"
@@ -59,6 +83,8 @@ function IngredientLineageItem({ ingredient }: IngredientLineageItemProps) {
             src={previewUrl}
             unoptimized={!canOptimizeImageSource(previewUrl)}
           />
+        ) : isVideo ? (
+          <Film aria-hidden="true" className="size-5 text-foreground/30" />
         ) : (
           <ImageOff aria-hidden="true" className="size-5 text-foreground/30" />
         )}

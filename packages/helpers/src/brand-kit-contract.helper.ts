@@ -412,8 +412,8 @@ function buildDraftField(
 
   const field: IBrandKitDraftField = {
     applyActionDefault: owner.applyActionDefault,
-    diagnostics,
-    evidence,
+    diagnostics: [...diagnostics],
+    evidence: [...evidence],
     group: owner.group,
     key: owner.key,
     label: owner.label,
@@ -463,7 +463,7 @@ export function buildBrandKitDraftFromBrand(
     brandId: brand.id,
     createdAt: options.createdAt,
     diagnostics,
-    evidence,
+    evidence: [...evidence],
     fields,
     id: options.draftId ?? brand.id,
     organizationId: getOrganizationId(brand.organization),

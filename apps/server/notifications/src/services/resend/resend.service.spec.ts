@@ -162,6 +162,26 @@ describe('ResendService', () => {
     );
   });
 
+  it('uses the verified production sender when the platform sender is unset', async () => {
+    configMock.get.mockImplementation((key: string) =>
+      key === 'RESEND_API_KEY' ? 're_test' : undefined,
+    );
+    mockSend.mockResolvedValue({ data: { id: 'email_default' }, error: null });
+
+    await expect(
+      service.sendEmail({
+        html: '<p>hello</p>',
+        subject: 'Subject',
+        to: 'test@example.com',
+      }),
+    ).resolves.toBe('email_default');
+
+    expect(mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({ from: 'Genfeed <no-reply@send.genfeed.ai>' }),
+      undefined,
+    );
+  });
+
   it('surfaces transient Resend failures as retryable delivery errors', async () => {
     mockSend.mockResolvedValue({
       data: null,
@@ -190,6 +210,7 @@ describe('ResendService', () => {
       expect.objectContaining({ message: 'Email provider request failed' }),
       expect.objectContaining({
         providerCode: 'rate_limit_exceeded',
+        providerMessage: 'Too many requests',
         retryable: true,
         statusCode: 429,
       }),
@@ -267,6 +288,47 @@ describe('ResendService', () => {
     });
   });
 
+  it('logs Resend domain validation details without recipient addresses or API keys', async () => {
+    configMock.get.mockImplementation((key: string) =>
+      key === 'RESEND_API_KEY' ? 're_test' : undefined,
+    );
+    mockSend.mockResolvedValue({
+      data: null,
+      error: {
+        message:
+          'The genfeed.ai domain is not verified. Recipient: test@example.com. API key: re_test',
+        name: 'validation_error',
+        statusCode: 403,
+      },
+    });
+
+    await expect(
+      service.sendEmail({
+        html: '<p>hello</p>',
+        subject: 'Subject',
+        to: 'test@example.com',
+      }),
+    ).rejects.toMatchObject({
+      providerCode: 'validation_error',
+      retryable: false,
+      statusCode: 403,
+    });
+
+    expect(loggerMock.error).toHaveBeenCalledTimes(1);
+    expect(loggerMock.error).toHaveBeenCalledWith(
+      'ResendService sendEmail failed',
+      expect.objectContaining({ message: 'Email provider request failed' }),
+      {
+        provider: 'resend',
+        providerCode: 'validation_error',
+        providerMessage:
+          'The genfeed.ai domain is not verified. Recipient: [REDACTED]. API key: [REDACTED]',
+        retryable: false,
+        statusCode: 403,
+      },
+    );
+  });
+
   it('does not retry quota failures that cannot recover within the retry window', async () => {
     mockSend.mockResolvedValue({
       data: null,
@@ -336,7 +398,8 @@ describe('resolveResendFromAddress', () => {
     ).toBe('Genfeed <updates@genfeed.ai>');
   });
 
-  it('falls back to the product sender when production from is unset', () => {
+  it('falls back to the verified product sender when production from is unset', () => {
+    expect(RESEND_DEFAULT_FROM).toBe('Genfeed <no-reply@send.genfeed.ai>');
     expect(
       resolveResendFromAddress({
         configuredFrom: undefined,

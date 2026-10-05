@@ -143,7 +143,7 @@ export default function AppLayout({
             </>
           ) : null}
 
-          {hasMobileNavigation ? (
+          {hasMobileNavigation && isSidebarOpen ? (
             <>
               {/* Mobile navigation drawer: app rail beside the module menu */}
               <div
