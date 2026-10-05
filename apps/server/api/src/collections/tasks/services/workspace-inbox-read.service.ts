@@ -13,7 +13,7 @@ export class WorkspaceInboxReadService {
     userId: string,
   ): Promise<IWorkspaceInboxReadState> {
     const reads = await this.prisma.workspaceInboxRead.findMany({
-      where: scopedWhere({
+      where: scopedWhere(organizationId, {
         organizationId,
         userId,
         isDeleted: false,
@@ -22,7 +22,7 @@ export class WorkspaceInboxReadService {
       select: { taskId: true, seenUpdatedAt: true },
     });
     const tasks = await this.prisma.task.findMany({
-      where: scopedWhere({
+      where: scopedWhere(organizationId, {
         organizationId,
         isDeleted: false,
         dismissedAt: null,
@@ -50,7 +50,7 @@ export class WorkspaceInboxReadService {
     userId: string,
   ): Promise<IWorkspaceInboxReadState> {
     const tasks = await this.prisma.task.findMany({
-      where: scopedWhere({
+      where: scopedWhere(organizationId, {
         organizationId,
         isDeleted: false,
         dismissedAt: null,
@@ -75,7 +75,7 @@ export class WorkspaceInboxReadService {
   ): Promise<IWorkspaceInboxReadState> {
     const uniqueReads = new Map(reads.map((read) => [read.taskId, read]));
     const tasks = await this.prisma.task.findMany({
-      where: scopedWhere({
+      where: scopedWhere(organizationId, {
         organizationId,
         isDeleted: false,
         id: { in: [...uniqueReads.keys()] },
@@ -105,7 +105,7 @@ export class WorkspaceInboxReadService {
           skipDuplicates: true,
         });
         await transaction.workspaceInboxRead.updateMany({
-          where: scopedWhere({
+          where: scopedWhere(organizationId, {
             ...where,
             isDeleted: false,
             seenUpdatedAt: { lt: seenUpdatedAt },

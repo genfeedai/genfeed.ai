@@ -91,6 +91,6 @@ describe('workspace inbox read state', () => {
       );
     });
     expect(result.current.isUnread(task)).toBe(true);
-    expect(result.current.read.isError).toBe(true);
+    await waitFor(() => expect(result.current.read.isError).toBe(true));
   });
 });
