@@ -374,7 +374,7 @@ test('CLOUD guard boots the real API with ephemeral services and uploads evidenc
   assert.match(job, /bun run ci:cloud-tenant-guard-sweep/);
   assert.match(
     job,
-    /Scan final API stdout for swallowed tenant errors\n {8}if: always\(\)\n {8}run: node scripts\/ci\/cloud-tenant-guard-sweep\/scan-log\.mjs/,
+    /Scan final API stdout for swallowed tenant errors\n {8}if: always\(\)\n {8}env:\n {10}CLOUD_SWEEP_API_BOOT_OUTCOME: \$\{\{ steps\.cloud-api\.outcome \}\}\n {8}run: node scripts\/ci\/cloud-tenant-guard-sweep\/scan-log\.mjs/,
   );
   assert.match(job, /if: always\(\)[\s\S]*uses: actions\/upload-artifact@/);
   assert.match(job, /\$\{\{ runner\.temp \}\}\/api\.log/);
