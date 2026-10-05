@@ -193,7 +193,10 @@ export function AgentInputRequestOverlay({
                   )}
                 >
                   {!request.isMultiSelect ? (
-                    <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-foreground/[0.04] text-xs text-foreground/70">
+                    <span
+                      aria-hidden="true"
+                      className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-foreground/[0.04] text-xs text-foreground/70"
+                    >
                       {index + 1}
                     </span>
                   ) : null}

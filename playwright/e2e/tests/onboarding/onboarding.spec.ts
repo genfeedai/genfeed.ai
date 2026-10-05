@@ -8,7 +8,7 @@ import { expect, test } from '../../fixtures/onboarding.fixture';
 
 async function assertButtonOnly(page: Page, title: string) {
   await expect(
-    page.getByRole('heading', { name: title, exact: true }),
+    page.getByRole('heading', { name: title, exact: true, level: 3 }),
   ).toBeVisible();
   await expect(page.locator('form')).toHaveCount(0);
   await expect(page.getByRole('textbox')).toHaveCount(0);
@@ -30,7 +30,7 @@ test.describe('Conversational onboarding', () => {
     );
     await expect(page.getByText(ONBOARDING_GREETING)).toBeVisible();
     await expect(
-      page.getByRole('heading', { name: 'Your brand link' }),
+      page.getByRole('heading', { name: 'Your brand link', level: 3 }),
     ).toBeVisible();
     await expect(page.locator('form')).toHaveCount(0);
     await expect(
@@ -83,7 +83,7 @@ test.describe('Conversational onboarding', () => {
     );
     await expect(page.locator('form')).toHaveCount(0);
     await expect(
-      page.getByRole('heading', { name: 'Your brand link' }),
+      page.getByRole('heading', { name: 'Your brand link', level: 3 }),
     ).toBeVisible();
   });
   for (const branch of ['Try another link', 'Continue without a website']) {
@@ -91,7 +91,7 @@ test.describe('Conversational onboarding', () => {
       onboardingPage: page,
     }) => {
       await expect(
-        page.getByRole('heading', { name: 'Your brand link' }),
+        page.getByRole('heading', { name: 'Your brand link', level: 3 }),
       ).toBeVisible();
       await page.getByRole('textbox').fill('https://blocked.example');
       await click(page, 'Use this answer');
@@ -108,7 +108,7 @@ test.describe('Conversational onboarding', () => {
       await click(page, branch);
       if (branch === 'Try another link') {
         await expect(
-          page.getByRole('heading', { name: 'Your brand link' }),
+          page.getByRole('heading', { name: 'Your brand link', level: 3 }),
         ).toBeVisible();
         await expect(page.getByRole('textbox')).toBeVisible();
         await page.getByRole('textbox').fill('https://example.com');

@@ -68,6 +68,21 @@ function makeRequest(
 }
 
 describe('AgentInputRequestOverlay', () => {
+  it('keeps decorative option numbers out of single-choice accessible names', () => {
+    const onSubmit = vi.fn();
+    render(
+      <AgentInputRequestOverlay
+        onSubmit={onSubmit}
+        request={makeRequest({
+          allowFreeText: false,
+          options: [{ id: 'skip', label: 'Skip' }],
+        })}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Skip', exact: true }));
+    expect(onSubmit).toHaveBeenCalledWith('Skip', ['skip']);
+  });
+
   it('submits Skip alone even when multi-select is at its limit', async () => {
     const onSubmit = vi.fn();
     render(
