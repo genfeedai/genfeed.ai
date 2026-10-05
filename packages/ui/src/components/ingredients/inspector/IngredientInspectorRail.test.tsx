@@ -14,12 +14,14 @@ vi.mock('@genfeedai/hooks/media/use-authorized-media-preview', () => ({
 }));
 
 const openPostBatchModal = vi.fn();
+const openIngredientOverlay = vi.fn();
 const handleDownload = vi.fn();
 
 vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.provider',
   () => ({
     usePostModal: () => ({ openPostBatchModal }),
+    useIngredientOverlay: () => ({ openIngredientOverlay }),
   }),
 );
 
@@ -45,13 +47,21 @@ vi.mock('@ui/quick-actions/actions/IngredientQuickActions', () => ({
   default: ({
     onDownload,
     onPublish,
+    onSeeDetails,
     selectedIngredient,
   }: {
     onDownload?: (ingredient: IIngredient) => Promise<undefined>;
     onPublish?: (ingredient: IIngredient, platform: string) => void;
+    onSeeDetails?: (ingredient: IIngredient) => void;
     selectedIngredient: IIngredient;
   }) => (
     <div>
+      <input
+        aria-label="details-action"
+        disabled={!onSeeDetails}
+        onClick={() => onSeeDetails?.(selectedIngredient)}
+        type="checkbox"
+      />
       <input
         aria-label="publish-action"
         disabled={!onPublish}
@@ -303,6 +313,15 @@ describe('IngredientInspectorRail', () => {
 
     fireEvent.click(download);
     expect(handleDownload).toHaveBeenCalledWith(ingredient);
+  });
+
+  it('opens the existing metadata editor for the inspected asset', () => {
+    render(<IngredientInspectorRail ingredient={ingredient} />);
+
+    const details = screen.getByRole('checkbox', { name: 'details-action' });
+    expect(details).toBeEnabled();
+    fireEvent.click(details);
+    expect(openIngredientOverlay).toHaveBeenCalledWith(ingredient);
   });
 
   it('omits the origin row when the asset carries none', () => {
