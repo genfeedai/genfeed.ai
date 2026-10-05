@@ -100,7 +100,6 @@ describe('workflow contentHash byte-identity with the pre-#5912 serializer', () 
   });
 
   it.each([
-    ['post', null],
     ['post', 'credential-1'],
     ['newsletter', null],
     ['image', null],
@@ -152,4 +151,71 @@ describe('workflow contentHash byte-identity with the pre-#5912 serializer', () 
       );
     },
   );
+
+  // Known, intentional difference (#5912): with no connected credential the
+  // `post` node config carries `credentialId: undefined`. The old serializer
+  // wrote the literal text `undefined` for it; the shared helper writes `null`.
+  // Harmless: nothing recomputes and compares a default-recurring workflow's
+  // stored hash (editing one just creates a new version), and Vincent accepted
+  // hash changes for undefined-bearing inputs.
+  it('differs only by undefined vs null for the default recurring post definition without a credential', async () => {
+    const create = vi.mocked(createVersionedWorkflow);
+    create.mockClear();
+    const service = new DefaultRecurringContentService(
+      {} as PrismaService,
+      { debug: vi.fn(), log: vi.fn() } as unknown as LoggerService,
+      {} as ModuleRef,
+    );
+    const tx = {
+      workflow: {
+        create: async () => ({
+          id: 'wf-1',
+          organizationId: 'org',
+          userId: 'u',
+        }),
+        findFirstOrThrow: async () => ({ id: 'wf-1' }),
+      },
+      workflowVersion: { create: async () => ({}) },
+    };
+    await (
+      service as unknown as {
+        createDefaultRecurringWorkflow: (params: unknown) => Promise<void>;
+      }
+    ).createDefaultRecurringWorkflow({
+      brand: {
+        id: 'brand-1',
+        label: 'Brand',
+        agentConfig: null,
+      } as unknown as BrandDocument,
+      contentType: 'post',
+      credentialId: null,
+      organizationId: 'org',
+      origin: 'system',
+      tx: tx as unknown as PrismaTransactionClient,
+      userId: 'user',
+    });
+
+    const built = buildWorkflowVersionDefinition(
+      create.mock.calls[0]?.[2] as WorkflowDefinitionInput,
+    );
+    expect(frozenStableStringify(built.graph)).toContain(
+      '"credentialId":undefined',
+    );
+    expect(built.contentHash).not.toBe(frozenContentHash(built));
+    expect(built.contentHash).toBe(
+      `sha256:v1:${createHash('sha256')
+        .update(
+          frozenStableStringify({
+            graph: JSON.parse(
+              frozenStableStringify(built.graph).replaceAll(
+                '"credentialId":undefined',
+                '"credentialId":null',
+              ),
+            ),
+            inputSchema: built.inputSchema,
+          }),
+        )
+        .digest('hex')}`,
+    );
+  });
 });
