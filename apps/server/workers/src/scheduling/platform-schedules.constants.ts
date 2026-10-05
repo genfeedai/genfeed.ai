@@ -57,6 +57,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   TRANSCRIPT_PURGE: 'transcript-purge',
   WORKFLOW_ARTIFACT_CLEANUP: 'workflow-artifact-cleanup',
   WORKFLOW_CONTINUATION_RECONCILE: 'workflow-continuation-reconcile',
+  WORKSPACE_TASK_ROLLUP_RECOVERY: 'workspace-task-rollup-recovery',
   X_REPLY_WATCH: 'x-reply-watch',
   YOUTUBE_MESSAGES: 'youtube-messages',
   YOUTUBE_STATUS: 'youtube-status',
@@ -232,6 +233,12 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.WORKFLOW_CONTINUATION_RECONCILE]: {
     pattern: '* * * * *',
+    timezone: 'UTC',
+  },
+  // Durable backstop for workspace-task rollups whose terminal event was lost
+  // or whose lease holder failed; the 10-minute lease is the retry backoff.
+  [PLATFORM_SCHEDULED_TASKS.WORKSPACE_TASK_ROLLUP_RECOVERY]: {
+    pattern: '*/2 * * * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.X_REPLY_WATCH]: {

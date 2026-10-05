@@ -474,6 +474,7 @@ describe('proactive organization to strategy run and attributed draft integratio
       logger as never,
       { reconcile: vi.fn() } as never,
       { reconcile: vi.fn() } as never,
+      { recoverStalledRollups: vi.fn() } as never,
     );
     // List every constructor argument so an arity change fails typecheck
     // instead of shifting workflowSchedules into the wrong slot.

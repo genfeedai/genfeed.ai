@@ -1,13 +1,22 @@
+import { randomUUID } from 'node:crypto';
+import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { scopedWhere } from '@api/index';
 import {
-  WorkspaceTaskQualityAssessmentResult,
-  WorkspaceTaskQualityService,
-} from '@api/services/task-orchestration/workspace-task-quality.service';
+  buildRollupFailureOutcome,
+  buildRollupReviewOutcome,
+} from '@api/services/task-orchestration/task-rollup-outcome.util';
+import { WorkspaceTaskQualityService } from '@api/services/task-orchestration/workspace-task-quality.service';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+/** Longer than a quality assessment can take; also the retry backoff. */
+export const TASK_ROLLUP_LEASE_TTL_MS = 10 * 60 * 1000;
+/** Leaves recently active tasks to the event-driven fast path. */
+const STALLED_ROLLUP_GRACE_MS = 2 * 60 * 1000;
+const STALLED_ROLLUP_BATCH_SIZE = 25;
 
 @Injectable()
 export class TaskOrchestratorService {
@@ -38,45 +47,36 @@ export class TaskOrchestratorService {
   }
 
   /**
-   * Called when an agent run completes.
-   * Checks if all runs for the workspace task are done and updates status.
+   * Fast path, fired when one linked execution settles: records its progress
+   * and, once every linked execution has settled, rolls the task up.
    */
   async handleExecutionCompletion(
     executionId: string,
     organizationId: string,
   ): Promise<void> {
-    // Find the workspace task that links to this run
-    const task = await this.tasksService.findOne({
-      linkedExecutions: { some: { id: executionId } },
-      organizationId: organizationId,
-    });
-
-    if (!task) {
-      return; // Run not linked to any workspace task
-    }
-
-    // A rollup already moved the task on (or the user did); a late or
-    // duplicate event must not overwrite that, or re-run quality assessment.
-    if (task.status !== 'in_progress') {
+    const task = await this.findTaskLinkedTo(executionId, organizationId);
+    if (task?.status !== 'in_progress') {
       return;
     }
 
+    const executionIds = task.linkedExecutionIds.map((id) => id.toString());
     const { executionStates, progress } = await this.buildTaskProgress(
-      task.linkedExecutionIds.map((id) => id.toString()),
+      executionIds,
       organizationId,
     );
-
     const completedExecution = executionStates.find(
       (execution) => execution.id === executionId,
     );
-    await this.tasksService.recordTaskEvent(
+    // Progress is computed from a snapshot; if the task was rolled up since,
+    // this write is stale and must not land on top of the final state.
+    const progressed = await this.tasksService.recordTaskEventIfMatches(
       task.id.toString(),
       organizationId,
       task.assigneeUserId ?? '',
       {
         payload: {
-          progress,
           executionId,
+          progress,
           status: completedExecution?.status,
           summary: completedExecution?.summary,
         },
@@ -86,97 +86,16 @@ export class TaskOrchestratorService {
             : 'execution_completed',
       },
       { progress },
+      { status: 'in_progress' },
     );
-
-    // Check all linked runs
-    const allComplete = await this.areAllExecutionsFinished(
-      task.linkedExecutionIds.map((id) => id.toString()),
-      organizationId,
-    );
-
-    if (!allComplete) {
-      return; // Still waiting for other runs
-    }
-
-    // Determine final status based on run outcomes
-    const { hasFailures, summaries } = await this.collectExecutionResults(
-      task.linkedExecutionIds.map((id) => id.toString()),
-      organizationId,
-    );
-
-    // The listener and link-time reconcile can both reach this point (in the
-    // API or a worker). Only the caller that wins this conditional update runs
-    // the rollup, so the paid quality assessment executes once per task.
-    const isClaimed = await this.tasksService.claimStatusTransition(
-      task.id.toString(),
-      organizationId,
-      'in_progress',
-      hasFailures ? 'failed' : 'in_review',
-    );
-    if (!isClaimed) {
+    if (
+      !progressed ||
+      !(await this.areAllExecutionsFinished(executionIds, organizationId))
+    ) {
       return;
     }
 
-    const resultPreview = summaries.filter(Boolean).join(' | ');
-
-    if (hasFailures) {
-      await this.recordRollupFailure(
-        task.id.toString(),
-        task.assigneeUserId ?? '',
-        organizationId,
-        resultPreview,
-      );
-    } else {
-      const qualityAssessment = await this.workspaceTaskQualityService.assess(
-        {
-          outputType: task.outputType,
-          platforms: task.platforms,
-          request: task.request,
-          summaries,
-        },
-        organizationId,
-      );
-
-      await this.tasksService.recordTaskEvent(
-        task.id.toString(),
-        organizationId,
-        task.assigneeUserId ?? '',
-        {
-          payload: {
-            gate: qualityAssessment.gate,
-            resultPreview: resultPreview || undefined,
-            score: qualityAssessment.score,
-          },
-          type: 'task_ready_for_review',
-        },
-        {
-          completedAt: new Date(),
-          progress: {
-            activeRunCount: 0,
-            message: 'Generation finished. Awaiting review.',
-            percent: 100,
-            stage: 'review',
-          },
-          qualityAssessment,
-          resultPreview: resultPreview || undefined,
-          reviewState: 'pending_approval',
-          reviewTriggered: true,
-          status: 'in_review',
-          ...(qualityAssessment.gate === 'pass'
-            ? {
-                requestedChangesReason: null,
-              }
-            : {
-                requestedChangesReason:
-                  this.buildQualityReviewReason(qualityAssessment),
-              }),
-        },
-      );
-    }
-
-    this.logger.log(
-      `${this.logContext}: Task ${task.id} rollup complete — ${hasFailures ? 'failed' : 'in_review'}`,
-    );
+    await this.rollUpTask(progressed, organizationId);
   }
 
   /**
@@ -200,16 +119,43 @@ export class TaskOrchestratorService {
     }
   }
 
+  /**
+   * Durable path: rolls up tasks whose executions all settled but that the
+   * fast path never finished (lost event, or a lease holder that died or
+   * failed before its final write). An expired lease is the retry backoff.
+   * Returns how many tasks it rolled up.
+   */
+  async recoverStalledRollups(now = new Date()): Promise<number> {
+    const candidates = await this.tasksService.findStalledRollupCandidates(
+      now,
+      new Date(now.getTime() - STALLED_ROLLUP_GRACE_MS),
+      STALLED_ROLLUP_BATCH_SIZE,
+    );
+    let rolledUp = 0;
+    for (const candidate of candidates) {
+      try {
+        const task = await this.tasksService.findOne(
+          scopedWhere(candidate.organizationId, { id: candidate.id }),
+        );
+        if (task && (await this.rollUpTask(task, candidate.organizationId))) {
+          rolledUp += 1;
+        }
+      } catch (error: unknown) {
+        this.logger.error(
+          `${this.logContext}: Stalled rollup for task ${candidate.id} failed`,
+          error,
+        );
+      }
+    }
+    return rolledUp;
+  }
+
   async handleExecutionStarted(
     executionId: string,
     organizationId: string,
   ): Promise<void> {
-    const task = await this.tasksService.findOne({
-      linkedExecutions: { some: { id: executionId } },
-      organizationId: organizationId,
-    });
-
-    if (!task) {
+    const task = await this.findTaskLinkedTo(executionId, organizationId);
+    if (task?.status !== 'in_progress') {
       return;
     }
 
@@ -221,53 +167,97 @@ export class TaskOrchestratorService {
       (execution) => execution.id === executionId,
     );
 
-    await this.tasksService.recordTaskEvent(
+    await this.tasksService.recordTaskEventIfMatches(
       task.id.toString(),
       organizationId,
       task.assigneeUserId ?? '',
       {
         payload: {
+          executionId,
           label: startedExecution?.label,
           progress,
-          executionId,
           status: startedExecution?.status,
         },
         type: 'execution_started',
       },
       { progress },
+      { status: 'in_progress' },
     );
   }
 
-  private async recordRollupFailure(
-    taskId: string,
-    userId: string,
+  /**
+   * Runs the rollup under a lease so that, of all concurrent triggers in the
+   * API and workers, one assesses and writes. The final status, its fields and
+   * the lease release land in one write that only the current holder can
+   * make, so `in_review`/`failed` always come with their review fields. A
+   * holder that throws keeps its lease until expiry; the sweep then retries.
+   */
+  private async rollUpTask(
+    task: TaskDocument,
     organizationId: string,
-    resultPreview: string,
-  ): Promise<void> {
-    await this.tasksService.recordTaskEvent(
+  ): Promise<boolean> {
+    const taskId = task.id.toString();
+    const owner = randomUUID();
+    const isLeased = await this.tasksService.acquireRollupLease(
       taskId,
       organizationId,
-      userId,
-      {
-        payload: {
-          failureReason: 'One or more workflow executions failed.',
-          resultPreview: resultPreview || undefined,
-        },
-        type: 'task_failed',
-      },
-      {
-        failureReason: 'One or more workflow executions failed.',
-        progress: {
-          activeRunCount: 0,
-          message: 'One or more executions failed.',
-          percent: 100,
-          stage: 'failed',
-        },
-        resultPreview: resultPreview || undefined,
-        reviewTriggered: true,
-        reviewState: 'none',
-        status: 'failed',
-      },
+      owner,
+      TASK_ROLLUP_LEASE_TTL_MS,
+    );
+    if (!isLeased) {
+      return false;
+    }
+
+    const { hasFailures, summaries } = await this.collectExecutionResults(
+      task.linkedExecutionIds.map((id) => id.toString()),
+      organizationId,
+    );
+    const resultPreview = summaries.filter(Boolean).join(' | ');
+    const outcome = hasFailures
+      ? buildRollupFailureOutcome(resultPreview)
+      : buildRollupReviewOutcome(
+          await this.workspaceTaskQualityService.assess(
+            {
+              outputType: task.outputType,
+              platforms: task.platforms,
+              request: task.request,
+              summaries,
+            },
+            organizationId,
+          ),
+          resultPreview,
+          new Date(),
+        );
+
+    const written = await this.tasksService.recordTaskEventIfMatches(
+      taskId,
+      organizationId,
+      task.assigneeUserId ?? '',
+      outcome.event,
+      { ...outcome.patch, rollupLeaseExpiresAt: null, rollupLeaseOwner: null },
+      { rollupLeaseOwner: owner, status: 'in_progress' },
+    );
+    if (!written) {
+      this.logger.warn(
+        `${this.logContext}: Task ${taskId} rollup lease expired before its final write`,
+      );
+      return false;
+    }
+
+    this.logger.log(
+      `${this.logContext}: Task ${taskId} rollup complete — ${written.status}`,
+    );
+    return true;
+  }
+
+  private findTaskLinkedTo(
+    executionId: string,
+    organizationId: string,
+  ): Promise<TaskDocument | null> {
+    return this.tasksService.findOne(
+      scopedWhere(organizationId, {
+        linkedExecutions: { some: { id: executionId } },
+      }),
     );
   }
 
@@ -433,16 +423,5 @@ export class TaskOrchestratorService {
       },
       executionStates,
     };
-  }
-
-  private buildQualityReviewReason(
-    qualityAssessment: WorkspaceTaskQualityAssessmentResult,
-  ): string {
-    const fixes = qualityAssessment.suggestedFixes.slice(0, 3).join(' ');
-    const summary =
-      qualityAssessment.summary ??
-      'The system quality gate flagged this output for revision.';
-
-    return [summary, fixes].filter(Boolean).join(' ');
   }
 }

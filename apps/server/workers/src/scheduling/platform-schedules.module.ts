@@ -8,6 +8,7 @@ import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-th
 import { ByokModule } from '@api/services/byok/byok.module';
 import { CrunModule } from '@api/services/integrations/crun/crun.module';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { WorkspaceTaskRollupModule } from '@api/services/task-orchestration/workspace-task-rollup.module';
 import { VideoCompletionCoreModule } from '@api/services/video-completion/video-completion-core.module';
 import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
 import { ConfigModule as LibsConfigModule } from '@libs/config/config.module';
@@ -64,6 +65,7 @@ import { CrunReconcileService } from '@workers/services/crun-reconcile.service';
     ReferralsModule,
     VideoCompletionCoreModule,
     WebhooksCoreModule,
+    WorkspaceTaskRollupModule,
     BullModule.registerQueue(
       {
         defaultJobOptions: {

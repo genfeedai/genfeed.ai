@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { TaskFeedbackMemoryAdapterService } from '@api/collections/agent-memories/services/task-feedback-memory-adapter.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { type TaskDocument } from '@api/collections/tasks/schemas/task.schema';
+import {
+  type TaskDocument,
+  type TaskStatus,
+} from '@api/collections/tasks/schemas/task.schema';
 import type { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -285,6 +288,30 @@ export class TaskActionsService {
       event,
     );
     return updated ?? task;
+  }
+
+  /**
+   * Like `recordTaskEvent`, but the patch applies only while the task still
+   * matches `expected`. When it no longer matches, nothing is written, no event
+   * is appended and null is returned.
+   */
+  async recordTaskEventIfMatches(
+    id: string,
+    organizationId: string,
+    userId: string,
+    event: TaskEventInput,
+    patch: Record<string, unknown>,
+    expected: { rollupLeaseOwner?: string; status: TaskStatus },
+  ): Promise<TaskDocument | null> {
+    const updated = await this.tasksService.patchIfMatches(
+      id,
+      organizationId,
+      expected,
+      patch,
+    );
+    if (!updated) return null;
+    await this.appendEventAndBroadcast(updated, organizationId, userId, event);
+    return updated;
   }
 
   /**

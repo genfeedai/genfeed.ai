@@ -5387,8 +5387,14 @@ model Task {
   checkoutRunId   String?
   checkedOutAt    DateTime?
 
+  /// Execution rollup lease: the holder may run the rollup for this task until
+  /// rollupLeaseExpiresAt; an expired lease can be re-claimed.
+  rollupLeaseOwner     String?
+  rollupLeaseExpiresAt DateTime?
+
   @@unique([organizationId, identifier])
   @@index([organizationId, checkoutAgentId])
+  @@index([status, rollupLeaseExpiresAt])
   @@map("tasks")
 }
 

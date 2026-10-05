@@ -174,6 +174,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.workflowArtifacts.queueExpiredArtifactCleanup(),
       [PLATFORM_SCHEDULED_TASKS.WORKFLOW_CONTINUATION_RECONCILE]: () =>
         this.workflowSchedules.reconcileContinuations(),
+      [PLATFORM_SCHEDULED_TASKS.WORKSPACE_TASK_ROLLUP_RECOVERY]: () =>
+        this.workflowSchedules.recoverWorkspaceTaskRollups(),
       [PLATFORM_SCHEDULED_TASKS.X_REPLY_WATCH]: () =>
         this.xReplyWatch.watchRecentPostReplies(),
       [PLATFORM_SCHEDULED_TASKS.YOUTUBE_MESSAGES]: () =>

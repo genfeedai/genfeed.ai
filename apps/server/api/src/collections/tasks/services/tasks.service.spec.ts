@@ -59,36 +59,98 @@ describe('TasksService tenant scoping', () => {
     expectCloudGuardPasses('Task', 'findFirst', task.findFirst);
   });
 
-  it('claims a status transition with the expected status in the write predicate', async () => {
+  it('claims the rollup lease only for an in-progress task with no live lease', async () => {
+    const now = new Date('2026-10-05T12:00:00.000Z');
     task.updateMany.mockResolvedValueOnce({ count: 1 });
     task.updateMany.mockResolvedValueOnce({ count: 0 });
 
     await expect(
-      service.claimStatusTransition(
-        'task-1',
-        'org-1',
-        'in_progress',
-        'in_review',
-      ),
+      service.acquireRollupLease('task-1', 'org-1', 'owner-a', 60_000, now),
     ).resolves.toBe(true);
     await expect(
-      service.claimStatusTransition(
-        'task-1',
-        'org-1',
-        'in_progress',
-        'in_review',
-      ),
+      service.acquireRollupLease('task-1', 'org-1', 'owner-b', 60_000, now),
     ).resolves.toBe(false);
 
-    expect(task.updateMany).toHaveBeenCalledWith({
-      data: { status: 'in_review' },
+    expect(task.updateMany).toHaveBeenNthCalledWith(1, {
+      data: {
+        rollupLeaseExpiresAt: new Date('2026-10-05T12:01:00.000Z'),
+        rollupLeaseOwner: 'owner-a',
+      },
       where: {
         id: 'task-1',
         isDeleted: false,
+        OR: [
+          { rollupLeaseExpiresAt: null },
+          { rollupLeaseExpiresAt: { lte: now } },
+        ],
         organizationId: 'org-1',
         status: 'in_progress',
       },
     });
+  });
+
+  it('writes a conditional patch only while the task still matches', async () => {
+    const transaction = {
+      task: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValueOnce({ config: { request: 'apple' } })
+          .mockResolvedValueOnce(taskRow)
+          .mockResolvedValueOnce(null),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (run: (client: unknown) => unknown) =>
+        run(transaction),
+      ),
+      task,
+    };
+    const conditional = new TasksService(
+      prisma as unknown as PrismaService,
+      {
+        error: vi.fn(),
+        log: vi.fn(),
+        warn: vi.fn(),
+      } as unknown as LoggerService,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const expected = {
+      rollupLeaseOwner: 'owner-a',
+      status: 'in_progress' as const,
+    };
+
+    await expect(
+      conditional.patchIfMatches('task-1', 'org-1', expected, {
+        qualityAssessment: { gate: 'pass' },
+        rollupLeaseOwner: null,
+        status: 'in_review',
+      }),
+    ).resolves.toEqual(expect.objectContaining({ id: 'task-1' }));
+    expect(transaction.task.updateMany).toHaveBeenCalledWith({
+      data: {
+        config: { qualityAssessment: { gate: 'pass' }, request: 'apple' },
+        rollupLeaseOwner: null,
+        status: 'in_review',
+      },
+      where: {
+        id: 'task-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        rollupLeaseOwner: 'owner-a',
+        status: 'in_progress',
+      },
+    });
+
+    // The row no longer matches (another holder, or already rolled up).
+    await expect(
+      conditional.patchIfMatches('task-1', 'org-1', expected, {
+        progress: { stage: 'running' },
+      }),
+    ).resolves.toBeNull();
+    expect(transaction.task.updateMany).toHaveBeenCalledOnce();
   });
 
   it('looks up tasks by identifier within the organization only', async () => {
