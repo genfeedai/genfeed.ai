@@ -191,10 +191,7 @@ export default function SettingsProfilePage() {
         description="The language the app interface is shown in. Content you create is unaffected."
         bodyClassName="gap-3 p-4"
       >
-        {/* No cookie write here: `LocaleCookieSync` watches the stored
-            preference and owns the cookie plus the single refresh, so the choice
-            applies the same way whether it is changed here or on another
-            device. */}
+        {/* The preference is saved; the app interface currently uses a static locale. */}
         <Select
           disabled={isSaving}
           onValueChange={(value) =>

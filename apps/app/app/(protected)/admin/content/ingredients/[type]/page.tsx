@@ -1,20 +1,14 @@
-import { PageScope } from '@genfeedai/contracts';
+import IngredientsListRoute from '@app/(protected)/admin/content/ingredients/[type]/IngredientsListRoute';
 import { capitalize } from '@helpers/formatting/format/format.helper';
 import { createDynamicPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import IngredientsList from '@pages/ingredients/list/ingredients-list';
-import type { IngredientsListPageProps } from '@props/pages/page.props';
 import { Suspense } from 'react';
 
 export const generateMetadata = createDynamicPageMetadata('type', capitalize);
 
-export default async function IngredientsListPage({
-  params,
-}: IngredientsListPageProps) {
-  const { type } = await params;
-
+export default function IngredientsListPage() {
   return (
     <Suspense fallback={null}>
-      <IngredientsList type={type} scope={PageScope.SUPERADMIN} />
+      <IngredientsListRoute />
     </Suspense>
   );
 }
