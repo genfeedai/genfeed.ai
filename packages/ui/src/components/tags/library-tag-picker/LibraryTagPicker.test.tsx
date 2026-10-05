@@ -175,6 +175,20 @@ describe('LibraryTagPicker', () => {
     });
   });
 
+  it('keeps the palette out of cmdk, so Enter on a swatch cannot select an item', () => {
+    const { onCreate, onToggle } = renderPicker();
+
+    fireEvent.change(screen.getByLabelText('Search or create a tag'), {
+      target: { value: 'Spring drop' },
+    });
+    const swatch = screen.getByRole('button', { name: 'Violet' });
+    fireEvent.keyDown(swatch, { key: 'Enter' });
+
+    expect(swatch.closest('[cmdk-root]')).toBeNull();
+    expect(onCreate).not.toHaveBeenCalled();
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
   it('does not offer to create a duplicate, however it is cased', () => {
     renderPicker();
 

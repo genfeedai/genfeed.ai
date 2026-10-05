@@ -164,12 +164,6 @@ export default function LibraryTagPicker({
                 ) : null}
                 {canCreate ? (
                   <CommandGroup>
-                    <div className="px-2 pb-1.5 pt-1">
-                      <TagColorPicker
-                        onChange={setColor}
-                        value={color?.backgroundColor}
-                      />
-                    </div>
                     <CommandItem
                       disabled={isBusy}
                       forceMount
@@ -192,6 +186,17 @@ export default function LibraryTagPicker({
             </p>
           ) : null}
         </Command>
+        {/* Outside `Command` on purpose: cmdk handles Enter and arrow keys for
+            everything inside it, which would select an item instead of the
+            focused swatch. */}
+        {canCreate && !isLoading ? (
+          <div className="border-t border-border px-3 py-2">
+            <TagColorPicker
+              onChange={setColor}
+              value={color?.backgroundColor}
+            />
+          </div>
+        ) : null}
       </PopoverPanelContent>
     </Popover>
   );

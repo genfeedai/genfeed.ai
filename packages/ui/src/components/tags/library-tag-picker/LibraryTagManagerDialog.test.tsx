@@ -1,6 +1,6 @@
 import { TagScope } from '@genfeedai/contracts';
 import { LIBRARY_TAG_UPDATED_EVENT } from '@genfeedai/contracts/constants';
-import type { ITag } from '@genfeedai/contracts/interfaces';
+import type { ILibraryTagUpdate, ITag } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createContext, useContext } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -182,11 +182,8 @@ describe('LibraryTagManagerDialog', () => {
       }),
     );
     await waitFor(() => expect(updated).toHaveBeenCalled());
-    const [event] = updated.mock.calls[0] as [CustomEvent<ITag>];
-    expect(event.detail).toMatchObject({
-      id: 'tag-brand',
-      label: 'Launch renamed',
-    });
+    const [event] = updated.mock.calls[0] as [CustomEvent<ILibraryTagUpdate>];
+    expect(event.detail).toEqual({ id: 'tag-brand', label: 'Launch renamed' });
     expect(refresh).toHaveBeenCalled();
     window.removeEventListener(LIBRARY_TAG_UPDATED_EVENT, updated);
   });
@@ -206,6 +203,14 @@ describe('LibraryTagManagerDialog', () => {
       }),
     );
     await waitFor(() => expect(updated).toHaveBeenCalled());
+    // Only the changed fields travel, so a recolor can never replay a stale
+    // label over a rename that finished in the meantime.
+    const [event] = updated.mock.calls[0] as [CustomEvent<ILibraryTagUpdate>];
+    expect(event.detail).toEqual({
+      backgroundColor: '#2563EB',
+      id: 'tag-brand',
+      textColor: '#FFFFFF',
+    });
     window.removeEventListener(LIBRARY_TAG_UPDATED_EVENT, updated);
   });
 

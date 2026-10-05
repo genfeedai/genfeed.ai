@@ -178,7 +178,7 @@ export default function LibraryTagManagerDialog() {
       const service = await getTagsService();
       await service.patch(tag.id, changes);
       await refresh();
-      dispatchLibraryTagUpdate({ ...tag, ...changes });
+      dispatchLibraryTagUpdate({ id: tag.id, ...changes });
     } catch (error: unknown) {
       logger.error('Failed to update Library tag', error);
       NotificationsService.getInstance().error(translate('manageFailed'));

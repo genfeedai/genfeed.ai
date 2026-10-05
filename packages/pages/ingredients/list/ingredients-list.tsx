@@ -18,7 +18,7 @@ import {
 import type {
   IIngredient,
   ILibraryAssetTagsChange,
-  ITag,
+  ILibraryTagUpdate,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useIngredientDeepLink } from '@hooks/data/ingredients/use-ingredient-deep-link/use-ingredient-deep-link';
@@ -246,9 +246,9 @@ export default function IngredientsList({
     };
 
     const handleTagUpdate = (event: Event) => {
-      const tag = (event as CustomEvent<ITag>).detail;
-      if (tag) {
-        setIngredients((current) => applyLibraryTagUpdate(current, tag));
+      const update = (event as CustomEvent<ILibraryTagUpdate>).detail;
+      if (update) {
+        setIngredients((current) => applyLibraryTagUpdate(current, update));
       }
     };
 

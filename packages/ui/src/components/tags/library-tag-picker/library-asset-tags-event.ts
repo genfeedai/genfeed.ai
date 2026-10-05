@@ -6,6 +6,7 @@ import {
 import type {
   IIngredient,
   ILibraryAssetTagsChange,
+  ILibraryTagUpdate,
   ITag,
 } from '@genfeedai/contracts/interfaces';
 
@@ -69,30 +70,32 @@ export function applyLibraryAssetTagsChange(
 }
 
 /** Tell the Library list that a tag was renamed or recolored. */
-export function dispatchLibraryTagUpdate(tag: ITag): void {
+export function dispatchLibraryTagUpdate(update: ILibraryTagUpdate): void {
   if (typeof window === 'undefined') {
     return;
   }
 
   window.dispatchEvent(
-    new CustomEvent<ITag>(LIBRARY_TAG_UPDATED_EVENT, { detail: tag }),
+    new CustomEvent<ILibraryTagUpdate>(LIBRARY_TAG_UPDATED_EVENT, {
+      detail: update,
+    }),
   );
 }
 
 /**
- * Swap an updated tag into every row that carries it. Rows without it keep
- * their identity.
+ * Merge the changed fields of a tag into every row that carries it. Rows
+ * without it keep their identity.
  */
 export function applyLibraryTagUpdate(
   ingredients: IIngredient[],
-  tag: ITag,
+  update: ILibraryTagUpdate,
 ): IIngredient[] {
   return ingredients.map((ingredient) =>
-    ingredient.tags?.some((existing) => existing.id === tag.id)
+    ingredient.tags?.some((existing) => existing.id === update.id)
       ? withTags(
           ingredient,
           ingredient.tags.map((existing) =>
-            existing.id === tag.id ? { ...existing, ...tag } : existing,
+            existing.id === update.id ? { ...existing, ...update } : existing,
           ),
         )
       : ingredient,
