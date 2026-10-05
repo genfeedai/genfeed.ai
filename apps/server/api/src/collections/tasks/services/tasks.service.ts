@@ -546,7 +546,7 @@ export class TasksService extends BaseService<
               }
             : {}),
         },
-        where,
+        where: scopedWhere(organizationId, { id: taskId, ...expected }),
       });
       if (count !== 1) return null;
       const updated = await transaction.task.findFirst({
