@@ -124,6 +124,7 @@ export const WEB_FETCH_TOOLS: ReadonlySet<string> = new Set<string>([
   'list_outlier_posts',
   'read_knowledge_source',
   'resolve_handle',
+  'scan_brand_url',
   'search_knowledge',
 ]);
 

@@ -417,6 +417,80 @@ describe('DesktopSessionService', () => {
     expect(service.buildCallbackUrlFromPaste('desktop-code')).toBe(null);
   });
 
+  describe('sign-in continuation (#6276)', () => {
+    const CONSENT = '/oauth/consent?client_id=c1&state=s1';
+    const exchangeResponse = () =>
+      new Response(
+        JSON.stringify({
+          issuedAt: '2026-08-05T12:00:00.000Z',
+          session: VALID_COOKIE,
+          token: 'gf_desktop_key',
+          userEmail: 'desktop@example.com',
+          userId: 'user-123',
+          userName: 'Desktop User',
+        }),
+        { headers: { 'content-type': 'application/json' }, status: 200 },
+      );
+    const stateOf = (loginUrl: string): string =>
+      new URL(loginUrl).searchParams.get('state') ?? '';
+
+    it('returns the continuation of the sign-in that completed, across a restart', async () => {
+      const state = stateOf(
+        createSessionService(kvService, cookieMock).getLoginUrl(CONSENT),
+      );
+      const restarted = createSessionService(kvService, cookieMock);
+      globalThis.fetch = (async () => exchangeResponse()) as typeof fetch;
+
+      await expect(
+        restarted.handleCallback(
+          `genfeedai-desktop://auth?code=desktop-code&state=${state}`,
+        ),
+      ).resolves.toEqual({
+        continuation: CONSENT,
+        isOk: true,
+        session: createSession(),
+      });
+    });
+
+    it('keeps a newer sign-in and its destination when an older callback lands', async () => {
+      const service = createSessionService(kvService, cookieMock);
+      const olderState = stateOf(service.getLoginUrl('/older/~/workspace'));
+      let releaseExchange: () => void = () => {};
+      const exchangeGate = new Promise<void>((resolve) => {
+        releaseExchange = resolve;
+      });
+      globalThis.fetch = (async () => {
+        await exchangeGate;
+        return exchangeResponse();
+      }) as typeof fetch;
+
+      const olderCallback = service.handleCallback(
+        `genfeedai-desktop://auth?code=older-code&state=${olderState}`,
+      );
+      const newerState = stateOf(service.getLoginUrl(CONSENT));
+      releaseExchange();
+
+      const result = await olderCallback;
+      expect(result.isOk && result.continuation).toBe('/older/~/workspace');
+      // The newer attempt is still pending, so its pasted code still works.
+      expect(service.buildCallbackUrlFromPaste('newer-code')).toBe(
+        `genfeedai-desktop://auth?code=newer-code&state=${newerState}`,
+      );
+    });
+
+    it('ignores a continuation that is not a product path', async () => {
+      const service = createSessionService(kvService, cookieMock);
+      const state = stateOf(service.getLoginUrl('https://evil.example/'));
+      globalThis.fetch = (async () => exchangeResponse()) as typeof fetch;
+
+      await expect(
+        service.handleCallback(
+          `genfeedai-desktop://auth?code=desktop-code&state=${state}`,
+        ),
+      ).resolves.toEqual({ isOk: true, session: createSession() });
+    });
+  });
+
   it('keeps pending PKCE after a 401 exchange so the same code can be retried', async () => {
     const service = createSessionService(kvService, cookieMock);
     service.getLoginUrl();

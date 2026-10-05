@@ -19,6 +19,8 @@ describe('readAgentUntrustedContentSource', () => {
     expect(readAgentUntrustedContentSource('read_knowledge_source')).toBe(
       'web_fetch',
     );
+    // A brand scan returns website-authored name, description and voice (#6268).
+    expect(readAgentUntrustedContentSource('scan_brand_url')).toBe('web_fetch');
   });
 
   it('classifies connected-account tools as connector', () => {

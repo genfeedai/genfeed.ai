@@ -305,7 +305,7 @@ export default function IngredientInspectorRail({
           return undefined;
         }}
         onPublish={handlers.handlePublish}
-        onSeeDetails={openIngredientOverlay}
+        onSeeDetails={(ingredient) => openIngredientOverlay(ingredient)}
         selectedIngredient={ingredient}
       />
     </aside>
