@@ -319,7 +319,7 @@ describe('AgentGenerationEstimateService', () => {
       ).some((error) => error.property === 'prompt'),
     ).toBe(true);
   });
-  it('prices an image edit at the admission quality tier and resolves Auto through the edit default', async () => {
+  it('resolves an Auto image edit through the edit default and quotes the admission quality selector', async () => {
     resolveModelKey.mockResolvedValue({ key: 'ideogram-ai/ideogram-4-5' });
     validateModelForOrg.mockResolvedValue({
       ...model,
@@ -327,16 +327,20 @@ describe('AgentGenerationEstimateService', () => {
       cost: 20,
       key: 'ideogram-ai/ideogram-4-5',
     });
+    // Admission edits at the fixed medium tier, which a legacy flat tariff
+    // cannot price exactly; the estimate refuses it for the same reason.
     expect(
       await service.estimate({
         category: 'image-edit',
         organizationId: 'org-1',
         outputs: 4,
       }),
-    ).toEqual({
-      credits: 80,
-      isAvailable: true,
-      modelKey: 'ideogram-ai/ideogram-4-5',
+    ).toEqual(
+      unavailable(AgentGenerationQuoteUnavailableReason.PRICING_UNRESOLVED),
+    );
+    expect(resolveModelKey).toHaveBeenCalledWith({
+      category: ModelCategory.IMAGE_EDIT,
+      organizationId: 'org-1',
     });
     expect(selectModel).not.toHaveBeenCalled();
   });
