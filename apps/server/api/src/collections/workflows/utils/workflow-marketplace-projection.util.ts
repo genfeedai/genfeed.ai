@@ -1,5 +1,5 @@
 import type {
-  MarketplaceWorkflowDocument,
+  MarketplaceWorkflowProjection,
   WorkflowDocument,
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { toExposedEdge } from '@api/collections/workflows/utils/workflow-exposed-graph.util';
@@ -7,7 +7,7 @@ import { hydrateWorkflowDefinition } from '@api/collections/workflows/workflow-v
 
 export function toMarketplaceWorkflow(
   workflow: WorkflowDocument,
-): MarketplaceWorkflowDocument {
+): MarketplaceWorkflowProjection {
   const definition = hydrateWorkflowDefinition(workflow);
   return {
     createdAt: workflow.createdAt,

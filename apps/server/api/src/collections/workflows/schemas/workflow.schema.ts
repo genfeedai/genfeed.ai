@@ -71,8 +71,12 @@ export type FeaturedWorkflowDocument = IFeaturedWorkflowSummary & {
   nodes: WorkflowVisualNode[];
 };
 
-/** Public marketplace projection; source tenant identity and runtime state stay private. */
-export type MarketplaceWorkflowDocument = Omit<
+/**
+ * Public marketplace projection; source tenant identity and runtime state stay
+ * private. Not a `…Document`: the serializer drift check treats every exported
+ * `…Document` in a schema file as a Prisma-backed model.
+ */
+export type MarketplaceWorkflowProjection = Omit<
   FeaturedWorkflowDocument,
   'featuredRank' | 'nodes' | 'inputVariables'
 > & {
