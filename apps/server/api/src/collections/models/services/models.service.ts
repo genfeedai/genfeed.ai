@@ -351,7 +351,7 @@ export class ModelsService extends BaseService<
     };
     // A model that cannot be priced (red in the admin pricing panel) is never
     // offered to customers; superadmin model admin still lists it.
-    const unpriceableIds = await this.findUnpriceableModelIds(catalogWhere);
+    const unpriceableIds = await this.findUnpriceableIds(catalogWhere);
     const where: Prisma.ModelWhereInput = unpriceableIds.length
       ? { ...catalogWhere, id: { notIn: unpriceableIds } }
       : catalogWhere;
@@ -387,8 +387,20 @@ export class ModelsService extends BaseService<
     };
   }
 
+  /**
+   * Ids of the rows a caller's `/models` list can return (platform rows plus
+   * the caller's own organization) that the shared red classification marks
+   * unpriceable. Proves the organization to the CLOUD tenant guard.
+   */
+  async findUnpriceableModelIds(organizationId?: string): Promise<string[]> {
+    return this.findUnpriceableIds({
+      isDeleted: false,
+      ...platformOrTenantScope(organizationId),
+    });
+  }
+
   /** Ids of catalog rows the shared red classification marks unpriceable. */
-  async findUnpriceableModelIds(
+  private async findUnpriceableIds(
     catalogWhere: Prisma.ModelWhereInput,
   ): Promise<string[]> {
     // tenant-scope-ignore: the pricing classification reads the same platform-only rows (organizationId:null, isDeleted:false) as the catalog query it narrows

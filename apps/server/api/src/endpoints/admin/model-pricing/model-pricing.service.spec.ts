@@ -652,6 +652,43 @@ describe('operator model pricing projection', () => {
       expect(contractUpdate).not.toHaveBeenCalled();
     });
 
+    it('promotes under the real CLOUD tenant guard while a tenant context is active', async () => {
+      const pending = contractOf('rates-v2', 0.21, 'pending');
+      const delegate = buildGuardedDelegate('Model', [
+        {
+          ...pendingModel('rates-v2'),
+          id: 'model',
+          isDeleted: false,
+          organizationId: null,
+          providerContracts: [
+            contractOf('rates-v1', 0.19, 'approved'),
+            pending,
+          ],
+        } as unknown as GuardedRow,
+      ]);
+      const contractUpdate = vi.fn().mockResolvedValue({});
+      const transaction = {
+        model: delegate,
+        modelProviderContract: { update: contractUpdate },
+        platformSetting: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue({ marginMultiplierGeneration: 3.33 }),
+        },
+      };
+
+      await runWithTenantContext({ organizationId: 'org-1' }, () =>
+        new AdminModelPricingService({
+          $transaction: async (
+            fn: (client: typeof transaction) => Promise<unknown>,
+          ) => fn(transaction),
+        } as never).approveRates('model', 'user-1', 'rates-v2'),
+      );
+
+      expect(delegate.updateMany).toHaveBeenCalledTimes(1);
+      expect(contractUpdate).toHaveBeenCalledTimes(1);
+    });
+
     it('reports an unknown model as not found', async () => {
       const findFirst = vi.fn().mockResolvedValue(null);
       const service = new AdminModelPricingService({

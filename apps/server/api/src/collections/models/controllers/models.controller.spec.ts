@@ -435,6 +435,10 @@ describe('ModelsController', () => {
       expect(modelsService.findAll.mock.calls[0][0].where).toMatchObject({
         AND: [{ id: { notIn: ['red-model'] } }],
       });
+      // Classified for exactly the rows the list returns: the caller's org.
+      expect(modelsService.findUnpriceableModelIds).toHaveBeenCalledWith(
+        mockOrgId,
+      );
 
       modelsService.findAll.mockClear();
       await controller.findAll(mockSuperAdminRequest, mockSuperAdminUser, {});

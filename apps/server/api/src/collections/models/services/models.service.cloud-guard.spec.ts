@@ -214,4 +214,67 @@ describe('ModelsService under the CLOUD tenant guard', () => {
       ),
     ).rejects.toBeInstanceOf(TenantIsolationError);
   });
+
+  describe('unpriceable (red) model ids for the /models list', () => {
+    function setupRed() {
+      const pricing = {
+        costPerUnit: null,
+        hasAudioToggle: false,
+        hasResolutionOptions: false,
+        isFree: false,
+        minCost: null,
+        pricingType: 'flat',
+        providerCostUsd: null,
+        providerInputSchema: null,
+        reviewedProviderContractVersion: null,
+      };
+      const rows = [
+        makeRow({ id: 'priced', ...pricing }),
+        makeRow({ cost: 0, id: 'red-platform', ...pricing }),
+        makeRow({
+          cost: 0,
+          id: 'red-mine',
+          organizationId: ORG,
+          ...pricing,
+        }),
+        makeRow({
+          cost: 0,
+          id: 'red-theirs',
+          organizationId: OTHER_ORG,
+          ...pricing,
+        }),
+        makeRow({ cost: 0, id: 'red-deleted', isDeleted: true, ...pricing }),
+      ];
+      const prisma = {
+        model: buildGuardedDelegate('Model', rows),
+      } as unknown as PrismaService;
+      const logger = {
+        debug: vi.fn(),
+        error: vi.fn(),
+        log: vi.fn(),
+        warn: vi.fn(),
+      } as unknown as LoggerService;
+      return new ModelsService(prisma, logger);
+    }
+
+    it('classifies platform and own rows for a tenant caller, never another organization', async () => {
+      const service = setupRed();
+
+      const ids = await runWithTenantContext({ organizationId: ORG }, () =>
+        service.findUnpriceableModelIds(ORG),
+      );
+
+      expect([...ids].sort()).toEqual(['red-mine', 'red-platform']);
+    });
+
+    it('passes the real tenant guard without an organization argument inside a tenant request', async () => {
+      const service = setupRed();
+
+      const ids = await runWithTenantContext({ organizationId: ORG }, () =>
+        service.findUnpriceableModelIds(),
+      );
+
+      expect([...ids].sort()).toEqual(['red-mine', 'red-platform']);
+    });
+  });
 });

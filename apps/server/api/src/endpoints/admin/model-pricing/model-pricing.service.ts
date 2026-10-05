@@ -535,24 +535,28 @@ export class AdminModelPricingService {
       // Compare-and-set: promote only while the pending contract is still the
       // one the operator approved, so a refresh landing in between cannot be
       // approved unseen.
-      const promoted = await transaction.model.updateMany({
-        data: {
-          pendingProviderContractVersion: null,
-          providerSyncFailedAt: null,
-          providerSyncFailureCode: null,
-          providerSyncStatus: 'fresh',
-          reviewedAt: retrievedAt,
-          reviewedBy: approvedBy,
-          reviewedProviderContractVersion: pendingContract.version,
-          reviewStatus: 'approved',
-        },
-        where: {
-          id: modelId,
-          isDeleted: false,
-          organizationId: null,
-          pendingProviderContractVersion: expectedPendingVersion,
-        },
-      });
+      // Superadmin approval over the platform-global model registry.
+      const promoted = await crossOrgUnsafe(
+        async () =>
+          await transaction.model.updateMany({
+            data: {
+              pendingProviderContractVersion: null,
+              providerSyncFailedAt: null,
+              providerSyncFailureCode: null,
+              providerSyncStatus: 'fresh',
+              reviewedAt: retrievedAt,
+              reviewedBy: approvedBy,
+              reviewedProviderContractVersion: pendingContract.version,
+              reviewStatus: 'approved',
+            },
+            where: {
+              id: modelId,
+              isDeleted: false,
+              organizationId: null,
+              pendingProviderContractVersion: expectedPendingVersion,
+            },
+          }),
+      );
       if (promoted.count !== 1) throw new ConflictException(RATES_CHANGED);
       await transaction.modelProviderContract.update({
         data: {
