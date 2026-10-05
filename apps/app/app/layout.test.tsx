@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react';
 import type { CreateAppMetadataOptions } from '@ui/shell/metadata';
 import type { ReactElement, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createRuntimeAuthConfigSource } from '@/lib/runtime-config/runtime-config-source';
 
 const appProvidersSpy = vi.fn();
 const htmlDocumentSpy = vi.fn();
@@ -140,7 +141,6 @@ describe('app root layout', () => {
       vi.stubEnv('NEXT_PUBLIC_BETTER_AUTH_ENABLED', 'false');
       vi.spyOn(authConfig, 'isBetterAuthEnabled').mockReturnValue(false);
       const { default: RootLayout } = await import('./layout');
-      const { GET } = await import('@app/runtime-config.js/route');
       const { default: RuntimeConfigScript } = await vi.importActual<
         typeof import('@/components/runtime/RuntimeConfigScript')
       >('@/components/runtime/RuntimeConfigScript');
@@ -166,7 +166,7 @@ describe('app root layout', () => {
       );
       render(<RuntimeConfigScript source={inlineSource} />);
       expect(bootstrapSource).not.toBe('');
-      const runtimeSource = await (await GET()).text();
+      const runtimeSource = createRuntimeAuthConfigSource(true);
       expect(runtimeSource).toContain('"betterAuthEnabled":true');
       const fakeGlobal = {
         __GENFEED_RUNTIME_CONFIG__: {},
