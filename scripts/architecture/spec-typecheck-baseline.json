@@ -5,7 +5,7 @@
       "count": 1,
       "file": "packages/actions/src/registry/mutation-policy.spec.ts",
       "fingerprint": "270a1a7d638febc0c957",
-      "message": "Argument of type 'string' is not assignable to parameter of type '\"ai_action\" | \"analyze_clip_project\" | \"analyze_performance\" | \"approve_social_draft\" | \"archive_knowledge_source\" | \"archive_skill\" | \"assign_knowledge_purpose\" | \"assign_social_conversation\" | ... 198 more ... | \"verify_skills_pro_entitlement\"'.",
+      "message": "Argument of type 'string' is not assignable to parameter of type '\"ai_action\" | \"analyze_clip_project\" | \"analyze_performance\" | \"approve_social_draft\" | \"archive_knowledge_source\" | \"archive_skill\" | \"assign_knowledge_purpose\" | \"assign_social_conversation\" | ... 196 more ... | \"verify_skills_pro_entitlement\"'.",
       "workspace": "actions"
     },
     {
@@ -13,7 +13,7 @@
       "count": 1,
       "file": "packages/actions/src/registry/toolset-profiles.spec.ts",
       "fingerprint": "d73adb65b865700d6a5a",
-      "message": "Argument of type 'string' is not assignable to parameter of type '\"ai_action\" | \"analyze_clip_project\" | \"analyze_performance\" | \"approve_social_draft\" | \"archive_knowledge_source\" | \"archive_skill\" | \"assign_knowledge_purpose\" | \"assign_social_conversation\" | ... 198 more ... | \"verify_skills_pro_entitlement\"'.",
+      "message": "Argument of type 'string' is not assignable to parameter of type '\"ai_action\" | \"analyze_clip_project\" | \"analyze_performance\" | \"approve_social_draft\" | \"archive_knowledge_source\" | \"archive_skill\" | \"assign_knowledge_purpose\" | \"assign_social_conversation\" | ... 196 more ... | \"verify_skills_pro_entitlement\"'.",
       "workspace": "actions"
     },
     {
@@ -945,14 +945,6 @@
       "workspace": "api"
     },
     {
-      "code": 2739,
-      "count": 4,
-      "file": "apps/server/api/src/auth/services/auth-bootstrap.service.spec.ts",
-      "fingerprint": "fc9444d92ce883071018",
-      "message": "Type '{ brandId: string; creditsBalance: number; hasEverHadCredits: true; isOnboardingCompleted: true; isSuperAdmin: false; organizationId: string; subscriptionStatus: SubscriptionStatus.ACTIVE; subscriptionTier: SubscriptionTier.PRO; userId: string; }' is missing the following properties from type 'AccessBootstrapStatePayload': hasGeneratedFirstAsset, hasDismissedAssetGate",
-      "workspace": "api"
-    },
-    {
       "code": 5097,
       "count": 1,
       "file": "apps/server/api/src/auth/services/auth-desktop.service.spec.ts",
@@ -997,7 +989,7 @@
       "count": 1,
       "file": "apps/server/api/src/collections/api-keys/controllers/api-keys.controller.spec.ts",
       "fingerprint": "8882ee4f1ccae6b30390",
-      "message": "Conversion of type '{ _id: string; allowedIps: never[]; category: ApiKeyCategory.GENFEEDAI; createdAt: Date; description: string; expiresAt: Date; hashedKey: string; isRevoked: false; key: string; ... 5 more ...; user: string; }' to type '{ description: string | null; metadata: JsonValue; id: string; organizationId: string; createdAt: Date; updatedAt: Date; userId: string; label: string; category: ApiKeyCategory; ... 11 more ...; keyFingerprint: string | null; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ _id: string; allowedIps: never[]; category: ApiKeyCategory.GENFEEDAI; createdAt: Date; description: string; expiresAt: Date; hashedKey: string; isRevoked: false; key: string; ... 5 more ...; user: string; }' is missing the following properties from type '{ description: string | null; metadata: JsonValue; id: string; organizationId: string; createdAt: Date; updatedAt: Date; userId: string; label: string; category: ApiKeyCategory; ... 11 more ...; keyFingerprint: string | null; }': metadata, id, organizationId, userId, and 6 more.",
+      "message": "Conversion of type '{ _id: string; allowedIps: never[]; category: ApiKeyCategory.GENFEEDAI; createdAt: Date; description: string; expiresAt: Date; hashedKey: string; isRevoked: false; key: string; ... 5 more ...; user: string; }' to type '{ description: string | null; id: string; key: string; createdAt: Date; expiresAt: Date | null; organizationId: string; userId: string; updatedAt: Date; label: string; category: ApiKeyCategory; ... 10 more ...; keyFingerprint: string | null; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ _id: string; allowedIps: never[]; category: ApiKeyCategory.GENFEEDAI; createdAt: Date; description: string; expiresAt: Date; hashedKey: string; isRevoked: false; key: string; ... 5 more ...; user: string; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; expiresAt: Date | null; organizationId: string; userId: string; updatedAt: Date; label: string; category: ApiKeyCategory; ... 10 more ...; keyFingerprint: string | null; }': id, organizationId, userId, metadata, and 6 more.",
       "workspace": "api"
     },
     {
@@ -1013,7 +1005,7 @@
       "count": 1,
       "file": "apps/server/api/src/collections/api-keys/services/api-keys.service.spec.ts",
       "fingerprint": "6c7ee7e98711fa0856b6",
-      "message": "Type 'Mock<Procedure | Constructable>' is not assignable to type '((keyId: string) => Promise<{ description: string | null; metadata: JsonValue; id: string; organizationId: string; createdAt: Date; updatedAt: Date; userId: string; ... 13 more ...; keyFingerprint: string | null; } | null>) & Mock<...>'.   Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '((keyId: string) => Promise<{ description: string | null; metadata: JsonValue; id: string; organizationId: string; createdAt: Date; updatedAt: Date; userId: string; ... 13 more ...; keyFingerprint: string | null; } | null>) & Mock<...>'.     Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '((keyId: string) => Promise<{ description: string | null; metadata: JsonValue; id: string; organizationId: string; createdAt: Date; updatedAt: Date; userId: string; ... 13 more ...; keyFingerprint: string | null; } | null>) & MockInstance<...> & { ...; } & {}'.       Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '(keyId: string) => Promise<{ description: string | null; metadata: JsonValue; id: string; organizationId: string; createdAt: Date; updatedAt: Date; userId: string; label: string; ... 12 more ...; keyFingerprint: string | null; } | null>'.         Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(keyId: string): Promise<{ description: string | null; metadata: JsonValue; id: string; organizationId: string; createdAt: Date; updatedAt: Date; userId: string; label: string; ... 12 more ...; keyFingerprint: string | null; } | null>'.",
+      "message": "Type 'Mock<Procedure | Constructable>' is not assignable to type '((keyId: string) => Promise<{ description: string | null; id: string; key: string; createdAt: Date; expiresAt: Date | null; organizationId: string; userId: string; updatedAt: Date; ... 12 more ...; keyFingerprint: string | null; } | null>) & Mock<...>'.   Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '((keyId: string) => Promise<{ description: string | null; id: string; key: string; createdAt: Date; expiresAt: Date | null; organizationId: string; userId: string; updatedAt: Date; ... 12 more ...; keyFingerprint: string | null; } | null>) & Mock<...>'.     Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '((keyId: string) => Promise<{ description: string | null; id: string; key: string; createdAt: Date; expiresAt: Date | null; organizationId: string; userId: string; updatedAt: Date; ... 12 more ...; keyFingerprint: string | null; } | null>) & MockInstance<...> & { ...; } & {}'.       Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '(keyId: string) => Promise<{ description: string | null; id: string; key: string; createdAt: Date; expiresAt: Date | null; organizationId: string; userId: string; updatedAt: Date; ... 12 more ...; keyFingerprint: string | null; } | null>'.         Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(keyId: string): Promise<{ description: string | null; id: string; key: string; createdAt: Date; expiresAt: Date | null; organizationId: string; userId: string; updatedAt: Date; ... 12 more ...; keyFingerprint: string | null; } | null>'.",
       "workspace": "api"
     },
     {
@@ -1029,7 +1021,7 @@
       "count": 3,
       "file": "apps/server/api/src/collections/api-keys/services/api-keys.service.spec.ts",
       "fingerprint": "4365980f4f7baf5e24cf",
-      "message": "Conversion of type '{ metadata: { actionOrigin: ActionOrigin; actionOriginProof: string; }; keyFingerprint: string; organizationId: string; userId: string; }' to type '{ description: string | null; metadata: JsonValue; id: string; organizationId: string; createdAt: Date; updatedAt: Date; userId: string; label: string; category: ApiKeyCategory; ... 11 more ...; keyFingerprint: string | null; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ metadata: { actionOrigin: ActionOrigin; actionOriginProof: string; }; keyFingerprint: string; organizationId: string; userId: string; }' is missing the following properties from type '{ description: string | null; metadata: JsonValue; id: string; organizationId: string; createdAt: Date; updatedAt: Date; userId: string; label: string; category: ApiKeyCategory; ... 11 more ...; keyFingerprint: string | null; }': description, id, createdAt, updatedAt, and 13 more.",
+      "message": "Conversion of type '{ metadata: { actionOrigin: ActionOrigin; actionOriginProof: string; }; keyFingerprint: string; organizationId: string; userId: string; }' to type '{ description: string | null; id: string; key: string; createdAt: Date; expiresAt: Date | null; organizationId: string; userId: string; updatedAt: Date; label: string; category: ApiKeyCategory; ... 10 more ...; keyFingerprint: string | null; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ metadata: { actionOrigin: ActionOrigin; actionOriginProof: string; }; keyFingerprint: string; organizationId: string; userId: string; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; expiresAt: Date | null; organizationId: string; userId: string; updatedAt: Date; label: string; category: ApiKeyCategory; ... 10 more ...; keyFingerprint: string | null; }': description, id, key, createdAt, and 13 more.",
       "workspace": "api"
     },
     {
@@ -1373,7 +1365,7 @@
       "count": 10,
       "file": "apps/server/api/src/collections/elements/elements.controller.spec.ts",
       "fingerprint": "fdb1d0a346179bd8f428",
-      "message": "Argument of type '{ blacklists: { _id: string; label: string; }[]; cameraMovements: { _id: string; label: string; }[]; cameras: { _id: string; label: string; }[]; lenses: { _id: string; label: string; }[]; lightings: { _id: string; label: string; }[]; moods: { ...; }[]; scenes: { ...; }[]; sounds: { ...; }[]; styles: { ...; }[]; }' is not assignable to parameter of type '{ blacklists: { description: string | null; id: string; organizationId: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string | null; category: string | null; key: string | null; }[]; ... 7 more ...; styles: { ...; }[]; }'.   Types of property 'blacklists' are incompatible.     Type '{ _id: string; label: string; }[]' is not assignable to type '{ description: string | null; id: string; organizationId: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string | null; category: string | null; key: string | null; }[]'.       Type '{ _id: string; label: string; }' is missing the following properties from type '{ description: string | null; id: string; organizationId: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string | null; category: string | null; key: string | null; }': description, id, organizationId, isDeleted, and 4 more.",
+      "message": "Argument of type '{ blacklists: { _id: string; label: string; }[]; cameraMovements: { _id: string; label: string; }[]; cameras: { _id: string; label: string; }[]; lenses: { _id: string; label: string; }[]; lightings: { _id: string; label: string; }[]; moods: { ...; }[]; scenes: { ...; }[]; sounds: { ...; }[]; styles: { ...; }[]; }' is not assignable to parameter of type '{ blacklists: { description: string | null; id: string; key: string | null; createdAt: Date; organizationId: string; isDeleted: boolean; updatedAt: Date; label: string | null; category: string | null; }[]; ... 7 more ...; styles: ({ ...; } & { ...; })[]; }'.   Types of property 'blacklists' are incompatible.     Type '{ _id: string; label: string; }[]' is not assignable to type '{ description: string | null; id: string; key: string | null; createdAt: Date; organizationId: string; isDeleted: boolean; updatedAt: Date; label: string | null; category: string | null; }[]'.       Type '{ _id: string; label: string; }' is missing the following properties from type '{ description: string | null; id: string; key: string | null; createdAt: Date; organizationId: string; isDeleted: boolean; updatedAt: Date; label: string | null; category: string | null; }': description, id, key, createdAt, and 4 more.",
       "workspace": "api"
     },
     {
@@ -1477,7 +1469,7 @@
       "count": 1,
       "file": "apps/server/api/src/collections/evaluations/services/evaluations-operations.service.spec.ts",
       "fingerprint": "a25f5d862c6fa34db4b3",
-      "message": "Argument of type 'string' is not assignable to parameter of type 'ConfigService'.",
+      "message": "Argument of type 'string' is not assignable to parameter of type 'ModelsService'.",
       "workspace": "api"
     },
     {
@@ -1581,7 +1573,7 @@
       "count": 2,
       "file": "apps/server/api/src/collections/images/controllers/operations/images-operations.controller.spec.ts",
       "fingerprint": "412134ee062bffb5e275",
-      "message": "Argument of type '{ cost: number; key: string; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ cost: number; key: string; }' is missing the following properties from type '{ description: string | null; id: string; organizationId: string | null; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; isActive: boolean; isDefault: boolean; ... 65 more ...; providerSyncFailureCode: string | null; }': description, id, organizationId, isDeleted, and 69 more.",
+      "message": "Argument of type '{ cost: number; key: string; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ cost: number; key: string; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': description, id, createdAt, organizationId, and 69 more.",
       "workspace": "api"
     },
     {
@@ -1669,7 +1661,7 @@
       "count": 1,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
       "fingerprint": "377c68b120fe7b510be4",
-      "message": "Argument of type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is missing the following properties from type '{ description: string | null; id: string; organizationId: string | null; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; isActive: boolean; isDefault: boolean; ... 65 more ...; providerSyncFailureCode: string | null; }': description, organizationId, isDeleted, createdAt, and 65 more.",
+      "message": "Argument of type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': description, createdAt, organizationId, isDeleted, and 65 more.",
       "workspace": "api"
     },
     {
@@ -1677,7 +1669,7 @@
       "count": 1,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
       "fingerprint": "430ef02eaed2cb56ea1e",
-      "message": "Argument of type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is not assignable to parameter of type '{ description: string | null; id: string; organizationId: string | null; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; isActive: boolean; isDefault: boolean; ... 65 more ...; providerSyncFailureCode: string | null; } & ServerModelRecord'.   Type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is missing the following properties from type '{ description: string | null; id: string; organizationId: string | null; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; isActive: boolean; isDefault: boolean; ... 65 more ...; providerSyncFailureCode: string | null; }': description, organizationId, isDeleted, createdAt, and 65 more.",
+      "message": "Argument of type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is not assignable to parameter of type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; } & ServerModelRecord'.   Type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': description, createdAt, organizationId, isDeleted, and 65 more.",
       "workspace": "api"
     },
     {
@@ -1685,7 +1677,7 @@
       "count": 1,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
       "fingerprint": "434982dad1c60fba0b12",
-      "message": "Argument of type '{ docs: { id: string; key: string; label: string; type: string; }[]; hasNextPage: boolean; hasPrevPage: boolean; limit: number; nextPage: null; page: number; pagingCounter: number; prevPage: null; totalDocs: number; totalPages: number; }' is not assignable to parameter of type 'AggregatePaginateResult<ModelDocument>'.   Types of property 'docs' are incompatible.     Type '{ id: string; key: string; label: string; type: string; }[]' is not assignable to type 'ModelDocument[]'.       Type '{ id: string; key: string; label: string; type: string; }' is not assignable to type 'ModelDocument'.         Type '{ id: string; key: string; label: string; type: string; }' is missing the following properties from type '{ description: string | null; id: string; organizationId: string | null; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; isActive: boolean; isDefault: boolean; ... 65 more ...; providerSyncFailureCode: string | null; }': description, organizationId, isDeleted, createdAt, and 68 more.",
+      "message": "Argument of type '{ docs: { id: string; key: string; label: string; type: string; }[]; hasNextPage: boolean; hasPrevPage: boolean; limit: number; nextPage: null; page: number; pagingCounter: number; prevPage: null; totalDocs: number; totalPages: number; }' is not assignable to parameter of type 'AggregatePaginateResult<ModelDocument>'.   Types of property 'docs' are incompatible.     Type '{ id: string; key: string; label: string; type: string; }[]' is not assignable to type 'ModelDocument[]'.       Type '{ id: string; key: string; label: string; type: string; }' is not assignable to type 'ModelDocument'.         Type '{ id: string; key: string; label: string; type: string; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': description, createdAt, organizationId, isDeleted, and 68 more.",
       "workspace": "api"
     },
     {
@@ -1693,7 +1685,7 @@
       "count": 1,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
       "fingerprint": "68abc46b70741edbef50",
-      "message": "Argument of type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is missing the following properties from type '{ description: string | null; id: string; organizationId: string | null; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; isActive: boolean; isDefault: boolean; ... 65 more ...; providerSyncFailureCode: string | null; }': description, organizationId, isDeleted, createdAt, and 65 more.",
+      "message": "Argument of type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': description, createdAt, organizationId, isDeleted, and 65 more.",
       "workspace": "api"
     },
     {
@@ -1701,7 +1693,7 @@
       "count": 1,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
       "fingerprint": "713a1c1fc74fc89c9699",
-      "message": "Argument of type '{ id: string; isActive: boolean; key: string; reviewStatus: string; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isActive: boolean; key: string; reviewStatus: string; }' is missing the following properties from type '{ description: string | null; id: string; organizationId: string | null; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; isActive: boolean; isDefault: boolean; ... 65 more ...; providerSyncFailureCode: string | null; }': description, organizationId, isDeleted, createdAt, and 67 more.",
+      "message": "Argument of type '{ id: string; isActive: boolean; key: string; reviewStatus: string; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isActive: boolean; key: string; reviewStatus: string; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': description, createdAt, organizationId, isDeleted, and 67 more.",
       "workspace": "api"
     },
     {
@@ -1709,7 +1701,7 @@
       "count": 1,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
       "fingerprint": "cafd4c3013631abde491",
-      "message": "Argument of type '{ label: string; description?: string; category: ModelCategory; key: string; endpoint?: string; provider: ModelProvider; cost: number; lifecycle?: ModelLifecycle; succeededBy?: string; ... 15 more ...; id: string; }' is not assignable to parameter of type '{ description: string | null; id: string; organizationId: string | null; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; isActive: boolean; isDefault: boolean; ... 65 more ...; providerSyncFailureCode: string | null; } & ServerModelRecord'.   Type '{ label: string; description?: string | undefined; category: ModelCategory; key: string; endpoint?: string | undefined; provider: ModelProvider; cost: number; ... 17 more ...; id: string; }' is missing the following properties from type '{ description: string | null; id: string; organizationId: string | null; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; isActive: boolean; isDefault: boolean; ... 65 more ...; providerSyncFailureCode: string | null; }': isDeleted, createdAt, updatedAt, lastSyncedAt, and 47 more.",
+      "message": "Argument of type '{ label: string; description?: string; category: ModelCategory; key: string; endpoint?: string; provider: ModelProvider; cost: number; lifecycle?: ModelLifecycle; succeededBy?: string; ... 15 more ...; id: string; }' is not assignable to parameter of type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; } & ServerModelRecord'.   Type '{ label: string; description?: string | undefined; category: ModelCategory; key: string; endpoint?: string | undefined; provider: ModelProvider; cost: number; ... 17 more ...; id: string; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': createdAt, isDeleted, updatedAt, aspectRatios, and 47 more.",
       "workspace": "api"
     },
     {
@@ -1717,7 +1709,7 @@
       "count": 1,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
       "fingerprint": "d26e34dbcca19b34feae",
-      "message": "Argument of type '{ id: string; isActive: boolean; key: string; reviewStatus: string; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isActive: boolean; key: string; reviewStatus: string; }' is missing the following properties from type '{ description: string | null; id: string; organizationId: string | null; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; isActive: boolean; isDefault: boolean; ... 65 more ...; providerSyncFailureCode: string | null; }': description, organizationId, isDeleted, createdAt, and 67 more.",
+      "message": "Argument of type '{ id: string; isActive: boolean; key: string; reviewStatus: string; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isActive: boolean; key: string; reviewStatus: string; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': description, createdAt, organizationId, isDeleted, and 67 more.",
       "workspace": "api"
     },
     {
@@ -1725,7 +1717,7 @@
       "count": 1,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
       "fingerprint": "da69cb86d621d7e36308",
-      "message": "Argument of type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is missing the following properties from type '{ description: string | null; id: string; organizationId: string | null; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; isActive: boolean; isDefault: boolean; ... 65 more ...; providerSyncFailureCode: string | null; }': description, organizationId, isDeleted, createdAt, and 65 more.",
+      "message": "Argument of type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is missing the following properties from type '{ description: string | null; id: string; key: string; createdAt: Date; organizationId: string | null; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string; ... 65 more ...; providerSyncFailureCode: string | null; }': description, createdAt, organizationId, isDeleted, and 65 more.",
       "workspace": "api"
     },
     {
@@ -1941,7 +1933,7 @@
       "count": 2,
       "file": "apps/server/api/src/collections/roles/controllers/roles.controller.spec.ts",
       "fingerprint": "05910c2dbb73f90ee0d1",
-      "message": "Argument of type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is not assignable to parameter of type '{ id: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; primaryColor: string | null; key: string; }'.   Type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is missing the following properties from type '{ id: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; primaryColor: string | null; key: string; }': createdAt, updatedAt",
+      "message": "Argument of type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is not assignable to parameter of type '{ id: string; key: string; createdAt: Date; isDeleted: boolean; updatedAt: Date; label: string; primaryColor: string | null; }'.   Type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is missing the following properties from type '{ id: string; key: string; createdAt: Date; isDeleted: boolean; updatedAt: Date; label: string; primaryColor: string | null; }': createdAt, updatedAt",
       "workspace": "api"
     },
     {
@@ -1949,7 +1941,7 @@
       "count": 1,
       "file": "apps/server/api/src/collections/roles/controllers/roles.controller.spec.ts",
       "fingerprint": "22c4e63cfc5263434264",
-      "message": "Argument of type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is not assignable to parameter of type '{ id: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; primaryColor: string | null; key: string; }'.   Type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is missing the following properties from type '{ id: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; primaryColor: string | null; key: string; }': createdAt, updatedAt",
+      "message": "Argument of type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is not assignable to parameter of type '{ id: string; key: string; createdAt: Date; isDeleted: boolean; updatedAt: Date; label: string; primaryColor: string | null; }'.   Type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is missing the following properties from type '{ id: string; key: string; createdAt: Date; isDeleted: boolean; updatedAt: Date; label: string; primaryColor: string | null; }': createdAt, updatedAt",
       "workspace": "api"
     },
     {
@@ -1989,7 +1981,7 @@
       "count": 1,
       "file": "apps/server/api/src/collections/roles/controllers/roles.controller.spec.ts",
       "fingerprint": "cc11b2ae780185003546",
-      "message": "Argument of type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is not assignable to parameter of type '{ id: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; primaryColor: string | null; key: string; }'.   Type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is missing the following properties from type '{ id: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; primaryColor: string | null; key: string; }': createdAt, updatedAt",
+      "message": "Argument of type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is not assignable to parameter of type '{ id: string; key: string; createdAt: Date; isDeleted: boolean; updatedAt: Date; label: string; primaryColor: string | null; }'.   Type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is missing the following properties from type '{ id: string; key: string; createdAt: Date; isDeleted: boolean; updatedAt: Date; label: string; primaryColor: string | null; }': createdAt, updatedAt",
       "workspace": "api"
     },
     {
@@ -1997,7 +1989,7 @@
       "count": 1,
       "file": "apps/server/api/src/collections/roles/controllers/roles.controller.spec.ts",
       "fingerprint": "b113f58f5d3068273ee8",
-      "message": "Type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is missing the following properties from type '{ id: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; primaryColor: string | null; key: string; }': createdAt, updatedAt",
+      "message": "Type '{ id: string; isDeleted: boolean; key: string; label: string; primaryColor: string; }' is missing the following properties from type '{ id: string; key: string; createdAt: Date; isDeleted: boolean; updatedAt: Date; label: string; primaryColor: string | null; }': createdAt, updatedAt",
       "workspace": "api"
     },
     {
@@ -2141,7 +2133,7 @@
       "count": 1,
       "file": "apps/server/api/src/collections/trends/services/trends.service.spec.ts",
       "fingerprint": "a4e44d3b4b7c146da2ac",
-      "message": "Object literal may only specify known properties, and 'growthRate' does not exist in type 'Partial<{ brandId: string | null; platform: string | null; id: string; organizationId: string | null; isDeleted: boolean; createdAt: Date; updatedAt: Date; data: JsonValue; ... 4 more ...; viralityScore: number | null; }>'.",
+      "message": "Object literal may only specify known properties, and 'growthRate' does not exist in type 'Partial<{ id: string; brandId: string | null; platform: string | null; createdAt: Date; expiresAt: Date | null; organizationId: string | null; isDeleted: boolean; updatedAt: Date; ... 4 more ...; requiresAuth: boolean | null; }>'.",
       "workspace": "api"
     },
     {
@@ -2377,14 +2369,6 @@
       "workspace": "api"
     },
     {
-      "code": 2353,
-      "count": 1,
-      "file": "apps/server/api/src/common/services/access-bootstrap-cache.service.spec.ts",
-      "fingerprint": "a826ab74902d9007cd46",
-      "message": "Object literal may only specify known properties, and 'brandId' does not exist in type 'AccessBootstrapCachePayload'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/common/subscriptions/oss-subscriptions.service.spec.ts",
@@ -2589,7 +2573,7 @@
       "count": 1,
       "file": "apps/server/api/src/endpoints/webhooks/services/metadata-lookup.service.spec.ts",
       "fingerprint": "8aa60cb84ea214aeadc9",
-      "message": "Argument of type '{ findOne: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; }' is not assignable to parameter of type 'MetadataService'.   Type '{ findOne: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; }' is missing the following properties from type 'MetadataService': constructorName, prisma, logger, create, and 25 more.",
+      "message": "Argument of type '{ findOne: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; }' is not assignable to parameter of type 'MetadataService'.   Type '{ findOne: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; }' is missing the following properties from type 'MetadataService': constructorName, prisma, logger, create, and 27 more.",
       "workspace": "api"
     },
     {
@@ -3141,7 +3125,7 @@
       "count": 5,
       "file": "apps/server/api/src/services/agent-threading/services/agent-runtime-session.service.spec.ts",
       "fingerprint": "5d87b77c637a91ffb235",
-      "message": "Type '\"active\"' is not assignable to type '\"completed\" | \"failed\" | \"cancelled\" | \"idle\" | \"running\" | \"waiting_input\"'.",
+      "message": "Type '\"active\"' is not assignable to type '\"failed\" | \"completed\" | \"cancelled\" | \"idle\" | \"running\" | \"waiting_input\"'.",
       "workspace": "api"
     },
     {
@@ -3149,7 +3133,7 @@
       "count": 1,
       "file": "apps/server/api/src/services/agent-threading/services/agent-runtime-session.service.spec.ts",
       "fingerprint": "d3c88d723207f66652bb",
-      "message": "Type '\"active\"' is not assignable to type '\"completed\" | \"failed\" | \"cancelled\" | \"idle\" | \"running\" | \"waiting_input\"'.",
+      "message": "Type '\"active\"' is not assignable to type '\"failed\" | \"completed\" | \"cancelled\" | \"idle\" | \"running\" | \"waiting_input\"'.",
       "workspace": "api"
     },
     {
@@ -3413,7 +3397,7 @@
       "count": 2,
       "file": "apps/server/api/src/services/integrations/facebook/controllers/facebook.controller.spec.ts",
       "fingerprint": "2ee09a398dadff2155ac",
-      "message": "Argument of type '{ mediaType: string; mediaUrl: string; message: string; pageAccessToken: string; pageId: string; }' is not assignable to parameter of type '{ pageId: string; pageAccessToken: string; message: string; mediaUrl?: string | undefined; mediaType?: \"video\" | \"image\" | undefined; }'.   Types of property 'mediaType' are incompatible.     Type 'string' is not assignable to type '\"video\" | \"image\" | undefined'.",
+      "message": "Argument of type '{ mediaType: string; mediaUrl: string; message: string; pageAccessToken: string; pageId: string; }' is not assignable to parameter of type '{ pageId: string; pageAccessToken: string; message: string; mediaUrl?: string | undefined; mediaType?: \"image\" | \"video\" | undefined; }'.   Types of property 'mediaType' are incompatible.     Type 'string' is not assignable to type '\"image\" | \"video\" | undefined'.",
       "workspace": "api"
     },
     {
@@ -3565,7 +3549,7 @@
       "count": 1,
       "file": "apps/server/api/src/services/integrations/replicate/replicate.coverage.spec.ts",
       "fingerprint": "9c77a20425f3e35b2bea",
-      "message": "Type 'Mock<(key?: string | undefined) => \"\" | \"private\" | \"1080p\" | \"gpu-t4\" | \"mock-api-key\" | \"60\" | \"https://webhook.test\" | \"replicate/fast-flux-trainer:abc123hash\">' is not assignable to type '((<K extends keyof ApiEnvConfig>(key: K) => ApiEnvConfig[K]) | undefined) & Mock<Procedure | Constructable>'.   Type 'Mock<(key?: string | undefined) => \"\" | \"private\" | \"1080p\" | \"gpu-t4\" | \"mock-api-key\" | \"60\" | \"https://webhook.test\" | \"replicate/fast-flux-trainer:abc123hash\">' is not assignable to type '(<K extends keyof ApiEnvConfig>(key: K) => ApiEnvConfig[K]) & MockInstance<Procedure | Constructable> & { ...; } & {}'.     Type 'Mock<(key?: string | undefined) => \"\" | \"private\" | \"1080p\" | \"gpu-t4\" | \"mock-api-key\" | \"60\" | \"https://webhook.test\" | \"replicate/fast-flux-trainer:abc123hash\">' is not assignable to type '<K extends keyof ApiEnvConfig>(key: K) => ApiEnvConfig[K]'.       Types of parameters 'key' and 'key' are incompatible.         Type 'K' is not assignable to type 'string | undefined'.           Type 'keyof ApiEnvConfig' is not assignable to type 'string | undefined'.             Type 'number' is not assignable to type 'string'.",
+      "message": "Type 'Mock<(key?: string | undefined) => \"\" | \"private\" | \"1080p\" | \"gpu-t4\" | \"60\" | \"mock-api-key\" | \"https://webhook.test\" | \"replicate/fast-flux-trainer:abc123hash\">' is not assignable to type '((<K extends keyof ApiEnvConfig>(key: K) => ApiEnvConfig[K]) | undefined) & Mock<Procedure | Constructable>'.   Type 'Mock<(key?: string | undefined) => \"\" | \"private\" | \"1080p\" | \"gpu-t4\" | \"60\" | \"mock-api-key\" | \"https://webhook.test\" | \"replicate/fast-flux-trainer:abc123hash\">' is not assignable to type '(<K extends keyof ApiEnvConfig>(key: K) => ApiEnvConfig[K]) & MockInstance<Procedure | Constructable> & { ...; } & {}'.     Type 'Mock<(key?: string | undefined) => \"\" | \"private\" | \"1080p\" | \"gpu-t4\" | \"60\" | \"mock-api-key\" | \"https://webhook.test\" | \"replicate/fast-flux-trainer:abc123hash\">' is not assignable to type '<K extends keyof ApiEnvConfig>(key: K) => ApiEnvConfig[K]'.       Types of parameters 'key' and 'key' are incompatible.         Type 'K' is not assignable to type 'string | undefined'.           Type 'keyof ApiEnvConfig' is not assignable to type 'string | undefined'.             Type 'number' is not assignable to type 'string'.",
       "workspace": "api"
     },
     {
@@ -3789,7 +3773,7 @@
       "count": 3,
       "file": "apps/server/api/src/services/pattern-matcher/pattern-matcher.service.spec.ts",
       "fingerprint": "78c7745ddfb9bb736569",
-      "message": "Argument of type '(_key: string, fn: () => Promise<CreativePattern[]>) => Promise<{ brandId: string | null; id: string; organizationId: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; data: JsonValue; }[]>' is not assignable to parameter of type '(key: string, factory: () => Promise<unknown>, options?: ServiceCacheOptions | undefined) => Promise<unknown>'.   Types of parameters 'fn' and 'factory' are incompatible.     Type '() => Promise<unknown>' is not assignable to type '() => Promise<{ brandId: string | null; id: string; organizationId: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; data: JsonValue; }[]>'.       Type 'Promise<unknown>' is not assignable to type 'Promise<{ brandId: string | null; id: string; organizationId: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; data: JsonValue; }[]>'.         Type 'unknown' is not assignable to type '{ brandId: string | null; id: string; organizationId: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; data: JsonValue; }[]'.",
+      "message": "Argument of type '(_key: string, fn: () => Promise<CreativePattern[]>) => Promise<{ id: string; brandId: string | null; createdAt: Date; organizationId: string; isDeleted: boolean; updatedAt: Date; data: JsonValue; }[]>' is not assignable to parameter of type '(key: string, factory: () => Promise<unknown>, options?: ServiceCacheOptions | undefined) => Promise<unknown>'.   Types of parameters 'fn' and 'factory' are incompatible.     Type '() => Promise<unknown>' is not assignable to type '() => Promise<{ id: string; brandId: string | null; createdAt: Date; organizationId: string; isDeleted: boolean; updatedAt: Date; data: JsonValue; }[]>'.       Type 'Promise<unknown>' is not assignable to type 'Promise<{ id: string; brandId: string | null; createdAt: Date; organizationId: string; isDeleted: boolean; updatedAt: Date; data: JsonValue; }[]>'.         Type 'unknown' is not assignable to type '{ id: string; brandId: string | null; createdAt: Date; organizationId: string; isDeleted: boolean; updatedAt: Date; data: JsonValue; }[]'.",
       "workspace": "api"
     },
     {
@@ -3797,7 +3781,7 @@
       "count": 1,
       "file": "apps/server/api/src/services/pattern-matcher/pattern-matcher.service.spec.ts",
       "fingerprint": "d282d78676e0a0db2eba",
-      "message": "Argument of type '{ brandId: string | null; id: string; organizationId: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; data: JsonValue; }[]' is not assignable to parameter of type 'CreativePatternDocument[]'.   Type '{ brandId: string | null; id: string; organizationId: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; data: JsonValue; }' is not assignable to type 'CreativePatternDocument'.     Types of property 'data' are incompatible.       Type 'JsonValue' is not assignable to type 'Record<string, unknown> | undefined'.         Type 'null' is not assignable to type 'Record<string, unknown> | undefined'.",
+      "message": "Argument of type '{ id: string; brandId: string | null; createdAt: Date; organizationId: string; isDeleted: boolean; updatedAt: Date; data: JsonValue; }[]' is not assignable to parameter of type 'CreativePatternDocument[]'.   Type '{ id: string; brandId: string | null; createdAt: Date; organizationId: string; isDeleted: boolean; updatedAt: Date; data: JsonValue; }' is not assignable to type 'CreativePatternDocument'.     Types of property 'data' are incompatible.       Type 'JsonValue' is not assignable to type 'Record<string, unknown> | undefined'.         Type 'null' is not assignable to type 'Record<string, unknown> | undefined'.",
       "workspace": "api"
     },
     {
@@ -3845,7 +3829,7 @@
       "count": 1,
       "file": "apps/server/api/src/services/reply-bot/reply-candidate-prefilter.service.spec.ts",
       "fingerprint": "6a33ab33836fc06bcd63",
-      "message": "Conversion of type '{ _id: string; filters: ReplyBotFilters; organization: string; type: ReplyBotType; }' to type 'ReplyBotConfigDocument' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ _id: string; filters: ReplyBotFilters; organization: string; type: ReplyBotType; }' is missing the following properties from type 'ReplyBotConfigDocument': brandId, id, organizationId, isDeleted, and 3 more.",
+      "message": "Conversion of type '{ _id: string; filters: ReplyBotFilters; organization: string; type: ReplyBotType; }' to type 'ReplyBotConfigDocument' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ _id: string; filters: ReplyBotFilters; organization: string; type: ReplyBotType; }' is missing the following properties from type 'ReplyBotConfigDocument': id, brandId, createdAt, organizationId, and 3 more.",
       "workspace": "api"
     },
     {
@@ -3893,7 +3877,7 @@
       "count": 1,
       "file": "apps/server/api/src/services/telegram-bot/__tests__/telegram-bot.service.spec.ts",
       "fingerprint": "719bf0b6e37a8740321a",
-      "message": "Argument of type '{ get: Mock<Procedure | Constructable>; isDevTelegramPollingEnabled: boolean; }' is not assignable to parameter of type 'ConfigService'.   Type '{ get: Mock<Procedure | Constructable>; isDevTelegramPollingEnabled: boolean; }' is missing the following properties from type 'ConfigService': isDevOptionalInitEnabled, isDevSchedulersEnabled, cdnUrl, cdnSigningKeyPairId, and 15 more.",
+      "message": "Argument of type '{ get: Mock<Procedure | Constructable>; isDevTelegramPollingEnabled: boolean; }' is not assignable to parameter of type 'ConfigService'.   Type '{ get: Mock<Procedure | Constructable>; isDevTelegramPollingEnabled: boolean; }' is missing the following properties from type 'ConfigService': isDevOptionalInitEnabled, isDevSchedulersEnabled, cdnUrl, cdnSigningKeyPairId, and 17 more.",
       "workspace": "api"
     },
     {
@@ -4261,7 +4245,7 @@
       "count": 1,
       "file": "apps/server/api/test/integration/trainings.schema.integration.spec.ts",
       "fingerprint": "14034a62236ba0899dd2",
-      "message": "Property 'provider' does not exist on type '{ description: string | null; brandId: string | null; id: string; organizationId: string; isDeleted: boolean; createdAt: Date; updatedAt: Date; userId: string; label: string | null; externalId: string | null; personaId: string | null; config: JsonValue; stage: TrainingStage; }'.",
+      "message": "Property 'provider' does not exist on type '{ description: string | null; id: string; brandId: string | null; createdAt: Date; organizationId: string; userId: string; isDeleted: boolean; updatedAt: Date; externalId: string | null; label: string | null; config: JsonValue; personaId: string | null; stage: TrainingStage; }'.",
       "workspace": "api"
     },
     {
@@ -4901,7 +4885,7 @@
       "count": 1,
       "file": "apps/app/src/components/workspace-shell/WorkspaceSurfaceAdapterContext.test.tsx",
       "fingerprint": "4879398c54903e2382be",
-      "message": "Argument of type '{ contextLabel: string; references: never[]; renderInspector: () => JSX.Element; scope: { brandId: string; organizationId: string; }; surfaceKey: string; }' is not assignable to parameter of type 'ProductWorkspaceSurfaceAdapter'.   Types of property 'surfaceKey' are incompatible.     Type 'string' is not assignable to type 'WorkspaceShellSurfaceKey'.",
+      "message": "Argument of type '{ contextLabel: string; references: never[]; scope: { brandId: string; organizationId: string; }; surfaceKey: string; }' is not assignable to parameter of type 'ProductWorkspaceSurfaceAdapter'.   Types of property 'surfaceKey' are incompatible.     Type 'string' is not assignable to type 'WorkspaceShellSurfaceKey'.",
       "workspace": "app"
     },
     {
@@ -5037,7 +5021,7 @@
       "count": 1,
       "file": "packages/contracts/src/constants/model-capabilities.constant.test.ts",
       "fingerprint": "1876fc14dc192314e638",
-      "message": "Argument of type 'string' is not assignable to parameter of type '\"leonardoai\" | \"sdxl\" | \"black-forest-labs/flux-schnell\" | \"google/imagen-3\" | \"google/imagen-3-fast\" | \"google/imagen-4\" | \"google/imagen-4-fast\" | \"google/imagen-4-ultra\" | ... 119 more ... | \"genfeed-ai/z-image-turbo-lora\"'.",
+      "message": "Argument of type 'string' is not assignable to parameter of type '\"leonardoai\" | \"sdxl\" | \"black-forest-labs/flux-schnell\" | \"google/imagen-3\" | \"google/imagen-3-fast\" | \"google/imagen-4\" | \"google/imagen-4-fast\" | \"google/imagen-4-ultra\" | ... 124 more ... | \"genfeed-ai/z-image-turbo-lora\"'.",
       "workspace": "contracts"
     },
     {
@@ -5045,7 +5029,7 @@
       "count": 1,
       "file": "packages/contracts/src/constants/self-hosted-models.constant.test.ts",
       "fingerprint": "34456683a759b2d7ade1",
-      "message": "Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite \u2014 fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; } | ... 19 more ... | { ...; }'.   Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite \u2014 fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
+      "message": "Property 'pricingType' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; } | ... 21 more ... | { ...; }'.   Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
       "workspace": "contracts"
     },
     {
@@ -5053,7 +5037,7 @@
       "count": 1,
       "file": "packages/contracts/src/constants/self-hosted-models.constant.test.ts",
       "fingerprint": "997d3dd44ab0fe1e5fc1",
-      "message": "Property 'costPerUnit' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite \u2014 fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; } | ... 19 more ... | { ...; }'.   Property 'costPerUnit' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite \u2014 fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
+      "message": "Property 'costPerUnit' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; } | ... 21 more ... | { ...; }'.   Property 'costPerUnit' does not exist on type '{ category: ModelCategory; cost: number; costTier: CostTier; description: string; isDefault: boolean; isHighlighted: boolean; key: \"black-forest-labs/flux-3-image\" | \"black-forest-labs/flux-3-image-edit\"; ... 5 more ...; providerCostUsd: number; }'.",
       "workspace": "contracts"
     },
     {
@@ -5197,7 +5181,7 @@
       "count": 2,
       "file": "apps/server/files/src/controllers/files.controller.spec.ts",
       "fingerprint": "14807b5cc5d87d69ad32",
-      "message": "Property 'duration' does not exist on type '{ cachedFileName?: string | undefined; cachedFilePath?: string | undefined; streams: FFprobeStream[]; format: { filename: string; duration: string; size: string; bit_rate: string; }; }'.",
+      "message": "Property 'duration' does not exist on type '{ cachedFileName?: string | undefined; cachedFilePath?: string | undefined; streams: FFprobeStream[]; format: { filename: string; format_name?: string | undefined; duration: string; size: string; bit_rate: string; }; }'.",
       "workspace": "files"
     },
     {
@@ -5205,7 +5189,7 @@
       "count": 1,
       "file": "apps/server/files/src/controllers/files.controller.spec.ts",
       "fingerprint": "84a710826ee842b7c1ba",
-      "message": "Property 'width' does not exist on type '{ cachedFileName?: string | undefined; cachedFilePath?: string | undefined; streams: FFprobeStream[]; format: { filename: string; duration: string; size: string; bit_rate: string; }; }'.",
+      "message": "Property 'width' does not exist on type '{ cachedFileName?: string | undefined; cachedFilePath?: string | undefined; streams: FFprobeStream[]; format: { filename: string; format_name?: string | undefined; duration: string; size: string; bit_rate: string; }; }'.",
       "workspace": "files"
     },
     {
@@ -5213,7 +5197,7 @@
       "count": 1,
       "file": "apps/server/files/src/controllers/files.controller.spec.ts",
       "fingerprint": "c77d5c62b9264b2edfb0",
-      "message": "Property 'height' does not exist on type '{ cachedFileName?: string | undefined; cachedFilePath?: string | undefined; streams: FFprobeStream[]; format: { filename: string; duration: string; size: string; bit_rate: string; }; }'.",
+      "message": "Property 'height' does not exist on type '{ cachedFileName?: string | undefined; cachedFilePath?: string | undefined; streams: FFprobeStream[]; format: { filename: string; format_name?: string | undefined; duration: string; size: string; bit_rate: string; }; }'.",
       "workspace": "files"
     },
     {
@@ -5493,7 +5477,7 @@
       "count": 1,
       "file": "packages/helpers/src/generation-controls.helper.test.ts",
       "fingerprint": "797b46f18670f2ad83bb",
-      "message": "Type '{ label: string; key: string; category: ModelCategory; provider: ModelProvider; cost: number; isActive: boolean; isDefault: boolean; lifecycle?: ModelLifecycle | undefined; ... 61 more ...; updatedAt: string; }' is not assignable to type 'IModel'.   Types of property 'lifecycle' are incompatible.     Type 'ModelLifecycle | undefined' is not assignable to type 'ModelLifecycle'.       Type 'undefined' is not assignable to type 'ModelLifecycle'.",
+      "message": "Type '{ label: string; key: string; category: ModelCategory; provider: ModelProvider; cost: number; isActive: boolean; isDefault: boolean; lifecycle?: ModelLifecycle | undefined; ... 62 more ...; updatedAt: string; }' is not assignable to type 'IModel'.   Types of property 'lifecycle' are incompatible.     Type 'ModelLifecycle | undefined' is not assignable to type 'ModelLifecycle'.       Type 'undefined' is not assignable to type 'ModelLifecycle'.",
       "workspace": "helpers"
     },
     {
@@ -5549,7 +5533,7 @@
       "count": 1,
       "file": "packages/helpers/src/model-capability.helper.spec.ts",
       "fingerprint": "7a2325b974c27656b61f",
-      "message": "Type '{ label: string; key: string; category: ModelCategory; provider: ModelProvider; cost: number; isActive: boolean; isDefault: boolean; lifecycle?: ModelLifecycle | undefined; ... 61 more ...; updatedAt: string; }' is not assignable to type 'IModel'.   Types of property 'lifecycle' are incompatible.     Type 'ModelLifecycle | undefined' is not assignable to type 'ModelLifecycle'.       Type 'undefined' is not assignable to type 'ModelLifecycle'.",
+      "message": "Type '{ label: string; key: string; category: ModelCategory; provider: ModelProvider; cost: number; isActive: boolean; isDefault: boolean; lifecycle?: ModelLifecycle | undefined; ... 62 more ...; updatedAt: string; }' is not assignable to type 'IModel'.   Types of property 'lifecycle' are incompatible.     Type 'ModelLifecycle | undefined' is not assignable to type 'ModelLifecycle'.       Type 'undefined' is not assignable to type 'ModelLifecycle'.",
       "workspace": "helpers"
     },
     {
@@ -5557,7 +5541,7 @@
       "count": 1,
       "file": "packages/helpers/src/quality-routing.helper.test.ts",
       "fingerprint": "27bc10611c5c379c0f18",
-      "message": "Type '{ label: string; key: string; category: ModelCategory; provider: ModelProvider; cost: number; isActive: boolean; isDefault: boolean; lifecycle?: ModelLifecycle | undefined; ... 61 more ...; updatedAt: string; }' is not assignable to type 'IModel'.   Types of property 'lifecycle' are incompatible.     Type 'ModelLifecycle | undefined' is not assignable to type 'ModelLifecycle'.       Type 'undefined' is not assignable to type 'ModelLifecycle'.",
+      "message": "Type '{ label: string; key: string; category: ModelCategory; provider: ModelProvider; cost: number; isActive: boolean; isDefault: boolean; lifecycle?: ModelLifecycle | undefined; ... 62 more ...; updatedAt: string; }' is not assignable to type 'IModel'.   Types of property 'lifecycle' are incompatible.     Type 'ModelLifecycle | undefined' is not assignable to type 'ModelLifecycle'.       Type 'undefined' is not assignable to type 'ModelLifecycle'.",
       "workspace": "helpers"
     },
     {
@@ -5933,7 +5917,7 @@
       "count": 2,
       "file": "packages/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement.test.ts",
       "fingerprint": "65c655f51e0211d4ce7f",
-      "message": "Argument of type '{ brandId: string; clipboardService: { copyToClipboard: Mock<Procedure>; }; form: { formState: { isValid: boolean; }; getValues: Mock<(field?: string) => {}>; setValue: Mock<...>; watch: Mock<...>; }; ... 8 more ...; watchedModel: string; }' is not assignable to parameter of type 'UsePromptBarEnhancementOptions'.   Types of property 'form' are incompatible.     Type '{ formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 11 more.",
+      "message": "Argument of type '{ brandId: string; clipboardService: { copyToClipboard: Mock<Procedure>; }; form: { formState: { isValid: boolean; }; getValues: Mock<(field?: string) => {}>; setValue: Mock<...>; watch: Mock<...>; }; ... 8 more ...; watchedModel: string; }' is not assignable to parameter of type 'UsePromptBarEnhancementOptions'.   Types of property 'form' are incompatible.     Type '{ formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 11 more.",
       "workspace": "hooks"
     },
     {
@@ -5941,7 +5925,7 @@
       "count": 11,
       "file": "packages/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement.test.ts",
       "fingerprint": "c5c24d5a99077a8b8b07",
-      "message": "Argument of type '{ brandId: string; clipboardService: { copyToClipboard: Mock<Procedure>; }; form: { formState: { isValid: boolean; }; getValues: Mock<(field?: string) => {}>; setValue: Mock<...>; watch: Mock<...>; }; ... 8 more ...; watchedModel: string; }' is not assignable to parameter of type 'UsePromptBarEnhancementOptions'.   Types of property 'form' are incompatible.     Type '{ formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 11 more.",
+      "message": "Argument of type '{ brandId: string; clipboardService: { copyToClipboard: Mock<Procedure>; }; form: { formState: { isValid: boolean; }; getValues: Mock<(field?: string) => {}>; setValue: Mock<...>; watch: Mock<...>; }; ... 8 more ...; watchedModel: string; }' is not assignable to parameter of type 'UsePromptBarEnhancementOptions'.   Types of property 'form' are incompatible.     Type '{ formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 11 more.",
       "workspace": "hooks"
     },
     {
@@ -5949,7 +5933,7 @@
       "count": 4,
       "file": "packages/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement.test.ts",
       "fingerprint": "d10a23df582baf964e71",
-      "message": "Argument of type '{ brandId: string; clipboardService: { copyToClipboard: Mock<Procedure>; }; form: { formState: { isValid: boolean; }; getValues: Mock<(field?: string) => {}>; setValue: Mock<...>; watch: Mock<...>; }; ... 8 more ...; watchedModel: string; }' is not assignable to parameter of type 'UsePromptBarEnhancementOptions'.   Types of property 'form' are incompatible.     Type '{ formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 11 more.",
+      "message": "Argument of type '{ brandId: string; clipboardService: { copyToClipboard: Mock<Procedure>; }; form: { formState: { isValid: boolean; }; getValues: Mock<(field?: string) => {}>; setValue: Mock<...>; watch: Mock<...>; }; ... 8 more ...; watchedModel: string; }' is not assignable to parameter of type 'UsePromptBarEnhancementOptions'.   Types of property 'form' are incompatible.     Type '{ formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 11 more.",
       "workspace": "hooks"
     },
     {
@@ -6037,7 +6021,7 @@
       "count": 1,
       "file": "packages/hooks/prompt-bar/use-prompt-bar-form/use-prompt-bar-form.test.ts",
       "fingerprint": "29b44322674aa9827f23",
-      "message": "Type '{ category: IngredientCategory; fontFamily: string; format: IngredientFormat; height: number; models: string[]; text: string; width: number; }' is not assignable to type 'Partial<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }> & { ...; }'.   Property 'isValid' is missing in type '{ category: IngredientCategory; fontFamily: string; format: IngredientFormat; height: number; models: string[]; text: string; width: number; }' but required in type '{ isValid: boolean; }'.",
+      "message": "Type '{ category: IngredientCategory; fontFamily: string; format: IngredientFormat; height: number; models: string[]; text: string; width: number; }' is not assignable to type 'Partial<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }> & { ...; }'.   Property 'isValid' is missing in type '{ category: IngredientCategory; fontFamily: string; format: IngredientFormat; height: number; models: string[]; text: string; width: number; }' but required in type '{ isValid: boolean; }'.",
       "workspace": "hooks"
     },
     {
@@ -6085,7 +6069,7 @@
       "count": 19,
       "file": "packages/hooks/prompt-bar/use-prompt-bar-references/use-prompt-bar-references.test.ts",
       "fingerprint": "f5dec5086b1f3f5ba7c4",
-      "message": "Argument of type '{ currentFormat: IngredientFormat; currentModelCategory: ModelCategory; form: { formState: { isValid: boolean; }; getValues: Mock<Procedure>; setValue: Mock<...>; watch: Mock<...>; }; maxReferenceCount: number; notificationsService: { ...; }; selectedBrand: null; supportsMultipleReferences: boolean; }' is not assignable to parameter of type 'UsePromptBarReferencesOptions'.   Types of property 'form' are incompatible.     Type '{ formState: { isValid: boolean; }; getValues: Mock<Procedure>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 11 more.",
+      "message": "Argument of type '{ currentFormat: IngredientFormat; currentModelCategory: ModelCategory; form: { formState: { isValid: boolean; }; getValues: Mock<Procedure>; setValue: Mock<...>; watch: Mock<...>; }; maxReferenceCount: number; notificationsService: { ...; }; selectedBrand: null; supportsMultipleReferences: boolean; }' is not assignable to parameter of type 'UsePromptBarReferencesOptions'.   Types of property 'form' are incompatible.     Type '{ formState: { isValid: boolean; }; getValues: Mock<Procedure>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 11 more.",
       "workspace": "hooks"
     },
     {
@@ -6093,7 +6077,7 @@
       "count": 7,
       "file": "packages/hooks/prompt-bar/use-prompt-bar-references/use-prompt-bar-references.test.ts",
       "fingerprint": "ff208e32ddfe3fc3110f",
-      "message": "Argument of type '{ currentFormat: IngredientFormat; currentModelCategory: ModelCategory; form: { formState: { isValid: boolean; }; getValues: Mock<Procedure>; setValue: Mock<...>; watch: Mock<...>; }; maxReferenceCount: number; notificationsService: { ...; }; selectedBrand: null; supportsMultipleReferences: boolean; }' is not assignable to parameter of type 'UsePromptBarReferencesOptions'.   Types of property 'form' are incompatible.     Type '{ formState: { isValid: boolean; }; getValues: Mock<Procedure>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 11 more.",
+      "message": "Argument of type '{ currentFormat: IngredientFormat; currentModelCategory: ModelCategory; form: { formState: { isValid: boolean; }; getValues: Mock<Procedure>; setValue: Mock<...>; watch: Mock<...>; }; maxReferenceCount: number; notificationsService: { ...; }; selectedBrand: null; supportsMultipleReferences: boolean; }' is not assignable to parameter of type 'UsePromptBarReferencesOptions'.   Types of property 'form' are incompatible.     Type '{ formState: { isValid: boolean; }; getValues: Mock<Procedure>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 11 more.",
       "workspace": "hooks"
     },
     {
@@ -6109,7 +6093,7 @@
       "count": 13,
       "file": "packages/hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync.test.ts",
       "fingerprint": "445a73305f2ca4486a87",
-      "message": "Argument of type '{ useSplitState: boolean; categoryType: undefined; externalFormat: undefined; externalHeight: undefined; externalWidth: undefined; form: { control: {}; formState: { isValid: boolean; }; getValues: Mock<...>; setValue: Mock<...>; watch: Mock<...>; }; ... 12 more ...; setReferences: Mock<...>; }' is not assignable to parameter of type 'UsePromptBarSyncOptions'.   Types of property 'form' are incompatible.     Type '{ control: {}; formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 10 more.",
+      "message": "Argument of type '{ useSplitState: boolean; categoryType: undefined; externalFormat: undefined; externalHeight: undefined; externalWidth: undefined; form: { control: {}; formState: { isValid: boolean; }; getValues: Mock<...>; setValue: Mock<...>; watch: Mock<...>; }; ... 12 more ...; setReferences: Mock<...>; }' is not assignable to parameter of type 'UsePromptBarSyncOptions'.   Types of property 'form' are incompatible.     Type '{ control: {}; formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 10 more.",
       "workspace": "hooks"
     },
     {
@@ -6117,7 +6101,7 @@
       "count": 18,
       "file": "packages/hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync.test.ts",
       "fingerprint": "86b22951ec2934a52615",
-      "message": "Argument of type '{ externalFormat: IngredientFormat; externalHeight: number; externalWidth: number; categoryType: undefined; form: { control: {}; formState: { isValid: boolean; }; getValues: Mock<...>; setValue: Mock<...>; watch: Mock<...>; }; ... 13 more ...; useSplitState: boolean; }' is not assignable to parameter of type 'UsePromptBarSyncOptions'.   Types of property 'form' are incompatible.     Type '{ control: {}; formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 10 more.",
+      "message": "Argument of type '{ externalFormat: IngredientFormat; externalHeight: number; externalWidth: number; categoryType: undefined; form: { control: {}; formState: { isValid: boolean; }; getValues: Mock<...>; setValue: Mock<...>; watch: Mock<...>; }; ... 13 more ...; useSplitState: boolean; }' is not assignable to parameter of type 'UsePromptBarSyncOptions'.   Types of property 'form' are incompatible.     Type '{ control: {}; formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 10 more.",
       "workspace": "hooks"
     },
     {
@@ -6125,7 +6109,7 @@
       "count": 1,
       "file": "packages/hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync.test.ts",
       "fingerprint": "bcaa795d49430aafeecf",
-      "message": "Argument of type '{ categoryType: undefined; externalFormat: undefined; externalHeight: undefined; externalWidth: undefined; form: { control: {}; formState: { isValid: boolean; }; getValues: Mock<(field?: string) => {}>; setValue: Mock<...>; watch: Mock<...>; }; ... 13 more ...; useSplitState: boolean; }' is not assignable to parameter of type 'UsePromptBarSyncOptions'.   Types of property 'form' are incompatible.     Type '{ control: {}; formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 10 more.",
+      "message": "Argument of type '{ categoryType: undefined; externalFormat: undefined; externalHeight: undefined; externalWidth: undefined; form: { control: {}; formState: { isValid: boolean; }; getValues: Mock<(field?: string) => {}>; setValue: Mock<...>; watch: Mock<...>; }; ... 13 more ...; useSplitState: boolean; }' is not assignable to parameter of type 'UsePromptBarSyncOptions'.   Types of property 'form' are incompatible.     Type '{ control: {}; formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 10 more.",
       "workspace": "hooks"
     },
     {
@@ -6133,7 +6117,7 @@
       "count": 3,
       "file": "packages/hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync.test.ts",
       "fingerprint": "e27e3e2a6610ffc21e42",
-      "message": "Argument of type '{ categoryType: undefined; externalFormat: undefined; externalHeight: undefined; externalWidth: undefined; form: { control: {}; formState: { isValid: boolean; }; getValues: Mock<(field?: string) => {}>; setValue: Mock<...>; watch: Mock<...>; }; ... 13 more ...; useSplitState: boolean; }' is not assignable to parameter of type 'UsePromptBarSyncOptions'.   Types of property 'form' are incompatible.     Type '{ control: {}; formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 10 more.",
+      "message": "Argument of type '{ categoryType: undefined; externalFormat: undefined; externalHeight: undefined; externalWidth: undefined; form: { control: {}; formState: { isValid: boolean; }; getValues: Mock<(field?: string) => {}>; setValue: Mock<...>; watch: Mock<...>; }; ... 13 more ...; useSplitState: boolean; }' is not assignable to parameter of type 'UsePromptBarSyncOptions'.   Types of property 'form' are incompatible.     Type '{ control: {}; formState: { isValid: boolean; }; getValues: Mock<(field?: string | undefined) => {}>; setValue: Mock<Procedure>; watch: Mock<Procedure>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 10 more.",
       "workspace": "hooks"
     },
     {
@@ -6421,7 +6405,7 @@
       "count": 3,
       "file": "packages/libs/adapters/redis-io.adapter.spec.ts",
       "fingerprint": "05188eafa739be78806e",
-      "message": "Argument of type 'Mocked<Pick<LoggerService, \"log\" | \"warn\" | \"error\">>' is not assignable to parameter of type 'LoggerService'.   Type 'Mocked<Pick<LoggerService, \"log\" | \"warn\" | \"error\">>' is missing the following properties from type 'LoggerService': constructorName, winston, debug, normalizeContext, and 29 more.",
+      "message": "Argument of type 'Mocked<Pick<LoggerService, \"log\" | \"warn\" | \"error\">>' is not assignable to parameter of type 'LoggerService'.   Type 'Mocked<Pick<LoggerService, \"log\" | \"warn\" | \"error\">>' is missing the following properties from type 'LoggerService': constructorName, winston, debug, normalizeContext, and 35 more.",
       "workspace": "libs"
     },
     {
@@ -6429,7 +6413,7 @@
       "count": 3,
       "file": "packages/libs/adapters/redis-io.adapter.spec.ts",
       "fingerprint": "7ec2574fbb51738051cf",
-      "message": "Argument of type 'Mocked<Pick<LoggerService, \"log\" | \"warn\" | \"error\">>' is not assignable to parameter of type 'LoggerService'.   Type 'Mocked<Pick<LoggerService, \"log\" | \"warn\" | \"error\">>' is missing the following properties from type 'LoggerService': constructorName, winston, debug, normalizeContext, and 29 more.",
+      "message": "Argument of type 'Mocked<Pick<LoggerService, \"log\" | \"warn\" | \"error\">>' is not assignable to parameter of type 'LoggerService'.   Type 'Mocked<Pick<LoggerService, \"log\" | \"warn\" | \"error\">>' is missing the following properties from type 'LoggerService': constructorName, winston, debug, normalizeContext, and 35 more.",
       "workspace": "libs"
     },
     {
@@ -7013,7 +6997,7 @@
       "count": 8,
       "file": "packages/pages/brands/components/integrations/AccountsTable.test.tsx",
       "fingerprint": "174809e07da2db9eb1f7",
-      "message": "Property 'reconnectingCredentialId' is missing in type '{ accountHealth: never[]; connections: any[]; onConnectAccount: () => void; onDisconnect: () => void; onPostingTimes: () => void; onReconnect: () => void; unavailablePlatforms: Set<Platform>; }' but required in type 'AccountsTableProps'.",
+      "message": "Property 'reconnectingCredentialId' is missing in type '{ accountHealth: never[]; connections: BrandDetailSocialConnection[]; onConnectAccount: () => void; onDisconnect: () => void; onOpenSettings: () => void; onReconnect: () => void; unavailablePlatforms: Set<...>; }' but required in type 'AccountsTableProps'.",
       "workspace": "pages"
     },
     {
@@ -7933,7 +7917,7 @@
       "count": 1,
       "file": "packages/services/ingredients/images.service.test.ts",
       "fingerprint": "13b62a2d5058195f1865",
-      "message": "Argument of type '{ url: string; }' is not assignable to parameter of type 'ImageGenerationPayload | Partial<IImage>'.",
+      "message": "Argument of type '{ url: string; }' is not assignable to parameter of type 'ImageGenerationPayload | Partial<IImage> | (CrunImageQuoteRequest & { crunQuoteId: string; })'.",
       "workspace": "services"
     },
     {
@@ -7957,7 +7941,7 @@
       "count": 1,
       "file": "packages/services/ingredients/images.service.test.ts",
       "fingerprint": "1011e589a2ae01f799ca",
-      "message": "Object literal may only specify known properties, and 'url' does not exist in type 'ImageGenerationPayload | Partial<IImage>'.",
+      "message": "Object literal may only specify known properties, and 'url' does not exist in type 'ImageGenerationPayload | Partial<IImage> | (CrunImageQuoteRequest & { crunQuoteId: string; })'.",
       "workspace": "services"
     },
     {
@@ -7989,7 +7973,7 @@
       "count": 1,
       "file": "packages/services/ingredients/videos.service.test.ts",
       "fingerprint": "b8ebf67738848939ef22",
-      "message": "Object literal may only specify known properties, and 'label' does not exist in type 'VideoGenerationPayload | (Partial<IVideo> & { useTemplate?: boolean | undefined; })'.",
+      "message": "Object literal may only specify known properties, and 'label' does not exist in type 'CrunVideoGenerationRequest | VideoGenerationPayload | (Partial<IVideo> & { useTemplate?: boolean | undefined; })'.",
       "workspace": "services"
     },
     {
@@ -8605,7 +8589,7 @@
       "count": 1,
       "file": "packages/ui/src/components/constants/media.constant.test.ts",
       "fingerprint": "42f409d00269e575d0e4",
-      "message": "Property 'REPLICATE_FLUX_SCHNELL' does not exist on type '{ readonly REPLICATE_FAST_FLUX_TRAINER: \"replicate/fast-flux-trainer\"; readonly REPLICATE_GOOGLE_IMAGEN_3: \"google/imagen-3\"; readonly REPLICATE_GOOGLE_IMAGEN_3_FAST: \"google/imagen-3-fast\"; ... 124 more ...; readonly GENFEED_AI_Z_IMAGE_TURBO_LORA: \"genfeed-ai/z-image-turbo-lora\"; }'.",
+      "message": "Property 'REPLICATE_FLUX_SCHNELL' does not exist on type '{ readonly REPLICATE_FAST_FLUX_TRAINER: \"replicate/fast-flux-trainer\"; readonly REPLICATE_GOOGLE_IMAGEN_3: \"google/imagen-3\"; readonly REPLICATE_GOOGLE_IMAGEN_3_FAST: \"google/imagen-3-fast\"; ... 129 more ...; readonly GENFEED_AI_Z_IMAGE_TURBO_LORA: \"genfeed-ai/z-image-turbo-lora\"; }'.",
       "workspace": "ui"
     },
     {
@@ -8613,7 +8597,7 @@
       "count": 1,
       "file": "packages/ui/src/components/constants/media.constant.test.ts",
       "fingerprint": "8242b53bacab0de14e14",
-      "message": "Property 'REPLICATE_HUNYUAN' does not exist on type '{ readonly REPLICATE_FAST_FLUX_TRAINER: \"replicate/fast-flux-trainer\"; readonly REPLICATE_GOOGLE_IMAGEN_3: \"google/imagen-3\"; readonly REPLICATE_GOOGLE_IMAGEN_3_FAST: \"google/imagen-3-fast\"; ... 124 more ...; readonly GENFEED_AI_Z_IMAGE_TURBO_LORA: \"genfeed-ai/z-image-turbo-lora\"; }'.",
+      "message": "Property 'REPLICATE_HUNYUAN' does not exist on type '{ readonly REPLICATE_FAST_FLUX_TRAINER: \"replicate/fast-flux-trainer\"; readonly REPLICATE_GOOGLE_IMAGEN_3: \"google/imagen-3\"; readonly REPLICATE_GOOGLE_IMAGEN_3_FAST: \"google/imagen-3-fast\"; ... 129 more ...; readonly GENFEED_AI_Z_IMAGE_TURBO_LORA: \"genfeed-ai/z-image-turbo-lora\"; }'.",
       "workspace": "ui"
     },
     {
@@ -9469,7 +9453,7 @@
       "count": 1,
       "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
       "fingerprint": "22a371c03f846af73dd3",
-      "message": "Type '{}' is not assignable to type 'Partial<Omit<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }, \"text\">> & { ...; }'.   Property 'isValid' is missing in type '{}' but required in type '{ isValid: boolean; }'.",
+      "message": "Type '{}' is not assignable to type 'Partial<Omit<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }, \"text\">> & { ...; }'.   Property 'isValid' is missing in type '{}' but required in type '{ isValid: boolean; }'.",
       "workspace": "ui"
     },
     {
@@ -9485,7 +9469,7 @@
       "count": 1,
       "file": "packages/ui/src/components/prompt-bars/base/PromptBar.test.tsx",
       "fingerprint": "dc982f9ccd2d6c394402",
-      "message": "Type '{ text: string; }' is not assignable to type 'Partial<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }> & { ...; }'.   Property 'isValid' is missing in type '{ text: string; }' but required in type '{ isValid: boolean; }'.",
+      "message": "Type '{ text: string; }' is not assignable to type 'Partial<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }> & { ...; }'.   Property 'isValid' is missing in type '{ text: string; }' but required in type '{ isValid: boolean; }'.",
       "workspace": "ui"
     },
     {
@@ -9621,7 +9605,7 @@
       "count": 1,
       "file": "packages/ui/src/components/prompt-bars/components/essentials/PromptBarEssentials.test.tsx",
       "fingerprint": "cf49b350ffddff32ba38",
-      "message": "Type 'Mock<(name?: string | undefined) => \"already typing\" | undefined>' is not assignable to type 'UseFormWatch<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }>'.   Type 'string | undefined' is not assignable to type '{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }'.     Type 'undefined' is not assignable to type '{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }'.",
+      "message": "Type 'Mock<(name?: string | undefined) => \"already typing\" | undefined>' is not assignable to type 'UseFormWatch<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }>'.   Type 'string | undefined' is not assignable to type '{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }'.     Type 'undefined' is not assignable to type '{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }'.",
       "workspace": "ui"
     },
     {
@@ -9677,7 +9661,7 @@
       "count": 1,
       "file": "packages/ui/src/components/prompt-bars/components/essentials/PromptBarEssentials.test.tsx",
       "fingerprint": "8fbc711ba14c0a24fa09",
-      "message": "Type '{ setValue: Mock<Procedure>; control: {}; formState: { isValid: boolean; }; getValues: Mock<(name?: string | undefined) => false | undefined>; watch: Mock<(name?: string | undefined) => \"\" | undefined>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 26 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 10 more.",
+      "message": "Type '{ setValue: Mock<Procedure>; control: {}; formState: { isValid: boolean; }; getValues: Mock<(name?: string | undefined) => false | undefined>; watch: Mock<(name?: string | undefined) => \"\" | undefined>; }' is missing the following properties from type 'UseFormReturn<{ blacklist: string[]; brand: string; category: string; fontFamily: string; format: string; height: number; models: string[]; quality: \"standard\" | \"premium\" | \"ultra\"; sounds: string[]; style: string; ... 27 more ...; videoReferences?: string[] | undefined; }>': getErrors, getFieldState, setError, clearErrors, and 10 more.",
       "workspace": "ui"
     },
     {
@@ -9933,7 +9917,7 @@
       "count": 1,
       "file": "packages/ui/src/components/workflow-builder/nodes/BaseNode.test.tsx",
       "fingerprint": "9f9d5efb36ed75c7db16",
-      "message": "Type '{ config: { aspectRatio: string; }; definition: { category: string; configSchema: {}; description: string; icon: string; inputs: { media: { label: string; type: string; }; }; label: string; outputs: { result: { ...; }; }; }; label: string; nodeType: string; }' is not assignable to type 'WorkflowNodeData'.   The types of 'definition.category' are incompatible between these types.     Type 'string' is not assignable to type '\"processing\" | \"output\" | \"input\" | \"effects\" | \"ai\" | \"control\"'.",
+      "message": "Type '{ config: { aspectRatio: string; }; definition: { category: string; configSchema: {}; description: string; icon: string; inputs: { media: { label: string; type: string; }; }; label: string; outputs: { result: { ...; }; }; }; label: string; nodeType: string; }' is not assignable to type 'WorkflowNodeData'.   The types of 'definition.category' are incompatible between these types.     Type 'string' is not assignable to type '\"processing\" | \"control\" | \"output\" | \"input\" | \"effects\" | \"ai\"'.",
       "workspace": "ui"
     },
     {
@@ -9941,7 +9925,7 @@
       "count": 1,
       "file": "packages/ui/src/components/workflow-builder/panels/NodeConfigPanel.test.tsx",
       "fingerprint": "f72691932b174c77d696",
-      "message": "Type '{ configSchema: { prompt: { label: string; placeholder: string; type: \"text\"; }; }; label?: string | undefined; description?: string | undefined; category?: \"processing\" | \"output\" | \"input\" | \"effects\" | \"ai\" | \"control\" | undefined; ... 5 more ...; isEnabled?: boolean; }' is not assignable to type 'NodeDefinition'.   Types of property 'label' are incompatible.     Type 'string | undefined' is not assignable to type 'string'.       Type 'undefined' is not assignable to type 'string'.",
+      "message": "Type '{ configSchema: { prompt: { label: string; placeholder: string; type: \"text\"; }; }; label?: string | undefined; description?: string | undefined; category?: \"processing\" | \"control\" | \"output\" | \"input\" | \"effects\" | \"ai\" | undefined; ... 5 more ...; isEnabled?: boolean; }' is not assignable to type 'NodeDefinition'.   Types of property 'label' are incompatible.     Type 'string | undefined' is not assignable to type 'string'.       Type 'undefined' is not assignable to type 'string'.",
       "workspace": "ui"
     },
     {
