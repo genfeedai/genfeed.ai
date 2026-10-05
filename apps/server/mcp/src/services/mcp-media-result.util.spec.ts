@@ -6,7 +6,11 @@ import { CallToolResultSchema } from '@modelcontextprotocol/sdk/types.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const url = 'https://cdn.genfeed.ai/ingredients/images/img-1';
-const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
+// A complete 1x1 JPEG, so the native block contains a decodable image.
+const jpeg = Buffer.from(
+  '/9j/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AKpAB//Z',
+  'base64',
+);
 const payload = { id: 'img-1', kind: 'image', status: 'GENERATED', url };
 const origins = ['https://cdn.genfeed.ai'];
 
@@ -22,7 +26,10 @@ describe('native MCP image delivery', () => {
   it('returns extensionless JPEG bytes with correct MIME through get_job_status and card wrapping', async () => {
     const fetcher = mockFetch(
       new Response(jpeg, {
-        headers: { 'content-type': 'image/jpeg', 'content-length': '7' },
+        headers: {
+          'content-type': 'image/jpeg',
+          'content-length': String(jpeg.byteLength),
+        },
       }),
     );
     const client = {
@@ -48,7 +55,7 @@ describe('native MCP image delivery', () => {
     expect(parsed.structuredContent?.artifact).toMatchObject({
       mimeType: 'image/jpeg',
       renderMode: 'native_image',
-      sizeBytes: 7,
+      sizeBytes: jpeg.byteLength,
     });
     expect(fetcher).toHaveBeenCalledWith(
       url,

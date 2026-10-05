@@ -613,6 +613,8 @@ describe('ContentGeneratorService', () => {
     expect(results[0].hashtags).toEqual(
       expect.arrayContaining(['marketing', 'productivity']),
     );
+    expect(Object.keys(results[0])).not.toContain('body');
+    expect(Object.keys(results[0])).not.toContain('cta');
   });
 
   it('passes provided hashtags through without extraction', async () => {
