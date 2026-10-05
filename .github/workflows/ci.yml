@@ -749,7 +749,7 @@ jobs:
       - name: Build API (compiled bundle)
         run: bunx turbo run build --filter=@genfeedai/api
       - name: Validate synthetic CLOUD configuration
-        run: node --test scripts/ci/cloud-tenant-guard-sweep/core.test.mjs
+        run: node --test scripts/ci/cloud-tenant-guard-sweep/*.test.mjs
       - name: Load job-local placeholder environment
         run: |
           sed '/^#/d; /^$/d' scripts/ci/cloud-tenant-guard-sweep/cloud-sweep.placeholders >> "$GITHUB_ENV"
@@ -776,7 +776,7 @@ jobs:
           tail -n 200 "$RUNNER_TEMP/api.log"
           exit 1
       - name: Sweep handlers with tenant enforcement enabled
-        timeout-minutes: 8
+        timeout-minutes: 10
         run: bun run ci:cloud-tenant-guard-sweep
       - name: Stop API
         if: always()

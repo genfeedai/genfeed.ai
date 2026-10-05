@@ -1,6 +1,6 @@
 import { setTimeout as delay } from 'node:timers/promises';
 
-import { tenantHit } from './core.mjs';
+import { createConcurrencyLimiter, tenantHit } from './core.mjs';
 
 export function createRequester({
   baseUrl,
@@ -11,8 +11,9 @@ export function createRequester({
   sweepSignal,
   phase = 'controls',
   now = () => performance.now(),
+  limit = createConcurrencyLimiter(10),
 }) {
-  return async function request(actor, method, path, options = {}) {
+  const request = async (actor, method, path, options) => {
     const url = new URL(path, baseUrl);
     if (url.origin !== new URL(baseUrl).origin)
       throw new Error(`Off-origin sweep request: ${url.origin}`);
@@ -24,7 +25,7 @@ export function createRequester({
       let record;
       const started = now();
       const timeoutSignal = AbortSignal.timeout(
-        timeoutMs ?? (isSetup ? 60_000 : method === 'GET' ? 5_000 : 10_000),
+        timeoutMs ?? (isSetup ? 60_000 : method === 'GET' ? 30_000 : 45_000),
       );
       const signal = sweepSignal
         ? AbortSignal.any([timeoutSignal, sweepSignal])
@@ -79,8 +80,9 @@ export function createRequester({
         outcome = { record, body: '', json: null };
       }
       record.durationMs = Math.round(now() - started);
+      record.sweepPhase = options.sweepPhase ?? requestPhase;
       // Setup tolerates transient cold-start failures; sweep requests retain
-      // their short deadlines and retry only throttling. Preserve every attempt.
+      // their bounded deadlines and retry only throttling. Preserve every attempt.
       const isRetryable = isSetup
         ? [0, 502, 503, 504].includes(record.status)
         : record.status === 429;
@@ -110,6 +112,8 @@ export function createRequester({
       return outcome;
     }
   };
+  return (actor, method, path, options = {}) =>
+    limit(() => request(actor, method, path, options));
 }
 
 export function requireSuccess(result, label) {

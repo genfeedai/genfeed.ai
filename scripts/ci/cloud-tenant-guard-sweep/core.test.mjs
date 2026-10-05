@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   concurrentMap,
   coverageErrors,
+  createConcurrencyLimiter,
   distinctTools,
   durationSummary,
   expandRoute,
@@ -17,6 +18,7 @@ import {
   normalizePath,
   parameterValue,
   parseEnv,
+  phaseRequestStats,
   requiredEnvKeys,
   schemaValue,
   sweepGets,
@@ -397,7 +399,7 @@ test('coverage fails closed on empty discovery, dead auth, throttling and missin
   );
 });
 
-test('all four GET contexts run together with 16 requests each and independent member users', async () => {
+test('GET contexts share 10 workers and retain independent member users', async () => {
   const contexts = getContexts({
     member: { label: 'M', userId: 'user-M' },
     member2: { label: 'M2', userId: 'user-M2' },
@@ -426,11 +428,12 @@ test('all four GET contexts run together with 16 requests each and independent m
     total--;
   });
   assert.equal(calls, 140);
-  assert.equal(peak, 64);
-  assert.deepEqual([...peaks.values()], [16, 16, 16, 16]);
+  assert.equal(peak, 10);
+  assert.equal(peaks.size, 4);
+  assert.ok([...peaks.values()].every((peak) => peak <= 3));
 });
 
-test('tool phases parallelize both actors at 16/8/4 and wait for all prior work', async () => {
+test('tool phases share 10/5/2 workers, run writes only as M:A and drain before mutations', async () => {
   const tools = ['read', 'hint', 'write', 'delete'].flatMap((kind) =>
     Array.from({ length: 33 }, (_, index) => ({
       name: `${kind}_${index}`,
@@ -441,39 +444,44 @@ test('tool phases parallelize both actors at 16/8/4 and wait for all prior work'
     })),
   );
   const contexts = [{ actor: { label: 'M:A' } }, { actor: { label: 'S' } }];
-  const active = new Map();
   const peaks = new Map();
+  const calls = [];
   const phases = [];
   const finished = { readOnlyTools: 0, writeTools: 0, destructiveTools: 0 };
-  let phase;
+  let active = 0;
   await sweepTools(
     tools,
     contexts,
     (name) => name.startsWith('read_'),
-    async ({ actor }) => {
+    async ({ actor }, tool, phase) => {
       if (phase === 'writeTools') assert.equal(finished.readOnlyTools, 132);
-      if (phase === 'destructiveTools') assert.equal(finished.writeTools, 66);
-      const key = `${phase}/${actor.label}`;
-      active.set(key, (active.get(key) ?? 0) + 1);
-      peaks.set(key, Math.max(peaks.get(key) ?? 0, active.get(key)));
+      if (phase === 'destructiveTools') assert.equal(finished.writeTools, 33);
+      if (phase !== 'readOnlyTools') assert.equal(actor.label, 'M:A');
+      calls.push(`${actor.label}/${tool.name}`);
+      peaks.set(phase, Math.max(peaks.get(phase) ?? 0, ++active));
       await Promise.resolve();
-      active.set(key, active.get(key) - 1);
+      active--;
       finished[phase]++;
     },
     async (name, run) => {
-      phase = name;
       phases.push(name);
       await run();
-      assert.ok([...active.values()].every((count) => count === 0));
+      assert.equal(active, 0);
     },
   );
   assert.deepEqual(phases, ['readOnlyTools', 'writeTools', 'destructiveTools']);
-  assert.deepEqual([...peaks.values()], [16, 16, 8, 8, 4, 4]);
+  assert.deepEqual([...peaks.values()], [10, 5, 2]);
   assert.deepEqual(finished, {
     readOnlyTools: 132,
-    writeTools: 66,
-    destructiveTools: 66,
+    writeTools: 33,
+    destructiveTools: 33,
   });
+  assert.equal(new Set(calls).size, calls.length);
+  assert.equal(
+    calls.filter((call) => call.startsWith('M:A/')).length,
+    tools.length,
+  );
+  assert.equal(calls.filter((call) => call.startsWith('S/')).length, 66);
 });
 
 test('timeouts up to 5% warn, over 5% fail, and retries do not dilute evidence', () => {
@@ -624,5 +632,88 @@ test('coverage gate ignores fixture timeouts but still fails above 5% sweep time
     coverageErrors([...setup, ...requests], 100, 20).some((message) =>
       message.includes('maximum 5%'),
     ),
+  );
+});
+
+test('one limiter caps concurrent callers and releases slots after rejection', async () => {
+  const limit = createConcurrencyLimiter(10);
+  let active = 0;
+  let peak = 0;
+  const results = await Promise.allSettled(
+    ['getA', 'getB', 'getS', 'controls', 'tools'].flatMap((phase) =>
+      Array.from({ length: 25 }, (_, index) =>
+        limit(async () => {
+          peak = Math.max(peak, ++active);
+          await Promise.resolve();
+          active--;
+          if (index === 0) throw new Error(phase);
+          return phase;
+        }),
+      ),
+    ),
+  );
+  assert.equal(peak, 10);
+  assert.equal(active, 0);
+  assert.equal(
+    results.filter((result) => result.status === 'rejected').length,
+    5,
+  );
+  assert.equal(
+    results.filter((result) => result.status === 'fulfilled').length,
+    120,
+  );
+  assert.equal(await limit(() => 'slot released'), 'slot released');
+  assert.throws(() => createConcurrencyLimiter(0), /positive integer/);
+});
+
+test('tool coverage expects all tools as M:A and only reads as S', () => {
+  const requests = ['M:A', 'M2:B', 'S', 'S:A'].flatMap((actor) =>
+    Array.from({ length: 100 }, () => ({ actor, phase: 'get', status: 200 })),
+  );
+  requests.push(
+    ...Array.from({ length: 30 }, () => ({
+      actor: 'M:A',
+      phase: 'tool',
+      status: 200,
+    })),
+    ...Array.from({ length: 12 }, () => ({
+      actor: 'S',
+      phase: 'tool',
+      status: 200,
+    })),
+  );
+  assert.deepEqual(coverageErrors(requests, 100, 30, 12), []);
+  requests.pop();
+  assert.ok(
+    coverageErrors(requests, 100, 30, 12).some((error) =>
+      /S: 11\/12 tool/.test(error),
+    ),
+  );
+});
+
+test('per-phase counts report retries separately and preserve zero-request phases', () => {
+  const records = [
+    { phase: 'warmup', isRetry: true, isTimeout: true },
+    { phase: 'warmup' },
+    { phase: 'get', sweepPhase: 'memberAGets', isTimeout: true },
+    { phase: 'get', sweepPhase: 'superadminOverrideGets' },
+    { phase: 'tool', sweepPhase: 'writeTools' },
+  ];
+  assert.deepEqual(
+    phaseRequestStats(records, {
+      warmup: 100,
+      memberAGets: 200,
+      superadminOverrideGets: 200,
+      writeTools: 50,
+      controls: 0,
+      total: 550,
+    }),
+    {
+      warmup: { requests: 1, attempts: 2, timeouts: 0 },
+      memberAGets: { requests: 1, attempts: 1, timeouts: 1 },
+      superadminOverrideGets: { requests: 1, attempts: 1, timeouts: 0 },
+      writeTools: { requests: 1, attempts: 1, timeouts: 0 },
+      controls: { requests: 0, attempts: 0, timeouts: 0 },
+    },
   );
 });

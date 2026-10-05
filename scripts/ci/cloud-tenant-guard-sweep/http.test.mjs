@@ -1,12 +1,90 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { createConcurrencyLimiter } from './core.mjs';
 import {
   createRequester,
   entity,
   requireSuccess,
   sessionCookie,
 } from './http.mjs';
+
+test('global HTTP limiter spans actors, controls and tools through body consumption', async () => {
+  const records = [];
+  let active = 0;
+  let peak = 0;
+  const request = createRequester({
+    baseUrl: 'http://localhost:3010',
+    records,
+    limit: createConcurrencyLimiter(10),
+    fetchImpl: async () => {
+      peak = Math.max(peak, ++active);
+      return {
+        status: 200,
+        headers: new Headers(),
+        text: async () => {
+          await new Promise((resolve) => setImmediate(resolve));
+          active--;
+          return '{}';
+        },
+      };
+    },
+  });
+  await Promise.all(
+    ['M:A', 'M2:B', 'S', 'S:A'].flatMap((label) =>
+      Array.from({ length: 25 }, (_, index) =>
+        request({ label }, index % 2 ? 'GET' : 'POST', '/v1/example', {
+          phase: index % 2 ? 'get' : 'tool',
+          sweepPhase: label === 'S:A' ? 'superadminOverrideGets' : 'strict',
+        }),
+      ),
+    ),
+  );
+  assert.equal(peak, 10);
+  assert.equal(active, 0);
+  assert.equal(records.length, 100);
+  assert.equal(
+    records.filter((record) => record.sweepPhase === 'superadminOverrideGets')
+      .length,
+    25,
+  );
+});
+
+test('queued requests start their timeout only on admission and abort without fetching', async (context) => {
+  let deadlines = 0;
+  context.mock.method(AbortSignal, 'timeout', () => {
+    deadlines++;
+    return new AbortController().signal;
+  });
+  const controller = new AbortController();
+  let release;
+  const body = new Promise((resolve) => {
+    release = resolve;
+  });
+  let fetches = 0;
+  const request = createRequester({
+    baseUrl: 'http://localhost:3010',
+    records: [],
+    sweepSignal: controller.signal,
+    limit: createConcurrencyLimiter(1),
+    fetchImpl: async () => {
+      fetches++;
+      return { status: 200, text: () => body };
+    },
+  });
+  const first = request(null, 'GET', '/v1/first');
+  const second = request(null, 'GET', '/v1/queued');
+  const settled = Promise.allSettled([first, second]);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(deadlines, 1);
+  controller.abort(new Error('Budget exceeded'));
+  release('{}');
+  const results = await settled;
+  assert.equal(results[1].status, 'rejected');
+  assert.match(String(results[1].reason), /Budget exceeded/);
+  assert.equal(fetches, 1);
+  assert.equal(deadlines, 1);
+});
 
 test('HTTP 200 tool hits and non-production error bodies are recorded without stopping the sweep', async () => {
   const records = [];
@@ -76,7 +154,7 @@ test('transport failure is recorded and only 429 is retried with one-second boun
   assert.deepEqual(waits, [1_000]);
 });
 
-test('GET and tool deadlines are 5s and 10s, including body consumption', async (t) => {
+test('GET and tool deadlines are 30s and 45s, including body consumption', async (t) => {
   const deadlines = [];
   t.mock.method(AbortSignal, 'timeout', (ms) => {
     deadlines.push(ms);
@@ -96,7 +174,7 @@ test('GET and tool deadlines are 5s and 10s, including body consumption', async 
   await request({ label: 'S' }, 'POST', '/v1/agent-tools/tool/execute', {
     phase: 'tool',
   });
-  assert.deepEqual(deadlines, [5_000, 10_000]);
+  assert.deepEqual(deadlines, [30_000, 45_000]);
   assert.equal(records.length, 2);
   assert.ok(
     records.every(
@@ -160,7 +238,7 @@ test('extracts Better Auth session cookie and reads JSON:API resources', () => {
   assert.throws(() => entity({ data: [] }, 'Brand'), /no entity id/);
 });
 
-test('fixture and warm-up use 60s per attempt while controls and tools retain short budgets', async (t) => {
+test('fixture and warm-up use 60s per attempt while controls and tools use sweep budgets', async (t) => {
   const deadlines = [];
   t.mock.method(AbortSignal, 'timeout', (ms) => {
     deadlines.push(ms);
@@ -179,7 +257,7 @@ test('fixture and warm-up use 60s per attempt while controls and tools retain sh
   await request(null, 'POST', '/v1/agent-tools/tool/execute', {
     phase: 'tool',
   });
-  assert.deepEqual(deadlines, [60000, 60000, 60000, 5000, 10000, 10000]);
+  assert.deepEqual(deadlines, [60000, 60000, 60000, 30000, 45000, 45000]);
 });
 
 test('fixture retries network, HTTP 0 and 502-504 failures exactly twice with backoff', async () => {

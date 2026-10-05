@@ -347,7 +347,7 @@ test('CLOUD guard boots the real API with ephemeral services and uploads evidenc
   assert.match(job, /^ {4}timeout-minutes: 15$/m);
   assert.match(
     job,
-    /Sweep handlers with tenant enforcement enabled\n {8}timeout-minutes: 8/,
+    /Sweep handlers with tenant enforcement enabled\n {8}timeout-minutes: 10/,
   );
   assert.match(
     workflow,
@@ -360,6 +360,10 @@ test('CLOUD guard boots the real API with ephemeral services and uploads evidenc
   assert.match(job, /image: redis:7/);
   assert.match(job, /uses: \.\/\.github\/actions\/setup-bun-env/);
   assert.match(job, /bunx turbo run build --filter=@genfeedai\/api/);
+  assert.match(
+    job,
+    /node --test scripts\/ci\/cloud-tenant-guard-sweep\/\*\.test\.mjs/,
+  );
   assert.match(
     job,
     /bun x prisma migrate deploy\n {8}working-directory: packages\/prisma/,

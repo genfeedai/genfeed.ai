@@ -125,3 +125,127 @@ test('ordinary provider 5xx stays a warning with a clean API log', (context) => 
   );
   assert.equal(scanFinalLog(log, report).hasFailed, false);
 });
+
+test('final scan retains S:A known warnings and stale entries without failing', (context) => {
+  const directory = mkdtempSync(join(tmpdir(), 'cloud-tenant-known-final-'));
+  context.after(() => rmSync(directory, { recursive: true, force: true }));
+  const log = join(directory, 'api.log');
+  const reportPath = join(directory, 'report.json');
+  const baselinePath = join(directory, 'baseline.json');
+  const route = '/v1/agent/threads/{threadId}';
+  const entry = { method: 'GET', route, models: ['AgentThread.findFirst'] };
+  const stale = {
+    method: 'GET',
+    route: '/v1/agent/memories/{memoryId}',
+    models: ['AgentMemory.findMany'],
+  };
+  const message =
+    'Tenant isolation: findFirst on AgentThread is missing organizationId';
+  const strictLog = 'API healthy ✓\n';
+  writeFileSync(
+    baselinePath,
+    JSON.stringify({ issue: 'TBD', entries: [entry, stale] }),
+  );
+  writeFileSync(log, `${strictLog}${message}\n`);
+  writeFileSync(
+    reportPath,
+    JSON.stringify({
+      hasFailed: false,
+      failures: [],
+      superadminOverrideLogOffset: Buffer.byteLength(strictLog),
+      durations: { superadminOverrideGets: 100 },
+      phases: { superadminOverrideGets: { requests: 1, timeouts: 0 } },
+      requests: [
+        {
+          actor: 'S:A',
+          method: 'GET',
+          route,
+          path: '/v1/agent/threads/id',
+          sweepPhase: 'superadminOverrideGets',
+          hasTenantHit: true,
+          message,
+        },
+      ],
+    }),
+  );
+  const report = scanFinalLog(log, reportPath, 'success', baselinePath);
+  assert.equal(report.hasFailed, false);
+  assert.equal(report.tenantHitGroups.length, 0);
+  assert.equal(report.knownHits.length, 2);
+  assert.deepEqual(report.staleBaselineEntries, [stale]);
+  assert.deepEqual(report.suggestedBaseline, {
+    issue: 'TBD',
+    entries: [entry],
+  });
+  assert.deepEqual(report.phases, {
+    superadminOverrideGets: { requests: 1, timeouts: 0 },
+  });
+});
+
+test('final scan fails on strict hits despite baseline and on unknown deferred S:A models', (context) => {
+  const directory = mkdtempSync(join(tmpdir(), 'cloud-tenant-unknown-final-'));
+  context.after(() => rmSync(directory, { recursive: true, force: true }));
+  const log = join(directory, 'api.log');
+  const reportPath = join(directory, 'report.json');
+  const baselinePath = join(directory, 'baseline.json');
+  const known =
+    'Tenant isolation: findFirst on AgentThread is missing organizationId\n';
+  writeFileSync(
+    baselinePath,
+    JSON.stringify({
+      issue: 'TBD',
+      entries: [
+        {
+          method: 'GET',
+          route: '/v1/agent/threads/{threadId}',
+          models: ['AgentThread.findFirst'],
+        },
+      ],
+    }),
+  );
+  for (const [text, offset] of [
+    [`${known}S:A begins\n`, Buffer.byteLength(known)],
+    ['Tenant isolation: findMany on AgentMemory\n', 0],
+    [known, null],
+  ]) {
+    writeFileSync(log, text);
+    writeFileSync(
+      reportPath,
+      JSON.stringify({
+        hasFailed: false,
+        failures: [],
+        requests: [],
+        superadminOverrideLogOffset: offset,
+      }),
+    );
+    const report = scanFinalLog(log, reportPath, 'success', baselinePath);
+    assert.equal(report.hasFailed, true);
+    assert.equal(report.tenantHitGroups.length, 1);
+    assert.equal(report.knownHits.length, 0);
+  }
+});
+
+test('final scan fails closed on a missing baseline or a truncated boundary', (context) => {
+  const directory = mkdtempSync(join(tmpdir(), 'cloud-tenant-boundary-final-'));
+  context.after(() => rmSync(directory, { recursive: true, force: true }));
+  const log = join(directory, 'api.log');
+  const reportPath = join(directory, 'report.json');
+  writeFileSync(log, 'healthy\n');
+  writeFileSync(
+    reportPath,
+    JSON.stringify({
+      hasFailed: false,
+      failures: [],
+      requests: [],
+      superadminOverrideLogOffset: 200,
+    }),
+  );
+  const report = scanFinalLog(
+    log,
+    reportPath,
+    'success',
+    join(directory, 'missing-baseline.json'),
+  );
+  assert.equal(report.hasFailed, true);
+  assert.equal(report.failures.length, 2);
+});

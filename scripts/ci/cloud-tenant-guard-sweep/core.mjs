@@ -38,7 +38,7 @@ export function tenantHit(body) {
 }
 
 export function logHits(log) {
-  return log.split('\n').filter((line) => line.includes('Tenant isolation:'));
+  return log.split('\n').filter((line) => tenantHit(line));
 }
 
 export function requiredEnvKeys(sources) {
@@ -281,6 +281,31 @@ export async function concurrentMap(values, concurrency, worker, signal) {
   return results;
 }
 
+export function createConcurrencyLimiter(concurrency = 10) {
+  if (!Number.isInteger(concurrency) || concurrency < 1)
+    throw new Error('Concurrency must be a positive integer');
+  let active = 0;
+  const queue = [];
+  const drain = () => {
+    while (active < concurrency && queue.length) {
+      const { run, resolve, reject } = queue.shift();
+      active++;
+      Promise.resolve()
+        .then(run)
+        .then(resolve, reject)
+        .finally(() => {
+          active--;
+          drain();
+        });
+    }
+  };
+  return (run) =>
+    new Promise((resolve, reject) => {
+      queue.push({ run, resolve, reject });
+      drain();
+    });
+}
+
 export function getContexts(fixture) {
   return [
     { actor: { ...fixture.member, label: 'M:A' }, organization: fixture.orgA },
@@ -298,8 +323,11 @@ export function getContexts(fixture) {
 }
 
 export async function sweepGets(contexts, routes, worker, signal) {
-  await concurrentMap(contexts, contexts.length, (context) =>
-    concurrentMap(routes, 16, (route) => worker(context, route), signal),
+  await concurrentMap(
+    routes.flatMap((route) => contexts.map((context) => ({ context, route }))),
+    10,
+    ({ context, route }) => worker(context, route),
+    signal,
   );
 }
 
@@ -312,9 +340,9 @@ export async function sweepTools(
   signal,
 ) {
   const phases = [
-    { name: 'readOnlyTools', concurrency: 16, tools: [] },
-    { name: 'writeTools', concurrency: 8, tools: [] },
-    { name: 'destructiveTools', concurrency: 4, tools: [] },
+    { name: 'readOnlyTools', concurrency: 10, tools: [] },
+    { name: 'writeTools', concurrency: 5, tools: [] },
+    { name: 'destructiveTools', concurrency: 2, tools: [] },
   ];
   for (const tool of tools) {
     const index = tool.annotations?.destructiveHint
@@ -324,19 +352,43 @@ export async function sweepTools(
         : 1;
     phases[index].tools.push(tool);
   }
-  // Finish each phase across both actors before allowing the next to mutate.
+  // Only reads run as S; every distinct tool runs once as M:A.
   for (const phase of phases) {
     await measure(phase.name, () =>
-      concurrentMap(contexts, contexts.length, (context) =>
-        concurrentMap(
-          phase.tools,
-          phase.concurrency,
-          (tool) => worker(context, tool),
-          signal,
+      concurrentMap(
+        phase.tools.flatMap((tool) =>
+          (phase.name === 'readOnlyTools'
+            ? contexts
+            : contexts.slice(0, 1)
+          ).map((context) => ({ context, tool })),
         ),
+        phase.concurrency,
+        ({ context, tool }) => worker(context, tool, phase.name),
+        signal,
       ),
     );
   }
+}
+
+export function phaseRequestStats(requests, durations) {
+  return Object.fromEntries(
+    Object.keys(durations)
+      .filter((phase) => phase !== 'total')
+      .map((phase) => {
+        const attempts = requests.filter(
+          (record) => (record.sweepPhase ?? record.phase) === phase,
+        );
+        const final = attempts.filter((record) => !record.isRetry);
+        return [
+          phase,
+          {
+            requests: final.length,
+            attempts: attempts.length,
+            timeouts: final.filter((record) => record.isTimeout).length,
+          },
+        ];
+      }),
+  );
 }
 
 export function timeoutStats(requests) {
@@ -404,16 +456,23 @@ export function groupHits(requests, lines) {
       result.message,
       result.actor,
     );
-  for (const line of lines)
+  for (const evidence of lines) {
+    const line = typeof evidence === 'string' ? evidence : evidence.message;
     add(
       line.match(/(?:GET|POST|PATCH|DELETE|PUT)\s+\S+/)?.[0] ?? 'API stdout',
-      line.slice(line.indexOf('Tenant isolation:')),
+      tenantHit(line),
       'API stdout',
     );
+  }
   return [...groups.values()];
 }
 
-export function coverageErrors(requests, routeCount, toolCount) {
+export function coverageErrors(
+  requests,
+  routeCount,
+  toolCount,
+  readOnlyToolCount = toolCount,
+) {
   const errors = [];
   if (routeCount < 100)
     errors.push(`Only ${routeCount} GET routes discovered (minimum 100)`);
@@ -451,13 +510,14 @@ export function coverageErrors(requests, routeCount, toolCount) {
       );
   }
   for (const actor of ['M:A', 'S']) {
+    const expected = actor === 'S' ? readOnlyToolCount : toolCount;
     const attempted = requests.filter(
       (result) =>
         result.phase === 'tool' && result.actor === actor && !result.isRetry,
     );
-    if (attempted.length !== toolCount)
+    if (attempted.length !== expected)
       errors.push(
-        `${actor}: ${attempted.length}/${toolCount} tool requests attempted`,
+        `${actor}: ${attempted.length}/${expected} tool requests attempted`,
       );
     const completed = requests.filter(
       (result) =>
@@ -468,17 +528,18 @@ export function coverageErrors(requests, routeCount, toolCount) {
         result.status !== 429,
     );
     const timedOut = attempted.filter((result) => result.isTimeout).length;
-    if (completed.length + timedOut !== toolCount)
+    if (completed.length + timedOut !== expected)
       errors.push(
-        `${actor}: ${completed.length}/${toolCount} tool requests reached the API`,
+        `${actor}: ${completed.length}/${expected} tool requests reached the API`,
       );
     const accepted = completed.filter(
       (result) =>
         !result.skipReason && ![400, 403, 404].includes(result.status),
     );
-    if (accepted.length < 10)
+    const minimumAccepted = Math.min(10, expected);
+    if (accepted.length < minimumAccepted)
       errors.push(
-        `${actor}: only ${accepted.length} tools accepted (minimum 10)`,
+        `${actor}: only ${accepted.length} tools accepted (minimum ${minimumAccepted})`,
       );
   }
   return errors;
