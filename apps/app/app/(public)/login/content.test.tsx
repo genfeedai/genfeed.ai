@@ -550,9 +550,12 @@ describe('LoginPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Google' }));
     await waitFor(() => {
-      expect(authClientMocks.social).toHaveBeenCalledWith(
-        expect.objectContaining({ callbackURL: absoluteCallback(consent) }),
-      );
+      expect(authClientMocks.social).toHaveBeenCalledWith({
+        callbackURL: absoluteCallback(consent),
+        // A cancelled Google sign-in returns to the chooser for this request.
+        errorCallbackURL: `${window.location.origin}/login?${encoded}`,
+        provider: 'google',
+      });
     });
   });
 
@@ -599,7 +602,7 @@ describe('LoginPage', () => {
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
         callbackURL: absoluteCallback('/onboarding'),
-        errorCallbackURL: `${window.location.origin}/login`,
+        errorCallbackURL: `${window.location.origin}/login?callbackUrl=%2Fonboarding`,
         provider: 'google',
       });
     });

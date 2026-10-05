@@ -395,7 +395,7 @@ export default function LoginBetterAuth({
     try {
       const result = await signIn.social({
         callbackURL: authCallbackURL,
-        errorCallbackURL: getAuthErrorCallbackURL(),
+        errorCallbackURL: getAuthErrorCallbackURL(callbackURL),
         provider,
       });
       if (result?.error) {
