@@ -34,10 +34,28 @@ const audit = {
 let dialogMode = 'cancel';
 let pendingDialog;
 let failRename = false;
+// Test-only: force local mode on for the local acceptance scenarios. Production
+// reads the flag through isDesktopLocalModeEnabled(), which honours this symbol
+// and nothing the shipped app reads from its environment.
+if (process.env.GENFEED_RUNTIME_ACCEPTANCE_LOCAL_MODE === '1')
+  globalThis[Symbol.for('genfeed.desktop.localModeTestOverride')] = true;
 let startMain;
 const started = new Promise((resolve) => {
   startMain = resolve;
 });
+let fixtureReady;
+const prepared = new Promise((resolve) => {
+  fixtureReady = resolve;
+});
+// Production main registers its privileged scheme at import time, which Electron
+// only allows before `ready`. Import it before ready and hold its startup (its
+// own `app.whenReady()`) until the fixture is written and the test says `start`.
+const whenElectronReady = app.whenReady.bind(app);
+app.whenReady = () =>
+  Promise.all([whenElectronReady(), prepared, started]).then(() => undefined);
+const mainImport = import(
+  pathToFileURL(path.resolve(__dirname, '../dist/main.js')).href
+);
 const originalDialog = dialog.showMessageBox.bind(dialog);
 dialog.showMessageBox = (...args) => {
   const options = args.at(-1);
@@ -100,7 +118,7 @@ globalThis.__genfeedRuntimeAcceptance = {
   },
 };
 void (async () => {
-  await app.whenReady();
+  await whenElectronReady();
   session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
     const url = new URL(details.url);
     const allowed =
@@ -134,8 +152,8 @@ void (async () => {
     }),
     { mode: 0o600 },
   );
-  await started;
-  await import(pathToFileURL(path.resolve(__dirname, '../dist/main.js')).href);
+  fixtureReady();
+  await mainImport;
 })().catch((error) => {
   console.error(error);
   app.exit(1);

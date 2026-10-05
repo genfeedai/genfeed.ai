@@ -31,7 +31,7 @@ interface LinkedInTrendCandidate {
 
 const DEFAULT_LINKEDIN_TREND_SOURCE_URLS = [
   'https://www.linkedin.com/company/openai/',
-  'https://www.linkedin.com/company/anthropic-ai/',
+  'https://www.linkedin.com/company/anthropicresearch/',
   'https://www.linkedin.com/company/hubspot/',
   'https://www.linkedin.com/company/canva/',
   'https://www.linkedin.com/company/notionhq/',

@@ -1,4 +1,5 @@
 import type { CacheService } from '@api/services/cache/cache.service';
+import { readTrimmedStringOrNull } from '@genfeedai/utils/data/extract.util';
 
 /**
  * Server-owned pending-confirmation record for tools that gate execution on a
@@ -18,12 +19,6 @@ export type PendingToolConfirmation = {
   threadId: string;
   toolName: string;
 };
-
-function readNonEmptyString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : null;
-}
 
 export function buildToolConfirmationCacheKey(params: {
   organizationId: string;
@@ -48,13 +43,13 @@ export function readPendingToolConfirmation(
   }
 
   const candidate = value as Record<string, unknown>;
-  const organizationId = readNonEmptyString(candidate.organizationId);
-  const sourceActionId = readNonEmptyString(candidate.sourceActionId);
+  const organizationId = readTrimmedStringOrNull(candidate.organizationId);
+  const sourceActionId = readTrimmedStringOrNull(candidate.sourceActionId);
   // Publish cards raised outside a thread persist an empty threadId; only
   // the shape has to hold, the equality check in verify still binds it.
   const threadId =
     typeof candidate.threadId === 'string' ? candidate.threadId : null;
-  const toolName = readNonEmptyString(candidate.toolName);
+  const toolName = readTrimmedStringOrNull(candidate.toolName);
 
   if (!organizationId || !sourceActionId || threadId === null || !toolName) {
     return null;

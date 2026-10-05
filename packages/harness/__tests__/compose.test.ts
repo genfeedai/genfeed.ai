@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { composeContentHarnessBrief } from '../src/compose';
 import { CORE_CONTENT_HARNESS_PACK } from '../src/defaults';
+import { VIRAL_PSYCHOLOGY_HARNESS_PACK } from '../src/persuasion/viral-psychology';
 import { ContentHarnessRegistry } from '../src/registry';
 import type {
   ContentHarnessContribution,
@@ -209,5 +210,64 @@ describe('Brand OS identity receipts', () => {
       brandOs: 'none',
       harnessProfileId: 'profile-7',
     });
+  });
+});
+
+describe('composeContentHarnessBrief surfaces', () => {
+  const MEDIA_INPUT: ContentHarnessInput = {
+    ...BASE_INPUT,
+    intent: { contentType: 'video', objective: 'engagement' },
+  };
+
+  function buildRegistry(): ContentHarnessRegistry {
+    const registry = new ContentHarnessRegistry();
+    registry.registerPack(CORE_CONTENT_HARNESS_PACK);
+    registry.registerPack({
+      ...VIRAL_PSYCHOLOGY_HARNESS_PACK,
+      surfaces: ['copy'],
+    });
+    return registry;
+  }
+
+  it('keeps copy-only persuasion rules out of a media brief', async () => {
+    const brief = await composeContentHarnessBrief(
+      buildRegistry(),
+      MEDIA_INPUT,
+      { surface: 'media' },
+    );
+    const text = JSON.stringify(brief);
+
+    expect(brief.packs).not.toContain('viral-psychology');
+    expect(brief.appliedPacks).not.toContain('viral-psychology');
+    expect(text).not.toContain('Attach to demand that already exists');
+    expect(text).not.toContain('first three seconds');
+    expect(brief.evaluationCriteria.join(' ')).not.toContain('Hook strength');
+  });
+
+  it('still applies the persuasion pack on the copy surface and by default', async () => {
+    const registry = buildRegistry();
+
+    for (const options of [{ surface: 'copy' as const }, undefined]) {
+      const brief = await composeContentHarnessBrief(
+        registry,
+        MEDIA_INPUT,
+        options,
+      );
+      expect(brief.appliedPacks).toContain('viral-psychology');
+      expect(brief.evaluationCriteria.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('applies packs that declare no surfaces to every surface', async () => {
+    const registry = new ContentHarnessRegistry();
+    registry.registerPack(
+      buildPack('open', { styleDirectives: ['Keep it on brand.'] }),
+    );
+
+    const brief = await composeContentHarnessBrief(registry, MEDIA_INPUT, {
+      surface: 'media',
+    });
+
+    expect(brief.styleDirectives).toEqual(['Keep it on brand.']);
   });
 });

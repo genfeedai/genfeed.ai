@@ -1,6 +1,7 @@
 'use client';
 
 import { getActionDefinition } from '@genfeedai/actions';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import {
   ActionSchemaFields,
   createActionVisualDefinition,
@@ -17,12 +18,6 @@ import { useWorkflowActionScope } from '@/features/workflows/hooks/useWorkflowAc
 
 const ACTION_NODE_MIN_WIDTH = 300;
 const ACTION_NODE_MIN_HEIGHT = 220;
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
 
 function CloudGenfeedActionNodeComponent(props: NodeProps) {
   const translate = useTranslations('pages.workflows.actionNode');

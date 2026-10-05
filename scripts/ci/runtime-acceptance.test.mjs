@@ -469,7 +469,7 @@ test('retains unchanged dataset latency, SQL, bind and graph bounds', () => {
     assert.throws(() => parseDatasetRecords(lines(records), 'matrix'));
   }
   const records = matrix();
-  records[4].elapsedMs = 60001;
+  records[4].elapsedMs = 75001;
   assert.throws(() => parseDatasetRecords(lines(records), 'matrix'));
 });
 

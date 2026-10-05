@@ -26,6 +26,7 @@ import type {
   UpcomingScheduleDay,
   VerifiedMcpConnection,
 } from '@genfeedai/props/home/operational-home.props';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 export type {
   CredentialHealthSummary,
@@ -58,10 +59,6 @@ export function resolveOperationalHomeScope({
     organizationId: scopedOrganizationId,
     orgSlug: getBrandOrganizationSlug(brand),
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function getConnectGenfeedMetadata(

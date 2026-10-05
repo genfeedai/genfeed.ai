@@ -1,9 +1,9 @@
 import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
-import { readNonEmptyString } from '@api/collections/articles/utils/article-input-boundary.util';
 import type { PublicArticleScope } from '@api/collections/articles/utils/public-article-scope.util';
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { ChannelDispatchInput } from '@api/services/activity-recording/activity-recording.types';
+import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 

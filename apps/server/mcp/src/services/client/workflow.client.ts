@@ -15,7 +15,7 @@ import type {
 import type { BaseApiClient } from './base-api-client';
 import { CONTENT_STATUS, type JsonApiResource } from './client.types';
 
-function asRecord(value: unknown): Record<string, unknown> {
+function readObjectLikeOrEmpty(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object'
     ? (value as Record<string, unknown>)
     : {};
@@ -36,7 +36,7 @@ function asArray(value: unknown): unknown[] {
 }
 
 function resourceId(resource: JsonApiResource | undefined): string {
-  const attrs = asRecord(resource?.attributes);
+  const attrs = readObjectLikeOrEmpty(resource?.attributes);
   return String(resource?.id ?? attrs.id ?? '');
 }
 
@@ -44,8 +44,8 @@ function resourceId(resource: JsonApiResource | undefined): string {
 function readTemplateFields(
   template: WorkflowTemplateResource,
 ): Record<string, unknown> {
-  const root = asRecord(template);
-  const attributes = asRecord(root.attributes);
+  const root = readObjectLikeOrEmpty(template);
+  const attributes = readObjectLikeOrEmpty(root.attributes);
   return {
     ...root,
     ...attributes,
@@ -56,7 +56,7 @@ function readTemplateFields(
 function mapWorkflowResource(
   resource: JsonApiResource | undefined,
 ): WorkflowResponse {
-  const attrs = asRecord(resource?.attributes);
+  const attrs = readObjectLikeOrEmpty(resource?.attributes);
   const nodes = asArray(attrs.nodes);
   const edges = asArray(attrs.edges);
   const status = asString(attrs.status) ?? CONTENT_STATUS.DRAFT;
@@ -75,7 +75,7 @@ function mapWorkflowResource(
         : undefined,
     lastRunAt: asString(attrs.lastRunAt) ?? asString(attrs.lastExecutedAt),
     lifecycle: asString(attrs.lifecycle),
-    metadata: asRecord(attrs.metadata),
+    metadata: readObjectLikeOrEmpty(attrs.metadata),
     name: asString(attrs.name) ?? asString(attrs.label) ?? 'Untitled workflow',
     nextRunAt: asString(attrs.nextRunAt),
     nodeCount: nodes.length,
@@ -113,7 +113,7 @@ function mapSystemWorkflowCatalogEntry(
 function mapWorkflowRunResource(
   resource: JsonApiResource | undefined,
 ): WorkflowRunResponse {
-  const attrs = asRecord(resource?.attributes);
+  const attrs = readObjectLikeOrEmpty(resource?.attributes);
 
   return {
     completedAt: asString(attrs.completedAt),
@@ -121,7 +121,7 @@ function mapWorkflowRunResource(
     durationMs: asNumber(attrs.durationMs),
     error: asString(attrs.error),
     id: resourceId(resource),
-    metadata: asRecord(attrs.metadata),
+    metadata: readObjectLikeOrEmpty(attrs.metadata),
     nodeResults: asArray(attrs.nodeResults),
     progress: asNumber(attrs.progress),
     startedAt: asString(attrs.startedAt),
@@ -362,7 +362,7 @@ export class WorkflowClient {
         });
 
         const entries = asArray(response.data?.data).map((entry) =>
-          mapSystemWorkflowCatalogEntry(asRecord(entry)),
+          mapSystemWorkflowCatalogEntry(readObjectLikeOrEmpty(entry)),
         );
 
         return entries

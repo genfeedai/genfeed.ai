@@ -1,10 +1,8 @@
 import type {
   ApifyActorRun,
   ApifyActorRunResponse,
-  ApifyRunBudgetDecision,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
-import { ApifyRunBudgetService } from '@api/services/integrations/apify/services/modules/apify-run-budget.service';
 import { isAmbiguousApifyStartError } from '@api/services/integrations/apify/utils/apify-error.util';
 import { ResearchAccessService } from '@api/services/research-access/research-access.service';
 import type { ResearchCollectionRunOptions } from '@api/services/research-access/research-collection.interfaces';
@@ -51,7 +49,7 @@ const RUN_START_TIMEOUT_MS = 30_000;
 
 /**
  * Clock skew and the small gap between recording `startAttemptedAt` and
- * actually issuing the POST (rate-limit bookkeeping runs in between).
+ * actually issuing the POST (admission and submission bookkeeping run in between).
  */
 const RUN_START_MATCH_BUFFER_MS = 5_000;
 
@@ -76,7 +74,6 @@ export class ResearchCollectionRunner {
   constructor(
     private readonly access: ResearchAccessService,
     private readonly jobs: ResearchCollectionJobService,
-    private readonly budget: ApifyRunBudgetService,
     private readonly baseService: ApifyBaseService,
     private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
@@ -182,20 +179,12 @@ export class ResearchCollectionRunner {
         'research_collection_recovery_pending',
       );
     }
-    let budget: ApifyRunBudgetDecision;
     try {
       this.baseService.assertCollectionAdmission(scope);
-      budget = await this.budget.consumeRun(scope, actorId);
     } catch (error: unknown) {
       this.baseService.recordCollectionFailure(scope, actorId, error);
       await this.stopUnsubmitted(job, 'admission_rejected');
       throw error;
-    }
-    if (!budget.isAllowed) {
-      await this.stopUnsubmitted(job, 'budget_paused');
-      throw new ServiceUnavailableException(
-        budget.reason ?? 'Apify run budget exhausted',
-      );
     }
     const scopedJob = { ...job, scope };
     const currentAccess = await this.access.decide(job.organizationId);
@@ -216,7 +205,6 @@ export class ResearchCollectionRunner {
       actorId,
       input,
       token.token,
-      budget,
       scope,
       submissionAt,
     );
@@ -242,17 +230,11 @@ export class ResearchCollectionRunner {
     actorId: string,
     input: object,
     token: string,
-    budget: ApifyRunBudgetDecision,
     scope: string,
     startedAt: Date,
   ): Promise<ApifyActorRun> {
     try {
-      return await this.postRun(
-        actorId,
-        input,
-        token,
-        budget.maxTotalChargeUsd,
-      );
+      return await this.postRun(actorId, input, token);
     } catch (error: unknown) {
       this.baseService.recordCollectionFailure(scope, actorId, error);
       if (!isAmbiguousApifyStartError(error)) {
@@ -506,9 +488,8 @@ export class ResearchCollectionRunner {
     actorId: string,
     input: object,
     token: string,
-    maxTotalChargeUsd?: number,
   ): Promise<ApifyActorRun> {
-    const url = this.baseService.buildActorRunUrl(actorId, maxTotalChargeUsd);
+    const url = this.baseService.buildActorRunUrl(actorId);
     const response = await firstValueFrom(
       this.httpService.post<ApifyActorRunResponse>(url, input, {
         headers: this.authHeaders(token),

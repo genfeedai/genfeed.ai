@@ -14,6 +14,7 @@ import {
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { readTrimmedStringOrNull } from '@genfeedai/utils/data/extract.util';
 import {
   BadRequestException,
   Inject,
@@ -39,12 +40,6 @@ const CAMPAIGN_PREPARATION_TTL_SECONDS = 3_600;
 const CAMPAIGN_TRANSITION_LOCK_TTL_SECONDS = 60;
 const CAMPAIGN_SOURCE_ACTION_ID_PATTERN =
   /campaign-transition-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i;
-
-function readNonEmptyString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : null;
-}
 
 function readCampaignStatus(value: unknown): CampaignStatus | null {
   return (
@@ -103,13 +98,17 @@ export function readPreparedCampaignTransition(
 
   const candidate = value as Record<string, unknown>;
   const brandId =
-    candidate.brandId === null ? null : readNonEmptyString(candidate.brandId);
-  const campaignId = readNonEmptyString(candidate.campaignId);
-  const confirmationPrompt = readNonEmptyString(candidate.confirmationPrompt);
+    candidate.brandId === null
+      ? null
+      : readTrimmedStringOrNull(candidate.brandId);
+  const campaignId = readTrimmedStringOrNull(candidate.campaignId);
+  const confirmationPrompt = readTrimmedStringOrNull(
+    candidate.confirmationPrompt,
+  );
   const currentStatus = readCampaignStatus(candidate.currentStatus);
   const intendedStatus = readCampaignStatus(candidate.intendedStatus);
-  const label = readNonEmptyString(candidate.label);
-  const sourceActionId = readNonEmptyString(candidate.sourceActionId);
+  const label = readTrimmedStringOrNull(candidate.label);
+  const sourceActionId = readTrimmedStringOrNull(candidate.sourceActionId);
   const transition = candidate.transition;
   if (
     !campaignId ||

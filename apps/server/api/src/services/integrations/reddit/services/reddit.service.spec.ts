@@ -1,4 +1,8 @@
 import {
+  captureTrendRefreshEvidence,
+  withTrendRefreshAttempt,
+} from '@api/collections/trends/utils/trend-refresh-evidence.util';
+import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
@@ -22,9 +26,16 @@ describe('RedditService', () => {
   let service: RedditService;
   let credentialsService: ServerCredentialStore;
   let httpService: HttpService;
+  let config: Record<string, string>;
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    config = {
+      REDDIT_CLIENT_ID: 'id',
+      REDDIT_CLIENT_SECRET: 'secret',
+      REDDIT_REDIRECT_URI: 'http://localhost',
+      REDDIT_USER_AGENT: 'test-agent',
+    };
     const credentialsMock = {
       findAll: vi.fn(),
       findBrandAccounts: vi.fn(),
@@ -48,15 +59,7 @@ describe('RedditService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: vi.fn((key: string) => {
-              const config: Record<string, string> = {
-                REDDIT_CLIENT_ID: 'id',
-                REDDIT_CLIENT_SECRET: 'secret',
-                REDDIT_REDIRECT_URI: 'http://localhost',
-                REDDIT_USER_AGENT: 'test-agent',
-              };
-              return config[key];
-            }),
+            get: vi.fn((key: string) => config[key]),
           },
         },
         {
@@ -265,6 +268,37 @@ describe('RedditService', () => {
       expect.any(Object),
     );
   });
+
+  it.each([
+    [
+      'both credentials are missing',
+      ['REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET'],
+    ],
+    ['the client secret is missing', ['REDDIT_CLIENT_SECRET']],
+  ])(
+    'skips the native provider without calling Reddit when %s',
+    async (_label, missingKeys) => {
+      for (const key of missingKeys) {
+        config[key] = '  ';
+      }
+
+      const captured = await captureTrendRefreshEvidence(() =>
+        withTrendRefreshAttempt('reddit', 'trends', 'global', () =>
+          service.getTrends(),
+        ),
+      );
+
+      expect(captured.result).toEqual([]);
+      expect(captured.evidence).toEqual([
+        expect.objectContaining({
+          outcome: 'native_empty',
+          reason: 'native_unavailable',
+        }),
+      ]);
+      expect(httpService.post).not.toHaveBeenCalled();
+      expect(httpService.get).not.toHaveBeenCalled();
+    },
+  );
 
   it('propagates native listing errors for orchestration fallback', async () => {
     (httpService.post as Mock).mockReturnValue(

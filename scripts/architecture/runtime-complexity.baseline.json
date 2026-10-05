@@ -84,7 +84,7 @@
     "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts"
   },
   {
-    "actual": 1508,
+    "actual": 1504,
     "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts"

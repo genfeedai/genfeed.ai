@@ -47,7 +47,7 @@ interface ValidationFailure {
   property?: string;
 }
 
-function readString(value: unknown): string | undefined {
+function readErrorText(value: unknown): string | undefined {
   if (typeof value === 'string' && value.trim()) {
     return value;
   }
@@ -165,18 +165,20 @@ export class OAuthExceptionFilter implements ExceptionFilter {
     const payload =
       exception instanceof HttpException ? exception.getResponse() : undefined;
     const record = isRecord(payload) ? payload : {};
-    const namedError = readString(record.error);
+    const namedError = readErrorText(record.error);
     const error =
       namedError && OAUTH_ERROR_CODE.test(namedError)
         ? namedError
         : this.defaultErrorFor(status);
     const description =
-      readString(record.error_description) ??
+      readErrorText(record.error_description) ??
       describeValidationFailures(record.errors) ??
-      readString(record.detail) ??
-      readString(record.message) ??
-      readString(payload) ??
-      (exception instanceof Error ? readString(exception.message) : undefined);
+      readErrorText(record.detail) ??
+      readErrorText(record.message) ??
+      readErrorText(payload) ??
+      (exception instanceof Error
+        ? readErrorText(exception.message)
+        : undefined);
 
     return {
       error,

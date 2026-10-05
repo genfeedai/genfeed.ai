@@ -3,7 +3,7 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
 } from '@genfeedai/contracts/constants';
-
+import { isObjectLike } from '@genfeedai/utils/data/extract.util';
 import type {
   ImportedSourcePost,
   SocialPostImportOutcome,
@@ -25,12 +25,8 @@ export class SocialPostImportError extends Error {
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
 function readApiErrorMessage(body: unknown, fallback: string): string {
-  if (!isRecord(body)) {
+  if (!isObjectLike(body)) {
     return fallback;
   }
   const message = body.message;
@@ -50,7 +46,7 @@ function readApiErrorMessage(body: unknown, fallback: string): string {
 }
 
 function readImportedPost(value: unknown): ImportedSourcePost | null {
-  if (!isRecord(value) || typeof value.id !== 'string' || !value.id) {
+  if (!isObjectLike(value) || typeof value.id !== 'string' || !value.id) {
     return null;
   }
   return {
@@ -140,7 +136,7 @@ export async function importSocialPost(input: {
     'Could not import this post.',
     { url },
   );
-  if (!isRecord(payload) || typeof payload.deduplicated !== 'boolean') {
+  if (!isObjectLike(payload) || typeof payload.deduplicated !== 'boolean') {
     throw new SocialPostImportError(
       'Genfeed did not return the imported source.',
     );
@@ -159,10 +155,10 @@ const IMPORTED_PAGE_LIMIT = 100;
 const MAX_IMPORTED_PAGES = 20;
 
 function readCollectionPost(item: unknown): ImportedSourcePost | null {
-  if (!isRecord(item)) {
+  if (!isObjectLike(item)) {
     return null;
   }
-  const attributes = isRecord(item.attributes) ? item.attributes : {};
+  const attributes = isObjectLike(item.attributes) ? item.attributes : {};
   return readImportedPost({
     ...attributes,
     id: typeof item.id === 'string' ? item.id : attributes.id,
@@ -170,11 +166,11 @@ function readCollectionPost(item: unknown): ImportedSourcePost | null {
 }
 
 function readPageCount(payload: unknown): number {
-  if (!isRecord(payload) || !isRecord(payload.links)) {
+  if (!isObjectLike(payload) || !isObjectLike(payload.links)) {
     return 1;
   }
   const pagination = payload.links.pagination;
-  if (!isRecord(pagination) || typeof pagination.pages !== 'number') {
+  if (!isObjectLike(pagination) || typeof pagination.pages !== 'number') {
     return 1;
   }
   if (!Number.isFinite(pagination.pages) || pagination.pages < 1) {
@@ -211,7 +207,7 @@ export async function listImportedSourcePosts(
       'GET',
       'Could not load Imported sources.',
     );
-    if (!isRecord(payload) || !Array.isArray(payload.data)) {
+    if (!isObjectLike(payload) || !Array.isArray(payload.data)) {
       throw new SocialPostImportError('Could not load Imported sources.');
     }
     pages = Math.max(pages, readPageCount(payload));
@@ -226,10 +222,10 @@ export async function listImportedSourcePosts(
 }
 
 function readBrandSlug(payload: unknown, brandId: string): string | null {
-  if (!isRecord(payload) || !isRecord(payload.data)) {
+  if (!isObjectLike(payload) || !isObjectLike(payload.data)) {
     return null;
   }
-  if (payload.data.id !== brandId || !isRecord(payload.data.attributes)) {
+  if (payload.data.id !== brandId || !isObjectLike(payload.data.attributes)) {
     return null;
   }
   const slug = payload.data.attributes.slug;
@@ -240,11 +236,14 @@ function readOrgSlug(payload: unknown): string | null {
   const rows = Array.isArray(payload) ? payload : [];
   const active = rows.find(
     (row) =>
-      isRecord(row) && row.isActive === true && typeof row.slug === 'string',
+      isObjectLike(row) &&
+      row.isActive === true &&
+      typeof row.slug === 'string',
   );
   const chosen =
-    active ?? rows.find((row) => isRecord(row) && typeof row.slug === 'string');
-  if (!isRecord(chosen) || typeof chosen.slug !== 'string') {
+    active ??
+    rows.find((row) => isObjectLike(row) && typeof row.slug === 'string');
+  if (!isObjectLike(chosen) || typeof chosen.slug !== 'string') {
     return null;
   }
   return chosen.slug.trim();

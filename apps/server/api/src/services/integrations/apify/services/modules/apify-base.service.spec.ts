@@ -1,6 +1,5 @@
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
-import { ApifyRunBudgetService } from '@api/services/integrations/apify/services/modules/apify-run-budget.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -27,7 +26,6 @@ describe('ApifyBaseService', () => {
   let httpService: Record<string, ReturnType<typeof vi.fn>>;
   let configService: Record<string, ReturnType<typeof vi.fn>>;
   let byokFactory: Record<string, ReturnType<typeof vi.fn>>;
-  let runBudget: Record<string, ReturnType<typeof vi.fn>>;
   let loggerService: {
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
@@ -53,10 +51,6 @@ describe('ApifyBaseService', () => {
       }),
     };
 
-    runBudget = {
-      consumeRun: vi.fn().mockResolvedValue({ isAllowed: true }),
-    };
-
     loggerService = {
       error: vi.fn(),
       log: vi.fn(),
@@ -67,7 +61,6 @@ describe('ApifyBaseService', () => {
       configService as unknown as ConfigService,
       loggerService as unknown as LoggerService,
       httpService as unknown as HttpService,
-      runBudget as unknown as ApifyRunBudgetService,
       byokFactory as unknown as ByokProviderFactoryService,
     );
   });
@@ -104,7 +97,6 @@ describe('ApifyBaseService', () => {
     await expect(service.runActor('unknown/paid-actor', {})).rejects.toThrow(
       'not registered for hosted production execution',
     );
-    expect(runBudget.consumeRun).not.toHaveBeenCalled();
     expect(httpService.post).not.toHaveBeenCalled();
   });
 
@@ -134,7 +126,7 @@ describe('ApifyBaseService', () => {
     await expect(
       service.runActor('streamers/youtube-scraper', {}),
     ).resolves.toEqual([]);
-    expect(runBudget.consumeRun).toHaveBeenCalledTimes(1);
+    expect(httpService.post).toHaveBeenCalledTimes(1);
   });
 
   it('runActor executes actor and returns dataset items', async () => {
@@ -195,10 +187,6 @@ describe('ApifyBaseService', () => {
   });
 
   it('runActor throws when actor run fails', async () => {
-    runBudget.consumeRun.mockResolvedValueOnce({
-      isAllowed: true,
-      maxTotalChargeUsd: 0.25,
-    });
     httpService.post.mockReturnValue(
       of({
         data: {
@@ -221,11 +209,7 @@ describe('ApifyBaseService', () => {
     await expect(execution).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 
-  it('sends the hosted per-run charge ceiling directly to Apify', async () => {
-    runBudget.consumeRun.mockResolvedValueOnce({
-      isAllowed: true,
-      maxTotalChargeUsd: 0.25,
-    });
+  it('starts the actor without an app-side per-run charge cap', async () => {
     httpService.post.mockReturnValue(
       of({
         data: {
@@ -254,7 +238,7 @@ describe('ApifyBaseService', () => {
     await service.runActor('test/actor', {});
 
     expect(httpService.post).toHaveBeenCalledWith(
-      'https://api.apify.com/v2/acts/test~actor/runs?maxTotalChargeUsd=0.25',
+      'https://api.apify.com/v2/acts/test~actor/runs',
       {},
       expect.anything(),
     );
@@ -608,57 +592,35 @@ describe('ApifyBaseService', () => {
     });
   });
 
-  describe('Apify run budget', () => {
-    it('does not call Apify when the run budget is exhausted', async () => {
-      runBudget.consumeRun.mockResolvedValue({
-        isAllowed: false,
-        reason: 'hourly run budget exhausted',
-        retryAfterMs: 60000,
-      });
-
-      await expect(service.runActor('test/actor', {})).rejects.toThrow(
-        /run budget/i,
-      );
-      expect(httpService.post).not.toHaveBeenCalled();
-    });
-
-    it('spends budget against the byok scope for a byok organization', async () => {
-      byokFactory.resolveProvider.mockResolvedValue({
-        apiKey: 'byok-key',
-        source: 'byok',
-      });
+  describe('without app-side run caps', () => {
+    it('starts every hosted run past the former hourly and daily caps', async () => {
       httpService.post.mockReturnValue(
         of({ data: { data: { defaultDatasetId: 'ds-1', id: 'run-1' } } }),
       );
-      httpService.get.mockReturnValue(
-        of({ data: { data: { status: 'SUCCEEDED' } } }),
+      httpService.get.mockImplementation((url: string) =>
+        url.includes('/datasets/')
+          ? of({ data: [] })
+          : of({ data: { data: { id: 'run-1', status: 'SUCCEEDED' } } }),
       );
 
-      await service.runActorForOrg('org-1', 'test/actor', {});
+      for (let run = 0; run < 160; run += 1) {
+        await service.runActor('test/actor', {});
+      }
 
-      expect(runBudget.consumeRun).toHaveBeenCalledWith(
-        'byok:org-1',
-        'test/actor',
-      );
+      expect(httpService.post).toHaveBeenCalledTimes(160);
+      expect(loggerService.warn).not.toHaveBeenCalled();
     });
 
-    it('skips the budget entirely when no token is configured', async () => {
-      configService.get.mockReturnValue(undefined);
-
-      await expect(service.runActor('test/actor', {})).resolves.toEqual([]);
-      expect(runBudget.consumeRun).not.toHaveBeenCalled();
-    });
-
-    it('does not spend budget while the account-limit suspension is active', async () => {
+    it('stops calling Apify while the account-limit suspension is active', async () => {
       httpService.post.mockReturnValue(throwError(() => ACCOUNT_LIMIT_ERROR));
 
       await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
-      runBudget.consumeRun.mockClear();
+      httpService.post.mockClear();
 
       await expect(service.runActor('test/actor', {})).rejects.toThrow(
         /Apify/i,
       );
-      expect(runBudget.consumeRun).not.toHaveBeenCalled();
+      expect(httpService.post).not.toHaveBeenCalled();
     });
   });
 });

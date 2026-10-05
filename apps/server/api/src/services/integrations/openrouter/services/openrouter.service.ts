@@ -25,7 +25,7 @@ interface OpenRouterErrorDetails {
 
 type UnknownRecord = Record<string, unknown>;
 
-function asRecord(value: unknown): UnknownRecord | undefined {
+function readObjectLikeOrUndefined(value: unknown): UnknownRecord | undefined {
   return typeof value === 'object' && value !== null
     ? (value as UnknownRecord)
     : undefined;
@@ -46,11 +46,11 @@ function asNonEmptyString(value: unknown): string | undefined {
 
 function parseRawProviderError(value: unknown): UnknownRecord | undefined {
   if (typeof value !== 'string') {
-    return asRecord(value);
+    return readObjectLikeOrUndefined(value);
   }
 
   try {
-    return asRecord(JSON.parse(value));
+    return readObjectLikeOrUndefined(JSON.parse(value));
   } catch {
     return undefined;
   }
@@ -98,14 +98,15 @@ export class OpenRouterService {
   }
 
   private getSafeErrorDetails(error: unknown): OpenRouterErrorDetails {
-    const errorRecord = asRecord(error);
-    const response = asRecord(errorRecord?.response);
+    const errorRecord = readObjectLikeOrUndefined(error);
+    const response = readObjectLikeOrUndefined(errorRecord?.response);
     const responseData = response?.data;
-    const envelope = asRecord(responseData);
-    const envelopeError = asRecord(envelope?.error);
-    const metadata = asRecord(envelopeError?.metadata);
+    const envelope = readObjectLikeOrUndefined(responseData);
+    const envelopeError = readObjectLikeOrUndefined(envelope?.error);
+    const metadata = readObjectLikeOrUndefined(envelopeError?.metadata);
     const rawEnvelope = parseRawProviderError(metadata?.raw);
-    const rawError = asRecord(rawEnvelope?.error) ?? rawEnvelope;
+    const rawError =
+      readObjectLikeOrUndefined(rawEnvelope?.error) ?? rawEnvelope;
     const transportStatus =
       asHttpStatus(response?.status) ?? asHttpStatus(errorRecord?.status);
     const status =
@@ -192,9 +193,12 @@ export class OpenRouterService {
       );
       throw error;
     }
-    const body = asRecord(response);
+    const body = readObjectLikeOrUndefined(response);
     const responseId = asNonEmptyString(body?.id);
-    if (typeof asRecord(body?.usage)?.cost === 'number' || !responseId) {
+    if (
+      typeof readObjectLikeOrUndefined(body?.usage)?.cost === 'number' ||
+      !responseId
+    ) {
       return { response, generationMetadata: null };
     }
     try {
@@ -556,8 +560,8 @@ export class OpenRouterService {
       }
 
       const parsed: unknown = JSON.parse(payload);
-      const envelope = asRecord(parsed);
-      const streamError = asRecord(envelope?.error);
+      const envelope = readObjectLikeOrUndefined(parsed);
+      const streamError = readObjectLikeOrUndefined(envelope?.error);
       if (streamError) {
         const status = asHttpStatus(streamError.code) ?? 502;
         throw Object.assign(

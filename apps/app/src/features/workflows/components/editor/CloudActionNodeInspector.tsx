@@ -2,6 +2,7 @@
 
 import { getActionDefinition } from '@genfeedai/actions';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { ActionSchemaFields, PanelContainer } from '@genfeedai/workflows/ui';
 import { useUIStore, useWorkflowStore } from '@genfeedai/workflows/ui/stores';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
@@ -35,12 +36,6 @@ const SCOPED_FIELDS = new Set([
   'timezone',
   'topics',
 ]);
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
 
 function schemaProperties(schema: object): Record<string, unknown> {
   if (!('properties' in schema)) {

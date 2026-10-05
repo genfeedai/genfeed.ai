@@ -22,6 +22,7 @@ import {
 import { deriveReleaseStatusProjectionFromTargets } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { FIRST_SUCCESSFUL_PUBLISH_EVENT } from '@genfeedai/contracts/constants';
 import type { IWebhookDeliveryStatus } from '@genfeedai/contracts/interfaces';
+import { readNonBlankStringOrNull } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
@@ -302,7 +303,7 @@ export class PublishEventWebhookService {
     post: PublishWebhookPostSnapshot,
     currentTarget: PublishWebhookTarget,
   ): Promise<TerminalTargetResolution> {
-    const groupId = readString(post.groupId);
+    const groupId = readNonBlankStringOrNull(post.groupId);
     if (!groupId) {
       return { reason: 'terminal', targets: [currentTarget] };
     }
@@ -422,11 +423,16 @@ export class PublishEventWebhookService {
             }
           : null,
       externalProviderId:
-        input.externalProviderId ?? readString(input.post.externalId),
+        input.externalProviderId ??
+        readNonBlankStringOrNull(input.post.externalId),
       externalShortcode:
-        input.externalShortcode ?? readString(input.post.externalShortcode),
+        input.externalShortcode ??
+        readNonBlankStringOrNull(input.post.externalShortcode),
       id: targetId,
-      platform: input.platform ?? readString(input.post.platform) ?? 'unknown',
+      platform:
+        input.platform ??
+        readNonBlankStringOrNull(input.post.platform) ??
+        'unknown',
       publishedAt:
         status === TargetExecutionState.PUBLISHED
           ? (toIsoString(
@@ -437,7 +443,7 @@ export class PublishEventWebhookService {
           : null,
       scheduledAt: toIsoString(input.post.scheduledDate),
       status,
-      url: input.url ?? readString(input.post.url),
+      url: input.url ?? readNonBlankStringOrNull(input.post.url),
     };
   }
 
@@ -486,7 +492,7 @@ export class PublishEventWebhookService {
 function mapPostToTerminalTargetState(
   post: PublishWebhookPostSnapshot,
 ): TargetExecutionState.PUBLISHED | TargetExecutionState.FAILED | null {
-  const executionState = readString(post.targetExecutionState);
+  const executionState = readNonBlankStringOrNull(post.targetExecutionState);
   if (executionState === TargetExecutionState.PUBLISHED) {
     return TargetExecutionState.PUBLISHED;
   }
@@ -494,7 +500,7 @@ function mapPostToTerminalTargetState(
     return TargetExecutionState.FAILED;
   }
 
-  switch (readString(post.status)) {
+  switch (readNonBlankStringOrNull(post.status)) {
     case 'public':
     case 'private':
     case 'unlisted':
@@ -510,7 +516,7 @@ function readReleaseId(
   post: PublishWebhookPostSnapshot,
   fallbackId: string,
 ): string {
-  return readString(post.groupId) ?? fallbackId;
+  return readNonBlankStringOrNull(post.groupId) ?? fallbackId;
 }
 
 function readReferenceId(value: unknown): string | null {
@@ -522,11 +528,7 @@ function readReferenceId(value: unknown): string | null {
     return null;
   }
 
-  return readString((value as Record<string, unknown>).id);
-}
-
-function readString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value : null;
+  return readNonBlankStringOrNull((value as Record<string, unknown>).id);
 }
 
 function toIsoString(value: unknown): string | null {

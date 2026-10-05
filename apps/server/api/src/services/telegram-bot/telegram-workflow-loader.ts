@@ -37,7 +37,7 @@ const TELEGRAM_WORKFLOW_FILES: TelegramWorkflowName[] = [
 
 export const TELEGRAM_SYSTEM_WORKFLOW_PREFIX = 'telegram.';
 
-function readString(
+function readStringField(
   source: Record<string, unknown> | undefined,
   key: string,
 ): string | undefined {
@@ -75,7 +75,7 @@ function isWorkflowInputNode(nodeType: string): boolean {
 }
 
 function workflowInputKey(node: WorkflowJson['nodes'][number]): string {
-  return readString(getNodeConfig(node), 'inputName') ?? node.id;
+  return readStringField(getNodeConfig(node), 'inputName') ?? node.id;
 }
 
 function findWorkflowInputNode(
@@ -101,13 +101,14 @@ function createRuntimeWorkflowInput(
   const defaultValue =
     typeof variable.defaultValue === 'string'
       ? variable.defaultValue
-      : readString(nodeConfig, 'defaultValue');
+      : readStringField(nodeConfig, 'defaultValue');
 
   return {
     defaultValue,
     inputKey: variable.key,
     inputType,
-    label: variable.label || readString(node?.data, 'label') || variable.key,
+    label:
+      variable.label || readStringField(node?.data, 'label') || variable.key,
     nodeId: node?.id ?? variable.key,
     nodeType: node?.type ?? 'workflowInput',
     required: variable.required ?? readBoolean(nodeConfig, 'required') ?? true,
@@ -126,10 +127,10 @@ function createWorkflowInputNodeInput(
   const inputKey = workflowInputKey(node);
 
   return {
-    defaultValue: readString(nodeConfig, 'defaultValue'),
+    defaultValue: readStringField(nodeConfig, 'defaultValue'),
     inputKey,
     inputType,
-    label: readString(node.data, 'label') ?? inputKey,
+    label: readStringField(node.data, 'label') ?? inputKey,
     nodeId: node.id,
     nodeType: node.type,
     required: readBoolean(nodeConfig, 'required') ?? false,
@@ -209,7 +210,7 @@ export function toTelegramSystemWorkflowDefinition(
 
   const nodes: WorkflowVisualNode[] = workflow.nodes.map((node, index) => {
     const position = node.position ?? { x: index * 280, y: 120 };
-    const label = readString(node.data, 'label') ?? node.type;
+    const label = readStringField(node.data, 'label') ?? node.type;
     if (isWorkflowInputNode(node.type)) {
       return {
         data: { config: getNodeConfig(node), label },
@@ -225,7 +226,7 @@ export function toTelegramSystemWorkflowDefinition(
     }
 
     const config = getNodeConfig(node);
-    const actionId = readString(config, 'actionId');
+    const actionId = readStringField(config, 'actionId');
     if (!actionId || !getActionDefinition(actionId)) {
       throw new Error(
         `Telegram workflow ${workflowId} references unknown Genfeed action ${String(actionId)}`,

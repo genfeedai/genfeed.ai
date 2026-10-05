@@ -329,13 +329,6 @@ export interface IEnvConfig {
   APP_URL?: string;
 
   APIFY_API_TOKEN?: string;
-  /**
-   * Hard ceilings on Apify actor runs per token scope. Apify bills per run, so
-   * these — not item limits — are what contain spend. `0` disables a ceiling.
-   */
-  APIFY_MAX_RUNS_PER_DAY?: string;
-  APIFY_MAX_RUNS_PER_HOUR?: string;
-  APIFY_MAX_TOTAL_CHARGE_USD_PER_RUN?: string;
   DISCORD_PUBLIC_KEY?: string;
   THREADS_REDIRECT_URI?: string;
 

@@ -74,10 +74,13 @@ export function dataProperties(
     if (typeof key !== 'string' || (allowed && !allowed.has(key))) return null;
     const descriptor = Object.getOwnPropertyDescriptor(value, key);
     if (!descriptor || !('value' in descriptor)) return null;
-    Object.defineProperty(result, key, {
-      value: descriptor.value,
-      enumerable: true,
-    });
+    // Plain assignment is safe except for the prototype setter on `__proto__`.
+    if (key === '__proto__')
+      Object.defineProperty(result, key, {
+        value: descriptor.value,
+        enumerable: true,
+      });
+    else result[key] = descriptor.value;
   }
   return result;
 }
