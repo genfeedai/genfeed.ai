@@ -398,7 +398,7 @@ describe('ToolRegistryService', () => {
       name: 'onboard_brand',
     });
 
-    expect((result as { isError: boolean }).isError).toBe(true);
+    expect(result).toMatchObject({ isError: true });
     expect(clientService.executeAgentTool).not.toHaveBeenCalled();
   });
 
@@ -408,7 +408,7 @@ describe('ToolRegistryService', () => {
       name: 'get_video_analytics',
     });
 
-    expect((result as { isError: boolean }).isError).toBe(true);
+    expect(result).toMatchObject({ isError: true });
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('videoId required');
@@ -480,7 +480,7 @@ describe('ToolRegistryService', () => {
       name: 'get_content_analytics',
     });
 
-    expect((result as { isError: boolean }).isError).toBe(true);
+    expect(result).toMatchObject({ isError: true });
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('Content art-404 not found');
@@ -495,7 +495,7 @@ describe('ToolRegistryService', () => {
       name: 'get_content_analytics',
     });
 
-    expect((result as { isError: boolean }).isError).toBe(true);
+    expect(result).toMatchObject({ isError: true });
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('contentId and contentType required');
@@ -839,7 +839,7 @@ describe('ToolRegistryService', () => {
       name: 'does_not_exist',
     });
 
-    expect((result as { isError: boolean }).isError).toBe(true);
+    expect(result).toMatchObject({ isError: true });
   });
 
   it('handleToolCall create_article_draft queues a pending approval instead of executing', async () => {
