@@ -18,8 +18,12 @@ export type McpToolsetProfileName = (typeof MCP_PROFILE_NAMES)[number];
 /** Profile applied when the request has neither `?toolsets=` nor `?profile=`. */
 export const BARE_URL_MCP_PROFILE: McpToolsetProfileName = 'default';
 
-/** Hard cap on tools advertised by the bare MCP URL (`tools/list`). */
-export const BARE_MCP_URL_TOOL_CAP = 26;
+/**
+ * Hard cap on tools advertised by the bare MCP URL (`tools/list`). 27 makes
+ * room for `onboard_brand` in core: a user who signs up during the connect
+ * must be able to finish onboarding from the bare URL (#6268).
+ */
+export const BARE_MCP_URL_TOOL_CAP = 27;
 
 export const DEFAULT_MCP_PROFILE_TOOLSETS: readonly ToolsetName[] = [
   'core',

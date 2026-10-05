@@ -20,16 +20,20 @@ export class AgentClient {
     name: string,
     parameters: Record<string, unknown>,
     context?: Record<string, unknown>,
+    timeoutMs?: number,
   ): Promise<AgentToolResult> {
     this.base.logger.debug(`Proxying agent tool ${name}`);
 
     return this.base.request(
       `executing agent tool ${name}`,
       async (http) => {
-        const response = await http.post(
-          `/agent-tools/${encodeURIComponent(name)}/execute`,
-          { context, parameters },
-        );
+        const url = `/agent-tools/${encodeURIComponent(name)}/execute`;
+        const body = { context, parameters };
+        // A tool slower than the client default (a brand scan) passes its
+        // own budget so the agent never sees a timeout for work that lands.
+        const response = timeoutMs
+          ? await http.post(url, body, { timeout: timeoutMs })
+          : await http.post(url, body);
         return response.data as AgentToolResult;
       },
       this.base.failWithDetail(`Failed to execute ${name}`),

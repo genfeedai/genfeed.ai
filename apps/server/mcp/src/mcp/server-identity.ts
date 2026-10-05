@@ -10,7 +10,8 @@ export const MCP_SERVER_DESCRIPTION =
 /** Returned once per session in `initialize`; clients add it to the model context. */
 export const MCP_SERVER_INSTRUCTIONS = [
   'Genfeed is an AI content OS for brands.',
-  'Call get_brands first and work inside the brand the user means.',
+  'Call get_account first: if profile.isOnboardingCompleted is false, the user just signed up, so run onboard_brand with them before generating anything.',
+  'Call get_brands and work inside the brand the user means.',
   'Use generate_content for post copy and generate for images, video and audio; media generation is asynchronous, so poll get_job_status until the job finishes.',
   'create_post saves a draft for review. Never publish or schedule a post unless the user explicitly asks for it.',
   'Call find_tools when a request needs a capability that is not in the current tool list.',

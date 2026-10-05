@@ -162,6 +162,28 @@ async function fulfillJson(route: Route, body: unknown): Promise<void> {
   });
 }
 
+async function routeDiscoveryStoryboardMiss(
+  page: Page,
+  runId: string,
+): Promise<void> {
+  // These Discovery fixtures are content runs, so only their native draft
+  // lookup is absent. Other storyboard requests keep their normal contract.
+  await page.route(`**/brands/brand-1/storyboard-runs/${runId}`, (route) =>
+    route.fulfill({
+      status: 404,
+      json: {
+        errors: [
+          {
+            status: '404',
+            title: 'Not Found',
+            detail: 'Storyboard run not found',
+          },
+        ],
+      },
+    }),
+  );
+}
+
 async function routeTikTokTrend(page: Page): Promise<void> {
   await page.route('**/trends/content**', async (route) => {
     await fulfillJson(route, {
@@ -249,6 +271,7 @@ async function routeRemixRun(
   isReviewApproved: () => boolean = () => false,
 ): Promise<void> {
   let run = buildRun(options);
+  await routeDiscoveryStoryboardMiss(page, options.id);
 
   await page.route('**/brands/brand-1/content-runs/remixes', async (route) => {
     onCreate(route.request().postDataJSON() as Record<string, unknown>);
@@ -362,27 +385,6 @@ async function routeRemixRun(
 }
 
 test.describe('Discovery prefilled remix handoff', () => {
-  test.beforeEach(async ({ authenticatedPage }) => {
-    // Discovery runs are absent from the native storyboard collection; a 404
-    // selects the supported legacy Remix renderer.
-    await authenticatedPage.route(
-      '**/brands/brand-1/storyboard-runs/*',
-      (route) =>
-        route.fulfill({
-          status: 404,
-          json: {
-            errors: [
-              {
-                status: '404',
-                title: 'Not Found',
-                detail: 'Storyboard run not found',
-              },
-            ],
-          },
-        }),
-    );
-  });
-
   test('takes an eligible TikTok trend through Review approval to a Publishing draft', async ({
     authenticatedPage,
   }) => {
@@ -779,6 +781,7 @@ test.describe('Discovery prefilled remix handoff', () => {
   test('restores grouped processing outputs and reconciles completion', async ({
     authenticatedPage,
   }) => {
+    const restoredContent = 'Restored Northstar TikTok execution';
     const baseRun = buildRun({
       id: 'run-restore-1',
       platform: 'tiktok',
@@ -804,6 +807,7 @@ test.describe('Discovery prefilled remix handoff', () => {
       variants: [
         {
           assetIds: ['generated-image-restore-1'],
+          content: restoredContent,
           id: 'variant-restored-1',
           recipeRevision: 1,
           status: 'processing',
@@ -824,6 +828,7 @@ test.describe('Discovery prefilled remix handoff', () => {
         variants: [
           {
             assetIds: ['generated-image-restore-1'],
+            content: restoredContent,
             id: 'variant-restored-1',
             recipeRevision: 1,
             status: 'ready',
@@ -835,6 +840,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     };
     let reads = 0;
     let isReady = false;
+    await routeDiscoveryStoryboardMiss(authenticatedPage, baseRun.id);
     await authenticatedPage.route(
       '**/content-runs/run-restore-1/remix',
       async (route) => {
@@ -850,11 +856,17 @@ test.describe('Discovery prefilled remix handoff', () => {
     const panel = authenticatedPage.getByRole('region', { name: 'Remix run' });
     await expect(panel).toBeVisible();
     await expect(panel.getByText('Output 1', { exact: true })).toBeVisible();
+    await expect(
+      panel.getByText(restoredContent, { exact: true }),
+    ).toBeVisible();
     await expect(panel.getByText('Processing')).toBeVisible();
     isReady = true;
     await expect(
       panel.getByRole('button', { name: 'Send 1 to Review' }),
     ).toBeVisible({ timeout: 10_000 });
+    await expect(
+      panel.getByText(restoredContent, { exact: true }),
+    ).toBeVisible();
     expect(reads).toBeGreaterThanOrEqual(2);
   });
 
@@ -878,6 +890,7 @@ test.describe('Discovery prefilled remix handoff', () => {
       },
       status: ContentRunStatus.COMPLETED,
     };
+    await routeDiscoveryStoryboardMiss(authenticatedPage, baseRun.id);
     await authenticatedPage.route(
       '**/content-runs/run-publish-1/remix',
       async (route) => {
@@ -1141,6 +1154,7 @@ test.describe('Discovery prefilled remix handoff', () => {
       phase: 'ready_for_review',
       status: ContentRunStatus.COMPLETED,
     };
+    await routeDiscoveryStoryboardMiss(authenticatedPage, baseRun.id);
     await authenticatedPage.route(
       '**/content-runs/run-copy-1/remix',
       async (route) => {

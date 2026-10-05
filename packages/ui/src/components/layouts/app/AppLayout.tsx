@@ -146,14 +146,7 @@ export default function AppLayout({
           {hasMobileNavigation && isSidebarOpen ? (
             <>
               {/* Mobile navigation drawer: app rail beside the module menu */}
-              <div
-                className={cn(
-                  'fixed inset-0 z-40 transition-opacity duration-200 md:hidden',
-                  isSidebarOpen
-                    ? 'flex pointer-events-auto opacity-100'
-                    : 'hidden pointer-events-none opacity-0',
-                )}
-              >
+              <div className="fixed inset-0 z-40 flex md:hidden">
                 <Button
                   type="button"
                   ariaLabel="Close navigation"
@@ -165,10 +158,7 @@ export default function AppLayout({
                 />
 
                 <div
-                  className={cn(
-                    'relative flex h-full max-w-[85vw] border-r border-border bg-gray-100 transition-transform duration-200',
-                    isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
-                  )}
+                  className="relative flex h-full max-w-[85vw] border-r border-border bg-gray-100"
                   style={{
                     width: mobileMenuContent
                       ? `calc(${mobileSidebarWidth}px + var(--desktop-rail-width))`

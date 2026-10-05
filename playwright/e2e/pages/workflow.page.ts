@@ -172,12 +172,7 @@ export class WorkflowPage {
         ' button:has-text("Save"),' +
         ' button[aria-label*="save" i]',
     );
-    this.runButton = page.locator(
-      '[data-testid="run-button"],' +
-        ' button:has-text("Run"),' +
-        ' button:has-text("Execute"),' +
-        ' button[aria-label*="run" i]',
-    );
+    this.runButton = page.getByTestId('workflow-editor-run');
     this.undoButton = page.locator(
       '[data-testid="undo-button"],' + ' button[aria-label*="undo" i]',
     );
@@ -358,7 +353,8 @@ export class WorkflowPage {
   }
 
   async clickRun(): Promise<void> {
-    await this.runButton.first().click();
+    await expect(this.canvas).toBeVisible();
+    await this.runButton.click();
   }
 
   async clickUndo(): Promise<void> {

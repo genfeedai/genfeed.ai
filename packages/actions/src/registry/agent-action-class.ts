@@ -89,6 +89,7 @@ const BRAND_CONTEXT_TOOL_NAMES = new Set<string>([
   'update_strategy_state',
   'create_brand',
   'create_brand_from_url',
+  'onboard_brand',
   'rename_brand',
   'submit_brand_interview_answer',
   'scan_brand_url',

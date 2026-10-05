@@ -79,6 +79,45 @@ export function buildBrowserAuthCallbackURL(
   return callback.toString();
 }
 
+/**
+ * Better Auth's magic-link verify runs `decodeURIComponent` on `callbackURL`
+ * after the query parser already decoded it (better-auth 1.6.x). A
+ * continuation with its own query (`/oauth/consent?client_id=…&state=…`)
+ * would split into root query fields and lose everything after its first
+ * parameter. Encode the continuation once more so that extra decode restores
+ * exactly what {@link buildBrowserAuthCallbackURL} returns.
+ */
+export function buildMagicLinkCallbackURL(
+  continuation: string,
+  origin: string,
+): string {
+  const callbackURL = buildBrowserAuthCallbackURL(continuation, origin);
+  if (isDesktopAuthCallback(callbackURL)) {
+    return callbackURL;
+  }
+
+  const callback = new URL(callbackURL);
+  const resolved = callback.searchParams.get(WEB_CONTINUATION_PARAM);
+  if (!resolved) {
+    return callbackURL;
+  }
+
+  return `${callback.origin}${callback.pathname}?${WEB_CONTINUATION_PARAM}=${encodeURIComponent(encodeURIComponent(resolved))}`;
+}
+
+/**
+ * The URL Better Auth's magic-link verify redirects to for a `callbackURL`
+ * query value: it decodes once more (see {@link buildMagicLinkCallbackURL}).
+ * `null` when that decode fails, which Better Auth would reject too.
+ */
+export function readMagicLinkVerifyCallbackURL(value: string): string | null {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return null;
+  }
+}
+
 /** Validate the fixed browser callback contract at server-side auth boundaries. */
 export function isSafeBrowserAuthCallbackURL(
   value: string,

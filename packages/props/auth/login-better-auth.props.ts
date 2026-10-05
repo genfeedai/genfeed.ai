@@ -9,4 +9,12 @@ export type InvitationNotice = {
 
 export interface LoginBetterAuthProps {
   mode?: LoginMode;
+  /**
+   * Where to land after any sign-in or sign-up path. Overrides the page's own
+   * `callbackUrl` param when a host page embeds the chooser (OAuth consent).
+   */
+  callbackURL?: string;
+  /** Chooser heading overrides for an embedding page. */
+  title?: string;
+  description?: string;
 }

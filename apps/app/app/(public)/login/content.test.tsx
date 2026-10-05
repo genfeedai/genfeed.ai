@@ -100,6 +100,13 @@ const absoluteCallback = (path: string) => {
   return `${window.location.origin}/?callbackUrl=${encodeURIComponent(path)}`;
 };
 
+// Magic links pre-encode the continuation once more: Better Auth decodes the
+// verify callback twice (see buildMagicLinkCallbackURL).
+const absoluteMagicLinkCallback = (path: string) =>
+  path === '/'
+    ? absoluteCallback('/')
+    : `${window.location.origin}/?callbackUrl=${encodeURIComponent(encodeURIComponent(path))}`;
+
 describe('LoginPage', () => {
   const originalLocation = window.location;
 
@@ -311,6 +318,25 @@ describe('LoginPage', () => {
       expect(desktopRuntimeMocks.enableOfflineMode).toHaveBeenCalledOnce();
     });
     expect(locationAssignMock).toHaveBeenCalledWith(APP_ROUTES.DESKTOP.LOCAL);
+  });
+
+  it('hands the continuation to the desktop shell sign-in (#6276)', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    const consent = '/oauth/consent?client_id=c1&state=s1';
+    window.history.replaceState(
+      {},
+      '',
+      `/login?callbackUrl=${encodeURIComponent(consent)}`,
+    );
+    render(<LoginPage />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+    );
+
+    await waitFor(() => {
+      expect(desktopRuntimeMocks.login).toHaveBeenCalledWith(consent);
+    });
   });
 
   it('subscribes before opening the system browser and can return to idle', async () => {
@@ -527,6 +553,47 @@ describe('LoginPage', () => {
     );
   });
 
+  it('sends every path to an embedding page callback (#6268)', async () => {
+    const consent = '/oauth/consent?client_id=oauth_client&state=s1';
+    render(
+      <LoginBetterAuth
+        callbackURL={consent}
+        description="Sign in or create a free account."
+        title="Connect Claude to Genfeed"
+      />,
+    );
+    const encoded = `callbackUrl=${encodeURIComponent(consent)}`;
+
+    expect(screen.getByText('Connect Claude to Genfeed')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Magic Link' })).toHaveAttribute(
+      'href',
+      `/login/magic-link?${encoded}`,
+    );
+    expect(screen.getByRole('link', { name: 'Sign up' })).toHaveAttribute(
+      'href',
+      `/sign-up?${encoded}`,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
+    await waitFor(() => {
+      expect(authClientMocks.social).toHaveBeenCalledWith({
+        callbackURL: absoluteCallback(consent),
+        // A cancelled Google sign-in returns to the chooser for this request.
+        errorCallbackURL: `${window.location.origin}/login?${encoded}`,
+        provider: 'google',
+      });
+    });
+  });
+
+  it('ignores an off-site embedding callback', () => {
+    render(<LoginBetterAuth callbackURL="https://evil.example/steal" />);
+
+    expect(screen.getByRole('link', { name: 'Magic Link' })).toHaveAttribute(
+      'href',
+      '/login/magic-link',
+    );
+  });
+
   it('shows an interrupted Google sign-in when Better Auth bounced with state_mismatch', () => {
     window.history.replaceState({}, '', '/login?error=state_mismatch');
 
@@ -561,7 +628,7 @@ describe('LoginPage', () => {
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
         callbackURL: absoluteCallback('/onboarding'),
-        errorCallbackURL: `${window.location.origin}/login`,
+        errorCallbackURL: `${window.location.origin}/login?callbackUrl=%2Fonboarding`,
         provider: 'google',
       });
     });
@@ -591,7 +658,7 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({
-        callbackURL: absoluteCallback('/'),
+        callbackURL: absoluteMagicLinkCallback('/'),
         email: 'user@example.com',
       });
     });
@@ -614,7 +681,7 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({
-        callbackURL: absoluteCallback('/oauth/cli?port=4321'),
+        callbackURL: absoluteMagicLinkCallback('/oauth/cli?port=4321'),
         email: 'cli@example.com',
       });
     });
