@@ -1,3 +1,8 @@
+import type {
+  OnboardBrandActionConfig,
+  OnboardBrandAgentCall,
+} from '@mcp/shared/interfaces/onboarding.interface';
+
 /** MCP-surfaced onboarding tools resolved onto in-app agent tools (#6268). */
 export const ONBOARDING_TOOL_NAMES: ReadonlySet<string> = new Set([
   'onboard_brand',
@@ -21,18 +26,9 @@ const ONBOARD_BRAND_ACTIONS = {
     fields: ['brandId', 'url'],
     timeoutMs: ONBOARD_BRAND_SCAN_TIMEOUT_MS,
   },
-} as const satisfies Record<
-  string,
-  { agentToolName: string; fields: readonly string[]; timeoutMs?: number }
->;
+} as const satisfies Record<string, OnboardBrandActionConfig>;
 
 type OnboardBrandAction = keyof typeof ONBOARD_BRAND_ACTIONS;
-
-export interface OnboardBrandAgentCall {
-  agentToolName: string;
-  parameters: Record<string, unknown>;
-  timeoutMs?: number;
-}
 
 function isOnboardBrandAction(value: unknown): value is OnboardBrandAction {
   return (
@@ -55,11 +51,7 @@ export function resolveOnboardBrandCall(
     );
   }
 
-  const config: {
-    agentToolName: string;
-    fields: readonly string[];
-    timeoutMs?: number;
-  } = ONBOARD_BRAND_ACTIONS[action];
+  const config: OnboardBrandActionConfig = ONBOARD_BRAND_ACTIONS[action];
   const parameters: Record<string, unknown> = {};
   for (const field of config.fields) {
     if (args[field] !== undefined) {
