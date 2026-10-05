@@ -73,6 +73,8 @@ describe('ToolRegistryService.classify', () => {
     ['get_account', 'agent-executor'],
     ['get_brands', 'agent-executor'],
     ['get_posts', 'agent-executor'],
+    // MCP-only; maps each action onto an in-app onboarding agent tool.
+    ['onboard_brand', 'onboarding'],
     // Merged into get_account / get_brands / get_posts / list_assets.
     ['get_usage_stats', 'unknown'],
     ['list_videos', 'unknown'],
