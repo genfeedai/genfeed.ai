@@ -1082,6 +1082,7 @@
       "brandName": "Genfeed",
       "startError": "Could not start your brand setup. Please try again.",
       "continueToWorkspace": "Continue to workspace",
+      "continueExpertSetup": "Continue Expert setup",
       "continueError": "Could not open your workspace. Please try again.",
       "retry": "Try again",
       "subtitle": "Let’s set up your brand"

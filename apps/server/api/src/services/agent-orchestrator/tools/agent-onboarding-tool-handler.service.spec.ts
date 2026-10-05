@@ -1014,6 +1014,23 @@ describe('onboarding journey completion race (genfeedai/genfeed.ai#5311)', () =>
     });
   }
 
+  it('does not let completed journey missions bypass required Expert steps', async () => {
+    const h = createCompletableHandler();
+    (
+      h.organizationsService.findOne as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({ accountType: 'EXPERT' });
+    (h.usersService.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'user-1',
+      isOnboardingCompleted: false,
+    });
+    await h.handler.checkOnboardingStatus(CONTEXT);
+    expect(h.usersService.patchAll).not.toHaveBeenCalled();
+    expect(h.organizationsService.patch).not.toHaveBeenCalled();
+    expect(
+      h.onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
+    ).not.toHaveBeenCalled();
+  });
+
   it('claims the false->true transition atomically and captures once when the journey completes', async () => {
     const { handler, onboardingCreditGrantsService, usersService } =
       createCompletableHandler();

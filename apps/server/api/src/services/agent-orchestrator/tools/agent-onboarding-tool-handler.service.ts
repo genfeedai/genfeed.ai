@@ -618,46 +618,12 @@ export class AgentOnboardingToolHandler {
       claimedMissions.every((mission) => mission.isCompleted);
 
     if (journeyCompleted) {
-      if (this.organizationsService) {
-        await this.organizationsService.patch(ctx.organizationId, {
-          onboardingCompleted: true,
-        });
-      }
-
-      if (this.usersService) {
-        const dbUser = await this.usersService.findOne({
-          id: ctx.userId,
-        });
-
-        if (dbUser?.id) {
-          // Atomic claim: `isOnboardingCompleted: false` is part of the WHERE
-          // clause, so the false->true transition itself is the concurrency
-          // fence (mirrors AssetGateService#markFirstAssetGenerated). A
-          // racing completion call — this journey re-check firing twice, or
-          // `completeOnboarding` below — matches 0 rows and never
-          // double-fires the funnel event or clobbers the already-persisted
-          // completion time.
-          const { modifiedCount } = await this.usersService.patchAll(
-            { id: dbUser.id, isOnboardingCompleted: false },
-            {
-              isOnboardingCompleted: true,
-              onboardingCompletedAt: new Date(),
-              onboardingStepsCompleted: isExpert
-                ? (completionUser?.onboardingStepsCompleted ?? [])
-                : ['brand', 'plan'],
-            },
-          );
-
-          if (modifiedCount === 1) {
-            this.onboardingCreditGrantsService.captureOnboardingCompletedBestEffort(
-              String(dbUser.id),
-            );
-          }
-        }
-      }
-
-      // isOnboardingCompleted is persisted on the User row above (epic #735,
-      // Phase C — no legacy auth provider identity write-back).
+      await completeAgentOnboarding(
+        ctx,
+        this.onboardingCreditGrantsService,
+        this.organizationsService,
+        this.usersService,
+      );
     }
 
     return {

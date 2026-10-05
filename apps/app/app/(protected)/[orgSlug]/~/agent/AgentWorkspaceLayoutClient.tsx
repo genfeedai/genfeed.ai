@@ -4,6 +4,7 @@ import {
 } from '@contexts/user/brand-context/brand-context';
 import {
   getBrandEntityId,
+  getBrandOrganizationAccountType,
   getBrandOrganizationId,
 } from '@contexts/user/brand-context/brand-context.helpers';
 import {
@@ -21,6 +22,7 @@ import { AgentThreadStatus } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
+  isExpertAccountType,
 } from '@genfeedai/contracts/constants';
 import { useAgentOAuthConnect } from '@genfeedai/hooks/agent/use-agent-oauth-connect';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
@@ -122,7 +124,13 @@ function AgentWorkspaceLayoutClientContent({
     [rawPathname],
   );
   const { replace } = useRouter();
-  const { brandId, brands, isBrandScopeResolved, organizationId } = useBrand();
+  const {
+    brandId,
+    brands,
+    isBrandScopeResolved,
+    organizationId,
+    selectedBrand,
+  } = useBrand();
   const {
     activeHref,
     brandSlug: routeBrandSlug,
@@ -153,6 +161,12 @@ function AgentWorkspaceLayoutClientContent({
   const hasAttemptedReturningBootstrapRef = useRef(false);
   const isJourneyRoute = pathname.startsWith(APP_ROUTES.AGENT.JOURNEY);
   const isOnboarding = pathname.startsWith(APP_ROUTES.AGENT.ONBOARDING);
+  const isExpertOnboarding = isExpertAccountType(
+    getBrandOrganizationAccountType(
+      selectedBrand ??
+        brands.find((brand) => getBrandEntityId(brand) === brandId),
+    ),
+  );
   const isOnboardingEntryRoute = pathname === APP_ROUTES.AGENT.ONBOARDING;
   const isStandardNewRoute =
     pathname === APP_ROUTES.AGENT.ROOT || pathname === APP_ROUTES.AGENT.NEW;
@@ -204,17 +218,30 @@ function AgentWorkspaceLayoutClientContent({
     if (!effectiveToken) {
       throw new Error('Please sign in again to finish setup.');
     }
-    // Onboarding completion cascade lives behind PATCH /users/me (REST audit #1354).
-    await UsersService.getInstance(effectiveToken).patchMe({
-      isOnboardingCompleted: true,
-    });
+    if (isOnboarding && isExpertOnboarding) {
+      await agentApiService.completeExpertBrandHandoff(brandId);
+    } else {
+      // Onboarding completion cascade lives behind PATCH /users/me (REST audit #1354).
+      await UsersService.getInstance(effectiveToken).patchMe({
+        isOnboardingCompleted: true,
+      });
+    }
     completedRef.current = true;
     await getToken({ forceRefresh: true }).catch(() => null);
     if (isOnboarding) {
       clearClientProtectedBootstrapCache();
-      window.location.href = activeHref(APP_ROUTES.WORKSPACE.OVERVIEW);
+      window.location.href = isExpertOnboarding
+        ? APP_ROUTES.ONBOARDING.POSITIONING
+        : activeHref(APP_ROUTES.WORKSPACE.OVERVIEW);
     }
-  }, [getToken, isOnboarding, activeHref]);
+  }, [
+    getToken,
+    isOnboarding,
+    isExpertOnboarding,
+    agentApiService,
+    brandId,
+    activeHref,
+  ]);
 
   const { sendMessage } = useAgentChatStream({
     apiService: agentApiService,
@@ -662,11 +689,13 @@ function AgentWorkspaceLayoutClientContent({
       handleOAuthConnect,
       isLoaded: effectiveIsLoaded,
       isOnboarding,
+      isExpertOnboarding,
     }),
     [
       agentApiService,
       effectiveIsLoaded,
       isOnboarding,
+      isExpertOnboarding,
       handleOAuthConnect,
       completeOnboardingFlow,
       onboardingBootstrapError,

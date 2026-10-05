@@ -289,10 +289,10 @@ describe('OnboardingGuard', () => {
     );
 
     await waitFor(() => {
-      expect(replaceMock).not.toHaveBeenCalled();
+      expect(replaceMock).toHaveBeenCalledWith('/acme/~/agent/onboarding');
     });
 
-    expect(await screen.findByText('Child')).toBeInTheDocument();
+    expect(replaceMock).not.toHaveBeenCalledWith('/onboarding/summary');
   });
 
   it('bypasses the gate entirely for the desktop client', async () => {

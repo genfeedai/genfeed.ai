@@ -77,6 +77,7 @@ describe('AgentInputRequestOverlay', () => {
           allowFreeText: false,
           isMultiSelect: true,
           maxSelections: 1,
+          metadata: { submitImmediatelyOptionIds: ['skip'] },
           options: [
             { id: 'grow', label: 'Grow audience' },
             { id: 'skip', label: 'Skip' },

@@ -980,7 +980,7 @@ describe('proxy', () => {
     );
 
     it.each(['/onboarding/providers', '/onboarding/summary'])(
-      'keeps protected agent bootstrap when onboarding state cannot be read from %s',
+      'preserves the current route when onboarding state cannot be read from %s',
       async (pathname) => {
         fetchMock.mockImplementation(async (input: string | URL) => {
           const url = String(input);
@@ -998,9 +998,8 @@ describe('proxy', () => {
         const { default: proxy } = await import('./proxy');
         const response = await proxy(makeSignedInRequest(pathname));
 
-        expect(response.headers.get('location')).toBe(
-          'http://localhost:3000/agent/onboarding',
-        );
+        expect(response.headers.get('location')).toBeNull();
+        expect(response.headers.get('x-middleware-next')).toBe('1');
       },
     );
 
@@ -1153,7 +1152,8 @@ describe('proxy', () => {
       const response = await proxy(makeSignedInRequest('/settings'));
 
       expect(response.status).toBe(307);
-      expect(response.headers.get('location')).toBe('http://localhost:3000/');
+      expect(response.headers.get('location')).toBeNull();
+      expect(response.headers.get('x-middleware-next')).toBe('1');
     });
 
     it('does not route cloud-connected desktop users into web agent onboarding', async () => {
@@ -1310,7 +1310,7 @@ describe('proxy', () => {
 
   // No brand yet: send signed-in root to the shared brand step instead of
   // holding them on `/` or bouncing them into the providers wizard.
-  it('sends signed-in root to brand setup when no workspace slug resolves yet', async () => {
+  it('preserves signed-in root when no workspace slug resolves yet', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 

@@ -97,7 +97,7 @@ vi.mock('@services/management/tasks.service', async () => {
 const completeOnboardingFlowMock = vi.fn();
 const handleOAuthConnectMock = vi.fn();
 const retryBootstrapMock = vi.fn();
-const bootstrapState = { hasError: false, failures: 0 };
+const bootstrapState = { hasError: false, failures: 0, isExpert: false };
 
 vi.mock('./agent-workspace-context', () => ({
   useAgentWorkspace: () => ({
@@ -106,6 +106,7 @@ vi.mock('./agent-workspace-context', () => ({
     handleOAuthConnect: handleOAuthConnectMock,
     isLoaded: true,
     isOnboarding: true,
+    isExpertOnboarding: bootstrapState.isExpert,
     onboardingBootstrapError: bootstrapState.hasError,
     onboardingStartFailures: bootstrapState.failures,
     retryOnboardingBootstrap: retryBootstrapMock,
@@ -118,6 +119,7 @@ describe('AgentWorkspacePageShell', () => {
     retryBootstrapMock.mockClear();
     bootstrapState.hasError = false;
     bootstrapState.failures = 0;
+    bootstrapState.isExpert = false;
     agentChatState.messages = [];
     agentChatState.error = null;
     agentChatState.pendingInputRequest = null;
@@ -185,6 +187,21 @@ describe('AgentWorkspacePageShell', () => {
     await act(async () =>
       fireEvent.click(
         screen.getByRole('button', { name: 'Continue to workspace' }),
+      ),
+    );
+    expect(completeOnboardingFlowMock).toHaveBeenCalledOnce();
+  });
+
+  it('offers the guarded Expert setup escape after repeated failures', async () => {
+    bootstrapState.failures = 3;
+    bootstrapState.isExpert = true;
+    render(<AgentWorkspacePageShell />);
+    expect(
+      screen.queryByRole('button', { name: 'Continue to workspace' }),
+    ).not.toBeInTheDocument();
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Continue Expert setup' }),
       ),
     );
     expect(completeOnboardingFlowMock).toHaveBeenCalledOnce();

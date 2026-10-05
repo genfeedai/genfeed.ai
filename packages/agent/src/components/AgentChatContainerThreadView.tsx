@@ -234,7 +234,6 @@ export function AgentChatContainerThreadView({
             withWrapper={false}
             onClick={scrollToBottom}
           />
-          {onboardingMode ? inputCard : null}
         </div>
       ) : null}
     </div>

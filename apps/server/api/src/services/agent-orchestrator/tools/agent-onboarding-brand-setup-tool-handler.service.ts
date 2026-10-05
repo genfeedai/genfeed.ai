@@ -4,12 +4,12 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { UsersService } from '@api/collections/users/services/users.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { completeExpertBrandHandoff } from '@api/services/agent-orchestrator/tools/agent-onboarding-brand-handoff.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
 import { SignupPrefillService } from '@api/services/signup-prefill/signup-prefill.service';
 import { normalizeOnboardingUrl } from '@api/services/signup-prefill/utils/normalize-onboarding-url.util';
-import { isExpertAccountType } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -66,35 +66,13 @@ export class AgentOnboardingBrandSetupToolHandler {
   async completeBrandOnboardingStep(
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const organization = await this.organizationsService?.findOne({
-      id: ctx.organizationId,
-      isDeleted: false,
-    });
-    if (!isExpertAccountType(organization?.accountType)) {
-      throw new ForbiddenException('Expert onboarding is required');
-    }
-    const brandId = ctx.validatedScope?.brandId ?? ctx.brandId;
-    if (
-      !brandId ||
-      !(await this.brandsService.findOne({
-        id: brandId,
-        organizationId: ctx.organizationId,
-        isDeleted: false,
-      }))
-    ) {
-      throw new BadRequestException('A saved brand is required');
-    }
-    const user = await this.usersService?.findOne({ id: ctx.userId });
-    if (!user || !this.usersService)
-      throw new BadRequestException('User unavailable');
-    const completedSteps = [
-      ...new Set([...(user.onboardingStepsCompleted ?? []), 'brand']),
-    ];
-    await this.usersService.patch(ctx.userId, {
-      onboardingStepsCompleted: completedSteps,
-      ...(!user.onboardingStartedAt ? { onboardingStartedAt: new Date() } : {}),
-    });
-    await this.userAccessCacheService?.invalidateAll(ctx.userId);
+    await completeExpertBrandHandoff(
+      ctx,
+      this.brandsService,
+      this.organizationsService,
+      this.usersService,
+      this.userAccessCacheService,
+    );
     return {
       success: true,
       creditsUsed: 0,

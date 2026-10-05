@@ -37,6 +37,7 @@ export function AgentWorkspacePageShell({
     handleOAuthConnect,
     completeOnboardingFlow,
     isOnboarding,
+    isExpertOnboarding,
     onboardingBootstrapError,
     onboardingStartFailures,
     retryOnboardingBootstrap,
@@ -198,7 +199,11 @@ export function AgentWorkspacePageShell({
             isDisabled={isContinuing}
             onClick={handleContinueToWorkspace}
           >
-            {translate('continueToWorkspace')}
+            {translate(
+              isExpertOnboarding
+                ? 'continueExpertSetup'
+                : 'continueToWorkspace',
+            )}
           </Button>
           {escapeError ? (
             <p role="alert">{translate('continueError')}</p>

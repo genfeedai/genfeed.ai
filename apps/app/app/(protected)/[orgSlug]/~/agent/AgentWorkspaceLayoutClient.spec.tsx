@@ -32,10 +32,12 @@ let completionCallback: (() => void | Promise<void>) | undefined;
 // Hoisted: the `@genfeedai/agent` factory reads `getThreads` eagerly as a
 // property value, so a plain `const` would still be in its temporal dead zone
 // when the hoisted `vi.mock` runs.
-const { getThreads, kickoffOnboarding } = vi.hoisted(() => ({
-  getThreads: vi.fn(),
-  kickoffOnboarding: vi.fn(),
-}));
+const { getThreads, kickoffOnboarding, completeExpertBrandHandoff } =
+  vi.hoisted(() => ({
+    getThreads: vi.fn(),
+    kickoffOnboarding: vi.fn(),
+    completeExpertBrandHandoff: vi.fn(),
+  }));
 
 const navigationState = {
   params: {
@@ -85,6 +87,7 @@ const brandState = {
   brands: AUTHORIZED_BRANDS,
   isBrandScopeResolved: true,
   organizationId: 'org-1',
+  accountType: 'CREATOR',
 };
 
 vi.mock('@genfeedai/auth-client/react', () => ({
@@ -114,7 +117,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
     organizationId: brandState.organizationId,
     selectedBrand: {
       id: 'brand-1',
-      organization: { slug: 'acme-org' },
+      organization: { slug: 'acme-org', accountType: brandState.accountType },
       slug: 'acme-creator',
     },
   }),
@@ -124,6 +127,7 @@ vi.mock('@genfeedai/agent', () => ({
   AgentApiService: class AgentApiService {
     getThreads = getThreads;
     kickoffOnboarding = kickoffOnboarding;
+    completeExpertBrandHandoff = completeExpertBrandHandoff;
   },
   AgentApiServiceProvider: ({ children }: PropsWithChildren) => <>{children}</>,
   isRenderableThreadId: (id: string) =>
@@ -204,6 +208,9 @@ describe('AgentWorkspaceLayoutClient', () => {
     brandState.brands = AUTHORIZED_BRANDS;
     brandState.isBrandScopeResolved = true;
     brandState.organizationId = 'org-1';
+    brandState.accountType = 'CREATOR';
+    completeExpertBrandHandoff.mockReset();
+    completeExpertBrandHandoff.mockResolvedValue({ id: 'user-1' });
     routerReplace.mockReset();
     sendMessage.mockReset();
     sendMessage.mockResolvedValue(undefined);
@@ -249,6 +256,32 @@ describe('AgentWorkspaceLayoutClient', () => {
       });
       expect(patchMe).toHaveBeenCalledWith({ isOnboardingCompleted: true });
       expect(location.href).toContain('/workspace/overview');
+    } finally {
+      if (descriptor) Object.defineProperty(window, 'location', descriptor);
+    }
+  });
+
+  it('preserves Expert steps on failure escape and never sets overall completion', async () => {
+    navigationState.pathname = '/agent/onboarding/thread-expert';
+    brandState.accountType = 'EXPERT';
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'location');
+    const location = { href: '' };
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: location,
+    });
+    try {
+      render(
+        <AgentWorkspaceLayoutClient>
+          <p>Expert recovery</p>
+        </AgentWorkspaceLayoutClient>,
+      );
+      await act(async () => {
+        await completionCallback?.();
+      });
+      expect(completeExpertBrandHandoff).toHaveBeenCalledWith('brand-1');
+      expect(patchMe).not.toHaveBeenCalled();
+      expect(location.href).toBe('/onboarding/positioning');
     } finally {
       if (descriptor) Object.defineProperty(window, 'location', descriptor);
     }

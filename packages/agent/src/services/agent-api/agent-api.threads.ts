@@ -17,6 +17,7 @@ import type {
   AgentScopePayload,
   AgentTransferPresentation,
   IAgentTransfer,
+  IUser,
 } from '@genfeedai/contracts/interfaces';
 
 export const AGENT_THREADS_ENDPOINT = '/agent/threads';
@@ -197,6 +198,18 @@ export async function kickoffOnboarding(
     { body: JSON.stringify({ brandId }), method: 'POST', signal },
     'Failed to start onboarding',
     'Failed to deserialize onboarding thread',
+  );
+}
+
+export async function completeExpertBrandHandoff(
+  api: AgentBaseApiService,
+  brandId?: string | null,
+): Promise<IUser> {
+  return api.fetchResource<IUser>(
+    `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/onboarding/brand/handoff`,
+    { body: JSON.stringify({ brandId }), method: 'POST' },
+    'Failed to continue Expert setup',
+    'Failed to deserialize onboarding progress',
   );
 }
 
