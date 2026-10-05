@@ -1016,8 +1016,8 @@ describe('BrandScraperService', () => {
 <body>
   <h1>Acme Corp</h1>
   <dt>Industry</dt><dd>Software Development</dd>
-  <article>Our latest update on product launches for enterprise clients worldwide.</article>
-  <article>Excited to announce our new partnership with leading tech companies.</article>
+  <article><p data-test-id="main-feed-activity-card__commentary">Our latest update on product launches for enterprise clients worldwide.</p></article>
+  <article><p data-test-id="main-feed-activity-card__commentary">Excited to announce our new partnership with leading tech companies.</p></article>
 </body>
 </html>`;
 
@@ -1037,7 +1037,46 @@ describe('BrandScraperService', () => {
       expect(result.description).toContain('widgets');
     });
 
-    it('populates recentPosts from article elements', async () => {
+    it('reads post text from logged-out activity card commentary, not the whole card', async () => {
+      const cardChrome = `
+            <a data-tracking-control-name="organization_guest_main-feed-card_feed-actor-name">Acme Corp</a>
+            <p>1,749,461 followers</p>
+            <time>4d</time>
+            <span>Report this post</span>
+            ${'                                        \n'.repeat(12)}
+            <a data-tracking-control-name="organization_guest_main-feed-card_social-actions-reactions">987</a>
+            <a data-tracking-control-name="organization_guest_main-feed-card_social-actions-comments">40 Comments</a>
+            <button>Like</button><button>Comment</button><button>Share</button>`;
+      const longPost = `Shipping #AgentWorkflows to every team. ${'More detail. '.repeat(60)}`;
+      const guestHtml = `<!DOCTYPE html><html><body><h1>Acme Corp</h1>
+        <ul>
+          <li><article class="main-feed-activity-card">${cardChrome}
+            <p data-test-id="main-feed-activity-card__commentary" class="attributed-text-segment-list__content">
+              We're welcoming   Parafin to Acme.
+              Together we'll grow #Payments.
+            </p></article></li>
+          <li><article class="main-feed-activity-card">${cardChrome}
+            <p data-test-id="main-feed-activity-card__commentary">${longPost}</p>
+            <article class="main-feed-activity-card__reshare">
+              <p data-test-id="main-feed-activity-card__commentary">${longPost}</p>
+            </article></article></li>
+          <li><article class="main-feed-activity-card">${cardChrome}
+            <p data-test-id="main-feed-activity-card__commentary">Too short</p></article></li>
+        </ul></body></html>`;
+      fetchMock.mockResolvedValue(makeResponse(guestHtml));
+
+      const result = await service.scrapeLinkedIn(
+        'https://linkedin.com/company/acme',
+      );
+
+      expect(result.recentPosts).toEqual([
+        "We're welcoming Parafin to Acme. Together we'll grow #Payments.",
+        longPost.replace(/\s+/g, ' ').trim().slice(0, 500),
+      ]);
+      expect(result.recentPosts.join(' ')).not.toContain('followers');
+    });
+
+    it('populates recentPosts from activity card commentary', async () => {
       fetchMock.mockResolvedValue(makeResponse(linkedInHtml));
       const result = await service.scrapeLinkedIn(
         'https://linkedin.com/company/acme',

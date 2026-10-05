@@ -22,6 +22,18 @@ describe('LinkedIn trend derivation', () => {
     );
   });
 
+  it('seeds Anthropic with its live company slug, not the 404ing anthropic-ai', () => {
+    const defaults = resolveLinkedInTrendSourceUrls(undefined);
+
+    expect(defaults).toContain(
+      'https://www.linkedin.com/company/anthropicresearch/',
+    );
+    expect(defaults).not.toContain(
+      'https://www.linkedin.com/company/anthropic-ai/',
+    );
+    expect(new Set(defaults).size).toBe(defaults.length);
+  });
+
   it('derives weighted live topics from fulfilled public scrape results', () => {
     const topics = buildLinkedInLiveTrendTopics([
       {
