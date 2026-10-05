@@ -90,7 +90,7 @@ export async function setupOnboardingConversationMocks(
           title: ONBOARDING_URL_TITLE,
           prompt: ONBOARDING_URL_PROMPT,
           allowFreeText: true,
-          options: [{ id: 'https://genfeed.ai', label: 'Use genfeed.ai' }],
+          options: [],
         },
       ];
     if (stage === 'failed')
@@ -106,20 +106,6 @@ export async function setupOnboardingConversationMocks(
               id: 'continue_without_website',
               label: 'Continue without a website',
             },
-          ],
-        },
-      ];
-    if (stage === 'confirm')
-      return [
-        {
-          ...common,
-          title: 'Check what I found',
-          prompt: 'Does this look right?',
-          allowFreeText: false,
-          options: [
-            { id: 'looks_right', label: 'Looks right' },
-            { id: 'try_another_link', label: 'Try another link' },
-            { id: 'skip', label: 'Skip' },
           ],
         },
       ];
@@ -208,7 +194,7 @@ export async function setupOnboardingConversationMocks(
       uiActions = [];
       if (stage === 'url') {
         const isFailed = answer.includes('blocked.example');
-        stage = isFailed ? 'failed' : 'confirm';
+        stage = isFailed ? 'failed' : 'goals';
         toolCalls = [
           {
             toolName: 'scan_brand_url',
@@ -228,7 +214,7 @@ export async function setupOnboardingConversationMocks(
               ctas: [],
             },
           ];
-      } else if (stage === 'failed' || stage === 'confirm') {
+      } else if (stage === 'failed') {
         stage = answer === 'Try another link' ? 'url' : 'goals';
       } else if (stage === 'goals') stage = 'platforms';
       else if (stage === 'platforms') stage = 'cadence';

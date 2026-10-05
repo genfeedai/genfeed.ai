@@ -36,10 +36,9 @@ test.describe('Conversational onboarding', () => {
     await expect(
       page.getByRole('button', { name: 'Skip to workspace' }),
     ).toHaveCount(0);
-    await click(page, 'Use genfeed.ai');
-    await assertButtonOnly(page, 'Check what I found');
+    await page.getByRole('textbox').fill('https://genfeed.ai');
+    await click(page, 'Use this answer');
     await expect(page.getByText('Tone: Friendly')).toBeVisible();
-    await click(page, 'Looks right');
     await assertButtonOnly(page, 'goals');
     await click(page, 'Grow audience');
     await click(page, 'Build authority');
@@ -114,8 +113,7 @@ test.describe('Conversational onboarding', () => {
         await expect(page.getByRole('textbox')).toBeVisible();
         await page.getByRole('textbox').fill('https://example.com');
         await click(page, 'Use this answer');
-        await assertButtonOnly(page, 'Check what I found');
-        await click(page, 'Skip');
+        await assertButtonOnly(page, 'goals');
       }
       await assertButtonOnly(page, 'goals');
     });

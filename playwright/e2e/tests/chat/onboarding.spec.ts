@@ -1,5 +1,8 @@
 import { orgPath } from '@e2e/utils/app-chrome';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  ONBOARDING_GREETING,
+} from '@genfeedai/contracts/constants';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
@@ -304,7 +307,7 @@ test.describe('Agent Onboarding', () => {
     }
   });
 
-  test('keeps the empty onboarding hint spaced above the bottom composer', async ({
+  test('keeps the agent greeting spaced above the bottom composer', async ({
     authenticatedPage,
   }, testInfo) => {
     const threadId = 'thread-empty-first-post';
@@ -316,7 +319,7 @@ test.describe('Agent Onboarding', () => {
       waitUntil: 'domcontentloaded',
     });
     await assertNoErrorBoundaryFallback(authenticatedPage, threadPath);
-    const hint = authenticatedPage.getByTestId('onboarding-composer-card');
+    const hint = authenticatedPage.getByText(ONBOARDING_GREETING);
     const prompt = authenticatedPage.getByTestId('agent-chat-input-shell');
     await expect(hint).toBeVisible();
     for (const viewport of [

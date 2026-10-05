@@ -210,7 +210,7 @@ async function setupBetterAuthMocksForOnboarding(
     name: 'Test Organization',
   });
 
-  await page.route('**/v1/auth/session**', async (route) => {
+  await page.route('**/v1/auth/get-session**', async (route) => {
     await route.fulfill({
       body: JSON.stringify({
         session: {
@@ -644,9 +644,6 @@ async function startOnboardingSession(
     });
   }
 
-  // Set up Better Auth mocks with isOnboardingCompleted: false
-  await setupBetterAuthMocksForOnboarding(page, options.email);
-
   // Register generic routes first. Playwright checks matching routes in
   // reverse registration order, so the stateful onboarding routes below get
   // first opportunity to handle overlapping /users/** progress requests.
@@ -666,6 +663,8 @@ async function startOnboardingSession(
     },
   });
 
+  // Better Auth session routes must win over generic API mocks.
+  await setupBetterAuthMocksForOnboarding(page, options.email);
   await setupOnboardingApiMocks(page, progressState, options.email);
   await options.registerExtraMocks?.(page);
   await setupOnboardingBrandGuideMocks(page);

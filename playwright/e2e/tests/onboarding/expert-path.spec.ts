@@ -25,11 +25,10 @@ test.describe('Expert Path Onboarding', () => {
   }) => {
     const expert = new ExpertOnboardingPage(expertOnboardingPage);
 
+    await expect(expertOnboardingPage.getByRole('textbox')).toBeVisible();
+    await expertOnboardingPage.getByRole('textbox').fill('https://genfeed.ai');
     await expertOnboardingPage
-      .getByRole('button', { name: 'Use genfeed.ai', exact: true })
-      .click();
-    await expertOnboardingPage
-      .getByRole('button', { name: 'Looks right', exact: true })
+      .getByRole('button', { name: 'Use this answer', exact: true })
       .click();
     for (const title of ['goals', 'platforms', 'cadence', 'tone']) {
       await expect(
