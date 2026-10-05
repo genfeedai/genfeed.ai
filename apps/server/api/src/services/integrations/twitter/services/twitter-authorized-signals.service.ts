@@ -33,6 +33,7 @@ import {
   twitterAuthorizedSignalsSnapshotSchema,
 } from '@genfeedai/contracts/api-types/contracts/twitter-authorized-signals.contract';
 import { parseGrantedOAuthScopes } from '@genfeedai/helpers';
+import { readRawString, readRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -44,8 +45,6 @@ import {
   readIsoTimestamp,
   readIsoToUnixSeconds,
   readNonNegativeInteger,
-  readRecord,
-  readString,
   TWEET_READ_SCOPE,
   type TwitterOwnedPostsFetch,
   type TwitterSettledResult,
@@ -380,7 +379,8 @@ export class TwitterAuthorizedSignalsService {
       : undefined;
     const userInfoResult = await this.settle(userInfoPromise);
     const userId =
-      readString(userInfoResult.value?.id) ?? readString(credential.externalId);
+      readRawString(userInfoResult.value?.id) ??
+      readRawString(credential.externalId);
     const tweetsPromise =
       grantedScopes.includes(TWEET_READ_SCOPE) && userId
         ? this.requestWithRetry(() => this.fetchOwnedPosts(accessToken, userId))
@@ -479,7 +479,7 @@ export class TwitterAuthorizedSignalsService {
   private mapOwnedPost(
     post: NonNullable<TwitterTweetListResponse['data']>[number],
   ): TwitterOwnedPostSignal[] {
-    const id = readString(post.id);
+    const id = readRawString(post.id);
     if (!id) {
       return [];
     }
@@ -491,21 +491,21 @@ export class TwitterAuthorizedSignalsService {
 
     return [
       {
-        conversationId: readString(post.conversation_id),
+        conversationId: readRawString(post.conversation_id),
         createdAt: readIsoTimestamp(post.created_at),
         createTime: readIsoToUnixSeconds(post.created_at),
         id,
         impressionCount: readNonNegativeInteger(metrics.impression_count),
-        inReplyToUserId: readString(post.in_reply_to_user_id),
+        inReplyToUserId: readRawString(post.in_reply_to_user_id),
         isQuote: referenced.some((item) => item.type === 'quoted'),
-        isReply: readString(post.in_reply_to_user_id) !== undefined,
+        isReply: readRawString(post.in_reply_to_user_id) !== undefined,
         isRetweet: referenced.some((item) => item.type === 'retweeted'),
         likeCount: readNonNegativeInteger(metrics.like_count),
         quoteCount: readNonNegativeInteger(metrics.quote_count),
         replyCount: readNonNegativeInteger(metrics.reply_count),
-        replySettings: readString(post.reply_settings),
+        replySettings: readRawString(post.reply_settings),
         retweetCount: readNonNegativeInteger(metrics.retweet_count),
-        text: readString(post.text),
+        text: readRawString(post.text),
       },
     ];
   }

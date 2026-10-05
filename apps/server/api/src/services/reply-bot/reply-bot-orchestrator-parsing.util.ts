@@ -4,12 +4,6 @@
  * service file from growing past its runtime-complexity ratchet baseline.
  */
 
-export function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
 export function requiredString(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.length === 0) {
     throw new Error(`Reply bot action requires ${field}`);

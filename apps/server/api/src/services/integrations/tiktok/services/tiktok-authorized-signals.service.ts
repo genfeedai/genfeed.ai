@@ -25,6 +25,7 @@ import {
   type TikTokAuthorizedSignalsSnapshot,
   tiktokAuthorizedSignalsSnapshotSchema,
 } from '@genfeedai/contracts/api-types/contracts/tiktok-authorized-signals.contract';
+import { readRawString, readRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -33,8 +34,6 @@ import {
   readBoolean,
   readHttpUrl,
   readNonNegativeInteger,
-  readRecord,
-  readString,
   readStringArray,
   type TikTokVideosFetch,
   TiktokAuthorizedSignalsProvider,
@@ -394,10 +393,10 @@ export class TiktokAuthorizedSignalsService {
         ? readHttpUrl(result.value.avatar_url)
         : undefined,
       bioDescription: grantedScopes.includes(USER_PROFILE_SCOPE)
-        ? readString(result.value.bio_description)
+        ? readRawString(result.value.bio_description)
         : undefined,
       displayName: grantedScopes.includes(USER_BASIC_SCOPE)
-        ? readString(result.value.display_name)
+        ? readRawString(result.value.display_name)
         : undefined,
       isVerified: grantedScopes.includes(USER_PROFILE_SCOPE)
         ? readBoolean(result.value.is_verified)
@@ -406,7 +405,7 @@ export class TiktokAuthorizedSignalsService {
         ? readHttpUrl(result.value.profile_deep_link)
         : undefined,
       username: grantedScopes.includes(USER_PROFILE_SCOPE)
-        ? readString(result.value.username)
+        ? readRawString(result.value.username)
         : undefined,
     };
     const fieldAvailability = Object.fromEntries(
@@ -579,8 +578,8 @@ export class TiktokAuthorizedSignalsService {
 
     const value = {
       commentDisabled: readBoolean(result.value.comment_disabled),
-      creatorNickname: readString(result.value.creator_nickname),
-      creatorUsername: readString(result.value.creator_username),
+      creatorNickname: readRawString(result.value.creator_nickname),
+      creatorUsername: readRawString(result.value.creator_username),
       duetDisabled: readBoolean(result.value.duet_disabled),
       maxVideoPostDurationSeconds: readNonNegativeInteger(
         result.value.max_video_post_duration_sec,

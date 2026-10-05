@@ -16,7 +16,6 @@ import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
 import {
   mergeReplyContext,
   numberValue,
-  readRecord,
   requiredString,
 } from '@api/services/reply-bot/reply-bot-orchestrator-parsing.util';
 import {
@@ -59,6 +58,7 @@ import type {
   ReplyIntentSource,
 } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 

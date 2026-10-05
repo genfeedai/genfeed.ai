@@ -12,11 +12,9 @@ import type {
   ModelProviderContract,
   Model as PrismaModel,
 } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { BadRequestException } from '@nestjs/common';
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 export function projectReviewedCrunModelInputControls(
   document: Pick<
     PrismaModel,

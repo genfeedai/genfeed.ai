@@ -11,6 +11,10 @@ import {
   isPaidCreativeResearchSource,
   resolvePaidCreativeSourceLabel,
 } from '@genfeedai/integrations/ads';
+import {
+  readNonEmptyString,
+  readRecord,
+} from '@genfeedai/utils/data/extract.util';
 
 export const DEFAULT_SOURCE_FRESHNESS_WINDOW_DAYS_BY_KIND: Record<
   TrendSourceKind,
@@ -136,7 +140,7 @@ export function buildPaidCreativeReferenceClassification(input: {
 export function normalizeTrendSourceClassification(
   input: NormalizeTrendSourceClassificationInput,
 ): TrendSourceClassification | undefined {
-  const record = asRecord(input.value);
+  const record = readRecord(input.value);
   const sourceKind =
     readSourceKind(record.sourceKind) ?? input.sourceKind ?? undefined;
   const intendedUse =
@@ -162,13 +166,15 @@ export function normalizeTrendSourceClassification(
   const confidence =
     readConfidence(record.confidence) ?? input.confidence ?? 'medium';
   const paidCreative = readPaidCreative(record.paidCreative);
-  const platform = readString(record.platform) ?? input.platform;
+  const platform = readNonEmptyString(record.platform) ?? input.platform;
   const sourceAuthor =
-    readString(record.sourceAuthor) ??
-    readString(record.authorHandle) ??
+    readNonEmptyString(record.sourceAuthor) ??
+    readNonEmptyString(record.authorHandle) ??
     input.sourceAuthor;
-  const sourceLabel = readString(record.sourceLabel) ?? input.sourceLabel;
-  const sourceTopic = readString(record.sourceTopic) ?? input.sourceTopic;
+  const sourceLabel =
+    readNonEmptyString(record.sourceLabel) ?? input.sourceLabel;
+  const sourceTopic =
+    readNonEmptyString(record.sourceTopic) ?? input.sourceTopic;
 
   return {
     capturedAt,
@@ -183,16 +189,6 @@ export function normalizeTrendSourceClassification(
     ...(sourceTimestamp ? { sourceTimestamp } : {}),
     ...(sourceTopic ? { sourceTopic } : {}),
   };
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
 function readNumber(value: unknown): number | undefined {
@@ -247,7 +243,7 @@ function readPaidCreative(
 
   const record = value as Record<string, unknown>;
 
-  return isPaidCreativeResearchSource(readString(record.provider))
+  return isPaidCreativeResearchSource(readNonEmptyString(record.provider))
     ? (value as TrendPaidCreativeMetadata)
     : undefined;
 }

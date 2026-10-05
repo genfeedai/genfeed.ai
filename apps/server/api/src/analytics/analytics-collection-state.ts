@@ -1,14 +1,9 @@
 import type { AnalyticsCollectionFailure } from '@genfeedai/contracts/interfaces';
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
+import { readRecordOrNull } from '@genfeedai/utils/data/extract.util';
 
 function readStatus(error: unknown): number | null {
-  const record = asRecord(error);
-  const response = asRecord(record?.response);
+  const record = readRecordOrNull(error);
+  const response = readRecordOrNull(record?.response);
   const candidates = [record?.status, record?.statusCode, response?.status];
 
   return (
@@ -23,8 +18,8 @@ export function classifyAnalyticsCollectionError(
   error: unknown,
   platform: string,
 ): AnalyticsCollectionFailure {
-  const record = asRecord(error);
-  const attributed = asRecord(record?.analyticsFailure);
+  const record = readRecordOrNull(error);
+  const attributed = readRecordOrNull(record?.analyticsFailure);
   if (
     attributed &&
     typeof attributed.code === 'string' &&

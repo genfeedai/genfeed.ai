@@ -10,6 +10,7 @@ import {
   isTikTokScopeError,
 } from '@api/services/integrations/tiktok/utils/tiktok-error.util';
 import type { TikTokOwnedVideoSignal } from '@genfeedai/contracts/api-types/contracts/tiktok-authorized-signals.contract';
+import { readRawString, readRecord } from '@genfeedai/utils/data/extract.util';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
@@ -87,18 +88,8 @@ export interface TikTokProviderFetchResult {
   videosResult: AuthorizedSignalsSettledResult<TikTokVideosFetch>;
 }
 
-export function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-export function readString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
-
 export function readHttpUrl(value: unknown): string | undefined {
-  const candidate = readString(value);
+  const candidate = readRawString(value);
   if (!candidate) {
     return undefined;
   }
@@ -234,7 +225,7 @@ export class TiktokAuthorizedSignalsProvider {
       hasMore: response.data?.data?.has_more === true,
       rawVideoCount: rawVideos.length,
       videos: rawVideos.flatMap((video) => {
-        const id = readString(video.id);
+        const id = readRawString(video.id);
         if (!id) {
           return [];
         }
@@ -248,8 +239,8 @@ export class TiktokAuthorizedSignalsProvider {
             likeCount: readNonNegativeInteger(video.like_count),
             shareCount: readNonNegativeInteger(video.share_count),
             shareUrl: readHttpUrl(video.share_url),
-            title: readString(video.title),
-            videoDescription: readString(video.video_description),
+            title: readRawString(video.title),
+            videoDescription: readRawString(video.video_description),
             viewCount: readNonNegativeInteger(video.view_count),
           },
         ];

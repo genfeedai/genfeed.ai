@@ -32,6 +32,7 @@ import {
   type YoutubeOwnedVideoAnalyticsSignal,
   youtubeAuthorizedSignalsSnapshotSchema,
 } from '@genfeedai/contracts/api-types/contracts/youtube-authorized-signals.contract';
+import { readRecord, readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -48,8 +49,6 @@ import {
   readIsoToUnixSeconds,
   readNonNegativeInteger,
   readNonNegativeNumber,
-  readRecord,
-  readString,
   YoutubeAuthorizedSignalsEvidenceMapper,
   type YoutubeChannelNode,
   YT_ANALYTICS_READONLY_SCOPE,

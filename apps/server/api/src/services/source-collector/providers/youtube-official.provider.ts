@@ -8,6 +8,7 @@ import type {
 } from '@api/services/source-collector/source-collector.types';
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { CredentialPlatform, SocialSourcePlatform } from '@genfeedai/contracts';
+import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -55,10 +56,6 @@ interface YoutubeVideosPage {
   }>;
 }
 
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
-
 function readCount(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
     return Math.floor(value);
@@ -70,7 +67,7 @@ function readCount(value: unknown): number | undefined {
 }
 
 function parseIsoDurationSeconds(value: unknown): number | undefined {
-  const text = readString(value);
+  const text = readNonEmptyString(value);
   const match = text
     ? /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(text)
     : null;
@@ -88,7 +85,7 @@ function pickThumbnail(
   thumbnails: Record<string, { url?: unknown } | undefined> | undefined,
 ): string | undefined {
   for (const key of ['maxres', 'standard', 'high', 'medium', 'default']) {
-    const url = readString(thumbnails?.[key]?.url);
+    const url = readNonEmptyString(thumbnails?.[key]?.url);
     if (url) return url;
   }
   return undefined;
@@ -179,7 +176,7 @@ export class YoutubeOfficialProvider implements SourceTimelineProvider {
         brandId,
         credential.id,
       );
-      const refreshed = readString(client.credentials.access_token);
+      const refreshed = readNonEmptyString(client.credentials.access_token);
       if (refreshed) {
         return refreshed;
       }
@@ -214,10 +211,10 @@ export class YoutubeOfficialProvider implements SourceTimelineProvider {
       ? response.data.items
       : [];
     const selected =
-      channels.find((item) => readString(item.id) === externalId) ??
+      channels.find((item) => readNonEmptyString(item.id) === externalId) ??
       (channels.length === 1 ? channels[0] : undefined);
-    const id = readString(selected?.id);
-    const uploadsPlaylistId = readString(
+    const id = readNonEmptyString(selected?.id);
+    const uploadsPlaylistId = readNonEmptyString(
       selected?.contentDetails?.relatedPlaylists?.uploads,
     );
     if (!id || !uploadsPlaylistId) {
@@ -229,7 +226,7 @@ export class YoutubeOfficialProvider implements SourceTimelineProvider {
     }
     return {
       id,
-      title: readString(selected?.snippet?.title),
+      title: readNonEmptyString(selected?.snippet?.title),
       uploadsPlaylistId,
     };
   }
@@ -264,8 +261,8 @@ export class YoutubeOfficialProvider implements SourceTimelineProvider {
       const videoIds = items
         .map(
           (item) =>
-            readString(item.contentDetails?.videoId) ??
-            readString(item.snippet?.resourceId?.videoId),
+            readNonEmptyString(item.contentDetails?.videoId) ??
+            readNonEmptyString(item.snippet?.resourceId?.videoId),
         )
         .filter((id): id is string => Boolean(id));
       if (videoIds.length === 0) {
@@ -297,7 +294,7 @@ export class YoutubeOfficialProvider implements SourceTimelineProvider {
         if (collected.length >= limit) break;
       }
 
-      pageToken = readString(page.data?.nextPageToken);
+      pageToken = readNonEmptyString(page.data?.nextPageToken);
       if (isWindowExhausted || !pageToken) {
         break;
       }
@@ -325,14 +322,14 @@ export class YoutubeOfficialProvider implements SourceTimelineProvider {
     );
     const videos = new Map<string, CollectedSourcePost>();
     for (const item of response.data?.items ?? []) {
-      const id = readString(item.id);
+      const id = readNonEmptyString(item.id);
       if (!id) continue;
       const durationSeconds = parseIsoDurationSeconds(
         item.contentDetails?.duration,
       );
-      const publishedAt = readString(item.snippet?.publishedAt);
-      const title = readString(item.snippet?.title) ?? '';
-      const description = readString(item.snippet?.description);
+      const publishedAt = readNonEmptyString(item.snippet?.publishedAt);
+      const title = readNonEmptyString(item.snippet?.title) ?? '';
+      const description = readNonEmptyString(item.snippet?.description);
       videos.set(id, {
         ...normalizeSourcePostFlags(item),
         contentType:

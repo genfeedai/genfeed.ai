@@ -15,18 +15,13 @@ import {
   toExpertPositioningMemoryType,
 } from '@genfeedai/contracts/constants';
 import type { IExpertPositioningScore } from '@genfeedai/contracts/interfaces';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 export interface ExpertPositioningDraftResult {
   profile: HarnessProfileDocument;
   score: IExpertPositioningScore;
-}
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
 }
 
 function readStringList(value: unknown): string[] {

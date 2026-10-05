@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -44,10 +45,6 @@ const SERVER_ERROR_DESCRIPTION =
 interface ValidationFailure {
   constraints?: Record<string, string>;
   property?: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function readString(value: unknown): string | undefined {

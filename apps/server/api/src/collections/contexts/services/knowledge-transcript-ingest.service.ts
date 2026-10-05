@@ -31,6 +31,7 @@ import {
 import type { KnowledgeSourceCapturePayload } from '@genfeedai/contracts/interfaces';
 import type { ICreditReservation } from '@genfeedai/contracts/interfaces/billing';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -48,10 +49,6 @@ interface TranscriptGenerationClaim {
   attempt?: number;
   leaseExpiresAt: string;
   reservationId?: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function readPayload(value: unknown): KnowledgeSourceCapturePayload & {

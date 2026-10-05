@@ -9,6 +9,7 @@ import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { PatternMatcherService } from '@api/services/pattern-matcher/pattern-matcher.service';
 import { SocialSourceType } from '@genfeedai/contracts';
 import type { IContentPlanSeedSelection } from '@genfeedai/contracts/interfaces';
+import { readString } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -317,12 +318,6 @@ export class PlanPerformanceContextService {
 
 function sanitize(value: string | undefined, maxLength: number): string {
   return value ? SecurityUtil.sanitizePromptInput(value, maxLength) : '';
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : undefined;
 }
 
 function readNumber(value: unknown): number | undefined {

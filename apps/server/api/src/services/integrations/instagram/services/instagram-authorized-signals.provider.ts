@@ -14,6 +14,7 @@ import type {
   InstagramMediaPerformanceSignal,
   InstagramOwnedMediaSignal,
 } from '@genfeedai/contracts/api-types/contracts/instagram-authorized-signals.contract';
+import { readRawString } from '@genfeedai/utils/data/extract.util';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
@@ -74,18 +75,8 @@ export interface InstagramProviderFetchResult {
   profileResult: AuthorizedSignalsSettledResult<InstagramUserResponse>;
 }
 
-export function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-export function readString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
-
 export function readHttpUrl(value: unknown): string | undefined {
-  const candidate = readString(value);
+  const candidate = readRawString(value);
   if (!candidate) {
     return undefined;
   }
@@ -105,7 +96,7 @@ export function readNonNegativeInteger(value: unknown): number | undefined {
 }
 
 export function readIsoToUnixSeconds(value: unknown): number | undefined {
-  const candidate = readString(value);
+  const candidate = readRawString(value);
   if (!candidate) {
     return undefined;
   }
@@ -278,28 +269,28 @@ export class InstagramAuthorizedSignalsProvider {
   private mapOwnedMedia(
     node: InstagramMediaNode,
   ): InstagramOwnedMediaSignal | undefined {
-    const id = readString(node.id);
+    const id = readRawString(node.id);
     if (!id) {
       return undefined;
     }
 
     return {
-      caption: readString(node.caption),
+      caption: readRawString(node.caption),
       commentCount: readNonNegativeInteger(node.comments_count),
       createTime: readIsoToUnixSeconds(node.timestamp),
       id,
       likeCount: readNonNegativeInteger(node.like_count),
-      mediaProductType: readString(node.media_product_type),
-      mediaType: readString(node.media_type),
+      mediaProductType: readRawString(node.media_product_type),
+      mediaType: readRawString(node.media_type),
       permalink: readHttpUrl(node.permalink),
-      shortcode: readString(node.shortcode),
+      shortcode: readRawString(node.shortcode),
     };
   }
 
   private mapMediaPerformance(
     node: InstagramMediaNode,
   ): InstagramMediaPerformanceSignal | undefined {
-    const id = readString(node.id);
+    const id = readRawString(node.id);
     if (!id) {
       return undefined;
     }

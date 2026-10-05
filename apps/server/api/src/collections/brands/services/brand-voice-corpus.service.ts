@@ -11,6 +11,7 @@ import type {
   IBrandVoiceCorpus,
   IBrandVoiceCorpusCandidate,
 } from '@genfeedai/contracts/interfaces';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -22,12 +23,6 @@ const OWN_ACCOUNT_FETCH_LIMIT = 600;
 const PUBLISHED_POST_FETCH_LIMIT = 300;
 
 const RETWEET_PREFIX_PATTERN = /^RT @/u;
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
 
 function readNonEmptyString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
@@ -42,7 +37,7 @@ function normalizeHandle(value: string | null | undefined): string {
  * a like. Null when the row carries no numeric metric at all.
  */
 function readEngagement(metrics: unknown): number | null {
-  const record = asRecord(metrics);
+  const record = readRecord(metrics);
   const weights: Record<string, number> = {
     comments: 2,
     likes: 1,
@@ -83,7 +78,7 @@ export function classifyOwnAccountPost(
   row: OwnAccountRow,
 ): BrandVoiceSampleKind | null {
   const text = row.text?.trim() ?? '';
-  const raw = asRecord(row.raw);
+  const raw = readRecord(row.raw);
   if (!text || RETWEET_PREFIX_PATTERN.test(text)) {
     return null;
   }

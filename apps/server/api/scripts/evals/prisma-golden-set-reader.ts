@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 import {
   HARNESS_PROFILE_TYPE,
   READER_PAGE_SIZE,
@@ -20,9 +21,6 @@ function orderBy(): GoldenRecordOrder[] {
 }
 function record(value: unknown): Record<string, unknown> {
   return isRecord(value) ? value : {};
-}
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 function string(value: unknown): string | null {
   return typeof value === 'string' ? value : null;

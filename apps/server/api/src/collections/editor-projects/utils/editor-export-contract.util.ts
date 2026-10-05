@@ -16,6 +16,7 @@ import {
   type IEditorTransition,
   type IValidatedEditorExportContract,
 } from '@genfeedai/contracts/interfaces';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 interface EditorExportProjectInput {
   id?: unknown;
@@ -46,10 +47,6 @@ const editorTransitionTypes = new Set<string>(
   Object.values(EditorTransitionType),
 );
 const ingredientFormats = new Set<string>(Object.values(IngredientFormat));
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);

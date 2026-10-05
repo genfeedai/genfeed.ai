@@ -12,6 +12,7 @@ import type {
   VideoContinuityQaReport,
 } from '@genfeedai/contracts/interfaces';
 import type { Batch } from '@genfeedai/prisma';
+import { isRecord } from '@genfeedai/utils/data/extract.util';
 
 export interface BatchItem {
   format: ContentFormat;
@@ -204,10 +205,6 @@ export function cloneBatchItems(
       decision: normalizeReviewDecision(event.decision),
     })),
   }));
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function isFiniteNumber(value: unknown): value is number {

@@ -7,6 +7,7 @@ import type {
 } from '@api/services/source-collector/source-collector.types';
 import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
+import { readNonEmptyString } from '@genfeedai/utils/data/extract.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -49,10 +50,6 @@ interface InstagramBusinessDiscoveryResponse {
   id?: unknown;
 }
 
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
-
 function readCount(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
     ? Math.floor(value)
@@ -60,11 +57,13 @@ function readCount(value: unknown): number | undefined {
 }
 
 function toContentType(node: InstagramDiscoveryMediaNode): string {
-  const productType = readString(node.media_product_type)?.toUpperCase();
+  const productType = readNonEmptyString(
+    node.media_product_type,
+  )?.toUpperCase();
   if (productType === 'REELS') {
     return 'reel';
   }
-  const mediaType = readString(node.media_type)?.toUpperCase();
+  const mediaType = readNonEmptyString(node.media_type)?.toUpperCase();
   if (mediaType === 'VIDEO') {
     return 'video';
   }
@@ -75,22 +74,22 @@ function mapDiscoveryNode(
   node: InstagramDiscoveryMediaNode,
   discovery: InstagramBusinessDiscovery,
 ): CollectedSourcePost | undefined {
-  const id = readString(node.id);
+  const id = readNonEmptyString(node.id);
   if (!id) {
     return undefined;
   }
-  const timestamp = readString(node.timestamp);
-  const mediaUrl = readString(node.media_url);
-  const thumbnailUrl = readString(node.thumbnail_url) ?? mediaUrl;
+  const timestamp = readNonEmptyString(node.timestamp);
+  const mediaUrl = readNonEmptyString(node.media_url);
+  const thumbnailUrl = readNonEmptyString(node.thumbnail_url) ?? mediaUrl;
 
   return {
-    authorDisplayName: readString(discovery.name),
+    authorDisplayName: readNonEmptyString(discovery.name),
     authorFollowersCount: readCount(discovery.followers_count),
     ...normalizeSourcePostFlags(node),
-    authorId: readString(discovery.id),
-    authorUsername: readString(discovery.username),
+    authorId: readNonEmptyString(discovery.id),
+    authorUsername: readNonEmptyString(discovery.username),
     contentType: toContentType(node),
-    contentUrl: readString(node.permalink),
+    contentUrl: readNonEmptyString(node.permalink),
     createdAt: timestamp ? new Date(timestamp) : undefined,
     id,
     mediaUrls: mediaUrl ? [mediaUrl] : [],
@@ -99,7 +98,7 @@ function mapDiscoveryNode(
       likes: readCount(node.like_count),
     },
     platform: SocialSourcePlatform.INSTAGRAM,
-    text: readString(node.caption) ?? '',
+    text: readNonEmptyString(node.caption) ?? '',
     thumbnailUrl,
   };
 }
@@ -213,7 +212,7 @@ export class InstagramBusinessDiscoveryProvider
     }
 
     return {
-      handle: readString(discovery.username) ?? handle,
+      handle: readNonEmptyString(discovery.username) ?? handle,
       platform,
       posts,
       provider: 'brand-oauth',
