@@ -502,6 +502,7 @@ export class AdminModelPricingService {
       const [model, setting] = await Promise.all([
         // Platform registry row, proven to the CLOUD tenant guard by the
         // platform-or-tenant arm (no cross-organization hatch).
+        // tenant-scope-ignore: superadmin approval over the platform-global model registry; the where spreads platformOrTenantScope() (organizationId null or the caller's own) with isDeleted:false and an exact id, so no other organization's row can match
         transaction.model.findFirst({
           where: { id: modelId, isDeleted: false, ...platformOrTenantScope() },
           select: pricingModelSelect,
@@ -534,6 +535,7 @@ export class AdminModelPricingService {
       // Compare-and-set: promote only while the pending contract is still the
       // one the operator approved, so a refresh landing in between cannot be
       // approved unseen.
+      // tenant-scope-ignore: superadmin approval over the platform-global model registry; the where spreads platformOrTenantScope() (organizationId null or the caller's own) with isDeleted:false and an exact id, so no other organization's row can match
       const promoted = await transaction.model.updateMany({
         data: {
           pendingProviderContractVersion: null,
@@ -567,6 +569,7 @@ export class AdminModelPricingService {
           },
         },
       });
+      // tenant-scope-ignore: superadmin approval over the platform-global model registry; the where spreads platformOrTenantScope() (organizationId null or the caller's own) with isDeleted:false and an exact id, so no other organization's row can match
       const refreshed = await transaction.model.findFirst({
         where: { id: modelId, isDeleted: false, ...platformOrTenantScope() },
         select: pricingModelSelect,
