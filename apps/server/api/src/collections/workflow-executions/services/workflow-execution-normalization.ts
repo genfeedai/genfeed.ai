@@ -4,11 +4,11 @@ import {
   readNodeResults,
   readOptionalNumber,
   readOptionalString,
-  readRecord,
   type WorkflowExecutionScalarRow,
 } from '@api/collections/workflow-executions/services/workflow-execution-runtime.util';
 import { normalizeActionOrigin, withActionOriginMetadata } from '@api/index';
 import type { ActionOriginContext } from '@genfeedai/contracts';
+import { readRecordCopy } from '@genfeedai/utils/data/extract.util';
 
 export function normalizeWorkflowExecution(
   normalized: WorkflowExecutionDocument,
@@ -17,10 +17,10 @@ export function normalizeWorkflowExecution(
     return normalized;
   }
 
-  const result = readRecord(normalized.result);
+  const result = readRecordCopy(normalized.result);
   const row = normalized as WorkflowExecutionDocument &
     WorkflowExecutionScalarRow;
-  const metadata = readRecord(result.metadata);
+  const metadata = readRecordCopy(result.metadata);
   const storedContext: ActionOriginContext = {
     ...(typeof metadata.actorUserId === 'string'
       ? { actorUserId: metadata.actorUserId }
@@ -30,7 +30,7 @@ export function normalizeWorkflowExecution(
       : {}),
     origin: normalizeActionOrigin(metadata.origin),
   };
-  const eta = composeEtaMetadata(row, readRecord(metadata.eta));
+  const eta = composeEtaMetadata(row, readRecordCopy(metadata.eta));
   const normalizedMetadata = withActionOriginMetadata(
     Object.keys(eta).length > 0 ? { ...metadata, eta } : metadata,
     storedContext,
@@ -59,7 +59,7 @@ export function normalizeWorkflowExecution(
     creditsUsed,
     durationMs,
     failedNodeId,
-    inputValues: readRecord(result.inputValues),
+    inputValues: readRecordCopy(result.inputValues),
     metadata: normalizedMetadata,
     nodeResults,
     progress,

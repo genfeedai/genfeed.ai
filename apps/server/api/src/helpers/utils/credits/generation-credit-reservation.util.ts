@@ -26,7 +26,7 @@ export type GenerationCreditReservationRequest = {
 
 type ReservationCreditsClient = Pick<CreditsUtilsService, 'reserveCredits'>;
 
-function readString(value: unknown): string | undefined {
+function readIdempotencyKey(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   const trimmed = value.trim();
   return trimmed
@@ -41,7 +41,8 @@ function readSourceActionId(request: GenerationCreditReservationRequest) {
     (data?.attributes as Record<string, unknown> | undefined) ??
     (body?.attributes as Record<string, unknown> | undefined);
   return (
-    readString(body?.sourceActionId) ?? readString(attributes?.sourceActionId)
+    readIdempotencyKey(body?.sourceActionId) ??
+    readIdempotencyKey(attributes?.sourceActionId)
   );
 }
 

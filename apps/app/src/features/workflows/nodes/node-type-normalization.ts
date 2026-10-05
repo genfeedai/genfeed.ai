@@ -129,7 +129,7 @@ function extractEditorConfigFields(
   return config;
 }
 
-function readRecord(value: unknown): Record<string, unknown> {
+function readObjectLikeOrEmpty(value: unknown): Record<string, unknown> {
   return isNodeDataRecord(value) ? value : {};
 }
 
@@ -141,7 +141,7 @@ function readPersistedActionId(
     return null;
   }
 
-  const actionId = readRecord(data.config).actionId;
+  const actionId = readObjectLikeOrEmpty(data.config).actionId;
   return typeof actionId === 'string' && actionId.length > 0 ? actionId : null;
 }
 
@@ -149,8 +149,8 @@ function toEditorActionNodeData(
   data: Record<string, unknown>,
   actionId: string,
 ): Record<string, unknown> {
-  const config = readRecord(data.config);
-  const parameters = readRecord(config.parameters);
+  const config = readObjectLikeOrEmpty(data.config);
+  const parameters = readObjectLikeOrEmpty(config.parameters);
   const inputVariableKeys = readInputVariableKeys(data);
 
   return {
@@ -167,8 +167,10 @@ function toPersistedActionNodeData(
   actionId: string,
 ): Record<string, unknown> {
   const record = isNodeDataRecord(data) ? data : {};
-  const existingParameters = readRecord(record[WORKFLOW_ACTION_PARAMETERS_KEY]);
-  const existingConfig = readRecord(record.config);
+  const existingParameters = readObjectLikeOrEmpty(
+    record[WORKFLOW_ACTION_PARAMETERS_KEY],
+  );
+  const existingConfig = readObjectLikeOrEmpty(record.config);
   const extracted = extractEditorConfigFields(record);
   const inputVariableKeys = readInputVariableKeys(record);
 
@@ -191,7 +193,7 @@ function toPersistedInputNode(
   { dataKey, inputType }: { dataKey: string; inputType: string },
 ): WorkflowNodeLike {
   const record = isNodeDataRecord(node.data) ? node.data : {};
-  const configured = readRecord(record.config);
+  const configured = readObjectLikeOrEmpty(record.config);
   const defaultValue =
     record[dataKey] ?? configured.defaultValue ?? configured.value;
 

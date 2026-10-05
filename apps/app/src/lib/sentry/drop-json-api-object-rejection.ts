@@ -1,3 +1,5 @@
+import { isRecord } from '@genfeedai/utils/data/extract.util';
+
 interface DroppableSentryException {
   readonly type?: string;
   readonly value?: string;
@@ -11,10 +13,6 @@ interface DroppableSentryEvent {
 
 interface DroppableSentryHint {
   originalException?: unknown;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function isJsonApiObjectRejection(value: unknown): boolean {

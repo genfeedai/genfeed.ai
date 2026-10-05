@@ -21,7 +21,9 @@ export interface WorkflowExecutionOutput {
 const VIDEO_EXTENSIONS = ['.mp4', '.mov', '.webm', '.mkv'];
 const AUDIO_EXTENSIONS = ['.aac', '.m4a', '.mp3', '.ogg', '.wav'];
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
+function readObjectLikeOrUndefined(
+  value: unknown,
+): Record<string, unknown> | undefined {
   return value && typeof value === 'object'
     ? (value as Record<string, unknown>)
     : undefined;
@@ -31,7 +33,7 @@ function firstString(...values: Array<string | undefined>): string | undefined {
   return values.find((value) => typeof value === 'string' && value.length > 0);
 }
 
-function readString(
+function readStringField(
   record: Record<string, unknown>,
   key: string,
 ): string | undefined {
@@ -57,40 +59,40 @@ function extractOutputFromRecord(
   record: Record<string, unknown>,
 ): WorkflowExecutionOutput | undefined {
   const caption = firstString(
-    readString(record, 'caption'),
-    readString(record, 'label'),
-    readString(record, 'prompt'),
+    readStringField(record, 'caption'),
+    readStringField(record, 'label'),
+    readStringField(record, 'prompt'),
   );
   const text = firstString(
-    readString(record, 'text'),
-    readString(record, 'message'),
-    readString(record, 'content'),
+    readStringField(record, 'text'),
+    readStringField(record, 'message'),
+    readStringField(record, 'content'),
   );
 
-  const imageUrl = readString(record, 'imageUrl');
+  const imageUrl = readStringField(record, 'imageUrl');
   if (imageUrl) {
     return { caption, type: 'image', url: imageUrl };
   }
 
   const videoUrl = firstString(
-    readString(record, 'videoUrl'),
-    readString(asRecord(record.video) ?? {}, 'videoUrl'),
+    readStringField(record, 'videoUrl'),
+    readStringField(readObjectLikeOrUndefined(record.video) ?? {}, 'videoUrl'),
   );
   if (videoUrl) {
     return { caption, type: 'video', url: videoUrl };
   }
 
   const audioUrl = firstString(
-    readString(record, 'audioUrl'),
-    readString(record, 'musicUrl'),
-    readString(asRecord(record.audio) ?? {}, 'audioUrl'),
-    readString(asRecord(record.music) ?? {}, 'musicUrl'),
+    readStringField(record, 'audioUrl'),
+    readStringField(record, 'musicUrl'),
+    readStringField(readObjectLikeOrUndefined(record.audio) ?? {}, 'audioUrl'),
+    readStringField(readObjectLikeOrUndefined(record.music) ?? {}, 'musicUrl'),
   );
   if (audioUrl) {
     return { caption, type: 'audio', url: audioUrl };
   }
 
-  const mediaUrl = readString(record, 'mediaUrl');
+  const mediaUrl = readStringField(record, 'mediaUrl');
   if (mediaUrl) {
     return {
       caption,
@@ -109,7 +111,7 @@ function extractOutputFromRecord(
 export function extractWorkflowExecutionSnapshot(
   payload: unknown,
 ): WorkflowExecutionSnapshot {
-  const document = asRecord(payload);
+  const document = readObjectLikeOrUndefined(payload);
   const directNodeResults = document?.nodeResults;
 
   if (Array.isArray(directNodeResults)) {
@@ -127,8 +129,8 @@ export function extractWorkflowExecutionSnapshot(
     };
   }
 
-  const data = asRecord(document?.data);
-  const attributes = asRecord(data?.attributes);
+  const data = readObjectLikeOrUndefined(document?.data);
+  const attributes = readObjectLikeOrUndefined(data?.attributes);
   const nodeResults = Array.isArray(attributes?.nodeResults)
     ? (attributes.nodeResults as WorkflowExecutionNodeResultLike[])
     : [];
@@ -159,7 +161,9 @@ export function extractWorkflowOutputsFromExecution(
   const seen = new Set<string>();
 
   for (const nodeResult of execution.nodeResults) {
-    const output = extractOutputFromRecord(asRecord(nodeResult.output) ?? {});
+    const output = extractOutputFromRecord(
+      readObjectLikeOrUndefined(nodeResult.output) ?? {},
+    );
 
     if (!output) {
       continue;

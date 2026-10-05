@@ -4,7 +4,6 @@ import type {
   SocialMessageDocument,
 } from '@api/collections/social-inbox/schemas/social-inbox.schema';
 import {
-  asRecord,
   clamp,
   readAvailability,
   sanitizeBody,
@@ -38,6 +37,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { Platform, WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
+import { readRecord } from '@genfeedai/utils/data/extract.util';
 import {
   BadGatewayException,
   BadRequestException,
@@ -199,7 +199,7 @@ export class SocialInboxActionService implements OnModuleInit {
     messageId: string,
   ): Promise<SocialMessageDocument> {
     const draft = await this.getDraftMessage(scope, conversationId, messageId);
-    const draftMetadata = asRecord(draft.metadata);
+    const draftMetadata = readRecord(draft.metadata);
     const recipientId =
       typeof draftMetadata.draftRecipientId === 'string'
         ? draftMetadata.draftRecipientId
@@ -219,7 +219,7 @@ export class SocialInboxActionService implements OnModuleInit {
     await this.prisma.socialMessage.update({
       data: {
         actionProvenance: {
-          ...asRecord(draft.actionProvenance),
+          ...readRecord(draft.actionProvenance),
           approvedAt: new Date().toISOString(),
           approvedBy: scope.userId,
           approvedMessageId: sent.id,
@@ -248,7 +248,7 @@ export class SocialInboxActionService implements OnModuleInit {
     const rejected = await this.prisma.socialMessage.update({
       data: {
         actionProvenance: {
-          ...asRecord(draft.actionProvenance),
+          ...readRecord(draft.actionProvenance),
           rejectedAt: new Date().toISOString(),
           rejectedBy: scope.userId,
         } as Prisma.InputJsonValue,

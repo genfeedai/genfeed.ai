@@ -1,6 +1,4 @@
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
+import { isObjectLike } from '@genfeedai/utils/data/extract.util';
 
 function readFiniteNumber(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -17,11 +15,11 @@ function readMessage(error: unknown): string {
   if (error instanceof Error && error.message.trim().length > 0) {
     return error.message;
   }
-  if (isRecord(error)) {
+  if (isObjectLike(error)) {
     if (typeof error.message === 'string' && error.message.trim().length > 0) {
       return error.message;
     }
-    const data = isRecord(error.data) ? error.data : undefined;
+    const data = isObjectLike(error.data) ? error.data : undefined;
     if (typeof data?.detail === 'string' && data.detail.trim().length > 0) {
       return data.detail;
     }
@@ -33,10 +31,10 @@ function readMessage(error: unknown): string {
 }
 
 function readStatus(error: unknown): number | undefined {
-  if (!isRecord(error)) {
+  if (!isObjectLike(error)) {
     return undefined;
   }
-  const data = isRecord(error.data) ? error.data : undefined;
+  const data = isObjectLike(error.data) ? error.data : undefined;
   return (
     readFiniteNumber(error.status) ??
     readFiniteNumber(error.code) ??
@@ -45,7 +43,7 @@ function readStatus(error: unknown): number | undefined {
 }
 
 function readRateLimitResetIso(error: unknown): string | undefined {
-  if (!isRecord(error)) {
+  if (!isObjectLike(error)) {
     return undefined;
   }
 
@@ -56,8 +54,8 @@ function readRateLimitResetIso(error: unknown): string | undefined {
     return error.rateLimitReset.toISOString();
   }
 
-  const headers = isRecord(error.headers) ? error.headers : undefined;
-  const rateLimit = isRecord(error.rateLimit) ? error.rateLimit : undefined;
+  const headers = isObjectLike(error.headers) ? error.headers : undefined;
+  const rateLimit = isObjectLike(error.rateLimit) ? error.rateLimit : undefined;
   const rawReset =
     rateLimit?.reset ?? headers?.['x-rate-limit-reset'] ?? error.rateLimitReset;
   const reset = readFiniteNumber(rawReset);
@@ -77,21 +75,21 @@ export const X_CREDENTIAL_ERROR =
   'X is not connected for this brand. Connect X and try again.';
 
 function readAxiosStatus(error: unknown): number | undefined {
-  if (!isRecord(error)) {
+  if (!isObjectLike(error)) {
     return undefined;
   }
-  const response = isRecord(error.response) ? error.response : undefined;
+  const response = isObjectLike(error.response) ? error.response : undefined;
   return readFiniteNumber(response?.status);
 }
 
 function readOAuthErrorText(error: unknown): string {
-  if (!isRecord(error)) {
+  if (!isObjectLike(error)) {
     return '';
   }
 
-  const response = isRecord(error.response) ? error.response : undefined;
-  const responseData = isRecord(response?.data) ? response.data : undefined;
-  const data = isRecord(error.data) ? error.data : undefined;
+  const response = isObjectLike(error.response) ? error.response : undefined;
+  const responseData = isObjectLike(response?.data) ? response.data : undefined;
+  const data = isObjectLike(error.data) ? error.data : undefined;
   return [
     responseData?.error,
     responseData?.error_description,
@@ -162,12 +160,12 @@ export function isTwitterAuthorizationError(error: unknown): boolean {
 export function isTwitterScopeOrTierError(error: unknown): boolean {
   const status = readStatus(error) ?? readAxiosStatus(error);
   const message = readMessage(error).toLowerCase();
-  const title = isRecord(error)
+  const title = isObjectLike(error)
     ? String(
-        (isRecord(error.response) && isRecord(error.response.data)
+        (isObjectLike(error.response) && isObjectLike(error.response.data)
           ? error.response.data.title
           : undefined) ??
-          (isRecord(error.data) ? error.data.title : undefined) ??
+          (isObjectLike(error.data) ? error.data.title : undefined) ??
           '',
       ).toLowerCase()
     : '';
@@ -195,7 +193,7 @@ export function isTwitterRateLimitError(error: unknown): boolean {
     message.includes('429') ||
     message.includes('rate limit') ||
     message.includes('too many requests') ||
-    (isRecord(error) && isRecord(error.rateLimit))
+    (isObjectLike(error) && isObjectLike(error.rateLimit))
   );
 }
 
@@ -204,14 +202,14 @@ export function getTwitterRetryAfterMs(
   fallbackMs: number,
   maximumMs: number,
 ): number {
-  if (!isRecord(error)) {
+  if (!isObjectLike(error)) {
     return fallbackMs;
   }
 
-  const response = isRecord(error.response) ? error.response : undefined;
-  const headers = isRecord(response?.headers)
+  const response = isObjectLike(error.response) ? error.response : undefined;
+  const headers = isObjectLike(response?.headers)
     ? response.headers
-    : isRecord(error.headers)
+    : isObjectLike(error.headers)
       ? error.headers
       : undefined;
   const retryAfter = readFiniteNumber(headers?.['retry-after']);
@@ -269,7 +267,7 @@ export function mapTwitterApiError(error: unknown): string {
     lower.includes('429') ||
     lower.includes('rate limit') ||
     lower.includes('too many requests') ||
-    (isRecord(error) && isRecord(error.rateLimit));
+    (isObjectLike(error) && isObjectLike(error.rateLimit));
 
   if (isRateLimited) {
     const resetAt = readRateLimitResetIso(error);

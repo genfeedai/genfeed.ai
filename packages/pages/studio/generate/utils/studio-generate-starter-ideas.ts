@@ -9,6 +9,7 @@ import type {
   StudioGenerateStarterIdea,
   StudioGenerateStarterProductReference,
 } from '@genfeedai/props/studio/studio-generate.props';
+import { isObjectLike } from '@genfeedai/utils/data/extract.util';
 import type { JSONContent } from '@tiptap/core';
 
 /**
@@ -81,11 +82,7 @@ export function pickStarterCharacter(
   };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function readNonEmptyString(
+function readTrimmedField(
   record: Record<string, unknown>,
   key: string,
 ): string | undefined {
@@ -110,17 +107,17 @@ export function pickStarterProductReference(
   }
 
   for (const item of references) {
-    if (!isRecord(item)) {
+    if (!isObjectLike(item)) {
       continue;
     }
-    const id = readNonEmptyString(item, 'id');
-    const previewUrl = readNonEmptyString(item, 'cdnUrl');
-    const category = readNonEmptyString(item, 'referenceCategory');
+    const id = readTrimmedField(item, 'id');
+    const previewUrl = readTrimmedField(item, 'cdnUrl');
+    const category = readTrimmedField(item, 'referenceCategory');
     if (!id || !previewUrl || category !== ReferenceImageCategory.PRODUCT) {
       continue;
     }
 
-    const label = readNonEmptyString(item, 'displayName');
+    const label = readTrimmedField(item, 'displayName');
     return {
       id,
       ...(label ? { label } : {}),

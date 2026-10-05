@@ -27,9 +27,34 @@ export function readRawString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
+/** Non-null object, arrays included (looser than `isRecord`). */
+export function isObjectLike(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null;
+}
+
+/** Non-empty string returned as-is (not trimmed), otherwise `null`. */
+export function readNonEmptyStringOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+/** Trimmed non-empty string, otherwise `null`. */
+export function readTrimmedStringOrNull(value: unknown): string | null {
+  return readString(value) ?? null;
+}
+
+/** Non-blank string returned as-is (not trimmed), otherwise `null`. */
+export function readNonBlankStringOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() !== '' ? value : null;
+}
+
 /** Plain object (arrays excluded), otherwise an empty record. */
 export function readRecord(value: unknown): UnknownRecord {
   return isRecord(value) ? value : {};
+}
+
+/** Shallow copy of a plain object (arrays excluded), otherwise an empty record. */
+export function readRecordCopy(value: unknown): UnknownRecord {
+  return isRecord(value) ? { ...value } : {};
 }
 
 /** Plain object (arrays excluded), otherwise `null`. */

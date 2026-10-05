@@ -125,7 +125,7 @@ export class TrendSourcePreviewService {
 
     if (candidateIndexes.length > fetchIndexes.length) {
       this.loggerService.warn(
-        'Trend source preview batch exceeded its Apify run budget; the remaining trends keep their stored preview until the next pass',
+        'Trend source preview batch exceeded its live fetch cap; the remaining trends keep their stored preview until the next pass',
         {
           deferredTrends: candidateIndexes.length - fetchIndexes.length,
           maxFetchesPerBatch: this.MAX_LIVE_PREVIEW_FETCHES_PER_BATCH,
@@ -346,8 +346,8 @@ export class TrendSourcePreviewService {
    * request to a normal cached read rather than failing it — the caller still
    * gets trends, just not a fresh round of billed scrapes.
    *
-   * A cache outage claims nothing and allows the refresh: the run budget in
-   * ApifyBaseService is the backstop that does not depend on Redis being up.
+   * A cache outage claims nothing and allows the refresh: Apify's own account
+   * usage limit is the spend backstop and does not depend on Redis being up.
    */
   private async claimRefreshCooldown(scope: {
     organizationId?: string;

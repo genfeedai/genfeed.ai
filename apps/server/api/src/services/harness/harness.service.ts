@@ -5,6 +5,7 @@ import process from 'node:process';
 import {
   BRAND_FIDELITY_HARNESS_PACK,
   CORE_CONTENT_HARNESS_PACK,
+  type ComposeContentHarnessBriefOptions,
   type ContentHarnessActivationReport,
   type ContentHarnessBrief,
   type ContentHarnessContribution,
@@ -122,9 +123,12 @@ export class ContentHarnessService implements OnModuleInit {
     await this.getRegistryLoad();
   }
 
-  async composeBrief(input: ContentHarnessInput): Promise<ContentHarnessBrief> {
+  async composeBrief(
+    input: ContentHarnessInput,
+    options?: ComposeContentHarnessBriefOptions,
+  ): Promise<ContentHarnessBrief> {
     const registry = await this.getRegistry();
-    return await composeContentHarnessBrief(registry, input);
+    return await composeContentHarnessBrief(registry, input, options);
   }
 
   async composeBriefLayers(
@@ -195,7 +199,11 @@ export class ContentHarnessService implements OnModuleInit {
     // Stricter brand-fidelity / anti-genericity directives.
     registry.registerPack(BRAND_FIDELITY_HARNESS_PACK);
     // Demand -> hook -> retention -> conversion craft layer (platform-agnostic).
-    registry.registerPack(VIRAL_PSYCHOLOGY_HARNESS_PACK);
+    // Copy-only: persuasion rules must never reach image/video/audio prompts.
+    registry.registerPack({
+      ...VIRAL_PSYCHOLOGY_HARNESS_PACK,
+      surfaces: ['copy'],
+    });
     const builtInPackIds = registry.list().map((pack) => pack.id);
 
     const external: ContentHarnessPackActivation[] = [];

@@ -158,6 +158,27 @@ describe('HarnessGenerationService#resolveBrief', () => {
     );
   });
 
+  it('composes only the requested surface and defaults to every pack', async () => {
+    const { contentHarnessService, service } = createService();
+
+    await service.resolveBrief({
+      brandId: 'brand-1',
+      contentType: 'video',
+      organizationId: 'org-1',
+      surface: 'media',
+    });
+    await service.resolveBrief({
+      brandId: 'brand-1',
+      contentType: 'post',
+      organizationId: 'org-1',
+    });
+
+    expect(contentHarnessService.composeBrief.mock.calls[0][1]).toEqual({
+      surface: 'media',
+    });
+    expect(contentHarnessService.composeBrief.mock.calls[1][1]).toBeUndefined();
+  });
+
   it('passes the persona through to composeBrief (parity with the old direct-call path)', async () => {
     const { service, contentHarnessService } = createService();
     const persona = {

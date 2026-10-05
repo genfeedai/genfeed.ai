@@ -69,10 +69,24 @@ export class LinkedInTrendResolverService
         return toServerTrends(liveTopics);
       }
 
-      if (scrapedSources.some((result) => result.status === 'rejected'))
+      const failedSourceCount = scrapedSources.filter(
+        (result) => result.status === 'rejected',
+      ).length;
+      const sourcesWithPosts = scrapedSources.filter(
+        (result) =>
+          result.status === 'fulfilled' && result.value.recentPosts.length > 0,
+      ).length;
+      // Pages that load but yield no posts mean the extraction is broken, not
+      // that LinkedIn is quiet, so refresh health must not read it as empty.
+      if (failedSourceCount > 0 || sourcesWithPosts === 0)
         recordTrendProviderOutcome('native_failed', 'native_failed');
       this.loggerService.warn(
         `${url} - public LinkedIn scrape returned no usable topics, returning no observed trends`,
+        {
+          failedSourceCount,
+          sourceCount: sourceUrls.length,
+          sourcesWithPosts,
+        },
       );
     } catch (error: unknown) {
       recordTrendProviderOutcome('native_failed', 'native_failed');

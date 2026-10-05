@@ -444,6 +444,39 @@ describe('TrendFetchService', () => {
       });
     });
 
+    it('runs the Apify Reddit fallback when native Reddit has no app credentials', async () => {
+      mockRedditService.getTrends.mockImplementation(async () => {
+        recordTrendProviderOutcome('native_empty', 'native_unavailable');
+        return [];
+      });
+      mockApifyService.getRedditTrends.mockResolvedValue([
+        {
+          growthRate: 50,
+          mentions: 500,
+          platform: 'reddit',
+          topic: 'Fallback Reddit topic',
+        },
+      ]);
+      mockPrisma.trend.create.mockImplementation(({ data }) =>
+        Promise.resolve({ data, id: 'trend-reddit' }),
+      );
+
+      await service.fetchAndCacheTrends(undefined, undefined, undefined, {
+        platforms: ['reddit'],
+      });
+
+      expect(mockApifyService.getRedditTrends).toHaveBeenCalledWith({
+        limit: 20,
+      });
+      expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+        expect.objectContaining({
+          outcome: 'fallback_available',
+          platform: 'reddit',
+          reason: 'native_unavailable',
+        }),
+      ]);
+    });
+
     it('does not run Apify when a scheduled native-only refresh has no signal', async () => {
       mockRedditService.getTrends.mockResolvedValue([]);
 
@@ -974,7 +1007,7 @@ describe('TrendFetchService', () => {
   ] as const)('global %s Apify fallback evidence', (platform, method) => {
     it('records fallback_failed without a successful refresh when Apify throws', async () => {
       mockApifyService[method].mockRejectedValue(
-        new Error('Apify run budget exhausted'),
+        new Error('Apify actor run failed'),
       );
 
       await service.fetchAndCacheTrends(undefined, undefined, undefined, {

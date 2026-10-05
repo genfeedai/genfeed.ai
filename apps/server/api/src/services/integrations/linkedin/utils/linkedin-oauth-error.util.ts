@@ -1,4 +1,7 @@
-import { readNonBlankString } from '@genfeedai/utils/data/extract.util';
+import {
+  isObjectLike,
+  readNonBlankString,
+} from '@genfeedai/utils/data/extract.util';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 const CONFIG_OAUTH_CODES = new Set(['invalid_client']);
@@ -55,10 +58,6 @@ export type LinkedInOAuthErrorLog = {
   status?: number;
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
 function readFiniteNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value)
     ? value
@@ -78,12 +77,12 @@ function readLinkedInOAuthHttpStatus(error: unknown): number | undefined {
     return error.getStatus();
   }
 
-  if (!isRecord(error)) {
+  if (!isObjectLike(error)) {
     return undefined;
   }
 
-  const response = isRecord(error.response) ? error.response : undefined;
-  const metadata = isRecord(error.metadata) ? error.metadata : undefined;
+  const response = isObjectLike(error.response) ? error.response : undefined;
+  const metadata = isObjectLike(error.metadata) ? error.metadata : undefined;
 
   return (
     readFiniteNumber(response?.status) ??
@@ -93,19 +92,19 @@ function readLinkedInOAuthHttpStatus(error: unknown): number | undefined {
 }
 
 function readLinkedInOAuthErrorCode(error: unknown): string | undefined {
-  if (!isRecord(error)) {
+  if (!isObjectLike(error)) {
     return undefined;
   }
 
-  const response = isRecord(error.response) ? error.response : undefined;
-  const data = isRecord(response?.data) ? response.data : undefined;
+  const response = isObjectLike(error.response) ? error.response : undefined;
+  const data = isObjectLike(response?.data) ? response.data : undefined;
   const nestedError = data?.error;
 
   if (typeof nestedError === 'string') {
     return nestedError;
   }
 
-  if (isRecord(nestedError)) {
+  if (isObjectLike(nestedError)) {
     return (
       readNonBlankString(nestedError.code) ??
       readNonBlankString(nestedError.error)
@@ -116,7 +115,7 @@ function readLinkedInOAuthErrorCode(error: unknown): string | undefined {
 }
 
 function isNetworkFailure(error: unknown): boolean {
-  if (!isRecord(error)) {
+  if (!isObjectLike(error)) {
     return false;
   }
 

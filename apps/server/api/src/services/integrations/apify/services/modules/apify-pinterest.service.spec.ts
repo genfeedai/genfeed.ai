@@ -8,24 +8,47 @@ import { ApifyPinterestService } from './apify-pinterest.service';
 vi.mock('./apify-base.service');
 
 const makePinterestPin = (
-  overrides: Partial<ApifyPinterestPin> = {},
-): ApifyPinterestPin =>
-  ({
+  overrides: {
+    commentCount?: number;
+    description?: string;
+    id?: string;
+    imageUrl?: string;
+    isPromoted?: boolean;
+    repinCount?: number;
+    title?: string;
+    url?: string;
+  } = {},
+): ApifyPinterestPin => {
+  const values = {
     commentCount: 10,
     description: 'A beautiful pin about travel',
     imageUrl: 'https://i.pinimg.com/test.jpg',
-    link: 'https://pinterest.com/pin/123',
     repinCount: 500,
     title: 'Trending Travel Pin',
+    url: 'https://www.pinterest.com/pin/123/',
     ...overrides,
-  }) as ApifyPinterestPin;
+  };
+  return {
+    id: values.id ?? '123',
+    media: { images: { large: { url: values.imageUrl } } },
+    pin: {
+      comment_count: values.commentCount,
+      description: values.description,
+      is_promoted: values.isPromoted ?? false,
+      repin_count: values.repinCount,
+      title: values.title,
+    },
+    title: values.title,
+    url: values.url,
+  };
+};
 
 describe('ApifyPinterestService', () => {
   let service: ApifyPinterestService;
 
   const mockBaseService = {
     ACTORS: {
-      PINTEREST_SCRAPER: 'alexey/pinterest-scraper',
+      PINTEREST_SCRAPER: 'fatihtahta/pinterest-scraper-search',
     },
     calculateGrowthRate: vi.fn().mockReturnValue(12.5),
     calculateViralityScore: vi.fn().mockReturnValue(85),
@@ -59,7 +82,7 @@ describe('ApifyPinterestService', () => {
     it('should return normalized trend data from pinterest pins', async () => {
       const pins = [
         makePinterestPin(),
-        makePinterestPin({ title: 'Another Pin' }),
+        makePinterestPin({ id: '456', title: 'Another Pin' }),
       ];
       mockBaseService.runActor.mockResolvedValue(pins);
 
@@ -81,8 +104,8 @@ describe('ApifyPinterestService', () => {
       await service.getPinterestTrends();
 
       expect(mockBaseService.runActor).toHaveBeenCalledWith(
-        'alexey/pinterest-scraper',
-        expect.objectContaining({ maxItems: 20 }),
+        'fatihtahta/pinterest-scraper-search',
+        expect.objectContaining({ limit: 7, type: 'all-pins' }),
       );
     });
 
@@ -92,8 +115,8 @@ describe('ApifyPinterestService', () => {
       await service.getPinterestTrends({ limit: 10 });
 
       expect(mockBaseService.runActor).toHaveBeenCalledWith(
-        'alexey/pinterest-scraper',
-        expect.objectContaining({ maxItems: 10 }),
+        'fatihtahta/pinterest-scraper-search',
+        expect.objectContaining({ limit: 4 }),
       );
     });
 
@@ -103,11 +126,25 @@ describe('ApifyPinterestService', () => {
       await service.getPinterestTrends();
 
       expect(mockBaseService.runActor).toHaveBeenCalledWith(
-        'alexey/pinterest-scraper',
+        'fatihtahta/pinterest-scraper-search',
         expect.objectContaining({
-          searchTerms: ['trending', 'viral', 'popular'],
+          queries: ['trending', 'viral', 'popular'],
         }),
       );
+    });
+
+    it('caps output to the requested total and drops promoted and repeated pins', async () => {
+      mockBaseService.runActor.mockResolvedValue([
+        { ...makePinterestPin({ isPromoted: true, title: 'Ad' }), id: 'ad' },
+        { ...makePinterestPin({ title: 'One' }), id: 'one' },
+        { ...makePinterestPin({ title: 'One again' }), id: 'one' },
+        { ...makePinterestPin({ title: 'Two' }), id: 'two' },
+        { ...makePinterestPin({ title: 'Three' }), id: 'three' },
+      ]);
+
+      const result = await service.getPinterestTrends({ limit: 2 });
+
+      expect(result.map((trend) => trend.topic)).toEqual(['One', 'Two']);
     });
 
     it('rethrows provider failures instead of returning an empty list', async () => {
@@ -121,8 +158,8 @@ describe('ApifyPinterestService', () => {
       const pin = makePinterestPin({
         commentCount: 25,
         imageUrl: 'https://i.pinimg.com/thumb.jpg',
-        link: 'https://example.com/source',
         repinCount: 300,
+        url: 'https://www.pinterest.com/pin/456/',
       });
       mockBaseService.runActor.mockResolvedValue([pin]);
 
@@ -135,7 +172,7 @@ describe('ApifyPinterestService', () => {
         source: 'apify',
         thumbnailUrl: 'https://i.pinimg.com/thumb.jpg',
         trendType: 'topic',
-        urls: ['https://example.com/source'],
+        urls: ['https://www.pinterest.com/pin/456/'],
       });
     });
 
@@ -165,8 +202,8 @@ describe('ApifyPinterestService', () => {
       expect(result[0].topic).toBe('Trending Pin');
     });
 
-    it('should handle pins with no link', async () => {
-      const pin = makePinterestPin({ link: undefined });
+    it('should handle pins with no url', async () => {
+      const pin = makePinterestPin({ url: undefined });
       mockBaseService.runActor.mockResolvedValue([pin]);
 
       const result = await service.getPinterestTrends();
