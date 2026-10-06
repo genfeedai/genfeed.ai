@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { TooltipProvider } from '@ui/primitives/tooltip';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -83,6 +85,36 @@ describe('PromptBarSuggestions', () => {
     button.focus();
 
     expect(button).toHaveFocus();
+  });
+
+  it('shows a concise tooltip while preserving the full execution prompt', async () => {
+    const user = userEvent.setup();
+    const handleSelect = vi.fn();
+    const suggestion = {
+      id: 'schedule',
+      label: "Schedule today's tweets",
+      prompt:
+        'Generate one post per hour until 23:00 in my timezone. Do not ask follow-up questions.',
+    };
+    render(
+      <TooltipProvider delayDuration={0}>
+        <PromptBarSuggestions
+          suggestions={[suggestion]}
+          onSuggestionSelect={handleSelect}
+        />
+      </TooltipProvider>,
+    );
+
+    const button = screen.getByRole('button', { name: suggestion.label });
+    await user.hover(button);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      suggestion.label,
+    );
+    expect(screen.getByRole('tooltip')).not.toHaveTextContent(
+      suggestion.prompt,
+    );
+    await user.click(button);
+    expect(handleSelect).toHaveBeenCalledWith(suggestion);
   });
 
   it('renders card tiles when variant is cards', () => {
