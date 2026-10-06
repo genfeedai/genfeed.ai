@@ -126,7 +126,7 @@
     "symbol": "PublishApprovalsService.createForPost"
   },
   {
-    "actual": 186,
+    "actual": 165,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-completion-card-builder.service.ts",
     "metric": "method-lines",
     "symbol": "AgentCompletionCardBuilderService.buildCompletionSuggestedActions"

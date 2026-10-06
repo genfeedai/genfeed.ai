@@ -76,6 +76,29 @@ export interface AgentUiActionCta {
   payload?: Record<string, unknown>;
 }
 
+export interface AgentCompletionSuggestedAction {
+  id: string;
+  label: string;
+  prompt: string;
+  /** Optional one-line helper; omit for chip-style short labels. */
+  description?: string;
+}
+
+export interface AgentCompletionToolCall {
+  reviewQueue?: AgentReviewQueueSnapshot;
+  status: 'completed' | 'failed';
+  toolName: string;
+}
+
+/** Verified counts used to ground review follow-ups in the latest tool result. */
+export interface AgentReviewQueueSnapshot {
+  approvedCount: number;
+  changesRequestedCount: number;
+  pendingCount: number;
+  readyCount: number;
+  scope: 'inbox' | 'batch' | 'summary';
+}
+
 /**
  * What a UI action handler reports back to the card that invoked it.
  * `true`: the action finished. `false`: it was rejected or failed.

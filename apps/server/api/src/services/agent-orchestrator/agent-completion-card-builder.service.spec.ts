@@ -362,6 +362,113 @@ describe('AgentCompletionCardBuilderService', () => {
     ]);
   });
 
+  describe('response-aware review suggestions', () => {
+    const emptyQueue = {
+      approvedCount: 0,
+      changesRequestedCount: 0,
+      pendingCount: 0,
+      readyCount: 0,
+      scope: 'inbox' as const,
+    };
+
+    it.each([
+      { reviewQueue: emptyQueue, ids: ['review-create', 'review-ideas'] },
+      { reviewQueue: { ...emptyQueue, readyCount: 2 }, ids: ['review-ready'] },
+      {
+        reviewQueue: { ...emptyQueue, changesRequestedCount: 1 },
+        ids: ['review-fix'],
+      },
+      {
+        reviewQueue: { ...emptyQueue, approvedCount: 3 },
+        ids: ['review-schedule'],
+      },
+      {
+        reviewQueue: { ...emptyQueue, pendingCount: 2 },
+        ids: ['review-progress'],
+      },
+      {
+        reviewQueue: { ...emptyQueue, scope: 'batch' as const },
+        ids: ['review-open'],
+      },
+      {
+        reviewQueue: {
+          ...emptyQueue,
+          readyCount: 2,
+          changesRequestedCount: 1,
+          approvedCount: 3,
+        },
+        ids: ['review-ready', 'review-fix', 'review-schedule'],
+      },
+    ])(
+      'offers only actions supported by $reviewQueue',
+      ({ reviewQueue, ids }) => {
+        const result = service.buildAssistantUiActions({
+          reviewRequired: false,
+          toolCalls: [
+            { status: 'completed', toolName: 'list_review_queue', reviewQueue },
+          ],
+          uiActions: [],
+        });
+        expect(result.suggestedActions.map((action) => action.id)).toEqual(ids);
+      },
+    );
+
+    it('does not infer ready items from a tool name or a review card alone', () => {
+      const result = service.buildAssistantUiActions({
+        reviewRequired: false,
+        toolCalls: [{ status: 'completed', toolName: 'list_review_queue' }],
+        uiActions: [
+          { id: 'review-gate', title: 'Review', type: 'review_gate_card' },
+        ],
+      });
+      expect(result.suggestedActions).toEqual([]);
+    });
+
+    it('uses the latest review outcome instead of stale counts from earlier in the turn', () => {
+      const result = service.buildAssistantUiActions({
+        reviewRequired: false,
+        toolCalls: [
+          {
+            status: 'completed',
+            toolName: 'list_review_queue',
+            reviewQueue: { ...emptyQueue, readyCount: 3 },
+          },
+          {
+            status: 'completed',
+            toolName: 'list_review_queue',
+            reviewQueue: emptyQueue,
+          },
+        ],
+        uiActions: [],
+      });
+      expect(result.suggestedActions.map((action) => action.id)).toEqual([
+        'review-create',
+        'review-ideas',
+      ]);
+    });
+
+    it.each(['completed', 'failed'] as const)(
+      'does not reuse pre-rejection counts after a %s mutation',
+      (status) => {
+        const result = service.buildAssistantUiActions({
+          reviewRequired: false,
+          toolCalls: [
+            {
+              status: 'completed',
+              toolName: 'list_review_queue',
+              reviewQueue: { ...emptyQueue, readyCount: 3 },
+            },
+            { status, toolName: 'batch_approve_reject' },
+          ],
+          uiActions: [],
+        });
+        expect(result.suggestedActions.map((action) => action.id)).toEqual(
+          status === 'completed' ? ['review-refresh'] : [],
+        );
+      },
+    );
+  });
+
   describe('oauth connect card collapse', () => {
     function connectCard(
       platform: string,
@@ -515,10 +622,6 @@ describe('AgentCompletionCardBuilderService', () => {
     {
       expectedId: 'publish-followup',
       toolName: 'create_post',
-    },
-    {
-      expectedId: 'review-ready',
-      toolName: 'list_review_queue',
     },
     {
       expectedId: 'trends-batch',

@@ -1,22 +1,12 @@
+import { buildReviewSuggestedActions } from '@api/services/agent-orchestrator/utils/agent-review-queue-context.util';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
+  type AgentCompletionSuggestedAction,
+  type AgentCompletionToolCall,
   type AgentUiAction,
   type AgentUiActionCta,
 } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
-
-export interface AgentCompletionSuggestedAction {
-  id: string;
-  label: string;
-  prompt: string;
-  /** Optional one-line helper; omit for chip-style short labels. */
-  description?: string;
-}
-
-export interface AgentCompletionToolCall {
-  status: 'completed' | 'failed';
-  toolName: string;
-}
 
 export interface BuildAssistantUiActionsParams {
   reviewRequired: boolean;
@@ -467,29 +457,8 @@ export class AgentCompletionCardBuilderService {
       );
     }
 
-    if (
-      uiActionTypes.has('review_gate_card') ||
-      hasCompletedTool(
-        'list_review_queue',
-        'batch_approve_reject',
-        'get_approval_summary',
-      )
-    ) {
-      addSuggestion(
-        'review-ready',
-        'Approve the ready ones',
-        'Show me the items that are safe to approve right now',
-      );
-      addSuggestion(
-        'review-fix',
-        'Fix the weak spots',
-        'Take the weakest review items and rewrite them so they are ready to publish',
-      );
-      addSuggestion(
-        'review-schedule',
-        'Queue approved content',
-        'Schedule the approved content into the best available slots',
-      );
+    for (const suggestion of buildReviewSuggestedActions(params.toolCalls)) {
+      addSuggestion(suggestion.id, suggestion.label, suggestion.prompt);
     }
 
     if (
