@@ -72,16 +72,18 @@ it('shows contextual expiry and sends only a renewal request in Chromium', async
     </NextIntlClientProvider>,
   );
   await expect
-    .element(page.getByRole('status'))
-    .toHaveTextContent(/Approval expired/);
+    .element(page.getByText('Approval expired', { exact: true }))
+    .toBeVisible();
   await expect
     .element(page.getByRole('button', { name: 'Approve', exact: true }))
     .not.toBeInTheDocument();
   await page.screenshot({ path: 'mutation-approval-expired.png' });
   await page.getByRole('button', { name: 'Prepare again' }).click();
   await expect
-    .element(page.getByRole('status'))
-    .toHaveTextContent(/could not be prepared/);
+    .element(
+      page.getByText(messages.mutationApproval.prepareFailed, { exact: true }),
+    )
+    .toBeVisible();
   expect(onUiAction).toHaveBeenCalledWith('reprepare_mutation', {
     approvalId: 'expired-1',
     sourceActionId: 'mutation-approval:expired-1',
@@ -112,8 +114,8 @@ it('shows a red failure with collapsed details and review recovery in Chromium',
     </NextIntlClientProvider>,
   );
   await expect
-    .element(page.getByRole('alert'))
-    .toHaveTextContent(/Action failed/);
+    .element(page.getByText('Action failed', { exact: true }))
+    .toBeVisible();
   await expect
     .element(page.getByText('Dispatch failed', { exact: true }))
     .not.toBeInTheDocument();

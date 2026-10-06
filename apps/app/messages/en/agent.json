@@ -366,7 +366,7 @@
     "prepareAgain": "Prepare again",
     "prepareFailed": "The fresh preview could not be prepared. Try again.",
     "failedTitle": "Action failed",
-    "failedDescription": "The approved action could not be completed. Review its result before trying again.",
+    "failedDescription": "The action could not be completed. Review the result before trying again.",
     "responseFailedTitle": "Response failed",
     "reviewChanges": "Review changes",
     "reviewRequested": "Review requested",

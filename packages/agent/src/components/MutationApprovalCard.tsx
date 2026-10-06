@@ -223,7 +223,7 @@ export function MutationApprovalCard({
             >
               <RecoveryIcon className="size-4" aria-hidden="true" />
             </span>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 basis-48">
               <p
                 className={`text-sm font-semibold ${expired ? 'text-warning' : 'text-destructive'}`}
               >
@@ -258,6 +258,7 @@ export function MutationApprovalCard({
               ) : (
                 <Button
                   withWrapper={false}
+                  className="ml-11 sm:ml-0"
                   isDisabled={!onUiAction || isPending}
                   aria-label={translate(
                     expired ? 'prepareAgain' : 'reviewChanges',
