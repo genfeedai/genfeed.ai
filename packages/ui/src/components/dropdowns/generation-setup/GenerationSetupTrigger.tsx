@@ -44,7 +44,7 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
   const selectedModel = isAutoGenerationModelKey(setup.values.modelKey)
     ? undefined
     : models.find((model) => model.key === setup.values.modelKey);
-  const CategoryIcon = getModelCategoryIcon(setup.values.type);
+  const CategoryIcon = getModelCategoryIcon(setup.values.type, selectedModel);
 
   const typeLabel = isTypeAgentOwned
     ? 'Agent'

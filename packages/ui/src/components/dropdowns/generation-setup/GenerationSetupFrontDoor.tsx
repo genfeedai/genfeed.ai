@@ -57,7 +57,7 @@ export default function GenerationSetupFrontDoor({
   const modelLabel = isAutoModel
     ? translate('auto')
     : (selectedModel?.label ?? setup.values.modelKey);
-  const TypeIcon = getModelCategoryIcon(setup.values.type);
+  const TypeIcon = getModelCategoryIcon(setup.values.type, selectedModel);
   const duration =
     setup.values.type === 'music'
       ? normalizeMusicSettings(setup.values.modelKey, setup.values).duration
