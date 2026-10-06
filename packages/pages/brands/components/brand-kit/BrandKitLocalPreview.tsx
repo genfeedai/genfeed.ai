@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 /** Pure browser rendering. Changing a preview never calls a generation service. */
@@ -20,6 +21,7 @@ export default function BrandKitLocalPreview({
   content,
   approvedContent,
 }: BrandKitLocalPreviewProps) {
+  const t = useTranslations('pages.brandKitSettings.preview');
   const [source, setSource] = useState('draft');
   const [template, setTemplate] = useState('social');
   const draft = source === 'approved' ? approvedContent : content;
@@ -57,46 +59,50 @@ export default function BrandKitLocalPreview({
   const primary = color('primaryColor', brand.primaryColor || '#000000');
   const sample = text(
     'voiceSampleOutput',
-    brand.agentConfig?.voice?.sampleOutput || 'Your next idea starts here.',
+    brand.agentConfig?.voice?.sampleOutput || t('sample'),
   );
   const font = text('fontFamily', brand.fontFamily || 'inherit');
   const isApprovedUnavailable = source === 'approved' && !approvedContent;
 
   return (
     <section
-      aria-label="Local brand preview"
+      aria-label={t('label')}
       className="space-y-4"
       data-testid="brand-kit-local-preview"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm font-medium">
-          Preview · {source === 'approved' ? 'Approved' : 'Draft'}
+          {t('title', {
+            source: source === 'approved' ? t('approved') : t('draft'),
+          })}
         </span>
         <Tabs
           activeTab={source}
           onTabChange={setSource}
-          ariaLabel="Preview source"
+          ariaLabel={t('sourceLabel')}
           fullWidth={false}
           tabs={[
-            { id: 'approved', label: 'Approved', isDisabled: !approvedContent },
-            { id: 'draft', label: 'Draft' },
+            {
+              id: 'approved',
+              label: t('approved'),
+              isDisabled: !approvedContent,
+            },
+            { id: 'draft', label: t('draft') },
           ]}
         />
       </div>
       <Select value={template} onValueChange={setTemplate}>
-        <SelectTrigger aria-label="Preview template">
+        <SelectTrigger aria-label={t('templateLabel')}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="social">Social post</SelectItem>
-          <SelectItem value="cover">Article cover</SelectItem>
-          <SelectItem value="profile">Profile card</SelectItem>
+          <SelectItem value="social">{t('social')}</SelectItem>
+          <SelectItem value="cover">{t('cover')}</SelectItem>
+          <SelectItem value="profile">{t('profile')}</SelectItem>
         </SelectContent>
       </Select>
       {isApprovedUnavailable ? (
-        <p className="text-sm text-muted-foreground">
-          No approved revision yet.
-        </p>
+        <p className="text-sm text-muted-foreground">{t('noApproved')}</p>
       ) : (
         <div
           className={`relative flex overflow-hidden rounded-lg border border-border p-8 ${template === 'cover' ? 'aspect-video' : template === 'profile' ? 'min-h-64' : 'aspect-square'} flex-col justify-between`}
@@ -147,20 +153,13 @@ export default function BrandKitLocalPreview({
               {template === 'profile' ? label : sample}
             </p>
             <p className="text-sm leading-relaxed opacity-80">
-              {text(
-                'description',
-                brand.description ||
-                  'Add your brand description to see it here.',
-              )}
+              {text('description', brand.description || t('description'))}
             </p>
           </div>
           <p className="relative text-xs opacity-70">{brand.slug}</p>
         </div>
       )}
-      <p className="text-xs text-muted-foreground">
-        Local template · no generation · no credits. Draft previews do not
-        change the approved identity.
-      </p>
+      <p className="text-xs text-muted-foreground">{t('creditFree')}</p>
     </section>
   );
 }

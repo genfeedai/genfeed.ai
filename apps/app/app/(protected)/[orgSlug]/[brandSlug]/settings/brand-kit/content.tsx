@@ -33,6 +33,7 @@ import {
   SheetTitle,
 } from '@ui/primitives/sheet';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { captureBrandOsFunnelStage } from '@/lib/analytics';
 
@@ -44,6 +45,7 @@ const FIELD_GROUPS: Record<string, readonly BrandKitFieldGroup[]> = {
 };
 
 export default function BrandKitPage() {
+  const t = useTranslations('pages.brandKitSettings');
   const role = useUserRole();
   const canManage = role === MemberRole.OWNER || role === MemberRole.ADMIN;
   const [refreshKey, setRefreshKey] = useState(0);
@@ -80,7 +82,7 @@ export default function BrandKitPage() {
   if (!brand)
     return (
       <Container>
-        <p className="text-sm text-muted-foreground">Brand not found.</p>
+        <p className="text-sm text-muted-foreground">{t('brandMissing')}</p>
       </Container>
     );
 
@@ -141,13 +143,11 @@ export default function BrandKitPage() {
                     isDisabled={workspace.isDirty}
                     onClick={() => setWorkflow('manual')}
                   >
-                    Create manual draft
+                    {t('createManualDraft')}
                   </Button>
                 </div>
                 <Collapsible>
-                  <CollapsibleTrigger>
-                    Website scan &amp; captured draft
-                  </CollapsibleTrigger>
+                  <CollapsibleTrigger>{t('capturedDraft')}</CollapsibleTrigger>
                   <CollapsibleContent
                     forceMount
                     className="data-[state=closed]:hidden"
@@ -174,13 +174,13 @@ export default function BrandKitPage() {
                     variant={ButtonVariant.SECONDARY}
                     onClick={() => handleOpenUploadModal(AssetCategory.LOGO)}
                   >
-                    Replace logo
+                    {t('replaceLogo')}
                   </Button>
                   <Button
                     variant={ButtonVariant.SECONDARY}
                     onClick={() => handleOpenUploadModal(AssetCategory.BANNER)}
                   >
-                    Replace banner
+                    {t('replaceBanner')}
                   </Button>
                 </div>
                 <BrandWatermarkSettings
@@ -210,9 +210,7 @@ export default function BrandKitPage() {
         <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
           <SheetHeader>
             <SheetTitle>
-              {workflow === 'scan'
-                ? 'Scan website'
-                : 'Import guidance / manual draft'}
+              {workflow === 'scan' ? t('scan') : t('manualImport')}
             </SheetTitle>
           </SheetHeader>
           <div className="pt-4">{workflow === 'scan' ? scan : manual}</div>

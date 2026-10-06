@@ -263,7 +263,7 @@ export default function LibrarySidebarNav() {
 
           <div className="mt-4">
             <div className="p-1 text-2xs font-bold uppercase tracking-[0.15em] text-foreground/30">
-              Elements
+              {translate('elementsGroup')}
             </div>
             <ul className="flex flex-col gap-px">
               {LIBRARY_ELEMENT_MENU_ITEMS.map(renderMenuItem)}

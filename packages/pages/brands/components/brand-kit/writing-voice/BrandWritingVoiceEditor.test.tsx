@@ -105,6 +105,13 @@ describe('BrandWritingVoiceEditor', () => {
   };
 
   const brand = {
+    id: 'brand-1',
+    slug: 'acme',
+    description: 'Acme brand',
+    fontFamily: 'MONTSERRAT_REGULAR',
+    primaryColor: '#000000',
+    secondaryColor: '#ffffff',
+    backgroundColor: '#000000',
     agentConfig: {
       platformOverrides: {},
       strategy: {

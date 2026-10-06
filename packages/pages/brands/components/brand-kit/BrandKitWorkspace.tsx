@@ -24,6 +24,7 @@ import {
 } from '@ui/primitives/sheet';
 import { Ellipsis } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import BrandKitLocalPreview from './BrandKitLocalPreview';
 
@@ -48,6 +49,7 @@ export default function BrandKitWorkspace({
   error,
   onSave,
 }: BrandKitWorkspaceProps) {
+  const t = useTranslations('pages.brandKitSettings');
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   return (
     <div
@@ -59,15 +61,15 @@ export default function BrandKitWorkspace({
         <Tabs
           activeTab={tab}
           onTabChange={onTabChange}
-          ariaLabel="Brand Kit sections"
+          ariaLabel={t('sectionsLabel')}
           fullWidth={false}
           className="ml-0"
           listClassName="ml-0"
           tabs={[
-            { id: 'overview', label: 'Overview' },
-            { id: 'visual', label: 'Visual identity' },
-            { id: 'voice', label: 'Writing voice' },
-            { id: 'strategy', label: 'Strategy' },
+            { id: 'overview', label: t('overview') },
+            { id: 'visual', label: t('visual') },
+            { id: 'voice', label: t('voice') },
+            { id: 'strategy', label: t('strategy') },
           ]}
         />
         <div className="flex items-center gap-2">
@@ -76,13 +78,13 @@ export default function BrandKitWorkspace({
             onClick={onScan}
             isDisabled={isDirty}
           >
-            Scan website
+            {t('scan')}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant={ButtonVariant.SECONDARY}
-                aria-label="Brand Kit actions"
+                aria-label={t('actionsLabel')}
                 withWrapper={false}
               >
                 <Ellipsis className="size-4" />
@@ -90,19 +92,17 @@ export default function BrandKitWorkspace({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild disabled={isDirty}>
-                <Link href={guidedSetupHref}>Guided setup</Link>
+                <Link href={guidedSetupHref}>{t('guidedSetup')}</Link>
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={onManualImport} disabled={isDirty}>
-                Import guidance / manual draft
+                {t('manualImport')}
               </DropdownMenuItem>
               <DropdownMenuItem asChild disabled={isDirty}>
-                <Link href={contentRulesHref}>
-                  Content rules &amp; examples
-                </Link>
+                <Link href={contentRulesHref}>{t('contentRules')}</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button onClick={() => setIsReviewOpen(true)}>Review changes</Button>
+          <Button onClick={() => setIsReviewOpen(true)}>{t('review')}</Button>
         </div>
       </div>
       {error && (
@@ -118,21 +118,16 @@ export default function BrandKitWorkspace({
             writingEditor
           ) : isLoading ? (
             <p role="status" className="text-sm text-muted-foreground">
-              Loading identity…
+              {t('loading')}
             </p>
           ) : (
             editor || (
-              <p className="text-sm text-muted-foreground">
-                Scan a website or create a manual draft to start an identity
-                revision.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('startDraft')}</p>
             )
           )}
           {tab === 'visual' && (
             <Collapsible>
-              <CollapsibleTrigger>
-                Assets, references &amp; watermark
-              </CollapsibleTrigger>
+              <CollapsibleTrigger>{t('assets')}</CollapsibleTrigger>
               <CollapsibleContent className="space-y-3">
                 {assets}
               </CollapsibleContent>
@@ -140,13 +135,10 @@ export default function BrandKitWorkspace({
           )}
           {(tab === 'voice' || tab === 'strategy') && (
             <Collapsible>
-              <CollapsibleTrigger>
-                Versioned identity snapshot
-              </CollapsibleTrigger>
+              <CollapsibleTrigger>{t('snapshot')}</CollapsibleTrigger>
               <CollapsibleContent className="space-y-4">
                 <p className="text-xs text-muted-foreground">
-                  Writing edits save to the live agent profile. Review the
-                  versioned snapshot separately before approving it.
+                  {t('snapshotHelp')}
                 </p>
                 {editor}
               </CollapsibleContent>
@@ -155,10 +147,10 @@ export default function BrandKitWorkspace({
           {content && (
             <div className="flex items-center justify-between gap-3 border-t border-border py-3">
               <span className="text-xs text-muted-foreground" role="status">
-                {isDirty ? 'Unsaved revision changes' : 'Revision saved'}
+                {isDirty ? t('unsaved') : t('saved')}
               </span>
               <Button onClick={onSave} isDisabled={isSaveDisabled}>
-                Save draft
+                {t('saveDraft')}
               </Button>
             </div>
           )}
@@ -175,7 +167,7 @@ export default function BrandKitWorkspace({
       <Sheet open={isReviewOpen} onOpenChange={setIsReviewOpen}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
           <SheetHeader>
-            <SheetTitle>Review changes</SheetTitle>
+            <SheetTitle>{t('review')}</SheetTitle>
           </SheetHeader>
           <div className="pt-4">{review}</div>
         </SheetContent>

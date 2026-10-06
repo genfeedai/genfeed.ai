@@ -682,7 +682,9 @@ export default function BrandOsSettingsCard({
             )}
             {content && (
               <Collapsible defaultOpen={!renderWorkspace}>
-                <CollapsibleTrigger>Review identity fields</CollapsibleTrigger>
+                <CollapsibleTrigger>
+                  {t('reviewIdentityFields')}
+                </CollapsibleTrigger>
                 <CollapsibleContent>
                   <BrandOsRevisionFields
                     content={content}

@@ -139,7 +139,7 @@ function ValueEditor({
         onValueChange={onChange}
       >
         <SelectTrigger aria-label={label}>
-          <SelectValue placeholder="Choose a font" />
+          <SelectValue placeholder={t('chooseFont')} />
         </SelectTrigger>
         <SelectContent>
           {current &&
@@ -271,6 +271,7 @@ export default function BrandOsRevisionFields({
             </p>
             <ValueEditor
               label={label}
+              fieldKey={key}
               value={value}
               valueKind={valueKind}
               assetRole={

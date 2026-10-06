@@ -14,12 +14,14 @@ import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import AgentLearningTab from './agent-learning-tab';
 import AgentContext from './context/content';
 import GenerationReceipts from './receipts/content';
 
 const AGENT_TABS = ['defaults', 'context', 'learning', 'receipts'] as const;
 export default function BrandAgentSettingsPage() {
+  const t = useTranslations('pages.brandAgentSettings');
   const {
     brand,
     brandId,
@@ -38,7 +40,7 @@ export default function BrandAgentSettingsPage() {
   if (!brand)
     return (
       <Container>
-        <p className="text-sm text-muted-foreground">Brand not found.</p>
+        <p className="text-sm text-muted-foreground">{t('brandMissing')}</p>
       </Container>
     );
   return (
@@ -47,15 +49,15 @@ export default function BrandAgentSettingsPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
           <Tabs
             activeTab={tab}
-            ariaLabel="Agent settings sections"
+            ariaLabel={t('sectionsLabel')}
             fullWidth={false}
             className="ml-0"
             listClassName="ml-0"
             tabs={[
-              { id: 'defaults', label: 'Defaults' },
-              { id: 'context', label: 'Context' },
-              { id: 'learning', label: 'Learning' },
-              { id: 'receipts', label: 'Generation receipts' },
+              { id: 'defaults', label: t('defaults') },
+              { id: 'context', label: t('context') },
+              { id: 'learning', label: t('learning') },
+              { id: 'receipts', label: t('receipts') },
             ]}
             onTabChange={(value) => {
               const query = new URLSearchParams(params.toString());
@@ -65,7 +67,7 @@ export default function BrandAgentSettingsPage() {
           />
           <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
             <Link href={href('/settings/brand-kit?tab=voice')}>
-              Writing voice
+              {t('writingVoice')}
             </Link>
           </Button>
         </div>

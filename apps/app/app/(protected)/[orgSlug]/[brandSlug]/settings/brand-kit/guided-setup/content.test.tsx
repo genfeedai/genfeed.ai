@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -6,7 +7,10 @@ import BrandSettingsInterviewPage from './content';
 
 const mocks = vi.hoisted(() => ({
   brandDetail: {
-    brand: { id: 'brand-1', label: 'Test Brand' },
+    brand: { id: 'brand-1', label: 'Test Brand' } as Pick<
+      IBrand,
+      'id' | 'label'
+    > | null,
     brandId: 'brand-1',
     handleRefreshBrand: vi.fn(),
     hasBrandId: true,
@@ -178,7 +182,10 @@ describe('BrandSettingsInterviewPage', () => {
     mocks.draftGet.mockReturnValue('');
 
     mocks.brandDetail = {
-      brand: { id: 'brand-1', label: 'Test Brand' },
+      brand: { id: 'brand-1', label: 'Test Brand' } as Pick<
+        IBrand,
+        'id' | 'label'
+      > | null,
       brandId: 'brand-1',
       handleRefreshBrand: vi.fn(),
       hasBrandId: true,
