@@ -186,7 +186,8 @@ describe('BrandDetailIdentityCard.tsx', () => {
       slug: 'owner-brand',
       organization: { slug: 'acme' },
       scope: 'BRAND',
-    } as BrandDetailIdentityCardProps['brand'],
+      // Partial fixture: this card consumes identity fields and the owner slug.
+    } as unknown as BrandDetailIdentityCardProps['brand'],
     brandId: 'brand-1',
     onRefreshBrand: vi.fn().mockResolvedValue(undefined),
   };

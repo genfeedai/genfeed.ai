@@ -102,6 +102,13 @@ vi.mock('@genfeedai/auth-client/react', () => ({
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
+    brands: [
+      {
+        id: 'brand-1',
+        slug: 'acme-creator',
+        organization: { id: 'org-1', slug: 'acme-org' },
+      },
+    ],
     organizationId: 'org-1',
   }),
   useBrandId: () => 'brand-1',
@@ -525,7 +532,9 @@ describe('WorkspacePageContent', () => {
     await waitFor(() =>
       expect(mocks.ensurePlanningThread).toHaveBeenCalledWith('task-1'),
     );
-    expect(mocks.push).toHaveBeenCalledWith('/agent/thread-1');
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/acme-org/acme-creator/agent/thread-1',
+    );
   });
 
   it('keeps the task inspector closed while URL cleanup is pending', async () => {
