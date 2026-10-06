@@ -285,10 +285,19 @@ function WorkspacePageContentContent({
       : section === 'inbox' && defaultInboxView === 'recent'
         ? 'recent'
         : 'all';
-  const inboxEmpty = {
-    description: translate(`inboxEmpty.${inboxEmptyKey}.description`),
-    label: translate(`inboxEmpty.${inboxEmptyKey}.label`),
-  };
+  const inboxReadFailed =
+    section === 'inbox' &&
+    defaultInboxView === 'unread' &&
+    inboxRead.state.isError;
+  const inboxEmpty = inboxReadFailed
+    ? {
+        description: translate('inbox.readError'),
+        label: translate('inbox.readError'),
+      }
+    : {
+        description: translate(`inboxEmpty.${inboxEmptyKey}.description`),
+        label: translate(`inboxEmpty.${inboxEmptyKey}.label`),
+      };
 
   const inboxTableItems =
     section === 'inbox' ? visibleInboxTasks : reviewInboxTasks.slice(0, 5);
