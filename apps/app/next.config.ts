@@ -524,6 +524,9 @@ config.turbopack = {
   ...(config.turbopack ?? {}),
   resolveAlias: {
     ...(config.turbopack?.resolveAlias ?? {}),
+    'genfeed-serwist-asset-reader': IS_DESKTOP_BUNDLE
+      ? './app/serwist/serwist-asset.reader.cache.ts'
+      : './app/serwist/serwist-asset.reader.ts',
     '@components/buttons/refresh/button-refresh/ButtonRefresh':
       '../../packages/ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx',
     '@components/cards/KpiCard':

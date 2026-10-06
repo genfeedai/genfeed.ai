@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "paths": {
+      "genfeed-serwist-asset-reader": ["./app/serwist/serwist-asset.reader.ts"],
       "@genfeedai/contracts/api-types/*": [
         "../../packages/contracts/src/api-types/*"
       ],

@@ -612,4 +612,30 @@ describe('app next.config', () => {
     expect(new Set(transpiled).size).toBe(transpiled.length);
     expect(transpiled).toEqual(expect.arrayContaining(['@tiptap/core']));
   });
+
+  it.each([
+    { bundle: '', cloud: '1', cached: false, name: 'hosted web' },
+    { bundle: '', cloud: '', cached: false, name: 'self-hosted web' },
+    { bundle: '1', cloud: '', cached: true, name: 'packaged desktop' },
+  ])('selects the Serwist reader for $name', async (mode) => {
+    const { vi } = await import('vitest');
+    vi.stubEnv('GENFEED_DESKTOP_BUNDLE', mode.bundle);
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', mode.bundle);
+    vi.stubEnv('GENFEED_CLOUD', mode.cloud);
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', mode.cloud);
+    vi.resetModules();
+    try {
+      const { default: modeConfig } = await import('./next.config');
+      expect(
+        modeConfig.turbopack?.resolveAlias?.['genfeed-serwist-asset-reader'],
+      ).toBe(
+        mode.cached
+          ? './app/serwist/serwist-asset.reader.cache.ts'
+          : './app/serwist/serwist-asset.reader.ts',
+      );
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
+  });
 });
