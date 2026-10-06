@@ -38,7 +38,7 @@ export const DIRECT_SERVICE_PORTS: Record<PortlessService, number> = {
   website: 3002,
 };
 
-const DIRECT_SERVICE_PORT_KEYS: Record<PortlessService, string> = {
+export const DIRECT_SERVICE_PORT_KEYS: Record<PortlessService, string> = {
   api: 'API_PORT',
   app: 'APP_PORT',
   docs: 'DOCS_PORT',

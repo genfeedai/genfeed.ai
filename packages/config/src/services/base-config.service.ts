@@ -120,10 +120,15 @@ export abstract class BaseConfigService<
 
     // Bun `--cwd apps/server/api` auto-loads the generated service file into
     // process.env. Those echoes are not operator overrides — root `.env.local`
-    // stays the only local secret source.
+    // stays the only local secret source. PORT is the listen port the dev
+    // runner injects, and that value matches the generated service file, so
+    // dropping it lets the root API port win.
     const processOverlay: Record<string, string> = {};
     for (const [key, value] of Object.entries(process.env)) {
-      if (value === undefined || serviceLocal[key] === value) {
+      if (value === undefined) {
+        continue;
+      }
+      if (key !== 'PORT' && serviceLocal[key] === value) {
         continue;
       }
       processOverlay[key] = value;

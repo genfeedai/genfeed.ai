@@ -32,18 +32,45 @@
     "dev": {
       "cache": false,
       "dependsOn": ["//#env:check"],
-      "passThroughEnv": ["PORTLESS_URL"],
+      "passThroughEnv": [
+        "API_PORT",
+        "APP_PORT",
+        "DOCS_PORT",
+        "FILES_PORT",
+        "MCP_PORT",
+        "NOTIFICATIONS_PORT",
+        "PORTLESS_URL",
+        "WEBSITE_PORT"
+      ],
       "persistent": true
     },
     "dev:debug": {
       "cache": false,
       "dependsOn": ["//#env:check"],
+      "passThroughEnv": [
+        "API_PORT",
+        "APP_PORT",
+        "DOCS_PORT",
+        "FILES_PORT",
+        "MCP_PORT",
+        "NOTIFICATIONS_PORT",
+        "WEBSITE_PORT"
+      ],
       "persistent": true
     },
     "dev:process": {
       "cache": false,
       "dependsOn": ["//#env:check"],
-      "passThroughEnv": ["PORTLESS_URL"],
+      "passThroughEnv": [
+        "API_PORT",
+        "APP_PORT",
+        "DOCS_PORT",
+        "FILES_PORT",
+        "MCP_PORT",
+        "NOTIFICATIONS_PORT",
+        "PORTLESS_URL",
+        "WEBSITE_PORT"
+      ],
       "persistent": true
     },
     "lint": {

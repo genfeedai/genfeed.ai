@@ -1,7 +1,11 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   buildDirectEnvironment,
   buildPortlessEnvironment,
+  DIRECT_SERVICE_PORT_KEYS,
   PORTLESS_PROXY_ENVIRONMENT,
   resolveDirectOrigins,
   resolvePortlessOrigins,
@@ -158,5 +162,35 @@ describe('Portless local-development environment', () => {
     ).toThrow(
       'PORTLESS_URL host api.genfeed.localhost does not contain app.genfeed',
     );
+  });
+
+  it('uses an explicit MCP port as the direct listen port', () => {
+    expect(
+      buildDirectEnvironment({
+        currentService: 'mcp',
+        existingEnv: { MCP_PORT: '3314' },
+      }).PORT,
+    ).toBe('3314');
+  });
+
+  it('passes service port overrides through the dev tasks', () => {
+    const source = readFileSync(
+      path.resolve(
+        path.dirname(fileURLToPath(import.meta.url)),
+        '../../turbo.json',
+      ),
+      'utf8',
+    ).replace(/^\s*\/\/.*$/gm, '');
+    const turbo = JSON.parse(source) as {
+      tasks: Record<string, { passThroughEnv?: string[] }>;
+    };
+    const portNames = Object.values(DIRECT_SERVICE_PORT_KEYS);
+
+    for (const taskName of ['dev', 'dev:debug', 'dev:process'] as const) {
+      const passed = turbo.tasks[taskName]?.passThroughEnv ?? [];
+      for (const name of portNames) {
+        expect(passed, taskName).toContain(name);
+      }
+    }
   });
 });

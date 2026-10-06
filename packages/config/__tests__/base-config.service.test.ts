@@ -49,10 +49,12 @@ describe('BaseConfigService', () => {
   });
 
   function mockFiles(fileMap: Record<string, string>) {
-    mockExistsSync.mockImplementation((p: any) => p in fileMap);
-    mockReadFileSync.mockImplementation((p: any) => {
-      if (p in fileMap) return Buffer.from(fileMap[p]);
-      throw new Error(`ENOENT: ${p}`);
+    mockExistsSync.mockImplementation(
+      (filePath: string) => filePath in fileMap,
+    );
+    mockReadFileSync.mockImplementation((filePath: string) => {
+      if (filePath in fileMap) return Buffer.from(fileMap[filePath]);
+      throw new Error(`ENOENT: ${filePath}`);
     });
   }
 
@@ -192,6 +194,36 @@ describe('BaseConfigService', () => {
     });
     const s = new TestConfigService({ appName: 'api', workingDir: 'root' });
     expect(s.get('CUSTOM')).toBe('shell-override');
+  });
+
+  it('keeps the MCP listen port when it matches the generated service file', () => {
+    process.env.PORT = '3014';
+    process.env.CUSTOM = 'stale-generated';
+    delete process.env.NODE_ENV;
+    mockFiles({
+      '../../.env.local': 'PORT=3010\nCUSTOM=root-canonical',
+      'mcp/.env.local': 'PORT=3014\nCUSTOM=stale-generated',
+    });
+    const s = new TestConfigService({
+      appName: 'mcp',
+      workingDir: 'apps/server',
+    });
+    expect(s.get('PORT')).toBe(3014);
+    expect(s.get('CUSTOM')).toBe('root-canonical');
+  });
+
+  it('keeps an explicit MCP listen port over the generated service file', () => {
+    process.env.PORT = '3314';
+    delete process.env.NODE_ENV;
+    mockFiles({
+      '../../.env.local': 'PORT=3010',
+      'mcp/.env.local': 'PORT=3014',
+    });
+    const s = new TestConfigService({
+      appName: 'mcp',
+      workingDir: 'apps/server',
+    });
+    expect(s.get('PORT')).toBe(3314);
   });
 
   it('app-specific test env files (root)', () => {
