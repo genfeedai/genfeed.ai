@@ -27,6 +27,10 @@ vi.mock('@serwist/turbopack', () => ({
     };
   },
 }));
+vi.mock(
+  'genfeed-serwist-asset-reader',
+  async () => import('./serwist-asset.reader.cache'),
+);
 vi.mock('next/cache', () => ({ cacheLife: mocks.cacheLife }));
 vi.mock('next/navigation', () => ({ notFound: mocks.notFound }));
 
@@ -151,14 +155,51 @@ describe('Serwist route with Cache Components', () => {
     const source = readFileSync(
       path.resolve(
         path.dirname(fileURLToPath(import.meta.url)),
-        './[path]/route.ts',
+        './serwist-asset.reader.cache.ts',
       ),
       'utf8',
     );
     expect(source.match(/['"]use cache['"]/g)).toHaveLength(1);
     expect(source).toMatch(
-      /async function readSerwistFile\([\s\S]*?\{\s*['"]use cache['"]/,
+      /async function readSerwistAsset\([\s\S]*?\{\s*['"]use cache['"]/,
     );
+  });
+
+  it('uses the ordinary reader without a cache boundary for web builds', async () => {
+    const { readSerwistAsset } = await vi.importActual<
+      typeof import('./serwist-asset.reader')
+    >('./serwist-asset.reader');
+    const result = await readSerwistAsset('sw.js');
+    expect(result).toEqual({
+      body: 'worker payload',
+      headers: [
+        ['content-type', 'application/javascript'],
+        ['service-worker-allowed', '/'],
+      ],
+    });
+    expect(mocks.GET).toHaveBeenCalledTimes(1);
+    expect(mocks.cacheLife).not.toHaveBeenCalled();
+  });
+
+  it('keeps a single factory and an acyclic profile reader graph', () => {
+    const directory = path.dirname(fileURLToPath(import.meta.url));
+    const source = (name: string) =>
+      readFileSync(path.resolve(directory, name), 'utf8');
+    const core = source('serwist-asset.core.ts');
+    const raw = source('serwist-asset.reader.ts');
+    const cached = source('serwist-asset.reader.cache.ts');
+    const route = source('[path]/route.ts');
+    expect(core.match(/createSerwistRoute\(/g)).toHaveLength(1);
+    expect(core).not.toMatch(/['"]use cache['"]|cacheLife/);
+    expect(raw).not.toMatch(/['"]use cache['"]|cacheLife|createSerwistRoute/);
+    expect(route).not.toMatch(
+      /['"]use cache['"]|cacheLife|createSerwistRoute|RouteContext</,
+    );
+    for (const reader of [raw, cached]) {
+      expect(reader).toContain("from '@app/serwist/serwist-asset.core'");
+      expect(reader).not.toContain('genfeed-serwist-asset-reader');
+      expect(reader).not.toMatch(/from .*serwist-asset\.reader/);
+    }
   });
 
   it('delegates every development request to the package rebuild path', async () => {
