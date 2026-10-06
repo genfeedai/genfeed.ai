@@ -597,6 +597,67 @@ describe('Replicate derived billing refresh', () => {
       }),
     );
   });
+  it('retains billing-default drift on an approved model as a pending review', async () => {
+    const first = harness();
+    const row = {
+      ...registryModel(),
+      endpoint: 'openai/gpt-image-2',
+      key: 'openai/gpt-image-2',
+    };
+    const provider = {
+      ...providerModel(validOpenapi(properties)),
+      owner: 'openai',
+      name: 'gpt-image-2',
+      url: 'https://replicate.com/openai/gpt-image-2',
+    };
+    const observedBilling = {
+      sourceUrl: provider.url,
+      status: 'ok' as const,
+      tiers,
+    };
+    const a = await first.service.synchronizeModel(
+      row,
+      provider,
+      ModelCategory.IMAGE,
+      { ...pricing(), billing: observedBilling },
+    );
+    const create = first.modelProviderContract.upsert.mock.calls[0]?.[0].create;
+    const approved = { ...create, id: 'approved', reviewStatus: 'approved' };
+    const next = harness(approved);
+    const b = await next.service.synchronizeModel(
+      { ...row, reviewedProviderContractVersion: a.version },
+      {
+        ...provider,
+        latest_version: {
+          ...provider.latest_version,
+          openapi_schema: validOpenapi({
+            ...properties,
+            quality: { ...properties.quality, default: 'medium' },
+          }),
+        },
+      },
+      ModelCategory.IMAGE,
+      { ...pricing(), billing: observedBilling },
+    );
+    expect(b.drifted).toBe(true);
+    expect(b.priceChange?.pendingRateHash).toBeTruthy();
+    expect(next.modelProviderContract.upsert).toHaveBeenCalledOnce();
+    expect(next.modelProviderContract.update).not.toHaveBeenCalled();
+    expect(next.model.update).toHaveBeenCalledWith({
+      where: { id: row.id },
+      data: expect.objectContaining({
+        pendingProviderContractVersion: b.version,
+        providerSyncStatus: 'review_required',
+      }),
+    });
+    expect(next.model.update.mock.calls[0]?.[0].data).not.toHaveProperty(
+      'isActive',
+    );
+    expect(next.model.update.mock.calls[0]?.[0].data).not.toHaveProperty(
+      'reviewedProviderContractVersion',
+    );
+  });
+
   it('changes contract identity on schema-default drift without deactivating the model', async () => {
     const first = harness();
     const second = harness();

@@ -1,4 +1,7 @@
-import { isFlux3ImageModel } from '@genfeedai/contracts/constants';
+import {
+  type ImageEditSize,
+  isFlux3ImageModel,
+} from '@genfeedai/contracts/constants';
 import type { AgentGenerationQuoteRequest } from '@genfeedai/contracts/interfaces/ai/agent-generation-quote.interface';
 import type { StudioGenerateType } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import { isImageQualitySupported } from '@genfeedai/helpers/media/image-quality/image-quality.helper';
@@ -31,6 +34,8 @@ function resolveSubmittedVideoResolution(
 export interface StudioGenerationQuoteInput {
   aspectRatio?: string;
   duration?: number;
+  editSize?: ImageEditSize;
+  referenceUrls?: string[];
   height?: number;
   isAudioEnabled?: boolean;
   modelKey: string | undefined;
@@ -50,6 +55,8 @@ export interface StudioGenerationQuoteInput {
 export function buildStudioGenerationQuoteRequest({
   aspectRatio,
   duration,
+  editSize,
+  referenceUrls,
   height,
   isAudioEnabled,
   modelKey,
@@ -66,6 +73,8 @@ export function buildStudioGenerationQuoteRequest({
     ...(aspectRatio !== undefined ? { aspectRatio } : {}),
     category: type,
     modelKey,
+    ...(referenceUrls?.length ? { referenceUrls } : {}),
+    ...(type === 'image-edit' && editSize !== undefined ? { editSize } : {}),
     ...(width !== undefined && height !== undefined ? { height, width } : {}),
   };
 

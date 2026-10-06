@@ -1,6 +1,12 @@
 import { ModelCategory, RouterPriority } from '@genfeedai/contracts';
+import {
+  IMAGE_EDIT_SIZES,
+  type ImageEditSize,
+} from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsEnum,
   IsIn,
@@ -9,6 +15,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUrl,
   Max,
   Min,
   ValidateIf,
@@ -117,6 +124,21 @@ export class EstimateGenerationCreditsDto {
     required: false,
   })
   readonly quality?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsUrl(
+    { protocols: ['http', 'https'], require_protocol: true },
+    { each: true },
+  )
+  @ApiProperty({ required: false, type: [String] })
+  readonly referenceUrls?: string[];
+
+  @IsOptional()
+  @IsIn(IMAGE_EDIT_SIZES)
+  @ApiProperty({ required: false, enum: IMAGE_EDIT_SIZES })
+  readonly editSize?: ImageEditSize;
 
   @IsInt()
   @IsOptional()

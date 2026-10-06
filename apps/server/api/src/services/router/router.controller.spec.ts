@@ -779,6 +779,8 @@ describe('RouterController', () => {
       const dto: EstimateGenerationCreditsDto = {
         category: ModelCategory.IMAGE,
         prompt: 'a red car',
+        referenceUrls: ['https://cdn.example.com/source.jpg'],
+        editSize: 'source',
       } as EstimateGenerationCreditsDto;
       estimateService.estimate.mockResolvedValue({
         credits: 12,
@@ -792,7 +794,11 @@ describe('RouterController', () => {
       );
 
       expect(estimateService.estimate).toHaveBeenCalledWith(
-        expect.objectContaining({ organizationId: 'org-1' }),
+        expect.objectContaining({
+          organizationId: 'org-1',
+          referenceUrls: dto.referenceUrls,
+          editSize: 'source',
+        }),
       );
       expect(result).toEqual({
         credits: 12,

@@ -1,3 +1,4 @@
+import { buildImageQuoteProviderInput } from '@api/collections/images/services/image-generation-prompt-settings.util';
 import {
   isNativeImageBatch,
   resolveImageBillableOutputs,
@@ -183,7 +184,7 @@ export class AgentGenerationEstimateService {
   private async quoteModel(
     input: AgentGenerationQuoteInput,
     modelKey: string,
-    model: { provider: string },
+    model: { provider: string; providerInputSchema?: unknown },
   ): Promise<AgentGenerationQuote> {
     const isVideo = input.category === 'video';
     const dimensions =
@@ -226,7 +227,14 @@ export class AgentGenerationEstimateService {
       provider,
       outputs,
       requests: isBatchSupported ? 1 : outputs,
-      ...(await this.buildPricedFields(input, modelKey, dimensions, outputs)),
+      ...(await this.buildPricedFields(
+        input,
+        modelKey,
+        dimensions,
+        outputs,
+        model,
+        provider,
+      )),
     });
     const credits = quote.credits;
     return Number.isFinite(credits) && credits >= 0
@@ -242,6 +250,8 @@ export class AgentGenerationEstimateService {
     modelKey: string,
     dimensions: { height: number; width: number },
     outputs: number,
+    model: { providerInputSchema?: unknown },
+    provider: string,
   ) {
     if (input.category === 'video') {
       const duration = input.duration ?? DEFAULT_AGENT_VIDEO_DURATION_SECONDS;
@@ -269,9 +279,30 @@ export class AgentGenerationEstimateService {
       : input.category === 'image-edit'
         ? IMAGE_EDIT_QUALITY
         : input.quality;
-    return selected !== undefined
-      ? { selectors: { [flux ? 'resolution' : 'quality']: selected } }
-      : {};
+    return {
+      providerInput:
+        provider === 'replicate'
+          ? await buildImageQuoteProviderInput(
+              this.promptBuilderService,
+              modelKey,
+              {
+                ...dimensions,
+                aspectRatio: input.aspectRatio,
+                outputs,
+                quality: input.quality,
+                resolution: input.resolution,
+              },
+              model.providerInputSchema,
+              input.referenceUrls,
+              input.category === 'image-edit'
+                ? (input.editSize ?? 'source')
+                : undefined,
+            )
+          : undefined,
+      ...(selected !== undefined
+        ? { selectors: { [flux ? 'resolution' : 'quality']: selected } }
+        : {}),
+    };
   }
 
   private unavailableFromError(

@@ -303,6 +303,7 @@ const createImageGenerationService = () => {
       resolveApiKey: vi.fn().mockResolvedValue(undefined),
     } as never,
     testModelCreditQuote(modelsService as never, 'fal'),
+    promptBuilderService as never,
   );
   const admissionService = new ImageGenerationAdmissionService(
     assetsService as never,

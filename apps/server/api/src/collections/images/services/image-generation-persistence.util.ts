@@ -9,6 +9,7 @@ import type {
   ImageGenerationSavedIngredient,
   ImageGenerationSavedMetadata,
 } from '@api/collections/images/services/image-generation.types';
+import { imageGenerationPromptSettings } from '@api/collections/images/services/image-generation-prompt-settings.util';
 import type { ImagesService } from '@api/collections/images/services/images.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
@@ -29,10 +30,7 @@ import {
   PromptStatus,
 } from '@genfeedai/contracts';
 import type { GenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
-import {
-  isFlux3ImageModel,
-  MODEL_OUTPUT_CAPABILITIES,
-} from '@genfeedai/contracts/constants';
+import { isFlux3ImageModel } from '@genfeedai/contracts/constants';
 import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
 
 export interface ImageGenerationPersistenceParams {
@@ -130,24 +128,22 @@ function buildLegacyImagePromptInput(
     width,
   } = params;
   return {
+    ...imageGenerationPromptSettings(
+      model,
+      { ...createImageDto, height, width },
+      modelInputSchema,
+    ),
     blacklist: createImageDto.blacklist,
     brand: promptBuilderBrand,
     branding: brandPromptBranding,
     brandingMode: createImageDto.brandingMode,
     camera: createImageDto.camera,
     fontFamily: createImageDto.fontFamily,
-    height,
     isBrandingEnabled: createImageDto.isBrandingEnabled,
     lens: createImageDto.lens,
     lighting: createImageDto.lighting,
-    modelInputSchema,
-    resolution: createImageDto.resolution,
-    aspectRatio: createImageDto.aspectRatio,
     modelCategory: ModelCategory.IMAGE,
     mood: createImageDto.mood,
-    outputs: MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported
-      ? Number(createImageDto.outputs) || 1
-      : 1,
     prompt: generationHarness.enhancedPrompt,
     promptTemplate: createImageDto.promptTemplate,
     references: referenceImageUrls,
@@ -156,7 +152,6 @@ function buildLegacyImagePromptInput(
     style: style || createImageDto.style || 'realistic',
     tags: createImageDto.tags?.map((tag) => tag.toString()) || [],
     useTemplate: createImageDto.useTemplate,
-    width,
   };
 }
 export async function persistImageDocuments(

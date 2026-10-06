@@ -24,7 +24,12 @@ const getTokenMock = vi.fn();
 const createFollowUpTasksMock = vi.fn();
 
 const agentChatState = {
-  messages: [] as Array<{ id: string; role: string }>,
+  stream: { isStreaming: false },
+  messages: [] as Array<{
+    id: string;
+    role: string;
+    metadata?: { runOutcome?: { status: string; error?: string } };
+  }>,
   error: null as string | null,
   pendingInputRequest: null as object | null,
   activeThreadId: null as string | null,
@@ -121,6 +126,7 @@ describe('AgentWorkspacePageShell', () => {
     bootstrapState.failures = 0;
     bootstrapState.isExpert = false;
     agentChatState.messages = [];
+    agentChatState.stream.isStreaming = false;
     agentChatState.error = null;
     agentChatState.pendingInputRequest = null;
     agentChatState.activeThreadId = null;
@@ -228,6 +234,46 @@ describe('AgentWorkspacePageShell', () => {
     expect(
       screen.queryByRole('button', { name: 'Continue to workspace' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('counts failed assistant replies across retries and resets after a successful reply', () => {
+    const view = render(<AgentWorkspacePageShell />);
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      agentChatState.error = null;
+      view.rerender(<AgentWorkspacePageShell />);
+      agentChatState.messages.push({
+        id: `failed-${attempt}`,
+        role: 'assistant',
+        metadata: {
+          runOutcome: { status: 'failed', error: `Failure ${attempt}` },
+        },
+      });
+      agentChatState.error = `Failure ${attempt}`;
+      view.rerender(<AgentWorkspacePageShell />);
+    }
+    expect(
+      screen.getByRole('button', { name: 'Continue to workspace' }),
+    ).toBeInTheDocument();
+    agentChatState.error = null;
+    agentChatState.messages.push({ id: 'success', role: 'assistant' });
+    view.rerender(<AgentWorkspacePageShell />);
+    expect(
+      screen.queryByRole('button', { name: 'Continue to workspace' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not reset repeated errors when the prior successful reply is unchanged', () => {
+    agentChatState.messages = [{ id: 'prior-success', role: 'assistant' }];
+    const view = render(<AgentWorkspacePageShell />);
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      agentChatState.error = `Failure ${attempt}`;
+      view.rerender(<AgentWorkspacePageShell />);
+      agentChatState.error = null;
+      view.rerender(<AgentWorkspacePageShell />);
+    }
+    expect(
+      screen.getByRole('button', { name: 'Continue to workspace' }),
+    ).toBeInTheDocument();
   });
 
   it('passes workspace wiring through to AgentFullPage', () => {
