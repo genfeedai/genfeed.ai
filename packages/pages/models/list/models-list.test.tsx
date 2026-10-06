@@ -62,11 +62,12 @@ vi.mock('@services/core/notifications.service', () => ({
 }));
 
 const mockReplace = vi.fn();
+let mockSearchParams = '';
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/models',
   useRouter: () => ({ push: vi.fn(), replace: mockReplace }),
-  useSearchParams: () => new URLSearchParams(''),
+  useSearchParams: () => new URLSearchParams(mockSearchParams),
 }));
 
 function buildModel(overrides: Partial<IModel> = {}): IModel {
@@ -105,6 +106,7 @@ function renderModelsList(
 describe('ModelsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSearchParams = '';
     mockFindAll.mockResolvedValue([buildModel()]);
     mockFindAllPages.mockResolvedValue([buildModel({ isDefault: true })]);
     mockOrganizationFindOne.mockResolvedValue({ settings: null });
@@ -126,6 +128,23 @@ describe('ModelsList', () => {
     });
     expect(mockFindAll.mock.calls[0]?.[0]).toMatchObject({ isActive: true });
     expect(mockFindAll.mock.calls[0]?.[0]).not.toHaveProperty('includeRetired');
+  });
+
+  it('sends every selected category and provider to the API before pagination', async () => {
+    mockSearchParams =
+      'category=image&category=video&provider=replicate&provider=fal&status=inactive&page=2';
+    renderModelsList(PageScope.SUPERADMIN);
+    await waitFor(() => expect(mockFindAll).toHaveBeenCalled());
+    expect(mockFindAll.mock.calls[0]?.[0]).toMatchObject({
+      categories: 'image,video',
+      providers: 'replicate,fal',
+      isActive: false,
+      page: 2,
+    });
+    expect(
+      await screen.findByRole('button', { name: 'More options for Flux Dev' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Image 1')).not.toBeInTheDocument();
   });
 
   it('hides retired models on the default admin listing', async () => {
@@ -248,11 +267,13 @@ describe('ModelsList', () => {
     });
   });
 
-  it('keeps the catalog overview read-only for superadmins', async () => {
+  it('replaces the duplicate overview with multi-select filters for superadmins', async () => {
     renderModelsList(PageScope.SUPERADMIN);
 
     await waitFor(() => {
-      expect(screen.getByTestId('models-category-filter')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'All categories' }),
+      ).toBeInTheDocument();
     });
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
   });

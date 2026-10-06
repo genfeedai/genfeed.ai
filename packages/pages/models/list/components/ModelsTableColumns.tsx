@@ -163,6 +163,8 @@ function formatModelCreditCost(model: IModel): string {
     return 'Free';
   }
 
+  if (!Number.isFinite(model.cost) || model.cost <= 0) return 'Unresolved';
+
   return `${model.cost.toLocaleString('en-US')} ${model.cost === 1 ? 'credit' : 'credits'}`;
 }
 
@@ -340,7 +342,7 @@ export function buildModelsTableColumns({
       sortable: true,
       render: (model: IModel) => (
         <div className="flex items-center gap-2 whitespace-nowrap">
-          {model.costTier ? (
+          {!isAdminScope && model.costTier ? (
             <ModelSelectorCostBadge costTier={model.costTier} />
           ) : null}
           <span className="text-xs tabular-nums text-muted-foreground">

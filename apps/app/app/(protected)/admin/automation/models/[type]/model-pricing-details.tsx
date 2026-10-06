@@ -8,13 +8,15 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { exportModelPricingCsv } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type {
+  ModelPricingDetailsProps,
+  ModelPricingToolbarProps,
+} from '@props/admin/models.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminModelPricingService } from '@services/admin/model-pricing.service';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import AppTable from '@ui/display/table/Table';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import FormSearchbar from '@ui/primitives/searchbar';
 import { Download, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -328,13 +330,69 @@ function pricingColumns(
   ];
 }
 
-export default function ModelPricingTable() {
+export default function ModelPricingDetails({
+  modelId,
+}: ModelPricingDetailsProps) {
   const t = useTranslations('pages.adminModelPricing');
-  const columns = pricingColumns(t);
-  const [search, setSearch] = useState('');
   const {
     data: report,
     isLoading,
+    error,
+    refetch,
+  } = useAdminModelPricingReport();
+  const row = report?.rows.find((entry) => entry.id === modelId);
+  if (isLoading)
+    return (
+      <p className="p-4 text-sm text-muted-foreground">Loading pricing…</p>
+    );
+  if (error)
+    return (
+      <div className="p-4" role="alert">
+        <p>{t('unavailable')}</p>
+        <Button
+          variant={ButtonVariant.SECONDARY}
+          onClick={() => void refetch()}
+        >
+          {t('refresh')}
+        </Button>
+      </div>
+    );
+  if (!row)
+    return <p className="p-4 text-sm text-muted-foreground">{t('empty')}</p>;
+  return (
+    <section className="space-y-3 p-4" aria-label={`Pricing for ${row.key}`}>
+      <h3 className="flex items-center gap-2 text-sm font-semibold">
+        {row.key} <AttentionBadge row={row} />
+      </h3>
+      <p className="text-xs text-muted-foreground">
+        {report?.isConversionPolicyConfigured
+          ? t('policyLoaded', {
+              margin: report.marginMultiplierGeneration ?? t('unresolved'),
+            })
+          : t('policyUnresolved')}{' '}
+        · {t('retrieved')} {report?.retrievedAt}
+      </p>
+      <dl className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {pricingColumns(t)
+          .filter((column) => column.key !== 'key')
+          .map((column) => (
+            <div
+              className="min-w-0 space-y-1 break-words"
+              key={String(column.key)}
+            >
+              <dt className="text-xs font-semibold">{column.header}</dt>
+              <dd>{column.render?.(row)}</dd>
+            </div>
+          ))}
+      </dl>
+    </section>
+  );
+}
+
+export function ModelPricingToolbar({ models }: ModelPricingToolbarProps) {
+  const t = useTranslations('pages.adminModelPricing');
+  const {
+    data: report,
     isFetching,
     error,
     refetch,
@@ -342,88 +400,41 @@ export default function ModelPricingTable() {
   const rows = useMemo(
     () =>
       report?.rows.filter((row) =>
-        row.key.toLowerCase().includes(search.toLowerCase()),
+        models.some((model) => model.id === row.id),
       ) ?? [],
-    [report, search],
+    [report, models],
   );
   return (
-    <section aria-label={t('operatorLabel')}>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold">{t('title')}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {t('description')}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <FormSearchbar
-            placeholder={t('search')}
-            value={search}
-            onSearch={setSearch}
-          />
-          <Button
-            variant={ButtonVariant.SECONDARY}
-            onClick={() => void refetch()}
-            disabled={isFetching}
-          >
-            <RefreshCw />
-            {t('refresh')}
-          </Button>
-          <Button
-            variant={ButtonVariant.SECONDARY}
-            disabled={!report || !!error || isFetching}
-            onClick={() => {
-              if (!report) return;
-              const blob = new Blob(
-                [exportModelPricingCsv({ ...report, rows })],
-                {
-                  type: 'text/csv;charset=utf-8',
-                },
-              );
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = `model-pricing-${report.retrievedAt.replaceAll(':', '-')}.csv`;
-              document.body.appendChild(link);
-              link.click();
-              link.remove();
-              URL.revokeObjectURL(url);
-            }}
-          >
-            <Download />
-            {t('export')}
-          </Button>
-        </div>
-      </div>
-      {report ? (
-        <p className="mb-3 text-xs text-muted-foreground">
-          {t('source')} {report.source} {t('retrieved')} {report.retrievedAt} ·{' '}
-          {rows.length} {t('rows')} ·{' '}
-          {rows.filter((row) => row.status === 'unresolved').length}{' '}
-          {t('unresolved')} ·{' '}
-          {report.isConversionPolicyConfigured
-            ? t('policyLoaded', {
-                margin: report.marginMultiplierGeneration ?? t('unresolved'),
-              })
-            : t('policyUnresolved')}
-        </p>
-      ) : null}
-      <AppTable
-        columns={columns}
-        items={rows}
-        getRowKey={(row) => row.id}
-        isLoading={isLoading}
-        ariaLabel={t('title')}
-        error={
-          error
-            ? {
-                title: t('unavailable'),
-                onRetry: () => void refetch(),
-              }
-            : undefined
-        }
-        emptyLabel={t('empty')}
-      />
-    </section>
+    <div className="flex gap-2">
+      <Button
+        variant={ButtonVariant.GHOST}
+        aria-label={t('refresh')}
+        onClick={() => void refetch()}
+        disabled={isFetching}
+      >
+        <RefreshCw />
+      </Button>
+      <Button
+        variant={ButtonVariant.SECONDARY}
+        disabled={!report || !!error || isFetching}
+        onClick={() => {
+          if (!report) return;
+          const blob = new Blob([exportModelPricingCsv({ ...report, rows })], {
+            type: 'text/csv;charset=utf-8',
+          });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `model-pricing-${report.retrievedAt.replaceAll(':', '-')}.csv`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+        }}
+      >
+        <Download />
+        {t('export')}
+      </Button>
+    </div>
   );
 }

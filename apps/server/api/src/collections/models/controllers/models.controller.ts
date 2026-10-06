@@ -113,6 +113,9 @@ export class ModelsController extends BaseCRUDController<
       matchConditions.lifecycle = { not: ModelLifecycle.RETIRED };
     }
 
+    if (query.providers?.length)
+      matchConditions.provider = { in: query.providers };
+
     if (query.registryStatus) {
       matchConditions = {
         ...matchConditions,

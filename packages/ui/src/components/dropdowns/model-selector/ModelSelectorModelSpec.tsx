@@ -42,7 +42,9 @@ const ModelSelectorModelSpec = memo(function ModelSelectorModelSpec({
   const costLabel = [
     typeof model.cost === 'number' && model.cost > 0
       ? formatCreditCost(model.cost, { unit: 'credits' })
-      : '',
+      : model.isFree
+        ? 'Free'
+        : 'Pricing unavailable',
     pricingLabel && pricingLabel !== String(model.cost) ? pricingLabel : '',
   ]
     .filter(Boolean)

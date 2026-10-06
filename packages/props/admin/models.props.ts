@@ -1,4 +1,10 @@
-import type { PageScope } from '@genfeedai/contracts';
+import {
+  ModelCategory,
+  ModelProvider,
+  type PageScope,
+} from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
+import type { ReactNode } from 'react';
 
 export const ADMIN_MODEL_TYPE_TABS = [
   { label: 'Active', value: 'active' },
@@ -24,6 +30,60 @@ export function resolveAdminModelType(
 }
 
 export interface ModelsListProps {
-  category?: AdminModelType;
+  type?: string;
+  category?: string;
+  onRefreshRegister?: (fn: (() => Promise<void>) | null) => void;
+  onPricingDetails?: (model: IModel) => void;
+  renderExpandedRow?: (model: IModel) => ReactNode | undefined;
+  renderToolbar?: (models: IModel[]) => ReactNode;
   scope?: PageScope;
+}
+
+export function resolveAdminModelFilters(
+  params: URLSearchParams,
+  legacyType?: string,
+) {
+  const categories = params
+    .getAll('category')
+    .filter((value) =>
+      Object.values(ModelCategory).some((category) => category === value),
+    );
+  if (
+    !params.has('category') &&
+    legacyType &&
+    Object.values(ModelCategory).some((value) => value === legacyType)
+  )
+    categories.push(legacyType);
+  if (!params.has('category') && legacyType === 'other')
+    categories.push(
+      ...Object.values(ModelCategory).filter(
+        (value) => !['image', 'video', 'music', 'text'].includes(value),
+      ),
+    );
+  const providers = params
+    .getAll('provider')
+    .filter((value) =>
+      Object.values(ModelProvider).some((provider) => provider === value),
+    );
+  const statuses = params.has('status')
+    ? params
+        .getAll('status')
+        .filter((value) => value === 'active' || value === 'inactive')
+    : legacyType === 'active'
+      ? ['active']
+      : [];
+  return { categories, providers, statuses };
+}
+
+export interface AdminModelsFiltersProps {
+  category?: string;
+}
+export interface ModelPricingDetailsProps {
+  modelId: string;
+}
+export interface ModelPricingToolbarProps {
+  models: IModel[];
+}
+export interface AdminModelsPageContentProps {
+  type: AdminModelType;
 }

@@ -5,9 +5,10 @@ import type {
   ModelPricingAttentionLevel,
 } from '@genfeedai/contracts/interfaces';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
+import { Button } from '@ui/primitives/button';
 import { CircleAlert, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useAdminModelPricingReport } from './use-admin-model-pricing-report';
 
 function reasonsFor(
@@ -26,6 +27,8 @@ function reasonsFor(
  */
 export default function ModelPricingAttentionPanel() {
   const t = useTranslations('pages.adminModelPricing');
+  const [isRedExpanded, setIsRedExpanded] = useState(false);
+  const [isOrangeExpanded, setIsOrangeExpanded] = useState(false);
   const { data: report } = useAdminModelPricingReport();
   const { red, orange } = useMemo(() => {
     const rows = report?.rows ?? [];
@@ -52,7 +55,7 @@ export default function ModelPricingAttentionPanel() {
           <AlertDescription>
             <p>{t('attentionRedHint')}</p>
             <ul className="mt-2 list-disc space-y-1 pl-4">
-              {red.map((row) => (
+              {(isRedExpanded ? red : red.slice(0, 5)).map((row) => (
                 <li key={row.id}>
                   <span className="font-medium">{row.key}</span>
                   {' — '}
@@ -60,6 +63,18 @@ export default function ModelPricingAttentionPanel() {
                 </li>
               ))}
             </ul>
+            {red.length > 5 ? (
+              <Button
+                variant="ghost"
+                className="mt-2"
+                aria-expanded={isRedExpanded}
+                onClick={() => setIsRedExpanded(!isRedExpanded)}
+              >
+                {isRedExpanded
+                  ? 'Show less'
+                  : `Show ${red.length - 5} more models`}
+              </Button>
+            ) : null}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -72,7 +87,7 @@ export default function ModelPricingAttentionPanel() {
           <AlertDescription>
             <p>{t('attentionOrangeHint')}</p>
             <ul className="mt-2 list-disc space-y-1 pl-4">
-              {orange.map((row) => (
+              {(isOrangeExpanded ? orange : orange.slice(0, 5)).map((row) => (
                 <li key={row.id}>
                   <span className="font-medium">{row.key}</span>
                   {' — '}
@@ -80,6 +95,18 @@ export default function ModelPricingAttentionPanel() {
                 </li>
               ))}
             </ul>
+            {orange.length > 5 ? (
+              <Button
+                variant="ghost"
+                className="mt-2"
+                aria-expanded={isOrangeExpanded}
+                onClick={() => setIsOrangeExpanded(!isOrangeExpanded)}
+              >
+                {isOrangeExpanded
+                  ? 'Show less'
+                  : `Show ${orange.length - 5} more models`}
+              </Button>
+            ) : null}
           </AlertDescription>
         </Alert>
       ) : null}

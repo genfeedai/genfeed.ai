@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   extractBrandFromKey,
+  formatCreditCost,
   getBrandConfig,
 } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
@@ -156,7 +157,17 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
           )}
         </div>
         <span className={labelClassName}>{model.label}</span>
-        <ModelSelectorCostBadge costTier={model.costTier} />
+        <span
+          title={
+            model.isFree
+              ? 'Free'
+              : model.cost > 0
+                ? formatCreditCost(model.cost, { unit: 'credits' })
+                : 'Pricing unavailable'
+          }
+        >
+          <ModelSelectorCostBadge costTier={model.costTier} />
+        </span>
         <ChevronsUpDown
           className={cn(SHELL_ICON_CLASS, 'text-muted-foreground')}
         />

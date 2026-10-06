@@ -250,3 +250,19 @@ describe('buildModelsTableColumns', () => {
     expect(labelColumn?.subtext?.(model)).toBe('Detailed model description');
   });
 });
+
+describe('admin credit costs', () => {
+  it('shows credits without the model-picker dollar tier', () => {
+    renderColumn(
+      'Cost',
+      buildModel({ cost: 17, costTier: CostTier.HIGH }),
+      true,
+    );
+    expect(screen.getByText('17 credits')).toBeInTheDocument();
+    expect(screen.queryByText('$$$')).not.toBeInTheDocument();
+  });
+  it('does not label an unpriced paid model as zero credits', () => {
+    renderColumn('Cost', buildModel({ cost: 0, isFree: false }), true);
+    expect(screen.getByText('Unresolved')).toBeInTheDocument();
+  });
+});
