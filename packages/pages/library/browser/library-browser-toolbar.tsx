@@ -138,6 +138,7 @@ function CharacterAvatar({ character }: { character: LibraryCharacterOption }) {
  * neither do character and tags.
  */
 export default function LibraryBrowserToolbar({
+  isRecoveryView = false,
   categories,
   characterOptions,
   characters,
@@ -401,12 +402,16 @@ export default function LibraryBrowserToolbar({
         </SelectContent>
       </Select>
 
-      <ViewToggle
-        activeView={MODE_TO_VIEW_TYPE[viewMode]}
-        onChange={(view) => onViewModeChange(VIEW_TYPE_TO_MODE[view] ?? 'grid')}
-        options={viewOptions}
-        size={ComponentSize.SM}
-      />
+      {!isRecoveryView ? (
+        <ViewToggle
+          activeView={MODE_TO_VIEW_TYPE[viewMode]}
+          onChange={(view) =>
+            onViewModeChange(VIEW_TYPE_TO_MODE[view] ?? 'grid')
+          }
+          options={viewOptions}
+          size={ComponentSize.SM}
+        />
+      ) : null}
     </div>
   );
 }

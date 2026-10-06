@@ -21,6 +21,10 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { CrunVideoPromptBinding } from '@genfeedai/props/studio/prompt-bar.props';
 import type { IngredientsTypeProps } from '@props/content/ingredient.props';
+import type {
+  FailedIngredientsRecoveryProps,
+  UseFailedIngredientRecoveryReturn,
+} from '@props/content/ingredient-recovery.props';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 
 export type ImageToVideoPromptDraft = Partial<PromptTextareaSchema> & {
@@ -63,6 +67,14 @@ export interface IngredientsListSidebarProps {
 }
 
 export interface IngredientsListContentProps {
+  recovery?: Omit<
+    FailedIngredientsRecoveryProps,
+    | 'ingredients'
+    | 'selectedIds'
+    | 'onSelectionChange'
+    | 'onInspect'
+    | 'isActionsEnabled'
+  >;
   type: string;
   /** Plural label of the active Library type chips, when exactly one applies. */
   activeTypeLabel?: string;
@@ -117,6 +129,7 @@ export interface IngredientsListFooterProps {
 }
 
 export interface UseIngredientsListReturn {
+  failedRecovery: UseFailedIngredientRecoveryReturn;
   type: string;
   scope: PageScope;
   singularType: IngredientCategory | string;

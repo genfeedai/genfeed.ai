@@ -5,6 +5,7 @@ import type {
   IngredientsListProps,
   UseIngredientsListReturn,
 } from '@genfeedai/props/pages/ingredients-list.props';
+import { useFailedIngredientRecovery } from '@hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
 import { useIngredientsActions } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-actions';
 import { useIngredientsFilters } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-filters';
 import { useIngredientsGeneration } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-generation';
@@ -108,6 +109,16 @@ export function useIngredientsList({
     [getFilteredIngredients, ingredients],
   );
 
+  const failedRecovery = useFailedIngredientRecovery({
+    brandId,
+    getService: getBulkIngredientsService,
+    ingredients: filteredIngredients,
+    onRefresh: actionsState.handleRefresh,
+    scopeKey: `${organizationId}:${brandId}:${JSON.stringify(query)}`,
+    setIngredients,
+    setSelectedIds: actionsState.setSelectedIngredientIds,
+  });
+
   const mediaIngredients = useMemo(
     () => getMediaIngredients(filteredIngredients),
     [getMediaIngredients, filteredIngredients],
@@ -129,6 +140,7 @@ export function useIngredientsList({
   );
 
   return {
+    failedRecovery,
     blacklists: generationState.blacklists,
     brandId,
     cachedAt,
