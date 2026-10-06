@@ -43,6 +43,35 @@ describe('ThemePreferenceSync', () => {
     expect(setThemeMock).not.toHaveBeenCalled();
   });
 
+  it('reapplies the account preference when the browser cache arrives late', () => {
+    useCurrentUserMock.mockReturnValue({
+      currentUser: { settings: { theme: 'dark' } },
+    });
+    useThemeMock.mockReturnValue({ setTheme: setThemeMock, theme: 'system' });
+    const view = render(<ThemePreferenceSync />);
+
+    expect(setThemeMock).toHaveBeenCalledWith('dark');
+
+    setThemeMock.mockClear();
+    useThemeMock.mockReturnValue({ setTheme: setThemeMock, theme: 'light' });
+    view.rerender(<ThemePreferenceSync />);
+
+    expect(setThemeMock).toHaveBeenCalledWith('dark');
+  });
+
+  it('keeps an optimistic theme while the saved account value is unchanged', () => {
+    useCurrentUserMock.mockReturnValue({
+      currentUser: { settings: { theme: 'dark' } },
+    });
+    useThemeMock.mockReturnValue({ setTheme: setThemeMock, theme: 'dark' });
+    const view = render(<ThemePreferenceSync />);
+
+    useThemeMock.mockReturnValue({ setTheme: setThemeMock, theme: 'light' });
+    view.rerender(<ThemePreferenceSync />);
+
+    expect(setThemeMock).not.toHaveBeenCalled();
+  });
+
   it.each([undefined, null, 'sepia'])(
     'ignores %s as a stored theme',
     (theme) => {
