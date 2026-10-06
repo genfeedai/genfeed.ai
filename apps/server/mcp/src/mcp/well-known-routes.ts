@@ -1,4 +1,6 @@
 import { buildProtectedResourceMetadataPaths } from '@genfeedai/helpers/integrations/mcp-resource.helper';
+import { SATOSHI_FONT_RESOURCE_PATH } from '@genfeedai/ui/static/font';
+import { SATOSHI_VARIABLE_WOFF2_BASE64 } from '@genfeedai/ui/static/satoshi-font';
 import { MCP_BRAND_ICON_FILES } from '@mcp/mcp/brand-icons';
 import {
   getMcpProtectedResourceMetadata,
@@ -24,6 +26,15 @@ export const MCP_SERVER_CARD_PATHS = [
  * service uses cannot apply here (#4553 defect 4).
  */
 export function registerWellKnownRoutes(expressApp: Express): void {
+  expressApp.get(SATOSHI_FONT_RESOURCE_PATH, (_req: Request, res: Response) => {
+    res
+      .set('Access-Control-Allow-Origin', '*')
+      .set('Cache-Control', 'public, max-age=3600')
+      .set('Content-Type', 'font/woff2')
+      .set('X-Content-Type-Options', 'nosniff')
+      .status(200)
+      .send(Buffer.from(SATOSHI_VARIABLE_WOFF2_BASE64, 'base64'));
+  });
   // RFC 9728 §3: a resource whose identifier carries a path component
   // (`.../mcp`) has its metadata at the well-known path suffixed with that
   // path. The bare path is kept for clients that ignore §3; both serve the

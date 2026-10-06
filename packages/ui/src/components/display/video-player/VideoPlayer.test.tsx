@@ -6,6 +6,60 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 afterEach(() => vi.restoreAllMocks());
 
 describe('VideoPlayer', () => {
+  it('delegates rejected playback to the consumer without a Next image overlay', async () => {
+    const error = new Error('Playback unavailable');
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockRejectedValue(error);
+    const onPlaybackError = vi.fn();
+    render(
+      <VideoPlayer
+        src="https://cdn.test/video.mp4"
+        onPlaybackError={onPlaybackError}
+        mediaProps={{ poster: 'https://cdn.test/poster.jpg' }}
+      />,
+    );
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: 'Play video' })),
+    );
+    expect(onPlaybackError).toHaveBeenCalledWith(error);
+    expect(screen.queryByAltText('Video unavailable')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Video player')).toHaveClass('opacity-100');
+  });
+
+  it('ignores a play promise interrupted by pause', async () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockRejectedValue(
+      new DOMException('Interrupted', 'AbortError'),
+    );
+    const onPlaybackError = vi.fn();
+    render(
+      <VideoPlayer
+        src="https://cdn.test/video.mp4"
+        onPlaybackError={onPlaybackError}
+      />,
+    );
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: 'Play video' })),
+    );
+    expect(onPlaybackError).not.toHaveBeenCalled();
+    expect(screen.queryByAltText('Video unavailable')).not.toBeInTheDocument();
+  });
+  it('shows a native poster before metadata without a Next image request or loading cover', () => {
+    render(
+      <VideoPlayer
+        src="https://cdn.test/video.mp4"
+        mediaProps={{
+          poster: 'https://cdn.test/poster.jpg',
+          preload: 'metadata',
+        }}
+      />,
+    );
+    const video = screen.getByLabelText('Video player');
+    expect(video).toHaveAttribute('poster', 'https://cdn.test/poster.jpg');
+    expect(video).toHaveClass('opacity-100');
+    expect(screen.queryByAltText('Video thumbnail')).not.toBeInTheDocument();
+    expect(
+      video.parentElement?.querySelector('.pointer-events-none'),
+    ).toBeNull();
+  });
   it('keeps the poster visible before playback and pauses inactive slides', () => {
     vi.useFakeTimers();
     const pause = vi

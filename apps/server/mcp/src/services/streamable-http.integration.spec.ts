@@ -101,7 +101,10 @@ describe('StreamableHttpService (real SDK integration)', () => {
           ui: {
             csp: {
               connectDomains: [],
-              resourceDomains: ['https://cdn.genfeed.ai'],
+              resourceDomains: [
+                'https://cdn.genfeed.ai',
+                'https://mcp.genfeed.ai',
+              ],
             },
           },
         },

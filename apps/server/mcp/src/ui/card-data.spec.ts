@@ -314,7 +314,9 @@ describe('MCP Apps card contract', () => {
     );
     if (!tool) throw new Error('Missing generate');
 
-    expect(MCP_CARD_RESOURCE_URI).toBe('ui://genfeed/content-cards-v4.html');
+    expect(MCP_CARD_RESOURCE_URI).toMatch(
+      /^ui:\/\/genfeed\/content-cards-v5-[a-f0-9]{12}\.html$/,
+    );
     expect(withCardMetadata(tool)._meta).toMatchObject({
       'openai/outputTemplate': MCP_CARD_RESOURCE_URI,
       'openai/toolInvocation/invoked': 'Media ready',
@@ -442,7 +444,7 @@ describe('MCP Apps card contract', () => {
       ])._meta.ui.csp,
     ).toEqual({
       connectDomains: [],
-      resourceDomains: ['https://media.example.com'],
+      resourceDomains: ['https://media.example.com', 'https://mcp.genfeed.ai'],
     });
   });
 });

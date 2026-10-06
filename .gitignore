@@ -28,6 +28,7 @@ apps/app/packages/**/*.js.map
 !apps/desktop/app/src/shared/*.d.ts
 !apps/server/api/src/helpers/test/*.d.ts
 !apps/server/api/src/types/*.d.ts
+!apps/server/mcp/src/ui/preview-bundle.d.ts
 !packages/contracts/src/api-types/generated/*.d.ts
 !packages/ui/src/css.d.ts
 !packages/workflow-ui/src/css.d.ts

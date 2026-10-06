@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import swc from 'unplugin-swc';
@@ -5,9 +6,19 @@ import { defineConfig } from 'vitest/config';
 
 const mcpDir = path.dirname(fileURLToPath(import.meta.url));
 
+const { buildMcpPreview } = createRequire(import.meta.url)('./ui-bundle.cjs');
+
 export default defineConfig({
   oxc: false, // Disable OXC transformer — SWC required for NestJS decorator metadata
   plugins: [
+    {
+      name: 'mcp-preview',
+      enforce: 'pre',
+      async load(id) {
+        if (id.endsWith('?mcp-preview'))
+          return `export default ${JSON.stringify(await buildMcpPreview())};`;
+      },
+    },
     swc.vite({
       jsc: {
         parser: { decorators: true, syntax: 'typescript' },

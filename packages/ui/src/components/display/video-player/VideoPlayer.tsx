@@ -93,6 +93,7 @@ export default function VideoPlayer({
   mediaClassName,
   mediaProps = {},
   onLoad,
+  onPlaybackError,
   videoRef,
   src = '',
   thumbnail = '',
@@ -120,7 +121,9 @@ export default function VideoPlayer({
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isMetadataLoaded, setIsMetadataLoaded] = useState(false);
-  const [showLoader, setShowLoader] = useState(true);
+  const [showLoader, setShowLoader] = useState(
+    Boolean(src) && !mediaProps.poster,
+  );
 
   useEffect(() => {
     setIsPlaying(false);
@@ -129,8 +132,8 @@ export default function VideoPlayer({
     setIsLoaded(false);
     setHasError(false);
     setIsMetadataLoaded(false);
-    setShowLoader(Boolean(src));
-  }, [src]);
+    setShowLoader(Boolean(src) && !mediaProps.poster);
+  }, [src, mediaProps.poster]);
 
   useEffect(() => {
     if (!isActive) resolvedVideoRef.current?.pause();
@@ -269,7 +272,9 @@ export default function VideoPlayer({
         className={cn(
           'size-full object-contain object-center',
           mediaClassName,
-          isLoaded && !hasError ? 'opacity-100' : 'opacity-0',
+          (isLoaded || mediaProps.poster) && !hasError
+            ? 'opacity-100'
+            : 'opacity-0',
         )}
       />
       {hasControls && (
@@ -279,7 +284,10 @@ export default function VideoPlayer({
           isMuted={isMuted}
           currentTime={currentTime}
           duration={duration}
-          onPlaybackError={() => setHasError(true)}
+          onPlaybackError={(error) => {
+            if (onPlaybackError) onPlaybackError(error);
+            else setHasError(true);
+          }}
         />
       )}
     </div>

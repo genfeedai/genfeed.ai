@@ -20,12 +20,11 @@ import {
   OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH,
   resolveMcpResourceIdentifier,
 } from '@genfeedai/helpers/integrations/mcp-resource.helper';
+import { staticSurfaceFontCss } from '@genfeedai/ui/static/font';
 import {
   staticSurfaceClassNames,
   staticSurfaceCss,
 } from '@genfeedai/ui/static/surface';
-
-import { SATOSHI_VARIABLE_WOFF2_BASE64 } from './satoshi-font';
 import {
   getMcpServerInfo,
   MCP_SERVER_DESCRIPTION,
@@ -391,16 +390,7 @@ export function renderSetupPage(): string {
 <meta name="description" content="Connect Claude, ChatGPT, Cursor, Gemini, Meta Muse, Grok Bot, and other AI agents to Genfeed over MCP with browser OAuth — no API key required." />
 <title>Genfeed MCP Server — connect any AI agent</title>
 <style>
-/* Self-hosted Satoshi (the product's sans). One variable face covers 300-900,
-   so the MCP page renders in the same brand type as the marketing site and app
-   with no CDN, no extra route, no editorial serif. */
-@font-face {
-  font-family: "Satoshi";
-  font-style: normal;
-  font-weight: 300 900;
-  font-display: swap;
-  src: url("data:font/woff2;base64,${SATOSHI_VARIABLE_WOFF2_BASE64}") format("woff2");
-}
+${staticSurfaceFontCss}
 ${staticSurfaceCss}
 * { box-sizing: border-box; }
 html { min-height: 100%; background: var(--gf-bg-primary); }

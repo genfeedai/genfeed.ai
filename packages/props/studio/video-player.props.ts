@@ -14,6 +14,7 @@ export interface VideoPlayerProps {
   className?: string;
   priority?: boolean;
   onLoad?: () => void;
+  onPlaybackError?: (error: unknown) => void;
   config?: {
     controls: boolean;
     muted: boolean;
@@ -30,5 +31,5 @@ export interface VideoPlayerControlsProps {
   isMuted: boolean;
   currentTime: number;
   duration: number;
-  onPlaybackError: () => void;
+  onPlaybackError: (error: unknown) => void;
 }

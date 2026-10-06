@@ -1,0 +1,27 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "types": ["node", "react", "react-dom"],
+    "paths": {
+      "@ui/*": [
+        "../../../packages/ui/src/*",
+        "../../../packages/ui/src/components/*"
+      ],
+      "@genfeedai/props": ["../../../packages/props/index.ts"],
+      "@genfeedai/props/*": ["../../../packages/props/*"],
+      "@genfeedai/services/*": ["../../../packages/services/*"],
+      "@genfeedai/utils/*": ["../../../packages/utils/*"],
+      "@props/*": ["../../../packages/props/*"],
+      "@mcp/*": ["./src/*"]
+    },
+    "target": "ES2022"
+  },
+  "include": ["src/ui/preview-client.tsx"]
+}

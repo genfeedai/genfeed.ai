@@ -13,6 +13,7 @@ import { formatAgentError } from '@genfeedai/agent/server';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { serializeMediaArtifact } from '@genfeedai/helpers';
+import { SATOSHI_FONT_RESOURCE_PATH } from '@genfeedai/ui/static/font';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
@@ -21,7 +22,7 @@ import {
   McpResourceUri,
   PUBLIC_MCP_RESOURCES,
 } from '@mcp/mcp/resource-catalog';
-import { getPublicAppUrl } from '@mcp/mcp/setup-page';
+import { getPublicAppUrl, getPublicMcpUrl } from '@mcp/mcp/setup-page';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import { toNativeMcpMediaResult } from '@mcp/services/mcp-media-result.util';
@@ -85,7 +86,11 @@ import {
   WORKFLOW_STATUS_TOOL_NAMES,
 } from '@mcp/tools/workflow-status.tool';
 import { cardResource } from '@mcp/ui/card-app';
-import { MCP_CARD_RESOURCE_URI, withCardMetadata } from '@mcp/ui/card-data';
+import {
+  MCP_CARD_RESOURCE_HASH,
+  MCP_CARD_RESOURCE_URI,
+  withCardMetadata,
+} from '@mcp/ui/card-data';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
 interface ToolCallParams {
@@ -707,12 +712,16 @@ export class ToolRegistryService implements OnModuleInit {
         case MCP_CARD_RESOURCE_URI:
           return {
             contents: [
-              cardResource([
-                this.configService?.get('GENFEEDAI_CDN_URL') ||
-                  'https://cdn.genfeed.ai',
-                this.configService?.get('GENFEEDAI_MICROSERVICES_FILES_URL') ||
-                  '',
-              ]),
+              cardResource(
+                [
+                  this.configService?.get('GENFEEDAI_CDN_URL') ||
+                    'https://cdn.genfeed.ai',
+                  this.configService?.get(
+                    'GENFEEDAI_MICROSERVICES_FILES_URL',
+                  ) || '',
+                ],
+                `${new URL(SATOSHI_FONT_RESOURCE_PATH, getPublicMcpUrl()).href}?v=${MCP_CARD_RESOURCE_HASH}`,
+              ),
             ],
           };
         case McpResourceUri.AGENT_GUIDE:

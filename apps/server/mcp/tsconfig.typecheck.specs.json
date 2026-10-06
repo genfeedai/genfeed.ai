@@ -1,6 +1,8 @@
 {
-  "compilerOptions": { "types": ["node", "vitest/globals"] },
-  "exclude": ["node_modules", "dist"],
+  "compilerOptions": {
+    "types": ["node", "vitest/globals"]
+  },
+  "exclude": ["node_modules", "dist", "src/ui/preview-client.tsx"],
   "extends": "../tsconfig.typecheck.base.json",
   "include": ["src/**/*", "test/**/*"]
 }

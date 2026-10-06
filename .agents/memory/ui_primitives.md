@@ -9,6 +9,20 @@ in the root `CLAUDE.md` (always loaded) and enforced by `scripts/ui/control-guar
 (`lint-staged.config.mjs`) and in CI (`bun run check:ui-guards`); its `ALLOWLIST` is the single
 exclusion list. Do not re-duplicate that content here — see `CLAUDE.md` → Frontend.
 
+## Every surface uses shared components (Vincent, 2026-10-06)
+
+**Why:** MCP previews shared colors while independently implementing their controls,
+cards and typography. Token reuse alone did not satisfy the product UI contract.
+
+**How to apply:** Always compose Genfeed UI from shared components. This includes
+MCP widgets and other standalone/static surfaces, not only React pages. Use
+the existing `@ui` React components and primitives; bundle them into standalone
+MCP previews when needed. Component appearance, fonts,
+states and accessibility belong to the shared UI package. Consumer CSS may
+describe layout; do not hand-build visual substitutes or copy component CSS into
+an app to approximate the design system. Extend the shared component when a
+required variant is missing.
+
 ## Shared page UX (verified 2026-09-05)
 
 **Why:** Pages were using the same primitives while independently rebuilding headers,

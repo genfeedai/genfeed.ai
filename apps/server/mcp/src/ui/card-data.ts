@@ -1,4 +1,9 @@
+import { createHash } from 'node:crypto';
 import type { McpToolOutput } from '@genfeedai/actions';
+import {
+  SATOSHI_FONT_RESOURCE_PATH,
+  staticSurfaceFontCss,
+} from '@genfeedai/ui/static/font';
 import type {
   McpAppResult,
   McpCalendarDay,
@@ -8,9 +13,17 @@ import type {
   McpCardView,
   McpMediaKind,
 } from '@mcp/shared/interfaces/mcp-app.interface';
+import preview from '@mcp/ui/preview-client.tsx?mcp-preview';
 
-// Bump the version whenever the view changes: hosts cache templates by URI.
-export const MCP_CARD_RESOURCE_URI = 'ui://genfeed/content-cards-v4.html';
+// Shared components/styles also change the resource; never reuse a cached view.
+export const MCP_CARD_RESOURCE_HASH = createHash('sha256')
+  .update(preview.script)
+  .update(preview.css)
+  .update(staticSurfaceFontCss)
+  .update(SATOSHI_FONT_RESOURCE_PATH)
+  .digest('hex')
+  .slice(0, 12);
+export const MCP_CARD_RESOURCE_URI = `ui://genfeed/content-cards-v5-${MCP_CARD_RESOURCE_HASH}.html`;
 export const MCP_APP_MIME_TYPE = 'text/html;profile=mcp-app';
 
 /** Statuses of a media job that has not produced its output yet. */

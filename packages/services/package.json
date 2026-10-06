@@ -5,7 +5,8 @@
     "@genfeedai/contracts": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
-    "zod": "4.6.5"
+    "zod": "4.6.5",
+    "@sentry/browser": "10.73.0"
   },
   "description": "Shared client-facing services and orchestration helpers for Genfeed applications",
   "devDependencies": {
