@@ -11,11 +11,44 @@ Codex, ChatGPT, etc.), plus a REST mirror (`GET /v1/tools`, `GET
 Run from the repo root:
 
 ```bash
-bun run dev:backend         # or dev:backend:min for api + files + notifications
+bun run dev:setup           # once per machine: trusted Portless HTTPS proxy
+bun run dev:backend:min     # API, files, and notifications
+bun run dev:mcp             # MCP in a separate terminal
 ```
 
-The MCP server listens on port `3014` (see the workspace root `CLAUDE.md` for
-the full port table).
+Use `https://mcp.genfeed.localhost/mcp`. Linked worktrees receive their own
+branch-prefixed routes; `bun run dev:status` shows the actual endpoints.
+The MCP process derives its API endpoint from the same Portless worktree
+origin. Keep the API, database, Redis, and credentials scoped to development.
+
+If the HTTPS proxy is unavailable, start MCP alone on a separate debug port:
+
+```bash
+MCP_PORT=3314 bun run --cwd apps/server/mcp dev:debug
+```
+
+This uses the fixed-port debugging environment rather than the interactive
+HTTPS routes; do not mix the two environments. The explicit package entry and
+port avoid the default debug-port collision tracked in
+[issue #6317](https://github.com/genfeedai/genfeed.ai/issues/6317).
+
+### Local QA scope
+
+The public `tools/list`, `resources/list`, and card `resources/read` requests
+can be inspected directly through a local MCP client. `initialize`, tool calls,
+and tenant resources still require a valid development API session or API key;
+local operation does not bypass authentication or tenant isolation. Select
+`?profile=full` to inspect the complete curated MCP catalog.
+
+Run the automated suites on the repository's designated verification host
+(Mac Studio), including when the dev server runs on the MacBook. The MCP
+package suite covers tool dispatch, approvals, role boundaries, media results,
+the real HTTP/SDK transport, and the HTML preview renderer. This fixture-based
+coverage does not prove that every external provider or publishing destination
+works. Authenticated live generation and publishing checks need a development
+tenant, appropriate provider credentials, and explicit authorization for any
+cost or external effect. A local SDK client avoids the cloud connector's
+production endpoint and cached tool list.
 
 ## Toolsets
 
@@ -73,10 +106,9 @@ selection.
 
 ## Tests
 
-Run from the repo root (see the workspace root `CLAUDE.md` for the required
-verification host):
+Run in the checkout on Mac Studio:
 
 ```bash
-bun run test --filter=@genfeedai/mcp
-bunx turbo run type-check --filter=@genfeedai/mcp
+bun run --cwd apps/server/mcp test
+bunx turbo run type-check --filter=@genfeedai/mcp --concurrency=1
 ```

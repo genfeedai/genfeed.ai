@@ -176,6 +176,71 @@ describe('MCP Apps card contract', () => {
     ).toBe('article');
   });
 
+  it('renders every generated variation once in the responsive post layout', () => {
+    const data = {
+      content: 'First caption',
+      variations: [
+        { content: 'First caption', hashtags: [] },
+        { content: 'Second caption', hashtags: [] },
+      ],
+    };
+    const result = withCardResult('generate_content', {
+      content: [{ type: 'text', text: JSON.stringify(data) }],
+      structuredContent: { data },
+    });
+    expect(result.structuredContent.data).toBe(data);
+    expect(result).toMatchObject({
+      structuredContent: {
+        genfeedCards: {
+          cards: [
+            {
+              description: 'First caption',
+              kind: 'post',
+              title: 'Variation 1',
+            },
+            {
+              description: 'Second caption',
+              kind: 'post',
+              title: 'Variation 2',
+            },
+          ],
+          layout: 'posts',
+          total: 2,
+        },
+      },
+    });
+  });
+
+  it.each([undefined, [], [{ content: 'Only caption' }]])(
+    'keeps the single-result preview with variations %j',
+    (variations) => {
+      expect(
+        buildCardView('generate_content', {
+          content: 'Only caption',
+          variations,
+        }),
+      ).toMatchObject({
+        cards: [{ description: 'Only caption', kind: 'post', title: 'Post' }],
+        total: 1,
+      });
+    },
+  );
+
+  it('ignores variation collections for generated articles and other tools', () => {
+    const data = {
+      articleId: 'article-1',
+      content: 'Article body',
+      title: 'Article title',
+      variations: [{ content: 'Unrelated caption' }],
+    };
+    expect(buildCardView('generate_content', data)?.cards).toMatchObject([
+      { description: 'Article body', kind: 'article', title: 'Article title' },
+    ]);
+    expect(buildCardView('create_post', data)?.cards).toMatchObject([
+      { description: 'Article body', kind: 'post', title: 'Article title' },
+    ]);
+  });
+
   it.each(['get_article', 'search_articles', 'get_video_status'])(
     'no longer builds cards for the removed %s tool',
     (name) => {
@@ -249,7 +314,7 @@ describe('MCP Apps card contract', () => {
     );
     if (!tool) throw new Error('Missing generate');
 
-    expect(MCP_CARD_RESOURCE_URI).toBe('ui://genfeed/content-cards-v3.html');
+    expect(MCP_CARD_RESOURCE_URI).toBe('ui://genfeed/content-cards-v4.html');
     expect(withCardMetadata(tool)._meta).toMatchObject({
       'openai/outputTemplate': MCP_CARD_RESOURCE_URI,
       'openai/toolInvocation/invoked': 'Media ready',
