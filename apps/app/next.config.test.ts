@@ -10,7 +10,7 @@ import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { isCsrfOriginAllowed } from 'next/dist/server/app-render/csrf-protection.js';
 import { hasRemoteMatch } from 'next/dist/shared/lib/match-remote-pattern.js';
 import { unstable_getResponseFromNextConfig } from 'next/experimental/testing/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import rootPackage from '../../package.json' with { type: 'json' };
 import config from './next.config';
 import appPackage from './package.json' with { type: 'json' };
@@ -27,6 +27,29 @@ function categoryValues(target: URL): string[] {
 }
 
 describe('app next.config', () => {
+  it.each([
+    { bundle: '', cloud: '1', expected: false, name: 'hosted web' },
+    { bundle: '', cloud: '', expected: false, name: 'self-hosted web' },
+    { bundle: '1', cloud: '', expected: true, name: 'packaged desktop' },
+  ])('limits prerendered route shells for $name', async (mode) => {
+    // Hosted fallback shells leaked opaque %%drp:...%% values into useParams,
+    // navigation hrefs and brand lookups after #6229. Web builds must resolve
+    // tenant params at request time; preserve the packaged desktop behavior.
+    vi.stubEnv('GENFEED_DESKTOP_BUNDLE', mode.bundle);
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', mode.bundle);
+    vi.stubEnv('GENFEED_CLOUD', mode.cloud);
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', mode.cloud);
+    vi.resetModules();
+    try {
+      const { default: modeConfig } = await import('./next.config');
+      expect(modeConfig.cacheComponents).toBe(mode.expected);
+      expect(modeConfig.partialPrefetching).toBe(mode.expected);
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
+  });
+
   it.each([
     [
       '/acme/brand/workspace/inbox/all?taskId=t1',
