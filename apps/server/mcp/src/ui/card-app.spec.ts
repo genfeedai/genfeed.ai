@@ -124,6 +124,31 @@ it('renders image, video and audio controls using allowed origins', () => {
   expect(document.querySelector('audio')?.controls).toBe(true);
 });
 
+it('shows every generated caption in the existing post grid as safe text', () => {
+  result('generate_content', {
+    content: 'First caption',
+    variations: [
+      { content: 'First caption' },
+      { content: '<img src=x onerror=alert(1)> Second caption' },
+    ],
+  });
+  expect(document.querySelector('#cards')?.className).toBe('posts');
+  expect(document.querySelectorAll('article.post')).toHaveLength(2);
+  expect(
+    Array.from(
+      document.querySelectorAll('article.post h2'),
+      (node) => node.textContent,
+    ),
+  ).toEqual(['Variation 1', 'Variation 2']);
+  expect(
+    Array.from(
+      document.querySelectorAll('article.post .description'),
+      (node) => node.textContent,
+    ),
+  ).toEqual(['First caption', '<img src=x onerror=alert(1)> Second caption']);
+  expect(document.querySelector('article img')).toBeNull();
+});
+
 it('presents completed images without tool headings or opaque metadata', () => {
   const imageId = testId('image');
   result('get_job_status', {

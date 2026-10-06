@@ -10,7 +10,7 @@ import type {
 } from '@mcp/shared/interfaces/mcp-app.interface';
 
 // Bump the version whenever the view changes: hosts cache templates by URI.
-export const MCP_CARD_RESOURCE_URI = 'ui://genfeed/content-cards-v3.html';
+export const MCP_CARD_RESOURCE_URI = 'ui://genfeed/content-cards-v4.html';
 export const MCP_APP_MIME_TYPE = 'text/html;profile=mcp-app';
 
 /** Statuses of a media job that has not produced its output yet. */
@@ -269,6 +269,35 @@ export function buildCardView(
     name === 'generate_content' && text(data, 'articleId')
       ? 'article'
       : baseKind;
+  if (
+    name === 'generate_content' &&
+    kind === 'post' &&
+    Array.isArray(data.variations)
+  ) {
+    const variations = data.variations
+      .map(record)
+      .filter((row) => text(row, 'content'));
+    if (variations.length) {
+      const cards = variations.slice(0, 24).map((row, index) =>
+        card(
+          {
+            ...data,
+            ...row,
+            ...(variations.length > 1
+              ? { title: `Variation ${index + 1}` }
+              : {}),
+          },
+          kind,
+        ),
+      );
+      return {
+        cards,
+        layout: 'posts',
+        title: 'Generated content',
+        total: variations.length,
+      };
+    }
+  }
   if (kind === 'usage') {
     // `get_account` can omit the usage section; there is nothing to chart then.
     if (!Object.keys(record(data.usage)).length) return undefined;
