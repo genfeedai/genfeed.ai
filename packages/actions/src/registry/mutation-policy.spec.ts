@@ -19,13 +19,21 @@ const MCP_QUEUED_WRITES = [
   'control_scheduled_release',
   'create_ad_remix_workflow',
   'create_article_draft',
+  'create_brand_from_url',
   'publish_article',
   'create_clip_project_from_youtube',
   'create_instagram_remix_workflow',
   'create_post',
   'create_scheduled_release',
+  'enhance_prompt',
+  'generate',
   'generate_clips',
+  'generate_content',
   'generate_content_batch',
+  'get_x_posts',
+  'list_x_account_activity',
+  'repurpose_post',
+  'transform_media',
   'install_skills_pro_skill',
   'post_social_reply',
   'send_social_dm',
@@ -47,10 +55,10 @@ describe('mutation policy map', () => {
       )?.surfaces,
     ).toEqual(['agent']);
   });
-  it('creates brands directly and reads scan status without mutation', () => {
+  it('requires approval before creating a brand from a URL and reads scan status without mutation', () => {
     expect(getToolByName('create_brand_from_url')).toMatchObject({
       creditCost: 1,
-      mutationPolicy: 'direct',
+      mutationPolicy: 'approval-required',
     });
     expect(getToolByName('get_brand_scan_status')).toMatchObject({
       creditCost: 0,
@@ -121,7 +129,7 @@ describe('mutation policy map', () => {
     expect(getToolByName('get_account')?.mutationPolicy).toBeUndefined();
     expect(getToolByName('resolve_approval')?.mutationPolicy).toBeUndefined();
     expect(getActionDefinition('create_post')?.approval).toBe('required');
-    expect(getActionDefinition('generate')?.approval).toBe('none');
+    expect(getActionDefinition('generate')?.approval).toBe('required');
   });
 
   it('keeps the MCP queued write set approval-required', () => {

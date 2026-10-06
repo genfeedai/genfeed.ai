@@ -94,9 +94,15 @@ describe('media generation credit floors', () => {
   });
 
   it('keeps the generate tool credit cost at the cheapest floor', () => {
-    expect(getToolByName('generate')?.creditCost).toBe(
-      Math.min(...Object.values(MEDIA_GENERATION_CREDIT_FLOORS)),
-    );
+    const floors = Object.values(MEDIA_GENERATION_CREDIT_FLOORS);
+    const tool = getToolByName('generate');
+    expect(tool?.creditCost).toBe(Math.min(...floors));
+    expect(tool?.creditPricing).toEqual({
+      maximum: Math.max(...floors),
+      minimum: Math.min(...floors),
+      mode: 'variable',
+      unit: 'generation',
+    });
   });
 });
 

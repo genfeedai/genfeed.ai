@@ -25,7 +25,7 @@ describe('generation harness catalog', () => {
         getToolsForSurface(surface).find(
           (tool) => tool.name === 'enhance_prompt',
         ),
-      ).toMatchObject({ creditCost: 1, mutationPolicy: 'direct' });
+      ).toMatchObject({ creditCost: 1, mutationPolicy: 'approval-required' });
     },
   );
   it.each(['agent', 'mcp'] as const)(

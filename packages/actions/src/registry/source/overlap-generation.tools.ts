@@ -1,3 +1,5 @@
+import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants/batch-generation-pricing.constant';
+import { ENHANCE_PROMPT_CREDIT_COST } from '@genfeedai/contracts/constants/tool-credit.constant';
 import type { SourceTool } from '../../interfaces/source-tool.interface';
 
 /**
@@ -10,7 +12,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
     name: 'enhance_prompt',
     description:
       'Preview a media prompt using the same Enhance implementation as Studio and Agent, with effective organization/brand settings and contributing pack metadata. Does not generate media. To generate the reviewed prompt unchanged, pass the returned prompt with harness:false. Model compilation during normal generation may add format-specific instructions; the generation receipt records the final submitted prompt.',
-    creditCost: 1,
+    creditCost: ENHANCE_PROMPT_CREDIT_COST,
     requiredRole: 'user',
     parameters: {
       type: 'object',
@@ -251,7 +253,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
   {
     // Floor for preflight only. Real amount is format+model-aware and billed
     // dynamically in the handler (isBillingDelegated).
-    creditCost: 1,
+    creditCost: BATCH_CAPTION_BASE_CREDITS,
     description:
       'Generate a batch of content (images, videos, carousels) for a brand. Specify count, platforms, and date range. Use handle param to resolve @username to a credential. Returns a batch ID for tracking. Credits scale by item format and caption model tier — not a flat fee.',
     name: 'generate_content_batch',

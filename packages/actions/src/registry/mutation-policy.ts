@@ -42,6 +42,12 @@ const READ_ONLY_PREFIXES = [
 
 const WRITE_NAMES_WITH_READ_PREFIX = new Set(['present_work_object']);
 
+/** Read-shaped names that spend credits, so they can carry a mutation policy. */
+const SPENDING_NAMES_WITH_READ_PREFIX = new Set([
+  'get_x_posts',
+  'list_x_account_activity',
+]);
+
 const READ_ONLY_NAMES = new Set<string>([
   'storyboard_run_capabilities',
   'quote_visual_code_generation',
@@ -69,13 +75,13 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   attach_remix_analysis_source: 'direct',
   control_remix_generation: 'approval-required',
   create_remix_concept: 'direct',
-  create_brand_from_url: 'direct',
+  create_brand_from_url: 'approval-required',
   import_source_post: 'approval-required',
   quote_remix_generation: 'direct',
   start_remix_generation: 'approval-required',
   update_remix_concept: 'direct',
   ai_action: 'direct',
-  enhance_prompt: 'direct',
+  enhance_prompt: 'approval-required',
   set_generation_settings: 'direct',
   analyze_clip_project: 'approval-required',
   approve_social_draft: 'approval-required',
@@ -115,11 +121,13 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   duplicate_workflow: 'direct',
   fork_skill: 'direct',
   execute_workflow: 'direct',
-  generate: 'direct',
+  generate: 'approval-required',
   generate_ad_pack: 'direct',
   generate_as_identity: 'direct',
   generate_clips: 'approval-required',
-  generate_content: 'direct',
+  generate_content: 'approval-required',
+  get_x_posts: 'approval-required',
+  list_x_account_activity: 'approval-required',
   generate_content_batch: 'approval-required',
   generate_monthly_content: 'direct',
   generate_onboarding_content: 'direct',
@@ -153,7 +161,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   reject_social_draft: 'direct',
   rename_brand: 'approval-required',
   replicate_top_ingredient: 'direct',
-  repurpose_post: 'direct',
+  repurpose_post: 'approval-required',
   request_asset: 'direct',
   retry_knowledge_ingestion: 'direct',
   rollback_skill: 'direct',
@@ -171,7 +179,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   submit_brand_interview_answer: 'approval-required',
   tag_social_conversation: 'direct',
   transfer_agent_conversation: 'approval-required',
-  transform_media: 'direct',
+  transform_media: 'approval-required',
   update_goal: 'direct',
   update_scheduled_release: 'approval-required',
   update_strategy_state: 'direct',
@@ -179,6 +187,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
 
 export function isReadOnlyToolName(name: string): boolean {
   if (WRITE_NAMES_WITH_READ_PREFIX.has(name)) return false;
+  if (SPENDING_NAMES_WITH_READ_PREFIX.has(name)) return false;
   if (READ_ONLY_NAMES.has(name)) {
     return true;
   }

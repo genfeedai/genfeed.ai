@@ -30,7 +30,7 @@ describe('Clip Projects split controllers', () => {
       'analyze',
       'ClipProjectsController.analyzeYoutube',
       'Analyze YouTube video for highlights',
-      'Analyze a YouTube URL: download audio, transcribe, detect highlights. Cheap step (1 credit). Returns projectId to poll for results.',
+      'Analyze a YouTube URL: download audio, transcribe, detect highlights. Analysis does not charge credits. Returns projectId to poll for results.',
     ],
   ] as const)(
     'preserves %s ingestion route and metadata',

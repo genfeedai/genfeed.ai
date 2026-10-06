@@ -32,6 +32,12 @@ export interface McpToolError {
   retryAfterSeconds?: number;
   nextStepUrl?: string;
   errors?: McpToolFieldError[];
+  estimatedCredits?: number;
+}
+
+export interface McpApprovalCostEstimate {
+  estimatedCredits: number | null;
+  pricingSummary?: string;
 }
 
 export interface McpToolErrorResult {
@@ -108,6 +114,9 @@ function compactToolError(error: McpToolError): McpToolError {
     ...(error.retryAfterSeconds !== undefined
       ? { retryAfterSeconds: error.retryAfterSeconds }
       : {}),
+    ...(error.estimatedCredits !== undefined
+      ? { estimatedCredits: error.estimatedCredits }
+      : {}),
   };
 }
 
@@ -146,17 +155,30 @@ export function mcpJsonRpcError(
   };
 }
 
+function approvalCostNote(estimate?: McpApprovalCostEstimate): string {
+  if (!estimate) return '';
+  if (estimate.estimatedCredits !== null) {
+    return ` Estimated cost: ${estimate.estimatedCredits} credits.`;
+  }
+  return estimate.pricingSummary ? ` ${estimate.pricingSummary}` : '';
+}
+
 export function approvalPendingToolResult(
   approval: McpApprovalResource,
+  estimate?: McpApprovalCostEstimate,
 ): McpToolErrorResult {
   return mcpToolErrorResult({
     code: 'approval_pending',
+    ...(estimate?.estimatedCredits !== null &&
+    estimate?.estimatedCredits !== undefined
+      ? { estimatedCredits: estimate.estimatedCredits }
+      : {}),
     message:
       `This action requires approval before it runs. ` +
       `Approval ID: ${approval.id}. Tool: ${approval.toolName}. ` +
       `Status: ${approval.status}. A reviewer has been notified. ` +
       'Hand them the approval queue, or call `resolve_approval` with ' +
-      `approvalId "${approval.id}" and decision "approve" (or "decline" to cancel).`,
+      `approvalId "${approval.id}" and decision "approve" (or "decline" to cancel).${approvalCostNote(estimate)}`,
     nextStepUrl: nextStepUrl('approval_pending'),
   });
 }

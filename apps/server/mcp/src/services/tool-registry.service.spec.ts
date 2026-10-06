@@ -1,3 +1,4 @@
+import { MEDIA_GENERATION_CREDIT_FLOORS } from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
 import {
@@ -10,7 +11,18 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 const MOCK_TOOLS = [
-  { name: 'generate', requiredRole: undefined, surfaces: { mcp: true } },
+  {
+    creditPricing: {
+      maximum: MEDIA_GENERATION_CREDIT_FLOORS.video,
+      minimum: MEDIA_GENERATION_CREDIT_FLOORS.music,
+      mode: 'variable' as const,
+      unit: 'generation',
+    },
+    mutationPolicy: 'approval-required' as const,
+    name: 'generate',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
   {
     name: 'get_articles',
     requiredRole: undefined,
@@ -347,20 +359,24 @@ describe('ToolRegistryService', () => {
     expect(service.getResources()).toHaveLength(MCP_RESOURCES.length);
   });
 
-  it('handleToolCall generate proxies through executeAgentTool', async () => {
+  it('handleToolCall generate returns a pending approval and does not run', async () => {
     const result = await service.handleToolCall({
       arguments: { prompt: 'AI surfing', type: 'video' },
       name: 'generate',
     });
 
-    expect(clientService.executeAgentTool).toHaveBeenCalledWith(
-      'generate',
-      { prompt: 'AI surfing', type: 'video' },
-      undefined,
-    );
-    expect(
-      (result as { content: { text: string }[] }).content[0].text,
-    ).toContain('generate');
+    expect(clientService.executeAgentTool).not.toHaveBeenCalled();
+    expect(clientService.createApproval).toHaveBeenCalledWith('generate', {
+      prompt: 'AI surfing',
+      type: 'video',
+    });
+    expect(result).toMatchObject({
+      isError: true,
+      structuredContent: {
+        code: 'approval_pending',
+        estimatedCredits: MEDIA_GENERATION_CREDIT_FLOORS.video,
+      },
+    });
   });
 
   it('handleToolCall onboard_brand runs the agent tool for its action (#6268)', async () => {

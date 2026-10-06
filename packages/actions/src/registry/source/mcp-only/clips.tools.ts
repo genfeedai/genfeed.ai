@@ -1,3 +1,7 @@
+import {
+  CLIP_CREDIT_PER_CLIP,
+  CLIP_HIGHLIGHT_COUNT_MAXIMUM,
+} from '@genfeedai/contracts/constants/tool-credit.constant';
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 /**
@@ -16,7 +20,7 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Analyze a YouTube video for viral highlights: downloads audio, transcribes, and LLM-detects segments (1 credit). Poll with get_clip_project or get_clip_highlights.',
+      'Analyze a YouTube video for viral highlights: downloads audio, transcribes, and LLM-detects segments. Analysis does not charge credits. Poll with get_clip_project or get_clip_highlights.',
     name: 'analyze_clip_project',
     parameters: {
       properties: {
@@ -27,8 +31,8 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
         },
         maxClips: {
           default: 10,
-          description: 'Maximum number of highlights to detect (1-30)',
-          maximum: 30,
+          description: `Maximum number of highlights to detect (1-${CLIP_HIGHLIGHT_COUNT_MAXIMUM})`,
+          maximum: CLIP_HIGHLIGHT_COUNT_MAXIMUM,
           minimum: 1,
           type: 'number',
         },
@@ -55,8 +59,7 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
   },
   {
     creditCost: 0,
-    description:
-      'Create a clip project from a YouTube URL and run the AI clip factory async (1 credit/clip). HeyGen/Argil need avatarId+voiceId; GenfeedAI needs a brand character reference. Poll get_clip_project.',
+    description: `Create a clip project from a YouTube URL and run the AI clip factory async (${CLIP_CREDIT_PER_CLIP} credit/clip). HeyGen/Argil need avatarId+voiceId; GenfeedAI needs a brand character reference. Poll get_clip_project.`,
     name: 'create_clip_project_from_youtube',
     parameters: {
       properties: {
@@ -82,8 +85,8 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
         },
         maxClips: {
           default: 10,
-          description: 'Maximum number of clips to generate (1-30)',
-          maximum: 30,
+          description: `Maximum number of clips to generate (1-${CLIP_HIGHLIGHT_COUNT_MAXIMUM})`,
+          maximum: CLIP_HIGHLIGHT_COUNT_MAXIMUM,
           minimum: 1,
           type: 'number',
         },
@@ -148,8 +151,7 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
   },
   {
     creditCost: 0,
-    description:
-      'Generate clips from selected highlights (1 credit/clip). Avatar: avatarId+voiceId (HeyGen/Argil) or character ref (GenfeedAI); raw-cut: neither.',
+    description: `Generate clips from selected highlights (${CLIP_CREDIT_PER_CLIP} credit/clip). Avatar: avatarId+voiceId (HeyGen/Argil) or character ref (GenfeedAI); raw-cut: neither.`,
     name: 'generate_clips',
     parameters: {
       properties: {

@@ -14,6 +14,40 @@ import { ContentFormat } from '..';
 /** Base credits for one caption/text draft (before model multiplier). */
 export const BATCH_CAPTION_BASE_CREDITS = 1;
 
+/** Inclusive upper bound for one `generate_content_batch` count. */
+export const BATCH_GENERATION_COUNT_MAXIMUM = 100;
+
+const CONTENT_MIX_PERCENT_KEYS: Record<ContentFormat, string> = {
+  [ContentFormat.CAROUSEL]: 'carouselPercent',
+  [ContentFormat.IMAGE]: 'imagePercent',
+  [ContentFormat.REEL]: 'reelPercent',
+  [ContentFormat.STORY]: 'storyPercent',
+  [ContentFormat.VIDEO]: 'videoPercent',
+};
+
+/**
+ * Tool `contentMix` uses *Percent fields. The estimator keys by ContentFormat.
+ * An all-zero mix returns undefined so the default mix stays in force.
+ */
+export function contentMixFromToolArguments(
+  input: unknown,
+): Partial<Record<ContentFormat, number>> | undefined {
+  if (!input || typeof input !== 'object') return undefined;
+  const raw = input as Record<string, unknown>;
+  const mix: Partial<Record<ContentFormat, number>> = {};
+  let hasWeight = false;
+  for (const format of Object.values(ContentFormat)) {
+    const value = raw[CONTENT_MIX_PERCENT_KEYS[format]];
+    const percent =
+      typeof value === 'number' && Number.isFinite(value) && value >= 0
+        ? value
+        : 0;
+    mix[format] = percent;
+    if (percent > 0) hasWeight = true;
+  }
+  return hasWeight ? mix : undefined;
+}
+
 /** Shared estimate/final-charge arithmetic for source-post variations. */
 export function sourcePostVariationCredits(outputCount: number): number {
   if (!Number.isInteger(outputCount) || outputCount < 0) return 0;

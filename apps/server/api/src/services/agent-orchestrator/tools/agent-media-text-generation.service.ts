@@ -33,6 +33,7 @@ import {
   formatPlatformLabel,
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
+import { GENERATE_CONTENT_TEXT_CREDITS } from '@genfeedai/contracts/constants';
 import type {
   AgentToolResult,
   KnowledgeSelection,
@@ -153,7 +154,7 @@ function readVariationsCount(
 }
 
 /** Flat charge for one social or newsletter draft (catalog `generate_content`). */
-const TEXT_GENERATION_CREDITS = 2;
+const TEXT_GENERATION_CREDITS = GENERATE_CONTENT_TEXT_CREDITS;
 
 const EMPTY_TEXT_GENERATION_RESULT: AgentToolResult = {
   creditsUsed: 0,

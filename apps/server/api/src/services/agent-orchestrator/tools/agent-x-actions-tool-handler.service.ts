@@ -1,4 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
@@ -13,7 +14,12 @@ import {
   parseTwitterPostId,
 } from '@api/services/integrations/twitter/utils/twitter-post-id.util';
 import type { CuratedActionName } from '@genfeedai/actions';
-import { CredentialPlatform, Platform } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  CredentialPlatform,
+  Platform,
+} from '@genfeedai/contracts';
+import { X_READ_CREDIT_COST } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 
 import { LoggerService } from '@libs/logger/logger.service';
@@ -47,7 +53,30 @@ export class AgentXActionsToolHandler {
     @Optional()
     private readonly batchGenerationService?: BatchGenerationService,
     @Optional() private readonly moduleRef?: ModuleRef,
+    @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
   ) {}
+
+  private async chargeRead(
+    ctx: ToolExecutionContext,
+    description: string,
+    brandId?: string,
+  ): Promise<Pick<AgentToolResult, 'creditsUsed' | 'isBillingDelegated'>> {
+    if (this.creditsUtilsService) {
+      await this.creditsUtilsService.deductCreditsFromOrganization(
+        ctx.organizationId,
+        ctx.userId,
+        X_READ_CREDIT_COST,
+        description,
+        ActivitySource.SCRIPT,
+        brandId ? { brandId } : undefined,
+      );
+      return {
+        creditsUsed: X_READ_CREDIT_COST,
+        isBillingDelegated: true,
+      };
+    }
+    return { creditsUsed: X_READ_CREDIT_COST };
+  }
 
   handles(toolName: CuratedActionName): boolean {
     return (
@@ -161,7 +190,7 @@ export class AgentXActionsToolHandler {
       });
 
       return {
-        creditsUsed: 1,
+        ...(await this.chargeRead(ctx, 'Read X posts', brandId)),
         data: {
           count: tweets.length,
           posts: tweets.map((tweet) => ({
@@ -229,7 +258,11 @@ export class AgentXActionsToolHandler {
       });
 
       return {
-        creditsUsed: 1,
+        ...(await this.chargeRead(
+          ctx,
+          'Read X post',
+          readOptionalString(params.brandId) ?? ctx.brandId,
+        )),
         data: {
           author: tweet.authorUsername,
           authorId: tweet.authorId,
@@ -325,7 +358,7 @@ export class AgentXActionsToolHandler {
       });
 
       return {
-        creditsUsed: 1,
+        ...(await this.chargeRead(ctx, 'Read X account activity', brandId)),
         data: {
           count: posts.length,
           posts: posts.map((post) => ({

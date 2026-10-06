@@ -180,7 +180,7 @@ export class ClipProjectIngestionController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     description:
-      'Analyze a YouTube URL: download audio, transcribe, detect highlights. Cheap step (1 credit). Returns projectId to poll for results.',
+      'Analyze a YouTube URL: download audio, transcribe, detect highlights. Analysis does not charge credits. Returns projectId to poll for results.',
     operationId: 'ClipProjectsController.analyzeYoutube',
     summary: 'Analyze YouTube video for highlights',
   })

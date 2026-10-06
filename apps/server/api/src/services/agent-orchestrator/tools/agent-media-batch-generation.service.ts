@@ -5,8 +5,11 @@ import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tool
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { BatchGenerationCreditsService } from '@api/services/batch-generation/batch-generation-credits.service';
 import { BatchGenerationWorkflowService } from '@api/services/batch-generation/batch-generation-workflow.service';
-import { ContentFormat, formatPlatformLabel } from '@genfeedai/contracts';
-import { estimateBatchGenerationCredits } from '@genfeedai/contracts/constants';
+import { formatPlatformLabel } from '@genfeedai/contracts';
+import {
+  contentMixFromToolArguments,
+  estimateBatchGenerationCredits,
+} from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -48,19 +51,6 @@ type BatchExecution = {
 
 const BATCH_RESERVATION_TTL_MS = 8 * 24 * 60 * 60 * 1000;
 
-const CONTENT_MIX_PERCENT_KEYS: Readonly<
-  Record<ContentFormat, keyof ContentMixPercents>
-> = {
-  [ContentFormat.IMAGE]: 'imagePercent',
-  [ContentFormat.VIDEO]: 'videoPercent',
-  [ContentFormat.CAROUSEL]: 'carouselPercent',
-  [ContentFormat.REEL]: 'reelPercent',
-  [ContentFormat.STORY]: 'storyPercent',
-};
-
-// The estimator keys by ContentFormat, while the tool DTO exposes *Percent
-// fields. Re-key explicitly so media-heavy mixes are not priced as defaults.
-
 function parseContentMixPercents(
   input: unknown,
 ): ContentMixPercents | undefined {
@@ -84,17 +74,6 @@ function parseContentMixPercents(
   return Object.values(percents).some((percent) => percent > 0)
     ? percents
     : undefined;
-}
-
-function toContentFormatMix(
-  percents: ContentMixPercents | undefined,
-): Partial<Record<ContentFormat, number>> | undefined {
-  if (!percents) return undefined;
-  const mix: Partial<Record<ContentFormat, number>> = {};
-  for (const format of Object.values(ContentFormat)) {
-    mix[format] = percents[CONTENT_MIX_PERCENT_KEYS[format]];
-  }
-  return mix;
 }
 
 @Injectable()
@@ -228,7 +207,11 @@ export class AgentMediaBatchGenerationService {
     };
     const contentMix = parseContentMixPercents(params.contentMix);
     const estimatedCredits = estimateBatchGenerationCredits(
-      { contentMix: toContentFormatMix(contentMix), count, platforms },
+      {
+        contentMix: contentMixFromToolArguments(params.contentMix),
+        count,
+        platforms,
+      },
       pricingOptions,
     );
     const dateRange = (params.dateRange as Record<string, string>) || {

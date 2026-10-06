@@ -3,6 +3,10 @@ import type {
   ToolAnnotations,
 } from '../interfaces/tool-definition.interface';
 import { deriveMcpToolPresentation } from '../registry/source/tool-annotations';
+import {
+  appendCreditPricingDescription,
+  fixedCreditPricing,
+} from '../registry/tool-credit-pricing';
 
 /**
  * `_meta` key carrying the minimum credit charge for one call of the tool.
@@ -13,6 +17,7 @@ import { deriveMcpToolPresentation } from '../registry/source/tool-annotations';
  * namespaced per the MCP convention for vendor-specific metadata.
  */
 export const MCP_CREDIT_COST_META_KEY = 'genfeed.ai/creditCost';
+export const MCP_CREDIT_PRICING_META_KEY = 'genfeed.ai/creditPricing';
 export const MCP_MUTATION_POLICY_META_KEY = 'genfeed.ai/mutationPolicy';
 
 /**
@@ -45,16 +50,22 @@ export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
         tool.title && tool.annotations
           ? { annotations: tool.annotations, title: tool.title }
           : deriveMcpToolPresentation(tool.name, tool.mutationPolicy);
+      const creditPricing =
+        tool.creditPricing ?? fixedCreditPricing(tool.creditCost);
       return {
         _meta: {
           [MCP_CREDIT_COST_META_KEY]: tool.creditCost,
+          [MCP_CREDIT_PRICING_META_KEY]: creditPricing,
           [MCP_TOOLSET_META_KEY]: tool.toolset,
           ...(tool.mutationPolicy
             ? { [MCP_MUTATION_POLICY_META_KEY]: tool.mutationPolicy }
             : {}),
         },
         annotations: presentation.annotations,
-        description: tool.description,
+        description: appendCreditPricingDescription(
+          tool.description,
+          creditPricing,
+        ),
         inputSchema: {
           ...tool.parameters,
           properties: tool.parameters.properties,

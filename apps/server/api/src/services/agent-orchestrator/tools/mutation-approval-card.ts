@@ -1,5 +1,9 @@
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { getToolByName } from '@genfeedai/actions';
+import {
+  describeCreditPricing,
+  estimateToolCreditCost,
+  getToolByName,
+} from '@genfeedai/actions';
 import type {
   AgentMutationApprovalData,
   AgentUiAction,
@@ -38,12 +42,26 @@ export function buildMutationApprovalCard(
   const sourceActionId = `mutation-approval:${approvalId}`;
   const summary = humanize(toolName);
   const definition = getToolByName(toolName);
+  const estimatedCredits = definition?.creditPricing
+    ? estimateToolCreditCost(toolName, parameters, definition.creditPricing)
+    : null;
+  const baseDescription =
+    definition?.description ?? 'Review this action before it runs.';
+  const estimateSentence =
+    typeof estimatedCredits === 'number'
+      ? `Estimated cost: ${estimatedCredits} credits.`
+      : definition?.creditPricing && definition.creditPricing.mode !== 'fixed'
+        ? describeCreditPricing(definition.creditPricing)
+        : undefined;
+  const description =
+    estimateSentence && !baseDescription.includes(estimateSentence)
+      ? `${baseDescription} ${estimateSentence}`
+      : baseDescription;
   return {
     id: sourceActionId,
     type: 'mutation_approval_card',
     title: summary,
-    description:
-      definition?.description ?? 'Review this action before it runs.',
+    description,
     requiresConfirmation: true,
     data: {
       approvalId,
@@ -59,6 +77,7 @@ export function buildMutationApprovalCard(
       scopeVersion: context.validatedScope?.contextVersion,
       brandId: context.validatedScope?.brandId ?? null,
       expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      ...(typeof estimatedCredits === 'number' ? { estimatedCredits } : {}),
     } satisfies AgentMutationApprovalData,
     ctas: [
       {

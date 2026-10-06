@@ -3,6 +3,7 @@ export { toAgentTools } from './adapters/to-agent-tool';
 export type { McpToolOutput } from './adapters/to-mcp-tool';
 export {
   MCP_CREDIT_COST_META_KEY,
+  MCP_CREDIT_PRICING_META_KEY,
   MCP_MUTATION_POLICY_META_KEY,
   MCP_TOOLSET_META_KEY,
   toMcpTools,
@@ -30,6 +31,7 @@ export type {
   CanonicalToolDefinition,
   ToolAnnotations,
   ToolCategory,
+  ToolCreditPricing,
   ToolMutationPolicy,
   ToolParameterSchema,
   ToolRequiredRole,
@@ -125,6 +127,14 @@ export {
   toolRequiresMutationPolicy,
   UNSUPPORTED_APPROVAL_ERROR,
 } from './registry/mutation-policy';
+export {
+  appendCreditPricingDescription,
+  describeCreditPricing,
+  estimateToolCreditCost,
+  fixedCreditPricing,
+  isSpendingCreditPricing,
+  toolCreditPricingFor,
+} from './registry/tool-credit-pricing';
 export {
   ALL_TOOLS,
   getToolByName,

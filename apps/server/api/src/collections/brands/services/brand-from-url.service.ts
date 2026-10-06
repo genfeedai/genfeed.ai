@@ -22,7 +22,10 @@ import {
 } from '@api/services/knowledge-base/master-prompt-generator.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivitySource } from '@genfeedai/contracts';
-import { createBrandAppRoute } from '@genfeedai/contracts/constants';
+import {
+  BRAND_FROM_URL_CREDIT_COST,
+  createBrandAppRoute,
+} from '@genfeedai/contracts/constants';
 import {
   buildBrandKitDraftFromBrand,
   computeBrandCompleteness,
@@ -66,7 +69,7 @@ export class BrandFromUrlService {
     const requestId = randomUUID();
     const reservation = await this.credits.reserveCredits({
       actorUserId: context.userId,
-      amount: 1,
+      amount: BRAND_FROM_URL_CREDIT_COST,
       idempotencyKey: `brand-from-url:${requestId}`,
       organizationId: context.organizationId,
       workloadId: requestId,
@@ -258,7 +261,7 @@ export class BrandFromUrlService {
       }
     }
     await this.credits.settleReservation({
-      actualAmount: 1,
+      actualAmount: BRAND_FROM_URL_CREDIT_COST,
       actorUserId: context.userId,
       brandId,
       description: 'Create brand from URL',

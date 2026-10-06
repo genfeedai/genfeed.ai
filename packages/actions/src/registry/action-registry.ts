@@ -87,7 +87,10 @@ function toolAction(tool: CanonicalToolDefinition): GenfeedActionDefinition {
     approval: tool.mutationPolicy === 'approval-required' ? 'required' : 'none',
     authorization: tool.requiredRole,
     completionMode: 'synchronous',
-    credits: { amount: tool.creditCost, mode: 'fixed' },
+    credits:
+      !tool.creditPricing || tool.creditPricing.mode === 'fixed'
+        ? { amount: tool.creditCost, mode: 'fixed' }
+        : { mode: 'dynamic' },
     description: tool.description,
     id: tool.name,
     idempotency: 'run-node',

@@ -13,6 +13,10 @@ import {
 } from './mutation-policy';
 import { SOURCE_TOOLS } from './source/index';
 import { deriveMcpToolPresentation } from './source/tool-annotations';
+import {
+  appendCreditPricingDescription,
+  toolCreditPricingFor,
+} from './tool-credit-pricing';
 
 /**
  * Assembles `ALL_TOOLS` from the curated catalog and the hand-authored tool
@@ -209,6 +213,7 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
     const agent = isActionOnSurface(entry, 'agent');
     const mcp = isActionOnSurface(entry, 'mcp');
     const mutationPolicy = MUTATION_POLICY_BY_NAME[tool.name];
+    const creditPricing = toolCreditPricingFor(tool.name, tool.creditCost);
     const presentation = mcp
       ? deriveMcpToolPresentation(tool.name, mutationPolicy)
       : undefined;
@@ -216,7 +221,11 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
       ...(presentation ? { annotations: presentation.annotations } : {}),
       category: inferCategory(tool.name),
       creditCost: tool.creditCost,
-      description: tool.description,
+      creditPricing,
+      description: appendCreditPricingDescription(
+        tool.description,
+        creditPricing,
+      ),
       name: entry.name,
       parameters: {
         ...tool.parameters,

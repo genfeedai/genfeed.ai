@@ -56,6 +56,7 @@ export interface AgentMutationApprovalData {
   scopeVersion?: number;
   brandId: string | null;
   expiresAt: string;
+  estimatedCredits?: number;
   executionStatus?: 'completed' | 'failed' | 'cancelled';
   error?: string;
 }
