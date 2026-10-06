@@ -108,6 +108,11 @@ import {
   listStudioGenerateTypeConfigs,
 } from '@pages/studio/generate/utils/studio-generate-types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
+import {
+  readImageEditSourceAspect,
+  readImageEditSourceModel,
+  resolveImageEditEntry,
+} from '@pages/studio/generate/utils/studio-image-edit-entry';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -1674,13 +1679,36 @@ export default function StudioGenerateWorkspace(): ReactElement {
       restoredRolesRef.current.clear();
       setContentReferences([reference]);
       setPrompt('');
-      applyTypeSettings('image-edit', {
-        editSize: 'source',
-        editSeed: undefined,
+      const entry = resolveImageEditEntry({
         editPrimaryId: reference.item.id,
+        sourceAspectRatio: readImageEditSourceAspect({
+          height: job.height,
+          recipeAspectRatio: job.recipe?.aspectRatio,
+          recipeEditAspectRatio: job.recipe?.imageEdit?.aspectRatio,
+          width: job.width,
+        }),
+        sourceModelKey: readImageEditSourceModel({
+          modelKey: job.modelKey,
+          recipeEditModel: job.recipe?.imageEdit?.model,
+          recipeModelKey: job.recipe?.modelKey,
+        }),
       });
+      applyTypeSettings('image-edit', entry.patch);
+      if (entry.droppedAspectRatio) {
+        notificationsService.warning(
+          translate('editImage.aspectRatioFallback', {
+            ratio: entry.droppedAspectRatio,
+          }),
+        );
+      }
     },
-    [clearAttachments, clearCrunRestore, applyTypeSettings],
+    [
+      clearAttachments,
+      clearCrunRestore,
+      applyTypeSettings,
+      notificationsService,
+      translate,
+    ],
   );
 
   const editEntryRef = useRef<string | null>(null);
@@ -1717,11 +1745,23 @@ export default function StudioGenerateWorkspace(): ReactElement {
         setContentReferences([reference]);
         setType('image-edit');
         setPrompt('');
-        applyTypeSettings('image-edit', {
-          editSize: 'source',
-          editSeed: undefined,
+        const recipe = recipeFromIngredient(
+          ingredient,
+          ingredient.imageEdit ? 'image-edit' : 'image',
+        );
+        const entry = resolveImageEditEntry({
           editPrimaryId: reference.item.id,
+          sourceAspectRatio: recipe.aspectRatio,
+          sourceModelKey: recipe.modelKey,
         });
+        applyTypeSettings('image-edit', entry.patch);
+        if (entry.droppedAspectRatio) {
+          notificationsService.warning(
+            translate('editImage.aspectRatioFallback', {
+              ratio: entry.droppedAspectRatio,
+            }),
+          );
+        }
       })
       .catch((error: unknown) => {
         if (isCurrent())
@@ -1745,6 +1785,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     setType,
     applyTypeSettings,
     notificationsService,
+    translate,
   ]);
 
   const shouldShowVoiceInput = Boolean(
