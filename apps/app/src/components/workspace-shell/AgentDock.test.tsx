@@ -474,21 +474,115 @@ describe('AgentDock', () => {
     expect(overlay).toHaveAttribute('data-chrome', 'bubble');
     expect(overlay).toHaveAttribute('data-morph', 'from');
     expect(overlay).toHaveStyle({ transformOrigin: 'bottom right' });
-    expect(overlay.style.transform).toContain('--bubble-from-x');
+    expect(overlay.style.transform).toBe('translateY(18px) scale(0.9)');
     expect(overlay).toHaveTextContent('Conversation transcript');
     expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
 
-    await act(async () => {
-      await new Promise((resolve) => {
-        requestAnimationFrame(() => resolve(undefined));
-      });
-    });
+    await waitFor(() => expect(overlay).toHaveAttribute('data-morph', 'open'));
     const openOverlay = screen.getByRole('region', { name: 'Agent' });
     expect(openOverlay).toHaveAttribute('data-morph', 'open');
-    expect(openOverlay.style.transform).toBe('scale(1, 1)');
+    expect(openOverlay.style.transform).toBe('translateY(0) scale(1)');
     expect(
       screen.queryByRole('separator', { name: 'Resize agent' }),
     ).toBeNull();
+  });
+
+  it('keeps the launcher available as a close toggle while the conversation is open', () => {
+    const dock = buildDock();
+    render(
+      <AgentDock
+        chrome="bubble"
+        dock={dock}
+        isCompact={false}
+        onOpenFullPage={vi.fn()}
+        suggestedActions={[
+          { label: 'Configure', prompt: 'Configure this page' },
+        ]}
+      >
+        <p>Conversation transcript</p>
+      </AgentDock>,
+    );
+
+    const launcher = screen.getByTestId('agent-conversation-bubble');
+    expect(launcher).toHaveAttribute('aria-expanded', 'true');
+    expect(launcher).toHaveAccessibleName('Close agent');
+    expect(launcher).toHaveAttribute('aria-controls', 'workspace-agent-dock');
+    expect(launcher.closest('[inert]')).toBeNull();
+    fireEvent.pointerEnter(launcher);
+    expect(screen.getByTestId('agent-conversation-radial')).toHaveAttribute(
+      'tabindex',
+      '-1',
+    );
+    fireEvent.click(launcher);
+    expect(dock.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels a pending close when the conversation is reopened', async () => {
+    const dock = buildDock();
+    const view = (isOpen: boolean) => (
+      <AgentDock
+        chrome="bubble"
+        dock={{ ...dock, isOpen }}
+        isCompact={false}
+        onOpenFullPage={vi.fn()}
+      >
+        <StatefulConversation />
+      </AgentDock>
+    );
+    const { rerender } = render(view(true));
+    fireEvent.click(screen.getByRole('button', { name: 'Draft: empty' }));
+    rerender(view(false));
+    expect(screen.getByTestId('agent-dock')).toHaveAttribute('inert');
+    expect(screen.getByTestId('agent-dock')).toHaveAttribute(
+      'data-morph',
+      'from',
+    );
+    rerender(view(true));
+    await waitFor(() =>
+      expect(screen.getByTestId('agent-dock')).toHaveAttribute(
+        'data-morph',
+        'open',
+      ),
+    );
+    // Longer than the close fallback: a stale timer must not hide the reopened panel.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    });
+    expect(screen.getByRole('region', { name: 'Agent' })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Draft: half-written' }),
+    ).toBeVisible();
+  });
+
+  it('closes immediately when reduced motion is requested', () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true });
+    try {
+      const dock = buildDock();
+      const view = (isOpen: boolean) => (
+        <AgentDock
+          chrome="bubble"
+          dock={{ ...dock, isOpen }}
+          isCompact={false}
+          onOpenFullPage={vi.fn()}
+        >
+          <p>Conversation transcript</p>
+        </AgentDock>
+      );
+      const { rerender } = render(view(true));
+      rerender(view(false));
+      expect(screen.getByTestId('agent-dock')).toHaveAttribute('hidden');
+      expect(screen.getByTestId('agent-dock')).toHaveAttribute(
+        'data-morph',
+        'closed',
+      );
+      expect(screen.getByTestId('agent-conversation-bubble')).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      );
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
   });
 
   it('keeps focus in the conversation when it moves across the breakpoint', () => {
