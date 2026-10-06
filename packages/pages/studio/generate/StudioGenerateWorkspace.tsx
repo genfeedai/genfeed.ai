@@ -79,6 +79,8 @@ import {
   filterStudioGenerateJobs,
   mergeStudioGenerateJobs,
   resolveStudioAssetUrl,
+  studioJobToContentMention,
+  studioReferenceRoleForJob,
 } from '@pages/studio/generate/utils/studio-generate-asset';
 import {
   buildStudioSettingsPatchFromHandoff,
@@ -382,16 +384,6 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
   const { isLoading: isContentLibraryLoading, mentions } =
     useContentMentions(agentApiService);
-  const contentLibraryItems = useMemo(() => {
-    const requiresVideo = contentLibraryRole === 'videoReference';
-    return mentions.filter((item) => {
-      if (!item.thumbnailUrl) {
-        return false;
-      }
-      const isVideo = item.contentType.toLowerCase().includes('video');
-      return requiresVideo ? isVideo : !isVideo;
-    });
-  }, [contentLibraryRole, mentions]);
   const selectedContentIds = useMemo(
     () => new Set(contentReferences.map((reference) => reference.item.id)),
     [contentReferences],
@@ -690,6 +682,25 @@ export default function StudioGenerateWorkspace(): ReactElement {
     () => mergeStudioGenerateJobs(jobs, storedJobs),
     [jobs, storedJobs],
   );
+  const contentLibraryItems = useMemo(() => {
+    const requiresVideo = contentLibraryRole === 'videoReference';
+    const generated = galleryJobs.flatMap((job) => {
+      const item = studioJobToContentMention(job);
+      return item ? [item] : [];
+    });
+    const seen = new Set(generated.map((item) => item.id));
+
+    return [
+      ...generated,
+      ...mentions.filter((item) => !seen.has(item.id)),
+    ].filter((item) => {
+      if (!item.thumbnailUrl) {
+        return false;
+      }
+      const isVideo = item.contentType.toLowerCase().includes('video');
+      return requiresVideo ? isVideo : !isVideo;
+    });
+  }, [contentLibraryRole, galleryJobs, mentions]);
   const visibleJobs = useMemo(() => {
     const filtered = filterStudioGenerateJobs(galleryJobs, {
       search,
@@ -1112,13 +1123,13 @@ export default function StudioGenerateWorkspace(): ReactElement {
     submit,
   ]);
 
-  const handleSelectContentReference = useCallback(
-    (item: ContentMentionItem) => {
+  const attachContentReference = useCallback(
+    (item: ContentMentionItem, role: StudioGenerateReferenceRole) => {
       clearCrunRestore();
       if (!item.thumbnailUrl) {
         return;
       }
-      if (contentLibraryRole === 'editSource') {
+      if (role === 'editSource') {
         const count =
           contentReferences.filter(
             (reference) => reference.role === 'editSource',
@@ -1136,7 +1147,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
           return;
         }
       }
-      if (contentLibraryRole === 'editMask') {
+      if (role === 'editMask') {
         for (const attachment of attachments)
           if (getAttachmentRole(attachment) === 'editMask')
             removeAttachment(attachment.id);
@@ -1165,18 +1176,14 @@ export default function StudioGenerateWorkspace(): ReactElement {
           (attachment: AttachmentItem) =>
             getAttachmentRole(attachment) === 'startFrame',
         );
-      if (
-        contentLibraryRole === 'endFrame' &&
-        supportsInterpolation &&
-        !hasStartFrame
-      ) {
+      if (role === 'endFrame' && supportsInterpolation && !hasStartFrame) {
         notificationsService.warning(
           'Choose a Start Frame before the End Frame.',
         );
         return;
       }
       if (
-        contentLibraryRole === 'videoReference' &&
+        role === 'videoReference' &&
         !contentReferences.some((reference) => reference.item.id === item.id)
       ) {
         const selectedVideoReferences =
@@ -1200,22 +1207,21 @@ export default function StudioGenerateWorkspace(): ReactElement {
       setContentReferences((current) =>
         current.some((reference) => reference.item.id === item.id)
           ? current
-          : contentLibraryRole === 'endFrame' ||
-              contentLibraryRole === 'startFrame'
+          : role === 'endFrame' || role === 'startFrame'
             ? [
                 ...current.filter(
                   (reference) =>
-                    reference.role !== contentLibraryRole &&
+                    reference.role !== role &&
                     (supportsInterpolation ||
                       (reference.role !== 'startFrame' &&
                         reference.role !== 'endFrame')),
                 ),
-                { item, role: contentLibraryRole },
+                { item, role },
               ]
-            : [...current, { item, role: contentLibraryRole }],
+            : [...current, { item, role }],
       );
       if (
-        contentLibraryRole === 'videoReference' &&
+        role === 'videoReference' &&
         settings.modelKey ===
           MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO &&
         settings.resolution === '4k'
@@ -1229,7 +1235,6 @@ export default function StudioGenerateWorkspace(): ReactElement {
     },
     [
       attachments,
-      contentLibraryRole,
       clearCrunRestore,
       models,
       contentReferences,
@@ -1240,6 +1245,52 @@ export default function StudioGenerateWorkspace(): ReactElement {
       settings.resolution,
       updateSettings,
       removeAttachment,
+    ],
+  );
+
+  const handleSelectContentReference = useCallback(
+    (item: ContentMentionItem) => {
+      attachContentReference(item, contentLibraryRole);
+    },
+    [attachContentReference, contentLibraryRole],
+  );
+
+  const handleUseGeneratedReference = useCallback(
+    (job: StudioGenerateJob) => {
+      const item = studioJobToContentMention(job);
+      if (!item) {
+        notificationsService.info(translate('referencePreviewMissing'));
+        return;
+      }
+      const role = studioReferenceRoleForJob(job, type);
+      if (!role) {
+        notificationsService.warning(translate('referenceUnsupported'));
+        return;
+      }
+      const videoControls = models.find(
+        (model) => model.key === settings.modelKey && model.provider === 'crun',
+      )?.inputControls;
+      const isVideoReferenceUnsupported =
+        role === 'videoReference' &&
+        (videoControls?.mediaKind === 'video' ||
+          !hasVideoReferences(settings.modelKey));
+      const isStartFrameUnsupported =
+        role === 'startFrame' &&
+        videoControls?.mediaKind === 'video' &&
+        videoControls.videoRules?.referenceMode === 'none';
+      if (isVideoReferenceUnsupported || isStartFrameUnsupported) {
+        notificationsService.warning(translate('referenceUnsupported'));
+        return;
+      }
+      attachContentReference(item, role);
+    },
+    [
+      attachContentReference,
+      models,
+      notificationsService,
+      settings.modelKey,
+      translate,
+      type,
     ],
   );
 
@@ -2118,6 +2169,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
                   jobs={visibleJobs}
                   onReprompt={handleVaryRecipe}
                   onSelect={handleSelectJob}
+                  onUseAsReference={handleUseGeneratedReference}
                   selectedJobId={selectedJobId}
                   view={resultsView}
                 />
@@ -2272,7 +2324,10 @@ export default function StudioGenerateWorkspace(): ReactElement {
       </ContextSidebarPanel>
 
       <ContentLibraryPicker
-        isLoading={isContentLibraryLoading}
+        isLoading={
+          contentLibraryItems.length === 0 &&
+          (isContentLibraryLoading || isLoadingGallery)
+        }
         isOpen={isContentLibraryOpen}
         items={contentLibraryItems}
         knowledgeSection={

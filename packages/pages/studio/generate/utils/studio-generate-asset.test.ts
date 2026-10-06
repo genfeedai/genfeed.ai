@@ -10,6 +10,8 @@ import {
   resolveStudioAssetUrl,
   resolveStudioTypeFromCategory,
   STUDIO_GENERATE_CATEGORIES,
+  studioJobToContentMention,
+  studioReferenceRoleForJob,
   toStudioGenerateJob,
 } from './studio-generate-asset';
 
@@ -171,6 +173,73 @@ describe('toStudioGenerateJob', () => {
     expect(
       toStudioGenerateJob(
         buildIngredient({ category: IngredientCategory.SOURCE }),
+      ),
+    ).toBeNull();
+  });
+});
+
+describe('studio gallery references', () => {
+  it('lists a ready generated image for the reference picker', () => {
+    const job = toStudioGenerateJob(
+      buildIngredient({
+        brandId: 'brand-1',
+        cdnUrl: 'https://cdn/apple.png',
+        promptText: 'a green apple',
+      }),
+    );
+
+    expect(job && studioJobToContentMention(job)).toEqual({
+      brandId: 'brand-1',
+      contentTitle: 'a green apple',
+      contentType: 'image',
+      id: 'ing-1',
+      thumbnailUrl: 'https://cdn/apple.png',
+    });
+  });
+
+  it('lists a ready video separately from images', () => {
+    const job = toStudioGenerateJob(
+      buildIngredient({
+        category: IngredientCategory.VIDEO,
+        cdnUrl: 'https://cdn/clip.mp4',
+        promptText: 'a walk cycle',
+      }),
+    );
+
+    expect(job && studioJobToContentMention(job)?.contentType).toBe('video');
+    expect(job && studioReferenceRoleForJob(job, 'video')).toBe(
+      'videoReference',
+    );
+  });
+
+  it('keeps the open composer type when an image is used on a video prompt', () => {
+    const job = buildJob({
+      ingredientId: 'ing-1',
+      type: 'image',
+      url: 'https://cdn/apple.png',
+    });
+
+    expect(studioReferenceRoleForJob(job, 'video')).toBe('startFrame');
+    expect(studioReferenceRoleForJob(job, 'image')).toBe('reference');
+    expect(studioReferenceRoleForJob(job, 'image-edit')).toBe('editSource');
+    expect(studioJobToContentMention(job)?.id).toBe('ing-1');
+  });
+
+  it('skips assets that are still generating or have no preview', () => {
+    expect(
+      studioJobToContentMention(
+        buildJob({
+          status: IngredientStatus.PROCESSING,
+          url: 'https://cdn/x.png',
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      studioJobToContentMention(buildJob({ type: 'image', url: undefined })),
+    ).toBeNull();
+    expect(
+      studioJobToContentMention(
+        buildJob({ type: 'music', url: 'https://cdn/song.mp3' }),
       ),
     ).toBeNull();
   });

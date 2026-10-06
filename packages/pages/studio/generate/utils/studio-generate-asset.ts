@@ -1,8 +1,12 @@
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
-import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentContentMentionItem,
+  IIngredient,
+} from '@genfeedai/contracts/interfaces';
 import type {
   StudioGenerateAssetFacts,
   StudioGenerateJob,
+  StudioGenerateReferenceRole,
   StudioGenerateType,
 } from '@pages/studio/generate/types';
 import { resolveAspectRatioFromDimensions } from '@pages/studio/generate/utils/studio-generate-recipe';
@@ -44,6 +48,80 @@ export function resolveStudioAssetUrl(
     ingredient.thumbnailUrl ||
     undefined
   );
+}
+
+const STUDIO_REFERENCE_READY_STATUSES = new Set<IngredientStatus>([
+  IngredientStatus.GENERATED,
+  IngredientStatus.UPLOADED,
+  IngredientStatus.VALIDATED,
+]);
+
+/** A clip the video composer can attach as a video reference. */
+export function isStudioVideoReferenceJob(
+  job: Pick<StudioGenerateJob, 'type'>,
+): boolean {
+  return job.type === 'video' || job.type === 'avatar';
+}
+
+/**
+ * Role a ready gallery asset takes in the composer that is already open.
+ * The composer type stays put: an image on a video prompt is a start frame,
+ * and a clip is a video reference.
+ */
+export function studioReferenceRoleForJob(
+  job: Pick<StudioGenerateJob, 'type'>,
+  composerType: StudioGenerateType,
+): StudioGenerateReferenceRole | null {
+  const isVideo = isStudioVideoReferenceJob(job);
+  if (composerType === 'video') {
+    if (job.type === 'music' || job.type === 'voice') {
+      return null;
+    }
+    return isVideo ? 'videoReference' : 'startFrame';
+  }
+  if (isVideo || job.type === 'music' || job.type === 'voice') {
+    return null;
+  }
+  if (composerType === 'image-edit') {
+    return 'editSource';
+  }
+  if (composerType === 'image') {
+    return 'reference';
+  }
+  return null;
+}
+
+/** Gallery row the reference picker can show. Posts stay a separate source. */
+export function studioJobToContentMention(
+  job: StudioGenerateJob,
+): AgentContentMentionItem | null {
+  if (
+    !STUDIO_REFERENCE_READY_STATUSES.has(job.status) ||
+    job.type === 'music' ||
+    job.type === 'voice'
+  ) {
+    return null;
+  }
+
+  const previewUrl = job.ingredient
+    ? resolveStudioAssetUrl(job.ingredient) || job.url
+    : job.url;
+  const id = job.ingredient?.id || job.ingredientId;
+  if (!previewUrl || !id) {
+    return null;
+  }
+
+  return {
+    brandId: job.ingredient?.brandId ?? null,
+    contentTitle:
+      job.ingredient?.metadataLabel ||
+      job.ingredient?.promptText ||
+      job.prompt ||
+      'Generated reference',
+    contentType: isStudioVideoReferenceJob(job) ? 'video' : 'image',
+    id: String(id),
+    thumbnailUrl: previewUrl,
+  };
 }
 
 /**

@@ -1490,6 +1490,10 @@
     "removePersistedMessage": "Move this failed generation to Trash? You can restore it later.",
     "reprompt": "Reprompt",
     "repromptGenerationAria": "Reprompt {type} generation: {prompt}",
+    "referencePreviewMissing": "This asset has no usable preview yet.",
+    "referenceUnsupported": "The selected model cannot use that asset as a reference.",
+    "useAsReference": "Use as reference",
+    "useAsReferenceAria": "Use this {type} as a reference: {prompt}",
     "resizeFailed": "Failed to resize video",
     "resizeFormats": {
       "landscape": "landscape",

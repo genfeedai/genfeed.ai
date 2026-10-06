@@ -171,6 +171,8 @@ export interface StudioGenerateResultsProps {
   jobs: readonly StudioGenerateJob[];
   onReprompt: (job: StudioGenerateJob) => void;
   onSelect: (job: StudioGenerateJob) => void;
+  /** Attaches a ready asset to the open composer without changing its type. */
+  onUseAsReference?: (job: StudioGenerateJob) => void;
   selectedJobId?: string | null;
   view: ViewType.GRID | ViewType.LIST;
 }
@@ -183,6 +185,8 @@ export interface StudioGenerateCardProps {
   parentJob?: StudioGenerateJob | null;
   onReprompt: (job: StudioGenerateJob) => void;
   onSelect: (job: StudioGenerateJob) => void;
+  /** Attaches a ready asset to the open composer without changing its type. */
+  onUseAsReference?: (job: StudioGenerateJob) => void;
   view: ViewType.GRID | ViewType.LIST;
 }
 

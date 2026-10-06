@@ -305,7 +305,7 @@ describe('StudioGenerateComposer', () => {
     expect(baseProps.onRemoveAttachedAsset).toHaveBeenCalledWith('reference');
   });
 
-  it('keeps an empty composer compact with setup and submission controls, then expands while typing', () => {
+  it('keeps an empty composer expanded with setup and submission controls', () => {
     const view = render(
       <StudioGenerateComposer
         {...baseProps}
@@ -315,7 +315,7 @@ describe('StudioGenerateComposer', () => {
       />,
     );
     const shell = screen.getByTestId('studio-generate-composer-shell');
-    expect(shell).toHaveAttribute('data-expanded', 'false');
+    expect(shell).toHaveAttribute('data-expanded', 'true');
     expect(screen.getByRole('button', { name: 'Setup' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
       'aria-disabled',
@@ -357,7 +357,7 @@ describe('StudioGenerateComposer', () => {
         type="image"
       />,
     );
-    expect(shell).toHaveAttribute('data-expanded', 'false');
+    expect(shell).toHaveAttribute('data-expanded', 'true');
     expect(editor).toHaveFocus();
   });
 

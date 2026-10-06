@@ -9,7 +9,6 @@ import {
   SHELL_ICON_CLASS,
 } from '@ui/constants/shell-chrome.constant';
 import { isAutoGenerationModelKey } from '@ui/dropdowns/model-selector/model-selector.constants';
-import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { ChevronsUpDown, Sparkles } from 'lucide-react';
@@ -86,13 +85,7 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
       withWrapper={false}
       {...buttonProps}
     >
-      {!isTypeAgentOwned && selectedModel ? (
-        <span aria-hidden="true" className="inline-flex shrink-0">
-          <ModelAvatar model={selectedModel} />
-        </span>
-      ) : !isTypeAgentOwned ? (
-        <CategoryIcon aria-hidden="true" className={SHELL_ICON_CLASS} />
-      ) : (
+      {isTypeAgentOwned ? (
         <Sparkles
           aria-hidden="true"
           className={cn(
@@ -100,6 +93,8 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
             isFullyAgentOwned ? 'text-primary' : 'text-muted-foreground',
           )}
         />
+      ) : selectedModel ? null : (
+        <CategoryIcon aria-hidden="true" className={SHELL_ICON_CLASS} />
       )}
       <span className="min-w-0 flex-1 truncate text-xs font-medium">
         {triggerLabel ?? summaryParts.join(' · ')}

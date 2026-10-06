@@ -71,6 +71,7 @@ export default function StudioGenerateResults({
   jobs,
   onReprompt,
   onSelect,
+  onUseAsReference,
   selectedJobId,
   view,
 }: StudioGenerateResultsProps): ReactElement {
@@ -95,6 +96,7 @@ export default function StudioGenerateResults({
         key={job.id}
         onReprompt={onReprompt}
         onSelect={onSelect}
+        onUseAsReference={onUseAsReference}
         parentJob={
           job.parentId ? jobsByIngredientId.get(job.parentId) : undefined
         }
