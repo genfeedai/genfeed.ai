@@ -16,6 +16,7 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useVisualProjects } from '@hooks/data/content/use-visual-projects';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { VisualCodeQuoteReview } from '@props/studio/visual-code.props';
+import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
@@ -83,6 +84,7 @@ function MotionWorkspace() {
   const [isAcknowledged, setIsAcknowledged] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isStaleRevision, setIsStaleRevision] = useState(false);
   const [older, setOlder] = useState<IVisualRevision[]>([]);
   const [historyCursor, setHistoryCursor] = useState<
     number | null | undefined
@@ -132,13 +134,32 @@ function MotionWorkspace() {
       throw new Error(t('invalidProps'));
     return value as Record<string, VisualCodeJson>;
   }
+  function reloadLatestRevision() {
+    setError(null);
+    setIsStaleRevision(false);
+    setSelectedRevision(null);
+    setOlder([]);
+    if (projectId) {
+      void api.project.refetch();
+    }
+  }
   async function run(task: () => Promise<void>) {
     setIsBusy(true);
     setError(null);
+    setIsStaleRevision(false);
     try {
       await task();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t('failed'));
+      const isStale =
+        getJsonApiErrorMember(cause)?.detail === 'stale_visual_revision';
+      setIsStaleRevision(isStale);
+      setError(
+        isStale
+          ? t('staleRevision')
+          : cause instanceof Error
+            ? cause.message
+            : t('failed'),
+      );
     } finally {
       setIsBusy(false);
     }
@@ -260,12 +281,20 @@ function MotionWorkspace() {
         </aside>
         <main className="min-w-0 space-y-6">
           {uiError && (
-            <p
+            <div
               role="alert"
-              className="rounded-lg border border-destructive p-3 text-sm text-destructive"
+              className="flex flex-wrap items-center gap-3 rounded-lg border border-destructive p-3 text-sm text-destructive"
             >
-              {uiError}
-            </p>
+              <p>{uiError}</p>
+              {isStaleRevision ? (
+                <Button
+                  variant={ButtonVariant.GHOST}
+                  onClick={reloadLatestRevision}
+                >
+                  {t('reloadRevision')}
+                </Button>
+              ) : null}
+            </div>
           )}
           {catalog && !catalog.isAvailable && (
             <p

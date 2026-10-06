@@ -5008,6 +5008,8 @@
     "outputLimit": "Choose between 1 and 8 outputs.",
     "invalidProps": "Props must be a JSON object.",
     "failed": "The request failed.",
+    "staleRevision": "This project changed elsewhere. Reload the latest revision, then try again.",
+    "reloadRevision": "Reload latest revision",
     "selectBrand": "Select a brand first.",
     "selectProject": "Select a project first.",
     "unavailable": "The isolated renderer is unavailable. Contact your operator.",
