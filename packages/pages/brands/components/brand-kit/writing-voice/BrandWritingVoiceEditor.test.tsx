@@ -1,4 +1,5 @@
 import { LinkCategory } from '@genfeedai/contracts';
+import { Brand } from '@models/organization/brand.model';
 import BrandWritingVoiceEditor from '@pages/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor';
 import type { BrandWritingVoiceEditorProps } from '@props/pages/brand-detail.props';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -104,7 +105,7 @@ describe('BrandWritingVoiceEditor', () => {
     ],
   };
 
-  const brand = {
+  const brand = new Brand({
     id: 'brand-1',
     slug: 'acme',
     description: 'Acme brand',
@@ -140,7 +141,7 @@ describe('BrandWritingVoiceEditor', () => {
         url: 'https://acme.example',
       },
     ],
-  } as BrandWritingVoiceEditorProps['brand'];
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
