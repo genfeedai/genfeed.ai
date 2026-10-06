@@ -29,8 +29,8 @@ async function expectResolvedLinks(page: Page) {
   ).toHaveCount(0);
 }
 
-// Library type and place URLs redirect to the existing asset list with query
-// presets. Both list destinations already render without awaiting URL data.
+// Library type and place URLs redirect to the asset list with query presets.
+// Guard concrete URLs and requests while hosted prerendering is withdrawn.
 test('library list navigation preserves resolved tenant parameters', async ({
   authenticatedPage,
 }) => {
@@ -54,7 +54,6 @@ test('library list navigation preserves resolved tenant parameters', async ({
   });
   await expect(link).toBeVisible();
   await expectResolvedLinks(authenticatedPage);
-  await link.hover();
   await test.step('navigate to the recent list', async () => {
     await link.click();
     // Place presets preserve the Images type preset's category filters.
@@ -120,7 +119,6 @@ test('list to detail navigation preserves resolved record parameters', async ({
   });
   await expect(link).toBeVisible();
   await expectResolvedLinks(adminPage);
-  await link.hover();
   await test.step('navigate to the brand analytics detail', async () => {
     await link.click();
     await adminPage.waitForURL((url) => url.pathname === destination);
