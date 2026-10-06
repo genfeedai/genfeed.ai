@@ -153,6 +153,22 @@ describe('StudioGenerateCard', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
+  it('hides use-as-reference when the open composer cannot accept the asset', () => {
+    render(
+      <StudioGenerateCard
+        assetActions={buildAssetActions()}
+        isUseAsReferenceEnabled={false}
+        job={{ ...generatedJob, type: 'video' }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        onUseAsReference={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+
+    expect(screen.queryByTestId('studio-asset-reference-job-1')).toBeNull();
+  });
+
   it('replaces a broken image with the shared preview fallback', () => {
     render(
       <StudioGenerateCard

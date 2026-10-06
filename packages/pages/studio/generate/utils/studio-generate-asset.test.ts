@@ -3,8 +3,10 @@ import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { StudioGenerateJob } from '@pages/studio/generate/types';
 import { describe, expect, it } from 'vitest';
 import {
+  canUseStudioJobAsReference,
   filterStudioGenerateJobs,
   mergeStudioGenerateJobs,
+  replaceStudioContentReference,
   resolveJsonApiIngredientId,
   resolveStudioAssetFacts,
   resolveStudioAssetUrl,
@@ -223,6 +225,78 @@ describe('studio gallery references', () => {
     expect(studioReferenceRoleForJob(job, 'image')).toBe('reference');
     expect(studioReferenceRoleForJob(job, 'image-edit')).toBe('editSource');
     expect(studioJobToContentMention(job)?.id).toBe('ing-1');
+  });
+
+  it('hides use-as-reference when the open composer cannot accept the asset', () => {
+    const image = buildJob({ type: 'image' });
+    const video = buildJob({ type: 'video' });
+    const supported = {
+      isStartFrameSupported: true,
+      isVideoReferenceSupported: true,
+    };
+
+    expect(studioReferenceRoleForJob(video, 'image')).toBeNull();
+    expect(canUseStudioJobAsReference(video, 'image', supported)).toBe(false);
+    expect(canUseStudioJobAsReference(image, 'video', supported)).toBe(true);
+    expect(
+      canUseStudioJobAsReference(video, 'video', {
+        ...supported,
+        isVideoReferenceSupported: false,
+      }),
+    ).toBe(false);
+    expect(
+      canUseStudioJobAsReference(image, 'video', {
+        ...supported,
+        isStartFrameSupported: false,
+      }),
+    ).toBe(false);
+  });
+
+  it('replaces the stored role when the same asset is attached again', () => {
+    const item = { id: 'ing-1' };
+    const other = { id: 'ing-2' };
+
+    expect(
+      replaceStudioContentReference(
+        [{ item, role: 'reference' }],
+        { item, role: 'startFrame' },
+        true,
+      ),
+    ).toEqual([{ item, role: 'startFrame' }]);
+
+    const sameRole = [{ item, role: 'startFrame' as const }];
+    expect(
+      replaceStudioContentReference(
+        sameRole,
+        { item, role: 'startFrame' },
+        true,
+      ),
+    ).toBe(sameRole);
+
+    expect(
+      replaceStudioContentReference(
+        [
+          { item: other, role: 'endFrame' },
+          { item, role: 'reference' },
+        ],
+        { item, role: 'startFrame' },
+        true,
+      ),
+    ).toEqual([
+      { item: other, role: 'endFrame' },
+      { item, role: 'startFrame' },
+    ]);
+
+    expect(
+      replaceStudioContentReference(
+        [
+          { item: other, role: 'startFrame' },
+          { item, role: 'reference' },
+        ],
+        { item, role: 'startFrame' },
+        false,
+      ),
+    ).toEqual([{ item, role: 'startFrame' }]);
   });
 
   it('skips assets that are still generating or have no preview', () => {

@@ -125,6 +125,7 @@ export default function StudioGenerateCard({
   assetActions,
   isSelected = false,
   job,
+  isUseAsReferenceEnabled,
   onReprompt,
   onSelect,
   onUseAsReference,
@@ -213,6 +214,7 @@ export default function StudioGenerateCard({
   function renderUseAsReferenceAction(className: string): ReactElement | null {
     if (
       !onUseAsReference ||
+      isUseAsReferenceEnabled === false ||
       mediaState !== 'ready' ||
       (job.type !== 'image' &&
         job.type !== 'image-edit' &&

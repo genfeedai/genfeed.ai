@@ -69,6 +69,7 @@ export default function StudioGenerateResults({
   assetActions,
   isLoading,
   jobs,
+  isUseAsReferenceEnabled,
   onReprompt,
   onSelect,
   onUseAsReference,
@@ -94,6 +95,7 @@ export default function StudioGenerateResults({
         isSelected={selectedJobId === job.id}
         job={job}
         key={job.id}
+        isUseAsReferenceEnabled={isUseAsReferenceEnabled?.(job)}
         onReprompt={onReprompt}
         onSelect={onSelect}
         onUseAsReference={onUseAsReference}

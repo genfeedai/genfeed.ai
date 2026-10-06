@@ -91,6 +91,64 @@ export function studioReferenceRoleForJob(
   return null;
 }
 
+/**
+ * Whether the open composer can accept this gallery asset. Model limits that
+ * reject a start frame or a video reference hide the action the same way an
+ * incompatible composer type does.
+ */
+export function canUseStudioJobAsReference(
+  job: Pick<StudioGenerateJob, 'type'>,
+  composerType: StudioGenerateType,
+  constraints: {
+    isStartFrameSupported: boolean;
+    isVideoReferenceSupported: boolean;
+  },
+): boolean {
+  const role = studioReferenceRoleForJob(job, composerType);
+  if (!role) {
+    return false;
+  }
+  if (role === 'videoReference' && !constraints.isVideoReferenceSupported) {
+    return false;
+  }
+  if (role === 'startFrame' && !constraints.isStartFrameSupported) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Attach `next`, or replace the stored role when the same asset is already
+ * attached. A start or end frame still occupies the single slot for that role.
+ */
+export function replaceStudioContentReference<
+  T extends { item: { id: string }; role: StudioGenerateReferenceRole },
+>(current: T[], next: T, supportsInterpolation: boolean): T[] {
+  const existing = current.find(
+    (reference) => reference.item.id === next.item.id,
+  );
+  if (existing?.role === next.role) {
+    return current;
+  }
+
+  const withoutItem = current.filter(
+    (reference) => reference.item.id !== next.item.id,
+  );
+  if (next.role === 'endFrame' || next.role === 'startFrame') {
+    return [
+      ...withoutItem.filter(
+        (reference) =>
+          reference.role !== next.role &&
+          (supportsInterpolation ||
+            (reference.role !== 'startFrame' && reference.role !== 'endFrame')),
+      ),
+      next,
+    ];
+  }
+
+  return [...withoutItem, next];
+}
+
 /** Gallery row the reference picker can show. Posts stay a separate source. */
 export function studioJobToContentMention(
   job: StudioGenerateJob,

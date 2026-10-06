@@ -76,8 +76,10 @@ import {
 } from '@pages/studio/generate/utils/generation-payloads';
 import { prepareCrunGenerationIntent } from '@pages/studio/generate/utils/prepare-crun-generation-intent';
 import {
+  canUseStudioJobAsReference,
   filterStudioGenerateJobs,
   mergeStudioGenerateJobs,
+  replaceStudioContentReference,
   resolveStudioAssetUrl,
   studioJobToContentMention,
   studioReferenceRoleForJob,
@@ -1139,7 +1141,10 @@ export default function StudioGenerateWorkspace(): ReactElement {
           ).length;
         if (
           count >= editSourceLimit &&
-          !contentReferences.some((reference) => reference.item.id === item.id)
+          !contentReferences.some(
+            (reference) =>
+              reference.item.id === item.id && reference.role === 'editSource',
+          )
         ) {
           notificationsService.warning(
             `Image editing accepts at most ${editSourceLimit} source images.`,
@@ -1184,7 +1189,11 @@ export default function StudioGenerateWorkspace(): ReactElement {
       }
       if (
         role === 'videoReference' &&
-        !contentReferences.some((reference) => reference.item.id === item.id)
+        !contentReferences.some(
+          (reference) =>
+            reference.item.id === item.id &&
+            reference.role === 'videoReference',
+        )
       ) {
         const selectedVideoReferences =
           contentReferences.filter(
@@ -1205,20 +1214,11 @@ export default function StudioGenerateWorkspace(): ReactElement {
         }
       }
       setContentReferences((current) =>
-        current.some((reference) => reference.item.id === item.id)
-          ? current
-          : role === 'endFrame' || role === 'startFrame'
-            ? [
-                ...current.filter(
-                  (reference) =>
-                    reference.role !== role &&
-                    (supportsInterpolation ||
-                      (reference.role !== 'startFrame' &&
-                        reference.role !== 'endFrame')),
-                ),
-                { item, role },
-              ]
-            : [...current, { item, role }],
+        replaceStudioContentReference(
+          current,
+          { item, role },
+          supportsInterpolation,
+        ),
       );
       if (
         role === 'videoReference' &&
@@ -1255,6 +1255,25 @@ export default function StudioGenerateWorkspace(): ReactElement {
     [attachContentReference, contentLibraryRole],
   );
 
+  const referenceModelConstraints = useMemo(() => {
+    const videoControls = models.find(
+      (model) => model.key === settings.modelKey && model.provider === 'crun',
+    )?.inputControls;
+    const isCrunVideo = videoControls?.mediaKind === 'video';
+    return {
+      isStartFrameSupported:
+        !isCrunVideo || videoControls?.videoRules?.referenceMode !== 'none',
+      isVideoReferenceSupported:
+        !isCrunVideo && hasVideoReferences(settings.modelKey),
+    };
+  }, [models, settings.modelKey]);
+
+  const canUseGeneratedReference = useCallback(
+    (job: StudioGenerateJob) =>
+      canUseStudioJobAsReference(job, type, referenceModelConstraints),
+    [referenceModelConstraints, type],
+  );
+
   const handleUseGeneratedReference = useCallback(
     (job: StudioGenerateJob) => {
       const item = studioJobToContentMention(job);
@@ -1263,22 +1282,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         return;
       }
       const role = studioReferenceRoleForJob(job, type);
-      if (!role) {
-        notificationsService.warning(translate('referenceUnsupported'));
-        return;
-      }
-      const videoControls = models.find(
-        (model) => model.key === settings.modelKey && model.provider === 'crun',
-      )?.inputControls;
-      const isVideoReferenceUnsupported =
-        role === 'videoReference' &&
-        (videoControls?.mediaKind === 'video' ||
-          !hasVideoReferences(settings.modelKey));
-      const isStartFrameUnsupported =
-        role === 'startFrame' &&
-        videoControls?.mediaKind === 'video' &&
-        videoControls.videoRules?.referenceMode === 'none';
-      if (isVideoReferenceUnsupported || isStartFrameUnsupported) {
+      if (!role || !canUseGeneratedReference(job)) {
         notificationsService.warning(translate('referenceUnsupported'));
         return;
       }
@@ -1286,9 +1290,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
     },
     [
       attachContentReference,
-      models,
+      canUseGeneratedReference,
       notificationsService,
-      settings.modelKey,
       translate,
       type,
     ],
@@ -2167,6 +2170,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
                   }}
                   isLoading={isLoadingGallery}
                   jobs={visibleJobs}
+                  isUseAsReferenceEnabled={canUseGeneratedReference}
                   onReprompt={handleVaryRecipe}
                   onSelect={handleSelectJob}
                   onUseAsReference={handleUseGeneratedReference}
