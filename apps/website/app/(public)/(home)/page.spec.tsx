@@ -17,7 +17,7 @@ describe('homepage metadata', () => {
 
     expect(result.title).toBe('Genfeed.ai | Ask once. Show up everywhere.');
     expect(result.description).toBe(
-      'Genfeed is a content agent that makes on-brand videos, images and posts to grow your audience and your revenue. Works in Claude, ChatGPT, Codex and Cursor.',
+      'Genfeed is an open-source content agent. Create on-brand videos, images and posts, then review and publish to your connected channels.',
     );
     expect(result.openGraph?.description).toBe(result.description);
     expect(result.twitter?.description).toBe(result.description);

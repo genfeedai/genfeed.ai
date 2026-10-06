@@ -45,6 +45,26 @@ describe('platform installation contracts', () => {
     },
   );
 
+  it.each(['claude', 'claude-cowork'] as const)(
+    'sends %s to Customize rather than the retired settings page',
+    (slug) => {
+      const installation = getAgentClient(slug).installation;
+      expect(installation.destination).toBe(
+        'https://claude.ai/customize/connectors',
+      );
+      expect(installation.instruction).toContain('Customize → Connectors');
+    },
+  );
+
+  it('explains ChatGPT write-access requirements', () => {
+    expect(getAgentClient('chatgpt').installation.instruction).toContain(
+      'Full read/write MCP access requires Business or Enterprise/Edu',
+    );
+    expect(getAgentClient('chatgpt').installation.instruction).toContain(
+      'Pro supports read/fetch',
+    );
+  });
+
   it('does not invent a ChatGPT directory listing', () => {
     expect(getAgentClient('chatgpt').installation.instruction).toContain(
       'not yet listed',

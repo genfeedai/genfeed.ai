@@ -29,9 +29,9 @@ export default function HomeAsks(): React.ReactElement {
               Ask for the job, not the file.
             </Heading>
             <Text className="max-w-2xl text-base leading-7 gen-text-muted">
-              Say what you want in a sentence. The agent makes it, keeps it on
-              brand, and gets it out, with your sign-off until you hand it the
-              keys.
+              Start with a brief or a reference. Genfeed creates drafts using
+              your brand context. Review them, then publish to your connected
+              channels.
             </Text>
           </div>
 

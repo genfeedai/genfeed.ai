@@ -348,7 +348,7 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
   },
   {
     about:
-      'Gemini is Google’s AI model family, available in the Gemini app and Gemini CLI. Gemini clients that support remote MCP servers connect to Genfeed with the shared URL.',
+      'Gemini CLI is Google’s terminal agent. Its Genfeed extension adds the playbook and hosted MCP connector; these instructions do not connect the Gemini web app.',
     description:
       'Extend Gemini CLI with Genfeed. Install the extension to bring brand context, media generation, and content workflows into your terminal.',
     extraFaq: [
@@ -358,7 +358,7 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
         question: 'Can Gemini use the same server as Claude?',
       },
     ],
-    name: 'Gemini',
+    name: 'Gemini CLI',
     slug: 'gemini',
   },
   {
@@ -442,6 +442,40 @@ export const agentClients: readonly AgentClient[] = AGENT_CLIENT_COPY.map(
 const clientsBySlug = new Map(
   agentClients.map((client) => [client.slug, client]),
 );
+
+export const AGENT_CLIENT_FAMILIES = [
+  {
+    name: 'Claude',
+    description: 'Chat, Cowork or Code',
+    slugs: ['claude', 'claude-cowork', 'claude-code'],
+  },
+  {
+    name: 'OpenAI',
+    description: 'ChatGPT or Codex',
+    slugs: ['chatgpt', 'codex'],
+  },
+  { name: 'Cursor', description: 'Connect in your editor', slugs: ['cursor'] },
+  {
+    name: 'Gemini CLI',
+    description: 'Install the CLI extension',
+    slugs: ['gemini'],
+  },
+  {
+    name: 'OpenClaw',
+    description: 'Playbook and MCP setup',
+    slugs: ['openclaw'],
+  },
+  {
+    name: 'Grok',
+    description: 'Chat or Grok Bot',
+    slugs: ['grok', 'grok-bot'],
+  },
+  { name: 'Meta Muse', description: 'Connect from a chat', slugs: ['muse'] },
+] as const satisfies readonly {
+  name: string;
+  description: string;
+  slugs: readonly AgentClientSlug[];
+}[];
 
 export function getAgentClient(slug: AgentClientSlug): AgentClient {
   const client = clientsBySlug.get(slug);

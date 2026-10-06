@@ -1,6 +1,9 @@
 # Genfeed.ai
 
-**The open-source AI OS for content creation.**
+**The open-source content agent.**
+
+Create on-brand videos, images and posts, then review and publish to your
+connected channels. Work in Genfeed or connect the AI agent you already use.
 
 [![CI](https://github.com/genfeedai/genfeed.ai/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/genfeedai/genfeed.ai/actions/workflows/ci.yml?query=branch%3Amaster)
 [![Release](https://img.shields.io/github/v/release/genfeedai/genfeed.ai?label=release)](https://github.com/genfeedai/genfeed.ai/releases/latest)
@@ -44,7 +47,7 @@ Genfeed is driven by agents, so installing it is a task you can hand to one.
 Paste this into Claude Code, Codex, Cursor, or any agent with shell access:
 
 ````text
-Install Genfeed — the open-source AI content OS — on this machine, then connect
+Install Genfeed — the open-source content agent — on this machine, then connect
 it to yourself over MCP.
 
 1. Check Docker Engine with Compose v2 is available.

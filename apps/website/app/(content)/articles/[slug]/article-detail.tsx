@@ -10,6 +10,7 @@ import {
 } from '@genfeedai/helpers/ui/icons/brands';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
+import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { Article } from '@models/content/article.model';
 import { EnvironmentService } from '@services/core/environment.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
@@ -73,9 +74,6 @@ interface AboutSocialLink {
   url?: string;
 }
 
-const GENFEED_DESCRIPTION =
-  'The content agent that makes on-brand videos, images and posts to grow your audience and your revenue.';
-
 const GENFEED_SOCIAL_LINKS: readonly AboutSocialLink[] = [
   {
     icon: TwitterIcon,
@@ -113,7 +111,7 @@ export function ArticleAbout({
   const description = brand
     ? brand.description?.trim() ||
       `Explore more articles and updates published by ${label}.`
-    : GENFEED_DESCRIPTION;
+    : metadata.description;
   const logoUrl = brand ? brand.logoUrl : cdnAsset('/assets/branding/logo.jpg');
   const href = brand?.slug ? `/u/${brand.slug}` : '/about';
   const linkLabel = brand?.slug ? `More from ${label}` : 'About Genfeed';

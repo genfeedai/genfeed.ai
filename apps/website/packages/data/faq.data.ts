@@ -1,4 +1,5 @@
 import { PLAN_COPY } from '@genfeedai/pricing';
+import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { ReactNode } from 'react';
 
 export interface FAQItem {
@@ -18,8 +19,7 @@ export interface FAQCategory {
  */
 const FAQ_ITEMS_GENERAL: FAQItem[] = [
   {
-    answer:
-      'Genfeed is a content agent for creators, founders and brands. Ask for videos, images, voice, articles or posts and it makes them on brand, gets them out across your channels, and learns what grows your audience and your revenue.',
+    answer: metadata.description,
     question: 'What is Genfeed?',
   },
   {
@@ -40,7 +40,7 @@ export const FAQ_ITEMS_CORE: FAQItem[] = [
   ...FAQ_ITEMS_GENERAL,
   {
     answer:
-      'Genfeed tracks revenue, not just likes. Create ads in minutes, publish everywhere with one click, and see which posts actually drive sales. No other platform connects content performance to revenue.',
+      'Genfeed brings brand context, content generation, review, publishing and analytics into one workspace. You can use the web app or connect your own agent to the same content and channels.',
     question: 'How is this different from other content tools?',
   },
   {
@@ -97,12 +97,12 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'You never pick a model. The Genfeed router sends every job to the best premium model for the format, brief, and budget, and it upgrades automatically as better models ship. You see the output and its credit price, not a model menu.',
+          'Genfeed supports image, video, text, voice and music models from multiple providers. Available models depend on the format, deployment and configured providers. You can choose a model in Studio or use automatic routing where supported.',
         question: 'Which AI models do you use?',
       },
       {
         answer:
-          'Most content generates in 1-5 minutes. Videos: 2-5 minutes. Images: 10-30 seconds. Voice: 30 seconds. Articles: 1-2 minutes. Generation times may vary based on platform load.',
+          'Generation time depends on the model, output length and provider queue. Genfeed shows job progress so you can return to the result when it is ready.',
         question: 'How long does it take to generate content?',
       },
       {
@@ -112,7 +112,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Genfeed supports multi-platform publishing to YouTube, TikTok, Instagram, X (Twitter), LinkedIn, and more. You can schedule and automate posts across all platforms.',
+          'Genfeed supports multi-platform publishing to YouTube, TikTok, Instagram, X (Twitter), LinkedIn, and more. Connect your accounts in Genfeed, then review and schedule posts for supported channels.',
         question: 'What platforms can I publish to?',
       },
     ],
@@ -148,7 +148,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Yes. All content is stored securely with encryption. You own 100% of the rights to content you generate. We never use your content for training or share it with third parties.',
+          'Your workspace controls access to your content. Cloud generation sends the inputs needed for the job to the selected model provider. Content rights and data handling depend on the provider and your deployment; review our Privacy Policy and Terms for details.',
         question: 'Is my content secure?',
       },
       {

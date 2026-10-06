@@ -2,20 +2,20 @@ import type { AgentInstallation } from '@genfeedai/contracts/interfaces/website/
 
 const repository = 'https://github.com/genfeedai/agent';
 const connector =
-  'Add Genfeed as a custom remote connector with the Claude MCP URL below, then sign in to Genfeed in your browser. Use Claude for brands, drafts, scheduling and analytics; create media in Genfeed Studio. Genfeed is not yet listed in the public Claude directory.';
+  'In Claude, open Customize → Connectors → + Add → Add custom connector. Name it Genfeed, paste the URL below and approve browser sign-in. If Add is unavailable, ask your workspace owner. Create media in Genfeed Studio.';
 
 export const agentInstallations = {
   chatgpt: {
     destination: 'https://chatgpt.com/plugins',
-    destinationLabel: 'Open ChatGPT plugins',
+    destinationLabel: 'Open ChatGPT',
     instruction:
-      'In ChatGPT on the web, enable Developer mode where your account or workspace allows it. Open Apps, create a custom MCP app with the URL below, and choose OAuth. Genfeed is not yet listed in the public directory.',
+      'In ChatGPT on the web, open Settings → Apps and enable Developer mode where your account or workspace allows it. Choose Create, name the app Genfeed, paste the connector URL below and select OAuth. Full read/write MCP access requires Business or Enterprise/Edu and workspace permission; Pro supports read/fetch. If Create is unavailable, ask your workspace admin. Genfeed is not yet listed in the public directory.',
     label: 'Connect to ChatGPT',
     method: 'Custom ChatGPT app',
   },
   claude: {
-    destination: 'https://claude.ai/settings/connectors',
-    destinationLabel: 'Open Claude connectors',
+    destination: 'https://claude.ai/customize/connectors',
+    destinationLabel: 'Open Claude Customize',
     instruction: connector,
     label: 'Add to Claude',
     method: 'Claude connector',
@@ -28,10 +28,9 @@ export const agentInstallations = {
     method: 'Claude Code plugin',
   },
   'claude-cowork': {
-    destination: 'https://claude.ai/settings/connectors',
-    destinationLabel: 'Open Claude connectors',
-    instruction:
-      'Add the Genfeed custom connector in Claude, then enable it in Cowork. Use the Claude MCP URL below and complete browser sign-in. Create media in Genfeed Studio.',
+    destination: 'https://claude.ai/customize/connectors',
+    destinationLabel: 'Open Claude Customize',
+    instruction: `${connector} Then enable Genfeed in your Cowork task.`,
     label: 'Add to Cowork',
     method: 'Cowork connector',
   },

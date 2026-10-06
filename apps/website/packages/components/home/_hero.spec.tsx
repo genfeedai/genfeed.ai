@@ -72,7 +72,7 @@ function announcedCards(): HTMLElement[] {
 }
 
 describe('HomeHero', () => {
-  it('leads with generated output and preserves the CTA hierarchy', () => {
+  it('leads with generated output and one signup CTA', () => {
     render(<HomeHero />);
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
@@ -84,7 +84,7 @@ describe('HomeHero', () => {
     expect(heading.querySelector('br')).toBeInTheDocument();
     expect(
       screen.getByText(
-        /genfeed is a content agent that makes videos, images and posts to grow your audience and your revenue/i,
+        /genfeed is an open-source content agent\. create on-brand videos, images and posts, then review and publish to your connected channels/i,
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/— on brand —/)).not.toBeInTheDocument();
@@ -92,7 +92,7 @@ describe('HomeHero', () => {
       [...document.querySelectorAll('button, a')].map((link) =>
         link.textContent?.trim(),
       ),
-    ).toEqual(['Connect your agent', 'Start for $0']);
+    ).toEqual(['Start for $0']);
 
     const actions = screen.getByTestId('home-hero-actions');
     const carousel = screen.getByTestId('home-hero-output-carousel');
@@ -152,15 +152,14 @@ describe('HomeHero', () => {
     expect(screen.queryByText(/31% hook rate/i)).not.toBeInTheDocument();
   });
 
-  it('sends each CTA to its own destination', () => {
+  it('sends visitors straight to email signup', () => {
     render(<HomeHero />);
-
-    expect(
-      screen.getByRole('button', { name: /connect your agent/i }),
-    ).toHaveAttribute('aria-haspopup', 'dialog');
     expect(
       screen.getByRole('link', { name: /start for \$0/i }),
-    ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
+    ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up/magic-link');
+    expect(
+      screen.queryByRole('button', { name: /connect your agent/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('never offers a sales demo', () => {
@@ -169,27 +168,13 @@ describe('HomeHero', () => {
     expect(screen.queryByText(/demo/i)).not.toBeInTheDocument();
   });
 
-  it('tracks the agent CTA separately from the signup CTA', () => {
+  it('tracks the signup CTA', () => {
     const listener = vi.fn();
     window.addEventListener('genfeed:marketing:button-click', listener);
     render(<HomeHero />);
-
-    fireEvent.click(
-      screen.getByRole('button', { name: /connect your agent/i }),
-    );
     fireEvent.click(screen.getByRole('link', { name: /start for \$0/i }));
-
-    expect(listener).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        detail: {
-          trackingData: { action: 'connect_agent' },
-          trackingName: 'home_hero_click',
-        },
-      }),
-    );
-    expect(listener).toHaveBeenNthCalledWith(
-      2,
+    expect(listener).toHaveBeenCalledOnce();
+    expect(listener).toHaveBeenCalledWith(
       expect.objectContaining({
         detail: {
           trackingData: { action: 'start_signup' },
@@ -197,7 +182,6 @@ describe('HomeHero', () => {
         },
       }),
     );
-
     window.removeEventListener('genfeed:marketing:button-click', listener);
   });
 

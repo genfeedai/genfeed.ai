@@ -19,7 +19,9 @@ describe('AgentConnectDialog', () => {
         <AgentConnectDialog />
       </>,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Connect your agent' }));
+    const launcher = screen.getByRole('button', { name: 'Connect your agent' });
+    launcher.focus();
+    fireEvent.click(launcher);
     return screen.getByRole('dialog');
   }
 
@@ -31,7 +33,7 @@ describe('AgentConnectDialog', () => {
     expect(window.location.href).toBe(url);
     expect(
       within(dialog).getAllByRole('button', { name: /^Connect / }),
-    ).toHaveLength(11);
+    ).toHaveLength(7);
     expect(
       within(dialog).queryByRole('link', { name: /setup guide/i }),
     ).not.toBeInTheDocument();
@@ -40,8 +42,9 @@ describe('AgentConnectDialog', () => {
   it('shows the Codex install command and account approval in the same dialog', () => {
     const dialog = open();
     fireEvent.click(
-      within(dialog).getByRole('button', { name: 'Connect Codex' }),
+      within(dialog).getByRole('button', { name: 'Connect OpenAI' }),
     );
+    fireEvent.mouseDown(within(dialog).getByRole('tab', { name: 'Codex' }));
 
     expect(
       within(dialog).getByText('codex plugin marketplace add genfeedai/agent'),
@@ -50,13 +53,29 @@ describe('AgentConnectDialog', () => {
       within(dialog).getByRole('button', { name: 'Copy Codex plugin' }),
     ).toBeInTheDocument();
     expect(
+      within(dialog).queryByRole('button', {
+        name: 'Copy Skills-only alternative',
+      }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Skills-only alternative' }),
+    );
+    expect(
       within(dialog).getByRole('button', {
         name: 'Copy Skills-only alternative',
       }),
     ).toBeInTheDocument();
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Setup prompt' }),
+    );
     expect(
-      [...dialog.querySelectorAll('code')].map((code) => code.textContent),
-    ).toContain(getAgentClient('codex').setupPrompt);
+      within(dialog).getByRole('button', { name: 'Copy Setup prompt' }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      within(dialog).getByRole('button', {
+        name: '2. Approve and check the connection',
+      }),
+    );
     expect(
       within(dialog).getByText(/sign in or create your free Genfeed account/i),
     ).toBeInTheDocument();
@@ -69,6 +88,98 @@ describe('AgentConnectDialog', () => {
     expect(
       within(dialog).getByRole('button', { name: 'Connect Claude' }),
     ).toBeInTheDocument();
+  });
+
+  it('collapses alternative setup when switching apps', () => {
+    const dialog = open();
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Connect OpenAI' }),
+    );
+    fireEvent.mouseDown(within(dialog).getByRole('tab', { name: 'Codex' }));
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Skills-only alternative' }),
+    );
+    fireEvent.mouseDown(within(dialog).getByRole('tab', { name: 'ChatGPT' }));
+    expect(
+      within(dialog).queryByRole('button', { name: 'Copy Setup prompt' }),
+    ).not.toBeInTheDocument();
+    fireEvent.mouseDown(within(dialog).getByRole('tab', { name: 'Codex' }));
+    expect(
+      within(dialog).getByRole('button', { name: 'Skills-only alternative' }),
+    ).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('groups Claude variants and updates the connector and install path when switching apps', () => {
+    const dialog = open();
+    expect(
+      within(dialog).queryByRole('button', { name: 'Connect Claude Code' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole('button', { name: 'Connect Codex' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Connect Claude' }),
+    );
+    expect(within(dialog).getAllByRole('tab')).toHaveLength(3);
+    expect(
+      within(dialog).getByRole('link', { name: 'Open Claude Customize' }),
+    ).toHaveAttribute('href', 'https://claude.ai/customize/connectors');
+    fireEvent.mouseDown(
+      within(dialog).getByRole('tab', { name: 'Claude Cowork' }),
+    );
+    expect(
+      within(dialog).getByText(/Then enable Genfeed in your Cowork task/),
+    ).toBeInTheDocument();
+    fireEvent.mouseDown(
+      within(dialog).getByRole('tab', { name: 'Claude Code' }),
+    );
+    expect(
+      within(dialog).getByText(
+        '/plugin install genfeed --marketplace genfeedai/agent',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole('link', { name: 'Open Claude Customize' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).getByText('https://mcp.genfeed.ai/mcp/claude'),
+    ).toBeInTheDocument();
+  });
+
+  it('lets visitors collapse installation and reveal approval independently', () => {
+    const dialog = open();
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Connect Claude' }),
+    );
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: '1. Add Genfeed' }),
+    );
+    expect(
+      within(dialog).queryByRole('link', { name: 'Open Claude Customize' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).queryByText(
+        /sign in or create your free Genfeed account/i,
+      ),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      within(dialog).getByRole('button', {
+        name: '2. Approve and check the connection',
+      }),
+    );
+    expect(
+      within(dialog).getByText(/sign in or create your free Genfeed account/i),
+    ).toBeInTheDocument();
+  });
+
+  it('restores focus to the launcher when closed', async () => {
+    const dialog = open();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+    await vi.waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Connect your agent' }),
+      ).toHaveFocus(),
+    );
   });
 
   it('keeps browser-only clients free of local shell installation prompts', () => {
@@ -104,8 +215,16 @@ describe('AgentConnectDialog', () => {
       within(dialog).getByRole('button', { name: 'Connect Meta Muse' }),
     );
     expect(
-      [...dialog.querySelectorAll('code')].map((code) => code.textContent),
-    ).toContain(getAgentClient('muse').chatPrompt);
+      within(dialog).queryByRole('button', {
+        name: 'Copy Paste into Meta Muse',
+      }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Connection prompt' }),
+    );
+    expect(
+      within(dialog).getByRole('button', { name: 'Copy Paste into Meta Muse' }),
+    ).toBeInTheDocument();
     expect(
       within(dialog).queryByText(/scoped API key/i),
     ).not.toBeInTheDocument();
