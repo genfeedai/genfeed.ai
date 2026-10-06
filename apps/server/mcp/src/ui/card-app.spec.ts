@@ -105,7 +105,7 @@ it('renders post content as text and ignores messages from other windows', () =>
   message('ui/notifications/tool-result', payload, {} as Window);
   expect(document.querySelector('article')).toBeNull();
   message('ui/notifications/tool-result', payload);
-  expect(document.querySelector('h3')?.textContent).toContain('<img');
+  expect(document.querySelector('h2')?.textContent).toContain('<img');
   expect(document.querySelector('article img')).toBeNull();
   expect(document.querySelector('article script')).toBeNull();
 });
@@ -149,7 +149,7 @@ it('shows every generated caption in the existing post grid as safe text', () =>
   expect(document.querySelectorAll('article.post')).toHaveLength(2);
   expect(
     Array.from(
-      document.querySelectorAll('article.post h3'),
+      document.querySelectorAll('article.post h2'),
       (node) => node.textContent,
     ),
   ).toEqual(['Variation 1', 'Variation 2']);
@@ -196,8 +196,10 @@ it('presents completed images without tool headings or opaque metadata', async (
     url: `https://cdn.genfeed.ai/ingredients/images/${imageId}`,
   });
 
-  expect(document.querySelector('header')?.hidden).toBe(true);
-  expect(document.querySelector('.media-card h3')?.textContent).toBe('Image');
+  expect(document.querySelector('header')?.classList.contains('sr-only')).toBe(
+    true,
+  );
+  expect(document.querySelector('.media-card h2')?.textContent).toBe('Image');
   expect(document.querySelector('article')?.textContent).not.toContain(imageId);
   expect(document.querySelector('article time')).toBeNull();
   expect(document.querySelector('article .meta')).toBeNull();
@@ -215,7 +217,7 @@ it('keeps media descriptions available on demand and restores other layouts', as
     status: 'GENERATED',
     url: 'https://cdn.genfeed.ai/logo.jpg',
   });
-  expect(document.querySelector('h3')?.textContent).toBe('Genfeed logo');
+  expect(document.querySelector('h2')?.textContent).toBe('Genfeed logo');
   const details = document.querySelector<HTMLButtonElement>(
     'article button[aria-expanded]',
   );
@@ -396,7 +398,7 @@ it('renders the content calendar with gap days and draft counts', () => {
   expect(days).toHaveLength(2);
   expect(days[0]?.querySelector('.slot p')?.textContent).toBe('<b>Launch</b>');
   expect(days[0]?.querySelector('b')).toBeNull();
-  expect(days[1]?.classList.contains('gap')).toBe(true);
+  expect(days[1]?.textContent).toContain('Nothing scheduled');
   expect(days[1]?.textContent).toContain('Nothing scheduled');
   expect(document.getElementById('summary')?.textContent).toContain(
     '1 scheduled',
@@ -575,7 +577,7 @@ it('files calendar posts under the viewer-local day of their time', () => {
   const column = Array.from(document.querySelectorAll('section.day')).find(
     (day) => day.textContent?.includes('Late post'),
   );
-  expect(column?.querySelector('h3')?.textContent).toContain(label);
+  expect(column?.querySelector('h2')?.textContent).toContain(label);
   expect(column?.querySelector('.slot span')?.textContent).toContain(
     local.toLocaleString(undefined, { timeStyle: 'short' }),
   );
@@ -676,4 +678,40 @@ it('says when it stops polling a job that never finishes', async () => {
     'Still generating. Ask for the job status again to see the result.',
   );
   expect(document.querySelector('.bar.indeterminate')).toBeNull();
+});
+
+it('marks the viewer-local current calendar day with a shared badge', () => {
+  const date = new Date();
+  const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  message('ui/notifications/tool-result', {
+    structuredContent: {
+      genfeedCards: {
+        title: 'Calendar',
+        layout: 'calendar',
+        total: 0,
+        cards: [],
+        calendar: { days: [{ date: key, posts: [] }], draftsCount: 0 },
+      },
+    },
+  });
+  const today = document.querySelector('section[aria-current="date"]');
+  expect(today?.textContent).toContain('Today');
+  expect(today?.textContent).toContain('Nothing scheduled');
+  expect(today?.querySelector('h2')).not.toBeNull();
+});
+
+it('keeps long preview titles readable rather than truncating them', () => {
+  const label =
+    'A long generated title with enough words to wrap across narrow screens';
+  result('get_job_status', {
+    category: 'IMAGE',
+    status: 'GENERATED',
+    id: 'wrapped-title',
+    label,
+    url: 'https://cdn.genfeed.ai/qa.png',
+  });
+  const title = document.querySelector('.media-card h2');
+  expect(title?.textContent).toBe(label);
+  expect(title?.classList.contains('truncate')).toBe(false);
+  expect(document.querySelector('h1')?.closest('[hidden]')).toBeNull();
 });

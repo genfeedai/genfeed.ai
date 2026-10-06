@@ -77,7 +77,6 @@ export const designTokens: DesignTokens = {
   typography: typographyTokens,
 };
 
-export { staticSurfaceFontCss } from './static/font';
 export {
   staticSurfaceClassNames,
   staticSurfaceCss,

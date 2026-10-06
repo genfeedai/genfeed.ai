@@ -9,6 +9,17 @@ vi.mock('next/image', () => ({
 }));
 
 describe('Card', () => {
+  it('can wrap a full title at the heading level required by its surface', () => {
+    const label = 'A long generated title that must remain readable on mobile';
+    const { rerender } = render(<Card label={label} />);
+    expect(screen.getByRole('heading', { level: 3, name: label })).toHaveClass(
+      'truncate',
+    );
+    rerender(<Card label={label} labelAs="h2" isLabelWrapped />);
+    const heading = screen.getByRole('heading', { level: 2, name: label });
+    expect(heading).not.toHaveClass('truncate');
+    expect(heading).toHaveClass('break-words');
+  });
   it('renders compact surface styling by default', () => {
     const { container } = render(<Card label="Surface">Body</Card>);
     expect(container.firstChild).toHaveClass('shadow-border');

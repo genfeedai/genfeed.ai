@@ -32,6 +32,8 @@ const Card = memo(function Card({
   iconClassName,
   id,
   label,
+  labelAs: LabelTag = 'h3',
+  isLabelWrapped = false,
   description,
   isDisabled,
   isLoading = false,
@@ -96,9 +98,14 @@ const Card = memo(function Card({
                 {(label || headerAction) && (
                   <div className="flex items-start justify-between gap-3">
                     {label ? (
-                      <h3 className="min-w-0 truncate text-sm font-semibold tracking-[-0.01em]">
+                      <LabelTag
+                        className={cn(
+                          'min-w-0 text-sm font-semibold tracking-[-0.01em]',
+                          isLabelWrapped ? 'break-words' : 'truncate',
+                        )}
+                      >
                         {label}
-                      </h3>
+                      </LabelTag>
                     ) : (
                       <span />
                     )}

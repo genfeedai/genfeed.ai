@@ -120,7 +120,9 @@ export default function VideoPlayer({
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isMetadataLoaded, setIsMetadataLoaded] = useState(false);
-  const [showLoader, setShowLoader] = useState(true);
+  const [showLoader, setShowLoader] = useState(
+    Boolean(src) && !mediaProps.poster,
+  );
 
   useEffect(() => {
     setIsPlaying(false);

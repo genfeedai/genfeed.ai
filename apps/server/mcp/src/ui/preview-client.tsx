@@ -347,6 +347,8 @@ function CardPreview({ item, bridge, openImage }: CardPreviewProps) {
       <Card
         data-testid="preview-card"
         label={title}
+        labelAs="h2"
+        isLabelWrapped
         bodyClassName="gap-3"
         headerAction={
           isPost && current.status ? (
@@ -380,12 +382,14 @@ function CardPreview({ item, bridge, openImage }: CardPreviewProps) {
             <Text size="xs" color="muted">
               {current.stage || 'Generating'}
             </Text>
-            <Progress
-              isIndeterminate={current.progress === undefined && !exhausted}
-              value={current.progress}
-              aria-label="Generation progress"
-              className={`bar ${current.progress === undefined && !exhausted ? 'indeterminate' : ''}`}
-            />
+            {(!exhausted || current.progress !== undefined) && (
+              <Progress
+                isIndeterminate={current.progress === undefined && !exhausted}
+                value={current.progress}
+                aria-label="Generation progress"
+                className={`bar ${current.progress === undefined && !exhausted ? 'indeterminate' : ''}`}
+              />
+            )}
             <Text as="p" size="sm" color="muted" className="notice">
               {exhausted
                 ? 'Still generating. Ask for the job status again to see the result.'
@@ -594,8 +598,11 @@ function Preview({ result, notice, bridge }: PreviewProps) {
     <>
       <div className="p-3 sm:p-4">
         <header
-          hidden={view?.layout === 'media'}
-          className="mb-3 flex items-baseline justify-between gap-3"
+          className={
+            view?.layout === 'media'
+              ? 'sr-only'
+              : 'mb-3 flex items-baseline justify-between gap-3'
+          }
         >
           <Heading as="h1" size="md" id="title">
             {view?.title || 'Genfeed content'}
@@ -650,13 +657,23 @@ function Preview({ result, notice, bridge }: PreviewProps) {
             ? days.map((day) => (
                 <section
                   key={day.date}
-                  className={`day ${day.posts.length ? '' : 'gap'} ${day.date === localDayKey(new Date()) ? 'today' : ''}`}
+                  className="day min-w-0"
+                  aria-current={
+                    day.date === localDayKey(new Date()) ? 'date' : undefined
+                  }
                   aria-label={parseDay(day.date).toLocaleDateString(undefined, {
                     dateStyle: 'full',
                   })}
                 >
                   <Card
+                    labelAs="h2"
+                    isLabelWrapped
                     bodyClassName="min-h-24 gap-2"
+                    headerAction={
+                      day.date === localDayKey(new Date()) ? (
+                        <Badge variant="outline">Today</Badge>
+                      ) : undefined
+                    }
                     label={parseDay(day.date).toLocaleDateString(undefined, {
                       weekday: 'short',
                       day: 'numeric',
