@@ -469,13 +469,15 @@ export class AgentCompletionCardBuilderService {
       );
     }
 
-    const latestReviewTool = params.toolCalls.findLast((toolCall) =>
-      [
-        'list_review_queue',
-        'batch_approve_reject',
-        'get_approval_summary',
-      ].includes(toolCall.toolName),
-    );
+    const latestReviewTool = [...params.toolCalls]
+      .reverse()
+      .find((toolCall) =>
+        [
+          'list_review_queue',
+          'batch_approve_reject',
+          'get_approval_summary',
+        ].includes(toolCall.toolName),
+      );
     const reviewQueue =
       latestReviewTool?.status === 'completed'
         ? latestReviewTool.reviewQueue

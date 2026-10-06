@@ -102,7 +102,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     threadId?: string;
     toolParams: Record<string, unknown>;
     toolNames?: CuratedActionName[];
-    toolName?: 'start_outreach_sequence' | 'pause_outreach_sequence';
+    toolName?: CuratedActionName;
   }): Promise<{
     messages: OpenRouterMessage[];
     state: AgentToolRoundState;
@@ -161,7 +161,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
         details: 'x'.repeat(1000),
       },
     });
-    const { state } = await executeRound({
+    const { state } = await executeCampaignRound({
       message: "Show me what's waiting for review",
       toolName: 'list_review_queue',
       toolParams: {},
