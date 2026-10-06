@@ -1539,9 +1539,10 @@ test('npm-source-noop revalidates assets without rebuilding, redeploying, or pub
   assert.match(publishCommunity, /recovery_kind != 'npm-source-noop'/);
 
   assert.match(verifyAssets, /ref: \$\{\{ github\.sha \}\}/);
+  assert.match(verifyAssets, /persist-credentials: false/);
   assert.match(verifyAssets, /git rev-parse HEAD/);
   assert.match(verifyAssets, /node scripts\/ci\/recovered-release-assets\.mjs/);
-  assert.match(verifyAssets, /contents: read/);
+  assert.match(verifyAssets, /^ {6}contents: write$/m);
   assert.match(
     validate,
     /if \[ -z "\$\{RECOVERY_RUN_ID\}" \]; then[\s\S]*?echo "image_digest="[\s\S]*?exit 0/,

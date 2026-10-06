@@ -619,7 +619,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: read
+      # Unpublished draft reads need contents:write. GitHub returns a draft
+      # only to push-access tokens. The verifier remains GET, download, and
+      # anonymous image inspect only, with no package writes.
+      contents: write
     outputs:
       archive_asset_digest: ${{ steps.assets.outputs.archive_asset_digest }}
       archive_asset_id: ${{ steps.assets.outputs.archive_asset_id }}
