@@ -34,7 +34,7 @@ describe('app next.config', () => {
   ])('limits prerendered route shells for $name', async (mode) => {
     // Hosted fallback shells leaked opaque %%drp:...%% values into useParams,
     // navigation hrefs and brand lookups after #6229. Web builds must resolve
-    // tenant params at request time; desktop still needs its offline shells.
+    // tenant params at request time; preserve the packaged desktop behavior.
     vi.stubEnv('GENFEED_DESKTOP_BUNDLE', mode.bundle);
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', mode.bundle);
     vi.stubEnv('GENFEED_CLOUD', mode.cloud);

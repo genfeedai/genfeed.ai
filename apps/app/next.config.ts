@@ -489,8 +489,8 @@ config.generateBuildId = async () => {
 
 // Hosted fallback shells leaked opaque %%drp:...%% tenant params into links
 // and API lookups (#6303). Resolve web routes per request until the hosted
-// prerender path has production navigation coverage. The packaged desktop
-// build still requires its offline static shells.
+// prerender path has production navigation coverage. Preserve the existing
+// packaged desktop rendering configuration during this hosted recovery.
 config.cacheComponents = IS_DESKTOP_BUNDLE;
 config.partialPrefetching = IS_DESKTOP_BUNDLE;
 

@@ -83,7 +83,7 @@ test('list to detail navigation preserves resolved record parameters', async ({
 }) => {
   const placeholderRequests = trackPlaceholderRequests(adminPage);
   await adminPage.route(
-    (url) => url.pathname.endsWith('/analytics/brands'),
+    (url) => url.pathname === '/v1/analytics/brands',
     async (route) => {
       await route.fulfill({
         json: {
@@ -190,8 +190,7 @@ test('brand switch navigation preserves the destination brand parameters', async
   await expect(trigger).toBeVisible();
   await trigger.click();
   const choice = authenticatedPage.getByRole('option', {
-    name: 'Brand 2',
-    exact: true,
+    name: /\bBrand 2$/,
   });
   await expect(choice).toBeVisible();
   await expectResolvedLinks(authenticatedPage);
