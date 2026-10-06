@@ -6,6 +6,7 @@ import {
   PageScope,
   WebSocketEventStatus,
 } from '@genfeedai/contracts';
+import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import type { IFolder, IIngredient } from '@genfeedai/contracts/interfaces';
 import { useIngredientsActions } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-actions';
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -414,6 +415,11 @@ describe('useIngredientsActions', () => {
   });
 
   it('bulk deletes the selected ingredients after confirmation', async () => {
+    const refreshEvents: Event[] = [];
+    const recordRefresh = (event: Event) => {
+      refreshEvents.push(event);
+    };
+    window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, recordRefresh);
     const { result } = renderHook(() => useIngredientsActions(baseProps));
 
     act(() => {
@@ -443,6 +449,8 @@ describe('useIngredientsActions', () => {
     });
     expect(mockNotificationsService.success).toHaveBeenCalledWith('Deleted 2');
     expect(result.current.selectedIngredientIds).toEqual([]);
+    expect(refreshEvents).toHaveLength(1);
+    window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, recordRefresh);
   });
 
   it('reports partial bulk-delete failures', async () => {
@@ -836,6 +844,23 @@ describe('useIngredientsActions', () => {
       ingredient,
     );
     expect(mockFindAll).toHaveBeenCalledWith(true);
+  });
+
+  it('asks the sidebar to reload its counts after a list refresh', async () => {
+    const refreshEvents: Event[] = [];
+    const recordRefresh = (event: Event) => {
+      refreshEvents.push(event);
+    };
+    window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, recordRefresh);
+    const { result } = renderHook(() => useIngredientsActions(baseProps));
+
+    await act(async () => {
+      await result.current.handleRefresh(true);
+    });
+
+    expect(mockFindAll).toHaveBeenCalledWith(true);
+    expect(refreshEvents).toHaveLength(1);
+    window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, recordRefresh);
   });
 
   it('reposts a rebuilt image generation payload on reprompt', async () => {

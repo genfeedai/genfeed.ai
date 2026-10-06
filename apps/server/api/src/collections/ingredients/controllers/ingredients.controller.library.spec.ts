@@ -447,6 +447,23 @@ describe('IngredientsController — Library axes', () => {
       expect(
         andBranches(aggregate).some((branch) => 'isDeleted' in branch),
       ).toBe(false);
+      expect(findBranchWith(aggregate, 'status')).toBeUndefined();
+    });
+
+    it('keeps an explicit status filter on the Trash place', async () => {
+      await controller.findAll(
+        mockRequest,
+        {
+          isDeleted: true,
+          status: [IngredientStatus.FAILED],
+        } as IngredientsQueryDto,
+        mockUser,
+      );
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(findBranchWith(aggregate, 'status')).toEqual({
+        status: { in: [IngredientStatus.FAILED] },
+      });
     });
 
     it('narrows to starred assets for the Starred place', async () => {

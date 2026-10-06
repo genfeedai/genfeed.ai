@@ -13,6 +13,7 @@ import {
   PageScope,
   WebSocketEventStatus,
 } from '@genfeedai/contracts';
+import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import type {
   IFilters,
   IFolder,
@@ -39,6 +40,14 @@ import VideoUpscaleConfirmControls, {
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { createElement, useCallback, useEffect, useRef, useState } from 'react';
+
+function broadcastLibraryAssetsChanged(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
+}
 
 interface UseIngredientsActionsProps {
   type: string;
@@ -131,6 +140,7 @@ export function useIngredientsActions({
         logger.info(`${url} success`);
         notificationsService.success('Ingredient deleted successfully');
         findAllIngredientsByCategory(true);
+        broadcastLibraryAssetsChanged();
       } catch (error) {
         logger.error(`${url} failed`, error);
         notificationsService.error('Failed to delete ingredient');
@@ -352,6 +362,7 @@ export function useIngredientsActions({
 
         setSelectedIngredientIds([]);
         findAllIngredientsByCategory(true);
+        broadcastLibraryAssetsChanged();
       }
 
       if (data.failed && data.failed.length > 0) {
@@ -685,6 +696,7 @@ export function useIngredientsActions({
   const handleRefresh = useCallback(
     async (isRefreshing?: boolean) => {
       await findAllIngredientsByCategory(Boolean(isRefreshing));
+      broadcastLibraryAssetsChanged();
     },
     [findAllIngredientsByCategory],
   );

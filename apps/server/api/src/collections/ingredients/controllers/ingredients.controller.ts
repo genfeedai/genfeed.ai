@@ -165,7 +165,11 @@ export class IngredientsController {
           categoryFilter,
           // A selected shelf owns the status axis outright.
           LibraryShelfUtil.buildShelfFilter(query.shelf),
-          LibraryShelfUtil.buildStatusFilter(query.status, query.shelf),
+          LibraryShelfUtil.buildStatusFilter(
+            query.status,
+            query.shelf,
+            query.isDeleted === true,
+          ),
           LibraryShelfUtil.buildPlaceFilter(query.isFavorite),
           IngredientFilterUtil.buildFolderFilter(query.folderId?.toString()),
           IngredientFilterUtil.buildParentFilter(query.parentId?.toString()),

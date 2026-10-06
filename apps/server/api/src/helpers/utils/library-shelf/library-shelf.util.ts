@@ -118,11 +118,13 @@ export const LibraryShelfUtil = {
    * A selected shelf owns the status axis outright — otherwise the Archived
    * shelf would be ANDed with a default list that excludes archived rows and
    * always return nothing. With no shelf, an explicit status list wins and the
-   * fallback is `LIBRARY_DEFAULT_STATUSES`.
+   * fallback is `LIBRARY_DEFAULT_STATUSES`. `isTrash` skips that fallback:
+   * Trash is every soft-deleted row, including failed, rejected, and archived.
    */
   buildStatusFilter(
     status?: Array<IngredientStatus | string>,
     shelf?: unknown,
+    isTrash = false,
   ): Record<string, unknown> {
     if (parseLibraryShelf(shelf)) {
       return {};
@@ -131,6 +133,10 @@ export const LibraryShelfUtil = {
     const explicit = (status ?? [])
       .map((value) => CategoryPrismaUtil.toIngredientStatus(value))
       .filter((value): value is NonNullable<typeof value> => Boolean(value));
+
+    if (isTrash && explicit.length === 0) {
+      return {};
+    }
 
     return {
       status: {
