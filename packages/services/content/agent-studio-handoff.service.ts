@@ -1,4 +1,5 @@
 import type { AgentStudioHandoffPayload } from '@genfeedai/contracts/interfaces';
+import type { AgentStudioHandoffCreated } from '@genfeedai/contracts/interfaces/studio/agent-studio-handoff.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 
@@ -22,6 +23,16 @@ export class AgentStudioHandoffService extends HTTPBaseService {
       AgentStudioHandoffService,
       token,
     ) as AgentStudioHandoffService;
+  }
+
+  async create(
+    payload: AgentStudioHandoffPayload,
+  ): Promise<AgentStudioHandoffCreated> {
+    const response = await this.instance.post<AgentStudioHandoffCreated>(
+      '/agent/studio-handoff',
+      payload,
+    );
+    return response.data;
   }
 
   /**

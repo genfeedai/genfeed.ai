@@ -13,6 +13,7 @@ import { Inbox, MessageCircleReply, MessageSquare, Send } from 'lucide-react';
  * `isPrimary` keeps these destinations visible above the inbox panel body.
  * Org-level routes (`/:org/~/messages`) only ship Inbox. Items with
  * `hrefScope: 'brand'` stay off organization navigation or they 404.
+ * Inbox leaves hrefScope unset to preserve the current brand or org scope.
  *
  * Icons: one unique lucide glyph per row.
  */
@@ -20,7 +21,6 @@ export const MESSAGES_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
     href: APP_ROUTES.MESSAGES.ROOT,
-    hrefScope: 'organization',
     isExactMatch: true,
     isPrimary: true,
     label: 'Inbox',

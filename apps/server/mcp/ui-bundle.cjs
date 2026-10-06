@@ -8,6 +8,7 @@ const repoRoot = path.resolve(__dirname, '../../..');
 const entry = path.join(__dirname, 'src/ui/preview-client.tsx');
 const style = path.join(__dirname, 'src/ui/preview.css');
 const paths = {
+  '@preview-messages/ui': ['apps/app/messages/en/ui.json'],
   '@mcp/*': ['apps/server/mcp/src/*'],
   '@ui/*': ['packages/ui/src/*', 'packages/ui/src/components/*'],
   '@genfeedai/services/*': ['packages/services/*'],

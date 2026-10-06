@@ -92,7 +92,7 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
     placeholderData: EMPTY_TREND_CONTENT,
     queryFn: async () => {
       const service = await getTrendsService();
-      return service.getTrendContent({});
+      return service.getTrendContent({ brandId });
     },
     queryKey: trendContentQueryKey,
   });
@@ -134,7 +134,7 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
     placeholderData: [],
     queryFn: async () => {
       const service = await getTrendsService();
-      return service.getViralVideos({ limit: VIRAL_VIDEOS_LIMIT });
+      return service.getViralVideos({ brandId, limit: VIRAL_VIDEOS_LIMIT });
     },
     queryKey: viralVideosQueryKey,
   });

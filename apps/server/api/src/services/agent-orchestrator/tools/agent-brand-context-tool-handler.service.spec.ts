@@ -87,7 +87,7 @@ describe('AgentBrandContextToolHandler', () => {
         brandName: 'Acme',
         gaps: [{ editIn: 'voice', layer: 'voice' }],
         model: { creditsPerRound: 3, key: 'model-a' },
-        settingsPath: '/settings/agent-context',
+        settingsPath: '/settings/agent/context',
         systemPrompt: SNAPSHOT.systemPrompt,
       },
       success: true,

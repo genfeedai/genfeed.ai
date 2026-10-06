@@ -142,7 +142,7 @@ export default function AdsResearchPageClient() {
   const { pageItems, pagination } = useResearchPagination(allAds);
 
   const hasCredentials = credentialOptions.length > 0;
-  const credentialsHref = href(APP_ROUTES.SETTINGS.SOCIAL);
+  const credentialsHref = href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS);
   const showConnectStrip =
     source === 'my_accounts' &&
     !isLoading &&

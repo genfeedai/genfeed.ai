@@ -1426,6 +1426,13 @@ describe('StudioGenerateComposer', () => {
       expect(
         screen.getByRole('combobox', { name: 'Editing output size' }),
       ).toBeDisabled();
+      expect(estimateMocks.resolve).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          category: 'image-edit',
+          editSize: 'source',
+          referenceUrls: ['https://example.com/source.png'],
+        }),
+      );
       expect(screen.getByLabelText('Editing seed')).toHaveValue(0);
       expect(promptEditorProps.extraExtensions).toBeUndefined();
       expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();

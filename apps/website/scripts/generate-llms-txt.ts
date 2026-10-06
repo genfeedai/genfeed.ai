@@ -1,3 +1,4 @@
+import { metadata } from '@helpers/media/metadata/metadata.helper';
 /**
  * Build-time generator for llms.txt and llms-full.txt
  *
@@ -170,7 +171,7 @@ function buildLlmsIndex(): string {
   lines.push('# Genfeed.ai');
   lines.push('');
   lines.push(
-    `> Open-source content agent. Ask for videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start free, then ${PLAN_COPY.pro.name} from ${PLAN_COPY.pro.monthlyPrice} plus PAYG output.`,
+    `> ${metadata.description} Start free, then ${PLAN_COPY.pro.name} from ${PLAN_COPY.pro.monthlyPrice} plus PAYG output.`,
   );
   lines.push('');
 
@@ -277,28 +278,26 @@ function buildLlmsFull(): string {
   s.push('# Genfeed.ai');
   s.push('');
   s.push(
-    `> Open-source content agent. Ask for videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start free, then ${PLAN_COPY.pro.name} from ${PLAN_COPY.pro.monthlyPrice} plus PAYG output.`,
+    `> ${metadata.description} Start free, then ${PLAN_COPY.pro.name} from ${PLAN_COPY.pro.monthlyPrice} plus PAYG output.`,
   );
   s.push('');
 
   s.push('## Overview');
   s.push('');
-  s.push(
-    'Genfeed.ai is an open-source content agent for creators, agencies, marketers, and founders. Ask for professional videos, images, music, voice, and articles made with 50+ AI models; it gets them out across your channels and tracks what converts.',
-  );
+  s.push(metadata.description);
   s.push('');
   s.push('Key capabilities:');
   s.push(
     '- **AI Studio**: Generate content with models from Google, OpenAI, Black Forest Labs, Kling, and more',
   );
   s.push(
-    '- **Multi-platform publishing**: Publish to 19+ social platforms from one dashboard',
+    '- **Multi-platform publishing**: Review and publish to supported channels connected in Genfeed',
   );
   s.push(
-    '- **Workflow automation**: Visual no-code pipeline builder with 44+ node types',
+    '- **Workflow automation**: Build reusable content pipelines with the visual workflow editor',
   );
   s.push(
-    '- **Analytics**: Track performance and revenue attribution across all channels',
+    '- **Analytics**: Track results for connected channels with supported analytics',
   );
   s.push(
     '- **Generative Engine Optimization**: Make long-form content citation-ready for AI answer engines with direct answer blocks, source attribution, and Article/FAQ/HowTo structured data',

@@ -161,6 +161,8 @@ export class RouterController {
       aspectRatio: body.aspectRatio,
       category: body.category,
       duration: body.duration,
+      editSize: body.editSize,
+      referenceUrls: body.referenceUrls,
       height: body.height,
       isAudioEnabled: body.isAudioEnabled,
       modelKey: body.modelKey,

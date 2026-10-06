@@ -97,7 +97,7 @@ const PRODUCT_LINKS = [
     label: 'Publishing',
   },
   {
-    description: 'Track revenue, not vanity metrics',
+    description: 'Review views and engagement',
     group: 'Operate',
     href: '/analytics',
     icon: ChartColumn,

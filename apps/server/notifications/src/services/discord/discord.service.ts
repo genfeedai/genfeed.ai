@@ -429,6 +429,7 @@ export class DiscordService {
       await this.discordBotService.getModelsWebhook(),
       url,
       async (webhookClient) => {
+        const ruleOnlyChange = payload.changes.length === 0;
         const formatPrice = (value: number | null): string =>
           value === null
             ? 'none'
@@ -447,8 +448,10 @@ export class DiscordService {
             { inline: true, name: 'Provider', value: payload.provider },
             {
               inline: false,
-              name: 'Old → new price',
-              value: lines.join('\n').slice(0, 1024) || 'See admin',
+              name: ruleOnlyChange ? 'Billing rules' : 'Old → new price',
+              value: ruleOnlyChange
+                ? 'Provider billing selectors or defaults changed. Review the pending contract in admin.'
+                : lines.join('\n').slice(0, 1024),
             },
           ];
         if (payload.sourceUrl)
@@ -465,11 +468,14 @@ export class DiscordService {
           embeds: [
             {
               color: 0xffa500,
-              description:
-                'The approved rate keeps charging until a superadmin approves the new price.',
+              description: ruleOnlyChange
+                ? 'The approved pricing keeps charging until a superadmin approves the pending contract.'
+                : 'The approved rate keeps charging until a superadmin approves the new price.',
               fields,
               timestamp: new Date().toISOString(),
-              title: `Provider price changed: ${payload.modelKey}`,
+              title: ruleOnlyChange
+                ? `Provider billing rules changed: ${payload.modelKey}`
+                : `Provider price changed: ${payload.modelKey}`,
             },
           ],
           username: 'Genfeed.ai',

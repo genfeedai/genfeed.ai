@@ -72,7 +72,7 @@ describe('publishing account sections', () => {
       screen.getByRole('link', {
         name: /healthReconnectAction.*Studio account.*instagram/,
       }),
-    ).toHaveAttribute('href', '/acme/studio/settings/integrations');
+    ).toHaveAttribute('href', '/acme/studio/settings/connected-accounts');
   });
 
   it('falls back to account initials when credential identity is missing', () => {
@@ -114,7 +114,7 @@ describe('publishing account sections', () => {
     expect(screen.getByText('cadenceNeverPublished')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /cadenceReconnectAction/ }),
-    ).toHaveAttribute('href', '/acme/studio/settings/integrations');
+    ).toHaveAttribute('href', '/acme/studio/settings/connected-accounts');
   });
 
   it('keeps a long account name available through its title', () => {

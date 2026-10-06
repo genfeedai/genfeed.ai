@@ -9,7 +9,7 @@ const CTX = {
 };
 const running = {
   brandId: 'brand-1',
-  reviewUrl: 'https://app.example.com/org/brand/settings/kit',
+  reviewUrl: 'https://app.example.com/org/brand/settings/brand-kit',
   scanStatus: 'running' as const,
 };
 const completed = {

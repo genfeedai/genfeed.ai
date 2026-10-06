@@ -53,6 +53,7 @@ export interface LibraryCharacterOption {
 }
 
 export interface LibraryBrowserToolbarProps {
+  isRecoveryView?: boolean;
   categories: IngredientCategory[];
   /** Selected character ids (`?characters=`). */
   characters: string[];

@@ -37,6 +37,7 @@ export interface ITrendVideo {
   topic?: string;
   thumbnailUrl?: string;
   videoUrl?: string;
+  playUrl?: string;
   views?: number;
   viewCount?: number;
   likes?: number;
@@ -165,6 +166,7 @@ export interface ITrendPreferences {
 }
 
 export interface IViralVideoOptions {
+  brandId?: string;
   platform?: string;
   limit?: number;
   timeframe?: '24h' | '72h' | '7d';

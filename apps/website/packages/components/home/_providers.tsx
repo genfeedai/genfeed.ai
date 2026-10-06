@@ -33,7 +33,7 @@ export default function HomeProviders(): React.ReactElement {
             as="h2"
             className="text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
           >
-            Every model, one workspace.
+            Your models, one workspace.
           </Heading>
           <Text className="max-w-2xl text-base leading-7 gen-text-muted">
             {modelCount} models from {brands.length} providers — Higgsfield,

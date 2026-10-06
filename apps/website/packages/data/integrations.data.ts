@@ -399,7 +399,7 @@ export const integrations: Integration[] = [
       },
       {
         description:
-          'Track impressions, saves, clicks, and outbound traffic to measure ROI',
+          'Review available impressions, saves, clicks and outbound traffic',
         step: 5,
         title: 'Track Traffic & Saves',
       },
@@ -1154,9 +1154,9 @@ export const integrations: Integration[] = [
       },
       {
         description:
-          'Track subscriber growth, engagement, and revenue from your content',
+          'Review available publishing and engagement data for your content',
         step: 4,
-        title: 'Track Revenue & Growth',
+        title: 'Review Performance',
       },
     ],
   },

@@ -6,7 +6,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ModelPricingAttentionPanel from './model-pricing-attention-panel';
-import ModelPricingTable from './model-pricing-table';
+import ModelPricingDetails from './model-pricing-details';
 
 const fixture = vi.hoisted(() => ({
   approveRates: vi.fn(),
@@ -123,14 +123,15 @@ const orange = row({
   ],
 });
 
-function show() {
+function show(modelId = 'orange') {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   render(
     <QueryClientProvider client={client}>
       <ModelPricingAttentionPanel />
-      <ModelPricingTable />
+      <ModelPricingDetails modelId="red" />
+      <ModelPricingDetails modelId={modelId} />
     </QueryClientProvider>,
   );
 }
@@ -190,7 +191,7 @@ describe('model pricing attention (#6196)', () => {
     fixture.getReport.mockResolvedValue(
       report([{ ...orange, id: 'terms', pendingRateChanges: [] }]),
     );
-    show();
+    show('terms');
 
     expect(
       await screen.findByRole('button', { name: 'Approve new price' }),
@@ -221,5 +222,26 @@ describe('model pricing attention (#6196)', () => {
       ),
     ).toBeInTheDocument();
     await waitFor(() => expect(fixture.getReport).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe('pricing alert disclosure', () => {
+  it('shows five models until expanded and can collapse again', async () => {
+    fixture.getReport.mockResolvedValue(
+      report(
+        Array.from({ length: 8 }, (_, index) => ({
+          ...red,
+          id: `red-${index}`,
+          key: `missing/model-${index}`,
+        })),
+      ),
+    );
+    show();
+    const panel = await screen.findByTestId('model-pricing-attention-red');
+    expect(panel.querySelectorAll('li')).toHaveLength(5);
+    fireEvent.click(screen.getByRole('button', { name: 'Show 3 more models' }));
+    expect(panel.querySelectorAll('li')).toHaveLength(8);
+    fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
+    expect(panel.querySelectorAll('li')).toHaveLength(5);
   });
 });

@@ -2,6 +2,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { getPublicMcpUrl, getPublicWebsiteUrl } from '@mcp/mcp/setup-page';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
+import { ACCOUNT_AVATAR_ORIGINS } from '@mcp/ui/avatar-origins';
 import { MCP_APP_MIME_TYPE, MCP_CARD_RESOURCE_URI } from '@mcp/ui/card-data';
 import express from 'express';
 
@@ -103,6 +104,7 @@ describe('StreamableHttpService (real SDK integration)', () => {
               connectDomains: [],
               resourceDomains: [
                 'https://cdn.genfeed.ai',
+                ...ACCOUNT_AVATAR_ORIGINS,
                 'https://mcp.genfeed.ai',
               ],
             },

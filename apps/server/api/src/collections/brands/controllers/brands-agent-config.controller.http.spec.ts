@@ -123,7 +123,7 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
 
   /**
    * Mirrors `buildAgentConfigPayload()` in
-   * `packages/pages/brands/components/sidebar/useBrandDetailAgentProfileCard.ts`
+   * `packages/pages/brands/components/brand-kit/writing-voice/useBrandWritingProfile.ts`
    * — the inline field-level autosave on the brand agent profile card. It never
    * sends `enabledSkills`, and `buildVoice()` never sends `taglines`/`hashtags`.
    */

@@ -179,6 +179,12 @@ describe('LibraryBrowserToolbar', () => {
     useFeatureFlag.mockReturnValue(true);
   });
 
+  it('hides presentation toggles only for grouped failure recovery', () => {
+    renderToolbar({ isRecoveryView: true });
+    expect(screen.queryByTestId('view-toggle')).not.toBeInTheDocument();
+    expect(screen.getByText('Type')).toBeInTheDocument();
+  });
+
   it('filters types from a multi-select dropdown with singular labels', () => {
     const onCategoriesChange = vi.fn();
 

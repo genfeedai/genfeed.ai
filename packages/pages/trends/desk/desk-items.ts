@@ -172,6 +172,8 @@ export function toDeskItemFromSourcePost(
 export function toDeskItemFromViralVideo(
   video: ITrendVideo,
 ): DiscoveryDeskItem {
+  const id =
+    video.id || `${video.platform}:${video.externalId || video.videoUrl}`;
   const metrics: DiscoveryDeskItemMetrics = {
     comments: video.comments ?? video.commentCount,
     likes: video.likes ?? video.likeCount,
@@ -184,11 +186,11 @@ export function toDeskItemFromViralVideo(
     authorHandle: video.creatorHandle,
     contentType: 'video',
     engagement,
-    id: video.id,
-    key: `viral_video:${video.id}`,
+    id,
+    key: `viral_video:${id}`,
     kind: 'viral_video',
     matchedTrends: video.topic ? [video.topic] : [],
-    mediaUrl: video.videoUrl,
+    mediaUrl: video.playUrl || video.videoUrl,
     metrics,
     platform: video.platform,
     publishedAt: video.publishedAt,

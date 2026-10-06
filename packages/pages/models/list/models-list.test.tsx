@@ -1,6 +1,7 @@
 import { PageScope } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import ModelsList from '@pages/models/list/models-list';
+import type { ModelsListProps } from '@props/admin/models.props';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
@@ -18,6 +19,11 @@ const mockFindAll = vi.fn();
 const mockFindAllPages = vi.fn();
 const mockOrganizationFindOne = vi.fn();
 const mockOpenConfirm = vi.fn();
+const mockOpenModal = vi.fn();
+
+vi.mock('@helpers/ui/modal/modal.helper', () => ({
+  openModal: (...args: unknown[]) => mockOpenModal(...args),
+}));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
@@ -62,11 +68,12 @@ vi.mock('@services/core/notifications.service', () => ({
 }));
 
 const mockReplace = vi.fn();
+let mockSearchParams = '';
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/models',
   useRouter: () => ({ push: vi.fn(), replace: mockReplace }),
-  useSearchParams: () => new URLSearchParams(''),
+  useSearchParams: () => new URLSearchParams(mockSearchParams),
 }));
 
 function buildModel(overrides: Partial<IModel> = {}): IModel {
@@ -86,6 +93,7 @@ function buildModel(overrides: Partial<IModel> = {}): IModel {
 function renderModelsList(
   scope: PageScope = PageScope.ORGANIZATION,
   type?: string,
+  props: Partial<ModelsListProps> = {},
 ) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -97,7 +105,7 @@ function renderModelsList(
     );
   }
 
-  return render(<ModelsList scope={scope} type={type} />, {
+  return render(<ModelsList scope={scope} type={type} {...props} />, {
     wrapper: Wrapper,
   });
 }
@@ -105,6 +113,7 @@ function renderModelsList(
 describe('ModelsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSearchParams = '';
     mockFindAll.mockResolvedValue([buildModel()]);
     mockFindAllPages.mockResolvedValue([buildModel({ isDefault: true })]);
     mockOrganizationFindOne.mockResolvedValue({ settings: null });
@@ -128,6 +137,23 @@ describe('ModelsList', () => {
     expect(mockFindAll.mock.calls[0]?.[0]).not.toHaveProperty('includeRetired');
   });
 
+  it('sends every selected category and provider to the API before pagination', async () => {
+    mockSearchParams =
+      'category=image&category=video&provider=replicate&provider=fal&status=inactive&page=2';
+    renderModelsList(PageScope.SUPERADMIN);
+    await waitFor(() => expect(mockFindAll).toHaveBeenCalled());
+    expect(mockFindAll.mock.calls[0]?.[0]).toMatchObject({
+      categories: 'image,video',
+      providers: 'replicate,fal',
+      isActive: false,
+      page: 2,
+    });
+    expect(
+      await screen.findByRole('button', { name: 'More options for Flux Dev' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Image 1')).not.toBeInTheDocument();
+  });
+
   it('hides retired models on the default admin listing', async () => {
     renderModelsList(PageScope.SUPERADMIN);
 
@@ -137,6 +163,29 @@ describe('ModelsList', () => {
     expect(mockFindAll.mock.calls[0]?.[0]).toMatchObject({
       includeRetired: false,
     });
+  });
+
+  it('opens inline pricing from the overflow menu without opening the model editor', async () => {
+    const onPricingDetails = vi.fn();
+    renderModelsList(PageScope.SUPERADMIN, undefined, {
+      onPricingDetails,
+      renderExpandedRow: () => <div>Provider pricing evidence</div>,
+    });
+
+    const trigger = await screen.findByRole('button', {
+      name: 'More options for Flux Dev',
+    });
+    fireEvent.pointerDown(trigger);
+    fireEvent.click(trigger);
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Pricing details' }),
+    );
+
+    expect(onPricingDetails).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'model-1' }),
+    );
+    expect(screen.getByText('Provider pricing evidence')).toBeInTheDocument();
+    expect(mockOpenModal).not.toHaveBeenCalled();
   });
 
   it('includes retired models on the admin All listing', async () => {
@@ -248,11 +297,13 @@ describe('ModelsList', () => {
     });
   });
 
-  it('keeps the catalog overview read-only for superadmins', async () => {
+  it('replaces the duplicate overview with multi-select filters for superadmins', async () => {
     renderModelsList(PageScope.SUPERADMIN);
 
     await waitFor(() => {
-      expect(screen.getByTestId('models-category-filter')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'All categories' }),
+      ).toBeInTheDocument();
     });
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
   });

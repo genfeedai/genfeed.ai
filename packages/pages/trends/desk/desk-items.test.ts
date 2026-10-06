@@ -268,6 +268,18 @@ describe('toDeskItemFromViralVideo', () => {
   });
 });
 
+describe('cached video identity fallback', () => {
+  it('keeps old payloads without database IDs distinct by platform and source', () => {
+    const first = toDeskItemFromViralVideo(
+      makeViralVideo({ id: undefined, externalId: 'a' } as never),
+    );
+    const second = toDeskItemFromViralVideo(
+      makeViralVideo({ id: undefined, externalId: 'b' } as never),
+    );
+    expect(first.key).not.toBe(second.key);
+  });
+});
+
 describe('isObservedTrendContent', () => {
   const classification: TrendSourceClassification = {
     capturedAt: '2026-01-01',

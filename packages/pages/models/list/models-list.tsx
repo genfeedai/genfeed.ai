@@ -1,16 +1,38 @@
 'use client';
 
-import { ButtonVariant, ComponentSize, PageScope } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+  PageScope,
+} from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
+import type { ModelsListProps } from '@props/admin/models.props';
 import type { TableAction } from '@props/ui/display/table.props';
 import { EmptyState } from '@ui/card/EmptyState';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Button } from '@ui/primitives/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
 import FormSearchbar from '@ui/primitives/searchbar';
-import { CircleCheck, CircleX, Cpu, Info, Trash2 } from 'lucide-react';
+import {
+  CircleCheck,
+  CircleX,
+  Coins,
+  Cpu,
+  Info,
+  MoreHorizontal,
+  Trash2,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import AdminModelsFilters from './components/AdminModelsFilters';
 
 import ModelsCatalogOverview from './components/ModelsCatalogOverview';
 import { useModelsList } from './useModelsList';
@@ -20,12 +42,10 @@ export default function ModelsList({
   category,
   scope = PageScope.ORGANIZATION,
   onRefreshRegister,
-}: {
-  type?: string;
-  category?: string;
-  scope?: PageScope;
-  onRefreshRegister?: (fn: (() => Promise<void>) | null) => void;
-}) {
+  onPricingDetails,
+  renderExpandedRow,
+  renderToolbar,
+}: ModelsListProps) {
   const translate = useTranslations('pages.models');
   const {
     isAdminScope,
@@ -64,7 +84,7 @@ export default function ModelsList({
       {
         icon: <Info />,
         onClick: handleViewDetails,
-        tooltip: 'View Details',
+        tooltip: translate('viewDetails'),
       },
       ...(isAdminScope
         ? [
@@ -76,13 +96,15 @@ export default function ModelsList({
                 model.reviewStatus !== 'rejected',
               onClick: (model: IModel) => {
                 openConfirm({
-                  confirmLabel: 'Approve',
-                  label: 'Approve Model',
-                  message: `Approve "${model.label}" and make it available for generation?`,
+                  confirmLabel: translate('approve'),
+                  label: translate('approveModel'),
+                  message: translate('approveConfirmation', {
+                    label: model.label,
+                  }),
                   onConfirm: () => handleApproveRegistryModel(model),
                 });
               },
-              tooltip: 'Approve',
+              tooltip: translate('approve'),
             },
             {
               icon: <CircleX />,
@@ -92,34 +114,39 @@ export default function ModelsList({
                 model.reviewStatus !== 'rejected',
               onClick: (model: IModel) => {
                 openConfirm({
-                  confirmLabel: 'Reject',
+                  confirmLabel: translate('reject'),
                   isError: true,
-                  label: 'Reject Model',
-                  message: `Reject "${model.label}" and keep it out of generation?`,
+                  label: translate('rejectModel'),
+                  message: translate('rejectConfirmation', {
+                    label: model.label,
+                  }),
                   onConfirm: () => handleRejectRegistryModel(model),
                 });
               },
-              tooltip: 'Reject',
+              tooltip: translate('reject'),
             },
             {
               icon: <Trash2 />,
               onClick: (model: IModel) => {
                 setSelectedModel(model);
                 openConfirm({
-                  confirmLabel: 'Delete',
+                  confirmLabel: translate('delete'),
                   isError: true,
-                  label: 'Delete Model',
-                  message: `Are you sure you want to delete "${model.label}"? This action cannot be undone.`,
+                  label: translate('deleteModel'),
+                  message: translate('deleteConfirmation', {
+                    label: model.label,
+                  }),
                   onConfirm: handleDelete,
                 });
               },
-              tooltip: 'Delete',
+              tooltip: translate('delete'),
             },
           ]
         : []),
     ],
     [
       isAdminScope,
+      translate,
       handleViewDetails,
       openConfirm,
       handleDelete,
@@ -140,24 +167,30 @@ export default function ModelsList({
             {translate('catalogDescription')}
           </p>
         </div>
-        <div className="w-full sm:w-64">
-          <FormSearchbar
-            className="w-full"
-            onSearch={handleSearchChange}
-            placeholder="Search models"
-            size={ComponentSize.SM}
-            value={searchTerm}
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          {isAdminScope ? <AdminModelsFilters category={category} /> : null}
+          {renderToolbar?.(models)}
+          <div className="w-full sm:w-64">
+            <FormSearchbar
+              className="w-full"
+              onSearch={handleSearchChange}
+              placeholder={translate('searchModels')}
+              size={ComponentSize.SM}
+              value={searchTerm}
+            />
+          </div>
         </div>
       </div>
 
-      <ModelsCatalogOverview
-        cards={catalogOverviewCards}
-        isLoading={isLoadingCatalog}
-        onSelect={isAdminScope ? undefined : handleCategorySelect}
-        selectedKey={selectedGroupKey}
-        total={catalogTotal}
-      />
+      {!isAdminScope ? (
+        <ModelsCatalogOverview
+          cards={catalogOverviewCards}
+          isLoading={isLoadingCatalog}
+          onSelect={isAdminScope ? undefined : handleCategorySelect}
+          selectedKey={selectedGroupKey}
+          total={catalogTotal}
+        />
+      ) : null}
 
       <AppTable<IModel>
         isLoading={isLoading}
@@ -169,22 +202,86 @@ export default function ModelsList({
               }
             : undefined
         }
-        columns={columns}
-        actions={actions}
+        columns={
+          isAdminScope
+            ? [
+                ...columns,
+                {
+                  key: 'actions',
+                  header: '',
+                  render: (model: IModel) => (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant={ButtonVariant.GHOST}
+                          size={ButtonSize.ICON}
+                          aria-label={translate('moreOptions', {
+                            label: model.label,
+                          })}
+                        >
+                          <MoreHorizontal />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
+                      >
+                        {onPricingDetails ? (
+                          <DropdownMenuItem
+                            onSelect={() => onPricingDetails(model)}
+                          >
+                            <Coins />
+                            {translate('pricingDetails')}
+                          </DropdownMenuItem>
+                        ) : null}
+                        {actions
+                          .filter(
+                            (action) =>
+                              !action.isVisible || action.isVisible(model),
+                          )
+                          .map((action) => (
+                            <DropdownMenuItem
+                              key={
+                                typeof action.tooltip === 'string'
+                                  ? action.tooltip
+                                  : action.tooltip(model)
+                              }
+                              onSelect={() => action.onClick?.(model)}
+                            >
+                              {typeof action.icon === 'function'
+                                ? action.icon(model)
+                                : action.icon}
+                              {typeof action.tooltip === 'string'
+                                ? action.tooltip
+                                : action.tooltip(model)}
+                            </DropdownMenuItem>
+                          ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ),
+                },
+              ]
+            : columns
+        }
+        actions={isAdminScope ? undefined : actions}
+        renderExpandedRow={renderExpandedRow}
         onRowClick={handleViewDetails}
         getRowKey={(model: IModel) => model.id}
-        emptyLabel="No models found"
+        emptyLabel={translate('noModelsFound')}
         emptyState={
           <EmptyState
-            title="No models found"
+            title={translate('noModelsFound')}
             description={
               searchTerm
-                ? 'No models match your search. Clear it to see the catalog.'
-                : 'No models are available for this filter. Try another tab or refresh the list.'
+                ? translate('emptySearchHint')
+                : translate('emptyFilterHint')
             }
             icon={Cpu}
             action={{
-              label: searchTerm ? 'Clear search' : 'Refresh',
+              label: searchTerm
+                ? translate('clearSearch')
+                : translate('refresh'),
               onClick: () => {
                 if (searchTerm) handleSearchChange('');
                 else void refresh();

@@ -6,7 +6,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import {
   describeProviderRateChanges,
-  hashReviewedProviderRates,
+  hashReviewedRateSheetEntry,
 } from '@genfeedai/pricing';
 import type { ModelProviderContract, Prisma } from '@genfeedai/prisma';
 
@@ -88,13 +88,13 @@ export type RateComparison =
       pendingRateHash: string;
     };
 
-/** Drift is a difference in normalized rates, never in schema or provider version. */
+/** Drift is a difference in normalized rates or frozen billing rules; unrelated schema and provider version changes do not count. */
 export function compareProviderRates(
   reviewed: ReviewedProviderPricing,
   observed: ReviewedProviderPricing,
 ): RateComparison {
-  const pendingRateHash = hashReviewedProviderRates(observed.rates);
-  if (pendingRateHash === hashReviewedProviderRates(reviewed.rates))
+  const pendingRateHash = hashReviewedRateSheetEntry(observed);
+  if (pendingRateHash === hashReviewedRateSheetEntry(reviewed))
     return { status: 'unchanged' };
   return {
     changes: describeProviderRateChanges(reviewed.rates, observed.rates),

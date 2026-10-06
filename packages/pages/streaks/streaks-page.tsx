@@ -5,6 +5,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IStreakMilestoneState } from '@genfeedai/contracts/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { STREAK_CELEBRATION_EVENT } from '@services/engagement/streak-events';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
@@ -34,6 +35,7 @@ function rewardLabel(milestone: IStreakMilestoneState): string {
 }
 
 export default function StreaksPage() {
+  const { href } = useOrgUrl();
   const { calendar, isLoading, streak } = useStreak();
   const [isCelebrating, setIsCelebrating] = useState(false);
 
@@ -82,7 +84,7 @@ export default function StreaksPage() {
 
           <Button asChild variant={ButtonVariant.DEFAULT}>
             {/* One-off generation is Agent-first. */}
-            <Link href={APP_ROUTES.AGENT.NEW}>
+            <Link href={href(APP_ROUTES.AGENT.NEW)}>
               <Sparkles className="size-4" />
               Create content now
             </Link>

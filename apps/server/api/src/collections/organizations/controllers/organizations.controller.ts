@@ -4,6 +4,7 @@ import { CreateOrganizationRequestDto } from '@api/collections/organizations/dto
 import { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
 import type { UpdateOrganizationDto } from '@api/collections/organizations/dto/update-organization.dto';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { OrganizationsOperationsService } from '@api/collections/organizations/services/organizations-operations.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -57,6 +58,7 @@ export class OrganizationsController extends BaseCRUDController<
     public readonly loggerService: LoggerService,
     private readonly organizationsService: OrganizationsService,
     private readonly operationsService: OrganizationsOperationsService,
+    private readonly organizationLogoService: OrganizationLogoService,
   ) {
     super(
       loggerService,
@@ -140,7 +142,16 @@ export class OrganizationsController extends BaseCRUDController<
         options,
       );
 
-    return serializeCollection(request, OrganizationSerializer, data);
+    const logoUrls = await this.organizationLogoService.resolveLogoUrls(
+      data.docs.map((organization) => organization.id.toString()),
+    );
+    return serializeCollection(request, OrganizationSerializer, {
+      ...data,
+      docs: data.docs.map((organization) => ({
+        ...organization,
+        logoUrl: logoUrls.get(organization.id.toString()) ?? null,
+      })),
+    });
   }
 
   @Post()

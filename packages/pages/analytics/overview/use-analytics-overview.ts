@@ -81,7 +81,7 @@ export function useAnalyticsOverview({
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
-  const { orgHref } = useOrgUrl();
+  const { brandSlug, href, orgHref } = useOrgUrl();
   const { dateRange, refreshTrigger } = useAnalyticsContext();
   const { startDate, endDate } = getDateRangeWithDefaults(
     dateRange.startDate ?? undefined,
@@ -341,7 +341,12 @@ export function useAnalyticsOverview({
     hasViews,
   ]);
 
-  const connectAccountsHref = orgHref(APP_ROUTES.SETTINGS.SOCIAL);
+  const connectAccountsHref =
+    scope === PageScope.SUPERADMIN
+      ? orgHref(APP_ROUTES.SETTINGS.INTEGRATIONS)
+      : brandSlug
+        ? href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)
+        : orgHref(APP_ROUTES.SETTINGS.BRANDS);
 
   const heroContent = useMemo<DashboardHeroContent | null>(() => {
     // Active dashboards need no status strip — metrics and charts carry the page.
@@ -357,12 +362,12 @@ export function useAnalyticsOverview({
       description:
         'Accounts are connected, but there is not enough tracked performance yet. Keep publishing and check back after the next sync.',
       primaryAction: {
-        href: APP_ROUTES.PUBLISHING.OVERVIEW,
+        href: href(APP_ROUTES.PUBLISHING.OVERVIEW),
         label: 'Create content',
         variant: ButtonVariant.DEFAULT,
       },
     };
-  }, [dashboardState, scope]);
+  }, [dashboardState, href, scope]);
 
   const primaryKpiItems = useMemo(() => {
     if (scope === PageScope.SUPERADMIN) {
@@ -442,7 +447,6 @@ export function useAnalyticsOverview({
     isTimeseriesLoading,
     isTopPostsLoading,
     isUsingAnyCache,
-    orgHref,
     orgsLeaderboard,
     persistAgentDashboardState,
     primaryKpiItems,

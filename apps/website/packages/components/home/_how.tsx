@@ -12,12 +12,13 @@ const HOW_STEPS: HowStep[] = [
     title: 'Ask',
   },
   {
-    description: 'Genfeed makes every format, on brand.',
+    description: 'Create videos, images and posts using your brand context.',
     step: '02',
     title: 'Create',
   },
   {
-    description: 'It gets everything out and learns what to make next.',
+    description:
+      'Review, publish and use the results to plan your next campaign.',
     step: '03',
     title: 'Grow',
   },
@@ -38,7 +39,7 @@ export default function HomeHow(): React.ReactElement {
           </Heading>
           <Text className="max-w-2xl text-base leading-7 gen-text-muted">
             Brand memory, drafts and results live in one workspace. Approve the
-            first posts, then switch on auto-publish and it runs on its own.
+            drafts, then schedule them for your connected channels.
           </Text>
         </div>
 

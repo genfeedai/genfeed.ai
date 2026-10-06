@@ -281,7 +281,7 @@ export function AgentChatContainer({
     <AgentChatSuggestionsBar
       suggestedActions={suggestedActions}
       isReadOnly={isReadOnly}
-      layout="equal"
+      layout={composerShell?.placement === 'dock' ? 'dock' : 'equal'}
       onSend={handleSuggestionSend}
     />
   ) : null;
@@ -325,7 +325,9 @@ export function AgentChatContainer({
     hasFollowUpChips:
       showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions),
     isComposerVisible:
-      !hasOnboardingQuestion && composerShell?.isComposerVisible !== false,
+      !hasOnboardingQuestion &&
+      composerShell?.isComposerVisible !== false &&
+      composerShell?.placement !== 'dock',
     overlayHeightPx: composerOverlayHeightPx,
   });
 

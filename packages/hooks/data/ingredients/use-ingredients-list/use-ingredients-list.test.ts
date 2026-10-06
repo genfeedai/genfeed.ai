@@ -136,6 +136,19 @@ vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
+vi.mock(
+  '@hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery',
+  () => ({
+    useFailedIngredientRecovery: () => ({
+      handleDeleteFailedIngredients: vi.fn(),
+      handleRetryFailedIngredients: vi.fn(),
+      handleReviewFailedIngredient: vi.fn(),
+      isRecovering: false,
+      retriedIds: [],
+    }),
+  }),
+);
+
 vi.mock('@helpers/ui/modal/modal.helper', () => ({
   openModal: vi.fn(),
 }));

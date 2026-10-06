@@ -22,7 +22,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return {
     useTranslations: (namespace: string) => translateFromCatalog(namespace),
   };
@@ -186,7 +186,7 @@ describe('PlatformHomePage catalog', () => {
       join(dirname(fileURLToPath(import.meta.url)), 'content.tsx'),
       'utf8',
     );
-    const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
+    const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
     const translate = translateFromCatalog('pages.platforms.home');
 
     expect(source).toContain("useTranslations('pages.platforms.home')");
@@ -218,7 +218,7 @@ describe('PlatformHomePage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open Social settings' }),
-    ).toHaveAttribute('href', '/acme/moonrise/settings/integrations');
+    ).toHaveAttribute('href', '/acme/moonrise/settings/connected-accounts');
   });
 
   it('composes existing destination links when the platform is connected', () => {
@@ -242,7 +242,7 @@ describe('PlatformHomePage', () => {
     );
     expect(
       screen.getByRole('link', { name: 'Open Connection' }),
-    ).toHaveAttribute('href', '/acme/moonrise/settings/integrations');
+    ).toHaveAttribute('href', '/acme/moonrise/settings/connected-accounts');
     expect(
       screen.getByRole('link', { name: 'Open Top posts' }),
     ).toHaveAttribute(

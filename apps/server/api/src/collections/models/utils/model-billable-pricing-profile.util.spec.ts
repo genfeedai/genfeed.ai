@@ -212,3 +212,66 @@ describe('raw reviewed provider pricing adapter', () => {
     ).toBeNull();
   });
 });
+
+describe('pending reviewed variant drift', () => {
+  it.each(['base', 'interpolate'])(
+    'compares frozen defaults (%s) while retaining approved pricing',
+    (pendingDefault) => {
+      const pricingFor = (defaultValue: string) => ({
+        currency: 'USD',
+        sourceUrl: 'https://replicate.com/test/model',
+        verifiedAt: '2026-10-05T00:00:00Z',
+        rates: [
+          {
+            component: 'output',
+            unit: 'output',
+            unitPriceUsd: 0.11,
+            when: { model_variant: 'base' },
+          },
+        ],
+        variantRules: [
+          {
+            selectorKey: 'model_variant',
+            criterionTitle: 'model variant',
+            derive: {
+              kind: 'field',
+              field: 'mode',
+              fieldType: 'string',
+              default: defaultValue,
+              valueMap: { base: 'base', interpolate: 'interpolate' },
+            },
+          },
+        ],
+      });
+      const reviewed = {
+        ...contract,
+        provider: 'replicate',
+        endpoint: 'test/model',
+        pricing: pricingFor('base'),
+      };
+      const profile = projectModelBillablePricingProfile(
+        {
+          ...model,
+          key: 'test/model',
+          provider: 'replicate',
+          endpoint: 'test/model',
+          pendingProviderContractVersion: 'rule-v2',
+        },
+        [
+          reviewed,
+          {
+            ...reviewed,
+            version: 'rule-v2',
+            reviewStatus: 'pending',
+            pricing: pricingFor(pendingDefault),
+          },
+        ],
+      );
+      expect(profile.hasPendingRate).toBe(pendingDefault !== 'base');
+      expect(profile.reviewedPricing?.variantRules?.[0]?.derive).toMatchObject({
+        default: 'base',
+      });
+      expect(profile.rateVersion).toBe('rate-v1');
+    },
+  );
+});

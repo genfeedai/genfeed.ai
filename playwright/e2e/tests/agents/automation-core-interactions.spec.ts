@@ -133,7 +133,7 @@ test.describe('Automation — Core Interactions', () => {
   test('agent settings page renders', async ({ authenticatedPage }) => {
     await assertRouteRenders(
       authenticatedPage,
-      '/test-org/brand-1/settings/agent-defaults',
+      '/test-org/brand-1/settings/agent',
     );
 
     await tryClick(authenticatedPage, 'button[role="tab"]');

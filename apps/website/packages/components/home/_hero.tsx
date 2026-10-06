@@ -1,7 +1,10 @@
+import { ButtonSize } from '@genfeedai/contracts';
+import { metadata } from '@helpers/media/metadata/metadata.helper';
+import { EnvironmentService } from '@services/core/environment.service';
+import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import MarqueeRail from '@ui/layout/marquee-rail/MarqueeRail';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import {
   HOME_HERO_VIDEO,
   HOME_OUTPUT_CAROUSEL_ASSETS,
@@ -41,8 +44,7 @@ export default function HomeHero(): React.ReactElement {
           as="p"
           className="animate-gen-stagger-in mx-auto mt-7 max-w-2xl text-base leading-7 text-surface/72 [--gen-stagger-delay:180ms] md:text-lg"
         >
-          Genfeed is a content agent that makes videos, images and posts to grow
-          your audience and your revenue.
+          {metadata.description}
         </Text>
 
         <div
@@ -50,10 +52,19 @@ export default function HomeHero(): React.ReactElement {
           data-testid="home-hero-actions"
         >
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <AgentFirstActions trackingName="home_hero_click" />
+            <ButtonTracked
+              asChild
+              size={ButtonSize.PUBLIC}
+              trackingData={{ action: 'start_signup' }}
+              trackingName="home_hero_click"
+            >
+              <a href={`${EnvironmentService.apps.app}/sign-up/magic-link`}>
+                Start for $0
+              </a>
+            </ButtonTracked>
           </div>
           <Text as="p" className="mt-5 text-center text-sm text-surface/72">
-            Works in Claude, ChatGPT, Codex and Cursor. Free to start, no card.
+            Create your free account with your email. No card required.
           </Text>
         </div>
       </div>

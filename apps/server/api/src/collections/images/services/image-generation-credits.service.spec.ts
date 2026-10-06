@@ -54,6 +54,7 @@ describe('ImageGenerationCreditsService', () => {
       providerRegistry as never,
       byokService as never,
       testModelCreditQuote(modelsService as never, 'fal'),
+      { buildPrompt: vi.fn() } as never,
     );
   });
 

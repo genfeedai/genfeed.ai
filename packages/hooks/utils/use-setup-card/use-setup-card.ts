@@ -14,6 +14,7 @@ import type { IExpertPathStatus } from '@genfeedai/contracts/interfaces';
 import { ExpertPathService } from '@genfeedai/services/content/expert-path.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useEffect, useMemo, useState } from 'react';
 
 export interface SetupCardStep {
@@ -74,6 +75,7 @@ export function useSetupCard(): UseSetupCardReturn {
   const getExpertPathService = useAuthedService((token: string) =>
     ExpertPathService.getInstance(token),
   );
+  const { activeHref, orgHref } = useOrgUrl();
 
   useEffect(() => {
     if (!isExpert || !isReady || !brandId) {
@@ -112,10 +114,11 @@ export function useSetupCard(): UseSetupCardReturn {
   return useMemo(() => {
     const completedSteps = currentUser?.onboardingStepsCompleted ?? [];
 
-    const stepHrefs: Record<string, string> = {
-      platforms: '/settings/api-keys',
-      preferences: '/settings/brands',
-    };
+    const stepHrefs: Record<(typeof SETUP_CARD_STEPS)[number]['key'], string> =
+      {
+        platforms: activeHref(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS),
+        preferences: orgHref(APP_ROUTES.SETTINGS.BRANDS),
+      };
 
     const expertSteps: SetupCardStep[] = isExpert
       ? EXPERT_SETUP_CARD_STEPS.map((step) => ({
@@ -129,7 +132,7 @@ export function useSetupCard(): UseSetupCardReturn {
 
     const accountSteps: SetupCardStep[] = SETUP_CARD_STEPS.map((step) => ({
       description: step.description,
-      href: stepHrefs[step.key] ?? `/settings/${step.key}`,
+      href: stepHrefs[step.key],
       isCompleted: completedSteps.includes(step.key),
       key: step.key,
       label: step.label,
@@ -149,5 +152,12 @@ export function useSetupCard(): UseSetupCardReturn {
       steps,
       totalCount,
     };
-  }, [currentUser, expertStatus, hasPaygCredits, isExpert]);
+  }, [
+    activeHref,
+    currentUser,
+    expertStatus,
+    hasPaygCredits,
+    isExpert,
+    orgHref,
+  ]);
 }

@@ -286,6 +286,18 @@ export default function StudioGenerateComposer({
       ? buildStudioGenerationQuoteRequest({
           aspectRatio: displaySettings.aspectRatio,
           duration: costPromptData.duration,
+          editSize: hasEditMask ? 'source' : displaySettings.editSize,
+          referenceUrls: attachedAssets
+            .filter(
+              (asset) =>
+                asset.role ===
+                (type === 'image-edit' ? 'editSource' : 'reference'),
+            )
+            .flatMap((asset) =>
+              asset.previewUrl && /^https?:\/\//.test(asset.previewUrl)
+                ? [asset.previewUrl]
+                : [],
+            ),
           height: costPromptData.height,
           isAudioEnabled: displaySettings.isAudioEnabled,
           modelKey: displaySettings.modelKey,

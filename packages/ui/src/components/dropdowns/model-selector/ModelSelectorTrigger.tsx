@@ -1,18 +1,15 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import {
-  extractBrandFromKey,
-  getBrandConfig,
-} from '@genfeedai/contracts/constants';
+import { formatCreditCost } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import type { ModelSelectorTriggerProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import {
   SHELL_CONTROL_HEIGHT_CLASS,
   SHELL_ICON_CLASS,
 } from '@ui/constants/shell-chrome.constant';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
+import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { ChevronsUpDown, Cpu, Sparkles } from 'lucide-react';
@@ -42,6 +39,14 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
     className,
   );
   const labelClassName = 'min-w-0 flex-1 truncate text-xs font-medium';
+  const selectedModel = selectedModels[0];
+  const costTitle = selectedModel?.isFree
+    ? 'Free'
+    : selectedModel &&
+        Number.isFinite(selectedModel.cost) &&
+        selectedModel.cost > 0
+      ? formatCreditCost(selectedModel.cost, { unit: 'credits' })
+      : 'Pricing unavailable';
 
   if (context) {
     const ContextIcon = context.icon;
@@ -58,7 +63,12 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
         textTransform="none"
         {...buttonProps}
       >
-        {ContextIcon ? (
+        {!isAutoSelected && selectedModels.length === 1 ? (
+          <ModelAvatar
+            model={selectedModels[0]}
+            testId="model-trigger-provider-icon"
+          />
+        ) : ContextIcon ? (
           <ContextIcon className={cn(SHELL_ICON_CLASS, 'text-primary')} />
         ) : (
           <Sparkles className={cn(SHELL_ICON_CLASS, 'text-primary')} />
@@ -68,8 +78,10 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
             ? `${context.label} · ${selectionLabel}`
             : context.label}
         </span>
-        {selectedModels.length === 1 ? (
-          <ModelSelectorCostBadge costTier={selectedModels[0]?.costTier} />
+        {!isAutoSelected && selectedModels.length === 1 ? (
+          <span title={costTitle}>
+            <ModelSelectorCostBadge costTier={selectedModel?.costTier} />
+          </span>
         ) : null}
         <ChevronsUpDown
           className={cn(SHELL_ICON_CLASS, 'text-muted-foreground')}
@@ -124,9 +136,6 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
 
   if (selectedModels.length === 1) {
     const model = selectedModels[0];
-    const brandSlug = extractBrandFromKey(model.key);
-    const brandConfig = getBrandConfig(brandSlug);
-    const BrandIcon = getModelBrandIcon(brandConfig.iconKey);
 
     return (
       <Button
@@ -137,26 +146,11 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
         textTransform="none"
         {...buttonProps}
       >
-        <div
-          className="size-4 rounded-sm border border-border flex items-center justify-center text-2xs font-bold shrink-0"
-          style={
-            BrandIcon
-              ? undefined
-              : {
-                  backgroundColor: `${brandConfig.color}20`,
-                  color: brandConfig.color,
-                }
-          }
-          data-testid="model-trigger-provider-icon"
-        >
-          {BrandIcon ? (
-            <BrandIcon className="size-2.5" />
-          ) : (
-            brandConfig.label.charAt(0)
-          )}
-        </div>
+        <ModelAvatar model={model} testId="model-trigger-provider-icon" />
         <span className={labelClassName}>{model.label}</span>
-        <ModelSelectorCostBadge costTier={model.costTier} />
+        <span title={costTitle}>
+          <ModelSelectorCostBadge costTier={model.costTier} />
+        </span>
         <ChevronsUpDown
           className={cn(SHELL_ICON_CLASS, 'text-muted-foreground')}
         />

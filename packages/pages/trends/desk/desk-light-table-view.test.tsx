@@ -319,6 +319,41 @@ describe('DeskLightTableView', () => {
     ).toBeVisible();
   });
 
+  it('loads only the hovered video, muted, and stops it on pointer leave', async () => {
+    const videos = [
+      {
+        ...ITEM,
+        key: 'video:first',
+        id: 'first',
+        contentType: 'video' as const,
+        title: 'First video',
+        mediaUrl: 'https://youtube.com/watch?v=dQw4w9WgXcQ',
+        thumbnailUrl: 'https://cdn.example.com/poster.jpg',
+      },
+      {
+        ...ITEM,
+        key: 'video:second',
+        id: 'second',
+        contentType: 'video' as const,
+        title: 'Second video',
+        mediaUrl: 'https://www.tiktok.com/@creator/video/6718335390845095173',
+      },
+    ];
+    renderView({ items: videos });
+    expect(document.querySelectorAll('iframe')).toHaveLength(0);
+    const first = screen.getByRole('button', { name: /First video/ });
+    const second = screen.getByRole('button', { name: /Second video/ });
+    fireEvent.pointerEnter(first);
+    const youtube = await screen.findByTitle('First video');
+    expect(youtube).toHaveAttribute('src', expect.stringContaining('mute=1'));
+    fireEvent.pointerEnter(second);
+    await screen.findByTitle('Second video');
+    expect(document.querySelectorAll('iframe')).toHaveLength(1);
+    expect(screen.queryByTitle('First video')).not.toBeInTheDocument();
+    fireEvent.pointerLeave(second);
+    expect(document.querySelectorAll('iframe')).toHaveLength(0);
+  });
+
   it('keeps Remix visible but disabled when the item cannot be remixed', () => {
     renderView({ items: [{ ...ITEM, remixSelector: null }] });
 

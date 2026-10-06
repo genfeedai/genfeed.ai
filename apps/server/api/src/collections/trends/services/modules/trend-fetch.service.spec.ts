@@ -5,7 +5,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('TrendFetchService', () => {
   let service: TrendFetchService;
 
-  const mockPrisma = { trend: { create: vi.fn(), findMany: vi.fn() } };
+  const mockPrisma = {
+    trend: { create: vi.fn(), findMany: vi.fn() },
+    brand: {
+      findFirst: vi
+        .fn()
+        .mockResolvedValue({ description: 'AI content automation' }),
+    },
+    trendPreferences: {
+      findFirst: vi.fn().mockResolvedValue({
+        config: { keywords: ['AI agents', 'content automation'] },
+      }),
+    },
+  };
   const mockLoggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -85,6 +97,20 @@ describe('TrendFetchService', () => {
       mockTiktokService as never,
       refreshHealth as never,
     );
+  });
+
+  it('collects scoped YouTube videos from brand keywords without a global fallback', async () => {
+    await service.fetchPlatformTrends('youtube', 'org-1', 'brand-1');
+    expect(mockYoutubeService.getTrends).toHaveBeenCalledWith(
+      'US',
+      20,
+      'AI agents|content automation',
+    );
+    expect(mockPrisma.brand.findFirst).toHaveBeenCalledWith({
+      select: { description: true },
+      where: { id: 'brand-1', organizationId: 'org-1', isDeleted: false },
+    });
+    expect(mockApifyService.getYouTubeTrends).not.toHaveBeenCalled();
   });
 
   it('filters stale Grok topics with past-year tokens before returning Twitter trends', async () => {

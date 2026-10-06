@@ -3,11 +3,11 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ModelSelectorModelItemProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
-import ModelSelectorBrandMark from '@ui/dropdowns/model-selector/ModelSelectorBrandMark';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
 import ModelSelectorModelSpec from '@ui/dropdowns/model-selector/ModelSelectorModelSpec';
 import ModelSelectorQualityBar from '@ui/dropdowns/model-selector/ModelSelectorQualityBar';
 import { getModelRowCapabilities } from '@ui/dropdowns/model-selector/model-selector.utils';
+import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { CommandItem } from '@ui/primitives/command';
@@ -84,17 +84,12 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
           disabled={isLocked}
           aria-disabled={isLocked || undefined}
           className={cn(
-            'flex min-h-7 cursor-pointer items-center gap-2 rounded-sm px-1.5 py-0.5 text-xs text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
+            'flex min-h-9 cursor-pointer items-center gap-2 rounded-sm px-1.5 py-0.5 text-xs text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
             isSelected && 'bg-background-tertiary',
             isLocked && 'cursor-not-allowed opacity-50',
           )}
         >
-          <ModelSelectorBrandMark
-            brandColor={option.brandColor}
-            brandIcon={option.brandIcon}
-            brandLabel={brandLabel}
-            testId="model-row-provider-icon"
-          />
+          <ModelAvatar model={model} testId="model-row-provider-icon" />
 
           <div className="pointer-events-none flex size-5 shrink-0 items-center justify-center">
             {isSingleSelect ? (

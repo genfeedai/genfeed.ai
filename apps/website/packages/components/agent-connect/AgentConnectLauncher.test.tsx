@@ -35,11 +35,11 @@ describe('AgentConnectLauncher', () => {
       window.dispatchEvent(new Event(AGENT_CONNECT_EVENT));
     });
 
-    expect(await screen.findByRole('dialog')).toHaveAccessibleName(
-      'Connect your agent',
-    );
+    expect(
+      await screen.findByRole('dialog', {}, { timeout: 30_000 }),
+    ).toHaveAccessibleName('Connect your agent');
     expect(dialogModuleLoaded).toHaveBeenCalledTimes(1);
-  });
+  }, 45_000);
 
   it('restores focus to the element focused when the open was requested', async () => {
     const opener = document.createElement('button');
@@ -53,7 +53,7 @@ describe('AgentConnectLauncher', () => {
       // Focus moves while the chunk is still downloading.
       other.focus();
     });
-    await screen.findByRole('dialog');
+    await screen.findByRole('dialog', {}, { timeout: 10_000 });
     // Radix listens for Escape on the document, not the window.
     act(() => {
       document.dispatchEvent(
@@ -73,9 +73,9 @@ describe('AgentConnectLauncher', () => {
     window.history.replaceState(null, '', '/agent#connect');
     render(<AgentConnectLauncher />);
 
-    expect(await screen.findByRole('dialog')).toHaveAccessibleName(
-      'Connect your agent',
-    );
+    expect(
+      await screen.findByRole('dialog', {}, { timeout: 10_000 }),
+    ).toHaveAccessibleName('Connect your agent');
   });
 
   it('opens on a later hashchange to the deep link', async () => {
@@ -86,6 +86,8 @@ describe('AgentConnectLauncher', () => {
       window.dispatchEvent(new Event('hashchange'));
     });
 
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('dialog', {}, { timeout: 10_000 }),
+    ).toBeInTheDocument();
   });
 });

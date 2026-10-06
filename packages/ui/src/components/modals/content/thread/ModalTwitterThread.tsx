@@ -50,7 +50,7 @@ export default function ModalTwitterThread({
           </Modal.Title>
         </Modal.Header>
 
-        <Modal.Body className="max-h-96 overflow-y-auto">
+        <Modal.Body className="max-h-96">
           <div className="space-y-3">
             {thread.tweets.map((tweet) => (
               <div key={tweet.order} className="p-4 bg-secondary shadow-border">

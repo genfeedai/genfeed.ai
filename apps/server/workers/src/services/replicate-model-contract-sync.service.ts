@@ -145,7 +145,7 @@ export class ReplicateModelContractSyncService {
         : null;
 
     if (reviewed && comparison?.status === 'unchanged') {
-      // The same rates observed again: roll the verification forward.
+      // The same rates and billing rules observed again: roll verification forward.
       const reviewedPricing = reviewed.contract.pricing;
       if (isRecord(reviewedPricing))
         await prisma.modelProviderContract.update({
@@ -172,7 +172,7 @@ export class ReplicateModelContractSyncService {
     const quarantined = candidate.mappingStatus === 'quarantined';
 
     if (reviewed && comparison?.status === 'changed') {
-      // The provider changed a price. The reviewed rate keeps charging and the
+      // The provider changed a price or billing rule. The reviewed rate keeps charging and the
       // model stays active; an operator approves the pending contract.
       await prisma.model.update({
         data: {
@@ -269,6 +269,8 @@ export class ReplicateModelContractSyncService {
     return {
       currency: 'USD',
       rates: candidate.observed.rates,
+      variantRules: candidate.observed.variantRules,
+      invariantSelectors: candidate.observed.invariantSelectors,
       reviewStatus: 'pending',
       sourceUrl: candidate.observed.sourceUrl,
       verifiedAt: now.toISOString(),

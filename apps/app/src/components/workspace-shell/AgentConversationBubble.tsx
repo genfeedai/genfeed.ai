@@ -5,12 +5,13 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import type { AgentDockSuggestedAction } from '@props/ui/agent-dock.props';
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 type AgentConversationBubbleProps = {
   readonly isDismissed?: boolean;
+  readonly isOpen?: boolean;
   readonly onOpen: () => void;
   readonly onSelectSuggestedAction?: (prompt: string) => void;
   readonly suggestedActions?: readonly AgentDockSuggestedAction[];
@@ -48,6 +49,7 @@ const SHORTCUT_HIDE_MS = 200;
  */
 export default function AgentConversationBubble({
   isDismissed = false,
+  isOpen = false,
   onOpen,
   onSelectSuggestedAction,
   suggestedActions = [],
@@ -55,6 +57,7 @@ export default function AgentConversationBubble({
   const translate = useTranslations('common.agentDock');
   const actions = suggestedActions.slice(0, RADIAL_LIMIT);
   const [areShortcutsVisible, setAreShortcutsVisible] = useState(false);
+  const shouldShowShortcuts = areShortcutsVisible && !isOpen;
   const hideTimerRef = useRef<number | null>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
 
@@ -112,12 +115,12 @@ export default function AgentConversationBubble({
             <div
               className={cn(
                 'absolute z-10 transition-opacity duration-150 motion-reduce:transition-none',
-                areShortcutsVisible
+                shouldShowShortcuts
                   ? 'pointer-events-auto opacity-100'
                   : 'pointer-events-none opacity-0',
               )}
-              aria-hidden={!areShortcutsVisible}
-              inert={!areShortcutsVisible}
+              aria-hidden={!shouldShowShortcuts}
+              inert={!shouldShowShortcuts}
               key={key}
               onPointerEnter={showShortcuts}
               onPointerLeave={hideShortcuts}
@@ -137,7 +140,7 @@ export default function AgentConversationBubble({
                   className="flex size-8 items-center justify-center overflow-visible rounded-full border border-border bg-background p-0 text-foreground shadow-md [&_svg]:!size-4"
                   data-testid="agent-conversation-radial"
                   onClick={() => onSelectSuggestedAction?.(action.prompt)}
-                  tabIndex={areShortcutsVisible && !isDismissed ? 0 : -1}
+                  tabIndex={shouldShowShortcuts && !isDismissed ? 0 : -1}
                   textTransform="none"
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
@@ -154,10 +157,11 @@ export default function AgentConversationBubble({
           );
         })}
         <Button
-          ariaLabel={translate('open')}
-          className="pointer-events-auto relative z-20 flex size-12 items-center justify-center rounded-full shadow-lg"
+          aria-controls="workspace-agent-dock"
+          aria-expanded={isOpen}
+          ariaLabel={translate(isOpen ? 'close' : 'open')}
+          className="pointer-events-auto relative z-20 flex size-12 items-center justify-center rounded-full shadow-lg motion-safe:hover:scale-105 motion-safe:active:scale-95"
           data-testid="agent-conversation-bubble"
-          icon={<MessageCircle className="size-5" />}
           onClick={onOpen}
           onPointerEnter={showShortcuts}
           onPointerLeave={hideShortcuts}
@@ -165,7 +169,26 @@ export default function AgentConversationBubble({
           size={ButtonSize.ICON}
           variant={ButtonVariant.DEFAULT}
           withWrapper={false}
-        />
+        >
+          <MessageCircle
+            aria-hidden="true"
+            className={cn(
+              'absolute size-5 transition-[transform,opacity] duration-200 motion-reduce:transition-none',
+              isOpen
+                ? '-rotate-90 scale-50 opacity-0'
+                : 'rotate-0 scale-100 opacity-100',
+            )}
+          />
+          <X
+            aria-hidden="true"
+            className={cn(
+              'absolute size-5 transition-[transform,opacity] duration-200 motion-reduce:transition-none',
+              isOpen
+                ? 'rotate-0 scale-100 opacity-100'
+                : 'rotate-90 scale-50 opacity-0',
+            )}
+          />
+        </Button>
       </div>
     </div>
   );

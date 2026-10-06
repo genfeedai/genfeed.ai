@@ -17,8 +17,7 @@ export const AGENT_PROMPTS: AgentPrompt[] = [
     ask: 'Make me a TikTok slideshow about this product',
     href: '/use-cases/creators',
     hrefLabel: 'For creators',
-    result:
-      'Six slides, the hook on slide one, caption and CTA written, queued to post.',
+    result: 'Six slide drafts, a hook, caption and CTA, ready for review.',
   },
   {
     ask: 'Twenty ad variants for this client, 9:16 and 1:1',
@@ -32,20 +31,21 @@ export const AGENT_PROMPTS: AgentPrompt[] = [
     href: '/use-cases/founders',
     hrefLabel: 'For founders',
     result:
-      'Transcribed, rewritten in your voice, cover image generated, scheduled.',
+      'An article draft in your voice and a generated cover, ready for review.',
   },
   {
     ask: 'Run this persona for a month',
     href: '/use-cases/ai-influencers',
     hrefLabel: 'For AI influencers',
     result:
-      'A month of posts in one face and one voice, published on its own schedule.',
+      'A month of posts in one face and one voice, ready for review and scheduling.',
   },
   {
-    ask: 'Test this message five ways and tell me which converts',
+    ask: 'Create five angles for this campaign',
     href: '/use-cases/marketers',
     hrefLabel: 'For marketers',
-    result: 'Five angles live, then the revenue each one actually drove.',
+    result:
+      'Five angles ready for review, with available performance data after publishing.',
   },
   {
     ask: 'Shoot this product for every channel',

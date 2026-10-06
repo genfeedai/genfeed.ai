@@ -12,7 +12,7 @@ describe('HomeProviders', () => {
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: /every model, one workspace\./i,
+        name: /your models, one workspace\./i,
       }),
     ).toBeInTheDocument();
   });

@@ -41,7 +41,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => serviceFactory,
 }));
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ orgHref: (p: string) => p }),
+  useOrgUrl: () => ({
+    brandSlug: '',
+    href: (p: string) => `/acme/~${p}`,
+    orgHref: (p: string) => `/acme/~${p}`,
+  }),
 }));
 vi.mock('@hooks/data/analytics/use-health-checks/use-health-checks', () => ({
   useHealthChecks: () => ({

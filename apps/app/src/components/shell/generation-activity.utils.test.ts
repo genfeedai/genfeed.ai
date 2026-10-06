@@ -52,7 +52,7 @@ describe('generation activity destinations', () => {
         }),
         scope,
       ),
-    ).toBe('/acme/coffee/settings/integrations');
+    ).toBe('/acme/coffee/settings/connected-accounts');
   });
   it('never sends another organization or inaccessible brand to the selected brand', () => {
     expect(
@@ -119,5 +119,19 @@ describe('generation activity destinations', () => {
         'org-1',
       ),
     ).toEqual([complete]);
+  });
+
+  it('does not choose an unrelated active brand for a brand-less integration alert', () => {
+    expect(
+      getGenerationActivityHref(
+        fixture({
+          brandId: undefined,
+          entityId: undefined,
+          entityModel: undefined,
+          key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
+        }),
+        scope,
+      ),
+    ).toBe('/acme/~/settings/brands');
   });
 });

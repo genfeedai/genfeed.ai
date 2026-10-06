@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { CircleCheck, Info, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
@@ -23,7 +22,7 @@ interface DashboardHeroContent {
 type AnalyticsOverviewHeroProps = {
   dashboardState: DashboardState;
   heroContent: DashboardHeroContent;
-  orgHref: (path: string) => string;
+  connectAccountsHref: string;
 };
 
 /**
@@ -34,7 +33,7 @@ type AnalyticsOverviewHeroProps = {
 export default function AnalyticsOverviewHero({
   dashboardState,
   heroContent,
-  orgHref,
+  connectAccountsHref,
 }: AnalyticsOverviewHeroProps) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -65,7 +64,7 @@ export default function AnalyticsOverviewHero({
           {heroContent.primaryAction.label}
         </Link>
         <Link
-          href={orgHref(APP_ROUTES.SETTINGS.SOCIAL)}
+          href={connectAccountsHref}
           className={buttonVariants({
             size: ButtonSize.SM,
             variant: ButtonVariant.SECONDARY,

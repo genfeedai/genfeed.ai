@@ -36,9 +36,7 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
 }));
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import(
-    '../../../tests/next-intl.stub'
-  );
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
 
   return {
     useTranslations: () =>
@@ -158,7 +156,7 @@ describe('OAuthPlatformForm', () => {
     });
     window.sessionStorage.setItem(
       'oauth_return_to',
-      '/demo/acme/settings/integrations',
+      '/demo/acme/settings/connected-accounts',
     );
 
     render(<OAuthPlatformForm platform="twitter" />);
@@ -170,7 +168,9 @@ describe('OAuthPlatformForm', () => {
       });
     });
 
-    expect(mocks.push).toHaveBeenCalledWith('/demo/acme/settings/integrations');
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/demo/acme/settings/connected-accounts',
+    );
     expect(window.sessionStorage.getItem('oauth_return_to')).toBeNull();
   });
 

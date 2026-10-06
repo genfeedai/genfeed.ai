@@ -184,7 +184,7 @@ describe('routes.constant', () => {
       getOrgSwitchHref('bravo', '/alpha/moonrise/settings/knowledge'),
     ).toBe('/bravo/~/settings/brands');
     expect(APP_ROUTES.SETTINGS.KNOWLEDGE).toBe('/settings/knowledge');
-    expect(APP_ROUTES.LIBRARY.KNOWLEDGE).toBe('/library/knowledge');
+    expect(APP_ROUTES.LIBRARY).not.toHaveProperty('KNOWLEDGE');
   });
 
   it('keeps personal settings children on the unscoped /settings shell', () => {
@@ -286,5 +286,52 @@ describe('routes.constant', () => {
       brandSlug: '',
       orgSlug: '',
     });
+  });
+
+  it('maps brand-only organization paths to the brands directory', () => {
+    expect(
+      createOrganizationAppRoute(
+        'acme',
+        APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
+      ),
+    ).toBe('/acme/~/settings/brands');
+    expect(
+      createOrganizationAppRoute(
+        'acme',
+        `${APP_ROUTES.SETTINGS.BRAND_KIT}?tab=voice`,
+      ),
+    ).toBe('/acme/~/settings/brands');
+    expect(
+      createOrganizationAppRoute('acme', APP_ROUTES.LIBRARY.CHARACTERS),
+    ).toBe('/acme/~/settings/brands');
+  });
+
+  it('keeps organization integrations, assets, and posts on their own paths', () => {
+    expect(
+      createOrganizationAppRoute('acme', APP_ROUTES.SETTINGS.INTEGRATIONS),
+    ).toBe('/acme/~/settings/integrations');
+    expect(createOrganizationAppRoute('acme', APP_ROUTES.LIBRARY.ASSETS)).toBe(
+      '/acme/~/library/assets',
+    );
+    expect(
+      createOrganizationAppRoute('acme', APP_ROUTES.PUBLISHING.POSTS),
+    ).toBe('/acme/~/publishing/posts');
+  });
+
+  it('keeps brand connected accounts and brand kit on the brand path', () => {
+    expect(
+      createBrandAppRoute(
+        'acme',
+        'coffee',
+        APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
+      ),
+    ).toBe('/acme/coffee/settings/connected-accounts');
+    expect(
+      createBrandAppRoute(
+        'acme',
+        'coffee',
+        `${APP_ROUTES.SETTINGS.BRAND_KIT}?tab=voice`,
+      ),
+    ).toBe('/acme/coffee/settings/brand-kit?tab=voice');
   });
 });

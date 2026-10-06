@@ -87,7 +87,15 @@ vi.mock('@genfeedai/auth-client/react', () => ({
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',
-    brands: [{ id: 'brand-1', label: 'Moonrise Studio', name: null }],
+    brands: [
+      {
+        id: 'brand-1',
+        label: 'Moonrise Studio',
+        name: null,
+        slug: 'acme-creator',
+        organization: { id: 'org-1', slug: 'acme-org' },
+      },
+    ],
     organizationId: 'org-1',
     selectedBrand: {
       agentConfig: {
@@ -603,7 +611,9 @@ describe('WorkspacePageContent', () => {
       expect(ensurePlanningThreadMock).toHaveBeenCalledWith('task-plan-1');
     });
 
-    expect(routerPushMock).toHaveBeenCalledWith('/agent/thread-plan-123');
+    expect(routerPushMock).toHaveBeenCalledWith(
+      '/acme-org/~/agent/thread-plan-123',
+    );
   });
 
   it('renders unread, recent, and all inbox routes on the dedicated inbox page', async () => {
@@ -787,7 +797,7 @@ describe('WorkspacePageContent', () => {
       within(reportInspector).getByRole('link', {
         name: 'Open report thread',
       }),
-    ).toHaveAttribute('href', '/agent/thread-report-123');
+    ).toHaveAttribute('href', '/acme-org/~/agent/thread-report-123');
 
     selectTab(within(reportInspector).getByRole('tab', { name: 'Records' }));
 
@@ -799,7 +809,7 @@ describe('WorkspacePageContent', () => {
     await openMoreActions(screen.getByTestId('workspace-task-inspector'));
     expect(
       await screen.findByRole('menuitem', { name: 'Open Report' }),
-    ).toHaveAttribute('href', '/agent/thread-report-123');
+    ).toHaveAttribute('href', '/acme-org/~/agent/thread-report-123');
   });
 
   it('renders linked ingredient outputs inside the task inspector', async () => {

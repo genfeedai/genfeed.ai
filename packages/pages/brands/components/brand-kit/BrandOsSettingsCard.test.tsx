@@ -1,4 +1,4 @@
-import { MemberRole } from '@genfeedai/contracts';
+import { FontFamily, MemberRole } from '@genfeedai/contracts';
 import type {
   IBrandKitDraft,
   IBrandOsExportState,
@@ -20,6 +20,7 @@ import type {
   ReactNode,
   TextareaHTMLAttributes,
 } from 'react';
+import { Children, isValidElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandOsSettingsCard from './BrandOsSettingsCard';
 
@@ -134,7 +135,15 @@ vi.mock('@ui/primitives/select', () => ({
     disabled?: boolean;
   }) => (
     <select
-      aria-label="Revision history"
+      aria-label={
+        Children.toArray(children)
+          .map((child) =>
+            isValidElement<{ 'aria-label'?: string }>(child)
+              ? child.props['aria-label']
+              : undefined,
+          )
+          .find(Boolean) ?? 'Revision history'
+      }
       value={value}
       disabled={disabled}
       onChange={(event) => onValueChange(event.target.value)}
@@ -242,6 +251,58 @@ beforeEach(() => {
 });
 
 describe('Brand OS revision settings', () => {
+  it('edits visual identity with a font selection and a color input while preserving the saved draft payload', async () => {
+    const content = draft();
+    content.fields.fontFamily = {
+      key: 'fontFamily',
+      label: 'Font family',
+      group: 'visual',
+      ownerPath: 'brand.fontFamily',
+      applyActionDefault: 'accept',
+      proposedValue: FontFamily.MONTSERRAT_REGULAR,
+      diagnostics: [],
+      evidence: [],
+    };
+    content.fields.primaryColor = {
+      key: 'primaryColor',
+      label: 'Primary color',
+      group: 'visual',
+      ownerPath: 'brand.primaryColor',
+      applyActionDefault: 'accept',
+      proposedValue: '#222222',
+      diagnostics: [],
+      evidence: [],
+    };
+    mocks.listBrandOsRevisions.mockResolvedValue([revision({ content })]);
+    mocks.updateBrandOsRevision.mockResolvedValue(revision({ content }));
+    await renderSettings();
+    const font = screen.getByRole('combobox', { name: 'Font family' });
+    expect(font).toHaveValue(FontFamily.MONTSERRAT_REGULAR);
+    fireEvent.change(font, { target: { value: FontFamily.MONTSERRAT_BOLD } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Primary color' }), {
+      target: { value: '#123456' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+    await waitFor(() =>
+      expect(mocks.updateBrandOsRevision).toHaveBeenCalledWith(
+        'brand-1',
+        'revision-1',
+        expect.objectContaining({
+          content: expect.objectContaining({
+            fields: expect.objectContaining({
+              fontFamily: expect.objectContaining({
+                proposedValue: FontFamily.MONTSERRAT_BOLD,
+              }),
+              primaryColor: expect.objectContaining({
+                proposedValue: '#123456',
+              }),
+            }),
+          }),
+        }),
+      ),
+    );
+  });
+
   it.each([MemberRole.OWNER, MemberRole.ADMIN])(
     'allows %s to edit and approve without the read-only banner',
     async (role) => {
@@ -355,6 +416,81 @@ describe('Brand OS revision settings', () => {
         /New supported brand generation can use this version/,
       ),
     ).toBeInTheDocument();
+  });
+
+  it('shows the saved value for a rejected compact field and persists include as accept', async () => {
+    const content = draft();
+    const description = content.fields.description;
+    if (!description) throw new Error('Missing description fixture');
+    content.fields.description = {
+      ...description,
+      applyActionDefault: 'reject',
+      currentValue: 'Saved description',
+      proposedValue: 'Proposed description',
+    };
+    mocks.listBrandOsRevisions.mockResolvedValue([revision({ content })]);
+    mocks.updateBrandOsRevision.mockImplementation(
+      async (
+        _brandId: string,
+        _id: string,
+        body: { content: IBrandKitDraft },
+      ) =>
+        revision({
+          content: body.content,
+          updatedAt: '2026-09-14T11:00:00.000Z',
+        }),
+    );
+    render(
+      <BrandOsSettingsCard
+        brandId="brand-1"
+        fieldGroups={['profile']}
+        onRefreshBrand={mocks.refresh}
+        onRevisionSaved={mocks.saved}
+        renderWorkspace={(workspace) => (
+          <>
+            {workspace.editor}
+            <Button
+              label="Save draft"
+              onClick={workspace.onSave}
+              isDisabled={workspace.isSaveDisabled}
+            />
+          </>
+        )}
+      />,
+    );
+    expect(await screen.findByLabelText('Description')).toHaveValue(
+      'Saved description',
+    );
+    expect(
+      screen.queryByDisplayValue('Proposed description'),
+    ).not.toBeInTheDocument();
+    const include = screen.getByRole('checkbox', {
+      name: 'Include Description in approval',
+    });
+    expect(include).not.toBeChecked();
+    fireEvent.click(include);
+    expect(include).toBeChecked();
+    expect(screen.getByLabelText('Description')).toHaveValue(
+      'Proposed description',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+    await waitFor(() =>
+      expect(mocks.updateBrandOsRevision).toHaveBeenCalledWith(
+        'brand-1',
+        'revision-1',
+        expect.objectContaining({
+          content: expect.objectContaining({
+            fields: expect.objectContaining({
+              description: expect.objectContaining({
+                applyActionDefault: 'accept',
+                currentValue: 'Saved description',
+                proposedValue: 'Proposed description',
+              }),
+            }),
+          }),
+        }),
+      ),
+    );
   });
 
   it('forks an approved revision and retains the approved history', async () => {

@@ -12,6 +12,10 @@ import type {
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { Model } from '@models/ai/model.model';
+import {
+  type ModelsListProps,
+  resolveAdminModelFilters,
+} from '@props/admin/models.props';
 import type { TableSortDirection } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { ModelsService } from '@services/ai/models.service';
@@ -36,12 +40,7 @@ export function useModelsList({
   category,
   scope = PageScope.ORGANIZATION,
   onRefreshRegister,
-}: {
-  type?: string;
-  category?: string;
-  scope?: PageScope;
-  onRefreshRegister?: (fn: (() => Promise<void>) | null) => void;
-}) {
+}: ModelsListProps) {
   const { organizationId } = useBrand();
   const translate = useTranslations('pages.models');
   const notificationsService = useMemo(
@@ -140,20 +139,30 @@ export function useModelsList({
     [selectedGroupKey],
   );
 
-  // Admin uses the exact category prop.
-  const categoryFilter = useMemo(() => {
-    if (isAdminScope && category) {
-      return category === 'all' || category === 'active' ? null : category;
-    }
-    return null;
-  }, [isAdminScope, category]);
-
-  const includeRetired = isAdminScope && category === 'all';
+  const adminFilters = useMemo(
+    () => resolveAdminModelFilters(parsedSearchParams, category),
+    [parsedSearchParams, category],
+  );
+  const categoryFilter = isAdminScope
+    ? adminFilters.categories.join(',')
+    : null;
+  const providerFilter = isAdminScope ? adminFilters.providers.join(',') : null;
+  const statusFilter =
+    isAdminScope && adminFilters.statuses.length === 1
+      ? adminFilters.statuses[0]
+      : null;
+  const includeRetired =
+    isAdminScope &&
+    (category === 'all' ||
+      parsedSearchParams.get('status') === 'all' ||
+      adminFilters.statuses.length === 2);
 
   // Fetch all system models with pagination
   const modelsQueryKey = [
     'studio-models',
     categoryFilter,
+    providerFilter,
+    statusFilter,
     selectedGroupKey,
     category ?? type ?? 'active',
     includeRetired,
@@ -189,7 +198,7 @@ export function useModelsList({
       if (groupCategories.length > 0) {
         query.categories = groupCategories.join(',');
       } else if (categoryFilter && categoryFilter !== 'all') {
-        query.category = categoryFilter;
+        query.categories = categoryFilter;
       }
 
       if (normalizedSearchTerm) {
@@ -198,6 +207,8 @@ export function useModelsList({
 
       if (isAdminScope) {
         query.includeRetired = includeRetired;
+        if (providerFilter) query.providers = providerFilter;
+        if (statusFilter) query.isActive = statusFilter === 'active';
         if (adminOrg) {
           query.organizationId = adminOrg;
         }
@@ -640,6 +651,8 @@ export function useModelsList({
     adminOrg,
     adminBrand,
     catalogOverviewCards,
+    catalogModels,
+    adminFilters,
     catalogTotal: catalogModels.length,
     handleCategorySelect,
     isLoadingCatalog,

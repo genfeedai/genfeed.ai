@@ -140,6 +140,24 @@ describe('TrendFilteringService', () => {
       expect(result[0].topic).toBe('fitness workout tips');
     });
 
+    it('requires a match for brand discovery and recognizes AI as a whole word', () => {
+      const items = [
+        makeTrend({ topic: 'AI agents for marketers' }),
+        makeTrend({ topic: 'Paid music clips' }),
+      ];
+      expect(
+        service
+          .filterTrendsByBrandDescription(items, 'AI automation', true)
+          .map((item) => item.topic),
+      ).toEqual(['AI agents for marketers']);
+      expect(
+        service.filterTrendsByBrandDescription(trends, 'AI automation', true),
+      ).toEqual([]);
+      expect(service.filterTrendsByBrandDescription(trends, '', true)).toEqual(
+        [],
+      );
+    });
+
     it('should fall back to original list when no keywords match', () => {
       const result = service.filterTrendsByBrandDescription(
         trends,

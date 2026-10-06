@@ -17,6 +17,7 @@ import {
   ImageUp,
   Inbox,
   LoaderCircle,
+  ScanFace,
   Star,
   Trash2,
   TriangleAlert,
@@ -135,8 +136,19 @@ export const LIBRARY_TAIL_MENU_ITEMS: MenuItemConfig[] = [
  * Folders are the third axis and are *not* here — they are org data, so the
  * sidebar loads them as a live tree between the shelves and the tail.
  */
+export const LIBRARY_ELEMENT_MENU_ITEMS: MenuItemConfig[] = [
+  {
+    group: 'Elements',
+    href: APP_ROUTES.LIBRARY.CHARACTERS,
+    label: 'Characters',
+    outline: ScanFace,
+    solid: ScanFace,
+  },
+];
+
 export const LIBRARY_MENU_ITEMS: MenuItemConfig[] = [
   ...LIBRARY_PLACE_MENU_ITEMS,
   ...LIBRARY_SHELF_MENU_ITEMS,
+  ...LIBRARY_ELEMENT_MENU_ITEMS,
   ...LIBRARY_TAIL_MENU_ITEMS,
 ];

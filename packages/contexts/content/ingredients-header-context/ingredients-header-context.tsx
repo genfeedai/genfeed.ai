@@ -12,6 +12,7 @@ interface IngredientsHeaderContextValue {
    */
   hostsSelectionActions?: boolean;
   selectionSlot?: HTMLElement | null;
+  actionSlot?: HTMLElement | null;
 }
 
 const IngredientsHeaderContext = createContext<

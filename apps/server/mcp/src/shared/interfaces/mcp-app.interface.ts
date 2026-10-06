@@ -12,6 +12,19 @@ export type McpMediaKind = 'audio' | 'image' | 'video';
 /** How the content-card view arranges its cards. */
 export type McpCardLayout = 'calendar' | 'cards' | 'media' | 'posts';
 
+export interface McpCardAuthor {
+  name?: string;
+  handle?: string;
+  avatarUrl?: string;
+}
+
+export interface McpCardMedia {
+  id: string;
+  kind: McpMediaKind;
+  url?: string;
+  thumbnailUrl?: string;
+}
+
 export interface McpCard {
   id: string;
   title: string;
@@ -24,6 +37,8 @@ export interface McpCard {
   thumbnailUrl?: string;
   /** Media kinds attached to a post (image, video, audio), in order. */
   attachments?: McpMediaKind[];
+  author?: McpCardAuthor;
+  media?: McpCardMedia[];
   /** First attached media with a URL, for a post preview player. */
   mediaKind?: McpMediaKind;
   mediaUrl?: string;

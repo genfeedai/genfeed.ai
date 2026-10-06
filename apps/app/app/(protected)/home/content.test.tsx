@@ -565,7 +565,7 @@ describe('OperationalHomeContent', () => {
     const accounts = screen.getByTestId('operational-home-credentials');
     expect(
       within(accounts).getByRole('link', { name: 'Connect account' }),
-    ).toHaveAttribute('href', '/acme/moonrise/settings/integrations');
+    ).toHaveAttribute('href', '/acme/moonrise/settings/connected-accounts');
   });
 
   it('opens publication details from a publishing row', () => {
@@ -839,7 +839,7 @@ describe('OperationalHomeContent', () => {
     );
     expect(queue.getByRole('link', { name: 'Reconnect' })).toHaveAttribute(
       'href',
-      '/acme/moonrise/settings/integrations',
+      '/acme/moonrise/settings/connected-accounts',
     );
   });
 

@@ -4,7 +4,7 @@ import { IMAGE_EDIT_QUALITY } from '@genfeedai/contracts/constants';
 /** Exact verified Ideogram 4.5 editing payload. No generation prompt rewriting. */
 export function buildIdeogramImageEditInput(
   prompt: string,
-  editing: ImageEditingContext,
+  editing: Pick<ImageEditingContext, 'sourceUrls' | 'maskUrl' | 'size'>,
   outputs: number,
   seed?: number,
 ): Record<string, unknown> {

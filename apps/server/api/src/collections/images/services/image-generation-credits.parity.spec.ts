@@ -35,6 +35,7 @@ describe('ImageGenerationCreditsService parity with the Agent quote', () => {
     providerRegistry as never,
     byokService as never,
     testModelCreditQuote(modelsService as never, 'replicate'),
+    { buildPrompt: vi.fn() } as never,
   );
 
   function modelRow(parityCase: GenerationCreditParityCase) {

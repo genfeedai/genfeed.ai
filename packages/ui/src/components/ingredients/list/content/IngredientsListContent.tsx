@@ -49,6 +49,7 @@ import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientTimeGroupHeading from '@ui/ingredients/list/media-grid/ingredient-time-group-heading';
 import { groupIngredientsByTime } from '@ui/ingredients/list/media-grid/ingredient-time-groups.util';
+import FailedIngredientsRecovery from '@ui/ingredients/list/recovery/FailedIngredientsRecovery';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
@@ -211,6 +212,7 @@ function IngredientLedgerAssetCell({
 }
 
 export default function IngredientsListContent({
+  recovery,
   type,
   activeTypeLabel,
   scope,
@@ -886,7 +888,16 @@ export default function IngredientsListContent({
           : ''
       }`}
     >
-      {hasFilteredEmptyState ? (
+      {recovery && !isLoading ? (
+        <FailedIngredientsRecovery
+          {...recovery}
+          ingredients={filteredIngredients.filter(isFailedIngredient)}
+          selectedIds={selectedIngredientIds}
+          isActionsEnabled={isActionsEnabled}
+          onSelectionChange={onSelectionChange}
+          onInspect={inspectIngredient}
+        />
+      ) : hasFilteredEmptyState ? (
         <CardEmptyContent
           label={EMPTY_STATES.RESULTS_FOUND}
           description="Try adjusting your filters or search terms."

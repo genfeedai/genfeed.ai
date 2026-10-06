@@ -16,11 +16,13 @@ vi.mock(
 );
 
 const mockVideosList = vi.fn();
+const mockSearchList = vi.fn();
 
 vi.mock('googleapis', () => ({
   google: {
     youtube: () => ({
       videos: { list: mockVideosList },
+      search: { list: mockSearchList },
     }),
   },
 }));
@@ -154,6 +156,35 @@ describe('YoutubeService', () => {
       part: ['id', 'snippet', 'statistics'],
       regionCode: 'DE',
     });
+  });
+
+  it('searches recent embeddable videos for the brand instead of the global chart', async () => {
+    mockSearchList.mockResolvedValueOnce({
+      data: { items: [{ id: { videoId: 'brand-video' } }] },
+    });
+    mockVideosList.mockResolvedValueOnce({
+      data: { items: [{ id: 'brand-video', snippet: { title: 'AI agents' } }] },
+    });
+    expect(await service.getTrends('US', 12, 'AI agents')).toHaveLength(1);
+    expect(mockSearchList).toHaveBeenCalledWith(
+      expect.objectContaining({
+        q: 'AI agents',
+        order: 'viewCount',
+        videoEmbeddable: 'true',
+        publishedAfter: expect.any(String),
+      }),
+    );
+    expect(mockVideosList).toHaveBeenCalledWith({
+      id: ['brand-video'],
+      maxResults: 12,
+      part: ['id', 'snippet', 'statistics'],
+    });
+  });
+
+  it('returns empty for a brand search without substituting mostPopular', async () => {
+    mockSearchList.mockResolvedValueOnce({ data: { items: [] } });
+    expect(await service.getTrends('US', 12, 'AI agents')).toEqual([]);
+    expect(mockVideosList).not.toHaveBeenCalled();
   });
 
   it('returns no native trends when the API key is absent', async () => {

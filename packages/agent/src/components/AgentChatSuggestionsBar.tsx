@@ -5,7 +5,7 @@ import { type ReactElement, useMemo } from 'react';
 interface AgentChatSuggestionsBarProps {
   suggestedActions: SuggestedAction[];
   isReadOnly: boolean;
-  layout?: 'compact' | 'equal';
+  layout?: 'compact' | 'dock' | 'equal';
   onSend: (prompt: string) => void;
 }
 
@@ -52,11 +52,13 @@ export function AgentChatSuggestionsBar({
       }}
       isDisabled={isReadOnly}
       maxSuggestions={3}
-      variant={hasDescriptions ? 'cards' : 'chips'}
+      variant={hasDescriptions && layout !== 'dock' ? 'cards' : 'chips'}
       className={
-        layout === 'equal' && !hasDescriptions
-          ? 'grid grid-cols-1 sm:grid-cols-3 [&>button]:w-full [&>button]:max-w-none'
-          : undefined
+        layout === 'dock'
+          ? 'justify-start'
+          : layout === 'equal' && !hasDescriptions
+            ? 'grid grid-cols-1 sm:grid-cols-3 [&>button]:w-full [&>button]:max-w-none'
+            : undefined
       }
     />
   );

@@ -73,7 +73,7 @@ describe('ModelSelectorModelSpec', () => {
 
     expect(screen.queryByText('Speed')).not.toBeInTheDocument();
     expect(screen.queryByText('Quality')).not.toBeInTheDocument();
-    expect(screen.queryByText('Cost')).not.toBeInTheDocument();
+    expect(screen.getByText('Pricing unavailable')).toBeInTheDocument();
     expect(screen.queryByText('Duration')).not.toBeInTheDocument();
     expect(screen.queryByText('Outputs')).not.toBeInTheDocument();
   });

@@ -295,6 +295,7 @@ export default function BrandOverlay({
           </Modal.Header>
 
           <Form
+            className="flex min-h-0 flex-1 flex-col"
             spacing="none"
             onSubmit={(event) => {
               if (!canSubmitCreateBrand || isSubmitting) {

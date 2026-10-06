@@ -161,7 +161,7 @@ test('Brand OS settings downloads privately, publishes, explicitly updates a new
     });
   });
 
-  await adminPage.goto('/test-org/brand-1/settings/kit');
+  await adminPage.goto('/test-org/brand-1/settings/brand-kit');
   const settings = adminPage.getByTestId('brand-os-settings');
   await expect(
     settings.getByRole('heading', { name: 'design.md · private' }),

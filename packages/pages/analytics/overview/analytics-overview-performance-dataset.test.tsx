@@ -30,6 +30,8 @@ vi.mock('next/link', () => ({
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
+    brandSlug: 'brand',
+    orgHref: (path: string) => `/acme/~${path}`,
     href: (path: string) => `/acme/brand${path}`,
   }),
 }));
@@ -139,7 +141,10 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
     const link = await screen.findByRole('link', {
       name: 'Connect more accounts',
     });
-    expect(link).toHaveAttribute('href', '/acme/brand/settings/integrations');
+    expect(link).toHaveAttribute(
+      'href',
+      '/acme/brand/settings/connected-accounts',
+    );
   });
 
   it('does not show the cold-start hint for high confidence', async () => {

@@ -3,6 +3,7 @@ import {
   useAgentChatStore,
   useConversationComposerShell,
 } from '@genfeedai/agent';
+import { readRecordedRunFailure } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import { useAgentBrandCreate } from '@genfeedai/hooks/agent/use-agent-brand-create';
@@ -59,13 +60,25 @@ export function AgentWorkspacePageShell({
       setTurnFailures(0);
     }
   }, [pendingCard]);
-  const latestAssistantReplyId = useAgentChatStore((state) => {
+  const latestSuccessfulAssistantReplyId = useAgentChatStore((state) => {
     const message = state.messages.at(-1);
-    return message?.role === 'assistant' ? message.id : null;
+    return message?.role === 'assistant' &&
+      !state.stream.isStreaming &&
+      !state.error &&
+      !readRecordedRunFailure(message.metadata)
+      ? message.id
+      : null;
   });
+  const lastSuccessfulReplyId = useRef(latestSuccessfulAssistantReplyId);
   useEffect(() => {
-    if (latestAssistantReplyId) setTurnFailures(0);
-  }, [latestAssistantReplyId]);
+    if (
+      latestSuccessfulAssistantReplyId &&
+      latestSuccessfulAssistantReplyId !== lastSuccessfulReplyId.current
+    ) {
+      lastSuccessfulReplyId.current = latestSuccessfulAssistantReplyId;
+      setTurnFailures(0);
+    }
+  }, [latestSuccessfulAssistantReplyId]);
   useEffect(() => {
     if (!isOnboarding) return;
     if (turnError && !failureSeen.current) {
