@@ -332,10 +332,9 @@ export class TrendsService {
         context,
         true,
       );
-      if (preferences?.platforms?.length) {
-        trends = trends.filter((trend) =>
-          preferences.platforms.includes(trend.platform),
-        );
+      const platforms = preferences?.platforms ?? [];
+      if (platforms.length) {
+        trends = trends.filter((trend) => platforms.includes(trend.platform));
       }
     } else if (organizationId) {
       const preferences = await this.trendPreferencesService.getPreferences(
