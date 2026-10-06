@@ -425,13 +425,10 @@ export function getActivityDestinationPath(
   }
 
   const { subject } = parseActivityKey(activity.key);
-  if (subject === 'social') {
+  // Social account events use the integration subject (`integration-social-*`),
+  // including legacy rows that have no brand scope. Both land on connected accounts.
+  if (subject === 'social' || subject === 'integration') {
     return APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS;
-  }
-  if (subject === 'integration') {
-    return activity.brandId
-      ? APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS
-      : APP_ROUTES.SETTINGS.INTEGRATIONS;
   }
 
   const entityModel = activity.entityModel?.toLowerCase();
