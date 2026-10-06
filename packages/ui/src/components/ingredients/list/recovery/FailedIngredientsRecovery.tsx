@@ -219,8 +219,8 @@ export default function FailedIngredientsRecovery({
         ariaLabel={t('deleteAll', { count: ingredients.length })}
         icon={<Trash2 className="size-4" />}
         size={ButtonSize.SM}
-        variant={ButtonVariant.OUTLINE}
-        className="border-destructive/40 text-destructive hover:bg-destructive/10"
+        variant={ButtonVariant.SECONDARY}
+        className="border border-destructive/40 text-destructive hover:bg-destructive/10"
         isDisabled={isRecovering}
         onClick={() => onDelete(visibleIds)}
       />

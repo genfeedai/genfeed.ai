@@ -21,7 +21,10 @@ vi.mock(
   () => ({ useConfirmModal: () => ({ openConfirm: mocks.confirm }) }),
 );
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ href: (path: string) => path, push: mocks.push }),
+  useOrgUrl: () => ({ href: (path: string) => path }),
+}));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mocks.push }),
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => async () =>

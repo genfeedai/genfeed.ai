@@ -22,6 +22,7 @@ import {
 import { getIngredientRecovery } from '@genfeedai/utils/media/ingredient-recovery.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useRef, useState } from 'react';
 
@@ -47,7 +48,8 @@ export function useFailedIngredientRecovery({
   onRefresh,
 }: UseFailedIngredientRecoveryProps) {
   const { openConfirm } = useConfirmModal();
-  const { href, push } = useOrgUrl();
+  const { href } = useOrgUrl();
+  const router = useRouter();
   const t = useTranslations('pages.library.recovery');
   const notifications = NotificationsService.getInstance();
   const getImages = useAuthedService((token) =>
@@ -301,7 +303,7 @@ export function useFailedIngredientRecovery({
         const service = await getHandoff();
         const { id } = await service.create(payload);
         if (snapshotScope === currentScopeRef.current)
-          push(
+          router.push(
             href(
               `${APP_ROUTES.STUDIO.GENERATE}?handoff=${encodeURIComponent(id)}`,
             ),
@@ -320,7 +322,7 @@ export function useFailedIngredientRecovery({
       getHandoff,
       href,
       notifications,
-      push,
+      router,
       scopeKey,
       t,
     ],
