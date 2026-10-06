@@ -6,7 +6,7 @@
     "@genfeedai/actions": "workspace:*",
     "@genfeedai/ui": "workspace:*",
     "@genfeedai/utils": "workspace:*",
-    "@posthog/mcp": "0.21.4",
+    "@posthog/mcp": "0.22.0",
     "posthog-node": "5.55.0",
     "tsconfig-paths": "4.2.0",
     "@genfeedai/contracts": "workspace:*",
@@ -21,7 +21,7 @@
     "@types/jsdom": "^30.0.0",
     "jsdom": "29.1.1",
     "esbuild": "0.28.2",
-    "postcss": "8.5.28",
+    "postcss": "8.5.29",
     "@tailwindcss/postcss": "4.3.3"
   },
   "description": "Genfeed MCP Server",
