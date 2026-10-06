@@ -318,6 +318,6 @@ export class BrandFromUrlService {
     const appUrl = String(
       this.config.get('GENFEEDAI_APP_URL') ?? 'https://app.genfeed.ai',
     ).replace(/\/+$/, '');
-    return `${appUrl}${createBrandAppRoute(organization?.slug ?? organizationId, brandSlug, '/settings/kit')}`;
+    return `${appUrl}${createBrandAppRoute(organization?.slug ?? organizationId, brandSlug, '/settings/brand-kit')}`;
   }
 }

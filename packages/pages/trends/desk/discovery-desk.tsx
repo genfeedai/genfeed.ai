@@ -299,7 +299,7 @@ export default function DiscoveryDesk() {
     `${APP_ROUTES.DISCOVERY.OVERVIEW}?source=following`,
   );
   const publishingHref = brandSlug
-    ? href(APP_ROUTES.SETTINGS.SOCIAL)
+    ? href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)
     : orgHref(APP_ROUTES.SETTINGS.BRANDS);
   const sourceHealthHref = href(APP_ROUTES.DISCOVERY.TRENDS);
 

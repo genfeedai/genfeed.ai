@@ -455,7 +455,7 @@ export class AccountAnalyticsService {
       firstTrackedAt: credential.createdAt.toISOString(),
       isConnected: credential.isConnected,
       label: credential.label,
-      manageHref: `${APP_ROUTES.SETTINGS.SOCIAL}?credential=${credential.id}`,
+      manageHref: `${APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS}?credential=${credential.id}`,
       platform,
     };
   }

@@ -1127,7 +1127,7 @@ function createMockAccountAnalytics(credentialId: string): IAccountAnalytics {
       firstTrackedAt: null,
       isConnected: true,
       label: 'Mock account',
-      manageHref: '/settings/social',
+      manageHref: '/settings/connected-accounts',
       platform: Platform.TIKTOK,
     },
     metrics: [

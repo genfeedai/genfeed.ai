@@ -146,9 +146,7 @@ let useAuthedServiceCallCount = 0;
 // The calendar page resolves the repurpose modal from the global-modals
 // provider, which this suite renders outside of.
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import(
-    '../../../../../../tests/next-intl.stub'
-  );
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return {
     useTranslations: (namespace: string) => translateFromCatalog(namespace),
   };
@@ -541,7 +539,7 @@ describe('ContentCalendarPage', () => {
 
     expect(screen.getByTestId('drawer-release')).toHaveTextContent('release-1');
     expect(screen.getByTestId('reconnect-href')).toHaveTextContent(
-      '/acme-org/acme-creator/settings/integrations',
+      '/acme-org/acme-creator/settings/connected-accounts',
     );
     expect(screen.getByTestId('evergreen-series-controls')).toHaveTextContent(
       'release-1',

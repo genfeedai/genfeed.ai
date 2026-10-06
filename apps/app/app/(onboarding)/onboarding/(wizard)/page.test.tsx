@@ -83,7 +83,9 @@ describe('onboarding entry redirects', () => {
     mocks.isCompleted = true;
     render(<OnboardingRootPage />);
     await waitFor(() =>
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/brand/settings/kit'),
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/acme/brand/settings/brand-kit',
+      ),
     );
   });
   it('resumes experts after their conversational brand handoff', async () => {

@@ -415,7 +415,11 @@ export function usePostSignupRouting(): PostSignupRoutingState {
           });
           captureBrandOsFunnelStage('draft_saved');
           redirectTo(
-            createBrandAppRoute(organization.slug, brand.slug, '/settings/kit'),
+            createBrandAppRoute(
+              organization.slug,
+              brand.slug,
+              '/settings/brand-kit',
+            ),
           );
           return;
         } catch (error) {

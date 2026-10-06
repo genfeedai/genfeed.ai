@@ -207,11 +207,11 @@ export default function BatchProjectPage({ projectId }: BatchProjectPageProps) {
                     <Link
                       href={href(
                         reason.includes('connected')
-                          ? APP_ROUTES.SETTINGS.INTEGRATIONS
+                          ? APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS
                           : reason.includes('reference') ||
                               reason.includes('tone')
                             ? APP_ROUTES.SETTINGS.BRANDS
-                            : APP_ROUTES.SETTINGS.AGENT_DEFAULTS,
+                            : APP_ROUTES.SETTINGS.AGENT,
                       )}
                     >
                       {reason}

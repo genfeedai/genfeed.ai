@@ -343,9 +343,9 @@ export function useAnalyticsOverview({
 
   const connectAccountsHref =
     scope === PageScope.SUPERADMIN
-      ? orgHref(APP_ROUTES.SETTINGS.SOCIAL)
+      ? orgHref(APP_ROUTES.SETTINGS.INTEGRATIONS)
       : brandSlug
-        ? href(APP_ROUTES.SETTINGS.SOCIAL)
+        ? href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)
         : orgHref(APP_ROUTES.SETTINGS.BRANDS);
 
   const heroContent = useMemo<DashboardHeroContent | null>(() => {

@@ -44,7 +44,7 @@ export default function PublishingAccountRow({
           withWrapper={false}
           className="self-start shrink-0 sm:self-center"
         >
-          <Link href={href(APP_ROUTES.SETTINGS.SOCIAL)}>
+          <Link href={href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}>
             {reconnectLabel}
             <span className="sr-only">
               {' '}

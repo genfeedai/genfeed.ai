@@ -56,7 +56,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
       id: 'connect_social_account',
       label: 'Connect a social account',
       rewardCredits: 45,
-      // Social connections are brand-scoped, so the flat `/settings/integrations`
+      // Social connections are brand-scoped, so the flat `/settings/connected-accounts`
       // path has no org-scoped page to canonicalize onto. Send self-hosted
       // operators to the brand list, which is one hop from brand > social.
       selfHostedCtaHref: '/settings/brands',

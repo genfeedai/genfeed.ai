@@ -35,7 +35,7 @@ export default function SettingsProgressOverviewCard({
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
           >
-            <Link href={orgHref(nextSetupStep.href)}>
+            <Link href={nextSetupStep.href}>
               <Sparkles className="size-4" />
               Finish {nextSetupStep.label}
             </Link>

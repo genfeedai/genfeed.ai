@@ -211,7 +211,7 @@ export default function SwitcherDropdown({
                     close();
                     action.onAction();
                   }}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground/60 transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-0"
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground/60 transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {ActionIcon ? (
                     <ActionIcon className="size-3.5 flex-shrink-0" />
@@ -308,20 +308,22 @@ function SwitcherItem({
         </span>
       </CommandItem>
 
-      {trailingActions.map((action) => (
-        <TrailingActionControl
-          key={action.ariaLabel}
-          action={action}
-          onAction={onAction}
-        />
-      ))}
+      <div className="mr-1.5 flex shrink-0 items-center gap-0.5">
+        {trailingActions.map((action) => (
+          <TrailingActionControl
+            key={action.ariaLabel}
+            action={action}
+            onAction={onAction}
+          />
+        ))}
+      </div>
     </div>
   );
 }
 
 const TRAILING_ACTION_CLASSNAME = cn(
-  'mr-1.5 flex size-7 flex-shrink-0 items-center justify-center rounded text-foreground/38 transition-colors duration-150',
-  'group-hover:text-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-0',
+  'flex size-7 flex-shrink-0 items-center justify-center rounded text-foreground/38 transition-colors duration-150',
+  'group-hover:text-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
 );
 
 function TrailingActionControl({

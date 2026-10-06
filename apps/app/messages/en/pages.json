@@ -538,7 +538,7 @@
         "label": "Guardrails"
       },
       "label": {
-        "helper": "Internal name for this harness profile.",
+        "helper": "Name for these content rules.",
         "label": "Label"
       },
       "lineRules": {
@@ -666,7 +666,7 @@
     },
     "promote": "Promote winners to memory",
     "promoting": "Promoting…",
-    "save": "Save harness",
+    "save": "Save content rules",
     "saving": "Saving...",
     "tabs": {
       "delivery": "Delivery",
@@ -676,7 +676,7 @@
       "structure": "Structure",
       "thesis": "Thesis"
     },
-    "title": "Brand harness"
+    "title": "Content rules"
   },
   "brandKitReview": {
     "candidateTokenNotice": "Candidate only · not a Genfeed product token",
@@ -688,7 +688,46 @@
     "manualDescription": "Add owned guidance and reference assets after reviewing the scan.",
     "reviewDescription": "Review extracted and inferred evidence before accepting it. Candidate colors stay separate from Genfeed product tokens.",
     "reviewTitle": "Review brand evidence",
-    "settingsAriaLabel": "Brand Kit settings"
+    "settingsAriaLabel": "Brand Kit settings",
+    "sectionsLabel": "Brand Kit sections",
+    "actionsLabel": "Brand Kit actions",
+    "overview": "Overview",
+    "visual": "Visual identity",
+    "voice": "Writing voice",
+    "strategy": "Strategy",
+    "scan": "Scan website",
+    "guidedSetup": "Guided setup",
+    "manualImport": "Import guidance / manual draft",
+    "contentRules": "Content rules & examples",
+    "review": "Review changes",
+    "loading": "Loading identity…",
+    "startDraft": "Scan a website or create a manual draft to start an identity revision.",
+    "assets": "Assets, references & watermark",
+    "snapshot": "Versioned identity snapshot",
+    "snapshotHelp": "Writing edits save to the live agent profile. Review the versioned snapshot separately before approving it.",
+    "unsaved": "Unsaved revision changes",
+    "saved": "Revision saved",
+    "saveDraft": "Save draft",
+    "createManualDraft": "Create manual draft",
+    "capturedDraft": "Website scan & captured draft",
+    "replaceLogo": "Replace logo",
+    "replaceBanner": "Replace banner",
+    "preview": {
+      "label": "Local brand preview",
+      "title": "Preview · {source}",
+      "approved": "Approved",
+      "draft": "Draft",
+      "sourceLabel": "Preview source",
+      "templateLabel": "Preview template",
+      "social": "Social post",
+      "cover": "Article cover",
+      "profile": "Profile card",
+      "noApproved": "No approved revision yet.",
+      "creditFree": "Local template · no generation · no credits. Draft previews do not change the approved identity.",
+      "sample": "Your next idea starts here.",
+      "description": "Add your brand description to see it here.",
+      "brand": "Brand"
+    }
   },
   "platforms": {
     "home": {
@@ -2486,7 +2525,8 @@
     },
     "otherAssets": "Other assets",
     "sidebar": {
-      "shelvesGroup": "Shelves"
+      "shelvesGroup": "Shelves",
+      "elementsGroup": "Elements"
     },
     "tags": {
       "addTag": "Add tag",
@@ -3926,7 +3966,7 @@
     "answers": {
       "create": {
         "question": "How do I create a new character?",
-        "answer": "Open your brand Settings → Characters → New Character. Describe the character, generate a sheet, approve the result, then choose a name and unique handle to save it."
+        "answer": "Open your brand Library → Elements → Characters → New Character. Describe the character, generate a sheet, approve the result, then choose a name and unique handle to save it."
       },
       "save": {
         "question": "Can I save an image I already generated?",
@@ -4160,7 +4200,9 @@
     "exportInvalid": "Approved revision cannot be exported. Review required identity and export limits, then save and approve a corrected revision.",
     "revisionLink": "Open immutable revision design.md",
     "scanPersistenceFailed": "Website scan succeeded, but the draft could not be saved as a revision. Your scanned fields are still available below.",
-    "manualPersistenceFailed": "Manual draft created, but it could not be saved as a revision. Your fields are still available below."
+    "manualPersistenceFailed": "Manual draft created, but it could not be saved as a revision. Your fields are still available below.",
+    "chooseFont": "Choose a font",
+    "reviewIdentityFields": "Review identity fields"
   },
   "brandPublishingSettings": {
     "approvalGate": {
@@ -5125,5 +5167,14 @@
         "evidenceIds": "Evidence IDs"
       }
     }
+  },
+  "brandAgentSettings": {
+    "brandMissing": "Brand not found.",
+    "sectionsLabel": "Agent settings sections",
+    "defaults": "Defaults",
+    "context": "Context",
+    "learning": "Learning",
+    "receipts": "Generation receipts",
+    "writingVoice": "Writing voice"
   }
 }

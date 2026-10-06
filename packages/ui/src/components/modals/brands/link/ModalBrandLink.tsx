@@ -27,7 +27,7 @@ import { type ChangeEvent, useEffect, useState } from 'react';
 /**
  * Manual brand links are non-OAuth destinations only.
  * Social profiles (X, IG, YouTube, …) come from connected accounts on
- * /settings/integrations — not free-typed Link rows.
+ * /settings/connected-accounts — not free-typed Link rows.
  */
 const LINK_CATEGORY_OPTIONS: Array<{ label: string; value: LinkCategory }> = [
   { label: 'Website', value: LinkCategory.WEBSITE },

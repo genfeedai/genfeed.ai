@@ -5,6 +5,10 @@ const mockUseCurrentUser = vi.fn();
 const mockUseAccessState = vi.fn();
 const mockUseBrand = vi.fn();
 const mockGetStatus = vi.fn();
+const mockScope = vi.hoisted(() => ({
+  brandSlug: 'coffee',
+  orgSlug: 'acme',
+}));
 
 vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => mockUseCurrentUser(),
@@ -33,6 +37,25 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn() },
 }));
 
+vi.mock('@hooks/navigation/use-org-url', async () => {
+  const { createBrandAppRoute, createOrganizationAppRoute } = await import(
+    '@genfeedai/contracts/constants'
+  );
+
+  return {
+    useOrgUrl: () => {
+      const orgHref = (path: string) =>
+        createOrganizationAppRoute(mockScope.orgSlug, path);
+      const activeHref = (path: string) =>
+        mockScope.brandSlug
+          ? createBrandAppRoute(mockScope.orgSlug, mockScope.brandSlug, path)
+          : orgHref(path);
+
+      return { activeHref, orgHref };
+    },
+  };
+});
+
 import { useSetupCard } from './use-setup-card';
 
 const NON_EXPERT_BRAND = {
@@ -58,6 +81,8 @@ function setUser(onboardingStepsCompleted: string[] | undefined): void {
 describe('useSetupCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockScope.brandSlug = 'coffee';
+    mockScope.orgSlug = 'acme';
     mockUseAccessState.mockReturnValue({ hasPaygCredits: false });
     mockUseBrand.mockReturnValue(NON_EXPERT_BRAND);
     mockGetStatus.mockResolvedValue(null);
@@ -86,10 +111,45 @@ describe('useSetupCard', () => {
     );
 
     expect(preferences?.isCompleted).toBe(true);
-    expect(preferences?.href).toBe('/settings/brands');
+    expect(preferences?.href).toBe('/acme/~/settings/brands');
     expect(platforms?.isCompleted).toBe(false);
-    expect(platforms?.href).toBe('/settings/api-keys');
+    expect(platforms?.href).toBe('/acme/coffee/settings/connected-accounts');
     expect(result.current.completedCount).toBe(1);
+  });
+
+  it('sends brand-less Social accounts to the organization brands directory', () => {
+    mockScope.brandSlug = '';
+
+    const { result } = renderHook(() => useSetupCard());
+    const platforms = result.current.steps.find(
+      (step) => step.key === 'platforms',
+    );
+
+    expect(platforms?.href).toBe('/acme/~/settings/brands');
+    expect(platforms?.href).not.toBe('/settings/connected-accounts');
+    expect(platforms?.href).not.toBe('/settings/api-keys');
+  });
+
+  it('updates account hrefs when the selected scope changes', () => {
+    const { result, rerender } = renderHook(() => useSetupCard());
+    const hrefFor = (key: string) =>
+      result.current.steps.find((step) => step.key === key)?.href;
+
+    expect(hrefFor('platforms')).toBe(
+      '/acme/coffee/settings/connected-accounts',
+    );
+
+    mockScope.brandSlug = '';
+    rerender();
+
+    expect(hrefFor('platforms')).toBe('/acme/~/settings/brands');
+    expect(hrefFor('preferences')).toBe('/acme/~/settings/brands');
+
+    mockScope.orgSlug = 'bravo';
+    rerender();
+
+    expect(hrefFor('platforms')).toBe('/bravo/~/settings/brands');
+    expect(hrefFor('preferences')).toBe('/bravo/~/settings/brands');
   });
 
   it('hides when every step is completed', () => {

@@ -21,6 +21,11 @@ import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ui/primitives/collapsible';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -85,6 +90,8 @@ export default function BrandOsSettingsCard({
   onRefreshBrand,
   onRevisionSaved,
   onReadinessChange,
+  fieldGroups,
+  renderWorkspace,
 }: BrandOsSettingsCardProps) {
   const t = useTranslations('pages.brandOsSettings');
   const common = useTranslations('common.actions');
@@ -591,7 +598,7 @@ export default function BrandOsSettingsCard({
     exportState?.canPublish &&
     exportState.revisionId !== exportState.publishedRevisionId;
 
-  return (
+  const review = (
     <Card
       label={t('title')}
       description={t('description')}
@@ -674,15 +681,22 @@ export default function BrandOsSettingsCard({
               </p>
             )}
             {content && (
-              <BrandOsRevisionFields
-                content={content}
-                isDisabled={
-                  !canManage ||
-                  busy ||
-                  selected?.status === BrandOsRevisionStatus.SUPERSEDED
-                }
-                onFieldChange={changeField}
-              />
+              <Collapsible defaultOpen={!renderWorkspace}>
+                <CollapsibleTrigger>
+                  {t('reviewIdentityFields')}
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <BrandOsRevisionFields
+                    content={content}
+                    isDisabled={
+                      !canManage ||
+                      busy ||
+                      selected?.status === BrandOsRevisionStatus.SUPERSEDED
+                    }
+                    onFieldChange={changeField}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
             )}
             {selected && !hasRules && (
               <p className="text-sm text-muted-foreground">
@@ -904,4 +918,38 @@ export default function BrandOsSettingsCard({
       </div>
     </Card>
   );
+  if (!renderWorkspace) return review;
+  return renderWorkspace({
+    content,
+    approvedContent:
+      revisions.find(
+        (revision) => revision.status === BrandOsRevisionStatus.APPROVED,
+      )?.content ?? null,
+    editor: content ? (
+      <BrandOsRevisionFields
+        content={content}
+        groups={fieldGroups}
+        showDecisions={false}
+        isDisabled={
+          !canManage ||
+          busy ||
+          selected?.status === BrandOsRevisionStatus.SUPERSEDED
+        }
+        onFieldChange={changeField}
+      />
+    ) : null,
+    review,
+    isDirty: dirty,
+    isLoading: loading,
+    error,
+    isSaveDisabled:
+      !canManage ||
+      busy ||
+      !selected ||
+      selected.status === BrandOsRevisionStatus.SUPERSEDED ||
+      (selected.status === BrandOsRevisionStatus.DRAFT && !dirty),
+    onSave: () => {
+      void saveDraft();
+    },
+  });
 }

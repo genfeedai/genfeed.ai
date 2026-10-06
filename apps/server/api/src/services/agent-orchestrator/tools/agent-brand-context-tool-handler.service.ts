@@ -17,7 +17,7 @@ const MAX_TEXT_CHARS = 400;
 const MAX_LIST_ITEMS = 12;
 const MAX_MEMORIES = 8;
 const MAX_SYSTEM_PROMPT_CHARS = 12_000;
-const AGENT_CONTEXT_SETTINGS_PATH = '/settings/agent-context';
+const AGENT_CONTEXT_SETTINGS_PATH = '/settings/agent/context';
 
 function clip(value: string | undefined, max = MAX_TEXT_CHARS) {
   if (!value) {

@@ -1,3 +1,5 @@
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+
 /**
  * Brand completeness scoring — computes per-group and overall
  * completeness for a serialized brand object.
@@ -69,13 +71,15 @@ function hasValue(val: unknown): boolean {
   return Boolean(val);
 }
 
-function brandHref(sub?: string): string {
-  const base = '/settings';
-  return sub ? `${base}/${sub}` : base;
+type BrandKitSection = 'voice' | 'strategy' | 'visual';
+
+function brandHref(section?: BrandKitSection): string {
+  if (!section) return APP_ROUTES.SETTINGS.ROOT;
+  return `${APP_ROUTES.SETTINGS.BRAND_KIT}?tab=${section}`;
 }
 
 function buildFieldDefs(): Record<string, FieldDef[]> {
-  const href = (sub?: string) => brandHref(sub);
+  const href = (section?: BrandKitSection) => brandHref(section);
 
   return {
     identity: [
@@ -107,25 +111,25 @@ function buildFieldDefs(): Record<string, FieldDef[]> {
     strategy: [
       {
         check: (b) => hasValue(b.agentConfig?.strategy?.contentTypes),
-        href: href('voice'),
+        href: href('strategy'),
         key: 'contentTypes',
         label: 'Content types',
       },
       {
         check: (b) => hasValue(b.agentConfig?.strategy?.platforms),
-        href: href('voice'),
+        href: href('strategy'),
         key: 'platforms',
         label: 'Platforms',
       },
       {
         check: (b) => hasValue(b.agentConfig?.strategy?.goals),
-        href: href('voice'),
+        href: href('strategy'),
         key: 'goals',
         label: 'Goals',
       },
       {
         check: (b) => hasValue(b.agentConfig?.strategy?.frequency),
-        href: href('voice'),
+        href: href('strategy'),
         key: 'frequency',
         label: 'Posting frequency',
       },
@@ -134,13 +138,13 @@ function buildFieldDefs(): Record<string, FieldDef[]> {
       {
         check: (b) =>
           hasValue(b.primaryColor) && b.primaryColor !== DEFAULT_PRIMARY_COLOR,
-        href: href(),
+        href: href('visual'),
         key: 'primaryColor',
         label: 'Brand color',
       },
       {
         check: (b) => hasValue(b.references),
-        href: href(),
+        href: href('visual'),
         key: 'references',
         label: 'Reference images',
       },
