@@ -4,6 +4,8 @@ const FAL_PRICING_API =
   'Fal rates come from the Fal pricing API refresh; no public list price is captured in the sheet.';
 const PRIVATE_DEPLOYMENT =
   'Private managed deployment: no public provider rate exists, so it stays red until an operator-approved rate is set.';
+const INPUT_MEGAPIXELS =
+  'Bills input and output megapixels; dispatch does not supply input megapixels.';
 const IDENTITY_404 =
   'The public provider page returned 404; the model identity is unavailable.';
 
@@ -12,6 +14,8 @@ const IDENTITY_404 =
  * catalog model needs a sheet entry or a line here (checked in CI).
  */
 export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
+  'black-forest-labs/flux-2-dev': INPUT_MEGAPIXELS,
+  'black-forest-labs/flux-2-flex': INPUT_MEGAPIXELS,
   'bytedance/seedream-5-pro': NO_PUBLIC_RATE,
   'bytedance/video-upscaler': NO_PUBLIC_RATE,
   'fal-ai/elevenlabs/music': FAL_PRICING_API,

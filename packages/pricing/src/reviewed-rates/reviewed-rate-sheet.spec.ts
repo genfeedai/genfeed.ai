@@ -124,6 +124,18 @@ describe('reviewed rate sheet', () => {
     expect(uncovered).toEqual([]);
   });
 
+  it('keeps input-megapixel models unresolved until dispatch can meter them', () => {
+    for (const endpoint of [
+      'black-forest-labs/flux-2-dev',
+      'black-forest-labs/flux-2-flex',
+    ]) {
+      expect(findReviewedRateSheetEntry('replicate', endpoint)).toBeUndefined();
+      expect(UNPRICED_MODELS[endpoint]).toContain(
+        'dispatch does not supply input megapixels',
+      );
+    }
+  });
+
   it('never lists a model as both priced and unpriced', () => {
     for (const entry of REVIEWED_RATE_SHEET_ENTRIES)
       expect(UNPRICED_MODELS[entry.endpoint], entry.endpoint).toBeUndefined();
