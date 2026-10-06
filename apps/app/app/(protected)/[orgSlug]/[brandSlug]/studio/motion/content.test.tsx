@@ -26,6 +26,8 @@ const mocks = vi.hoisted(() => ({
   quote: vi.fn(),
   submit: vi.fn(),
   replace: vi.fn(),
+  refetchProject: vi.fn(),
+  search: '',
 }));
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => mocks.identity,
@@ -38,7 +40,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mocks.replace }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(mocks.search),
 }));
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 vi.mock('@ui/layout/container/Container', () => ({
@@ -89,7 +91,7 @@ vi.mock('@hooks/data/content/use-visual-projects', () => ({
       data: mocks.catalog,
     },
     projects: { data: { pages: [] } },
-    project: {},
+    project: { refetch: mocks.refetchProject },
     quote: mocks.quote,
     submit: mocks.submit,
   }),
@@ -122,6 +124,7 @@ beforeEach(() => {
       },
     ],
   };
+  mocks.search = '';
   mocks.quote.mockResolvedValue(quote);
   mocks.submit.mockResolvedValue({ id: 'project' });
 });
@@ -182,6 +185,47 @@ describe('Motion quote review', () => {
     );
     expect(
       screen.queryByRole('button', { name: 'confirm' }),
+    ).not.toBeInTheDocument();
+  });
+  it('offers a reload when the project revision is stale', async () => {
+    mocks.search = 'project=project-1';
+    mocks.quote.mockRejectedValue({
+      errors: [{ detail: 'stale_visual_revision', status: '409' }],
+    });
+    render(<MotionContent />);
+    fireEvent.change(screen.getByLabelText('prompt'), {
+      target: { value: 'Animate a title' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('staleRevision');
+    fireEvent.click(screen.getByRole('button', { name: 'reloadRevision' }));
+    expect(mocks.refetchProject).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+  it('clears a stale create conflict without fetching a project', async () => {
+    mocks.quote.mockRejectedValue({
+      errors: [{ detail: 'stale_visual_revision', status: '409' }],
+    });
+    render(<MotionContent />);
+    fireEvent.change(screen.getByLabelText('prompt'), {
+      target: { value: 'Animate a title' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('staleRevision');
+    fireEvent.click(screen.getByRole('button', { name: 'reloadRevision' }));
+    expect(mocks.refetchProject).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+  it('keeps the generic message for a non-conflict failure', async () => {
+    mocks.quote.mockRejectedValue({ unexpected: true });
+    render(<MotionContent />);
+    fireEvent.change(screen.getByLabelText('prompt'), {
+      target: { value: 'Animate a title' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'getQuote' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('failed');
+    expect(
+      screen.queryByRole('button', { name: 'reloadRevision' }),
     ).not.toBeInTheDocument();
   });
   it('renders when the catalog payload omits models', () => {
