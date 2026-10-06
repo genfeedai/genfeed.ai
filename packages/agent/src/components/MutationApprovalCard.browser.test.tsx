@@ -41,14 +41,18 @@ it('lets a user review the prepared intent and decline in Chromium', async () =>
   await expect
     .element(page.getByText('Summer launch', { exact: true }))
     .toBeVisible();
-  await page.screenshot({ path: 'mutation-approval-pending.png' });
+  await page.screenshot({
+    path: '../../dist/vitest/screenshots/mutation-approval-pending.png',
+  });
   await page.getByRole('button', { name: 'Decline' }).click();
   await expect.element(page.getByRole('status')).toHaveTextContent('Declined');
   expect(onUiAction).toHaveBeenCalledWith('decline_mutation', {
     approvalId: 'approval-1',
     sourceActionId: 'source-1',
   });
-  await page.screenshot({ path: 'mutation-approval-declined.png' });
+  await page.screenshot({
+    path: '../../dist/vitest/screenshots/mutation-approval-declined.png',
+  });
 });
 
 it('shows contextual expiry and sends only a renewal request in Chromium', async () => {
@@ -77,7 +81,9 @@ it('shows contextual expiry and sends only a renewal request in Chromium', async
   await expect
     .element(page.getByRole('button', { name: 'Approve', exact: true }))
     .not.toBeInTheDocument();
-  await page.screenshot({ path: 'mutation-approval-expired.png' });
+  await page.screenshot({
+    path: '../../dist/vitest/screenshots/mutation-approval-expired.png',
+  });
   await page.getByRole('button', { name: 'Prepare again' }).click();
   await expect
     .element(
@@ -127,7 +133,9 @@ it('shows a red failure with collapsed details and review recovery in Chromium',
     );
     expect(getComputedStyle(surface).boxShadow).toBe('none');
   }
-  await page.screenshot({ path: 'mutation-approval-failed.png' });
+  await page.screenshot({
+    path: '../../dist/vitest/screenshots/mutation-approval-failed.png',
+  });
   await page.getByRole('button', { name: 'Technical details' }).click();
   await expect
     .element(page.getByText('Dispatch failed', { exact: true }))
