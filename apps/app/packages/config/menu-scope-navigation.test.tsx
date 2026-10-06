@@ -1,8 +1,8 @@
 import { getAnalyticsMenuItemsForScope } from '@app-config/analytics-menu-items.config';
 import { getMessagesMenuItemsForScope } from '@app-config/messages-menu-items.config';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { useMenuShared } from '@genfeedai/ui/components/menus/shared/useMenuShared';
 import { renderHook } from '@testing-library/react';
+import { useMenuShared } from '@ui/menus/shared/useMenuShared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const route = vi.hoisted(() => ({
