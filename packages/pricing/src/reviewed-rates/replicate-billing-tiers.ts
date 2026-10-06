@@ -184,12 +184,30 @@ function parsePrice(raw: unknown): number | null {
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
-function tokenDivisor(price: Record<string, unknown>): number | null {
+function billingDivisor(
+  price: Record<string, unknown>,
+  requiresScale: boolean,
+): number | null {
   const text =
     `${String(price.type ?? '')} ${String(price.title ?? '')}`.toLowerCase();
-  if (/million|1m\b/.test(text)) return 1_000_000;
-  if (/thousand|1k\b/.test(text)) return 1_000;
-  return null;
+  const scales = new Set<number>();
+  for (const match of text.matchAll(
+    /\bper[\s-]+(million|thousand|hundred|1m|1k|[0-9][0-9,]*)\b/g,
+  )) {
+    const scale = match[1];
+    const divisor =
+      scale === 'million' || scale === '1m'
+        ? 1_000_000
+        : scale === 'thousand' || scale === '1k'
+          ? 1_000
+          : scale === 'hundred'
+            ? 100
+            : Number(scale?.replaceAll(',', ''));
+    if (!Number.isSafeInteger(divisor) || divisor <= 0) return null;
+    scales.add(divisor);
+  }
+  if (scales.size > 1) return null;
+  return scales.values().next().value ?? (requiresScale ? null : 1);
 }
 
 function mapBillingCriterion(
@@ -312,16 +330,14 @@ export function mapReplicateBillingTiers(
       const quoted = parsePrice(rawPrice.price);
       if (quoted === null)
         return { reason: `invalid_price:${rawPrice.metric}`, status: 'failed' };
-      let unitPriceUsd = quoted;
-      if (metric.unit.endsWith('-token')) {
-        const divisor = tokenDivisor(rawPrice);
-        if (divisor === null)
-          return {
-            reason: `unmapped_token_scale:${rawPrice.metric}`,
-            status: 'failed',
-          };
-        unitPriceUsd = quoted / divisor;
-      }
+      const isToken = metric.unit.endsWith('-token');
+      const divisor = billingDivisor(rawPrice, isToken);
+      if (divisor === null)
+        return {
+          reason: `${isToken ? 'unmapped_token_scale' : 'unmapped_price_scale'}:${rawPrice.metric}`,
+          status: 'failed',
+        };
+      const unitPriceUsd = quoted / divisor;
       // Labelled by billed unit, as the rate sheet labels them, so the same
       // prices read as the same rates whichever source stated them.
       const component =
