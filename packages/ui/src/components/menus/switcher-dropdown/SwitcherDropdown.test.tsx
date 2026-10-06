@@ -288,9 +288,9 @@ describe('SwitcherDropdown', () => {
     fireEvent.click(screen.getByText('Open'));
 
     const alphaRow = screen.getByRole('option', {
-      name: 'Alpha',
+      name: /Alpha/,
     }).parentElement;
-    const betaRow = screen.getByRole('option', { name: 'Beta' }).parentElement;
+    const betaRow = screen.getByRole('option', { name: /Beta/ }).parentElement;
 
     // Active row: persistent selected wash + check
     expect(alphaRow).toHaveClass('bg-foreground/[0.08]');
