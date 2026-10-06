@@ -15,12 +15,14 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
 import { Check, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 
 export default function IngredientReviewActions({
   ingredient,
   onUpdated,
 }: IngredientReviewActionsProps) {
+  const translate = useTranslations('pages.library.review');
   const { selectedBrand, settings } = useBrand();
   const isMediaLocked = Boolean(
     selectedBrand?.isFleetEnabled &&
@@ -57,9 +59,7 @@ export default function IngredientReviewActions({
       window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
     } catch (error) {
       logger.error('Failed to review Library asset', error);
-      NotificationsService.getInstance().error(
-        'Could not save your review. Try again.',
-      );
+      NotificationsService.getInstance().error(translate('saveFailed'));
     } finally {
       isSavingRef.current = false;
       setIsSaving(false);
@@ -70,11 +70,11 @@ export default function IngredientReviewActions({
     <div
       className="flex items-center gap-1 rounded-md bg-background/90 p-0.5"
       role="group"
-      aria-label="Review asset"
+      aria-label={translate('label')}
     >
       <Button
-        ariaLabel="Approve asset"
-        tooltip="Approve asset"
+        ariaLabel={translate('approve')}
+        tooltip={translate('approve')}
         icon={<Check className="size-4" />}
         size={ButtonSize.ICON}
         variant={ButtonVariant.GHOST}
@@ -85,8 +85,8 @@ export default function IngredientReviewActions({
         onClick={() => void review(IngredientStatus.VALIDATED)}
       />
       <Button
-        ariaLabel="Reject asset"
-        tooltip="Reject asset"
+        ariaLabel={translate('reject')}
+        tooltip={translate('reject')}
         icon={<X className="size-4" />}
         size={ButtonSize.ICON}
         variant={ButtonVariant.GHOST}

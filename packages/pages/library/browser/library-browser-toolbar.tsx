@@ -432,12 +432,12 @@ export function LibraryBrowserIconActions({
           className={SHELL_ICON_BUTTON_CLASS}
           size={ButtonSize.ICON}
           variant={ButtonVariant.GHOST}
-          tooltip="Start Unsorted review with Agent"
+          tooltip={translate('startUnsortedReview')}
           withWrapper={false}
         >
           <Link
             href={reviewUnsortedHref}
-            aria-label="Start Unsorted review with Agent"
+            aria-label={translate('startUnsortedReview')}
           >
             <Sparkles className={SHELL_ICON_CLASS} />
           </Link>

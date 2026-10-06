@@ -9,6 +9,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import IngredientReviewActions from './IngredientReviewActions';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const { patch, notifyError, brandContext } = vi.hoisted(() => ({
   brandContext: {
     selectedBrand: { isFleetEnabled: false },

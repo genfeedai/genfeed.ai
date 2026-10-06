@@ -14,6 +14,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { readAgentLibraryFilters } from '@api/services/agent-orchestrator/tools/agent-library-filters.util';
 import { resolvePublishValidationMedia } from '@api/services/agent-orchestrator/tools/agent-publish-target.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
@@ -22,9 +23,6 @@ import {
   categoryToPlural,
   IngredientCategory,
   MemberRole,
-  parseIngredientOrigin,
-  parseLibraryShelf,
-  parseTagMatchMode,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
@@ -310,36 +308,13 @@ export class AgentWorkspaceToolHandler {
       return toolFailure(characterIds);
     }
 
-    const rawOrigin = params.origin;
-    const hasOrigin =
-      rawOrigin !== undefined && rawOrigin !== null && rawOrigin !== '';
-    const origin = hasOrigin ? parseIngredientOrigin(rawOrigin) : undefined;
-    if (hasOrigin && !origin) {
-      return toolFailure(
-        'origin must be UPLOADED, GENERATED, IMPORTED or UNKNOWN.',
-      );
-    }
-
-    const hasShelf =
-      params.shelf !== undefined &&
-      params.shelf !== null &&
-      params.shelf !== '';
-    const shelf = hasShelf ? parseLibraryShelf(params.shelf) : undefined;
-    if (hasShelf && !shelf) {
-      return toolFailure('shelf must be a valid Library shelf.');
-    }
+    const filters = readAgentLibraryFilters(params);
+    if ('error' in filters) return toolFailure(filters.error);
+    const { origin, shelf, tagMatch } = filters;
 
     const tagIds = readTagIds(params.tags);
     if (typeof tagIds === 'string') {
       return toolFailure(tagIds);
-    }
-
-    const rawTagMatch = params.tagMatch;
-    const hasTagMatch =
-      rawTagMatch !== undefined && rawTagMatch !== null && rawTagMatch !== '';
-    const tagMatch = hasTagMatch ? parseTagMatchMode(rawTagMatch) : undefined;
-    if (hasTagMatch && !tagMatch) {
-      return toolFailure('tagMatch must be any or all.');
     }
 
     const brandScope = await this.resolveAssetBrand(params, ctx);

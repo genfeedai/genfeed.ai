@@ -5,7 +5,7 @@
     "changelog": "Changelog",
     "channel": "Channel",
     "checkUpdates": "Check for updates",
-    "checking": "Checking…",
+    "checking": "Checking\u2026",
     "client": "Client",
     "commit": "Commit",
     "copied": "Build details copied.",
@@ -53,7 +53,7 @@
         "90d": "90 days",
         "all": "Since publication"
       },
-      "loading": "Loading website traffic…",
+      "loading": "Loading website traffic\u2026",
       "loadError": "Unable to load article traffic.",
       "retry": "Retry",
       "views": "Website views",
@@ -219,12 +219,12 @@
       "excludedPosts": "Excluded posts",
       "heading": "Outliers",
       "instagram": "Instagram",
-      "insufficient": "Insufficient data — this account needs at least 5 eligible posts",
+      "insufficient": "Insufficient data \u2014 this account needs at least 5 eligible posts",
       "tiktok": "TikTok",
       "twitter": "Twitter",
       "youtube": "YouTube",
       "facebook": "Facebook",
-      "loadingBaseline": "Loading baseline…",
+      "loadingBaseline": "Loading baseline\u2026",
       "medianViews": "Median views",
       "noContributors": "No contributing posts in this snapshot.",
       "noExcluded": "No excluded posts.",
@@ -250,7 +250,7 @@
       "evaluation": "Evaluation",
       "followers": "Followers",
       "loadError": "Account analytics could not be loaded.",
-      "loading": "Loading account analytics…",
+      "loading": "Loading account analytics\u2026",
       "noTrend": "No trend data for this window",
       "posts": "Posts",
       "postsOverWeeks": "{posts, plural, one {# post} other {# posts}} over {weeks, plural, one {# week} other {# weeks}}",
@@ -259,7 +259,7 @@
       "views": "Views"
     },
     "performanceDataset": {
-      "coldStartHint": "Planning uses a cold-start brief — competitor ads, creative patterns, and followed creators — until more history exists.",
+      "coldStartHint": "Planning uses a cold-start brief \u2014 competitor ads, creative patterns, and followed creators \u2014 until more history exists.",
       "coldStartHintLink": "Connect more accounts",
       "confidence": {
         "high": "High confidence",
@@ -268,7 +268,7 @@
         "none": "No confidence"
       },
       "importedBadge": "Imported",
-      "summaryLine": "Based on {total} posts in the last 7 days · {imported} imported from your connected accounts",
+      "summaryLine": "Based on {total} posts in the last 7 days \u00b7 {imported} imported from your connected accounts",
       "title": "Performance dataset"
     },
     "trends": {
@@ -299,7 +299,7 @@
         "emptyDescription": "Connect your social accounts to see personalized trends."
       },
       "detail": {
-        "loadingTitle": "Loading trend…",
+        "loadingTitle": "Loading trend\u2026",
         "notFound": "Trend not found",
         "error": "Error",
         "goBack": "Go Back",
@@ -422,7 +422,7 @@
       "emptyLiveFilters": "No ads match the current filters. Adjust filters or widen the timeframe.",
       "emptySearch": "No ads match your search.",
       "noteLabel": "Brand note",
-      "notePlaceholder": "Why this ad is worth revisiting…",
+      "notePlaceholder": "Why this ad is worth revisiting\u2026",
       "saveAction": "Save to swipe file",
       "saveAria": "Save {title}",
       "saveNote": "Save note",
@@ -440,14 +440,14 @@
       "creatives": "{count, plural, one {# creative} other {# creatives}}",
       "description": "We poll each competitor's public ad archive and file what is running into this page, ready to remix. Archives publish the creative only, so spend and delivery numbers stay unavailable.",
       "empty": "No competitors watched yet. Add one above to start collecting their live ads.",
-      "loading": "Loading watched competitors…",
+      "loading": "Loading watched competitors\u2026",
       "title": "Watched competitors",
       "watchCompetitor": "Watch competitor"
     },
     "discovery": {
       "savedFreshness": "Saved observation",
-      "staleFreshness": "Stale source — Remix unavailable",
-      "unknownFreshness": "Source freshness unknown — Remix unavailable",
+      "staleFreshness": "Stale source \u2014 Remix unavailable",
+      "unknownFreshness": "Source freshness unknown \u2014 Remix unavailable",
       "observedAt": "Observed {date}",
       "title": "Browse saved competitor ads",
       "description": "Browse previously saved competitor image and video ads. Browsing does not collect new ads.",
@@ -467,7 +467,7 @@
       "unsupported": "This public archive does not support discovery.",
       "unconfigured": "Saved ads are unavailable on this deployment.",
       "unavailable": "Saved ads are temporarily unavailable. Please try again later.",
-      "sampleNotice": "{count} creatives in this bounded saved sample. Counts are not the advertiser’s complete inventory.",
+      "sampleNotice": "{count} creatives in this bounded saved sample. Counts are not the advertiser\u2019s complete inventory.",
       "watch": "Watch",
       "watching": "Watching",
       "creativeCount": "{count} sampled creatives",
@@ -495,7 +495,7 @@
       "scopePrefix": "scope: {scope}"
     },
     "brandMissing": "Brand not found.",
-    "description": "This brand’s agent runtime profile — structure, delivery knobs, and examples. Scoped to the brand (not org-wide).",
+    "description": "This brand\u2019s agent runtime profile \u2014 structure, delivery knobs, and examples. Scoped to the brand (not org-wide).",
     "fields": {
       "aggression": {
         "helper": "How sharp or soft the delivery reads.",
@@ -624,7 +624,7 @@
       "format": "Format",
       "lastReward": "Last valid reward at",
       "loadError": "Learning status could not be loaded.",
-      "loading": "Loading learning status…",
+      "loading": "Loading learning status\u2026",
       "metricMask": "Metric mask and weights",
       "mode": "Mode",
       "noConsent": "No current contribution consent",
@@ -665,7 +665,7 @@
       "interviewLink": "Answer this in the interview"
     },
     "promote": "Promote winners to memory",
-    "promoting": "Promoting…",
+    "promoting": "Promoting\u2026",
     "save": "Save harness",
     "saving": "Saving...",
     "tabs": {
@@ -679,7 +679,7 @@
     "title": "Brand harness"
   },
   "brandKitReview": {
-    "candidateTokenNotice": "Candidate only · not a Genfeed product token",
+    "candidateTokenNotice": "Candidate only \u00b7 not a Genfeed product token",
     "sourceEvidence": "Source evidence"
   },
   "brandKitSettings": {
@@ -719,7 +719,7 @@
         "description": "Start a new post with {platform} already in mind.",
         "label": "Create"
       },
-      "description": "Queue, engage, and connection health for {platform} — without leaving this brand.",
+      "description": "Queue, engage, and connection health for {platform} \u2014 without leaving this brand.",
       "empty": {
         "connect": "Connect {platform}",
         "description": "Connect this destination to see its queue, engage inbox, and health.",
@@ -764,17 +764,17 @@
     "cancel": "Cancel",
     "clipGenerationFailed": "Clip generation failed",
     "clipsReady": "Clips ready",
-    "creatingProject": "Creating project…",
+    "creatingProject": "Creating project\u2026",
     "cuttingSelectedHighlights": "Cutting {count} selected highlights...",
     "description": "Split long-form videos into clips. Open a source to review every generated clip.",
-    "doneClipCount": "{count, plural, one {Done — # clip generated} other {Done — # clips generated}}",
+    "doneClipCount": "{count, plural, one {Done \u2014 # clip generated} other {Done \u2014 # clips generated}}",
     "draftBadge": "Draft",
     "draftRepickFile": "Choose {name} again to continue. Drafts keep the filename, not the file.",
     "draftSaveFailed": "Draft not saved. Your changes are still on this page.",
     "draftSaved": "Draft saved",
-    "draftSaving": "Saving draft…",
+    "draftSaving": "Saving draft\u2026",
     "edit": "Edit",
-    "fileSizeMegabytes": "{name} · {size} MB",
+    "fileSizeMegabytes": "{name} \u00b7 {size} MB",
     "generatingAvatarClips": "Generating {count} avatar clips...",
     "generatingClips": "Generating clips",
     "generatingHookClip": "Generating hook clip",
@@ -797,8 +797,8 @@
     "noProjectsYet": "No clip projects yet",
     "pipelineFailed": "Pipeline failed. Check logs for details.",
     "processingAvatarClips": "Processing source media and generating avatar clips...",
-    "processingAvatarClipsEllipsis": "Processing source media and generating avatar clips…",
-    "processingCaptionedRawCuts": "Processing source video and creating captioned raw cuts…",
+    "processingAvatarClipsEllipsis": "Processing source media and generating avatar clips\u2026",
+    "processingCaptionedRawCuts": "Processing source video and creating captioned raw cuts\u2026",
     "processingRawCuts": "Processing source video and creating raw cuts...",
     "projectCreateFailed": "The clip project could not be created.",
     "projectNotStarted": "Clips could not start",
@@ -821,10 +821,10 @@
     "sourceLimits": "Supports long-form audio and video up to 10 GB and 6 hours.",
     "sourceProcessingFailed": "Source processing failed",
     "startClipFactory": "Start Clip Factory",
-    "starting": "Starting…",
+    "starting": "Starting\u2026",
     "uploadAudioOrVideo": "Upload audio or video",
     "uploadProgressAria": "Upload {progress}% complete",
-    "uploadingSource": "Uploading source… {progress}%",
+    "uploadingSource": "Uploading source\u2026 {progress}%",
     "youtubeUrl": "YouTube URL",
     "youtubeUrlPlaceholder": "https://www.youtube.com/watch?v=...",
     "recent": "Recent",
@@ -842,8 +842,8 @@
   },
   "studioBatch": {
     "emptyExecutions": "No recent batch executions yet.",
-    "loadingExecution": "Loading batch execution…",
-    "loadingWorkflows": "Loading workflows and recent executions…",
+    "loadingExecution": "Loading batch execution\u2026",
+    "loadingWorkflows": "Loading workflows and recent executions\u2026",
     "processedProgress": "{completed} / {total} processed",
     "recentExecutions": "Recent executions",
     "recentExecutionsDescription": "Reopen a batch, resume progress, or inspect completed results.",
@@ -898,7 +898,7 @@
       "shotStatus": "Shot {ordinal}",
       "shotStillUnavailable": "Shot {ordinal}: Still preview unavailable",
       "stillUnavailable": "Still preview unavailable",
-      "subtitle": "Stills and dialogue preview · no generation credits",
+      "subtitle": "Stills and dialogue preview \u00b7 no generation credits",
       "title": "Animatic"
     },
     "autoMerge": {
@@ -937,7 +937,7 @@
       "runtimeBudget": "Runtime budget (seconds)",
       "runtimeBudgetHelp": "Choose up to 60 seconds.",
       "save": "Save storyboard",
-      "saving": "Saving…",
+      "saving": "Saving\u2026",
       "sourceAria": "Storyboard source",
       "startingImage": "Starting image",
       "startingImageHelp": "A starting image can replace the brief. It is saved as a reference and requires generated stills before approval.",
@@ -949,7 +949,7 @@
     "draft": {
       "brief": "Brief",
       "briefDescription": "Source changes mark existing stills stale and require a new review.",
-      "loading": "Loading storyboard…",
+      "loading": "Loading storyboard\u2026",
       "regenerateBeforeEditor": "Storyboard changed. Regenerate stale shots before opening Editor.",
       "saveBeforeLeave": "Your edits could not be saved. Retry saving before leaving.",
       "scopeChanged": "Storyboard scope changed.",
@@ -984,7 +984,7 @@
       "durationUntilResolved": "Duration editing and adding shots become available when the supported model durations are resolved.",
       "format": "Format",
       "interpolate": "Interpolate",
-      "loadingVoices": "Loading saved voices…",
+      "loadingVoices": "Loading saved voices\u2026",
       "logline": "Logline",
       "modelUnavailable": "Video model unavailable: {reason}. Text edits and shot deletion remain available.",
       "moveShotDown": "Move shot {ordinal} down",
@@ -1011,7 +1011,7 @@
       "replaceCharacterWorking": "Replacing character",
       "replaceCharacterHistory": "Saved character requests",
       "replaceCharacterEmptyHistory": "No saved character requests.",
-      "replaceCharacterLoadingHistory": "Loading saved character requests…",
+      "replaceCharacterLoadingHistory": "Loading saved character requests\u2026",
       "replaceCharacterRefreshRequests": "Refresh requests",
       "replaceCharacterRefreshStatus": "Refresh status",
       "replaceCharacterRefreshSavedStatus": "Refresh saved status",
@@ -1064,7 +1064,7 @@
       "videoModel": "Video model",
       "voice": "Voice",
       "voiceFor": "Voice for {name}",
-      "voiceUnavailable": "Saved voice unavailable — replace or clear",
+      "voiceUnavailable": "Saved voice unavailable \u2014 replace or clear",
       "voiceUnavailableFor": "Saved voice for {name} is unavailable. Replace or clear it.",
       "voicesLibrary": "Voices Library"
     },
@@ -1094,26 +1094,26 @@
     "run": {
       "copyGroup": "Copy outputs",
       "identity": {
-        "avatar": "Avatar · {id}",
-        "voice": "Voice · {id}",
+        "avatar": "Avatar \u00b7 {id}",
+        "voice": "Voice \u00b7 {id}",
         "label": "Canonical identity"
       },
       "metaHandoffUnavailable": "Paused Meta handoff requires a connected Meta ad source and an available Meta Ads connection.",
       "outputCount": "{actual} of {requested} outputs ready",
       "outputLabel": "Output {ordinal}",
-      "outputAssetLabel": "Output {ordinal} · Asset {asset}",
-      "outputAssetUnavailable": "Output {ordinal} · Asset {asset} unavailable",
+      "outputAssetLabel": "Output {ordinal} \u00b7 Asset {asset}",
+      "outputAssetUnavailable": "Output {ordinal} \u00b7 Asset {asset} unavailable",
       "paidDraftSummary": "Campaign {campaignId}, ad set {adSetId}, and ad {adId} are PAUSED for review.",
       "prefillHelp": "Review the prefilled recipe below, then generate its variations.",
       "preparePaidDraft": "Prepare paused Meta draft",
       "readinessTitle": "{state} run",
-      "recipeRevision": "Recipe v{recipeVersion} · revision {revision}",
+      "recipeRevision": "Recipe v{recipeVersion} \u00b7 revision {revision}",
       "regionLabel": "Remix run",
       "review": {
         "open": "Open Review",
         "openPublishingDrafts": "Open Publishing drafts",
-        "summaryMany": "Review batch {batchId} · {count} drafts",
-        "summaryOne": "Review batch {batchId} · {count} draft"
+        "summaryMany": "Review batch {batchId} \u00b7 {count} drafts",
+        "summaryOne": "Review batch {batchId} \u00b7 {count} draft"
       },
       "sendToReview": "Send {count} to Review",
       "varyRecipe": "Vary recipe",
@@ -1122,8 +1122,8 @@
     "runPage": {
       "allRuns": "All storyboards",
       "loadFailed": "This storyboard run could not be loaded.",
-      "loading": "Loading storyboard run…",
-      "loadingDraft": "Loading storyboard…",
+      "loading": "Loading storyboard run\u2026",
+      "loadingDraft": "Loading storyboard\u2026",
       "retry": "Try again",
       "retryLoad": "Retry loading",
       "title": "Storyboard run"
@@ -1154,14 +1154,14 @@
       "shotCount": "{count, plural, one {# shot} other {# shots}}",
       "sourceKinds": {
         "brief": "Brief",
-        "remix_discovery": "Remix · Discovery",
-        "remix_upload": "Remix · Upload"
+        "remix_discovery": "Remix \u00b7 Discovery",
+        "remix_upload": "Remix \u00b7 Upload"
       },
       "title": "Storyboard"
     },
     "scenes": {
       "title": "Original ad scenes",
-      "limits": "2–6 scenes, English, 3–15 planned seconds per scene. Speech determines actual timing. Guided identity likeness is not guaranteed.",
+      "limits": "2\u20136 scenes, English, 3\u201315 planned seconds per scene. Speech determines actual timing. Guided identity likeness is not guaranteed.",
       "provenance": "The imported URL remains source provenance. Analysis uses the selected Library video; source pixels and audio are never generation inputs.",
       "attach": "Attach Library video for analysis",
       "remove": "Remove analysis attachment",
@@ -1179,7 +1179,7 @@
       "vendorCosts": "Application credits are shown per stage. Provider costs may be unknown; BYOK provider charges are separate.",
       "accept": "Accept quote and start",
       "scene": "Scene {ordinal}",
-      "observation": "Estimated source {start}–{end}s; keyframe {keyframe}s.",
+      "observation": "Estimated source {start}\u2013{end}s; keyframe {keyframe}s.",
       "visual": "Original visual intent",
       "narration": "Original English narration",
       "duration": "Planned duration (seconds)",
@@ -1191,7 +1191,7 @@
       "defaultIdentity": "Use run identity",
       "repairVideo": "Quote clip repair",
       "repairImage": "Quote still + clip repair",
-      "progress": "Still: {image} · Clip: {video} · Planned: {planned}s · Actual: {actual}s",
+      "progress": "Still: {image} \u00b7 Clip: {video} \u00b7 Planned: {planned}s \u00b7 Actual: {actual}s",
       "identityPairRequired": "Choose both an avatar and a saved voice for each scene override, or use the run identity.",
       "save": "Save storyboard (no generation)",
       "outputPreview": "Completed original captioned ad",
@@ -1220,7 +1220,7 @@
       "keptLocally": "Your edits are kept here. Retry before leaving.",
       "retry": "Retry save",
       "saved": "Saved",
-      "saving": "Saving…"
+      "saving": "Saving\u2026"
     },
     "workspace": {
       "addImages": "Add images",
@@ -1258,8 +1258,8 @@
       "remixDiscoveryDescription": "Open a saved source and continue its storyboard.",
       "removeVideo": "Remove {label}",
       "retryFailed": "Retry failed ({count})",
-      "sceneProgress": "{scenes} scenes · {pending} ready · {completed} completed",
-      "sceneProgressFailed": "{scenes} scenes · {pending} ready · {completed} completed · {failed} failed",
+      "sceneProgress": "{scenes} scenes \u00b7 {pending} ready \u00b7 {completed} completed",
+      "sceneProgressFailed": "{scenes} scenes \u00b7 {pending} ready \u00b7 {completed} completed \u00b7 {failed} failed",
       "scenesDescription": "Each scene is an image plus a script. Generate clips, then merge them into one video.",
       "scenesEmpty": "Add generated images, write a prompt per frame, then generate.",
       "scenesTitle": "Scenes",
@@ -1289,7 +1289,7 @@
       "seedPlaceholder": "Seed (optional)",
       "chooseSource": "Choose a source image to edit.",
       "modelUnavailable": "An available editing default or selected model is required.",
-      "promptPlaceholder": "Describe the change to your source image…",
+      "promptPlaceholder": "Describe the change to your source image\u2026",
       "sourceImages": "Source images",
       "maskOptional": "Mask (optional)",
       "target": "Target: {name}",
@@ -1303,10 +1303,10 @@
     "description": "One prompt bar for every asset type, enriched with your brand.",
     "draft": {
       "referencesDropped": "{count, plural, one {A reference} other {# references}} in your draft {count, plural, one {is} other {are}} no longer available and {count, plural, one {was} other {were}} removed.",
-      "saveFailed": "Draft not saved. Retrying…",
+      "saveFailed": "Draft not saved. Retrying\u2026",
       "saveRejected": "Draft could not be saved.",
       "saved": "Draft saved",
-      "saving": "Saving draft…"
+      "saving": "Saving draft\u2026"
     },
     "endFrame": "End Frame",
     "emptyDescription": "Write a prompt below and everything you generate lands here.",
@@ -1321,7 +1321,7 @@
       "cinematicVideo": {
         "characterLead": "Cinematic shot of ",
         "characterTail": ", slow camera move, natural light.",
-        "detail": "Video · 16:9",
+        "detail": "Video \u00b7 16:9",
         "label": "Cinematic video",
         "lead": "Cinematic brand film. Slow camera move, one subject, natural light."
       },
@@ -1330,7 +1330,7 @@
       "productAd": {
         "characterLead": "Short product ad featuring ",
         "characterTail": ". Open on the product, say one benefit, end on the brand.",
-        "detail": "Video · 9:16",
+        "detail": "Video \u00b7 9:16",
         "label": "Product ad",
         "lead": "Short product ad. Open on the product, say one benefit, end on the brand."
       },
@@ -1338,7 +1338,7 @@
       "productPhoto": {
         "characterLead": "Lifestyle photo of ",
         "characterTail": " with the product, clean studio light, sharp detail.",
-        "detail": "Image · square",
+        "detail": "Image \u00b7 square",
         "label": "Product photo",
         "lead": "Product photo on a clean studio background, soft shadow, sharp detail."
       },
@@ -1369,14 +1369,14 @@
     "estimatedCredits": "Estimated {credits} credits",
     "summary": {
       "setup": "Generation setup summary",
-      "modelLoading": "Loading model…",
+      "modelLoading": "Loading model\u2026",
       "modelUnavailable": "Model unavailable",
       "outputs": "{count, plural, one {# output} other {# outputs}}",
       "availableCredits": "{credits} available",
-      "balanceLoading": "Loading balance…",
+      "balanceLoading": "Loading balance\u2026",
       "balanceUnavailable": "Balance unavailable",
       "estimateAfterSelection": "Estimate available after model selection",
-      "estimateLoading": "Loading estimate…",
+      "estimateLoading": "Loading estimate\u2026",
       "estimateUnavailable": "Estimate unavailable",
       "estimateReasons": {
         "ERROR": "The price check failed. Try again.",
@@ -1386,18 +1386,18 @@
         "PRICING_UNRESOLVED": "This model has no confirmed price yet."
       },
       "serverRequired": "This Studio generator requires a server connection",
-      "costContextLoading": "Loading cost context…",
+      "costContextLoading": "Loading cost context\u2026",
       "costContextUnavailable": "Cost context unavailable"
     },
     "generate": "Generate",
     "generationFailed": "Generation failed",
     "history": {
-      "loadFailedTitle": "Generation history couldn’t load",
+      "loadFailedTitle": "Generation history couldn\u2019t load",
       "loadFailedDescription": "Try again to see your saved generations.",
-      "refreshFailedTitle": "Generation history couldn’t refresh",
+      "refreshFailedTitle": "Generation history couldn\u2019t refresh",
       "refreshFailedDescription": "The latest history is unavailable. Your last loaded results are still shown.",
       "retry": "Retry history",
-      "retrying": "Retrying history…"
+      "retrying": "Retrying history\u2026"
     },
     "inspectPrompt": "View prompt",
     "inspector": {
@@ -1420,7 +1420,7 @@
       "receiptLoadError": "Could not load the submitted prompt. Reopen this asset to retry.",
       "emptyUsedIn": "This asset has not been used in a post yet.",
       "history": "History",
-      "loading": "Loading…",
+      "loading": "Loading\u2026",
       "previewAlt": "{label} preview",
       "recipe": "Recipe",
       "remix": "Remix",
@@ -1431,7 +1431,7 @@
       "vary": "Vary"
     },
     "generationRemoved": "Generation removed",
-    "generating": "Generating…",
+    "generating": "Generating\u2026",
     "kling4KReferenceConflict": "Kling video references require Pro, not 4K",
     "outputTypes": {
       "avatar": "Avatar",
@@ -1462,7 +1462,7 @@
     "savedLooks": {
       "description": "Shared with everyone working in this brand.",
       "empty": "No saved Looks yet.",
-      "loading": "Loading saved Looks…",
+      "loading": "Loading saved Looks\u2026",
       "title": "Saved Looks"
     },
     "seedanceReferenceConflict": "Seedance uses frames or a video reference, not both",
@@ -1480,9 +1480,9 @@
     "makeClips": "Make clips",
     "crun": {
       "outputFormat": "Output format",
-      "quoteLoading": "Checking image price…",
+      "quoteLoading": "Checking image price\u2026",
       "quoteUnavailable": "Image pricing is unavailable",
-      "quoteStale": "Image settings changed. Refreshing the price…",
+      "quoteStale": "Image settings changed. Refreshing the price\u2026",
       "byok": "Your API key",
       "credits": "{credits} credits",
       "reasons": {
@@ -1633,10 +1633,10 @@
       "handoff": "Handoff",
       "ready": "Ready to invite",
       "prepareHandoff": "Prepare for handoff",
-      "repairing": "Repairing…",
+      "repairing": "Repairing\u2026",
       "repair": "Repair and refresh readiness",
       "availableCredits": "{amount} spendable credits",
-      "promisedCredits": " · {amount} promised at handoff",
+      "promisedCredits": " \u00b7 {amount} promised at handoff",
       "reimbursedCredits": "{amount} preparation credits reimbursed",
       "applyField": "Apply {field}",
       "confidence": "Confidence {percent}%",
@@ -1655,9 +1655,9 @@
     "addAnotherDescription": "Add another account, or a new channel, for this brand.",
     "brandNotFound": "Brand not found.",
     "cancel": "Cancel",
-    "channelAvailability": "{connectedCount, plural, one {# connected account} other {# connected accounts}} · {channelCount} channels available",
+    "channelAvailability": "{connectedCount, plural, one {# connected account} other {# connected accounts}} \u00b7 {channelCount} channels available",
     "checking": "Checking",
-    "checkingReadyReason": "Checking availability…",
+    "checkingReadyReason": "Checking availability\u2026",
     "confirmOverride": "Confirm override",
     "confirmWarmupOverride": "Confirm warmup override",
     "confirmWarmupOverrideError": "Failed to confirm the warmup override",
@@ -1671,7 +1671,7 @@
     "connected": "Connected",
     "connectedAccounts": "Connected accounts",
     "connectedCount": "{count} connected",
-    "connectingEllipsis": "Connecting…",
+    "connectingEllipsis": "Connecting\u2026",
     "disconnect": "Disconnect",
     "disconnectAccount": "Disconnect account",
     "disconnectAccountError": "Failed to disconnect account",
@@ -1680,7 +1680,7 @@
     "empty": "No social accounts connected yet.",
     "emptyAccountsDescription": "Connect a platform to start publishing from this brand.",
     "emptyAccountsTitle": "No accounts connected yet",
-    "expires": " · expires {time}",
+    "expires": " \u00b7 expires {time}",
     "health": {
       "accountAgeFailed": "Platform account-age check failed. Missing or stale evidence is tracked separately.",
       "accountAgeMissing": "{publishedPosts, plural, one {# published post} other {# published posts}}. Native social-account age is not yet verified by the platform.",
@@ -1715,8 +1715,8 @@
     "profilePictureAlt": "{account} profile picture",
     "reconnect": "Reconnect",
     "reconnectAccount": "Reconnect {account}",
-    "score": "{platform} · score {score}",
-    "searchPlatforms": "Search platforms…",
+    "score": "{platform} \u00b7 score {score}",
+    "searchPlatforms": "Search platforms\u2026",
     "socialMedia": "Social Media",
     "socialMediaDescription": "Connect channels for this brand and review the profiles that are already linked.",
     "state": {
@@ -1838,7 +1838,7 @@
     "desk": {
       "loadErrorBody": "The content desk could not reach posts, articles, or newsletters. Try again, or return to Posts and open the item from the list.",
       "loadErrorTitle": "Could not load content",
-      "loadingTitle": "Loading…",
+      "loadingTitle": "Loading\u2026",
       "missingBody": "No post, article, or newsletter matches this id. Use the breadcrumb to return to Posts and open the item again.",
       "missingTitle": "Content not found"
     },
@@ -1847,21 +1847,21 @@
         "askAgent": "Ask Agent",
         "delete": "Delete",
         "edit": "Edit",
-        "expandingToThread": "Expanding…",
+        "expandingToThread": "Expanding\u2026",
         "expandToThread": "Expand to Thread",
         "performance": "Performance",
         "preview": "Preview",
-        "publishing": "Publishing…",
+        "publishing": "Publishing\u2026",
         "publishNow": "Publish now",
         "remix": "Remix",
         "repurpose": "Repurpose",
         "schedule": "Schedule",
-        "scheduling": "Scheduling…",
+        "scheduling": "Scheduling\u2026",
         "threadLengthOption": "{count} tweets",
         "threadLengthPrompt": "Select thread length",
         "viewLivePost": "View live post"
       },
-      "loadingSubtitle": "Loading post…",
+      "loadingSubtitle": "Loading post\u2026",
       "needsYou": {
         "failedAction": "Retry publish",
         "failedDescription": "This post failed to publish.",
@@ -2096,9 +2096,9 @@
         "selectedBrand": "your selected brand",
         "examples": "Start with an example",
         "generate": "Generate campaign with AI",
-        "generating": "Building your campaign…",
-        "failed": "We could not generate your campaign. Your idea is still here—try again.",
-        "next": "We’ll create the objective, creative brief, channel recommendations, and post ideas. Then choose accounts and generate draft content for review. Nothing is published automatically.",
+        "generating": "Building your campaign\u2026",
+        "failed": "We could not generate your campaign. Your idea is still here\u2014try again.",
+        "next": "We\u2019ll create the objective, creative brief, channel recommendations, and post ideas. Then choose accounts and generate draft content for review. Nothing is published automatically.",
         "missingObjective": "Add a goal in Edit so every post has a clear purpose.",
         "examplesList": {
           "launch": {
@@ -2125,8 +2125,8 @@
       },
       "accounts": {
         "title": "Social accounts",
-        "description": "These accounts are connected to this campaign’s brand. Choose the accounts for this campaign when generating content. Generated drafts appear in Content; review and schedule them there.",
-        "loading": "Loading social accounts…",
+        "description": "These accounts are connected to this campaign\u2019s brand. Choose the accounts for this campaign when generating content. Generated drafts appear in Content; review and schedule them there.",
+        "loading": "Loading social accounts\u2026",
         "failed": "Social accounts could not be loaded.",
         "retry": "Try again",
         "unnamed": "Connected account",
@@ -2140,7 +2140,7 @@
         "generated": "Created {succeeded} drafts. Review and schedule them in Content.",
         "alreadyGenerated": "These accounts already have campaign content. Open Content to review it.",
         "generateFailed": "Content could not be generated. Check the selected accounts and try again.",
-        "generating": "Generating drafts…",
+        "generating": "Generating drafts\u2026",
         "close": "Close",
         "review": "Review content"
       }
@@ -2214,7 +2214,7 @@
         "medium": "Medium risk"
       },
       "healthScore": "Score {score}",
-      "healthSignals": "{days}d connected · {posts} published · {failures} recent failures",
+      "healthSignals": "{days}d connected \u00b7 {posts} published \u00b7 {failures} recent failures",
       "healthState": {
         "healthy": "Healthy",
         "not_started": "Not started",
@@ -2261,14 +2261,14 @@
         "engagementRate": "Engagement rate",
         "followUpComment": "Follow-up comment",
         "likes": "Likes",
-        "loading": "Loading rules…",
+        "loading": "Loading rules\u2026",
         "notTriggered": "Not triggered yet.",
         "reconnectAccounts": "Reconnect accounts",
         "repost": "Repost",
         "rulesFireOncePrefix": "Rules fire at most once per target.",
         "rulesFireOnceSuffix": "if a rule is ineligible.",
         "shares": "Shares",
-        "thresholdSummary": "Threshold {threshold} · {mode}",
+        "thresholdSummary": "Threshold {threshold} \u00b7 {mode}",
         "title": "Automation",
         "triggerHistory": "Trigger history",
         "views": "Views"
@@ -2286,12 +2286,12 @@
         "targetTime": "{platform} time",
         "timezoneHint": "Times are in {timezone}."
       },
-      "rescheduleLocked": "This post can no longer be moved — one or more targets have already published or been cancelled.",
+      "rescheduleLocked": "This post can no longer be moved \u2014 one or more targets have already published or been cancelled.",
       "retryAriaLabel": "Retry {platform} target",
       "retryTarget": "Retry target",
       "schedule": "Schedule",
       "targets": "Targets",
-      "targetsSummary": "{count, plural, one {# channel target} other {# channel targets}} · {timezone}",
+      "targetsSummary": "{count, plural, one {# channel target} other {# channel targets}} \u00b7 {timezone}",
       "untitledPost": "Post detail"
     },
     "review": {
@@ -2351,7 +2351,7 @@
     "output": {
       "fidelityHelp": "Guided keeps the source pattern flexible while still steering brand look.",
       "fidelityLabel": "Fidelity",
-      "reviewRequired": "{target} · manual Review required",
+      "reviewRequired": "{target} \u00b7 manual Review required",
       "title": "Output",
       "types": {
         "avatar": "Avatar",
@@ -2369,7 +2369,7 @@
     "readiness": {
       "readyDescription": "Ready to continue into Studio."
     },
-    "recipeRevision": "Recipe v{recipeVersion} · revision {revision}",
+    "recipeRevision": "Recipe v{recipeVersion} \u00b7 revision {revision}",
     "reviewPolicy": "Every output enters manual Review. Nothing publishes or spends automatically.",
     "references": {
       "empty": "No Library references yet.",
@@ -2410,8 +2410,8 @@
     "destination": {
       "label": "Destination account",
       "brandDefaults": "Brand defaults",
-      "help": "Uses this account’s saved persona unless you choose an avatar and voice. Publishing stays manual.",
-      "loading": "Loading connected accounts…",
+      "help": "Uses this account\u2019s saved persona unless you choose an avatar and voice. Publishing stays manual.",
+      "loading": "Loading connected accounts\u2026",
       "error": "Unable to load connected accounts.",
       "empty": "No connected accounts for this platform"
     }
@@ -2448,7 +2448,8 @@
         "tagMatchAria": "How the selected tags combine",
         "tags": "Tags",
         "type": "Type",
-        "upload": "Upload"
+        "upload": "Upload",
+        "startUnsortedReview": "Start Unsorted review with Agent"
       }
     },
     "inspector": {
@@ -2483,30 +2484,30 @@
     },
     "tags": {
       "addTag": "Add tag",
-      "alreadyTagged": "This asset already has “{label}”",
-      "bulkAdded": "Added “{label}” to {changed, plural, one {# asset} other {# assets}}{skipped, plural, =0 {} other {, skipped #}}",
+      "alreadyTagged": "This asset already has \u201c{label}\u201d",
+      "bulkAdded": "Added \u201c{label}\u201d to {changed, plural, one {# asset} other {# assets}}{skipped, plural, =0 {} other {, skipped #}}",
       "bulkFailed": "Changed {changed}, skipped {skipped}, failed {failed}. Try again for the rest.",
-      "bulkRemoved": "Removed “{label}” from {changed, plural, one {# asset} other {# assets}}{skipped, plural, =0 {} other {, skipped #}}",
+      "bulkRemoved": "Removed \u201c{label}\u201d from {changed, plural, one {# asset} other {# assets}}{skipped, plural, =0 {} other {, skipped #}}",
       "colorLabel": "Tag color",
       "confirm": "Confirm",
       "confirmDelete": "Confirm deleting tag {label}",
-      "create": "Create “{label}”",
+      "create": "Create \u201c{label}\u201d",
       "createButton": "Create",
       "createFailed": "The tag could not be created.",
       "deleteTag": "Delete tag {label}",
-      "deleted": "Deleted “{label}”. Its assets are untouched.",
+      "deleted": "Deleted \u201c{label}\u201d. Its assets are untouched.",
       "emptyGuidance": "No tags yet. Tags are for campaign, series, episode, mood or client. Type, origin and folder are already filters. Type a name to create one.",
       "emptyHint": "No tags yet. Use tags for campaign, series, episode, mood or client.",
-      "loading": "Loading tags…",
+      "loading": "Loading tags\u2026",
       "manageDescription": "Rename, recolor or delete tags. Deleting a tag removes it from every asset and keeps the assets. Organization-wide tags are shared by every brand and need an owner or admin.",
       "manageFailed": "The tag could not be changed. Organization-wide and default tags are managed by an owner or admin.",
       "manageTags": "Manage tags",
       "moreTags": "+{count}",
       "newTagLabel": "New tag name",
-      "newTagPlaceholder": "New tag name…",
+      "newTagPlaceholder": "New tag name\u2026",
       "newTagScope": "Where the new tag is visible",
       "noMatch": "No matching tag.",
-      "notTagged": "This asset does not have “{label}”",
+      "notTagged": "This asset does not have \u201c{label}\u201d",
       "organizationTagDenied": "Only an organization owner or admin can create an organization-wide tag.",
       "overLimit": "Select up to {limit} assets to tag them together",
       "readOnly": "Read-only",
@@ -2517,7 +2518,7 @@
       "scopeOrganization": "All brands",
       "scopeThisBrand": "This brand",
       "searchLabel": "Search or create a tag",
-      "searchPlaceholder": "Search or create a tag…",
+      "searchPlaceholder": "Search or create a tag\u2026",
       "sectionLabel": "Tags",
       "stateAll": "On every selected asset",
       "stateSome": "On some selected assets",
@@ -2580,9 +2581,9 @@
         "error": "Failed to add source"
       },
       "detail": {
-        "captured": "{kind} · captured {date}",
+        "captured": "{kind} \u00b7 captured {date}",
         "neverCaptured": "never",
-        "version": "version {version} · {state}",
+        "version": "version {version} \u00b7 {state}",
         "purpose": "Purpose",
         "usedInGeneration": "Used in generation",
         "spaces": "Spaces",
@@ -2619,25 +2620,25 @@
         "addSuccess": "Source added; ingestion started",
         "addError": "Failed to add source",
         "refreshSuccess": "Refresh queued",
-        "refreshUnavailable": "Could not refresh “{title}”. Check the source URL and availability, then try again.",
+        "refreshUnavailable": "Could not refresh \u201c{title}\u201d. Check the source URL and availability, then try again.",
         "refreshError": "Failed to refresh source"
       },
       "reference": {
         "title": "Knowledge",
-        "auto": "Auto — use brand knowledge",
+        "auto": "Auto \u2014 use brand knowledge",
         "autoHint": "Genfeed retrieves the best-matching brand knowledge and cites it.",
         "explicitHint": "Only the sources you pick ground this generation, and they are cited.",
-        "nothingPicked": "Nothing picked yet — brand knowledge stays automatic until you pick a source.",
+        "nothingPicked": "Nothing picked yet \u2014 brand knowledge stays automatic until you pick a source.",
         "spaces": "Spaces",
         "inbox": "Inbox",
         "sources": "Sources",
-        "loading": "Loading…",
-        "empty": "No ready sources yet. Add some in Library › Knowledge.",
-        "budget": "Up to {passages} passages · ~{tokens} tokens"
+        "loading": "Loading\u2026",
+        "empty": "No ready sources yet. Add some in Library \u203a Knowledge.",
+        "budget": "Up to {passages} passages \u00b7 ~{tokens} tokens"
       }
     },
     "assetDeepLink": {
-      "opening": "Opening your asset…",
+      "opening": "Opening your asset\u2026",
       "unavailable": "This asset is unavailable in this brand, or you no longer have access to it."
     },
     "videoDetail": {
@@ -2646,6 +2647,12 @@
       "makeClips": "Make clips",
       "moreVersions": "+{count} more",
       "viewMoreVersions": "View more versions"
+    },
+    "review": {
+      "approve": "Approve asset",
+      "reject": "Reject asset",
+      "label": "Review asset",
+      "saveFailed": "Could not save your review. Try again."
     }
   },
   "onboarding": {
@@ -2653,7 +2660,7 @@
       "scan": {
         "title": "Review your brand guide",
         "pending": "Your website scan is waiting to start.",
-        "running": "Reading your website for brand details…",
+        "running": "Reading your website for brand details\u2026",
         "slow": "Your website is taking longer to respond. You can review saved details or keep waiting.",
         "ready": "Website details are ready to review.",
         "partial": "Some website details were found. Review missing information before approving.",
@@ -2708,10 +2715,10 @@
     },
     "expert": {
       "common": {
-        "badge": "Expert Path · Step {current} of {total}",
+        "badge": "Expert Path \u00b7 Step {current} of {total}",
         "continue": "Continue",
         "skip": "Skip for now",
-        "skipHint": "You can finish this later — it will be the first task in your workspace.",
+        "skipHint": "You can finish this later \u2014 it will be the first task in your workspace.",
         "errorTitle": "Something went wrong",
         "retry": "Try again"
       },
@@ -2728,11 +2735,11 @@
         "finish": "Score my positioning",
         "finishHint": "You've covered the positioning questions. Score them now, or keep going to fill brand gaps.",
         "keepGoing": "Keep going",
-        "loading": "Preparing your interview…",
+        "loading": "Preparing your interview\u2026",
         "scoreTitle": "Positioning score",
         "scoreOutOf": "{score} / 100",
         "weakestTitle": "Weakest dimension: {label}",
-        "weakestHint": "Strengthen it next — answer this in Settings → Interview, or record it for your corpus:",
+        "weakestHint": "Strengthen it next \u2014 answer this in Settings \u2192 Interview, or record it for your corpus:",
         "dimensionScore": "{score}/10",
         "errors": {
           "start": "We couldn't start your positioning interview.",
@@ -2742,7 +2749,7 @@
       },
       "corpus": {
         "title": "Bring your corpus.",
-        "description": "Add the material that sounds most like you — talks, newsletters, posts, call notes. Genfeed cites it as your authoritative knowledge.",
+        "description": "Add the material that sounds most like you \u2014 talks, newsletters, posts, call notes. Genfeed cites it as your authoritative knowledge.",
         "modes": {
           "url": "Link",
           "text": "Paste text",
@@ -2757,7 +2764,7 @@
         "fileHint": "PDF, DOCX, TXT, or Markdown up to 2 MB.",
         "chooseFile": "Choose file",
         "add": "Add to corpus",
-        "empty": "No sources yet. Add at least one to continue — or skip and add them later.",
+        "empty": "No sources yet. Add at least one to continue \u2014 or skip and add them later.",
         "readyCount": "{ready} of {total} ready",
         "retry": "Retry",
         "states": {
@@ -2774,10 +2781,10 @@
       },
       "firstSystem": {
         "title": "Your first content system.",
-        "description": "Genfeed drafts a week of content from your positioning and your corpus. Nothing publishes without your approval — approved items go to your review queue.",
+        "description": "Genfeed drafts a week of content from your positioning and your corpus. Nothing publishes without your approval \u2014 approved items go to your review queue.",
         "cost": "Generating uses {credits} credits.",
         "generate": "Generate my first system",
-        "generating": "Drafting from your positioning and corpus…",
+        "generating": "Drafting from your positioning and corpus\u2026",
         "missingTitle": "A couple of things are still missing",
         "missingPositioning": "Finish your positioning interview",
         "missingCorpus": "Add at least one ready corpus source",
@@ -2799,7 +2806,7 @@
         "enterWorkspace": "Enter workspace",
         "errors": {
           "load": "We couldn't load your Expert Path status.",
-          "generate": "We couldn't generate your first system. Your onboarding is complete — retry from your workspace tasks.",
+          "generate": "We couldn't generate your first system. Your onboarding is complete \u2014 retry from your workspace tasks.",
           "review": "We couldn't update that item."
         }
       }
@@ -2849,7 +2856,7 @@
         "label": "Credits used"
       },
       "generations": {
-        "description": "{llm} text · {media} media",
+        "description": "{llm} text \u00b7 {media} media",
         "label": "Generations"
       },
       "activeDays": {
@@ -2875,7 +2882,7 @@
     "charts": {
       "creditsUsed": "Daily credit burn (GEN)",
       "generationCount": "Daily generations",
-      "loading": "Loading chart…"
+      "loading": "Loading chart\u2026"
     },
     "tables": {
       "brandSplit": {
@@ -2894,7 +2901,7 @@
         "label": "Generation history",
         "emptyDescription": "Generations and credit charges will appear here.",
         "entries": "entries",
-        "creditNotice": "Credit charges are recorded separately. “Not recorded” means a generation has no linked credit amount. Exports include up to 10,000 entries."
+        "creditNotice": "Credit charges are recorded separately. \u201cNot recorded\u201d means a generation has no linked credit amount. Exports include up to 10,000 entries."
       }
     },
     "workflowAccounting": {
@@ -2972,7 +2979,7 @@
     "type": "Type:"
   },
   "replyDrip": {
-    "description": "Reply drips send one reply at a time inside the pacing you set. Pause, resume, or cancel at any point — a resumed drip continues from the recipient it stopped on.",
+    "description": "Reply drips send one reply at a time inside the pacing you set. Pause, resume, or cancel at any point \u2014 a resumed drip continues from the recipient it stopped on.",
     "title": "Reply drip"
   },
   "workspaceOverview": {
@@ -3019,7 +3026,7 @@
       "autoRouted": "Auto-routed by workspace orchestration.",
       "queued": "queued",
       "reviewStateNone": "none",
-      "loading": "Loading…",
+      "loading": "Loading\u2026",
       "unavailable": "Unavailable",
       "notAssessed": "not assessed",
       "confidencePercent": "{percent}% confidence"
@@ -3124,7 +3131,7 @@
       "empty": "No recent tasks.",
       "title": "Recent Tasks"
     },
-    "recentViewAll": "View All →",
+    "recentViewAll": "View All \u2192",
     "relativeTime": {
       "unknown": "unknown",
       "justNow": "just now",
@@ -3208,7 +3215,7 @@
     "actionNode": {
       "brand": "Brand",
       "configured": "Configured",
-      "inputsToConfigure": "{count, plural, one {# input · Select to configure} other {# inputs · Select to configure}}",
+      "inputsToConfigure": "{count, plural, one {# input \u00b7 Select to configure} other {# inputs \u00b7 Select to configure}}",
       "items": "{count, plural, one {# item} other {# items}}",
       "moreValues": "+{count} more values",
       "noConfigurationRequired": "No configuration required",
@@ -3231,9 +3238,9 @@
     },
     "templates": {
       "actions": {
-        "copying": "Copying…",
+        "copying": "Copying\u2026",
         "install": "Install",
-        "installing": "Installing…",
+        "installing": "Installing\u2026",
         "tryAgain": "Try again",
         "useTemplate": "Use template",
         "viewDetails": "View details"
@@ -3310,7 +3317,7 @@
       "invalidJson": "Enter valid JSON.",
       "noConfigurableInputs": "This action has no configurable inputs.",
       "required": "(required)",
-      "select": "Select…",
+      "select": "Select\u2026",
       "separateValues": "Separate values with commas"
     },
     "castPrompt": {
@@ -3340,7 +3347,7 @@
       "loudnessNa": "Loudness: n/a",
       "loudnessTarget": "Loudness target (LUFS)",
       "pass": "Pass",
-      "resolutionFallback": "Resolution: —"
+      "resolutionFallback": "Resolution: \u2014"
     },
     "edgeToolbar": {
       "deleteEdge": "Delete edge",
@@ -3409,7 +3416,7 @@
     "endpointDescription": "Endpoint: {endpoint}",
     "enterKeyTitle": "Enter the key without shell history",
     "equivalentConfig": "Equivalent config.toml",
-    "finishDescription": "Complete browser consent, then ask your agent: “List my Genfeed brands.” A successful read verifies access.",
+    "finishDescription": "Complete browser consent, then ask your agent: \u201cList my Genfeed brands.\u201d A successful read verifies access.",
     "finishTitle": "Finish connecting in your client",
     "firstActionTitle": "First distribution action",
     "invalidKeyTitle": "Key verification failed",
@@ -3443,7 +3450,7 @@
   },
   "connectSocial": {
     "authorize": "Authorize account",
-    "connecting": "Opening provider…",
+    "connecting": "Opening provider\u2026",
     "description": "Authorize this publishing account in your browser, then return to the agent or CLI that started the connection.",
     "failed": "Could not start provider authorization.",
     "failedTitle": "Connection failed",
@@ -3564,9 +3571,9 @@
   },
   "accountHistoryImport": {
     "description": "Genfeed imports what this account published over the last 90 days so it can learn what works for this brand. Imported posts are yours, not generated by Genfeed, and appear under My accounts in Discovery.",
-    "loading": "Loading connected accounts…",
+    "loading": "Loading connected accounts\u2026",
     "notImported": "Nothing has been imported from this account yet.",
-    "notGenerated": "Imported · not generated by Genfeed",
+    "notGenerated": "Imported \u00b7 not generated by Genfeed",
     "importNow": "Import now",
     "completedSummary": "Imported {count, plural, one {# post} other {# posts}} from the last {windowDays} days on {date}.",
     "failedSummary": "Import failed: {error}",
@@ -3781,7 +3788,7 @@
       },
       "create": {
         "title": "2. Make a first draft",
-        "description": "Open Studio or the agent, describe one result, and review the generated draft. In Automation → Templates, choose a workflow when you want repeatable steps."
+        "description": "Open Studio or the agent, describe one result, and review the generated draft. In Automation \u2192 Templates, choose a workflow when you want repeatable steps."
       },
       "review": {
         "title": "3. Review and reuse",
@@ -3800,7 +3807,7 @@
       },
       "workflows": {
         "title": "Workflow learning",
-        "description": "Learn Studio and generation workflows. For ready-made workflows, open Automation → Templates in your brand."
+        "description": "Learn Studio and generation workflows. For ready-made workflows, open Automation \u2192 Templates in your brand."
       },
       "changelog": {
         "title": "Changelog",
@@ -3826,7 +3833,7 @@
     "answers": {
       "create": {
         "question": "How do I create a new character?",
-        "answer": "Open your brand Settings → Characters → New Character. Describe the character, generate a sheet, approve the result, then choose a name and unique handle to save it."
+        "answer": "Open your brand Settings \u2192 Characters \u2192 New Character. Describe the character, generate a sheet, approve the result, then choose a name and unique handle to save it."
       },
       "save": {
         "question": "Can I save an image I already generated?",
@@ -3854,7 +3861,7 @@
     "from": "From (UTC)",
     "through": "Through (UTC)",
     "applyDates": "Apply dates",
-    "invalidRange": "Choose a date range of 1–90 days.",
+    "invalidRange": "Choose a date range of 1\u201390 days.",
     "loading": "Loading email performance",
     "loadFailed": "Email performance could not be loaded.",
     "retry": "Retry report",
@@ -3945,7 +3952,7 @@
       "title": "Approved identity preview",
       "open": "View current approved identity",
       "savedVersion": "Save or discard your changes to view the current approved identity.",
-      "loading": "Loading the current approved identity…",
+      "loading": "Loading the current approved identity\u2026",
       "refresh": "Reload approved identity",
       "close": "Close preview",
       "unavailable": "The current approved identity cannot be shown. This does not mean the brand guide is missing or unapproved.",
@@ -4011,14 +4018,14 @@
     "downloading": "Downloading design.md",
     "downloaded": "Your approved design.md has been downloaded.",
     "errorPreserved": "{error} Your unsaved edits have been kept.",
-    "progress": "{action}…",
-    "loading": "Loading Brand OS revisions…",
+    "progress": "{action}\u2026",
+    "loading": "Loading Brand OS revisions\u2026",
     "history": "Revision history",
     "noRevisions": "No revisions yet",
-    "revisionOption": "Revision {version} · {status}",
+    "revisionOption": "Revision {version} \u00b7 {status}",
     "refresh": "Refresh history",
     "membersReadOnly": "Only organization owners and admins can edit, approve, publish, or revoke revisions.",
-    "revisionDetails": "Revision {version} · {status} · Updated {date}",
+    "revisionDetails": "Revision {version} \u00b7 {status} \u00b7 Updated {date}",
     "approvedDate": "Approved {date}",
     "empty": "Scan your website or create a manual draft below to start a revision.",
     "saveAsDraft": "Save as new draft",
@@ -4028,7 +4035,7 @@
     "discarded": "Unsaved edits discarded.",
     "unsaved": "Unsaved edits. Save your draft before approving or switching revisions.",
     "exportLabel": "Design export",
-    "exportTitle": "design.md · {state}",
+    "exportTitle": "design.md \u00b7 {state}",
     "downloadVersion": "Downloads use approved revision {version}.",
     "publicationOutdated": "A newer approved revision is available. Update the publication to share it.",
     "publicLink": "Open public design.md",
@@ -4065,7 +4072,7 @@
   "brandPublishingSettings": {
     "approvalGate": {
       "title": "You have the final say",
-      "description": "Nothing publishes without your approval while this gate is on. Turning on Auto-publish removes this gate — approved output publishes automatically."
+      "description": "Nothing publishes without your approval while this gate is on. Turning on Auto-publish removes this gate \u2014 approved output publishes automatically."
     }
   },
   "brandAgentContext": {
@@ -4246,7 +4253,7 @@
       "emptyOutput": "The model returned nothing to work with. Try again, or add a website, description, or audience to the brand first.",
       "generic": "Something went wrong. Please try again.",
       "incompleteProfile": "The generated profile was missing key details. Try again, or add a website, description, or audience to the brand first.",
-      "malformedOutput": "The model returned a profile we could not read. Try again — this usually clears on the next attempt.",
+      "malformedOutput": "The model returned a profile we could not read. Try again \u2014 this usually clears on the next attempt.",
       "saveFailed": "Your changes were not saved. Check your connection and try again.",
       "sourceRequired": "Add a website URL or brand details before generating.",
       "sourceUrlInvalid": "That website URL could not be read. Check it and try again."
@@ -4336,7 +4343,7 @@
       },
       "desktop_local_workspace": {
         "label": "Desktop local workspace",
-        "description": "Offer the offline local workspace on the desktop app’s sign-in and local pages."
+        "description": "Offer the offline local workspace on the desktop app\u2019s sign-in and local pages."
       }
     },
     "inactiveUnderParent": "Off while {parent} is off.",
@@ -4356,8 +4363,8 @@
     "features": {
       "modes": {
         "off": "Off",
-        "shadow": "Shadow — record only",
-        "live": "Live — act on answers"
+        "shadow": "Shadow \u2014 record only",
+        "live": "Live \u2014 act on answers"
       },
       "confidenceHelp": "Minimum confidence between 0 and 1. Lower answers keep the deterministic path.",
       "invalidNumber": "Enter a number from {min} to {max}",
@@ -4491,7 +4498,7 @@
       "description": "Choose where new signup and billing notifications are sent. Destinations can be changed without a deploy. Provider credentials are configured on the server.",
       "loadFailed": "Failed to load system notifications",
       "actionFailed": "Notification action failed",
-      "loading": "Loading notifications…",
+      "loading": "Loading notifications\u2026",
       "reload": "Refresh",
       "recordingDisabled": "Recording is disabled. Turn on Record system events in the Accounts tab to receive new events.",
       "deliveryDisabled": "Delivery is disabled in system notification settings.",
@@ -4587,7 +4594,7 @@
     "periodLabel": "Report period",
     "tableLabel": "Unit economics",
     "title": "Unit Economics",
-    "titleDrillDown": "Unit Economics · {label}",
+    "titleDrillDown": "Unit Economics \u00b7 {label}",
     "total": "Total"
   },
   "brandDetailOverview": {
@@ -4617,13 +4624,13 @@
   },
   "adminCreditHolds": {
     "sectionLabel": "Credit holds for {organization}",
-    "title": "Stuck credit holds · {organization}",
+    "title": "Stuck credit holds \u00b7 {organization}",
     "description": "Review expired media holds. Charging uses the original quoted amount and payer. Every action records your reason.",
-    "loading": "Loading holds…",
+    "loading": "Loading holds\u2026",
     "loadError": "Credit holds could not be loaded.",
     "empty": "No stuck media holds.",
     "unknownProvider": "Unknown provider",
-    "holdSummary": "{id} · {provider} · {status} · {amount} credits",
+    "holdSummary": "{id} \u00b7 {provider} \u00b7 {status} \u00b7 {amount} credits",
     "releaseHold": "Release hold",
     "chargeQuotedAmount": "Charge quoted amount",
     "confirmPrompt": "Confirm {action} for {id} ({amount} credits)",
@@ -4735,7 +4742,7 @@
       "redoTooltip": "Redo (Shift+Cmd/Ctrl+Z)",
       "saveFailed": "Not saved yet. Retrying",
       "saved": "All changes saved",
-      "saving": "Saving…",
+      "saving": "Saving\u2026",
       "undo": "Undo",
       "undoTooltip": "Undo (Cmd/Ctrl+Z)",
       "unsaved": "Unsaved changes"
@@ -4764,10 +4771,10 @@
     "noWorkflows": "No saved workflows yet. Create a workflow or start from ideas.",
     "createWorkflow": "Create a workflow",
     "create": "Create batch",
-    "loading": "Loading batch…",
+    "loading": "Loading batch\u2026",
     "loadFailed": "Could not load batches.",
     "saveFailed": "Could not save the batch. Try again.",
-    "saving": "Saving…",
+    "saving": "Saving\u2026",
     "saved": "Saved",
     "unsaved": "Changes not saved",
     "retrySave": "Retry saving",
@@ -4815,7 +4822,7 @@
     "description": "Create animated visuals from a prompt or React source, then export them to your Library.",
     "newProject": "New project",
     "projects": "Visual projects",
-    "loading": "Loading…",
+    "loading": "Loading\u2026",
     "moreProjects": "More projects",
     "history": "Revision history",
     "olderRevisions": "Older revisions",
@@ -4848,7 +4855,7 @@
     "libraryHint": "Select up to 12 of your latest 50 Library assets. Reference them with staticFile(\"assets/ASSET_ID\").",
     "outputs": "Output formats",
     "frames": "Still frames, separated by commas",
-    "limits": "Up to 30 seconds, 1920×1080 pixels, 24 or 30 fps, and 8 outputs. Prompt revisions inherit the previous settings and output selection.",
+    "limits": "Up to 30 seconds, 1920\u00d71080 pixels, 24 or 30 fps, and 8 outputs. Prompt revisions inherit the previous settings and output selection.",
     "sourceHint": "Export a named VisualComposition component. React and Remotion are available. Direct source is retained exactly and never automatically repaired.",
     "getQuote": "Review generation quote",
     "quoteExport": "Review export quote",
@@ -4861,7 +4868,7 @@
     "billingHint": "The ceiling reserves the maximum. Actual authoring, inspection and rendering work is charged even if you cancel or an output fails. Unused credits are released. Retry is a new invocation; check prior uncertainty diagnostics first.",
     "acknowledge": "I approve up to {maximum} credits for this request.",
     "confirm": "Confirm and start",
-    "submitting": "Submitting…",
+    "submitting": "Submitting\u2026",
     "invalidFrames": "Enter integer frame numbers separated by commas.",
     "outputLimit": "Choose between 1 and 8 outputs.",
     "invalidProps": "Props must be a JSON object.",
@@ -4874,7 +4881,7 @@
     "loadProps": "Load props for editing",
     "exportOutputs": "Separate export settings",
     "inheritedOutputs": "Prompt, source and props revisions keep these outputs:",
-    "rendererProvenance": "· {model} · Remotion {version}"
+    "rendererProvenance": "\u00b7 {model} \u00b7 Remotion {version}"
   },
   "adminModelPricing": {
     "catalog": "Catalog",
@@ -4892,7 +4899,7 @@
     "minDimensions": "Minimum dimensions: {value}",
     "unresolvedUnit": "unresolved unit",
     "review": "Review:",
-    "mapping": "· Mapping:",
+    "mapping": "\u00b7 Mapping:",
     "provenance": "Provenance:",
     "source": "Source:",
     "rateVerified": "Rate verified:",
@@ -4924,9 +4931,9 @@
     "description": "Configured quotes are single-output samples. Provider variants and account discounts require approved evidence.",
     "refresh": "Refresh snapshot",
     "export": "Export displayed pricing",
-    "retrieved": "· Retrieved",
+    "retrieved": "\u00b7 Retrieved",
     "rows": "rows",
-    "policyLoaded": "Configured conversion margin: {margin}×",
+    "policyLoaded": "Configured conversion margin: {margin}\u00d7",
     "policyUnresolved": "Conversion policy unresolved",
     "unavailable": "Pricing snapshot unavailable",
     "attentionLabel": "Models needing pricing attention",
@@ -4937,7 +4944,7 @@
     "badgeRed": "Price missing",
     "badgeOrange": "Review",
     "pendingPriceChanges": "Provider price change:",
-    "priceChangeLine": "{variant}: {oldPrice} → {newPrice}",
+    "priceChangeLine": "{variant}: {oldPrice} \u2192 {newPrice}",
     "noPrice": "none",
     "approveRates": "Approve new price",
     "confirmApproveRates": "Confirm approval",
@@ -4951,7 +4958,7 @@
     "open": "Generation receipts",
     "description": "Inspect the saved context and checks used for a generation.",
     "empty": "No generation receipts yet.",
-    "loading": "Loading generation receipts…",
+    "loading": "Loading generation receipts\u2026",
     "refresh": "Reload saved details",
     "loadMore": "Load more",
     "select": "Select a generation to inspect.",
