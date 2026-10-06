@@ -33,7 +33,7 @@ describe('ButtonRefresh', () => {
     expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled();
   });
 
-  it('swaps the arrows for the shared spinner while refreshing', () => {
+  it('swaps the arrows for short spokes while refreshing', () => {
     const { rerender } = render(
       <ButtonRefresh onClick={vi.fn()} isRefreshing={false} />,
     );
@@ -46,8 +46,21 @@ describe('ButtonRefresh', () => {
 
     const refreshing = screen.getByRole('button', { name: 'Refresh' });
     expect(refreshing.querySelector('.lucide-refresh-cw')).toBeNull();
-    expect(refreshing.querySelector('output')).toHaveClass(
-      'genfeed-loader-root',
+    expect(
+      refreshing.querySelectorAll('.gen-refresh-spinner-spoke'),
+    ).toHaveLength(8);
+    expect(refreshing.querySelector('svg')).toHaveAttribute(
+      'aria-hidden',
+      'true',
     );
+    expect(refreshing).toHaveAttribute('aria-busy', 'true');
+    expect(refreshing.querySelector('.genfeed-loader-root')).toBeNull();
+    expect(refreshing.querySelector('output')).toBeNull();
+
+    rerender(<ButtonRefresh onClick={vi.fn()} isRefreshing={false} />);
+
+    expect(idle.querySelector('.lucide-refresh-cw')).toBeTruthy();
+    expect(idle.querySelector('.gen-refresh-spinner-spoke')).toBeNull();
+    expect(idle).toHaveAttribute('aria-busy', 'false');
   });
 });
