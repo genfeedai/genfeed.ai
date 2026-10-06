@@ -457,9 +457,7 @@ describe('GenerationSetupPopover', () => {
     });
     await openPopover(user);
     await user.click(screen.getByRole('button', { name: 'Configure Type' }));
-    await user.click(
-      screen.getByRole('button', { name: 'Image', exact: true }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Image' }));
     expect(onSetField).not.toHaveBeenCalled();
     expect(onTypeChange).not.toHaveBeenCalled();
     expect(
