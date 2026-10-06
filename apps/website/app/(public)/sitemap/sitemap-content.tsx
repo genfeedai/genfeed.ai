@@ -53,7 +53,7 @@ export const SITE_DIRECTORY: readonly DirectorySection[] = [
       { href: '/chatgpt', label: 'ChatGPT' },
       { href: '/codex', label: 'Codex' },
       { href: '/cursor', label: 'Cursor' },
-      { href: '/gemini', label: 'Gemini' },
+      { href: '/gemini', label: 'Gemini CLI' },
       { href: '/openclaw', label: 'OpenClaw' },
       { href: '/grok', label: 'Grok' },
       { href: '/grok-bot', label: 'Grok Bot' },

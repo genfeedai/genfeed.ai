@@ -9,7 +9,7 @@ export const EDITORIAL_OG_ARTWORKS = {
   chatgpt: { headline: ['ChatGPT', 'publishes'], route: '/chatgpt' },
   codex: { headline: ['Codex', 'publishes'], route: '/codex' },
   cursor: { headline: ['Ship code', 'and content'], route: '/cursor' },
-  gemini: { headline: ['Gemini', 'publishes'], route: '/gemini' },
+  gemini: { headline: ['Gemini CLI', 'publishes'], route: '/gemini' },
   openclaw: { headline: ['OpenClaw', 'publishes'], route: '/openclaw' },
   grok: { headline: ['Grok', 'publishes'], route: '/grok' },
   'grok-bot': { headline: ['Always-on', 'content'], route: '/grok-bot' },

@@ -32,7 +32,9 @@ describe('AgentConnectDialog', () => {
     expect(dialog).toHaveAccessibleName('Connect your agent');
     expect(window.location.href).toBe(url);
     expect(
-      within(dialog).getAllByRole('button', { name: /^Connect / }),
+      within(dialog).getAllByRole('button', {
+        name: /^(Claude|OpenAI|Cursor|Gemini CLI|OpenClaw|Grok|Meta Muse)(?:\s|$)/,
+      }),
     ).toHaveLength(7);
     expect(
       within(dialog).queryByRole('link', { name: /setup guide/i }),
@@ -42,7 +44,7 @@ describe('AgentConnectDialog', () => {
   it('shows the Codex install command and account approval in the same dialog', () => {
     const dialog = open();
     fireEvent.click(
-      within(dialog).getByRole('button', { name: 'Connect OpenAI' }),
+      within(dialog).getByRole('button', { name: /^OpenAI(?:\s|$)/ }),
     );
     fireEvent.mouseDown(within(dialog).getByRole('tab', { name: 'Codex' }));
 
@@ -83,14 +85,14 @@ describe('AgentConnectDialog', () => {
       within(dialog).queryByText(/connected successfully/i),
     ).not.toBeInTheDocument();
     expect(
-      within(dialog).getByRole('button', { name: 'Connect Claude' }),
+      within(dialog).getByRole('button', { name: /^Claude(?:\s|$)/ }),
     ).toBeInTheDocument();
   });
 
   it('collapses alternative setup when switching apps', () => {
     const dialog = open();
     fireEvent.click(
-      within(dialog).getByRole('button', { name: 'Connect OpenAI' }),
+      within(dialog).getByRole('button', { name: /^OpenAI(?:\s|$)/ }),
     );
     fireEvent.mouseDown(within(dialog).getByRole('tab', { name: 'Codex' }));
     fireEvent.click(
@@ -109,13 +111,13 @@ describe('AgentConnectDialog', () => {
   it('groups Claude variants and updates the connector and install path when switching apps', () => {
     const dialog = open();
     expect(
-      within(dialog).queryByRole('button', { name: 'Connect Claude Code' }),
+      within(dialog).queryByRole('button', { name: /^Claude Code(?:\s|$)/ }),
     ).not.toBeInTheDocument();
     expect(
-      within(dialog).queryByRole('button', { name: 'Connect Codex' }),
+      within(dialog).queryByRole('button', { name: /^Codex(?:\s|$)/ }),
     ).not.toBeInTheDocument();
     fireEvent.click(
-      within(dialog).getByRole('button', { name: 'Connect Claude' }),
+      within(dialog).getByRole('button', { name: /^Claude(?:\s|$)/ }),
     );
     expect(within(dialog).getAllByRole('tab')).toHaveLength(3);
     expect(
@@ -146,7 +148,7 @@ describe('AgentConnectDialog', () => {
   it('lets visitors collapse installation and reveal approval independently', () => {
     const dialog = open();
     fireEvent.click(
-      within(dialog).getByRole('button', { name: 'Connect Claude' }),
+      within(dialog).getByRole('button', { name: /^Claude(?:\s|$)/ }),
     );
     fireEvent.click(
       within(dialog).getByRole('button', { name: '1. Add Genfeed' }),
@@ -172,27 +174,44 @@ describe('AgentConnectDialog', () => {
   it('keeps agent navigation available and marks the active family', () => {
     const dialog = open();
     fireEvent.click(
-      within(dialog).getByRole('button', { name: 'Connect Claude' }),
+      within(dialog).getByRole('button', { name: /^Claude(?:\s|$)/ }),
     );
     const agents = within(dialog).getByRole('navigation', { name: 'Agents' });
     expect(within(agents).getAllByRole('button')).toHaveLength(7);
     expect(
-      within(agents).getByRole('button', { name: 'Connect Claude' }),
+      within(agents).getByRole('button', { name: /^Claude(?:\s|$)/ }),
     ).toHaveAttribute('aria-pressed', 'true');
     expect(
       within(dialog).queryByRole('button', { name: 'Choose another agent' }),
     ).not.toBeInTheDocument();
     fireEvent.click(
-      within(agents).getByRole('button', { name: 'Connect Cursor' }),
+      within(agents).getByRole('button', { name: /^Cursor(?:\s|$)/ }),
     );
     expect(
-      within(agents).getByRole('button', { name: 'Connect Claude' }),
+      within(agents).getByRole('button', { name: /^Claude(?:\s|$)/ }),
     ).toHaveAttribute('aria-pressed', 'false');
     expect(
-      within(agents).getByRole('button', { name: 'Connect Cursor' }),
+      within(agents).getByRole('button', { name: /^Cursor(?:\s|$)/ }),
     ).toHaveAttribute('aria-pressed', 'true');
     expect(
       within(dialog).getByRole('link', { name: 'Add Genfeed to Cursor' }),
+    ).toBeInTheDocument();
+  });
+
+  it('preserves the app variant and open section when clicking the active family', () => {
+    const dialog = open();
+    fireEvent.click(within(dialog).getByRole('button', { name: /^OpenAI/ }));
+    fireEvent.mouseDown(within(dialog).getByRole('tab', { name: 'Codex' }));
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Setup prompt' }),
+    );
+    fireEvent.click(within(dialog).getByRole('button', { name: 'OpenAI' }));
+    expect(within(dialog).getByRole('tab', { name: 'Codex' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(
+      within(dialog).getByRole('button', { name: 'Copy Setup prompt' }),
     ).toBeInTheDocument();
   });
 
@@ -209,7 +228,7 @@ describe('AgentConnectDialog', () => {
   it('keeps browser-only clients free of local shell installation prompts', () => {
     const dialog = open();
     fireEvent.click(
-      within(dialog).getByRole('button', { name: 'Connect Claude' }),
+      within(dialog).getByRole('button', { name: /^Claude(?:\s|$)/ }),
     );
     expect(
       within(dialog).queryByRole('button', {
@@ -224,7 +243,7 @@ describe('AgentConnectDialog', () => {
   it('switches directly from Cursor to a chat agent in the persistent agent list', () => {
     const dialog = open();
     fireEvent.click(
-      within(dialog).getByRole('button', { name: 'Connect Cursor' }),
+      within(dialog).getByRole('button', { name: /^Cursor(?:\s|$)/ }),
     );
     expect(
       within(dialog).getByRole('link', { name: 'Add Genfeed to Cursor' }),
@@ -233,7 +252,7 @@ describe('AgentConnectDialog', () => {
       getAgentClient('cursor').installation.destination,
     );
     fireEvent.click(
-      within(dialog).getByRole('button', { name: 'Connect Meta Muse' }),
+      within(dialog).getByRole('button', { name: /^Meta Muse(?:\s|$)/ }),
     );
     expect(
       within(dialog).queryByRole('button', {
@@ -262,7 +281,7 @@ describe('AgentConnectDialog', () => {
         ),
       ).toBeInTheDocument();
       expect(
-        within(dialog).queryByRole('button', { name: 'Connect Codex' }),
+        within(dialog).queryByRole('button', { name: /^Codex(?:\s|$)/ }),
       ).not.toBeInTheDocument();
     } finally {
       window.history.replaceState(null, '', url);

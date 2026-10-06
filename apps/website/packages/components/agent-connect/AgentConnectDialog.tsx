@@ -125,11 +125,13 @@ export default function AgentConnectDialog({
           >
             {AGENT_CLIENT_FAMILIES.map((option) => (
               <Button
-                ariaLabel={`Connect ${option.name}`}
                 aria-pressed={client ? family?.name === option.name : undefined}
                 className="h-auto min-h-16 w-full justify-start gap-3 rounded-lg px-3 py-3 text-left whitespace-normal aria-pressed:bg-fill/10"
                 key={option.name}
-                onClick={() => selectClient(getAgentClient(option.slugs[0]))}
+                onClick={() => {
+                  if (family?.name !== option.name)
+                    selectClient(getAgentClient(option.slugs[0]));
+                }}
                 textTransform="none"
                 variant={ButtonVariant.GHOST}
                 withWrapper={false}
@@ -176,7 +178,7 @@ export default function AgentConnectDialog({
                 ) : null}
                 <TabsContent
                   aria-label={`Set up ${client.name}`}
-                  className="space-y-5"
+                  className="space-y-5 focus-visible:ring-inset focus-visible:ring-offset-0"
                   key={client.slug}
                   value={client.slug}
                 >

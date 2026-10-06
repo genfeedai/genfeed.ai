@@ -117,7 +117,7 @@ export const useCases: UseCase[] = [
     solutions: [
       'Generate AI videos in minutes, not hours',
       'See trending topics before they blow up',
-      'Track which content drives sales, not just likes',
+      'Compare available performance data for published content',
       'Publish to supported channels from one dashboard',
       'All content types in one platform (no tool switching)',
     ],
@@ -143,14 +143,15 @@ export const useCases: UseCase[] = [
         title: 'Publish Everywhere',
       },
       {
-        description: 'See which videos drive actual sales/conversions',
-        example: 'Video #42 drove $1,200 in sales',
+        description:
+          'Compare views and engagement across your published videos',
+        example: 'Compare a tutorial video with a product walkthrough',
         step: 4,
         title: 'Track Revenue',
       },
       {
         description: 'AI tells you what to post next',
-        example: 'Post more "tutorial" content, it converts 3x better',
+        example: 'Use the stronger-performing format as the next brief',
         step: 5,
         title: 'Optimize',
       },
@@ -186,7 +187,7 @@ export const useCases: UseCase[] = [
     solutions: [
       'Manage all clients from one dashboard',
       'Generate ad creative and hooks in bulk for Meta, TikTok, and Reels',
-      'Show clients exact ROI per post',
+      'Share available post performance with clients',
       'Team collaboration with approval workflows',
       'Automate recurring content (daily posts, weekly reports)',
       'White-label option for enterprise clients',
@@ -213,8 +214,9 @@ export const useCases: UseCase[] = [
         title: 'Approval Workflows',
       },
       {
-        description: 'Show clients which content drives revenue',
-        example: 'Monthly report: "Video #12 drove $5k in sales"',
+        description:
+          'Report available views and engagement for published content',
+        example: 'Monthly report: compare views and engagement by campaign',
         step: 4,
         title: 'Performance Dashboard',
       },
@@ -241,13 +243,13 @@ export const useCases: UseCase[] = [
     ],
     pricing: {
       recommended: 'scale',
-      why: `${PLAN_COPY.scale.name} adds managed billing, brand workspaces, bulk generation workflows, and purchase attribution tracking.`,
+      why: `${PLAN_COPY.scale.name} adds managed billing, brand workspaces, bulk generation workflows, and available publishing analytics.`,
     },
     results: [
       'Create product content from existing references',
       'Generate drafts for multiple products',
       'Prepare creative variations for your ad tests',
-      'Track content → purchase attribution',
+      'Compare available product-content performance',
     ],
     slug: 'ecommerce',
     solutions: [
@@ -280,7 +282,7 @@ export const useCases: UseCase[] = [
       },
       {
         description: 'See which content drives add-to-carts and purchases',
-        example: 'Video #8 drove 142 purchases ($12K revenue)',
+        example: 'Compare product video views and engagement',
         step: 4,
         title: 'Track Purchases',
       },
@@ -296,8 +298,8 @@ export const useCases: UseCase[] = [
     audience: 'Marketing managers, CMOs, brand marketers, growth teams',
     cta: 'Get Started',
     description:
-      'Stop guessing what content works. Generate, test, and scale content that converts, with full attribution.',
-    headline: 'Content That Actually Drives Pipeline',
+      'Create campaign drafts, publish approved content and compare available performance data to plan your next brief.',
+    headline: 'Create Content for Your Campaign',
     painPoints: [
       "Content team can't keep up with demand",
       'No idea which content drives pipeline',
@@ -318,7 +320,7 @@ export const useCases: UseCase[] = [
     slug: 'marketers',
     solutions: [
       'Generate creative variations for testing',
-      'Track revenue attribution per post',
+      'Compare available post performance',
       'In-house content creation (no agency dependency)',
       'Reuse formats from previous campaigns',
       'Review available publishing and campaign metrics',
@@ -345,14 +347,15 @@ export const useCases: UseCase[] = [
         title: 'Multi-Channel Distribution',
       },
       {
-        description: 'See which content drives demos, signups, revenue',
-        example: 'Video #5 → 12 demo requests → $60k pipeline',
+        description:
+          'Review available views and engagement across campaign posts',
+        example: 'Compare performance across campaign angles',
         step: 4,
         title: 'Attribution Tracking',
       },
       {
-        description: 'Double down on content that converts',
-        example: 'Video format A converts 5x → create 20 more',
+        description: 'Reuse the formats that perform well for your audience',
+        example: 'Use the stronger-performing format for the next batch',
         step: 5,
         title: 'Scale Winners',
       },
@@ -362,7 +365,7 @@ export const useCases: UseCase[] = [
     audience: 'Solopreneurs, indie hackers, startup founders, solo devs',
     cta: 'Get Started',
     description:
-      'Generate content, grow your audience, and track what converts, all while building your product.',
+      'Create content drafts, schedule approved posts and review available performance data while building your product.',
     headline: 'Build an Audience Without Hiring a Team',
     painPoints: [
       'No time for content (busy building product)',
@@ -378,14 +381,14 @@ export const useCases: UseCase[] = [
     results: [
       'Create drafts from reusable brand context',
       'Grow audience while building product',
-      'Track what content drives revenue',
+      'Review available performance data for your published posts',
       'Create video drafts for your publishing schedule',
     ],
     slug: 'founders',
     solutions: [
       'Generate content in 10 minutes/day',
       'Automate posting schedule (set it and forget it)',
-      'Track which content drives signups/revenue',
+      'Compare available post performance across campaigns',
       'All-in-one platform (no tool switching)',
       'Start free: credits buy your output, subscriptions make them cheaper',
     ],
