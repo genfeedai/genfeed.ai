@@ -272,6 +272,7 @@ export function useFailedIngredientRecovery({
       const modelKey = getIngredientModelLabel(ingredient);
       if (
         !brandId ||
+        (ingredient.brandId && ingredient.brandId !== brandId) ||
         !prompt ||
         !modelKey ||
         (ingredient.category !== IngredientCategory.IMAGE &&
@@ -283,8 +284,14 @@ export function useFailedIngredientRecovery({
       const snapshotScope = scopeKey;
       if (!begin(snapshotScope)) return;
       try {
+        const saved: IVideo = ingredient;
         const payload: AgentStudioHandoffPayload = {
           brandId,
+          duration: saved.duration,
+          resolution: saved.resolution,
+          aspectRatio: /^\d+:\d+$/.test(ingredient.aspectRatio ?? '')
+            ? ingredient.aspectRatio
+            : undefined,
           modelKey,
           outputs: 1,
           prompt,

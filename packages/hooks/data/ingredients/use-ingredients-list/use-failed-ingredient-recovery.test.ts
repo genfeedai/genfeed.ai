@@ -193,4 +193,37 @@ describe('Failed Library recovery operations', () => {
     );
     expect(mocks.imagePost).not.toHaveBeenCalled();
   });
+
+  it('preserves recorded video settings in Studio and rejects a foreign brand', async () => {
+    const { result } = renderHook(() => useFailedIngredientRecovery(props));
+    const video = {
+      ...asset('video', {
+        category: IngredientCategory.VIDEO,
+        brandId: 'brand',
+        aspectRatio: '16:9',
+      }),
+      duration: 8,
+      resolution: '1080p',
+    };
+    await act(async () => result.current.handleReviewFailedIngredient(video));
+    expect(mocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'video',
+        duration: 8,
+        resolution: '1080p',
+        aspectRatio: '16:9',
+        brandId: 'brand',
+      }),
+    );
+    expect(mocks.videoPost).not.toHaveBeenCalled();
+    mocks.create.mockClear();
+    await act(async () =>
+      result.current.handleReviewFailedIngredient({
+        ...video,
+        brandId: 'other-brand',
+      }),
+    );
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.warning).toHaveBeenCalledWith('reviewUnavailable');
+  });
 });
