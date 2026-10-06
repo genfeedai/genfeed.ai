@@ -1,6 +1,13 @@
 import { agentToolCreditEstimate } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { type CuratedActionName } from '@genfeedai/actions';
+import {
+  type CuratedActionName,
+  getActionDefinition,
+} from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
+import {
+  type ActionContractJsonSchema,
+  compileActionContract,
+} from '@genfeedai/workflows/engine';
 
 vi.mock(
   '@api/collections/outreach-campaigns/services/outreach-campaigns.service',
@@ -4428,6 +4435,41 @@ describe('AgentToolExecutorService', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain('No brand is currently selected');
+  });
+
+  it('returns a JSON-safe batch approval that passes the workflow output contract', async () => {
+    const { batchGenerationService, service } = createService();
+    const result = await service.executeTool(
+      'generate_content_batch',
+      { count: 20, platforms: ['instagram', 'twitter', 'linkedin'] },
+      {
+        hostSupportsApproval: true,
+        organizationId: testId('org'),
+        userId: testId('user'),
+      },
+    );
+
+    expect(result).toMatchObject({
+      approvalStatus: 'pending',
+      creditsUsed: 0,
+      requiresConfirmation: true,
+      success: true,
+    });
+    expect(batchGenerationService.createBatch).not.toHaveBeenCalled();
+    const action = getActionDefinition('generate_content_batch');
+    const contract = compileActionContract('generate_content_batch', {
+      inputSchema: action?.inputSchema as ActionContractJsonSchema,
+      outputSchema: action?.outputSchema as ActionContractJsonSchema,
+    });
+    expect(() =>
+      contract.validateOutput(result, {
+        nodeId: 'execute-tool',
+        runId: 'run-batch',
+        workflowId: 'agent.tool.generate_content_batch',
+        workflowVersionId: 'v1',
+      }),
+    ).not.toThrow();
+    expect(result).toEqual(JSON.parse(JSON.stringify(result)));
   });
 
   it('should use the selected brand when batch generation omits brandId', async () => {

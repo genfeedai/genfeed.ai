@@ -160,7 +160,9 @@ export function AgentThreadListRow({
   const threadTitle = conv.title || 'Untitled';
   const activityIndicator = statusMeta ? (
     <ThreadActivityIndicator statusMeta={statusMeta} />
-  ) : null;
+  ) : (
+    <span aria-hidden="true" className="size-2 shrink-0" />
+  );
 
   return (
     <div
@@ -259,7 +261,7 @@ export function AgentThreadListRow({
               </span>
             </div>
             {preview ? (
-              <div className="mt-0.5 min-w-0 truncate text-2xs text-foreground/38">
+              <div className="mt-0.5 min-w-0 truncate pl-3.5 text-2xs text-foreground/38">
                 {preview}
               </div>
             ) : null}

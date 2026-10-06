@@ -522,7 +522,7 @@ export class AgentToolExecutorService implements OnModuleInit {
         },
       );
       if (policyResult.kind === 'return') {
-        return policyResult.result;
+        return toPlainJson(policyResult.result);
       }
       executionApprovalId = policyResult.approvalId;
       if (policyResult.executeAsUserId) {
