@@ -200,9 +200,12 @@ export function useFailedIngredientRecovery({
                   request.category === IngredientCategory.IMAGE
                     ? await getImages()
                     : await getVideos();
-                const ingredient = await service.findOne(request.id, {
-                  brandId,
-                });
+                const ingredient: IIngredient = await service.findOne(
+                  request.id,
+                  {
+                    brandId,
+                  },
+                );
                 if (
                   !ingredient ||
                   ingredient.brandId !== brandId ||
@@ -293,7 +296,9 @@ export function useFailedIngredientRecovery({
           request.category === IngredientCategory.IMAGE
             ? await getImages()
             : await getVideos();
-        const ingredient = await mediaService.findOne(request.id, { brandId });
+        const ingredient: IIngredient = await mediaService.findOne(request.id, {
+          brandId,
+        });
         const prompt =
           ingredient &&
           (getIngredientPromptText(ingredient) || ingredient.text?.trim());
