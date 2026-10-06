@@ -1,4 +1,4 @@
-import { CostTier, type QualityTier, type SpeedTier } from '..';
+import { CostTier, QualityTier, SpeedTier } from '..';
 
 import { MODEL_KEYS } from './model-keys.constant';
 
