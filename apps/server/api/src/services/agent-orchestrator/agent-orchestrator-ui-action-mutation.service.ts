@@ -6,6 +6,7 @@ import { assertApiKeyAgentPublishingScope } from '@api/helpers/utils/auth/api-ke
 import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { buildMutationApprovalCard } from '@api/services/agent-orchestrator/tools/mutation-approval-card';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { type CuratedActionName, getToolByName } from '@genfeedai/actions';
 import { buildLogicalWriteKey } from '@genfeedai/actions/server';
@@ -44,7 +45,7 @@ export class AgentOrchestratorUiActionMutationService {
   ) {}
 
   async execute(
-    action: 'confirm_mutation' | 'decline_mutation',
+    action: 'confirm_mutation' | 'decline_mutation' | 'reprepare_mutation',
     params: ThreadUiActionExecutionParams,
   ) {
     const { payload, context, threadId } = params;
@@ -114,6 +115,9 @@ export class AgentOrchestratorUiActionMutationService {
     if (!getToolByName(approval.toolName)?.surfaces.agent) {
       throw new ConflictException('This action is no longer available.');
     }
+    if (action === 'reprepare_mutation') {
+      return this.reprepareMutation(approval, args, params);
+    }
     if (
       approval.status === 'PENDING' &&
       (!Number.isFinite(Date.parse(String(proposal.data.expiresAt))) ||
@@ -167,6 +171,125 @@ export class AgentOrchestratorUiActionMutationService {
       result,
       resolvedCard,
     );
+  }
+
+  private async reprepareMutation(
+    approval: McpApprovalDocument,
+    args: Record<string, unknown>,
+    params: ThreadUiActionExecutionParams,
+  ) {
+    if (approval.status !== 'PENDING') {
+      throw new ConflictException(
+        'This action was already resolved. Ask for a new preview.',
+      );
+    }
+    const refreshed = await this.prisma.$transaction(async (transaction) => {
+      const scope = await this.lockProposalThread(transaction, params, true);
+      const messages = await transaction.agentMessage.findMany({
+        where: {
+          threadId: params.threadId,
+          organizationId: params.context.organizationId,
+          isDeleted: false,
+          role: 'assistant',
+        },
+        select: { id: true, metadata: true },
+      });
+      const sourceActionId = `mutation-approval:${approval.id}`;
+      const copies = messages.flatMap((message) => {
+        const metadata = record(message.metadata);
+        const actions = Array.isArray(metadata.uiActions)
+          ? metadata.uiActions
+          : [];
+        return actions.filter(
+          (candidate) => record(candidate).id === sourceActionId,
+        );
+      });
+      if (!copies.length)
+        throw new ConflictException('The approval card is unavailable.');
+      let hasExpiredCopy = false;
+      for (const candidate of copies) {
+        const card = record(candidate);
+        const data = record(card.data);
+        if (
+          card.type !== 'mutation_approval_card' ||
+          data.approvalId !== approval.id ||
+          data.sourceActionId !== sourceActionId ||
+          data.status !== 'pending' ||
+          data.scopeVersion !== scope.contextVersion ||
+          (data.brandId ?? null) !== (scope.brandId ?? null)
+        ) {
+          throw new ConflictException(
+            'The original approval or scope changed. Ask for a new preview.',
+          );
+        }
+        const expiresAt = Date.parse(String(data.expiresAt));
+        hasExpiredCopy ||=
+          !Number.isFinite(expiresAt) || expiresAt <= Date.now();
+      }
+      if (!hasExpiredCopy)
+        throw new ConflictException(
+          'This approval has not expired. Review the current preview.',
+        );
+      const replacement = await this.approvals.replacePending(
+        approval,
+        transaction,
+      );
+      const card = buildMutationApprovalCard(
+        replacement.id,
+        approval.toolName,
+        args,
+        {
+          organizationId: params.context.organizationId,
+          userId: params.context.userId,
+          threadId: params.threadId,
+          brandId: scope.brandId,
+          validatedScope: scope,
+          hostSupportsApproval: true,
+        },
+      );
+      card.data = { ...card.data, replacesSourceActionId: sourceActionId };
+      for (const message of messages) {
+        const metadata = record(message.metadata);
+        const actions = Array.isArray(metadata.uiActions)
+          ? metadata.uiActions
+          : [];
+        if (
+          !actions.some((candidate) => record(candidate).id === sourceActionId)
+        )
+          continue;
+        const patched = await transaction.agentMessage.updateMany({
+          where: {
+            id: message.id,
+            threadId: params.threadId,
+            organizationId: params.context.organizationId,
+            isDeleted: false,
+          },
+          data: {
+            metadata: toPrismaJson({
+              ...metadata,
+              uiActions: actions.map((candidate) =>
+                record(candidate).id === sourceActionId ? card : candidate,
+              ),
+            }),
+          },
+        });
+        if (patched.count !== 1)
+          throw new ConflictException(
+            'Unable to update the original approval card. Retry this action.',
+          );
+      }
+      return card;
+    });
+    return this.finalizer.finalizeStructuredAssistantTurn({
+      content:
+        'Fresh preview prepared. Review it and approve before the action runs.',
+      context: params.context,
+      model: params.model,
+      threadId: params.threadId,
+      eventIdempotencyKey: `mutation-preview:${approval.id}`,
+      result: { success: true, creditsUsed: 0, nextActions: [refreshed] },
+      toolCalls: [],
+    });
   }
 
   private async executeApprovedMutation(

@@ -134,6 +134,43 @@ export class McpApprovalsService extends BaseService<
     return approval;
   }
 
+  /** Replace a pending consent identity without approving or executing it.
+   * The caller holds the thread lock and patches its cards in this transaction.
+   * Invalidating the old ID prevents stale clients from approving the renewal.
+   */
+  async replacePending(
+    approval: McpApprovalDocument,
+    transaction: Prisma.TransactionClient,
+  ): Promise<McpApprovalDocument> {
+    const { count } = await transaction.mcpApproval.updateMany({
+      where: scopedWhere(approval.organizationId, {
+        id: approval.id,
+        userId: approval.userId,
+        toolName: approval.toolName,
+        idempotencyKey: approval.idempotencyKey,
+        arguments: { equals: toPrismaJson(approval.arguments) },
+        status: McpApprovalStatus.PENDING,
+      }),
+      data: {
+        status: McpApprovalStatus.DECLINED,
+        resolvedAt: new Date(),
+        result: { reason: 'superseded_by_fresh_preview' },
+      },
+    });
+    if (count !== 1) throw new BadRequestException('Approval already resolved');
+    // Pending count is unchanged, and the active-key uniqueness fence applies.
+    return (await transaction.mcpApproval.create({
+      data: {
+        arguments: toPrismaJson(approval.arguments),
+        idempotencyKey: approval.idempotencyKey,
+        organizationId: approval.organizationId,
+        userId: approval.userId,
+        toolName: approval.toolName,
+        status: McpApprovalStatus.PENDING,
+      },
+    })) as McpApprovalDocument;
+  }
+
   async findByOrganization(
     organizationId: string,
     status?: McpApprovalStatus,

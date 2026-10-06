@@ -1,4 +1,5 @@
 import path from 'node:path';
+import tailwindcss from '@tailwindcss/postcss';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
 
@@ -12,6 +13,7 @@ const CLIENT_SERIALIZERS_MOCK = path.resolve(
 );
 
 export default defineConfig({
+  css: { postcss: { plugins: [tailwindcss({ base: __dirname })] } },
   define: { 'process.env': JSON.stringify({ NODE_ENV: 'test' }) },
   optimizeDeps: { include: ['next/link'] },
   resolve: {

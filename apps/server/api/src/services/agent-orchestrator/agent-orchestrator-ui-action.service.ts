@@ -232,6 +232,7 @@ export class AgentOrchestratorUiActionService {
       }
       case 'confirm_mutation':
       case 'decline_mutation':
+      case 'reprepare_mutation':
       case 'confirm_install_official_workflow':
       case 'confirm_agent_transfer':
       case 'confirm_publish_post':

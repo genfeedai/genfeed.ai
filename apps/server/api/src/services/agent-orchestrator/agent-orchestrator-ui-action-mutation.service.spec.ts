@@ -57,7 +57,11 @@ describe('persisted mutation approvals', () => {
       expiresAt: new Date(Date.now() + 60_000).toISOString(),
     },
   });
-  const approvals = { findOwned: vi.fn(), resolve: vi.fn() };
+  const approvals = {
+    findOwned: vi.fn(),
+    resolve: vi.fn(),
+    replacePending: vi.fn(),
+  };
   const messages = { getMessagesByRoom: vi.fn() };
   const transaction = {
     $queryRaw: vi.fn(),
@@ -91,6 +95,9 @@ describe('persisted mutation approvals', () => {
     openTransactions = 0;
     transaction.$queryRaw.mockResolvedValue([]);
     approvals.findOwned.mockResolvedValue(approval());
+    approvals.replacePending
+      .mockReset()
+      .mockResolvedValue({ ...approval(), id: 'apr-2' });
     messages.getMessagesByRoom.mockResolvedValue([
       { id: 'message-1', role: 'assistant', metadata: { uiActions: [card()] } },
     ]);
@@ -911,5 +918,115 @@ describe('persisted mutation approvals', () => {
       }),
     );
     expect(approvals.resolve).not.toHaveBeenCalled();
+  });
+  it('replaces all expired copies atomically with fresh consent and never executes a tool', async () => {
+    const old = card();
+    old.data.expiresAt = new Date(0).toISOString();
+    messages.getMessagesByRoom.mockResolvedValue([
+      {
+        id: 'message-1',
+        role: 'assistant',
+        metadata: { uiActions: [old], unrelated: true },
+      },
+      { id: 'message-2', role: 'assistant', metadata: { uiActions: [old] } },
+    ]);
+    await service.execute('reprepare_mutation', params());
+    expect(approvals.replacePending).toHaveBeenCalledWith(
+      approval(),
+      transaction,
+    );
+    expect(executor.executeTool).not.toHaveBeenCalled();
+    expect(approvals.resolve).not.toHaveBeenCalled();
+    expect(transaction.agentMessage.updateMany).toHaveBeenCalledTimes(2);
+    const updates = transaction.agentMessage.updateMany.mock.calls;
+    const fresh = updates[0][0].data.metadata.uiActions[0];
+    expect(fresh).toMatchObject({
+      id: 'mutation-approval:apr-2',
+      requiresConfirmation: true,
+      data: {
+        approvalId: 'apr-2',
+        sourceActionId: 'mutation-approval:apr-2',
+        status: 'pending',
+        brandId: 'brand-1',
+        scopeVersion: 2,
+      },
+      ctas: [
+        expect.objectContaining({ action: 'confirm_mutation' }),
+        expect.objectContaining({ action: 'decline_mutation' }),
+      ],
+    });
+    expect(Date.parse(fresh.data.expiresAt)).toBeGreaterThan(Date.now());
+    expect(updates[0][0].data.metadata.unrelated).toBe(true);
+    expect(updates[1][0].data.metadata.uiActions[0]).toEqual(fresh);
+    expect(finalizer.finalizeStructuredAssistantTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toolCalls: [],
+        result: { success: true, creditsUsed: 0, nextActions: [fresh] },
+      }),
+    );
+  });
+  it('can repair an expired duplicate even when another copy has a newer deadline', async () => {
+    const old = card();
+    old.data.expiresAt = new Date(0).toISOString();
+    messages.getMessagesByRoom.mockResolvedValue([
+      { id: 'message-1', role: 'assistant', metadata: { uiActions: [old] } },
+      { id: 'message-2', role: 'assistant', metadata: { uiActions: [card()] } },
+    ]);
+    await service.execute('reprepare_mutation', params());
+    expect(approvals.replacePending).toHaveBeenCalledTimes(1);
+    expect(executor.executeTool).not.toHaveBeenCalled();
+  });
+  it.each(['APPROVED', 'DECLINED'])(
+    'does not rearm %s consent',
+    async (status) => {
+      approvals.findOwned.mockResolvedValue({ ...approval(), status });
+      await expect(
+        service.execute('reprepare_mutation', params()),
+      ).rejects.toThrow('already resolved');
+      expect(approvals.replacePending).not.toHaveBeenCalled();
+      expect(executor.executeTool).not.toHaveBeenCalled();
+    },
+  );
+  it('does not refresh a still-valid preview', async () => {
+    await expect(
+      service.execute('reprepare_mutation', params()),
+    ).rejects.toThrow('has not expired');
+    expect(approvals.replacePending).not.toHaveBeenCalled();
+  });
+  it('rechecks live scope before replacing consent', async () => {
+    const old = card();
+    old.data.expiresAt = new Date(0).toISOString();
+    messages.getMessagesByRoom.mockResolvedValue([
+      { id: 'message-1', role: 'assistant', metadata: { uiActions: [old] } },
+    ]);
+    transaction.agentThread.findFirst.mockResolvedValue({
+      brandId: 'brand-2',
+      contextVersion: 3,
+    });
+    await expect(
+      service.execute('reprepare_mutation', params()),
+    ).rejects.toThrow('unavailable');
+    expect(approvals.replacePending).not.toHaveBeenCalled();
+    expect(executor.executeTool).not.toHaveBeenCalled();
+  });
+  it('does not publish a renewal when consent or the card update races', async () => {
+    const old = card();
+    old.data.expiresAt = new Date(0).toISOString();
+    messages.getMessagesByRoom.mockResolvedValue([
+      { id: 'message-1', role: 'assistant', metadata: { uiActions: [old] } },
+    ]);
+    approvals.replacePending.mockRejectedValueOnce(
+      new Error('Approval already resolved'),
+    );
+    await expect(
+      service.execute('reprepare_mutation', params()),
+    ).rejects.toThrow('already resolved');
+    expect(transaction.agentMessage.updateMany).not.toHaveBeenCalled();
+    transaction.agentMessage.updateMany.mockResolvedValueOnce({ count: 0 });
+    await expect(
+      service.execute('reprepare_mutation', params()),
+    ).rejects.toThrow('Unable to update');
+    expect(finalizer.finalizeStructuredAssistantTurn).not.toHaveBeenCalled();
+    expect(executor.executeTool).not.toHaveBeenCalled();
   });
 });

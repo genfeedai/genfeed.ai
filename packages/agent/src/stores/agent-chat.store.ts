@@ -26,6 +26,7 @@ import {
   resolveRunSummaryPatch,
   resolveStatusPushPatch,
 } from '@genfeedai/agent/utils/agent-thread-run-summary.util';
+import { isMutationApprovalReplacement } from '@genfeedai/agent/utils/is-mutation-approval-replacement.util';
 import {
   deriveLatestProposedPlan,
   resolveLatestProposedPlan,
@@ -661,7 +662,9 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
               ...action,
               ...update,
               data: { ...action.data, ...update.data },
-              id: actionId,
+              id: isMutationApprovalReplacement(update, actionId)
+                ? update.id
+                : actionId,
               status,
             };
           }

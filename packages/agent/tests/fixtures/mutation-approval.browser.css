@@ -1,0 +1,17 @@
+@import "../../../styles/globals.css";
+@source "../../src/components/MutationApprovalCard.tsx";
+@source "../../../ui/src/primitives/button.tsx";
+@source "../../../ui/src/primitives/button.variants.ts";
+
+@font-face {
+  font-family: Satoshi;
+  src: url("../../../fonts/files/Satoshi-Variable.woff2") format("woff2");
+}
+body {
+  margin: 0;
+  padding: 24px;
+  max-width: 720px;
+  font-family: Satoshi, sans-serif;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}

@@ -1,3 +1,4 @@
+import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
@@ -502,4 +503,58 @@ describe('McpApprovalsService', () => {
       });
     },
   );
+  describe('replacePending', () => {
+    const original = {
+      id: 'old-approval',
+      organizationId: 'org-1',
+      userId: 'user-1',
+      arguments: { count: 3 },
+      toolName: 'generate_content_batch',
+      idempotencyKey: 'logical-write',
+    } as McpApprovalDocument;
+    it('invalidates the original pending identity and creates fresh unconsumed consent inside the same transaction', async () => {
+      const pending = { ...original, id: 'fresh-approval', status: 'PENDING' };
+      mcpApproval.create.mockResolvedValue(pending);
+      const result = await service.replacePending(original, {
+        mcpApproval,
+      } as unknown as Prisma.TransactionClient);
+      expect(mcpApproval.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: original.id,
+          organizationId: 'org-1',
+          userId: 'user-1',
+          toolName: original.toolName,
+          idempotencyKey: 'logical-write',
+          isDeleted: false,
+          arguments: { equals: { count: 3 } },
+          status: 'PENDING',
+        },
+        data: {
+          status: 'DECLINED',
+          resolvedAt: expect.any(Date),
+          result: { reason: 'superseded_by_fresh_preview' },
+        },
+      });
+      expect(mcpApproval.create).toHaveBeenCalledWith({
+        data: {
+          organizationId: 'org-1',
+          userId: 'user-1',
+          toolName: original.toolName,
+          arguments: { count: 3 },
+          idempotencyKey: 'logical-write',
+          status: 'PENDING',
+        },
+      });
+      expect(result).toEqual(pending);
+    });
+    it('cannot replace consent that another caller already resolved or changed', async () => {
+      mcpApproval.updateMany.mockResolvedValueOnce({ count: 0 });
+      await expect(
+        service.replacePending(original, {
+          mcpApproval,
+        } as unknown as Prisma.TransactionClient),
+      ).rejects.toThrow('already resolved');
+      expect(mcpApproval.create).not.toHaveBeenCalled();
+    });
+  });
 });
