@@ -860,6 +860,24 @@ describe('AgentWorkspaceLayoutClient', () => {
     });
   });
 
+  it('starts Library review in Manual mode even when another mode was saved', async () => {
+    navigationState.pathname = '/org-123/~/agent/new';
+    navigationState.searchParams = new URLSearchParams(
+      'prompt=review&agentMode=manual',
+    );
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+    await waitFor(() =>
+      expect(sendMessage).toHaveBeenCalledWith(
+        'review',
+        expect.objectContaining({ agentMode: 'manual', forceNewThread: true }),
+      ),
+    );
+  });
+
   it('recognizes org-scoped /agent/new routes when bootstrapping prefills', async () => {
     navigationState.pathname = '/org-123/~/agent/new';
     navigationState.searchParams = new URLSearchParams('prompt=hello');

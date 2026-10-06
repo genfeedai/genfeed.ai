@@ -158,6 +158,7 @@ export function useIngredientsLoading({
   const [isUsingCache, setIsUsingCache] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const loadSequenceRef = useRef(0);
   const [ingredients, setIngredients] = useState<IIngredient[]>([]);
   const [folders, setFolders] = useState<IFolder[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(
@@ -210,6 +211,7 @@ export function useIngredientsLoading({
 
   const findAllIngredientsByCategory = useCallback(
     async (isRefreshing: boolean = false, signal?: AbortSignal) => {
+      const sequence = ++loadSequenceRef.current;
       setIsLoading(!isRefreshing);
       setIsRefreshing(isRefreshing);
       setLoadError(null);
@@ -293,7 +295,7 @@ export function useIngredientsLoading({
           data = await service.findAll(queryParams);
         }
 
-        if (signal?.aborted) {
+        if (signal?.aborted || sequence !== loadSequenceRef.current) {
           return;
         }
 
@@ -318,14 +320,20 @@ export function useIngredientsLoading({
         setCachedAt(null);
         setLoadError(null);
       } catch (error) {
-        if (isIgnoredLibraryFailure(error, signal)) {
+        if (
+          isIgnoredLibraryFailure(error, signal) ||
+          sequence !== loadSequenceRef.current
+        ) {
           return;
         }
         const cached = ingredientsCache?.get(ingredientsCacheKey) ?? [];
         const cachedTimestamp =
           ingredientsCacheMeta?.get(ingredientsCacheKey) ?? null;
 
-        if (cached.length > 0) {
+        if (isRefreshing) {
+          reportLibraryOperationFailure(url, error);
+          notificationsService.error(`Failed to refresh ${type}`);
+        } else if (cached.length > 0) {
           setIngredients(cached);
           setIsUsingCache(true);
           setCachedAt(cachedTimestamp);
@@ -338,7 +346,7 @@ export function useIngredientsLoading({
           notificationsService.error(`Failed to load ${type}`);
         }
       } finally {
-        if (!signal?.aborted) {
+        if (!signal?.aborted && sequence === loadSequenceRef.current) {
           setIsLoading(false);
           setIsRefreshing(false);
         }
@@ -425,8 +433,11 @@ export function useIngredientsLoading({
   }, [brandId, findAllIngredientsByCategory, onRefresh, scope]);
 
   useEffect(() => {
+    let controller: AbortController | undefined;
     const handleLibraryAssetsRefresh = () => {
-      void findAllIngredientsByCategory(true);
+      controller?.abort();
+      controller = new AbortController();
+      void findAllIngredientsByCategory(true, controller.signal);
     };
 
     window.addEventListener(
@@ -435,6 +446,7 @@ export function useIngredientsLoading({
     );
 
     return () => {
+      controller?.abort();
       window.removeEventListener(
         LIBRARY_ASSETS_REFRESH_EVENT,
         handleLibraryAssetsRefresh,

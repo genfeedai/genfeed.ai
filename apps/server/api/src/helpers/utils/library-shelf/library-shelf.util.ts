@@ -54,6 +54,13 @@ const SHELF_FILTERS: Record<LibraryShelf, Record<string, unknown>> = {
     status: { in: [...UNSORTED_STATUSES] },
   },
   [LibraryShelf.NEEDS_REVIEW]: {
+    status: {
+      in: [
+        IngredientStatus.DRAFT,
+        IngredientStatus.UPLOADED,
+        IngredientStatus.GENERATED,
+      ],
+    },
     OR: [
       {
         reviewStatus: {

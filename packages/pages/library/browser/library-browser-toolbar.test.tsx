@@ -526,7 +526,7 @@ describe('LibraryBrowserToolbar', () => {
   });
 });
 
-it('opens an editable Agent review request from Unsorted', () => {
+it('starts an Agent review request from Unsorted', () => {
   render(
     <LibraryBrowserIconActions
       isRefreshing={false}
@@ -536,6 +536,6 @@ it('opens an editable Agent review request from Unsorted', () => {
     />,
   );
   expect(
-    screen.getByRole('link', { name: 'Review Unsorted with Agent' }),
+    screen.getByRole('link', { name: 'Start Unsorted review with Agent' }),
   ).toHaveAttribute('href', '/org/brand/agent/new?prompt=review-unsorted');
 });

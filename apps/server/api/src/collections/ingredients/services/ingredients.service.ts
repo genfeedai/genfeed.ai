@@ -32,6 +32,7 @@ import {
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
+  FleetReviewStatus,
   type IngredientCategory,
   type IngredientOrigin,
   IngredientStatus,
@@ -258,7 +259,7 @@ export class IngredientsService extends BaseService<
         ...(params.brandId ? { brandId: params.brandId } : {}),
         category: params.category,
         ...(params.shelf
-          ? LibraryShelfUtil.buildShelfFilter(params.shelf)
+          ? { AND: [LibraryShelfUtil.buildShelfFilter(params.shelf)] }
           : { status: { notIn: [...HIDDEN_LIBRARY_ASSET_STATUSES] } }),
         trainingId: null,
         ...(params.origin ? { origin: params.origin } : {}),
@@ -377,6 +378,16 @@ export class IngredientsService extends BaseService<
       const rowWhere = organizationId ? { id, organizationId } : { id };
       const current = await this.findOne(rowWhere);
       if (!current) throw new NotFoundException('Ingredient', id);
+      if (
+        current.reviewStatus &&
+        (updateDto.status === IngredientStatus.VALIDATED ||
+          updateDto.status === IngredientStatus.REJECTED)
+      ) {
+        data.reviewStatus =
+          updateDto.status === IngredientStatus.VALIDATED
+            ? FleetReviewStatus.APPROVED
+            : FleetReviewStatus.REJECTED;
+      }
       const completed = current?.organizationId
         ? await persistQuoteGroupDisposition(
             this.prisma,

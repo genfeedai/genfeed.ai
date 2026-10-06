@@ -198,7 +198,7 @@ export default function IngredientsMediaGrid({
             tags={ingredient.tags}
           />
           {isActionsEnabled ? (
-            <div className="absolute bottom-1.5 right-1.5 z-20">
+            <div className="absolute bottom-1.5 right-1.5 z-20 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
               <IngredientReviewActions
                 ingredient={ingredient}
                 onUpdated={onReviewUpdated ?? onRefresh}
@@ -242,7 +242,7 @@ export default function IngredientsMediaGrid({
           tags={ingredient.tags}
         />
         {isActionsEnabled ? (
-          <div className="absolute bottom-1.5 right-1.5 z-20">
+          <div className="absolute bottom-1.5 right-1.5 z-20 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
             <IngredientReviewActions
               ingredient={ingredient}
               onUpdated={onReviewUpdated ?? onRefresh}

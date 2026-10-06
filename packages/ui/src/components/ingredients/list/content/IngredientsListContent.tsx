@@ -302,11 +302,24 @@ export default function IngredientsListContent({
       onSetIngredients((current) =>
         current.flatMap((ingredient) => {
           if (ingredient.id !== updated.id) return [ingredient];
-          return updated.status === IngredientStatus.REJECTED ? [] : [updated];
+          return updated.status === IngredientStatus.REJECTED
+            ? []
+            : [
+                {
+                  ...ingredient,
+                  status: updated.status,
+                  reviewStatus: updated.reviewStatus ?? ingredient.reviewStatus,
+                },
+              ];
         }),
       );
       if (publishedIngredient?.id === updated.id) {
-        setSelectedAsset(updated);
+        setSelectedAsset({
+          ...publishedIngredient,
+          status: updated.status,
+          reviewStatus:
+            updated.reviewStatus ?? publishedIngredient.reviewStatus,
+        });
       }
     },
     [onSetIngredients, publishedIngredient, setSelectedAsset],

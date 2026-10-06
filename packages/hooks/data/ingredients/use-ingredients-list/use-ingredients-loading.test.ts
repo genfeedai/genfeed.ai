@@ -1,6 +1,8 @@
 import { IngredientCategory, PageScope } from '@genfeedai/contracts';
+import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useIngredientsLoading } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-loading';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetIngredientsService = vi.fn();
@@ -353,5 +355,27 @@ describe('useIngredientsLoading', () => {
         }),
       );
     }
+  });
+  it('ignores an older refresh that resolves after the latest review refresh', async () => {
+    const { result } = renderHook(() => useIngredientsLoading(baseProps));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    let resolveOld: ((assets: IIngredient[]) => void) | undefined;
+    ingredientsFindAllMock.mockImplementationOnce(
+      () =>
+        new Promise<IIngredient[]>((resolve) => {
+          resolveOld = resolve;
+        }),
+    );
+    ingredientsFindAllMock.mockResolvedValueOnce([]);
+    act(() => window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT)));
+    await waitFor(() => expect(resolveOld).toBeDefined());
+    act(() => window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT)));
+    await waitFor(() =>
+      expect(baseProps.setIsRefreshing).toHaveBeenLastCalledWith(false),
+    );
+    await act(async () =>
+      resolveOld?.([{ id: 'rejected-asset' } as IIngredient]),
+    );
+    expect(result.current.ingredients).toEqual([]);
   });
 });

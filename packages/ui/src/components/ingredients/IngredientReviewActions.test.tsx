@@ -1,13 +1,24 @@
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  ContentRating,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import IngredientReviewActions from './IngredientReviewActions';
 
-const { patch, notifyError } = vi.hoisted(() => ({
+const { patch, notifyError, brandContext } = vi.hoisted(() => ({
+  brandContext: {
+    selectedBrand: { isFleetEnabled: false },
+    settings: { isFleetNsfwVisible: false },
+  },
   patch: vi.fn(),
   notifyError: vi.fn(),
+}));
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => brandContext,
 }));
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({ patch }),
@@ -26,7 +37,10 @@ const ingredient = {
 } as IIngredient;
 
 describe('IngredientReviewActions', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    brandContext.selectedBrand.isFleetEnabled = false;
+  });
 
   it.each([
     ['Approve asset', IngredientStatus.VALIDATED],
@@ -45,6 +59,21 @@ describe('IngredientReviewActions', () => {
     expect(patch).toHaveBeenCalledExactlyOnceWith(ingredient.id, { status });
     expect(refresh).toHaveBeenCalledOnce();
     window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refresh);
+  });
+
+  it('does not offer blind review of locked fleet media', () => {
+    brandContext.selectedBrand.isFleetEnabled = true;
+    render(
+      <IngredientReviewActions
+        ingredient={{
+          ...ingredient,
+          personaSlug: 'persona',
+          contentRating: ContentRating.NSFW,
+        }}
+        onUpdated={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole('group')).not.toBeInTheDocument();
   });
 
   it('keeps the asset unchanged on failure and allows retry', async () => {

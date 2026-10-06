@@ -1,9 +1,11 @@
 import type { IngredientServerCreate } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AssetScope,
+  FleetReviewStatus,
   IngredientCategory,
   IngredientOrigin,
   IngredientStatus,
@@ -186,6 +188,25 @@ describe('IngredientsService', () => {
   });
 
   describe('patch', () => {
+    it.each([
+      [IngredientStatus.VALIDATED, FleetReviewStatus.APPROVED],
+      [IngredientStatus.REJECTED, FleetReviewStatus.REJECTED],
+    ])(
+      'keeps fleet review state consistent with %s',
+      async (status, reviewStatus) => {
+        ingredientDelegate.findFirst.mockResolvedValue({
+          ...mockIngredient,
+          reviewStatus: FleetReviewStatus.PENDING,
+        });
+        await service.patch(ingredientId, { status });
+        expect(ingredientDelegate.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ reviewStatus }),
+          }),
+        );
+      },
+    );
+
     it('should update an ingredient successfully', async () => {
       const id = 'test-id';
       const updateDto: UpdateIngredientDto = {
@@ -729,14 +750,7 @@ describe('IngredientsService', () => {
             organizationId,
             isDeleted: false,
             origin: IngredientOrigin.GENERATED,
-            folderId: null,
-            status: {
-              in: [
-                IngredientStatus.DRAFT,
-                IngredientStatus.UPLOADED,
-                IngredientStatus.GENERATED,
-              ],
-            },
+            AND: [LibraryShelfUtil.buildShelfFilter(LibraryShelf.UNSORTED)],
           }),
         }),
       );

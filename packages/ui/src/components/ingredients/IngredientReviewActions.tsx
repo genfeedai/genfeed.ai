@@ -1,8 +1,10 @@
 'use client';
 
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
   ButtonVariant,
+  ContentRating,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
@@ -19,6 +21,13 @@ export default function IngredientReviewActions({
   ingredient,
   onUpdated,
 }: IngredientReviewActionsProps) {
+  const { selectedBrand, settings } = useBrand();
+  const isMediaLocked = Boolean(
+    selectedBrand?.isFleetEnabled &&
+      ingredient.personaSlug &&
+      ingredient.contentRating !== ContentRating.SFW &&
+      !settings?.isFleetNsfwVisible,
+  );
   const [isSaving, setIsSaving] = useState(false);
   const isSavingRef = useRef(false);
   const getService = useAuthedService((token: string) =>
@@ -26,10 +35,12 @@ export default function IngredientReviewActions({
   );
 
   if (
+    isMediaLocked ||
     ![
       IngredientStatus.GENERATED,
       IngredientStatus.VALIDATED,
       IngredientStatus.DRAFT,
+      IngredientStatus.UPLOADED,
     ].includes(ingredient.status)
   ) {
     return null;

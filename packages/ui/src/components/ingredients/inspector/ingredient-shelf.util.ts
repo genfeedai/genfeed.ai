@@ -60,7 +60,11 @@ export function getIngredientShelf(
     (reviewStatus ? REVIEW_PENDING_STATUSES.includes(reviewStatus) : false) ||
     qualityStatus === QualityStatus.NEEDS_REVIEW;
 
-  if (hasPendingReview) {
+  if (
+    hasPendingReview &&
+    status !== IngredientStatus.VALIDATED &&
+    reviewStatus !== FleetReviewStatus.APPROVED
+  ) {
     return LibraryShelf.NEEDS_REVIEW;
   }
 
