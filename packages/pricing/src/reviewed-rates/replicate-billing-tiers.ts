@@ -202,7 +202,7 @@ function billingDivisor(
           ? 1_000
           : scale === 'hundred'
             ? 100
-            : Number(scale?.replaceAll(',', ''));
+            : Number(scale?.replace(/,/g, ''));
     if (!Number.isSafeInteger(divisor) || divisor <= 0) return null;
     scales.add(divisor);
   }
