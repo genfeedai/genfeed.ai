@@ -93,6 +93,7 @@ export default function VideoPlayer({
   mediaClassName,
   mediaProps = {},
   onLoad,
+  onPlaybackError,
   videoRef,
   src = '',
   thumbnail = '',
@@ -283,7 +284,10 @@ export default function VideoPlayer({
           isMuted={isMuted}
           currentTime={currentTime}
           duration={duration}
-          onPlaybackError={() => setHasError(true)}
+          onPlaybackError={(error) => {
+            if (onPlaybackError) onPlaybackError(error);
+            else setHasError(true);
+          }}
         />
       )}
     </div>

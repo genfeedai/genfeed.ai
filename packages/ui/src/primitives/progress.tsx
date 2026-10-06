@@ -28,8 +28,8 @@ function Progress({
     >
       <ProgressPrimitive.Indicator
         className={cn(
-          'size-full flex-1 bg-primary transition-transform duration-300 ease-out',
-          isIndeterminate && 'w-1/3 animate-pulse',
+          'h-full flex-1 bg-primary transition-transform duration-300 ease-out',
+          isIndeterminate ? 'w-1/3 motion-safe:animate-pulse' : 'w-full',
         )}
         style={
           isIndeterminate

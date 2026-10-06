@@ -30,7 +30,17 @@ export default function VideoPlayerControls({
         onClick={() => {
           const video = videoRef.current;
           if (!video) return;
-          if (video.paused) video.play().catch(onPlaybackError);
+          if (video.paused)
+            video.play().catch((error: unknown) => {
+              if (
+                typeof error === 'object' &&
+                error !== null &&
+                'name' in error &&
+                error.name === 'AbortError'
+              )
+                return;
+              onPlaybackError(error);
+            });
           else video.pause();
         }}
       >

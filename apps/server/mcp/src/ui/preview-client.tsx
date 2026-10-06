@@ -274,6 +274,7 @@ function MediaPreview({ item, bridge, openImage, onError }: MediaPreviewProps) {
   if (item.kind === 'video')
     return (
       <VideoPlayer
+        onPlaybackError={onError}
         src={src}
         ariaLabel={item.title || 'Generated video'}
         onLoad={bridge.resize}

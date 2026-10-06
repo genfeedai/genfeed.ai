@@ -715,3 +715,24 @@ it('keeps long preview titles readable rather than truncating them', () => {
   expect(title?.classList.contains('truncate')).toBe(false);
   expect(document.querySelector('h1')?.closest('[hidden]')).toBeNull();
 });
+
+it('shows the external fallback when shared video playback rejects', async () => {
+  vi.spyOn(HTMLMediaElement.prototype, 'play').mockRejectedValue(
+    new Error('Playback unavailable'),
+  );
+  result('get_job_status', {
+    category: 'VIDEO',
+    status: 'GENERATED',
+    label: 'Clip',
+    url: 'https://cdn.genfeed.ai/qa.mp4',
+  });
+  document
+    .querySelector<HTMLButtonElement>('button[aria-label="Play video"]')
+    ?.click();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(document.querySelector('video')).toBeNull();
+  expect(document.querySelector('article')?.textContent).toContain(
+    'Preview unavailable. Open the media link to view it.',
+  );
+  expect(document.querySelector('img[alt="Video unavailable"]')).toBeNull();
+});
