@@ -455,7 +455,6 @@
     "packages/pages/trainings/list/components/TrainingsTableColumns.tsx": 8,
     "packages/pages/trainings/list/trainings-list.tsx": 6,
     "packages/pages/trends/desk/desk-empty-states.tsx": 12,
-    "packages/pages/trends/desk/desk-filter-rail.tsx": 12,
     "packages/pages/trends/desk/desk-heat-strip.tsx": 1,
     "packages/pages/trends/desk/desk-sources-menu.tsx": 7,
     "packages/pages/trends/desk/desk-table-view.tsx": 1,

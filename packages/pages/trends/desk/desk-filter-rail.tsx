@@ -26,21 +26,18 @@ import {
 import { ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-const CONTENT_TYPE_OPTIONS: {
-  label: string;
-  value: DiscoveryDeskContentTypeFilter;
-}[] = [
-  { label: 'All types', value: 'all' },
-  { label: 'Video', value: 'video' },
-  { label: 'Image', value: 'image' },
-  { label: 'Post', value: 'post' },
+const CONTENT_TYPE_OPTIONS: DiscoveryDeskContentTypeFilter[] = [
+  'all',
+  'video',
+  'image',
+  'post',
 ];
 
-const SORT_OPTIONS: { label: string; value: DiscoveryDeskSort }[] = [
-  { label: 'Velocity', value: 'velocity' },
-  { label: 'Virality', value: 'virality' },
-  { label: 'Recency', value: 'recency' },
-  { label: 'Engagement', value: 'engagement' },
+const SORT_OPTIONS: DiscoveryDeskSort[] = [
+  'velocity',
+  'virality',
+  'recency',
+  'engagement',
 ];
 
 export default function DeskFilterRail({
@@ -84,7 +81,10 @@ export default function DeskFilterRail({
           onSourceChange(value as DiscoveryDeskSource | 'all')
         }
       >
-        <SelectTrigger aria-label="Source" className="h-8 w-32">
+        <SelectTrigger
+          aria-label={translate('filters.source')}
+          className="h-8 w-32"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -93,13 +93,15 @@ export default function DeskFilterRail({
               {translate(`sourceTabs.${value}`)}
             </SelectItem>
           ))}
-          <SelectItem value="following">Following</SelectItem>
+          <SelectItem value="following">
+            {translate('following.title')}
+          </SelectItem>
         </SelectContent>
       </Select>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            ariaLabel="Platforms"
+            ariaLabel={translate('filters.platforms')}
             className="h-8 gap-2"
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
@@ -107,8 +109,10 @@ export default function DeskFilterRail({
             {activePlatforms.size === 1
               ? Array.from(activePlatforms)[0]
               : activePlatforms.size
-                ? `${activePlatforms.size} platforms`
-                : 'All platforms'}
+                ? translate('filters.platformCount', {
+                    count: activePlatforms.size,
+                  })
+                : translate('filters.allPlatforms')}
             <ChevronDown className="size-3.5" />
           </Button>
         </DropdownMenuTrigger>
@@ -118,7 +122,7 @@ export default function DeskFilterRail({
             onCheckedChange={onClearPlatforms}
             onSelect={(event) => event.preventDefault()}
           >
-            All platforms
+            {translate('filters.allPlatforms')}
           </DropdownMenuCheckboxItem>
           {platforms.map((platform) => (
             <DropdownMenuCheckboxItem
@@ -142,13 +146,16 @@ export default function DeskFilterRail({
         }
         value={contentType}
       >
-        <SelectTrigger aria-label="Content type" className="h-8 w-32">
-          <SelectValue placeholder="Content type" />
+        <SelectTrigger
+          aria-label={translate('filters.contentType')}
+          className="h-8 w-32"
+        >
+          <SelectValue placeholder={translate('filters.contentType')} />
         </SelectTrigger>
         <SelectContent>
           {CONTENT_TYPE_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
+            <SelectItem key={option} value={option}>
+              {translate(`filters.types.${option}`)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -158,13 +165,16 @@ export default function DeskFilterRail({
         onValueChange={(value) => onSort(value as DiscoveryDeskSort)}
         value={sort}
       >
-        <SelectTrigger aria-label="Sort" className="h-8 w-32">
-          <SelectValue placeholder="Sort" />
+        <SelectTrigger
+          aria-label={translate('filters.sort')}
+          className="h-8 w-32"
+        >
+          <SelectValue placeholder={translate('filters.sort')} />
         </SelectTrigger>
         <SelectContent>
           {SORT_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
+            <SelectItem key={option} value={option}>
+              {translate(`filters.sortOptions.${option}`)}
             </SelectItem>
           ))}
         </SelectContent>
