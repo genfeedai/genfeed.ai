@@ -425,8 +425,13 @@ export function getActivityDestinationPath(
   }
 
   const { subject } = parseActivityKey(activity.key);
-  if (subject === 'social' || subject === 'integration') {
-    return APP_ROUTES.SETTINGS.INTEGRATIONS;
+  if (subject === 'social') {
+    return APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS;
+  }
+  if (subject === 'integration') {
+    return activity.brandId
+      ? APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS
+      : APP_ROUTES.SETTINGS.INTEGRATIONS;
   }
 
   const entityModel = activity.entityModel?.toLowerCase();
