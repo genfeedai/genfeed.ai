@@ -23,6 +23,7 @@ import {
   IngredientCategory,
   MemberRole,
   parseIngredientOrigin,
+  parseLibraryShelf,
   parseTagMatchMode,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -283,6 +284,7 @@ export class AgentWorkspaceToolHandler {
         'limit',
         'offset',
         'origin',
+        'shelf',
         'tagMatch',
         'tags',
       ].filter((key) => params[key] !== undefined && params[key] !== null);
@@ -318,6 +320,15 @@ export class AgentWorkspaceToolHandler {
       );
     }
 
+    const hasShelf =
+      params.shelf !== undefined &&
+      params.shelf !== null &&
+      params.shelf !== '';
+    const shelf = hasShelf ? parseLibraryShelf(params.shelf) : undefined;
+    if (hasShelf && !shelf) {
+      return toolFailure('shelf must be a valid Library shelf.');
+    }
+
     const tagIds = readTagIds(params.tags);
     if (typeof tagIds === 'string') {
       return toolFailure(tagIds);
@@ -349,6 +360,7 @@ export class AgentWorkspaceToolHandler {
       offset: clampInteger(params.offset, 0, 0, Number.MAX_SAFE_INTEGER),
       organizationId: ctx.organizationId,
       origin,
+      ...(shelf ? { shelf } : {}),
       ...(tagIds
         ? { tagFilter: IngredientFilterUtil.buildTagFilter(tagIds, tagMatch) }
         : {}),

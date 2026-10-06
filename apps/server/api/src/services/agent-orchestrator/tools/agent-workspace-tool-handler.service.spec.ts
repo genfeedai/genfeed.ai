@@ -806,3 +806,29 @@ describe('AgentWorkspaceToolHandler.getBrands', () => {
     });
   });
 });
+
+describe('list_assets Library shelves', () => {
+  it('passes the Unsorted shelf within the authorized brand and organization', async () => {
+    const ingredients = { listLibraryAssets: vi.fn().mockResolvedValue([]) };
+    const result = await buildHandler({ ingredients }).listAssets(
+      { type: 'image', shelf: 'unsorted' },
+      baseCtx,
+    );
+    expect(result.success).toBe(true);
+    expect(ingredients.listLibraryAssets).toHaveBeenCalledWith(
+      expect.objectContaining({
+        shelf: 'unsorted',
+        organizationId: baseCtx.organizationId,
+      }),
+    );
+  });
+  it('refuses invalid shelves rather than reviewing the whole library', async () => {
+    const ingredients = { listLibraryAssets: vi.fn() };
+    const result = await buildHandler({ ingredients }).listAssets(
+      { type: 'image', shelf: 'not-a-shelf' },
+      baseCtx,
+    );
+    expect(result.success).toBe(false);
+    expect(ingredients.listLibraryAssets).not.toHaveBeenCalled();
+  });
+});

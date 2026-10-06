@@ -1,5 +1,6 @@
 'use client';
 
+import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import type { ILibrarySummary } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { getRequestOrganizationHeaders } from '@genfeedai/services/core/interceptor.service';
@@ -40,6 +41,12 @@ export function useLibrarySummary(): UseLibrarySummaryReturn {
   const refresh = useCallback(() => {
     setReloadToken((token) => token + 1);
   }, []);
+
+  useEffect(() => {
+    window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refresh);
+    return () =>
+      window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refresh);
+  }, [refresh]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reloadToken is the refresh trigger, not a value the effect reads.
   useEffect(() => {

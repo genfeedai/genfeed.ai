@@ -30,6 +30,7 @@ export default function SectionTopbar({
   icon: Icon,
   actions,
   iconActions,
+  iconActionsPlacement = 'after-controls',
   leading,
   tabs,
   titleVisibility = 'auto',
@@ -55,6 +56,24 @@ export default function SectionTopbar({
     forceVisible || hasVisibleTitle || hasLeading || hasTabs || hasActions;
   const { markPlaced, renderToggle } = useSectionInspectorToggle(isBarVisible);
   const inspectorToggle = renderToggle ? <ContextInspectorToggle /> : null;
+
+  const iconActionsNode = (
+    <div
+      className="flex shrink-0 items-center gap-1 empty:hidden"
+      data-testid="section-topbar-icon-actions"
+    >
+      {helpTrigger ? (
+        <div
+          data-testid="section-topbar-help"
+          className="flex shrink-0 items-center"
+        >
+          {helpTrigger}
+        </div>
+      ) : null}
+      {iconActions}
+      {inspectorToggle}
+    </div>
+  );
 
   // Chrome-only title with no tools: do not paint an empty border-b strip,
   // unless the page has declared (via Container's `moduleChrome`) that this
@@ -110,22 +129,16 @@ export default function SectionTopbar({
                       : 'shrink-0',
                 )}
               >
+                {iconActionsPlacement === 'before-controls'
+                  ? iconActionsNode
+                  : null}
+                {iconActionsPlacement === 'before-controls'
+                  ? iconActionsNode
+                  : null}
                 {actions}
-                <div
-                  className="flex shrink-0 items-center gap-1 empty:hidden"
-                  data-testid="section-topbar-icon-actions"
-                >
-                  {helpTrigger ? (
-                    <div
-                      data-testid="section-topbar-help"
-                      className="flex shrink-0 items-center"
-                    >
-                      {helpTrigger}
-                    </div>
-                  ) : null}
-                  {iconActions}
-                  {inspectorToggle}
-                </div>
+                {iconActionsPlacement === 'after-controls'
+                  ? iconActionsNode
+                  : null}
               </div>
             ) : null}
             {hasTabs ? (
@@ -186,21 +199,9 @@ export default function SectionTopbar({
               className="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-2"
             >
               {actions}
-              <div
-                className="flex shrink-0 items-center gap-1 empty:hidden"
-                data-testid="section-topbar-icon-actions"
-              >
-                {helpTrigger ? (
-                  <div
-                    data-testid="section-topbar-help"
-                    className="flex shrink-0 items-center"
-                  >
-                    {helpTrigger}
-                  </div>
-                ) : null}
-                {iconActions}
-                {inspectorToggle}
-              </div>
+              {iconActionsPlacement === 'after-controls'
+                ? iconActionsNode
+                : null}
             </div>
           ) : null}
         </div>

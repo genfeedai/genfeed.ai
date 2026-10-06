@@ -243,6 +243,7 @@ export class IngredientsService extends BaseService<
     offset: number;
     organizationId: string;
     origin?: IngredientOrigin;
+    shelf?: LibraryShelf;
     tagFilter?: Record<string, unknown>;
   }): Promise<IngredientDocument[]> {
     const rows = await this.prisma.ingredient.findMany({
@@ -256,7 +257,9 @@ export class IngredientsService extends BaseService<
       where: scopedWhere(params.organizationId, {
         ...(params.brandId ? { brandId: params.brandId } : {}),
         category: params.category,
-        status: { notIn: [...HIDDEN_LIBRARY_ASSET_STATUSES] },
+        ...(params.shelf
+          ? LibraryShelfUtil.buildShelfFilter(params.shelf)
+          : { status: { notIn: [...HIDDEN_LIBRARY_ASSET_STATUSES] } }),
         trainingId: null,
         ...(params.origin ? { origin: params.origin } : {}),
         ...(params.characterFilter ?? {}),

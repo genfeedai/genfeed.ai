@@ -7,6 +7,7 @@ import {
   IngredientCategory,
   IngredientOrigin,
   IngredientStatus,
+  LibraryShelf,
 } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -706,6 +707,37 @@ describe('IngredientsService', () => {
             },
             trainingId: null,
           },
+        }),
+      );
+    });
+
+    it('uses the Unsorted saved query with brand, origin and tenant filters', async () => {
+      await service.listLibraryAssets({
+        brandId: 'brand-1',
+        category: IngredientCategory.IMAGE,
+        limit: 10,
+        offset: 0,
+        organizationId,
+        origin: IngredientOrigin.GENERATED,
+        shelf: LibraryShelf.UNSORTED,
+      });
+      expect(ingredientDelegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            brandId: 'brand-1',
+            category: IngredientCategory.IMAGE,
+            organizationId,
+            isDeleted: false,
+            origin: IngredientOrigin.GENERATED,
+            folderId: null,
+            status: {
+              in: [
+                IngredientStatus.DRAFT,
+                IngredientStatus.UPLOADED,
+                IngredientStatus.GENERATED,
+              ],
+            },
+          }),
         }),
       );
     });

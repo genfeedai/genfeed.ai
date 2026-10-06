@@ -11,6 +11,7 @@ import type { IngredientsMediaGridProps } from '@genfeedai/props/content/ingredi
 import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
+import IngredientReviewActions from '@ui/ingredients/IngredientReviewActions';
 import IngredientOriginBadge from '@ui/ingredients/ingredient-origin-badge';
 import IngredientTagChips from '@ui/ingredients/ingredient-tag-chips';
 import {
@@ -24,9 +25,9 @@ import { groupIngredientsByTime } from './ingredient-time-groups.util';
 
 const COLUMN_GAP = '4px';
 
-/** The origin label sits on every card and never intercepts a click. */
+/** Reveal provenance with the card actions on hover or keyboard focus. */
 const ORIGIN_BADGE_CLASS =
-  'pointer-events-none absolute bottom-1.5 left-1.5 z-10';
+  'pointer-events-none absolute bottom-1.5 left-1.5 z-10 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100';
 
 /** Tags sit just above the origin label and never intercept a click either. */
 const TAG_CHIPS_CLASS =
@@ -128,6 +129,7 @@ export default function IngredientsMediaGrid({
   onSeeDetails,
   onUpdateParent,
   onRefresh,
+  onReviewUpdated,
   onPublishIngredient,
   onClickIngredient,
   onToggleSelection,
@@ -195,6 +197,14 @@ export default function IngredientsMediaGrid({
             className={TAG_CHIPS_CLASS}
             tags={ingredient.tags}
           />
+          {isActionsEnabled ? (
+            <div className="absolute bottom-1.5 right-1.5 z-20">
+              <IngredientReviewActions
+                ingredient={ingredient}
+                onUpdated={onReviewUpdated ?? onRefresh}
+              />
+            </div>
+          ) : null}
           <IngredientOriginBadge
             className={ORIGIN_BADGE_CLASS}
             origin={ingredient.origin}
@@ -231,6 +241,14 @@ export default function IngredientsMediaGrid({
           className={TAG_CHIPS_CLASS}
           tags={ingredient.tags}
         />
+        {isActionsEnabled ? (
+          <div className="absolute bottom-1.5 right-1.5 z-20">
+            <IngredientReviewActions
+              ingredient={ingredient}
+              onUpdated={onReviewUpdated ?? onRefresh}
+            />
+          </div>
+        ) : null}
         <IngredientOriginBadge
           className={ORIGIN_BADGE_CLASS}
           origin={ingredient.origin}

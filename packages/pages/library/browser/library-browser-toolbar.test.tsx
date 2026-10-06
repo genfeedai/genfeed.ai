@@ -519,3 +519,17 @@ describe('LibraryBrowserToolbar', () => {
     );
   });
 });
+
+it('opens an editable Agent review request from Unsorted', () => {
+  render(
+    <LibraryBrowserIconActions
+      isRefreshing={false}
+      onRefresh={vi.fn()}
+      onUpload={vi.fn()}
+      reviewUnsortedHref="/org/brand/agent/new?prompt=review-unsorted"
+    />,
+  );
+  expect(
+    screen.getByRole('link', { name: 'Review Unsorted with Agent' }),
+  ).toHaveAttribute('href', '/org/brand/agent/new?prompt=review-unsorted');
+});

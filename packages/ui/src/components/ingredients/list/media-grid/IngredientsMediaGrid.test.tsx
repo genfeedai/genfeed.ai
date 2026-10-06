@@ -13,6 +13,10 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+vi.mock('@ui/ingredients/IngredientReviewActions', () => ({
+  default: () => <div data-testid="asset-review-actions" />,
+}));
+
 vi.mock('@ui/lazy/masonry/LazyMasonry', () => ({
   LazyMasonryImage: ({
     image,
@@ -111,7 +115,12 @@ describe('IngredientsMediaGrid', () => {
       screen.getByTestId('video-tile-video-1'),
     );
     expect(uploaded).toHaveClass('pointer-events-none');
-    expect(generated).toHaveClass('pointer-events-none');
+    expect(generated).toHaveClass(
+      'pointer-events-none',
+      'opacity-0',
+      'group-hover:opacity-100',
+      'group-focus-within:opacity-100',
+    );
   });
 
   it('shows each card’s tags above its origin, never intercepting a click', () => {

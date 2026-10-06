@@ -74,6 +74,10 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+vi.mock('@ui/ingredients/IngredientReviewActions', () => ({
+  default: () => null,
+}));
+
 vi.mock('@ui/dropdowns/status/DropdownStatus', () => ({
   default: () => <div data-testid="status-dropdown" />,
 }));
@@ -677,18 +681,16 @@ describe('IngredientsListContent inspector handoff', () => {
         title,
         within(row).getByTestId('action-button'),
       ]) {
-        onSelectionChange.mockClear();
+        setSelectedAsset.mockClear();
         fireEvent.click(target);
-        expect(onSelectionChange).toHaveBeenCalledExactlyOnceWith([
-          ingredient.id,
-        ]);
+        expect(setSelectedAsset).toHaveBeenCalledExactlyOnceWith(ingredient);
+        expect(onSelectionChange).not.toHaveBeenCalled();
       }
       for (const key of ['Enter', ' ']) {
-        onSelectionChange.mockClear();
+        setSelectedAsset.mockClear();
         fireEvent.keyDown(row, { key });
-        expect(onSelectionChange).toHaveBeenCalledExactlyOnceWith([
-          ingredient.id,
-        ]);
+        expect(setSelectedAsset).toHaveBeenCalledExactlyOnceWith(ingredient);
+        expect(onSelectionChange).not.toHaveBeenCalled();
       }
       expect(row).toHaveAttribute('tabindex', '0');
       expect(onOpenLightbox).not.toHaveBeenCalled();
@@ -706,9 +708,8 @@ describe('IngredientsListContent inspector handoff', () => {
       viewMode: 'grid',
     });
     fireEvent.click(screen.getByText('Opening Theme'));
-    expect(onSelectionChange).toHaveBeenCalledExactlyOnceWith([
-      musicIngredient.id,
-    ]);
+    expect(setSelectedAsset).toHaveBeenCalledWith(musicIngredient);
+    expect(onSelectionChange).not.toHaveBeenCalled();
   });
 
   it('keeps retry and audio controls independent of brand row inspection', () => {
@@ -778,11 +779,12 @@ describe('IngredientsListContent inspector handoff', () => {
 
     fireEvent.click(screen.getByTestId('media-grid-item'));
 
-    expect(onSelectionChange).toHaveBeenCalledWith([videoIngredient.id]);
+    expect(setSelectedAsset).toHaveBeenCalledWith(videoIngredient);
+    expect(onSelectionChange).not.toHaveBeenCalled();
     expect(onOpenLightbox).not.toHaveBeenCalled();
   });
 
-  it('deselects a brand asset when its tile is clicked again', () => {
+  it('keeps inspecting a brand asset when its tile is clicked again', () => {
     const onSelectionChange = vi.fn();
     const { onOpenLightbox } = renderContent({
       filteredIngredients: [videoIngredient, baseIngredient],
@@ -796,9 +798,8 @@ describe('IngredientsListContent inspector handoff', () => {
 
     fireEvent.click(screen.getByTestId('media-grid-item'));
 
-    expect(onSelectionChange).toHaveBeenCalledExactlyOnceWith([
-      baseIngredient.id,
-    ]);
+    expect(setSelectedAsset).toHaveBeenCalledWith(videoIngredient);
+    expect(onSelectionChange).not.toHaveBeenCalled();
     expect(onOpenLightbox).not.toHaveBeenCalled();
   });
 
@@ -839,7 +840,7 @@ describe('IngredientsListContent inspector handoff', () => {
     expect(onOpenLightbox).toHaveBeenCalledTimes(1);
   });
 
-  it('clears its own selection when the sidebar close clears the shared one', () => {
+  it('preserves checkbox selection when the sidebar closes', () => {
     const onSelectionChange = vi.fn();
     const { rerenderContent } = renderContent({
       onSelectionChange,
@@ -854,7 +855,7 @@ describe('IngredientsListContent inspector handoff', () => {
 
     assetSelection.published = null;
     rerenderContent();
-    expect(onSelectionChange).toHaveBeenCalledWith([]);
+    expect(onSelectionChange).not.toHaveBeenCalled();
   });
 
   it('keeps a reselected asset selected while its new publish lands', () => {
@@ -890,17 +891,16 @@ describe('IngredientsListContent inspector handoff', () => {
     expect(onSelectionChange).not.toHaveBeenCalled();
   });
 
-  it('publishes a single selection for the workspace rail', () => {
+  it('does not publish checkbox selection to the workspace rail', () => {
     renderContent({ selectedIngredientIds: [baseIngredient.id] });
 
-    expect(setSelectedAsset).toHaveBeenCalledWith(baseIngredient);
+    expect(setSelectedAsset).not.toHaveBeenCalled();
   });
 
   it('publishes nothing for a multi-selection', () => {
     renderContent({ selectedIngredientIds: [baseIngredient.id, 'other-id'] });
 
-    expect(setSelectedAsset).toHaveBeenCalledWith(null);
-    expect(setSelectedAsset).not.toHaveBeenCalledWith(baseIngredient);
+    expect(setSelectedAsset).not.toHaveBeenCalled();
   });
 
   it('clears the published asset when the library unmounts', () => {
@@ -1049,7 +1049,10 @@ describe('Library See Details sidebar routing', () => {
       onSeeDetails,
     });
     fireEvent.click(screen.getByRole('button', { name: 'See Details' }));
-    expect(onSelectionChange).toHaveBeenCalledWith([baseIngredient.id]);
+    expect(setSelectedAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ id: baseIngredient.id }),
+    );
+    expect(onSelectionChange).not.toHaveBeenCalled();
     expect(onSeeDetails).not.toHaveBeenCalled();
     expect(revealSidebar).toHaveBeenCalled();
     expect(onOpenIngredientModal).not.toHaveBeenCalled();

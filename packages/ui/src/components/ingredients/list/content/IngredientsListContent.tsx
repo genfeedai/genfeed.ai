@@ -42,6 +42,7 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
+import IngredientReviewActions from '@ui/ingredients/IngredientReviewActions';
 import IngredientOriginBadge from '@ui/ingredients/ingredient-origin-badge';
 import IngredientTagChips from '@ui/ingredients/ingredient-tag-chips';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
@@ -290,6 +291,27 @@ export default function IngredientsListContent({
     return { nonVisualIngredients: nonVisual, visualIngredients: visual };
   }, [filteredIngredients]);
 
+  const {
+    lightboxRequestCount,
+    requestedLightboxIngredient,
+    selectedIngredient: publishedIngredient,
+    setSelectedAsset,
+  } = useAssetSelection();
+  const handleReviewUpdated = useCallback(
+    (updated: IIngredient) => {
+      onSetIngredients((current) =>
+        current.flatMap((ingredient) => {
+          if (ingredient.id !== updated.id) return [ingredient];
+          return updated.status === IngredientStatus.REJECTED ? [] : [updated];
+        }),
+      );
+      if (publishedIngredient?.id === updated.id) {
+        setSelectedAsset(updated);
+      }
+    },
+    [onSetIngredients, publishedIngredient, setSelectedAsset],
+  );
+
   const columns = useMemo(
     () => [
       {
@@ -436,6 +458,12 @@ export default function IngredientsListContent({
                 }
               }}
             />
+            {isActionsEnabled ? (
+              <IngredientReviewActions
+                ingredient={ingredient}
+                onUpdated={handleReviewUpdated}
+              />
+            ) : null}
             {isFailedIngredient(ingredient) && onReprompt && (
               <Button
                 label={translateRetry('retry')}
@@ -450,7 +478,14 @@ export default function IngredientsListContent({
         ),
       },
     ],
-    [onSetIngredients, onReprompt, translate, translateRetry],
+    [
+      onSetIngredients,
+      onReprompt,
+      translate,
+      translateRetry,
+      isActionsEnabled,
+      handleReviewUpdated,
+    ],
   );
 
   const openIngredientPreview = useCallback(
@@ -464,33 +499,23 @@ export default function IngredientsListContent({
     [onOpenIngredientModal, onOpenLightbox],
   );
 
-  // A brand Library click or See Details selects the asset for the workspace sidebar.
-  // Clicking that asset again removes it. The sidebar preview opens the
-  // lightbox; the tile click never does. Other scopes have no sidebar and
-  // keep opening the preview straight away.
   const revealInspector = useContextSidebar()?.reveal;
+  const inspectIngredient = useCallback(
+    (ingredient: IIngredient) => {
+      setSelectedAsset(ingredient);
+      revealInspector?.();
+    },
+    [revealInspector, setSelectedAsset],
+  );
   const handleSeeDetails = useCallback(
     (ingredient: IIngredient) => {
       if (scope === PageScope.BRAND) {
-        // Details is an explicit inspect action, never a deselection toggle.
-        onSelectionChange([ingredient.id]);
-        if (
-          selectedIngredientIds.length === 1 &&
-          selectedIngredientIds[0] === ingredient.id
-        ) {
-          revealInspector?.();
-        }
+        inspectIngredient(ingredient);
         return;
       }
       onSeeDetails(ingredient);
     },
-    [
-      revealInspector,
-      onSeeDetails,
-      onSelectionChange,
-      scope,
-      selectedIngredientIds,
-    ],
+    [inspectIngredient, onSeeDetails, scope],
   );
 
   const handleMediaClick = useCallback(
@@ -498,19 +523,13 @@ export default function IngredientsListContent({
       if (scope === PageScope.SUPERADMIN) {
         return;
       }
-
       if (scope === PageScope.BRAND) {
-        onSelectionChange(
-          selectedIngredientIds.includes(ingredient.id)
-            ? selectedIngredientIds.filter((id) => id !== ingredient.id)
-            : [ingredient.id],
-        );
+        inspectIngredient(ingredient);
         return;
       }
-
       openIngredientPreview(ingredient);
     },
-    [onSelectionChange, openIngredientPreview, scope, selectedIngredientIds],
+    [inspectIngredient, openIngredientPreview, scope],
   );
 
   const handleToggleSelection = useCallback(
@@ -708,6 +727,7 @@ export default function IngredientsListContent({
               onSeeDetails={handleSeeDetails}
               onUpdateParent={onUpdateParent}
               onRefresh={onRefresh}
+              onReviewUpdated={handleReviewUpdated}
               selectedIds={selectedIngredientIds}
               isPortraiting={isPortraiting}
               isGeneratingCaptions={isGeneratingCaptions}
@@ -773,6 +793,7 @@ export default function IngredientsListContent({
     formatFilter,
     handleMediaClick,
     handleToggleSelection,
+    handleReviewUpdated,
     isActionsEnabled,
     isDragEnabled,
     isAudioCategory,
@@ -809,63 +830,19 @@ export default function IngredientsListContent({
     visualIngredients,
   ]);
 
-  /**
-   * The workspace rail inspects one asset. A multi-selection is a bulk action,
-   * so it publishes nothing rather than picking an arbitrary member to
-   * describe.
-   */
-  const inspectedIngredient = useMemo(() => {
-    if (selectedIngredientIds.length !== 1) {
-      return null;
+  // Refresh the inspected record after edits without coupling the rail to
+  // checkbox selection. Closing the rail leaves the bulk selection intact.
+  useEffect(() => {
+    if (!publishedIngredient) {
+      return;
     }
-
-    return (
-      filteredIngredients.find(
-        (ingredient: IIngredient) => ingredient.id === selectedIngredientIds[0],
-      ) ?? null
+    const current = filteredIngredients.find(
+      (ingredient) => ingredient.id === publishedIngredient.id,
     );
-  }, [filteredIngredients, selectedIngredientIds]);
-
-  /**
-   * The grid owns the selection, the workspace shell owns the sidebar.
-   * Publishing into the shared asset selection is the whole handoff: the
-   * library surface adapter reads it back and renders the asset into the
-   * context sidebar, so the canvas never carries a second inspector.
-   */
-  const {
-    lightboxRequestCount,
-    requestedLightboxIngredient,
-    selectedIngredient: publishedIngredient,
-    setSelectedAsset,
-  } = useAssetSelection();
-  const confirmedPublishedIdRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    setSelectedAsset(inspectedIngredient);
-  }, [inspectedIngredient, setSelectedAsset]);
-
-  // Closing the sidebar clears the shared selection; follow that back into
-  // the grid. Only a publish this grid saw land counts, so the render between
-  // selecting and publishing is never mistaken for a close.
-  useEffect(() => {
-    if (!inspectedIngredient) {
-      // A deselect or multi-select ends that publish; reselecting the same
-      // asset must wait for its new publish before a clear can count.
-      confirmedPublishedIdRef.current = null;
-      return;
+    if (current && current !== publishedIngredient) {
+      setSelectedAsset(current);
     }
-    if (publishedIngredient?.id === inspectedIngredient.id) {
-      confirmedPublishedIdRef.current = inspectedIngredient.id;
-      return;
-    }
-    if (
-      !publishedIngredient &&
-      confirmedPublishedIdRef.current === inspectedIngredient.id
-    ) {
-      confirmedPublishedIdRef.current = null;
-      onSelectionChange([]);
-    }
-  }, [inspectedIngredient, onSelectionChange, publishedIngredient]);
+  }, [filteredIngredients, publishedIngredient, setSelectedAsset]);
 
   // The sidebar preview asks for the lightbox by bumping a counter; a request
   // that predates this grid's mount is not ours to honor.

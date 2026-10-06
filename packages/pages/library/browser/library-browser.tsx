@@ -6,9 +6,12 @@ import {
   ComponentSize,
   LIBRARY_SHELF_LABELS,
   LibraryPlace,
+  LibraryShelf,
   PageScope,
 } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { LibraryBrowserProps } from '@props/pages/library-browser.props';
 import Container from '@ui/layout/container/Container';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -80,6 +83,13 @@ export default function LibraryBrowser({
   // Character availability is resolved for one brand, so the filter belongs to
   // brand-scoped views only.
   const { brandId } = useCollectionScope();
+  const { href } = useOrgUrl();
+  const reviewUnsortedHref =
+    shelf === LibraryShelf.UNSORTED && scope === PageScope.BRAND
+      ? href(
+          `${APP_ROUTES.AGENT.NEW}?prompt=${encodeURIComponent(`Use list_assets with shelf=unsorted and origin=GENERATED, paginating each supported media type for the current brand. Review those unsorted generated assets. Check the actual media against the approved brand kit, especially logo fidelity. Suggest approve/reject decisions with reasons and folders or tags for sorting. Use the available review tools; disclose any unavailable checks. Do not approve, reject, move, delete, publish, generate, or change learning settings. Return suggestions for me to review.`)}`,
+        )
+      : undefined;
   const characterOptions = useLibraryCharacterOptions({
     brandId,
     isEnabled: scope === PageScope.BRAND,
@@ -193,8 +203,10 @@ export default function LibraryBrowser({
               viewMode={viewMode}
             />
           }
+          iconActionsPlacement="before-controls"
           iconActions={
             <LibraryBrowserIconActions
+              reviewUnsortedHref={reviewUnsortedHref}
               isRefreshing={isRefreshing}
               onRefresh={handleRefresh}
               onUpload={handleUpload}

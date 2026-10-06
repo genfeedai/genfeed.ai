@@ -48,8 +48,17 @@ import {
   categoriesFromAssetTypeIds,
   selectedAssetTypeIds,
 } from '@utils/media/library-asset-type.util';
-import { Frame, LayoutGrid, Rows3, Upload, UserRound, X } from 'lucide-react';
+import {
+  Frame,
+  LayoutGrid,
+  Rows3,
+  Sparkles,
+  Upload,
+  UserRound,
+  X,
+} from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
@@ -373,8 +382,6 @@ export default function LibraryBrowserToolbar({
               withWrapper={false}
             />
           ) : null}
-
-          <LibraryTagManagerDialog />
         </div>
       ) : null}
 
@@ -405,12 +412,13 @@ export default function LibraryBrowserToolbar({
 }
 
 export function LibraryBrowserIconActions({
+  reviewUnsortedHref,
   isRefreshing,
   onRefresh,
   onUpload,
 }: Pick<
   LibraryBrowserToolbarProps,
-  'isRefreshing' | 'onRefresh' | 'onUpload'
+  'isRefreshing' | 'onRefresh' | 'onUpload' | 'reviewUnsortedHref'
 >) {
   const translate = useTranslations('pages.library.browser.toolbar');
   return (
@@ -418,6 +426,24 @@ export function LibraryBrowserIconActions({
       className="flex items-center gap-1"
       data-testid="library-toolbar-icon-actions"
     >
+      {reviewUnsortedHref ? (
+        <Button
+          asChild
+          className={SHELL_ICON_BUTTON_CLASS}
+          size={ButtonSize.ICON}
+          variant={ButtonVariant.GHOST}
+          tooltip="Review Unsorted with Agent"
+          withWrapper={false}
+        >
+          <Link
+            href={reviewUnsortedHref}
+            aria-label="Review Unsorted with Agent"
+          >
+            <Sparkles className={SHELL_ICON_CLASS} />
+          </Link>
+        </Button>
+      ) : null}
+      <LibraryTagManagerDialog />
       <ButtonRefresh isRefreshing={isRefreshing} onClick={onRefresh} />
       <Button
         ariaLabel={translate('upload')}
