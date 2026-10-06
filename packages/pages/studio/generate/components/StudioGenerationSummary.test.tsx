@@ -46,7 +46,7 @@ describe('Studio submit credit tooltip', () => {
     expect(screen.queryByText('~12')).not.toBeInTheDocument();
     await user.tab();
     const tooltip = await screen.findByRole('tooltip');
-    expect(tooltip).toHaveTextContent(/~12\s*\/\s*5,397/);
+    expect(tooltip.textContent).toMatch(/~12\s*\/\s*5,397/);
     expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
       'aria-describedby',
       tooltip.id,
@@ -68,7 +68,7 @@ describe('Studio submit credit tooltip', () => {
     fireEvent.pointerMove(screen.getByRole('button', { name: 'Generate' }), {
       pointerType: 'mouse',
     });
-    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+    expect((await screen.findByRole('tooltip')).textContent).toMatch(
       /~12\s*\/\s*5,397/,
     );
   });
@@ -110,7 +110,7 @@ describe('Studio submit credit tooltip', () => {
     fireEvent.pointerMove(screen.getByRole('group', { name: 'Generate' }), {
       pointerType: 'mouse',
     });
-    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+    expect((await screen.findByRole('tooltip')).textContent).toMatch(
       /~12\s*\/\s*5,397/,
     );
   });
