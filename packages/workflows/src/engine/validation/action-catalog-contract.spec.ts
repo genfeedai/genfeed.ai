@@ -78,6 +78,54 @@ describe('published action catalog', () => {
   });
 });
 
+describe('tool mutation approval output contract', () => {
+  const action = getActionDefinition('generate_content_batch');
+  const contract = compileActionContract('generate_content_batch', {
+    inputSchema: (action?.inputSchema ?? {}) as ActionContractJsonSchema,
+    outputSchema: (action?.outputSchema ?? {}) as ActionContractJsonSchema,
+  });
+  const provenance = {
+    nodeId: 'execute-tool',
+    runId: 'run-batch',
+    workflowId: 'agent.tool.generate_content_batch',
+    workflowVersionId: 'v1',
+  };
+  const output = {
+    approvalId: 'approval-1',
+    approvalStatus: 'pending',
+    creditsUsed: 0,
+    data: {
+      approvalId: 'approval-1',
+      mutationPolicy: 'approval-required',
+      status: 'pending',
+      toolName: 'generate_content_batch',
+    },
+    mutationPolicy: 'approval-required',
+    nextActions: [],
+    requiresConfirmation: true,
+    success: true,
+  };
+
+  it.each(['pending', 'approved', 'declined'])(
+    'accepts the declared %s approval envelope',
+    (approvalStatus) => {
+      expect(() =>
+        contract.validateOutput({ ...output, approvalStatus }, provenance),
+      ).not.toThrow();
+    },
+  );
+
+  it.each([
+    { approvalStatus: 'unknown' },
+    { mutationPolicy: 'unsafe' },
+    { unexpected: true },
+  ])('rejects invalid approval metadata: %j', (invalid) => {
+    expect(() =>
+      contract.validateOutput({ ...output, ...invalid }, provenance),
+    ).toThrow('Action contract output validation failed');
+  });
+});
+
 describe('generate_content_batch input contract', () => {
   const action = getActionDefinition('generate_content_batch');
   const contract = compileActionContract('generate_content_batch', {

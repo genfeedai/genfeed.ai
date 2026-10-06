@@ -735,7 +735,17 @@ describe('AgentThreadList', () => {
 
     render(<AgentThreadList apiService={apiService as never} />);
 
-    expect(await screen.findByText('Compact row')).toBeInTheDocument();
+    const title = await screen.findByText('Compact row');
+    expect(title).toBeInTheDocument();
+    expect(title.parentElement?.firstElementChild).toHaveClass(
+      'size-2',
+      'shrink-0',
+    );
+    expect(title.parentElement?.firstElementChild).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
+    expect(screen.getByText('Three portraits are ready')).toHaveClass('pl-3.5');
     expect(screen.getByText('Three portraits are ready')).toBeInTheDocument();
     expect(
       screen.queryByRole('img', {
