@@ -341,9 +341,12 @@ export function useAnalyticsOverview({
     hasViews,
   ]);
 
-  const connectAccountsHref = brandSlug
-    ? href(APP_ROUTES.SETTINGS.SOCIAL)
-    : orgHref(APP_ROUTES.SETTINGS.BRANDS);
+  const connectAccountsHref =
+    scope === PageScope.SUPERADMIN
+      ? orgHref(APP_ROUTES.SETTINGS.SOCIAL)
+      : brandSlug
+        ? href(APP_ROUTES.SETTINGS.SOCIAL)
+        : orgHref(APP_ROUTES.SETTINGS.BRANDS);
 
   const heroContent = useMemo<DashboardHeroContent | null>(() => {
     // Active dashboards need no status strip — metrics and charts carry the page.

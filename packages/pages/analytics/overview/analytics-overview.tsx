@@ -223,7 +223,10 @@ export default function AnalyticsOverview({
             description={translate('placeholderDescription')}
             icon={ChartColumn}
             primaryAction={{
-              href: href(APP_ROUTES.PUBLISHING.OVERVIEW),
+              href:
+                scope === PageScope.SUPERADMIN
+                  ? APP_ROUTES.PUBLISHING.OVERVIEW
+                  : href(APP_ROUTES.PUBLISHING.OVERVIEW),
               label: translate('createPost'),
               variant: ButtonVariant.DEFAULT,
             }}

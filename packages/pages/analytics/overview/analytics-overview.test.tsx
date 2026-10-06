@@ -1,3 +1,4 @@
+import { PageScope } from '@genfeedai/contracts';
 import AnalyticsOverview from '@pages/analytics/overview/analytics-overview';
 import type { AnchorHTMLAttributes, ImgHTMLAttributes, ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server.node';
@@ -488,6 +489,20 @@ describe('AnalyticsOverview', () => {
     );
 
     expect(mockUseAgentDashboardPersistence).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves superadmin destinations despite a selected brand payload', () => {
+    const markup = renderToStaticMarkup(
+      <AnalyticsOverview
+        scope={PageScope.SUPERADMIN}
+        basePath="/admin/overview/analytics"
+      />,
+    );
+    expect(markup).toContain('/acme/~/settings/integrations');
+    expect(markup).not.toContain('/acme/brand-x/settings/integrations');
+    expect(markup).not.toContain('/acme/brand-x/publishing');
+    expect(markup).toContain('href="/publishing');
+    expect(markup).toContain('/admin/overview/analytics/brands');
   });
 
   it('offers brand selection instead of provider settings in organization scope', () => {

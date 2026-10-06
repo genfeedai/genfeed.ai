@@ -58,6 +58,8 @@ export default function AnalyticsOverviewLeaderboards({
   const { href } = useOrgUrl();
   const scopedBasePath =
     scope === PageScope.SUPERADMIN ? basePath : href(basePath);
+  const publishingHref = (path: string) =>
+    scope === PageScope.SUPERADMIN ? path : href(path);
   const orgsColumns: TableColumn<IOrgLeaderboardItem>[] = useMemo(
     () => [
       {
@@ -196,7 +198,7 @@ export default function AnalyticsOverviewLeaderboards({
         <TopPostsSection
           posts={topPosts}
           isLoading={isTopPostsLoading}
-          basePath={href(APP_ROUTES.PUBLISHING.ROOT)}
+          basePath={publishingHref(APP_ROUTES.PUBLISHING.ROOT)}
         />
       ) : (
         <OverviewPlaceholderCard
@@ -204,12 +206,12 @@ export default function AnalyticsOverviewLeaderboards({
           description="As soon as posts start collecting views and engagement, this module will highlight the strongest creative in the selected range."
           icon={Newspaper}
           primaryAction={{
-            href: href(APP_ROUTES.PUBLISHING.OVERVIEW),
+            href: publishingHref(APP_ROUTES.PUBLISHING.OVERVIEW),
             label: 'Draft content',
             variant: ButtonVariant.DEFAULT,
           }}
           secondaryAction={{
-            href: href(
+            href: publishingHref(
               createPublishingPostsFilterRoute({
                 publicationState: 'posted',
               }),
