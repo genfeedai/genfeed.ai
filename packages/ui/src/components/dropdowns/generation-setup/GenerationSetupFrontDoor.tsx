@@ -43,8 +43,7 @@ export default function GenerationSetupFrontDoor({
   const outputLabel = [
     capabilities.hasAspectRatio && setup.values.aspectRatio,
     capabilities.hasDuration && duration && `${duration}s`,
-    capabilities.hasOutputs &&
-      `${setup.values.outputs} output${setup.values.outputs === 1 ? '' : 's'}`,
+    capabilities.hasOutputs && `x${setup.values.outputs}`,
   ]
     .filter(Boolean)
     .join(' · ');

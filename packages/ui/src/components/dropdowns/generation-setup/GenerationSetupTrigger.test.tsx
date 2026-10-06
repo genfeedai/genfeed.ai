@@ -62,25 +62,25 @@ describe('GenerationSetupTrigger', () => {
         isOpen={false}
         models={[]}
         setup={createSetup()}
-        triggerLabel="Nano Banana 2 Lite · 1:1 · 1K · 1 output"
+        triggerLabel="Nano Banana 2 Lite · 1:1 · 1K · x1"
         typeOptions={typeOptions}
       />,
     );
     expect(
       screen.getByRole('button', { name: /^Generation setup:/ }),
-    ).toHaveTextContent('Nano Banana 2 Lite · 1:1 · 1K · 1 output');
+    ).toHaveTextContent('Nano Banana 2 Lite · 1:1 · 1K · x1');
     rerender(
       <GenerationSetupTrigger
         isOpen={false}
         models={[]}
         setup={createSetup()}
-        triggerLabel="Kling · 16:9 · 1080p · 5s · 1 output"
+        triggerLabel="Kling · 16:9 · 1080p · 5s · x1"
         typeOptions={typeOptions}
       />,
     );
     expect(
       screen.getByRole('button', { name: /^Generation setup:/ }),
-    ).toHaveTextContent('Kling · 16:9 · 1080p · 5s · 1 output');
+    ).toHaveTextContent('Kling · 16:9 · 1080p · 5s · x1');
   });
 
   it('renders Agent when the type is still agent-owned', () => {

@@ -283,7 +283,7 @@ describe('StudioGenerateComposer', () => {
       />,
     );
     expect(screen.getByRole('button', { name: 'Setup' })).toHaveTextContent(
-      'Nano Banana 2 Lite · 1:1 · 1K · 1 output',
+      'Nano Banana 2 Lite · 1:1 · 1K · x1',
     );
     expect(
       screen.queryByRole('button', { name: /browse library/i }),
@@ -863,7 +863,7 @@ describe('StudioGenerateComposer', () => {
       );
       expect(
         promptTools.getByRole('button', { name: 'Enhance prompt' }),
-      ).toHaveTextContent('Enhance prompt');
+      ).not.toHaveTextContent('Enhance prompt');
       expect(
         generationControls.queryByRole('button', { name: 'Enhance prompt' }),
       ).not.toBeInTheDocument();
@@ -966,7 +966,7 @@ describe('StudioGenerateComposer', () => {
       screen.getByLabelText('Estimate available after model selection'),
     ).toBeVisible();
     expect(screen.getByLabelText('120 available')).toBeVisible();
-    expect(screen.getByText('Auto · 1:1 · 1K · 1 output')).toBeVisible();
+    expect(screen.getByText('Auto · 1:1 · 1K · x1')).toBeVisible();
     Object.assign(walletMocks, {
       balance: null,
       isLoaded: false,
@@ -1004,7 +1004,7 @@ describe('StudioGenerateComposer', () => {
     expect(
       screen.queryByLabelText('Balance unavailable'),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Auto · 1:1 · 1K · 1 output')).toBeVisible();
+    expect(screen.getByText('Auto · 1:1 · 1K · x1')).toBeVisible();
   });
 
   it('updates image count, setup and total, and blocks Generate when admission would refuse the price', () => {
@@ -1049,7 +1049,7 @@ describe('StudioGenerateComposer', () => {
       />,
     );
     expect(screen.getByText('~24')).toBeVisible();
-    expect(screen.getByText('Imagen 4 · 9:16 · 2K · 3 outputs')).toBeVisible();
+    expect(screen.getByText('Imagen 4 · 9:16 · 2K · x3')).toBeVisible();
     estimateMocks.resolve.mockReturnValue({
       credits: null,
       status: 'unavailable',
@@ -1222,7 +1222,7 @@ describe('StudioGenerateComposer', () => {
         screen.getByLabelText('Estimate available after model selection'),
       ).toBeVisible();
       expect(estimateMocks.resolve).not.toHaveBeenCalled();
-      expect(screen.getByText('Auto (Ideogram 4.5) · 3 outputs')).toBeVisible();
+      expect(screen.getByText('Auto (Ideogram 4.5) · x3')).toBeVisible();
     });
     it('blocks submission without a source and never offers prompt enhancement', () => {
       render(

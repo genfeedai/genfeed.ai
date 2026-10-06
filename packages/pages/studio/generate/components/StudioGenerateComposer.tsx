@@ -486,9 +486,7 @@ export default function StudioGenerateComposer({
           seconds: costPromptData.duration,
         })
       : undefined,
-    capabilities.hasOutputs
-      ? translate('summary.outputs', { count: costPromptData.outputs ?? 1 })
-      : undefined,
+    capabilities.hasOutputs ? `x${costPromptData.outputs ?? 1}` : undefined,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -958,7 +956,7 @@ export default function StudioGenerateComposer({
                   ? translate('cancelEnhancingPrompt')
                   : translate('enhancePrompt')
               }
-              className="h-8 shrink-0 gap-1.5 px-2 text-xs"
+              className="size-8 shrink-0 min-h-0 min-w-0 p-0"
               icon={
                 isEnhancingPrompt ? (
                   <Spinner className="size-4" />
@@ -972,13 +970,14 @@ export default function StudioGenerateComposer({
               onClick={
                 isEnhancingPrompt ? onCancelEnhancePrompt : onEnhancePrompt
               }
-              label={
+              tooltip={
                 isEnhancingPrompt
                   ? translate('cancelEnhancingPrompt')
                   : translate('enhancePrompt')
               }
               textTransform="none"
-              size={ButtonSize.SM}
+              tooltipPosition="top"
+              size={ButtonSize.ICON}
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             />
