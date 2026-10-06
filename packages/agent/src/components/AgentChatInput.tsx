@@ -233,49 +233,39 @@ export function AgentChatInput({
 
       <PromptBarComposer
         beforeBody={
-          <>
-            {showEmptyHighlight ? (
-              <svg
-                aria-hidden="true"
-                className="gen-agent-prompt-highlight"
-                focusable="false"
-              >
-                <rect pathLength="100" />
-              </svg>
-            ) : null}
-            {knowledgeSelectionCount > 0 ||
-            hasAttachments ||
-            references.length > 0 ? (
-              <>
-                {knowledgeSelectionCount > 0 ? (
-                  <div className="px-2 pt-2">
-                    <Button
-                      icon={<BookOpen className="size-4" />}
-                      label={translate('knowledgeSelected', {
-                        count: knowledgeSelectionCount,
-                      })}
-                      onClick={handleInsertReference}
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.SECONDARY}
-                    />
-                  </div>
-                ) : null}
-                {hasAttachments || references.length > 0 ? (
-                  <AgentChatInputAttachmentTray
-                    assets={trayAssets}
-                    attachmentStatusById={attachmentStatusById}
-                    isDisabled={disabled}
-                    onRemoveAttachedAsset={handleRemoveAttachment}
-                    onRemoveReference={handleRemoveReference}
-                    references={references}
+          knowledgeSelectionCount > 0 ||
+          hasAttachments ||
+          references.length > 0 ? (
+            <>
+              {knowledgeSelectionCount > 0 ? (
+                <div className="px-2 pt-2">
+                  <Button
+                    icon={<BookOpen className="size-4" />}
+                    label={translate('knowledgeSelected', {
+                      count: knowledgeSelectionCount,
+                    })}
+                    onClick={handleInsertReference}
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
                   />
-                ) : null}
-              </>
-            ) : null}
-          </>
+                </div>
+              ) : null}
+              {hasAttachments || references.length > 0 ? (
+                <AgentChatInputAttachmentTray
+                  assets={trayAssets}
+                  attachmentStatusById={attachmentStatusById}
+                  isDisabled={disabled}
+                  onRemoveAttachedAsset={handleRemoveAttachment}
+                  onRemoveReference={handleRemoveReference}
+                  references={references}
+                />
+              ) : null}
+            </>
+          ) : null
         }
         className={cn(
           isTopAttached && 'rounded-t-none',
+          showEmptyHighlight && 'border-border-strong',
           isDragActive && 'ring-1 ring-primary/40',
         )}
         data-testid="agent-chat-input-shell"
