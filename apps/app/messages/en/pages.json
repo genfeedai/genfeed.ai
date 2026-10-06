@@ -1318,6 +1318,7 @@
       "fluxResolution": "FLUX resolution",
       "fluxAspectRatio": "FLUX aspect ratio",
       "matchSourceAspectRatio": "Match source aspect ratio",
+      "aspectRatioFallback": "This editor can't use {ratio}. Matching the source image instead.",
       "autoAspectRatio": "Auto aspect ratio",
       "removedFluxControls": "Mask and seed settings were removed for FLUX.3.",
       "targetAria": "Image editing target",

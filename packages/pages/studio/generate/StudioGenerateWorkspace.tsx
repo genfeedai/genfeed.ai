@@ -108,6 +108,11 @@ import {
   listStudioGenerateTypeConfigs,
 } from '@pages/studio/generate/utils/studio-generate-types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
+import {
+  readImageEditSourceAspect,
+  readImageEditSourceModel,
+  resolveImageEditEntry,
+} from '@pages/studio/generate/utils/studio-image-edit-entry';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -205,6 +210,8 @@ function toRestoredAttachment(asset: IIngredient): AttachmentItem | null {
 export default function StudioGenerateWorkspace(): ReactElement {
   const editSourceQueryId = useSearchParams().get('editImage');
   const translate = useTranslations('pages.studioGenerate');
+  const translateRef = useRef(translate);
+  translateRef.current = translate;
   const translateActions = useTranslations('ui.quickActions');
   const storyboardEntry = useStoryboardEntry();
   const {
@@ -1674,13 +1681,36 @@ export default function StudioGenerateWorkspace(): ReactElement {
       restoredRolesRef.current.clear();
       setContentReferences([reference]);
       setPrompt('');
-      applyTypeSettings('image-edit', {
-        editSize: 'source',
-        editSeed: undefined,
+      const entry = resolveImageEditEntry({
         editPrimaryId: reference.item.id,
+        sourceAspectRatio: readImageEditSourceAspect({
+          height: job.height,
+          recipeAspectRatio: job.recipe?.aspectRatio,
+          recipeEditAspectRatio: job.recipe?.imageEdit?.aspectRatio,
+          width: job.width,
+        }),
+        sourceModelKey: readImageEditSourceModel({
+          modelKey: job.modelKey,
+          recipeEditModel: job.recipe?.imageEdit?.model,
+          recipeModelKey: job.recipe?.modelKey,
+        }),
       });
+      applyTypeSettings('image-edit', entry.patch);
+      if (entry.droppedAspectRatio) {
+        notificationsService.warning(
+          translate('editImage.aspectRatioFallback', {
+            ratio: entry.droppedAspectRatio,
+          }),
+        );
+      }
     },
-    [clearAttachments, clearCrunRestore, applyTypeSettings],
+    [
+      clearAttachments,
+      clearCrunRestore,
+      applyTypeSettings,
+      notificationsService,
+      translate,
+    ],
   );
 
   const editEntryRef = useRef<string | null>(null);
@@ -1717,11 +1747,30 @@ export default function StudioGenerateWorkspace(): ReactElement {
         setContentReferences([reference]);
         setType('image-edit');
         setPrompt('');
-        applyTypeSettings('image-edit', {
-          editSize: 'source',
-          editSeed: undefined,
+        const recipe = recipeFromIngredient(
+          ingredient,
+          ingredient.imageEdit ? 'image-edit' : 'image',
+        );
+        const entry = resolveImageEditEntry({
           editPrimaryId: reference.item.id,
+          sourceAspectRatio: readImageEditSourceAspect({
+            height: ingredient.metadataHeight || ingredient.height,
+            recipeEditAspectRatio: ingredient.imageEdit?.aspectRatio,
+            width: ingredient.metadataWidth || ingredient.width,
+          }),
+          sourceModelKey: readImageEditSourceModel({
+            modelKey: recipe.modelKey,
+            recipeEditModel: ingredient.imageEdit?.model,
+          }),
         });
+        applyTypeSettings('image-edit', entry.patch);
+        if (entry.droppedAspectRatio) {
+          notificationsService.warning(
+            translateRef.current('editImage.aspectRatioFallback', {
+              ratio: entry.droppedAspectRatio,
+            }),
+          );
+        }
       })
       .catch((error: unknown) => {
         if (isCurrent())

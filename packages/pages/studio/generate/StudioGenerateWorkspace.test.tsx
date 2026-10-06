@@ -2704,6 +2704,115 @@ describe('StudioGenerateWorkspace', () => {
         mocks.composer.mock.calls.at(-1)?.[0].attachedAssets,
       ).not.toContainEqual(expect.objectContaining({ id: 'source-1' }));
     });
+    it('carries 16:9 into the editor and does not keep a generation model', async () => {
+      mocks.searchParams.value = 'editImage=source-wide';
+      mocks.findOne.mockImplementation(async (id: string) => ({
+        id,
+        brandId: 'brand-1',
+        category: 'IMAGE',
+        status: 'GENERATED',
+        cdnUrl: 'https://example.com/wide.png',
+        promptText: 'Wide shot',
+        metadataModel: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
+        width: 1920,
+        height: 1080,
+      }));
+      render(<StudioGenerateWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith('image-edit', {
+          editSize: 'source',
+          editSeed: undefined,
+          editPrimaryId: 'source-wide',
+          aspectRatio: '16:9',
+          modelKey: AUTO_MODEL_OPTION_VALUE,
+        }),
+      );
+      expect(mocks.notify).not.toHaveBeenCalledWith(
+        'editImage.aspectRatioFallback',
+      );
+    });
+    it('keeps an editor model and matches the source when the ratio is unsupported', async () => {
+      mocks.searchParams.value = 'editImage=source-cinema';
+      mocks.findOne.mockImplementation(async (id: string) => ({
+        id,
+        brandId: 'brand-1',
+        category: 'IMAGE',
+        status: 'GENERATED',
+        cdnUrl: 'https://example.com/cinema.png',
+        promptText: 'Cinematic',
+        metadataModel: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+        imageEdit: { aspectRatio: '2.39:1' },
+      }));
+      render(<StudioGenerateWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith('image-edit', {
+          editSize: 'source',
+          editSeed: undefined,
+          editPrimaryId: 'source-cinema',
+          aspectRatio: 'auto',
+          modelKey: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
+        }),
+      );
+      expect(mocks.notify).toHaveBeenCalledWith(
+        'editImage.aspectRatioFallback',
+      );
+    });
+    it('matches the source pixels when they are not a selectable ratio', async () => {
+      mocks.searchParams.value = 'editImage=source-anamorphic';
+      mocks.findOne.mockImplementation(async (id: string) => ({
+        id,
+        brandId: 'brand-1',
+        category: 'IMAGE',
+        status: 'GENERATED',
+        cdnUrl: 'https://example.com/anamorphic.png',
+        promptText: 'Anamorphic',
+        width: 1920,
+        height: 800,
+      }));
+      render(<StudioGenerateWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+          'image-edit',
+          expect.objectContaining({
+            editPrimaryId: 'source-anamorphic',
+            aspectRatio: 'auto',
+          }),
+        ),
+      );
+      expect(mocks.applyTypeSettings).not.toHaveBeenCalledWith(
+        'image-edit',
+        expect.objectContaining({ aspectRatio: '21:9' }),
+      );
+      expect(mocks.notify).toHaveBeenCalledWith(
+        'editImage.aspectRatioFallback',
+      );
+    });
+    it('keeps an edit model stored only on the image-edit recipe', async () => {
+      mocks.searchParams.value = 'editImage=source-edited';
+      mocks.findOne.mockImplementation(async (id: string) => ({
+        id,
+        brandId: 'brand-1',
+        category: 'IMAGE',
+        status: 'GENERATED',
+        cdnUrl: 'https://example.com/edited.png',
+        promptText: 'Edited',
+        imageEdit: {
+          aspectRatio: '16:9',
+          model: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+        },
+      }));
+      render(<StudioGenerateWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+          'image-edit',
+          expect.objectContaining({
+            editPrimaryId: 'source-edited',
+            aspectRatio: '16:9',
+            modelKey: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+          }),
+        ),
+      );
+    });
     it('sends editing instructions without parsing skills or character mentions', async () => {
       mocks.type.value = 'image-edit';
       mocks.submit.mockResolvedValue(true);
