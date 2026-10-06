@@ -12,7 +12,6 @@ These are community-maintained brand assets, not a claim of official endorsement
 | BflIcon | [bfl.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/bfl.svg) |
 | BytedanceProviderIcon | [bytedance-color.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/bytedance-color.svg) |
 | DeepseekProviderIcon | [deepseek-color.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/deepseek-color.svg) |
-| FalIcon | [fal-color.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/fal-color.svg) |
 | GoogleProviderIcon | [google-color.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/google-color.svg) |
 | IdeogramIcon | [ideogram.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/ideogram.svg) |
 | KlingIcon | [kling-color.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/kling-color.svg) |
@@ -25,7 +24,6 @@ These are community-maintained brand assets, not a claim of official endorsement
 | PrunaIcon | [prunaai-color.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/prunaai-color.svg) |
 | QwenIcon | [qwen-color.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/qwen-color.svg) |
 | RecraftIcon | [recraft.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/recraft.svg) |
-| ReplicateIcon | [replicate.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/replicate.svg) |
 | RunwayIcon | [runway.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/runway.svg) |
 | StabilityIcon | [stability-color.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/stability-color.svg) |
 | TopazIcon | [topazlabs.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/topazlabs.svg) |
@@ -33,6 +31,13 @@ These are community-maintained brand assets, not a claim of official endorsement
 | XaiIcon | [xai.svg](https://github.com/lobehub/lobe-icons/blob/5c1ecb4fb06b92519a39102482d4e8273f000422/packages/static-svg/icons/xai.svg) |
 
 ## First-party artwork
+
+Verified 2026-10-06 for the admin provider column.
+
+- Replicate: the `v2-marketing-logo-glyph` SVG from the [official site header](https://replicate.com/), preserving its 1000×1000 viewBox and polygon points.
+- fal: the standalone glyph path from the [official site header](https://fal.ai/), preserving the path in a 48×48 viewBox and inheriting the foreground as the official monochrome mark does.
+- OpenRouter: [official purple glyph](https://openrouter.ai/brand/v2/openrouter-glyph-light.svg), preserving its viewBox, path and fill.
+- Crun: [official site logo](https://cdn.crun.ai/static/logo.png), embedded unchanged as PNG.
 
 - Higgsfield: the `hf-logo__glyph` SVG in the [official site header](https://higgsfield.ai/), with its monochrome foreground inherited.
 - Mureka: [official icon manifest asset](https://static-cos.mureka.ai/mureka/icons/brand-logo-simple-f2dbb2a9.svg), with its monochrome foreground inherited.

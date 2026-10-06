@@ -3,6 +3,7 @@
 import {
   ButtonVariant,
   ModelLifecycle,
+  PricingType,
   QualityTier,
 } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
@@ -11,14 +12,14 @@ import {
   getQualityTierLabel,
 } from '@genfeedai/helpers/quality-routing.helper';
 import {
-  getModelCategoryBadgeClass,
-  getModelProviderBadgeClass,
-  getModelProviderLabel,
-} from '@genfeedai/helpers/ui/model-badge.helper';
+  CREDIT_VALUE_DOLLARS,
+  resolveProviderCostUnits,
+} from '@genfeedai/pricing';
 import type { TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
 import ModelSelectorQualityBar from '@ui/dropdowns/model-selector/ModelSelectorQualityBar';
+import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
 import {
   Select,
@@ -28,6 +29,8 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
+import { LockKeyhole } from 'lucide-react';
 import { useState } from 'react';
 
 export type ModelsTableTranslate = (
@@ -51,6 +54,122 @@ export type BuildModelsTableColumnsParams = {
   models: IModel[];
   translate: ModelsTableTranslate;
 };
+
+const BREAKDOWN_PRICING_TYPES = new Set<string>([
+  PricingType.FLAT,
+  PricingType.PER_SECOND,
+  PricingType.PER_MEGAPIXEL,
+]);
+
+/** Paid rows with a missing or non-positive credit price stay off promotion. */
+function isPaidModelPricingLocked(model: IModel): boolean {
+  return (
+    model.isFree !== true && (!Number.isFinite(model.cost) || model.cost <= 0)
+  );
+}
+
+function isPromotedLifecycle(lifecycle: ModelLifecycle): boolean {
+  return (
+    lifecycle === ModelLifecycle.AVAILABLE ||
+    lifecycle === ModelLifecycle.RECOMMENDED
+  );
+}
+
+function hasPositiveFiniteCost(
+  value: number | null | undefined,
+): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+function hasBreakdownPricingType(
+  pricingType: string | null | undefined,
+): boolean {
+  if (pricingType == null || pricingType.length === 0) {
+    return true;
+  }
+
+  return BREAKDOWN_PRICING_TYPES.has(pricingType);
+}
+
+function formatUsdAmount(amount: number): string {
+  const rounded = Math.round(amount * 1e8) / 1e8;
+
+  return rounded.toLocaleString('en-US', {
+    currency: 'USD',
+    maximumFractionDigits: 8,
+    minimumFractionDigits: 2,
+    style: 'currency',
+  });
+}
+
+function formatPricingBasis(
+  model: IModel,
+  units: number,
+  translate: ModelsTableTranslate,
+): string | null {
+  if (model.pricingType === PricingType.PER_SECOND) {
+    return translate('table.costBasisPerSecond', {
+      duration: units.toLocaleString('en-US'),
+      unit:
+        units === 1
+          ? translate('table.secondUnit')
+          : translate('table.secondsUnit'),
+    });
+  }
+
+  if (model.pricingType === PricingType.PER_MEGAPIXEL) {
+    return translate('table.costBasisPerMegapixel', {
+      units: units.toLocaleString('en-US'),
+    });
+  }
+
+  return null;
+}
+
+function formatAdminCostTooltip(
+  model: IModel,
+  translate: ModelsTableTranslate,
+): string {
+  if (model.isFree === true) {
+    return translate('table.costFree');
+  }
+
+  if (isPaidModelPricingLocked(model)) {
+    return `${translate('table.pricingUnavailable')}. ${translate(
+      'table.pricingLockedReason',
+    )}`;
+  }
+
+  const providerCostUsd = model.providerCostUsd;
+  const credits = Number.isFinite(model.cost)
+    ? model.cost.toLocaleString('en-US')
+    : '';
+
+  if (
+    !hasBreakdownPricingType(model.pricingType) ||
+    !hasPositiveFiniteCost(providerCostUsd) ||
+    !hasPositiveFiniteCost(model.cost)
+  ) {
+    return translate('table.providerBreakdownUnavailable', { credits });
+  }
+
+  // Canonical one-megapixel unit. Dimensions are not inferred.
+  const units = resolveProviderCostUnits(
+    model.pricingType,
+    model.defaultDuration,
+  );
+  const providerUsd = providerCostUsd * units;
+  const totalUsd = model.cost * CREDIT_VALUE_DOLLARS;
+  const equation = translate('table.costBreakdown', {
+    base: formatUsdAmount(providerUsd),
+    credits,
+    margin: formatUsdAmount(totalUsd - providerUsd),
+    total: formatUsdAmount(totalUsd),
+  });
+  const basis = formatPricingBasis(model, units, translate);
+
+  return basis ? `${equation} ${basis}` : equation;
+}
 
 function ModelLifecycleControl({
   model,
@@ -82,6 +201,10 @@ function ModelLifecycleControl({
   const successorLabel = models.find(
     (candidate) => candidate.key === model.succeededBy,
   )?.label;
+  const isPricingLocked = isPaidModelPricingLocked(model);
+  const pricingLockedReason = isPricingLocked
+    ? translate('table.pricingLockedReason')
+    : undefined;
 
   return (
     <div className="flex min-w-32 flex-col gap-1">
@@ -90,6 +213,9 @@ function ModelLifecycleControl({
         value={lifecycle}
         onValueChange={(value) => {
           const next = value as ModelLifecycle;
+          if (isPricingLocked && isPromotedLifecycle(next)) {
+            return;
+          }
           if (
             next === ModelLifecycle.LEGACY ||
             next === ModelLifecycle.RETIRED
@@ -107,14 +233,26 @@ function ModelLifecycleControl({
         }}
       >
         <SelectTrigger
+          aria-description={pricingLockedReason}
           aria-label={`Lifecycle for ${model.label}`}
           className="h-8 w-full min-w-32"
+          title={pricingLockedReason}
         >
+          {isPricingLocked ? (
+            <LockKeyhole
+              aria-hidden="true"
+              className="size-3 shrink-0 text-muted-foreground"
+            />
+          ) : null}
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           {Object.values(ModelLifecycle).map((value) => (
-            <SelectItem key={value} value={value}>
+            <SelectItem
+              key={value}
+              disabled={isPricingLocked && isPromotedLifecycle(value)}
+              value={value}
+            >
               {value.charAt(0) + value.slice(1).toLowerCase()}
             </SelectItem>
           ))}
@@ -165,7 +303,7 @@ function formatModelCreditCost(model: IModel): string {
 
   if (!Number.isFinite(model.cost) || model.cost <= 0) return 'Unresolved';
 
-  return `${model.cost.toLocaleString('en-US')} ${model.cost === 1 ? 'credit' : 'credits'}`;
+  return model.cost.toLocaleString('en-US');
 }
 
 function formatModelQuality(qualityTier: QualityTier): string {
@@ -241,16 +379,26 @@ export function buildModelsTableColumns({
       key: 'label',
       sortable: true,
       render: (model: IModel) => (
-        <Button
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          textTransform="none"
-          className="text-left font-medium text-foreground hover:underline"
-          ariaLabel={`View details for ${model.label}`}
-          onClick={() => onOpenDetails(model)}
-        >
-          {model.label}
-        </Button>
+        <div className="flex min-w-0 items-center gap-3">
+          <ModelAvatar model={model} />
+          <div className="min-w-0">
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              textTransform="none"
+              className="text-left font-medium text-foreground hover:underline"
+              ariaLabel={`View details for ${model.label}`}
+              onClick={() => onOpenDetails(model)}
+            >
+              {model.label}
+            </Button>
+            {formatCategoryConfidence(model) ? (
+              <span className="block text-2xs text-muted-foreground">
+                {formatCategoryConfidence(model)}
+              </span>
+            ) : null}
+          </div>
+        </div>
       ),
       subtext: (model: IModel) => model.description,
     },
@@ -268,18 +416,6 @@ export function buildModelsTableColumns({
               >
                 {model.key}
               </span>
-            ),
-          },
-          {
-            header: translate('table.providerHeader'),
-            key: 'provider',
-            sortable: true,
-            render: (model: IModel) => (
-              <Badge
-                className={`border text-xs uppercase ${getModelProviderBadgeClass(model.provider)}`}
-              >
-                {getModelProviderLabel(model.provider)}
-              </Badge>
             ),
           },
         ]
@@ -301,22 +437,6 @@ export function buildModelsTableColumns({
           },
         ]
       : []),
-    {
-      header: translate('table.categoryHeader'),
-      key: 'category',
-      sortable: true,
-      render: (model: IModel) => (
-        <Badge
-          className={`border text-xs uppercase ${getModelCategoryBadgeClass(model.category)}`}
-        >
-          {model.category}
-        </Badge>
-      ),
-      // #4869: discovery records how sure the typed category decision was.
-      // A pending draft with a low number is the one an operator should read
-      // before approving, so the confidence rides under the badge.
-      subtext: (model: IModel) => formatCategoryConfidence(model),
-    },
     {
       header: translate('table.qualityHeader'),
       key: 'qualityTier',
@@ -340,16 +460,37 @@ export function buildModelsTableColumns({
       header: translate('table.costHeader'),
       key: 'cost',
       sortable: true,
-      render: (model: IModel) => (
-        <div className="flex items-center gap-2 whitespace-nowrap">
-          {!isAdminScope && model.costTier ? (
-            <ModelSelectorCostBadge costTier={model.costTier} />
-          ) : null}
-          <span className="text-xs tabular-nums text-muted-foreground">
+      render: (model: IModel) => {
+        const breakdown = isAdminScope
+          ? formatAdminCostTooltip(model, translate)
+          : null;
+        const cost = (
+          <span
+            className="rounded-sm text-xs tabular-nums text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            tabIndex={breakdown ? 0 : undefined}
+          >
             {formatModelCreditCost(model)}
           </span>
-        </div>
-      ),
+        );
+
+        return (
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            {!isAdminScope && model.costTier ? (
+              <ModelSelectorCostBadge costTier={model.costTier} />
+            ) : null}
+            {breakdown ? (
+              <SimpleTooltip
+                contentClassName="max-w-sm whitespace-normal text-left font-normal"
+                label={breakdown}
+              >
+                {cost}
+              </SimpleTooltip>
+            ) : (
+              cost
+            )}
+          </div>
+        );
+      },
     },
     ...(isAdminScope
       ? [
@@ -381,7 +522,8 @@ export function buildModelsTableColumns({
                     model.lifecycle !== ModelLifecycle.RECOMMENDED ||
                     !model.isActive ||
                     isOnlyDefaultInCategory(model) ||
-                    togglingModelId === model.id
+                    togglingModelId === model.id ||
+                    isPaidModelPricingLocked(model)
                   )
                 }
                 onChange={() => handleAdminToggle(model, 'isDefault')}
@@ -401,7 +543,11 @@ export function buildModelsTableColumns({
                 <Switch
                   isChecked={isEnabled}
                   onChange={() => handleToggleModel(model, !isEnabled)}
-                  isDisabled={isToggling || (model.isDefault && isEnabled)}
+                  isDisabled={
+                    isToggling ||
+                    (model.isDefault && isEnabled) ||
+                    (isPaidModelPricingLocked(model) && !isEnabled)
+                  }
                 />
               );
             },

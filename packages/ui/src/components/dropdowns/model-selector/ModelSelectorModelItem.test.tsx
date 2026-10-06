@@ -108,6 +108,10 @@ describe('ModelSelectorModelItem', () => {
 
     const row = screen.getByRole('option');
 
+    expect(
+      within(row).getByRole('img', { name: 'Replicate' }),
+    ).toBeInTheDocument();
+    expect(within(row).getByRole('img', { name: 'Video' })).toBeInTheDocument();
     expect(within(row).getByRole('img', { name: 'Audio' })).toBeInTheDocument();
     expect(within(row).getByRole('img', { name: 'Fast' })).toBeInTheDocument();
     expect(row.textContent).not.toContain('Audio');

@@ -883,6 +883,12 @@ Both use the existing 14 / 16 / 20px icon scale and a muted foreground role.
 A value-swap glyph is stable while its popover is open; it does not rotate into a
 directional disclosure icon.
 
+Model identity uses a circular provider-logo avatar with a small category icon
+badge. The catalog, model-picker rows, hover specs and selected promptbar
+controls share the same mark. Provider artwork keeps its original geometry
+and fills; category icons use the neutral foreground. Both expose readable
+names, and unknown providers show an initial rather than an invented logo.
+
 Status is never encoded by a generic colored dot alone. A status pill renders a
 status-specific icon alongside its visible label; the semantic tint reinforces
 that meaning but does not carry it. Icon, tint, and canonical status key come from
