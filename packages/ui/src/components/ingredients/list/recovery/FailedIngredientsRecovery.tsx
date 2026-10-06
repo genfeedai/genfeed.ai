@@ -91,7 +91,7 @@ function FailedIngredientRow({
     : null;
   return (
     <li
-      className="grid min-w-0 gap-3 border-t border-border px-4 py-3 lg:grid-cols-[minmax(12rem,1.3fr)_minmax(10rem,1fr)_minmax(9rem,.9fr)_auto] xl:grid-cols-[minmax(12rem,1.3fr)_minmax(10rem,1fr)_minmax(9rem,.9fr)_minmax(7rem,.7fr)_auto]"
+      className="grid min-w-0 items-center gap-3 border-t border-border px-4 py-3 lg:grid-cols-[minmax(12rem,1.3fr)_minmax(10rem,1fr)_minmax(9rem,.9fr)_8rem] xl:grid-cols-[minmax(12rem,1.3fr)_minmax(10rem,1fr)_minmax(9rem,.9fr)_minmax(7rem,.7fr)_8rem]"
       data-testid={`failed-asset-${ingredient.id}`}
     >
       <div className="flex min-w-0 items-center gap-3">
@@ -150,9 +150,9 @@ function FailedIngredientRow({
       </span>
       <div className="flex shrink-0 items-center gap-2 lg:justify-end">
         <Button
-          label={
-            hasRetried ? t('retryStarted') : t(`actions.${recovery.action}`)
-          }
+          label={hasRetried ? t('started') : t(`actions.${recovery.action}`)}
+          className="w-20 shrink-0"
+          withWrapper={false}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
           isDisabled={
@@ -215,8 +215,9 @@ export default function FailedIngredientsRecovery({
   const deleteAll =
     isActionsEnabled && ingredients.length > 0 ? (
       <Button
-        label={t('deleteAll', { count: ingredients.length })}
+        label={t('clear')}
         ariaLabel={t('deleteAll', { count: ingredients.length })}
+        tooltip={t('deleteAll', { count: ingredients.length })}
         icon={<Trash2 className="size-4" />}
         size={ButtonSize.SM}
         variant={ButtonVariant.SECONDARY}
@@ -279,7 +280,8 @@ export default function FailedIngredientsRecovery({
             isActionsEnabled &&
             items.some((item) => !retriedIds.includes(item.id)) ? (
               <Button
-                label={t('retryGroup', {
+                label={t('actions.retry')}
+                ariaLabel={t('retryGroup', {
                   count: items.filter((item) => !retriedIds.includes(item.id))
                     .length,
                 })}
@@ -349,7 +351,8 @@ export default function FailedIngredientsRecovery({
             {t('trashHint')}
           </span>
           <Button
-            label={t('deleteSelected')}
+            label={t('delete')}
+            ariaLabel={t('deleteSelected')}
             icon={<Trash2 className="size-4" />}
             size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}

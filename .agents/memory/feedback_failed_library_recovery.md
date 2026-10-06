@@ -20,3 +20,9 @@ explicitly removed the obsolete page header before approving implementation.
 **How to apply:** Preserve this composition when modifying Failed recovery.
 Classify provider failures conservatively; a generic 422 does not establish a
 specific input problem. Open saved inputs in Studio when editing is needed.
+
+Recovery rows must align identity, prompt, reason, model and actions across rows.
+Reserve a fixed-width action column and center row content vertically; action-label
+length must not shift the other columns. Visible action labels use one word:
+Replace, Review, Edit, Inspect, Retry, Clear and Delete. Preserve contextual
+accessible labels and the confirmed count for bulk actions.

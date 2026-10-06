@@ -202,6 +202,7 @@ describe('Failed Library recovery operations', () => {
         folderId: 'folder',
         width: 1024,
         height: 1024,
+        aspectRatio: undefined,
       }),
     );
     expect(result.current.retriedIds).toEqual(['a']);
@@ -232,6 +233,48 @@ describe('Failed Library recovery operations', () => {
       expect.stringContaining('handoff=handoff-1'),
     );
     expect(mocks.imagePost).not.toHaveBeenCalled();
+  });
+
+  it('keeps a valid 16:9 ratio when pixel dimensions reduce differently', async () => {
+    const image = asset('ratio', {
+      aspectRatio: '16:9',
+      width: 1344,
+      height: 768,
+    });
+    props.ingredients = [image];
+    const { result } = renderHook(() => useFailedIngredientRecovery(props));
+    await act(async () => result.current.handleReviewFailedIngredient(image));
+    expect(mocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({ aspectRatio: '16:9' }),
+    );
+  });
+
+  it('sends the recorded model key instead of a cosmetic metadata label', async () => {
+    const image = asset('model', {
+      modelUsed: null,
+      model: 'black-forest-labs/flux-dev',
+      metadataModelLabel: 'Flux Dev',
+    });
+    props.ingredients = [image];
+    const { result } = renderHook(() => useFailedIngredientRecovery(props));
+    await act(async () => result.current.handleReviewFailedIngredient(image));
+    expect(mocks.create).toHaveBeenCalledWith(
+      expect.objectContaining({ modelKey: 'black-forest-labs/flux-dev' }),
+    );
+  });
+
+  it('refuses a handoff when only a cosmetic model label is recorded', async () => {
+    const image = asset('label-only', {
+      modelUsed: null,
+      model: undefined,
+      metadataModelLabel: 'Flux Dev',
+    });
+    props.ingredients = [image];
+    const { result } = renderHook(() => useFailedIngredientRecovery(props));
+    await act(async () => result.current.handleReviewFailedIngredient(image));
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
+    expect(mocks.warning).toHaveBeenCalledWith('reviewUnavailable');
   });
 
   it('preserves recorded video settings in Studio and rejects a foreign brand', async () => {
