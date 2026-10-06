@@ -36,6 +36,7 @@ import { TrendSourcePreviewService } from '@api/collections/trends/services/modu
 import { TrendVideoService } from '@api/collections/trends/services/modules/trend-video.service';
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { Timeframe } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -319,8 +320,9 @@ export class TrendsService {
         }),
         this.trendPreferencesService.getPreferences(organizationId, brandId),
       ]);
+      if (!brand) throw new NotFoundException('Brand');
       const context = [
-        brand?.description,
+        brand.description,
         ...(preferences?.keywords ?? []),
         ...(preferences?.categories ?? []),
         ...(preferences?.hashtags ?? []),
@@ -572,7 +574,7 @@ export class TrendsService {
     return this.trendSourcePreviewService.getAnnotatedSourceItems(trend, limit);
   }
 
-  getTrendContent(
+  async getTrendContent(
     organizationId?: string,
     brandId?: string,
     options: {
@@ -581,6 +583,14 @@ export class TrendsService {
       refresh?: boolean;
     } = {},
   ): Promise<TrendContentResult> {
+    if (organizationId && brandId) {
+      const brand = await this.brandsService.findOne({
+        id: brandId,
+        organizationId,
+        isDeleted: false,
+      });
+      if (!brand) throw new NotFoundException('Brand');
+    }
     return this.trendSourcePreviewService.getTrendContent(
       { brandId, organizationId },
       options,
@@ -638,8 +648,9 @@ export class TrendsService {
       }),
       this.trendPreferencesService.getPreferences(organizationId, brandId),
     ]);
+    if (!brand) throw new NotFoundException('Brand');
     const context = [
-      brand?.description,
+      brand.description,
       ...(preferences?.keywords ?? []),
       ...(preferences?.categories ?? []),
       ...(preferences?.hashtags ?? []),

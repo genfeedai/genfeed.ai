@@ -79,9 +79,17 @@ describe('Brand viral videos', () => {
       await service.getBrandViralVideos('org-1', 'brand-1', {}),
     ).toHaveLength(1);
   });
+  it('rejects nonexistent brand scope before looking up the content cache', async () => {
+    const { service, brands } = setup('AI marketing');
+    brands.findOne.mockResolvedValue(null as never);
+    await expect(
+      service.getTrendContent('org-1', 'foreign-brand', {}),
+    ).rejects.toThrow('Brand not found');
+  });
+
   it('does not expose videos when brand lookup fails', async () => {
     const { service, brands, videos } = setup('AI marketing');
-    brands.findOne.mockRejectedValue(new Error('Brand not found'));
+    brands.findOne.mockResolvedValue(null as never);
     await expect(
       service.getBrandViralVideos('org-1', 'foreign-brand', {}),
     ).rejects.toThrow('Brand not found');

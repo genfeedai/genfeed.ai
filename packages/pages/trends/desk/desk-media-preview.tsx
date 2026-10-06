@@ -18,8 +18,16 @@ export default function DeskMediaPreview({
   const [isInViewport, setIsInViewport] = useState(true);
   const [isVisible, setIsVisible] = useState(true);
   const [failedThumbnail, setFailedThumbnail] = useState<string | null>(null);
-  const [failedPlayback, setFailedPlayback] = useState<string | null>(null);
-  const playbackUrl = directUrl || embedUrl;
+  const [failedPlayback, setFailedPlayback] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const playbackUrl =
+    [directUrl, embedUrl].find((url) => url && !failedPlayback.has(url)) ??
+    null;
+  const handlePlaybackError = () => {
+    if (playbackUrl)
+      setFailedPlayback((previous) => new Set([...previous, playbackUrl]));
+  };
 
   useEffect(() => {
     if (!isActive) {
@@ -49,11 +57,7 @@ export default function DeskMediaPreview({
   }, []);
 
   const isPlaying =
-    isActive &&
-    isReady &&
-    isVisible &&
-    isInViewport &&
-    failedPlayback !== playbackUrl;
+    isActive && isReady && isVisible && isInViewport && Boolean(playbackUrl);
   return (
     <div
       ref={containerRef}
@@ -74,11 +78,11 @@ export default function DeskMediaPreview({
           {getPlatformIcon(item.platform, 'size-8')}
         </div>
       )}
-      {isPlaying && directUrl ? (
+      {isPlaying && playbackUrl === directUrl && directUrl ? (
         <VideoPlayer
           src={directUrl}
           thumbnail={thumbnail || ''}
-          mediaProps={{ onError: () => setFailedPlayback(playbackUrl) }}
+          mediaProps={{ onError: handlePlaybackError }}
           config={{
             autoPlay: true,
             controls: false,
@@ -97,7 +101,7 @@ export default function DeskMediaPreview({
           src={embedUrl}
           title={item.title || 'Video preview'}
           referrerPolicy="strict-origin-when-cross-origin"
-          onError={() => setFailedPlayback(playbackUrl)}
+          onError={handlePlaybackError}
         />
       ) : null}
     </div>
