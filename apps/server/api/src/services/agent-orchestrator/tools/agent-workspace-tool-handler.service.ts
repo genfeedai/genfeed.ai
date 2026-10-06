@@ -15,6 +15,10 @@ import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-ke
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { readAgentLibraryFilters } from '@api/services/agent-orchestrator/tools/agent-library-filters.util';
+import {
+  agentPostPreviewInclude,
+  agentPostPreviewPopulate,
+} from '@api/services/agent-orchestrator/tools/agent-post-preview.util';
 import { resolvePublishValidationMedia } from '@api/services/agent-orchestrator/tools/agent-publish-target.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
@@ -31,6 +35,7 @@ import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import {
   serializeAgentBrand,
   serializeAgentBrands,
+  serializeAgentPost,
 } from '@genfeedai/serializers';
 import { readIngredientMediaUrlWithFallback } from '@libs/media/media-url.util';
 import { HttpException, Inject, Injectable, Optional } from '@nestjs/common';
@@ -472,7 +477,7 @@ export class AgentWorkspaceToolHandler {
 
     const posts = await this.postsService.findAll(
       {
-        include: LISTED_POST_MEDIA_INCLUDE,
+        include: agentPostPreviewInclude(ctx.organizationId),
         orderBy: { createdAt: -1 },
         where: matchStage,
       },
@@ -485,7 +490,7 @@ export class AgentWorkspaceToolHandler {
         count: posts.docs?.length ?? 0,
         posts:
           posts.docs?.map((post) =>
-            toListedPost(post as unknown as Record<string, unknown>),
+            serializeAgentPost(post as unknown as Record<string, unknown>),
           ) ?? [],
       },
       success: true,
@@ -501,11 +506,14 @@ export class AgentWorkspaceToolHandler {
       return toolFailure('get_posts requires postId.');
     }
 
-    const post = await this.postsService.findOne({
-      id: postId,
-      isDeleted: false,
-      organizationId: ctx.organizationId,
-    });
+    const post = await this.postsService.findOne(
+      {
+        id: postId,
+        isDeleted: false,
+        organizationId: ctx.organizationId,
+      },
+      agentPostPreviewPopulate(ctx.organizationId),
+    );
     if (!post) {
       return toolFailure(`Post ${postId} was not found.`);
     }
@@ -513,7 +521,7 @@ export class AgentWorkspaceToolHandler {
     return {
       creditsUsed: 0,
       data: {
-        post: toListedPost(post as unknown as Record<string, unknown>),
+        post: serializeAgentPost(post as unknown as Record<string, unknown>),
       },
       success: true,
     };
@@ -784,10 +792,6 @@ function studioHandoffCategory(type: string): IngredientCategory {
   }
 }
 
-const LISTED_POST_MEDIA_INCLUDE = {
-  ingredients: { select: { category: true, id: true } },
-} as const;
-
 const UPLOAD_CATEGORY_NAMES = ['image', 'video', 'audio', 'music'] as const;
 
 type UploadCategoryName = (typeof UPLOAD_CATEGORY_NAMES)[number];
@@ -930,54 +934,4 @@ function toCompletedMedia(
     kind: item.kind,
     order,
   }));
-}
-
-function readPostMedia(
-  post: Record<string, unknown>,
-): Array<{ assetId: string; kind?: string; order: number }> {
-  if (!Array.isArray(post.ingredients)) {
-    return [];
-  }
-  return post.ingredients.flatMap((item, order) => {
-    if (!item || typeof item !== 'object') {
-      return [];
-    }
-    const record = item as Record<string, unknown>;
-    const assetId = typeof record.id === 'string' ? record.id : '';
-    if (!assetId) {
-      return [];
-    }
-    const validated = resolvePublishValidationMedia(
-      { category: record.category },
-      assetId,
-    );
-    const kind = validated[0]?.kind;
-    return [kind ? { assetId, kind, order } : { assetId, order }];
-  });
-}
-
-function toListedPost(post: Record<string, unknown>): Record<string, unknown> {
-  return {
-    createdAt: post.createdAt ?? null,
-    description: post.description ?? null,
-    id: String(post.id),
-    label: post.label ?? null,
-    media: readPostMedia(post),
-    platform: post.platform ?? null,
-    publishedAt: post.publishedAt ?? null,
-    scheduledDate: post.scheduledDate ?? null,
-    state: post.targetExecutionState ?? null,
-    status: post.status ?? null,
-    targets: [
-      {
-        credentialId:
-          typeof post.credentialId === 'string' ? post.credentialId : null,
-        platform: post.platform ?? null,
-        scheduledDate: post.scheduledDate ?? null,
-        state: post.targetExecutionState ?? null,
-        validationState: post.targetValidationState ?? null,
-      },
-    ],
-    updatedAt: post.updatedAt ?? null,
-  };
 }

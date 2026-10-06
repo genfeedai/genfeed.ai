@@ -7,7 +7,7 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 
 export type PlatformPreviewMedia = {
   id: string;
@@ -64,6 +64,11 @@ export type PlatformPreviewProps = {
   activePlatform?: CredentialPlatform | string;
   className?: string;
   emptyMessage?: string;
+  /** Standalone hosts can provide their existing media player. */
+  renderMedia?: (media: PlatformPreviewMedia, index: number) => ReactNode;
+  statusLabel?: string;
+  /** Disable inferred publishing diagnostics on display-only tool previews. */
+  showValidation?: boolean;
 };
 
 export type CaptionPreviewState = {

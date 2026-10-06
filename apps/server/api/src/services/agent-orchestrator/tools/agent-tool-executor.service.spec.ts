@@ -1,3 +1,7 @@
+import {
+  agentPostPreviewInclude,
+  agentPostPreviewPopulate,
+} from '@api/services/agent-orchestrator/tools/agent-post-preview.util';
 import { agentToolCreditEstimate } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
   type CuratedActionName,
@@ -2188,9 +2192,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
     expect(postsService.findAll).toHaveBeenCalledWith(
       {
-        include: {
-          ingredients: { select: { category: true, id: true } },
-        },
+        include: agentPostPreviewInclude(testId('org')),
         orderBy: { createdAt: -1 },
         where: {
           isDeleted: false,
@@ -2232,18 +2234,29 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(postsService.findOne).toHaveBeenCalledWith({
-      id: 'post-1',
-      isDeleted: false,
-      organizationId: testId('org'),
-    });
+    expect(postsService.findOne).toHaveBeenCalledWith(
+      {
+        id: 'post-1',
+        isDeleted: false,
+        organizationId: testId('org'),
+      },
+      agentPostPreviewPopulate(testId('org')),
+    );
     expect(result.data).toEqual({
       post: {
         createdAt: createdAt.toISOString(),
         description: 'Launch note',
         id: 'post-1',
         label: 'Launch',
-        media: [{ assetId: 'asset-1', kind: 'image', order: 0 }],
+        media: [
+          {
+            assetId: 'asset-1',
+            ingredientId: 'asset-1',
+            kind: 'image',
+            order: 0,
+            url: null,
+          },
+        ],
         platform: 'instagram',
         publishedAt: null,
         scheduledDate: scheduledDate.toISOString(),

@@ -383,9 +383,9 @@
     "remainingInReview": "+{count} more {count, plural, one {post} other {posts}} in review"
   },
   "dock": {
-    "emptyTitle": "Start a conversation",
-    "emptyDescription": "Ask about this page.",
-    "placeholder": "Ask about this page..."
+    "emptyTitle": "What do you want to do?",
+    "emptyDescription": "Create, edit, or plan with your agent.",
+    "placeholder": "Describe a task..."
   },
   "localCliRuntime": {
     "creditsNote": "Hosted runtimes use Genfeed credits instead of your {runtime} subscription.",

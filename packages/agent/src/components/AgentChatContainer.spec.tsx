@@ -1330,7 +1330,7 @@ describe('AgentChatContainer', () => {
     storeState.pendingInputRequest = null;
     storeState.messages = [buildAssistantMessage()];
 
-    render(
+    const { container } = render(
       <ConversationComposerShellProvider
         contextLabel="Workspace"
         draftScopeKey="acme:thread-1:3"
@@ -1347,6 +1347,10 @@ describe('AgentChatContainer', () => {
     );
     expect(portaled).not.toBeNull();
     expect(portaled?.getAttribute('data-show-top-fade')).toBe('false');
+    // The dock composer is a sibling, so reserving its height again wastes transcript space.
+    expect(
+      container.querySelector('[data-composer-padding="20"]'),
+    ).not.toBeNull();
     expect(screen.getByTestId('chat-input')).toHaveAttribute(
       'data-density',
       'dock',

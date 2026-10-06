@@ -152,6 +152,8 @@ WORKDIR /app
 COPY --from=mcp-pruned /app/out/json/ .
 RUN bun install --frozen-lockfile
 COPY --from=mcp-pruned /app/out/full/ .
+# The UI host catalog is outside the pruned MCP workspace graph.
+COPY --from=pruner /app/apps/app/messages/en/ui.json ./apps/app/messages/en/ui.json
 RUN bun run build --filter=@genfeedai/mcp
 EXPOSE 3014
 CMD ["bun", "run", "apps/server/mcp/dist/main.js"]

@@ -1,8 +1,44 @@
 import '@testing-library/jest-dom/vitest';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import PublishingPostHoverPreview from '@pages/posts/library/publishing-post-hover-preview';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import { type AbstractIntlMessages, NextIntlClientProvider } from 'next-intl';
+import type { PropsWithChildren, ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const uiMessages = JSON.parse(
+  readFileSync(
+    join(
+      dirname(fileURLToPath(import.meta.url)),
+      '../../../../apps/app/messages/en/ui.json',
+    ),
+    'utf8',
+  ),
+) as AbstractIntlMessages;
+
+function IntlWrapper({ children }: PropsWithChildren) {
+  return (
+    <NextIntlClientProvider
+      locale="en"
+      messages={{ ui: uiMessages }}
+      timeZone="UTC"
+    >
+      {children}
+    </NextIntlClientProvider>
+  );
+}
+
+function render(ui: ReactElement) {
+  return rtlRender(ui, { wrapper: IntlWrapper });
+}
 
 const mocks = vi.hoisted(() => ({ findOne: vi.fn() }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({

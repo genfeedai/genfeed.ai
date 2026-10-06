@@ -14,12 +14,19 @@
         "$TURBO_ROOT$/webpack.base.config.js",
         "$TURBO_ROOT$/tsconfig.json",
         "$TURBO_ROOT$/tsconfig.server.decorators.json",
-        "$TURBO_ROOT$/configs/**"
+        "$TURBO_ROOT$/configs/**",
+        "$TURBO_ROOT$/apps/app/messages/en/ui.json"
       ],
       "outputs": [
         "$TURBO_ROOT$/apps/server/dist/apps/mcp/**",
         "$TURBO_ROOT$/apps/server/dist/server/mcp/**"
       ]
+    },
+    "type-check": {
+      "inputs": ["$TURBO_EXTENDS$", "$TURBO_ROOT$/apps/app/messages/en/ui.json"]
+    },
+    "test": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/app/messages/en/ui.json"]
     }
   }
 }

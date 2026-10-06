@@ -247,6 +247,8 @@ export function AgentChatInput({
           ) : null
         }
         className={cn(
+          density === 'dock' &&
+            'focus-within:border-foreground/40 focus-within:ring-1 focus-within:ring-foreground/20',
           isTopAttached && 'rounded-t-none',
           isDragActive && 'ring-1 ring-primary/40',
         )}
