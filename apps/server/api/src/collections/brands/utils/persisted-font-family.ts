@@ -30,3 +30,10 @@ export function toPersistedFontFamily(
 
   return undefined;
 }
+
+/** Create paths need a FontFamily even when the scrape has none. */
+export function toPersistedFontFamilyOrDefault(
+  value: string | null | undefined,
+): FontFamily {
+  return toPersistedFontFamily(value) ?? FontFamily.MONTSERRAT_BLACK;
+}

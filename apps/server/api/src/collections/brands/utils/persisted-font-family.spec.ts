@@ -1,6 +1,9 @@
 import { FontFamily } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
-import { toPersistedFontFamily } from './persisted-font-family';
+import {
+  toPersistedFontFamily,
+  toPersistedFontFamilyOrDefault,
+} from './persisted-font-family';
 
 describe('toPersistedFontFamily', () => {
   it('keeps a stored FontFamily label', () => {
@@ -24,5 +27,19 @@ describe('toPersistedFontFamily', () => {
     expect(toPersistedFontFamily('Inter, sans-serif')).toBeUndefined();
     expect(toPersistedFontFamily('')).toBeUndefined();
     expect(toPersistedFontFamily(undefined)).toBeUndefined();
+  });
+});
+
+describe('toPersistedFontFamilyOrDefault', () => {
+  it('keeps a real FontFamily and falls back otherwise', () => {
+    expect(toPersistedFontFamilyOrDefault('montserrat-regular')).toBe(
+      FontFamily.MONTSERRAT_REGULAR,
+    );
+    expect(toPersistedFontFamilyOrDefault('-apple-system')).toBe(
+      FontFamily.MONTSERRAT_BLACK,
+    );
+    expect(toPersistedFontFamilyOrDefault(undefined)).toBe(
+      FontFamily.MONTSERRAT_BLACK,
+    );
   });
 });
