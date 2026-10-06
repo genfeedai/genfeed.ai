@@ -259,7 +259,12 @@ export class IngredientsService extends BaseService<
         ...(params.brandId ? { brandId: params.brandId } : {}),
         category: params.category,
         ...(params.shelf
-          ? { AND: [LibraryShelfUtil.buildShelfFilter(params.shelf)] }
+          ? {
+              AND: [
+                LibraryShelfUtil.buildShelfFilter(params.shelf),
+                ...(params.tagFilter ? [params.tagFilter] : []),
+              ],
+            }
           : {
               status: { notIn: [...HIDDEN_LIBRARY_ASSET_STATUSES] },
               ...(params.tagFilter ?? {}),
