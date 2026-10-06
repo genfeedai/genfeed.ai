@@ -67,6 +67,48 @@ describe('local brand preview', () => {
     expect(screen.queryByText('Changed draft sample')).not.toBeInTheDocument();
     expect(screen.getByText(/no credits/)).toBeInTheDocument();
   });
+  it('keeps preserved and rejected approved fields independent of later live brand changes', () => {
+    const approved = draft('Excluded proposal');
+    const field = approved.fields.voiceSampleOutput;
+    if (!field) throw new Error('Missing fixture field');
+    field.applyActionDefault = 'reject';
+    field.currentValue = 'Snapshot sample';
+    const { rerender } = render(
+      <BrandKitLocalPreview
+        brand={brand}
+        content={null}
+        approvedContent={approved}
+      />,
+    );
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Approved' }), {
+      button: 0,
+      ctrlKey: false,
+    });
+    const changedBrand = {
+      ...brand,
+      label: 'Renamed live brand',
+      agentConfig: { voice: { sampleOutput: 'Changed live sample' } },
+    };
+    rerender(
+      <BrandKitLocalPreview
+        brand={changedBrand}
+        content={null}
+        approvedContent={approved}
+      />,
+    );
+    expect(screen.getByText('Snapshot sample')).toBeInTheDocument();
+    expect(screen.queryByText('Changed live sample')).not.toBeInTheDocument();
+    expect(screen.queryByText('Renamed live brand')).not.toBeInTheDocument();
+    field.applyActionDefault = 'preserve';
+    rerender(
+      <BrandKitLocalPreview
+        brand={changedBrand}
+        content={null}
+        approvedContent={approved}
+      />,
+    );
+    expect(screen.getByText('Snapshot sample')).toBeInTheDocument();
+  });
   it('does not offer an approved snapshot when none exists', () => {
     render(
       <BrandKitLocalPreview

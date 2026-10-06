@@ -725,7 +725,8 @@
       "noApproved": "No approved revision yet.",
       "creditFree": "Local template · no generation · no credits. Draft previews do not change the approved identity.",
       "sample": "Your next idea starts here.",
-      "description": "Add your brand description to see it here."
+      "description": "Add your brand description to see it here.",
+      "brand": "Brand"
     }
   },
   "platforms": {

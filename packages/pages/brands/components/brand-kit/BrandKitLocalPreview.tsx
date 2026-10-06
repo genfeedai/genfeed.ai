@@ -25,10 +25,12 @@ export default function BrandKitLocalPreview({
   const [source, setSource] = useState('draft');
   const [template, setTemplate] = useState('social');
   const draft = source === 'approved' ? approvedContent : content;
+  const fallbackBrand = source === 'approved' ? null : brand;
   function value(key: BrandKitFieldKey, fallback: unknown) {
     const field = draft?.fields[key];
-    if (!field || field.applyActionDefault === 'reject') return fallback;
-    return field.applyActionDefault === 'preserve'
+    if (!field) return fallback;
+    return field.applyActionDefault === 'preserve' ||
+      field.applyActionDefault === 'reject'
       ? (field.currentValue ?? fallback)
       : (field.proposedValue ?? field.currentValue ?? fallback);
   }
@@ -43,8 +45,10 @@ export default function BrandKitLocalPreview({
       ? result
       : fallback;
   }
-  const label = text('label', brand.label);
-  const logo = value('logo', { url: brand.logoUrl ?? brand.logo?.url });
+  const label = text('label', fallbackBrand?.label ?? t('brand'));
+  const logo = value('logo', {
+    url: fallbackBrand?.logoUrl ?? fallbackBrand?.logo?.url,
+  });
   const logoUrl =
     isRecord(logo) &&
     typeof logo.url === 'string' &&
@@ -53,15 +57,21 @@ export default function BrandKitLocalPreview({
       : undefined;
   const background = color(
     'backgroundColor',
-    brand.backgroundColor || '#000000',
+    fallbackBrand?.backgroundColor || '#000000',
   );
-  const secondary = color('secondaryColor', brand.secondaryColor || '#FFFFFF');
-  const primary = color('primaryColor', brand.primaryColor || '#000000');
+  const secondary = color(
+    'secondaryColor',
+    fallbackBrand?.secondaryColor || '#FFFFFF',
+  );
+  const primary = color(
+    'primaryColor',
+    fallbackBrand?.primaryColor || '#000000',
+  );
   const sample = text(
     'voiceSampleOutput',
-    brand.agentConfig?.voice?.sampleOutput || t('sample'),
+    fallbackBrand?.agentConfig?.voice?.sampleOutput || t('sample'),
   );
-  const font = text('fontFamily', brand.fontFamily || 'inherit');
+  const font = text('fontFamily', fallbackBrand?.fontFamily || 'inherit');
   const isApprovedUnavailable = source === 'approved' && !approvedContent;
 
   return (
@@ -153,7 +163,10 @@ export default function BrandKitLocalPreview({
               {template === 'profile' ? label : sample}
             </p>
             <p className="text-sm leading-relaxed opacity-80">
-              {text('description', brand.description || t('description'))}
+              {text(
+                'description',
+                fallbackBrand?.description || t('description'),
+              )}
             </p>
           </div>
           <p className="relative text-xs opacity-70">{brand.slug}</p>
