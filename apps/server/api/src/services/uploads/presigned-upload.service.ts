@@ -9,6 +9,7 @@ import {
   assertPresignedUploadAllowed,
   isAudioCategory,
   isImageOrVideoCategory,
+  resolveDirectUploadCategory,
   resolveUploadMaxBytes,
 } from '@api/services/uploads/presigned-upload-policy.util';
 import { resolveUploadExtension } from '@api/services/uploads/upload-extension.util';
@@ -68,8 +69,9 @@ export class PresignedUploadService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
-    const category = normalizeCategory(
-      body.category ?? IngredientCategory.IMAGE,
+    const category = resolveDirectUploadCategory(
+      body.category,
+      body.contentType,
     );
     // Reject before any ingredient exists or any grant is signed.
     const contentType = assertPresignedUploadAllowed({

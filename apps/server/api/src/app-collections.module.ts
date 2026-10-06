@@ -125,6 +125,7 @@ import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marke
 import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
 import { PreflightModule } from '@api/services/preflight/preflight.module';
 import { WorkspaceTaskRollupModule } from '@api/services/task-orchestration/workspace-task-rollup.module';
+import { PresignedUploadHttpModule } from '@api/services/uploads/presigned-upload-http.module';
 import { AgentWorkflowsModule } from '@api/workflows/agent-workflows.module';
 import { Module } from '@nestjs/common';
 
@@ -253,6 +254,7 @@ import { Module } from '@nestjs/common';
     AdWatchedAdvertisersModule,
     WorkflowExecutionsModule,
     AgentWorkflowsModule,
+    PresignedUploadHttpModule,
     PreflightModule,
     WorkspaceTaskRollupModule,
     WorkflowsModule,
