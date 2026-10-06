@@ -6,17 +6,45 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import type { StatusDropdownProps } from '@genfeedai/props/social/status-dropdown.props';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockPostsFindOne, mockPostsPatch } = vi.hoisted(() => ({
+const {
+  mockPostsFindOne,
+  mockPostsPatch,
+  mockIngredientPatch,
+  mockImageFindOne,
+} = vi.hoisted(() => ({
+  mockIngredientPatch: vi.fn(),
+  mockImageFindOne: vi.fn(),
   mockPostsFindOne: vi.fn(),
   mockPostsPatch: vi.fn(),
+}));
+
+vi.mock('@genfeedai/services/content/ingredients.service', () => ({
+  IngredientsService: {
+    getInstance: () => ({ patch: mockIngredientPatch }),
+  },
+}));
+
+vi.mock('@genfeedai/services/ingredients/gifs.service', () => ({
+  GIFsService: { getInstance: vi.fn() },
+}));
+
+vi.mock('@genfeedai/services/ingredients/videos.service', () => ({
+  VideosService: { getInstance: vi.fn() },
+}));
+
+vi.mock('@genfeedai/services/ingredients/images.service', () => ({
+  ImagesService: {
+    getInstance: () => ({ findOne: mockImageFindOne }),
+  },
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -80,6 +108,8 @@ vi.mock('@ui/primitives/button', () => ({
 }));
 
 describe('DropdownStatus', () => {
+  beforeEach(() => vi.clearAllMocks());
+
   const entity = {
     category: IngredientCategory.IMAGE,
     id: 'ingredient-1',
@@ -90,6 +120,31 @@ describe('DropdownStatus', () => {
     entity,
     onStatusChange: vi.fn(),
   };
+
+  it('refreshes the filtered Library and counters after rejecting an asset', async () => {
+    const updated = { ...entity, status: IngredientStatus.REJECTED };
+    mockIngredientPatch.mockResolvedValue(updated);
+    mockImageFindOne.mockResolvedValue(updated);
+    const onStatusChange = vi.fn();
+    const refresh = vi.fn();
+    window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refresh);
+    try {
+      render(
+        <DropdownStatus entity={entity} onStatusChange={onStatusChange} />,
+      );
+      await userEvent.click(screen.getByText('Rejected'));
+      expect(mockIngredientPatch).toHaveBeenCalledExactlyOnceWith(entity.id, {
+        status: IngredientStatus.REJECTED,
+      });
+      expect(onStatusChange).toHaveBeenCalledWith(
+        IngredientStatus.REJECTED,
+        updated,
+      );
+      expect(refresh).toHaveBeenCalledOnce();
+    } finally {
+      window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refresh);
+    }
+  });
 
   it('should render without crashing', () => {
     const { container } = render(<DropdownStatus {...baseProps} />);

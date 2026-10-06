@@ -699,6 +699,45 @@ describe('IngredientsService', () => {
     });
   });
 
+  describe('getLibrarySummary', () => {
+    it('counts rejected assets separately from archived assets and usable inventory', async () => {
+      ingredientDelegate.groupBy.mockResolvedValue([
+        {
+          category: IngredientCategory.IMAGE,
+          status: IngredientStatus.GENERATED,
+          _count: { id: 3 },
+          _sum: { fileSize: 120 },
+        },
+        {
+          category: IngredientCategory.IMAGE,
+          status: IngredientStatus.REJECTED,
+          _count: { id: 2 },
+          _sum: { fileSize: 80 },
+        },
+        {
+          category: IngredientCategory.IMAGE,
+          status: IngredientStatus.ARCHIVED,
+          _count: { id: 1 },
+          _sum: { fileSize: 40 },
+        },
+      ]);
+
+      const summary = await service.getLibrarySummary(organizationId, {
+        brandId,
+      });
+
+      expect(summary.byShelf[LibraryShelf.REJECTED]).toBe(2);
+      expect(summary.byShelf[LibraryShelf.ARCHIVED]).toBe(1);
+      expect(summary.total).toBe(3);
+      expect(summary.storageBytes).toBe(120);
+      expect(ingredientDelegate.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { brandId, organizationId, isDeleted: false },
+        }),
+      );
+    });
+  });
+
   describe('listLibraryAssets', () => {
     it('always scopes by organizationId and isDeleted:false, newest first', async () => {
       await service.listLibraryAssets({

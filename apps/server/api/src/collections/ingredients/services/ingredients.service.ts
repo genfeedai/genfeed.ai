@@ -807,11 +807,9 @@ export class IngredientsService extends BaseService<
         [LibraryShelf.UNSORTED]: unsortedCount,
         [LibraryShelf.NEEDS_REVIEW]: needsReviewCount,
         [LibraryShelf.APPROVED]: approvedCount,
+        [LibraryShelf.REJECTED]: countOf(IngredientStatus.REJECTED),
         [LibraryShelf.FAILED]: countOf(IngredientStatus.FAILED),
-        [LibraryShelf.ARCHIVED]: countOf(
-          IngredientStatus.ARCHIVED,
-          IngredientStatus.REJECTED,
-        ),
+        [LibraryShelf.ARCHIVED]: countOf(IngredientStatus.ARCHIVED),
       },
       starredCount,
       storageBytes,

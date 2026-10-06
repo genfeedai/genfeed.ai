@@ -11,6 +11,7 @@ import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-con
 import {
   Archive,
   CircleCheck,
+  CircleX,
   ClipboardCheck,
   Clock,
   Images,
@@ -88,13 +89,14 @@ const SHELF_ICONS = {
   [LibraryShelf.UNSORTED]: Inbox,
   [LibraryShelf.NEEDS_REVIEW]: ClipboardCheck,
   [LibraryShelf.APPROVED]: CircleCheck,
+  [LibraryShelf.REJECTED]: CircleX,
   [LibraryShelf.FAILED]: TriangleAlert,
   [LibraryShelf.ARCHIVED]: Archive,
 } as const;
 
 /**
- * Shelves — References (the inputs) first, then the generation-state axis in
- * lifecycle order.
+ * Shelves — Unsorted inbox first, followed by active renders, review and
+ * recovery. References (the inputs) come last.
  *
  * A shelf is a saved query, not a location: an asset lands on one by
  * generating, failing, or being reviewed, with nobody moving it. Shelf

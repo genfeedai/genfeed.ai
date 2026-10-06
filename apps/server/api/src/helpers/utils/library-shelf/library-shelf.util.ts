@@ -77,11 +77,8 @@ const SHELF_FILTERS: Record<LibraryShelf, Record<string, unknown>> = {
     ],
   },
   [LibraryShelf.FAILED]: { status: IngredientStatus.FAILED },
-  [LibraryShelf.ARCHIVED]: {
-    status: {
-      in: [IngredientStatus.ARCHIVED, IngredientStatus.REJECTED],
-    },
-  },
+  [LibraryShelf.REJECTED]: { status: IngredientStatus.REJECTED },
+  [LibraryShelf.ARCHIVED]: { status: IngredientStatus.ARCHIVED },
 };
 
 /**

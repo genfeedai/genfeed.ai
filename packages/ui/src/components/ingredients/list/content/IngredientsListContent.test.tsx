@@ -127,10 +127,12 @@ vi.mock('@ui/ingredients/list/media-grid/IngredientsMediaGrid', () => ({
     items,
     onClickIngredient,
     onSeeDetails,
+    onReviewUpdated,
   }: {
     items: IIngredient[];
     onClickIngredient: (ingredient: IIngredient) => void;
     onSeeDetails: (ingredient: IIngredient) => void;
+    onReviewUpdated: (ingredient: IIngredient) => void;
   }) => (
     <>
       <button
@@ -143,6 +145,16 @@ vi.mock('@ui/ingredients/list/media-grid/IngredientsMediaGrid', () => ({
       <button onClick={() => onSeeDetails(items[0])} type="button">
         See Details
       </button>
+      {items[0] ? (
+        <button
+          onClick={() =>
+            onReviewUpdated({ ...items[0], status: IngredientStatus.REJECTED })
+          }
+          type="button"
+        >
+          Reject from grid
+        </button>
+      ) : null}
     </>
   ),
 }));
@@ -275,14 +287,28 @@ const staleErrorIngredient = {
 } as unknown as IIngredient;
 
 describe('IngredientsListContent', () => {
+  it('removes a rejected asset from the contact sheet while preserving other cards', () => {
+    const onSetIngredients = vi.fn();
+    const asset = { ...baseIngredient, category: IngredientCategory.IMAGE };
+    const otherAsset = { ...asset, id: 'other-asset' };
+    renderContent({
+      filteredIngredients: [asset, otherAsset],
+      onSetIngredients,
+      type: 'ingredients',
+      singularType: IngredientCategory.INGREDIENT,
+      viewMode: 'grid',
+    });
+    fireEvent.click(screen.getByText('Reject from grid'));
+    const update = onSetIngredients.mock.lastCall?.[0];
+    expect(update([asset, otherAsset])).toEqual([otherAsset]);
+  });
+
   it('removes a rejected asset after changing status from the list menu', () => {
     const onSetIngredients = vi.fn();
-    const onRefresh = vi.fn();
     const otherAsset = { ...baseIngredient, id: 'other-asset' };
     const { rerenderContent } = renderContent({
       filteredIngredients: [baseIngredient, otherAsset],
       onSetIngredients,
-      onRefresh,
       viewMode: 'list',
     });
 
@@ -291,7 +317,6 @@ describe('IngredientsListContent', () => {
     const update = onSetIngredients.mock.lastCall?.[0];
     const remaining = update([baseIngredient, otherAsset]);
     expect(remaining).toEqual([otherAsset]);
-    expect(onRefresh).toHaveBeenCalledOnce();
     rerenderContent({ filteredIngredients: remaining });
     expect(screen.getAllByText('Reject from status menu')).toHaveLength(1);
   });

@@ -64,10 +64,17 @@ three are needed.
 
 - `/library/assets` is the canonical home; bare `/library` redirects there.
 - Sidebar groups are **Places** (All assets, Recent, Starred) · **Shelves**
-  (Generating, Unsorted, Needs review, Approved, Failed, Archived) · **Folders**
+  (Unsorted, Generating, Approved, Needs review, Rejected, Failed, Archived, References) · **Folders**
   (nested tree, drop targets) · tail (Trash). Brand Knowledge is not a library
   destination — it lives at `/settings/knowledge` next to Brand Kit.
   `/library/knowledge` redirects there.
+- Rejected assets have their own **Rejected** shelf (`?shelf=rejected`), separate
+  from Archived. A successful rejection removes the asset from the current
+  usable inventory grid or list and refreshes shelf counts; a failed write keeps
+  it visible. Review buttons and status menus share this behavior.
+- Shelf navigation puts Unsorted first, then Approved and Needs review,
+  followed by Rejected, Failed and Archived, with References last. Generating
+  appears after Unsorted only while renders are active.
 - `?view=` carries `grid` · `list` · `canvas`. `grid` is the default and is
   labelled "Contact sheet". The canvas entry is gated by the PostHog flag
   `moodboard` — the key kept its name because the rollout did not move, only the

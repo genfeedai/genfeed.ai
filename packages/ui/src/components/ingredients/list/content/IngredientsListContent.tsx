@@ -463,13 +463,7 @@ export default function IngredientsListContent({
               entity={ingredient}
               onStatusChange={(_newStatus, updatedIngredient) => {
                 if (updatedIngredient) {
-                  onSetIngredients((prev) =>
-                    prev.map((ing: IIngredient) =>
-                      ing.id === ingredient.id
-                        ? (updatedIngredient as IIngredient)
-                        : ing,
-                    ),
-                  );
+                  handleReviewUpdated(updatedIngredient as IIngredient);
                 }
               }}
             />
@@ -494,7 +488,6 @@ export default function IngredientsListContent({
       },
     ],
     [
-      onSetIngredients,
       onReprompt,
       translate,
       translateRetry,

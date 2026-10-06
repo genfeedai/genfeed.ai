@@ -14,11 +14,6 @@ const UNSORTED_STATUSES: readonly IngredientStatus[] = [
   IngredientStatus.GENERATED,
 ] as const;
 
-const ARCHIVED_STATUSES: readonly IngredientStatus[] = [
-  IngredientStatus.ARCHIVED,
-  IngredientStatus.REJECTED,
-] as const;
-
 const REVIEW_PENDING_STATUSES: readonly string[] = [
   FleetReviewStatus.PENDING,
   FleetReviewStatus.NEEDS_REVISION,
@@ -48,7 +43,11 @@ export function getIngredientShelf(
     return LibraryShelf.FAILED;
   }
 
-  if (ARCHIVED_STATUSES.includes(status)) {
+  if (status === IngredientStatus.REJECTED) {
+    return LibraryShelf.REJECTED;
+  }
+
+  if (status === IngredientStatus.ARCHIVED) {
     return LibraryShelf.ARCHIVED;
   }
 

@@ -9,6 +9,7 @@ import {
   StatusDomain,
 } from '@genfeedai/contracts';
 import { mapPostStatusToCanonicalWrite } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import type {
   IArticle,
   IIngredient,
@@ -286,6 +287,9 @@ export default function DropdownStatus({
 
       // Emit the full updated item to parent
       onStatusChange?.(newStatus, updatedItem);
+      if (!isArticle && !isPost) {
+        window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
+      }
 
       // Show success notification
       const statusMeta = getStatusMeta(newStatus, statusDomain);

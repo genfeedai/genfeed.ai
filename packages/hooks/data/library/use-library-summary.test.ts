@@ -68,6 +68,8 @@ const SUMMARY_PAYLOAD = {
     archived: 0,
     failed: 0,
     generating: 1,
+    references: 0,
+    rejected: 0,
     'needs-review': 0,
     unsorted: 3,
   },
