@@ -3626,7 +3626,7 @@ export async function mockAvatarIngredientActions(page: Page): Promise<{
     });
   });
 
-  // LibrarySidebarNav's counters (useLibrarySummary): plain ILibrarySummary,
+  // Library status filter counters (useLibrarySummary): plain ILibrarySummary,
   // not JSON:API. Both seeded avatars are GENERATED, unfoldered and PENDING
   // review, so each counts on Unsorted and on Needs review.
   const avatarLibrarySummary: ILibrarySummary = {

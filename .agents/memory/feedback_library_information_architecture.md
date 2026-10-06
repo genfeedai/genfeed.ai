@@ -10,7 +10,7 @@ media type.
 | axis | what it answers | stored as | surface |
 | --- | --- | --- | --- |
 | **Type** | what the asset is | `categories` | multi-select chips |
-| **Shelf** | where it is in its own generation | `status` / `reviewStatus` / `qualityStatus` | sidebar group + `/library/shelf/[shelf]` |
+| **Shelf** | where it is in its own generation | `status` / `reviewStatus` / `qualityStatus` | status filter on the library toolbar (`?shelf=`) |
 | **Folder** | where a human filed it | `folderId` | sidebar tree + `?folder=` |
 
 An asset has one type, sits on one shelf, and lives in at most one folder. The
@@ -63,18 +63,25 @@ three are needed.
 **How to apply:**
 
 - `/library/assets` is the canonical home; bare `/library` redirects there.
-- Sidebar groups are **Places** (All assets, Recent, Starred) · **Shelves**
-  (Unsorted, Generating, Approved, Needs review, Rejected, Failed, Archived, References) · **Folders**
-  (nested tree, drop targets) · tail (Trash). Brand Knowledge is not a library
-  destination — it lives at `/settings/knowledge` next to Brand Kit.
-  `/library/knowledge` redirects there.
+- Sidebar links are **All assets, Recent, Starred, and Characters**.
+  Characters stays the page at `/library/elements/characters`; it is not an
+  asset filter. **Folders** stay the nested tree under those links. Brand
+  Knowledge is not a library destination — it lives at `/settings/knowledge`
+  next to Brand Kit. `/library/knowledge` redirects there.
+- Shelves and Trash are one **Status** filter on the library toolbar, in
+  shelf order, with Trash last. Generating stays hidden while its count is 0
+  unless that shelf is already selected. Deep links `?shelf=` and
+  `?place=trash` still open the same browser. Trash and a shelf are mutually
+  exclusive. Recent and Starred compose with a shelf. Selecting Trash replaces
+  Recent or Starred because both use `place`.
 - Rejected assets have their own **Rejected** shelf (`?shelf=rejected`), separate
   from Archived. A successful rejection removes the asset from the current
   usable inventory grid or list and refreshes shelf counts; a failed write keeps
   it visible. Review buttons and status menus share this behavior.
-- Shelf navigation puts Unsorted first, then Approved and Needs review,
-  followed by Rejected, Failed and Archived, with References last. Generating
-  appears after Unsorted only while renders are active.
+- The status filter puts Unsorted first, then Approved and Needs review,
+  followed by Rejected, Failed and Archived, with References last and Trash
+  after References. Generating appears after Unsorted only while renders are
+  active, or while that shelf is the current URL.
 - `?view=` carries `grid` · `list` · `canvas`. `grid` is the default and is
   labelled "Contact sheet". The canvas entry is gated by the PostHog flag
   `moodboard` — the key kept its name because the rollout did not move, only the

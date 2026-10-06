@@ -1,28 +1,6 @@
-import {
-  LIBRARY_SHELF_LABELS,
-  LIBRARY_SHELF_ORDER,
-  LibraryShelf,
-} from '@genfeedai/contracts';
-import {
-  APP_ROUTES,
-  createLibraryShelfRoute,
-} from '@genfeedai/contracts/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import {
-  Archive,
-  CircleCheck,
-  CircleX,
-  ClipboardCheck,
-  Clock,
-  Images,
-  ImageUp,
-  Inbox,
-  LoaderCircle,
-  ScanFace,
-  Star,
-  Trash2,
-  TriangleAlert,
-} from 'lucide-react';
+import { Clock, Images, ScanFace, Star } from 'lucide-react';
 
 /**
  * Type-seeded entry points into the same asset browser.
@@ -45,9 +23,11 @@ export const LIBRARY_ASSET_ROUTES = [
 ] as const;
 
 /**
- * Places — views over the same rows that are *not* generation state.
- * All assets is the unfiltered browser; the rest are ownership
- * (`isFavorite`) and lifecycle (`isDeleted`) cuts.
+ * Library destinations.
+ *
+ * All assets, Recent, and Starred are views over the asset browser. Characters
+ * is its own page. Generation state and Trash are a status filter on the
+ * browser, not rows in this list.
  */
 export const LIBRARY_PLACE_MENU_ITEMS: MenuItemConfig[] = [
   {
@@ -57,7 +37,7 @@ export const LIBRARY_PLACE_MENU_ITEMS: MenuItemConfig[] = [
     // Type routes are the same browser with a chip pre-selected, so they light
     // up All assets rather than a nav row of their own.
     matchPaths: [...LIBRARY_ASSET_ROUTES],
-    matchSearchParams: { place: null, shelf: null },
+    matchSearchParams: { place: null },
     outline: Images,
     solid: Images,
   },
@@ -67,7 +47,7 @@ export const LIBRARY_PLACE_MENU_ITEMS: MenuItemConfig[] = [
     isExactMatch: true,
     label: 'Recent',
     matchPaths: [APP_ROUTES.LIBRARY.ASSETS],
-    matchSearchParams: { place: 'recent', shelf: null },
+    matchSearchParams: { place: 'recent' },
     outline: Clock,
     solid: Clock,
   },
@@ -77,70 +57,12 @@ export const LIBRARY_PLACE_MENU_ITEMS: MenuItemConfig[] = [
     isExactMatch: true,
     label: 'Starred',
     matchPaths: [APP_ROUTES.LIBRARY.ASSETS],
-    matchSearchParams: { place: 'starred', shelf: null },
+    matchSearchParams: { place: 'starred' },
     outline: Star,
     solid: Star,
   },
-];
-
-const SHELF_ICONS = {
-  [LibraryShelf.REFERENCES]: ImageUp,
-  [LibraryShelf.GENERATING]: LoaderCircle,
-  [LibraryShelf.UNSORTED]: Inbox,
-  [LibraryShelf.NEEDS_REVIEW]: ClipboardCheck,
-  [LibraryShelf.APPROVED]: CircleCheck,
-  [LibraryShelf.REJECTED]: CircleX,
-  [LibraryShelf.FAILED]: TriangleAlert,
-  [LibraryShelf.ARCHIVED]: Archive,
-} as const;
-
-/**
- * Shelves — Unsorted inbox first, followed by active renders, review and
- * recovery. References (the inputs) come last.
- *
- * A shelf is a saved query, not a location: an asset lands on one by
- * generating, failing, or being reviewed, with nobody moving it. Shelf
- * membership overlaps and never partitions the library total.
- */
-export const LIBRARY_SHELF_MENU_ITEMS: MenuItemConfig[] =
-  LIBRARY_SHELF_ORDER.map((shelf) => ({
-    group: 'Shelves',
-    href: createLibraryShelfRoute(shelf),
-    isExactMatch: true,
-    label: LIBRARY_SHELF_LABELS[shelf],
-    matchPaths: [APP_ROUTES.LIBRARY.ASSETS],
-    matchSearchParams: { shelf },
-    outline: SHELF_ICONS[shelf],
-    solid: SHELF_ICONS[shelf],
-  }));
-
-/**
- * Destinations that are neither a place over the asset table nor a shelf.
- * Trash sits here because it is the end of the lifecycle, not a state you
- * generate into. Brand Knowledge lives under Settings, next to Brand Kit.
- */
-export const LIBRARY_TAIL_MENU_ITEMS: MenuItemConfig[] = [
   {
-    group: 'Library',
-    href: APP_ROUTES.LIBRARY.TRASH,
-    isExactMatch: true,
-    label: 'Trash',
-    matchPaths: [APP_ROUTES.LIBRARY.ASSETS],
-    matchSearchParams: { place: 'trash', shelf: null },
-    outline: Trash2,
-    solid: Trash2,
-  },
-];
-
-/**
- * Library navigation, flattened for the shell.
- *
- * Folders are the third axis and are *not* here — they are org data, so the
- * sidebar loads them as a live tree between the shelves and the tail.
- */
-export const LIBRARY_ELEMENT_MENU_ITEMS: MenuItemConfig[] = [
-  {
-    group: 'Elements',
+    group: '',
     href: APP_ROUTES.LIBRARY.CHARACTERS,
     label: 'Characters',
     outline: ScanFace,
@@ -148,9 +70,12 @@ export const LIBRARY_ELEMENT_MENU_ITEMS: MenuItemConfig[] = [
   },
 ];
 
+/**
+ * Library navigation, flattened for the shell.
+ *
+ * Folders stay a live tree under these links. Shelves and Trash are the
+ * browser's status filter, so they are not navigation.
+ */
 export const LIBRARY_MENU_ITEMS: MenuItemConfig[] = [
   ...LIBRARY_PLACE_MENU_ITEMS,
-  ...LIBRARY_SHELF_MENU_ITEMS,
-  ...LIBRARY_ELEMENT_MENU_ITEMS,
-  ...LIBRARY_TAIL_MENU_ITEMS,
 ];

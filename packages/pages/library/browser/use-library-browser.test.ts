@@ -463,6 +463,43 @@ describe('useLibraryBrowser', () => {
     expect(result.current.sort).toBe('updatedAt: -1');
   });
 
+  it('keeps Recent when the status filter selects a shelf', () => {
+    state.search = 'place=recent&view=grid';
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+
+    act(() => {
+      result.current.handleStatusChange(LibraryShelf.FAILED);
+    });
+
+    const next = new URLSearchParams(lastPushedSearch());
+    expect(next.get('place')).toBe('recent');
+    expect(next.get('shelf')).toBe('failed');
+    expect(next.get('view')).toBe('grid');
+  });
+
+  it('treats Trash and a shelf as mutually exclusive', () => {
+    state.search = 'shelf=failed&view=grid';
+
+    const selected = renderHook(() => useLibraryBrowser({}));
+    act(() => {
+      selected.result.current.handleStatusChange('trash');
+    });
+    const trashed = new URLSearchParams(lastPushedSearch());
+    expect(trashed.get('place')).toBe('trash');
+    expect(trashed.get('shelf')).toBeNull();
+
+    state.search = 'place=trash&view=grid';
+    const cleared = renderHook(() => useLibraryBrowser({}));
+    act(() => {
+      cleared.result.current.handleStatusChange(null);
+    });
+    const all = new URLSearchParams(lastPushedSearch());
+    expect(all.get('place')).toBeNull();
+    expect(all.get('shelf')).toBeNull();
+    expect(all.get('view')).toBe('grid');
+  });
+
   it('sends the shelf as its own axis and never a status filter', () => {
     state.pathname = '/library/shelf/needs-review';
 

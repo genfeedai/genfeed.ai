@@ -10,6 +10,7 @@ import {
   PageScope,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { useLibrarySummary } from '@hooks/data/library/use-library-summary';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { LibraryBrowserProps } from '@props/pages/library-browser.props';
@@ -62,6 +63,7 @@ export default function LibraryBrowser({
     handleRefresh,
     handleSearchChange,
     handleSortChange,
+    handleStatusChange,
     handleTagMatchChange,
     handleTagsChange,
     handleUpload,
@@ -90,6 +92,7 @@ export default function LibraryBrowser({
           `${APP_ROUTES.AGENT.NEW}?agentMode=manual&prompt=${encodeURIComponent(`Use list_assets with shelf=unsorted and origin=GENERATED, paginating each supported media type for the current brand. Review those unsorted generated assets. Check the actual media against the approved brand kit, especially logo fidelity. Suggest approve/reject decisions with reasons and folders or tags for sorting. Use the available review tools; disclose any unavailable checks. Do not approve, reject, move, delete, publish, generate, or change learning settings. Return suggestions for me to review.`)}`,
         )
       : undefined;
+  const { summary } = useLibrarySummary();
   const characterOptions = useLibraryCharacterOptions({
     brandId,
     isEnabled: scope === PageScope.BRAND,
@@ -197,7 +200,12 @@ export default function LibraryBrowser({
                 onClearOrigins={handleClearOrigins}
                 onClearTags={handleClearTags}
                 onOriginsChange={handleOriginsChange}
+                onStatusChange={handleStatusChange}
                 origins={origins}
+                place={place}
+                shelf={shelf}
+                shelfCounts={summary?.byShelf}
+                trashedCount={summary?.trashedCount}
                 onSortChange={handleSortChange}
                 onTagMatchChange={handleTagMatchChange}
                 onTagsChange={handleTagsChange}
