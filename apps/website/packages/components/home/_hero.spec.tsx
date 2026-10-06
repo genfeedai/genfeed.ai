@@ -152,11 +152,14 @@ describe('HomeHero', () => {
     expect(screen.queryByText(/31% hook rate/i)).not.toBeInTheDocument();
   });
 
-  it('sends visitors straight to email signup', () => {
+  it('sends visitors to the sign-up page', () => {
     render(<HomeHero />);
     expect(
       screen.getByRole('link', { name: /start for \$0/i }),
-    ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up/magic-link');
+    ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
+    expect(
+      screen.getByText(/create your free account with google or email/i),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /connect your agent/i }),
     ).not.toBeInTheDocument();
