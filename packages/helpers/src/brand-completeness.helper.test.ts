@@ -97,11 +97,20 @@ describe('computeBrandCompleteness', () => {
   it('generates correct hrefs for fields', () => {
     const result = computeBrandCompleteness({ id: 'abc-123' });
 
-    const identity = result.groups.find((g) => g.key === 'identity');
-    expect(identity?.fields[0].href).toBe('/settings');
+    const expectedHrefs = {
+      identity: '/settings',
+      strategy: '/settings/brand-kit?tab=strategy',
+      visual: '/settings/brand-kit?tab=visual',
+      voice: '/settings/brand-kit?tab=voice',
+    } as const;
 
-    const voice = result.groups.find((g) => g.key === 'voice');
-    expect(voice?.fields[0].href).toBe('/settings/brand-kit?tab=voice');
+    for (const [key, href] of Object.entries(expectedHrefs)) {
+      const group = result.groups.find((entry) => entry.key === key);
+      expect(group?.fields.length).toBeGreaterThan(0);
+      expect(group?.fields.map((field) => field.href)).toEqual(
+        group?.fields.map(() => href),
+      );
+    }
   });
 
   it('uses weighted average for overall score', () => {

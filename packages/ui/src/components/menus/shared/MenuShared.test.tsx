@@ -859,7 +859,8 @@ describe('MenuShared', () => {
     });
 
     it('activates Voice only — not the Overview root — on a brand sub-route', () => {
-      mockPathname.value = '/acme/moonrise-studio/settings/brand-kit?tab=voice';
+      mockPathname.value = '/acme/moonrise-studio/settings/brand-kit';
+      mockSearchParams.value = 'tab=voice';
       render(<MenuShared config={settingsConfig} sectionLabel="Settings" />);
       expect(activeLabels()).toEqual(['Voice']);
     });
