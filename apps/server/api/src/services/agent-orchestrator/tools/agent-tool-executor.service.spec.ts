@@ -53,6 +53,8 @@ import {
   ActivitySource,
   AgentGenerationMode,
   ApiKeyScope,
+  BatchItemStatus,
+  BatchStatus,
   IngredientCategory,
   ReleaseStatus,
   TargetExecutionState,
@@ -4716,17 +4718,17 @@ describe('AgentToolExecutorService', () => {
           format: 'image',
           platform: 'instagram',
           reviewDecision: undefined,
-          status: 'pending',
+          status: BatchItemStatus.PENDING,
         },
         {
           id: testId('reviewitemapproved'),
           format: 'image',
           platform: 'linkedin',
           reviewDecision: 'approved',
-          status: 'completed',
+          status: BatchItemStatus.COMPLETED,
         },
       ],
-      status: 'generating',
+      status: BatchStatus.PROCESSING,
       totalCount: 2,
     });
 
@@ -4766,7 +4768,7 @@ describe('AgentToolExecutorService', () => {
         },
         status: 'completed',
         summaryText:
-          'Loaded 2 items from this batch. 1 item is ready for review right now.',
+          'Loaded 2 items from this batch. 0 items are ready for review right now.',
         title: 'Reviews loaded',
         type: 'completion_summary_card',
       }),

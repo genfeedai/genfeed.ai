@@ -76,6 +76,16 @@ export interface AgentUiActionCta {
   payload?: Record<string, unknown>;
 }
 
+/** Verified counts used to ground review follow-ups in the latest tool result. */
+export interface AgentReviewQueueSnapshot {
+  approvedCount: number;
+  changesRequestedCount: number;
+  pendingCount: number;
+  readyCount: number;
+  /** Approval summaries do not distinguish ready items from generation. */
+  unclassifiedCount: number;
+}
+
 /**
  * What a UI action handler reports back to the card that invoked it.
  * `true`: the action finished. `false`: it was rejected or failed.

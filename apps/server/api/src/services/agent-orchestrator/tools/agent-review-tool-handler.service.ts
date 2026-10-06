@@ -2,9 +2,10 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import {
+  BatchItemStatus,
   formatPlatformLabel,
-  isTerminalReviewDecision,
   normalizeReviewDecision,
+  ReviewDecision,
 } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
@@ -105,14 +106,28 @@ export class AgentReviewToolHandler {
       };
     });
 
-    const readyCount = items.filter((item: unknown) => {
+    let approvedCount = 0;
+    let changesRequestedCount = 0;
+    let pendingCount = 0;
+    let readyCount = 0;
+    for (const item of items) {
       const reviewItem = item as Record<string, unknown>;
-      return (
-        !isTerminalReviewDecision(
-          normalizeReviewDecision(reviewItem.reviewDecision),
-        ) && reviewItem.status !== 'failed'
-      );
-    }).length;
+      const decision = normalizeReviewDecision(reviewItem.reviewDecision);
+      if (decision === ReviewDecision.APPROVED) {
+        approvedCount += 1;
+      } else if (decision === ReviewDecision.REQUEST_CHANGES) {
+        changesRequestedCount += 1;
+      } else if (decision === ReviewDecision.UNSET) {
+        if (reviewItem.status === BatchItemStatus.COMPLETED) {
+          readyCount += 1;
+        } else if (
+          reviewItem.status === BatchItemStatus.PENDING ||
+          reviewItem.status === BatchItemStatus.PROCESSING
+        ) {
+          pendingCount += 1;
+        }
+      }
+    }
     const summaryText =
       visibleItems.length === 0
         ? 'This batch does not have any items in the current filter.'
@@ -132,9 +147,13 @@ export class AgentReviewToolHandler {
     return {
       creditsUsed: 0,
       data: {
+        approvedCount,
         batchId: String(batch.id),
         batchStatus: batch.status,
+        changesRequestedCount,
         items: visibleItems,
+        pendingCount,
+        readyCount,
         totalCount: batch.totalCount,
       },
       nextActions: [

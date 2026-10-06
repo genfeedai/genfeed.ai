@@ -24,6 +24,7 @@ import {
   normalizeRequestedAgentToolName,
 } from '@api/services/agent-orchestrator/utils/agent-generation-prepare-redirect.util';
 import { normalizeResponseModel } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
+import { readReviewQueueSnapshot } from '@api/services/agent-orchestrator/utils/agent-review-queue-context.util';
 import { raceToolExecution } from '@api/services/agent-orchestrator/utils/agent-tool-race.util';
 import { normalizeUiBlocks } from '@api/services/agent-orchestrator/utils/agent-ui-blocks.util';
 import type {
@@ -676,12 +677,14 @@ export class AgentTurnRoundRunnerService {
         state.totalCreditsUsed += delegatedCredits;
       }
 
+      const reviewQueue = readReviewQueueSnapshot(toolName, modelVisibleResult);
       const summary: ToolCallSummary = {
         creditsUsed: isOrchestratorBilled ? creditCost : delegatedCredits,
         durationMs,
         error: result.error,
         parameters: toolParams,
         resultSummary: summarizeToolResult(modelVisibleResult),
+        ...(reviewQueue ? { reviewQueue } : {}),
         status: result.success ? 'completed' : 'failed',
         toolName,
       };

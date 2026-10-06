@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import {
   type AgentToolRoundState,
   AgentTurnRoundRunnerService,
@@ -146,6 +147,44 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     });
     return { messages, state };
   }
+
+  it('grounds follow-ups in the full result even when its displayed summary is truncated', async () => {
+    executeTool.mockResolvedValueOnce({
+      creditsUsed: 0,
+      success: true,
+      data: {
+        approvedCount: 0,
+        changesRequestedCount: 0,
+        pendingCount: 0,
+        readyCount: 0,
+        recentItems: [],
+        details: 'x'.repeat(1000),
+      },
+    });
+    const { state } = await executeRound({
+      message: "Show me what's waiting for review",
+      toolName: 'list_review_queue',
+      toolParams: {},
+    });
+    expect(state.toolCalls[0]?.resultSummary).toHaveLength(501);
+    expect(state.toolCalls[0]?.reviewQueue).toEqual({
+      approvedCount: 0,
+      changesRequestedCount: 0,
+      pendingCount: 0,
+      readyCount: 0,
+      unclassifiedCount: 0,
+    });
+    const result =
+      new AgentCompletionCardBuilderService().buildAssistantUiActions({
+        reviewRequired: state.reviewRequired,
+        toolCalls: state.toolCalls,
+        uiActions: state.uiActions,
+      });
+    expect(result.suggestedActions.map((action) => action.id)).toEqual([
+      'review-create',
+      'review-ideas',
+    ]);
+  });
 
   it('marks a Stop observed after an awaited tool as interrupted', async () => {
     const result = await runner.executeToolRound({

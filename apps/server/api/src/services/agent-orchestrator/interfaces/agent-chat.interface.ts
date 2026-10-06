@@ -8,6 +8,7 @@ import type {
 } from '@genfeedai/contracts';
 import type {
   AgentArtifactReference,
+  AgentReviewQueueSnapshot,
   AnalyticsQueryReference,
   KnowledgeSelection,
   ScopedResearchFindingReference,
@@ -136,6 +137,7 @@ export interface ToolCallSummary {
   error?: string;
   parameters?: Record<string, unknown>;
   resultSummary?: string;
+  reviewQueue?: AgentReviewQueueSnapshot;
   status: 'completed' | 'failed';
   toolName: string;
 }
