@@ -92,14 +92,14 @@ export default function AgentConnectDialog({
   return (
     <Modal.Root open={open} onOpenChange={onOpenChange}>
       <Modal.Content
-        className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto"
+        className="flex max-h-[90dvh] w-[calc(100%-2rem)] flex-col overflow-hidden"
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           trigger.current?.focus();
         }}
         size={client ? 'lg' : 'md'}
       >
-        <Modal.Header className="pr-6 text-left">
+        <Modal.Header className="shrink-0 pr-6 text-left">
           <Modal.Title>Connect your agent</Modal.Title>
           <Modal.Description>
             {client
@@ -107,7 +107,11 @@ export default function AgentConnectDialog({
               : 'Use Genfeed from the agent you already work with.'}
           </Modal.Description>
         </Modal.Header>
-        <Modal.Body className="min-w-0 py-0">
+        <Modal.Body
+          className="min-h-0 min-w-0 overscroll-contain py-0"
+          data-modal-scroll-region=""
+          scrollable
+        >
           {client ? (
             <div className="space-y-5">
               <Button
