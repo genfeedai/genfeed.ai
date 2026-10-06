@@ -148,6 +148,21 @@ describe('TrendVideoService', () => {
     expect(mockPrisma.trendingVideo.findMany).toHaveBeenCalled();
   });
 
+  it('hydrates database IDs even when the JSON payload has no identity', async () => {
+    mockPrisma.trendingVideo.findMany.mockResolvedValue([
+      {
+        ...makeVideoDoc({ externalId: 'youtube-a', platform: 'youtube' }),
+        id: 'db-a',
+      },
+      {
+        ...makeVideoDoc({ externalId: 'youtube-b', platform: 'youtube' }),
+        id: 'db-b',
+      },
+    ]);
+    const videos = await service.getViralVideos({ limit: 12 });
+    expect(videos.map((video) => video.id)).toEqual(['db-a', 'db-b']);
+  });
+
   it('returns empty hashtags when the database is empty without triggering Apify', async () => {
     mockPrisma.trendingHashtag.findMany.mockResolvedValue([]);
 

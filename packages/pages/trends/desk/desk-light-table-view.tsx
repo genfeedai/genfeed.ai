@@ -5,6 +5,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
+import DeskMediaPreview from '@pages/trends/desk/desk-media-preview';
 import { getSafeExternalUrl } from '@pages/trends/shared/safe-external-url';
 import type {
   DeskLightCardProps,
@@ -19,12 +20,13 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { ExternalLink, Sparkles, Zap } from 'lucide-react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 function DeskLightCard({
   isCursored,
+  isPreviewActive,
+  onPreviewChange,
   isSelected,
   item,
   onCursor,
@@ -34,9 +36,6 @@ function DeskLightCard({
   const remixSurface = useOptionalDiscoveryRemix();
   const translateCard = useTranslations('common.trends.card');
 
-  const previewMediaUrl = getSafeExternalUrl(
-    item.mediaUrl || item.thumbnailUrl,
-  );
   const safeSourceUrl = getSafeExternalUrl(item.sourceUrl);
   const isVideo = item.contentType === 'video';
 
@@ -81,6 +80,10 @@ function DeskLightCard({
           aria-current={isCursored || undefined}
           className="flex flex-1 flex-col text-left"
           onClick={() => onCursor(item.key)}
+          onPointerEnter={() => onPreviewChange(item.key)}
+          onPointerLeave={() => onPreviewChange(null)}
+          onFocus={() => onPreviewChange(item.key)}
+          onBlur={() => onPreviewChange(null)}
           textTransform="none"
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
@@ -90,20 +93,7 @@ function DeskLightCard({
               'relative aspect-video w-full overflow-hidden bg-black' /* design-system-allow-content-color */
             }
           >
-            {previewMediaUrl ? (
-              <Image
-                alt={item.title || item.text || ''}
-                className="object-cover"
-                fill
-                sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 100vw"
-                src={previewMediaUrl}
-                unoptimized
-              />
-            ) : (
-              <div className="flex size-full items-center justify-center text-foreground/40">
-                {getPlatformIcon(item.platform, 'size-8')}
-              </div>
-            )}
+            <DeskMediaPreview item={item} isActive={isPreviewActive} />
             {isVideo ? (
               <span
                 className={
@@ -208,12 +198,15 @@ export default function DeskLightTableView({
   onToggleSelect,
   selection,
 }: DeskLightTableViewProps) {
+  const [previewKey, setPreviewKey] = useState<string | null>(null);
   return (
     <CollectionGrid data-testid="desk-light-table-grid" maxColumns={4}>
       {items.map((item) => (
         <DeskLightCard
           key={item.key}
           isCursored={cursorKey === item.key}
+          isPreviewActive={previewKey === item.key}
+          onPreviewChange={setPreviewKey}
           isSelected={selection.has(item.key)}
           item={item}
           onCursor={onCursor}

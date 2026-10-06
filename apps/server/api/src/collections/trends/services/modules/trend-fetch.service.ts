@@ -394,11 +394,65 @@ export class TrendFetchService {
 
   private async fetchYoutubeTrends(
     allowApifyFallback = true,
+    organizationId?: string,
+    brandId?: string,
   ): Promise<TrendData[]> {
+    let query: string | undefined;
+    if (organizationId && brandId) {
+      const [brand, preferences] = await Promise.all([
+        this.prisma.brand.findFirst({
+          select: { description: true },
+          where: { id: brandId, organizationId, isDeleted: false },
+        }),
+        this.prisma.trendPreferences.findFirst({
+          select: { config: true },
+          where: { brandId, organizationId, isDeleted: false },
+        }),
+      ]);
+      if (!brand) return [];
+      const config = preferences?.config;
+      const keywords =
+        config &&
+        typeof config === 'object' &&
+        !Array.isArray(config) &&
+        Array.isArray(config.keywords)
+          ? config.keywords.filter(
+              (word): word is string =>
+                typeof word === 'string' && Boolean(word.trim()),
+            )
+          : [];
+      const words = (brand.description ?? '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(
+          (word) =>
+            (word.length > 2 || word === 'ai') &&
+            !new Set([
+              'the',
+              'and',
+              'for',
+              'with',
+              'your',
+              'our',
+              'that',
+              'from',
+              'using',
+            ]).has(word),
+        );
+      query = keywords.length
+        ? keywords.slice(0, 5).join('|')
+        : Array.from(new Set(words)).slice(0, 5).join(' ');
+      if (!query) return [];
+      // A scoped search never falls back to an unrelated global chart.
+      allowApifyFallback = false;
+    }
     return this.fetchNativeFirst(
       'youtube',
       async () => {
-        const trends = await this.youtubeService.getTrends('US', 20);
+        const trends = query
+          ? await this.youtubeService.getTrends('US', 20, query)
+          : await this.youtubeService.getTrends('US', 20);
         return trends.map((trend) => ({
           createdAt: trend.publishedAt,
           growthRate:
@@ -690,7 +744,12 @@ export class TrendFetchService {
                 brandId,
                 allowApifyFallback,
               ),
-            youtube: () => this.fetchYoutubeTrends(allowApifyFallback),
+            youtube: () =>
+              this.fetchYoutubeTrends(
+                allowApifyFallback,
+                organizationId,
+                brandId,
+              ),
           };
 
           const handler = platformHandlers[platform];

@@ -137,7 +137,10 @@ describe('useDiscoveryDeskItems', () => {
       brandId: 'brand-1',
       postsLimit: 100,
     });
-    expect(mockGetViralVideos).toHaveBeenCalledWith({ limit: 12 });
+    expect(mockGetViralVideos).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      limit: 12,
+    });
   });
 
   it('does not fetch when the brand is not ready', () => {

@@ -94,9 +94,10 @@ export class TrendsDiscoveryController {
     @Query('platform') platform?: string,
     @Query('limit') limitParam?: string,
     @Query('refresh') refresh?: string,
+    @Query('brandId') requestedBrandId?: string,
   ) {
     const organizationId = user.organizationId;
-    const brandId = user.brandId;
+    const brandId = requestedBrandId || user.brandId;
     if (refresh === 'true') {
       throw new BadRequestException(
         'Use POST /trends/refresh to start ingestion.',

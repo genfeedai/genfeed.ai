@@ -69,6 +69,8 @@ export interface DeskLightTableViewProps {
 }
 
 export interface DeskLightCardProps {
+  isPreviewActive: boolean;
+  onPreviewChange: (key: string | null) => void;
   isCursored: boolean;
   isSelected: boolean;
   item: DiscoveryDeskItem;
@@ -89,4 +91,10 @@ export interface UseDeskKeyboardOptions {
   onRemix: (item: DiscoveryDeskItem) => void;
   onToggleSelect: (key: string) => void;
   selectedItem: DiscoveryDeskItem | null;
+}
+
+export interface DeskMediaPreviewProps {
+  item: DiscoveryDeskItem;
+  isActive: boolean;
+  className?: string;
 }

@@ -262,7 +262,8 @@ describe('DiscoveryDesk', () => {
     ).not.toBeNull();
   });
 
-  it('renders the table view by default', () => {
+  it('renders the table view when explicitly requested', () => {
+    mocks.paramState.view = 'table';
     render(<DiscoveryDesk />);
 
     expect(screen.getByTestId('desk-table-view')).toBeInTheDocument();
@@ -274,9 +275,7 @@ describe('DiscoveryDesk', () => {
     expect(screen.queryByText('Source health')).not.toBeInTheDocument();
   });
 
-  it('renders the light table view when ?view=grid', () => {
-    mocks.paramState.view = 'grid';
-
+  it('renders the grid view by default', () => {
     render(<DiscoveryDesk />);
 
     expect(screen.getByTestId('desk-light-table-view')).toBeInTheDocument();
@@ -304,6 +303,7 @@ describe('DiscoveryDesk', () => {
   });
 
   it('keeps the text loading state for the table view', () => {
+    mocks.paramState.view = 'table';
     mocks.useDiscoveryDeskItems.mockReturnValue({
       ...mocks.useDiscoveryDeskItems(),
       isLoading: true,
@@ -397,6 +397,7 @@ describe('DiscoveryDesk', () => {
   });
 
   it('shows the selection bar after selecting a row and batch-remixes sequentially', async () => {
+    mocks.paramState.view = 'table';
     render(<DiscoveryDesk />);
 
     fireEvent.click(screen.getByLabelText('select-trend:one'));

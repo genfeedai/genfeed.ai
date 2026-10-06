@@ -309,53 +309,44 @@ export class TrendsService {
       allowFetchIfMissing: options.allowFetchIfMissing ?? false,
     });
 
-    // Filter by brand description if brandId provided
+    // Brand discovery never substitutes the global chart for a missing match.
     if (brandId && organizationId) {
-      try {
-        const brand = await this.brandsService.findOne({
+      const [brand, preferences] = await Promise.all([
+        this.brandsService.findOne({
           id: brandId,
-          organizationId: organizationId,
-        });
-
-        if (brand?.description) {
-          trends = this.trendFilteringService.filterTrendsByBrandDescription(
-            trends,
-            brand.description,
-          );
-        }
-      } catch (error: unknown) {
-        this.loggerService.warn('Failed to fetch brand for filtering', {
-          error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-        });
-      }
-    }
-
-    // Apply preferences filtering if organization exists
-    if (organizationId) {
-      try {
-        const preferences = await this.trendPreferencesService.getPreferences(
           organizationId,
-          brandId,
+          isDeleted: false,
+        }),
+        this.trendPreferencesService.getPreferences(organizationId, brandId),
+      ]);
+      const context = [
+        brand?.description,
+        ...(preferences?.keywords ?? []),
+        ...(preferences?.categories ?? []),
+        ...(preferences?.hashtags ?? []),
+      ]
+        .filter(Boolean)
+        .join(' ');
+      trends = this.trendFilteringService.filterTrendsByBrandDescription(
+        trends,
+        context,
+        true,
+      );
+      if (preferences?.platforms?.length) {
+        trends = trends.filter((trend) =>
+          preferences.platforms.includes(trend.platform),
         );
-
-        if (preferences) {
-          trends = this.trendFilteringService.filterTrendsByPreferences(
-            trends,
-            {
-              categories: preferences.categories,
-              hashtags: preferences.hashtags,
-              keywords: preferences.keywords,
-              platforms: preferences.platforms,
-            },
-          );
-        }
-      } catch (error: unknown) {
-        this.loggerService.warn('Failed to fetch preferences for filtering', {
-          error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-        });
       }
+    } else if (organizationId) {
+      const preferences = await this.trendPreferencesService.getPreferences(
+        organizationId,
+        brandId,
+      );
+      if (preferences)
+        trends = this.trendFilteringService.filterTrendsByPreferences(
+          trends,
+          preferences,
+        );
     }
 
     // Mark trends that require authentication
@@ -632,6 +623,60 @@ export class TrendsService {
     timeframe?: Timeframe.H24 | Timeframe.H72 | Timeframe.D7;
   }): Promise<TrendingVideoDocument[]> {
     return this.trendVideoService.getViralVideos(options);
+  }
+
+  async getBrandViralVideos(
+    organizationId: string,
+    brandId: string,
+    options: Parameters<TrendVideoService['getViralVideos']>[0],
+  ): Promise<TrendingVideoDocument[]> {
+    if (!organizationId || !brandId) return [];
+    const [brand, preferences] = await Promise.all([
+      this.brandsService.findOne({
+        id: brandId,
+        organizationId,
+        isDeleted: false,
+      }),
+      this.trendPreferencesService.getPreferences(organizationId, brandId),
+    ]);
+    const context = [
+      brand?.description,
+      ...(preferences?.keywords ?? []),
+      ...(preferences?.categories ?? []),
+      ...(preferences?.hashtags ?? []),
+    ]
+      .filter(Boolean)
+      .join(' ');
+    if (!context.trim()) return [];
+    // Match before applying the requested page size, so popular unrelated
+    // videos cannot crowd brand-relevant candidates out of the first page.
+    const videos = await this.trendVideoService.getViralVideos({
+      ...options,
+      limit: 100,
+    });
+    const candidates = videos
+      .filter(
+        (video) =>
+          !preferences?.platforms?.length ||
+          (typeof video.platform === 'string' &&
+            preferences.platforms.includes(video.platform)),
+      )
+      .map((video) => ({
+        topic: [
+          video.title,
+          video.description,
+          video.hook,
+          ...(video.hashtags ?? []),
+        ]
+          .filter(Boolean)
+          .join(' '),
+        video,
+        viralityScore: video.viralScore ?? 0,
+      }));
+    return this.trendFilteringService
+      .filterTrendsByBrandDescription(candidates, context, true)
+      .map(({ video }) => video)
+      .slice(0, options?.limit ?? 12);
   }
 
   /**

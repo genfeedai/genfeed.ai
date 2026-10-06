@@ -18,6 +18,7 @@ describe('Trends split controllers', () => {
     getTurnoverStats: vi.fn(),
     getViralLeaderboard: vi.fn(),
     getViralVideos: vi.fn(),
+    getBrandViralVideos: vi.fn(),
   };
   const analyticsController = new TrendsAnalyticsController(
     trendsService as never,
@@ -82,21 +83,25 @@ describe('Trends split controllers', () => {
   });
 
   it('preserves viral-video summary behavior', async () => {
-    trendsService.getViralVideos.mockResolvedValue([
+    trendsService.getBrandViralVideos.mockResolvedValue([
       { platform: 'tiktok', viralScore: 81 },
       { platform: 'youtube', viralScore: Number.NaN },
     ]);
 
-    const result = await analyticsController.getViralVideos({
-      limit: 12,
-      timeframe: Timeframe.H24,
-    });
+    const result = await analyticsController.getViralVideos(
+      { limit: 12, timeframe: Timeframe.H24, brandId: 'brand-active' },
+      { organizationId: 'org-1', brandId: 'brand-default' } as never,
+    );
 
-    expect(trendsService.getViralVideos).toHaveBeenCalledWith({
-      limit: 12,
-      platform: undefined,
-      timeframe: Timeframe.H24,
-    });
+    expect(trendsService.getBrandViralVideos).toHaveBeenCalledWith(
+      'org-1',
+      'brand-active',
+      {
+        limit: 12,
+        platform: undefined,
+        timeframe: Timeframe.H24,
+      },
+    );
     expect(result.summary).toEqual({
       avgViralScore: 41,
       platforms: ['tiktok', 'youtube'],

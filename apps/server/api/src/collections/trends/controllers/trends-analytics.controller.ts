@@ -1,3 +1,4 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type {
   TrendTimelineEntry,
   TrendTurnoverResponse,
@@ -6,6 +7,7 @@ import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
+import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import {
   GetTrendingHashtagsDto,
@@ -29,12 +31,19 @@ export class TrendsAnalyticsController {
     operationId: 'TrendsController.getViralVideos',
     summary: 'getViralVideos',
   })
-  async getViralVideos(@Query() query: GetViralVideosDto) {
-    const videos = await this.trendsService.getViralVideos({
-      limit: query.limit,
-      platform: query.platform,
-      timeframe: query.timeframe,
-    });
+  async getViralVideos(
+    @Query() query: GetViralVideosDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const videos = await this.trendsService.getBrandViralVideos(
+      user.organizationId,
+      query.brandId || user.brandId,
+      {
+        limit: query.limit,
+        platform: query.platform,
+        timeframe: query.timeframe,
+      },
+    );
 
     return {
       summary: {

@@ -88,7 +88,7 @@ export class TrendVideoService {
     const limit = options?.limit || 50;
     const platform = options?.platform;
     const minViralScore = options?.minViralScore;
-    const cacheKey = `${this.CACHE_PREFIX}:videos:${platform || 'all'}${minViralScore ? `:min${minViralScore}` : ''}`;
+    const cacheKey = `${this.CACHE_PREFIX}:videos:v2:${platform || 'all'}:limit${limit}${minViralScore ? `:min${minViralScore}` : ''}`;
 
     // Check cache first
     const cached =
@@ -106,7 +106,10 @@ export class TrendVideoService {
     });
 
     const videos = docs
-      .map((doc) => doc.data as unknown as TrendingVideoDocument)
+      .map((doc) => ({
+        ...(doc.data as unknown as TrendingVideoDocument),
+        id: doc.id,
+      }))
       .filter((v) => {
         if (!v.isCurrent) return false;
         if (v.expiresAt && new Date(v.expiresAt) <= now) return false;

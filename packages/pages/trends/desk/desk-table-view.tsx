@@ -7,12 +7,13 @@ import {
   SocialSourcePlatform,
   SourcePostActionType,
 } from '@genfeedai/contracts';
-import type { ISourcePost, ITrendVideo } from '@genfeedai/contracts/interfaces';
+import type { ISourcePost } from '@genfeedai/contracts/interfaces';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
+import DeskMediaPreview from '@pages/trends/desk/desk-media-preview';
 import { getSafeExternalUrl } from '@pages/trends/shared/safe-external-url';
 import type { DiscoveryDeskItem } from '@props/trends/discovery-desk.props';
 import type {
@@ -152,38 +153,6 @@ function toTrendSourcePair(
     return { source, trend };
   }
 
-  return null;
-}
-
-/** Mirrors `trends-list.tsx`'s viral-video embed resolution — duplicated
- * here on purpose (same reason as `normalizeTrendContentType`). */
-function getVideoEmbedUrl(video: ITrendVideo): string | null {
-  if (!video.videoUrl) return null;
-
-  let externalId = video.externalId ?? null;
-  let hostname = '';
-  try {
-    const url = new URL(video.videoUrl);
-    hostname = url.hostname;
-    if (!externalId) {
-      externalId =
-        url.pathname.match(/\/video\/([^/?]+)/)?.[1] ??
-        (hostname === 'youtu.be'
-          ? (url.pathname.split('/').filter(Boolean)[0] ?? null)
-          : url.searchParams.get('v'));
-    }
-  } catch {
-    return null;
-  }
-
-  if (!externalId) return null;
-
-  if (hostname.includes('tiktok')) {
-    return `https://www.tiktok.com/player/v1/${encodeURIComponent(externalId)}?autoplay=0&loop=0&muted=0`;
-  }
-  if (hostname.includes('youtu')) {
-    return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(externalId)}`;
-  }
   return null;
 }
 
@@ -448,16 +417,22 @@ function DeskContentCell({
   isExpanded,
   item,
   onToggle,
+  onPreview,
 }: {
   isExpanded: boolean;
   item: DiscoveryDeskItem;
   onToggle: (key: string) => void;
+  onPreview: (key: string | null) => void;
 }) {
   return (
     <Button
       aria-expanded={isExpanded}
       className="flex items-start gap-2 text-left"
       onClick={() => onToggle(item.key)}
+      onPointerEnter={() => onPreview(item.key)}
+      onPointerLeave={() => onPreview(null)}
+      onFocus={() => onPreview(item.key)}
+      onBlur={() => onPreview(null)}
       type="button"
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
@@ -489,33 +464,20 @@ function DeskContentCell({
 }
 
 /** Detail panel shown beneath an expanded row. */
-function DeskExpandedDetail({ item }: { item: DiscoveryDeskItem }) {
-  const embedUrl =
-    item.raw.kind === 'viral_video' ? getVideoEmbedUrl(item.raw.video) : null;
-  const previewMediaUrl = getSafeExternalUrl(
-    item.mediaUrl || item.thumbnailUrl,
-  );
-
+function DeskExpandedDetail({
+  item,
+  isActive,
+}: {
+  item: DiscoveryDeskItem;
+  isActive: boolean;
+}) {
   return (
     <>
-      {embedUrl ? (
-        <iframe
-          allow="autoplay; encrypted-media"
-          className="aspect-video w-full max-w-md rounded-lg"
-          src={embedUrl}
-          title={item.title || 'Video preview'}
-        />
-      ) : previewMediaUrl ? (
-        <div className="relative aspect-video w-full max-w-md overflow-hidden rounded-lg bg-secondary">
-          <Image
-            alt={item.title || ''}
-            className="object-cover"
-            fill
-            src={previewMediaUrl}
-            unoptimized
-          />
-        </div>
-      ) : null}
+      <DeskMediaPreview
+        item={item}
+        isActive={isActive}
+        className="min-h-[200px] max-w-md"
+      />
       {item.text ? (
         <p className="mt-3 max-w-2xl text-sm text-foreground/70">{item.text}</p>
       ) : null}
@@ -550,18 +512,15 @@ export default function DeskTableView({
 }) {
   const translateDesk = useTranslations('common.trends.desk');
   const translateCard = useTranslations('common.trends.card');
-  const [expandedKeys, setExpandedKeys] = useState<ReadonlySet<string>>(
-    () => new Set(),
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [previewKey, setPreviewKey] = useState<string | null>(null);
+  const activeKey = previewKey || expandedKey;
+  const handlePreview = useCallback(
+    (key: string | null) => setPreviewKey(key),
+    [],
   );
-
   const handleToggleExpanded = useCallback((key: string) => {
-    setExpandedKeys((previous) => {
-      const next = new Set(previous);
-      if (!next.delete(key)) {
-        next.add(key);
-      }
-      return next;
-    });
+    setExpandedKey((previous) => (previous === key ? null : key));
   }, []);
 
   // The Desk owns selection as a Set keyed by row, and the shared table
@@ -600,9 +559,10 @@ export default function DeskTableView({
         key: 'content',
         render: (item) => (
           <DeskContentCell
-            isExpanded={expandedKeys.has(item.key)}
+            isExpanded={activeKey === item.key}
             item={item}
             onToggle={handleToggleExpanded}
+            onPreview={handlePreview}
           />
         ),
       },
@@ -662,7 +622,8 @@ export default function DeskTableView({
       },
     ],
     [
-      expandedKeys,
+      activeKey,
+      handlePreview,
       handleToggleExpanded,
       href,
       onSelectFinding,
@@ -685,8 +646,8 @@ export default function DeskTableView({
       onRowClick={(item) => onCursor(item.key)}
       onSelectionChange={handleSelectionChange}
       renderExpandedRow={(item) =>
-        expandedKeys.has(item.key) ? (
-          <DeskExpandedDetail item={item} />
+        activeKey === item.key ? (
+          <DeskExpandedDetail item={item} isActive={previewKey === item.key} />
         ) : undefined
       }
       selectable
