@@ -15,16 +15,34 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { ImagesService } from '@genfeedai/services/ingredients/images.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
-import {
-  getIngredientModelLabel,
-  getIngredientPromptText,
-} from '@genfeedai/utils/media/ingredient-ledger.util';
+import { getIngredientPromptText } from '@genfeedai/utils/media/ingredient-ledger.util';
 import { getIngredientRecovery } from '@genfeedai/utils/media/ingredient-recovery.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useRef, useState } from 'react';
+
+/** Executable model key. Display labels are not generation identifiers. */
+function recordedModelKey(ingredient: IIngredient): string | undefined {
+  const modelKey = ingredient.modelUsed?.trim() || ingredient.model?.trim();
+  return modelKey || undefined;
+}
+
+/**
+ * Keep a stored `N:N` ratio. Pixel dimensions are only a fallback: sizes such
+ * as 1344×768 do not reduce to the ratio the model was given.
+ */
+function aspectRatioForRecovery(ingredient: IIngredient): string | undefined {
+  if (/^\d+:\d+$/.test(ingredient.aspectRatio ?? '')) {
+    return ingredient.aspectRatio;
+  }
+  if (!ingredient.width || !ingredient.height) return undefined;
+  const gcd = (width: number, height: number): number =>
+    height === 0 ? width : gcd(height, width % height);
+  const divisor = gcd(ingredient.width, ingredient.height);
+  return `${ingredient.width / divisor}:${ingredient.height / divisor}`;
+}
 
 function referenceIds(ingredient: IIngredient): string[] {
   return [
@@ -237,7 +255,7 @@ export function useFailedIngredientRecovery({
                     : undefined,
                   duration: saved.duration,
                   resolution: saved.resolution,
-                  model: ingredient.modelUsed || ingredient.model,
+                  model: recordedModelKey(ingredient),
                   references: referenceIds(ingredient),
                   seed: ingredient.seed,
                   text:
@@ -306,7 +324,7 @@ export function useFailedIngredientRecovery({
         const prompt =
           ingredient &&
           (getIngredientPromptText(ingredient) || ingredient.text?.trim());
-        const modelKey = ingredient && getIngredientModelLabel(ingredient);
+        const modelKey = ingredient ? recordedModelKey(ingredient) : undefined;
         if (
           !ingredient ||
           ingredient.status !== IngredientStatus.FAILED ||
@@ -324,9 +342,7 @@ export function useFailedIngredientRecovery({
           brandId,
           duration: saved.duration,
           resolution: saved.resolution,
-          aspectRatio: /^\d+:\d+$/.test(ingredient.aspectRatio ?? '')
-            ? ingredient.aspectRatio
-            : undefined,
+          aspectRatio: aspectRatioForRecovery(ingredient),
           modelKey,
           outputs: 1,
           prompt,
@@ -336,12 +352,6 @@ export function useFailedIngredientRecovery({
               ? 'image'
               : 'video',
         };
-        if (ingredient.width && ingredient.height) {
-          const gcd = (a: number, b: number): number =>
-            b === 0 ? a : gcd(b, a % b);
-          const divisor = gcd(ingredient.width, ingredient.height);
-          payload.aspectRatio = `${ingredient.width / divisor}:${ingredient.height / divisor}`;
-        }
         const service = await getHandoff();
         const { id } = await service.create(payload);
         if (snapshotScope === currentScopeRef.current)
