@@ -128,7 +128,7 @@ describe('system recap policy', () => {
   it.each([
     [false, 'settings/connected-accounts', 'connect_account'],
     [true, 'studio/generate', 'publish_content'],
-  ])(
+  ] as const)(
     'links the recap to the canonical next step when connected=%s',
     async (isConnected, route, goal) => {
       const { service, prisma, queueEmail } = fixture(5, isConnected);
