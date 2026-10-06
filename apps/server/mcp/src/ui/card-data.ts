@@ -1,6 +1,9 @@
 import { createHash } from 'node:crypto';
 import type { McpToolOutput } from '@genfeedai/actions';
-import { SATOSHI_VARIABLE_WOFF2_BASE64 } from '@genfeedai/ui/static/satoshi-font';
+import {
+  SATOSHI_FONT_RESOURCE_PATH,
+  staticSurfaceFontCss,
+} from '@genfeedai/ui/static/font';
 import type {
   McpAppResult,
   McpCalendarDay,
@@ -16,7 +19,8 @@ import preview from '@mcp/ui/preview-client.tsx?mcp-preview';
 export const MCP_CARD_RESOURCE_HASH = createHash('sha256')
   .update(preview.script)
   .update(preview.css)
-  .update(SATOSHI_VARIABLE_WOFF2_BASE64)
+  .update(staticSurfaceFontCss)
+  .update(SATOSHI_FONT_RESOURCE_PATH)
   .digest('hex')
   .slice(0, 12);
 export const MCP_CARD_RESOURCE_URI = `ui://genfeed/content-cards-v5-${MCP_CARD_RESOURCE_HASH}.html`;
