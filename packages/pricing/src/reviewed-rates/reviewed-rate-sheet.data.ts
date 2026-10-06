@@ -8,6 +8,20 @@ import type { ReviewedRateSheetEntry } from './reviewed-rate-sheet.types';
  */
 export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
   {
+    endpoint: 'black-forest-labs/flux-1.1-pro',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.04,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/black-forest-labs/flux-1.1-pro',
+    verifiedAt: '2026-10-06T09:45:32.477Z',
+  },
+  {
     endpoint: 'black-forest-labs/flux-3-image',
     provider: 'replicate',
     rates: [
@@ -115,7 +129,82 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
       },
     ],
     sourceUrl: 'https://replicate.com/black-forest-labs/flux-kontext-pro',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:33.010Z',
+  },
+  {
+    endpoint: 'black-forest-labs/flux-schnell',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.003,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/black-forest-labs/flux-schnell',
+    verifiedAt: '2026-10-06T09:45:32.779Z',
+  },
+  {
+    endpoint: 'bytedance/seedance-2.5',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.1028,
+        when: {
+          model_variant: 'non_video_in',
+          resolution: '480p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.4304,
+        when: {
+          model_variant: 'video_in',
+          resolution: '480p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.2312,
+        when: {
+          model_variant: 'non_video_in',
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.9676,
+        when: {
+          model_variant: 'video_in',
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'presence',
+          field: 'reference_videos',
+          whenPresent: 'video_in',
+          whenAbsent: 'non_video_in',
+          fieldType: 'array',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/bytedance/seedance-2.5',
+    verifiedAt: '2026-10-06T09:45:32.803Z',
   },
   {
     endpoint: 'bytedance/seedream-4',
@@ -129,7 +218,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
       },
     ],
     sourceUrl: 'https://replicate.com/bytedance/seedream-4',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:33.443Z',
   },
   {
     endpoint: 'bytedance/seedream-4.5',
@@ -143,7 +232,117 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
       },
     ],
     sourceUrl: 'https://replicate.com/bytedance/seedream-4.5',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:33.308Z',
+  },
+  {
+    endpoint: 'deepseek-ai/deepseek-r1',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output-token',
+        unit: 'output-token',
+        unitPriceUsd: 0.00001,
+        when: {},
+      },
+      {
+        component: 'input-token',
+        unit: 'input-token',
+        unitPriceUsd: 0.00000375,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/deepseek-ai/deepseek-r1',
+    verifiedAt: '2026-10-06T09:45:33.770Z',
+  },
+  {
+    endpoint: 'google/gemini-2.5-flash',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'input-token',
+        unit: 'input-token',
+        unitPriceUsd: 3e-7,
+        when: {},
+      },
+      {
+        component: 'output-token',
+        unit: 'output-token',
+        unitPriceUsd: 0.0000025,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/google/gemini-2.5-flash',
+    verifiedAt: '2026-10-06T09:45:33.916Z',
+  },
+  {
+    endpoint: 'google/imagen-3',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.05,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/google/imagen-3',
+    verifiedAt: '2026-10-06T09:45:33.730Z',
+  },
+  {
+    endpoint: 'google/imagen-3-fast',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.025,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/google/imagen-3-fast',
+    verifiedAt: '2026-10-06T09:45:34.217Z',
+  },
+  {
+    endpoint: 'google/imagen-4',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.04,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/google/imagen-4',
+    verifiedAt: '2026-10-06T09:45:34.193Z',
+  },
+  {
+    endpoint: 'google/imagen-4-fast',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.02,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/google/imagen-4-fast',
+    verifiedAt: '2026-10-06T09:45:34.206Z',
+  },
+  {
+    endpoint: 'google/imagen-4-ultra',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.06,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/google/imagen-4-ultra',
+    verifiedAt: '2026-10-06T09:45:34.220Z',
   },
   {
     endpoint: 'google/nano-banana',
@@ -157,7 +356,53 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
       },
     ],
     sourceUrl: 'https://replicate.com/google/nano-banana',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:34.581Z',
+  },
+  {
+    endpoint: 'google/nano-banana-2',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.067,
+        when: {
+          resolution: '1K',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.101,
+        when: {
+          resolution: '2K',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.151,
+        when: {
+          resolution: '4K',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/google/nano-banana-2',
+    verifiedAt: '2026-10-06T09:45:34.549Z',
+  },
+  {
+    endpoint: 'google/nano-banana-2-lite',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.034,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/google/nano-banana-2-lite',
+    verifiedAt: '2026-10-06T09:45:34.531Z',
   },
   {
     endpoint: 'google/nano-banana-pro',
@@ -192,30 +437,130 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-09-30T00:00:00.000Z',
   },
   {
+    endpoint: 'google/veo-3',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.4,
+        when: {
+          model_variant: 'with_audio',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.2,
+        when: {
+          model_variant: 'without_audio',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'generate_audio',
+          valueMap: {
+            true: 'with_audio',
+            false: 'without_audio',
+          },
+          fieldType: 'boolean',
+          default: true,
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/google/veo-3',
+    verifiedAt: '2026-10-06T09:45:34.944Z',
+  },
+  {
+    endpoint: 'google/veo-3-fast',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.15,
+        when: {
+          model_variant: 'with_audio',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.1,
+        when: {
+          model_variant: 'without_audio',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'generate_audio',
+          valueMap: {
+            true: 'with_audio',
+            false: 'without_audio',
+          },
+          fieldType: 'boolean',
+          default: true,
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/google/veo-3-fast',
+    verifiedAt: '2026-10-06T09:45:35.165Z',
+  },
+  {
     endpoint: 'google/veo-3.1',
     provider: 'replicate',
     rates: [
       {
         component: 'output',
-        isPerOutput: true,
         unit: 'second',
         unitPriceUsd: 0.4,
         when: {
-          generate_audio: true,
+          model_variant: 'with_audio',
         },
+        isPerOutput: true,
       },
       {
         component: 'output',
-        isPerOutput: true,
         unit: 'second',
         unitPriceUsd: 0.2,
         when: {
-          generate_audio: false,
+          model_variant: 'without_audio',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'generate_audio',
+          valueMap: {
+            true: 'with_audio',
+            false: 'without_audio',
+          },
+          fieldType: 'boolean',
+          default: true,
         },
       },
     ],
     sourceUrl: 'https://replicate.com/google/veo-3.1',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:34.965Z',
   },
   {
     endpoint: 'google/veo-3.1-fast',
@@ -223,25 +568,41 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     rates: [
       {
         component: 'output',
-        isPerOutput: true,
         unit: 'second',
         unitPriceUsd: 0.15,
         when: {
-          generate_audio: true,
+          model_variant: 'with_audio',
         },
+        isPerOutput: true,
       },
       {
         component: 'output',
-        isPerOutput: true,
         unit: 'second',
         unitPriceUsd: 0.1,
         when: {
-          generate_audio: false,
+          model_variant: 'without_audio',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'generate_audio',
+          valueMap: {
+            true: 'with_audio',
+            false: 'without_audio',
+          },
+          fieldType: 'boolean',
+          default: true,
         },
       },
     ],
     sourceUrl: 'https://replicate.com/google/veo-3.1-fast',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:34.961Z',
   },
   {
     endpoint: 'ideogram-ai/ideogram-4-5',
@@ -250,14 +611,163 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
       {
         component: 'output',
         unit: 'output',
+        unitPriceUsd: 0.03,
+        when: {
+          model_variant: 'low',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
         unitPriceUsd: 0.06,
         when: {
-          quality: 'medium',
+          model_variant: 'medium',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.1,
+        when: {
+          model_variant: 'high',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.008,
+        when: {
+          model_variant: 'very_low-with-source-images',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.03,
+        when: {
+          model_variant: 'low-with-source-images',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.06,
+        when: {
+          model_variant: 'medium-with-source-images',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.22,
+        when: {
+          model_variant: 'high-with-source-images',
+        },
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'composite',
+          parts: [
+            {
+              field: 'quality',
+              mode: 'value',
+              fieldType: 'string',
+              default: 'medium',
+            },
+            {
+              field: 'images',
+              mode: 'presence',
+              fieldType: 'array',
+            },
+          ],
+          cases: [
+            {
+              when: ['low', false],
+              selector: 'low',
+            },
+            {
+              when: ['medium', false],
+              selector: 'medium',
+            },
+            {
+              when: ['high', false],
+              selector: 'high',
+            },
+            {
+              when: ['very_low', true],
+              selector: 'very_low-with-source-images',
+            },
+            {
+              when: ['low', true],
+              selector: 'low-with-source-images',
+            },
+            {
+              when: ['medium', true],
+              selector: 'medium-with-source-images',
+            },
+            {
+              when: ['high', true],
+              selector: 'high-with-source-images',
+            },
+          ],
         },
       },
     ],
     sourceUrl: 'https://replicate.com/ideogram-ai/ideogram-4-5',
-    verifiedAt: '2026-10-01T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:35.449Z',
+  },
+  {
+    endpoint: 'ideogram-ai/ideogram-character',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.1,
+        when: {
+          model_variant: 'TURBO',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.15,
+        when: {
+          model_variant: 'DEFAULT',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.2,
+        when: {
+          model_variant: 'QUALITY',
+        },
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'rendering_speed',
+          valueMap: {
+            Default: 'DEFAULT',
+            Turbo: 'TURBO',
+            Quality: 'QUALITY',
+          },
+          fieldType: 'string',
+          default: 'Default',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/ideogram-ai/ideogram-character',
+    verifiedAt: '2026-10-06T09:45:35.478Z',
   },
   {
     endpoint: 'ideogram-ai/ideogram-v3-balanced',
@@ -271,7 +781,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
       },
     ],
     sourceUrl: 'https://replicate.com/ideogram-ai/ideogram-v3-balanced',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:35.498Z',
   },
   {
     endpoint: 'ideogram-ai/ideogram-v3-quality',
@@ -285,7 +795,21 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
       },
     ],
     sourceUrl: 'https://replicate.com/ideogram-ai/ideogram-v3-quality',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:35.597Z',
+  },
+  {
+    endpoint: 'ideogram-ai/ideogram-v3-turbo',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.03,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/ideogram-ai/ideogram-v3-turbo',
+    verifiedAt: '2026-10-06T09:45:36.011Z',
   },
   {
     endpoint: 'kwaivgi/kling-avatar-v2',
@@ -293,25 +817,41 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     rates: [
       {
         component: 'output',
-        isPerOutput: true,
         unit: 'second',
         unitPriceUsd: 0.056,
         when: {
-          mode: 'standard',
+          model_variant: 'std',
         },
+        isPerOutput: true,
       },
       {
         component: 'output',
-        isPerOutput: true,
         unit: 'second',
         unitPriceUsd: 0.11,
         when: {
-          mode: 'pro',
+          model_variant: 'pro',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'mode',
+          valueMap: {
+            std: 'std',
+            pro: 'pro',
+          },
+          fieldType: 'string',
+          default: 'std',
         },
       },
     ],
     sourceUrl: 'https://replicate.com/kwaivgi/kling-avatar-v2',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:35.934Z',
   },
   {
     endpoint: 'kwaivgi/kling-v2.1',
@@ -319,25 +859,41 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     rates: [
       {
         component: 'output',
-        isPerOutput: true,
         unit: 'second',
         unitPriceUsd: 0.05,
         when: {
-          mode: 'standard',
+          model_variant: 'standard',
         },
+        isPerOutput: true,
       },
       {
         component: 'output',
-        isPerOutput: true,
         unit: 'second',
         unitPriceUsd: 0.09,
         when: {
-          mode: 'pro',
+          model_variant: 'pro',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'mode',
+          valueMap: {
+            standard: 'standard',
+            pro: 'pro',
+          },
+          fieldType: 'string',
+          default: 'standard',
         },
       },
     ],
     sourceUrl: 'https://replicate.com/kwaivgi/kling-v2.1',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:35.942Z',
   },
   {
     endpoint: 'kwaivgi/kling-v2.1-master',
@@ -345,14 +901,14 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     rates: [
       {
         component: 'output',
-        isPerOutput: true,
         unit: 'second',
         unitPriceUsd: 0.28,
         when: {},
+        isPerOutput: true,
       },
     ],
     sourceUrl: 'https://replicate.com/kwaivgi/kling-v2.1-master',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:36.332Z',
   },
   {
     endpoint: 'kwaivgi/kling-v2.5-turbo-pro',
@@ -360,14 +916,212 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     rates: [
       {
         component: 'output',
-        isPerOutput: true,
         unit: 'second',
         unitPriceUsd: 0.07,
         when: {},
+        isPerOutput: true,
       },
     ],
     sourceUrl: 'https://replicate.com/kwaivgi/kling-v2.5-turbo-pro',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:36.337Z',
+  },
+  {
+    endpoint: 'kwaivgi/kling-v3-omni-video',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.168,
+        when: {
+          with_audio: false,
+          model_variant: 'standard',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.224,
+        when: {
+          with_audio: true,
+          model_variant: 'standard',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.224,
+        when: {
+          with_audio: false,
+          model_variant: 'pro',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.28,
+        when: {
+          with_audio: true,
+          model_variant: 'pro',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.42,
+        when: {
+          with_audio: false,
+          model_variant: '4k',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.42,
+        when: {
+          with_audio: true,
+          model_variant: '4k',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'mode',
+          valueMap: {
+            standard: 'standard',
+            pro: 'pro',
+            '4k': '4k',
+          },
+          fieldType: 'string',
+          default: 'pro',
+        },
+      },
+      {
+        criterionTitle: 'with audio',
+        selectorKey: 'with_audio',
+        derive: {
+          kind: 'field',
+          field: 'generate_audio',
+          valueMap: {
+            true: true,
+            false: false,
+          },
+          fieldType: 'boolean',
+          default: false,
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/kwaivgi/kling-v3-omni-video',
+    verifiedAt: '2026-10-06T09:45:36.344Z',
+  },
+  {
+    endpoint: 'kwaivgi/kling-v3-video',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.168,
+        when: {
+          with_audio: false,
+          model_variant: 'standard',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.252,
+        when: {
+          with_audio: true,
+          model_variant: 'standard',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.224,
+        when: {
+          with_audio: false,
+          model_variant: 'pro',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.336,
+        when: {
+          with_audio: true,
+          model_variant: 'pro',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.42,
+        when: {
+          with_audio: false,
+          model_variant: '4k',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.42,
+        when: {
+          with_audio: true,
+          model_variant: '4k',
+        },
+        isPerOutput: true,
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'mode',
+          valueMap: {
+            standard: 'standard',
+            pro: 'pro',
+            '4k': '4k',
+          },
+          fieldType: 'string',
+          default: 'pro',
+        },
+      },
+      {
+        criterionTitle: 'with audio',
+        selectorKey: 'with_audio',
+        derive: {
+          kind: 'field',
+          field: 'generate_audio',
+          valueMap: {
+            true: true,
+            false: false,
+          },
+          fieldType: 'boolean',
+          default: false,
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/kwaivgi/kling-v3-video',
+    verifiedAt: '2026-10-06T09:45:36.321Z',
   },
   {
     endpoint: 'luma/reframe-image',
@@ -378,7 +1132,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
         unit: 'output',
         unitPriceUsd: 0.01,
         when: {
-          model: 'photon-flash-1',
+          model_variant: 'photon-flash-1',
         },
       },
       {
@@ -386,12 +1140,28 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
         unit: 'output',
         unitPriceUsd: 0.03,
         when: {
-          model: 'photon-1',
+          model_variant: 'photon-1',
+        },
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'model',
+          valueMap: {
+            'photon-flash-1': 'photon-flash-1',
+            'photon-1': 'photon-1',
+          },
+          fieldType: 'string',
+          default: 'photon-flash-1',
         },
       },
     ],
     sourceUrl: 'https://replicate.com/luma/reframe-image',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:36.680Z',
   },
   {
     endpoint: 'luma/reframe-video',
@@ -399,14 +1169,40 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     rates: [
       {
         component: 'output',
-        isPerOutput: true,
         unit: 'second',
         unitPriceUsd: 0.06,
         when: {},
+        isPerOutput: true,
       },
     ],
     sourceUrl: 'https://replicate.com/luma/reframe-video',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:36.664Z',
+  },
+  {
+    endpoint: 'minimax/h3',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.08,
+        when: {
+          resolution: '768P',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.13,
+        when: {
+          resolution: '2K',
+        },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/minimax/h3',
+    verifiedAt: '2026-10-06T09:45:37.170Z',
   },
   {
     endpoint: 'minimax/hailuo-2.3-fast',
@@ -441,7 +1237,295 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
       },
     ],
     sourceUrl: 'https://replicate.com/minimax/hailuo-2.3-fast',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:37.023Z',
+  },
+  {
+    endpoint: 'openai/gpt-5.2',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'input-token',
+        unit: 'input-token',
+        unitPriceUsd: 0.00000175,
+        when: {},
+      },
+      {
+        component: 'output-token',
+        unit: 'output-token',
+        unitPriceUsd: 0.000014,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://replicate.com/openai/gpt-5.2',
+    verifiedAt: '2026-10-06T09:45:37.034Z',
+  },
+  {
+    endpoint: 'openai/gpt-image-1.5',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.136,
+        when: {
+          model_variant: 'auto',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.013,
+        when: {
+          model_variant: 'low',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.05,
+        when: {
+          model_variant: 'medium',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.136,
+        when: {
+          model_variant: 'high',
+        },
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'quality',
+          valueMap: {
+            auto: 'auto',
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+          },
+          fieldType: 'string',
+          default: 'auto',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/openai/gpt-image-1.5',
+    verifiedAt: '2026-10-06T09:45:37.922Z',
+  },
+  {
+    endpoint: 'openai/gpt-image-2',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.128,
+        when: {
+          model_variant: 'auto',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.012,
+        when: {
+          model_variant: 'low',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.047,
+        when: {
+          model_variant: 'medium',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.128,
+        when: {
+          model_variant: 'high',
+        },
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'quality',
+          valueMap: {
+            auto: 'auto',
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+          },
+          fieldType: 'string',
+          default: 'auto',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/openai/gpt-image-2',
+    verifiedAt: '2026-10-06T09:45:37.901Z',
+  },
+  {
+    endpoint: 'openai/gpt-image-2.5-flare',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.25,
+        when: {
+          model_variant: 'auto',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.012,
+        when: {
+          model_variant: 'low',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.047,
+        when: {
+          model_variant: 'medium',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.128,
+        when: {
+          model_variant: 'high',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.25,
+        when: {
+          model_variant: 'xhigh',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.5,
+        when: {
+          model_variant: 'max',
+        },
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'quality',
+          valueMap: {
+            auto: 'auto',
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+            xhigh: 'xhigh',
+            max: 'max',
+          },
+          fieldType: 'string',
+          default: 'auto',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/openai/gpt-image-2.5-flare',
+    verifiedAt: '2026-10-06T09:45:37.917Z',
+  },
+  {
+    endpoint: 'openai/gpt-image-2.5-sunburst',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.25,
+        when: {
+          model_variant: 'auto',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.012,
+        when: {
+          model_variant: 'low',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.047,
+        when: {
+          model_variant: 'medium',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.128,
+        when: {
+          model_variant: 'high',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.25,
+        when: {
+          model_variant: 'xhigh',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.5,
+        when: {
+          model_variant: 'max',
+        },
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'quality',
+          valueMap: {
+            auto: 'auto',
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+            xhigh: 'xhigh',
+            max: 'max',
+          },
+          fieldType: 'string',
+          default: 'auto',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/openai/gpt-image-2.5-sunburst',
+    verifiedAt: '2026-10-06T09:45:37.924Z',
   },
   {
     endpoint: 'qwen/qwen-image',
@@ -455,7 +1539,7 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
       },
     ],
     sourceUrl: 'https://replicate.com/qwen/qwen-image',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:38.728Z',
   },
   {
     endpoint: 'runwayml/gen4-image-turbo',
@@ -469,6 +1553,66 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
       },
     ],
     sourceUrl: 'https://replicate.com/runwayml/gen4-image-turbo',
-    verifiedAt: '2026-09-30T00:00:00.000Z',
+    verifiedAt: '2026-10-06T09:45:38.303Z',
+  },
+  {
+    endpoint: 'wan-video/wan-2.2-i2v-fast',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.05,
+        when: {
+          model_variant: 'base',
+          resolution: '480p',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.065,
+        when: {
+          model_variant: 'interpolate',
+          resolution: '480p',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.11,
+        when: {
+          model_variant: 'base',
+          resolution: '720p',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.145,
+        when: {
+          model_variant: 'interpolate',
+          resolution: '720p',
+        },
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'model variant',
+        selectorKey: 'model_variant',
+        derive: {
+          kind: 'field',
+          field: 'interpolate_output',
+          valueMap: {
+            false: 'base',
+            true: 'interpolate',
+          },
+          fieldType: 'boolean',
+          default: false,
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/wan-video/wan-2.2-i2v-fast',
+    verifiedAt: '2026-10-06T09:45:39.143Z',
   },
 ];

@@ -181,6 +181,85 @@ describe('mapReplicateBillingTiers', () => {
     });
   });
 
+  it('normalizes live thousand-image and thousand-megapixel list prices', () => {
+    expect(
+      mapReplicateBillingTiers(
+        [
+          {
+            criteria: [],
+            prices: [
+              {
+                metric: 'image_output_count',
+                price: '$3',
+                title: 'per thousand output images',
+                type: 'per-unit',
+              },
+            ],
+          },
+        ],
+        {},
+      ),
+    ).toMatchObject({
+      status: 'ok',
+      rates: [{ unit: 'output', unitPriceUsd: 0.003 }],
+    });
+    const result = mapReplicateBillingTiers(
+      [
+        {
+          criteria: [],
+          prices: [
+            {
+              metric: 'image_input_megapixel_count',
+              price: '$9',
+              title: 'per thousand input image megapixels',
+              type: 'per-unit',
+            },
+            {
+              metric: 'image_output_megapixel_count',
+              price: '$9',
+              title: 'per thousand output image megapixels',
+              type: 'per-unit',
+            },
+          ],
+        },
+      ],
+      {},
+    );
+    expect(result).toMatchObject({
+      status: 'ok',
+      rates: [
+        { unit: 'input-megapixel', unitPriceUsd: 0.009 },
+        { unit: 'megapixel', unitPriceUsd: 0.009, isPerOutput: true },
+      ],
+    });
+  });
+
+  it('rejects conflicting scales and normalizes explicit numeric batches', () => {
+    const map = (title: string, type: string) =>
+      mapReplicateBillingTiers(
+        [
+          {
+            criteria: [],
+            prices: [
+              { metric: 'image_output_count', price: '$3', title, type },
+            ],
+          },
+        ],
+        {},
+      );
+    expect(map('per 1,000 output images', 'per-unit')).toMatchObject({
+      status: 'ok',
+      rates: [{ unitPriceUsd: 0.003 }],
+    });
+    expect(map('per thousand output images', 'per-million')).toMatchObject({
+      status: 'failed',
+    });
+    expect(map('per 0 output images', 'per-unit')).toEqual({
+      status: 'failed',
+      reason: 'unmapped_price_scale:image_output_count',
+    });
+  });
+
   it('maps the exact live metric names, including input megapixels', () => {
     expect(
       mapReplicateBillingTiers(

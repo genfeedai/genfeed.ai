@@ -1,6 +1,6 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { ModelCategory } from '@genfeedai/contracts';
+import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
@@ -64,6 +64,24 @@ export class ModelsQueryDto extends BaseQueryDto {
   )
   @IsEnum(ModelCategory, { each: true })
   categories?: ModelCategory[];
+
+  @ApiProperty({
+    description: 'Filter by providers (comma-separated)',
+    enum: ModelProvider,
+    isArray: true,
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string'
+      ? value
+          .split(',')
+          .map((entry) => entry.trim())
+          .filter(Boolean)
+      : value,
+  )
+  @IsEnum(ModelProvider, { each: true })
+  providers?: ModelProvider[];
 
   @ApiProperty({
     description:

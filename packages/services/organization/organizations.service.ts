@@ -484,25 +484,27 @@ export class OrganizationsService extends BaseService<Organization> {
    * relocates a brand to any organization.
    */
   public async getAllOrganizations(): Promise<
-    { id: string; label: string; slug: string }[]
+    { id: string; label: string; slug: string; logoUrl?: string }[]
   > {
     return await this.collectAllPages<{
       id: string;
       label: string;
       slug: string;
+      logoUrl?: string;
     }>({ limit: ORGANIZATION_LIST_PAGE_SIZE }, async (pageQuery) => {
       const document = await this.instance
         .get<JsonApiResponseDocument>('', { params: pageQuery })
         .then((res) => res.data);
 
       return {
-        items: this.extractCollection<Partial<Organization>>(document).map(
-          (organization) => ({
-            id: String(organization.id),
-            label: organization.label ?? '',
-            slug: organization.slug ?? '',
-          }),
-        ),
+        items: this.extractCollection<
+          Partial<Organization> & { logoUrl?: string }
+        >(document).map((organization) => ({
+          id: String(organization.id),
+          label: organization.label ?? '',
+          slug: organization.slug ?? '',
+          ...(organization.logoUrl ? { logoUrl: organization.logoUrl } : {}),
+        })),
         totalPages: document.links?.pagination?.pages ?? 1,
       };
     });

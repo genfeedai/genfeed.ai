@@ -3378,7 +3378,30 @@
       "rejectedStatus": "Rejected",
       "seededStatus": "Seeded",
       "successorWithLabel": "Successor: {label}"
-    }
+    },
+    "allCategories": "All categories",
+    "allProviders": "All providers",
+    "allStatuses": "All statuses",
+    "active": "Active",
+    "inactive": "Inactive",
+    "viewDetails": "View Details",
+    "approve": "Approve",
+    "approveModel": "Approve Model",
+    "approveConfirmation": "Approve \"{label}\" and make it available for generation?",
+    "reject": "Reject",
+    "rejectModel": "Reject Model",
+    "rejectConfirmation": "Reject \"{label}\" and keep it out of generation?",
+    "delete": "Delete",
+    "deleteModel": "Delete Model",
+    "deleteConfirmation": "Are you sure you want to delete \"{label}\"? This action cannot be undone.",
+    "searchModels": "Search models",
+    "moreOptions": "More options for {label}",
+    "pricingDetails": "Pricing details",
+    "noModelsFound": "No models found",
+    "emptySearchHint": "No models match your search. Clear it to see the catalog.",
+    "emptyFilterHint": "No models are available for this filter. Change the filters or refresh the list.",
+    "clearSearch": "Clear search",
+    "refresh": "Refresh"
   },
   "connectGenfeed": {
     "agentConnectedDescription": "{client} authorized Genfeed and completed its first MCP request.",
@@ -4951,7 +4974,10 @@
     "cancelApproveRates": "Cancel",
     "approveRatesFailed": "Approval failed. Refresh the snapshot and try again.",
     "termsChanged": "Billing terms changed",
-    "approveRatesChanged": "Rates changed. Reload and review the new rates."
+    "approveRatesChanged": "Rates changed. Reload and review the new rates.",
+    "loading": "Loading pricing…",
+    "showLess": "Show less",
+    "showMoreModels": "Show {count} more models"
   },
   "generationReceipts": {
     "title": "Generation receipts",

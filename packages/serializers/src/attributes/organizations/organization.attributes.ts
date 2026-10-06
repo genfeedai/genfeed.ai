@@ -5,6 +5,7 @@ export const organizationAttributes = createEntityAttributes([
   'user',
   'credits',
   'logo',
+  'logoUrl',
   'banner',
   'label',
   'prefix',

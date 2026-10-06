@@ -36,3 +36,21 @@ describe('ModelsQueryDto', () => {
     });
   });
 });
+
+describe('provider multi-select', () => {
+  it('parses providers before pagination', async () => {
+    const dto = (await new ValidationPipe().transform(
+      { providers: 'replicate,fal' },
+      { metatype: ModelsQueryDto, type: 'query' },
+    )) as ModelsQueryDto;
+    expect(dto.providers).toEqual(['replicate', 'fal']);
+  });
+  it('rejects unknown providers', async () => {
+    await expect(
+      new ValidationPipe().transform(
+        { providers: 'replicate,invalid' },
+        { metatype: ModelsQueryDto, type: 'query' },
+      ),
+    ).rejects.toThrow();
+  });
+});
