@@ -270,9 +270,9 @@ describe('BrandContentRulesPage', () => {
     render(<BrandContentRulesPage />);
 
     await screen.findByLabelText('Label');
-    fireEvent.click(screen.getByRole('button', { name: 'Save harness' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save content rules' }));
 
-    await screen.findByRole('button', { name: 'Save harness' });
+    await screen.findByRole('button', { name: 'Save content rules' });
     expect(mocks.createForBrand).toHaveBeenCalledWith(
       expect.objectContaining({ brandId: 'brand-1', scope: 'brand' }),
     );

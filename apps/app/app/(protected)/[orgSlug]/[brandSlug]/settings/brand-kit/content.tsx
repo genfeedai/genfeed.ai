@@ -152,7 +152,9 @@ export default function BrandKitPage() {
                     forceMount
                     className="data-[state=closed]:hidden"
                   >
-                    {workflow === 'scan' ? null : scan}
+                    <div inert={workspace.isDirty}>
+                      {workflow === 'scan' ? null : scan}
+                    </div>
                   </CollapsibleContent>
                 </Collapsible>
               </>

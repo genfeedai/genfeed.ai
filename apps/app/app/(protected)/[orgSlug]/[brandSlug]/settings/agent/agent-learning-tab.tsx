@@ -14,9 +14,9 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useUserRole } from '@hooks/auth/use-user-role/use-user-role';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type {
+  AgentLearningStatusProps,
   AgentLearningTabProps,
-  HarnessLearningStatusProps,
-} from '@props/settings/brand-kit/content-rules.props';
+} from '@props/settings/agent/learning.props';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -87,7 +87,7 @@ function LearningStatus({
   brandId,
   getService,
   isCurrent,
-}: HarnessLearningStatusProps) {
+}: AgentLearningStatusProps) {
   const translate = useTranslations('pages.brandHarnessSettings.learning');
   const scope = useCollectionScope();
   const role = useUserRole();

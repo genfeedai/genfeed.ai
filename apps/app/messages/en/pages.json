@@ -538,7 +538,7 @@
         "label": "Guardrails"
       },
       "label": {
-        "helper": "Internal name for this harness profile.",
+        "helper": "Name for these content rules.",
         "label": "Label"
       },
       "lineRules": {
@@ -666,7 +666,7 @@
     },
     "promote": "Promote winners to memory",
     "promoting": "Promoting…",
-    "save": "Save harness",
+    "save": "Save content rules",
     "saving": "Saving...",
     "tabs": {
       "delivery": "Delivery",
@@ -676,7 +676,7 @@
       "structure": "Structure",
       "thesis": "Thesis"
     },
-    "title": "Brand harness"
+    "title": "Content rules"
   },
   "brandKitReview": {
     "candidateTokenNotice": "Candidate only · not a Genfeed product token",

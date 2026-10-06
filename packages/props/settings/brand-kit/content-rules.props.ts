@@ -3,7 +3,6 @@ import type {
   IExpertPositioningScore,
   IHarnessProfile,
 } from '@genfeedai/contracts/interfaces';
-import type { ContentLearningService } from '@genfeedai/services/analytics/content-learning.service';
 
 export type HarnessDraftChange = <Key extends keyof IHarnessProfile>(
   key: Key,
@@ -56,13 +55,4 @@ export interface HarnessPositioningScorecardProps {
   positioning: IExpertPositioningScore;
   /** Brand-scoped href to the positioning interview (`/settings/brand-kit/guided-setup`). */
   interviewHref: string;
-}
-
-export interface AgentLearningTabProps {
-  brandId: string;
-}
-
-export interface HarnessLearningStatusProps extends AgentLearningTabProps {
-  getService: () => Promise<ContentLearningService>;
-  isCurrent: () => boolean;
 }

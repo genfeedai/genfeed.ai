@@ -231,7 +231,10 @@ describe('BrandWritingVoiceEditor', () => {
       />,
     );
 
-    // Platform overrides use a channel select; editor is always visible.
+    // Advanced platform overrides open without changing or saving any field.
+    await user.click(
+      screen.getByRole('button', { name: 'Platform overrides' }),
+    );
     expect(
       screen.getByRole('combobox', { name: 'Platform override channel' }),
     ).toBeInTheDocument();

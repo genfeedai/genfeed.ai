@@ -46,7 +46,7 @@ const DEFAULT_LINE_RULES = [
   'Make transitions obvious',
 ];
 
-const HARNESS_TABS = [
+const CONTENT_RULES_TABS = [
   'identity',
   'structure',
   'delivery',
@@ -54,7 +54,7 @@ const HARNESS_TABS = [
   'examples',
 ] as const;
 
-type HarnessTabId = (typeof HARNESS_TABS)[number];
+type ContentRulesTabId = (typeof CONTENT_RULES_TABS)[number];
 
 function splitLines(value: string): string[] {
   return value.split('\n').flatMap((line) => {
@@ -89,7 +89,7 @@ function createDraft(
     ],
     handles: {},
     isDefault: true,
-    label: `${label} Harness`,
+    label: `${label} Content rules`,
     platforms: DEFAULT_PLATFORMS,
     profileType: 'harness',
     scope: 'brand',
@@ -128,7 +128,7 @@ export default function BrandContentRulesPage() {
   );
 
   const profileRef = useRef<IHarnessProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<HarnessTabId>('identity');
+  const [activeTab, setActiveTab] = useState<ContentRulesTabId>('identity');
   const [draft, setDraft] = useState<ICreateHarnessProfilePayload>(() =>
     createDraft('', 'Brand'),
   );
@@ -165,7 +165,7 @@ export default function BrandContentRulesPage() {
       } catch (error) {
         if (!controller.signal.aborted) {
           logger.error('GET /harness-profiles failed', error);
-          toast.error('Unable to load harness profile.');
+          toast.error('Unable to load content rules.');
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -292,7 +292,7 @@ export default function BrandContentRulesPage() {
     );
   }
 
-  const tabs = HARNESS_TABS.map((id) => ({
+  const tabs = CONTENT_RULES_TABS.map((id) => ({
     id,
     label: translate(`tabs.${id}`),
   }));
@@ -303,7 +303,7 @@ export default function BrandContentRulesPage() {
       headerTabs={{
         activeTab,
         fullWidth: false,
-        onTabChange: (tab) => setActiveTab(tab as HarnessTabId),
+        onTabChange: (tab) => setActiveTab(tab as ContentRulesTabId),
         tabs,
       }}
       right={

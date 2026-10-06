@@ -27,6 +27,7 @@ import {
   DiscoveryReadinessCards,
 } from '@pages/trends/desk/desk-empty-states';
 import DeskFilterRail from '@pages/trends/desk/desk-filter-rail';
+import DeskHeatStrip from '@pages/trends/desk/desk-heat-strip';
 import DeskLightTableView from '@pages/trends/desk/desk-light-table-view';
 import DeskSelectionBar from '@pages/trends/desk/desk-selection-bar';
 import DeskSourcesMenu from '@pages/trends/desk/desk-sources-menu';
@@ -95,14 +96,14 @@ const SORT_VALUES: readonly DiscoveryDeskSort[] = [
 export default function DiscoveryDesk() {
   const translateDesk = useTranslations('common.trends.desk');
   const brandId = useBrandId();
-  const { href, orgHref } = useOrgUrl();
+  const { brandSlug, href, orgHref } = useOrgUrl();
   const surface = useOptionalResearchWorkSurface();
   const [search, setSearch] = useResearchQueryState();
   const [view, setView] = useResearchSearchParamState<
     ViewType.TABLE | ViewType.GRID
   >({
     allowedValues: [ViewType.TABLE, ViewType.GRID],
-    defaultValue: ViewType.GRID,
+    defaultValue: ViewType.TABLE,
     key: 'view',
   });
   const [sourceParam, setSourceParam] = useResearchSearchParamState<
@@ -214,11 +215,6 @@ export default function DiscoveryDesk() {
     [setPlatformParam, state.filters.platforms],
   );
 
-  const handleClearPlatforms = useCallback(() => {
-    dispatch({ platforms: new Set(), type: 'SET_PLATFORMS' });
-    setPlatformParam('');
-  }, [setPlatformParam]);
-
   const handleSourceChange = useCallback(
     (value: DiscoveryDeskSource | 'all') => {
       dispatch({ source: value, type: 'SET_SOURCE' });
@@ -298,7 +294,9 @@ export default function DiscoveryDesk() {
   const followingHref = href(
     `${APP_ROUTES.DISCOVERY.OVERVIEW}?source=following`,
   );
-  const publishingHref = orgHref(APP_ROUTES.SETTINGS.PUBLISHING);
+  const publishingHref = brandSlug
+    ? href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)
+    : orgHref(APP_ROUTES.SETTINGS.BRANDS);
   const sourceHealthHref = href(APP_ROUTES.DISCOVERY.TRENDS);
 
   const handleRefresh = useCallback(() => {
@@ -343,31 +341,44 @@ export default function DiscoveryDesk() {
     <>
       <Container
         description={translateDesk('subtitle')}
+        headerTabs={
+          !isFollowingView
+            ? {
+                activeTab: sourceParam,
+                ariaLabel: translateDesk('sourcesLabel'),
+                fullWidth: false,
+                onTabChange: (value) => {
+                  if (
+                    value === 'all' ||
+                    value === 'trends' ||
+                    value === 'owned' ||
+                    value === 'imported'
+                  ) {
+                    handleSourceChange(value);
+                  }
+                },
+                tabs: [
+                  { id: 'all', label: translateDesk('sourceTabs.all') },
+                  { id: 'trends', label: translateDesk('sourceTabs.trends') },
+                  { id: 'owned', label: translateDesk('sourceTabs.owned') },
+                  {
+                    id: 'imported',
+                    label: translateDesk('sourceTabs.imported'),
+                  },
+                ],
+              }
+            : undefined
+        }
         icon={TrendingUp}
         label={translateDesk('title')}
         leading={
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <FormSearchbar
-              className="w-48"
-              onSearch={setSearch}
-              placeholder={translateDesk('searchPlaceholder')}
-              size={ComponentSize.SM}
-              value={search}
-            />
-            <DeskFilterRail
-              activePlatforms={state.filters.platforms}
-              contentType={state.filters.contentType}
-              items={items}
-              onContentTypeChange={handleContentTypeChange}
-              onSort={handleSort}
-              onSourceChange={handleSourceChange}
-              onTogglePlatform={handleTogglePlatform}
-              onClearPlatforms={handleClearPlatforms}
-              sort={state.sort}
-              source={sourceParam}
-              summary={summary}
-            />
-          </div>
+          <FormSearchbar
+            className="w-64"
+            onSearch={setSearch}
+            placeholder={translateDesk('searchPlaceholder')}
+            size={ComponentSize.SM}
+            value={search}
+          />
         }
         right={
           <>
@@ -468,6 +479,24 @@ export default function DiscoveryDesk() {
               sourceHealthHref={sourceHealthHref}
             />
           </>
+        ) : null}
+
+        {!isFollowingView && hasDeskItems ? (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <DeskHeatStrip
+              activePlatforms={state.filters.platforms}
+              items={items}
+              onTogglePlatform={handleTogglePlatform}
+              publishingHref={publishingHref}
+              summary={summary}
+            />
+            <DeskFilterRail
+              contentType={state.filters.contentType}
+              onContentTypeChange={handleContentTypeChange}
+              onSort={handleSort}
+              sort={state.sort}
+            />
+          </div>
         ) : null}
 
         {!isFollowingView && hasDeskItems ? (

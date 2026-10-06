@@ -27,7 +27,7 @@ export default function AnalyticsOverviewPerformanceDataset() {
   const translate = useTranslations('pages.analytics.performanceDataset');
   const scope = useCollectionScope();
   const { brandId } = scope;
-  const { href } = useOrgUrl();
+  const { brandSlug, href, orgHref } = useOrgUrl();
   const isFetchReady = isCollectionFetchReady(scope) && Boolean(brandId);
   const getService = useAuthedService((token: string) =>
     ContentPerformanceService.getInstance(token),
@@ -94,7 +94,11 @@ export default function AnalyticsOverviewPerformanceDataset() {
           <p className="text-sm text-foreground/55">
             {translate('coldStartHint')}{' '}
             <Link
-              href={href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}
+              href={
+                brandSlug
+                  ? href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)
+                  : orgHref(APP_ROUTES.SETTINGS.BRANDS)
+              }
               className="font-medium text-foreground underline underline-offset-2"
             >
               {translate('coldStartHintLink')}
