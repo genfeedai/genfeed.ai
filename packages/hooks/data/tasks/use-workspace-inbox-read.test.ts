@@ -7,7 +7,11 @@ const mocks = vi.hoisted(() => ({
   get: vi.fn(),
   read: vi.fn(),
   readAll: vi.fn(),
-  identity: { userId: 'user-1', orgId: 'org-1', getToken: vi.fn() },
+  identity: {
+    userId: 'user-1',
+    orgId: 'org-1' as string | null,
+    getToken: vi.fn(),
+  },
 }));
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => mocks.identity,
@@ -39,6 +43,8 @@ const task = new Task({
 const reads = [{ taskId: task.id, seenUpdatedAt: task.updatedAt }];
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.identity.orgId = 'org-1';
+  mocks.identity.userId = 'user-1';
   mocks.get.mockResolvedValue({ id: 'org-1', reads: [], unreadCount: 1 });
   mocks.read.mockResolvedValue({ id: 'org-1', reads, unreadCount: 0 });
 });
@@ -78,6 +84,16 @@ describe('workspace inbox read state', () => {
     });
     expect(mocks.readAll).toHaveBeenCalledTimes(1);
     expect(mocks.read).not.toHaveBeenCalled();
+  });
+  it('loads read state when the session has no active organization', async () => {
+    mocks.identity.orgId = null;
+    const { result } = renderHook(() => useWorkspaceInboxRead(), {
+      wrapper: createQueryWrapper(),
+    });
+    expect(result.current.isUnread(task)).toBe(false);
+    await waitFor(() => expect(result.current.state.isSuccess).toBe(true));
+    expect(mocks.get).toHaveBeenCalledTimes(1);
+    expect(result.current.isUnread(task)).toBe(true);
   });
   it('keeps rows unread after a failed write', async () => {
     mocks.read.mockRejectedValue(new Error('offline'));

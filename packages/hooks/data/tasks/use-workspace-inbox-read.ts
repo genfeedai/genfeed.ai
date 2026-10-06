@@ -1,5 +1,6 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { IWorkspaceInboxRead } from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
@@ -20,8 +21,12 @@ export function isWorkspaceInboxTaskUnread(
 
 export function useWorkspaceInboxRead() {
   const { getToken, orgId, userId } = useAuthIdentity();
+  // Session activeOrganizationId is often null. The workspace org is the
+  // scope the page is showing, and the API resolves the tenant from the token.
+  const { organizationId: workspaceOrganizationId } = useBrand();
+  const scopeId = orgId || workspaceOrganizationId || 'session';
   const client = useQueryClient();
-  const key = ['workspace-inbox-read', userId, orgId];
+  const key = ['workspace-inbox-read', userId, scopeId];
   const service = async () => {
     const token = await resolveAuthToken(getToken);
     if (!token) throw new Error('Authentication required');
@@ -29,7 +34,7 @@ export function useWorkspaceInboxRead() {
   };
   const state = useQuery({
     queryKey: key,
-    enabled: Boolean(userId && orgId),
+    enabled: Boolean(userId),
     queryFn: async ({ signal }) => (await service()).findInboxReadState(signal),
     refetchInterval: 60_000,
   });
@@ -60,6 +65,6 @@ export function useWorkspaceInboxRead() {
     state,
     read,
     isUnread: (task: Task) =>
-      isWorkspaceInboxTaskUnread(task, state.data?.reads ?? []),
+      state.data ? isWorkspaceInboxTaskUnread(task, state.data.reads) : false,
   };
 }
