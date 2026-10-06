@@ -45,7 +45,7 @@ test.describe('Library', () => {
     ).toBeVisible();
   });
 
-  test('lists places, shelves, and folders in the sidebar', async ({
+  test('lists library places and keeps shelves and trash out of the sidebar', async ({
     authenticatedPage,
   }) => {
     await assertRouteRenders(
@@ -53,28 +53,17 @@ test.describe('Library', () => {
       brandRoute(APP_ROUTES.LIBRARY.ASSETS),
     );
 
-    for (const label of ['All assets', 'Recent', 'Starred']) {
-      await expect(
-        authenticatedPage.getByRole('link', { name: label }),
-      ).toBeVisible();
+    const rail = authenticatedPage.getByTestId('desktop-sidebar-rail');
+
+    for (const label of ['All assets', 'Recent', 'Starred', 'Characters']) {
+      await expect(rail.getByRole('link', { name: label })).toBeVisible();
     }
 
-    // The library nav renders in both the desktop rail and the mobile drawer,
-    // so the group label resolves twice. Scope to the rail the test drives.
+    await expect(rail.getByText('Shelves')).toHaveCount(0);
+    await expect(rail.getByRole('link', { name: 'Trash' })).toHaveCount(0);
+    await expect(rail.getByRole('link', { name: 'Unsorted' })).toHaveCount(0);
     await expect(
-      authenticatedPage
-        .getByTestId('desktop-sidebar-rail')
-        .getByText('Shelves'),
-    ).toBeVisible();
-
-    for (const label of ['Unsorted', 'Needs review', 'Approved']) {
-      await expect(
-        authenticatedPage.getByRole('link', { name: label }),
-      ).toBeVisible();
-    }
-
-    await expect(
-      authenticatedPage.getByRole('link', { name: 'Trash' }),
+      authenticatedPage.getByRole('combobox', { name: 'Status' }),
     ).toBeVisible();
   });
 

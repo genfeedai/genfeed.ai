@@ -1,39 +1,33 @@
 import { describe, expect, it } from 'vitest';
 import {
-  LIBRARY_ELEMENT_MENU_ITEMS,
   LIBRARY_MENU_ITEMS,
   LIBRARY_PLACE_MENU_ITEMS,
-  LIBRARY_SHELF_MENU_ITEMS,
-  LIBRARY_TAIL_MENU_ITEMS,
 } from './library-menu-items.config';
 
 describe('LIBRARY_MENU_ITEMS', () => {
-  it('navigates by place, shelf, and Elements, never by asset type', () => {
+  it('navigates by place and Characters, never by shelf, trash, or asset type', () => {
     expect(LIBRARY_MENU_ITEMS.map((item) => item.href)).toEqual([
       '/library/assets',
       '/library/assets?place=recent',
       '/library/assets?place=starred',
-      '/library/assets?shelf=unsorted',
-      '/library/assets?shelf=generating',
-      '/library/assets?shelf=approved',
-      '/library/assets?shelf=needs-review',
-      '/library/assets?shelf=rejected',
-      '/library/assets?shelf=failed',
-      '/library/assets?shelf=archived',
-      '/library/assets?shelf=references',
       '/library/elements/characters',
-      '/library/assets?place=trash',
     ]);
+    expect(
+      LIBRARY_MENU_ITEMS.some((item) => item.href?.includes('shelf=')),
+    ).toBe(false);
+    expect(
+      LIBRARY_MENU_ITEMS.some((item) => item.href?.includes('trash')),
+    ).toBe(false);
   });
 
-  it('keeps Characters in the Elements group on the canonical href', () => {
-    const characters = LIBRARY_ELEMENT_MENU_ITEMS.find(
+  it('keeps Characters with the other Library links', () => {
+    const characters = LIBRARY_PLACE_MENU_ITEMS.find(
       (item) => item.label === 'Characters',
     );
 
     expect(characters).toEqual(
       expect.objectContaining({
-        group: 'Elements',
+        group: '',
         href: '/library/elements/characters',
       }),
     );
@@ -56,22 +50,6 @@ describe('LIBRARY_MENU_ITEMS', () => {
     ]);
   });
 
-  it('puts Unsorted first and References last, with review and recovery between', () => {
-    expect(LIBRARY_SHELF_MENU_ITEMS.map((item) => item.label)).toEqual([
-      'Unsorted',
-      'Generating',
-      'Approved',
-      'Needs review',
-      'Rejected',
-      'Failed',
-      'Archived',
-      'References',
-    ]);
-    expect(
-      LIBRARY_SHELF_MENU_ITEMS.every((item) => item.group === 'Shelves'),
-    ).toBe(true);
-  });
-
   it('does not resurrect the retired overview tile grid', () => {
     expect(
       LIBRARY_MENU_ITEMS.some((item) => item.href === '/library/overview'),
@@ -91,7 +69,7 @@ describe('LIBRARY_MENU_ITEMS', () => {
   });
 
   it('keeps Library destinations flat without obsolete divider metadata', () => {
-    expect(LIBRARY_TAIL_MENU_ITEMS.every((item) => !item.hasDividerAbove)).toBe(
+    expect(LIBRARY_MENU_ITEMS.every((item) => !item.hasDividerAbove)).toBe(
       true,
     );
   });

@@ -14,10 +14,14 @@ import type { ReactNode } from 'react';
  * One browser, every Library destination.
  *
  * The three axes never collapse into one another: `place` and `shelf` come from
- * the route, `seededCategories` seeds the type axis for the legacy per-type deep
- * links (`/library/videos`), and the folder axis arrives as `?folder=`. A caller
- * sets at most one of `place` / `shelf`.
+ * the URL, `seededCategories` seeds the type axis for the legacy per-type deep
+ * links (`/library/videos`), and the folder axis arrives as `?folder=`. Shelf
+ * and Trash are the toolbar status filter. A caller sets at most one of
+ * `place` / `shelf` as the default when the URL omits them.
  */
+
+/** A library shelf, or Trash. `null` from the status control means All. */
+export type LibraryBrowserStatus = LibraryShelf | 'trash';
 export interface LibraryBrowserProps {
   place?: LibraryPlace;
   shelf?: LibraryShelf;
@@ -55,6 +59,15 @@ export interface LibraryCharacterOption {
 export interface LibraryBrowserToolbarProps {
   isRecoveryView?: boolean;
   categories: IngredientCategory[];
+  /** Current place from the URL. Trash selects the Trash status option. */
+  place?: LibraryPlace;
+  /** Current shelf from the URL. Omitted means All, unless `place` is Trash. */
+  shelf?: LibraryShelf;
+  /** Per-shelf counts for the status options. */
+  shelfCounts?: Partial<Record<LibraryShelf, number>>;
+  /** Soft-deleted assets still listed under Trash. */
+  trashedCount?: number;
+  onStatusChange: (status: LibraryBrowserStatus | null) => void;
   /** Selected character ids (`?characters=`). */
   characters: string[];
   /** Characters available to the active brand. Empty hides the filter. */

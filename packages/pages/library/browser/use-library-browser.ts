@@ -26,7 +26,10 @@ import type {
   IFiltersState,
 } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import type { LibraryBrowserProps } from '@props/pages/library-browser.props';
+import type {
+  LibraryBrowserProps,
+  LibraryBrowserStatus,
+} from '@props/pages/library-browser.props';
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useRef, useState } from 'react';
@@ -211,6 +214,7 @@ export function useLibraryBrowser({
       origins?: IngredientOrigin[];
       search?: string;
       sort?: string;
+      status?: LibraryBrowserStatus | null;
       tagMatch?: TagMatchMode;
       tags?: string[];
       viewMode?: LibraryViewMode;
@@ -239,6 +243,22 @@ export function useLibraryBrowser({
         'page',
       ])
         params.delete(key);
+
+      // Shelf and Trash share one status control. Recent and Starred stay;
+      // Trash replaces them because both use `place`.
+      if ('status' in next) {
+        params.delete('shelf');
+        if (next.status === 'trash') {
+          params.set('place', LibraryPlace.TRASH);
+        } else {
+          if (params.get('place') === LibraryPlace.TRASH) {
+            params.delete('place');
+          }
+          if (next.status) {
+            params.set('shelf', next.status);
+          }
+        }
+      }
 
       for (const category of nextCategories) {
         params.append(LIBRARY_QUERY_KEYS.CATEGORIES, category);
@@ -375,6 +395,13 @@ export function useLibraryBrowser({
   const handleSortChange = useCallback(
     (value: string) => {
       pushAxes({ sort: value });
+    },
+    [pushAxes],
+  );
+
+  const handleStatusChange = useCallback(
+    (status: LibraryBrowserStatus | null) => {
+      pushAxes({ status });
     },
     [pushAxes],
   );
@@ -539,6 +566,7 @@ export function useLibraryBrowser({
     handleRefresh,
     handleSearchChange,
     handleSortChange,
+    handleStatusChange,
     handleTagMatchChange,
     handleTagsChange,
     handleUpload,

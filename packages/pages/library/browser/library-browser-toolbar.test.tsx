@@ -1,6 +1,7 @@
 import {
   IngredientCategory,
   IngredientOrigin,
+  LibraryShelf,
   TagMatchMode,
 } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -159,6 +160,7 @@ function renderToolbar(
       onClearTags={vi.fn()}
       onOriginsChange={vi.fn()}
       onSortChange={vi.fn()}
+      onStatusChange={vi.fn()}
       onTagMatchChange={vi.fn()}
       onTagsChange={vi.fn()}
       origins={[]}
@@ -177,6 +179,33 @@ function renderToolbar(
 describe('LibraryBrowserToolbar', () => {
   beforeEach(() => {
     useFeatureFlag.mockReturnValue(true);
+  });
+
+  it('offers shelves and Trash as one status filter and hides an idle Generating row', () => {
+    const onStatusChange = vi.fn();
+
+    renderToolbar({
+      onStatusChange,
+      shelfCounts: {
+        [LibraryShelf.FAILED]: 3,
+        [LibraryShelf.GENERATING]: 0,
+        [LibraryShelf.NEEDS_REVIEW]: 2,
+      },
+      trashedCount: 4,
+    });
+
+    expect(
+      screen.queryByRole('button', { name: 'Generating' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Needs review (2)' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Failed (3)' }));
+    expect(onStatusChange).toHaveBeenCalledWith(LibraryShelf.FAILED);
+    fireEvent.click(screen.getByRole('button', { name: 'Trash (4)' }));
+    expect(onStatusChange).toHaveBeenCalledWith('trash');
+    fireEvent.click(screen.getByRole('button', { name: 'All' }));
+    expect(onStatusChange).toHaveBeenCalledWith(null);
   });
 
   it('hides presentation toggles only for grouped failure recovery', () => {
@@ -201,6 +230,7 @@ describe('LibraryBrowserToolbar', () => {
         onClearTags={vi.fn()}
         onOriginsChange={vi.fn()}
         onSortChange={vi.fn()}
+        onStatusChange={vi.fn()}
         onTagMatchChange={vi.fn()}
         onTagsChange={vi.fn()}
         origins={[]}

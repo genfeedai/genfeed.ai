@@ -6,7 +6,12 @@ import {
   ComponentSize,
   INGREDIENT_ORIGIN_LABELS,
   INGREDIENT_ORIGIN_ORDER,
+  LIBRARY_SHELF_LABELS,
+  LIBRARY_SHELF_ORDER,
+  LibraryPlace,
+  LibraryShelf,
   parseIngredientOrigin,
+  parseLibraryShelf,
   parseTagMatchMode,
   TagMatchMode,
   ViewType,
@@ -20,6 +25,7 @@ import {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import type {
+  LibraryBrowserStatus,
   LibraryBrowserToolbarProps,
   LibraryCharacterOption,
 } from '@props/pages/library-browser.props';
@@ -66,6 +72,13 @@ import { LIBRARY_TYPE_CHIPS } from './library-browser.config';
 
 /** Filter triggers compact until the Library page is wide enough for full ones. */
 const FILTER_WIDTH_CLASS = 'w-22 @[64rem]/library:w-32';
+
+/** "Needs review (21)" has to stay readable when the row is compact. */
+const STATUS_WIDTH_CLASS = 'w-40 @[64rem]/library:w-48';
+
+function statusOptionLabel(label: string, count: number | undefined): string {
+  return typeof count === 'number' ? `${label} (${count})` : label;
+}
 
 const GRID_VIEW_OPTION = {
   icon: <LayoutGrid className={SHELL_ICON_CLASS} />,
@@ -130,24 +143,27 @@ function CharacterAvatar({ character }: { character: LibraryCharacterOption }) {
 }
 
 /**
- * The Library's control plane: the type and origin filters as multi-select
- * dropdowns, plus search, sort and density. The shelf and folder axes are *not*
- * here — a shelf is the route and a folder is the sidebar, so putting either in
- * this row would re-collapse the three axes the redesign just separated. Origin
- * is a filter like type, not a destination: it never gets a nav entry, and
- * neither do character and tags.
+ * The Library's control plane: status, type, and origin filters, plus search,
+ * sort and density. Status is the shelf (generation state) and Trash. Folder
+ * stays in the sidebar. Origin, character, and tags are filters and never get
+ * a nav entry.
  */
 export default function LibraryBrowserToolbar({
   isRecoveryView = false,
   categories,
   characterOptions,
   characters,
+  onStatusChange,
   origins,
+  place,
+  shelf,
+  shelfCounts,
   sort,
   sortOptions,
   tagMatch,
   tagOptions,
   tags,
+  trashedCount,
   viewMode,
   onCategoriesChange,
   onCharactersChange,
@@ -174,6 +190,52 @@ export default function LibraryBrowserToolbar({
   const isTagFilterVisible = tagOptions.length > 0 || hasTagFilter;
   const selectedTypeIds = selectedAssetTypeIds(categories);
   const isCanvasEnabled = useFeatureFlag(LIBRARY_CANVAS_FEATURE_FLAG);
+  const statusValue = place === LibraryPlace.TRASH ? 'trash' : (shelf ?? 'all');
+  const statusOptions = useMemo(() => {
+    const options: { label: string; value: string }[] = [
+      { label: translate('statusAll'), value: 'all' },
+    ];
+
+    for (const shelfKey of LIBRARY_SHELF_ORDER) {
+      const count = shelfCounts?.[shelfKey];
+      if (
+        shelfKey === LibraryShelf.GENERATING &&
+        (count ?? 0) === 0 &&
+        statusValue !== LibraryShelf.GENERATING
+      ) {
+        continue;
+      }
+
+      options.push({
+        label: statusOptionLabel(LIBRARY_SHELF_LABELS[shelfKey], count),
+        value: shelfKey,
+      });
+    }
+
+    options.push({
+      label: statusOptionLabel(translate('statusTrash'), trashedCount),
+      value: 'trash',
+    });
+
+    return options;
+  }, [shelfCounts, statusValue, translate, trashedCount]);
+
+  const handleStatusValueChange = (value: string) => {
+    if (value === 'all') {
+      onStatusChange(null);
+      return;
+    }
+
+    if (value === 'trash') {
+      onStatusChange('trash' satisfies LibraryBrowserStatus);
+      return;
+    }
+
+    const nextShelf = parseLibraryShelf(value);
+    if (nextShelf) {
+      onStatusChange(nextShelf);
+    }
+  };
 
   const characterDropdownOptions = useMemo(
     () =>
@@ -215,6 +277,22 @@ export default function LibraryBrowserToolbar({
     // Container), so opening the inspector compacts the row instead of
     // wrapping it. Items only wrap as a last resort on narrow widths.
     <div className="flex shrink-0 flex-wrap items-center gap-2 @[44rem]/library:flex-nowrap">
+      <Select value={statusValue} onValueChange={handleStatusValueChange}>
+        <SelectTrigger
+          aria-label={translate('statusAria')}
+          className={STATUS_WIDTH_CLASS}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {statusOptions.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
       <div className="flex min-w-0 items-center gap-1.5">
         <DropdownMultiSelect
           className={cn(

@@ -2,13 +2,14 @@
 
 import {
   LIBRARY_ASSET_ROUTES,
-  LIBRARY_ELEMENT_MENU_ITEMS,
   LIBRARY_PLACE_MENU_ITEMS,
-  LIBRARY_SHELF_MENU_ITEMS,
-  LIBRARY_TAIL_MENU_ITEMS,
 } from '@app-config/library-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { LibraryShelf, ModalEnum, PageScope } from '@genfeedai/contracts';
+import {
+  LIBRARY_SHELF_ORDER,
+  ModalEnum,
+  PageScope,
+} from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createLibraryShelfRoute,
@@ -23,7 +24,6 @@ import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-con
 import { matchesMenuSearchParams } from '@helpers/navigation/menu-route-match.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useLibrarySummary } from '@hooks/data/library/use-library-summary';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { FoldersService } from '@services/content/folders.service';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -34,7 +34,6 @@ import FoldersSidebar from '@ui/folders/sidebar/FoldersSidebar';
 import { LazyModalFolder } from '@ui/lazy/modal/LazyModal';
 import MenuItem from '@ui/menus/item/MenuItem';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 import {
@@ -49,7 +48,7 @@ import {
 } from './library-folder-scope';
 
 /**
- * The folder axis is orthogonal to type and shelf, so every destination that
+ * The folder axis is orthogonal to type and status, so every destination that
  * lists assets keeps `?folder=` when you pick a folder.
  */
 const FOLDER_COMPATIBLE_ROUTES = new Set<string>([
@@ -57,16 +56,8 @@ const FOLDER_COMPATIBLE_ROUTES = new Set<string>([
   APP_ROUTES.LIBRARY.RECENT,
   APP_ROUTES.LIBRARY.STARRED,
   APP_ROUTES.LIBRARY.TRASH,
-  ...LIBRARY_SHELF_MENU_ITEMS.map((item) => item.href ?? ''),
+  ...LIBRARY_SHELF_ORDER.map((shelf) => createLibraryShelfRoute(shelf)),
 ]);
-
-/** Sidebar rows resolve their shelf by route so counts cannot drift off label text. */
-const SHELF_BY_ROUTE = new Map<string, LibraryShelf>(
-  Object.values(LibraryShelf).map((shelf) => [
-    createLibraryShelfRoute(shelf),
-    shelf,
-  ]),
-);
 
 function dispatchLibraryAssetsRefresh(): void {
   window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
@@ -80,7 +71,6 @@ export default function LibrarySidebarNav() {
   const { replace } = useRouter();
   const { brandId, organizationId } = useBrand();
   const { href } = useOrgUrl();
-  const translate = useTranslations('pages.library.sidebar');
   const notifications = NotificationsService.getInstance();
   const selectedFolderId = searchParams.get('folder');
   const folderScope = getLibraryFolderScope(normalizedPathname);
@@ -89,7 +79,6 @@ export default function LibrarySidebarNav() {
     brandId,
     organizationId,
   );
-  const { summary } = useLibrarySummary();
   const taskContextSearchParams = useMemo(
     () =>
       pickOperatorTaskContextSearchParams(
@@ -190,25 +179,6 @@ export default function LibrarySidebarNav() {
     );
   };
 
-  const getShelfCount = (item: MenuItemConfig): number | undefined => {
-    const shelf = item.href ? SHELF_BY_ROUTE.get(item.href) : undefined;
-
-    return shelf ? summary?.byShelf?.[shelf] : undefined;
-  };
-
-  /**
-   * Generating is the one shelf that empties on its own, so an idle library
-   * should not carry a permanent zero row for it. Every other shelf keeps its
-   * place — a stable list is worth more than hiding an empty count.
-   */
-  const isShelfVisible = (item: MenuItemConfig): boolean => {
-    if (item.href !== createLibraryShelfRoute(LibraryShelf.GENERATING)) {
-      return true;
-    }
-
-    return (getShelfCount(item) ?? 0) > 0;
-  };
-
   const renderMenuItem = (item: MenuItemConfig) => {
     const [targetPath, targetSearch = ''] = (
       item.href ?? APP_ROUTES.LIBRARY.ASSETS
@@ -224,16 +194,11 @@ export default function LibrarySidebarNav() {
       `${href(targetPath)}${params.size ? `?${params.toString()}` : ''}`,
       taskContextSearchParams,
     );
-    const isGenerating =
-      item.href === createLibraryShelfRoute(LibraryShelf.GENERATING);
-
     return (
       <MenuItem
         key={item.label}
-        count={getShelfCount(item)}
         href={scopedHref}
         isActive={isMenuItemActive(item)}
-        isPulsing={isGenerating}
         label={item.label}
         outline={item.outline}
         solid={item.solid}
@@ -250,26 +215,6 @@ export default function LibrarySidebarNav() {
             {LIBRARY_PLACE_MENU_ITEMS.map(renderMenuItem)}
           </ul>
 
-          <div className="mt-4">
-            <div className="p-1 text-2xs font-bold uppercase tracking-[0.15em] text-foreground/30">
-              {translate('shelvesGroup')}
-            </div>
-            <ul className="flex flex-col gap-px">
-              {LIBRARY_SHELF_MENU_ITEMS.filter(isShelfVisible).map(
-                renderMenuItem,
-              )}
-            </ul>
-          </div>
-
-          <div className="mt-4">
-            <div className="p-1 text-2xs font-bold uppercase tracking-[0.15em] text-foreground/30">
-              {translate('elementsGroup')}
-            </div>
-            <ul className="flex flex-col gap-px">
-              {LIBRARY_ELEMENT_MENU_ITEMS.map(renderMenuItem)}
-            </ul>
-          </div>
-
           <FoldersSidebar
             folders={folders}
             isLoading={isLoadingFolders}
@@ -281,12 +226,6 @@ export default function LibrarySidebarNav() {
             selectedFolderId={selectedFolderId}
             variant="navigation"
           />
-
-          <div className="mt-4">
-            <ul className="flex flex-col gap-px">
-              {LIBRARY_TAIL_MENU_ITEMS.map(renderMenuItem)}
-            </ul>
-          </div>
         </div>
       </div>
 
