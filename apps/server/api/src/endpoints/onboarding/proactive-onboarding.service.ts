@@ -1,5 +1,6 @@
 import { BrandEntity } from '@api/collections/brands/entities/brand.entity';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { toPersistedFontFamilyOrDefault } from '@api/collections/brands/utils/persisted-font-family';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { MembersService } from '@api/collections/members/services/members.service';
@@ -28,7 +29,7 @@ import { MasterPromptGeneratorService } from '@api/services/knowledge-base/maste
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { generateLabel } from '@api/shared/utils/label/label.util';
-import { FontFamily, ProactiveOnboardingStatus } from '@genfeedai/contracts';
+import { ProactiveOnboardingStatus } from '@genfeedai/contracts';
 import type {
   IProactivePreparationStatus,
   IScrapedBrandData,
@@ -251,7 +252,7 @@ export class ProactiveOnboardingService {
           description:
             scrapedData.description ??
             'Default description. Use it as a pre-prompt',
-          fontFamily: scrapedData.fontFamily ?? FontFamily.MONTSERRAT_BLACK,
+          fontFamily: toPersistedFontFamilyOrDefault(scrapedData.fontFamily),
           handle: brandSlug,
           label: brandLabel,
           organizationId: shadowOrgId,

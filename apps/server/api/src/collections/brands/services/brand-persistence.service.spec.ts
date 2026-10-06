@@ -126,6 +126,39 @@ describe('BrandPersistenceService', () => {
 
       expect(brandsService.patch).not.toHaveBeenCalled();
     });
+
+    it('writes a scraped font only when it is a FontFamily member', async () => {
+      await service.updateBrandWithScrapedData(
+        'brand_1',
+        {
+          fontFamily: 'montserrat-regular',
+          scrapedAt: new Date(),
+          sourceUrl: 'https://acme.com',
+        },
+        { brandUrl: 'https://acme.com' } as BrandSetupDto,
+      );
+
+      expect(brandsService.patch).toHaveBeenCalledWith('brand_1', {
+        fontFamily: 'MONTSERRAT_REGULAR',
+      });
+    });
+
+    it('drops a CSS font stack instead of writing it into the enum column', async () => {
+      await service.updateBrandWithScrapedData(
+        'brand_1',
+        {
+          companyName: 'Genfeed.ai',
+          fontFamily: '-apple-system',
+          scrapedAt: new Date(),
+          sourceUrl: 'https://genfeed.ai',
+        },
+        { brandUrl: 'https://genfeed.ai' } as BrandSetupDto,
+      );
+
+      expect(brandsService.patch).toHaveBeenCalledWith('brand_1', {
+        label: 'Genfeed.ai',
+      });
+    });
   });
 
   describe('upsertBrandWebsiteLink', () => {

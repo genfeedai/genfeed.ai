@@ -1185,7 +1185,7 @@ describe('BaseService', () => {
       });
     });
 
-    it('omits the soft-delete filter for models without isDeleted', async () => {
+    it('omits and strips isDeleted on models without the column', async () => {
       getModelMetaMock.mockReturnValue(makeModelMeta('id', 'organizationId'));
       delegate.updateMany.mockResolvedValue({ count: 1 });
 
@@ -1194,6 +1194,20 @@ describe('BaseService', () => {
       expect(delegate.updateMany).toHaveBeenCalledWith({
         where: { organizationId: 'org_1' },
         data: { archived: true },
+      });
+
+      await service.patchAll(
+        {
+          hasGeneratedFirstAsset: false,
+          isDeleted: false,
+          organizationId: 'org_1',
+        },
+        { hasGeneratedFirstAsset: true },
+      );
+
+      expect(delegate.updateMany).toHaveBeenLastCalledWith({
+        where: { hasGeneratedFirstAsset: false, organizationId: 'org_1' },
+        data: { hasGeneratedFirstAsset: true },
       });
     });
 
