@@ -95,7 +95,7 @@ export const useCases: UseCase[] = [
     cta: 'Get Started',
     description:
       'Turn your ideas into video drafts, thumbnails and clips. Review them, publish to connected channels and compare available performance data.',
-    headline: 'Create AI Content That Converts',
+    headline: 'Create Content for Your Channels',
     painPoints: [
       'Spending 10+ hours/week editing videos',
       'Running out of content ideas',
@@ -147,7 +147,7 @@ export const useCases: UseCase[] = [
           'Compare views and engagement across your published videos',
         example: 'Compare a tutorial video with a product walkthrough',
         step: 4,
-        title: 'Track Revenue',
+        title: 'Track Performance',
       },
       {
         description: 'AI tells you what to post next',
@@ -232,7 +232,7 @@ export const useCases: UseCase[] = [
     audience: 'E-commerce brands, DTC companies, Shopify stores',
     cta: 'Get Started',
     description:
-      'Generate product videos, lifestyle shots, and social ads at scale. Track which content drives purchases.',
+      'Generate product videos, lifestyle shots and social ad drafts. Compare available views and engagement after publishing.',
     headline: 'Product Content at Scale',
     painPoints: [
       'Product photoshoots are expensive and slow',
@@ -256,7 +256,7 @@ export const useCases: UseCase[] = [
       'Generate product videos and lifestyle images from product photos',
       'Bulk content generation for entire catalogs',
       'A/B test creative variations at scale',
-      'Track which content drives actual purchases',
+      'Compare available performance across product content',
       'Auto-generate seasonal and promotional content',
     ],
     subtitle: 'E-Commerce & DTC Brands',
@@ -281,14 +281,16 @@ export const useCases: UseCase[] = [
         title: 'Publish Everywhere',
       },
       {
-        description: 'See which content drives add-to-carts and purchases',
+        description:
+          'Compare available views and engagement across product posts',
         example: 'Compare product video views and engagement',
         step: 4,
-        title: 'Track Purchases',
+        title: 'Track Performance',
       },
       {
-        description: 'Double down on content that sells',
-        example: 'Lifestyle videos convert 3x better → generate more',
+        description: 'Reuse the formats your audience engages with',
+        example:
+          'Use the stronger-performing format for your next product brief',
         step: 5,
         title: 'Optimize & Scale',
       },
@@ -351,7 +353,7 @@ export const useCases: UseCase[] = [
           'Review available views and engagement across campaign posts',
         example: 'Compare performance across campaign angles',
         step: 4,
-        title: 'Attribution Tracking',
+        title: 'Campaign Performance',
       },
       {
         description: 'Reuse the formats that perform well for your audience',

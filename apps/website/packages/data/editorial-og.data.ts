@@ -10,6 +10,7 @@ export const EDITORIAL_OG_ARTWORKS = {
   codex: { headline: ['Codex', 'publishes'], route: '/codex' },
   cursor: { headline: ['Ship code', 'and content'], route: '/cursor' },
   gemini: { headline: ['Gemini CLI', 'publishes'], route: '/gemini' },
+  hermes: { headline: ['Hermes', 'creates'], route: '/hermes' },
   openclaw: { headline: ['OpenClaw', 'publishes'], route: '/openclaw' },
   grok: { headline: ['Grok', 'publishes'], route: '/grok' },
   'grok-bot': { headline: ['Always-on', 'content'], route: '/grok-bot' },

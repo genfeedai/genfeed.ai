@@ -21,12 +21,12 @@ const METRICS = [
   {
     icon: ChartColumn,
     label: 'Overview Dashboard',
-    value: 'Revenue and output at a glance',
+    value: 'Publishing performance at a glance',
   },
   {
     icon: ChartNoAxesColumn,
     label: 'Post Analytics',
-    value: 'Every post scored against revenue',
+    value: 'Available views and engagement per post',
   },
   {
     icon: Flame,
@@ -38,19 +38,19 @@ const METRICS = [
 const FEATURES = [
   {
     description:
-      'See which posts drive revenue, not just likes, with attribution tied to every publish.',
+      'Compare available views and engagement across your published posts.',
     icon: ChartColumn,
-    title: 'Revenue Attribution',
+    title: 'Post Performance',
   },
   {
     description:
-      'Track hooks and trends that convert, so the next post starts from what already works.',
+      'Review hooks and trends alongside available performance data to plan your next post.',
     icon: TrendingUp,
     title: 'Hook & Trend Analysis',
   },
   {
     description:
-      'Run A/B tests in the performance lab to prove what actually moves the number.',
+      'Compare published variations and use their performance to guide your next brief.',
     icon: ChartLine,
     title: 'Performance Lab',
   },
@@ -77,12 +77,12 @@ const STEPS = [
   {
     icon: ChartColumn,
     label: 'Measure',
-    sublabel: 'Attribute revenue and engagement to each post',
+    sublabel: 'Review available views and engagement per post',
   },
   {
     icon: ChartLine,
     label: 'Learn',
-    sublabel: 'Spot the hooks and trends that convert',
+    sublabel: 'Find formats that earn views and engagement',
   },
   {
     icon: TrendingUp,
@@ -91,14 +91,14 @@ const STEPS = [
   },
 ];
 
-const HIGHLIGHT_TAGS = ['Revenue', 'Trends', 'Hooks', 'Streaks'];
+const HIGHLIGHT_TAGS = ['Performance', 'Trends', 'Hooks', 'Streaks'];
 
 const HERO_VISUAL = (
   <ProductInterfacePreview
     product={{
       category: 'Intelligence',
       features: FEATURES,
-      headline: 'Revenue, trend, hook, and per-brand performance in one view.',
+      headline: 'Post, trend, hook and brand performance in one view.',
       name: 'Analytics',
       useCases: STEPS.map((step) => ({
         description: step.sublabel,
@@ -127,7 +127,7 @@ export default function AnalyticsContent() {
         heroVisual={HERO_VISUAL}
         compact
         title="Analytics"
-        description="See exactly which content earns, and do more of it."
+        description="Review available publishing performance and plan your next brief."
       >
         {/* Highlight Card */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
@@ -140,12 +140,12 @@ export default function AnalyticsContent() {
               </div>
               <div className="flex flex-col gap-3">
                 <Heading as="h3" className="text-2xl font-bold">
-                  Every Metric Tied to Revenue
+                  Learn From Your Published Content
                 </Heading>
                 <Text as="p" className="text-surface/65">
-                  Stop guessing from likes and views. See post, trend, and
-                  per-brand performance mapped straight to revenue, with a hook
-                  lab that tells you what to make next.
+                  Compare available views and engagement across your posts and
+                  brands. Use that context to choose the next format, hook or
+                  campaign brief.
                 </Text>
                 <div className="flex flex-row items-center flex-wrap gap-2">
                   {HIGHLIGHT_TAGS.map((tag) => (
@@ -261,8 +261,8 @@ export default function AnalyticsContent() {
               Know What Works. Do More.
             </Heading>
             <Text as="p" className="text-surface/70 mb-6 max-w-lg mx-auto">
-              Revenue attribution, hook analysis, and per-brand rollups built
-              into the studio. No spreadsheets required.
+              Post performance, hook analysis and brand rollups built into the
+              studio. No spreadsheets required.
             </Text>
             <PricingStrip className="mb-6" />
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">

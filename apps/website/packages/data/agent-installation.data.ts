@@ -55,6 +55,13 @@ export const agentInstallations = {
     label: 'Install in Gemini CLI',
     method: 'Gemini CLI extension',
   },
+  hermes: {
+    destinationLabel: 'Add Genfeed to Hermes',
+    instruction:
+      'Open the install link in Hermes Desktop, confirm the Genfeed MCP server and approve browser sign-in. For the terminal client, follow the CLI setup instructions.',
+    label: 'Add to Hermes',
+    method: 'Hermes MCP connector',
+  },
   grok: {
     destination: 'https://grok.com/connectors',
     destinationLabel: 'Open Grok connectors',
@@ -87,4 +94,12 @@ export const agentInstallations = {
 export function buildCursorInstallUrl(url: string): string {
   const config = btoa(JSON.stringify({ url }));
   return `https://cursor.com/link/mcp/install?name=genfeed&config=${encodeURIComponent(config)}`;
+}
+
+export function buildHermesInstallUrl(url: string): string {
+  const config = btoa(JSON.stringify({ url, auth: 'oauth' }))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+  return `hermes://mcp/install?name=genfeed&config=${config}`;
 }

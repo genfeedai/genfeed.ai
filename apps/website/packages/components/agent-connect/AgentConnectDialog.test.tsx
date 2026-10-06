@@ -33,12 +33,31 @@ describe('AgentConnectDialog', () => {
     expect(window.location.href).toBe(url);
     expect(
       within(dialog).getAllByRole('button', {
-        name: /^(Claude|OpenAI|Cursor|Gemini CLI|OpenClaw|Grok|Meta Muse)(?:\s|$)/,
+        name: /^(Claude|OpenAI|Cursor|Gemini CLI|OpenClaw|Hermes|Grok|Meta Muse)(?:\s|$)/,
       }),
-    ).toHaveLength(7);
+    ).toHaveLength(8);
     expect(
       within(dialog).queryByRole('link', { name: /setup guide/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('offers Hermes Desktop with collapsed OAuth CLI setup', () => {
+    const dialog = open();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Hermes' }));
+    expect(
+      within(dialog).getByRole('link', { name: 'Add Genfeed to Hermes' }),
+    ).toHaveAttribute(
+      'href',
+      getAgentClient('hermes').installation.destination,
+    );
+    expect(
+      within(dialog).queryByText('hermes mcp login genfeed'),
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'CLI setup' }));
+    expect(
+      within(dialog).getByText('hermes mcp login genfeed'),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText(/mcp_servers:/)).toBeInTheDocument();
   });
 
   it('shows the Codex install command and account approval in the same dialog', () => {
@@ -177,7 +196,7 @@ describe('AgentConnectDialog', () => {
       within(dialog).getByRole('button', { name: /^Claude(?:\s|$)/ }),
     );
     const agents = within(dialog).getByRole('navigation', { name: 'Agents' });
-    expect(within(agents).getAllByRole('button')).toHaveLength(7);
+    expect(within(agents).getAllByRole('button')).toHaveLength(8);
     expect(
       within(agents).getByRole('button', { name: /^Claude(?:\s|$)/ }),
     ).toHaveAttribute('aria-pressed', 'true');

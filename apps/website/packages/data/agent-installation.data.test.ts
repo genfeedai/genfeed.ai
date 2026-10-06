@@ -4,7 +4,10 @@ import {
   getAgentClient,
   getAgentClientCommandBlocks,
 } from './agent-clients.data';
-import { buildCursorInstallUrl } from './agent-installation.data';
+import {
+  buildCursorInstallUrl,
+  buildHermesInstallUrl,
+} from './agent-installation.data';
 
 describe('platform installation contracts', () => {
   it('passes the hosted URL as native Cursor config without credentials', () => {
@@ -16,6 +19,29 @@ describe('platform installation contracts', () => {
     expect(JSON.parse(atob(link.searchParams.get('config') ?? ''))).toEqual({
       url: GENFEED_PUBLIC_MCP_URL,
     });
+  });
+
+  it('encodes the Hermes native OAuth install and exposes its actual YAML config', () => {
+    const client = getAgentClient('hermes');
+    const link = new URL(buildHermesInstallUrl(GENFEED_PUBLIC_MCP_URL));
+    expect(link.protocol).toBe('hermes:');
+    expect(link.hostname + link.pathname).toBe('mcp/install');
+    const config = (link.searchParams.get('config') ?? '')
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+    expect(JSON.parse(atob(config))).toEqual({
+      url: GENFEED_PUBLIC_MCP_URL,
+      auth: 'oauth',
+    });
+    expect(client.installation.destination).toBe(link.href);
+    expect(client.oauth.configuration).toBe(
+      `mcp_servers:\n  genfeed:\n    url: ${GENFEED_PUBLIC_MCP_URL}\n    auth: oauth`,
+    );
+    expect(client.oauth.primaryCommand).toBe('hermes mcp login genfeed');
+    expect(client.manualKey).toBeUndefined();
+    expect(
+      getAgentClientCommandBlocks(client).map((block) => block.label),
+    ).toEqual(['Connect URL', '~/.hermes/config.yaml', 'Authorize Hermes']);
   });
 
   it('distinguishes packaged installs from registration and skill-only setup', () => {

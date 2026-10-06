@@ -1,6 +1,7 @@
 import {
   agentInstallations,
   buildCursorInstallUrl,
+  buildHermesInstallUrl,
 } from '@data/agent-installation.data';
 import type {
   ConnectGenfeedClient,
@@ -45,6 +46,7 @@ export const AGENT_CLIENT_SLUGS = [
   'cursor',
   'gemini',
   'openclaw',
+  'hermes',
   'grok',
   'grok-bot',
   'muse',
@@ -131,6 +133,7 @@ const HELPER_CLIENT: Record<AgentClientSlug, ConnectGenfeedClient> = {
   'grok-bot': 'generic',
   muse: 'generic',
   openclaw: 'generic',
+  hermes: 'generic',
 };
 
 const CLIENT_LOGOS = {
@@ -139,12 +142,13 @@ const CLIENT_LOGOS = {
   'claude-code': '/agent-logos/claude.svg',
   'claude-cowork': '/agent-logos/claude.svg',
   codex: '/agent-logos/openai.svg',
-  cursor: '/agent-logos/cursor.svg',
+  cursor: '/agent-logos/cursor-mark.svg',
   gemini: '/agent-logos/gemini.png',
-  grok: '/agent-logos/grok.svg',
-  'grok-bot': '/agent-logos/grok.svg',
+  grok: '/agent-logos/grok-mark.svg',
+  'grok-bot': '/agent-logos/grok-mark.svg',
   muse: '/agent-logos/meta.svg',
   openclaw: '/agent-logos/openclaw.svg',
+  hermes: '/agent-logos/hermes.png',
 } as const satisfies Record<AgentClientSlug, string>;
 
 interface AgentClientCopy {
@@ -165,13 +169,23 @@ function buildClient(copy: AgentClientCopy): AgentClient {
     connectUrl,
     'oauth',
   );
+  if (copy.slug === 'hermes') {
+    oauth.configuration = `mcp_servers:\n  genfeed:\n    url: ${connectUrl}\n    auth: oauth`;
+    oauth.primaryCommand = 'hermes mcp login genfeed';
+    oauth.authorizationInstruction =
+      'Merge this entry into ~/.hermes/config.yaml without replacing other servers. Run the login command from a fresh terminal and approve browser sign-in, then restart Hermes or run /reload-mcp.';
+  }
   const isOAuthOnly =
     isClaude ||
     copy.isChatConnector ||
-    ['chatgpt', 'claude', 'claude-cowork', 'grok'].includes(copy.slug);
+    ['chatgpt', 'claude', 'claude-cowork', 'grok', 'hermes'].includes(
+      copy.slug,
+    );
   const installation: AgentInstallation = { ...agentInstallations[copy.slug] };
   if (copy.slug === 'cursor')
     installation.destination = buildCursorInstallUrl(connectUrl);
+  if (copy.slug === 'hermes')
+    installation.destination = buildHermesInstallUrl(connectUrl);
   const manualKey = isOAuthOnly
     ? undefined
     : buildConnectGenfeedInstructions(helperClient, connectUrl, 'manual-key');
@@ -378,6 +392,21 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
   },
   {
     about:
+      'Hermes is Nous Research’s open-source agent. It connects to remote MCP servers through Hermes Desktop or the terminal client’s config.yaml.',
+    description:
+      'Connect Hermes to Genfeed with browser OAuth. Bring your brand context, content drafts and publishing tools into your agent.',
+    extraFaq: [
+      {
+        question: 'How do I connect from the Hermes terminal client?',
+        answer:
+          'Add Genfeed under mcp_servers in ~/.hermes/config.yaml with the hosted URL and auth: oauth. Run hermes mcp login genfeed from a fresh terminal, then restart Hermes or use /reload-mcp.',
+      },
+    ],
+    name: 'Hermes',
+    slug: 'hermes',
+  },
+  {
+    about:
       'Grok is xAI’s AI assistant. It supports remote MCP servers, so Genfeed tools can run from a Grok conversation.',
     description:
       'Connect Grok to your Genfeed workspace. Explore your brands, generate media, and develop campaigns from one conversation.',
@@ -465,6 +494,7 @@ export const AGENT_CLIENT_FAMILIES = [
     description: 'Playbook and MCP setup',
     slugs: ['openclaw'],
   },
+  { name: 'Hermes', description: 'Desktop or terminal', slugs: ['hermes'] },
   {
     name: 'Grok',
     description: 'Chat or Grok Bot',
@@ -519,6 +549,19 @@ export function getAgentClientCommandBlocks(
   }
 
   blocks.push({ label: 'Connect URL', value: client.connectUrl });
+
+  if (client.slug === 'hermes') {
+    blocks.push({
+      label: '~/.hermes/config.yaml',
+      value: client.oauth.configuration,
+    });
+    if (client.oauth.primaryCommand)
+      blocks.push({
+        label: 'Authorize Hermes',
+        value: client.oauth.primaryCommand,
+      });
+    return blocks;
+  }
 
   if (client.oauth.primaryCommand) {
     blocks.push({

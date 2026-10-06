@@ -92,7 +92,11 @@ export default function AgentConnectDialog({
   return (
     <Modal.Root open={open} onOpenChange={onOpenChange}>
       <Modal.Content
-        className="w-[calc(100%-2rem)]"
+        className={
+          client
+            ? 'h-[min(42rem,90dvh)] w-[calc(100%-2rem)]'
+            : 'w-[calc(100%-2rem)]'
+        }
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           trigger.current?.focus();
@@ -132,7 +136,7 @@ export default function AgentConnectDialog({
                     : undefined
                 }
                 aria-pressed={client ? family?.name === option.name : undefined}
-                className="h-auto min-h-16 w-full justify-start gap-3 rounded-lg px-3 py-3 text-left whitespace-normal aria-pressed:bg-fill/10"
+                className="h-auto min-h-10 w-full justify-start gap-2 rounded-md px-2 py-2 text-left whitespace-normal aria-pressed:bg-fill/10"
                 key={option.name}
                 onClick={() => {
                   if (family?.name !== option.name)
@@ -142,7 +146,10 @@ export default function AgentConnectDialog({
                 variant={ButtonVariant.GHOST}
                 withWrapper={false}
               >
-                <AgentClientLogo client={getAgentClient(option.slugs[0])} />
+                <AgentClientLogo
+                  className="size-6"
+                  client={getAgentClient(option.slugs[0])}
+                />
                 <span className="min-w-0 flex-1">
                   <span
                     className="block text-sm font-medium"
@@ -234,6 +241,28 @@ export default function AgentConnectDialog({
                         ) : null}
                       </AccordionContent>
                     </AccordionItem>
+                    {client.slug === 'hermes' ? (
+                      <AccordionItem value="cli-setup">
+                        <AccordionTrigger className="text-left text-sm hover:no-underline">
+                          CLI setup
+                        </AccordionTrigger>
+                        <AccordionContent className="space-y-4">
+                          <p className="text-sm leading-6 text-surface/75">
+                            {client.oauth.authorizationInstruction}
+                          </p>
+                          <CommandBlock
+                            label="~/.hermes/config.yaml"
+                            value={client.oauth.configuration}
+                          />
+                          {client.oauth.primaryCommand ? (
+                            <CommandBlock
+                              label="Authorize Hermes"
+                              value={client.oauth.primaryCommand}
+                            />
+                          ) : null}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ) : null}
                     {client.chatPrompt ? (
                       <AccordionItem value="chat-prompt">
                         <AccordionTrigger className="text-left text-sm hover:no-underline">
