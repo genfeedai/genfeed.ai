@@ -58,11 +58,11 @@ export interface HarnessPositioningScorecardProps {
   interviewHref: string;
 }
 
-export interface HarnessLearningTabProps {
+export interface AgentLearningTabProps {
   brandId: string;
 }
 
-export interface HarnessLearningStatusProps extends HarnessLearningTabProps {
+export interface HarnessLearningStatusProps extends AgentLearningTabProps {
   getService: () => Promise<ContentLearningService>;
   isCurrent: () => boolean;
 }
