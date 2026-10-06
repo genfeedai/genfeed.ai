@@ -429,6 +429,7 @@ describe('StudioGenerateComposer', () => {
 
     expect(generationSetupPopoverMocks.props).toEqual(
       expect.objectContaining({
+        isTypeCommitted: true,
         scopeKey: 'studio:image',
         typeOptions: [
           { label: 'Image', value: 'image' },

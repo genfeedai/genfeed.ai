@@ -1012,6 +1012,7 @@ export default function StudioGenerateComposer({
             favoriteModelKeys={favoriteModelKeys}
             isDisabled={isGenerating}
             isPresetsLoading={isPresetsLoading}
+            isTypeCommitted
             lookOptions={lookOptions}
             models={capabilities.hasModelSelection ? models : []}
             onApplyPreset={handleApplyPreset}
