@@ -164,7 +164,7 @@ function TaskDetailComments({ task }: { task: Task }) {
  * Renders the task opened from the list into the shell's context sidebar. The
  * detail is portaled from here, inside `TaskSelectionProvider`, so its edits
  * commit back through the shared selection. The list owns `?taskId=`; the
- * sidebar shows only while it names the resolved task, so the full task page
+ * sidebar shows only while a task is requested, so the full task page
  * never gets a duplicate panel.
  */
 export default function TaskInspectorAdapter() {
@@ -173,10 +173,10 @@ export default function TaskInspectorAdapter() {
   const searchParams = useSearchParams();
   const selection = useTaskSelection();
   const taskIdParam = searchParams.get('taskId');
-  const selectedTask =
-    selection?.selectedTask && selection.selectedTask.id === taskIdParam
-      ? selection.selectedTask
-      : null;
+  // A click selects the record before router.replace applies its query update;
+  // URL navigation can also arrive before the list resolves the next record.
+  // Keep the panel registered through both transitions, like Library.
+  const selectedTask = taskIdParam ? (selection?.selectedTask ?? null) : null;
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
