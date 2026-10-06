@@ -27,6 +27,15 @@ function categoryValues(target: URL): string[] {
 }
 
 describe('app next.config', () => {
+  it('limits prerendered route shells to the packaged desktop build', () => {
+    // Hosted fallback shells leaked opaque %%drp:...%% values into useParams,
+    // navigation hrefs and brand lookups after #6229. Web builds must resolve
+    // tenant params at request time; desktop still needs its offline shells.
+    const isDesktopBundle = process.env.GENFEED_DESKTOP_BUNDLE === '1';
+    expect(config.cacheComponents).toBe(isDesktopBundle);
+    expect(config.partialPrefetching).toBe(isDesktopBundle);
+  });
+
   it.each([
     [
       '/acme/brand/workspace/inbox/all?taskId=t1',
