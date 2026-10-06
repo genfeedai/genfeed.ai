@@ -67,30 +67,60 @@ alone is not evidence that production shipped.
 
 If a failed canonical `Release` already deployed hosted SaaS and pushed the
 versioned Community image, recover that same version through `Release` on
-`master`: enter the unchanged tag, the failed run's numeric ID in
-`recovery_run_id`. Do not rerun
-the historical workflow and do not bump the version. Recovery fails closed
-unless GitHub proves that the prior run belongs to this repository, ran the
-canonical workflow from `master`, matches the requested tag and unpublished
-draft, and used the draft's exact historical SHA. It also requires the prior
-Full Suite, hosted SaaS deploy/smoke, and versioned image jobs to be green while
-every bundle build, smoke, and image-verification step succeeded, only the draft
-attachment step failed, and every irreversible promotion/npm/publication job
-was skipped. The draft must still contain exactly one non-empty `CHANGELOG.md`
-asset with the historical asset ID and digest, and zero install tarball or
-checksum assets.
+`master`: enter the unchanged tag and the failed run's numeric ID in
+`recovery_run_id`. Do not rerun the historical workflow and do not bump the
+version. Recovery fails closed unless GitHub proves that the prior run belongs
+to this repository, ran the canonical workflow from `master`, matches the
+requested tag and unpublished draft, and used the draft's exact historical
+SHA. The Git tag must still be absent.
 
-The recovery run keeps the draft title and notes unchanged, checks out the
-historical SHA, skips only those proved-green Full Suite and SaaS gates, and
-reuses the existing versioned image without pushing over it. The current
-workflow anonymously pulls that image, verifies its OCI version/revision and
-immutable digest, rebuilds and smokes the missing install bundle, and attaches
-the assets with current permissions. The upload refuses to overwrite existing
-versioned assets, then captures and revalidates the new tarball/checksum IDs and
-digests together with the unchanged historical changelog before publication.
-Channel promotion uses the verified image digest. npm publication and making
-the existing draft public remain gated on all recovery evidence plus the
-rebuilt Community artifact. A normal release requires the pinned SHA to equal
+Two shapes qualify. They do not substitute for each other, and deleting
+successful assets to force the older shape is not a recovery path.
+
+Attachment failure (`v0.1.66`): the prior Full Suite, hosted SaaS deploy and
+smoke, and versioned image jobs are green. Every bundle build, smoke, and
+image-verification step succeeded, only the draft attachment step failed, and
+promotion, npm, and publication were skipped. The draft still has exactly one
+non-empty `CHANGELOG.md` with its historical asset ID and digest, and zero
+install tarball or checksum assets. Recovery keeps that title and those notes,
+checks out the historical SHA, skips the proved-green Full Suite and SaaS
+gates, and reuses the existing versioned image without pushing over it. It
+anonymously pulls that image, verifies its OCI version, revision, and digest,
+rebuilds and smokes the missing install bundle, and attaches the new assets.
+The upload refuses to overwrite existing versioned assets, then revalidates
+the new tarball and checksum together with the unchanged changelog.
+
+npm source no-op (unpublished `v0.2.3`): this second mode requires a trusted
+reviewed controller qualification. The controller currently qualifies only run
+`37484284049`, tag `v0.2.3`, and source
+`1c228e1a2bce02234a8f317d4f8f32659c2d3cb9`. An unknown run fails closed until a
+reviewed qualification record exists. The prior Full Suite, hosted SaaS
+deploy, smoke, and server promotion, Community image build, anonymous pull,
+install-bundle build, smoke, attachment, and immutable asset-identity checks
+are already green. The only failed job is the npm plan, and only because
+master advanced after that release was dispatched. npm preflight, npm
+publication, Community channel promotion, and GitHub publication were skipped.
+The draft still has exactly three uploaded assets: historical `CHANGELOG.md`,
+`genfeed-selfhosted.tar.gz`, and `genfeed-selfhosted.tar.gz.sha256`, each at
+its original ID, size, digest, and timestamp. This path does not rebuild the
+bundle, upload or replace assets, push another versioned image, or redeploy
+SaaS. It re-downloads those assets by ID, checks their bytes, checksum, and
+`release.json` tag and image, then anonymously resolves the existing Community
+tag. That manifest digest must equal the reviewed historical image digest
+before any image output or channel promotion. A replacement image fails even
+when its version and revision labels match. The read-only check freezes the
+reviewed digest and does not adopt whatever the tag currently displays. Any
+other npm error, a changed draft, a missing, extra, or duplicate asset, an
+existing tag, a SHA that is no longer on `master`, or a run without that
+reviewed qualification fails closed.
+
+Channel promotion uses the verified image digest. For an npm source no-op,
+that digest is the reviewed historical digest frozen by the read-only check.
+Community `latest` and major.minor promotion still runs for `v0.2.3`, because
+the failed release skipped it, and only after the registry-drift plan succeeds
+and is empty.
+npm publication and making the draft public stay behind that same empty plan
+for both shapes. A normal release requires the pinned SHA to equal
 current `master`; a validated historical recovery requires the recovered SHA to
 remain an ancestor of current `master`. A validated historical recovery may
 continue only when the registry-drift plan is empty; if any enrolled package
