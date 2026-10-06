@@ -1,6 +1,9 @@
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import type { StudioGenerateJob } from '@pages/studio/generate/types';
+import type {
+  StudioGenerateJob,
+  StudioGenerateReferenceRole,
+} from '@pages/studio/generate/types';
 import { describe, expect, it } from 'vitest';
 import {
   canUseStudioJobAsReference,
@@ -255,48 +258,46 @@ describe('studio gallery references', () => {
   it('replaces the stored role when the same asset is attached again', () => {
     const item = { id: 'ing-1' };
     const other = { id: 'ing-2' };
+    const reference = (
+      id: { id: string },
+      role: StudioGenerateReferenceRole,
+    ): { item: { id: string }; role: StudioGenerateReferenceRole } => ({
+      item: id,
+      role,
+    });
 
     expect(
       replaceStudioContentReference(
-        [{ item, role: 'reference' }],
-        { item, role: 'startFrame' },
+        [reference(item, 'reference')],
+        reference(item, 'startFrame'),
         true,
       ),
-    ).toEqual([{ item, role: 'startFrame' }]);
+    ).toEqual([reference(item, 'startFrame')]);
 
-    const sameRole = [{ item, role: 'startFrame' as const }];
+    const sameRole = [reference(item, 'startFrame')];
     expect(
       replaceStudioContentReference(
         sameRole,
-        { item, role: 'startFrame' },
+        reference(item, 'startFrame'),
         true,
       ),
     ).toBe(sameRole);
 
     expect(
       replaceStudioContentReference(
-        [
-          { item: other, role: 'endFrame' },
-          { item, role: 'reference' },
-        ],
-        { item, role: 'startFrame' },
+        [reference(other, 'endFrame'), reference(item, 'reference')],
+        reference(item, 'startFrame'),
         true,
       ),
-    ).toEqual([
-      { item: other, role: 'endFrame' },
-      { item, role: 'startFrame' },
-    ]);
+    ).toEqual([reference(other, 'endFrame'), reference(item, 'startFrame')]);
 
     expect(
       replaceStudioContentReference(
-        [
-          { item: other, role: 'startFrame' },
-          { item, role: 'reference' },
-        ],
-        { item, role: 'startFrame' },
+        [reference(other, 'startFrame'), reference(item, 'reference')],
+        reference(item, 'startFrame'),
         false,
       ),
-    ).toEqual([{ item, role: 'startFrame' }]);
+    ).toEqual([reference(item, 'startFrame')]);
   });
 
   it('skips assets that are still generating or have no preview', () => {
