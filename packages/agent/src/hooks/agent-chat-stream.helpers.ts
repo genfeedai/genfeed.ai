@@ -3,6 +3,7 @@ import type {
   AgentChatMessage,
   AgentUiAction,
 } from '@genfeedai/agent/models/agent-chat.model';
+import { isMutationApprovalReplacement } from '@genfeedai/agent/utils/is-mutation-approval-replacement.util';
 
 /**
  * True when an event belongs to a run other than the one the stream tracks.
@@ -119,7 +120,8 @@ export function takeSourceActionUpdate(
     if (
       candidate &&
       typeof candidate === 'object' &&
-      candidate.id === sourceId
+      (candidate.id === sourceId ||
+        isMutationApprovalReplacement(candidate, sourceId))
     ) {
       card ??= candidate;
       continue;

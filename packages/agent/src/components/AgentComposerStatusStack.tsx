@@ -362,6 +362,7 @@ export function AgentComposerStatusStack({
 }: AgentComposerStatusStackProps): ReactElement | null {
   const translate = useTranslations('agent.workObjects');
   const composerError = error ? splitComposerError(error) : null;
+  const isApprovalExpired = composerError?.title === 'Approval expired';
   const [isErrorCopied, setIsErrorCopied] = useState(false);
   const [isProgressExpanded, setIsProgressExpanded] = useState(true);
   const handleCopyError = useCallback(async () => {
@@ -451,28 +452,39 @@ export function AgentComposerStatusStack({
         <div
           className={cn(
             STATUS_SURFACE_CLASS,
-            // T3-style hierarchy: a compact, solid notice with destructive
-            // accents. The entire card should not become a translucent red
-            // extension of the prompt bar.
-            'mx-auto flex w-full max-w-2xl items-start gap-2 border-destructive/35 bg-background-secondary text-foreground shadow-border backdrop-blur-none',
+            'mx-auto flex w-full max-w-2xl items-start gap-2 text-foreground shadow-none backdrop-blur-none',
+            isApprovalExpired
+              ? 'border-warning/50 bg-warning/10'
+              : 'border-destructive/50 bg-destructive/10',
           )}
           role="alert"
         >
-          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-destructive" />
+          <TriangleAlert
+            aria-hidden
+            className={cn(
+              'mt-0.5 size-4 shrink-0',
+              isApprovalExpired ? 'text-warning' : 'text-destructive',
+            )}
+          />
           <div className="min-w-0 flex-1 space-y-1">
-            <p className="font-medium text-sm leading-5 text-destructive">
+            <p
+              className={cn(
+                'font-semibold text-sm leading-5',
+                isApprovalExpired ? 'text-warning' : 'text-destructive',
+              )}
+            >
               {composerError.title}
             </p>
-            <p className="text-xs leading-5 text-destructive/90">
+            <p className="text-xs leading-5 text-foreground">
               {composerError.summary}
             </p>
             {composerError.detail ? (
-              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-2xs leading-5 text-destructive/70">
+              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-2xs leading-5 text-muted-foreground">
                 {composerError.detail}
               </p>
             ) : null}
             {composerError.recovery ? (
-              <p className="text-2xs leading-5 text-destructive/70">
+              <p className="text-2xs leading-5 text-muted-foreground">
                 {composerError.recovery}
               </p>
             ) : null}
@@ -481,7 +493,7 @@ export function AgentComposerStatusStack({
             <Button
               ariaLabel={isErrorCopied ? 'Error copied' : 'Copy error'}
               tooltip={isErrorCopied ? 'Copied' : 'Copy error for agent'}
-              className="size-7 text-destructive hover:bg-destructive/20 hover:text-destructive"
+              className="size-7 text-muted-foreground hover:bg-hover hover:text-foreground"
               icon={
                 isErrorCopied ? (
                   <Check className="size-3.5" />
@@ -498,7 +510,7 @@ export function AgentComposerStatusStack({
             />
             <Button
               ariaLabel="Dismiss composer error"
-              className="size-7 text-destructive hover:bg-destructive/20 hover:text-destructive"
+              className="size-7 text-muted-foreground hover:bg-hover hover:text-foreground"
               icon={<X className="size-4" />}
               onClick={onClearError}
               size={ButtonSize.ICON}

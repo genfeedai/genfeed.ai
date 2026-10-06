@@ -30,6 +30,7 @@
     "@genfeedai/contracts": "workspace:*"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "0.5.20",
     "@genfeedai/tsconfig": "workspace:*",
     "@tanstack/react-query": "5.104.1",
     "@testing-library/jest-dom": "7.0.1",

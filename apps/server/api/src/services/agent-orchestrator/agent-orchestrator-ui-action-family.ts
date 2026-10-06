@@ -3,6 +3,7 @@ export type SupportedThreadUiAction =
   | 'review_work_object'
   | 'confirm_mutation'
   | 'decline_mutation'
+  | 'reprepare_mutation'
   | 'approve_plan'
   | 'revise_plan'
   | 'confirm_create_brand'
@@ -19,6 +20,7 @@ const THREAD_UI_ACTION_FAMILIES = {
   review_work_object: 'confirmed-tool',
   confirm_mutation: 'confirmed-tool',
   decline_mutation: 'confirmed-tool',
+  reprepare_mutation: 'confirmed-tool',
   approve_plan: 'plan',
   revise_plan: 'plan',
   confirm_create_brand: 'brand-identity',

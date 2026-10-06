@@ -28,6 +28,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 type ConfirmedToolAction =
   | 'confirm_mutation'
   | 'decline_mutation'
+  | 'reprepare_mutation'
   | 'confirm_agent_transfer'
   | 'confirm_generate_media'
   | 'decline_generate_media'
@@ -61,6 +62,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     switch (action) {
       case 'confirm_mutation':
       case 'decline_mutation':
+      case 'reprepare_mutation':
         return this.mutationActions.execute(action, params);
       case 'confirm_agent_transfer':
         return this.executeAgentTransfer(params);

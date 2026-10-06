@@ -255,6 +255,44 @@ describe('ui-action results as thread events', () => {
     expect(state.creditsRemaining).toBe(90);
   });
 
+  it('renews the original card in place with a new consent identity from the thread event', async () => {
+    const { deps } = renderStream(ackingApi());
+    await act(async () => {
+      await handleAgentUiAction('reprepare_mutation', approvalPayload, deps());
+    });
+    const fresh: AgentUiAction = {
+      ...approvalCard,
+      id: 'mutation-approval:approval-2',
+      requiresConfirmation: true,
+      data: {
+        ...approvalCard.data,
+        approvalId: 'approval-2',
+        sourceActionId: 'mutation-approval:approval-2',
+        replacesSourceActionId: approvalCard.id,
+        status: 'pending',
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      },
+    };
+    emit(
+      'agent:done',
+      done({
+        fullContent: 'Fresh preview prepared.',
+        metadata: { runId: 'exec-1', uiActions: [fresh] },
+        uiAction: { action: 'reprepare_mutation', sourceId: approvalCard.id },
+      }),
+    );
+    expect(allCards()).toEqual([
+      expect.objectContaining({ ...fresh, status: 'pending' }),
+    ]);
+    expect(
+      useAgentChatStore.getState().messages[0].metadata?.uiActions?.[0].id,
+    ).toBe(fresh.id);
+    expect(
+      uiActionState('reprepare_mutation:mutation-approval:approval-1')?.status,
+    ).toBe('completed');
+    expect(useAgentChatStore.getState().stream.isStreaming).toBe(false);
+  });
+
   it('keeps a result that outruns its ack and applies it once the ack names the run', async () => {
     let resolveAck: (value: unknown) => void = () => {};
     const apiService = ackingApi(
@@ -791,7 +829,7 @@ describe('ui-action results as thread events', () => {
       status: 'approved',
     });
     render(<MutationApprovalCard action={sourceCard ?? approvalCard} />);
-    expect(screen.getByRole('status')).toHaveTextContent('failed');
+    expect(screen.getByRole('alert')).toHaveTextContent('failedTitle');
     expect(screen.queryByRole('button', { name: 'approve' })).toBeNull();
     expect(uiActionState()).toMatchObject({
       error: 'Provider unavailable',
@@ -1204,7 +1242,7 @@ describe('ui-action results as thread events', () => {
         status: 'approved',
       });
       render(<MutationApprovalCard action={card ?? secondCard} />);
-      expect(screen.getByRole('status')).toHaveTextContent('failed');
+      expect(screen.getByRole('alert')).toHaveTextContent('failedTitle');
       expect(screen.queryByRole('button', { name: 'approve' })).toBeNull();
     });
   });

@@ -49,6 +49,7 @@ import {
   readSnapshotRunError,
 } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
 import { serializeAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
+import { isMutationApprovalReplacement } from '@genfeedai/agent/utils/is-mutation-approval-replacement.util';
 import { syncAgentThreadFromTurn } from '@genfeedai/agent/utils/sync-agent-thread-from-turn';
 import type { AgentThreadMode } from '@genfeedai/contracts';
 
@@ -490,7 +491,13 @@ export function createAgentStreamController(
             state.stream.pendingUiActions.some(
               (action) => action.id === sourceId,
             );
-          state.setUiActionStatus(sourceId, 'completed', card ?? undefined);
+          state.setUiActionStatus(
+            sourceId,
+            isMutationApprovalReplacement(card, sourceId)
+              ? 'pending'
+              : 'completed',
+            card ?? undefined,
+          );
           return isLoaded;
         },
         bufferedEventsRef: streamRuntime.bufferedEventsRef,

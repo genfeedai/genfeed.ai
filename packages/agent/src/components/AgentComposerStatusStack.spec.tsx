@@ -125,7 +125,7 @@ describe('AgentComposerStatusStack', () => {
     expect(card?.className).toMatch(/border-warning/);
   });
 
-  it('separates a solid compact failure notice from the composer', () => {
+  it('separates a red compact failure notice from the composer', () => {
     render(
       <AgentComposerStatusStack
         {...baseProps}
@@ -136,9 +136,9 @@ describe('AgentComposerStatusStack', () => {
 
     const notice = screen.getByRole('alert');
     expect(notice).toHaveClass('max-w-2xl');
-    expect(notice).toHaveClass('bg-background-secondary');
-    expect(notice).toHaveClass('shadow-border');
-    expect(notice).not.toHaveClass('bg-destructive/15');
+    expect(notice).toHaveClass('bg-destructive/10');
+    expect(notice).toHaveClass('shadow-none');
+    expect(notice).not.toHaveClass('shadow-border');
     expect(
       screen.getByRole('region', {
         name: 'Conversation status and pending input',
