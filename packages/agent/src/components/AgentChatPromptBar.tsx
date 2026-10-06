@@ -196,7 +196,9 @@ export function AgentChatPromptBar({
       layoutMode={isPortaled ? 'inflow' : layoutMode}
       // Portal already owns max-w-4xl + matching px; fill it without re-padding.
       maxWidth={isPortaled ? 'full' : '4xl'}
-      showTopFade={!hasFollowUpChips && !isDockComposer}
+      // Elevation belongs to the input. A stack-wide fade darkens the
+      // transcript above warnings and errors instead of lifting the prompt.
+      showTopFade={false}
       topContent={
         isDockComposer ? (
           <div className="max-h-[min(30dvh,12rem)] overflow-y-auto overscroll-contain">

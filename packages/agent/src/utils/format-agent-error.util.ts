@@ -36,6 +36,16 @@ const CONFIG_PATTERNS: Array<{
   isRetryable?: boolean;
 }> = [
   {
+    match: /\bthis approval expired\b/i,
+    reason: AgentFailureReason.ACTION_NOT_ALLOWED,
+    title: 'Approval expired',
+    summary:
+      'The approval window for this action has ended. The action was not run.',
+    recovery:
+      'Ask the agent to prepare this action again, then approve the new proposal.',
+    isConfigurationError: false,
+  },
+  {
     match:
       /OPENROUTER_API_KEY|openrouter.*not configured|provider key is not configured/i,
     reason: AgentFailureReason.PROVIDER_CONFIGURATION,

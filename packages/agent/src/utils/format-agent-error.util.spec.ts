@@ -21,6 +21,27 @@ describe('formatAgentError', () => {
     },
   );
 
+  it.each([
+    'This approval expired. Prepare the action again.',
+    {
+      message: 'This approval expired. Prepare the action again.',
+      source: 'api' as const,
+      status: 409,
+    },
+  ])('explains an expired approval without suggesting a retry: %s', (input) => {
+    expect(formatAgentError(input)).toMatchObject({
+      title: 'Approval expired',
+      summary:
+        'The approval window for this action has ended. The action was not run.',
+      recovery:
+        'Ask the agent to prepare this action again, then approve the new proposal.',
+      reason: AgentFailureReason.ACTION_NOT_ALLOWED,
+      isConfigurationError: false,
+      isRetryable: false,
+    });
+    expect(formatAgentFailureMessage(input)).toContain('Approval expired');
+  });
+
   it('never exposes localhost health checks in production recovery copy', () => {
     const formatted = formatAgentError({ source: 'network', status: 0 });
     expect(`${formatted.summary} ${formatted.recovery}`).not.toMatch(
