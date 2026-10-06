@@ -117,11 +117,7 @@ export default function StudioGenerationSummary({
       data-testid="studio-generation-summary"
     >
       {showCredits ? (
-        <div
-          aria-live="polite"
-          aria-atomic="true"
-          className="inline-flex items-center gap-1 whitespace-nowrap tabular-nums"
-        >
+        <div className="inline-flex items-center gap-1 whitespace-nowrap tabular-nums">
           <span role="status" aria-label={estimateLabel} title={estimateLabel}>
             {compactEstimate}
           </span>

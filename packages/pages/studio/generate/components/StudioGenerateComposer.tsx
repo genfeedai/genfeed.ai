@@ -997,6 +997,11 @@ export default function StudioGenerateComposer({
                   ? translate('cancelEnhancingPrompt')
                   : translate('enhancePrompt')
               }
+              tooltip={
+                isEnhancingPrompt
+                  ? translate('cancelEnhancingPrompt')
+                  : translate('enhancePrompt')
+              }
               className="size-8 shrink-0 min-h-0 min-w-0 p-0"
               icon={
                 isEnhancingPrompt ? (

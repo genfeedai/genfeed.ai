@@ -10,7 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import { WandSparkles } from 'lucide-react';
+import { SlidersHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -38,7 +38,7 @@ export default function GenerationHarnessSettingsPopover({
           className={className}
           ariaLabel={translate('settings')}
           tooltip={translate('settings')}
-          icon={<WandSparkles className="size-4" />}
+          icon={<SlidersHorizontal className="size-4" />}
           isDisabled={isDisabled}
           size={ButtonSize.ICON}
           variant={ButtonVariant.GHOST}
