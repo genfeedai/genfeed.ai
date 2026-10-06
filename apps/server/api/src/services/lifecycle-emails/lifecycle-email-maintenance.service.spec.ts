@@ -17,7 +17,7 @@ const request = {
   organizationId: 'org-1',
   referenceDate: '2026-09-14T08:00:00.000Z',
 };
-function fixture(count: number) {
+function fixture(count: number, isConnected = true) {
   const queueEmail = vi.fn();
   const findForUser = vi.fn().mockResolvedValue({ isEnabled: true });
   const prisma = {
@@ -57,7 +57,7 @@ function fixture(count: number) {
     {} as LifecycleEmailWorkflowService,
     { queueEmail } as unknown as EmailPerformanceService,
     {
-      hasConnection: vi.fn().mockResolvedValue(true),
+      hasConnection: vi.fn().mockResolvedValue(isConnected),
     } as unknown as SystemEmailEligibilityService,
     { findForUser } as unknown as NotificationPreferenceService,
     {} as WorkflowExecutionQueueService,
@@ -125,6 +125,27 @@ describe('system recap policy', () => {
       'analytics are available',
     );
   });
+  it.each([
+    [false, 'settings/connected-accounts', 'connect_account'],
+    [true, 'studio/generate', 'publish_content'],
+  ])(
+    'links the recap to the canonical next step when connected=%s',
+    async (isConnected, route, goal) => {
+      const { service, prisma, queueEmail } = fixture(5, isConnected);
+      await service.recaps(request);
+      expect(queueEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          destinationUrl: `https://app.genfeed.ai/studio/brand/${route}`,
+          goal,
+        }),
+      );
+      expect(prisma.brand.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { organizationId: 'org-1', isDeleted: false, id: 'brand-1' },
+        }),
+      );
+    },
+  );
   it('reports credit usage net of refunds, by row magnitude, without referral reward reversals', async () => {
     const { service, prisma, queueEmail } = fixture(5);
     prisma.creditTransaction.groupBy.mockImplementation(({ where }) =>

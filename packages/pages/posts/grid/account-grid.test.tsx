@@ -100,7 +100,7 @@ describe('AccountGrid', () => {
         browserTimezone="UTC"
         isLoading={false}
         onSelectRelease={onSelectRelease}
-        reconnectHref="/settings/social"
+        reconnectHref="/settings/connected-accounts"
         releases={[buildRelease()]}
         selectedCredentialIds={[]}
       />,
@@ -130,7 +130,7 @@ describe('AccountGrid', () => {
         browserTimezone="UTC"
         isLoading={false}
         onSelectRelease={vi.fn()}
-        reconnectHref="/settings/social"
+        reconnectHref="/settings/connected-accounts"
         releases={[]}
         selectedCredentialIds={[]}
       />,
@@ -140,7 +140,7 @@ describe('AccountGrid', () => {
     expect(await screen.findByText(/needs to be reconnected/i)).toBeVisible();
     expect(screen.getByRole('link', { name: /Reconnect/i })).toHaveAttribute(
       'href',
-      '/settings/social',
+      '/settings/connected-accounts',
     );
   });
 
@@ -160,7 +160,7 @@ describe('AccountGrid', () => {
         browserTimezone="UTC"
         isLoading={false}
         onSelectRelease={vi.fn()}
-        reconnectHref="/settings/social"
+        reconnectHref="/settings/connected-accounts"
         releases={[]}
         selectedCredentialIds={[]}
       />,

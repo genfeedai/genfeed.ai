@@ -159,7 +159,7 @@ describe('BrandDetailExternalLinksCard', () => {
     render(
       <BrandDetailExternalLinksCard
         links={[]}
-        manageSocialHref="/settings/social"
+        manageSocialHref="/settings/connected-accounts"
         onOpenLinkModal={vi.fn()}
         socialConnections={[
           makeConnection({
@@ -174,7 +174,7 @@ describe('BrandDetailExternalLinksCard', () => {
 
     expect(screen.getByText('@acme_x').closest('a')).toHaveAttribute(
       'href',
-      '/settings/social',
+      '/settings/connected-accounts',
     );
   });
 
@@ -198,13 +198,13 @@ describe('BrandDetailExternalLinksCard', () => {
     render(
       <BrandDetailExternalLinksCard
         links={[]}
-        manageSocialHref="/settings/social"
+        manageSocialHref="/settings/connected-accounts"
         onOpenLinkModal={vi.fn()}
       />,
     );
 
     expect(
       screen.getByRole('link', { name: 'Connect under Social' }),
-    ).toHaveAttribute('href', '/settings/social');
+    ).toHaveAttribute('href', '/settings/connected-accounts');
   });
 });

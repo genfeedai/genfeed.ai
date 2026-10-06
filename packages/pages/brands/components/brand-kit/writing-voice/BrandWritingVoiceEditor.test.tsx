@@ -132,6 +132,10 @@ describe('BrandWritingVoiceEditor', () => {
       {
         category: LinkCategory.WEBSITE,
         id: 'link-1',
+        brandId: 'brand-1',
+        isDeleted: false,
+        createdAt: '2026-10-06T00:00:00Z',
+        updatedAt: '2026-10-06T00:00:00Z',
         label: 'Website',
         url: 'https://acme.example',
       },

@@ -564,7 +564,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
     };
   }, [brandId, findOneBrand, notificationsService, pendingAssetId, subscribe]);
 
-  // Delegates to the same helper the settings/integrations accounts table
+  // Delegates to the same helper the settings/connected-accounts accounts table
   // and ModalBrand use, so a disconnected-but-not-deleted or identity-less
   // credential shows "Needs reconnect" consistently everywhere instead of
   // silently disappearing from just this hook's consumers. Depends on the

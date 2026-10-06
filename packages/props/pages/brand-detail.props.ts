@@ -129,7 +129,7 @@ export interface BrandDetailSocialMediaCardProps {
   onConnectAccountModalOpenChange?: (isOpen: boolean) => void;
   /**
    * `compact` — summary card + connect modal (sidebar / embed).
-   * `page` — full accounts table + Connect account modal (settings/integrations).
+   * `page` — full accounts table + Connect account modal (settings/connected-accounts).
    */
   variant?: 'compact' | 'page';
 }

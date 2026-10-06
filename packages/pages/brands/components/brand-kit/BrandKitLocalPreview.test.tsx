@@ -23,9 +23,22 @@ const brand = {
   fontFamily: 'MONTSERRAT_BOLD',
   agentConfig: { voice: { sampleOutput: 'Saved live sample' } },
 } as IBrand;
-function draft(sample: string) {
+function draft(sample: string): IBrandKitDraft {
   return {
+    id: 'draft-1',
     brandId: brand.id,
+    status: 'ready',
+    sourceType: 'manual',
+    assetCandidates: [],
+    evidence: [],
+    diagnostics: [],
+    readiness: {
+      status: 'complete',
+      score: 100,
+      requiredFields: [],
+      missingFields: [],
+      diagnostics: [],
+    },
     fields: {
       voiceSampleOutput: {
         key: 'voiceSampleOutput',
@@ -38,7 +51,7 @@ function draft(sample: string) {
         diagnostics: [],
       },
     },
-  } as IBrandKitDraft;
+  };
 }
 describe('local brand preview', () => {
   it('renders unsaved draft content and switches to an independent approved snapshot', () => {
