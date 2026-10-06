@@ -6,7 +6,7 @@ import type {
   ReviewedProviderRate,
 } from '@genfeedai/contracts/interfaces';
 import {
-  hashReviewedProviderRates,
+  hashReviewedRateSheetEntry,
   hasPendingProviderRateDrift,
   parseReviewedVariantRules,
   variantRuleFields,
@@ -91,7 +91,8 @@ function unit(value: unknown): ProviderBillingUnit | null {
 /**
  * The normalized rates a contract carries, whatever its review state. Used for
  * the reviewed contract and for a pending candidate, whose rates are compared
- * (never its schema or provider version) to detect a provider price change.
+ * together with frozen billing rules to detect financial drift. Unrelated
+ * schema or provider version changes do not count.
  */
 export function parseContractReviewedPricing(
   model: Pick<PricingModel, 'endpoint' | 'isFree' | 'provider'>,
@@ -329,8 +330,8 @@ export function projectModelBillablePricingProfile(
     reviewedPricing: reviewed,
     rateVersion: model.reviewedProviderContractVersion,
     hasPendingRate: hasPendingProviderRateDrift(
-      reviewed ? hashReviewedProviderRates(reviewed.rates) : null,
-      pending ? hashReviewedProviderRates(pending.rates) : null,
+      reviewed ? hashReviewedRateSheetEntry(reviewed) : null,
+      pending ? hashReviewedRateSheetEntry(pending) : null,
     ),
     requiredSelectorKeys,
     requiresReviewedRates:

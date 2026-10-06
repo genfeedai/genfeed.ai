@@ -25,6 +25,8 @@ import {
   PromptStatus,
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { mapReplicateBillingTiers } from '@genfeedai/pricing';
+import { REPLICATE_VARIANT_FIXTURES } from '@genfeedai/pricing/reviewed-rates/replicate-variants.fixture';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -357,6 +359,7 @@ const createService = () => {
       resolveApiKey: vi.fn().mockResolvedValue(undefined),
     } as never,
     testModelCreditQuote(modelsService as never, 'replicate'),
+    promptBuilderService as never,
   );
   const admissionService = new ImageGenerationAdmissionService(
     assetsService as never,
@@ -399,6 +402,7 @@ const createService = () => {
     loggerService,
     metadataService,
     modelRegistrationService,
+    modelsService,
     personasService,
     promptBuilderService,
     promptsService,
@@ -1664,11 +1668,40 @@ describe('editing retry output lineage', () => {
     const {
       service,
       imagesService,
+      modelsService,
       routerService,
       replicateService,
       sharedService,
     } = createService();
     const model = MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5;
+    const fixture = REPLICATE_VARIANT_FIXTURES[model];
+    if (!fixture) throw new Error('Missing edit fixture');
+    const mapping = mapReplicateBillingTiers(
+      fixture.tiers,
+      fixture.inputProperties,
+      model,
+    );
+    if (mapping.status !== 'ok') throw new Error(mapping.reason);
+    modelsService.findOne.mockResolvedValue({
+      key: model,
+      provider: 'replicate',
+      rateVersion: 'reviewed-edit',
+      reviewedPricing: {
+        version: 'reviewed-edit',
+        currency: 'USD',
+        reviewStatus: 'approved',
+        sourceUrl: fixture.sourceUrl,
+        verifiedAt: '2026-10-05T00:00:00Z',
+        rates: mapping.rates,
+        variantRules: mapping.variantRules,
+      },
+      requiresReviewedRates: true,
+      requiredSelectorKeys: mapping.selectorKeys,
+    });
+    const request = buildRequest({
+      body: { sourceActionId: 'edit-retry' },
+      creditsConfig: { deferred: true },
+    });
     const sourceId = testId('editsource');
     const prompt = 'Change the sign';
     const sourceActionId = 'edit-retry';
@@ -1712,8 +1745,9 @@ describe('editing retry output lineage', () => {
       buildUser(),
       sourceId,
       { prompt, brandId: RESOLVED_BRAND, sourceActionId, outputs: 2 },
-      buildRequest(),
+      request,
     );
+    expect(request).toMatchObject({ creditsConfig: { deferred: false } });
     expect(response.data?.attributes).toMatchObject({
       pendingIngredientIds: ['accepted-1', 'accepted-2'],
     });

@@ -92,9 +92,13 @@ describe('buildStudioGenerationQuoteRequest', () => {
         outputs: 3,
         resolution: '1K',
         type: 'image-edit',
+        referenceUrls: ['https://example.com/source.png'],
+        editSize: 'source',
       }),
     ).toEqual({
       category: 'image-edit',
+      referenceUrls: ['https://example.com/source.png'],
+      editSize: 'source',
       modelKey: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
       outputs: 3,
     });

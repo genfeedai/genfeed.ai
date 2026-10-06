@@ -426,6 +426,29 @@ describe('DiscordService', () => {
       );
     });
 
+    it('identifies billing-rule drift when dollar rates are unchanged', async () => {
+      const { service } = await createService();
+      await service.sendModelPriceChangeNotification({
+        changes: [],
+        modelKey: 'openai/gpt-image-2',
+        provider: 'replicate',
+        sourceUrl: 'https://replicate.com/openai/gpt-image-2',
+      });
+      const embed = lastSendPayload().embeds?.[0] as {
+        fields: Array<{ name: string; value: string }>;
+        title: string;
+      };
+      expect(embed.title).toBe(
+        'Provider billing rules changed: openai/gpt-image-2',
+      );
+      expect(embed.fields).toContainEqual(
+        expect.objectContaining({
+          name: 'Billing rules',
+          value: expect.stringContaining('selectors or defaults changed'),
+        }),
+      );
+    });
+
     it('reports an unpriceable or unrefreshable model', async () => {
       const { service } = await createService();
 

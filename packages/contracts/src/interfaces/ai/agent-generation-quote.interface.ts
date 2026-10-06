@@ -1,4 +1,5 @@
 import type { RouterPriority } from '../..';
+import type { ImageEditSize } from '../../constants/image-edit-sizes.constant';
 import type { GenerationExecutionDimensions } from '../billing/generation-credit-calculation.interface';
 
 /**
@@ -21,6 +22,9 @@ export interface AgentGenerationQuoteRequest {
   /** Required only when the server must route (no `modelKey`). */
   prompt?: string;
   quality?: string;
+  /** Source URLs already selected by the caller; quoting never fetches them. */
+  referenceUrls?: string[];
+  editSize?: ImageEditSize;
   resolution?: string;
   /** Executed pixel width; pair with `height` to quote exact dimensions. */
   width?: number;

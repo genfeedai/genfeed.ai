@@ -1,5 +1,6 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
+import { buildImageQuoteProviderInput } from '@api/collections/images/services/image-generation-prompt-settings.util';
 import {
   isNativeImageBatch,
   resolveImageBillableOutputs,
@@ -22,6 +23,7 @@ import { createInsufficientCreditsException } from '@api/helpers/utils/credits/i
 import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import type { ByokProvider } from '@genfeedai/contracts';
 import { ModelCategory } from '@genfeedai/contracts';
 import {
@@ -40,15 +42,22 @@ export class ImageGenerationCreditsService {
     private readonly providerRegistry: ImageGenerationProviderRegistryService,
     private readonly byokService: ByokService,
     private readonly modelCreditQuote: ModelCreditQuoteService,
+    private readonly promptBuilderService: PromptBuilderService,
   ) {}
 
   async quoteCredits(
     dto: CreateImageDto,
     model: string,
     organizationId: string,
+    providerInput?: Record<string, unknown>,
   ) {
     const { requiredCredits, resolvedModelDoc, modelQuote } =
-      await this.resolveRequiredCredits(dto, model, organizationId);
+      await this.resolveRequiredCredits(
+        dto,
+        model,
+        organizationId,
+        providerInput,
+      );
     if (
       !resolvedModelDoc ||
       resolvedModelDoc.key !== model ||
@@ -268,7 +277,20 @@ export class ImageGenerationCreditsService {
     const modelQuote = await this.modelCreditQuote.quoteSnapshotByKey(model, {
       organizationId,
       provider,
-      providerInput,
+      providerInput:
+        providerInput ??
+        (provider === 'replicate' && !isImageEditModel(model)
+          ? await buildImageQuoteProviderInput(
+              this.promptBuilderService,
+              model,
+              {
+                ...createImageDto,
+                height: createImageDto.height || 1080,
+                width: createImageDto.width || 1920,
+              },
+              resolvedModelDoc?.providerInputSchema,
+            )
+          : undefined),
       height: createImageDto.height || 1080,
       width: createImageDto.width || 1920,
       outputs,

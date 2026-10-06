@@ -16,6 +16,7 @@ import {
   type ImageGenerationPersistenceResult,
   persistImageDocuments,
 } from '@api/collections/images/services/image-generation-persistence.util';
+import { buildImageQuoteProviderInput } from '@api/collections/images/services/image-generation-prompt-settings.util';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import {
   type ImageGenerationSettingsParams,
@@ -406,6 +407,16 @@ export class ImageGenerationService {
         user.organizationId,
         request,
         onCreditsPrepared,
+        editing
+          ? await buildImageQuoteProviderInput(
+              this.promptBuilderService,
+              model,
+              createImageDto,
+              undefined,
+              editing.sourceUrls,
+              editing.size,
+            )
+          : undefined,
       );
       let pendingIngredientIds: string[] | undefined;
       if (editing && createImageDto.sourceActionId) {
