@@ -978,6 +978,12 @@ export default function StudioGenerateComposer({
         </div>
 
         <div className="ml-auto flex min-w-0 max-w-full items-center gap-2">
+          <StudioGenerationSummary
+            crunQuote={crunQuote}
+            estimate={estimate}
+            model={selectedModel}
+            type={type}
+          />
           {!isEnhancingPrompt && previousPrompt !== null ? (
             <Button
               ariaLabel={translate('undoPromptEnhancement')}
@@ -1021,12 +1027,6 @@ export default function StudioGenerateComposer({
               withWrapper={false}
             />
           ) : null}
-          <StudioGenerationSummary
-            crunQuote={crunQuote}
-            estimate={estimate}
-            model={selectedModel}
-            type={type}
-          />
           {isListening || isTranscribing || shouldShowVoiceInput ? (
             <PromptBarVoiceControl
               density="compact"
