@@ -6,6 +6,7 @@ import {
   PricingType,
   QualityTier,
 } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { getModelCategoryLabel } from '@genfeedai/helpers/ui/icons/model-category-icon';
 import { getModelProviderLabel } from '@genfeedai/helpers/ui/model-badge.helper';
@@ -242,6 +243,114 @@ describe('buildModelsTableColumns', () => {
           .getByRole('img', { name: getModelCategoryLabel(category) })
           .querySelector('svg'),
       ).toHaveClass('size-3.5');
+    },
+  );
+
+  it('marks the HeyGen avatar model without treating every HeyGen voice as an avatar', () => {
+    renderColumn(
+      'Label',
+      buildModel({
+        category: ModelCategory.VOICE,
+        key: MODEL_KEYS.HEYGEN_AVATAR,
+        label: 'Avatar',
+        provider: ModelProvider.HEYGEN,
+      }),
+      true,
+    );
+
+    expect(screen.getByRole('img', { name: 'HeyGen' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'Avatar' }).querySelector('svg'),
+    ).toHaveClass('lucide-square-user', 'size-3.5');
+    expect(
+      screen.queryByRole('img', { name: 'Voice' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTitle('HeyGen · Avatar')).toBeInTheDocument();
+
+    renderColumn(
+      'Label',
+      buildModel({
+        category: ModelCategory.VOICE,
+        key: 'heygen/voice-clone',
+        label: 'HeyGen Avatar Voice',
+        provider: ModelProvider.HEYGEN,
+      }),
+      true,
+    );
+    expect(screen.getAllByRole('img', { name: 'Avatar' })).toHaveLength(1);
+    expect(screen.getByRole('img', { name: 'Voice' })).toBeInTheDocument();
+  });
+
+  it('marks Argil Atom as an avatar while its voice category stays unchanged', () => {
+    const model = buildModel({
+      category: ModelCategory.VOICE,
+      key: MODEL_KEYS.ARGIL_ATOM,
+      label: 'Atom',
+      provider: ModelProvider.REPLICATE,
+    });
+    renderColumn('Label', model, true);
+
+    expect(
+      screen.getByRole('img', { name: 'Avatar' }).querySelector('svg'),
+    ).toHaveClass('lucide-square-user');
+    expect(
+      screen.queryByRole('img', { name: 'Voice' }),
+    ).not.toBeInTheDocument();
+    expect(model.category).toBe(ModelCategory.VOICE);
+  });
+
+  it('keeps a normal Replicate voice model on the microphone', () => {
+    renderColumn(
+      'Label',
+      buildModel({
+        category: ModelCategory.VOICE,
+        key: 'replicate/Atom',
+        label: 'Atom',
+        provider: ModelProvider.REPLICATE,
+      }),
+      true,
+    );
+
+    expect(
+      screen.getByRole('img', { name: 'Voice' }).querySelector('svg'),
+    ).toHaveClass('lucide-mic-2');
+    expect(
+      screen.queryByRole('img', { name: 'Avatar' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows an avatar mark for Kling avatar video without changing its category', () => {
+    const model = buildModel({
+      category: ModelCategory.VIDEO,
+      key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2,
+      provider: ModelProvider.REPLICATE,
+    });
+    renderColumn('Label', model, true);
+
+    expect(screen.getByRole('img', { name: 'Avatar' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', { name: 'Video' }),
+    ).not.toBeInTheDocument();
+    expect(model.category).toBe(ModelCategory.VIDEO);
+  });
+
+  it.each(['avatar', 'ai_avatar'])(
+    'accepts the exact %s capability on an unknown model key',
+    (capability) => {
+      renderColumn(
+        'Label',
+        buildModel({
+          capabilities: [capability],
+          category: ModelCategory.IMAGE,
+          key: 'custom/unknown',
+        }),
+        true,
+      );
+
+      expect(screen.getByRole('img', { name: 'Avatar' })).toBeInTheDocument();
+      expect(
+        screen.queryByRole('img', { name: 'Image' }),
+      ).not.toBeInTheDocument();
     },
   );
 

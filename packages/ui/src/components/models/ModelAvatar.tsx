@@ -13,9 +13,9 @@ export default function ModelAvatar({
   testId,
 }: ModelAvatarProps) {
   const ProviderIcon = getModelBrandIcon(model.provider);
-  const CategoryIcon = getModelCategoryIcon(model.category);
+  const CategoryIcon = getModelCategoryIcon(model.category, model);
   const providerLabel = getModelProviderLabel(model.provider);
-  const categoryLabel = getModelCategoryLabel(model.category);
+  const categoryLabel = getModelCategoryLabel(model.category, model);
 
   return (
     <span
