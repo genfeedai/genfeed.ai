@@ -21,7 +21,7 @@ import {
 import { Button } from '@ui/primitives/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import AgentClientLogo from '@web-components/content/AgentClientLogo';
-import { ArrowLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 export default function AgentConnectDialog({
@@ -92,14 +92,14 @@ export default function AgentConnectDialog({
   return (
     <Modal.Root open={open} onOpenChange={onOpenChange}>
       <Modal.Content
-        className="flex max-h-[90dvh] w-[calc(100%-2rem)] flex-col overflow-hidden"
+        className="w-[calc(100%-2rem)]"
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           trigger.current?.focus();
         }}
-        size={client ? 'lg' : 'md'}
+        size={client ? 'xl' : 'lg'}
       >
-        <Modal.Header className="shrink-0 pr-6 text-left">
+        <Modal.Header className="pr-6 text-left">
           <Modal.Title>Connect your agent</Modal.Title>
           <Modal.Description>
             {client
@@ -108,21 +108,51 @@ export default function AgentConnectDialog({
           </Modal.Description>
         </Modal.Header>
         <Modal.Body
-          className="min-h-0 min-w-0 overscroll-contain py-0"
-          data-modal-scroll-region=""
-          scrollable
+          className={
+            client
+              ? 'flex min-w-0 flex-col gap-5 overflow-hidden py-0 sm:flex-row'
+              : 'min-w-0 py-0'
+          }
+          scrollable={!client}
         >
-          {client ? (
-            <div className="space-y-5">
+          <nav
+            aria-label="Agents"
+            className={
+              client
+                ? 'grid max-h-[24dvh] shrink-0 grid-cols-2 gap-1 overflow-y-auto sm:max-h-none sm:w-44 sm:grid-cols-1 sm:content-start'
+                : 'grid grid-cols-2 gap-2'
+            }
+          >
+            {AGENT_CLIENT_FAMILIES.map((option) => (
               <Button
+                ariaLabel={`Connect ${option.name}`}
+                aria-pressed={client ? family?.name === option.name : undefined}
+                className="h-auto min-h-16 w-full justify-start gap-3 rounded-lg px-3 py-3 text-left whitespace-normal aria-pressed:bg-fill/10"
+                key={option.name}
+                onClick={() => selectClient(getAgentClient(option.slugs[0]))}
                 textTransform="none"
-                onClick={() => selectClient(null)}
-                size={ButtonSize.SM}
                 variant={ButtonVariant.GHOST}
+                withWrapper={false}
               >
-                <ArrowLeft aria-hidden className="mr-2 size-4" />
-                Choose another agent
+                <AgentClientLogo client={getAgentClient(option.slugs[0])} />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium">
+                    {option.name}
+                  </span>
+                  {!client ? (
+                    <span className="block text-xs leading-5 text-surface/60">
+                      {option.description}
+                    </span>
+                  ) : null}
+                </span>
               </Button>
+            ))}
+          </nav>
+          {client ? (
+            <Modal.Body
+              className="min-w-0 py-0 sm:border-l sm:border-edge/10 sm:pl-5"
+              key={family?.name}
+            >
               <Tabs
                 value={client.slug}
                 onValueChange={(slug) => {
@@ -150,15 +180,6 @@ export default function AgentConnectDialog({
                   key={client.slug}
                   value={client.slug}
                 >
-                  <div className="flex items-center gap-3">
-                    <AgentClientLogo client={client} />
-                    <div>
-                      <h3 className="font-semibold">{client.name}</h3>
-                      <p className="text-xs text-surface/60">
-                        {client.installation.method}
-                      </p>
-                    </div>
-                  </div>
                   <Accordion type="multiple" defaultValue={['install']}>
                     <AccordionItem value="install">
                       <AccordionTrigger className="text-left text-sm hover:no-underline">
@@ -261,36 +282,8 @@ export default function AgentConnectDialog({
                   </Accordion>
                 </TabsContent>
               </Tabs>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {AGENT_CLIENT_FAMILIES.map((option) => (
-                <Button
-                  ariaLabel={`Connect ${option.name}`}
-                  className="h-auto min-h-16 w-full justify-start gap-3 rounded-lg px-3 py-3 text-left whitespace-normal"
-                  key={option.name}
-                  onClick={() => selectClient(getAgentClient(option.slugs[0]))}
-                  textTransform="none"
-                  variant={ButtonVariant.GHOST}
-                  withWrapper={false}
-                >
-                  <AgentClientLogo client={getAgentClient(option.slugs[0])} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium">
-                      {option.name}
-                    </span>
-                    <span className="block text-xs leading-5 text-surface/60">
-                      {option.description}
-                    </span>
-                  </span>
-                  <ChevronRight
-                    aria-hidden
-                    className="size-4 shrink-0 text-surface/40"
-                  />
-                </Button>
-              ))}
-            </div>
-          )}
+            </Modal.Body>
+          ) : null}
         </Modal.Body>
       </Modal.Content>
     </Modal.Root>

@@ -66,7 +66,6 @@ export default function Modal({
         aria-describedby={undefined}
         size={isFullScreen ? 'full' : size}
         className={cn(
-          'flex max-h-[calc(100vh-5rem)] flex-col overflow-hidden',
           // Error dialogs keep normal shell chrome — no red outer ring/border.
           // Severity is carried by the message row, not the dialog frame.
           isError && 'bg-card text-foreground',
@@ -81,7 +80,7 @@ export default function Modal({
         )}
 
         {(title || error) && (
-          <CompoundModal.Header className="flex-shrink-0">
+          <CompoundModal.Header>
             {title && <CompoundModal.Title>{title}</CompoundModal.Title>}
 
             {error && (
@@ -101,17 +100,12 @@ export default function Modal({
           </CompoundModal.Header>
         )}
 
-        <div
-          className={cn(
-            // The body stacks its blocks — content, then the ModalActions footer —
-            // with the same rhythm a Form uses between fields.
-            'flex min-h-0 flex-1 flex-col gap-4',
-            !isFullScreen && 'overflow-y-auto',
-          )}
-          data-modal-scroll-region=""
+        <CompoundModal.Body
+          // Match the spacing of forms inside the shared scroll region.
+          className="flex flex-col gap-4 py-0"
         >
           {children}
-        </div>
+        </CompoundModal.Body>
       </CompoundModal.Content>
     </CompoundModal.Root>
   );

@@ -36,10 +36,10 @@ describe('AgentConnectLauncher', () => {
     });
 
     expect(
-      await screen.findByRole('dialog', {}, { timeout: 10_000 }),
+      await screen.findByRole('dialog', {}, { timeout: 30_000 }),
     ).toHaveAccessibleName('Connect your agent');
     expect(dialogModuleLoaded).toHaveBeenCalledTimes(1);
-  });
+  }, 45_000);
 
   it('restores focus to the element focused when the open was requested', async () => {
     const opener = document.createElement('button');

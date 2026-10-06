@@ -82,9 +82,6 @@ describe('AgentConnectDialog', () => {
     expect(
       within(dialog).queryByText(/connected successfully/i),
     ).not.toBeInTheDocument();
-    fireEvent.click(
-      within(dialog).getByRole('button', { name: 'Choose another agent' }),
-    );
     expect(
       within(dialog).getByRole('button', { name: 'Connect Claude' }),
     ).toBeInTheDocument();
@@ -172,6 +169,33 @@ describe('AgentConnectDialog', () => {
     ).toBeInTheDocument();
   });
 
+  it('keeps agent navigation available and marks the active family', () => {
+    const dialog = open();
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Connect Claude' }),
+    );
+    const agents = within(dialog).getByRole('navigation', { name: 'Agents' });
+    expect(within(agents).getAllByRole('button')).toHaveLength(7);
+    expect(
+      within(agents).getByRole('button', { name: 'Connect Claude' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      within(dialog).queryByRole('button', { name: 'Choose another agent' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      within(agents).getByRole('button', { name: 'Connect Cursor' }),
+    );
+    expect(
+      within(agents).getByRole('button', { name: 'Connect Claude' }),
+    ).toHaveAttribute('aria-pressed', 'false');
+    expect(
+      within(agents).getByRole('button', { name: 'Connect Cursor' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      within(dialog).getByRole('link', { name: 'Add Genfeed to Cursor' }),
+    ).toBeInTheDocument();
+  });
+
   it('restores focus to the launcher when closed', async () => {
     const dialog = open();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
@@ -197,7 +221,7 @@ describe('AgentConnectDialog', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('gives Cursor the real install destination and chat agents their connection prompt', () => {
+  it('switches directly from Cursor to a chat agent in the persistent agent list', () => {
     const dialog = open();
     fireEvent.click(
       within(dialog).getByRole('button', { name: 'Connect Cursor' }),
@@ -207,9 +231,6 @@ describe('AgentConnectDialog', () => {
     ).toHaveAttribute(
       'href',
       getAgentClient('cursor').installation.destination,
-    );
-    fireEvent.click(
-      within(dialog).getByRole('button', { name: 'Choose another agent' }),
     );
     fireEvent.click(
       within(dialog).getByRole('button', { name: 'Connect Meta Muse' }),
