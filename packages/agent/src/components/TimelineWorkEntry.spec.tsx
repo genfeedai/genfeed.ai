@@ -90,6 +90,47 @@ describe('TimelineWorkEntry', () => {
     ).toBeNull();
   });
 
+  it('shows a sentence instead of the tool JSON', () => {
+    render(
+      <TimelineWorkEntry
+        event={buildEvent({
+          detail: JSON.stringify({ assets: [], count: 0, type: 'video' }),
+          toolName: 'list_assets',
+        })}
+      />,
+    );
+    expect(screen.getByText('No videos')).toBeTruthy();
+    expect(screen.queryByText(/\{/)).toBeNull();
+  });
+
+  it('shows the brand name instead of the brand payload', () => {
+    render(
+      <TimelineWorkEntry
+        event={buildEvent({
+          detail: JSON.stringify({
+            currentBrand: {
+              description: 'Publish content every day',
+              name: 'Genfeed',
+            },
+          }),
+        })}
+      />,
+    );
+    expect(screen.getByText('Genfeed')).toBeTruthy();
+    expect(screen.queryByText(/Publish content/)).toBeNull();
+  });
+
+  it('hides filler results that only repeat the checkmark', () => {
+    render(
+      <TimelineWorkEntry
+        event={buildEvent({ detail: 'Done', resultSummary: 'OK' })}
+      />,
+    );
+    expect(screen.queryByText('Done')).toBeNull();
+    expect(screen.queryByText('OK')).toBeNull();
+    expect(screen.queryByText('—')).toBeNull();
+  });
+
   it('truncates long detail', () => {
     const longDetail =
       'This is a very long detail string that exceeds sixty characters and should be truncated with an ellipsis';

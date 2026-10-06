@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Pre } from '@genfeedai/ui';
+import { summarizeAgentToolResult } from '@genfeedai/utils/agent/summarize-agent-tool-result';
 import type { StructuredProgressDebugPayload } from '@genfeedai/utils/progress/structured-progress-event.util';
 import { Button } from '@ui/primitives/button';
 import { Check, Clipboard } from 'lucide-react';
@@ -27,13 +28,16 @@ export function ToolCallDetailPanel({
     typeof debug?.rawOutput === 'string' && debug.rawOutput.trim().length > 0
       ? debug.rawOutput
       : undefined;
+  const readableResult = resultSummary
+    ? summarizeAgentToolResult(resultSummary)
+    : '';
   const copyValue = useMemo(() => {
-    const parts = [error, resultSummary, rawOutput]
+    const parts = [error, readableResult, rawOutput]
       .filter((value): value is string => Boolean(value?.trim()))
       .join('\n\n');
 
     return parts.length > 0 ? parts : undefined;
-  }, [error, rawOutput, resultSummary]);
+  }, [error, rawOutput, readableResult]);
 
   const handleCopy = async (): Promise<void> => {
     if (!copyValue) {
@@ -62,13 +66,13 @@ export function ToolCallDetailPanel({
           </Pre>
         </div>
       )}
-      {resultSummary && (
+      {readableResult && (
         <div>
           <span className="mb-0.5 block text-2xs font-semibold uppercase tracking-wider text-muted-foreground/60">
             Result
           </span>
           <Pre variant="ghost" size="xs">
-            {resultSummary}
+            {readableResult}
           </Pre>
         </div>
       )}

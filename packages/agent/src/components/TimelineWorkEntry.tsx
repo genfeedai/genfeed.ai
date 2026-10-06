@@ -8,6 +8,7 @@ import type { EnrichedWorkEvent } from '@genfeedai/agent/utils/derive-timeline';
 import { formatAgentErrorDetail } from '@genfeedai/agent/utils/format-agent-error.util';
 import { formatDuration } from '@genfeedai/agent/utils/format-duration';
 import { ButtonVariant } from '@genfeedai/contracts';
+import { summarizeAgentToolResult } from '@genfeedai/utils/agent/summarize-agent-tool-result';
 import { Button } from '@ui/primitives/button';
 import Spinner from '@ui/primitives/spinner';
 import { memo, type ReactElement, useState } from 'react';
@@ -92,9 +93,7 @@ function TimelineWorkEntryInner({
   const rawDetail =
     event.status === AgentWorkEventStatus.FAILED
       ? formatAgentErrorDetail(event.detail ?? event.resultSummary ?? null)
-      : event.detail
-        ? event.detail
-        : (event.resultSummary ?? null);
+      : summarizeAgentToolResult(event.detail || event.resultSummary || '');
   const detail = rawDetail
     ? rawDetail.length > 72
       ? `${rawDetail.slice(0, 69)}…`

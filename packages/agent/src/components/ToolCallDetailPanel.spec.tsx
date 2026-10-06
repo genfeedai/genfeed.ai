@@ -27,6 +27,20 @@ describe('ToolCallDetailPanel', () => {
     vi.restoreAllMocks();
   });
 
+  it('shows a sentence instead of the raw result JSON', () => {
+    render(
+      <ToolCallDetailPanel
+        resultSummary={JSON.stringify({
+          assets: [],
+          count: 0,
+          type: 'music',
+        })}
+      />,
+    );
+    expect(screen.getByText('No music')).toBeTruthy();
+    expect(screen.queryByText(/assets/)).toBeNull();
+  });
+
   it('copies available error details to the clipboard', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal('navigator', {

@@ -1,6 +1,7 @@
 import type { ToolCallSummary } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { readReviewQueueSnapshot } from '@api/services/agent-orchestrator/utils/agent-review-queue-context.util';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { summarizeAgentToolResult } from '@genfeedai/utils/agent/summarize-agent-tool-result';
 
 const RESULT_SUMMARY_MAX_LENGTH = 500;
 
@@ -11,7 +12,7 @@ export function buildToolResultSummary(
   const reviewQueue = readReviewQueueSnapshot(toolName, result);
   const summary = result.success
     ? result.data
-      ? JSON.stringify(result.data)
+      ? summarizeAgentToolResult(result.data) || 'Done'
       : 'OK'
     : (result.error ?? 'Failed');
   return {
