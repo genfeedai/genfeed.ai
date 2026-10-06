@@ -467,7 +467,13 @@ export class RouterService {
   }
 
   private scoreQualityTier(model: ModelDocument, prioritize: string): number {
-    if (prioritize === 'quality' || !model.qualityTier) {
+    // Quality already scored ultra/high in scorePriority. Balanced is the
+    // category default — quality labels must not override isDefault.
+    if (
+      prioritize === 'quality' ||
+      prioritize === 'balanced' ||
+      !model.qualityTier
+    ) {
       return 0;
     }
     return RouterService.QUALITY_TIER_SCORES[model.qualityTier] || 0;

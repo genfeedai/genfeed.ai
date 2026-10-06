@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ModelCategory, ModelLifecycle, ModelProvider } from '..';
+import {
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+  QualityTier,
+  SpeedTier,
+} from '..';
 import {
   AGENT_CHAT_MODEL_KEYS,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
@@ -205,6 +211,42 @@ describe('UNIFIED_MODEL_CATALOG', () => {
       '16:9',
       '9:16',
     ]);
+  });
+
+  it('assigns quality and speed tiers on every curated media row', () => {
+    const curatedMedia = UNIFIED_MODEL_CATALOG.filter(
+      (entry) =>
+        entry.cost > 0 &&
+        entry.category !== ModelCategory.TEXT &&
+        entry.category !== ModelCategory.EMBEDDING,
+    );
+
+    expect(curatedMedia.length).toBeGreaterThan(0);
+    for (const entry of curatedMedia) {
+      expect(entry.costTier, entry.key).toBeDefined();
+      expect(Object.values(QualityTier), entry.key).toContain(
+        entry.qualityTier,
+      );
+      expect(Object.values(SpeedTier), entry.key).toContain(entry.speedTier);
+    }
+  });
+
+  it('routes Auto Best Quality to the SOTA recommended row per media category', () => {
+    const recommendedUltra = UNIFIED_MODEL_CATALOG.filter(
+      (entry) =>
+        entry.lifecycle === ModelLifecycle.RECOMMENDED &&
+        entry.qualityTier === QualityTier.ULTRA,
+    );
+
+    expect(recommendedUltra.map((entry) => entry.key).sort()).toEqual(
+      [
+        AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL,
+        MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+        MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+        MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+        MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_SUNBURST,
+      ].sort(),
+    );
   });
 
   it('seeds Nano Banana 2 Lite as the cloud image default', () => {

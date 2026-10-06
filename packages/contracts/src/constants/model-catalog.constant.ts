@@ -12,9 +12,10 @@
  * start from this list; provider discovery adds drafts on top. These constants
  * are seed *input* only — never a parallel runtime allowlist.
  */
-import type { CostTier } from '..';
+import type { CostTier, QualityTier, SpeedTier } from '..';
 import { ModelCategory, ModelLifecycle, ModelProvider } from '..';
 import {
+  AGENT_CHAT_MODEL_KEYS,
   AGENT_CHAT_MODELS,
   AGENT_FALLBACK_ROUND_CREDITS,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
@@ -43,6 +44,8 @@ export interface ModelCatalogSeedEntry {
   /** Credits per second (or per megapixel) when pricingType is not FLAT. */
   costPerUnit?: number;
   costTier?: CostTier;
+  qualityTier?: QualityTier;
+  speedTier?: SpeedTier;
   defaultAspectRatio?: string;
   defaultDuration?: number;
   description: string;
@@ -177,6 +180,12 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
     if (curated?.costTier) {
       entry.costTier = curated.costTier;
     }
+    if (curated && 'qualityTier' in curated && curated.qualityTier) {
+      entry.qualityTier = curated.qualityTier;
+    }
+    if (curated && 'speedTier' in curated && curated.speedTier) {
+      entry.speedTier = curated.speedTier;
+    }
     if (curated && 'costPerUnit' in curated && curated.costPerUnit != null) {
       entry.costPerUnit = curated.costPerUnit;
     }
@@ -268,13 +277,17 @@ function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
       category: ModelCategory.TEXT,
       cost: model.creditCostPerRound,
       costTier: model.costTier,
+      qualityTier: model.qualityTier,
+      speedTier: model.speedTier,
       description: model.description,
       inputCostPerMillionTokens: model.pricing.promptPerMillion,
       isActive: !isSelfHosted,
       isDefault,
       isHighlighted: isDefault,
       lifecycle:
-        isDefault || model.key === HIGHLIGHTED_AGENT_CHAT_MODEL_KEY
+        isDefault ||
+        model.key === HIGHLIGHTED_AGENT_CHAT_MODEL_KEY ||
+        model.key === AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL
           ? ModelLifecycle.RECOMMENDED
           : ModelLifecycle.AVAILABLE,
       isPublic: !isSelfHosted,

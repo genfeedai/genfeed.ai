@@ -399,6 +399,30 @@ describe('ModelCatalogSeedService', () => {
         expect(call.update.lifecycle).toBe(entry?.lifecycle);
       }
     });
+
+    it('writes catalog quality and speed tiers onto existing rows', async () => {
+      const sunburst = UNIFIED_MODEL_CATALOG.find(
+        (entry) =>
+          entry.key === MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_SUNBURST,
+      );
+      if (!sunburst) {
+        throw new Error('Expected GPT Image 2.5 Sunburst in the real catalog');
+      }
+      expect(sunburst.qualityTier).toBeDefined();
+      prisma.model.findUnique.mockResolvedValue({
+        cost: sunburst.cost,
+        id: 'existing',
+        isLegacy: false,
+        lifecycle: ModelLifecycle.RECOMMENDED,
+      });
+
+      await service.reconcileCatalog([sunburst]);
+
+      expect(callForKey(sunburst.key)?.update).toMatchObject({
+        qualityTier: sunburst.qualityTier,
+        speedTier: sunburst.speedTier,
+      });
+    });
   });
 
   it('leaves operator activation alone for non-default entries', async () => {

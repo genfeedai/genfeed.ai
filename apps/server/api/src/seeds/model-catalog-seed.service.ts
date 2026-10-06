@@ -137,6 +137,8 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       ...(entry.capabilities ? { capabilities: [...entry.capabilities] } : {}),
       ...(entry.config ? { config: entry.config } : {}),
       ...(entry.costTier ? { costTier: entry.costTier } : {}),
+      ...(entry.qualityTier ? { qualityTier: entry.qualityTier } : {}),
+      ...(entry.speedTier ? { speedTier: entry.speedTier } : {}),
       ...(entry.defaultAspectRatio
         ? { defaultAspectRatio: entry.defaultAspectRatio }
         : {}),

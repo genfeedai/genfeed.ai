@@ -2,6 +2,7 @@ import { lstatSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { QualityTier, SpeedTier } from '..';
 import {
   AGENT_CHAT_MODEL_KEYS,
   AGENT_CHAT_MODELS,
@@ -68,6 +69,13 @@ describe('AGENT_CHAT_MODELS', () => {
     const keys = AGENT_CHAT_MODELS.map((model) => model.key);
 
     expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('assigns a quality and speed tier to every chat model', () => {
+    for (const model of AGENT_CHAT_MODELS) {
+      expect(Object.values(QualityTier)).toContain(model.qualityTier);
+      expect(Object.values(SpeedTier)).toContain(model.speedTier);
+    }
   });
 
   it('charges every paid hosted model at least one credit per round', () => {
