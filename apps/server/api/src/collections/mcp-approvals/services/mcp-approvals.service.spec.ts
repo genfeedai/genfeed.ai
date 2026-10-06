@@ -504,14 +504,22 @@ describe('McpApprovalsService', () => {
     },
   );
   describe('replacePending', () => {
-    const original = {
+    const original: McpApprovalDocument = {
       id: 'old-approval',
       organizationId: 'org-1',
       userId: 'user-1',
       arguments: { count: 3 },
       toolName: 'generate_content_batch',
       idempotencyKey: 'logical-write',
-    } as McpApprovalDocument;
+      status: 'PENDING',
+      result: null,
+      resolvedAt: null,
+      executedAt: null,
+      executionClaimedAt: null,
+      isDeleted: false,
+      createdAt: new Date('2026-10-06T12:00:00.000Z'),
+      updatedAt: new Date('2026-10-06T12:00:00.000Z'),
+    };
     it('invalidates the original pending identity and creates fresh unconsumed consent inside the same transaction', async () => {
       const pending = { ...original, id: 'fresh-approval', status: 'PENDING' };
       mcpApproval.create.mockResolvedValue(pending);
