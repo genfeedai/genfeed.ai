@@ -8,6 +8,10 @@ vi.mock('@hooks/data/streaks/use-streak/use-streak', () => ({
   useStreak: vi.fn(),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/brand-x${path}` }),
+}));
+
 const mockUseStreak = vi.mocked(useStreak);
 
 function mockStreak(overrides: Partial<ReturnType<typeof useStreak>> = {}) {
@@ -31,7 +35,9 @@ describe('StreaksPage', () => {
 
     render(<StreaksPage />);
 
-    expect(screen.getByText('Create content now')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Create content now' }),
+    ).toHaveAttribute('href', '/acme/brand-x/agent/new');
     expect(screen.getByText('Current streak')).toBeInTheDocument();
     expect(screen.getByText('Longest streak')).toBeInTheDocument();
     expect(screen.getByText('Freezes')).toBeInTheDocument();

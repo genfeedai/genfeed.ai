@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { getBrandOrganizationSlug } from '@contexts/user/brand-context/brand-context.helpers';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
@@ -37,9 +38,16 @@ export function useAgentOAuthConnect(
 ): (platform: string) => Promise<void> {
   const { isOnboarding = false } = options;
   const params = useParams<{ id?: string; threadId?: string }>();
-  const { orgHref } = useOrgUrl();
+  const { brandSlug, href, orgHref, orgSlug } = useOrgUrl();
   const { getToken } = useAuthIdentity();
-  const { selectedBrand } = useBrand();
+  const { brands, selectedBrand } = useBrand();
+  const connectionBrand = brandSlug
+    ? brands.find(
+        (brand) =>
+          brand.slug === brandSlug &&
+          getBrandOrganizationSlug(brand) === orgSlug,
+      )
+    : selectedBrand;
 
   // Route params are prefix-independent, so the active thread id resolves the
   // same way from the workspace page and the floating panel.
@@ -58,22 +66,22 @@ export function useAgentOAuthConnect(
           return;
         }
 
-        if (!selectedBrand) {
+        if (!connectionBrand) {
           throw new Error('Select a brand before connecting an account');
         }
 
         const servicePath = resolveOAuthServicePath(platform);
         const service = new ServicesService(servicePath, token);
         const credential = await service.postConnect({
-          brandId: selectedBrand.id,
+          brandId: connectionBrand.id,
         });
         const returnTo = isOnboarding
           ? threadId
             ? orgHref(`${APP_ROUTES.AGENT.ONBOARDING}/${threadId}`)
             : orgHref(APP_ROUTES.AGENT.ONBOARDING)
           : threadId
-            ? orgHref(`${APP_ROUTES.AGENT.ROOT}/${threadId}`)
-            : orgHref(APP_ROUTES.AGENT.NEW);
+            ? href(`${APP_ROUTES.AGENT.ROOT}/${threadId}`)
+            : href(APP_ROUTES.AGENT.NEW);
         const separator = credential.url.includes('?') ? '&' : '?';
         window.open(
           `${credential.url}${separator}return_to=${encodeURIComponent(returnTo)}`,
@@ -87,6 +95,6 @@ export function useAgentOAuthConnect(
         throw error;
       }
     },
-    [getToken, isOnboarding, orgHref, selectedBrand, threadId],
+    [connectionBrand, getToken, href, isOnboarding, orgHref, threadId],
   );
 }

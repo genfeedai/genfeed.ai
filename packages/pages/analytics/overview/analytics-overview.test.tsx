@@ -1,3 +1,4 @@
+import { PageScope } from '@genfeedai/contracts';
 import AnalyticsOverview from '@pages/analytics/overview/analytics-overview';
 import type { AnchorHTMLAttributes, ImgHTMLAttributes, ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server.node';
@@ -37,8 +38,12 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+const mockRoute = vi.hoisted(() => ({ brandSlug: 'brand-x' }));
+
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
+    brandSlug: mockRoute.brandSlug,
+    href: (path: string) => `/acme/${mockRoute.brandSlug || '~'}${path}`,
     orgHref: (path: string) => `/acme/~${path}`,
   }),
 }));
@@ -486,6 +491,29 @@ describe('AnalyticsOverview', () => {
     expect(mockUseAgentDashboardPersistence).toHaveBeenCalledTimes(1);
   });
 
+  it('preserves superadmin destinations despite a selected brand payload', () => {
+    const markup = renderToStaticMarkup(
+      <AnalyticsOverview
+        scope={PageScope.SUPERADMIN}
+        basePath="/admin/overview/analytics"
+      />,
+    );
+    expect(markup).toContain('/acme/~/settings/integrations');
+    expect(markup).not.toContain('/acme/brand-x/settings/integrations');
+    expect(markup).not.toContain('/acme/brand-x/publishing');
+    expect(markup).toContain('href="/publishing');
+    expect(markup).toContain('/admin/overview/analytics/brands');
+  });
+
+  it('offers brand selection instead of provider settings in organization scope', () => {
+    mockRoute.brandSlug = '';
+    mockAnalyticsReturn.analytics.totalCredentialsConnected = 2;
+    const markup = renderOverview();
+    mockRoute.brandSlug = 'brand-x';
+    expect(markup).toContain('/acme/~/settings/brands');
+    expect(markup).not.toContain('/acme/~/settings/integrations');
+  });
+
   it('renders warming-up messaging when setup exists but performance is still sparse', () => {
     mockAnalyticsReturn.analytics = {
       ...mockAnalyticsReturn.analytics,
@@ -497,8 +525,8 @@ describe('AnalyticsOverview', () => {
     const markup = renderOverview();
 
     expect(markup).toContain('Warming up');
-    expect(markup).toContain('/publishing');
-    expect(markup).toContain('/acme/~/settings/integrations');
+    expect(markup).toContain('/acme/brand-x/publishing');
+    expect(markup).toContain('/acme/brand-x/settings/integrations');
     expect(markup).not.toContain('/settings/api-keys');
     expect(markup).not.toContain('Data is starting to come through');
     expect(markup).not.toContain('Coverage so far');

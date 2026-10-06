@@ -30,6 +30,8 @@ vi.mock('next/link', () => ({
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
+    brandSlug: 'brand',
+    orgHref: (path: string) => `/acme/~${path}`,
     href: (path: string) => `/acme/brand${path}`,
   }),
 }));

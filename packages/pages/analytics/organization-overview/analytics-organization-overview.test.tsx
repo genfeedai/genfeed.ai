@@ -68,6 +68,14 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: pushMock }),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    brandSlug: '',
+    href: (path: string) => `/acme/~${path}`,
+    orgHref: (path: string) => `/acme/~${path}`,
+  }),
+}));
+
 // A fresh `dateRange` per render would retrigger the fetch effects forever.
 const stableDateRange = {
   endDate: new Date('2026-03-12T00:00:00.000Z'),
