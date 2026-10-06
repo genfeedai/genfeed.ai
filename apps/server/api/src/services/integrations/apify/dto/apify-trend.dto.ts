@@ -62,6 +62,13 @@ export class GetTrendsDto {
  */
 export class GetViralVideosDto {
   @ApiPropertyOptional({
+    description: 'Active brand for relevant video discovery',
+  })
+  @IsOptional()
+  @IsString()
+  brandId?: string;
+
+  @ApiPropertyOptional({
     description: 'Platform to filter videos by',
     enum: Platform,
     enumName: 'Platform',

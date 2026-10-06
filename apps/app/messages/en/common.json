@@ -1883,6 +1883,26 @@
       "videoBadge": "Video"
     },
     "desk": {
+      "filters": {
+        "source": "Source",
+        "platforms": "Platforms",
+        "allPlatforms": "All platforms",
+        "platformCount": "{count, plural, one {# platform} other {# platforms}}",
+        "contentType": "Content type",
+        "sort": "Sort",
+        "types": {
+          "all": "All types",
+          "video": "Video",
+          "image": "Image",
+          "post": "Post"
+        },
+        "sortOptions": {
+          "velocity": "Velocity",
+          "virality": "Virality",
+          "recency": "Recency",
+          "engagement": "Engagement"
+        }
+      },
       "title": "Discovery",
       "subtitle": "Signal Desk \u2014 every trend, followed post, and viral video, ready to remix.",
       "searchPlaceholder": "Search the Desk",

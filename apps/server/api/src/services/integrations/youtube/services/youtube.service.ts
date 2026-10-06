@@ -80,17 +80,40 @@ export class YoutubeService {
     return this.authService.refreshToken(organizationId, brandId, credentialId);
   }
 
-  async getTrends(regionCode = 'US', limit = 20): Promise<YoutubeTrend[]> {
+  async getTrends(
+    regionCode = 'US',
+    limit = 20,
+    query?: string,
+  ): Promise<YoutubeTrend[]> {
     if (!this.youtubeDataApiConfigured) {
       recordTrendProviderOutcome('native_empty', 'native_unavailable');
       return [];
     }
 
+    const maxResults = Math.max(1, Math.min(50, limit));
+    let ids: string[] | undefined;
+    if (query?.trim()) {
+      const search = await this.youtubeDataAPI.search.list({
+        maxResults,
+        order: 'viewCount',
+        part: ['snippet'],
+        publishedAfter: new Date(
+          Date.now() - 7 * 24 * 60 * 60 * 1000,
+        ).toISOString(),
+        q: query,
+        regionCode,
+        type: ['video'],
+        videoEmbeddable: 'true',
+      });
+      ids = (search.data.items ?? []).flatMap((item) =>
+        item.id?.videoId ? [item.id.videoId] : [],
+      );
+      if (!ids.length) return [];
+    }
     const response = await this.youtubeDataAPI.videos.list({
-      chart: 'mostPopular',
-      maxResults: Math.max(1, Math.min(50, limit)),
+      ...(ids ? { id: ids } : { chart: 'mostPopular', regionCode }),
+      maxResults,
       part: ['id', 'snippet', 'statistics'],
-      regionCode,
     });
 
     return (response.data.items ?? []).flatMap((video) => {

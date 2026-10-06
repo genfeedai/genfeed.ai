@@ -53,12 +53,11 @@ export class TrendFilteringService {
   /**
    * Filter trends by brand description keywords
    */
-  filterTrendsByBrandDescription(
-    trends: TrendEntity[],
-    brandDescription: string,
-  ): TrendEntity[] {
+  filterTrendsByBrandDescription<
+    T extends Pick<TrendEntity, 'topic' | 'viralityScore'>,
+  >(trends: T[], brandDescription: string, isMatchRequired = false): T[] {
     if (!brandDescription?.trim()) {
-      return trends;
+      return isMatchRequired ? [] : trends;
     }
 
     // Extract keywords from brand description (remove common words)
@@ -112,10 +111,12 @@ export class TrendFilteringService {
       .toLowerCase()
       .replace(/[^\w\s]/g, ' ')
       .split(/\s+/)
-      .filter((word) => word.length > 2 && !commonWords.has(word));
+      .filter(
+        (word) => (word.length > 2 || word === 'ai') && !commonWords.has(word),
+      );
 
     if (keywords.length === 0) {
-      return trends;
+      return isMatchRequired ? [] : trends;
     }
 
     // Score trends by keyword matches
@@ -124,7 +125,11 @@ export class TrendFilteringService {
       let score = 0;
 
       for (const keyword of keywords) {
-        if (trendText.includes(keyword)) {
+        if (
+          keyword === 'ai'
+            ? /\bai\b/.test(trendText)
+            : trendText.includes(keyword)
+        ) {
           score += 1;
         }
       }
@@ -151,7 +156,7 @@ export class TrendFilteringService {
       return matchingTrends.slice(0, trends.length);
     }
 
-    return trends;
+    return isMatchRequired ? [] : trends;
   }
 
   /**

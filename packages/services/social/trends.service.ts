@@ -67,6 +67,7 @@ export class TrendsService extends BaseService<Trend> {
     options: IViralVideoOptions = {},
   ): Promise<ITrendVideo[]> {
     const params: Record<string, string | number> = {};
+    if (options.brandId) params.brandId = options.brandId;
     if (options.platform) {
       params.platform = options.platform;
     }
@@ -210,10 +211,12 @@ export class TrendsService extends BaseService<Trend> {
   }
 
   async getTrendContent(options?: {
+    brandId?: string;
     platform?: string;
     limit?: number;
   }): Promise<TrendContentResponse> {
     const params: Record<string, string | number> = {};
+    if (options?.brandId) params.brandId = options.brandId;
     if (options?.platform) {
       params.platform = options.platform;
     }

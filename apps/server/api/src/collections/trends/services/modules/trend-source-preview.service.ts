@@ -292,7 +292,7 @@ export class TrendSourcePreviewService {
     const refresh =
       (options.refresh ?? false) && (await this.claimRefreshCooldown(scope));
     const cacheKey = this.cacheService.generateKey(
-      'trends:content:v2',
+      'trends:content:v3',
       scope.organizationId || 'global',
       scope.brandId || 'global',
       platform || 'all',

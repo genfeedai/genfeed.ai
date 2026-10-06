@@ -201,7 +201,7 @@ describe('TrendSourcePreviewService', () => {
       expect(result.totalTrends).toBe(2);
       expect(cache.set).toHaveBeenCalledOnce();
       expect(cache.generateKey).toHaveBeenCalledWith(
-        'trends:content:v2',
+        'trends:content:v3',
         'org',
         'global',
         'all',

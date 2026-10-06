@@ -198,7 +198,9 @@ describe('TrendsService', () => {
         },
         {
           provide: BrandsService,
-          useValue: mockEmptyService,
+          useValue: {
+            findOne: vi.fn().mockResolvedValue({ description: 'AI marketing' }),
+          },
         },
         {
           provide: CredentialsService,
@@ -654,7 +656,7 @@ describe('TrendsService', () => {
           platforms: ['twitter'],
         } as never);
       const filterByPreferencesSpy = vi
-        .spyOn(trendFilteringService, 'filterTrendsByPreferences')
+        .spyOn(trendFilteringService, 'filterTrendsByBrandDescription')
         .mockImplementation((trends) => trends);
 
       await service.getTrendsWithAccessControl(mockOrganizationId, mockBrandId);
@@ -665,12 +667,8 @@ describe('TrendsService', () => {
       );
       expect(filterByPreferencesSpy).toHaveBeenCalledWith(
         expect.any(Array),
-        expect.objectContaining({
-          categories: ['ai'],
-          hashtags: ['#agent'],
-          keywords: ['workflow'],
-          platforms: ['twitter'],
-        }),
+        'AI marketing workflow ai #agent',
+        true,
       );
     });
 
@@ -700,7 +698,7 @@ describe('TrendsService', () => {
           platforms: ['twitter'],
         } as never);
       const filterByPreferencesSpy = vi
-        .spyOn(trendFilteringService, 'filterTrendsByPreferences')
+        .spyOn(trendFilteringService, 'filterTrendsByBrandDescription')
         .mockImplementation((trends) => trends);
 
       await service.getTrendsWithAccessControl(mockOrganizationId, mockBrandId);
@@ -711,10 +709,8 @@ describe('TrendsService', () => {
       );
       expect(filterByPreferencesSpy).toHaveBeenCalledWith(
         expect.any(Array),
-        expect.objectContaining({
-          categories: ['org-default'],
-          keywords: ['baseline'],
-        }),
+        'AI marketing baseline org-default',
+        true,
       );
     });
 
@@ -761,7 +757,7 @@ describe('TrendsService', () => {
           return null;
         });
       const filterByPreferencesSpy = vi
-        .spyOn(trendFilteringService, 'filterTrendsByPreferences')
+        .spyOn(trendFilteringService, 'filterTrendsByBrandDescription')
         .mockImplementation((trends) => trends);
 
       await service.getTrendsWithAccessControl(mockOrganizationId, brandAId);
@@ -780,18 +776,14 @@ describe('TrendsService', () => {
       expect(filterByPreferencesSpy).toHaveBeenNthCalledWith(
         1,
         expect.any(Array),
-        expect.objectContaining({
-          categories: ['brand-a'],
-          keywords: ['alpha'],
-        }),
+        'AI marketing alpha brand-a',
+        true,
       );
       expect(filterByPreferencesSpy).toHaveBeenNthCalledWith(
         2,
         expect.any(Array),
-        expect.objectContaining({
-          categories: ['brand-b'],
-          keywords: ['beta'],
-        }),
+        'AI marketing beta brand-b',
+        true,
       );
     });
   });
