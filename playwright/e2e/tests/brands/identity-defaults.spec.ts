@@ -31,7 +31,7 @@ test.describe('Brand Identity Defaults', () => {
     // mocked brand) rather than a bare path, since bare-path active-workspace
     // resolution is cached server-side per session and is not deterministic
     // across parallel workers sharing one dev server.
-    const brandAgentDefaultsRoute = brandPath('/settings/agent-defaults');
+    const brandAgentDefaultsRoute = brandPath('/settings/agent');
     await authenticatedPage.goto(brandAgentDefaultsRoute, {
       timeout: 60000,
       waitUntil: 'domcontentloaded',

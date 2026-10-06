@@ -2,6 +2,7 @@
 
 import {
   LIBRARY_ASSET_ROUTES,
+  LIBRARY_ELEMENT_MENU_ITEMS,
   LIBRARY_PLACE_MENU_ITEMS,
   LIBRARY_SHELF_MENU_ITEMS,
   LIBRARY_TAIL_MENU_ITEMS,
@@ -212,7 +213,9 @@ export default function LibrarySidebarNav() {
     const [targetPath, targetSearch = ''] = (
       item.href ?? APP_ROUTES.LIBRARY.ASSETS
     ).split('?');
-    const params = new URLSearchParams(searchParamsString);
+    const params = new URLSearchParams(
+      targetPath === APP_ROUTES.LIBRARY.CHARACTERS ? '' : searchParamsString,
+    );
     for (const key of ['place', 'shelf', 'page']) params.delete(key);
     new URLSearchParams(targetSearch).forEach((value, key) => {
       params.set(key, value);
@@ -255,6 +258,15 @@ export default function LibrarySidebarNav() {
               {LIBRARY_SHELF_MENU_ITEMS.filter(isShelfVisible).map(
                 renderMenuItem,
               )}
+            </ul>
+          </div>
+
+          <div className="mt-4">
+            <div className="p-1 text-2xs font-bold uppercase tracking-[0.15em] text-foreground/30">
+              Elements
+            </div>
+            <ul className="flex flex-col gap-px">
+              {LIBRARY_ELEMENT_MENU_ITEMS.map(renderMenuItem)}
             </ul>
           </div>
 

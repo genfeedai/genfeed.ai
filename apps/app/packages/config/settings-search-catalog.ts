@@ -12,6 +12,82 @@ import type {
 import { PERSONAL_SETTINGS_ANCHOR } from './personal-settings-anchor';
 import { buildSettingsMenuItems } from './settings-menu-items.config';
 
+const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
+  {
+    id: 'brand:writing-voice',
+    scope: SettingsSurface.BRAND,
+    group: 'Brand Kit',
+    label: 'Writing voice',
+    description:
+      'Tone, style, audience, writing rules, hooks, examples and platform overrides',
+    href: '/settings/brand-kit?tab=voice',
+    keywords: ['voice', 'tone', 'style', 'writing', 'hooks', 'exemplars'],
+  },
+  {
+    id: 'brand:strategy',
+    scope: SettingsSurface.BRAND,
+    group: 'Brand Kit',
+    label: 'Strategy',
+    description: 'Topics, goals, platforms and publishing frequency',
+    href: '/settings/brand-kit?tab=strategy',
+    keywords: ['strategy', 'topics', 'goals', 'frequency'],
+  },
+  {
+    id: 'brand:guided-setup',
+    scope: SettingsSurface.BRAND,
+    group: 'Brand Kit',
+    label: 'Guided setup',
+    description: 'Brand identity interview',
+    href: '/settings/brand-kit/guided-setup',
+    keywords: ['interview', 'setup', 'identity'],
+  },
+  {
+    id: 'brand:content-rules',
+    scope: SettingsSurface.BRAND,
+    group: 'Brand Kit',
+    label: 'Content rules',
+    description: 'Structure, delivery, positioning and examples',
+    href: '/settings/brand-kit/content-rules',
+    keywords: ['harness', 'rules', 'structure', 'delivery', 'examples'],
+  },
+  {
+    id: 'brand:agent-context',
+    scope: SettingsSurface.BRAND,
+    group: 'Agent settings',
+    label: 'Agent context',
+    description: 'Context layers, prompts and memories',
+    href: '/settings/agent?tab=context',
+    keywords: ['context', 'memory', 'prompts'],
+  },
+  {
+    id: 'brand:agent-learning',
+    scope: SettingsSurface.BRAND,
+    group: 'Agent settings',
+    label: 'Learning',
+    description: 'Feedback and content memory',
+    href: '/settings/agent?tab=learning',
+    keywords: ['learning', 'feedback', 'memory'],
+  },
+  {
+    id: 'brand:receipts',
+    scope: SettingsSurface.BRAND,
+    group: 'Agent settings',
+    label: 'Generation receipts',
+    description: 'Generation inputs and outcomes',
+    href: '/settings/agent?tab=receipts',
+    keywords: ['generation', 'receipts', 'audit'],
+  },
+  {
+    id: 'brand:characters',
+    scope: SettingsSurface.BRAND,
+    group: 'Library',
+    label: 'Characters',
+    description: 'Reusable characters, training and availability',
+    href: APP_ROUTES.LIBRARY.CHARACTERS,
+    keywords: ['characters', 'training', 'elements', 'availability'],
+  },
+];
+
 const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
   {
     description: 'Theme, language, and account profile',
@@ -110,7 +186,10 @@ export function buildSettingsSearchCatalog(
     ];
   }
 
-  return itemsForScope(options.scope, options);
+  return [
+    ...itemsForScope(options.scope, options),
+    ...(options.scope === SettingsSurface.BRAND ? BRAND_SECTION_ITEMS : []),
+  ];
 }
 
 export function filterSettingsSearchCatalog(

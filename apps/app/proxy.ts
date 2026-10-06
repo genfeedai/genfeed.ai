@@ -980,8 +980,8 @@ async function redirectSignedInUserToAgentOnboarding(
     return redirectDroppingSearch(
       req,
       slugs?.brandSlug
-        ? `/${slugs.orgSlug}/${slugs.brandSlug}/settings/kit`
-        : '/settings/kit',
+        ? `/${slugs.orgSlug}/${slugs.brandSlug}/settings/brand-kit`
+        : '/settings/brand-kit',
     );
   }
 

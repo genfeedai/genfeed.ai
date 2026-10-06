@@ -1,4 +1,4 @@
-import AgentProfilePlatformOverrideWideFields from '@pages/brands/components/sidebar/AgentProfilePlatformOverrideWideFields';
+import AgentProfilePlatformOverrideWideFields from '@pages/brands/components/brand-kit/writing-voice/AgentProfilePlatformOverrideWideFields';
 import type {
   AgentProfilePlatformOverrideFormState,
   AgentProfilePlatformOverrideWideFieldsProps,

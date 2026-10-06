@@ -18,7 +18,7 @@ import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 const brand = testBrands[0];
 const org = testOrganizations.default ?? Object.values(testOrganizations)[0];
-const interviewUrl = `/${org.slug}/${brand.slug}/settings/interview`;
+const interviewUrl = `/${org.slug}/${brand.slug}/settings/brand-kit/guided-setup`;
 
 const toneQuestion = {
   answerType: 'text',

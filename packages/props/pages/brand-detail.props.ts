@@ -83,7 +83,7 @@ export interface BrandDetailSidebarProps {
   connectedPlatformsCount: number;
   deletingRefId: string | null;
   isUpdatingPublicProfile?: boolean;
-  /** When set, sidebar shows a Social accounts summary linking to /settings/integrations. */
+  /** When set, sidebar shows a Social accounts summary linking to /settings/connected-accounts. */
   manageSocialHref?: string;
   onTogglePublicProfile: (isPublic: boolean) => void;
   onRefreshBrand: () => Promise<void>;
@@ -139,7 +139,7 @@ export interface BrandDetailExternalLinksCardProps {
   onOpenLinkModal: (link?: ILink) => void;
   /**
    * Connected OAuth accounts — shown as read-only profile rows.
-   * Social presence is owned by /settings/integrations, not manual Link CRUD.
+   * Social presence is owned by /settings/connected-accounts, not manual Link CRUD.
    */
   socialConnections?: BrandDetailSocialConnection[];
   /** Deep link to the Social connect page when connections are empty. */
@@ -150,7 +150,8 @@ export interface BrandDetailDefaultModelsCardProps {
   brand: IBrand;
 }
 
-export interface BrandDetailAgentProfileCardProps {
+export interface BrandWritingVoiceEditorProps {
+  section?: 'voice' | 'strategy' | 'agent';
   brand: IBrand;
   brandId: string;
   onRefreshBrand: () => Promise<void>;

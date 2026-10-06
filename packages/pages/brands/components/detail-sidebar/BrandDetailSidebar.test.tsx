@@ -39,9 +39,12 @@ vi.mock(
   }),
 );
 
-vi.mock('@pages/brands/components/sidebar/BrandDetailAgentProfileCard', () => ({
-  default: () => <div>Agent Profile Card</div>,
-}));
+vi.mock(
+  '@pages/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor',
+  () => ({
+    default: () => <div>Agent Profile Card</div>,
+  }),
+);
 
 vi.mock('@pages/brands/components/sidebar/BrandDetailIdentityCard', () => ({
   default: () => <div>Identity Card</div>,

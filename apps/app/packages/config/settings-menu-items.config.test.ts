@@ -181,74 +181,19 @@ describe('buildSettingsMenuItems', () => {
 
   describe('brand scope', () => {
     const items = buildSettingsMenuItems({ scope: SettingsSurface.BRAND });
-
-    it('shows brand profile + automation pages including Integrations and Brand Kit', () => {
-      expect(items.map((item) => item.label)).toEqual([
-        'Profile',
-        'Integrations',
-        'Brand Kit',
-        'Knowledge',
-        'Characters',
-        'Brand voice',
-        'Interview',
-        'Agent context',
-        'Harness',
-        'Publishing',
-        'Agent Defaults',
-        'Skills',
-        'Usage',
+    it('keeps eight focused destinations and moves workflow editors out of the menu', () => {
+      expect(items.map((item) => [item.label, item.group, item.href])).toEqual([
+        ['Brand profile', 'Brand', APP_ROUTES.SETTINGS.ROOT],
+        ['Brand Kit', 'Brand', APP_ROUTES.SETTINGS.BRAND_KIT],
+        ['Knowledge', 'Brand', APP_ROUTES.SETTINGS.KNOWLEDGE],
+        ['Connected accounts', 'Brand', APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS],
+        ['Agent settings', 'Automation', APP_ROUTES.SETTINGS.AGENT],
+        ['Publishing', 'Automation', APP_ROUTES.SETTINGS.PUBLISHING],
+        ['Skills', 'Automation', APP_ROUTES.SETTINGS.SKILLS],
+        ['Usage', 'Usage', APP_ROUTES.SETTINGS.USAGE],
       ]);
-    });
-
-    it('scopes every entry to the brand and marks Profile exact', () => {
       expect(items.every((item) => item.hrefScope === 'brand')).toBe(true);
-      expect(items.find((i) => i.label === 'Profile')?.isExactMatch).toBe(true);
-      expect(items.find((i) => i.label === 'Profile')?.href).toBe(
-        APP_ROUTES.SETTINGS.ROOT,
-      );
-      expect(items.find((i) => i.label === 'Integrations')?.href).toBe(
-        '/settings/integrations',
-      );
-      expect(items.find((i) => i.label === 'Links')).toBeUndefined();
-      expect(items.find((i) => i.label === 'Brand Kit')?.href).toBe(
-        '/settings/kit',
-      );
-      expect(items.find((i) => i.label === 'Knowledge')?.href).toBe(
-        APP_ROUTES.SETTINGS.KNOWLEDGE,
-      );
-      expect(items.find((i) => i.label === 'Characters')?.href).toBe(
-        APP_ROUTES.SETTINGS.CHARACTERS,
-      );
-      expect(items.find((i) => i.label === 'Brand voice')?.href).toBe(
-        '/settings/voice',
-      );
-      expect(items.find((i) => i.label === 'Agent context')?.href).toBe(
-        '/settings/agent-context',
-      );
-      expect(items.find((i) => i.label === 'Skills')?.href).toBe(
-        APP_ROUTES.SETTINGS.SKILLS,
-      );
-      expect(items.find((i) => i.label === 'Usage')?.href).toBe(
-        APP_ROUTES.SETTINGS.USAGE,
-      );
-    });
-
-    it('uses meaningful Brand, Automation, and Billing groups', () => {
-      expect(items.map((item) => [item.label, item.group])).toEqual([
-        ['Profile', 'Brand'],
-        ['Integrations', 'Brand'],
-        ['Brand Kit', 'Brand'],
-        ['Knowledge', 'Brand'],
-        ['Characters', 'Brand'],
-        ['Brand voice', 'Brand'],
-        ['Interview', 'Brand'],
-        ['Agent context', 'Brand'],
-        ['Harness', 'Automation'],
-        ['Publishing', 'Automation'],
-        ['Agent Defaults', 'Automation'],
-        ['Skills', 'Automation'],
-        ['Usage', 'Billing'],
-      ]);
+      expect(items[0].isExactMatch).toBe(true);
     });
   });
 

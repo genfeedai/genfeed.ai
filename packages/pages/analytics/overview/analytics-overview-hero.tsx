@@ -65,7 +65,7 @@ export default function AnalyticsOverviewHero({
           {heroContent.primaryAction.label}
         </Link>
         <Link
-          href={orgHref(APP_ROUTES.SETTINGS.SOCIAL)}
+          href={orgHref(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}
           className={buttonVariants({
             size: ButtonSize.SM,
             variant: ButtonVariant.SECONDARY,

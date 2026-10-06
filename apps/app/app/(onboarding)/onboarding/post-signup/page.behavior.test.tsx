@@ -340,7 +340,7 @@ describe('PostSignupPage behavior', () => {
     });
     expect(findOrganizationBrandsMock).toHaveBeenCalledWith('org-1');
     expect(captureBrandOsFunnelStageMock).toHaveBeenCalledWith('draft_saved');
-    expect(locationState.href).toBe('/acme/acme-brand/settings/kit');
+    expect(locationState.href).toBe('/acme/acme-brand/settings/brand-kit');
   });
 
   it('retries a recoverable Brand OS storage outage without losing the token', async () => {
@@ -361,7 +361,7 @@ describe('PostSignupPage behavior', () => {
     expect(claimBrandOsPreviewMock).toHaveBeenLastCalledWith('brand-1', {
       previewToken: token,
     });
-    expect(locationState.href).toBe('/acme/acme-brand/settings/kit');
+    expect(locationState.href).toBe('/acme/acme-brand/settings/brand-kit');
   });
 
   it('claims an opaque clip-tool token and routes into the Studio project', async () => {

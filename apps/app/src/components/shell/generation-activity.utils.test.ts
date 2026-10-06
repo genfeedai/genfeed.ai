@@ -52,7 +52,7 @@ describe('generation activity destinations', () => {
         }),
         scope,
       ),
-    ).toBe('/acme/coffee/settings/integrations');
+    ).toBe('/acme/coffee/settings/connected-accounts');
   });
   it('never sends another organization or inaccessible brand to the selected brand', () => {
     expect(

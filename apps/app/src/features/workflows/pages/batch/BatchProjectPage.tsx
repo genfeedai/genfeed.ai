@@ -211,7 +211,7 @@ export default function BatchProjectPage({ projectId }: BatchProjectPageProps) {
                           : reason.includes('reference') ||
                               reason.includes('tone')
                             ? APP_ROUTES.SETTINGS.BRANDS
-                            : APP_ROUTES.SETTINGS.AGENT_DEFAULTS,
+                            : APP_ROUTES.SETTINGS.AGENT,
                       )}
                     >
                       {reason}

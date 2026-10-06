@@ -160,6 +160,7 @@ export const APP_ROUTES = {
      * (`?folder=`); this route is all three unset.
      */
     ASSETS: '/library/assets',
+    CHARACTERS: '/library/elements/characters',
     /**
      * Type-seeded entry points into the same browser. They are shareable deep
      * links (see `LIBRARY_ROUTE_BY_INGREDIENT_CATEGORY`), not navigation — type
@@ -272,7 +273,7 @@ export const APP_ROUTES = {
     ROOT: '/publishing',
   },
   SETTINGS: {
-    AGENT_DEFAULTS: '/settings/agent-defaults',
+    AGENT_DEFAULTS: '/settings/agent',
     API_KEYS: '/settings/api-keys',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',
@@ -287,7 +288,7 @@ export const APP_ROUTES = {
     REFERRALS: '/settings/referrals',
     SUBSCRIPTION: '/settings/subscription',
     ELEMENTS_SCENES: '/settings/elements/scenes',
-    CHARACTERS: '/settings/characters',
+    CHARACTERS: '/library/elements/characters',
     ABOUT: '/settings/about',
     HELP: '/settings/help',
     MEMBERS: '/settings/members',
@@ -327,7 +328,7 @@ export const APP_ROUTES = {
      * caller resolves the page through this constant. `/settings/social`
      * still redirects here for old links.
      */
-    SOCIAL: '/settings/integrations',
+    CONNECTED_ACCOUNTS: '/settings/connected-accounts',
     /** Brand-enabled agent skills and organization-owned skill variants. */
     SKILLS: '/settings/skills',
     USAGE: '/settings/usage',
@@ -623,17 +624,16 @@ export function createOrganizationAppRoute(
 }
 
 const BRAND_ONLY_SETTINGS_PREFIXES = [
-  APP_ROUTES.SETTINGS.AGENT_DEFAULTS,
+  APP_ROUTES.SETTINGS.AGENT,
   APP_ROUTES.SETTINGS.PUBLISHING,
   APP_ROUTES.SETTINGS.SKILLS,
-  APP_ROUTES.SETTINGS.SOCIAL,
+  APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
   APP_ROUTES.SETTINGS.KNOWLEDGE,
-  '/settings/voice',
-  '/settings/interview',
-  '/settings/agent-context',
-  '/settings/harness',
-  '/settings/kit',
-  '/settings/characters',
+  '/settings/brand-kit/guided-setup',
+  '/settings/agent/context',
+  '/settings/brand-kit/content-rules',
+  '/settings/brand-kit',
+  '/library/elements/characters',
 ] as const;
 
 function workspaceSurfacePath(pathname: string): string {

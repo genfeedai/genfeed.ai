@@ -561,7 +561,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
           'You have generated content waiting for a publishing destination.',
           'Connect an account to review and publish it from Genfeed.',
         ],
-        destinationUrl: `${this.appUrl()}/${encodeURIComponent(organizationSlug)}/${encodeURIComponent(brand.slug)}/settings/integrations`,
+        destinationUrl: `${this.appUrl()}/${encodeURIComponent(organizationSlug)}/${encodeURIComponent(brand.slug)}/settings/connected-accounts`,
         actionLabel: 'Connect an account',
         goal: 'connect_account',
         brandId: item.brandId,

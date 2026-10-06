@@ -51,9 +51,9 @@ export default function OnboardingRootPage() {
             ? createBrandAppRoute(
                 getBrandOrganizationSlug(brand),
                 brand.slug,
-                '/settings/kit',
+                '/settings/brand-kit',
               )
-            : '/settings/kit'
+            : '/settings/brand-kit'
           : APP_ROUTES.ONBOARDING.BRAND,
       );
       return;

@@ -101,7 +101,7 @@ describe('computeBrandCompleteness', () => {
     expect(identity?.fields[0].href).toBe('/settings');
 
     const voice = result.groups.find((g) => g.key === 'voice');
-    expect(voice?.fields[0].href).toBe('/settings/voice');
+    expect(voice?.fields[0].href).toBe('/settings/brand-kit?tab=voice');
   });
 
   it('uses weighted average for overall score', () => {

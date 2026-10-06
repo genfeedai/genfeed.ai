@@ -161,31 +161,31 @@ describe('operator-shell helpers', () => {
     expect(resolveOrganizationScopePath('/settings/publishing')).toBe(
       '/settings/brands',
     );
-    expect(resolveOrganizationScopePath('/settings/voice')).toBe(
+    expect(resolveOrganizationScopePath('/settings/brand-kit?tab=voice')).toBe(
       '/settings/brands',
     );
-    expect(resolveOrganizationScopePath('/settings/interview')).toBe(
-      '/settings/brands',
-    );
-    expect(resolveOrganizationScopePath('/settings/harness')).toBe(
-      '/settings/brands',
-    );
-    expect(resolveOrganizationScopePath('/settings/agent-defaults')).toBe(
+    expect(
+      resolveOrganizationScopePath('/settings/brand-kit/guided-setup'),
+    ).toBe('/settings/brands');
+    expect(
+      resolveOrganizationScopePath('/settings/brand-kit/content-rules'),
+    ).toBe('/settings/brands');
+    expect(resolveOrganizationScopePath('/settings/agent')).toBe(
       '/settings/brands',
     );
     expect(resolveOrganizationScopePath('/settings/skills')).toBe(
       '/settings/brands',
     );
-    expect(resolveOrganizationScopePath('/settings/integrations')).toBe(
+    expect(resolveOrganizationScopePath('/settings/connected-accounts')).toBe(
       '/settings/brands',
     );
-    expect(resolveOrganizationScopePath('/settings/kit')).toBe(
+    expect(resolveOrganizationScopePath('/settings/brand-kit')).toBe(
       '/settings/brands',
     );
     expect(resolveOrganizationScopePath('/settings/knowledge')).toBe(
       '/settings/brands',
     );
-    expect(resolveOrganizationScopePath('/settings/characters')).toBe(
+    expect(resolveOrganizationScopePath('/library/elements/characters')).toBe(
       '/settings/brands',
     );
     // Shared surfaces keep their path under org scope.

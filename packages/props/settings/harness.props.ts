@@ -54,7 +54,7 @@ export interface HarnessExamplesTabProps {
 
 export interface HarnessPositioningScorecardProps {
   positioning: IExpertPositioningScore;
-  /** Brand-scoped href to the positioning interview (`/settings/interview`). */
+  /** Brand-scoped href to the positioning interview (`/settings/brand-kit/guided-setup`). */
   interviewHref: string;
 }
 

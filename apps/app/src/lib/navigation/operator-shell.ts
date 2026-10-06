@@ -224,17 +224,16 @@ export function resolveBrandSwitchSurfacePath(brandScopedPath: string): string {
  * rewrite those to a 404.
  */
 const BRAND_ONLY_SETTINGS_PREFIXES = [
-  APP_ROUTES.SETTINGS.AGENT_DEFAULTS,
+  APP_ROUTES.SETTINGS.AGENT,
   APP_ROUTES.SETTINGS.PUBLISHING,
   APP_ROUTES.SETTINGS.SKILLS,
-  APP_ROUTES.SETTINGS.SOCIAL,
+  APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
   APP_ROUTES.SETTINGS.KNOWLEDGE,
-  '/settings/voice',
-  '/settings/interview',
-  '/settings/agent-context',
-  '/settings/harness',
-  '/settings/kit',
-  '/settings/characters',
+  '/settings/brand-kit/guided-setup',
+  '/settings/agent/context',
+  '/settings/brand-kit/content-rules',
+  '/settings/brand-kit',
+  '/library/elements/characters',
 ] as const;
 
 /**

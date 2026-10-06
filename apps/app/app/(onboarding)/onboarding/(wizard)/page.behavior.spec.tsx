@@ -61,7 +61,9 @@ describe('OnboardingRootPage routing', () => {
     render(<OnboardingRootPage />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/brand/settings/kit');
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/acme/brand/settings/brand-kit',
+      );
     });
     expect(mocks.replace).not.toHaveBeenCalledWith('/onboarding/summary');
   });

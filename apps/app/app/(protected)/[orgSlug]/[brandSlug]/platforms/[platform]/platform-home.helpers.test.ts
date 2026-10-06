@@ -188,7 +188,9 @@ describe('platform-home helpers', () => {
       'brand-1',
     );
 
-    expect(destinations.settingsSocial).toBe(APP_ROUTES.SETTINGS.SOCIAL);
+    expect(destinations.settingsSocial).toBe(
+      APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS,
+    );
     expect(destinations.queue).toBe(
       `${createPublishingPostsFilterRoute({ publicationState: 'not-posted' })}&platform=instagram`,
     );

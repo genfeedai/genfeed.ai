@@ -218,7 +218,7 @@ describe('PlatformHomePage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open Social settings' }),
-    ).toHaveAttribute('href', '/acme/moonrise/settings/integrations');
+    ).toHaveAttribute('href', '/acme/moonrise/settings/connected-accounts');
   });
 
   it('composes existing destination links when the platform is connected', () => {
@@ -242,7 +242,7 @@ describe('PlatformHomePage', () => {
     );
     expect(
       screen.getByRole('link', { name: 'Open Connection' }),
-    ).toHaveAttribute('href', '/acme/moonrise/settings/integrations');
+    ).toHaveAttribute('href', '/acme/moonrise/settings/connected-accounts');
     expect(
       screen.getByRole('link', { name: 'Open Top posts' }),
     ).toHaveAttribute(

@@ -1070,7 +1070,7 @@ describe('proxy', () => {
         const { default: proxy } = await import('./proxy');
         const response = await proxy(makeSignedInRequest(pathname));
         expect(response.headers.get('location')).toBe(
-          'http://localhost:3000/acme/brand/settings/kit',
+          'http://localhost:3000/acme/brand/settings/brand-kit',
         );
       },
     );

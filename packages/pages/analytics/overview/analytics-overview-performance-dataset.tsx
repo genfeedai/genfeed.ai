@@ -94,7 +94,7 @@ export default function AnalyticsOverviewPerformanceDataset() {
           <p className="text-sm text-foreground/55">
             {translate('coldStartHint')}{' '}
             <Link
-              href={href(APP_ROUTES.SETTINGS.SOCIAL)}
+              href={href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}
               className="font-medium text-foreground underline underline-offset-2"
             >
               {translate('coldStartHintLink')}

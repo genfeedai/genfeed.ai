@@ -1,4 +1,4 @@
-import AgentProfilePlatformOverrideFields from '@pages/brands/components/sidebar/AgentProfilePlatformOverrideFields';
+import AgentProfilePlatformOverrideFields from '@pages/brands/components/brand-kit/writing-voice/AgentProfilePlatformOverrideFields';
 import type {
   AgentProfilePlatformOverrideFieldsProps,
   AgentProfilePlatformOverrideFormState,

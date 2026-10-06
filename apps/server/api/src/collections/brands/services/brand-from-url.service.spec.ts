@@ -188,7 +188,8 @@ describe('BrandFromUrlService', () => {
       revisionId: 'revision-1',
       revisionStatus: 'draft',
       scanStatus: 'succeeded',
-      reviewUrl: 'https://app.example.com/example-org/example/settings/kit',
+      reviewUrl:
+        'https://app.example.com/example-org/example/settings/brand-kit',
     });
     expect(h.brands.create).toHaveBeenCalledWith({
       organizationId: 'org-1',

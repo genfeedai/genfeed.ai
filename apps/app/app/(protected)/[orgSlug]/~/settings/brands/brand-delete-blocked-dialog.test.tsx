@@ -37,7 +37,7 @@ describe('BrandDeleteBlockedDialog', () => {
       screen.getByRole('link', { name: 'Manage characters' }),
     ).toHaveAttribute(
       'href',
-      expect.stringContaining('/podcast/settings/characters'),
+      expect.stringContaining('/podcast/library/elements/characters'),
     );
   });
 
