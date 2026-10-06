@@ -22,17 +22,17 @@ import {
  * sidebar does not stack ANALYTICS + PERFORMANCE. Intelligence stays a group
  * (Insights, Hooks, Outliers, Lab).
  *
- * Org-level routes (`/:org/~/analytics/*`) ship Overview and Accounts. Items with
- * `hrefScope: 'brand'` are brand-route only — hide them on org scope or they 404.
+ * Overview, Accounts and Outliers exist under both brand and organization
+ * scope. Leave their hrefScope unset so navigation preserves the URL scope.
+ * Items with `hrefScope: 'brand'` are brand-route only — hide them on org scope
+ * or they 404.
  *
  * Every icon is unique — a repeated glyph makes two rows read as one entry.
  */
 export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
-    // Only destination that exists under both brand and org (`~/`) analytics.
     href: APP_ROUTES.ANALYTICS.OVERVIEW,
-    hrefScope: 'organization',
     label: 'Overview',
     matchPaths: [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
     outline: ChartColumn,
@@ -41,7 +41,6 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
     href: APP_ROUTES.ANALYTICS.ACCOUNTS,
-    hrefScope: 'organization',
     label: 'Accounts',
     matchPaths: [APP_ROUTES.ANALYTICS.ACCOUNTS],
     outline: AtSign,
@@ -95,7 +94,6 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Intelligence',
     href: APP_ROUTES.ANALYTICS.OUTLIERS,
-    hrefScope: 'organization',
     label: 'Outliers',
     matchPaths: [APP_ROUTES.ANALYTICS.OUTLIERS],
     outline: ScanSearch,
