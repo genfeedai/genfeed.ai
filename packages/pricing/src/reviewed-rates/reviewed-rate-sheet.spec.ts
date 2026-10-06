@@ -63,14 +63,26 @@ describe('reviewed rate sheet', () => {
   });
 
   it('prices every declared variant of every entry', () => {
+    const now = new Date(
+      Math.max(
+        ...REVIEWED_RATE_SHEET_ENTRIES.map((entry) =>
+          Date.parse(entry.verifiedAt),
+        ),
+      ),
+    );
     for (const entry of REVIEWED_RATE_SHEET_ENTRIES)
       expect(
         classifyModelPricingAttention({
-          category: 'video',
+          category: entry.rates.every((rate) => rate.unit.endsWith('-token'))
+            ? ModelCategory.TEXT
+            : ModelCategory.VIDEO,
+          hasTokenPricing: entry.rates.every((rate) =>
+            rate.unit.endsWith('-token'),
+          ),
           isActive: true,
           isFree: false,
           margin: 3.33,
-          now: new Date('2026-10-05T00:00:00Z'),
+          now,
           profile: profileFor(entry),
           provider: entry.provider,
         }),
