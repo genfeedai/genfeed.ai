@@ -29,6 +29,7 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
   ref,
   setup,
   typeOptions,
+  triggerLabel,
   ...buttonProps
 }: GenerationSetupTriggerProps &
   ButtonHTMLAttributes<HTMLButtonElement> & { ref?: Ref<HTMLButtonElement> }) {
@@ -73,6 +74,7 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
       isDisabled={isDisabled}
       ref={ref}
       textTransform="none"
+      title={triggerLabel ?? summaryParts.join(' · ')}
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       {...buttonProps}
@@ -84,7 +86,7 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
         )}
       />
       <span className="min-w-0 flex-1 truncate text-xs font-medium">
-        {summaryParts.join(' · ')}
+        {triggerLabel ?? summaryParts.join(' · ')}
       </span>
       <ChevronsUpDown
         className={cn(SHELL_ICON_CLASS, 'text-muted-foreground')}

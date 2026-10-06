@@ -86,7 +86,11 @@ const generationSetupPopoverMocks = vi.hoisted(() => ({
 vi.mock('@ui/dropdowns/generation-setup/GenerationSetupPopover', () => ({
   default: (props: Record<string, unknown>) => {
     generationSetupPopoverMocks.props = props;
-    return <button type="button">Setup</button>;
+    return (
+      <button type="button" aria-label="Setup">
+        {props.triggerLabel as string}
+      </button>
+    );
   },
 }));
 
@@ -246,6 +250,40 @@ describe('StudioGenerateComposer', () => {
     vi.clearAllMocks();
   });
 
+  it('shows the selected settings in the picker and keeps library access in the context menu', () => {
+    render(
+      <StudioGenerateComposer
+        {...baseProps}
+        attachedAssets={[
+          {
+            id: 'reference',
+            name: 'Apple reference',
+            kind: 'image',
+            role: 'reference',
+            source: 'library',
+          },
+        ]}
+        models={[{ key: 'banana', label: 'Nano Banana 2 Lite' } as IModel]}
+        prompt="A green apple"
+        settings={{ ...settings, modelKey: 'banana' }}
+        type="image"
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Setup' })).toHaveTextContent(
+      'Nano Banana 2 Lite · 1:1 · 1K · 1 output',
+    );
+    expect(
+      screen.queryByRole('button', { name: /browse library/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Add context' }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove Apple reference' }),
+    );
+    expect(baseProps.onRemoveAttachedAsset).toHaveBeenCalledWith('reference');
+  });
+
   it('keeps an empty composer compact with setup and submission controls, then expands while typing', () => {
     const view = render(
       <StudioGenerateComposer
@@ -260,11 +298,13 @@ describe('StudioGenerateComposer', () => {
     expect(screen.getByRole('button', { name: 'Setup' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
     const summary = screen.getByTestId('studio-generation-summary');
-    expect(summary.parentElement).toHaveClass('sr-only');
-    expect(screen.getByRole('link', { name: '120 available' })).toHaveAttribute(
-      'tabindex',
-      '-1',
+    expect(summary).toBeVisible();
+    expect(summary.parentElement).toContainElement(
+      screen.getByRole('button', { name: 'Generate' }),
     );
+    expect(
+      screen.getByRole('link', { name: '120 available' }),
+    ).not.toHaveAttribute('tabindex');
 
     const editor = screen.getByRole('textbox', { name: 'Prompt' });
     editor.focus();
@@ -279,7 +319,9 @@ describe('StudioGenerateComposer', () => {
     expect(shell).toHaveAttribute('data-expanded', 'true');
     expect(screen.getByTestId('studio-generation-summary')).toBeVisible();
     expect(screen.getByTestId('studio-generation-summary')).toBe(summary);
-    expect(summary.parentElement).not.toHaveClass('sr-only');
+    expect(summary.parentElement).toContainElement(
+      screen.getByRole('button', { name: 'Generate' }),
+    );
     expect(
       screen.getByRole('link', { name: '120 available' }),
     ).not.toHaveAttribute('tabindex');

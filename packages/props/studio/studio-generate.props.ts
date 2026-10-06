@@ -199,10 +199,7 @@ export interface StudioGenerateInspectorProps {
 export interface StudioGenerationSummaryProps {
   crunQuote?: UseCrunGenerationQuoteReturn;
   estimate: StudioGenerationCostEstimate;
-  isCollapsed?: boolean;
-  isLoadingModels: boolean;
   model?: IModel;
-  settings: StudioGenerateSettings;
   type: StudioGenerateType;
 }
 

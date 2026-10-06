@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import { Button } from '@ui/primitives/button';
@@ -13,7 +14,7 @@ interface PromptBarAttachedAssetsTrayProps {
   density?: 'compact' | 'default';
   dragError?: string | null;
   isDisabled?: boolean;
-  onBrowseAssets: () => void;
+  onBrowseAssets?: () => void;
   onRemoveAttachedAsset: (assetId: string) => void;
 }
 
@@ -67,26 +68,20 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
           <div
             key={asset.id}
             className={cn(
-              'inline-flex max-w-full items-center gap-2 bg-tertiary text-foreground shadow-border',
-              isCompact ? 'h-9 pl-1.5 pr-1' : 'h-10 pl-1.5 pr-1',
+              'inline-flex h-8 max-w-full items-center gap-2 rounded-md border border-border bg-tertiary pl-1 pr-0.5 text-foreground',
               isDisabled && 'opacity-70',
             )}
           >
-            <div
-              className={cn(
-                'flex shrink-0 items-center justify-center overflow-hidden bg-background/20 shadow-border',
-                isCompact ? 'size-6.5' : 'size-7',
-              )}
-            >
+            <div className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-background/20">
               {asset.previewUrl ? (
                 <Image
                   src={asset.previewUrl}
                   unoptimized={unoptimizedImages}
                   alt={asset.name || getAssetRoleLabel(asset)}
-                  width={isCompact ? 26 : 28}
-                  height={isCompact ? 26 : 28}
+                  width={24}
+                  height={24}
                   className="size-full object-cover outline-media"
-                  sizes={isCompact ? '26px' : '28px'}
+                  sizes="24px"
                 />
               ) : (
                 getFallbackIcon(asset)
@@ -99,20 +94,17 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
                 isCompact ? 'max-w-[180px]' : 'max-w-[220px]',
               )}
             >
-              <p
-                className={cn(
-                  'truncate font-medium',
-                  isCompact ? 'text-xs' : 'text-sm',
-                )}
-              >
+              <p className="truncate text-xs font-medium">
                 {asset.name || getAssetRoleLabel(asset)}
               </p>
             </div>
 
             <Button
               type="button"
-              variant={undefined}
-              className="size-7 shrink-0 bg-transparent p-0 text-muted-foreground shadow-border hover:bg-hover hover:text-foreground"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
+              withWrapper={false}
+              className="size-7 shrink-0 p-0"
               icon={<X className="size-3.5" />}
               onClick={() => onRemoveAttachedAsset(asset.id)}
               isDisabled={isDisabled}
@@ -121,19 +113,18 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
           </div>
         ))}
 
-        <Button
-          type="button"
-          variant={undefined}
-          className={cn(
-            'bg-transparent font-medium text-muted-foreground shadow-border hover:bg-hover hover:text-foreground',
-            isCompact ? 'h-9 px-2.5 text-2xs' : 'h-10 px-3 text-xs',
-          )}
-          icon={<FolderOpen className="size-3.5" />}
-          onClick={onBrowseAssets}
-          isDisabled={isDisabled}
-        >
-          {isCompact ? 'Library' : 'Browse library'}
-        </Button>
+        {onBrowseAssets ? (
+          <Button
+            type="button"
+            variant={ButtonVariant.GHOST}
+            className="h-8 rounded-md px-2.5 text-xs"
+            icon={<FolderOpen className="size-3.5" />}
+            onClick={onBrowseAssets}
+            isDisabled={isDisabled}
+          >
+            {isCompact ? 'Library' : 'Browse library'}
+          </Button>
+        ) : null}
       </div>
 
       {dragError ? (

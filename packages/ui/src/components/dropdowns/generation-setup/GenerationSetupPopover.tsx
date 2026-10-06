@@ -60,6 +60,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
   scopeKey: _scopeKey,
   setup,
   typeOptions,
+  triggerLabel,
 }: GenerationSetupPopoverProps) {
   const translate = useTranslations('agent.generationSetup');
   const [isOpen, setIsOpen] = useState(false);
@@ -105,6 +106,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
           ref={buttonRef}
           setup={setup}
           typeOptions={typeOptions}
+          triggerLabel={triggerLabel}
         />
       </PopoverTrigger>
 

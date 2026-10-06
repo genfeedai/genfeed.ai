@@ -62,6 +62,8 @@ export interface GenerationSetupPopoverProps {
   isPresetsLoading?: boolean;
   /** Forwarded to the trigger — see `GenerationSetupTriggerProps.isTypeCommitted`. */
   isTypeCommitted?: boolean;
+  /** Surface-provided label for the active model and generation settings. */
+  triggerLabel?: string;
   onSetField: GenerationSetupFieldSetter;
   onApplyPreset: (preset: IStudioLook) => void;
   onSavePreset: (label: string) => void;
@@ -94,6 +96,8 @@ export interface GenerationSetupTriggerProps {
    * model or ratio is picked). The chip then names that type, never "Agent".
    */
   isTypeCommitted?: boolean;
+  /** Surface-provided label for the active model and generation settings. */
+  triggerLabel?: string;
 }
 
 export interface GenerationSetupFieldIconProps {

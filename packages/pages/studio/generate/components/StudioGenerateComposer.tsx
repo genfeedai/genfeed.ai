@@ -25,7 +25,10 @@ import type {
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type { StudioGenerationCostEstimate } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
+import {
+  getDefaultVideoResolution,
+  getVideoResolutionLabel,
+} from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import {
   buildStudioGenerationQuoteRequest,
@@ -457,6 +460,36 @@ export default function StudioGenerateComposer({
     [deleteLook],
   );
 
+  const modelLabel = !capabilities.hasModelSelection
+    ? undefined
+    : isLoadingModels
+      ? translate('summary.modelLoading')
+      : isAutoStudioModelKey(displaySettings.modelKey)
+        ? translate('inspector.autoModel')
+        : selectedModel?.label || translate('summary.modelUnavailable');
+  const resolutionLabel =
+    type === 'video' && costPromptData.resolution
+      ? (getVideoResolutionLabel(
+          displaySettings.modelKey,
+          costPromptData.resolution,
+        ) ?? costPromptData.resolution)
+      : costPromptData.resolution;
+  const setupLabel = [
+    modelLabel ?? typeOptions.find((option) => option.value === type)?.label,
+    capabilities.hasAspectRatio ? displaySettings.aspectRatio : undefined,
+    type === 'image' || type === 'video' ? resolutionLabel : undefined,
+    capabilities.hasDuration && costPromptData.duration
+      ? translate('inspector.durationSeconds', {
+          seconds: costPromptData.duration,
+        })
+      : undefined,
+    capabilities.hasOutputs
+      ? translate('summary.outputs', { count: costPromptData.outputs ?? 1 })
+      : undefined,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   const isExpanded =
     prompt.length > 0 ||
     attachedAssets.length > 0 ||
@@ -482,11 +515,6 @@ export default function StudioGenerateComposer({
             <PromptBarAttachedAssetsTray
               assets={attachedAssets}
               isDisabled={isGenerating}
-              onBrowseAssets={() =>
-                onOpenLibrary(
-                  type === 'image-edit' ? 'editSource' : 'reference',
-                )
-              }
               onRemoveAttachedAsset={onRemoveAttachedAsset}
             />
           </div>
@@ -685,17 +713,6 @@ export default function StudioGenerateComposer({
           ) : null}
         </div>
       ) : null}
-      <div className={isExpanded ? undefined : 'sr-only'}>
-        <StudioGenerationSummary
-          crunQuote={crunQuote}
-          estimate={estimate}
-          isCollapsed={!isExpanded}
-          isLoadingModels={isLoadingModels}
-          model={selectedModel}
-          settings={displaySettings}
-          type={type}
-        />
-      </div>
 
       {isFirstFrameMissing ||
       isReferenceCombinationInvalid ||
@@ -714,13 +731,13 @@ export default function StudioGenerateComposer({
       <div
         className={
           isExpanded
-            ? 'mt-0.5 flex min-h-9 min-w-0 flex-wrap items-center justify-between gap-2 pt-1'
+            ? 'mt-2 flex min-h-8 min-w-0 flex-wrap items-center justify-between gap-2'
             : 'contents'
         }
       >
         <div
           className={cn(
-            'flex min-w-0 flex-wrap items-center gap-0.5',
+            'flex min-w-0 flex-wrap items-center gap-2',
             isExpanded ? 'flex-1' : 'max-w-full flex-1 lg:flex-initial',
           )}
         >
@@ -825,6 +842,7 @@ export default function StudioGenerateComposer({
             </>
           ) : null}
           <GenerationSetupPopover
+            triggerLabel={setupLabel}
             inputControls={inputControls}
             referenceCount={crunReferenceCount ?? attachedAssets.length}
             capabilities={capabilities}
@@ -856,7 +874,10 @@ export default function StudioGenerateComposer({
           />
 
           {type === 'image' || type === 'video' ? (
-            <GenerationHarnessSettingsPopover isDisabled={isGenerating} />
+            <GenerationHarnessSettingsPopover
+              className="size-8 shrink-0 p-0"
+              isDisabled={isGenerating}
+            />
           ) : null}
 
           {capabilities.hasIdentity ? (
@@ -870,6 +891,7 @@ export default function StudioGenerateComposer({
 
           {capabilities.hasReferences && type === 'image' ? (
             <PromptBarReferenceControls
+              density="compact"
               accept="image/*"
               isAttachmentDisabled={isGenerating || isUploading}
               isLibraryDisabled={isGenerating}
@@ -881,6 +903,7 @@ export default function StudioGenerateComposer({
           {type === 'image-edit' ? (
             <>
               <PromptBarReferenceControls
+                density="compact"
                 accept="image/*"
                 label={translate('editImage.sourceImages')}
                 isAttachmentDisabled={
@@ -896,6 +919,7 @@ export default function StudioGenerateComposer({
               />
               {!isFlux ? (
                 <PromptBarReferenceControls
+                  density="compact"
                   accept="image/*"
                   label={translate('editImage.maskOptional')}
                   isAttachmentDisabled={isGenerating || isUploading}
@@ -911,6 +935,7 @@ export default function StudioGenerateComposer({
             inputControls.videoRules?.referenceMode === 'start-end') ? (
             <>
               <PromptBarReferenceControls
+                density="compact"
                 accept="image/*"
                 isAttachmentDisabled={isGenerating || isUploading}
                 isLibraryDisabled={isGenerating}
@@ -923,6 +948,7 @@ export default function StudioGenerateComposer({
                 ? inputControls.videoRules?.referenceMode === 'start-end'
                 : hasEndFrame(settings.modelKey)) ? (
                 <PromptBarReferenceControls
+                  density="compact"
                   accept="image/*"
                   isAttachmentDisabled={isGenerating || isUploading}
                   isLibraryDisabled={isGenerating}
@@ -935,6 +961,7 @@ export default function StudioGenerateComposer({
               inputControls?.mediaKind !== 'video' &&
               hasVideoReferences(settings.modelKey) ? (
                 <PromptBarReferenceControls
+                  density="compact"
                   accept="video/*"
                   isAttachmentDisabled={isGenerating || isUploading}
                   isLibraryDisabled={isGenerating}
@@ -947,11 +974,11 @@ export default function StudioGenerateComposer({
           ) : null}
         </div>
 
-        <div className="ml-auto flex shrink-0 items-center">
+        <div className="ml-auto flex min-w-0 max-w-full items-center gap-2">
           {!isEnhancingPrompt && previousPrompt !== null ? (
             <Button
               ariaLabel={translate('undoPromptEnhancement')}
-              className="h-7 shrink-0 px-2 text-2xs"
+              className="h-8 shrink-0 px-2 text-xs"
               isDisabled={isGenerating}
               label={translate('undo')}
               onClick={onUndoEnhancePrompt}
@@ -967,7 +994,7 @@ export default function StudioGenerateComposer({
                   ? translate('cancelEnhancingPrompt')
                   : translate('enhancePrompt')
               }
-              className="size-9 shrink-0 min-h-0 min-w-0 p-0"
+              className="size-8 shrink-0 min-h-0 min-w-0 p-0"
               icon={
                 isEnhancingPrompt ? (
                   <Spinner className="size-4" />
@@ -986,8 +1013,15 @@ export default function StudioGenerateComposer({
               withWrapper={false}
             />
           ) : null}
+          <StudioGenerationSummary
+            crunQuote={crunQuote}
+            estimate={estimate}
+            model={selectedModel}
+            type={type}
+          />
           {isListening || isTranscribing || shouldShowVoiceInput ? (
             <PromptBarVoiceControl
+              density="compact"
               isDisabled={isGenerating}
               isListening={isListening}
               isTranscribing={isTranscribing}
@@ -997,7 +1031,7 @@ export default function StudioGenerateComposer({
           ) : (
             <Button
               ariaLabel={translate('generate')}
-              className="size-9 shrink-0 min-h-0 min-w-0 p-0"
+              className="size-8 shrink-0 min-h-0 min-w-0 p-0"
               icon={<ArrowUp className="size-4" />}
               isDisabled={isSubmitBlocked}
               isLoading={isGenerating}
