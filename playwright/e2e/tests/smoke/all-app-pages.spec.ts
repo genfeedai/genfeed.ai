@@ -410,6 +410,11 @@ async function startMockApiServer(): Promise<Server | null> {
       return;
     }
 
+    if (/^\/v1\/admin\/model-pricing\/?(?:\?|$)/.test(url)) {
+      jsonResponse(response, buildUnhandledApiMockBody(url));
+      return;
+    }
+
     if (url.includes('/settings')) {
       jsonResponse(response, {
         data: { attributes: bootstrapPayload().settings },

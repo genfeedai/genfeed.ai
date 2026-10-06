@@ -230,7 +230,7 @@ test.describe('Context sidebar — selection driven', () => {
     await expect(card).toHaveAttribute('data-selected', 'false');
   });
 
-  test('opens a Library asset on selection and deselects it on close', async ({
+  test('opens Library asset details from the tile and keeps bulk selection independent of close', async ({
     authenticatedPage,
   }) => {
     await mockLibraryData(authenticatedPage);
@@ -242,20 +242,37 @@ test.describe('Context sidebar — selection driven', () => {
     const selectToggle = authenticatedPage.getByTestId(
       'masonry-select-ingredient-image-1',
     );
-    await selectToggle.hover();
-    await selectToggle.click();
-
+    const tile = authenticatedPage.getByTestId(
+      'masonry-ingredient-ingredient-image-1',
+    );
     const contextSidebar = authenticatedPage.getByRole('complementary', {
       name: 'Selection details',
     });
+    await expect(selectToggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(contextSidebar).toHaveCount(0);
+
+    await selectToggle.hover();
+    await selectToggle.click();
+    await expect(selectToggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(contextSidebar).toHaveCount(0);
+
+    await tile.click();
     await expect(contextSidebar).toBeVisible();
     await expect(contextSidebar.getByLabel('Asset details')).toBeVisible();
+    await expect(
+      contextSidebar.getByTestId('context-sidebar-title'),
+    ).toHaveText('Product Photo');
+    await expect(selectToggle).toHaveAttribute('aria-pressed', 'true');
 
     await contextSidebar
       .getByRole('button', { exact: true, name: 'Close details' })
       .click();
 
     await expect(contextSidebar).toHaveCount(0);
+    await expect(selectToggle).toHaveAttribute('aria-pressed', 'true');
+
+    await selectToggle.click();
     await expect(selectToggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(contextSidebar).toHaveCount(0);
   });
 });

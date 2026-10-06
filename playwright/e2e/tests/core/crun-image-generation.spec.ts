@@ -318,18 +318,59 @@ async function installFixture(
   return { previews, consumes, ownedId, ownedUrl, composer, editor };
 }
 
-async function openSettings(page: Page, section: string) {
+async function openGenerationSetup(page: Page, summary: string) {
+  const setup = page.getByRole('button', { name: /^Generation setup:/ });
+  await expect(setup).toContainText(summary);
+  await setup.click();
+}
+async function openConfiguration(page: Page, section: string) {
   await page
-    .getByRole('button', { name: 'Generation setup', exact: true })
+    .getByRole('button', { name: `Configure ${section}`, exact: true })
     .click();
+}
+async function backToSetup(page: Page) {
   await page
-    .getByRole('button', { name: 'Customize setup', exact: true })
+    .getByRole('button', { name: 'Back to setup', exact: true })
     .click();
-  await page.getByRole('tab', { name: section, exact: true }).click();
 }
 async function selectValue(page: Page, label: string, value: string) {
   await page.getByRole('combobox', { name: label, exact: true }).click();
   await page.getByRole('option', { name: value, exact: true }).click();
+}
+async function expectSubmitTooltip(page: Page, statusName: string) {
+  const shell = page.getByTestId('studio-generate-composer-shell');
+  const generate = shell.getByRole('button', {
+    name: 'Generate',
+    exact: true,
+  });
+  await expect(shell.getByText(statusName, { exact: true })).toHaveCount(0);
+  // HTML-disabled Generate cannot take focus. The summary group is that
+  // TooltipTrigger (role=group, aria-label, tabindex=0).
+  const summaryGroup = shell.getByRole('group', {
+    name: 'Generate',
+    exact: true,
+  });
+  const isFocusBlocked = await generate.evaluate(
+    (element) => element instanceof HTMLButtonElement && element.disabled,
+  );
+  const trigger =
+    isFocusBlocked && (await summaryGroup.count()) > 0
+      ? summaryGroup
+      : generate;
+  await trigger.focus();
+  const tooltip = page.getByRole('tooltip');
+  await expect(tooltip).toBeVisible();
+  await expect(
+    tooltip.getByRole('status', { name: statusName, exact: true }),
+  ).toBeVisible();
+  const descriptionId = await tooltip.getAttribute('id');
+  expect(descriptionId).toBeTruthy();
+  await expect(trigger).toHaveAttribute(
+    'aria-describedby',
+    descriptionId ?? '',
+  );
+  await trigger.press('Escape');
+  await expect(tooltip).toHaveCount(0);
 }
 
 test.beforeEach(() => {
@@ -357,7 +398,11 @@ for (const key of [nanoKey, seedreamKey]) {
   }) => {
     test.setTimeout(120000);
     const fixture = await installFixture(page, key);
-    await openSettings(page, 'Model');
+    await openGenerationSetup(
+      page,
+      key === nanoKey ? 'Nano Banana Pro' : 'Seedream 4.5',
+    );
+    await openConfiguration(page, 'Model');
     await page
       .getByRole('option', {
         name: new RegExp(key === nanoKey ? 'Seedream 4.5' : 'Nano Banana Pro'),
@@ -368,9 +413,11 @@ for (const key of [nanoKey, seedreamKey]) {
         name: new RegExp(key === nanoKey ? 'Nano Banana Pro' : 'Seedream 4.5'),
       })
       .click();
-    await page.getByRole('tab', { name: 'Look', exact: true }).click();
+    await backToSetup(page);
+    await openConfiguration(page, 'Look');
     await selectValue(page, 'Resolution', '4K');
-    await page.getByRole('tab', { name: 'Output', exact: true }).click();
+    await backToSetup(page);
+    await openConfiguration(page, 'Output');
     await selectValue(page, 'Aspect ratio', '21:9');
     await page
       .getByRole('combobox', { name: 'Aspect ratio', exact: true })
@@ -380,9 +427,7 @@ for (const key of [nanoKey, seedreamKey]) {
     ).toHaveCount(0);
     await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
-    await expect(
-      fixture.composer.getByText('3 credits', { exact: true }),
-    ).toBeVisible();
+    await expectSubmitTooltip(page, '3 credits');
     const generate = fixture.composer.getByRole('button', {
       name: 'Generate',
       exact: true,
@@ -434,12 +479,10 @@ test('disabled Crun admission keeps the draft and makes zero consumes', async ({
   authenticatedPage: page,
 }) => {
   const fixture = await installFixture(page, nanoKey, 'disabled');
-  await expect(
-    fixture.composer.getByText(
-      'This image provider is unavailable on this server.',
-      { exact: true },
-    ),
-  ).toBeVisible();
+  await expectSubmitTooltip(
+    page,
+    'This image provider is unavailable on this server.',
+  );
   await expect(
     fixture.composer.getByRole('button', { name: 'Generate', exact: true }),
   ).toBeDisabled();

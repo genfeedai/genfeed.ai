@@ -398,14 +398,39 @@ async function installFixture(
   await editor.fill('A ceramic bird on a desk');
   return { previews, consumes, ownedId, ownedUrl, composer, editor };
 }
-async function openSettings(page: Page, section: string) {
+async function openGenerationSetup(page: Page, summary: string) {
+  const setup = page.getByRole('button', { name: /^Generation setup:/ });
+  await expect(setup).toContainText(summary);
+  await setup.click();
+}
+async function openConfiguration(page: Page, section: string) {
   await page
-    .getByRole('button', { name: 'Generation setup', exact: true })
+    .getByRole('button', { name: `Configure ${section}`, exact: true })
     .click();
-  await page
-    .getByRole('button', { name: 'Customize setup', exact: true })
-    .click();
-  await page.getByRole('tab', { name: section, exact: true }).click();
+}
+async function expectSubmitTooltip(page: Page, statusName: string) {
+  const generate = page
+    .getByTestId('studio-generate-composer-shell')
+    .getByRole('button', { name: 'Generate', exact: true });
+  await expect(
+    page
+      .getByTestId('studio-generate-composer-shell')
+      .getByText(statusName, { exact: true }),
+  ).toHaveCount(0);
+  await generate.focus();
+  const tooltip = page.getByRole('tooltip');
+  await expect(tooltip).toBeVisible();
+  await expect(
+    tooltip.getByRole('status', { name: statusName, exact: true }),
+  ).toBeVisible();
+  const descriptionId = await tooltip.getAttribute('id');
+  expect(descriptionId).toBeTruthy();
+  await expect(generate).toHaveAttribute(
+    'aria-describedby',
+    descriptionId ?? '',
+  );
+  await generate.press('Escape');
+  await expect(tooltip).toHaveCount(0);
 }
 async function selectValue(page: Page, label: string, value: string) {
   await page.getByRole('combobox', { name: label, exact: true }).click();
@@ -489,9 +514,7 @@ for (const key of [klingKey, veoKey]) {
       ).toHaveCount(0);
     }
     await selectValue(page, 'Aspect ratio', '9:16');
-    await expect(
-      fixture.composer.getByText('3 credits', { exact: true }),
-    ).toBeVisible();
+    await expectSubmitTooltip(page, '3 credits');
     const generate = fixture.composer.getByRole('button', {
       name: 'Generate',
       exact: true,
@@ -554,7 +577,8 @@ test('Kling binds ordered authorized frames and clears them on Veo switch before
       exact: true,
     }),
   ).toBeVisible();
-  await openSettings(page, 'Model');
+  await openGenerationSetup(page, 'Kling 2.5 Turbo Pro');
+  await openConfiguration(page, 'Model');
   await page.getByRole('option', { name: /Veo 3.1 Fast/ }).click();
   await page.keyboard.press('Escape');
   await expect

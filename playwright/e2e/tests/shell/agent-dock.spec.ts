@@ -50,10 +50,14 @@ test.describe('Agent dock', () => {
 
       await expect(dock).toBeVisible();
       const bubble = page.getByTestId('agent-conversation-bubble');
-      await expect(bubble).toHaveAttribute('tabindex', '-1');
-      await expect(
-        bubble.locator('xpath=ancestor::*[@inert][1]'),
-      ).toHaveAttribute('aria-hidden', 'true');
+      await expect(bubble).toHaveAccessibleName('Close agent');
+      await expect(bubble).toHaveAttribute('aria-expanded', 'true');
+      await expect(bubble).toHaveAttribute(
+        'aria-controls',
+        'workspace-agent-dock',
+      );
+      await expect(bubble).toHaveAttribute('tabindex', '0');
+      await expect(bubble.locator('xpath=ancestor::*[@inert]')).toHaveCount(0);
       // The conversation and its composer render in the overlay. (The mocked
       // agent stream is offline in E2E, so the composer is disabled and cannot
       // take focus; the unit tests cover focusing it.)

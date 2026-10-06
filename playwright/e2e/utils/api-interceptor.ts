@@ -9,6 +9,7 @@ import {
 } from '@genfeedai/contracts';
 import { EXPERT_FIRST_SYSTEM_CREDIT_COST } from '@genfeedai/contracts/constants';
 import type {
+  AdminModelPricingReport,
   AdsResearchResponse,
   AdWatchlistPlatformReadiness,
   IAccountAnalytics,
@@ -2209,6 +2210,20 @@ export function buildUnhandledApiMockBody(url: string): unknown {
       'unit-economics-report',
       'mock-unit-economics',
     );
+  }
+
+  // AdminModelPricingController serializes one report resource. An empty
+  // collection deserializes to [] and ModelPricingToolbar's report.rows.filter
+  // throws because an array has no rows.
+  if (/\/admin\/model-pricing\/?$/.test(pathname)) {
+    const report: Omit<AdminModelPricingReport, 'id'> = {
+      isConversionPolicyConfigured: false,
+      marginMultiplierGeneration: null,
+      retrievedAt: new Date().toISOString(),
+      rows: [],
+      source: `${parsedUrl.origin}${pathname}`,
+    };
+    return wrapInJsonApi(report, 'model-pricing-report', 'model-pricing');
   }
 
   // SocialSourcesController.getFeed returns its result raw, not JSON:API.
