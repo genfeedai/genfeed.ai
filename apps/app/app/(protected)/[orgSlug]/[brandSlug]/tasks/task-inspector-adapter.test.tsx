@@ -12,7 +12,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { type ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect, useLayoutEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TaskInspectorAdapter from './task-inspector-adapter';
 import {
@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
   resolvers: new Map<string, () => Promise<unknown>>(),
   searchParams: new URLSearchParams('taskId=task-101'),
+  sidebarStates: [] as { isOpen: boolean; taskId: string | null }[],
   updateTask: vi.fn(),
 }));
 
@@ -92,6 +93,7 @@ vi.mock('../workspace/workspace-task-inspector', () => ({
   }) => (
     <div data-testid="workspace-task-inspector">
       {leading}
+      <p>{task.title}</p>
       <p>Status: {task.status}</p>
     </div>
   ),
@@ -123,11 +125,33 @@ function ListSelection() {
     selectTask?.(TASK);
   }, [selectTask]);
 
-  return <p data-testid="revision">{selection?.revision}</p>;
+  return (
+    <>
+      <p data-testid="revision">{selection?.revision}</p>
+      <button
+        type="button"
+        onClick={() =>
+          selectTask?.(
+            { ...TASK, id: 'task-102', title: 'Second task' },
+            'user',
+          )
+        }
+      >
+        Select second task
+      </button>
+    </>
+  );
 }
 
 function ShellCloseControl() {
   const contextSidebar = useContextSidebar();
+
+  useLayoutEffect(() => {
+    mocks.sidebarStates.push({
+      isOpen: contextSidebar?.isOpen ?? false,
+      taskId: contextSidebar?.selection?.id ?? null,
+    });
+  }, [contextSidebar?.isOpen, contextSidebar?.selection?.id]);
 
   return (
     <button type="button" onClick={contextSidebar?.close}>
@@ -136,8 +160,8 @@ function ShellCloseControl() {
   );
 }
 
-function renderTasksLayout() {
-  return render(
+function TasksLayout() {
+  return (
     <ContextSidebarProvider>
       <ShellCloseControl />
       <ContextSidebarOutlet testId="context-sidebar-outlet" />
@@ -145,8 +169,12 @@ function renderTasksLayout() {
         <TaskInspectorAdapter />
         <ListSelection />
       </TaskSelectionProvider>
-    </ContextSidebarProvider>,
+    </ContextSidebarProvider>
   );
+}
+
+function renderTasksLayout() {
+  return render(<TasksLayout />);
 }
 
 describe('TaskInspectorAdapter', () => {
@@ -155,6 +183,65 @@ describe('TaskInspectorAdapter', () => {
     mocks.searchParams = new URLSearchParams('taskId=task-101');
     mocks.updateTask.mockReset();
     mocks.updateTask.mockResolvedValue({ ...TASK, status: 'done' });
+    mocks.sidebarStates = [];
+  });
+
+  it('changes the task in place while the click is ahead of the URL update', () => {
+    const { rerender } = renderTasksLayout();
+    mocks.sidebarStates = [];
+
+    fireEvent.click(screen.getByRole('button', { name: 'Select second task' }));
+
+    expect(screen.getByTestId('context-sidebar-outlet')).toHaveTextContent(
+      'Second task',
+    );
+    expect(mocks.sidebarStates).not.toContainEqual({
+      isOpen: false,
+      taskId: null,
+    });
+    expect(
+      mocks.sidebarStates.every((state) => state.isOpen && state.taskId),
+    ).toBe(true);
+
+    mocks.searchParams = new URLSearchParams('taskId=task-102');
+    rerender(<TasksLayout />);
+
+    expect(screen.getByTestId('context-sidebar-outlet')).toHaveTextContent(
+      'Second task',
+    );
+    expect(
+      mocks.sidebarStates.every((state) => state.isOpen && state.taskId),
+    ).toBe(true);
+  });
+
+  it('keeps the panel open while a URL selection waits for its task record', () => {
+    const { rerender } = renderTasksLayout();
+    mocks.sidebarStates = [];
+
+    mocks.searchParams = new URLSearchParams('taskId=task-102');
+    rerender(<TasksLayout />);
+
+    expect(screen.getByTestId('context-sidebar-outlet')).toHaveTextContent(
+      TASK.title,
+    );
+    expect(
+      mocks.sidebarStates.every((state) => state.isOpen && state.taskId),
+    ).toBe(true);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Select second task' }));
+    expect(screen.getByTestId('context-sidebar-outlet')).toHaveTextContent(
+      'Second task',
+    );
+  });
+
+  it('clears the panel when the task query is removed', () => {
+    const { rerender } = renderTasksLayout();
+
+    mocks.searchParams = new URLSearchParams('view=list');
+    rerender(<TasksLayout />);
+
+    expect(screen.getByTestId('context-sidebar-outlet')).toBeEmptyDOMElement();
+    expect(mocks.sidebarStates.at(-1)).toEqual({ isOpen: false, taskId: null });
   });
 
   it('commits a status edit from the sidebar back through the task selection', async () => {
