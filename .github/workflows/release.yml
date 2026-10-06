@@ -42,15 +42,26 @@ jobs:
       actions: read
       contents: write
     outputs:
+      archive_asset_digest: ${{ steps.release.outputs.archive_asset_digest }}
+      archive_asset_id: ${{ steps.release.outputs.archive_asset_id }}
+      archive_asset_size: ${{ steps.release.outputs.archive_asset_size }}
       changelog_asset_digest: ${{ steps.release.outputs.changelog_asset_digest }}
       changelog_asset_id: ${{ steps.release.outputs.changelog_asset_id }}
       changelog_asset_size: ${{ steps.release.outputs.changelog_asset_size }}
+      checksum_asset_digest: ${{ steps.release.outputs.checksum_asset_digest }}
+      checksum_asset_id: ${{ steps.release.outputs.checksum_asset_id }}
+      checksum_asset_size: ${{ steps.release.outputs.checksum_asset_size }}
       draft_body_sha256: ${{ steps.release.outputs.draft_body_sha256 }}
       draft_id: ${{ steps.release.outputs.draft_id }}
       draft_title: ${{ steps.release.outputs.draft_title }}
+      # Reviewed historical image digest for npm-source-noop. Empty on a normal
+      # release and on attachment-failure recovery. Later promotion uses the
+      # verified image_digest from publish-community or verify-recovered-assets.
+      image_digest: ${{ steps.release.outputs.image_digest }}
       image_tag: ${{ steps.release.outputs.image_tag }}
       major_minor_tag: ${{ steps.release.outputs.major_minor_tag }}
       repair_mode: ${{ steps.release.outputs.repair_mode }}
+      recovery_kind: ${{ steps.release.outputs.recovery_kind }}
       recovery_mode: ${{ steps.release.outputs.recovery_mode }}
       recovery_run_id: ${{ steps.release.outputs.recovery_run_id }}
       recovery_saas_verified: ${{ steps.release.outputs.recovery_saas_verified }}
@@ -100,13 +111,21 @@ jobs:
           if [ -z "${RECOVERY_RUN_ID}" ]; then
             {
               echo "artifact_job_id="
+              echo "archive_asset_digest="
+              echo "archive_asset_id="
+              echo "archive_asset_size="
               echo "changelog_asset_digest="
               echo "changelog_asset_id="
               echo "changelog_asset_size="
+              echo "checksum_asset_digest="
+              echo "checksum_asset_id="
+              echo "checksum_asset_size="
               echo "draft_body_sha256="
               echo "draft_id="
               echo "draft_title="
+              echo "image_digest="
               echo "repair_mode=${REPAIR_PUBLISHED_RELEASE}"
+              echo "recovery_kind="
               echo "recovery_mode=false"
               echo "recovery_run_id="
               echo "recovery_saas_verified=false"
@@ -179,12 +198,20 @@ jobs:
         id: release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RECOVERY_ARCHIVE_ASSET_DIGEST: ${{ steps.source.outputs.archive_asset_digest }}
+          RECOVERY_ARCHIVE_ASSET_ID: ${{ steps.source.outputs.archive_asset_id }}
+          RECOVERY_ARCHIVE_ASSET_SIZE: ${{ steps.source.outputs.archive_asset_size }}
           RECOVERY_CHANGELOG_ASSET_DIGEST: ${{ steps.source.outputs.changelog_asset_digest }}
           RECOVERY_CHANGELOG_ASSET_ID: ${{ steps.source.outputs.changelog_asset_id }}
           RECOVERY_CHANGELOG_ASSET_SIZE: ${{ steps.source.outputs.changelog_asset_size }}
+          RECOVERY_CHECKSUM_ASSET_DIGEST: ${{ steps.source.outputs.checksum_asset_digest }}
+          RECOVERY_CHECKSUM_ASSET_ID: ${{ steps.source.outputs.checksum_asset_id }}
+          RECOVERY_CHECKSUM_ASSET_SIZE: ${{ steps.source.outputs.checksum_asset_size }}
           RECOVERY_DRAFT_BODY_SHA256: ${{ steps.source.outputs.draft_body_sha256 }}
           RECOVERY_DRAFT_ID: ${{ steps.source.outputs.draft_id }}
           RECOVERY_DRAFT_TITLE: ${{ steps.source.outputs.draft_title }}
+          RECOVERY_IMAGE_DIGEST: ${{ steps.source.outputs.image_digest }}
+          RECOVERY_KIND: ${{ steps.source.outputs.recovery_kind }}
           RECOVERY_MODE: ${{ steps.source.outputs.recovery_mode }}
           RECOVERY_RUN_ID: ${{ steps.source.outputs.recovery_run_id }}
           RECOVERY_SAAS_VERIFIED: ${{ steps.source.outputs.recovery_saas_verified }}
@@ -287,12 +314,59 @@ jobs:
                 exit 1
               fi
 
-              install_asset_count="$(jq '[.assets[] | select(
-                .name == "genfeed-selfhosted.tar.gz"
-                or .name == "genfeed-selfhosted.tar.gz.sha256"
-              )] | length' <<<"${release_json}")"
-              if [ "${install_asset_count}" -ne 0 ]; then
-                echo "::error::Recovery draft gained a versioned install asset before bundle rebuild."
+              assert_frozen_asset() {
+                local asset_name="$1"
+                local expected_id="$2"
+                local expected_digest="$3"
+                local expected_size="$4"
+                local matches asset_json
+                matches="$(jq -c --arg name "${asset_name}" \
+                  '[.assets[] | select(.name == $name)]' <<<"${release_json}")"
+                if [ "$(jq 'length' <<<"${matches}")" -ne 1 ]; then
+                  echo "::error::npm-source-noop draft asset ${asset_name} is missing or duplicated."
+                  exit 1
+                fi
+                asset_json="$(jq -c '.[0]' <<<"${matches}")"
+                if [ "$(jq -r '.id | tostring' <<<"${asset_json}")" != "${expected_id}" ] || \
+                   [ "$(jq -r '.digest // ""' <<<"${asset_json}")" != "${expected_digest}" ] || \
+                   [ "$(jq -r '.size | tostring' <<<"${asset_json}")" != "${expected_size}" ] || \
+                   [ "$(jq -r '.state // ""' <<<"${asset_json}")" != 'uploaded' ]; then
+                  echo "::error::npm-source-noop draft asset ${asset_name} changed after historical evidence validation."
+                  exit 1
+                fi
+              }
+
+              if [ "${RECOVERY_KIND}" = 'attachment-failure' ]; then
+                install_asset_count="$(jq '[.assets[] | select(
+                  .name == "genfeed-selfhosted.tar.gz"
+                  or .name == "genfeed-selfhosted.tar.gz.sha256"
+                )] | length' <<<"${release_json}")"
+                if [ "${install_asset_count}" -ne 0 ]; then
+                  echo "::error::Recovery draft gained a versioned install asset before bundle rebuild."
+                  exit 1
+                fi
+              elif [ "${RECOVERY_KIND}" = 'npm-source-noop' ]; then
+                if [ "$(jq '[.assets[]] | length' <<<"${release_json}")" -ne 3 ]; then
+                  echo "::error::npm-source-noop draft must contain exactly the changelog and two install assets."
+                  exit 1
+                fi
+                assert_frozen_asset \
+                  CHANGELOG.md \
+                  "${RECOVERY_CHANGELOG_ASSET_ID}" \
+                  "${RECOVERY_CHANGELOG_ASSET_DIGEST}" \
+                  "${RECOVERY_CHANGELOG_ASSET_SIZE}"
+                assert_frozen_asset \
+                  genfeed-selfhosted.tar.gz \
+                  "${RECOVERY_ARCHIVE_ASSET_ID}" \
+                  "${RECOVERY_ARCHIVE_ASSET_DIGEST}" \
+                  "${RECOVERY_ARCHIVE_ASSET_SIZE}"
+                assert_frozen_asset \
+                  genfeed-selfhosted.tar.gz.sha256 \
+                  "${RECOVERY_CHECKSUM_ASSET_ID}" \
+                  "${RECOVERY_CHECKSUM_ASSET_DIGEST}" \
+                  "${RECOVERY_CHECKSUM_ASSET_SIZE}"
+              else
+                echo "::error::Recovery kind ${RECOVERY_KIND:-<empty>} is not attachment-failure or npm-source-noop."
                 exit 1
               fi
 
@@ -358,8 +432,13 @@ jobs:
               .name == "genfeed-selfhosted.tar.gz"
               or .name == "genfeed-selfhosted.tar.gz.sha256"
             )] | length' <<<"${release_json}")"
-            if [ "${RECOVERY_MODE}" = 'true' ] && [ "${install_asset_count}" -ne 0 ]; then
+            if [ "${RECOVERY_KIND}" = 'attachment-failure' ] && [ "${install_asset_count}" -ne 0 ]; then
               echo "::error::Draft ${release_tag} must contain no versioned install assets before immutable attachment."
+              exit 1
+            fi
+            if [ "${RECOVERY_KIND}" = 'npm-source-noop' ] && \
+              [ "$(jq '[.assets[]?] | length' <<<"${release_json}")" -ne 3 ]; then
+              echo "::error::npm-source-noop draft must contain exactly the changelog and two install assets."
               exit 1
             fi
 
@@ -402,6 +481,18 @@ jobs:
             echo "::error::Recovery changelog asset changed before draft validation completed."
             exit 1
           fi
+          if [ "${RECOVERY_KIND}" = 'npm-source-noop' ]; then
+            assert_frozen_asset \
+              genfeed-selfhosted.tar.gz \
+              "${RECOVERY_ARCHIVE_ASSET_ID}" \
+              "${RECOVERY_ARCHIVE_ASSET_DIGEST}" \
+              "${RECOVERY_ARCHIVE_ASSET_SIZE}"
+            assert_frozen_asset \
+              genfeed-selfhosted.tar.gz.sha256 \
+              "${RECOVERY_CHECKSUM_ASSET_ID}" \
+              "${RECOVERY_CHECKSUM_ASSET_DIGEST}" \
+              "${RECOVERY_CHECKSUM_ASSET_SIZE}"
+          fi
 
           draft_id="$(jq -r '.id // ""' <<<"${release_json}")"
           draft_title="$(jq -r '.name // ""' <<<"${release_json}")"
@@ -427,15 +518,23 @@ jobs:
           fi
 
           {
+            echo "archive_asset_digest=${RECOVERY_ARCHIVE_ASSET_DIGEST}"
+            echo "archive_asset_id=${RECOVERY_ARCHIVE_ASSET_ID}"
+            echo "archive_asset_size=${RECOVERY_ARCHIVE_ASSET_SIZE}"
             echo "changelog_asset_digest=${changelog_asset_digest}"
             echo "changelog_asset_id=${changelog_asset_id}"
             echo "changelog_asset_size=${changelog_asset_size}"
+            echo "checksum_asset_digest=${RECOVERY_CHECKSUM_ASSET_DIGEST}"
+            echo "checksum_asset_id=${RECOVERY_CHECKSUM_ASSET_ID}"
+            echo "checksum_asset_size=${RECOVERY_CHECKSUM_ASSET_SIZE}"
             echo "draft_body_sha256=${draft_body_sha256}"
             echo "draft_id=${draft_id}"
             echo "draft_title=${draft_title}"
+            echo "image_digest=${RECOVERY_IMAGE_DIGEST}"
             echo "image_tag=${image_tag}"
             echo "major_minor_tag=${major_minor_tag}"
             echo "repair_mode=${REPAIR_MODE}"
+            echo "recovery_kind=${RECOVERY_KIND}"
             echo "recovery_mode=${RECOVERY_MODE}"
             echo "recovery_run_id=${RECOVERY_RUN_ID}"
             echo "recovery_saas_verified=${RECOVERY_SAAS_VERIFIED}"
@@ -480,6 +579,7 @@ jobs:
     if: |
       always() &&
       needs.validate-release.result == 'success' &&
+      needs.validate-release.outputs.recovery_kind != 'npm-source-noop' &&
       (
         (needs.validate-release.outputs.recovery_mode == 'true' &&
           needs.validate-release.outputs.recovery_suite_verified == 'true' &&
@@ -501,6 +601,79 @@ jobs:
       major_minor_tag: ""
       release_tag: ${{ needs.validate-release.outputs.release_tag }}
       reuse_existing_image: ${{ needs.validate-release.outputs.recovery_mode == 'true' }}
+
+  # npm-source-noop assets were already attached by the historical run. Check
+  # out the current controller, not the historical SHA: this verifier does not
+  # exist at the recovered commit. Read the frozen asset bytes and the public
+  # image. Do not rebuild, upload, retag, or log in to GHCR.
+  verify-recovered-assets:
+    name: Verify recovered release assets
+    needs: [validate-release, verify-suite]
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.validate-release.result == 'success' &&
+      needs.validate-release.outputs.recovery_kind == 'npm-source-noop' &&
+      needs.validate-release.outputs.recovery_suite_verified == 'true' &&
+      needs.verify-suite.result == 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      archive_asset_digest: ${{ steps.assets.outputs.archive_asset_digest }}
+      archive_asset_id: ${{ steps.assets.outputs.archive_asset_id }}
+      archive_asset_size: ${{ steps.assets.outputs.archive_asset_size }}
+      checksum_asset_digest: ${{ steps.assets.outputs.checksum_asset_digest }}
+      checksum_asset_id: ${{ steps.assets.outputs.checksum_asset_id }}
+      checksum_asset_size: ${{ steps.assets.outputs.checksum_asset_size }}
+      image_digest: ${{ steps.assets.outputs.image_digest }}
+    steps:
+      - name: Checkout current release controller
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Prove this checkout is the current release controller
+        run: |
+          set -euo pipefail
+          head_sha="$(git rev-parse HEAD)"
+          if [ "${head_sha}" != "${GITHUB_SHA}" ]; then
+            echo "::error::Recovered asset verification checked out ${head_sha}, not the current controller ${GITHUB_SHA}."
+            exit 1
+          fi
+          if [ ! -f scripts/ci/recovered-release-assets.mjs ]; then
+            echo "::error::Recovered asset verification is missing the controller copy of scripts/ci/recovered-release-assets.mjs."
+            exit 1
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Verify frozen install assets and Community image
+        id: assets
+        env:
+          ARCHIVE_ASSET_DIGEST: ${{ needs.validate-release.outputs.archive_asset_digest }}
+          ARCHIVE_ASSET_ID: ${{ needs.validate-release.outputs.archive_asset_id }}
+          ARCHIVE_ASSET_SIZE: ${{ needs.validate-release.outputs.archive_asset_size }}
+          CHANGELOG_ASSET_DIGEST: ${{ needs.validate-release.outputs.changelog_asset_digest }}
+          CHANGELOG_ASSET_ID: ${{ needs.validate-release.outputs.changelog_asset_id }}
+          CHANGELOG_ASSET_SIZE: ${{ needs.validate-release.outputs.changelog_asset_size }}
+          CHECKSUM_ASSET_DIGEST: ${{ needs.validate-release.outputs.checksum_asset_digest }}
+          CHECKSUM_ASSET_ID: ${{ needs.validate-release.outputs.checksum_asset_id }}
+          CHECKSUM_ASSET_SIZE: ${{ needs.validate-release.outputs.checksum_asset_size }}
+          DRAFT_BODY_SHA256: ${{ needs.validate-release.outputs.draft_body_sha256 }}
+          DRAFT_ID: ${{ needs.validate-release.outputs.draft_id }}
+          DRAFT_TITLE: ${{ needs.validate-release.outputs.draft_title }}
+          EXPECTED_IMAGE_DIGEST: ${{ needs.validate-release.outputs.image_digest }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_TAG: ${{ needs.validate-release.outputs.image_tag }}
+          RELEASE_CONTROLLER_SHA: ${{ github.sha }}
+          RELEASE_SHA: ${{ needs.validate-release.outputs.release_sha }}
+          RELEASE_TAG: ${{ needs.validate-release.outputs.release_tag }}
+        run: node scripts/ci/recovered-release-assets.mjs
 
   deploy-saas:
     name: Deploy hosted SaaS
@@ -539,14 +712,21 @@ jobs:
     needs:
       - validate-release
       - publish-community
+      - verify-recovered-assets
       - deploy-saas
       - publish-packages
     if: |
       always() &&
       !cancelled() &&
       needs.validate-release.result == 'success' &&
-      needs.publish-community.result == 'success' &&
       needs.publish-packages.result == 'success' &&
+      (
+        (needs.publish-community.result == 'success' &&
+          needs.verify-recovered-assets.result == 'skipped') ||
+        (needs.validate-release.outputs.recovery_kind == 'npm-source-noop' &&
+          needs.verify-recovered-assets.result == 'success' &&
+          needs.publish-community.result == 'skipped')
+      ) &&
       (
         (needs.validate-release.outputs.recovery_mode == 'true' &&
           needs.validate-release.outputs.recovery_saas_verified == 'true' &&
@@ -561,7 +741,7 @@ jobs:
       packages: write
     env:
       IMAGE: ghcr.io/${{ github.repository }}
-      IMAGE_DIGEST: ${{ needs.publish-community.outputs.image_digest }}
+      IMAGE_DIGEST: ${{ needs.validate-release.outputs.recovery_kind == 'npm-source-noop' && needs.verify-recovered-assets.outputs.image_digest || needs.publish-community.outputs.image_digest }}
       IMAGE_TAG: ${{ needs.validate-release.outputs.image_tag }}
       MAJOR_MINOR_TAG: ${{ needs.validate-release.outputs.major_minor_tag }}
     steps:
@@ -599,21 +779,29 @@ jobs:
             --tag "${IMAGE}:latest" \
             "${IMAGE}@${IMAGE_DIGEST}"
 
-  # npm is the one irreversible lane, so it runs after community and SaaS are
-  # green rather than beside them. It publishes every enrolled package whose
-  # repo version the registry has not seen, which is what keeps npm from drifting
-  # behind master between releases.
+  # npm is the one irreversible lane. Normal releases and attachment recovery
+  # reach it after the Community rebuild is green. npm-source-noop recovery
+  # reaches it after the read-only asset check, still before Community channel
+  # promotion and GitHub publication. The called workflow publishes nothing
+  # unless its registry-drift plan is empty.
   publish-packages:
     name: Publish npm Packages
     needs:
       - validate-release
       - publish-community
+      - verify-recovered-assets
       - deploy-saas
     if: |
       always() &&
       !cancelled() &&
       needs.validate-release.result == 'success' &&
-      needs.publish-community.result == 'success' &&
+      (
+        (needs.publish-community.result == 'success' &&
+          needs.verify-recovered-assets.result == 'skipped') ||
+        (needs.validate-release.outputs.recovery_kind == 'npm-source-noop' &&
+          needs.verify-recovered-assets.result == 'success' &&
+          needs.publish-community.result == 'skipped')
+      ) &&
       (
         (needs.validate-release.outputs.recovery_mode == 'true' &&
           needs.validate-release.outputs.recovery_saas_verified == 'true' &&
@@ -638,6 +826,7 @@ jobs:
     needs:
       - validate-release
       - publish-community
+      - verify-recovered-assets
       - deploy-saas
       - promote-community
       - publish-packages
@@ -645,9 +834,15 @@ jobs:
       always() &&
       !cancelled() &&
       needs.validate-release.result == 'success' &&
-      needs.publish-community.result == 'success' &&
       needs.promote-community.result == 'success' &&
       needs.publish-packages.result == 'success' &&
+      (
+        (needs.publish-community.result == 'success' &&
+          needs.verify-recovered-assets.result == 'skipped') ||
+        (needs.validate-release.outputs.recovery_kind == 'npm-source-noop' &&
+          needs.verify-recovered-assets.result == 'success' &&
+          needs.publish-community.result == 'skipped')
+      ) &&
       (
         (needs.validate-release.outputs.recovery_mode == 'true' &&
           needs.validate-release.outputs.recovery_saas_verified == 'true' &&
@@ -660,13 +855,16 @@ jobs:
     permissions:
       contents: write
     env:
-      EXPECTED_ARCHIVE_ASSET_DIGEST: ${{ needs.publish-community.outputs.archive_asset_digest }}
-      EXPECTED_ARCHIVE_ASSET_ID: ${{ needs.publish-community.outputs.archive_asset_id }}
+      EXPECTED_ARCHIVE_ASSET_DIGEST: ${{ needs.validate-release.outputs.recovery_kind == 'npm-source-noop' && needs.verify-recovered-assets.outputs.archive_asset_digest || needs.publish-community.outputs.archive_asset_digest }}
+      EXPECTED_ARCHIVE_ASSET_ID: ${{ needs.validate-release.outputs.recovery_kind == 'npm-source-noop' && needs.verify-recovered-assets.outputs.archive_asset_id || needs.publish-community.outputs.archive_asset_id }}
+      EXPECTED_ARCHIVE_ASSET_SIZE: ${{ needs.validate-release.outputs.recovery_kind == 'npm-source-noop' && needs.verify-recovered-assets.outputs.archive_asset_size || '' }}
       EXPECTED_CHANGELOG_ASSET_DIGEST: ${{ needs.validate-release.outputs.changelog_asset_digest }}
       EXPECTED_CHANGELOG_ASSET_ID: ${{ needs.validate-release.outputs.changelog_asset_id }}
       EXPECTED_CHANGELOG_ASSET_SIZE: ${{ needs.validate-release.outputs.changelog_asset_size }}
-      EXPECTED_CHECKSUM_ASSET_DIGEST: ${{ needs.publish-community.outputs.checksum_asset_digest }}
-      EXPECTED_CHECKSUM_ASSET_ID: ${{ needs.publish-community.outputs.checksum_asset_id }}
+      EXPECTED_CHECKSUM_ASSET_DIGEST: ${{ needs.validate-release.outputs.recovery_kind == 'npm-source-noop' && needs.verify-recovered-assets.outputs.checksum_asset_digest || needs.publish-community.outputs.checksum_asset_digest }}
+      EXPECTED_CHECKSUM_ASSET_ID: ${{ needs.validate-release.outputs.recovery_kind == 'npm-source-noop' && needs.verify-recovered-assets.outputs.checksum_asset_id || needs.publish-community.outputs.checksum_asset_id }}
+      EXPECTED_CHECKSUM_ASSET_SIZE: ${{ needs.validate-release.outputs.recovery_kind == 'npm-source-noop' && needs.verify-recovered-assets.outputs.checksum_asset_size || '' }}
+      RECOVERY_KIND: ${{ needs.validate-release.outputs.recovery_kind }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_REPO: ${{ github.repository }}
       EXPECTED_DRAFT_BODY_SHA256: ${{ needs.validate-release.outputs.draft_body_sha256 }}
@@ -696,6 +894,15 @@ jobs:
           test "${draft_body_sha256}" = "${EXPECTED_DRAFT_BODY_SHA256}"
           if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
             echo "::error::Git tag ${RELEASE_TAG} appeared before the verified draft was published."
+            exit 1
+          fi
+          if [ "${RECOVERY_KIND}" = 'npm-source-noop' ]; then
+            if [ -z "${EXPECTED_ARCHIVE_ASSET_SIZE}" ] || [ -z "${EXPECTED_CHECKSUM_ASSET_SIZE}" ]; then
+              echo "::error::npm-source-noop publication is missing frozen install asset sizes."
+              exit 1
+            fi
+          elif [ -n "${RECOVERY_KIND}" ] && [ "${RECOVERY_KIND}" != 'attachment-failure' ]; then
+            echo "::error::Recovery kind ${RECOVERY_KIND} is not attachment-failure or npm-source-noop."
             exit 1
           fi
 
@@ -740,11 +947,13 @@ jobs:
           verify_asset_identity \
             genfeed-selfhosted.tar.gz \
             "${EXPECTED_ARCHIVE_ASSET_ID}" \
-            "${EXPECTED_ARCHIVE_ASSET_DIGEST}"
+            "${EXPECTED_ARCHIVE_ASSET_DIGEST}" \
+            "${EXPECTED_ARCHIVE_ASSET_SIZE}"
           verify_asset_identity \
             genfeed-selfhosted.tar.gz.sha256 \
             "${EXPECTED_CHECKSUM_ASSET_ID}" \
-            "${EXPECTED_CHECKSUM_ASSET_DIGEST}"
+            "${EXPECTED_CHECKSUM_ASSET_DIGEST}" \
+            "${EXPECTED_CHECKSUM_ASSET_SIZE}"
 
           gh release edit "${RELEASE_TAG}" --draft=false --latest
 

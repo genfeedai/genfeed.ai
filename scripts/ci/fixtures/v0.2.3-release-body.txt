@@ -1,0 +1,40 @@
+
+## [0.2.3](https://github.com/genfeedai/genfeed.ai/releases/tag/v0.2.3) - 2026-10-06
+
+### Features
+
+- **library:** add guided failed-asset recovery and quick Trash actions ([#6352](https://github.com/genfeedai/genfeed.ai/pull/6352))
+- **mcp:** reuse social previews with account avatars and media ([#6344](https://github.com/genfeedai/genfeed.ai/pull/6344))
+- **models:** unify identity badges and clarify pricing ([#6361](https://github.com/genfeedai/genfeed.ai/pull/6361))
+
+### Fixes
+
+- **app:** restore hosted navigation with resolved tenant routes ([#6305](https://github.com/genfeedai/genfeed.ai/pull/6305))
+- **mcp:** preview all generated caption variations ([#6316](https://github.com/genfeedai/genfeed.ai/pull/6316))
+- **agent:** repair batch approvals and align standby threads ([#6324](https://github.com/genfeedai/genfeed.ai/pull/6324))
+- **app:** select Serwist caching for the Desktop build profile ([#6318](https://github.com/genfeedai/genfeed.ai/pull/6318))
+- **mcp:** render previews with shared product UI ([#6327](https://github.com/genfeedai/genfeed.ai/pull/6327))
+- **agent:** compact shortcut tooltips and calm composer border ([#6325](https://github.com/genfeedai/genfeed.ai/pull/6325))
+- **agent:** ground review suggestions in the latest queue result ([#6326](https://github.com/genfeedai/genfeed.ai/pull/6326))
+- **library:** restore fast review and separate asset inspection ([#6333](https://github.com/genfeedai/genfeed.ai/pull/6333))
+- restore image quotes, pricing drift and onboarding recovery ([#6334](https://github.com/genfeedai/genfeed.ai/pull/6334))
+- **website:** align copy and simplify agent connection setup ([#6328](https://github.com/genfeedai/genfeed.ai/pull/6328))
+- preserve selected brand in analytics and Messages navigation ([#6338](https://github.com/genfeedai/genfeed.ai/pull/6338))
+- **discovery:** brand-relevant grid with muted hover previews ([#6341](https://github.com/genfeedai/genfeed.ai/pull/6341))
+- **ui:** use short spokes while refreshing ([#6350](https://github.com/genfeedai/genfeed.ai/pull/6350))
+- preserve brand scope in actions and task navigation ([#6349](https://github.com/genfeedai/genfeed.ai/pull/6349))
+- **admin:** consolidate model catalog and normalize provider batch prices ([#6346](https://github.com/genfeedai/genfeed.ai/pull/6346))
+- **app:** give the chatbubble a stable conversation panel ([#6357](https://github.com/genfeedai/genfeed.ai/pull/6357))
+- **library:** align recovery rows and preserve saved Studio inputs ([#6360](https://github.com/genfeedai/genfeed.ai/pull/6360))
+- **agent:** remove notice fade and explain expired approvals ([#6375](https://github.com/genfeedai/genfeed.ai/pull/6375))
+
+### Refactoring
+
+- consolidate Brand Kit, agent settings and Library characters ([#6354](https://github.com/genfeedai/genfeed.ai/pull/6354))
+- **ui:** clean up Studio promptbar and consolidate config picker ([#6335](https://github.com/genfeedai/genfeed.ai/pull/6335))
+
+### Tests
+
+- align switcher row and keyboard focus assertions ([#6371](https://github.com/genfeedai/genfeed.ai/pull/6371))
+- **e2e:** align consolidated Studio and shell contracts ([#6381](https://github.com/genfeedai/genfeed.ai/pull/6381))
+

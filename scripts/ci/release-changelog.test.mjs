@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -10,7 +11,15 @@ import {
   runRecoveryNpmPlanGuard,
   validateRecoveryNpmPlan,
 } from './recovery-npm-plan-guard.mjs';
-import { validateReleaseRecoveryEvidence } from './release-recovery-evidence.mjs';
+import {
+  NPM_MASTER_ADVANCED_ERROR,
+  NPM_SOURCE_NOOP_REQUIRED_FULL_SUITE_JOBS,
+  NPM_SOURCE_NOOP_REQUIRED_SKIPPED_JOBS,
+  RECOVERY_KIND_ATTACHMENT_FAILURE,
+  RECOVERY_KIND_NPM_SOURCE_NOOP,
+  runReleaseRecoveryCli,
+  validateReleaseRecoveryEvidence,
+} from './release-recovery-evidence.mjs';
 
 // Contract for the OSS release tooling decided in #2995 (children #2999, #3001):
 // one repo version, a generated changelog, and a Conventional Commits PR title
@@ -218,6 +227,12 @@ test('validates complete historical recovery evidence from fixture data', () => 
     'sha256:41a43afec3135a6d2b9bdc5197f7d11f500bc42d56d87eba2f3bd6aa1b857875',
   );
   assert.equal(result.changelogAssetSize, '255112');
+  assert.equal(result.recoveryKind, RECOVERY_KIND_ATTACHMENT_FAILURE);
+  assert.equal(result.imageDigest, '');
+  assert.equal(result.archiveAssetId, '');
+  assert.equal(result.archiveAssetDigest, '');
+  assert.equal(result.checksumAssetId, '');
+  assert.equal(result.checksumAssetSize, '');
 });
 
 test('requires public deploy receipts even when private operations succeeded', () => {
@@ -674,7 +689,7 @@ test('recovery skips proved-green gates and reuses the exact immutable image', (
   const promote = jobBlock(releaseWorkflow, 'promote-community', 'release.yml');
   assert.match(
     promote,
-    /IMAGE_DIGEST: \$\{\{ needs\.publish-community\.outputs\.image_digest \}\}/,
+    /IMAGE_DIGEST: \$\{\{ needs\.validate-release\.outputs\.recovery_kind == 'npm-source-noop' && needs\.verify-recovered-assets\.outputs\.image_digest \|\| needs\.publish-community\.outputs\.image_digest \}\}/,
   );
   assert.match(promote, /"\$\{IMAGE\}@\$\{IMAGE_DIGEST\}"/);
 });
@@ -733,6 +748,26 @@ test('RELEASING.md distinguishes normal SHA equality from historical recovery an
     /npm publication always requires the pinned SHA to\nequal current `master`/,
   );
   assert.doesNotMatch(releasingGuide, /the v66 recovery/);
+  assert.match(
+    releasingGuide,
+    /this second mode requires a trusted\nreviewed controller qualification/,
+  );
+  assert.match(
+    releasingGuide,
+    /only run\n`37484284049`, tag `v0\.2\.3`, and source\n`1c228e1a2bce02234a8f317d4f8f32659c2d3cb9`/,
+  );
+  assert.match(
+    releasingGuide,
+    /An unknown run fails closed until a\nreviewed qualification record exists/,
+  );
+  assert.match(
+    releasingGuide,
+    /does not adopt whatever the tag currently displays/,
+  );
+  assert.match(
+    releasingGuide,
+    /only after the registry-drift plan succeeds\nand is empty/,
+  );
 });
 
 test('recovery gates irreversible promotion and preserves the draft until publication', () => {
@@ -864,5 +899,730 @@ test('recovery accepts the historical route inventory display name and rejects d
   assert.throws(
     () => validateReleaseRecoveryEvidence(fixture),
     /exactly one .*E2E Route Reference Inventory job; found 2/,
+  );
+});
+
+test('attachment recovery still rejects skipped artifact steps and install assets', () => {
+  const skippedStep = releaseRecoveryFixture();
+  skippedStep.jobs
+    .find((job) => job.name === ARTIFACT_JOB_NAME)
+    .steps.push({
+      conclusion: 'skipped',
+      name: 'Refuse pre-existing versioned install assets',
+      status: 'completed',
+    });
+  assert.throws(
+    () => validateReleaseRecoveryEvidence(skippedStep),
+    /Only Attach install bundle to draft GitHub release may fail/,
+  );
+
+  const extraSuccess = releaseRecoveryFixture();
+  extraSuccess.jobs
+    .find((job) => job.name === ARTIFACT_JOB_NAME)
+    .steps.push({
+      conclusion: 'success',
+      name: 'Verify immutable install asset identities',
+      status: 'completed',
+    });
+  assert.equal(
+    validateReleaseRecoveryEvidence(extraSuccess).recoveryKind,
+    RECOVERY_KIND_ATTACHMENT_FAILURE,
+  );
+});
+
+const RELEASE_RECOVERY_QUALIFICATIONS = JSON.parse(
+  readRepoFile('scripts/ci/release-recovery-qualifications.json'),
+);
+const KNOWN_NPM_QUALIFICATION =
+  RELEASE_RECOVERY_QUALIFICATIONS.qualifications[0];
+const NPM_BODY_PATH = path.join(
+  REPOSITORY_ROOT,
+  'scripts/ci/fixtures/v0.2.3-release-body.txt',
+);
+const NPM_BODY = readFileSync(NPM_BODY_PATH, 'utf8');
+const NPM_SHA = KNOWN_NPM_QUALIFICATION.releaseSha;
+const NPM_RUN_ID = KNOWN_NPM_QUALIFICATION.runId;
+const NPM_TAG = KNOWN_NPM_QUALIFICATION.releaseTag;
+const NPM_PLAN_JOB_NAME =
+  'Publish npm Packages / Plan npm release from registry drift';
+const ORIGINAL_RELEASE_BODY_SHA256 =
+  '5f957a363163984baf3ba9c734d90abb742cabda99cc52425f59fdf0e5fab941';
+const NPM_PLAN_STEPS = [
+  ['Set up job', 'success'],
+  ['Reject real publishes outside the release workflow', 'skipped'],
+  ['Require a master ref', 'success'],
+  ['Checkout the pinned commit', 'success'],
+  ['Validate pinned release source', 'failure'],
+  ['Setup Bun environment', 'skipped'],
+  ['Validate npm release enrollment', 'skipped'],
+  ['Resolve packages to publish', 'skipped'],
+  ['Checkout current release controller', 'skipped'],
+  ['Require an empty npm plan for historical recovery', 'skipped'],
+  ['Post Checkout the pinned commit', 'success'],
+  ['Complete job', 'success'],
+];
+const NPM_ARTIFACT_STEPS = [
+  ['Set up job', 'success'],
+  ['Checkout release source', 'success'],
+  ['Setup create package', 'success'],
+  ['Test and build create package', 'success'],
+  ['Build version-pinned release bundle', 'success'],
+  ['Smoke create against the release bundle', 'success'],
+  ['Anonymous exact-image pull and metadata check', 'success'],
+  ['Refuse pre-existing versioned install assets', 'skipped'],
+  ['Attach install bundle to draft GitHub release', 'success'],
+  ['Verify immutable install asset identities', 'success'],
+  ['Post Setup create package', 'success'],
+  ['Post Checkout release source', 'success'],
+  ['Complete job', 'success'],
+];
+
+let npmJobSerial = 2_000_000;
+
+function npmEvidenceJob(name, conclusion = 'success', steps) {
+  let id = npmJobSerial;
+  npmJobSerial += 1;
+  if (name === ARTIFACT_JOB_NAME) {
+    id = 112372924619;
+  }
+  if (name === NPM_PLAN_JOB_NAME) {
+    id = 112374484557;
+  }
+  return {
+    conclusion,
+    head_sha: NPM_SHA,
+    id,
+    name,
+    status: 'completed',
+    ...(steps ? { steps } : {}),
+  };
+}
+
+function namedSteps(pairs) {
+  return pairs.map(([name, conclusion], index) => ({
+    conclusion,
+    name,
+    number: index + 1,
+    status: 'completed',
+  }));
+}
+
+function uploadedAsset(name, id, size, digest) {
+  return { digest, id, name, size, state: 'uploaded' };
+}
+
+function colorPlanError(message) {
+  return `\u001b[1;31m##[error]${message}\u001b[0m`;
+}
+
+function npmPlanEvidence({ annotations, log } = {}) {
+  return {
+    annotations: annotations ?? [
+      {
+        annotation_level: 'notice',
+        message: 'ubuntu-latest labels will migrate on 2026-10-19',
+      },
+      { annotation_level: 'failure', message: NPM_MASTER_ADVANCED_ERROR },
+      {
+        annotation_level: 'failure',
+        message: 'Process completed with exit code 1.',
+      },
+    ],
+    log:
+      log ??
+      [
+        '\u001b]0;npm plan\u0007',
+        'echo "::error::The recovered release SHA must remain an ancestor of current master."',
+        `echo "::error::${NPM_MASTER_ADVANCED_ERROR}"`,
+        colorPlanError(NPM_MASTER_ADVANCED_ERROR),
+        colorPlanError('Process completed with exit code 1.'),
+      ].join('\n'),
+  };
+}
+
+function knownNpmAsset(name) {
+  const asset = KNOWN_NPM_QUALIFICATION.assets.find(
+    (candidate) => candidate.name === name,
+  );
+  assert.ok(asset, `known qualification is missing ${name}`);
+  return asset;
+}
+
+function npmSourceNoopFixture() {
+  return {
+    jobs: [
+      ...NPM_SOURCE_NOOP_REQUIRED_FULL_SUITE_JOBS.map((name) =>
+        npmEvidenceJob(name),
+      ),
+      ...NPM_SOURCE_NOOP_REQUIRED_SKIPPED_JOBS.map((name) =>
+        npmEvidenceJob(name, 'skipped'),
+      ),
+      ...PUBLIC_SAAS_JOBS.map((name) => npmEvidenceJob(name)),
+      npmEvidenceJob(
+        'Deploy hosted SaaS / Deploy hosted SaaS / Promote verified server image',
+      ),
+      npmEvidenceJob('Validate release and create draft'),
+      npmEvidenceJob(
+        'Publish Community / Self-Hosted Build Verify / Build & Boot Check (Self-Hosted)',
+      ),
+      npmEvidenceJob('Publish Community / Build & Push Self-Hosted Image'),
+      npmEvidenceJob(
+        ARTIFACT_JOB_NAME,
+        'success',
+        namedSteps(NPM_ARTIFACT_STEPS),
+      ),
+      npmEvidenceJob(NPM_PLAN_JOB_NAME, 'failure', namedSteps(NPM_PLAN_STEPS)),
+    ],
+    npmPlanEvidence: npmPlanEvidence(),
+    releases: [
+      {
+        assets: KNOWN_NPM_QUALIFICATION.assets.map((asset) => ({
+          created_at: asset.created_at,
+          digest: asset.digest,
+          id: asset.id,
+          name: asset.name,
+          size: asset.size,
+          state: 'uploaded',
+          updated_at: asset.updated_at,
+        })),
+        body: NPM_BODY,
+        draft: true,
+        id: Number(KNOWN_NPM_QUALIFICATION.draftId),
+        name: NPM_TAG,
+        published_at: null,
+        tag_name: NPM_TAG,
+        target_commitish: NPM_SHA,
+      },
+    ],
+    remoteTagPresent: false,
+    requestedRepository: 'genfeedai/genfeed.ai',
+    requestedRunId: NPM_RUN_ID,
+    requestedTag: NPM_TAG,
+    run: {
+      conclusion: 'failure',
+      display_title: `Release ${NPM_TAG}`,
+      event: 'workflow_dispatch',
+      head_branch: 'master',
+      head_repository: { full_name: 'genfeedai/genfeed.ai' },
+      head_sha: NPM_SHA,
+      id: Number(NPM_RUN_ID),
+      path: '.github/workflows/release.yml',
+      repository: { full_name: 'genfeedai/genfeed.ai' },
+      status: 'completed',
+    },
+    sourceIsAncestor: true,
+  };
+}
+
+function assertNpmSourceNoopRejects(mutate, pattern) {
+  const fixture = npmSourceNoopFixture();
+  mutate(fixture);
+  assert.throws(() => validateReleaseRecoveryEvidence(fixture), pattern);
+}
+
+test('npm-source-noop accepts the historical master-advanced plan and frozen install assets', () => {
+  assert.equal(
+    NPM_SOURCE_NOOP_REQUIRED_FULL_SUITE_JOBS.includes(
+      'Full Suite / CI Gate / Test API (Shard 1/4)',
+    ),
+    false,
+  );
+  assert.equal(
+    NPM_SOURCE_NOOP_REQUIRED_FULL_SUITE_JOBS.includes(
+      'Full Suite / CI Gate / Test API (shard 1/4)',
+    ),
+    true,
+  );
+
+  assert.equal(RELEASE_RECOVERY_QUALIFICATIONS.version, 1);
+  assert.equal(RELEASE_RECOVERY_QUALIFICATIONS.qualifications.length, 1);
+  assert.equal(
+    createHash('sha256').update(readFileSync(NPM_BODY_PATH)).digest('hex'),
+    ORIGINAL_RELEASE_BODY_SHA256,
+  );
+  assert.equal(
+    KNOWN_NPM_QUALIFICATION.draftBodySha256,
+    ORIGINAL_RELEASE_BODY_SHA256,
+  );
+  assert.equal(
+    KNOWN_NPM_QUALIFICATION.imageDigest,
+    'sha256:8ae47367b5f96947b7430e36999434436488c92542a7473526d327e3a070d8c5',
+  );
+  assert.doesNotMatch(
+    recoveryEvidenceScript,
+    /process\.env\.[A-Z0-9_]*(QUALIFICATION|IMAGE_DIGEST)/,
+  );
+  assert.match(
+    recoveryEvidenceScript,
+    /new URL\('\.\/release-recovery-qualifications\.json', import\.meta\.url\)/,
+  );
+  assert.ok(
+    npmSourceNoopFixture().npmPlanEvidence.log.includes(
+      '\u001b[1;31m##[error]',
+    ),
+  );
+
+  const changelog = knownNpmAsset('CHANGELOG.md');
+  const archive = knownNpmAsset('genfeed-selfhosted.tar.gz');
+  const checksum = knownNpmAsset('genfeed-selfhosted.tar.gz.sha256');
+  const result = validateReleaseRecoveryEvidence(npmSourceNoopFixture());
+
+  assert.equal(result.recoveryKind, RECOVERY_KIND_NPM_SOURCE_NOOP);
+  assert.equal(result.releaseSha, NPM_SHA);
+  assert.equal(result.artifactJobId, '112372924619');
+  assert.equal(result.draftId, KNOWN_NPM_QUALIFICATION.draftId);
+  assert.equal(result.draftTitle, NPM_TAG);
+  assert.equal(result.draftBodySha256, ORIGINAL_RELEASE_BODY_SHA256);
+  assert.equal(
+    result.draftBodySha256,
+    createHash('sha256').update(NPM_BODY).digest('hex'),
+  );
+  assert.equal(result.imageDigest, KNOWN_NPM_QUALIFICATION.imageDigest);
+  assert.equal(result.changelogAssetId, String(changelog.id));
+  assert.equal(result.changelogAssetSize, String(changelog.size));
+  assert.equal(result.changelogAssetDigest, changelog.digest);
+  assert.equal(result.archiveAssetId, String(archive.id));
+  assert.equal(result.archiveAssetSize, String(archive.size));
+  assert.equal(result.archiveAssetDigest, archive.digest);
+  assert.equal(result.checksumAssetId, String(checksum.id));
+  assert.equal(result.checksumAssetSize, String(checksum.size));
+  assert.equal(result.checksumAssetDigest, checksum.digest);
+});
+
+test('npm-source-noop fails closed on gate, npm, promotion, and draft drift', () => {
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.jobs.find(
+      (job) => job.name === 'Full Suite / Master SHA Verdict',
+    ).head_sha = 'a'.repeat(40);
+  }, /incomplete, failed, or wrong-SHA Full Suite jobs/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.jobs.find(
+      (job) => job.name === 'Full Suite / Final Connected Acceptance',
+    ).conclusion = 'failure';
+  }, /incomplete, failed, or wrong-SHA Full Suite jobs/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.jobs = fixture.jobs.filter(
+      (job) => job.name !== 'Full Suite / Final Connected Acceptance',
+    );
+  }, /exactly one Full Suite \/ Final Connected Acceptance job; found 0/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.jobs.push(npmEvidenceJob('Full Suite / CI Gate / Static Checks'));
+  }, /exactly one Full Suite \/ CI Gate \/ Static Checks job; found 2/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.jobs.find((job) => job.name === NPM_PLAN_JOB_NAME).head_sha =
+      'b'.repeat(40);
+  }, /npm-source-noop job .*Plan npm release.*not 1c228e1a/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.npmPlanEvidence.annotations.push({
+      annotation_level: 'failure',
+      message: 'Checked out abc, expected the pinned release SHA.',
+    });
+  }, /reason other than master advancing/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.npmPlanEvidence.log +=
+      '\n##[error]The recovered release SHA must remain an ancestor of current master.';
+  }, /error other than master advancing/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.npmPlanEvidence.log += `\n${colorPlanError(
+      'Checked out abc, expected the pinned release SHA.',
+    )}`;
+  }, /error other than master advancing/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.jobs.find(
+      (job) =>
+        job.name ===
+        'Publish npm Packages / Preflight immutable package tarballs',
+    ).conclusion = 'success';
+  }, /Preflight immutable package tarballs concluded success, expected skipped/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.jobs
+      .find((job) => job.name === NPM_PLAN_JOB_NAME)
+      .steps.find(
+        (step) => step.name === 'Resolve packages to publish',
+      ).conclusion = 'success';
+  }, /Resolve packages to publish concluded success, expected skipped/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.jobs.find(
+      (job) => job.name === 'Promote Community release channels',
+    ).conclusion = 'success';
+  }, /Promote Community release channels concluded success, expected skipped/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.jobs.find(
+      (job) => job.name === 'Publish GitHub release',
+    ).conclusion = 'success';
+  }, /Publish GitHub release concluded success, expected skipped/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.jobs.push(npmEvidenceJob('Publish npm Packages', 'skipped'));
+  }, /does not match attachment-failure or npm-source-noop/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.releases[0].name = 'Renamed draft';
+  }, /title Renamed draft, expected v0\.2\.3/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.releases[0].draft = false;
+  }, /remain an unpublished draft/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.releases[0].target_commitish = 'c'.repeat(40);
+  }, /targets c{40}/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.releases[0].assets.push(
+      uploadedAsset('notes.txt', 616010186, 12, `sha256:${'d'.repeat(64)}`),
+    );
+  }, /exactly the changelog and two install assets/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.releases[0].assets.pop();
+  }, /exactly the changelog and two install assets/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.releases[0].assets[2].name = 'genfeed-selfhosted.tar.gz';
+  }, /duplicate genfeed-selfhosted\.tar\.gz asset/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.releases[0].assets[1].state = 'starter';
+  }, /non-empty, uploaded genfeed-selfhosted\.tar\.gz asset/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.remoteTagPresent = true;
+  }, /Recovery refuses v0\.2\.3 because its Git tag already exists/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.sourceIsAncestor = false;
+  }, /Historical release SHA 1c228e1a.*is no longer reachable from master/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.requestedRunId = '99999999999';
+    fixture.run.id = 99999999999;
+  }, /run 99999999999 has no reviewed controller qualification/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.requestedRepository = 'genfeedai/other';
+    fixture.run.repository.full_name = 'genfeedai/other';
+    fixture.run.head_repository.full_name = 'genfeedai/other';
+  }, /repository does not match the reviewed controller qualification/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.requestedTag = 'v0.2.4';
+    fixture.run.display_title = 'Release v0.2.4';
+    fixture.releases[0].tag_name = 'v0.2.4';
+    fixture.releases[0].name = 'v0.2.4';
+  }, /release tag, draft title does not match the reviewed controller qualification/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    const driftedSha = 'a'.repeat(40);
+    fixture.run.head_sha = driftedSha;
+    fixture.releases[0].target_commitish = driftedSha;
+    for (const job of fixture.jobs) {
+      job.head_sha = driftedSha;
+    }
+  }, /source SHA does not match the reviewed controller qualification/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.releases[0].id = Number(KNOWN_NPM_QUALIFICATION.draftId) + 1;
+  }, /draft id does not match the reviewed controller qualification/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.releases[0].body = `${NPM_BODY} `;
+  }, /draft body does not match the reviewed controller qualification/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.releases[0].assets.find(
+      (asset) => asset.name === 'CHANGELOG.md',
+    ).id = knownNpmAsset('CHANGELOG.md').id + 1;
+  }, /CHANGELOG\.md does not match the reviewed controller qualification \(id\)/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    const archive = fixture.releases[0].assets.find(
+      (asset) => asset.name === 'genfeed-selfhosted.tar.gz',
+    );
+    archive.size = knownNpmAsset('genfeed-selfhosted.tar.gz').size + 1;
+  }, /genfeed-selfhosted\.tar\.gz does not match the reviewed controller qualification \(size\)/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.releases[0].assets.find(
+      (asset) => asset.name === 'genfeed-selfhosted.tar.gz.sha256',
+    ).digest = `sha256:${'e'.repeat(64)}`;
+  }, /genfeed-selfhosted\.tar\.gz\.sha256 does not match the reviewed controller qualification \(digest\)/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.releases[0].assets.find(
+      (asset) => asset.name === 'CHANGELOG.md',
+    ).created_at = '2026-10-06T15:06:54Z';
+  }, /CHANGELOG\.md does not match the reviewed controller qualification \(created_at\)/);
+
+  assertNpmSourceNoopRejects((fixture) => {
+    fixture.releases[0].assets.find(
+      (asset) => asset.name === 'genfeed-selfhosted.tar.gz',
+    ).updated_at = '2026-10-06T16:15:06Z';
+  }, /genfeed-selfhosted\.tar\.gz does not match the reviewed controller qualification \(updated_at\)/);
+});
+
+function runNpmRecoveryCli(fixture) {
+  const captured = [];
+  const errors = [];
+  const calls = [];
+  const previousExitCode = process.exitCode;
+  process.exitCode = undefined;
+  try {
+    const result = runReleaseRecoveryCli({
+      appendFileSync: (_target, text) => captured.push(text),
+      env: {
+        GITHUB_OUTPUT: '/tmp/release-recovery.out',
+        GITHUB_REPOSITORY: fixture.requestedRepository,
+        GITHUB_STEP_SUMMARY: '/tmp/release-recovery-summary.md',
+        RECOVERY_RUN_ID: fixture.requestedRunId,
+        REQUESTED_TAG: fixture.requestedTag,
+      },
+      error: (message) => errors.push(message),
+      spawnSync: (command, args) => {
+        calls.push({ args: [...args], command });
+        const joined = args.join(' ');
+        if (command === 'git') {
+          return { status: 0, stderr: '', stdout: '' };
+        }
+        if (joined.includes('/logs')) {
+          return { status: 0, stderr: '', stdout: fixture.npmPlanEvidence.log };
+        }
+        if (joined.includes('/annotations')) {
+          return {
+            status: 0,
+            stderr: '',
+            stdout: JSON.stringify([fixture.npmPlanEvidence.annotations]),
+          };
+        }
+        if (joined.includes('/jobs')) {
+          return {
+            status: 0,
+            stderr: '',
+            stdout: JSON.stringify([{ jobs: fixture.jobs }]),
+          };
+        }
+        if (joined.includes('/actions/runs/')) {
+          return { status: 0, stderr: '', stdout: JSON.stringify(fixture.run) };
+        }
+        if (joined.includes('/releases')) {
+          return {
+            status: 0,
+            stderr: '',
+            stdout: JSON.stringify([fixture.releases]),
+          };
+        }
+        if (joined.includes('/git/ref/tags/')) {
+          return { status: 1, stderr: 'HTTP 404: Not Found', stdout: '' };
+        }
+        return {
+          status: 1,
+          stderr: `unexpected ${command} ${joined}`,
+          stdout: '',
+        };
+      },
+    });
+    return { calls, captured, errors, exitCode: process.exitCode, result };
+  } finally {
+    process.exitCode = previousExitCode;
+  }
+}
+
+test('npm-source-noop CLI emits the reviewed image digest and rejects drift before capture', () => {
+  const accepted = runNpmRecoveryCli(npmSourceNoopFixture());
+  const acceptedText = accepted.captured.join('');
+  assert.equal(accepted.exitCode, undefined);
+  assert.equal(accepted.errors.length, 0);
+  assert.equal(
+    accepted.result.imageDigest,
+    KNOWN_NPM_QUALIFICATION.imageDigest,
+  );
+  assert.match(
+    acceptedText,
+    new RegExp(`image_digest=${KNOWN_NPM_QUALIFICATION.imageDigest}`),
+  );
+  assert.match(acceptedText, /recovery_kind=npm-source-noop/);
+  assert.match(acceptedText, /Historical image digest: sha256:8ae47367/);
+  assert.doesNotMatch(acceptedText, /releases\/assets\//);
+  assert.equal(
+    recoveryEvidenceScript.split('--allow-escape-sequences').length - 1,
+    1,
+  );
+  const escapeCalls = accepted.calls.filter((call) =>
+    call.args.includes('--allow-escape-sequences'),
+  );
+  assert.equal(escapeCalls.length, 1);
+  assert.match(
+    escapeCalls[0].args.join(' '),
+    /\/actions\/jobs\/112374484557\/logs$/,
+  );
+  assert.equal(
+    accepted.calls.some((call) =>
+      call.args.join(' ').includes('/releases/assets/'),
+    ),
+    false,
+  );
+
+  const drifted = npmSourceNoopFixture();
+  drifted.releases[0].body = `${NPM_BODY} `;
+  const rejected = runNpmRecoveryCli(drifted);
+  assert.equal(rejected.exitCode, 1);
+  assert.equal(rejected.result, null);
+  assert.equal(rejected.captured.length, 0);
+  assert.match(
+    rejected.errors[0],
+    /draft body does not match the reviewed controller qualification/,
+  );
+  assert.equal(
+    rejected.calls.some((call) =>
+      call.args.join(' ').includes('/releases/assets/'),
+    ),
+    false,
+  );
+});
+
+test('npm-source-noop revalidates assets without rebuilding, redeploying, or publishing npm early', () => {
+  const validate = jobBlock(releaseWorkflow, 'validate-release', 'release.yml');
+  const verifySuite = jobBlock(releaseWorkflow, 'verify-suite', 'release.yml');
+  const publishCommunity = jobBlock(
+    releaseWorkflow,
+    'publish-community',
+    'release.yml',
+  );
+  const verifyAssets = jobBlock(
+    releaseWorkflow,
+    'verify-recovered-assets',
+    'release.yml',
+  );
+  const deploySaas = jobBlock(releaseWorkflow, 'deploy-saas', 'release.yml');
+  const publishPackages = jobBlock(
+    releaseWorkflow,
+    'publish-packages',
+    'release.yml',
+  );
+  const promote = jobBlock(releaseWorkflow, 'promote-community', 'release.yml');
+  const publish = jobBlock(releaseWorkflow, 'publish-release', 'release.yml');
+  const packageWorkflow = readRepoFile(
+    '.github/workflows/publish-packages.yml',
+  );
+
+  assert.match(
+    releaseWorkflow,
+    /recovery_kind: \$\{\{ steps\.release\.outputs\.recovery_kind \}\}/,
+  );
+  assert.match(validate, /echo "recovery_kind="/);
+  assert.match(validate, /echo "recovery_kind=\$\{RECOVERY_KIND\}"/);
+  assert.match(validate, /RECOVERY_ARCHIVE_ASSET_ID/);
+  assert.match(validate, /npm-source-noop draft asset/);
+  assert.match(
+    validate,
+    /Recovery draft gained a versioned install asset before bundle rebuild/,
+  );
+  assert.match(
+    validate,
+    /must contain no versioned install assets before immutable attachment/,
+  );
+  assert.match(validate, /\[ "\$\{RECOVERY_KIND\}" = 'attachment-failure' \]/);
+
+  assert.match(verifySuite, /inputs\.recovery_run_id == ''/);
+  assert.match(deploySaas, /inputs\.recovery_run_id == ''/);
+  assert.match(publishCommunity, /recovery_kind != 'npm-source-noop'/);
+
+  assert.match(verifyAssets, /ref: \$\{\{ github\.sha \}\}/);
+  assert.match(verifyAssets, /git rev-parse HEAD/);
+  assert.match(verifyAssets, /node scripts\/ci\/recovered-release-assets\.mjs/);
+  assert.match(verifyAssets, /contents: read/);
+  assert.match(
+    validate,
+    /if \[ -z "\$\{RECOVERY_RUN_ID\}" \]; then[\s\S]*?echo "image_digest="[\s\S]*?exit 0/,
+  );
+  assert.match(
+    validate,
+    /RECOVERY_IMAGE_DIGEST: \$\{\{ steps\.source\.outputs\.image_digest \}\}/,
+  );
+  assert.match(validate, /echo "image_digest=\$\{RECOVERY_IMAGE_DIGEST\}"/);
+  assert.match(
+    validate,
+    /image_digest: \$\{\{ steps\.release\.outputs\.image_digest \}\}/,
+  );
+  assert.match(
+    recoveryEvidenceScript,
+    /`image_digest=\$\{evidence\.imageDigest\}`/,
+  );
+  assert.match(
+    verifyAssets,
+    /EXPECTED_IMAGE_DIGEST: \$\{\{ needs\.validate-release\.outputs\.image_digest \}\}/,
+  );
+  assert.doesNotMatch(
+    promote,
+    /needs\.validate-release\.outputs\.image_digest/,
+  );
+  assert.doesNotMatch(
+    verifyAssets,
+    /ref: \$\{\{ needs\.validate-release\.outputs\.release_sha \}\}/,
+  );
+  assert.doesNotMatch(verifyAssets, /packages: write/);
+  assert.doesNotMatch(verifyAssets, /docker\/login-action/);
+  assert.doesNotMatch(verifyAssets, /gh release upload/);
+  assert.doesNotMatch(verifyAssets, /build-push-action/);
+  assert.doesNotMatch(verifyAssets, /npm publish/);
+  assert.doesNotMatch(verifyAssets, /deploy-saas/);
+
+  for (const job of [publishPackages, promote, publish]) {
+    assert.match(job, /needs\.publish-community\.result == 'success'/);
+    assert.match(job, /needs\.verify-recovered-assets\.result == 'success'/);
+    assert.match(job, /needs\.publish-community\.result == 'skipped'/);
+    assert.match(job, /recovery_kind == 'npm-source-noop'/);
+  }
+  assert.match(promote, /needs\.publish-packages\.result == 'success'/);
+  assert.match(publish, /needs\.publish-packages\.result == 'success'/);
+  assert.match(publish, /needs\.promote-community\.result == 'success'/);
+  assert.doesNotMatch(publishPackages, /promote-community/);
+  assert.match(
+    publish,
+    /npm-source-noop publication is missing frozen install asset sizes/,
+  );
+  assert.match(
+    releaseWorkflow,
+    /validated_historical_recovery: \$\{\{ needs\.validate-release\.outputs\.recovery_mode == 'true' \}\}/,
+  );
+  assert.doesNotMatch(
+    releaseWorkflow,
+    /validated_historical_recovery:.*npm-source-noop/,
+  );
+  assert.match(
+    packageWorkflow,
+    /node \.release-controller\/scripts\/ci\/recovery-npm-plan-guard\.mjs/,
+  );
+  assert.match(
+    packageWorkflow,
+    /inputs\.validated_historical_recovery != true && needs\.plan\.outputs\.has_packages == 'true'/,
+  );
+  assert.match(
+    packageWorkflow,
+    /inputs\.validated_historical_recovery != true && inputs\.dry_run == false && inputs\.trusted_release_call == true && needs\.plan\.outputs\.has_packages == 'true'/,
+  );
+  assert.match(
+    rootPackage.scripts['test:executable-contracts'],
+    /scripts\/ci\/recovered-release-assets\.test\.mjs/,
+  );
+  assert.throws(
+    () =>
+      validateRecoveryNpmPlan({
+        hasPackages: 'true',
+        recoveryRunId: NPM_RUN_ID,
+        validatedHistoricalRecovery: 'true',
+      }),
+    /cannot publish pending npm packages/i,
   );
 });
