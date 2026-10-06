@@ -47,7 +47,7 @@ export function WorkspaceOverviewSidebar({
 }: WorkspaceOverviewSidebarProps) {
   const translate = useTranslations('pages.workspaceOverview');
   const isStudioEnabled = useFeatureFlag('studio');
-  const { href, orgHref } = useOrgUrl();
+  const { href } = useOrgUrl();
   const advancedTools = useAdvancedTools();
   const librarySnapshotLinks = useLibrarySnapshotLinks();
   const { flags } = useFeatureFlagContext();
@@ -302,11 +302,7 @@ export function WorkspaceOverviewSidebar({
             {availableAdvancedTools.map((tool) => (
               <Link
                 key={tool.href}
-                href={
-                  tool.href.startsWith(APP_ROUTES.AGENT.ROOT)
-                    ? orgHref(tool.href)
-                    : href(tool.href)
-                }
+                href={href(tool.href)}
                 aria-label={tool.label}
                 className="block py-4 first:pt-0 last:pb-0"
               >

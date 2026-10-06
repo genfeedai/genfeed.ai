@@ -2,6 +2,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { WorkspaceTaskDetailProps } from '@props/workspace/workspace-task-inspector.props';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
+import { useWorkspaceTaskHref } from './use-workspace-task-href';
 import { getAdvancedToolHref } from './workspace-task.helpers';
 import { WorkspaceTaskInspectorBody } from './workspace-task-inspector-body';
 import { WorkspaceTaskInspectorHeader } from './workspace-task-inspector-header';
@@ -31,18 +32,21 @@ export function WorkspaceTaskDetail({
   task,
   trailing,
 }: WorkspaceTaskDetailProps) {
+  const taskHref = useWorkspaceTaskHref();
   const translate = useTranslations('pages.workspaceOverview.actions');
   const isBusy = busyTaskId === task?.id;
   const showReviewActions = task?.reviewState === 'pending_approval';
   const linkedIssueSummary = useWorkspaceTaskLinkedIssue(task);
   const linkedExecutionSummary = useWorkspaceTaskLinkedExecutionSummary(task);
   const linkedOutputSummary = useWorkspaceTaskLinkedOutputs(task);
-  const taskToolHref =
+  const taskToolHref = taskHref(
+    task,
     task && linkedExecutionSummary.reportThreadId
       ? `${APP_ROUTES.AGENT.ROOT}/${linkedExecutionSummary.reportThreadId}`
       : task
         ? getAdvancedToolHref(task)
-        : '/automation/runs';
+        : '/automation/runs',
+  );
   const taskToolLabel = linkedExecutionSummary.reportThreadId
     ? translate('openReport')
     : translate('openTool');

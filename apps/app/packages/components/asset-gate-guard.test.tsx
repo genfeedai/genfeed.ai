@@ -19,17 +19,15 @@ vi.mock(
   }),
 );
 
-vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({
-    brandSlug: '',
-    href: (path: string) => path,
-    orgHref: (path: string) => `/acme/~${path}`,
-    orgSlug: 'acme',
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    selectedBrand: { slug: 'stale-brand', organization: { slug: 'acme' } },
   }),
 }));
 
 vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname.value,
+  useParams: () => ({}),
 }));
 
 describe('AssetGateGuard', () => {
@@ -89,6 +87,20 @@ describe('AssetGateGuard', () => {
     ).toBeInTheDocument();
     expect(screen.queryByTestId('protected-child')).not.toBeInTheDocument();
   });
+
+  it.each(['brand-x', '~'])(
+    'keeps the %s route scope in the unlock action',
+    (scope) => {
+      mockAccessState.isAssetGateLocked = true;
+      mockPathname.value = `/acme/${scope}/library/videos`;
+      render(<AssetGateGuard>Protected content</AssetGateGuard>);
+      expect(
+        screen.getByRole('link', {
+          name: 'Go to the agent to generate your first asset',
+        }),
+      ).toHaveAttribute('href', `/acme/${scope}/agent/new`);
+    },
+  );
 
   it('dismisses the gate when clicking "Explore anyway"', () => {
     mockAccessState.isAssetGateLocked = true;

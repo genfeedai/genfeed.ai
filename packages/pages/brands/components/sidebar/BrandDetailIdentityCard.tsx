@@ -1,7 +1,11 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { getBrandOrganizationSlug } from '@contexts/user/brand-context/brand-context.helpers';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+} from '@genfeedai/contracts/constants';
 import {
   buildDefaultVoiceRefFromVoice,
   type DefaultVoiceRef,
@@ -10,6 +14,7 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Voice } from '@models/ingredients/voice.model';
 import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
 import type { BrandDetailIdentityCardProps } from '@props/pages/brand-detail.props';
@@ -34,6 +39,12 @@ export default function BrandDetailIdentityCard({
   onRefreshBrand,
 }: BrandDetailIdentityCardProps) {
   const router = useRouter();
+  const { orgSlug, orgHref } = useOrgUrl();
+  const ownerOrgSlug = getBrandOrganizationSlug(brand) || orgSlug;
+  const libraryHref = (path: string) =>
+    brand.slug
+      ? createBrandAppRoute(ownerOrgSlug, brand.slug, path)
+      : orgHref(path);
   const notifications = NotificationsService.getInstance();
   const { organizationId, refreshBrands } = useBrand();
   const { settings: orgSettings } = useOrganization();
@@ -279,8 +290,12 @@ export default function BrandDetailIdentityCard({
           currentAvatarSummary={currentAvatarSummary}
           currentVoiceSummary={currentVoiceSummary}
           onSave={handleSave}
-          onBrowseAvatars={() => router.push(APP_ROUTES.LIBRARY.AVATARS)}
-          onBrowseVoices={() => router.push(APP_ROUTES.LIBRARY.VOICES)}
+          onBrowseAvatars={() =>
+            router.push(libraryHref(APP_ROUTES.LIBRARY.AVATARS))
+          }
+          onBrowseVoices={() =>
+            router.push(libraryHref(APP_ROUTES.LIBRARY.VOICES))
+          }
         />
       </div>
     </Card>

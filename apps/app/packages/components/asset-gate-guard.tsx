@@ -29,7 +29,7 @@ import {
  */
 export default function AssetGateGuard({ children }: LayoutProps) {
   const { isAssetGateLocked, dismissAssetGate } = useAccessState();
-  const { orgHref } = useOrgUrl();
+  const { href } = useOrgUrl();
   const rawPathname = usePathname();
   const [isDismissing, setIsDismissing] = useState(false);
 
@@ -42,7 +42,7 @@ export default function AssetGateGuard({ children }: LayoutProps) {
     return <>{children}</>;
   }
 
-  const agentHref = orgHref(APP_ROUTES.AGENT.NEW);
+  const agentHref = href(APP_ROUTES.AGENT.NEW);
 
   async function handleExploreAnyway() {
     setIsDismissing(true);

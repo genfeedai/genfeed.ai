@@ -102,6 +102,7 @@ export class ModelsController extends BaseCRUDController<
   public buildFindAllQuery(_user: User, query: ModelsQueryDto) {
     let matchConditions: MatchConditions = {
       isDeleted: query.isDeleted ?? false,
+      ...(query.providers?.length && { provider: { in: query.providers } }),
     };
 
     // Add isActive filter if provided

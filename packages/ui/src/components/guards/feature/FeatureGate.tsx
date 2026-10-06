@@ -3,10 +3,12 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import { useFeatureFlag } from '@genfeedai/hooks/feature-flags/use-feature-flag';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { FeatureGateProps } from '@genfeedai/props/guards/feature-gate.props';
 import Link from 'next/link';
 
 export default function FeatureGate({ flagKey, children }: FeatureGateProps) {
+  const { href } = useOrgUrl();
   const { flags, isConfigured, isReady } = useFeatureFlagContext();
   const isEnabled = useFeatureFlag(flagKey);
   const hasResolvedValue = Object.hasOwn(flags, flagKey);
@@ -38,7 +40,7 @@ export default function FeatureGate({ flagKey, children }: FeatureGateProps) {
           This feature is currently unavailable.
         </p>
         <Link
-          href={APP_ROUTES.WORKSPACE.ROOT}
+          href={href(APP_ROUTES.WORKSPACE.ROOT)}
           className="text-sm font-medium text-primary underline-offset-4 hover:underline"
         >
           Back to Workspace

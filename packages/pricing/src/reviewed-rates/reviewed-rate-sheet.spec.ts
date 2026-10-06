@@ -63,14 +63,26 @@ describe('reviewed rate sheet', () => {
   });
 
   it('prices every declared variant of every entry', () => {
+    const now = new Date(
+      Math.max(
+        ...REVIEWED_RATE_SHEET_ENTRIES.map((entry) =>
+          Date.parse(entry.verifiedAt),
+        ),
+      ),
+    );
     for (const entry of REVIEWED_RATE_SHEET_ENTRIES)
       expect(
         classifyModelPricingAttention({
-          category: 'video',
+          category: entry.rates.every((rate) => rate.unit.endsWith('-token'))
+            ? ModelCategory.TEXT
+            : ModelCategory.VIDEO,
+          hasTokenPricing: entry.rates.every((rate) =>
+            rate.unit.endsWith('-token'),
+          ),
           isActive: true,
           isFree: false,
           margin: 3.33,
-          now: new Date('2026-10-05T00:00:00Z'),
+          now,
           profile: profileFor(entry),
           provider: entry.provider,
         }),
@@ -110,6 +122,18 @@ describe('reviewed rate sheet', () => {
       if (!hasEntry && !UNPRICED_MODELS[model.key]) uncovered.push(model.key);
     }
     expect(uncovered).toEqual([]);
+  });
+
+  it('keeps input-megapixel models unresolved until dispatch can meter them', () => {
+    for (const endpoint of [
+      'black-forest-labs/flux-2-dev',
+      'black-forest-labs/flux-2-flex',
+    ]) {
+      expect(findReviewedRateSheetEntry('replicate', endpoint)).toBeUndefined();
+      expect(UNPRICED_MODELS[endpoint]).toContain(
+        'dispatch does not supply input megapixels',
+      );
+    }
   });
 
   it('never lists a model as both priced and unpriced', () => {

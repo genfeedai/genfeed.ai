@@ -6,13 +6,7 @@ import {
   useModelsContext,
 } from '@contexts/models/models-context/models-context';
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { createFilterHref } from '@helpers/navigation/filter-href.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
-import {
-  ADMIN_MODEL_TYPE_TABS,
-  isAdminModelType,
-} from '@props/admin/models.props';
 import type { LayoutProps } from '@props/layout/layout.props';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import Container from '@ui/layout/container/Container';
@@ -36,10 +30,6 @@ function ModelsLayoutContent({ children }: LayoutProps) {
     () => new URLSearchParams(searchParamsString).get('brand') || '',
     [searchParamsString],
   );
-  const typeParam = searchParams?.get('type');
-  const activeType =
-    typeParam && isAdminModelType(typeParam) ? typeParam : 'active';
-
   const handleAdminOrgChange = useCallback(
     (orgId: string) => {
       const params = new URLSearchParams(searchParamsString);
@@ -80,24 +70,6 @@ function ModelsLayoutContent({ children }: LayoutProps) {
       label="Models"
       description="Manage AI models, their configurations, and availability settings"
       icon={Cpu}
-      headerTabs={{
-        activeTab: createFilterHref(
-          APP_ROUTES.ADMIN.AUTOMATION.MODELS,
-          searchParamsString,
-          'type',
-          activeType,
-        ),
-        fullWidth: false,
-        tabs: ADMIN_MODEL_TYPE_TABS.map((tab) => ({
-          href: createFilterHref(
-            APP_ROUTES.ADMIN.AUTOMATION.MODELS,
-            searchParamsString,
-            'type',
-            tab.value,
-          ),
-          label: tab.label,
-        })),
-      }}
       right={
         <>
           <AdminOrgBrandFilter

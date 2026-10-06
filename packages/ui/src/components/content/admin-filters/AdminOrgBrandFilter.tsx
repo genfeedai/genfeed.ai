@@ -6,6 +6,7 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { useQuery } from '@tanstack/react-query';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
+import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { useCallback, useMemo } from 'react';
 
 export interface AdminOrgBrandFilterProps {
@@ -52,9 +53,17 @@ export default function AdminOrgBrandFilter({
 
   const orgOptions = useMemo(
     () => [
-      { label: 'All Organizations', value: '' },
+      { label: 'All Organizations', value: '', icon: undefined },
       ...organizations.map((org) => ({
         label: org.label || org.id,
+        icon: (
+          <Avatar className="size-5 rounded-sm">
+            <AvatarImage src={org.logoUrl} alt="" />
+            <AvatarFallback className="rounded-sm text-2xs">
+              {(org.label || org.id).charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        ),
         value: org.id,
       })),
     ],
@@ -93,6 +102,7 @@ export default function AdminOrgBrandFilter({
   return (
     <div className="flex items-center gap-2">
       <ButtonDropdown
+        icon={orgOptions.find((option) => option.value === organization)?.icon}
         name="organization"
         value={organization}
         options={orgOptions}

@@ -14,6 +14,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
 import type { CreateOrganizationRequestDto } from '@api/collections/organizations/dto/create-organization-request.dto';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import type { OrganizationLogoService } from '@api/collections/organizations/services/organization-logo.service';
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { OrganizationsOperationsService } from '@api/collections/organizations/services/organizations-operations.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -49,10 +50,14 @@ describe('OrganizationsController', () => {
     originalUrl: '/api/organizations',
     query: {},
   } as Request;
+  const organizationLogoService = {
+    resolveLogoUrls: vi.fn().mockResolvedValue(new Map()),
+  };
   const controller = new OrganizationsController(
     loggerService as unknown as LoggerService,
     organizationsService as unknown as OrganizationsService,
     operationsService as unknown as OrganizationsOperationsService,
+    organizationLogoService as unknown as OrganizationLogoService,
   );
 
   afterEach(() => {
@@ -98,7 +103,7 @@ describe('OrganizationsController', () => {
 
     await expect(
       controller.findAll(request, { ...user, isSuperAdmin: true }, {} as never),
-    ).resolves.toBe(collection);
+    ).resolves.toEqual({ docs: [{ id: 'org_1', logoUrl: null }] });
     expect(organizationsService.findAll).toHaveBeenCalledWith(
       expect.objectContaining({ where: { isDeleted: false } }),
       expect.any(Object),
@@ -164,5 +169,31 @@ describe('OrganizationsController', () => {
         title: 'Resource Not Found',
       });
     });
+  });
+});
+
+it('resolves organization logos in one batch for the platform list', async () => {
+  const logoService = {
+    resolveLogoUrls: vi
+      .fn()
+      .mockResolvedValue(new Map([['org_1', 'https://cdn.example/logo.png']])),
+  };
+  const service = {
+    findAll: vi.fn().mockResolvedValue({ docs: [{ id: 'org_1' }] }),
+  };
+  const controller = new OrganizationsController(
+    {} as LoggerService,
+    service as unknown as OrganizationsService,
+    {} as OrganizationsOperationsService,
+    logoService as unknown as OrganizationLogoService,
+  );
+  const result = await controller.findAll(
+    {} as Request,
+    { isSuperAdmin: true } as User,
+    {} as never,
+  );
+  expect(logoService.resolveLogoUrls).toHaveBeenCalledWith(['org_1']);
+  expect(result).toEqual({
+    docs: [{ id: 'org_1', logoUrl: 'https://cdn.example/logo.png' }],
   });
 });

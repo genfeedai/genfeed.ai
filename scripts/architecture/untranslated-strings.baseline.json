@@ -428,7 +428,6 @@
     "packages/pages/ingredients/list/ingredients-list.tsx": 4,
     "packages/pages/members/invite/EditMemberForm.tsx": 5,
     "packages/pages/members/invite/InviteForm.tsx": 9,
-    "packages/pages/models/list/models-list.tsx": 10,
     "packages/pages/not-found/not-found-page.tsx": 2,
     "packages/pages/posts/[id]/ingredient-posts.tsx": 8,
     "packages/pages/posts/detail/components/PostDetailCardBody.tsx": 4,

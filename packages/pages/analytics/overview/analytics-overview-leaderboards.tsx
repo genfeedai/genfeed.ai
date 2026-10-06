@@ -12,6 +12,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { TopPostData } from '@hooks/data/analytics/use-top-posts/use-top-posts';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TableColumn } from '@props/ui/display/table.props';
 import type {
   IBrandWithStats,
@@ -54,6 +55,11 @@ export default function AnalyticsOverviewLeaderboards({
   scope,
   topPosts,
 }: AnalyticsOverviewLeaderboardsProps) {
+  const { href } = useOrgUrl();
+  const scopedBasePath =
+    scope === PageScope.SUPERADMIN ? basePath : href(basePath);
+  const publishingHref = (path: string) =>
+    scope === PageScope.SUPERADMIN ? path : href(path);
   const orgsColumns: TableColumn<IOrgLeaderboardItem>[] = useMemo(
     () => [
       {
@@ -69,7 +75,7 @@ export default function AnalyticsOverviewLeaderboards({
         key: 'organization',
         render: (item) => (
           <Link
-            href={`${basePath}/organizations/${item.organization.id}`}
+            href={`${scopedBasePath}/organizations/${item.organization.id}`}
             className="flex items-center gap-2 hover:text-primary"
           >
             {item.organization.logo ? (
@@ -116,7 +122,7 @@ export default function AnalyticsOverviewLeaderboards({
         ),
       },
     ],
-    [basePath],
+    [scopedBasePath],
   );
 
   const brandsColumns: TableColumn<IBrandWithStats>[] = useMemo(
@@ -136,7 +142,7 @@ export default function AnalyticsOverviewLeaderboards({
         key: 'name',
         render: (item) => (
           <Link
-            href={`${basePath}/brands/${item.id}`}
+            href={`${scopedBasePath}/brands/${item.id}`}
             className="flex items-center gap-2 hover:text-primary"
           >
             {item.logo ? (
@@ -183,7 +189,7 @@ export default function AnalyticsOverviewLeaderboards({
         ),
       },
     ],
-    [brandsLeaderboard, basePath],
+    [brandsLeaderboard, scopedBasePath],
   );
 
   return (
@@ -192,7 +198,7 @@ export default function AnalyticsOverviewLeaderboards({
         <TopPostsSection
           posts={topPosts}
           isLoading={isTopPostsLoading}
-          basePath="/publishing"
+          basePath={publishingHref(APP_ROUTES.PUBLISHING.ROOT)}
         />
       ) : (
         <OverviewPlaceholderCard
@@ -200,14 +206,16 @@ export default function AnalyticsOverviewLeaderboards({
           description="As soon as posts start collecting views and engagement, this module will highlight the strongest creative in the selected range."
           icon={Newspaper}
           primaryAction={{
-            href: APP_ROUTES.PUBLISHING.OVERVIEW,
+            href: publishingHref(APP_ROUTES.PUBLISHING.OVERVIEW),
             label: 'Draft content',
             variant: ButtonVariant.DEFAULT,
           }}
           secondaryAction={{
-            href: createPublishingPostsFilterRoute({
-              publicationState: 'posted',
-            }),
+            href: publishingHref(
+              createPublishingPostsFilterRoute({
+                publicationState: 'posted',
+              }),
+            ),
             label: 'Browse published posts',
             variant: ButtonVariant.SECONDARY,
           }}
@@ -234,7 +242,7 @@ export default function AnalyticsOverviewLeaderboards({
                   Top organizations
                 </h3>
                 <Link
-                  href={`${basePath}/organizations`}
+                  href={`${scopedBasePath}/organizations`}
                   className={cn(
                     buttonVariants({
                       size: ButtonSize.XS,
@@ -261,7 +269,7 @@ export default function AnalyticsOverviewLeaderboards({
               description="Once organizations start producing enough measurable performance, this leaderboard will rank them by output and engagement."
               icon={Users}
               primaryAction={{
-                href: `${basePath}/organizations`,
+                href: `${scopedBasePath}/organizations`,
                 label: 'Review organizations',
                 variant: ButtonVariant.SECONDARY,
               }}
@@ -279,7 +287,7 @@ export default function AnalyticsOverviewLeaderboards({
                 Top brands
               </h3>
               <Link
-                href={`${basePath}/brands`}
+                href={`${scopedBasePath}/brands`}
                 className={cn(
                   buttonVariants({
                     size: ButtonSize.XS,
@@ -306,7 +314,7 @@ export default function AnalyticsOverviewLeaderboards({
             description="This section compares brands once posts begin generating enough views and engagement to rank meaningfully."
             icon={Sparkles}
             primaryAction={{
-              href: `${basePath}/brands`,
+              href: `${scopedBasePath}/brands`,
               label: 'Review brands',
               variant: ButtonVariant.SECONDARY,
             }}
