@@ -29,14 +29,25 @@ function video(id: string, url: string): DiscoveryDeskItem {
     matchedTrends: [],
     metrics: {},
     platform: 'youtube',
-    raw: { kind: 'viral_video', video: { id, videoUrl: url } },
+    raw: {
+      kind: 'viral_video',
+      video: {
+        id,
+        videoUrl: url,
+        platform: 'youtube',
+        creatorHandle: 'creator',
+        engagementRate: 0,
+        velocity: 0,
+        viralScore: 10,
+      },
+    },
     remixSelector: null,
     source: 'trends',
     mediaUrl: url,
     title: id,
     velocity: 0,
     virality: 10,
-  } as DiscoveryDeskItem;
+  };
 }
 
 describe('Discovery table previews', () => {
