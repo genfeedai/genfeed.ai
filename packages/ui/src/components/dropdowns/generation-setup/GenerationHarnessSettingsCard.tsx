@@ -26,9 +26,6 @@ export default function GenerationHarnessSettingsCard({
     <div className="flex flex-col gap-4 p-4" aria-busy={isLoading || isSaving}>
       <div className="space-y-1">
         <p className="text-sm font-semibold">{translate('title')}</p>
-        <p className="text-xs text-muted-foreground">
-          {translate('description')}
-        </p>
       </div>
       {isLoading ? (
         <p className="text-sm" role="status">
@@ -89,11 +86,11 @@ export default function GenerationHarnessSettingsCard({
               </div>
             </div>
           ) : null}
-          <p className="text-xs text-muted-foreground" role="status">
-            {isSaving
-              ? 'Saving…'
-              : `Enhancement ${settings.isEnabled ? 'on' : 'off'} · ${settings.source === 'default' ? 'system default' : `${settings.source} preference`}`}
-          </p>
+          {isSaving ? (
+            <p className="text-xs text-muted-foreground" role="status">
+              Saving…
+            </p>
+          ) : null}
         </>
       ) : null}
       {error ? (

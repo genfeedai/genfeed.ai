@@ -1,102 +1,54 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   GenerationSetupCustomizePanelProps,
   GenerationSetupCustomizeSectionId,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
 import GenerationSetupBrandSection from '@ui/dropdowns/generation-setup/GenerationSetupBrandSection';
+import GenerationSetupFieldIcon from '@ui/dropdowns/generation-setup/GenerationSetupFieldIcon';
 import GenerationSetupLookSection from '@ui/dropdowns/generation-setup/GenerationSetupLookSection';
 import GenerationSetupModelSection from '@ui/dropdowns/generation-setup/GenerationSetupModelSection';
 import GenerationSetupOutputSection from '@ui/dropdowns/generation-setup/GenerationSetupOutputSection';
-import GenerationSetupSavePresetRow from '@ui/dropdowns/generation-setup/GenerationSetupSavePresetRow';
-import Tabs from '@ui/navigation/tabs/Tabs';
+import GenerationSetupPresetsSection from '@ui/dropdowns/generation-setup/GenerationSetupPresetsSection';
 import { Button } from '@ui/primitives/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { ArrowLeft, RotateCcw } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { ArrowLeft, Undo2 } from 'lucide-react';
 
 const SECTION_LABELS: Record<GenerationSetupCustomizeSectionId, string> = {
   brand: 'Brand',
   look: 'Look',
   model: 'Model',
   output: 'Output',
+  presets: 'Presets',
 };
 
-/**
- * Layer 3 of the popover: a tab rail driven by capability flags, a Type
- * switcher (when more than one type is offered), per-field provenance inside
- * each section, "Reset all", and the save-as-preset footer.
- */
 export default function GenerationSetupCustomizePanel({
   capabilities,
   inputControls,
   referenceCount,
-  creditQuoteLabel,
   creditsAvailable,
   favoriteModelKeys,
   initialSection,
+  isPresetsLoading,
+  onApplyPreset,
+  onDeletePreset,
+  presets,
   isDisabled = false,
   lookOptions,
   models,
   onBack,
   onFavoriteToggle,
-  onResetAll,
   onResetField,
   onSavePreset,
   onSetField,
-  onTypeChange,
   reasons,
   setup,
-  typeOptions,
 }: GenerationSetupCustomizePanelProps) {
   const scopedLookOptions =
     inputControls?.mediaKind === 'video'
       ? { ...lookOptions, resolution: [] }
       : lookOptions;
-  const hasLookFields = Object.values(scopedLookOptions).some(
-    (options) => (options?.length ?? 0) > 0,
-  );
-
-  const availableSections = useMemo<GenerationSetupCustomizeSectionId[]>(() => {
-    const sections: GenerationSetupCustomizeSectionId[] = [];
-    if (capabilities.hasModelSelection) {
-      sections.push('model');
-    }
-    if (hasLookFields) {
-      sections.push('look');
-    }
-    if (
-      capabilities.hasAspectRatio ||
-      capabilities.hasDuration ||
-      capabilities.hasOutputs
-    ) {
-      sections.push('output');
-    }
-    // Brand voice cannot affect music, avatar, or voice generations — hide
-    // the tab entirely rather than show a switch that does nothing (#4676).
-    if (capabilities.hasBrandEnrichment) {
-      sections.push('brand');
-    }
-    return sections;
-  }, [capabilities, hasLookFields]);
-
-  const [activeSection, setActiveSection] = useState<
-    GenerationSetupCustomizeSectionId | undefined
-  >(initialSection);
-
-  const resolvedSection =
-    activeSection && availableSections.includes(activeSection)
-      ? activeSection
-      : availableSections[0];
+  const resolvedSection = initialSection;
 
   return (
     <div className="flex min-h-0 flex-col">
@@ -110,63 +62,43 @@ export default function GenerationSetupCustomizePanel({
           variant={ButtonVariant.GHOST}
         />
 
-        {typeOptions.length > 1 ? (
-          <Select
-            onValueChange={(value) => {
-              const option = typeOptions.find((entry) => entry.value === value);
-              if (!option) {
-                return;
-              }
-              onSetField('type', option.value);
-              onTypeChange?.(option.value);
-            }}
-            value={setup.values.type}
-          >
-            <SelectTrigger
-              aria-label="Generation type"
-              className={cn('w-28 shrink-0', SHELL_CONTROL_HEIGHT_CLASS)}
-            >
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              {typeOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {resolvedSection === 'model' ? (
+          <GenerationSetupFieldIcon
+            fieldKey="modelKey"
+            reason={reasons.modelKey ?? reasons.prioritize}
+            source={setup.sources.modelKey ?? 'agent'}
+          />
         ) : null}
-
-        <Tabs
-          activeTab={resolvedSection ?? ''}
-          ariaLabel="Generation settings section"
-          className="ml-auto"
-          fullWidth={false}
-          items={availableSections.map((section) => ({
-            id: section,
-            isDisabled,
-            label: SECTION_LABELS[section],
-          }))}
-          onTabChange={(section) =>
-            setActiveSection(section as GenerationSetupCustomizeSectionId)
-          }
-        />
+        <span className="text-xs font-medium">
+          {SECTION_LABELS[resolvedSection]}
+        </span>
+        {resolvedSection === 'model' &&
+        setup.sources.modelKey &&
+        setup.sources.modelKey !== 'agent' ? (
+          <Button
+            ariaLabel="Reset model to agent"
+            className="size-6 p-0 text-muted-foreground"
+            icon={<Undo2 className="size-3" />}
+            onClick={() => onResetField('modelKey')}
+            size={ButtonSize.ICON}
+            variant={ButtonVariant.GHOST}
+          />
+        ) : null}
+        <span className="ml-auto text-xs capitalize text-muted-foreground">
+          {setup.values.type}
+        </span>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">
+      <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {resolvedSection === 'model' ? (
           <GenerationSetupModelSection
             capabilities={capabilities}
-            creditQuoteLabel={creditQuoteLabel}
             creditsAvailable={creditsAvailable}
             favoriteModelKeys={favoriteModelKeys}
             isDisabled={isDisabled}
             models={models}
             onFavoriteToggle={onFavoriteToggle}
-            onResetField={onResetField}
             onSetField={onSetField}
-            reasons={reasons}
             setup={setup}
           />
         ) : null}
@@ -201,24 +133,17 @@ export default function GenerationSetupCustomizePanel({
             setup={setup}
           />
         ) : null}
-      </div>
-
-      <div className="flex shrink-0 flex-col gap-2 border-t border-border p-2.5">
-        <Button
-          ariaLabel="Reset all fields to agent"
-          className="self-end text-muted-foreground"
-          icon={<RotateCcw className="size-3.5" />}
-          isDisabled={isDisabled}
-          label="Reset all"
-          onClick={onResetAll}
-          size={ButtonSize.XS}
-          textTransform="none"
-          variant={ButtonVariant.GHOST}
-        />
-        <GenerationSetupSavePresetRow
-          isDisabled={isDisabled}
-          onSavePreset={onSavePreset}
-        />
+        {resolvedSection === 'presets' ? (
+          <GenerationSetupPresetsSection
+            isDisabled={isDisabled}
+            isPresetsLoading={isPresetsLoading}
+            onApplyPreset={onApplyPreset}
+            onDeletePreset={onDeletePreset}
+            onSavePreset={onSavePreset}
+            presets={presets}
+            setup={setup}
+          />
+        ) : null}
       </div>
     </div>
   );

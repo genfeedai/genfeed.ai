@@ -28,7 +28,7 @@ export type GenerationSetupLookFieldKey = Extract<
   | 'style'
 >;
 
-/** Per-field option lists for the Look tab. Empty on the agent composer. */
+/** Per-field option lists for Look. Empty on the agent composer. */
 export type GenerationSetupLookOptions = Partial<
   Record<GenerationSetupLookFieldKey, readonly FormDropdownOption[]>
 >;
@@ -74,8 +74,6 @@ export interface GenerationSetupPopoverProps {
   onTypeChange?: (type: GenerationSetupType) => void;
   /** Null/undefined disables the credit lock on model rows. */
   creditsAvailable?: number | null;
-  /** e.g. "~4 credits per output" shown under the Model tab. */
-  creditQuoteLabel?: string;
   isDisabled?: boolean;
   className?: string;
   buttonRef?: RefObject<HTMLButtonElement | null>;
@@ -118,81 +116,78 @@ export interface GenerationSetupFieldRowProps {
 
 export interface GenerationSetupFrontDoorProps {
   capabilities: StudioGenerateCapabilities;
-  creditQuoteLabel?: string;
-  isDisabled?: boolean;
-  isPresetsLoading?: boolean;
-  models: readonly IModel[];
-  onApplyPreset: (preset: IStudioLook) => void;
-  onCustomize: (section?: GenerationSetupCustomizeSectionId) => void;
-  onDeletePreset?: (presetId: string) => void;
-  onSavePreset: (label: string) => void;
-  onSearch: () => void;
-  presets: readonly IStudioLook[];
-  reasons: Partial<Record<GenerationSetupFieldKey, string>>;
-  setup: GenerationSetup;
-  typeOptions: readonly GenerationSetupTypeOption[];
-}
-
-export interface GenerationSetupSearchOption {
-  fieldKey: GenerationSetupFieldKey;
-  group: string;
-  keywords?: string[];
-  label: string;
-  value: GenerationSetupValues[GenerationSetupFieldKey];
-}
-
-export interface GenerationSetupSearchProps {
   inputControls?: CrunInputControls;
-  referenceCount?: number;
-  capabilities: StudioGenerateCapabilities;
+  isDisabled?: boolean;
   lookOptions: GenerationSetupLookOptions;
   models: readonly IModel[];
-  onBack: () => void;
+  onCustomize: (section: GenerationSetupCustomizeSectionId) => void;
+  onResetAll: () => void;
   onSetField: GenerationSetupFieldSetter;
+  onTypeChange?: (type: GenerationSetupType) => void;
+  presets: readonly IStudioLook[];
   setup: GenerationSetup;
   typeOptions: readonly GenerationSetupTypeOption[];
+}
+
+export interface GenerationSetupPresetsSectionProps {
+  isDisabled?: boolean;
+  isPresetsLoading?: boolean;
+  onApplyPreset: (preset: IStudioLook) => void;
+  onDeletePreset?: (presetId: string) => void;
+  onSavePreset: (label: string) => void;
+  presets: readonly IStudioLook[];
+  setup: GenerationSetup;
+}
+
+export interface GenerationSetupOptionPickerProps {
+  label: string;
+  value: string;
+  options: readonly {
+    value: string;
+    label: string;
+    isPlatformDefault?: boolean;
+  }[];
+  onValueChange: (value: string) => void;
 }
 
 export type GenerationSetupCustomizeSectionId =
   | 'brand'
   | 'look'
   | 'model'
-  | 'output';
+  | 'output'
+  | 'presets';
 
 export interface GenerationSetupCustomizePanelProps {
   inputControls?: CrunInputControls;
   referenceCount?: number;
   capabilities: StudioGenerateCapabilities;
-  creditQuoteLabel?: string;
   creditsAvailable?: number | null;
   favoriteModelKeys: string[];
-  initialSection?: GenerationSetupCustomizeSectionId;
+  initialSection: GenerationSetupCustomizeSectionId;
+  isPresetsLoading?: boolean;
+  onApplyPreset: (preset: IStudioLook) => void;
+  onDeletePreset?: (presetId: string) => void;
+  presets: readonly IStudioLook[];
   isDisabled?: boolean;
   lookOptions: GenerationSetupLookOptions;
   models: readonly IModel[];
   onBack: () => void;
   onFavoriteToggle: (modelKey: string) => void;
-  onResetAll: () => void;
   onResetField: (key: GenerationSetupFieldKey) => void;
   onSavePreset: (label: string) => void;
   onSetField: GenerationSetupFieldSetter;
-  onTypeChange?: (type: GenerationSetupType) => void;
   reasons: Partial<Record<GenerationSetupFieldKey, string>>;
   setup: GenerationSetup;
-  typeOptions: readonly GenerationSetupTypeOption[];
 }
 
 export interface GenerationSetupModelSectionProps {
   capabilities: StudioGenerateCapabilities;
-  creditQuoteLabel?: string;
   creditsAvailable?: number | null;
   favoriteModelKeys: string[];
   isDisabled?: boolean;
   models: readonly IModel[];
   onFavoriteToggle: (modelKey: string) => void;
-  onResetField: (key: GenerationSetupFieldKey) => void;
   onSetField: GenerationSetupFieldSetter;
-  reasons: Partial<Record<GenerationSetupFieldKey, string>>;
   setup: GenerationSetup;
 }
 

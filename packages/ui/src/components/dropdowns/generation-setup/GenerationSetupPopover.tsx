@@ -9,7 +9,6 @@ import type {
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import GenerationSetupCustomizePanel from '@ui/dropdowns/generation-setup/GenerationSetupCustomizePanel';
 import GenerationSetupFrontDoor from '@ui/dropdowns/generation-setup/GenerationSetupFrontDoor';
-import GenerationSetupSearch from '@ui/dropdowns/generation-setup/GenerationSetupSearch';
 import GenerationSetupTrigger from '@ui/dropdowns/generation-setup/GenerationSetupTrigger';
 import { Button } from '@ui/primitives/button';
 import { overlayMenuSurfaceClassName } from '@ui/primitives/field-control';
@@ -23,22 +22,12 @@ import { Pin, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { memo, useState } from 'react';
 
-type GenerationSetupView = 'customize' | 'front-door' | 'search';
-
-/**
- * Three layers in one popover: front door (agent-pick summary + presets +
- * search entry), search (flat cmdk index across every field), and customize
- * (capability-driven tab rail). One `view` state switches which layer
- * renders inside a single `PopoverContent`, mirroring ModelSelectorPopover's
- * data-agnostic, props-driven shape.
- */
 const GenerationSetupPopover = memo(function GenerationSetupPopover({
   buttonRef,
   capabilities,
   inputControls,
   referenceCount,
   className,
-  creditQuoteLabel,
   creditsAvailable,
   favoriteModelKeys,
   isDisabled = false,
@@ -64,7 +53,6 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
 }: GenerationSetupPopoverProps) {
   const translate = useTranslations('agent.generationSetup');
   const [isOpen, setIsOpen] = useState(false);
-  const [view, setView] = useState<GenerationSetupView>('front-door');
   const [customizeSection, setCustomizeSection] =
     useState<GenerationSetupCustomizeSectionId>();
 
@@ -74,19 +62,17 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
     }
     setIsOpen(open);
     if (!open) {
-      setView('front-door');
       setCustomizeSection(undefined);
     }
   }
 
-  function handleCustomize(section?: GenerationSetupCustomizeSectionId): void {
+  function handleCustomize(section: GenerationSetupCustomizeSectionId): void {
     setCustomizeSection(section);
-    setView('customize');
   }
 
   function handleApplyPreset(preset: IStudioLook): void {
     onApplyPreset(preset);
-    setView('front-door');
+    setCustomizeSection(undefined);
   }
 
   const pinnedPreset = setup.presetId
@@ -147,61 +133,45 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
               </div>
             ) : null}
 
-            {view === 'front-door' ? (
+            {!customizeSection ? (
               <GenerationSetupFrontDoor
                 capabilities={capabilities}
-                creditQuoteLabel={creditQuoteLabel}
-                isDisabled={isDisabled}
-                isPresetsLoading={isPresetsLoading}
-                models={models}
-                onApplyPreset={handleApplyPreset}
-                onCustomize={handleCustomize}
-                onDeletePreset={onDeletePreset}
-                onSavePreset={onSavePreset}
-                onSearch={() => setView('search')}
-                presets={presets}
-                reasons={reasons}
-                setup={setup}
-                typeOptions={typeOptions}
-              />
-            ) : null}
-
-            {view === 'search' ? (
-              <GenerationSetupSearch
                 inputControls={inputControls}
-                referenceCount={referenceCount}
-                capabilities={capabilities}
+                isDisabled={isDisabled}
                 lookOptions={lookOptions}
                 models={models}
-                onBack={() => setView('front-door')}
+                onCustomize={handleCustomize}
+                onResetAll={onResetAll}
                 onSetField={onSetField}
+                onTypeChange={onTypeChange}
+                presets={presets}
                 setup={setup}
                 typeOptions={typeOptions}
               />
             ) : null}
 
-            {view === 'customize' ? (
+            {customizeSection ? (
               <GenerationSetupCustomizePanel
                 inputControls={inputControls}
                 referenceCount={referenceCount}
                 capabilities={capabilities}
-                creditQuoteLabel={creditQuoteLabel}
                 creditsAvailable={creditsAvailable}
                 favoriteModelKeys={favoriteModelKeys}
                 initialSection={customizeSection}
                 isDisabled={isDisabled}
+                isPresetsLoading={isPresetsLoading}
+                onApplyPreset={handleApplyPreset}
+                onDeletePreset={onDeletePreset}
+                presets={presets}
                 lookOptions={lookOptions}
                 models={models}
-                onBack={() => setView('front-door')}
+                onBack={() => setCustomizeSection(undefined)}
                 onFavoriteToggle={onFavoriteToggle}
-                onResetAll={onResetAll}
                 onResetField={onResetField}
                 onSavePreset={onSavePreset}
                 onSetField={onSetField}
-                onTypeChange={onTypeChange}
                 reasons={reasons}
                 setup={setup}
-                typeOptions={typeOptions}
               />
             ) : null}
           </div>

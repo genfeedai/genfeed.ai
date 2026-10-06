@@ -1,7 +1,7 @@
 import type { GenerationSetup } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import type { GenerationSetupOptionPickerProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { render, screen } from '@testing-library/react';
 import GenerationSetupLookSection from '@ui/dropdowns/generation-setup/GenerationSetupLookSection';
-import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', async () => {
@@ -9,14 +9,17 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@ui/primitives/select', () => ({
-  Select: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  SelectContent: ({ children }: { children: ReactNode }) => <ul>{children}</ul>,
-  SelectItem: ({ children, value }: { children: ReactNode; value: string }) => (
-    <li data-value={value}>{children}</li>
+vi.mock('@ui/dropdowns/generation-setup/GenerationSetupOptionPicker', () => ({
+  default: ({ options }: GenerationSetupOptionPickerProps) => (
+    <ul>
+      {options.map((option) => (
+        <li key={option.value}>
+          <span>{option.label}</span>
+          {option.isPlatformDefault ? ' Default' : ''}
+        </li>
+      ))}
+    </ul>
   ),
-  SelectTrigger: () => null,
-  SelectValue: () => null,
 }));
 
 describe('GenerationSetupLookSection', () => {
