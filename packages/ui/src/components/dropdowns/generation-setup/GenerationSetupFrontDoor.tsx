@@ -2,11 +2,11 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
-  extractBrandFromKey,
   getBrandConfig,
   normalizeMusicSettings,
 } from '@genfeedai/contracts/constants';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
+import { getModelProviderLabel } from '@genfeedai/helpers/ui/model-badge.helper';
 import type {
   GenerationSetupCustomizeSectionId,
   GenerationSetupFrontDoorProps,
@@ -52,13 +52,21 @@ export default function GenerationSetupFrontDoor({
   typeOptions,
 }: GenerationSetupFrontDoorProps) {
   const translate = useTranslations('agent.generationSetup');
-  const modelBrand = isAutoGenerationModelKey(setup.values.modelKey)
+  const isAutoModel = isAutoGenerationModelKey(setup.values.modelKey);
+  const selectedModel = isAutoModel
     ? undefined
-    : getBrandConfig(extractBrandFromKey(setup.values.modelKey));
-  const modelLabel = isAutoGenerationModelKey(setup.values.modelKey)
+    : models.find((model) => model.key === setup.values.modelKey);
+  const modelLabel = isAutoModel
     ? translate('auto')
-    : (models.find((model) => model.key === setup.values.modelKey)?.label ??
-      setup.values.modelKey);
+    : (selectedModel?.label ?? setup.values.modelKey);
+  const modelProvider = selectedModel?.provider;
+  const modelBrand = modelProvider
+    ? {
+        color: getBrandConfig(modelProvider).color,
+        icon: getModelBrandIcon(modelProvider),
+        label: getModelProviderLabel(modelProvider),
+      }
+    : undefined;
   const duration =
     setup.values.type === 'music'
       ? normalizeMusicSettings(setup.values.modelKey, setup.values).duration
@@ -155,7 +163,7 @@ export default function GenerationSetupFrontDoor({
                   {section.id === 'model' && modelBrand ? (
                     <ModelSelectorBrandMark
                       brandColor={modelBrand.color}
-                      brandIcon={getModelBrandIcon(modelBrand.iconKey)}
+                      brandIcon={modelBrand.icon}
                       brandLabel={modelBrand.label}
                     />
                   ) : (
