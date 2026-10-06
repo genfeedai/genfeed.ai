@@ -82,6 +82,35 @@ export default function StudioGenerationSummary({
                   )
                 : translate('summary.estimateUnavailable');
 
+  const quotedCredits =
+    model?.provider === 'crun' && crunQuote?.quote?.isAvailable
+      ? crunQuote.quote.billingMode === 'byok'
+        ? null
+        : crunQuote.quote.credits
+      : estimate.status === 'estimated'
+        ? estimate.credits
+        : null;
+  const compactEstimate =
+    model?.provider === 'crun' &&
+    crunQuote?.quote?.isAvailable &&
+    crunQuote.quote.billingMode === 'byok'
+      ? translate('crun.byok')
+      : canSubmitStudioGeneration(runtime) &&
+          quotedCredits !== null &&
+          quotedCredits !== undefined
+        ? `~${formatCreditBalanceExact(quotedCredits)}`
+        : estimate.status === 'loading' || crunQuote?.status === 'pending'
+          ? '…'
+          : estimate.status === 'auto'
+            ? translate('inspector.autoModel')
+            : '—';
+  const compactBalance =
+    balance !== null
+      ? formatCreditBalanceExact(balance)
+      : isLoading
+        ? '…'
+        : '—';
+
   return (
     <div
       className="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1 text-xs text-muted-foreground"
@@ -91,14 +120,19 @@ export default function StudioGenerationSummary({
         <div
           aria-live="polite"
           aria-atomic="true"
-          className="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1 tabular-nums"
+          className="inline-flex items-center gap-1 whitespace-nowrap tabular-nums"
         >
-          <span>{estimateLabel}</span>
+          <span role="status" aria-label={estimateLabel} title={estimateLabel}>
+            {compactEstimate}
+          </span>
+          <span aria-hidden="true">/</span>
           <Link
             className="rounded-sm underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             href={orgHref(APP_ROUTES.SETTINGS.CREDITS)}
+            aria-label={balanceLabel}
+            title={balanceLabel}
           >
-            {balanceLabel}
+            {compactBalance}
           </Link>
         </div>
       ) : runtime.status !== 'web' ? (

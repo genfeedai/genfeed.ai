@@ -62,7 +62,7 @@ export default function PromptBarVoiceControl({
         variant={ButtonVariant.GHOST}
         withWrapper={false}
       >
-        <Mic className="size-4" />
+        <Mic className={density === 'compact' ? 'size-3.5' : 'size-4'} />
         <span
           aria-hidden="true"
           className="absolute right-0.5 top-0.5 size-2 animate-pulse rounded-full bg-destructive motion-reduce:animate-none"
@@ -75,7 +75,7 @@ export default function PromptBarVoiceControl({
     <Button
       ariaLabel="Start voice input"
       className={controlClass}
-      icon={<Mic className="size-4" />}
+      icon={<Mic className={density === 'compact' ? 'size-3.5' : 'size-4'} />}
       isDisabled={isDisabled}
       onClick={onStartListening}
       size={ButtonSize.ICON}

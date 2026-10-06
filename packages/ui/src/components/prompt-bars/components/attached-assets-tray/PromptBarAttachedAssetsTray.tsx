@@ -67,6 +67,8 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
         {assets.map((asset) => (
           <div
             key={asset.id}
+            role="group"
+            aria-label={`${getAssetRoleLabel(asset)}: ${asset.name || getAssetRoleLabel(asset)}`}
             className={cn(
               'inline-flex h-8 max-w-full items-center gap-2 rounded-md border border-border bg-tertiary pl-1 pr-0.5 text-foreground',
               isDisabled && 'opacity-70',
@@ -95,6 +97,11 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
               )}
             >
               <p className="truncate text-xs font-medium">
+                {asset.name && asset.role !== 'reference' ? (
+                  <span className="text-muted-foreground">
+                    {getAssetRoleLabel(asset)} ·{' '}
+                  </span>
+                ) : null}
                 {asset.name || getAssetRoleLabel(asset)}
               </p>
             </div>

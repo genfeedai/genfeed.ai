@@ -87,7 +87,9 @@ export default function PromptBarReferenceControls({
           <Button
             ariaLabel={label ?? translate('addContext')}
             className={cn('shrink-0', label ? 'h-8 gap-1.5 px-2' : controlSize)}
-            icon={<Plus className="size-4" />}
+            icon={
+              <Plus className={density === 'compact' ? 'size-3.5' : 'size-4'} />
+            }
             isDisabled={isMenuDisabled}
             size={label ? ButtonSize.SM : ButtonSize.ICON}
             tooltip={label ?? translate('addContext')}

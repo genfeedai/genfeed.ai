@@ -67,7 +67,7 @@ describe('GenerationSetupTrigger', () => {
       />,
     );
     expect(
-      screen.getByRole('button', { name: 'Generation setup' }),
+      screen.getByRole('button', { name: /^Generation setup:/ }),
     ).toHaveTextContent('Nano Banana 2 Lite · 1:1 · 1K · 1 output');
     rerender(
       <GenerationSetupTrigger
@@ -79,7 +79,7 @@ describe('GenerationSetupTrigger', () => {
       />,
     );
     expect(
-      screen.getByRole('button', { name: 'Generation setup' }),
+      screen.getByRole('button', { name: /^Generation setup:/ }),
     ).toHaveTextContent('Kling · 16:9 · 1080p · 5s · 1 output');
   });
 

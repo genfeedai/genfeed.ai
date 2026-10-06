@@ -63,7 +63,9 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
 
   return (
     <Button
-      ariaLabel="Generation setup"
+      ariaLabel={
+        triggerLabel ? `Generation setup: ${triggerLabel}` : 'Generation setup'
+      }
       className={cn(
         buttonVariants({ size: ButtonSize.SM, variant: ButtonVariant.GHOST }),
         SHELL_CONTROL_HEIGHT_CLASS,

@@ -782,7 +782,7 @@ describe('StudioGenerateComposer', () => {
       />,
     );
 
-    expect(screen.getByText('Estimated 50 credits')).toBeVisible();
+    expect(screen.getByText('~50')).toBeVisible();
 
     rerender(
       <StudioGenerateComposer
@@ -796,7 +796,7 @@ describe('StudioGenerateComposer', () => {
       />,
     );
 
-    expect(screen.getByText('Estimated 125 credits')).toBeVisible();
+    expect(screen.getByText('~125')).toBeVisible();
     expect(estimateMocks.resolve).toHaveBeenLastCalledWith(
       expect.objectContaining({
         category: 'video',
@@ -927,7 +927,7 @@ describe('StudioGenerateComposer', () => {
     };
     const { rerender } = render(<StudioGenerateComposer {...props} />);
     expect(
-      screen.getByText('Estimate available after model selection'),
+      screen.getByLabelText('Estimate available after model selection'),
     ).toBeVisible();
     expect(screen.getByRole('link', { name: '120 available' })).toHaveAttribute(
       'href',
@@ -940,8 +940,8 @@ describe('StudioGenerateComposer', () => {
       isLoading: true,
     });
     rerender(<StudioGenerateComposer {...props} isLoadingModels />);
-    expect(screen.getByText('Loading estimate…')).toBeVisible();
-    expect(screen.getByText('Loading balance…')).toBeVisible();
+    expect(screen.getByLabelText('Loading estimate…')).toBeVisible();
+    expect(screen.getByLabelText('Loading balance…')).toBeVisible();
     Object.assign(walletMocks, {
       balance: null,
       isLoaded: true,
@@ -954,21 +954,23 @@ describe('StudioGenerateComposer', () => {
       />,
     );
     expect(
-      screen.getByText('This model is not available for your workspace.'),
+      screen.getByLabelText('This model is not available for your workspace.'),
     ).toBeVisible();
-    expect(screen.getByText('Balance unavailable')).toBeVisible();
+    expect(screen.getByLabelText('Balance unavailable')).toBeVisible();
     walletMocks.balance = 0;
     rerender(<StudioGenerateComposer {...props} />);
-    expect(screen.getByText('0 available')).toBeVisible();
+    expect(screen.getByRole('link', { name: '0 available' })).toBeVisible();
     walletMocks.balance = Number.NaN;
     rerender(<StudioGenerateComposer {...props} />);
-    expect(screen.getByText('Balance unavailable')).toBeVisible();
+    expect(screen.getByLabelText('Balance unavailable')).toBeVisible();
     walletMocks.showCredits = false;
     rerender(<StudioGenerateComposer {...props} />);
     expect(
-      screen.queryByText('Estimate available after model selection'),
+      screen.queryByLabelText('Estimate available after model selection'),
     ).not.toBeInTheDocument();
-    expect(screen.queryByText('Balance unavailable')).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Balance unavailable'),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Auto · 1:1 · 1K · 1 output')).toBeVisible();
   });
 
@@ -1000,7 +1002,7 @@ describe('StudioGenerateComposer', () => {
         settings={{ ...settings, modelKey: model.key }}
       />,
     );
-    expect(screen.getByText('Estimated 8 credits')).toBeVisible();
+    expect(screen.getByText('~8')).toBeVisible();
     rerender(
       <StudioGenerateComposer
         {...props}
@@ -1013,7 +1015,7 @@ describe('StudioGenerateComposer', () => {
         }}
       />,
     );
-    expect(screen.getByText('Estimated 24 credits')).toBeVisible();
+    expect(screen.getByText('~24')).toBeVisible();
     expect(screen.getByText('Imagen 4 · 9:16 · 2K · 3 outputs')).toBeVisible();
     estimateMocks.resolve.mockReturnValue({
       credits: null,
@@ -1027,7 +1029,7 @@ describe('StudioGenerateComposer', () => {
       />,
     );
     expect(
-      screen.getByText('This model has no confirmed price yet.'),
+      screen.getByLabelText('This model has no confirmed price yet.'),
     ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
     expect(baseProps.onSubmit).not.toHaveBeenCalled();
@@ -1084,7 +1086,7 @@ describe('StudioGenerateComposer', () => {
       />,
     );
     expect(
-      screen.getByText('This model is not available for your workspace.'),
+      screen.getByLabelText('This model is not available for your workspace.'),
     ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
   });
@@ -1172,10 +1174,10 @@ describe('StudioGenerateComposer', () => {
         />,
       );
       expect(
-        screen.getByText('Estimate available after model selection'),
+        screen.getByLabelText('Estimate available after model selection'),
       ).toBeVisible();
       expect(estimateMocks.resolve).not.toHaveBeenCalled();
-      expect(screen.getByText('Ideogram 4.5 · 3 outputs')).toBeVisible();
+      expect(screen.getByText('Auto (Ideogram 4.5) · 3 outputs')).toBeVisible();
     });
     it('blocks submission without a source and never offers prompt enhancement', () => {
       render(
@@ -1288,7 +1290,7 @@ describe('FLUX.3 composer controls', () => {
       screen.queryByLabelText('Editing output size'),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Mask (optional)')).not.toBeInTheDocument();
-    expect(screen.getByText('Estimated 12 credits')).toBeVisible();
+    expect(screen.getByText('~12')).toBeVisible();
     expect(
       screen.getByRole('combobox', { name: 'Image editing target' }),
     ).toBeVisible();
@@ -1485,7 +1487,7 @@ describe('complete reviewed Studio video scalar composition', () => {
         screen.getAllByRole('combobox', { name: 'Aspect ratio' }),
       ).toHaveLength(1);
       expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
-      expect(screen.getByText('11 credits', { exact: true })).toBeVisible();
+      expect(screen.getByText('~11', { exact: true })).toBeVisible();
       if (kling) {
         expect(
           screen.getByRole('spinbutton', { name: 'Guidance' }),

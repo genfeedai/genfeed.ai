@@ -56,6 +56,7 @@ import {
   resolveStudioGenerateCapabilities,
 } from '@pages/studio/generate/utils/studio-generate-types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
+import { SHELL_ICON_CLASS } from '@ui/constants/shell-chrome.constant';
 import GenerationHarnessSettingsPopover from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsPopover';
 import GenerationSetupPopover from '@ui/dropdowns/generation-setup/GenerationSetupPopover';
 import { recommendGenerationSetup } from '@ui/dropdowns/generation-setup/generation-setup.recommend';
@@ -466,7 +467,9 @@ export default function StudioGenerateComposer({
       ? translate('summary.modelLoading')
       : isAutoStudioModelKey(displaySettings.modelKey)
         ? translate('inspector.autoModel')
-        : selectedModel?.label || translate('summary.modelUnavailable');
+        : isAutoMode && type === 'image-edit' && selectedModel
+          ? `${translate('inspector.autoModel')} (${selectedModel.label})`
+          : selectedModel?.label || translate('summary.modelUnavailable');
   const resolutionLabel =
     type === 'video' && costPromptData.resolution
       ? (getVideoResolutionLabel(
@@ -507,7 +510,7 @@ export default function StudioGenerateComposer({
   return (
     <PromptBarComposer
       bodyClassName={
-        isExpanded ? undefined : 'flex flex-wrap items-center gap-x-1'
+        isExpanded ? undefined : 'flex flex-wrap items-center gap-2'
       }
       beforeBody={
         attachedAssets.length > 0 ? (
@@ -875,7 +878,7 @@ export default function StudioGenerateComposer({
 
           {type === 'image' || type === 'video' ? (
             <GenerationHarnessSettingsPopover
-              className="size-8 shrink-0 p-0"
+              className="size-8 shrink-0 p-0 [&_svg]:size-3.5"
               isDisabled={isGenerating}
             />
           ) : null}
@@ -999,7 +1002,7 @@ export default function StudioGenerateComposer({
                 isEnhancingPrompt ? (
                   <Spinner className="size-4" />
                 ) : (
-                  <WandSparkles className="size-4" />
+                  <WandSparkles className={SHELL_ICON_CLASS} />
                 )
               }
               // The composer stays usable during enhancement: while pending,
@@ -1032,7 +1035,7 @@ export default function StudioGenerateComposer({
             <Button
               ariaLabel={translate('generate')}
               className="size-8 shrink-0 min-h-0 min-w-0 p-0"
-              icon={<ArrowUp className="size-4" />}
+              icon={<ArrowUp className={SHELL_ICON_CLASS} />}
               isDisabled={isSubmitBlocked}
               isLoading={isGenerating}
               onClick={guardedSubmit}
