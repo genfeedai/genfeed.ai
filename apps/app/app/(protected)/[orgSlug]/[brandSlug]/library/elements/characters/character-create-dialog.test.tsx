@@ -23,9 +23,7 @@ vi.mock('next/image', () => ({
 }));
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import(
-    '../../../../../../tests/next-intl.stub'
-  );
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   const translate = translateFromCatalog('common.settings.characters');
   return {
     useTranslations: () => translate,

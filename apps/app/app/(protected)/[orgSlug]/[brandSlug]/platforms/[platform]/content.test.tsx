@@ -22,7 +22,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
+  const { translateFromCatalog } = await import('@/@app-tests/next-intl.stub');
   return {
     useTranslations: (namespace: string) => translateFromCatalog(namespace),
   };
@@ -186,7 +186,9 @@ describe('PlatformHomePage catalog', () => {
       join(dirname(fileURLToPath(import.meta.url)), 'content.tsx'),
       'utf8',
     );
-    const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
+    const { translateFromCatalog } = await import(
+      '@/@app-tests/next-intl.stub'
+    );
     const translate = translateFromCatalog('pages.platforms.home');
 
     expect(source).toContain("useTranslations('pages.platforms.home')");

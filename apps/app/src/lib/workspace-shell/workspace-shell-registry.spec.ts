@@ -249,9 +249,7 @@ describe('workspace shell trusted registry', () => {
     });
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/library/knowledge'),
-    ).toMatchObject({
-      surfaceKey: 'brand-settings',
-    });
+    ).toBeNull();
   });
 
   it('keeps current surfaces and removes deprecated aliases', () => {

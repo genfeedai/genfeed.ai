@@ -273,7 +273,8 @@ export const APP_ROUTES = {
     ROOT: '/publishing',
   },
   SETTINGS: {
-    AGENT_DEFAULTS: '/settings/agent',
+    AGENT: '/settings/agent',
+    BRAND_KIT: '/settings/brand-kit',
     API_KEYS: '/settings/api-keys',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',
@@ -281,14 +282,13 @@ export const APP_ROUTES = {
     INTEGRATIONS: '/settings/integrations',
     /**
      * Brand Knowledge: saved sources generations cite. Lives next to Brand
-     * Kit, not in the asset library. `/library/knowledge` redirects here.
+     * Kit, separate from the asset library.
      */
     KNOWLEDGE: '/settings/knowledge',
     /** Referral link, rewards and history (billing-enabled deployments). */
     REFERRALS: '/settings/referrals',
     SUBSCRIPTION: '/settings/subscription',
     ELEMENTS_SCENES: '/settings/elements/scenes',
-    CHARACTERS: '/library/elements/characters',
     ABOUT: '/settings/about',
     HELP: '/settings/help',
     MEMBERS: '/settings/members',
@@ -651,7 +651,7 @@ function toOrganizationScopePath(brandScopedPath: string): string {
     : `/${brandScopedPath}`;
 
   for (const prefix of BRAND_ONLY_SETTINGS_PREFIXES) {
-    if (path === prefix || path.startsWith(`${prefix}/`)) {
+    if (path.split(/[?#]/u)[0] === prefix || path.startsWith(`${prefix}/`)) {
       return APP_ROUTES.SETTINGS.BRANDS;
     }
   }

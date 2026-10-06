@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/contracts';
+
 import type { BrandKitWorkspaceProps } from '@props/pages/brand-kit-workspace.props';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
@@ -69,13 +71,17 @@ export default function BrandKitWorkspace({
           ]}
         />
         <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={onScan} isDisabled={isDirty}>
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            onClick={onScan}
+            isDisabled={isDirty}
+          >
             Scan website
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                variant="secondary"
+                variant={ButtonVariant.SECONDARY}
                 aria-label="Brand Kit actions"
                 withWrapper={false}
               >

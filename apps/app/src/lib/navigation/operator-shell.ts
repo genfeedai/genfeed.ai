@@ -255,7 +255,7 @@ export function resolveOrganizationScopePath(brandScopedPath: string): string {
   }
 
   for (const prefix of BRAND_ONLY_SETTINGS_PREFIXES) {
-    if (path === prefix || path.startsWith(`${prefix}/`)) {
+    if (path.split(/[?#]/u)[0] === prefix || path.startsWith(`${prefix}/`)) {
       return APP_ROUTES.SETTINGS.BRANDS;
     }
   }

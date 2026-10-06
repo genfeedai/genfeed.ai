@@ -1,6 +1,6 @@
 'use client';
 
-import { AssetCategory, MemberRole } from '@genfeedai/contracts';
+import { AssetCategory, ButtonVariant, MemberRole } from '@genfeedai/contracts';
 import type {
   BrandKitFieldGroup,
   IBrandKitDraft,
@@ -137,7 +137,7 @@ export default function BrandKitPage() {
                 {workspace.editor}
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    variant="secondary"
+                    variant={ButtonVariant.SECONDARY}
                     isDisabled={workspace.isDirty}
                     onClick={() => setWorkflow('manual')}
                   >
@@ -169,13 +169,13 @@ export default function BrandKitPage() {
               <>
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    variant="secondary"
+                    variant={ButtonVariant.SECONDARY}
                     onClick={() => handleOpenUploadModal(AssetCategory.LOGO)}
                   >
                     Replace logo
                   </Button>
                   <Button
-                    variant="secondary"
+                    variant={ButtonVariant.SECONDARY}
                     onClick={() => handleOpenUploadModal(AssetCategory.BANNER)}
                   >
                     Replace banner

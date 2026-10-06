@@ -10,7 +10,7 @@ import {
   within,
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import HarnessLearningTab from './content-rules-learning-tab';
+import AgentLearningTab from './agent-learning-tab';
 
 const mocks = vi.hoisted(() => ({
   authEpoch: 0,
@@ -98,10 +98,10 @@ describe('Harness Learning status and safety controls', () => {
   });
   it('waits for matching ready scope, aborts reads and never fetches an unresolved scope', async () => {
     mocks.scope.isReady = false;
-    const view = render(<HarnessLearningTab brandId="brand-1" />);
+    const view = render(<AgentLearningTab brandId="brand-1" />);
     expect(mocks.accounts).not.toHaveBeenCalled();
     mocks.scope.isReady = true;
-    view.rerender(<HarnessLearningTab brandId="brand-1" />);
+    view.rerender(<AgentLearningTab brandId="brand-1" />);
     await loaded();
     expect(mocks.accounts).toHaveBeenCalledWith(
       'brand-1',
@@ -117,7 +117,7 @@ describe('Harness Learning status and safety controls', () => {
       .mockReturnValueOnce(read.promise)
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([account()]);
-    render(<HarnessLearningTab brandId="brand-1" />);
+    render(<AgentLearningTab brandId="brand-1" />);
     expect(screen.getByText('Loading learning status…')).toBeInTheDocument();
     await act(async () => read.reject(new Error('PRIVATE_FAILURE')));
     expect(
@@ -192,7 +192,7 @@ describe('Harness Learning status and safety controls', () => {
       }),
       account({ id: 'account-2', credentialId: 'credential-2' }),
     ]);
-    render(<HarnessLearningTab brandId="brand-1" />);
+    render(<AgentLearningTab brandId="brand-1" />);
     await loaded();
     for (const value of [
       'hash-likes',
@@ -223,7 +223,7 @@ describe('Harness Learning status and safety controls', () => {
   });
   it.each([MemberRole.USER, undefined])('keeps %s read-only', async (role) => {
     mocks.role = role;
-    render(<HarnessLearningTab brandId="brand-1" />);
+    render(<AgentLearningTab brandId="brand-1" />);
     await loaded();
     expect(
       screen.queryByRole('button', { name: 'Pause' }),
@@ -234,7 +234,7 @@ describe('Harness Learning status and safety controls', () => {
     'allows %s only the three explicit safety actions',
     async (role) => {
       mocks.role = role;
-      render(<HarnessLearningTab brandId="brand-1" />);
+      render(<AgentLearningTab brandId="brand-1" />);
       await loaded();
       for (const name of ['Pause', 'Shadow', 'Disable'])
         expect(screen.getByRole('button', { name })).toBeEnabled();
@@ -245,7 +245,7 @@ describe('Harness Learning status and safety controls', () => {
   it.each(['shadow', 'disable'] as const)(
     'sends exactly the explicit %s action',
     async (action) => {
-      render(<HarnessLearningTab brandId="brand-1" />);
+      render(<AgentLearningTab brandId="brand-1" />);
       await loaded();
       fireEvent.click(
         screen.getByRole('button', {
@@ -272,7 +272,7 @@ describe('Harness Learning status and safety controls', () => {
       .mockResolvedValueOnce([
         account({ mode: ContentLearningMode.PAUSED, revision: 5 }),
       ]);
-    render(<HarnessLearningTab brandId="brand-1" />);
+    render(<AgentLearningTab brandId="brand-1" />);
     await loaded();
     pause();
     pause();
@@ -295,7 +295,7 @@ describe('Harness Learning status and safety controls', () => {
     mocks.control
       .mockRejectedValueOnce(new Error('network'))
       .mockResolvedValueOnce({ status: 'completed' });
-    render(<HarnessLearningTab brandId="brand-1" />);
+    render(<AgentLearningTab brandId="brand-1" />);
     await loaded();
     pause();
     fireEvent.click(
@@ -309,7 +309,7 @@ describe('Harness Learning status and safety controls', () => {
     mocks.accounts
       .mockResolvedValueOnce([account()])
       .mockResolvedValueOnce([account({ revision: 8 })]);
-    render(<HarnessLearningTab brandId="brand-1" />);
+    render(<AgentLearningTab brandId="brand-1" />);
     await loaded();
     pause();
     await screen.findByText(
@@ -330,7 +330,7 @@ describe('Harness Learning status and safety controls', () => {
     'does not claim success or retry writes after HTTP %s',
     async (status) => {
       mocks.control.mockRejectedValue({ response: { status } });
-      render(<HarnessLearningTab brandId="brand-1" />);
+      render(<AgentLearningTab brandId="brand-1" />);
       await loaded();
       pause();
       expect(
@@ -349,7 +349,7 @@ describe('Harness Learning status and safety controls', () => {
       .mockResolvedValueOnce([account()])
       .mockRejectedValueOnce(new Error('offline'))
       .mockResolvedValueOnce([account()]);
-    render(<HarnessLearningTab brandId="brand-1" />);
+    render(<AgentLearningTab brandId="brand-1" />);
     await loaded();
     pause();
     expect(
@@ -363,7 +363,7 @@ describe('Harness Learning status and safety controls', () => {
   });
   it('rejects mismatched account data instead of displaying another brand', async () => {
     mocks.accounts.mockResolvedValue([account({ brandId: 'other-brand' })]);
-    render(<HarnessLearningTab brandId="brand-1" />);
+    render(<AgentLearningTab brandId="brand-1" />);
     expect(
       await screen.findByText('Learning status could not be loaded.'),
     ).toBeInTheDocument();
@@ -375,7 +375,7 @@ describe('Harness Learning status and safety controls', () => {
       const write = deferred<{ status: string }>();
       const lateRead = deferred<LearningAccountView[]>();
       mocks.control.mockReturnValue(write.promise);
-      const view = render(<HarnessLearningTab brandId="brand-1" />);
+      const view = render(<AgentLearningTab brandId="brand-1" />);
       await loaded();
       pause();
       await waitFor(() => expect(mocks.control).toHaveBeenCalledTimes(1));
@@ -384,11 +384,11 @@ describe('Harness Learning status and safety controls', () => {
         .mockResolvedValueOnce([]);
       if (dimension === 'brand') mocks.scope.brandId = 'brand-2';
       else mocks.scope.organizationId = 'org-2';
-      view.rerender(<HarnessLearningTab brandId={mocks.scope.brandId} />);
+      view.rerender(<AgentLearningTab brandId={mocks.scope.brandId} />);
       expect(screen.queryByText('credential-1')).not.toBeInTheDocument();
       await waitFor(() => expect(mocks.accounts).toHaveBeenCalledTimes(2));
       mocks.scope.organizationId = 'org-3';
-      view.rerender(<HarnessLearningTab brandId={mocks.scope.brandId} />);
+      view.rerender(<AgentLearningTab brandId={mocks.scope.brandId} />);
       await screen.findByText('No connected accounts.');
       await act(async () => {
         lateRead.resolve([account()]);
@@ -407,7 +407,7 @@ describe('Harness Learning status and safety controls', () => {
     'invalidates a deferred service before POST on same-scope %s change',
     async (change) => {
       const token = deferred<typeof service>();
-      const view = render(<HarnessLearningTab brandId="brand-1" />);
+      const view = render(<AgentLearningTab brandId="brand-1" />);
       await loaded();
       getService.mockReturnValueOnce(token.promise);
       pause();
@@ -415,7 +415,7 @@ describe('Harness Learning status and safety controls', () => {
       mocks.accounts.mockResolvedValueOnce([]);
       if (change === 'role') mocks.role = MemberRole.USER;
       else mocks.authEpoch = 1;
-      view.rerender(<HarnessLearningTab brandId="brand-1" />);
+      view.rerender(<AgentLearningTab brandId="brand-1" />);
       expect(screen.queryByText('credential-1')).not.toBeInTheDocument();
       await screen.findByText('No connected accounts.');
       await act(async () => token.resolve(service));
@@ -436,14 +436,14 @@ describe('Harness Learning status and safety controls', () => {
     async (change, outcome) => {
       const write = deferred<{ status: string }>();
       mocks.control.mockReturnValueOnce(write.promise);
-      const view = render(<HarnessLearningTab brandId="brand-1" />);
+      const view = render(<AgentLearningTab brandId="brand-1" />);
       await loaded();
       pause();
       await waitFor(() => expect(mocks.control).toHaveBeenCalledTimes(1));
       if (change === 'role') mocks.role = MemberRole.USER;
       else mocks.authEpoch = 1;
       mocks.accounts.mockResolvedValueOnce([]);
-      view.rerender(<HarnessLearningTab brandId="brand-1" />);
+      view.rerender(<AgentLearningTab brandId="brand-1" />);
       expect(screen.queryByText('credential-1')).not.toBeInTheDocument();
       await screen.findByText('No connected accounts.');
       await act(async () => {
@@ -469,10 +469,10 @@ describe('Harness Learning status and safety controls', () => {
   it('ignores a deferred account read after a same-scope actor change', async () => {
     const read = deferred<LearningAccountView[]>();
     mocks.accounts.mockReturnValueOnce(read.promise).mockResolvedValueOnce([]);
-    const view = render(<HarnessLearningTab brandId="brand-1" />);
+    const view = render(<AgentLearningTab brandId="brand-1" />);
     await waitFor(() => expect(mocks.accounts).toHaveBeenCalledTimes(1));
     mocks.authEpoch = 1;
-    view.rerender(<HarnessLearningTab brandId="brand-1" />);
+    view.rerender(<AgentLearningTab brandId="brand-1" />);
     await screen.findByText('No connected accounts.');
     await act(async () => read.resolve([account()]));
     expect(screen.queryByText('credential-1')).not.toBeInTheDocument();
@@ -480,17 +480,17 @@ describe('Harness Learning status and safety controls', () => {
 
   it('keeps generation monotonic when an old callback identity returns', async () => {
     const token = deferred<typeof service>();
-    const view = render(<HarnessLearningTab brandId="brand-1" />);
+    const view = render(<AgentLearningTab brandId="brand-1" />);
     await loaded();
     getService.mockReturnValueOnce(token.promise);
     pause();
     await waitFor(() => expect(getService).toHaveBeenCalledTimes(2));
     mocks.accounts.mockResolvedValue([]);
     mocks.authEpoch = 1;
-    view.rerender(<HarnessLearningTab brandId="brand-1" />);
+    view.rerender(<AgentLearningTab brandId="brand-1" />);
     await screen.findByText('No connected accounts.');
     mocks.authEpoch = 0;
-    view.rerender(<HarnessLearningTab brandId="brand-1" />);
+    view.rerender(<AgentLearningTab brandId="brand-1" />);
     await waitFor(() => expect(mocks.accounts).toHaveBeenCalledTimes(3));
     await act(async () => token.resolve(service));
     expect(mocks.control).not.toHaveBeenCalled();

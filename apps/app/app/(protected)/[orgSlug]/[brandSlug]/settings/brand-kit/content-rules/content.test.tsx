@@ -151,17 +151,17 @@ describe('BrandContentRulesPage', () => {
     mocks.accounts.mockResolvedValue([]);
   });
 
-  it('renders the six harness tabs and defaults to Identity', async () => {
+  it('renders the five content rule tabs and defaults to Identity', async () => {
     render(<BrandContentRulesPage />);
 
-    expect(await screen.findByText('Brand harness')).toBeInTheDocument();
+    await screen.findByLabelText('Label');
+    expect(screen.queryByText('Brand harness')).not.toBeInTheDocument();
     for (const label of [
       'Identity',
       'Structure',
       'Delivery',
       'Thesis',
       'Examples',
-      'Learning',
     ]) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
     }
@@ -239,10 +239,6 @@ describe('BrandContentRulesPage', () => {
         'Tell the story in five beats: where you were, the wall you hit, what you realized, what you did, and where you are now.',
       ),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Learning' }));
-    await screen.findByText('No connected accounts.');
-    expect(screen.queryByText('Positioning scorecard')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Identity' }));
     expect(screen.getByText('Positioning scorecard')).toBeInTheDocument();
   });
 
@@ -286,39 +282,6 @@ describe('BrandContentRulesPage', () => {
     expect(
       await screen.findByRole('link', { name: 'Generation receipts' }),
     ).toHaveAttribute('href', '/acme/moonrise/settings/agent/receipts');
-  });
-  it('mounts Learning, hides profile actions and badges, and retains receipt navigation and draft', async () => {
-    render(<BrandContentRulesPage />);
-    await screen.findByLabelText('Label');
-    fireEvent.change(screen.getByLabelText('Label'), {
-      target: { value: 'Retained draft' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Learning' }));
-    expect(
-      await screen.findByText('No connected accounts.'),
-    ).toBeInTheDocument();
-    expect(mocks.accounts).toHaveBeenCalledWith(
-      'brand-1',
-      expect.any(AbortSignal),
-    );
-    expect(
-      screen.queryByRole('button', { name: 'Save harness' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Promote winners to memory' }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText('scope: brand')).not.toBeInTheDocument();
-    expect(screen.queryByText('Positioning scorecard')).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: 'Generation receipts' }),
-    ).toBeInTheDocument();
-    expect(mocks.createForBrand).not.toHaveBeenCalled();
-    expect(mocks.promoteWinners).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Identity' }));
-    expect(screen.getByLabelText('Label')).toHaveValue('Retained draft');
-    expect(
-      screen.getByRole('button', { name: 'Save harness' }),
-    ).toBeInTheDocument();
   });
   it('preserves explicit winner promotion on profile tabs', async () => {
     mocks.promoteWinners.mockResolvedValue({ promoted: 2, skipped: 1 });

@@ -4,9 +4,7 @@ import '@testing-library/jest-dom/vitest';
 import BrandDeleteBlockedDialog from './brand-delete-blocked-dialog';
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import(
-    '../../../../../../tests/next-intl.stub'
-  );
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return {
     useTranslations: (namespace: string) => translateFromCatalog(namespace),
   };

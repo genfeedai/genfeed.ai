@@ -160,8 +160,8 @@ describe('BrandSettingsAgentContextPage', () => {
     render(<BrandSettingsAgentContextPage />);
 
     expect(
-      screen.getByRole('heading', { name: 'Agent context' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('heading', { name: 'Agent context' }),
+    ).not.toBeInTheDocument();
     const identity = screen.getByTestId('agent-context-layer-identity');
     expect(within(identity).getByText('In prompt')).toBeInTheDocument();
     expect(within(identity).getByText('Systems for founders')).toBeVisible();

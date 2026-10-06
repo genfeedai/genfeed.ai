@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/contracts';
+
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import BrandWritingVoiceEditor from '@pages/brands/components/brand-kit/writing-voice/BrandWritingVoiceEditor';
@@ -61,7 +63,7 @@ export default function BrandAgentSettingsPage() {
               router.replace(`${pathname}?${query}`, { scroll: false });
             }}
           />
-          <Button asChild variant="secondary" withWrapper={false}>
+          <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
             <Link href={href('/settings/brand-kit?tab=voice')}>
               Writing voice
             </Link>
