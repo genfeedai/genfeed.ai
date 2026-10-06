@@ -210,6 +210,8 @@ function toRestoredAttachment(asset: IIngredient): AttachmentItem | null {
 export default function StudioGenerateWorkspace(): ReactElement {
   const editSourceQueryId = useSearchParams().get('editImage');
   const translate = useTranslations('pages.studioGenerate');
+  const translateRef = useRef(translate);
+  translateRef.current = translate;
   const translateActions = useTranslations('ui.quickActions');
   const storyboardEntry = useStoryboardEntry();
   const {
@@ -1757,7 +1759,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         applyTypeSettings('image-edit', entry.patch);
         if (entry.droppedAspectRatio) {
           notificationsService.warning(
-            translate('editImage.aspectRatioFallback', {
+            translateRef.current('editImage.aspectRatioFallback', {
               ratio: entry.droppedAspectRatio,
             }),
           );
@@ -1785,7 +1787,6 @@ export default function StudioGenerateWorkspace(): ReactElement {
     setType,
     applyTypeSettings,
     notificationsService,
-    translate,
   ]);
 
   const shouldShowVoiceInput = Boolean(
