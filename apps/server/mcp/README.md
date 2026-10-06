@@ -21,10 +21,16 @@ branch-prefixed routes; `bun run dev:status` shows the actual endpoints.
 The MCP process derives its API endpoint from the same Portless worktree
 origin. Keep the API, database, Redis, and credentials scoped to development.
 
-If the HTTPS proxy is unavailable, the repository's explicit debug task can
-start MCP alone: `bunx turbo run dev:debug --filter=@genfeedai/mcp`. This uses
-the fixed-port debugging environment rather than the interactive HTTPS routes;
-do not mix the two environments.
+If the HTTPS proxy is unavailable, start MCP alone on a separate debug port:
+
+```bash
+MCP_PORT=3314 bun run --cwd apps/server/mcp dev:debug
+```
+
+This uses the fixed-port debugging environment rather than the interactive
+HTTPS routes; do not mix the two environments. The explicit package entry and
+port avoid the default debug-port collision tracked in
+[issue #6317](https://github.com/genfeedai/genfeed.ai/issues/6317).
 
 ### Local QA scope
 
@@ -100,8 +106,7 @@ selection.
 
 ## Tests
 
-Run in the checkout on Mac Studio (see the workspace root `CLAUDE.md` for
-the required verification host):
+Run in the checkout on Mac Studio:
 
 ```bash
 bun run --cwd apps/server/mcp test
