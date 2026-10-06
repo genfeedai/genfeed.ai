@@ -392,7 +392,6 @@ export function AgentChatContainer({
               !onboardingMode && !isArchivedThread && !isShellHostedComposer
             }
             isReadOnly={isReadOnly}
-            highlightWhenEmpty={!activeThreadId && !onboardingMode}
             isRunActive={container.isRunActive}
             isWideLayout={isWideLayout}
             variant={composerShell?.placement === 'dock' ? 'dock' : 'default'}
@@ -480,12 +479,6 @@ export function AgentChatContainer({
             />
           ) : (
             <AgentChatPromptBar
-              highlightWhenEmpty={
-                container.isEmpty &&
-                !activeThreadId &&
-                !onboardingMode &&
-                !isShellHostedComposer
-              }
               composerBanner={
                 onboardingMode ? undefined : (runtimeBanner ?? undefined)
               }

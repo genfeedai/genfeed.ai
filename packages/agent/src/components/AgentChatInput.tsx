@@ -79,8 +79,6 @@ interface AgentChatInputProps {
   density?: 'compact' | 'default' | 'dock';
   /** Joins the composer to an expandable mode/settings strip above it. */
   isTopAttached?: boolean;
-  /** Invite the first prompt in a new conversation. */
-  highlightWhenEmpty?: boolean;
   /** Unused by this component directly; forwarded by some hosts for parity. */
   creditsAvailable?: number | null;
   willQueueFollowUp?: boolean;
@@ -124,7 +122,6 @@ export function AgentChatInput({
   clearAllAttachments,
   density = 'default',
   isTopAttached = false,
-  highlightWhenEmpty = false,
   willQueueFollowUp = false,
   knowledgeSelection,
   knowledgeSection,
@@ -198,20 +195,6 @@ export function AgentChatInput({
   const handleToolbarSend = useCallback(() => {
     void handleSend();
   }, [handleSend]);
-  const showEmptyHighlight =
-    highlightWhenEmpty &&
-    Boolean(editor?.isEmpty) &&
-    promptText.length === 0 &&
-    !hasAttachments &&
-    references.length === 0 &&
-    !disabled &&
-    !showStop &&
-    !willQueueFollowUp &&
-    !hasQueuedFollowUps &&
-    !isUploading &&
-    !isDragActive &&
-    !isListening &&
-    !isTranscribing;
   return (
     <div
       className="relative w-full min-w-0 max-w-full"
@@ -233,46 +216,35 @@ export function AgentChatInput({
 
       <PromptBarComposer
         beforeBody={
-          <>
-            {showEmptyHighlight ? (
-              <svg
-                aria-hidden="true"
-                className="gen-agent-prompt-highlight"
-                focusable="false"
-              >
-                <rect pathLength="100" />
-              </svg>
-            ) : null}
-            {knowledgeSelectionCount > 0 ||
-            hasAttachments ||
-            references.length > 0 ? (
-              <>
-                {knowledgeSelectionCount > 0 ? (
-                  <div className="px-2 pt-2">
-                    <Button
-                      icon={<BookOpen className="size-4" />}
-                      label={translate('knowledgeSelected', {
-                        count: knowledgeSelectionCount,
-                      })}
-                      onClick={handleInsertReference}
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.SECONDARY}
-                    />
-                  </div>
-                ) : null}
-                {hasAttachments || references.length > 0 ? (
-                  <AgentChatInputAttachmentTray
-                    assets={trayAssets}
-                    attachmentStatusById={attachmentStatusById}
-                    isDisabled={disabled}
-                    onRemoveAttachedAsset={handleRemoveAttachment}
-                    onRemoveReference={handleRemoveReference}
-                    references={references}
+          knowledgeSelectionCount > 0 ||
+          hasAttachments ||
+          references.length > 0 ? (
+            <>
+              {knowledgeSelectionCount > 0 ? (
+                <div className="px-2 pt-2">
+                  <Button
+                    icon={<BookOpen className="size-4" />}
+                    label={translate('knowledgeSelected', {
+                      count: knowledgeSelectionCount,
+                    })}
+                    onClick={handleInsertReference}
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
                   />
-                ) : null}
-              </>
-            ) : null}
-          </>
+                </div>
+              ) : null}
+              {hasAttachments || references.length > 0 ? (
+                <AgentChatInputAttachmentTray
+                  assets={trayAssets}
+                  attachmentStatusById={attachmentStatusById}
+                  isDisabled={disabled}
+                  onRemoveAttachedAsset={handleRemoveAttachment}
+                  onRemoveReference={handleRemoveReference}
+                  references={references}
+                />
+              ) : null}
+            </>
+          ) : null
         }
         className={cn(
           isTopAttached && 'rounded-t-none',
