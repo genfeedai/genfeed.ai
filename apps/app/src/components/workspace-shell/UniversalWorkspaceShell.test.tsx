@@ -1454,11 +1454,15 @@ describe('UniversalWorkspaceShell', () => {
       expect(within(region).getByTestId('dock-conversation')).toBeVisible();
       expect(screen.getByTestId('agent-conversation-bubble')).toHaveAttribute(
         'tabindex',
-        '-1',
+        '0',
       );
       expect(
         screen.getByTestId('agent-conversation-bubble').closest('[inert]'),
-      ).toHaveAttribute('aria-hidden', 'true');
+      ).toBeNull();
+      expect(screen.getByTestId('agent-conversation-bubble')).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      );
       expect(
         screen.getByTestId('agent-dock-composer-slot').closest('section'),
       ).toBe(region);

@@ -41,10 +41,7 @@ import {
 import { createPortal } from 'react-dom';
 import AgentConversationBubble from './AgentConversationBubble';
 
-const BUBBLE_MORPH_MS = 320;
-// Matches the closed launcher's size-12. The panel scales onto that box so
-// its top-right and bottom-left start on the bubble's corners.
-const BUBBLE_SIZE_PX = 48;
+const BUBBLE_CLOSE_MS = 180;
 type BubbleMorph = 'closed' | 'from' | 'open';
 
 function prefersReducedMotion(): boolean {
@@ -103,7 +100,7 @@ function AgentDockHeader({
     translate('untitledThread');
 
   return (
-    <div className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
+    <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
       <div className="flex min-w-0 items-center gap-2">
         {title}
         {hasThreadMenu ? (
@@ -298,10 +295,14 @@ export default function AgentDock({
   }, []);
   const handleLauncherOpen = useCallback(() => {
     shouldReturnToLauncherRef.current = true;
-    open();
-  }, [open]);
-  // The overlay stays mounted so it can grow out of the bubble. `from` is
-  // the circle; the next frame eases it to the panel. Closing reverses that.
+    if (isOpen) {
+      close();
+    } else {
+      open();
+    }
+  }, [close, isOpen, open]);
+  // Keep the conversation mounted through a short fade/scale from the launcher.
+  // Uniform scaling preserves text proportions throughout the transition.
   const [bubbleMorph, setBubbleMorph] = useState<BubbleMorph>(
     isOpen ? 'open' : 'closed',
   );
@@ -315,35 +316,24 @@ export default function AgentDock({
     }
     if (isOpen) {
       setBubbleMorph((current) => (current === 'open' ? current : 'from'));
+      let nextFrame = 0;
       const frame = window.requestAnimationFrame(() => {
-        setBubbleMorph('open');
+        nextFrame = window.requestAnimationFrame(() => setBubbleMorph('open'));
       });
-      return () => window.cancelAnimationFrame(frame);
+      return () => {
+        window.cancelAnimationFrame(frame);
+        window.cancelAnimationFrame(nextFrame);
+      };
     }
     setBubbleMorph((current) => (current === 'closed' ? current : 'from'));
   }, [isBubbleChrome, isCompact, isOpen]);
-  useLayoutEffect(() => {
-    if (!isBubbleChrome || !region || bubbleMorph === 'closed') {
-      return;
-    }
-    const width = region.offsetWidth;
-    const height = region.offsetHeight;
-    if (width <= 0 || height <= 0) {
-      return;
-    }
-    region.style.setProperty('--bubble-from-x', String(BUBBLE_SIZE_PX / width));
-    region.style.setProperty(
-      '--bubble-from-y',
-      String(BUBBLE_SIZE_PX / height),
-    );
-  }, [bubbleMorph, isBubbleChrome, region]);
   useEffect(() => {
     if (!isBubbleChrome || isOpen || bubbleMorph !== 'from') {
       return;
     }
     const timeout = window.setTimeout(() => {
       setBubbleMorph('closed');
-    }, BUBBLE_MORPH_MS + 40);
+    }, BUBBLE_CLOSE_MS + 40);
     return () => window.clearTimeout(timeout);
   }, [bubbleMorph, isBubbleChrome, isOpen]);
   const handleBubbleMorphEnd = (event: ReactTransitionEvent<HTMLElement>) => {
@@ -361,7 +351,8 @@ export default function AgentDock({
     isBubbleChrome && !hasMajorPromptBar ? (
       <div ref={bindLauncher}>
         <AgentConversationBubble
-          isDismissed={isOpen || (!isCompact && bubbleMorph !== 'closed')}
+          isDismissed={isCompact && isOpen}
+          isOpen={isOpen}
           onOpen={handleLauncherOpen}
           onSelectSuggestedAction={onSelectSuggestedAction}
           suggestedActions={suggestedActions}
@@ -500,7 +491,7 @@ export default function AgentDock({
             {children}
           </div>
           <div
-            className="flex shrink-0 flex-col px-3 pb-2 empty:hidden"
+            className="flex shrink-0 flex-col px-4 pb-4 pt-2 empty:hidden"
             data-testid="agent-dock-composer-slot"
             ref={composerSlotRef}
           />
@@ -525,7 +516,7 @@ export default function AgentDock({
           }}
         >
           <DrawerContent
-            className="h-[85vh] rounded-t-[var(--radius-workspace-overlay)]"
+            className="h-[85dvh] rounded-t-[var(--radius-workspace-overlay)]"
             data-chrome={chrome}
             data-testid="agent-dock"
             id="workspace-agent-dock"
@@ -565,14 +556,15 @@ export default function AgentDock({
         className={cn(
           'flex flex-col bg-background',
           isBubbleChrome
-            ? 'absolute bottom-5 right-5 z-30 w-[min(28rem,calc(100%-2.5rem))] max-h-[min(70vh,40rem)] origin-bottom-right overflow-hidden border border-border shadow-xl transition-[transform,border-radius,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none'
+            ? 'absolute right-5 z-30 h-[min(35rem,calc(100dvh-8rem))] w-[min(26rem,calc(100%-2.5rem))] origin-bottom-right overflow-hidden rounded-[var(--radius-workspace-overlay)] border border-border shadow-xl transition-[transform,opacity] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none'
             : 'relative shrink-0 border-t border-border',
-          isBubbleChrome && bubbleMorph === 'open'
-            ? 'rounded-[var(--radius-workspace-overlay)] opacity-100'
-            : null,
-          isBubbleChrome && bubbleMorph !== 'open' ? 'rounded-full' : null,
-          isBubbleChrome && bubbleMorph === 'closed' ? 'opacity-0' : null,
-          isBubbleChrome && bubbleMorph === 'from' ? 'opacity-100' : null,
+          isBubbleChrome &&
+            (hasMajorPromptBar
+              ? 'bottom-5 max-h-[calc(100%-2.5rem)]'
+              : 'bottom-[5.25rem] max-h-[calc(100%-6.5rem)]'),
+          isBubbleChrome && (isOpen ? 'duration-[320ms]' : 'duration-[180ms]'),
+          isBubbleChrome &&
+            (bubbleMorph === 'open' ? 'opacity-100' : 'opacity-0'),
         )}
         data-chrome={chrome}
         data-morph={isBubbleChrome ? bubbleMorph : undefined}
@@ -590,8 +582,10 @@ export default function AgentDock({
             ? {
                 transform:
                   bubbleMorph === 'open'
-                    ? 'scale(1, 1)'
-                    : 'scale(var(--bubble-from-x, 0.12), var(--bubble-from-y, 0.12))',
+                    ? 'translateY(0) scale(1)'
+                    : isOpen
+                      ? 'translateY(18px) scale(0.9)'
+                      : 'translateY(14px) scale(0.94)',
                 transformOrigin: 'bottom right',
               }
             : { height, maxHeight: '60%' }
@@ -612,17 +606,7 @@ export default function AgentDock({
             withWrapper={false}
           />
         )}
-        <div
-          className={cn(
-            'flex min-h-0 min-w-0 flex-1 flex-col',
-            isBubbleChrome &&
-              'transition-opacity duration-200 motion-reduce:transition-none',
-            isBubbleChrome && bubbleMorph === 'open'
-              ? 'opacity-100 delay-150'
-              : null,
-            isBubbleChrome && bubbleMorph !== 'open' ? 'opacity-0' : null,
-          )}
-        >
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <AgentDockHeader
             activeThreadId={activeThreadId}
             isThreadListLoading={isThreadListLoading}

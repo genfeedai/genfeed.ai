@@ -529,7 +529,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     ],
   },
   [APP_ROUTES.SETTINGS.ROOT]: {
-    placeholder: 'Need help with settings?',
+    placeholder: 'Describe what you want to configure...',
     suggestedActions: [
       {
         icon: createElement(Settings, {
