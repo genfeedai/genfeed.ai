@@ -2,6 +2,7 @@ import type { IngredientServerCreate } from '@api/collections/ingredients/dto/cr
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
+import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AssetScope,
@@ -45,6 +46,7 @@ describe('IngredientsService', () => {
     groupBy: ReturnType<typeof vi.fn>;
   };
   let prisma: PrismaService;
+  const invalidateByTags = vi.fn();
 
   const brandId = testId('brand');
   const ingredientId = testId('ingredient');
@@ -63,6 +65,7 @@ describe('IngredientsService', () => {
   };
 
   beforeEach(async () => {
+    invalidateByTags.mockReset().mockResolvedValue(1);
     ingredientDelegate = {
       count: vi.fn().mockResolvedValue(1),
       create: vi.fn().mockResolvedValue(mockIngredient),
@@ -78,6 +81,7 @@ describe('IngredientsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         IngredientsService,
+        { provide: CacheService, useValue: { invalidateByTags } },
         { provide: PrismaService, useValue: prisma },
         {
           provide: LoggerService,
@@ -188,6 +192,38 @@ describe('IngredientsService', () => {
   });
 
   describe('patch', () => {
+    it('clears cached Library lists and counts after committing a rejection', async () => {
+      await service.patch(ingredientId, { status: IngredientStatus.REJECTED });
+
+      expect(invalidateByTags).toHaveBeenCalledWith(['ingredients']);
+      expect(invalidateByTags.mock.invocationCallOrder[0]).toBeGreaterThan(
+        ingredientDelegate.update.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('does not clear the Library cache when a rejection fails', async () => {
+      ingredientDelegate.update.mockRejectedValueOnce(
+        new Error('write failed'),
+      );
+
+      await expect(
+        service.patch(ingredientId, { status: IngredientStatus.REJECTED }),
+      ).rejects.toThrow('write failed');
+      expect(invalidateByTags).not.toHaveBeenCalled();
+    });
+
+    it('keeps a committed rejection successful when cache invalidation is unavailable', async () => {
+      invalidateByTags.mockRejectedValueOnce(new Error('redis unavailable'));
+
+      await expect(
+        service.patch(ingredientId, { status: IngredientStatus.REJECTED }),
+      ).resolves.toBeDefined();
+      expect(service.logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('could not invalidate the Library list cache'),
+        { error: expect.any(Error) },
+      );
+    });
+
     it.each([
       [IngredientStatus.VALIDATED, FleetReviewStatus.APPROVED],
       [IngredientStatus.REJECTED, FleetReviewStatus.REJECTED],

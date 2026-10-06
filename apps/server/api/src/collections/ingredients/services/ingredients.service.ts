@@ -23,6 +23,7 @@ import { persistSubmissionFailure } from '@api/helpers/utils/credits/persist-sub
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
 import { scopedWhere } from '@api/index';
+import { CacheService } from '@api/services/cache/cache.service';
 import { MediaDerivativePreparationService } from '@api/services/media-urls/media-derivative-preparation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -426,6 +427,17 @@ export class IngredientsService extends BaseService<
           { id },
         );
         throw new NotFoundException('Ingredient', id);
+      }
+
+      try {
+        await this.moduleRef
+          .get(CacheService, { strict: false })
+          .invalidateByTags(['ingredients']);
+      } catch (error: unknown) {
+        this.logger.warn(
+          `${this.constructorName} could not invalidate the Library list cache`,
+          { error },
+        );
       }
 
       this.logger.debug(`${this.constructorName} patch success`, { id });
