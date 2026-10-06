@@ -6,6 +6,8 @@ import {
   QualityTier,
 } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
+import { getModelCategoryLabel } from '@genfeedai/helpers/ui/icons/model-category-icon';
+import { getModelProviderLabel } from '@genfeedai/helpers/ui/model-badge.helper';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -101,6 +103,8 @@ describe('buildModelsTableColumns', () => {
     expect(columns.map((column) => column.header)).toContain('Cost');
     expect(columns.map((column) => column.header)).not.toContain('Description');
     expect(columns.map((column) => column.header)).not.toContain('Value');
+    expect(columns.map((column) => column.header)).not.toContain('Provider');
+    expect(columns.map((column) => column.header)).not.toContain('Category');
     expect(
       columns
         .filter((column) => column.header)
@@ -165,14 +169,50 @@ describe('buildModelsTableColumns', () => {
     expect(key).toHaveAttribute('title', 'openrouter/auto-beta');
   });
 
-  it('renders the provider as a branded pill', () => {
+  it.each(Object.values(ModelProvider))(
+    'renders a named provider logo for %s',
+    (provider) => {
+      renderColumn('Label', buildModel({ provider }), true);
+
+      const logo = screen.getByRole('img', {
+        name: getModelProviderLabel(provider),
+      });
+      expect(logo).toHaveAccessibleName();
+      expect(
+        screen.getByTitle(`${getModelProviderLabel(provider)} · Image`),
+      ).toBeInTheDocument();
+      expect(logo.querySelector('svg')).toHaveClass('size-4');
+      expect(logo).not.toHaveClass('uppercase');
+    },
+  );
+
+  it('keeps an unknown provider readable without inventing a logo', () => {
     renderColumn(
-      'Provider',
-      buildModel({ provider: ModelProvider.REPLICATE }),
+      'Label',
+      buildModel({ provider: 'future-provider' as ModelProvider }),
       true,
     );
 
-    expect(screen.getByText('Replicate')).toBeInTheDocument();
+    const provider = screen.getByRole('img', { name: 'Future-provider' });
+    expect(provider).toHaveTextContent('F');
+    expect(provider.querySelector('svg')).toBeNull();
+  });
+
+  it.each(Object.values(ModelCategory))(
+    'shows the %s category on the model avatar',
+    (category) => {
+      renderColumn('Label', buildModel({ category }), true);
+      expect(
+        screen
+          .getByRole('img', { name: getModelCategoryLabel(category) })
+          .querySelector('svg'),
+      ).toHaveClass('size-3.5');
+    },
+  );
+
+  it('keeps discovery confidence beside the model identity', () => {
+    renderColumn('Label', buildModel({ categoryConfidence: 0.65 }), true);
+    expect(screen.getByText('65% confidence')).toBeInTheDocument();
   });
 
   it('renders the picker quality meter and dollar cost mark', () => {
@@ -245,6 +285,8 @@ describe('buildModelsTableColumns', () => {
       translate,
     });
 
+    expect(columns.map((column) => column.header)).not.toContain('Provider');
+    expect(columns.map((column) => column.header)).not.toContain('Category');
     const labelColumn = columns.find((column) => column.header === 'Label');
 
     expect(labelColumn?.subtext?.(model)).toBe('Detailed model description');

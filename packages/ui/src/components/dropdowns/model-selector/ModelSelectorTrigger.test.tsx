@@ -38,6 +38,12 @@ describe('ModelSelectorTrigger', () => {
     );
 
     const button = screen.getByRole('button');
+    expect(
+      within(button).getByRole('img', { name: 'Replicate' }),
+    ).toBeInTheDocument();
+    expect(
+      within(button).getByRole('img', { name: 'Image' }),
+    ).toBeInTheDocument();
     expect(within(button).getByText('Nano Banana Pro')).toBeInTheDocument();
     expect(
       within(button).getByTestId('model-trigger-provider-icon'),
@@ -73,5 +79,7 @@ describe('ModelSelectorTrigger', () => {
     );
 
     expect(screen.getByTitle('17 credits')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Replicate' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Image' })).toBeInTheDocument();
   });
 });

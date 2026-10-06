@@ -3,11 +3,11 @@
 import { formatCreditCost } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ModelSelectorModelSpecProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
-import ModelSelectorBrandMark from '@ui/dropdowns/model-selector/ModelSelectorBrandMark';
 import {
   buildPricingLabel,
   getModelSpecCapabilities,
 } from '@ui/dropdowns/model-selector/model-selector.utils';
+import ModelAvatar from '@ui/models/ModelAvatar';
 import { memo } from 'react';
 
 function titleCase(value: string): string {
@@ -53,12 +53,7 @@ const ModelSelectorModelSpec = memo(function ModelSelectorModelSpec({
   return (
     <div className="flex w-64 flex-col gap-2">
       <div className="flex items-center gap-2">
-        <ModelSelectorBrandMark
-          brandColor={option.brandColor}
-          brandIcon={option.brandIcon}
-          brandLabel={brandLabel}
-          testId="model-spec-provider-icon"
-        />
+        <ModelAvatar model={model} testId="model-spec-provider-icon" />
         <div className="flex min-w-0 flex-col">
           <span className="truncate text-xs font-semibold text-foreground">
             {model.label}

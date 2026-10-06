@@ -2,12 +2,14 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { getModelCategoryIcon } from '@genfeedai/helpers/ui/icons/model-category-icon';
 import type { GenerationSetupTriggerProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import {
   SHELL_CONTROL_HEIGHT_CLASS,
   SHELL_ICON_CLASS,
 } from '@ui/constants/shell-chrome.constant';
 import { isAutoGenerationModelKey } from '@ui/dropdowns/model-selector/model-selector.constants';
+import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { ChevronsUpDown, Sparkles } from 'lucide-react';
@@ -38,6 +40,10 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
     setup.sources.type !== 'user' &&
     setup.sources.type !== 'preset';
   const isTextType = setup.values.type === 'text';
+  const selectedModel = isAutoGenerationModelKey(setup.values.modelKey)
+    ? undefined
+    : models.find((model) => model.key === setup.values.modelKey);
+  const CategoryIcon = getModelCategoryIcon(setup.values.type);
 
   const typeLabel = isTypeAgentOwned
     ? 'Agent'
@@ -77,12 +83,18 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
       withWrapper={false}
       {...buttonProps}
     >
-      <Sparkles
-        className={cn(
-          SHELL_ICON_CLASS,
-          isFullyAgentOwned ? 'text-primary' : 'text-muted-foreground',
-        )}
-      />
+      {!isTypeAgentOwned && selectedModel ? (
+        <ModelAvatar model={selectedModel} />
+      ) : !isTypeAgentOwned ? (
+        <CategoryIcon className={SHELL_ICON_CLASS} aria-hidden />
+      ) : (
+        <Sparkles
+          className={cn(
+            SHELL_ICON_CLASS,
+            isFullyAgentOwned ? 'text-primary' : 'text-muted-foreground',
+          )}
+        />
+      )}
       <span className="min-w-0 flex-1 truncate text-xs font-medium">
         {summaryParts.join(' · ')}
       </span>

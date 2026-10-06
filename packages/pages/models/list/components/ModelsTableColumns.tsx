@@ -10,15 +10,11 @@ import {
   getQualityTierForModel,
   getQualityTierLabel,
 } from '@genfeedai/helpers/quality-routing.helper';
-import {
-  getModelCategoryBadgeClass,
-  getModelProviderBadgeClass,
-  getModelProviderLabel,
-} from '@genfeedai/helpers/ui/model-badge.helper';
 import type { TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
 import ModelSelectorQualityBar from '@ui/dropdowns/model-selector/ModelSelectorQualityBar';
+import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
 import {
   Select,
@@ -241,16 +237,26 @@ export function buildModelsTableColumns({
       key: 'label',
       sortable: true,
       render: (model: IModel) => (
-        <Button
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          textTransform="none"
-          className="text-left font-medium text-foreground hover:underline"
-          ariaLabel={`View details for ${model.label}`}
-          onClick={() => onOpenDetails(model)}
-        >
-          {model.label}
-        </Button>
+        <div className="flex min-w-0 items-center gap-3">
+          <ModelAvatar model={model} />
+          <div className="min-w-0">
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              textTransform="none"
+              className="text-left font-medium text-foreground hover:underline"
+              ariaLabel={`View details for ${model.label}`}
+              onClick={() => onOpenDetails(model)}
+            >
+              {model.label}
+            </Button>
+            {formatCategoryConfidence(model) ? (
+              <span className="block text-2xs text-muted-foreground">
+                {formatCategoryConfidence(model)}
+              </span>
+            ) : null}
+          </div>
+        </div>
       ),
       subtext: (model: IModel) => model.description,
     },
@@ -268,18 +274,6 @@ export function buildModelsTableColumns({
               >
                 {model.key}
               </span>
-            ),
-          },
-          {
-            header: translate('table.providerHeader'),
-            key: 'provider',
-            sortable: true,
-            render: (model: IModel) => (
-              <Badge
-                className={`border text-xs uppercase ${getModelProviderBadgeClass(model.provider)}`}
-              >
-                {getModelProviderLabel(model.provider)}
-              </Badge>
             ),
           },
         ]
@@ -301,22 +295,6 @@ export function buildModelsTableColumns({
           },
         ]
       : []),
-    {
-      header: translate('table.categoryHeader'),
-      key: 'category',
-      sortable: true,
-      render: (model: IModel) => (
-        <Badge
-          className={`border text-xs uppercase ${getModelCategoryBadgeClass(model.category)}`}
-        >
-          {model.category}
-        </Badge>
-      ),
-      // #4869: discovery records how sure the typed category decision was.
-      // A pending draft with a low number is the one an operator should read
-      // before approving, so the confidence rides under the badge.
-      subtext: (model: IModel) => formatCategoryConfidence(model),
-    },
     {
       header: translate('table.qualityHeader'),
       key: 'qualityTier',
