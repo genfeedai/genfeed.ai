@@ -6,20 +6,47 @@ import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.
 import { Button } from '@ui/primitives/button';
 import { FolderOpen, ImageIcon, Music, Tv, X } from 'lucide-react';
 import Image from 'next/image';
-import { useTranslations } from 'next-intl';
 import { memo } from 'react';
+
+const DEFAULT_ASSET_MESSAGES = {
+  editingTarget: 'Editing target',
+  editingSource: 'Editing source',
+  mask: 'Mask',
+  videoReference: 'Video reference',
+  startFrame: 'Start frame',
+  endFrame: 'End frame',
+  input: 'Input',
+  reference: 'Reference',
+  assetGroup: '{role}: {name}',
+  removeAsset: 'Remove {name}',
+  library: 'Library',
+  browseLibrary: 'Browse library',
+} as const;
+
+type AssetMessageKey = keyof typeof DEFAULT_ASSET_MESSAGES;
+type AssetTranslator = (
+  key: AssetMessageKey,
+  values?: Record<string, string>,
+) => string;
+
+const translateDefault: AssetTranslator = (key, values) =>
+  DEFAULT_ASSET_MESSAGES[key].replace(
+    /\{(\w+)\}/g,
+    (token, name: string) => values?.[name] ?? token,
+  );
 
 interface PromptBarAttachedAssetsTrayProps {
   assets: PromptBarAttachedAsset[];
   unoptimizedImages?: boolean;
   density?: 'compact' | 'default';
+  translate?: AssetTranslator;
   dragError?: string | null;
   isDisabled?: boolean;
   onBrowseAssets?: () => void;
   onRemoveAttachedAsset: (assetId: string) => void;
 }
 
-function getAssetRoleKey(asset: PromptBarAttachedAsset): string {
+function getAssetRoleKey(asset: PromptBarAttachedAsset): AssetMessageKey {
   switch (asset.role) {
     case 'editSource':
       return asset.isPrimary ? 'editingTarget' : 'editingSource';
@@ -53,12 +80,12 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
   assets,
   unoptimizedImages = false,
   density = 'default',
+  translate = translateDefault,
   dragError,
   isDisabled = false,
   onBrowseAssets,
   onRemoveAttachedAsset,
 }: PromptBarAttachedAssetsTrayProps) {
-  const translate = useTranslations('ui.promptBarAssets');
   function getAssetRoleLabel(asset: PromptBarAttachedAsset): string {
     return translate(getAssetRoleKey(asset));
   }

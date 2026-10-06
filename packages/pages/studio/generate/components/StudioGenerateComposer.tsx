@@ -144,6 +144,7 @@ export default function StudioGenerateComposer({
 }: StudioGenerateComposerProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
   const translateSetup = useTranslations('agent.generationSetup');
+  const translateAssets = useTranslations('ui.promptBarAssets');
   const runtime = useDesktopRuntimeContext();
   const inputControls = useCrunInputControls(
     models,
@@ -607,6 +608,7 @@ export default function StudioGenerateComposer({
             {attachedAssets.length > 0 ? (
               <PromptBarAttachedAssetsTray
                 assets={attachedAssets}
+                translate={translateAssets}
                 isDisabled={isGenerating}
                 onRemoveAttachedAsset={onRemoveAttachedAsset}
               />

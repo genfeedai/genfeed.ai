@@ -445,6 +445,28 @@ describe('GenerationSetupPopover', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('returns to setup without changing the active type or clearing its preset', async () => {
+    const user = userEvent.setup();
+    const onSetField = vi.fn();
+    const onTypeChange = vi.fn();
+    renderPopover({
+      onSetField,
+      onTypeChange,
+      setup: createSetup({ presetId: 'preset-1' }),
+      typeOptions: [...typeOptions, { label: 'Video', value: 'video' }],
+    });
+    await openPopover(user);
+    await user.click(screen.getByRole('button', { name: 'Configure Type' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Image', exact: true }),
+    );
+    expect(onSetField).not.toHaveBeenCalled();
+    expect(onTypeChange).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('button', { name: 'Configure Type' }),
+    ).toBeInTheDocument();
+  });
+
   it('keeps model search and Auto priorities isolated from output, brand, and presets', async () => {
     const user = userEvent.setup();
     const onSetField = vi.fn();

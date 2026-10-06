@@ -16,6 +16,7 @@ import PromptBarQuickOptions from '@ui/prompt-bars/components/quick-options/Prom
 import PromptBarSpeechInput from '@ui/prompt-bars/components/speech-input/PromptBarSpeechInput';
 import PromptBarVariationPresets from '@ui/prompt-bars/components/variation-presets/PromptBarVariationPresets';
 import DropdownTags from '@ui/tags/dropdown/DropdownTags';
+import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo, useState } from 'react';
 
 const AVATAR_SPEECH_CHAR_LIMIT = 100;
@@ -32,6 +33,7 @@ function shouldShowSpeechInput(
 
 const PromptBarExpandedView = memo(function PromptBarExpandedView() {
   const ctx = usePromptBarInternal();
+  const translateAssets = useTranslations('ui.promptBarAssets');
   const isCollapsible = ctx.features.collapsible ?? true;
   const hasDragDrop = ctx.features.dragDrop ?? true;
   const [isQuickOptionsOpen, setIsQuickOptionsOpen] = useState(false);
@@ -353,6 +355,7 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView() {
 
       <PromptBarAttachedAssetsTray
         assets={ctx.attachedPromptAssets}
+        translate={translateAssets}
         dragError={ctx.dragError}
         isDisabled={ctx.isDisabledState}
         onBrowseAssets={ctx.onBrowseAssets ?? (() => {})}

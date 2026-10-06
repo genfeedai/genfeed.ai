@@ -1,4 +1,7 @@
-import { createTranslateFromCatalog } from '@ui/tests/next-intl.stub';
+import {
+  createTranslateFromCatalog,
+  translateFromCatalog,
+} from '@ui/tests/next-intl.stub';
 import { describe, expect, it } from 'vitest';
 
 describe('createTranslateFromCatalog', () => {
@@ -39,5 +42,23 @@ describe('createTranslateFromCatalog', () => {
   it('returns one stable translator per namespace, like useTranslations', () => {
     expect(translate('example')).toBe(translate('example'));
     expect(translate('example')).not.toBe(translate('other'));
+  });
+});
+
+describe('shared UI test catalogs', () => {
+  it('keeps platform preview and generation setup catalogs available together', () => {
+    expect(
+      translateFromCatalog('ui.platformPreview')('platformLabel', {
+        platform: 'X',
+      }),
+    ).toBe('X platform preview');
+    expect(
+      translateFromCatalog('agent.generationSetup')('configureSection', {
+        section: 'Type',
+      }),
+    ).toBe('Configure Type');
+    expect(
+      translateFromCatalog('ui.generationHarness')('organizationLabel'),
+    ).toBe('Organization prompt enhancement');
   });
 });

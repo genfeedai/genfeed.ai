@@ -97,8 +97,10 @@ export default function GenerationSetupCustomizePanel({
                 textTransform="none"
                 withWrapper={false}
                 onClick={() => {
-                  onSetField('type', option.value);
-                  onTypeChange?.(option.value);
+                  if (option.value !== setup.values.type) {
+                    onSetField('type', option.value);
+                    onTypeChange?.(option.value);
+                  }
                   onBack();
                 }}
               >
