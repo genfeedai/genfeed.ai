@@ -51,6 +51,9 @@ describe('AgentConnectDialog', () => {
       getAgentClient('hermes').installation.destination,
     );
     expect(
+      within(dialog).getByRole('link', { name: 'Add Genfeed to Hermes' }),
+    ).not.toHaveAttribute('target');
+    expect(
       within(dialog).queryByText('hermes mcp login genfeed'),
     ).not.toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'CLI setup' }));

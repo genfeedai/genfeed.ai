@@ -195,6 +195,8 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/gen',
     '/gemini',
     '/gemini/:channel',
+    '/hermes',
+    '/hermes/:channel',
     '/grok',
     '/grok/:channel',
     '/grok-bot',

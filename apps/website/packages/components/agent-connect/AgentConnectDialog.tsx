@@ -6,6 +6,7 @@ import {
   type AgentClient,
   agentClients,
   getAgentClient,
+  getAgentClientMcpBlocks,
 } from '@data/agent-clients.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentConnectDialogProps } from '@props/agent-client.props';
@@ -136,7 +137,7 @@ export default function AgentConnectDialog({
                     : undefined
                 }
                 aria-pressed={client ? family?.name === option.name : undefined}
-                className="h-auto min-h-10 w-full justify-start gap-2 rounded-md px-2 py-2 text-left whitespace-normal aria-pressed:bg-fill/10"
+                className="h-auto min-h-10 w-full justify-start gap-2 rounded-md px-2 py-2 text-left whitespace-normal aria-pressed:bg-fill/10 focus-visible:outline-offset-[-2px]"
                 key={option.name}
                 onClick={() => {
                   if (family?.name !== option.name)
@@ -203,7 +204,7 @@ export default function AgentConnectDialog({
                 >
                   <Accordion type="multiple" defaultValue={['install']}>
                     <AccordionItem value="install">
-                      <AccordionTrigger className="text-left text-sm hover:no-underline">
+                      <AccordionTrigger className="text-left text-sm hover:no-underline focus-visible:outline-offset-[-2px]">
                         1. Add Genfeed
                       </AccordionTrigger>
                       <AccordionContent className="space-y-4">
@@ -228,8 +229,20 @@ export default function AgentConnectDialog({
                           >
                             <a
                               href={client.installation.destination}
-                              rel="noopener noreferrer"
-                              target="_blank"
+                              rel={
+                                client.installation.destination.startsWith(
+                                  'https://',
+                                )
+                                  ? 'noopener noreferrer'
+                                  : undefined
+                              }
+                              target={
+                                client.installation.destination.startsWith(
+                                  'https://',
+                                )
+                                  ? '_blank'
+                                  : undefined
+                              }
                             >
                               {client.installation.destinationLabel}
                               <ExternalLink
@@ -243,29 +256,22 @@ export default function AgentConnectDialog({
                     </AccordionItem>
                     {client.slug === 'hermes' ? (
                       <AccordionItem value="cli-setup">
-                        <AccordionTrigger className="text-left text-sm hover:no-underline">
+                        <AccordionTrigger className="text-left text-sm hover:no-underline focus-visible:outline-offset-[-2px]">
                           CLI setup
                         </AccordionTrigger>
                         <AccordionContent className="space-y-4">
                           <p className="text-sm leading-6 text-surface/75">
                             {client.oauth.authorizationInstruction}
                           </p>
-                          <CommandBlock
-                            label="~/.hermes/config.yaml"
-                            value={client.oauth.configuration}
-                          />
-                          {client.oauth.primaryCommand ? (
-                            <CommandBlock
-                              label="Authorize Hermes"
-                              value={client.oauth.primaryCommand}
-                            />
-                          ) : null}
+                          {getAgentClientMcpBlocks(client).map((block) => (
+                            <CommandBlock key={block.label} {...block} />
+                          ))}
                         </AccordionContent>
                       </AccordionItem>
                     ) : null}
                     {client.chatPrompt ? (
                       <AccordionItem value="chat-prompt">
-                        <AccordionTrigger className="text-left text-sm hover:no-underline">
+                        <AccordionTrigger className="text-left text-sm hover:no-underline focus-visible:outline-offset-[-2px]">
                           Connection prompt
                         </AccordionTrigger>
                         <AccordionContent>
@@ -277,7 +283,7 @@ export default function AgentConnectDialog({
                       </AccordionItem>
                     ) : null}
                     <AccordionItem value="approval">
-                      <AccordionTrigger className="text-left text-sm hover:no-underline">
+                      <AccordionTrigger className="text-left text-sm hover:no-underline focus-visible:outline-offset-[-2px]">
                         2. Approve and check the connection
                       </AccordionTrigger>
                       <AccordionContent>
@@ -291,7 +297,7 @@ export default function AgentConnectDialog({
                     </AccordionItem>
                     {client.skillsCommand ? (
                       <AccordionItem value="skills">
-                        <AccordionTrigger className="text-left text-sm hover:no-underline">
+                        <AccordionTrigger className="text-left text-sm hover:no-underline focus-visible:outline-offset-[-2px]">
                           Skills-only alternative
                         </AccordionTrigger>
                         <AccordionContent className="space-y-4">
@@ -307,7 +313,7 @@ export default function AgentConnectDialog({
                     ) : null}
                     {client.setupPrompt ? (
                       <AccordionItem value="setup-prompt">
-                        <AccordionTrigger className="text-left text-sm hover:no-underline">
+                        <AccordionTrigger className="text-left text-sm hover:no-underline focus-visible:outline-offset-[-2px]">
                           Setup prompt
                         </AccordionTrigger>
                         <AccordionContent className="space-y-4">

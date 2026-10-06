@@ -550,37 +550,32 @@ export function getAgentClientCommandBlocks(
 
   blocks.push({ label: 'Connect URL', value: client.connectUrl });
 
-  if (client.slug === 'hermes') {
-    blocks.push({
-      label: '~/.hermes/config.yaml',
-      value: client.oauth.configuration,
-    });
-    if (client.oauth.primaryCommand)
-      blocks.push({
-        label: 'Authorize Hermes',
-        value: client.oauth.primaryCommand,
-      });
-    return blocks;
+  if (!client.chatPrompt && (client.oauth.primaryCommand || client.manualKey)) {
+    blocks.push(...getAgentClientMcpBlocks(client));
   }
 
+  return blocks;
+}
+
+export function getAgentClientMcpBlocks(
+  client: AgentClient,
+): readonly AgentClientCommandBlock[] {
+  const blocks: AgentClientCommandBlock[] = [];
+  const configuration = {
+    label: client.slug === 'hermes' ? '~/.hermes/config.yaml' : 'Configuration',
+    value: client.oauth.configuration,
+  };
+  if (client.slug === 'hermes') blocks.push(configuration);
   if (client.oauth.primaryCommand) {
     blocks.push({
-      label: 'Install command',
+      label: client.slug === 'hermes' ? 'Authorize Hermes' : 'Install command',
       value: client.oauth.primaryCommand,
     });
   }
-
-  if (!client.chatPrompt && (client.oauth.primaryCommand || client.manualKey)) {
-    blocks.push({
-      label: 'Configuration',
-      value: client.oauth.configuration,
-    });
-  }
-
+  if (client.slug !== 'hermes') blocks.push(configuration);
   if (client.oauth.verifyCommand) {
     blocks.push({ label: 'Verify', value: client.oauth.verifyCommand });
   }
-
   return blocks;
 }
 
