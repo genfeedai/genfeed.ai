@@ -342,9 +342,7 @@ export default function ModelPricingDetails({
   } = useAdminModelPricingReport();
   const row = report?.rows.find((entry) => entry.id === modelId);
   if (isLoading)
-    return (
-      <p className="p-4 text-sm text-muted-foreground">Loading pricing…</p>
-    );
+    return <p className="p-4 text-sm text-muted-foreground">{t('loading')}</p>;
   if (error)
     return (
       <div className="p-4" role="alert">

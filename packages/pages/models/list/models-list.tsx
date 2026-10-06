@@ -84,7 +84,7 @@ export default function ModelsList({
       {
         icon: <Info />,
         onClick: handleViewDetails,
-        tooltip: 'View Details',
+        tooltip: translate('viewDetails'),
       },
       ...(isAdminScope
         ? [
@@ -96,13 +96,15 @@ export default function ModelsList({
                 model.reviewStatus !== 'rejected',
               onClick: (model: IModel) => {
                 openConfirm({
-                  confirmLabel: 'Approve',
-                  label: 'Approve Model',
-                  message: `Approve "${model.label}" and make it available for generation?`,
+                  confirmLabel: translate('approve'),
+                  label: translate('approveModel'),
+                  message: translate('approveConfirmation', {
+                    label: model.label,
+                  }),
                   onConfirm: () => handleApproveRegistryModel(model),
                 });
               },
-              tooltip: 'Approve',
+              tooltip: translate('approve'),
             },
             {
               icon: <CircleX />,
@@ -112,34 +114,39 @@ export default function ModelsList({
                 model.reviewStatus !== 'rejected',
               onClick: (model: IModel) => {
                 openConfirm({
-                  confirmLabel: 'Reject',
+                  confirmLabel: translate('reject'),
                   isError: true,
-                  label: 'Reject Model',
-                  message: `Reject "${model.label}" and keep it out of generation?`,
+                  label: translate('rejectModel'),
+                  message: translate('rejectConfirmation', {
+                    label: model.label,
+                  }),
                   onConfirm: () => handleRejectRegistryModel(model),
                 });
               },
-              tooltip: 'Reject',
+              tooltip: translate('reject'),
             },
             {
               icon: <Trash2 />,
               onClick: (model: IModel) => {
                 setSelectedModel(model);
                 openConfirm({
-                  confirmLabel: 'Delete',
+                  confirmLabel: translate('delete'),
                   isError: true,
-                  label: 'Delete Model',
-                  message: `Are you sure you want to delete "${model.label}"? This action cannot be undone.`,
+                  label: translate('deleteModel'),
+                  message: translate('deleteConfirmation', {
+                    label: model.label,
+                  }),
                   onConfirm: handleDelete,
                 });
               },
-              tooltip: 'Delete',
+              tooltip: translate('delete'),
             },
           ]
         : []),
     ],
     [
       isAdminScope,
+      translate,
       handleViewDetails,
       openConfirm,
       handleDelete,
@@ -167,7 +174,7 @@ export default function ModelsList({
             <FormSearchbar
               className="w-full"
               onSearch={handleSearchChange}
-              placeholder="Search models"
+              placeholder={translate('searchModels')}
               size={ComponentSize.SM}
               value={searchTerm}
             />
@@ -208,7 +215,9 @@ export default function ModelsList({
                         <Button
                           variant={ButtonVariant.GHOST}
                           size={ButtonSize.ICON}
-                          aria-label={`More options for ${model.label}`}
+                          aria-label={translate('moreOptions', {
+                            label: model.label,
+                          })}
                         >
                           <MoreHorizontal />
                         </Button>
@@ -223,7 +232,7 @@ export default function ModelsList({
                             onSelect={() => onPricingDetails(model)}
                           >
                             <Coins />
-                            Pricing details
+                            {translate('pricingDetails')}
                           </DropdownMenuItem>
                         ) : null}
                         {actions
@@ -259,18 +268,20 @@ export default function ModelsList({
         renderExpandedRow={renderExpandedRow}
         onRowClick={handleViewDetails}
         getRowKey={(model: IModel) => model.id}
-        emptyLabel="No models found"
+        emptyLabel={translate('noModelsFound')}
         emptyState={
           <EmptyState
-            title="No models found"
+            title={translate('noModelsFound')}
             description={
               searchTerm
-                ? 'No models match your search. Clear it to see the catalog.'
-                : 'No models are available for this filter. Change the filters or refresh the list.'
+                ? translate('emptySearchHint')
+                : translate('emptyFilterHint')
             }
             icon={Cpu}
             action={{
-              label: searchTerm ? 'Clear search' : 'Refresh',
+              label: searchTerm
+                ? translate('clearSearch')
+                : translate('refresh'),
               onClick: () => {
                 if (searchTerm) handleSearchChange('');
                 else void refresh();

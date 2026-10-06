@@ -102,6 +102,7 @@ export class ModelsController extends BaseCRUDController<
   public buildFindAllQuery(_user: User, query: ModelsQueryDto) {
     let matchConditions: MatchConditions = {
       isDeleted: query.isDeleted ?? false,
+      ...(query.providers?.length && { provider: { in: query.providers } }),
     };
 
     // Add isActive filter if provided
@@ -112,9 +113,6 @@ export class ModelsController extends BaseCRUDController<
     if (query.includeRetired === false) {
       matchConditions.lifecycle = { not: ModelLifecycle.RETIRED };
     }
-
-    if (query.providers?.length)
-      matchConditions.provider = { in: query.providers };
 
     if (query.registryStatus) {
       matchConditions = {

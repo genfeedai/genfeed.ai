@@ -72,8 +72,8 @@ export default function ModelPricingAttentionPanel() {
                 onClick={() => setIsRedExpanded(!isRedExpanded)}
               >
                 {isRedExpanded
-                  ? 'Show less'
-                  : `Show ${red.length - 5} more models`}
+                  ? t('showLess')
+                  : t('showMoreModels', { count: red.length - 5 })}
               </Button>
             ) : null}
           </AlertDescription>
@@ -104,8 +104,8 @@ export default function ModelPricingAttentionPanel() {
                 onClick={() => setIsOrangeExpanded(!isOrangeExpanded)}
               >
                 {isOrangeExpanded
-                  ? 'Show less'
-                  : `Show ${orange.length - 5} more models`}
+                  ? t('showLess')
+                  : t('showMoreModels', { count: orange.length - 5 })}
               </Button>
             ) : null}
           </AlertDescription>

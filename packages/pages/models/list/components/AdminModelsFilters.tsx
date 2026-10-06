@@ -9,10 +9,12 @@ import {
 } from '@props/admin/models.props';
 import MultiSelectDropdown from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 export default function AdminModelsFilters({
   category,
 }: AdminModelsFiltersProps) {
+  const translate = useTranslations('pages.models');
   const params = useSearchParams();
   const { replace } = useRouter();
   const filters = resolveAdminModelFilters(
@@ -44,7 +46,7 @@ export default function AdminModelsFilters({
     <div className="flex flex-wrap items-center gap-2">
       <MultiSelectDropdown
         name="category"
-        placeholder="All categories"
+        placeholder={translate('allCategories')}
         values={filters.categories}
         options={Object.values(ModelCategory).map((value) => ({
           value,
@@ -56,7 +58,7 @@ export default function AdminModelsFilters({
       />
       <MultiSelectDropdown
         name="provider"
-        placeholder="All providers"
+        placeholder={translate('allProviders')}
         values={filters.providers}
         options={Object.values(ModelProvider).map((value) => ({
           value,
@@ -66,11 +68,11 @@ export default function AdminModelsFilters({
       />
       <MultiSelectDropdown
         name="status"
-        placeholder="All statuses"
+        placeholder={translate('allStatuses')}
         values={filters.statuses}
         options={[
-          { value: 'active', label: 'Active' },
-          { value: 'inactive', label: 'Inactive' },
+          { value: 'active', label: translate('active') },
+          { value: 'inactive', label: translate('inactive') },
         ]}
         onChange={handleChange}
       />
