@@ -148,7 +148,8 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     return { messages, state };
   }
 
-  it('grounds follow-ups in the full result even when its displayed summary is truncated', async () => {
+  it('keeps the full tool result for the model when the timeline summary is a sentence', async () => {
+    const details = 'x'.repeat(1000);
     executeTool.mockResolvedValueOnce({
       creditsUsed: 0,
       success: true,
@@ -158,15 +159,19 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
         pendingCount: 0,
         readyCount: 0,
         recentItems: [],
-        details: 'x'.repeat(1000),
+        details,
       },
     });
-    const { state } = await executeCampaignRound({
+    const { messages, state } = await executeCampaignRound({
       message: "Show me what's waiting for review",
       toolName: 'list_review_queue',
       toolParams: {},
     });
-    expect(state.toolCalls[0]?.resultSummary).toHaveLength(501);
+    expect(state.toolCalls[0]?.resultSummary).toBe(
+      'Nothing waiting for review',
+    );
+    expect(state.toolCalls[0]?.resultSummary).not.toContain(details);
+    expect(messages.at(-1)?.content).toContain(details);
     expect(state.toolCalls[0]?.reviewQueue).toEqual({
       approvedCount: 0,
       changesRequestedCount: 0,
