@@ -1,24 +1,12 @@
+import { buildReviewSuggestedActions } from '@api/services/agent-orchestrator/utils/agent-review-queue-context.util';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
-  type AgentReviewQueueSnapshot,
+  type AgentCompletionSuggestedAction,
+  type AgentCompletionToolCall,
   type AgentUiAction,
   type AgentUiActionCta,
 } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
-
-export interface AgentCompletionSuggestedAction {
-  id: string;
-  label: string;
-  prompt: string;
-  /** Optional one-line helper; omit for chip-style short labels. */
-  description?: string;
-}
-
-export interface AgentCompletionToolCall {
-  reviewQueue?: AgentReviewQueueSnapshot;
-  status: 'completed' | 'failed';
-  toolName: string;
-}
 
 export interface BuildAssistantUiActionsParams {
   reviewRequired: boolean;
@@ -469,79 +457,8 @@ export class AgentCompletionCardBuilderService {
       );
     }
 
-    const latestReviewTool = [...params.toolCalls]
-      .reverse()
-      .find((toolCall) =>
-        [
-          'list_review_queue',
-          'batch_approve_reject',
-          'get_approval_summary',
-        ].includes(toolCall.toolName),
-      );
-    const reviewQueue =
-      latestReviewTool?.status === 'completed'
-        ? latestReviewTool.reviewQueue
-        : undefined;
-
-    if (reviewQueue?.readyCount) {
-      addSuggestion(
-        'review-ready',
-        'Approve the ready ones',
-        'Show me the items that are safe to approve right now',
-      );
-    }
-    if (reviewQueue?.changesRequestedCount) {
-      addSuggestion(
-        'review-fix',
-        'Fix the weak spots',
-        'Take the weakest review items and rewrite them so they are ready to publish',
-      );
-    }
-    if (reviewQueue?.approvedCount) {
-      addSuggestion(
-        'review-schedule',
-        'Queue approved content',
-        'Schedule the approved content into the best available slots',
-      );
-    }
-    if (reviewQueue?.pendingCount) {
-      addSuggestion(
-        'review-progress',
-        'Check generation progress',
-        'Check the content that is still generating and tell me when it will be ready for review',
-      );
-    }
-    if (reviewQueue?.unclassifiedCount) {
-      addSuggestion(
-        'review-open',
-        'Show the review queue',
-        "Show me what's waiting for review and which items are ready",
-      );
-    }
-    if (
-      reviewQueue &&
-      Object.values(reviewQueue).every((count) => count === 0)
-    ) {
-      addSuggestion(
-        'review-create',
-        'Draft new content',
-        'Draft new content for my brand that I can review',
-      );
-      addSuggestion(
-        'review-ideas',
-        'Find content ideas',
-        'Suggest fresh content ideas for my brand',
-      );
-    }
-    if (
-      latestReviewTool?.status === 'completed' &&
-      latestReviewTool.toolName === 'batch_approve_reject'
-    ) {
-      addSuggestion(
-        'review-refresh',
-        'Check remaining reviews',
-        "Show me what's still waiting for review after those changes",
-      );
+    for (const suggestion of buildReviewSuggestedActions(params.toolCalls)) {
+      addSuggestion(suggestion.id, suggestion.label, suggestion.prompt);
     }
 
     if (

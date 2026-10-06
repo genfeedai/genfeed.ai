@@ -172,7 +172,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
       changesRequestedCount: 0,
       pendingCount: 0,
       readyCount: 0,
-      unclassifiedCount: 0,
+      scope: 'inbox' as const,
     });
     const result =
       new AgentCompletionCardBuilderService().buildAssistantUiActions({

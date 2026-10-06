@@ -92,4 +92,37 @@ describe('review result follow-ups', () => {
       'review-progress',
     ]);
   });
+  it.each([
+    'completed',
+    'ready',
+    BatchItemStatus.FAILED,
+    BatchItemStatus.SKIPPED,
+  ])(
+    'does not infer an empty inbox from a zero-match batch filter: %s',
+    async (status) => {
+      const handler = new AgentReviewToolHandler({
+        getBatch: vi.fn().mockResolvedValue({
+          id: batchId,
+          totalCount: 1,
+          items: [{ id: 'ready', status: BatchItemStatus.COMPLETED }],
+        }),
+      } as never);
+      const result = await handler.listReviewQueue({ batchId, status }, ctx);
+      const ui = builder.buildAssistantUiActions({
+        reviewRequired: false,
+        toolCalls: [
+          {
+            status: 'completed',
+            toolName: 'list_review_queue',
+            reviewQueue: readReviewQueueSnapshot('list_review_queue', result),
+          },
+        ],
+        uiActions: result.nextActions ?? [],
+      });
+      expect(ui.suggestedActions.map((action) => action.id)).toEqual([
+        'review-open',
+      ]);
+      expect(result.data?.items).toEqual([]);
+    },
+  );
 });

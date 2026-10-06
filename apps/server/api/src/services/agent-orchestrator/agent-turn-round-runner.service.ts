@@ -24,8 +24,8 @@ import {
   normalizeRequestedAgentToolName,
 } from '@api/services/agent-orchestrator/utils/agent-generation-prepare-redirect.util';
 import { normalizeResponseModel } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
-import { readReviewQueueSnapshot } from '@api/services/agent-orchestrator/utils/agent-review-queue-context.util';
 import { raceToolExecution } from '@api/services/agent-orchestrator/utils/agent-tool-race.util';
+import { buildToolResultSummary } from '@api/services/agent-orchestrator/utils/agent-tool-result-summary.util';
 import { normalizeUiBlocks } from '@api/services/agent-orchestrator/utils/agent-ui-blocks.util';
 import type {
   OpenRouterMessage,
@@ -47,7 +47,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
-const RESULT_SUMMARY_MAX_LENGTH = 500;
 // Every agent tool is itself a nested workflow run. Without a ceiling, one
 // stalled nested run holds the whole turn (and its Stop button) forever, because
 // cancellation was only observed between tools.
@@ -198,23 +197,6 @@ export type ExecuteToolRoundResult = {
   terminalContent?: string;
   terminalToolName?: CuratedActionName;
 };
-
-function summarizeToolResult(result: {
-  data?: Record<string, unknown>;
-  error?: string;
-  success: boolean;
-}): string {
-  if (!result.success) {
-    return result.error ?? 'Failed';
-  }
-  if (!result.data) {
-    return 'OK';
-  }
-  const json = JSON.stringify(result.data);
-  return json.length > RESULT_SUMMARY_MAX_LENGTH
-    ? `${json.slice(0, RESULT_SUMMARY_MAX_LENGTH)}…`
-    : json;
-}
 
 /**
  * Shared per-tool-call batch processor for sync and stream agent loops.
@@ -677,14 +659,12 @@ export class AgentTurnRoundRunnerService {
         state.totalCreditsUsed += delegatedCredits;
       }
 
-      const reviewQueue = readReviewQueueSnapshot(toolName, modelVisibleResult);
       const summary: ToolCallSummary = {
         creditsUsed: isOrchestratorBilled ? creditCost : delegatedCredits,
         durationMs,
         error: result.error,
         parameters: toolParams,
-        resultSummary: summarizeToolResult(modelVisibleResult),
-        ...(reviewQueue ? { reviewQueue } : {}),
+        ...buildToolResultSummary(toolName, modelVisibleResult),
         status: result.success ? 'completed' : 'failed',
         toolName,
       };

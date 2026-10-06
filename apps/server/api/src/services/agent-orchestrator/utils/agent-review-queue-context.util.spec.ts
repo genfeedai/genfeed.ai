@@ -15,26 +15,32 @@ describe('readReviewQueueSnapshot', () => {
         success: true,
         data: counts,
       }),
-    ).toEqual({ ...counts, unclassifiedCount: 0 });
+    ).toEqual({ ...counts, scope: 'inbox' });
   });
 
-  it.each([0, 3])(
-    'keeps %s summary items unclassified until the queue is inspected',
-    (totalPending) => {
-      expect(
-        readReviewQueueSnapshot('get_approval_summary', {
-          success: true,
-          data: { totalPending },
-        }),
-      ).toEqual({
-        approvedCount: 0,
-        changesRequestedCount: 0,
-        pendingCount: 0,
-        readyCount: 0,
-        unclassifiedCount: totalPending,
-      });
-    },
-  );
+  it('does not infer an empty review queue from zero items still generating', () => {
+    expect(
+      readReviewQueueSnapshot('get_approval_summary', {
+        success: true,
+        data: { totalPending: 0 },
+      }),
+    ).toBeUndefined();
+  });
+
+  it('treats positive approval-summary counts as generation still in progress', () => {
+    expect(
+      readReviewQueueSnapshot('get_approval_summary', {
+        success: true,
+        data: { totalPending: 3 },
+      }),
+    ).toEqual({
+      approvedCount: 0,
+      changesRequestedCount: 0,
+      pendingCount: 3,
+      readyCount: 0,
+      scope: 'summary',
+    });
+  });
 
   it.each([undefined, -1, NaN, Infinity, 1.5, '2'])(
     'does not treat invalid counts as evidence: %s',

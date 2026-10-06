@@ -368,7 +368,7 @@ describe('AgentCompletionCardBuilderService', () => {
       changesRequestedCount: 0,
       pendingCount: 0,
       readyCount: 0,
-      unclassifiedCount: 0,
+      scope: 'inbox' as const,
     };
 
     it.each([
@@ -387,7 +387,7 @@ describe('AgentCompletionCardBuilderService', () => {
         ids: ['review-progress'],
       },
       {
-        reviewQueue: { ...emptyQueue, unclassifiedCount: 2 },
+        reviewQueue: { ...emptyQueue, scope: 'batch' as const },
         ids: ['review-open'],
       },
       {
