@@ -12,6 +12,7 @@ function failed(
     status: IngredientStatus.FAILED,
     generationError,
     generationPrompt: 'Saved prompt',
+    modelUsed: 'saved-model',
     ...extra,
   } as IIngredient;
 }
@@ -56,6 +57,9 @@ describe('Failed Library recovery classification', () => {
     expect(
       getIngredientRecovery(failed('503', { generationPrompt: null })).reason,
     ).toBe('missingPrompt');
+    expect(
+      getIngredientRecovery(failed('503', { modelUsed: null })).action,
+    ).toBe('viewDetails');
   });
   it('prioritizes a missing reference over a transient error in the same message', () => {
     expect(

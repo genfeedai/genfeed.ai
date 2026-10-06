@@ -86,6 +86,13 @@ export function getIngredientRecovery(
         reason: 'missingPrompt',
       };
     }
+    if (!ingredient.modelUsed?.trim() && !ingredient.model?.trim()) {
+      return {
+        action: 'viewDetails',
+        group: 'attention',
+        reason: 'unsupportedRecovery',
+      };
+    }
     return { action: 'retry', group: 'retry', reason: 'serviceUnavailable' };
   }
   return { action: 'viewDetails', group: 'unknown', reason: 'unknown' };
