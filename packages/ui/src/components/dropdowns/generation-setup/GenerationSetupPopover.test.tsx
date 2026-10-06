@@ -630,4 +630,83 @@ describe('GenerationSetupPopover', () => {
     expect(onDeletePreset).toHaveBeenCalledWith('preset-1');
     expect(onApplyPreset).not.toHaveBeenCalled();
   });
+
+  it('resets a customized Auto priority from the model list without resetting pinned fields', async () => {
+    const user = userEvent.setup();
+    const onClearPreset = vi.fn();
+    const onResetAll = vi.fn();
+    const onResetField = vi.fn();
+    const onSetField = vi.fn();
+    const preset = createPreset({ id: 'preset-1', label: 'Studio Look' });
+    const setup = createSetup({
+      presetId: preset.id,
+      sources: {
+        aspectRatio: 'preset',
+        modelKey: 'agent',
+        outputs: 'user',
+        prioritize: 'user',
+      },
+      values: {
+        aspectRatio: '16:9',
+        brandingMode: 'off',
+        isPromptEnhanceEnabled: false,
+        modelKey: 'google/nano-banana',
+        outputs: 4,
+        prioritize: RouterPriority.QUALITY,
+        type: 'image',
+      },
+    });
+    const view = renderPopover({
+      onClearPreset,
+      onResetAll,
+      onResetField,
+      onSetField,
+      presets: [preset],
+      setup,
+    });
+
+    await openPopover(user);
+    await user.click(screen.getByRole('button', { name: 'Configure Model' }));
+    expect(screen.getByPlaceholderText('Search models…')).toBeInTheDocument();
+    expect(screen.getByText('Pinned: Studio Look')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Reset model to agent' }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Reset priority to agent' }),
+    );
+
+    expect(onResetField).toHaveBeenCalledTimes(1);
+    expect(onResetField).toHaveBeenCalledWith('prioritize');
+    expect(onResetField).not.toHaveBeenCalledWith('modelKey');
+    expect(onResetField).not.toHaveBeenCalledWith('aspectRatio');
+    expect(onResetField).not.toHaveBeenCalledWith('outputs');
+    expect(onResetAll).not.toHaveBeenCalled();
+    expect(onSetField).not.toHaveBeenCalled();
+    expect(onClearPreset).not.toHaveBeenCalled();
+
+    view.rerender(
+      <GenerationSetupPopover
+        {...popoverProps({
+          onClearPreset,
+          onResetAll,
+          onResetField,
+          onSetField,
+          presets: [preset],
+          setup: createSetup({
+            presetId: setup.presetId,
+            sources: { ...setup.sources, prioritize: 'agent' },
+            values: setup.values,
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.getByPlaceholderText('Search models…')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Reset priority to agent' }),
+    ).not.toBeInTheDocument();
+    expect(onResetField).toHaveBeenCalledTimes(1);
+  });
 });

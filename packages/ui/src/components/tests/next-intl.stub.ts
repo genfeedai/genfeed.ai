@@ -285,6 +285,9 @@ const UI_TEST_MESSAGES = {
       resetAll: 'Reset all',
       resetAllAria: 'Reset all fields to agent',
       resetModel: 'Reset model to agent',
+      resetPriority: 'Reset priority to agent',
+      resetPriorityTooltip:
+        'Reset Auto priority to the agent. The model stays as set.',
       searchField: 'Search {field}',
       searchFieldPlaceholder: 'Search {field}…',
       searchFields: 'Search fields…',

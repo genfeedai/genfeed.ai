@@ -102,7 +102,11 @@ export default function PromptBarReferenceControls({
         <DropdownMenuContent
           align="start"
           avoidCollisions={false}
-          className="w-56"
+          className={cn(
+            'w-56',
+            'max-h-[min(560px,var(--radix-dropdown-menu-content-available-height,70vh))]',
+            'overflow-y-auto overscroll-contain',
+          )}
           side="top"
         >
           <DropdownMenuLabel>

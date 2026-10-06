@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationHarnessSettingsPopoverProps } from '@genfeedai/props/ui/generation-setup/generation-harness.props';
 import { useGenerationHarnessSettings } from '@hooks/data/generation/use-generation-harness-settings';
 import GenerationHarnessSettingsCard from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsCard';
@@ -49,7 +50,11 @@ export default function GenerationHarnessSettingsPopover({
         align="start"
         side="top"
         avoidCollisions={false}
-        className="w-[min(360px,calc(100vw-2rem))] p-0"
+        className={cn(
+          'w-[min(360px,calc(100vw-2rem))]',
+          'max-h-[min(560px,var(--radix-popover-content-available-height,70vh))]',
+          'overflow-y-auto overscroll-contain p-0',
+        )}
       >
         {isOpen && !isDisabled ? <SettingsContent /> : null}
       </PopoverContent>

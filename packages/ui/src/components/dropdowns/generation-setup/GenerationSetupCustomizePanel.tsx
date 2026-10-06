@@ -78,6 +78,19 @@ export default function GenerationSetupCustomizePanel({
             variant={ButtonVariant.GHOST}
           />
         ) : null}
+        {resolvedSection === 'model' &&
+        setup.sources.prioritize &&
+        setup.sources.prioritize !== 'agent' ? (
+          <Button
+            ariaLabel={translate('resetPriority')}
+            className="size-6 p-0 text-muted-foreground"
+            icon={<Undo2 className="size-3" />}
+            onClick={() => onResetField('prioritize')}
+            size={ButtonSize.ICON}
+            tooltip={translate('resetPriorityTooltip')}
+            variant={ButtonVariant.GHOST}
+          />
+        ) : null}
         <span className="ml-auto text-xs capitalize text-muted-foreground">
           {typeOptions.find((option) => option.value === setup.values.type)
             ?.label ?? setup.values.type}
