@@ -235,6 +235,46 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T09:45:33.308Z',
   },
   {
+    endpoint: 'bytedance/seedream-5-pro',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.045,
+        when: {
+          resolution: '1K',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.09,
+        when: {
+          resolution: '2K',
+        },
+      },
+    ],
+    variantRules: [
+      {
+        criterionTitle: 'resolution',
+        selectorKey: 'resolution',
+        derive: {
+          kind: 'field',
+          field: 'size',
+          valueMap: {
+            '1K': '1K',
+            '2K': '2K',
+          },
+          fieldType: 'string',
+          default: '2K',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/bytedance/seedream-5-pro',
+    verifiedAt: '2026-10-06T21:45:00.000Z',
+  },
+  {
     endpoint: 'deepseek-ai/deepseek-r1',
     provider: 'replicate',
     rates: [
@@ -255,6 +295,37 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T09:45:33.770Z',
   },
   {
+    endpoint: 'fal-ai/elevenlabs/music',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.01,
+        when: {},
+        isPerOutput: true,
+        minimumUnits: 60,
+        roundUnitsTo: 60,
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/fal-ai/elevenlabs/music',
+    verifiedAt: '2026-10-06T21:45:00.000Z',
+  },
+  {
+    endpoint: 'fal-ai/lyria3/pro',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.08,
+        when: {},
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/fal-ai/lyria3/pro',
+    verifiedAt: '2026-10-06T21:45:00.000Z',
+  },
+  {
     endpoint: 'google/gemini-2.5-flash',
     provider: 'replicate',
     rates: [
@@ -273,6 +344,22 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
     sourceUrl: 'https://replicate.com/google/gemini-2.5-flash',
     verifiedAt: '2026-10-06T09:45:33.916Z',
+  },
+  {
+    endpoint: 'google/gemini-omni-flash',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.13,
+        when: {},
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl:
+      'https://fal.ai/models/google/gemini-omni-flash/reference-to-video',
+    verifiedAt: '2026-10-06T21:45:00.000Z',
   },
   {
     endpoint: 'google/imagen-3',
@@ -1205,6 +1292,79 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T09:45:37.170Z',
   },
   {
+    endpoint: 'minimax/h3-max/director',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.08,
+        when: {
+          resolution: '480P',
+        },
+        isPerOutput: true,
+        minimumUnits: 60,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.08,
+        when: {
+          resolution: '768P',
+        },
+        isPerOutput: true,
+        minimumUnits: 60,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.16,
+        when: {
+          resolution: '1080P',
+        },
+        isPerOutput: true,
+        minimumUnits: 60,
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/minimax/h3-max/director',
+    verifiedAt: '2026-10-06T21:45:00.000Z',
+  },
+  {
+    endpoint: 'minimax/h3-max/text-to-video',
+    provider: 'fal',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.05,
+        when: {
+          resolution: '480P',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.08,
+        when: {
+          resolution: '768P',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.16,
+        when: {
+          resolution: '1080P',
+        },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://fal.ai/models/minimax/h3-max/text-to-video',
+    verifiedAt: '2026-10-06T21:45:00.000Z',
+  },
+  {
     endpoint: 'minimax/hailuo-2.3-fast',
     provider: 'replicate',
     rates: [
@@ -1526,6 +1686,32 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     ],
     sourceUrl: 'https://replicate.com/openai/gpt-image-2.5-sunburst',
     verifiedAt: '2026-10-06T09:45:37.924Z',
+  },
+  {
+    endpoint: 'prunaai/p-video',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.02,
+        when: {
+          resolution: '720p',
+        },
+        isPerOutput: true,
+      },
+      {
+        component: 'output',
+        unit: 'second',
+        unitPriceUsd: 0.04,
+        when: {
+          resolution: '1080p',
+        },
+        isPerOutput: true,
+      },
+    ],
+    sourceUrl: 'https://replicate.com/prunaai/p-video',
+    verifiedAt: '2026-10-06T21:45:00.000Z',
   },
   {
     endpoint: 'qwen/qwen-image',

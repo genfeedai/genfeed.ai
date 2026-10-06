@@ -491,7 +491,7 @@ describe('ModelCatalogSeedService', () => {
     expect(callForKey('fal/minimax/h3-max/director')).toMatchObject({
       create: {
         endpoint: 'minimax/h3-max/director',
-        minCost: 400,
+        minCost: 1599,
         pricingType: 'per-second',
         providerCostUsd: 0.08,
       },

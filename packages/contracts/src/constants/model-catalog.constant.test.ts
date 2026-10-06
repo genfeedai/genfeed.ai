@@ -266,7 +266,7 @@ describe('UNIFIED_MODEL_CATALOG', () => {
       isActive: true,
       key: 'fal/minimax/h3-max/director',
       label: 'H3 Max Director',
-      minCost: 400,
+      minCost: 1599,
       pricingType: 'per-second',
       provider: ModelProvider.FAL,
       providerCostUsd: 0.08,

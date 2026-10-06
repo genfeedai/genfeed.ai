@@ -124,6 +124,11 @@ export function getVideoGenerationResolutionCreditMultiplier(
   if (modelKey === 'minimax/h3') {
     return normalizedResolution === '768p' ? 0.08 / 0.13 : 1;
   }
+  if (modelKey === 'fal/minimax/h3-max/text-to-video') {
+    if (normalizedResolution === '480p') return 0.05 / 0.08;
+    if (normalizedResolution === '1080p') return 0.16 / 0.08;
+    return 1;
+  }
   if (KLING_V3_VIDEO_KEYS.has(modelKey)) {
     if (normalizedResolution === 'pro') {
       return 0.224 / 0.168;

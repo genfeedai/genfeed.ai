@@ -1,7 +1,5 @@
 const NO_PUBLIC_RATE =
-  'No public per-variant list price was captured (2026-09-30 evidence); it prices from its configured row until `bun run pricing:rates:pull` adds an entry.';
-const FAL_PRICING_API =
-  'Fal rates come from the Fal pricing API refresh; no public list price is captured in the sheet.';
+  'No public per-variant list price was captured (2026-10-06 evidence); it prices from its configured row until `bun run pricing:rates:pull` adds an entry.';
 const PRIVATE_DEPLOYMENT =
   'Private managed deployment: no public provider rate exists, so it stays red until an operator-approved rate is set.';
 const INPUT_MEGAPIXELS =
@@ -16,13 +14,8 @@ const IDENTITY_404 =
 export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'black-forest-labs/flux-2-dev': INPUT_MEGAPIXELS,
   'black-forest-labs/flux-2-flex': INPUT_MEGAPIXELS,
-  'bytedance/seedream-5-pro': NO_PUBLIC_RATE,
-  'bytedance/video-upscaler': NO_PUBLIC_RATE,
-  'fal-ai/elevenlabs/music': FAL_PRICING_API,
-  'fal-ai/lyria3/pro': FAL_PRICING_API,
-  'fal/google/gemini-omni-flash': FAL_PRICING_API,
-  'fal/minimax/h3-max/director': FAL_PRICING_API,
-  'fal/minimax/h3-max/text-to-video': FAL_PRICING_API,
+  'bytedance/video-upscaler':
+    'The public readme says the price depends on tier, resolution and frame rate, and the numeric table is only on the pricing tab.',
   'genfeed-ai/flux-dev': PRIVATE_DEPLOYMENT,
   'genfeed-ai/flux-dev-pulid': PRIVATE_DEPLOYMENT,
   'genfeed-ai/flux2-dev': PRIVATE_DEPLOYMENT,
@@ -37,7 +30,6 @@ export const UNPRICED_MODELS: Readonly<Record<string, string>> = {
   'meta/musicgen': NO_PUBLIC_RATE,
   'mureka/v9':
     'The provider pricing page was unreachable (HTTP 404) when captured.',
-  'prunaai/p-video': NO_PUBLIC_RATE,
   'topazlabs/image-upscale':
     'Topaz bills provider units whose mapping to an image or megapixel is contradictory on the public page.',
   'topazlabs/video-upscale':
