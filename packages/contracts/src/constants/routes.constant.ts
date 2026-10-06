@@ -618,7 +618,7 @@ export function createOrganizationAppRoute(
   orgSlug: string,
   path: string = APP_ROUTES.ROOT,
 ): string {
-  return `/${orgSlug}/~${normalizeScopedRoutePath(path)}`;
+  return `/${orgSlug}/~${normalizeScopedRoutePath(toOrganizationScopePath(path))}`;
 }
 
 const BRAND_ONLY_SETTINGS_PREFIXES = [
