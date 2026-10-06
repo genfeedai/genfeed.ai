@@ -8,7 +8,7 @@ describe('generate_content as the single content generation tool', () => {
   it('is available on the agent and on MCP in the content toolset', () => {
     expect(tool?.surfaces).toMatchObject({ agent: true, mcp: true });
     expect(tool?.toolset).toBe('content');
-    expect(tool?.mutationPolicy).toBe('approval-required');
+    expect(tool?.mutationPolicy).toBe('direct');
   });
 
   it('keeps batch generation as a separate approval-required tool', () => {

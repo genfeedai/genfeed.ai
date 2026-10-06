@@ -130,7 +130,7 @@ describe('transform_media tool definition', () => {
   it('is one agent and MCP generation tool with a flat schema', () => {
     expect(tool?.surfaces).toMatchObject({ agent: true, mcp: true });
     expect(tool?.toolset).toBe('generation');
-    expect(tool?.mutationPolicy).toBe('approval-required');
+    expect(tool?.mutationPolicy).toBe('direct');
     expect(tool?.parameters.required).toEqual(['operation']);
     expect(tool?.parameters).not.toHaveProperty('oneOf');
     expect(tool?.parameters.properties.operation).toMatchObject({

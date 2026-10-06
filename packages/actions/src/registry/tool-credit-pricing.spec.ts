@@ -16,7 +16,9 @@ import type { ToolCreditPricing } from '../interfaces/tool-definition.interface'
 import { MEDIA_GENERATION_CREDIT_FLOORS } from './media-generation';
 import {
   estimateToolCreditCost,
+  fixedCreditPricing,
   isSpendingCreditPricing,
+  requiresMcpApproval,
 } from './tool-credit-pricing';
 import { getToolByName, getToolsForSurface } from './tool-registry';
 import { DEFAULT_MCP_PROFILE_TOOLSETS } from './toolset-profiles';
@@ -31,20 +33,38 @@ function pricingOf(name: string): ToolCreditPricing {
 }
 
 describe('tool credit pricing', () => {
-  it('keeps direct non-zero spenders off the default MCP profile', () => {
-    const offenders = getToolsForToolsets(
+  it('gates default-profile spenders at the MCP approval boundary', () => {
+    const ungated = getToolsForToolsets(
       'mcp',
       DEFAULT_MCP_PROFILE_TOOLSETS,
     ).filter((tool) => {
       const pricing = tool.creditPricing;
-      return (
-        tool.mutationPolicy === 'direct' &&
+      const spends =
         pricing !== undefined &&
-        (tool.creditCost > 0 ||
-          isSpendingCreditPricing(pricing, tool.creditCost))
-      );
+        isSpendingCreditPricing(pricing, tool.creditCost);
+      return spends && !requiresMcpApproval(tool);
     });
-    expect(offenders.map((tool) => tool.name)).toEqual([]);
+    expect(ungated.map((tool) => tool.name)).toEqual([]);
+    expect(getToolByName('generate')?.mutationPolicy).toBe('direct');
+    expect(requiresMcpApproval(getToolByName('generate'))).toBe(true);
+  });
+
+  it('requires MCP approval for a declared approval or a spend', () => {
+    expect(
+      requiresMcpApproval({
+        creditCost: 0,
+        creditPricing: fixedCreditPricing(0),
+        mutationPolicy: 'direct',
+      }),
+    ).toBe(false);
+    expect(
+      requiresMcpApproval({
+        creditCost: 0,
+        creditPricing: fixedCreditPricing(0),
+        mutationPolicy: 'approval-required',
+      }),
+    ).toBe(true);
+    expect(requiresMcpApproval(undefined)).toBe(false);
   });
 
   it('does not mark a spending tool read-only', () => {

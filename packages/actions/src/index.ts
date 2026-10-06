@@ -133,6 +133,7 @@ export {
   estimateToolCreditCost,
   fixedCreditPricing,
   isSpendingCreditPricing,
+  requiresMcpApproval,
   toolCreditPricingFor,
 } from './registry/tool-credit-pricing';
 export {

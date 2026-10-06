@@ -74,7 +74,7 @@ describe('tool registry', () => {
     expect(getToolByName('create_post')?.mutationPolicy).toBe(
       'approval-required',
     );
-    expect(getToolByName('generate')?.mutationPolicy).toBe('approval-required');
+    expect(getToolByName('generate')?.mutationPolicy).toBe('direct');
     expect(getToolByName('get_posts')?.mutationPolicy).toBeUndefined();
   });
 

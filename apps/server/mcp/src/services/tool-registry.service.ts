@@ -8,6 +8,7 @@ import {
   isToolAllowedInMcpAccessMode,
   type McpAccessMode,
   type McpToolOutput,
+  requiresMcpApproval,
   type ToolsetName,
   toMcpTools,
 } from '@genfeedai/actions';
@@ -371,7 +372,7 @@ export class ToolRegistryService implements OnModuleInit {
         return await this.handleResolveApproval(args ?? {});
       }
 
-      // Mutating tools persist a pending approval instead of executing.
+      // Declared approvals and credit spenders wait for confirmation.
       if (ToolRegistryService.requiresApproval(name)) {
         const approval = await this.clientService.createApproval(
           name,
@@ -430,7 +431,7 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   private static requiresApproval(name: string): boolean {
-    return getToolByName(name)?.mutationPolicy === 'approval-required';
+    return requiresMcpApproval(getToolByName(name));
   }
 
   private async executeTool(

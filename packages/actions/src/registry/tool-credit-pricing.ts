@@ -12,7 +12,10 @@ import {
   CLIP_HIGHLIGHT_COUNT_MAXIMUM,
   clipCreditGateAmount,
 } from '@genfeedai/contracts/constants/tool-credit.constant';
-import type { ToolCreditPricing } from '../interfaces/tool-definition.interface';
+import type {
+  CanonicalToolDefinition,
+  ToolCreditPricing,
+} from '../interfaces/tool-definition.interface';
 import {
   getMediaGenerationCreditFloor,
   MEDIA_GENERATION_CREDIT_FLOORS,
@@ -124,6 +127,25 @@ export function isSpendingCreditPricing(
   return pricing.amount > 0;
 }
 
+/**
+ * `/mcp` confirms a spend even when the shared catalog leaves the tool
+ * `direct`, so in-app auto and plan can still run that tool.
+ */
+export function requiresMcpApproval(
+  tool:
+    | Pick<
+        CanonicalToolDefinition,
+        'creditCost' | 'creditPricing' | 'mutationPolicy'
+      >
+    | undefined,
+): boolean {
+  if (!tool) return false;
+  if (tool.mutationPolicy === 'approval-required') return true;
+  const creditCost = tool.creditCost ?? 0;
+  if (!tool.creditPricing) return creditCost > 0;
+  return isSpendingCreditPricing(tool.creditPricing, creditCost);
+}
+
 export function describeCreditPricing(pricing: ToolCreditPricing): string {
   if (pricing.mode === 'variable') {
     return `Variable cost: ${pricing.minimum}–${pricing.maximum} credits per ${pricing.unit}.`;
@@ -144,10 +166,6 @@ export function appendCreditPricingDescription(
   const sentence = describeCreditPricing(pricing);
   if (description.includes(sentence)) return description;
   return `${description} ${sentence}`;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function boundedCount(
@@ -188,7 +206,14 @@ export function estimateToolCreditCost(
   parameters: unknown,
   pricing?: ToolCreditPricing,
 ): number | null {
-  const args = isRecord(parameters) ? parameters : {};
+  const args: Record<string, unknown> = {};
+  if (
+    parameters !== null &&
+    typeof parameters === 'object' &&
+    !Array.isArray(parameters)
+  ) {
+    Object.assign(args, parameters);
+  }
   const resolved = pricing ?? fixedCreditPricing(0);
   if (name === MEDIA_GENERATION_TOOL_NAME) {
     return getMediaGenerationCreditFloor(args);

@@ -18,7 +18,7 @@ const MOCK_TOOLS = [
       mode: 'variable' as const,
       unit: 'generation',
     },
-    mutationPolicy: 'approval-required' as const,
+    mutationPolicy: 'direct' as const,
     name: 'generate',
     requiredRole: undefined,
     surfaces: { mcp: true },

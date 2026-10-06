@@ -4,7 +4,10 @@ import {
   CURATED_ACTION_CATALOG,
   isPublishingApprovalRequired,
 } from '../curated-action-catalog';
-import { isApprovalRequiredToolName } from '../mutation-policy';
+import {
+  isApprovalRequiredToolName,
+  isReadOnlyToolName,
+} from '../mutation-policy';
 import { ALL_TOOLS, getToolByName, getToolsForSurface } from '../tool-registry';
 
 const READ_ONLY_PREFIXES = [
@@ -63,9 +66,8 @@ describe('MCP tool annotations', () => {
   it('marks approval-required tools destructive and not read-only', () => {
     for (const tool of getToolsForSurface('mcp')) {
       if (!isApprovalRequiredToolName(tool.name)) continue;
-      // Draft create, source import, and media transform add records; they do
-      // not overwrite or publish. Paid X reads require approval and stay
-      // non-destructive. transform_media is pinned in NON_DESTRUCTIVE_WRITE_NAMES.
+      // Draft create and source import add records; they do not overwrite
+      // or publish. transform_media is pinned in NON_DESTRUCTIVE_WRITE_NAMES.
       if (
         tool.name === 'create_post' ||
         tool.name === 'import_source_post' ||
@@ -86,7 +88,13 @@ describe('MCP tool annotations', () => {
       const matchesPrefix = READ_ONLY_PREFIXES.some((prefix) =>
         tool.name.startsWith(prefix),
       );
-      if (!matchesPrefix || isApprovalRequiredToolName(tool.name)) continue;
+      if (
+        !matchesPrefix ||
+        isApprovalRequiredToolName(tool.name) ||
+        !isReadOnlyToolName(tool.name)
+      ) {
+        continue;
+      }
       expect(tool.annotations?.readOnlyHint, tool.name).toBe(true);
       expect(tool.annotations?.destructiveHint, tool.name).toBe(false);
       expect(tool.annotations?.idempotentHint, tool.name).toBe(true);
