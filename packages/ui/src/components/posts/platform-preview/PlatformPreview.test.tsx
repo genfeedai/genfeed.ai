@@ -15,6 +15,11 @@ import PlatformPreview, {
   hasDedicatedPlatformPreviewRenderer,
 } from '@ui/posts/platform-preview/PlatformPreview';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 type MockImageProps = ComponentProps<'img'> & {
   fill?: boolean;
   priority?: boolean;

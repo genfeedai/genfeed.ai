@@ -775,7 +775,7 @@ it('explains unsupported files while retaining the open action', () => {
   expect(document.querySelector('article')?.textContent).toContain(
     'No inline preview for this file.',
   );
-  expect(document.querySelector('article a')?.href).toBe(
+  expect(document.querySelector<HTMLAnchorElement>('article a')?.href).toBe(
     'https://cdn.genfeed.ai/file.txt',
   );
 });

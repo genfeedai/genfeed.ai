@@ -16,6 +16,7 @@ import type {
   PreviewProps,
 } from '@mcp/shared/interfaces/mcp-preview.interface';
 import { isAccountAvatarOrigin } from '@mcp/ui/avatar-origins';
+import uiMessages from '@preview-messages/ui';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
@@ -36,6 +37,7 @@ import {
 import { Progress } from '@ui/primitives/progress';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import { NextIntlClientProvider } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
@@ -945,7 +947,13 @@ export function mount(origins: readonly string[]) {
     if (!disposed) {
       flushSync(() =>
         root.render(
-          <Preview result={latest} notice={notice} bridge={bridge} />,
+          <NextIntlClientProvider
+            locale="en"
+            timeZone="UTC"
+            messages={{ ui: { platformPreview: uiMessages.platformPreview } }}
+          >
+            <Preview result={latest} notice={notice} bridge={bridge} />
+          </NextIntlClientProvider>,
         ),
       );
       resize();

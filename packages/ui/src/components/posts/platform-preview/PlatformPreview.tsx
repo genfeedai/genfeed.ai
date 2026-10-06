@@ -36,6 +36,7 @@ import {
   ThumbsUp,
 } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import {
   createContext,
   type ReactNode,
@@ -177,7 +178,7 @@ function getAuthorName(target: PlatformPreviewTarget): string {
 }
 
 function getPreviewStatus(target: ResolvedPlatformPreviewTarget): {
-  label: string;
+  messageKey: string;
   className: string;
 } {
   if (
@@ -186,7 +187,7 @@ function getPreviewStatus(target: ResolvedPlatformPreviewTarget): {
   ) {
     return {
       className: 'border-destructive/30 bg-destructive/10 text-destructive',
-      label: 'Blocked',
+      messageKey: 'blocked',
     };
   }
 
@@ -196,13 +197,13 @@ function getPreviewStatus(target: ResolvedPlatformPreviewTarget): {
   ) {
     return {
       className: 'border-warning/30 bg-warning/10 text-warning',
-      label: 'Warnings',
+      messageKey: 'warnings',
     };
   }
 
   return {
     className: 'border-success/25 bg-success/10 text-success',
-    label: 'Valid',
+    messageKey: 'valid',
   };
 }
 
@@ -244,15 +245,20 @@ function CharacterCounter({ state }: { state: CaptionPreviewState }) {
 
 function CaptionText({
   target,
-  emptyMessage = 'Draft preview appears here.',
+  emptyMessage,
 }: {
   target: ResolvedPlatformPreviewTarget;
   emptyMessage?: string;
 }) {
+  const translate = useTranslations('ui.platformPreview');
   const text = target.captionState.previewText.trim();
 
   if (!text) {
-    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        {emptyMessage ?? translate('emptyCaption')}
+      </p>
+    );
   }
 
   return (
@@ -267,6 +273,7 @@ function ValidationIssues({
 }: {
   target: ResolvedPlatformPreviewTarget;
 }) {
+  const translate = useTranslations('ui.platformPreview');
   const { showValidation } = useContext(PreviewPresentation);
   if (showValidation === false) return null;
   const issues: ChannelValidationIssue[] = [
@@ -286,7 +293,7 @@ function ValidationIssues({
       <ul className="grid gap-1 text-xs text-foreground/65">
         {target.captionState.isOverLimit && target.captionState.maxLength ? (
           <li className="text-destructive">
-            Truncated after {target.captionState.maxLength} characters.
+            {translate('truncated', { count: target.captionState.maxLength })}
           </li>
         ) : null}
         {issues.map((issue) => (
@@ -309,6 +316,7 @@ function LinkPreviewCard({
 }: {
   target: ResolvedPlatformPreviewTarget;
 }) {
+  const translate = useTranslations('ui.platformPreview');
   const url = target.linkPreview?.url ?? extractFirstUrl(target.caption);
 
   if (!url || !target.capability?.media.kinds.includes('link')) {
@@ -337,13 +345,13 @@ function LinkPreviewCard({
         />
       ) : (
         <div className="flex aspect-[2/1] items-center justify-center bg-muted text-xs text-muted-foreground">
-          No link preview available
+          {translate('noLinkPreview')}
         </div>
       )}
       <div className="grid gap-1 p-3">
         <p className="text-xs uppercase text-muted-foreground">{domain}</p>
         <p className="line-clamp-2 text-sm font-medium text-foreground">
-          {target.linkPreview?.title ?? 'Link card pending'}
+          {target.linkPreview?.title ?? translate('linkPending')}
         </p>
         {target.linkPreview?.description ? (
           <p className="line-clamp-2 text-xs text-foreground/60">
@@ -366,6 +374,7 @@ function MediaTile({
   className?: string;
   animatedConsequence?: string;
 }) {
+  const translate = useTranslations('ui.platformPreview');
   const { renderMedia } = useContext(PreviewPresentation);
   const isVideo = item.kind === 'video' || item.kind === 'short_video';
   const src = item.thumbnailUrl ?? item.url;
@@ -388,12 +397,12 @@ function MediaTile({
           src={item.url}
           thumbnail={item.thumbnailUrl}
           mediaClassName="object-cover"
-          ariaLabel={item.alt ?? `Video ${index + 1}`}
+          ariaLabel={item.alt ?? translate('videoAlt', { count: index + 1 })}
         />
       ) : src ? (
         <Image
           src={src}
-          alt={item.alt ?? `Media ${index + 1}`}
+          alt={item.alt ?? translate('mediaAlt', { count: index + 1 })}
           fill
           sizes="(max-width: 768px) 100vw, 360px"
           className="object-cover outline-media"
@@ -417,7 +426,7 @@ function MediaTile({
               'rounded bg-black/70 px-1.5 py-0.5 text-2xs font-medium text-white' /* design-system-allow-content-color -- media overlay */
             }
           >
-            Animated
+            {translate('animated')}
           </span>
         ) : null}
         {item.durationLabel ? (
@@ -446,6 +455,7 @@ function MediaGrid({
   target: ResolvedPlatformPreviewTarget;
   variant?: 'grid' | 'square' | 'video' | 'vertical';
 }) {
+  const translate = useTranslations('ui.platformPreview');
   const platform = resolvePreviewPlatform(target.platform);
   const aspect = platform
     ? getPlatformPreviewLimit(platform)?.mediaAspect
@@ -472,7 +482,7 @@ function MediaGrid({
             variant === 'vertical' ? 'aspect-[9/16]' : 'aspect-video',
           )}
         >
-          Media required
+          {translate('mediaRequired')}
         </div>
       );
     }
@@ -538,7 +548,7 @@ function MediaGrid({
       ))}
       {overflowCount > 0 ? (
         <div className="flex min-h-20 items-center justify-center rounded-lg bg-muted text-xs font-medium text-foreground/70">
-          +{overflowCount} more not shown
+          {translate('moreMedia', { count: overflowCount })}
         </div>
       ) : null}
     </div>
@@ -558,18 +568,23 @@ function PreviewShell({
   children: ReactNode;
   className?: string;
 }) {
+  const translate = useTranslations('ui.platformPreview');
   const { statusLabel } = useContext(PreviewPresentation);
   const status = getPreviewStatus(target);
   const Icon = getPlatformPreviewIcon(target.platform);
   return (
-    <article aria-label={`${target.platformLabel} platform preview`}>
+    <article
+      aria-label={translate('platformLabel', {
+        platform: target.platformLabel,
+      })}
+    >
       <Card
         data-testid="preview-card"
         label={target.platformLabel}
         labelAs="h2"
         isLabelWrapped
         icon={<Icon className="size-4" />}
-        description={isApproximate ? 'Approximate preview' : eyebrow}
+        description={isApproximate ? translate('approximate') : eyebrow}
         className={className}
         bodyClassName="gap-3"
         headerAction={
@@ -577,7 +592,7 @@ function PreviewShell({
             variant="outline"
             className={statusLabel ? 'status' : status.className}
           >
-            {statusLabel || status.label}
+            {statusLabel || translate(status.messageKey)}
           </Badge>
         }
       >
@@ -588,7 +603,7 @@ function PreviewShell({
             data-testid="preview-first-comment"
           >
             <p className="mb-1 text-xs font-medium text-muted-foreground">
-              First comment
+              {translate('firstComment')}
             </p>
             <p className="whitespace-pre-wrap text-sm text-foreground">
               {renderCaptionEntities(target.firstComment)}
@@ -601,12 +616,13 @@ function PreviewShell({
 }
 
 function AuthorAvatar({ target }: PlatformPreviewRendererProps) {
+  const translate = useTranslations('ui.platformPreview');
   return (
     <Avatar className="size-10 shrink-0">
       {target.author?.avatarUrl ? (
         <AvatarImage
           src={target.author.avatarUrl}
-          alt={`${getAuthorName(target)} profile picture`}
+          alt={translate('avatarAlt', { name: getAuthorName(target) })}
           referrerPolicy="no-referrer"
         />
       ) : null}
@@ -647,6 +663,7 @@ function AuthorRow({
 }
 
 function ThreadSegments({ target }: { target: ResolvedPlatformPreviewTarget }) {
+  const translate = useTranslations('ui.platformPreview');
   if (target.threadSegments.length <= 1) {
     return <CaptionText target={target} />;
   }
@@ -672,7 +689,8 @@ function ThreadSegments({ target }: { target: ResolvedPlatformPreviewTarget }) {
             <div className="min-w-0 flex-1 rounded-lg border border-border bg-background/10 p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="text-xs font-medium text-foreground/65">
-                  {segment.label ?? `Post ${index + 1}`}
+                  {segment.label ??
+                    translate('threadPost', { count: index + 1 })}
                 </span>
                 <CharacterCounter state={state} />
               </div>
@@ -682,7 +700,7 @@ function ThreadSegments({ target }: { target: ResolvedPlatformPreviewTarget }) {
                 </p>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Draft preview appears here.
+                  {translate('emptyCaption')}
                 </p>
               )}
             </div>
@@ -694,8 +712,9 @@ function ThreadSegments({ target }: { target: ResolvedPlatformPreviewTarget }) {
 }
 
 function XPreviewRenderer({ target }: PlatformPreviewRendererProps) {
+  const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow="X feed preview" target={target}>
+    <PreviewShell eyebrow={translate('eyebrow.x')} target={target}>
       <div className="flex gap-3">
         <AuthorAvatar target={target} />
         <div className="min-w-0 flex-1">
@@ -729,8 +748,9 @@ function XPreviewRenderer({ target }: PlatformPreviewRendererProps) {
 }
 
 function ThreadsPreviewRenderer({ target }: PlatformPreviewRendererProps) {
+  const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow="Threads feed preview" target={target}>
+    <PreviewShell eyebrow={translate('eyebrow.threads')} target={target}>
       <AuthorRow target={target} />
       <div className="mt-3">
         <ThreadSegments target={target} />
@@ -755,12 +775,13 @@ function ThreadsPreviewRenderer({ target }: PlatformPreviewRendererProps) {
 }
 
 function LinkedInPreviewRenderer({ target }: PlatformPreviewRendererProps) {
+  const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow="LinkedIn feed preview" target={target}>
-      <AuthorRow target={target} meta="Public" />
+    <PreviewShell eyebrow={translate('eyebrow.linkedin')} target={target}>
+      <AuthorRow target={target} meta={translate('public')} />
       <div className="mt-3 flex items-center justify-between gap-3">
         <span className="text-xs font-medium uppercase text-muted-foreground">
-          Feed post
+          {translate('feedPost')}
         </span>
         <CharacterCounter state={target.captionState} />
       </div>
@@ -772,15 +793,15 @@ function LinkedInPreviewRenderer({ target }: PlatformPreviewRendererProps) {
       <div className="mt-4 flex items-center gap-5 border-t border-border pt-3 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <ThumbsUp className="size-4" />
-          Like
+          {translate('like')}
         </span>
         <span className="inline-flex items-center gap-1">
           <MessageCircle className="size-4" />
-          Comment
+          {translate('comment')}
         </span>
         <span className="inline-flex items-center gap-1">
           <Send className="size-4" />
-          Send
+          {translate('send')}
         </span>
       </div>
       <ValidationIssues target={target} />
@@ -789,8 +810,9 @@ function LinkedInPreviewRenderer({ target }: PlatformPreviewRendererProps) {
 }
 
 function InstagramPreviewRenderer({ target }: PlatformPreviewRendererProps) {
+  const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow="Instagram feed preview" target={target}>
+    <PreviewShell eyebrow={translate('eyebrow.instagram')} target={target}>
       <AuthorRow target={target} />
       <MediaGrid target={target} variant="square" />
       <div className="mt-3 flex items-center gap-4 text-foreground/70">
@@ -804,7 +826,7 @@ function InstagramPreviewRenderer({ target }: PlatformPreviewRendererProps) {
           <span className="font-semibold">{getAuthorName(target)}</span>{' '}
           {target.captionState.previewText.trim()
             ? renderCaptionEntities(target.captionState.previewText)
-            : 'Draft preview appears here.'}
+            : translate('emptyCaption')}
         </p>
         <CharacterCounter state={target.captionState} />
       </div>
@@ -814,8 +836,9 @@ function InstagramPreviewRenderer({ target }: PlatformPreviewRendererProps) {
 }
 
 function TikTokPreviewRenderer({ target }: PlatformPreviewRendererProps) {
+  const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow="TikTok vertical preview" target={target}>
+    <PreviewShell eyebrow={translate('eyebrow.tiktok')} target={target}>
       <AuthorRow target={target} />
       <div
         className={
@@ -834,7 +857,7 @@ function TikTokPreviewRenderer({ target }: PlatformPreviewRendererProps) {
           <p className="mt-2 line-clamp-4 whitespace-pre-wrap text-sm leading-5">
             {target.captionState.previewText.trim()
               ? renderCaptionEntities(target.captionState.previewText)
-              : 'Draft preview appears here.'}
+              : translate('emptyCaption')}
           </p>
           <div
             className={
@@ -856,13 +879,14 @@ function TikTokPreviewRenderer({ target }: PlatformPreviewRendererProps) {
 }
 
 function YouTubePreviewRenderer({ target }: PlatformPreviewRendererProps) {
+  const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow="YouTube watch preview" target={target}>
+    <PreviewShell eyebrow={translate('eyebrow.youtube')} target={target}>
       <AuthorRow target={target} />
       <MediaGrid target={target} variant="video" />
       <div className="mt-3">
         <h3 className="line-clamp-2 text-base font-semibold text-foreground">
-          {target.title?.trim() || 'Untitled video'}
+          {target.title?.trim() || translate('untitledVideo')}
         </h3>
         <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
           <span>{getAuthorName(target)}</span>
@@ -872,7 +896,7 @@ function YouTubePreviewRenderer({ target }: PlatformPreviewRendererProps) {
       <div className="mt-3 rounded-lg bg-muted/35 p-3">
         <CaptionText
           target={target}
-          emptyMessage="Description preview appears here."
+          emptyMessage={translate('emptyDescription')}
         />
       </div>
       <ValidationIssues target={target} />
@@ -881,9 +905,10 @@ function YouTubePreviewRenderer({ target }: PlatformPreviewRendererProps) {
 }
 
 function FacebookPreviewRenderer({ target }: PlatformPreviewRendererProps) {
+  const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow="Facebook feed preview" target={target}>
-      <AuthorRow target={target} meta="Public" />
+    <PreviewShell eyebrow={translate('eyebrow.facebook')} target={target}>
+      <AuthorRow target={target} meta={translate('public')} />
       <CaptionText target={target} />
       <MediaGrid target={target} />
       <LinkPreviewCard target={target} />
@@ -893,15 +918,15 @@ function FacebookPreviewRenderer({ target }: PlatformPreviewRendererProps) {
       >
         <span className="inline-flex items-center gap-1">
           <ThumbsUp className="size-4" />
-          Like
+          {translate('like')}
         </span>
         <span className="inline-flex items-center gap-1">
           <MessageCircle className="size-4" />
-          Comment
+          {translate('comment')}
         </span>
         <span className="inline-flex items-center gap-1">
           <Send className="size-4" />
-          Share
+          {translate('share')}
         </span>
       </div>
       <ValidationIssues target={target} />
@@ -909,8 +934,9 @@ function FacebookPreviewRenderer({ target }: PlatformPreviewRendererProps) {
   );
 }
 function PinterestPreviewRenderer({ target }: PlatformPreviewRendererProps) {
+  const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow="Pinterest pin preview" target={target}>
+    <PreviewShell eyebrow={translate('eyebrow.pinterest')} target={target}>
       <MediaGrid target={target} variant="square" />
       {target.title ? (
         <h3 className="text-base font-semibold">{target.title}</h3>
@@ -923,8 +949,9 @@ function PinterestPreviewRenderer({ target }: PlatformPreviewRendererProps) {
   );
 }
 function RedditPreviewRenderer({ target }: PlatformPreviewRendererProps) {
+  const translate = useTranslations('ui.platformPreview');
   return (
-    <PreviewShell eyebrow="Reddit feed preview" target={target}>
+    <PreviewShell eyebrow={translate('eyebrow.reddit')} target={target}>
       <AuthorRow target={target} />
       {target.title ? (
         <h3 className="text-base font-semibold">{target.title}</h3>
@@ -938,11 +965,11 @@ function RedditPreviewRenderer({ target }: PlatformPreviewRendererProps) {
       >
         <span className="inline-flex items-center gap-1">
           <MessageCircle className="size-4" />
-          Comments
+          {translate('comments')}
         </span>
         <span className="inline-flex items-center gap-1">
           <Send className="size-4" />
-          Share
+          {translate('share')}
         </span>
       </div>
       <ValidationIssues target={target} />
@@ -953,9 +980,10 @@ function RedditPreviewRenderer({ target }: PlatformPreviewRendererProps) {
 function GenericPlatformPreviewRenderer({
   target,
 }: PlatformPreviewRendererProps) {
+  const translate = useTranslations('ui.platformPreview');
   return (
     <PreviewShell
-      eyebrow="Generic preview"
+      eyebrow={translate('eyebrow.generic')}
       isApproximate={true}
       target={target}
     >
@@ -976,12 +1004,20 @@ function GenericPlatformPreviewRenderer({
           {target.capability ? (
             <div className="mt-3 grid gap-1 text-xs text-muted-foreground">
               <p>
-                Media: {target.capability.media.kinds.join(', ')}
+                {translate('mediaKinds', {
+                  kinds: target.capability.media.kinds.join(', '),
+                })}
                 {target.capability.media.maxItems
-                  ? `, up to ${target.capability.media.maxItems} item(s)`
+                  ? translate('mediaLimit', {
+                      count: target.capability.media.maxItems,
+                    })
                   : ''}
               </p>
-              <p>Status: {target.capability.status}</p>
+              <p>
+                {translate('capabilityStatus', {
+                  status: target.capability.status,
+                })}
+              </p>
             </div>
           ) : null}
           <ValidationIssues target={target} />
@@ -999,11 +1035,12 @@ export default function PlatformPreview({
   accountHandle = DEFAULT_PLATFORM_PREVIEW_AUTHOR_HANDLE,
   activePlatform,
   className,
-  emptyMessage = 'No platform preview available.',
+  emptyMessage,
   renderMedia,
   statusLabel,
   showValidation,
 }: PlatformPreviewProps) {
+  const translate = useTranslations('ui.platformPreview');
   const resolvedTargets = useMemo(() => {
     const previewTargets =
       targets ??
@@ -1044,7 +1081,9 @@ export default function PlatformPreview({
   if (resolvedTargets.length === 0) {
     return (
       <section className={cn('rounded-lg border border-border p-4', className)}>
-        <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+        <p className="text-sm text-muted-foreground">
+          {emptyMessage ?? translate('empty')}
+        </p>
       </section>
     );
   }
@@ -1057,7 +1096,7 @@ export default function PlatformPreview({
   return (
     <section
       className={cn('space-y-4', className)}
-      aria-label="Platform preview"
+      aria-label={translate('label')}
     >
       {resolvedTargets.length > 1 ? (
         <div className="flex flex-wrap gap-1">
@@ -1094,7 +1133,9 @@ export default function PlatformPreview({
                     {item.author?.handle
                       ? formatHandle(item.author.handle)
                       : item.author?.name ||
-                        `Account ${resolvedTargets.indexOf(item) + 1}`}
+                        translate('account', {
+                          count: resolvedTargets.indexOf(item) + 1,
+                        })}
                   </span>
                 ) : null}
               </Button>
