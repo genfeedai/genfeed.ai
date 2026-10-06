@@ -6,19 +6,13 @@ import type {
   GenerationSetupCustomizeSectionId,
   GenerationSetupFrontDoorProps,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
 import { isAutoGenerationModelKey } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { Button } from '@ui/primitives/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { ChevronRight, RotateCcw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export default function GenerationSetupFrontDoor({
+  showEnhancementSettings = false,
   capabilities,
   inputControls,
   isDisabled = false,
@@ -26,14 +20,13 @@ export default function GenerationSetupFrontDoor({
   models,
   onCustomize,
   onResetAll,
-  onSetField,
-  onTypeChange,
   presets,
   setup,
   typeOptions,
 }: GenerationSetupFrontDoorProps) {
+  const translate = useTranslations('agent.generationSetup');
   const modelLabel = isAutoGenerationModelKey(setup.values.modelKey)
-    ? 'Auto'
+    ? translate('auto')
     : (models.find((model) => model.key === setup.values.modelKey)?.label ??
       setup.values.modelKey);
   const duration =
@@ -42,7 +35,9 @@ export default function GenerationSetupFrontDoor({
       : setup.values.duration;
   const outputLabel = [
     capabilities.hasAspectRatio && setup.values.aspectRatio,
-    capabilities.hasDuration && duration && `${duration}s`,
+    capabilities.hasDuration &&
+      duration &&
+      translate('durationSeconds', { seconds: duration }),
     capabilities.hasOutputs && `x${setup.values.outputs}`,
   ]
     .filter(Boolean)
@@ -56,9 +51,23 @@ export default function GenerationSetupFrontDoor({
     id: GenerationSetupCustomizeSectionId;
     label: string;
     value?: string;
-  }[] = [];
+    isDisabled?: boolean;
+  }[] = [
+    {
+      id: 'type',
+      label: translate('type'),
+      value:
+        typeOptions.find((option) => option.value === setup.values.type)
+          ?.label ?? setup.values.type,
+      isDisabled: typeOptions.length < 2,
+    },
+  ];
   if (capabilities.hasModelSelection)
-    sections.push({ id: 'model', label: 'Model', value: modelLabel });
+    sections.push({
+      id: 'model',
+      label: translate('model'),
+      value: modelLabel,
+    });
   if (
     capabilities.hasAspectRatio ||
     capabilities.hasDuration ||
@@ -67,58 +76,39 @@ export default function GenerationSetupFrontDoor({
     capabilities.hasInstrumentalToggle ||
     capabilities.hasLyrics
   )
-    sections.push({ id: 'output', label: 'Output', value: outputLabel });
-  if (hasLookFields) sections.push({ id: 'look', label: 'Look' });
+    sections.push({
+      id: 'output',
+      label: translate('output'),
+      value: outputLabel,
+    });
+  if (hasLookFields) sections.push({ id: 'look', label: translate('look') });
   if (capabilities.hasBrandEnrichment)
     sections.push({
       id: 'brand',
-      label: 'Brand',
-      value: setup.values.brandingMode === 'brand' ? 'On' : 'Off',
+      label: translate('brand'),
+      value:
+        setup.values.brandingMode === 'brand'
+          ? translate('on')
+          : translate('off'),
     });
   sections.push({
     id: 'presets',
-    label: 'Presets',
+    label: translate('presets'),
     value: presets.length ? String(presets.length) : undefined,
   });
+  if (showEnhancementSettings)
+    sections.push({ id: 'enhancement', label: translate('enhancement') });
   return (
     <div className="flex min-h-0 flex-col">
-      <div className="shrink-0 border-b border-border p-2">
-        <Select
-          disabled={isDisabled || typeOptions.length < 2}
-          value={setup.values.type}
-          onValueChange={(value) => {
-            const option = typeOptions.find((entry) => entry.value === value);
-            if (!option) return;
-            onSetField('type', option.value);
-            onTypeChange?.(option.value);
-          }}
-        >
-          <SelectTrigger
-            aria-label="Generation type"
-            className={SHELL_CONTROL_HEIGHT_CLASS}
-          >
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent
-            side="top"
-            avoidCollisions={false}
-            className="max-h-[min(384px,var(--radix-select-content-available-height,50vh))]"
-          >
-            {typeOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
       <div className="min-h-0 overflow-y-auto p-1.5">
         {sections.map((section) => (
           <Button
             key={section.id}
-            ariaLabel={`Configure ${section.label}`}
+            ariaLabel={translate('configureSection', {
+              section: section.label,
+            })}
             className="h-9 w-full justify-between gap-3 rounded-md px-2 text-xs"
-            isDisabled={isDisabled}
+            isDisabled={isDisabled || section.isDisabled}
             onClick={() => onCustomize(section.id)}
             size={ButtonSize.SM}
             textTransform="none"
@@ -135,11 +125,11 @@ export default function GenerationSetupFrontDoor({
       </div>
       <div className="shrink-0 border-t border-border p-1.5">
         <Button
-          ariaLabel="Reset all fields to agent"
+          ariaLabel={translate('resetAllAria')}
           className="text-muted-foreground"
           icon={<RotateCcw className="size-3.5" />}
           isDisabled={isDisabled}
-          label="Reset all"
+          label={translate('resetAll')}
           onClick={onResetAll}
           size={ButtonSize.XS}
           textTransform="none"

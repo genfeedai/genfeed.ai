@@ -5,6 +5,8 @@ import type {
 } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
 
 export interface GenerationHarnessSettingsCardProps {
+  showTitle?: boolean;
+  className?: string;
   brandId?: string;
   error: string | null;
   isLoading: boolean;

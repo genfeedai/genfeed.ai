@@ -74,13 +74,13 @@ export default function GenerationSetupModelSection({
   return (
     <div className="flex flex-col gap-2">
       <Command
-        label="Search models"
+        label={translate('searchModels')}
         className="flex min-h-0 flex-col bg-transparent text-foreground"
         shouldFilter={false}
       >
         <CommandInput
-          aria-label="Search models"
-          placeholder="Search models…"
+          aria-label={translate('searchModels')}
+          placeholder={translate('searchModelsPlaceholder')}
           value={search}
           onValueChange={setSearch}
         />

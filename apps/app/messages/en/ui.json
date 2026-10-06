@@ -57,7 +57,22 @@
       "research": "Research"
     }
   },
+  "promptBarAssets": {
+    "editingTarget": "Editing target",
+    "editingSource": "Editing source",
+    "mask": "Mask",
+    "startFrame": "Start frame",
+    "endFrame": "End frame",
+    "input": "Input",
+    "reference": "Reference",
+    "videoReference": "Video reference",
+    "assetGroup": "{role}: {name}",
+    "removeAsset": "Remove {name}",
+    "library": "Library",
+    "browseLibrary": "Browse library"
+  },
   "generationHarness": {
+    "saving": "Saving\u2026",
     "appliedContext": "Applied context",
     "brand": "This brand",
     "brandLabel": "Brand prompt enhancement",

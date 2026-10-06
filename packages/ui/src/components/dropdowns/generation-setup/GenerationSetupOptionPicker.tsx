@@ -59,17 +59,21 @@ export default function GenerationSetupOptionPicker({
         className="w-[min(240px,calc(100vw-2rem))] p-0"
       >
         <Command
-          label={`Search ${label.toLowerCase()}`}
+          label={translate('searchField', { field: label.toLowerCase() })}
           filter={(option, search) =>
             option.toLowerCase().includes(search.trim().toLowerCase()) ? 1 : 0
           }
         >
           <CommandInput
-            aria-label={`Search ${label.toLowerCase()}`}
-            placeholder={`Search ${label.toLowerCase()}…`}
+            aria-label={translate('searchField', {
+              field: label.toLowerCase(),
+            })}
+            placeholder={translate('searchFieldPlaceholder', {
+              field: label.toLowerCase(),
+            })}
           />
           <CommandList className="max-h-[min(256px,var(--radix-popover-content-available-height,50vh))]">
-            <CommandEmpty>No matches</CommandEmpty>
+            <CommandEmpty>{translate('noMatches')}</CommandEmpty>
             {options.map((option) => (
               <CommandItem
                 key={option.value}

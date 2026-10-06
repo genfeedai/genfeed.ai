@@ -33,12 +33,12 @@ export default function GenerationSetupPresetsSection({
     <div className="flex min-h-0 flex-col gap-2">
       <Command
         className="bg-transparent"
-        label="Search presets"
+        label={translate('searchPresets')}
         shouldFilter={false}
       >
         <CommandInput
-          aria-label="Search presets"
-          placeholder="Search presets…"
+          aria-label={translate('searchPresets')}
+          placeholder={translate('searchPresetsPlaceholder')}
           value={search}
           onValueChange={setSearch}
         />
@@ -54,7 +54,7 @@ export default function GenerationSetupPresetsSection({
           {search.trim() &&
           filteredPresets.length === 0 &&
           !isPresetsLoading ? (
-            <CommandEmpty>No matches</CommandEmpty>
+            <CommandEmpty>{translate('noMatches')}</CommandEmpty>
           ) : null}
           {filteredPresets.map((preset) => (
             <div className="group relative" key={preset.id}>
@@ -76,9 +76,13 @@ export default function GenerationSetupPresetsSection({
                   className="absolute right-1 top-1/2 size-6 -translate-y-1/2 p-0 text-muted-foreground hover:text-destructive"
                   icon={<Trash2 className="size-3.5" />}
                   isDisabled={isDisabled}
-                  onClick={() => onDeletePreset(preset.id)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onDeletePreset(preset.id);
+                  }}
                   size={ButtonSize.ICON}
                   variant={ButtonVariant.GHOST}
+                  withWrapper={false}
                 />
               ) : null}
             </div>

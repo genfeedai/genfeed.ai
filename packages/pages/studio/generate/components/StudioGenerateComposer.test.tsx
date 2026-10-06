@@ -870,6 +870,12 @@ describe('StudioGenerateComposer', () => {
       expect(
         generationControls.getByRole('button', { name: 'Setup' }),
       ).toBeInTheDocument();
+      expect(generationSetupPopoverMocks.props.showEnhancementSettings).toBe(
+        true,
+      );
+      expect(
+        screen.queryByRole('button', { name: 'Prompt enhancement settings' }),
+      ).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Enhance prompt' }));
 
       expect(onEnhancePrompt).toHaveBeenCalledOnce();

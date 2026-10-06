@@ -6,6 +6,7 @@ import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.
 import { Button } from '@ui/primitives/button';
 import { FolderOpen, ImageIcon, Music, Tv, X } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { memo } from 'react';
 
 interface PromptBarAttachedAssetsTrayProps {
@@ -18,20 +19,22 @@ interface PromptBarAttachedAssetsTrayProps {
   onRemoveAttachedAsset: (assetId: string) => void;
 }
 
-function getAssetRoleLabel(asset: PromptBarAttachedAsset): string {
+function getAssetRoleKey(asset: PromptBarAttachedAsset): string {
   switch (asset.role) {
     case 'editSource':
-      return asset.isPrimary ? 'Editing target' : 'Editing source';
+      return asset.isPrimary ? 'editingTarget' : 'editingSource';
     case 'editMask':
-      return 'Mask';
+      return 'mask';
+    case 'videoReference':
+      return 'videoReference';
     case 'startFrame':
-      return 'Start frame';
+      return 'startFrame';
     case 'endFrame':
-      return 'End frame';
+      return 'endFrame';
     case 'input':
-      return 'Input';
+      return 'input';
     default:
-      return 'Reference';
+      return 'reference';
   }
 }
 
@@ -55,6 +58,11 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
   onBrowseAssets,
   onRemoveAttachedAsset,
 }: PromptBarAttachedAssetsTrayProps) {
+  const translate = useTranslations('ui.promptBarAssets');
+  function getAssetRoleLabel(asset: PromptBarAttachedAsset): string {
+    return translate(getAssetRoleKey(asset));
+  }
+
   if (assets.length === 0 && !dragError) {
     return null;
   }
@@ -68,7 +76,10 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
           <div
             key={asset.id}
             role="group"
-            aria-label={`${getAssetRoleLabel(asset)}: ${asset.name || getAssetRoleLabel(asset)}`}
+            aria-label={translate('assetGroup', {
+              role: getAssetRoleLabel(asset),
+              name: asset.name || getAssetRoleLabel(asset),
+            })}
             className={cn(
               'inline-flex h-8 max-w-full items-center gap-2 rounded-md border border-border bg-tertiary pl-1 pr-0.5 text-foreground',
               isDisabled && 'opacity-70',
@@ -115,7 +126,9 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
               icon={<X className="size-3.5" />}
               onClick={() => onRemoveAttachedAsset(asset.id)}
               isDisabled={isDisabled}
-              ariaLabel={`Remove ${asset.name || getAssetRoleLabel(asset)}`}
+              ariaLabel={translate('removeAsset', {
+                name: asset.name || getAssetRoleLabel(asset),
+              })}
             />
           </div>
         ))}
@@ -129,7 +142,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
             onClick={onBrowseAssets}
             isDisabled={isDisabled}
           >
-            {isCompact ? 'Library' : 'Browse library'}
+            {translate(isCompact ? 'library' : 'browseLibrary')}
           </Button>
         ) : null}
       </div>

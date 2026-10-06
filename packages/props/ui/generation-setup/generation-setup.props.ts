@@ -46,6 +46,7 @@ export type GenerationSetupFieldSetter = <K extends GenerationSetupFieldKey>(
 ) => void;
 
 export interface GenerationSetupPopoverProps {
+  showEnhancementSettings?: boolean;
   align?: 'start' | 'center' | 'end';
   inputControls?: CrunInputControls;
   referenceCount?: number;
@@ -116,6 +117,7 @@ export interface GenerationSetupFieldRowProps {
 }
 
 export interface GenerationSetupFrontDoorProps {
+  showEnhancementSettings?: boolean;
   capabilities: StudioGenerateCapabilities;
   inputControls?: CrunInputControls;
   isDisabled?: boolean;
@@ -152,6 +154,8 @@ export interface GenerationSetupOptionPickerProps {
 }
 
 export type GenerationSetupCustomizeSectionId =
+  | 'type'
+  | 'enhancement'
   | 'brand'
   | 'look'
   | 'model'
@@ -159,6 +163,8 @@ export type GenerationSetupCustomizeSectionId =
   | 'presets';
 
 export interface GenerationSetupCustomizePanelProps {
+  typeOptions: readonly GenerationSetupTypeOption[];
+  onTypeChange?: (type: GenerationSetupType) => void;
   inputControls?: CrunInputControls;
   referenceCount?: number;
   capabilities: StudioGenerateCapabilities;

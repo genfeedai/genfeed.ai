@@ -24,6 +24,7 @@ import { memo, useState } from 'react';
 
 const GenerationSetupPopover = memo(function GenerationSetupPopover({
   align = 'start',
+  showEnhancementSettings = false,
   buttonRef,
   capabilities,
   inputControls,
@@ -123,7 +124,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
                   </span>
                 </span>
                 <Button
-                  ariaLabel="Unpin preset"
+                  ariaLabel={translate('unpinPreset')}
                   className="size-6 shrink-0 p-0 text-muted-foreground hover:text-foreground"
                   icon={<X className="size-3" />}
                   isDisabled={isDisabled}
@@ -136,6 +137,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
 
             {!customizeSection ? (
               <GenerationSetupFrontDoor
+                showEnhancementSettings={showEnhancementSettings}
                 capabilities={capabilities}
                 inputControls={inputControls}
                 isDisabled={isDisabled}
@@ -153,6 +155,8 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
 
             {customizeSection ? (
               <GenerationSetupCustomizePanel
+                typeOptions={typeOptions}
+                onTypeChange={onTypeChange}
                 inputControls={inputControls}
                 referenceCount={referenceCount}
                 capabilities={capabilities}

@@ -20,6 +20,30 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+const harnessMocks = vi.hoisted(() => ({
+  save: vi.fn().mockResolvedValue(undefined),
+  reads: vi.fn(),
+}));
+vi.mock('@hooks/data/generation/use-generation-harness-settings', () => ({
+  useGenerationHarnessSettings: () => {
+    harnessMocks.reads();
+    return {
+      settings: {
+        organizationEnabled: true,
+        brandEnabled: null,
+        brandId: 'brand-1',
+        isEnabled: true,
+        source: 'organization',
+      },
+      brandId: 'brand-1',
+      error: null,
+      isLoading: false,
+      isSaving: false,
+      save: harnessMocks.save,
+      refresh: vi.fn(),
+    };
+  },
+}));
 vi.mock('@ui/primitives/popover', async () => {
   const React = await import('react');
 
@@ -356,6 +380,28 @@ async function openPopover(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('GenerationSetupPopover', () => {
+  it('opens enhancement preferences inside the same picker and preserves organization and brand writes', async () => {
+    const user = userEvent.setup();
+    harnessMocks.reads.mockClear();
+    harnessMocks.save.mockClear();
+    renderPopover({ showEnhancementSettings: true });
+    await openPopover(user);
+    expect(harnessMocks.reads).not.toHaveBeenCalled();
+    await user.click(
+      screen.getByRole('button', { name: 'Configure Prompt enhancement' }),
+    );
+    await user.click(
+      screen.getByRole('switch', { name: 'Organization prompt enhancement' }),
+    );
+    expect(harnessMocks.save).toHaveBeenCalledWith('organization', false);
+    await user.click(screen.getByRole('button', { name: 'Off' }));
+    expect(harnessMocks.save).toHaveBeenCalledWith('brand', false);
+    await user.click(screen.getByRole('button', { name: 'Back to setup' }));
+    expect(
+      screen.getByRole('button', { name: 'Configure Model' }),
+    ).toBeInTheDocument();
+  });
+
   it('starts with the type and sibling config categories without help or global search', async () => {
     const user = userEvent.setup();
     renderPopover({
@@ -363,7 +409,7 @@ describe('GenerationSetupPopover', () => {
     });
     await openPopover(user);
     expect(
-      screen.getByRole('combobox', { name: 'Generation type' }),
+      screen.getByRole('button', { name: 'Configure Type' }),
     ).toBeInTheDocument();
     for (const category of ['Model', 'Output', 'Look', 'Brand', 'Presets']) {
       expect(
@@ -390,6 +436,7 @@ describe('GenerationSetupPopover', () => {
       typeOptions: [...typeOptions, { label: 'Video', value: 'video' }],
     });
     await openPopover(user);
+    await user.click(screen.getByRole('button', { name: 'Configure Type' }));
     await user.click(screen.getByRole('button', { name: 'Video' }));
     expect(onSetField).toHaveBeenCalledWith('type', 'video');
     expect(onTypeChange).toHaveBeenCalledWith('video');

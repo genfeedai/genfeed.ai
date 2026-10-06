@@ -1,12 +1,15 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationHarnessSettingsCardProps } from '@genfeedai/props/ui/generation-setup/generation-harness.props';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
 
 export default function GenerationHarnessSettingsCard({
+  showTitle = true,
+  className,
   brandId,
   error,
   isLoading,
@@ -23,10 +26,15 @@ export default function GenerationHarnessSettingsCard({
     { label: translate('off'), value: false },
   ] as const;
   return (
-    <div className="flex flex-col gap-4 p-4" aria-busy={isLoading || isSaving}>
-      <div className="space-y-1">
-        <p className="text-sm font-semibold">{translate('title')}</p>
-      </div>
+    <div
+      className={cn('flex flex-col gap-4 p-4', className)}
+      aria-busy={isLoading || isSaving}
+    >
+      {showTitle ? (
+        <div className="space-y-1">
+          <p className="text-sm font-semibold">{translate('title')}</p>
+        </div>
+      ) : null}
       {isLoading ? (
         <p className="text-sm" role="status">
           {translate('loading')}
@@ -88,7 +96,7 @@ export default function GenerationHarnessSettingsCard({
           ) : null}
           {isSaving ? (
             <p className="text-xs text-muted-foreground" role="status">
-              Saving…
+              {translate('saving')}
             </p>
           ) : null}
         </>
