@@ -18,6 +18,7 @@ describe('LIBRARY_MENU_ITEMS', () => {
       '/library/assets?shelf=unsorted',
       '/library/assets?shelf=needs-review',
       '/library/assets?shelf=approved',
+      '/library/assets?shelf=rejected',
       '/library/assets?shelf=failed',
       '/library/assets?shelf=archived',
       '/library/elements/characters',
@@ -62,6 +63,7 @@ describe('LIBRARY_MENU_ITEMS', () => {
       'Unsorted',
       'Needs review',
       'Approved',
+      'Rejected',
       'Failed',
       'Archived',
     ]);

@@ -13,6 +13,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import type DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import IngredientsListContent from '@ui/ingredients/list/content/IngredientsListContent';
 import { format } from 'date-fns';
 import type { ComponentProps } from 'react';
@@ -79,7 +80,23 @@ vi.mock('@ui/ingredients/IngredientReviewActions', () => ({
 }));
 
 vi.mock('@ui/dropdowns/status/DropdownStatus', () => ({
-  default: () => <div data-testid="status-dropdown" />,
+  default: ({
+    entity,
+    onStatusChange,
+  }: ComponentProps<typeof DropdownStatus>) => (
+    <button
+      data-testid="status-dropdown"
+      onClick={() =>
+        onStatusChange?.(IngredientStatus.REJECTED, {
+          ...entity,
+          status: IngredientStatus.REJECTED,
+        } as IIngredient)
+      }
+      type="button"
+    >
+      Reject from status menu
+    </button>
+  ),
 }));
 
 // The canvas pulls React Flow in behind next/dynamic, whose loader never
@@ -258,6 +275,27 @@ const staleErrorIngredient = {
 } as unknown as IIngredient;
 
 describe('IngredientsListContent', () => {
+  it('removes a rejected asset after changing status from the list menu', () => {
+    const onSetIngredients = vi.fn();
+    const onRefresh = vi.fn();
+    const otherAsset = { ...baseIngredient, id: 'other-asset' };
+    const { rerenderContent } = renderContent({
+      filteredIngredients: [baseIngredient, otherAsset],
+      onSetIngredients,
+      onRefresh,
+      viewMode: 'list',
+    });
+
+    fireEvent.click(screen.getAllByText('Reject from status menu')[0]);
+
+    const update = onSetIngredients.mock.lastCall?.[0];
+    const remaining = update([baseIngredient, otherAsset]);
+    expect(remaining).toEqual([otherAsset]);
+    expect(onRefresh).toHaveBeenCalledOnce();
+    rerenderContent({ filteredIngredients: remaining });
+    expect(screen.getAllByText('Reject from status menu')).toHaveLength(1);
+  });
+
   it('never feeds a protected video capability or stale original poster into an image thumbnail', () => {
     renderContent({
       viewMode: 'list',

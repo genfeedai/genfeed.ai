@@ -95,11 +95,15 @@ describe('LibraryShelfUtil', () => {
       });
     });
 
-    it('scopes Archived to archived and rejected assets', () => {
+    it('scopes Rejected to rejected assets', () => {
+      expect(LibraryShelfUtil.buildShelfFilter('rejected')).toEqual({
+        status: IngredientStatus.REJECTED,
+      });
+    });
+
+    it('scopes Archived to archived assets only', () => {
       expect(LibraryShelfUtil.buildShelfFilter(LibraryShelf.ARCHIVED)).toEqual({
-        status: {
-          in: [IngredientStatus.ARCHIVED, IngredientStatus.REJECTED],
-        },
+        status: IngredientStatus.ARCHIVED,
       });
     });
 
