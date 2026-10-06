@@ -13,7 +13,6 @@ import {
   PageScope,
   WebSocketEventStatus,
 } from '@genfeedai/contracts';
-import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import type {
   IFilters,
   IFolder,
@@ -31,6 +30,7 @@ import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { dispatchLibraryAssetsRefresh } from '@hooks/data/library/library-assets-refresh';
 import type { VideoUpscaleSelection } from '@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
 import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
@@ -42,11 +42,7 @@ import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { createElement, useCallback, useEffect, useRef, useState } from 'react';
 
 function broadcastLibraryAssetsChanged(): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
+  dispatchLibraryAssetsRefresh({ isListRefresh: false });
 }
 
 interface UseIngredientsActionsProps {

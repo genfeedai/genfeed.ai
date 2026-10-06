@@ -414,6 +414,35 @@ describe('useIngredientsLoading', () => {
     );
     expect(result.current.ingredients).toEqual([]);
   });
+
+  it('skips a second list fetch when the sender already reloaded the list', async () => {
+    const { result } = renderHook(() => useIngredientsLoading(baseProps));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const callsAfterLoad = ingredientsFindAllMock.mock.calls.length;
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(LIBRARY_ASSETS_REFRESH_EVENT, {
+          detail: { isListRefresh: false },
+        }),
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(ingredientsFindAllMock).toHaveBeenCalledTimes(callsAfterLoad);
+
+    act(() => {
+      window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
+    });
+    await waitFor(() => {
+      expect(ingredientsFindAllMock.mock.calls.length).toBeGreaterThan(
+        callsAfterLoad,
+      );
+    });
+  });
+
   it('preserves visible review decisions when a refresh fails', async () => {
     const { result } = renderHook(() => useIngredientsLoading(baseProps));
     await waitFor(() => expect(result.current.isLoading).toBe(false));

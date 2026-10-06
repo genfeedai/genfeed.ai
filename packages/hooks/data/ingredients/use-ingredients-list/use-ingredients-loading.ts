@@ -34,6 +34,7 @@ import {
   createLocalStorageCache,
 } from '@helpers/data/cache/cache.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { libraryAssetsRefreshIncludesList } from '@hooks/data/library/library-assets-refresh';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 
@@ -448,7 +449,11 @@ export function useIngredientsLoading({
 
   useEffect(() => {
     let controller: AbortController | undefined;
-    const handleLibraryAssetsRefresh = () => {
+    const handleLibraryAssetsRefresh = (event: Event) => {
+      if (!libraryAssetsRefreshIncludesList(event)) {
+        return;
+      }
+
       controller?.abort();
       controller = new AbortController();
       void findAllIngredientsByCategory(true, controller.signal);

@@ -7,7 +7,11 @@ import {
   WebSocketEventStatus,
 } from '@genfeedai/contracts';
 import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
-import type { IFolder, IIngredient } from '@genfeedai/contracts/interfaces';
+import type {
+  IFolder,
+  IIngredient,
+  ILibraryAssetsRefreshDetail,
+} from '@genfeedai/contracts/interfaces';
 import { useIngredientsActions } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-actions';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -32,6 +36,13 @@ interface IngredientActionsOptions {
     ingredient: IIngredient,
     parentId: string | null,
   ) => Promise<void>;
+}
+
+function expectSidebarRefreshWithoutListFetch(events: Event[]): void {
+  expect(events).toHaveLength(1);
+  expect(events[0]).toBeInstanceOf(CustomEvent);
+  const detail = (events[0] as CustomEvent<ILibraryAssetsRefreshDetail>).detail;
+  expect(detail).toEqual({ isListRefresh: false });
 }
 
 const {
@@ -286,6 +297,11 @@ describe('useIngredientsActions', () => {
   });
 
   it('confirms and deletes a single ingredient', async () => {
+    const refreshEvents: Event[] = [];
+    const recordRefresh = (event: Event) => {
+      refreshEvents.push(event);
+    };
+    window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, recordRefresh);
     const { result } = renderHook(() => useIngredientsActions(baseProps));
     const ingredient = createIngredient();
 
@@ -305,9 +321,16 @@ describe('useIngredientsActions', () => {
       'Ingredient deleted successfully',
     );
     expect(mockFindAll).toHaveBeenCalledWith(true);
+    expectSidebarRefreshWithoutListFetch(refreshEvents);
+    window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, recordRefresh);
   });
 
   it('notifies when single-ingredient delete fails', async () => {
+    const refreshEvents: Event[] = [];
+    const recordRefresh = (event: Event) => {
+      refreshEvents.push(event);
+    };
+    window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, recordRefresh);
     mockIngredientsServiceDelete.mockRejectedValue(new Error('boom'));
     const { result } = renderHook(() => useIngredientsActions(baseProps));
 
@@ -324,6 +347,8 @@ describe('useIngredientsActions', () => {
     expect(mockNotificationsService.error).toHaveBeenCalledWith(
       'Failed to delete ingredient',
     );
+    expect(refreshEvents).toHaveLength(0);
+    window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, recordRefresh);
   });
 
   it('updates the parent relationship optimistically', async () => {
@@ -449,7 +474,7 @@ describe('useIngredientsActions', () => {
     });
     expect(mockNotificationsService.success).toHaveBeenCalledWith('Deleted 2');
     expect(result.current.selectedIngredientIds).toEqual([]);
-    expect(refreshEvents).toHaveLength(1);
+    expectSidebarRefreshWithoutListFetch(refreshEvents);
     window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, recordRefresh);
   });
 
@@ -859,7 +884,7 @@ describe('useIngredientsActions', () => {
     });
 
     expect(mockFindAll).toHaveBeenCalledWith(true);
-    expect(refreshEvents).toHaveLength(1);
+    expectSidebarRefreshWithoutListFetch(refreshEvents);
     window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, recordRefresh);
   });
 
