@@ -1,16 +1,15 @@
-import { IngredientCategory } from '@genfeedai/contracts';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { IngredientRecovery } from '@genfeedai/contracts/interfaces/ingredients/ingredient-recovery.interface';
-import {
-  getIngredientFailureReason,
-  getIngredientPromptText,
-} from '@utils/media/ingredient-ledger.util';
 
 /** Legacy provider errors are free text. Only explicit evidence earns a retry. */
 export function getIngredientRecovery(
   ingredient: IIngredient,
 ): IngredientRecovery {
-  const reason = getIngredientFailureReason(ingredient)?.toLowerCase() ?? '';
+  const reason =
+    ingredient.status === IngredientStatus.FAILED
+      ? (ingredient.generationError?.toLowerCase() ?? '')
+      : '';
   if (
     /reference.*(missing|not found|unavailable|expired)|(?:missing|expired).*reference/.test(
       reason,
@@ -59,7 +58,11 @@ export function getIngredientRecovery(
         reason: 'unsupportedRecovery',
       };
     }
-    if (!getIngredientPromptText(ingredient) && !ingredient.text?.trim()) {
+    if (
+      !ingredient.promptText?.trim() &&
+      !ingredient.generationPrompt?.trim() &&
+      !ingredient.text?.trim()
+    ) {
       return {
         action: 'viewDetails',
         group: 'attention',
