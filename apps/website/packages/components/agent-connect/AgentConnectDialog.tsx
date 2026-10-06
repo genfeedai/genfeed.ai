@@ -125,6 +125,12 @@ export default function AgentConnectDialog({
           >
             {AGENT_CLIENT_FAMILIES.map((option) => (
               <Button
+                aria-labelledby={`agent-family-${option.slugs[0]}`}
+                aria-describedby={
+                  !client
+                    ? `agent-family-${option.slugs[0]}-description`
+                    : undefined
+                }
                 aria-pressed={client ? family?.name === option.name : undefined}
                 className="h-auto min-h-16 w-full justify-start gap-3 rounded-lg px-3 py-3 text-left whitespace-normal aria-pressed:bg-fill/10"
                 key={option.name}
@@ -138,11 +144,17 @@ export default function AgentConnectDialog({
               >
                 <AgentClientLogo client={getAgentClient(option.slugs[0])} />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium">
+                  <span
+                    className="block text-sm font-medium"
+                    id={`agent-family-${option.slugs[0]}`}
+                  >
                     {option.name}
                   </span>
                   {!client ? (
-                    <span className="block text-xs leading-5 text-surface/60">
+                    <span
+                      className="block text-xs leading-5 text-surface/60"
+                      id={`agent-family-${option.slugs[0]}-description`}
+                    >
                       {option.description}
                     </span>
                   ) : null}
