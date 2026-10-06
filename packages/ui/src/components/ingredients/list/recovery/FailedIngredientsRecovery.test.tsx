@@ -7,8 +7,22 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  const translate = translateFromCatalog('pages.library.recovery');
+  const labels: Record<string, string> = {
+    'actions.replaceReference': 'Replace',
+    'actions.reviewInputs': 'Review',
+    'actions.editPrompt': 'Edit',
+    'actions.viewDetails': 'Inspect',
+    started: 'Started',
+    clear: 'Clear',
+  };
+  const recoveryTranslate = (...args: Parameters<typeof translate>) =>
+    labels[args[0]] ?? translate(...args);
   return {
-    useTranslations: translateFromCatalog,
+    useTranslations: (namespace: string) =>
+      namespace === 'pages.library.recovery'
+        ? recoveryTranslate
+        : translateFromCatalog(namespace),
     useFormatter: () => ({ dateTime: () => '5 Oct' }),
   };
 });
@@ -81,7 +95,7 @@ describe('Failed shelf recovery view', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete invalid' }));
     expect(props.onDelete).toHaveBeenCalledWith(['invalid']);
     expect(props.onInspect).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Review inputs' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Review' }));
     expect(props.onReview).toHaveBeenCalledWith(ingredients[1]);
   });
   it('only deletes the visible selection and retries eligible requests once', () => {
@@ -107,7 +121,7 @@ describe('Failed shelf recovery view', () => {
     fireEvent.click(screen.getByRole('button', { name: /Unclear failure/ }));
     expect(
       within(screen.getByTestId('recovery-group-unknown')).getByRole('button', {
-        name: 'View details',
+        name: 'Inspect',
       }),
     ).toBeInTheDocument();
   });

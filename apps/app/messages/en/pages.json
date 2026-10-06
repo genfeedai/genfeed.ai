@@ -2657,10 +2657,10 @@
     "recovery": {
       "actions": {
         "retry": "Retry",
-        "replaceReference": "Replace reference",
-        "reviewInputs": "Review inputs",
-        "editPrompt": "Edit prompt",
-        "viewDetails": "View details"
+        "replaceReference": "Replace",
+        "reviewInputs": "Review",
+        "editPrompt": "Edit",
+        "viewDetails": "Inspect"
       },
       "groups": {
         "attention": {
@@ -2694,6 +2694,8 @@
       "savedRequest": "Saved request",
       "noPrompt": "No saved prompt",
       "retryStarted": "Retry started",
+      "started": "Started",
+      "clear": "Clear",
       "deleteAll": "Delete all ({count})",
       "retryGroup": "Retry these {count}",
       "emptyGroup": "No failures in this group.",
