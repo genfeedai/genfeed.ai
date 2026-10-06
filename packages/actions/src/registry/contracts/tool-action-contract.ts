@@ -15,6 +15,9 @@ export function toolActionOutputSchema(
 ): ActionJsonSchema {
   return closedObjectSchema(
     {
+      approvalId: STRING_SCHEMA,
+      approvalStatus: enumSchema(['pending', 'approved', 'declined'] as const),
+      mutationPolicy: enumSchema(['approval-required', 'direct'] as const),
       creditsUsed: { minimum: 0, ...NUMBER_SCHEMA },
       data: dataSchema,
       error: STRING_SCHEMA,
