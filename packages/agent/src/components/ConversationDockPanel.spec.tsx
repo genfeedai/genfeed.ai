@@ -35,13 +35,13 @@ describe('ConversationDockPanel', () => {
 
     expect(screen.getByTestId('chat-container')).toBeInTheDocument();
     expect(captured.current?.isWideLayout).toBe(false);
-    expect(captured.current?.emptyStateTitle).toBe('Start a conversation');
+    expect(captured.current?.emptyStateTitle).toBe('What do you want to do?');
   });
 
   it('falls back to a generic placeholder with no page context', () => {
     render(<ConversationDockPanel apiService={apiService} />);
 
-    expect(captured.current?.placeholder).toBe('Ask about this page...');
+    expect(captured.current?.placeholder).toBe('Describe a task...');
     expect(captured.current?.suggestedActions).toEqual([]);
   });
 
@@ -72,6 +72,6 @@ describe('ConversationDockPanel', () => {
 
     render(<ConversationDockPanel apiService={apiService} />);
 
-    expect(captured.current?.placeholder).toBe('Ask about this page...');
+    expect(captured.current?.placeholder).toBe('Describe a task...');
   });
 });
