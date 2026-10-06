@@ -1,7 +1,8 @@
 /**
  * Compiles a canonical image generation brief into a Google Nano Banana 2
  * family dispatch payload. Covers every sibling sharing the identical
- * dispatch shape: Nano Banana Pro, Nano Banana 2, Nano Banana 2 Lite.
+ * dispatch shape: Nano Banana Pro, Nano Banana 2, Nano Banana 2.1, and
+ * Nano Banana 2 Lite.
  *
  * None of the three has a dispatch-side aspect-ratio field — the resolved
  * aspect ratio still feeds evidence via
@@ -36,6 +37,7 @@ import {
   nanoBanana2DispatchSchema,
 } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
+  NANO_BANANA_2_1_CAPABILITY_PROFILE,
   NANO_BANANA_2_CAPABILITY_PROFILE,
   NANO_BANANA_2_LITE_CAPABILITY_PROFILE,
   NANO_BANANA_PRO_CAPABILITY_PROFILE,
@@ -46,6 +48,7 @@ const NANO_BANANA_2_MODEL_LABEL = 'Nano Banana 2';
 const NANO_BANANA_2_CAPABILITY_PROFILES = [
   NANO_BANANA_PRO_CAPABILITY_PROFILE,
   NANO_BANANA_2_CAPABILITY_PROFILE,
+  NANO_BANANA_2_1_CAPABILITY_PROFILE,
   NANO_BANANA_2_LITE_CAPABILITY_PROFILE,
 ];
 

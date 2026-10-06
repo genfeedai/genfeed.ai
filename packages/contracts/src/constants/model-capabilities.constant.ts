@@ -211,6 +211,14 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 4,
       maxReferences: 14,
     },
+    [MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_1]: {
+      aspectRatios: ASPECT_RATIOS.NANO_BANANA_2,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '1:1',
+      isBatchSupported: false,
+      maxOutputs: 4,
+      maxReferences: 14,
+    },
     [MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE]: {
       aspectRatios: ASPECT_RATIOS.NANO_BANANA_2,
       category: ModelCategory.IMAGE,

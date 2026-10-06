@@ -120,6 +120,20 @@ export const SELF_HOSTED_MODELS = [
   },
   {
     category: ModelCategory.IMAGE,
+    cost: 12,
+    costTier: CostTier.MEDIUM,
+    description:
+      'Google Nano Banana 2.1 — image generation and editing at 1K, 2K, and 4K with up to 14 references. The seeded USD is the 1K output price; 2K and 4K bill from the reviewed rate sheet.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_1,
+    label: 'Nano Banana 2.1',
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'nano-banana-2.1', owner: 'google' },
+    providerCostUsd: 0.0336,
+  },
+  {
+    category: ModelCategory.IMAGE,
     cost: 2,
     costTier: CostTier.LOW,
     description: 'Replicate FLUX Schnell image generation model',

@@ -282,6 +282,9 @@ describe('ModelPricingService', () => {
       expect(service.getKnownReplicateCost('google/nano-banana-2-lite')).toBe(
         0.034,
       );
+      expect(service.getKnownReplicateCost('google/nano-banana-2.1')).toBe(
+        0.0336,
+      );
       expect(service.getKnownReplicateCost('minimax/h3')).toBe(0.13);
     });
 

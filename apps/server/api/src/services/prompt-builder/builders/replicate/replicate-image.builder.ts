@@ -62,6 +62,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
     MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
     MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO,
     MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2,
+    MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_1,
     MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
     // Ideogram
     MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER,
@@ -154,6 +155,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
         return this.buildNanoBananaProPrompt(model, params, promptText);
 
       case MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2:
+      case MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_1:
         return this.buildNanoBanana2Prompt(model, params, promptText);
 
       case MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE:
