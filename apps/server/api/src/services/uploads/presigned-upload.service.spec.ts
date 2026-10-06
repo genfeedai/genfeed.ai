@@ -421,6 +421,93 @@ describe('PresignedUploadService', () => {
       expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
     });
 
+    it.each([
+      [
+        IngredientCategory.INGREDIENT,
+        'image/jpeg',
+        IngredientCategory.IMAGE,
+        'images',
+        'JPEG',
+      ],
+      [
+        IngredientCategory.INGREDIENT,
+        'image/gif',
+        IngredientCategory.GIF,
+        'gifs',
+        'GIF',
+      ],
+      [
+        IngredientCategory.INGREDIENT,
+        'video/mp4',
+        IngredientCategory.VIDEO,
+        'videos',
+        'MP4',
+      ],
+      [
+        IngredientCategory.INGREDIENT,
+        'audio/mpeg',
+        IngredientCategory.MUSIC,
+        'musics',
+        'MP3',
+      ],
+      [
+        IngredientCategory.VOICE,
+        'audio/mpeg',
+        IngredientCategory.VOICE,
+        'voices',
+        'MP3',
+      ],
+    ] as const)(
+      'stores %s %s as %s in %s',
+      async (requested, contentType, stored, folder, extension) => {
+        sharedService.createMediaDocuments.mockResolvedValue({
+          ingredientData: createIngredientEntity({ category: stored }),
+          metadataData: createMetadataEntity(),
+        });
+        filesClientService.getPresignedUploadUrl.mockResolvedValue({
+          publicUrl: `https://cdn.example.com/${folder}/file`,
+          s3Key: `ingredients/${folder}/file`,
+          uploadUrl: 'https://s3.amazonaws.com/bucket/upload',
+        });
+
+        await service.getPresignedUploadUrl(mockUser, {
+          category: requested,
+          contentType,
+          filename: 'upload.bin',
+          sizeBytes: 2048,
+        });
+
+        expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+          mockUser,
+          expect.objectContaining({
+            category: CategoryPrismaUtil.toIngredientCategory(stored),
+            extension,
+            origin: IngredientOrigin.UPLOADED,
+            status: IngredientStatus.PROCESSING,
+          }),
+        );
+        expect(filesClientService.getPresignedUploadUrl).toHaveBeenCalledWith(
+          expect.stringMatching(/^[0-9a-f-]{36}$/),
+          folder,
+          contentType,
+          3600,
+          2048,
+        );
+      },
+    );
+
+    it('rejects a generic ingredient that is not media', async () => {
+      await expect(
+        service.getPresignedUploadUrl(mockUser, {
+          category: IngredientCategory.INGREDIENT,
+          contentType: 'text/plain',
+          filename: 'note.txt',
+          sizeBytes: 12,
+        }),
+      ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
+      expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    });
+
     it('should reject an oversized declared upload before signing', async () => {
       await expect(
         service.getPresignedUploadUrl(mockUser, {

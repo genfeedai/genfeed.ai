@@ -1,6 +1,8 @@
 import {
   assertPresignedUploadAllowed,
+  inferDirectUploadCategory,
   isImageOrVideoCategory,
+  resolveDirectUploadCategory,
   resolveUploadMaxBytes,
 } from '@api/services/uploads/presigned-upload-policy.util';
 import { IngredientCategory } from '@genfeedai/contracts';
@@ -44,6 +46,36 @@ describe('presigned upload policy', () => {
         contentType: value,
       }),
     ).toThrow(expect.objectContaining({ status: 415 }));
+  });
+
+  it.each([
+    ['image/gif', IngredientCategory.GIF],
+    ['image/jpeg', IngredientCategory.IMAGE],
+    ['image/png; charset=binary', IngredientCategory.IMAGE],
+    ['image/heic', IngredientCategory.IMAGE],
+    ['video/mp4', IngredientCategory.VIDEO],
+    ['audio/mpeg', IngredientCategory.MUSIC],
+    ['text/plain', undefined],
+  ])('infers %s as %s', (contentType, category) => {
+    expect(inferDirectUploadCategory(contentType)).toBe(category);
+  });
+
+  it('keeps an explicit category and infers a generic ingredient', () => {
+    expect(
+      resolveDirectUploadCategory(IngredientCategory.IMAGE, 'image/gif'),
+    ).toBe(IngredientCategory.IMAGE);
+    expect(
+      resolveDirectUploadCategory(IngredientCategory.VOICE, 'audio/mpeg'),
+    ).toBe(IngredientCategory.VOICE);
+    expect(
+      resolveDirectUploadCategory(IngredientCategory.INGREDIENT, 'image/jpeg'),
+    ).toBe(IngredientCategory.IMAGE);
+    expect(resolveDirectUploadCategory(undefined, 'image/png')).toBe(
+      IngredientCategory.IMAGE,
+    );
+    expect(
+      resolveDirectUploadCategory(IngredientCategory.INGREDIENT, 'text/plain'),
+    ).toBe(IngredientCategory.INGREDIENT);
   });
 
   it('rejects categories without a direct-upload policy', () => {

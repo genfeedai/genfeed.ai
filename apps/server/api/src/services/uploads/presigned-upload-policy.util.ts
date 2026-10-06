@@ -1,4 +1,4 @@
-import { IngredientCategory } from '@genfeedai/contracts';
+import { IngredientCategory, normalizeCategory } from '@genfeedai/contracts';
 import {
   ACCEPTED_AUDIO_TYPES,
   ACCEPTED_IMAGE_TYPES,
@@ -92,6 +92,45 @@ export function normalizeUploadContentType(contentType: unknown): string {
   return typeof contentType === 'string'
     ? (contentType.split(';')[0]?.trim().toLowerCase() ?? '')
     : '';
+}
+
+/**
+ * Media category for a file when the caller has no upload policy of its own.
+ * `image/gif` is a GIF; every other image is an IMAGE.
+ */
+export function inferDirectUploadCategory(
+  contentType: unknown,
+): IngredientCategory | undefined {
+  const normalized = normalizeUploadContentType(contentType);
+  if (normalized === 'image/gif') {
+    return IngredientCategory.GIF;
+  }
+  if (normalized.startsWith('image/')) {
+    return IngredientCategory.IMAGE;
+  }
+  if (normalized.startsWith('video/')) {
+    return IngredientCategory.VIDEO;
+  }
+  if (normalized.startsWith('audio/')) {
+    return IngredientCategory.MUSIC;
+  }
+  return undefined;
+}
+
+/**
+ * The library posts `INGREDIENT` when no category chip is selected. That label
+ * has no upload policy, so the file type picks IMAGE, GIF, VIDEO, or MUSIC.
+ * An explicit category that already has a policy is left unchanged.
+ */
+export function resolveDirectUploadCategory(
+  requested: IngredientCategory | string | undefined,
+  contentType: unknown,
+): IngredientCategory {
+  const category = normalizeCategory(requested ?? IngredientCategory.IMAGE);
+  if (resolvePresignedUploadPolicy(category)) {
+    return category;
+  }
+  return inferDirectUploadCategory(contentType) ?? category;
 }
 
 function resolveMaxBytes(
