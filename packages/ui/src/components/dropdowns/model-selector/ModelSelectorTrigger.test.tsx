@@ -60,4 +60,18 @@ describe('ModelSelectorTrigger', () => {
     expect(button).toHaveClass('flex-nowrap', 'overflow-hidden');
     expect(label).toHaveClass('truncate', 'min-w-0');
   });
+
+  it('exposes the credit cost for a contextual picker selection', () => {
+    render(
+      <ModelSelectorTrigger
+        context={{ label: 'Image', value: 'image' }}
+        isOpen={false}
+        selectedModels={[
+          createModel({ cost: 17, key: 'google/imagen-3', label: 'Imagen 3' }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByTitle('17 credits')).toBeInTheDocument();
+  });
 });

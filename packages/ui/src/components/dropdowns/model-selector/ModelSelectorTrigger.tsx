@@ -43,6 +43,14 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
     className,
   );
   const labelClassName = 'min-w-0 flex-1 truncate text-xs font-medium';
+  const selectedModel = selectedModels[0];
+  const costTitle = selectedModel?.isFree
+    ? 'Free'
+    : selectedModel &&
+        Number.isFinite(selectedModel.cost) &&
+        selectedModel.cost > 0
+      ? formatCreditCost(selectedModel.cost, { unit: 'credits' })
+      : 'Pricing unavailable';
 
   if (context) {
     const ContextIcon = context.icon;
@@ -70,7 +78,9 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
             : context.label}
         </span>
         {selectedModels.length === 1 ? (
-          <ModelSelectorCostBadge costTier={selectedModels[0]?.costTier} />
+          <span title={costTitle}>
+            <ModelSelectorCostBadge costTier={selectedModel?.costTier} />
+          </span>
         ) : null}
         <ChevronsUpDown
           className={cn(SHELL_ICON_CLASS, 'text-muted-foreground')}
@@ -157,15 +167,7 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
           )}
         </div>
         <span className={labelClassName}>{model.label}</span>
-        <span
-          title={
-            model.isFree
-              ? 'Free'
-              : model.cost > 0
-                ? formatCreditCost(model.cost, { unit: 'credits' })
-                : 'Pricing unavailable'
-          }
-        >
+        <span title={costTitle}>
           <ModelSelectorCostBadge costTier={model.costTier} />
         </span>
         <ChevronsUpDown
