@@ -409,3 +409,14 @@ describe('AgentGenerationEstimateService', () => {
     },
   );
 });
+
+describe('reference URL quote validation', () => {
+  it('accepts local storage URLs without fetching them', async () => {
+    const dto = Object.assign(new EstimateGenerationCreditsDto(), {
+      category: 'image',
+      modelKey: 'openai/gpt-image-2',
+      referenceUrls: ['http://minio:9000/image.png'],
+    });
+    expect(await validate(dto)).toEqual([]);
+  });
+});

@@ -129,7 +129,11 @@ export class EstimateGenerationCreditsDto {
   @IsArray()
   @ArrayMaxSize(10)
   @IsUrl(
-    { protocols: ['http', 'https'], require_protocol: true },
+    {
+      protocols: ['http', 'https'],
+      require_protocol: true,
+      require_tld: false,
+    },
     { each: true },
   )
   @ApiProperty({ required: false, type: [String] })
