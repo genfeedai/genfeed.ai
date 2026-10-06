@@ -48,6 +48,16 @@ export type ToolRequiredRole = 'user' | 'admin' | 'superadmin';
 export type ToolMutationPolicy = 'approval-required' | 'direct';
 
 /**
+ * What one call can cost. `creditCost` stays the orchestrator floor so a
+ * delegated handler is not charged twice. This field is the amount clients
+ * and approval cards show, taken from the same helpers the debit path uses.
+ */
+export type ToolCreditPricing =
+  | { amount: number; mode: 'fixed' }
+  | { maximum: number; minimum: number; mode: 'variable'; unit: string }
+  | { mode: 'quote'; quoteTool: string };
+
+/**
  * MCP `tools/list` hints. Clients treat these as hints, not authorization.
  * Every MCP-surfaced tool sets all four; omitting `readOnlyHint` fails load.
  */
@@ -79,6 +89,12 @@ export interface CanonicalToolDefinition {
   description: string;
   parameters: ToolParameterSchema;
   creditCost: number;
+  /**
+   * Honest cost. Omitted only on hand-built fixtures; assembly always sets it.
+   * A fixed amount may be higher than `creditCost` when the handler bills
+   * and the orchestrator floor is intentionally zero.
+   */
+  creditPricing?: ToolCreditPricing;
   requiredRole: ToolRequiredRole;
   surfaces: ToolSurfaceConfig;
   category: ToolCategory;

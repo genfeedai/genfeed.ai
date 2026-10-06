@@ -1,8 +1,9 @@
+import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants/batch-generation-pricing.constant';
 import type { SourceTool } from '../../interfaces/source-tool.interface';
 
 export const OVERLAP_PUBLISHING_TOOLS: SourceTool[] = [
   {
-    creditCost: 1,
+    creditCost: BATCH_CAPTION_BASE_CREDITS,
     description:
       'Repurpose an existing post into a draft for another channel. Deterministic mode adapts the caption instantly through the channel capability catalog (length, hashtags, links, media compatibility); agent mode rewrites it with the content engine and lands the draft in the review queue. Never publishes or schedules anything.',
     name: 'repurpose_post',

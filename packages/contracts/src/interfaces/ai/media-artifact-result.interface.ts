@@ -60,6 +60,7 @@ export interface McpMediaToolResult {
   content: McpMediaContentPart[];
   structuredContent: {
     artifact?: MediaArtifactResult;
+    creditsDebited?: number;
     data: Record<string, unknown>;
   };
 }

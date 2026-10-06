@@ -16,6 +16,7 @@ import type {
 } from '@api/services/batch-content/interfaces/batch-content.interfaces';
 import type { GeneratedContent } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { isExecutableSkillSlug } from '@api/services/skill-executor/skill-workflow-definition';
+import { BATCH_GENERATION_COUNT_MAXIMUM } from '@genfeedai/contracts/constants';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -168,8 +169,14 @@ export class BatchContentService implements OnModuleInit {
   private readBatchRequest(value: unknown): BatchContentRequest {
     const record = this.readRecord(value, 'request');
     const count = this.requiredNumber(record.count, 'count');
-    if (!Number.isInteger(count) || count < 1 || count > 100) {
-      throw new Error('Batch content count must be an integer from 1 to 100');
+    if (
+      !Number.isInteger(count) ||
+      count < 1 ||
+      count > BATCH_GENERATION_COUNT_MAXIMUM
+    ) {
+      throw new Error(
+        `Batch content count must be an integer from 1 to ${BATCH_GENERATION_COUNT_MAXIMUM}`,
+      );
     }
     return {
       brandId: this.requiredString(record.brandId, 'brandId'),

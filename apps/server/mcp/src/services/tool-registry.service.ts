@@ -1,4 +1,6 @@
 import {
+  describeCreditPricing,
+  estimateToolCreditCost,
   getToolByName,
   getToolsetNames,
   getToolsForSurface,
@@ -6,6 +8,7 @@ import {
   isToolAllowedInMcpAccessMode,
   type McpAccessMode,
   type McpToolOutput,
+  requiresMcpApproval,
   type ToolsetName,
   toMcpTools,
 } from '@genfeedai/actions';
@@ -369,13 +372,13 @@ export class ToolRegistryService implements OnModuleInit {
         return await this.handleResolveApproval(args ?? {});
       }
 
-      // Mutating tools persist a pending approval instead of executing.
+      // Declared approvals and credit spenders wait for confirmation.
       if (ToolRegistryService.requiresApproval(name)) {
         const approval = await this.clientService.createApproval(
           name,
           args ?? {},
         );
-        return this.pendingApprovalResult(approval);
+        return this.pendingApprovalResult(approval, args ?? {});
       }
 
       return await this.executeTool(name, args ?? {});
@@ -428,7 +431,7 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   private static requiresApproval(name: string): boolean {
-    return getToolByName(name)?.mutationPolicy === 'approval-required';
+    return requiresMcpApproval(getToolByName(name));
   }
 
   private async executeTool(
@@ -653,8 +656,24 @@ export class ToolRegistryService implements OnModuleInit {
     }
   }
 
-  private pendingApprovalResult(approval: McpApprovalResource) {
-    return approvalPendingToolResult(approval);
+  private pendingApprovalResult(
+    approval: McpApprovalResource,
+    args: Record<string, unknown>,
+  ) {
+    const tool = getToolByName(approval.toolName);
+    if (!tool?.creditPricing) return approvalPendingToolResult(approval);
+    const estimatedCredits = estimateToolCreditCost(
+      approval.toolName,
+      args,
+      tool.creditPricing,
+    );
+    return approvalPendingToolResult(approval, {
+      estimatedCredits,
+      pricingSummary:
+        estimatedCredits === null
+          ? describeCreditPricing(tool.creditPricing)
+          : undefined,
+    });
   }
 
   private textResult(text: string) {
@@ -689,17 +708,38 @@ export class ToolRegistryService implements OnModuleInit {
 
     const payload = result.data ?? {};
     if (serializeMediaArtifact(payload)) {
-      return toNativeMcpMediaResult(payload, this.mediaOrigins(), this.logger);
+      return toNativeMcpMediaResult(
+        payload,
+        this.mediaOrigins(),
+        this.logger,
+      ).then((media) => this.stampCreditsDebited(media, result.creditsUsed));
     }
+    return this.stampCreditsDebited(
+      {
+        content: [
+          {
+            text: JSON.stringify(payload, null, 2),
+            type: 'text',
+          },
+        ],
+        structuredContent: { data: payload },
+      },
+      result.creditsUsed,
+    );
+  }
+
+  private stampCreditsDebited<T extends { structuredContent?: object }>(
+    response: T,
+    creditsUsed: number,
+  ): T {
+    if (!response.structuredContent) return response;
     return {
-      content: [
-        {
-          text: JSON.stringify(payload, null, 2),
-          type: 'text',
-        },
-      ],
-      structuredContent: { data: payload },
-    };
+      ...response,
+      structuredContent: {
+        ...response.structuredContent,
+        creditsDebited: creditsUsed,
+      },
+    } as T;
   }
 
   async handleResourceRead(params: ResourceReadParams) {

@@ -1,18 +1,22 @@
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
+import { ActivitySource } from '@genfeedai/contracts';
+import { ENHANCE_PROMPT_CREDIT_COST } from '@genfeedai/contracts/constants';
 import type {
   AgentToolResult,
   UpdateGenerationHarnessSettings,
 } from '@genfeedai/contracts/interfaces';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
 export class AgentGenerationSettingsToolHandler {
   constructor(
     private readonly settings: GenerationHarnessSettingsService,
     private readonly enhancement: MediaPromptEnhancementService,
+    @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
   ) {}
 
   handles(toolName: string): boolean {
@@ -64,10 +68,28 @@ export class AgentGenerationSettingsToolHandler {
       model: typeof params.model === 'string' ? params.model : undefined,
       harness: params.harness,
     });
+    if (receipt.status !== 'applied') {
+      return {
+        success: true,
+        creditsUsed: 0,
+        isBillingDelegated: true,
+        data: { generationHarness: receipt, prompt: receipt.enhancedPrompt },
+      };
+    }
+    if (this.creditsUtilsService) {
+      await this.creditsUtilsService.deductCreditsFromOrganization(
+        ctx.organizationId,
+        ctx.userId,
+        ENHANCE_PROMPT_CREDIT_COST,
+        'Enhance prompt',
+        ActivitySource.SCRIPT,
+        { brandId },
+      );
+    }
     return {
       success: true,
-      creditsUsed: receipt.status === 'applied' ? 1 : 0,
-      isBillingDelegated: receipt.status === 'skipped',
+      creditsUsed: ENHANCE_PROMPT_CREDIT_COST,
+      isBillingDelegated: Boolean(this.creditsUtilsService),
       data: { generationHarness: receipt, prompt: receipt.enhancedPrompt },
     };
   }

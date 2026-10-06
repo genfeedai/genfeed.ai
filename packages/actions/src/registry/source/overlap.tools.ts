@@ -101,7 +101,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     // endpoint bills the real amount (issue #482).
     creditCost: Math.min(...Object.values(MEDIA_GENERATION_CREDIT_FLOORS)),
     description:
-      'Generate an image, video, voice (text-to-speech) or music track. Set type; a parameter marked for another type is rejected. Omit model to let the router pick the best available model. Image and video results include generationHarness with the exact submitted prompt and enhancement status: show that prompt with the result instead of reconstructing it.',
+      'Generate an image, video, voice (text-to-speech) or music track. Set type; a parameter marked for another type is rejected. Omit model to let the router pick the best available model. Image and video results include generationHarness with the exact submitted prompt and enhancement status: show that prompt with the result instead of reconstructing it. The advertised range is the per-type floor; the endpoint bills the selected model amount, which is at least that floor.',
     name: 'generate',
     parameters: {
       properties: {

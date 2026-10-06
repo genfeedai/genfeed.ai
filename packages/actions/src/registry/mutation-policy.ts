@@ -42,6 +42,12 @@ const READ_ONLY_PREFIXES = [
 
 const WRITE_NAMES_WITH_READ_PREFIX = new Set(['present_work_object']);
 
+/** Read-shaped names that spend credits, so they can carry a mutation policy. */
+const SPENDING_NAMES_WITH_READ_PREFIX = new Set([
+  'get_x_posts',
+  'list_x_account_activity',
+]);
+
 const READ_ONLY_NAMES = new Set<string>([
   'storyboard_run_capabilities',
   'quote_visual_code_generation',
@@ -120,6 +126,8 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   generate_as_identity: 'direct',
   generate_clips: 'approval-required',
   generate_content: 'direct',
+  get_x_posts: 'direct',
+  list_x_account_activity: 'direct',
   generate_content_batch: 'approval-required',
   generate_monthly_content: 'direct',
   generate_onboarding_content: 'direct',
@@ -179,6 +187,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
 
 export function isReadOnlyToolName(name: string): boolean {
   if (WRITE_NAMES_WITH_READ_PREFIX.has(name)) return false;
+  if (SPENDING_NAMES_WITH_READ_PREFIX.has(name)) return false;
   if (READ_ONLY_NAMES.has(name)) {
     return true;
   }

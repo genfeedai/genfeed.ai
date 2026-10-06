@@ -8,7 +8,7 @@ import type {
   IBrandInterviewQuestion,
 } from '@genfeedai/contracts/interfaces';
 
-export const BRAND_INTERVIEW_CREDIT_COST = 10;
+export { BRAND_INTERVIEW_CREDIT_COST } from '@genfeedai/contracts/constants';
 
 /**
  * In-scope storage location for a field: which sub-object on the Brand holds

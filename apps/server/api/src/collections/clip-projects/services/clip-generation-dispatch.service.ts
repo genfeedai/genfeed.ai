@@ -12,6 +12,7 @@ import { ClipResultsService } from '@api/collections/clip-results/clip-results.s
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { clipCreditGateAmount } from '@genfeedai/contracts/constants';
 import type { ClipReferenceApplication } from '@genfeedai/contracts/interfaces';
 import { DEFAULT_CLIP_RESULT_MODE } from '@genfeedai/contracts/interfaces';
 import {
@@ -73,20 +74,18 @@ export class ClipGenerationDispatchService {
     const initialCreditCount = hookApprovalRequired
       ? 1
       : selectedEditedHighlights.length;
+    const requiredCredits = clipCreditGateAmount(initialCreditCount);
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         organizationId,
-        initialCreditCount,
+        requiredCredits,
       );
     if (!hasCredits) {
       const currentBalance =
         await this.creditsUtilsService.getOrganizationCreditsBalance(
           organizationId,
         );
-      throw new InsufficientCreditsException(
-        initialCreditCount,
-        currentBalance,
-      );
+      throw new InsufficientCreditsException(requiredCredits, currentBalance);
     }
 
     await this.clipProjectsService.patch(
@@ -193,20 +192,18 @@ export class ClipGenerationDispatchService {
         : undefined;
     this.clipGenerationRequestService.assertCompleteAvatarIdentity(identity);
 
+    const requiredCredits = clipCreditGateAmount(failedResults.length);
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         organizationId,
-        failedResults.length,
+        requiredCredits,
       );
     if (!hasCredits) {
       const currentBalance =
         await this.creditsUtilsService.getOrganizationCreditsBalance(
           organizationId,
         );
-      throw new InsufficientCreditsException(
-        failedResults.length,
-        currentBalance,
-      );
+      throw new InsufficientCreditsException(requiredCredits, currentBalance);
     }
 
     const runReferences = project.brandId

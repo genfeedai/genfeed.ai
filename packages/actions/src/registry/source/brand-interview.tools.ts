@@ -1,3 +1,4 @@
+import { BRAND_INTERVIEW_CREDIT_COST } from '@genfeedai/contracts/constants/tool-credit.constant';
 import type { SourceTool } from '../../interfaces/source-tool.interface';
 
 /**
@@ -11,8 +12,7 @@ import type { SourceTool } from '../../interfaces/source-tool.interface';
 export const BRAND_INTERVIEW_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
-    description:
-      'Start a brand context interview for the given brand. Charges 10 credits once (idempotent — resuming an active session does not re-charge). Returns the first question to ask the user, plus progress and completeness info.',
+    description: `Start a brand context interview for the given brand. Charges ${BRAND_INTERVIEW_CREDIT_COST} credits once (idempotent — resuming an active session does not re-charge). Returns the first question to ask the user, plus progress and completeness info.`,
     name: 'start_brand_interview',
     parameters: {
       properties: {

@@ -140,6 +140,7 @@ describe('transform_media tool definition', () => {
 
   it('is open-world and not read-only', () => {
     expect(tool?.annotations).toMatchObject({
+      destructiveHint: false,
       openWorldHint: true,
       readOnlyHint: false,
     });

@@ -13,7 +13,10 @@ import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  BRAND_FROM_URL_CREDIT_COST,
+} from '@genfeedai/contracts/constants';
 import type {
   AgentToolResult,
   IBrandAgentPrompting,
@@ -594,7 +597,8 @@ export class AgentBrandContentToolHandler {
       ]);
       return {
         success: true,
-        creditsUsed: data.scanStatus === 'succeeded' ? 1 : 0,
+        creditsUsed:
+          data.scanStatus === 'succeeded' ? BRAND_FROM_URL_CREDIT_COST : 0,
         isBillingDelegated: true,
         data: { ...data },
       };

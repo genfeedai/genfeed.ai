@@ -61,6 +61,8 @@ const NON_DESTRUCTIVE_WRITE_NAMES: ReadonlySet<string> = new Set([
   'complete_media_upload',
   'request_media_upload',
   'create_post',
+  'get_x_posts',
+  'list_x_account_activity',
   'open_in_editor',
   'transform_media',
 ]);

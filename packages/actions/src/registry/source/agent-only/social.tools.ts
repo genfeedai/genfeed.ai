@@ -1,8 +1,9 @@
+import { X_READ_CREDIT_COST } from '@genfeedai/contracts/constants/tool-credit.constant';
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
   {
-    creditCost: 1,
+    creditCost: X_READ_CREDIT_COST,
     description:
       "Read X posts. postIdOrUrl opens one post and returns its text and stats. query searches recent posts by topic through the brand's connected X account and returns author, text, stats, and link; it explains clearly if that account cannot search. Pass exactly one of postIdOrUrl or query.",
     name: 'get_x_posts',
@@ -37,7 +38,7 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
     requiredRole: 'user',
   },
   {
-    creditCost: 1,
+    creditCost: X_READ_CREDIT_COST,
     description:
       "List recent posts from an X account. Uses the brand's connected account when no username is given.",
     name: 'list_x_account_activity',

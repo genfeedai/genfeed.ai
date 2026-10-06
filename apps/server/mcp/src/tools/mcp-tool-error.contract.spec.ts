@@ -204,6 +204,39 @@ describe('MCP tool error contract', () => {
     expect(result.structuredContent.message).toContain('requires approval');
     expect(result.structuredContent.message).toContain('apr-1');
     expect(result.structuredContent).not.toHaveProperty('retryAfterSeconds');
+    expect(result.structuredContent).not.toHaveProperty('estimatedCredits');
+  });
+
+  it('reports a zero estimate when the caller supplies one', () => {
+    const result = approvalPendingToolResult(
+      {
+        id: 'apr-0',
+        status: 'PENDING',
+        toolName: 'transform_media',
+      },
+      { estimatedCredits: 0 },
+    );
+
+    expect(result.structuredContent.estimatedCredits).toBe(0);
+    expect(result.structuredContent.message).toContain(
+      'Estimated cost: 0 credits.',
+    );
+  });
+
+  it('uses the pricing summary when the quote amount is not on the call', () => {
+    const summary =
+      'Cost comes from the approved quote_remix_generation quote.';
+    const result = approvalPendingToolResult(
+      {
+        id: 'apr-q',
+        status: 'PENDING',
+        toolName: 'start_remix_generation',
+      },
+      { estimatedCredits: null, pricingSummary: summary },
+    );
+
+    expect(result.structuredContent).not.toHaveProperty('estimatedCredits');
+    expect(result.structuredContent.message).toContain(summary);
   });
 
   it('keeps ValidationPipe property errors and required arguments retryable', () => {

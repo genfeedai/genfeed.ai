@@ -4,7 +4,10 @@ import {
   CURATED_ACTION_CATALOG,
   isPublishingApprovalRequired,
 } from '../curated-action-catalog';
-import { isApprovalRequiredToolName } from '../mutation-policy';
+import {
+  isApprovalRequiredToolName,
+  isReadOnlyToolName,
+} from '../mutation-policy';
 import { ALL_TOOLS, getToolByName, getToolsForSurface } from '../tool-registry';
 
 const READ_ONLY_PREFIXES = [
@@ -63,8 +66,15 @@ describe('MCP tool annotations', () => {
   it('marks approval-required tools destructive and not read-only', () => {
     for (const tool of getToolsForSurface('mcp')) {
       if (!isApprovalRequiredToolName(tool.name)) continue;
-      // Draft create and source import add records; they do not overwrite or publish.
-      if (tool.name === 'create_post' || tool.name === 'import_source_post') {
+      // Draft create and source import add records; they do not overwrite
+      // or publish. transform_media is pinned in NON_DESTRUCTIVE_WRITE_NAMES.
+      if (
+        tool.name === 'create_post' ||
+        tool.name === 'import_source_post' ||
+        tool.name === 'get_x_posts' ||
+        tool.name === 'list_x_account_activity' ||
+        tool.name === 'transform_media'
+      ) {
         continue;
       }
       expect(tool.annotations?.readOnlyHint, tool.name).toBe(false);
@@ -78,10 +88,25 @@ describe('MCP tool annotations', () => {
       const matchesPrefix = READ_ONLY_PREFIXES.some((prefix) =>
         tool.name.startsWith(prefix),
       );
-      if (!matchesPrefix) continue;
+      if (
+        !matchesPrefix ||
+        isApprovalRequiredToolName(tool.name) ||
+        !isReadOnlyToolName(tool.name)
+      ) {
+        continue;
+      }
       expect(tool.annotations?.readOnlyHint, tool.name).toBe(true);
       expect(tool.annotations?.destructiveHint, tool.name).toBe(false);
       expect(tool.annotations?.idempotentHint, tool.name).toBe(true);
+    }
+  });
+
+  it('keeps paid X reads off the read-only hint', () => {
+    for (const name of ['get_x_posts', 'list_x_account_activity'] as const) {
+      expect(getToolByName(name)?.annotations, name).toMatchObject({
+        destructiveHint: false,
+        readOnlyHint: false,
+      });
     }
   });
 

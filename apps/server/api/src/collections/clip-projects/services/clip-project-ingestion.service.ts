@@ -22,7 +22,10 @@ import { InsufficientCreditsException } from '@api/exceptions/business-logic.exc
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
-import { CLIP_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/contracts/constants';
+import {
+  CLIP_SOURCE_MAX_DURATION_SECONDS,
+  clipCreditGateAmount,
+} from '@genfeedai/contracts/constants';
 import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
 import {
   CLIP_SOURCE_SCHEMA_VERSION,
@@ -141,7 +144,7 @@ export class ClipProjectIngestionService {
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         orgId,
-        estimatedClips,
+        clipCreditGateAmount(estimatedClips),
       );
 
     if (!hasCredits) {
@@ -664,7 +667,7 @@ export class ClipProjectIngestionService {
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         user.organizationId,
-        estimatedClips,
+        clipCreditGateAmount(estimatedClips),
       );
     if (!hasCredits) {
       const currentBalance =
