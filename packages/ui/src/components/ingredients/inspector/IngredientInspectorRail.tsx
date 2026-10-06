@@ -57,6 +57,7 @@ const SHELF_VARIANTS: Record<
   [LibraryShelf.UNSORTED]: 'slate',
   [LibraryShelf.NEEDS_REVIEW]: 'warning',
   [LibraryShelf.APPROVED]: 'success',
+  [LibraryShelf.REJECTED]: 'error',
   [LibraryShelf.FAILED]: 'error',
   [LibraryShelf.ARCHIVED]: 'slate',
 };

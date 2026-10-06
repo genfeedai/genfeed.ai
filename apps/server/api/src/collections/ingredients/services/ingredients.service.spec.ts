@@ -2,6 +2,7 @@ import type { IngredientServerCreate } from '@api/collections/ingredients/dto/cr
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
+import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AssetScope,
@@ -45,6 +46,7 @@ describe('IngredientsService', () => {
     groupBy: ReturnType<typeof vi.fn>;
   };
   let prisma: PrismaService;
+  const invalidateByTags = vi.fn();
 
   const brandId = testId('brand');
   const ingredientId = testId('ingredient');
@@ -63,6 +65,7 @@ describe('IngredientsService', () => {
   };
 
   beforeEach(async () => {
+    invalidateByTags.mockReset().mockResolvedValue(1);
     ingredientDelegate = {
       count: vi.fn().mockResolvedValue(1),
       create: vi.fn().mockResolvedValue(mockIngredient),
@@ -78,6 +81,7 @@ describe('IngredientsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         IngredientsService,
+        { provide: CacheService, useValue: { invalidateByTags } },
         { provide: PrismaService, useValue: prisma },
         {
           provide: LoggerService,
@@ -188,6 +192,38 @@ describe('IngredientsService', () => {
   });
 
   describe('patch', () => {
+    it('clears cached Library lists and counts after committing a rejection', async () => {
+      await service.patch(ingredientId, { status: IngredientStatus.REJECTED });
+
+      expect(invalidateByTags).toHaveBeenCalledWith(['ingredients']);
+      expect(invalidateByTags.mock.invocationCallOrder[0]).toBeGreaterThan(
+        ingredientDelegate.update.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('does not clear the Library cache when a rejection fails', async () => {
+      ingredientDelegate.update.mockRejectedValueOnce(
+        new Error('write failed'),
+      );
+
+      await expect(
+        service.patch(ingredientId, { status: IngredientStatus.REJECTED }),
+      ).rejects.toThrow('write failed');
+      expect(invalidateByTags).not.toHaveBeenCalled();
+    });
+
+    it('keeps a committed rejection successful when cache invalidation is unavailable', async () => {
+      invalidateByTags.mockRejectedValueOnce(new Error('redis unavailable'));
+
+      await expect(
+        service.patch(ingredientId, { status: IngredientStatus.REJECTED }),
+      ).resolves.toBeDefined();
+      expect(service.logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('could not invalidate the Library list cache'),
+        { error: expect.any(Error) },
+      );
+    });
+
     it.each([
       [IngredientStatus.VALIDATED, FleetReviewStatus.APPROVED],
       [IngredientStatus.REJECTED, FleetReviewStatus.REJECTED],
@@ -696,6 +732,45 @@ describe('IngredientsService', () => {
       const result = await service.findOne({ id: 'test-id' });
 
       expect(result?.cdnUrl).toBe('https://cdn.argil.ai/video-1.mp4');
+    });
+  });
+
+  describe('getLibrarySummary', () => {
+    it('counts rejected assets separately from archived assets and usable inventory', async () => {
+      ingredientDelegate.groupBy.mockResolvedValue([
+        {
+          category: IngredientCategory.IMAGE,
+          status: IngredientStatus.GENERATED,
+          _count: { id: 3 },
+          _sum: { fileSize: 120 },
+        },
+        {
+          category: IngredientCategory.IMAGE,
+          status: IngredientStatus.REJECTED,
+          _count: { id: 2 },
+          _sum: { fileSize: 80 },
+        },
+        {
+          category: IngredientCategory.IMAGE,
+          status: IngredientStatus.ARCHIVED,
+          _count: { id: 1 },
+          _sum: { fileSize: 40 },
+        },
+      ]);
+
+      const summary = await service.getLibrarySummary(organizationId, {
+        brandId,
+      });
+
+      expect(summary.byShelf[LibraryShelf.REJECTED]).toBe(2);
+      expect(summary.byShelf[LibraryShelf.ARCHIVED]).toBe(1);
+      expect(summary.total).toBe(3);
+      expect(summary.storageBytes).toBe(120);
+      expect(ingredientDelegate.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { brandId, organizationId, isDeleted: false },
+        }),
+      );
     });
   });
 

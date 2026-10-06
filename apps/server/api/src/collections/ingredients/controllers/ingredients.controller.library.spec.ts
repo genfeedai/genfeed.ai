@@ -392,9 +392,7 @@ describe('IngredientsController — Library axes', () => {
       );
       expect(statusBranches).toEqual([
         {
-          status: {
-            in: [IngredientStatus.ARCHIVED, IngredientStatus.REJECTED],
-          },
+          status: IngredientStatus.ARCHIVED,
         },
       ]);
     });

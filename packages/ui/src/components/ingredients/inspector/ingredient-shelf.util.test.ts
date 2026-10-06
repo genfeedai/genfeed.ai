@@ -33,12 +33,12 @@ describe('getIngredientShelf', () => {
     ).toBe(LibraryShelf.FAILED);
   });
 
-  it('reads rejected assets onto the Archived shelf', () => {
+  it('reads rejected assets onto the Rejected shelf', () => {
     expect(
       getIngredientShelf(
         createIngredient({ status: IngredientStatus.REJECTED }),
       ),
-    ).toBe(LibraryShelf.ARCHIVED);
+    ).toBe('rejected');
   });
 
   it('reads a pending fleet review as Needs review', () => {

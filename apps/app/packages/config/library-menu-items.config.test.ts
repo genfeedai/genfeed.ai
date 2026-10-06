@@ -13,13 +13,14 @@ describe('LIBRARY_MENU_ITEMS', () => {
       '/library/assets',
       '/library/assets?place=recent',
       '/library/assets?place=starred',
-      '/library/assets?shelf=references',
-      '/library/assets?shelf=generating',
       '/library/assets?shelf=unsorted',
-      '/library/assets?shelf=needs-review',
+      '/library/assets?shelf=generating',
       '/library/assets?shelf=approved',
+      '/library/assets?shelf=needs-review',
+      '/library/assets?shelf=rejected',
       '/library/assets?shelf=failed',
       '/library/assets?shelf=archived',
+      '/library/assets?shelf=references',
       '/library/elements/characters',
       '/library/assets?place=trash',
     ]);
@@ -55,15 +56,16 @@ describe('LIBRARY_MENU_ITEMS', () => {
     ]);
   });
 
-  it('lists References first, then shelves by generation lifecycle', () => {
+  it('puts Unsorted first and References last, with review and recovery between', () => {
     expect(LIBRARY_SHELF_MENU_ITEMS.map((item) => item.label)).toEqual([
-      'References',
-      'Generating',
       'Unsorted',
-      'Needs review',
+      'Generating',
       'Approved',
+      'Needs review',
+      'Rejected',
       'Failed',
       'Archived',
+      'References',
     ]);
     expect(
       LIBRARY_SHELF_MENU_ITEMS.every((item) => item.group === 'Shelves'),

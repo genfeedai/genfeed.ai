@@ -13,6 +13,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import type DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import IngredientsListContent from '@ui/ingredients/list/content/IngredientsListContent';
 import { format } from 'date-fns';
 import type { ComponentProps } from 'react';
@@ -79,7 +80,23 @@ vi.mock('@ui/ingredients/IngredientReviewActions', () => ({
 }));
 
 vi.mock('@ui/dropdowns/status/DropdownStatus', () => ({
-  default: () => <div data-testid="status-dropdown" />,
+  default: ({
+    entity,
+    onStatusChange,
+  }: ComponentProps<typeof DropdownStatus>) => (
+    <button
+      data-testid="status-dropdown"
+      onClick={() =>
+        onStatusChange?.(IngredientStatus.REJECTED, {
+          ...entity,
+          status: IngredientStatus.REJECTED,
+        } as IIngredient)
+      }
+      type="button"
+    >
+      Reject from status menu
+    </button>
+  ),
 }));
 
 // The canvas pulls React Flow in behind next/dynamic, whose loader never
@@ -110,10 +127,12 @@ vi.mock('@ui/ingredients/list/media-grid/IngredientsMediaGrid', () => ({
     items,
     onClickIngredient,
     onSeeDetails,
+    onReviewUpdated,
   }: {
     items: IIngredient[];
     onClickIngredient: (ingredient: IIngredient) => void;
     onSeeDetails: (ingredient: IIngredient) => void;
+    onReviewUpdated: (ingredient: IIngredient) => void;
   }) => (
     <>
       <button
@@ -126,6 +145,16 @@ vi.mock('@ui/ingredients/list/media-grid/IngredientsMediaGrid', () => ({
       <button onClick={() => onSeeDetails(items[0])} type="button">
         See Details
       </button>
+      {items[0] ? (
+        <button
+          onClick={() =>
+            onReviewUpdated({ ...items[0], status: IngredientStatus.REJECTED })
+          }
+          type="button"
+        >
+          Reject from grid
+        </button>
+      ) : null}
     </>
   ),
 }));
@@ -258,6 +287,40 @@ const staleErrorIngredient = {
 } as unknown as IIngredient;
 
 describe('IngredientsListContent', () => {
+  it('removes a rejected asset from the contact sheet while preserving other cards', () => {
+    const onSetIngredients = vi.fn();
+    const asset = { ...baseIngredient, category: IngredientCategory.IMAGE };
+    const otherAsset = { ...asset, id: 'other-asset' };
+    renderContent({
+      filteredIngredients: [asset, otherAsset],
+      onSetIngredients,
+      type: 'ingredients',
+      singularType: IngredientCategory.INGREDIENT,
+      viewMode: 'grid',
+    });
+    fireEvent.click(screen.getByText('Reject from grid'));
+    const update = onSetIngredients.mock.lastCall?.[0];
+    expect(update([asset, otherAsset])).toEqual([otherAsset]);
+  });
+
+  it('removes a rejected asset after changing status from the list menu', () => {
+    const onSetIngredients = vi.fn();
+    const otherAsset = { ...baseIngredient, id: 'other-asset' };
+    const { rerenderContent } = renderContent({
+      filteredIngredients: [baseIngredient, otherAsset],
+      onSetIngredients,
+      viewMode: 'list',
+    });
+
+    fireEvent.click(screen.getAllByText('Reject from status menu')[0]);
+
+    const update = onSetIngredients.mock.lastCall?.[0];
+    const remaining = update([baseIngredient, otherAsset]);
+    expect(remaining).toEqual([otherAsset]);
+    rerenderContent({ filteredIngredients: remaining });
+    expect(screen.getAllByText('Reject from status menu')).toHaveLength(1);
+  });
+
   it('never feeds a protected video capability or stale original poster into an image thumbnail', () => {
     renderContent({
       viewMode: 'list',

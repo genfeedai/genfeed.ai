@@ -100,7 +100,8 @@ export const LIBRARY_SHELF_DESCRIPTIONS: Readonly<
   Record<LibraryShelf, string>
 > = {
   [LibraryShelf.APPROVED]: 'Signed off and safe to publish.',
-  [LibraryShelf.ARCHIVED]: 'Retired or rejected — out of the way, not gone.',
+  [LibraryShelf.ARCHIVED]: 'Retired assets — out of the way, not gone.',
+  [LibraryShelf.REJECTED]: 'Assets rejected during review, kept for reference.',
   [LibraryShelf.FAILED]: 'Generations that did not finish. Retry or discard.',
   [LibraryShelf.GENERATING]: 'Still rendering. This shelf empties itself.',
   [LibraryShelf.NEEDS_REVIEW]:

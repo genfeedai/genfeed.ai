@@ -22,19 +22,21 @@ export enum LibraryShelf {
   UNSORTED = 'unsorted',
   NEEDS_REVIEW = 'needs-review',
   APPROVED = 'approved',
+  REJECTED = 'rejected',
   FAILED = 'failed',
   ARCHIVED = 'archived',
 }
 
 /** Display order of shelves in the Library sidebar. */
 export const LIBRARY_SHELF_ORDER: readonly LibraryShelf[] = [
-  LibraryShelf.REFERENCES,
-  LibraryShelf.GENERATING,
   LibraryShelf.UNSORTED,
-  LibraryShelf.NEEDS_REVIEW,
+  LibraryShelf.GENERATING,
   LibraryShelf.APPROVED,
+  LibraryShelf.NEEDS_REVIEW,
+  LibraryShelf.REJECTED,
   LibraryShelf.FAILED,
   LibraryShelf.ARCHIVED,
+  LibraryShelf.REFERENCES,
 ] as const;
 
 /** Human labels for each shelf. */
@@ -44,6 +46,7 @@ export const LIBRARY_SHELF_LABELS: Record<LibraryShelf, string> = {
   [LibraryShelf.UNSORTED]: 'Unsorted',
   [LibraryShelf.NEEDS_REVIEW]: 'Needs review',
   [LibraryShelf.APPROVED]: 'Approved',
+  [LibraryShelf.REJECTED]: 'Rejected',
   [LibraryShelf.FAILED]: 'Failed',
   [LibraryShelf.ARCHIVED]: 'Archived',
 };

@@ -3634,6 +3634,7 @@ export async function mockAvatarIngredientActions(page: Page): Promise<{
     byShelf: {
       [LibraryShelf.APPROVED]: 0,
       [LibraryShelf.ARCHIVED]: 0,
+      [LibraryShelf.REJECTED]: 0,
       [LibraryShelf.FAILED]: 0,
       [LibraryShelf.GENERATING]: 0,
       [LibraryShelf.NEEDS_REVIEW]: 2,
