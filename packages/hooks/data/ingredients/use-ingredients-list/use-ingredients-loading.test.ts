@@ -1,4 +1,8 @@
-import { IngredientCategory, PageScope } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  LibraryShelf,
+  PageScope,
+} from '@genfeedai/contracts';
 import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useIngredientsLoading } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-loading';
@@ -165,6 +169,38 @@ describe('useIngredientsLoading', () => {
       lightweight?: boolean;
     };
     expect(firstCallParams.lightweight).toBe(true);
+  });
+
+  it('loads every filtered Failed shelf page while preserving its brand and search', async () => {
+    const findAllPages = vi
+      .fn()
+      .mockResolvedValue([{ id: 'last-page-failure' }]);
+    mockGetIngredientsService.mockResolvedValue({
+      findAll: ingredientsFindAllMock,
+      findAllPages,
+    });
+    const { result } = renderHook(() =>
+      useIngredientsLoading({
+        ...baseProps,
+        query: {
+          shelf: LibraryShelf.FAILED,
+          search: 'coffee',
+          folder: 'folder-1',
+        },
+      }),
+    );
+
+    await waitFor(() => expect(result.current.ingredients).toHaveLength(1));
+    expect(findAllPages).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brand: 'brand-1',
+        shelf: LibraryShelf.FAILED,
+        search: 'coffee',
+        folder: 'folder-1',
+      }),
+      expect.any(AbortSignal),
+    );
+    expect(ingredientsFindAllMock).not.toHaveBeenCalled();
   });
 
   it('keeps the organization-wide ingredients route unfiltered by category', async () => {

@@ -405,6 +405,74 @@ const UI_TEST_MESSAGES = {
   },
   pages: {
     library: {
+      recovery: {
+        actions: {
+          retry: 'Retry',
+          replaceReference: 'Replace reference',
+          reviewInputs: 'Review inputs',
+          editPrompt: 'Edit prompt',
+          viewDetails: 'View details',
+        },
+        groups: {
+          attention: {
+            title: 'Needs your attention',
+            description: 'Change an input before trying again.',
+          },
+          retry: {
+            title: 'Ready to retry',
+            description: 'Temporary service failures. Your inputs are saved.',
+          },
+          unknown: {
+            title: 'Unclear failure',
+            description: 'Open details to investigate.',
+          },
+        },
+        reasons: {
+          serviceUnavailable: 'Service unavailable',
+          missingReference: 'Missing reference',
+          invalidInputs: 'Inputs need review',
+          requestRejected: 'Request rejected',
+          missingPrompt: 'Saved prompt unavailable',
+          unsupportedRecovery: 'Recovery needs review',
+          referenceRolesUnavailable: 'Saved reference roles need review',
+          unknown: 'Failure reason unavailable',
+        },
+        untitled: 'Untitled asset',
+        selectAsset: 'Select {label}',
+        inspectAsset: 'Inspect {label}',
+        deleteAsset: 'Delete {label}',
+        reference: 'Reference',
+        savedRequest: 'Saved request',
+        noPrompt: 'No saved prompt',
+        retryStarted: 'Retry started',
+        deleteAll: 'Delete all ({count})',
+        retryGroup: 'Retry these {count}',
+        emptyGroup: 'No failures in this group.',
+        selectAll: 'Select all filtered failures',
+        selected: '{count} selected',
+        trashHint: 'Deleted items can be restored from Trash.',
+        deleteSelected: 'Delete selected',
+        delete: 'Delete',
+        confirmDeleteTitle:
+          'Delete {count, plural, one {# failed asset} other {# failed assets}}?',
+        confirmDeleteMessage:
+          'Move {count, plural, one {this failed asset} other {these # failed assets}} to Trash? Only the confirmed items will be deleted. You can restore them from Trash.',
+        deleted:
+          'Moved {count, plural, one {# asset} other {# assets}} to Trash.',
+        deleteFailed:
+          'Could not delete {count, plural, one {# asset} other {# assets}}. They remain in the Library.',
+        confirmRetryTitle:
+          'Retry {count, plural, one {# generation} other {# generations}}?',
+        confirmRetryMessage:
+          'Start {count, plural, one {a new generation} other {# new generations}} using the saved prompt, model, settings and references? Normal generation credit charges apply. Original failed requests are kept.',
+        retried: 'Started {count, plural, one {# retry} other {# retries}}.',
+        retryFailed:
+          'Could not start {count, plural, one {# retry} other {# retries}}.',
+        scopeChanged:
+          'The Library scope changed. Review the current failures and try again.',
+        reviewUnavailable:
+          'Saved inputs could not be opened in Studio. Inspect this asset for details.',
+      },
       review: {
         approve: 'Approve asset',
         reject: 'Reject asset',

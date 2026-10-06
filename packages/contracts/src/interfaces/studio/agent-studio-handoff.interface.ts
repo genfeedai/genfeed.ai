@@ -42,3 +42,7 @@ export interface AgentStudioHandoffScope {
   organizationId: string;
   userId: string;
 }
+
+export interface AgentStudioHandoffCreated {
+  id: string;
+}
