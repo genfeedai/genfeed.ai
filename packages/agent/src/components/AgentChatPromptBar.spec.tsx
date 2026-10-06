@@ -39,24 +39,6 @@ vi.mock('@genfeedai/agent/components/ConversationComposerShellContext', () => ({
   useConversationComposerShell: () => null,
 }));
 
-vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
-  default: ({
-    children,
-    isVisible = true,
-    topContent,
-  }: {
-    children: ReactNode;
-    isVisible?: boolean;
-    topContent: ReactNode;
-  }) =>
-    isVisible ? (
-      <div>
-        {topContent}
-        {children}
-      </div>
-    ) : null,
-}));
-
 function renderPromptBar(
   isReadOnly: boolean,
   extras: Partial<{
@@ -67,6 +49,8 @@ function renderPromptBar(
       status: 'queued' | 'sending' | 'failed';
       threadId: string | null;
     }>;
+    error: string | null;
+    socketConnectionState: 'connected' | 'reconnecting';
     isBusy: boolean;
     isRunActive: boolean;
     onMoveFollowUp: () => void;
@@ -92,7 +76,7 @@ function renderPromptBar(
         onDrop: vi.fn(),
       }}
       dragState={{ isActive: false }}
-      error={null}
+      error={extras.error ?? null}
       followUps={extras.followUps}
       getCompletedAttachments={() => []}
       isAttachmentUploading={false}
@@ -114,7 +98,7 @@ function renderPromptBar(
       promptBarSuggestions={extras.promptBarSuggestions ?? null}
       removeAttachment={vi.fn()}
       showSuggestedActionsWhenNotEmpty={Boolean(extras.promptBarSuggestions)}
-      socketConnectionState="connected"
+      socketConnectionState={extras.socketConnectionState ?? 'connected'}
     />,
   );
 }
@@ -122,6 +106,18 @@ function renderPromptBar(
 describe('AgentChatPromptBar', () => {
   beforeEach(() => {
     hasRenderableComposerTasksMock.mockReturnValue(false);
+  });
+
+  it.each([
+    { error: 'This approval expired. Prepare the action again.' },
+    { socketConnectionState: 'reconnecting' as const },
+  ])('does not shade the transcript above a composer notice: %s', (extras) => {
+    renderPromptBar(false, extras);
+
+    expect(document.querySelector('[data-composer-top-fade]')).toBeNull();
+    expect(
+      document.querySelector('[data-composer-prompt-slot]'),
+    ).toContainElement(screen.getByTestId('chat-input'));
   });
 
   it('keeps read-only threads from rendering a second generation surface', () => {

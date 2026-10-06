@@ -176,7 +176,7 @@ export function AgentChatEmptyState({
               className="w-full"
               layoutMode="inflow"
               maxWidth="full"
-              showTopFade
+              showTopFade={false}
               topContent={composerTopContent}
               zIndex={60}
             >
