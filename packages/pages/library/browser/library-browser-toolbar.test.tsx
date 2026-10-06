@@ -426,8 +426,14 @@ describe('LibraryBrowserToolbar', () => {
       expect(onTagsChange.mock.calls[0][0]).not.toContain('t25');
     });
 
-    it('offers tag management beside the filter', () => {
-      renderToolbar({ tagOptions });
+    it('offers tag management in the ghost action cluster', () => {
+      render(
+        <LibraryBrowserIconActions
+          isRefreshing={false}
+          onRefresh={vi.fn()}
+          onUpload={vi.fn()}
+        />,
+      );
 
       expect(
         screen.getByRole('button', { name: 'Manage tags' }),

@@ -132,9 +132,6 @@ export default function SectionTopbar({
                 {iconActionsPlacement === 'before-controls'
                   ? iconActionsNode
                   : null}
-                {iconActionsPlacement === 'before-controls'
-                  ? iconActionsNode
-                  : null}
                 {actions}
                 {iconActionsPlacement === 'after-controls'
                   ? iconActionsNode
@@ -198,6 +195,9 @@ export default function SectionTopbar({
               data-testid="section-topbar-actions"
               className="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-2"
             >
+              {iconActionsPlacement === 'before-controls'
+                ? iconActionsNode
+                : null}
               {actions}
               {iconActionsPlacement === 'after-controls'
                 ? iconActionsNode
