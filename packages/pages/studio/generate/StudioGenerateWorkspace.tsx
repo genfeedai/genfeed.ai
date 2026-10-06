@@ -1753,8 +1753,15 @@ export default function StudioGenerateWorkspace(): ReactElement {
         );
         const entry = resolveImageEditEntry({
           editPrimaryId: reference.item.id,
-          sourceAspectRatio: recipe.aspectRatio,
-          sourceModelKey: recipe.modelKey,
+          sourceAspectRatio: readImageEditSourceAspect({
+            height: ingredient.metadataHeight || ingredient.height,
+            recipeEditAspectRatio: ingredient.imageEdit?.aspectRatio,
+            width: ingredient.metadataWidth || ingredient.width,
+          }),
+          sourceModelKey: readImageEditSourceModel({
+            modelKey: recipe.modelKey,
+            recipeEditModel: ingredient.imageEdit?.model,
+          }),
         });
         applyTypeSettings('image-edit', entry.patch);
         if (entry.droppedAspectRatio) {

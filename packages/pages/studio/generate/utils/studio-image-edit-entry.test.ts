@@ -95,13 +95,31 @@ describe('readImageEditSourceAspect', () => {
     ).toBe('4:5');
   });
 
-  it('snaps pixel size onto the studio ladder when no ratio was stored', () => {
+  it('keeps 16:9 when the pixels match that ratio', () => {
     expect(
       readImageEditSourceAspect({
         height: 1080,
         width: 1920,
       }),
     ).toBe('16:9');
+  });
+
+  it('keeps the pixel size when it is not a selectable ratio', () => {
+    const aspectRatio = readImageEditSourceAspect({
+      height: 800,
+      width: 1920,
+    });
+
+    expect(aspectRatio).toBe('1920×800');
+    expect(
+      resolveImageEditEntry({
+        editPrimaryId: 'source-1',
+        sourceAspectRatio: aspectRatio,
+      }),
+    ).toMatchObject({
+      droppedAspectRatio: '1920×800',
+      patch: { aspectRatio: 'auto' },
+    });
   });
 });
 

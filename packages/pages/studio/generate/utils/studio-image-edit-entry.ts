@@ -1,10 +1,13 @@
 import {
+  FLUX_3_ASPECT_RATIOS,
   isFlux3AspectRatio,
   isImageEditModel,
 } from '@genfeedai/contracts/constants';
 import type { StudioGenerateSettings } from '@pages/studio/generate/types';
-import { resolveAspectRatioFromDimensions } from '@pages/studio/generate/utils/studio-generate-recipe';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
+
+/** Pixel rounding only. A nearer ladder entry is not the source ratio. */
+const ASPECT_MATCH_TOLERANCE = 0.01;
 
 export interface ImageEditEntrySource {
   editPrimaryId: string;
@@ -71,9 +74,52 @@ export function readImageEditSourceAspect(input: {
     input.width > 0 &&
     input.height > 0
   ) {
-    return resolveAspectRatioFromDimensions(input.width, input.height);
+    return (
+      selectableRatioForDimensions(input.width, input.height) ??
+      `${input.width}×${input.height}`
+    );
   }
   return undefined;
+}
+
+function ratioValue(aspectRatio: string): number | null {
+  const [rawHorizontal, rawVertical] = aspectRatio.split(':');
+  const horizontal = Number(rawHorizontal);
+  const vertical = Number(rawVertical);
+  if (
+    !Number.isFinite(horizontal) ||
+    !Number.isFinite(vertical) ||
+    horizontal <= 0 ||
+    vertical <= 0
+  ) {
+    return null;
+  }
+  return horizontal / vertical;
+}
+
+function selectableRatioForDimensions(
+  width: number,
+  height: number,
+): string | undefined {
+  const target = width / height;
+  let best: { distance: number; ratio: string } | undefined;
+  for (const ratio of FLUX_3_ASPECT_RATIOS) {
+    if (ratio === 'auto') {
+      continue;
+    }
+    const value = ratioValue(ratio);
+    if (value === null) {
+      continue;
+    }
+    const distance = Math.abs(value - target);
+    if (distance > ASPECT_MATCH_TOLERANCE) {
+      continue;
+    }
+    if (!best || distance < best.distance) {
+      best = { distance, ratio };
+    }
+  }
+  return best?.ratio;
 }
 
 export function readImageEditSourceModel(input: {

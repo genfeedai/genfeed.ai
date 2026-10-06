@@ -2757,6 +2757,62 @@ describe('StudioGenerateWorkspace', () => {
         'editImage.aspectRatioFallback',
       );
     });
+    it('matches the source pixels when they are not a selectable ratio', async () => {
+      mocks.searchParams.value = 'editImage=source-anamorphic';
+      mocks.findOne.mockImplementation(async (id: string) => ({
+        id,
+        brandId: 'brand-1',
+        category: 'IMAGE',
+        status: 'GENERATED',
+        cdnUrl: 'https://example.com/anamorphic.png',
+        promptText: 'Anamorphic',
+        width: 1920,
+        height: 800,
+      }));
+      render(<StudioGenerateWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+          'image-edit',
+          expect.objectContaining({
+            editPrimaryId: 'source-anamorphic',
+            aspectRatio: 'auto',
+          }),
+        ),
+      );
+      expect(mocks.applyTypeSettings).not.toHaveBeenCalledWith(
+        'image-edit',
+        expect.objectContaining({ aspectRatio: '21:9' }),
+      );
+      expect(mocks.notify).toHaveBeenCalledWith(
+        'editImage.aspectRatioFallback',
+      );
+    });
+    it('keeps an edit model stored only on the image-edit recipe', async () => {
+      mocks.searchParams.value = 'editImage=source-edited';
+      mocks.findOne.mockImplementation(async (id: string) => ({
+        id,
+        brandId: 'brand-1',
+        category: 'IMAGE',
+        status: 'GENERATED',
+        cdnUrl: 'https://example.com/edited.png',
+        promptText: 'Edited',
+        imageEdit: {
+          aspectRatio: '16:9',
+          model: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+        },
+      }));
+      render(<StudioGenerateWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+          'image-edit',
+          expect.objectContaining({
+            editPrimaryId: 'source-edited',
+            aspectRatio: '16:9',
+            modelKey: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+          }),
+        ),
+      );
+    });
     it('sends editing instructions without parsing skills or character mentions', async () => {
       mocks.type.value = 'image-edit';
       mocks.submit.mockResolvedValue(true);
