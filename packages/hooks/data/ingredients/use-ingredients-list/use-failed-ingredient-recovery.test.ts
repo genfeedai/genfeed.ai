@@ -2,7 +2,7 @@ import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { UseFailedIngredientRecoveryProps } from '@genfeedai/props/content/ingredient-recovery.props';
 import { useFailedIngredientRecovery } from '@hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -148,6 +148,34 @@ describe('Failed Library recovery operations', () => {
     await act(async () => mocks.confirm.mock.calls[0][0].onConfirm());
     expect(mocks.bulkDelete).not.toHaveBeenCalled();
     expect(mocks.warning).toHaveBeenCalledWith('scopeChanged');
+  });
+  it('does not refresh the previous brand when deletion finishes after navigation', async () => {
+    let resolveDelete:
+      | ((value: { deleted: string[]; failed: string[] }) => void)
+      | undefined;
+    mocks.bulkDelete.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveDelete = resolve;
+        }),
+    );
+    const { result, rerender } = renderHook(
+      (input) => useFailedIngredientRecovery(input),
+      { initialProps: props },
+    );
+    result.current.handleDeleteFailedIngredients(['a']);
+    let completion: Promise<void> | undefined;
+    act(() => {
+      completion = mocks.confirm.mock.calls[0][0].onConfirm();
+    });
+    await waitFor(() => expect(resolveDelete).toBeDefined());
+    rerender({ ...props, scopeKey: 'other-brand' });
+    await act(async () => {
+      resolveDelete?.({ deleted: ['a'], failed: [] });
+      await completion;
+    });
+    expect(props.setIngredients).not.toHaveBeenCalled();
+    expect(props.onRefresh).not.toHaveBeenCalled();
   });
   it('preserves saved scope, prompt, model and references on retry and skips input failures', async () => {
     props.ingredients = [

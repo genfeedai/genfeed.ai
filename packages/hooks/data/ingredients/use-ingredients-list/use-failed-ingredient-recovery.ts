@@ -121,19 +121,22 @@ export function useFailedIngredientRecovery({
                 logger.error('Failed to trash a batch of failed assets', error);
               }
             }
-            setIngredients((current) =>
-              current.filter((ingredient) => !deleted.has(ingredient.id)),
-            );
-            setSelectedIds((current) =>
-              current.filter((id) => !deleted.has(id)),
-            );
+            if (snapshotScope === currentScopeRef.current) {
+              setIngredients((current) =>
+                current.filter((ingredient) => !deleted.has(ingredient.id)),
+              );
+              setSelectedIds((current) =>
+                current.filter((id) => !deleted.has(id)),
+              );
+            }
             if (deleted.size > 0)
               notifications.success(t('deleted', { count: deleted.size }));
             const failedCount = snapshot.length - deleted.size;
             if (failedCount > 0)
               notifications.error(t('deleteFailed', { count: failedCount }));
             // Refresh broadcasts shelf counts and keeps server-authoritative survivors.
-            await onRefresh(true);
+            if (snapshotScope === currentScopeRef.current)
+              await onRefresh(true);
           } catch (error) {
             logger.error('Failed to delete failed Library assets', error);
             notifications.error(
@@ -255,7 +258,8 @@ export function useFailedIngredientRecovery({
               notifications.error(
                 t('retryFailed', { count: snapshot.length - started }),
               );
-            await onRefresh(true);
+            if (snapshotScope === currentScopeRef.current)
+              await onRefresh(true);
           } finally {
             finish();
           }
