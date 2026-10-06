@@ -1,6 +1,12 @@
 import { MARKETING_ASSETS } from '@data/marketing-assets.data';
 import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 
+// Both open agent integrations use the existing Genfeed creative-workspace illustration.
+const OPEN_AGENT_ARTWORK = {
+  alt: 'An open articulated precision silver gripper gently arranges an amber brief capsule and two campaign media frames on a dark workbench',
+  src: cdnAsset('/assets/branding/website/editorial/page-openclaw-v1.webp'),
+};
+
 export const PAGE_MARKETING_ASSETS = {
   '/about': MARKETING_ASSETS.creator,
   '/agent': MARKETING_ASSETS.integration,
@@ -258,10 +264,8 @@ export const PAGE_MARKETING_ASSETS = {
     alt: 'Two polished asymmetric optical lenses converge warm and cool beams onto a shared amber creative capsule, silver extension module connects them to photographic output',
     src: cdnAsset('/assets/branding/website/editorial/page-gemini-v1.webp'),
   },
-  '/openclaw': {
-    alt: 'An open articulated precision silver gripper gently arranges an amber brief capsule and two campaign media frames on a dark workbench',
-    src: cdnAsset('/assets/branding/website/editorial/page-openclaw-v1.webp'),
-  },
+  '/openclaw': OPEN_AGENT_ARTWORK,
+  '/hermes': OPEN_AGENT_ARTWORK,
   '/grok': {
     alt: 'An expressive angular smoked-glass conversational wave passes through a brushed-silver connector into sharply lit cinematic media frames',
     src: cdnAsset('/assets/branding/website/editorial/page-grok-v1.webp'),
