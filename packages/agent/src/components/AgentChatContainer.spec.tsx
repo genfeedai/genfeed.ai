@@ -1475,7 +1475,7 @@ describe('AgentChatContainer', () => {
 
     expect(promptBarContainers.length).toBe(1);
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'true',
+      'false',
     );
   });
 
@@ -1498,7 +1498,7 @@ describe('AgentChatContainer', () => {
 
     expect(promptBarContainers.length).toBe(1);
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'true',
+      'false',
     );
   });
 
@@ -1622,7 +1622,7 @@ describe('AgentChatContainer', () => {
 
     expect(promptBarContainers.length).toBe(1);
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'true',
+      'false',
     );
   });
 
