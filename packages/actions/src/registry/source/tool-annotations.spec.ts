@@ -63,13 +63,15 @@ describe('MCP tool annotations', () => {
   it('marks approval-required tools destructive and not read-only', () => {
     for (const tool of getToolsForSurface('mcp')) {
       if (!isApprovalRequiredToolName(tool.name)) continue;
-      // Draft create and source import add records; they do not overwrite or publish.
-      // Paid X reads require approval and stay non-destructive.
+      // Draft create, source import, and media transform add records; they do
+      // not overwrite or publish. Paid X reads require approval and stay
+      // non-destructive. transform_media is pinned in NON_DESTRUCTIVE_WRITE_NAMES.
       if (
         tool.name === 'create_post' ||
         tool.name === 'import_source_post' ||
         tool.name === 'get_x_posts' ||
-        tool.name === 'list_x_account_activity'
+        tool.name === 'list_x_account_activity' ||
+        tool.name === 'transform_media'
       ) {
         continue;
       }
