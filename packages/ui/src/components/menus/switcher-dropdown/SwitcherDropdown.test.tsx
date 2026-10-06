@@ -287,14 +287,10 @@ describe('SwitcherDropdown', () => {
 
     fireEvent.click(screen.getByText('Open'));
 
-    const alphaSettings = screen.getByRole('button', {
-      name: 'Open Alpha settings',
-    });
-    const betaSettings = screen.getByRole('button', {
-      name: 'Open Beta settings',
-    });
-    const alphaRow = alphaSettings.parentElement;
-    const betaRow = betaSettings.parentElement;
+    const alphaRow = screen.getByRole('option', {
+      name: /Alpha/,
+    }).parentElement;
+    const betaRow = screen.getByRole('option', { name: /Beta/ }).parentElement;
 
     // Active row: persistent selected wash + check
     expect(alphaRow).toHaveClass('bg-foreground/[0.08]');
@@ -349,14 +345,18 @@ describe('SwitcherDropdown', () => {
     expect(screen.getByText('No organizations')).toBeInTheDocument();
   });
 
-  it('does not render browser-default focus rings on footer actions', () => {
+  it('keeps a visible keyboard focus ring on footer actions', () => {
     renderDropdown({
       footerActions: [{ label: 'New Item', onAction: vi.fn() }],
     });
     fireEvent.click(screen.getByText('Open'));
-    expect(screen.getByRole('button', { name: /New Item/i })).toHaveClass(
-      'focus-visible:ring-0',
+    const footerAction = screen.getByRole('button', { name: /New Item/i });
+    expect(footerAction).toHaveClass(
+      'focus-visible:outline-none',
+      'focus-visible:ring-2',
+      'focus-visible:ring-ring',
     );
+    expect(footerAction).not.toHaveClass('focus-visible:ring-0');
   });
 
   it('disables interaction when isDisabled', () => {
