@@ -114,4 +114,27 @@ describe('Studio submit credit tooltip', () => {
       /~12\s*\/\s*5,397/,
     );
   });
+
+  it('focuses the busy summary from the keyboard and shows the estimate', async () => {
+    const user = userEvent.setup();
+    render(
+      <StudioGenerationSummary
+        label="Generate"
+        type="image"
+        isDisabled
+        estimate={{ status: 'estimated', credits: 12 }}
+      >
+        <Button isDisabled withWrapper={false}>
+          Generate
+        </Button>
+      </StudioGenerationSummary>,
+    );
+    const submit = screen.getByRole('button', { name: 'Generate' });
+    expect(submit).toBeDisabled();
+    await user.tab();
+    expect(screen.getByRole('group', { name: 'Generate' })).toHaveFocus();
+    expect(submit).toBeDisabled();
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip.textContent).toMatch(/~12\s*\/\s*5,397/);
+  });
 });

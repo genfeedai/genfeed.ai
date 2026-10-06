@@ -397,6 +397,11 @@ export default function StudioGenerateComposer({
       key: K,
       value: GenerationSetupValues[K],
     ) => {
+      // Type changes which Studio scope is active. The parent switches scopes
+      // through onTypeChange; writing it here clears this scope's preset first.
+      if (key === 'type') {
+        return;
+      }
       setGenerationSetupField(scope, key, value, defaults);
       if (
         key === 'modelKey' &&

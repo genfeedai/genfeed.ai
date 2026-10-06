@@ -2,6 +2,12 @@ import type {
   CrunInputControls,
   IModel,
 } from '@genfeedai/contracts/interfaces';
+import type {
+  GenerationSetup,
+  GenerationSetupFieldKey,
+  GenerationSetupValues,
+} from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import type { GenerationSetupFieldSetter } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
 import { getDefaultStudioGenerateSettings } from '@pages/studio/generate/utils/studio-generate-settings';
 
@@ -39,6 +45,7 @@ import {
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
+import { isStudioGenerateType } from '@pages/studio/generate/utils/studio-generate-types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
@@ -254,6 +261,7 @@ describe('StudioGenerateComposer', () => {
     runtimeMocks.snapshot = { status: 'web', context: null };
     storeMocks.setupByScope = {};
     storeMocks.reasonsByScope = {};
+    storeMocks.setField.mockReset();
     Object.assign(walletMocks, {
       balance: 120,
       isLoaded: true,
@@ -458,6 +466,132 @@ describe('StudioGenerateComposer', () => {
         }
       ).hasIdentity,
     ).toBe(false);
+  });
+
+  it('keeps the pinned image preset when the type panel switches Studio mode', async () => {
+    const actual = await vi.importActual<
+      typeof import('@ui/dropdowns/generation-setup/generation-setup.store')
+    >('@ui/dropdowns/generation-setup/generation-setup.store');
+    const scope = actual.buildStudioGenerationSetupScope('image');
+    const defaults = getDefaultGenerationSetupValues('image');
+    window.localStorage.removeItem(actual.GENERATION_SETUP_STORAGE_KEY);
+    try {
+      await actual.useGenerationSetupStore.persist.rehydrate();
+      actual.useGenerationSetupStore.setState({
+        reasonsByScope: {},
+        setupByScope: {},
+      });
+      actual.applyGenerationSetupPreset(
+        scope,
+        'preset-image',
+        {
+          aspectRatio: '16:9',
+          modelKey: 'studio/preset-model',
+          outputs: 4,
+        },
+        defaults,
+      );
+      const seeded =
+        actual.useGenerationSetupStore.getState().setupByScope[scope];
+      if (!seeded?.presetId) {
+        throw new Error('Expected the image scope to keep its preset');
+      }
+      const expectedSetup: GenerationSetup = {
+        presetId: seeded.presetId,
+        sources: { ...seeded.sources },
+        values: { ...seeded.values },
+      };
+      expect(expectedSetup).toMatchObject({
+        presetId: 'preset-image',
+        values: {
+          aspectRatio: '16:9',
+          modelKey: 'studio/preset-model',
+          outputs: 4,
+          type: 'image',
+        },
+      });
+      storeMocks.setupByScope = { [scope]: expectedSetup };
+      storeMocks.setField.mockImplementation(
+        (
+          fieldScope: string,
+          key: GenerationSetupFieldKey,
+          value: GenerationSetupValues[GenerationSetupFieldKey],
+          fieldDefaults: GenerationSetupValues,
+        ) => {
+          if (key !== 'type' || !isStudioGenerateType(value)) {
+            return;
+          }
+          actual.setGenerationSetupField(
+            fieldScope,
+            'type',
+            value,
+            fieldDefaults,
+          );
+          storeMocks.setupByScope = {
+            ...actual.useGenerationSetupStore.getState().setupByScope,
+          };
+        },
+      );
+
+      const onTypeChange = vi.fn();
+      const view = render(
+        <StudioGenerateComposer
+          {...baseProps}
+          onTypeChange={onTypeChange}
+          prompt="A product photo"
+          settings={settings}
+          type="image"
+        />,
+      );
+      const props = generationSetupPopoverMocks.props as {
+        onSetField: GenerationSetupFieldSetter;
+        onTypeChange: (type: GenerationSetupValues['type']) => void;
+        setup: GenerationSetup;
+      };
+      expect(props.setup.presetId).toBe('preset-image');
+      expect(props.setup.values.aspectRatio).toBe('16:9');
+      expect(props.setup.values.modelKey).toBe('studio/preset-model');
+      expect(props.setup.values.outputs).toBe(4);
+
+      props.onSetField('type', 'video');
+      props.onTypeChange('video');
+      view.rerender(
+        <StudioGenerateComposer
+          {...baseProps}
+          onTypeChange={onTypeChange}
+          prompt="A product photo"
+          settings={settings}
+          type="image"
+        />,
+      );
+
+      const preserved =
+        actual.useGenerationSetupStore.getState().setupByScope[scope];
+      expect(preserved).toEqual(expectedSetup);
+      expect(preserved?.presetId).toBe('preset-image');
+      expect(preserved?.values).toEqual(expectedSetup.values);
+      expect(preserved?.values.type).toBe('image');
+      expect(preserved?.values.modelKey).toBe('studio/preset-model');
+      expect(preserved?.values.aspectRatio).toBe('16:9');
+      expect(preserved?.values.outputs).toBe(4);
+      const outgoing = generationSetupPopoverMocks.props as {
+        setup: GenerationSetup;
+      };
+      expect(outgoing.setup.presetId).toBe('preset-image');
+      expect(outgoing.setup.values.modelKey).toBe('studio/preset-model');
+      expect(outgoing.setup.values.aspectRatio).toBe('16:9');
+      expect(outgoing.setup.values.outputs).toBe(4);
+      expect(outgoing.setup.values.type).toBe('image');
+      expect(onTypeChange).toHaveBeenCalledOnce();
+      expect(onTypeChange).toHaveBeenCalledWith('video');
+    } finally {
+      storeMocks.setField.mockReset();
+      actual.useGenerationSetupStore.setState({
+        reasonsByScope: {},
+        setupByScope: {},
+      });
+      window.localStorage.removeItem(actual.GENERATION_SETUP_STORAGE_KEY);
+    }
   });
 
   it('shows the Identity chip only for identity-capable types', () => {

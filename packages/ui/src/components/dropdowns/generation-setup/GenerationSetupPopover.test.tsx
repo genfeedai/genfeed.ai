@@ -350,29 +350,31 @@ function createSetup(
 function renderPopover(
   overrides: Partial<React.ComponentProps<typeof GenerationSetupPopover>> = {},
 ) {
-  return render(
-    <GenerationSetupPopover
-      capabilities={capabilities}
-      favoriteModelKeys={[]}
-      lookOptions={{}}
-      models={[
-        createModel({ key: 'google/nano-banana', label: 'Nano Banana' }),
-      ]}
-      onApplyPreset={vi.fn()}
-      onClearPreset={vi.fn()}
-      onFavoriteToggle={vi.fn()}
-      onResetAll={vi.fn()}
-      onResetField={vi.fn()}
-      onSavePreset={vi.fn()}
-      onSetField={vi.fn()}
-      presets={[]}
-      reasons={{}}
-      scopeKey="scope-1"
-      setup={createSetup()}
-      typeOptions={typeOptions}
-      {...overrides}
-    />,
-  );
+  return render(<GenerationSetupPopover {...popoverProps(overrides)} />);
+}
+
+function popoverProps(
+  overrides: Partial<React.ComponentProps<typeof GenerationSetupPopover>> = {},
+): React.ComponentProps<typeof GenerationSetupPopover> {
+  return {
+    capabilities,
+    favoriteModelKeys: [],
+    lookOptions: {},
+    models: [createModel({ key: 'google/nano-banana', label: 'Nano Banana' })],
+    onApplyPreset: vi.fn(),
+    onClearPreset: vi.fn(),
+    onFavoriteToggle: vi.fn(),
+    onResetAll: vi.fn(),
+    onResetField: vi.fn(),
+    onSavePreset: vi.fn(),
+    onSetField: vi.fn(),
+    presets: [],
+    reasons: {},
+    scopeKey: 'scope-1',
+    setup: createSetup(),
+    typeOptions,
+    ...overrides,
+  };
 }
 
 async function openPopover(user: ReturnType<typeof userEvent.setup>) {
@@ -589,5 +591,43 @@ describe('GenerationSetupPopover', () => {
     expect(
       screen.getByRole('button', { name: 'Configure Presets' }),
     ).toBeInTheDocument();
+  });
+
+  it('disables preset deletion while presets are loading and deletes once they load', async () => {
+    const user = userEvent.setup();
+    const onApplyPreset = vi.fn();
+    const onDeletePreset = vi.fn();
+    const preset = createPreset({ id: 'preset-1', label: 'Studio Look' });
+    const overrides = {
+      isPresetsLoading: true,
+      onApplyPreset,
+      onDeletePreset,
+      presets: [preset],
+    };
+    const view = renderPopover(overrides);
+    await openPopover(user);
+    await user.click(screen.getByRole('button', { name: 'Configure Presets' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Loading presets');
+    const deletePreset = screen.getByRole('button', {
+      name: 'Delete preset Studio Look',
+    });
+    expect(deletePreset).toBeDisabled();
+    await user.click(deletePreset);
+    expect(onDeletePreset).not.toHaveBeenCalled();
+    expect(onApplyPreset).not.toHaveBeenCalled();
+
+    view.rerender(
+      <GenerationSetupPopover
+        {...popoverProps({ ...overrides, isPresetsLoading: false })}
+      />,
+    );
+    const loadedDelete = screen.getByRole('button', {
+      name: 'Delete preset Studio Look',
+    });
+    expect(loadedDelete).toBeEnabled();
+    await user.click(loadedDelete);
+    expect(onDeletePreset).toHaveBeenCalledOnce();
+    expect(onDeletePreset).toHaveBeenCalledWith('preset-1');
+    expect(onApplyPreset).not.toHaveBeenCalled();
   });
 });
