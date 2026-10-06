@@ -100,7 +100,11 @@ export default function GenerationSetupFrontDoor({
           >
             <SelectValue placeholder="Type" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent
+            side="top"
+            avoidCollisions={false}
+            className="max-h-[min(384px,var(--radix-select-content-available-height,50vh))]"
+          >
             {typeOptions.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}

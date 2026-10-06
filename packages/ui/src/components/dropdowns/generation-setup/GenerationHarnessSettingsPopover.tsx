@@ -48,6 +48,7 @@ export default function GenerationHarnessSettingsPopover({
       <PopoverContent
         align="start"
         side="top"
+        avoidCollisions={false}
         className="w-[min(360px,calc(100vw-2rem))] p-0"
       >
         {isOpen && !isDisabled ? <SettingsContent /> : null}

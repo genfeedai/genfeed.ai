@@ -52,10 +52,11 @@ export default function GenerationSetupOptionPicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        align="start"
-        side="right"
+        align="end"
+        side="top"
+        avoidCollisions={false}
         sideOffset={8}
-        className="w-60 p-0"
+        className="w-[min(240px,calc(100vw-2rem))] p-0"
       >
         <Command
           label={`Search ${label.toLowerCase()}`}
@@ -67,7 +68,7 @@ export default function GenerationSetupOptionPicker({
             aria-label={`Search ${label.toLowerCase()}`}
             placeholder={`Search ${label.toLowerCase()}…`}
           />
-          <CommandList>
+          <CommandList className="max-h-[min(256px,var(--radix-popover-content-available-height,50vh))]">
             <CommandEmpty>No matches</CommandEmpty>
             {options.map((option) => (
               <CommandItem

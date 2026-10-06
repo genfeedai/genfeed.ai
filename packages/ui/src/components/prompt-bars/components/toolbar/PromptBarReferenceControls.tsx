@@ -99,7 +99,12 @@ export default function PromptBarReferenceControls({
             {label}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56" side="top">
+        <DropdownMenuContent
+          align="start"
+          avoidCollisions={false}
+          className="w-56"
+          side="top"
+        >
           <DropdownMenuLabel>
             {label ?? translate('addContext')}
           </DropdownMenuLabel>
