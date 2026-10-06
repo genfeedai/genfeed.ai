@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonVariant, ComponentSize, PageScope } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+  PageScope,
+} from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import type { ModelsListProps } from '@props/admin/models.props';
 import type { TableAction } from '@props/ui/display/table.props';
@@ -202,7 +207,7 @@ export default function ModelsList({
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant={ButtonVariant.GHOST}
-                          size="icon"
+                          size={ButtonSize.ICON}
                           aria-label={`More options for ${model.label}`}
                         >
                           <MoreHorizontal />

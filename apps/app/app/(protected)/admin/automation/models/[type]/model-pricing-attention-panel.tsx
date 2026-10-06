@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/contracts';
 import type {
   AdminModelPricingRow,
   ModelPricingAttentionLevel,
@@ -65,7 +66,7 @@ export default function ModelPricingAttentionPanel() {
             </ul>
             {red.length > 5 ? (
               <Button
-                variant="ghost"
+                variant={ButtonVariant.GHOST}
                 className="mt-2"
                 aria-expanded={isRedExpanded}
                 onClick={() => setIsRedExpanded(!isRedExpanded)}
@@ -97,7 +98,7 @@ export default function ModelPricingAttentionPanel() {
             </ul>
             {orange.length > 5 ? (
               <Button
-                variant="ghost"
+                variant={ButtonVariant.GHOST}
                 className="mt-2"
                 aria-expanded={isOrangeExpanded}
                 onClick={() => setIsOrangeExpanded(!isOrangeExpanded)}
