@@ -143,6 +143,8 @@ COPY tsconfig.json tsconfig.server.decorators.json webpack.base.config.js ./
 COPY configs/ configs/
 COPY packages/ packages/
 COPY apps/server/ apps/server/
+# Standalone MCP previews consume the shared UI host catalog during bundling.
+COPY apps/app/messages/en/ui.json apps/app/messages/en/ui.json
 
 # Build the shared packages that downstream project references resolve through
 # package exports before the parallel batch. A clean Docker context has no host
