@@ -405,6 +405,12 @@ const UI_TEST_MESSAGES = {
   },
   pages: {
     library: {
+      review: {
+        approve: 'Approve asset',
+        reject: 'Reject asset',
+        label: 'Review asset',
+        saveFailed: 'Could not save your review. Try again.',
+      },
       browser: {
         columns: {
           asset: 'Asset',
