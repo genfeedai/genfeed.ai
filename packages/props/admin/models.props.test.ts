@@ -29,6 +29,18 @@ describe('admin catalog filters', () => {
       statuses: ['inactive'],
     });
   });
+  it('preserves the supported categories of legacy Other links', () => {
+    expect(
+      resolveAdminModelFilters(new URLSearchParams(), 'other').categories,
+    ).toEqual([
+      'text',
+      'image-edit',
+      'video-edit',
+      'image-upscale',
+      'video-upscale',
+      'voice',
+    ]);
+  });
   it('preserves legacy links and supports clearing the Active default', () => {
     expect(
       resolveAdminModelFilters(new URLSearchParams(), 'active').statuses,

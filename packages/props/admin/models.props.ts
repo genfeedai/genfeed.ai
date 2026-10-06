@@ -56,9 +56,12 @@ export function resolveAdminModelFilters(
     categories.push(legacyType);
   if (!params.has('category') && legacyType === 'other')
     categories.push(
-      ...Object.values(ModelCategory).filter(
-        (value) => !['image', 'video', 'music', 'text'].includes(value),
-      ),
+      ModelCategory.TEXT,
+      ModelCategory.IMAGE_EDIT,
+      ModelCategory.VIDEO_EDIT,
+      ModelCategory.IMAGE_UPSCALE,
+      ModelCategory.VIDEO_UPSCALE,
+      ModelCategory.VOICE,
     );
   const providers = params
     .getAll('provider')
