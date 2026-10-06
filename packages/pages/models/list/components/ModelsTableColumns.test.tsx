@@ -211,7 +211,7 @@ describe('buildModelsTableColumns', () => {
       buildModel({ cost: 0, costTier: undefined, isFree: true }),
     );
 
-    expect(screen.getByText('0 credits')).toBeInTheDocument();
+    expect(screen.getByText('Unresolved')).toBeInTheDocument();
     expect(screen.getByText('Free')).toBeInTheDocument();
   });
 
