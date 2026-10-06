@@ -1,4 +1,4 @@
-import type { CaptureContext } from '@sentry/nextjs';
+import type { CaptureContext } from '@sentry/browser';
 
 /**
  * Reports the logger raised in the browser before Sentry had a client.

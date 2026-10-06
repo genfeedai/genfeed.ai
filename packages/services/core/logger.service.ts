@@ -6,7 +6,7 @@
  * transports). Backend services must NOT import this file; they inject the
  * winston LoggerService. One logger per runtime; do not add a third.
  */
-import * as Sentry from '@sentry/nextjs';
+import * as Sentry from '@sentry/browser';
 import pino, { type Logger as PinoLogger } from 'pino';
 import { holdSentryReport } from './sentry-held-reports';
 

@@ -1,0 +1,9 @@
+@import "../../../../../packages/styles/globals.css";
+@source "./preview-client.tsx";
+@source "../../../../../packages/ui/src/primitives";
+@source "../../../../../packages/ui/src/components/card";
+@source "../../../../../packages/ui/src/components/display/skeleton";
+@source "../../../../../packages/ui/src/components/typography";
+
+@source "../../../../../packages/ui/src/components/audio";
+@source "../../../../../packages/ui/src/components/display/video-player";

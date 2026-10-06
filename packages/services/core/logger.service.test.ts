@@ -20,7 +20,7 @@ const {
   mockPinoWarn: vi.fn(),
 }));
 
-vi.mock('@sentry/nextjs', () => ({
+vi.mock('@sentry/browser', () => ({
   captureException: mockCaptureException,
   captureMessage: mockCaptureMessage,
   getClient: mockGetClient,

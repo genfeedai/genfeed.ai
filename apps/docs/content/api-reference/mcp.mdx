@@ -445,11 +445,13 @@ MCP Apps hosts can render Genfeed content directly in the conversation:
 - **Article cards and usage summaries.**
 
 The MCP server serves a self-contained HTML resource at
-`ui://genfeed/content-cards-v4.html` with MIME type
+`ui://genfeed/content-cards-v5.html` with MIME type
 `text/html;profile=mcp-app`. Selected tool descriptors link it through
 `_meta.ui.resourceUri`. They also carry the legacy `ui/resourceUri` key and the
 ChatGPT `openai/outputTemplate` alias. The widget uses the standard MCP Apps
 JSON-RPC bridge, and its only tool call is the read-only `get_job_status`.
+The resource bundles Genfeed's shared Card, Button, Badge, typography, media
+players and Dialog components with the product stylesheet and embedded Satoshi.
 No separate ChatGPT frontend deployment is needed.
 
 Text and media resource links remain available to clients without MCP Apps.

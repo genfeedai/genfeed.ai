@@ -1,4 +1,4 @@
-import { staticSurfaceCss } from '@genfeedai/ui/static/surface';
+import { staticSurfaceFontCss } from '@genfeedai/ui/static/font';
 import { cardAppScript } from '@mcp/ui/card-app-script';
 import { CARD_APP_STYLES } from '@mcp/ui/card-app-styles';
 import {
@@ -32,10 +32,8 @@ function cardHtml(resourceDomains: string[]): string {
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Genfeed content</title><style>
-${staticSurfaceCss}
+${staticSurfaceFontCss}
 ${CARD_APP_STYLES}
-</style></head><body class="gf-ui"><header><h1 id="title">Genfeed content</h1><span class="brand">GENFEED</span></header>
-<div id="summary" class="summary"></div>
-<p id="notice" class="notice" role="status" aria-live="polite">Loading content…</p><main id="cards" aria-label="Content cards"></main><footer id="footer" class="notice"></footer>
+</style></head><body class="gf-app"><main id="app" aria-label="Content cards"></main>
 <script>${cardAppScript(resourceDomains)}</script></body></html>`;
 }

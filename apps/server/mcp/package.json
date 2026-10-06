@@ -10,11 +10,16 @@
     "posthog-node": "5.55.0",
     "tsconfig-paths": "4.2.0",
     "@genfeedai/contracts": "workspace:*",
-    "@genfeedai/agent": "workspace:*"
+    "@genfeedai/agent": "workspace:*",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@types/jsdom": "^30.0.0",
-    "jsdom": "29.1.1"
+    "jsdom": "29.1.1",
+    "esbuild": "0.28.2",
+    "postcss": "8.5.28",
+    "@tailwindcss/postcss": "4.3.3"
   },
   "description": "Genfeed MCP Server",
   "main": "../dist/apps/mcp/main.js",
@@ -37,7 +42,7 @@
     "test:cov": "vitest run --coverage --config vitest.config.ts",
     "test:e2e": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",
-    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit -p tsconfig.typecheck.json",
+    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit -p tsconfig.typecheck.json && tsc --noEmit -p tsconfig.preview.json",
     "dev:process": "NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" bun run ../../../scripts/dev/run-service.ts mcp -- bash -lc 'cd .. && nest start mcp --watch'",
     "dev:debug": "bun run dev:process"
   },

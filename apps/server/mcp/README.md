@@ -50,6 +50,13 @@ tenant, appropriate provider credentials, and explicit authorization for any
 cost or external effect. A local SDK client avoids the cloud connector's
 production endpoint and cached tool list.
 
+## Preview UI
+
+The inline preview bundles the existing shared React UI components, including
+Card, Button, Badge, Avatar, Collapsible, Dialog, Progress, Text and Heading.
+The Tailwind stylesheet and embedded Satoshi font are shared product assets.
+Widget layout uses shared utilities; it must not recreate component styling.
+
 ## Toolsets
 
 `tools/list` can return ~120 tools (tens of thousands of tokens), which is

@@ -10,7 +10,7 @@ import type {
 } from '@mcp/shared/interfaces/mcp-app.interface';
 
 // Bump the version whenever the view changes: hosts cache templates by URI.
-export const MCP_CARD_RESOURCE_URI = 'ui://genfeed/content-cards-v4.html';
+export const MCP_CARD_RESOURCE_URI = 'ui://genfeed/content-cards-v5.html';
 export const MCP_APP_MIME_TYPE = 'text/html;profile=mcp-app';
 
 /** Statuses of a media job that has not produced its output yet. */

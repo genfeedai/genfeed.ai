@@ -314,7 +314,7 @@ describe('MCP Apps card contract', () => {
     );
     if (!tool) throw new Error('Missing generate');
 
-    expect(MCP_CARD_RESOURCE_URI).toBe('ui://genfeed/content-cards-v4.html');
+    expect(MCP_CARD_RESOURCE_URI).toBe('ui://genfeed/content-cards-v5.html');
     expect(withCardMetadata(tool)._meta).toMatchObject({
       'openai/outputTemplate': MCP_CARD_RESOURCE_URI,
       'openai/toolInvocation/invoked': 'Media ready',

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+
 import { testId } from '@helpers/testing/test-id.helper';
 import { cardResource } from '@mcp/ui/card-app';
 import { buildCardView } from '@mcp/ui/card-data';
@@ -23,6 +24,14 @@ function result(name: string, data: unknown) {
 }
 
 beforeEach(() => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
   vi.useFakeTimers();
   vi.stubGlobal('requestAnimationFrame', () => 1);
   vi.stubGlobal('cancelAnimationFrame', () => undefined);
@@ -96,7 +105,7 @@ it('renders post content as text and ignores messages from other windows', () =>
   message('ui/notifications/tool-result', payload, {} as Window);
   expect(document.querySelector('article')).toBeNull();
   message('ui/notifications/tool-result', payload);
-  expect(document.querySelector('h2')?.textContent).toContain('<img');
+  expect(document.querySelector('h3')?.textContent).toContain('<img');
   expect(document.querySelector('article img')).toBeNull();
   expect(document.querySelector('article script')).toBeNull();
 });
@@ -116,12 +125,14 @@ it('renders image, video and audio controls using allowed origins', () => {
       status: 'COMPLETED',
     },
   ]);
-  expect(document.querySelector('video')?.controls).toBe(true);
+  expect(
+    document.querySelector('button[aria-label="Play video"]'),
+  ).not.toBeNull();
   expect(document.querySelector('video')?.autoplay).toBe(false);
   result('list_assets', [
     { id: 'audio', category: 'MUSIC', url: 'https://cdn.genfeed.ai/music.mp3' },
   ]);
-  expect(document.querySelector('audio')?.controls).toBe(true);
+  expect(document.querySelector('button[aria-label^="Play "]')).not.toBeNull();
 });
 
 it('shows every generated caption in the existing post grid as safe text', () => {
@@ -132,11 +143,13 @@ it('shows every generated caption in the existing post grid as safe text', () =>
       { content: '<img src=x onerror=alert(1)> Second caption' },
     ],
   });
-  expect(document.querySelector('#cards')?.className).toBe('posts');
+  expect(document.querySelector('#cards')?.classList.contains('posts')).toBe(
+    true,
+  );
   expect(document.querySelectorAll('article.post')).toHaveLength(2);
   expect(
     Array.from(
-      document.querySelectorAll('article.post h2'),
+      document.querySelectorAll('article.post h3'),
       (node) => node.textContent,
     ),
   ).toEqual(['Variation 1', 'Variation 2']);
@@ -149,7 +162,28 @@ it('shows every generated caption in the existing post grid as safe text', () =>
   expect(document.querySelector('article img')).toBeNull();
 });
 
-it('presents completed images without tool headings or opaque metadata', () => {
+it('uses shared cards, badges, typography and the embedded product font', () => {
+  result('generate_content', {
+    content: 'A product caption',
+    platform: 'instagram',
+    status: 'draft',
+  });
+  const card = document.querySelector('article.post');
+  expect(
+    card
+      ?.querySelector('[data-testid="preview-card"]')
+      ?.classList.contains('shadow-border'),
+  ).toBe(true);
+  expect(card?.querySelector('.status')?.textContent).toBe('draft');
+  expect(
+    card?.querySelector('.description')?.classList.contains('text-sm'),
+  ).toBe(true);
+  expect(cardResource().text).toContain('@font-face');
+  expect(cardResource().text).toContain('data:font/woff2;base64,');
+  expect(cardResource().text).toContain('--font-satoshi: "Satoshi"');
+});
+
+it('presents completed images without tool headings or opaque metadata', async () => {
   const imageId = testId('image');
   result('get_job_status', {
     category: 'IMAGE',
@@ -160,16 +194,17 @@ it('presents completed images without tool headings or opaque metadata', () => {
   });
 
   expect(document.querySelector('header')?.hidden).toBe(true);
-  expect(document.querySelector('.media-card h2')?.textContent).toBe('Image');
+  expect(document.querySelector('.media-card h3')?.textContent).toBe('Image');
   expect(document.querySelector('article')?.textContent).not.toContain(imageId);
   expect(document.querySelector('article time')).toBeNull();
   expect(document.querySelector('article .meta')).toBeNull();
   expect(document.querySelector('article a')?.textContent).toBe('Open image ↗');
   document.querySelector<HTMLButtonElement>('.media-actions button')?.click();
+  await vi.advanceTimersByTimeAsync(0);
   expect(document.querySelector('[role="dialog"] img')).not.toBeNull();
 });
 
-it('keeps media descriptions available on demand and restores other layouts', () => {
+it('keeps media descriptions available on demand and restores other layouts', async () => {
   result('get_job_status', {
     category: 'IMAGE',
     description: 'A logo on a white background',
@@ -177,11 +212,14 @@ it('keeps media descriptions available on demand and restores other layouts', ()
     status: 'GENERATED',
     url: 'https://cdn.genfeed.ai/logo.jpg',
   });
-  expect(document.querySelector('h2')?.textContent).toBe('Genfeed logo');
-  expect(
-    document.querySelector<HTMLDetailsElement>('article details')?.open,
-  ).toBe(false);
-  expect(document.querySelector('article details')?.textContent).toContain(
+  expect(document.querySelector('h3')?.textContent).toBe('Genfeed logo');
+  const details = document.querySelector<HTMLButtonElement>(
+    'article button[aria-expanded]',
+  );
+  expect(details?.getAttribute('aria-expanded')).toBe('false');
+  details?.click();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(document.querySelector('article')?.textContent).toContain(
     'A logo on a white background',
   );
   result('get_posts', { posts: [{ label: 'Launch' }] });
@@ -190,7 +228,7 @@ it('keeps media descriptions available on demand and restores other layouts', ()
   expect(document.querySelector('article.post')).not.toBeNull();
 });
 
-it('keeps a visible fallback when an attached post image fails', () => {
+it('keeps a visible fallback when an attached post image fails', async () => {
   result('get_posts', {
     posts: [
       {
@@ -200,6 +238,7 @@ it('keeps a visible fallback when an attached post image fails', () => {
     ],
   });
   document.querySelector('article img')?.dispatchEvent(new Event('error'));
+  await vi.advanceTimersByTimeAsync(0);
   expect(document.querySelector('article .notice')?.textContent).toContain(
     'Preview unavailable',
   );
@@ -213,12 +252,13 @@ it('does not promise automatic updates when a pending job has no ID', () => {
   expect(document.querySelector('.bar.indeterminate')).toBeNull();
 });
 
-it('uses open-link for external media without loading unapproved origins', () => {
+it('uses open-link for external media without loading unapproved origins', async () => {
   result('list_assets', [
     { category: 'IMAGE', url: 'https://external.example/image.png' },
   ]);
   expect(document.querySelector('img')).toBeNull();
   document.querySelector('a')?.click();
+  await vi.advanceTimersByTimeAsync(0);
   expect(window.parent.postMessage).toHaveBeenCalledWith(
     expect.objectContaining({
       method: 'ui/open-link',
@@ -246,7 +286,9 @@ it('replaces content on empty, error and approval results', () => {
 
 it('shows long article text, usage zeroes, and truncated list counts', () => {
   result('get_articles', { title: 'Article', content: 'a'.repeat(900) });
-  expect(document.querySelector('summary')?.textContent).toBe('Read more');
+  expect(document.querySelector('button[aria-expanded]')?.textContent).toBe(
+    'Read more',
+  );
   result('get_account', { usage: { currentBalance: 0 } });
   expect(document.querySelector('.metric')?.textContent).toBe('0');
   result(
@@ -283,6 +325,7 @@ it('reports host open-link failures returned as results', async () => {
     { category: 'IMAGE', url: 'https://external.example/image.png' },
   ]);
   document.querySelector('a')?.click();
+  await vi.advanceTimersByTimeAsync(0);
   window.dispatchEvent(
     new MessageEvent('message', {
       source: window.parent,
@@ -343,7 +386,9 @@ it('renders the content calendar with gap days and draft counts', () => {
     ],
   });
 
-  expect(document.getElementById('cards')?.className).toBe('calendar');
+  expect(document.getElementById('cards')?.classList.contains('calendar')).toBe(
+    true,
+  );
   const days = document.querySelectorAll('section.day');
   expect(days).toHaveLength(2);
   expect(days[0]?.querySelector('.slot p')?.textContent).toBe('<b>Launch</b>');
@@ -377,7 +422,7 @@ it('renders posts as a social preview with platform, status and media', () => {
   expect(post?.querySelector('.description')?.textContent).toBe('Hello world');
 });
 
-it('opens images in a lightbox and closes it with Escape', () => {
+it('opens images in a lightbox and closes it with Escape', async () => {
   result('list_assets', [
     {
       category: 'IMAGE',
@@ -388,6 +433,7 @@ it('opens images in a lightbox and closes it with Escape', () => {
   ]);
   const zoom = document.querySelector<HTMLElement>('button.zoom');
   zoom?.click();
+  await vi.advanceTimersByTimeAsync(0);
 
   const dialog = document.querySelector('[role="dialog"]');
   expect(dialog?.getAttribute('aria-modal')).toBe('true');
@@ -395,6 +441,7 @@ it('opens images in a lightbox and closes it with Escape', () => {
     'https://cdn.genfeed.ai/hero.png',
   );
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  await vi.advanceTimersByTimeAsync(0);
   expect(document.querySelector('[role="dialog"]')).toBeNull();
   expect(document.activeElement).toBe(zoom);
 });
@@ -525,8 +572,8 @@ it('files calendar posts under the viewer-local day of their time', () => {
   const column = Array.from(document.querySelectorAll('section.day')).find(
     (day) => day.textContent?.includes('Late post'),
   );
-  expect(column?.querySelector('.day-head strong')?.textContent).toBe(label);
-  expect(column?.querySelector('.slot .meta')?.textContent).toContain(
+  expect(column?.querySelector('h3')?.textContent).toContain(label);
+  expect(column?.querySelector('.slot span')?.textContent).toContain(
     local.toLocaleString(undefined, { timeStyle: 'short' }),
   );
 });
@@ -563,7 +610,7 @@ it('shows post attachments and plays attached media that carries a URL', () => {
     document.querySelectorAll('article.post'),
   );
   expect(
-    Array.from(carousel?.querySelectorAll('.attachments .pill') ?? []).map(
+    Array.from(carousel?.querySelectorAll('.attachments > span') ?? []).map(
       (pill) => pill.textContent,
     ),
   ).toEqual(['Image ×2', 'Video']);
@@ -572,14 +619,17 @@ it('shows post attachments and plays attached media that carries a URL', () => {
   );
 });
 
-it('keeps keyboard focus inside the lightbox and makes the page inert', () => {
+it('keeps keyboard focus inside the shared dialog and hides the background', async () => {
   result('list_assets', [
     { category: 'IMAGE', id: 'img', url: 'https://cdn.genfeed.ai/hero.png' },
   ]);
   document.querySelector<HTMLElement>('button.zoom')?.click();
+  await vi.advanceTimersByTimeAsync(0);
   const close = document.querySelector<HTMLElement>('.lightbox .close');
 
-  expect(document.getElementById('cards')?.hasAttribute('inert')).toBe(true);
+  expect(
+    document.getElementById('cards')?.closest('[aria-hidden="true"]'),
+  ).not.toBeNull();
   document.dispatchEvent(
     new KeyboardEvent('keydown', {
       key: 'Tab',
@@ -589,7 +639,10 @@ it('keeps keyboard focus inside the lightbox and makes the page inert', () => {
   );
   expect(document.activeElement).toBe(close);
   close?.click();
-  expect(document.getElementById('cards')?.hasAttribute('inert')).toBe(false);
+  await vi.advanceTimersByTimeAsync(0);
+  expect(
+    document.getElementById('cards')?.closest('[aria-hidden="true"]'),
+  ).toBeNull();
 });
 
 it('says when it stops polling a job that never finishes', async () => {
