@@ -47,14 +47,14 @@ vi.mock('@hooks/utils/use-setup-card/use-setup-card', () => ({
     steps: [
       {
         description: 'Choose what you want to create',
-        href: '/settings/brands',
+        href: '/acme/~/settings/brands',
         isCompleted: false,
         key: 'preferences',
         label: 'Content types',
       },
       {
         description: 'Connect Instagram, TikTok, etc.',
-        href: '/settings/api-keys',
+        href: '/acme/coffee/settings/connected-accounts',
         isCompleted: true,
         key: 'platforms',
         label: 'Social accounts',
@@ -179,9 +179,18 @@ describe('SettingsProgressPage', () => {
     expect(
       screen.queryByText('Keep setup lean. Keep streaks optional.'),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /finish content types/i }),
-    ).toHaveAttribute('href', '/acme/~/settings/brands');
+    const finishContentTypes = screen.getAllByRole('link', {
+      name: /finish content types/i,
+    });
+    expect(finishContentTypes).toHaveLength(1);
+    expect(finishContentTypes[0]).toHaveAttribute(
+      'href',
+      '/acme/~/settings/brands',
+    );
+    expect(screen.getByRole('link', { name: 'Review' })).toHaveAttribute(
+      'href',
+      '/acme/coffee/settings/connected-accounts',
+    );
   });
 
   it('re-enables the sidebar module through the account-level toggle', async () => {
