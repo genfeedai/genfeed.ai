@@ -1,18 +1,14 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import {
-  getBrandConfig,
-  normalizeMusicSettings,
-} from '@genfeedai/contracts/constants';
-import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
-import { getModelProviderLabel } from '@genfeedai/helpers/ui/model-badge.helper';
+import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
+import { getModelCategoryIcon } from '@genfeedai/helpers/ui/icons/model-category-icon';
 import type {
   GenerationSetupCustomizeSectionId,
   GenerationSetupFrontDoorProps,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import ModelSelectorBrandMark from '@ui/dropdowns/model-selector/ModelSelectorBrandMark';
 import { isAutoGenerationModelKey } from '@ui/dropdowns/model-selector/model-selector.constants';
+import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
 import {
   Bookmark,
@@ -23,13 +19,15 @@ import {
   Megaphone,
   Palette,
   RotateCcw,
-  Shapes,
   SlidersHorizontal,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { ReactNode } from 'react';
 
-const SECTION_ICONS: Record<GenerationSetupCustomizeSectionId, LucideIcon> = {
-  type: Shapes,
+const SECTION_ICONS: Record<
+  Exclude<GenerationSetupCustomizeSectionId, 'type'>,
+  LucideIcon
+> = {
   model: Cpu,
   output: Copy,
   look: Palette,
@@ -59,14 +57,7 @@ export default function GenerationSetupFrontDoor({
   const modelLabel = isAutoModel
     ? translate('auto')
     : (selectedModel?.label ?? setup.values.modelKey);
-  const modelProvider = selectedModel?.provider;
-  const modelBrand = modelProvider
-    ? {
-        color: getBrandConfig(modelProvider).color,
-        icon: getModelBrandIcon(modelProvider),
-        label: getModelProviderLabel(modelProvider),
-      }
-    : undefined;
+  const TypeIcon = getModelCategoryIcon(setup.values.type);
   const duration =
     setup.values.type === 'music'
       ? normalizeMusicSettings(setup.values.modelKey, setup.values).duration
@@ -140,7 +131,15 @@ export default function GenerationSetupFrontDoor({
     <div className="flex min-h-0 flex-col">
       <div className="min-h-0 overflow-y-auto p-1.5">
         {sections.map((section) => {
-          const Icon = SECTION_ICONS[section.id];
+          let sectionIcon: ReactNode;
+          if (section.id === 'model' && selectedModel) {
+            sectionIcon = <ModelAvatar model={selectedModel} />;
+          } else if (section.id === 'type') {
+            sectionIcon = <TypeIcon className="size-3.5" />;
+          } else {
+            const Icon = SECTION_ICONS[section.id];
+            sectionIcon = <Icon className="size-3.5" />;
+          }
           return (
             <Button
               key={section.id}
@@ -158,17 +157,9 @@ export default function GenerationSetupFrontDoor({
               <span className="flex shrink-0 items-center gap-2">
                 <span
                   aria-hidden="true"
-                  className="flex size-5 shrink-0 items-center justify-center text-muted-foreground"
+                  className="flex h-8 w-10 shrink-0 items-center justify-center text-muted-foreground"
                 >
-                  {section.id === 'model' && modelBrand ? (
-                    <ModelSelectorBrandMark
-                      brandColor={modelBrand.color}
-                      brandIcon={modelBrand.icon}
-                      brandLabel={modelBrand.label}
-                    />
-                  ) : (
-                    <Icon className="size-3.5" />
-                  )}
+                  {sectionIcon}
                 </span>
                 {section.label}
               </span>
