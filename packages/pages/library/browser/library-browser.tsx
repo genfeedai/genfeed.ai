@@ -103,6 +103,9 @@ export default function LibraryBrowser({
 
   const [headerMeta, setHeaderMeta] = useState<ReactNode>();
   const [selectionSlot, setSelectionSlot] = useState<HTMLElement | null>(null);
+  const [actionSlot, setActionSlot] = useState<HTMLElement | null>(null);
+  const isRecoveryView =
+    shelf === LibraryShelf.FAILED && scope === PageScope.BRAND;
 
   const destination = useMemo(() => {
     const adaptDescription = (description: string) =>
@@ -148,12 +151,13 @@ export default function LibraryBrowser({
   // whole list on every parent pass.
   const headerContextValue = useMemo(
     () => ({
+      actionSlot,
       headerMeta,
       hostsSelectionActions: true,
       selectionSlot,
       setHeaderMeta,
     }),
-    [headerMeta, selectionSlot],
+    [actionSlot, headerMeta, selectionSlot],
   );
 
   return (
@@ -161,10 +165,11 @@ export default function LibraryBrowser({
       <IngredientsProvider value={contextValue}>
         <Container
           className="@container/library"
-          description={description}
+          description={isRecoveryView ? undefined : description}
           icon={Library}
           isTopbarPinned
           label={destination.label}
+          titleVisibility="sr-only"
           leading={
             <FormSearchbar
               isCollapsible
@@ -179,29 +184,39 @@ export default function LibraryBrowser({
             />
           }
           right={
-            <LibraryBrowserToolbar
-              categories={categories}
-              characterOptions={characterOptions}
-              characters={characters}
-              onCategoriesChange={handleCategoriesChange}
-              onCharactersChange={handleCharactersChange}
-              onClearCategories={handleClearCategories}
-              onClearCharacters={handleClearCharacters}
-              onClearOrigins={handleClearOrigins}
-              onClearTags={handleClearTags}
-              onOriginsChange={handleOriginsChange}
-              origins={origins}
-              onSortChange={handleSortChange}
-              onTagMatchChange={handleTagMatchChange}
-              onTagsChange={handleTagsChange}
-              onViewModeChange={handleViewModeChange}
-              sort={sort}
-              sortOptions={[...LIBRARY_SORT_OPTIONS]}
-              tagMatch={tagMatch}
-              tagOptions={tagOptions}
-              tags={tags}
-              viewMode={viewMode}
-            />
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <LibraryBrowserToolbar
+                isRecoveryView={isRecoveryView}
+                categories={categories}
+                characterOptions={characterOptions}
+                characters={characters}
+                onCategoriesChange={handleCategoriesChange}
+                onCharactersChange={handleCharactersChange}
+                onClearCategories={handleClearCategories}
+                onClearCharacters={handleClearCharacters}
+                onClearOrigins={handleClearOrigins}
+                onClearTags={handleClearTags}
+                onOriginsChange={handleOriginsChange}
+                origins={origins}
+                onSortChange={handleSortChange}
+                onTagMatchChange={handleTagMatchChange}
+                onTagsChange={handleTagsChange}
+                onViewModeChange={handleViewModeChange}
+                sort={sort}
+                sortOptions={[...LIBRARY_SORT_OPTIONS]}
+                tagMatch={tagMatch}
+                tagOptions={tagOptions}
+                tags={tags}
+                viewMode={viewMode}
+              />
+              {isRecoveryView ? (
+                <div
+                  className="empty:hidden"
+                  ref={setActionSlot}
+                  data-testid="library-recovery-action-slot"
+                />
+              ) : null}
+            </div>
           }
           iconActionsPlacement="before-controls"
           iconActions={

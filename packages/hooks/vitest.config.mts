@@ -96,6 +96,10 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
       },
       {
+        find: /^@genfeedai\/contracts\/api-types\/(.*)$/,
+        replacement: path.resolve(__dirname, '../contracts/src/api-types/$1'),
+      },
+      {
         find: /^@genfeedai\/contracts\/enums\/(.*)$/,
         replacement: path.join(ENUMS_SRC, '$1'),
       },

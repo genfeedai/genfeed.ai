@@ -46,6 +46,7 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [feedback_hosted_saas_public_deploy](feedback_hosted_saas_public_deploy.md) — hosted SaaS deploys from public genfeed.ai; do not dispatch console
 - [feedback_seo_hard_cut_routes](feedback_seo_hard_cut_routes.md) — retired/moved public routes are hard cuts: remove current references, add no redirects
 - [feedback_library_information_architecture](feedback_library_information_architecture.md) — Library destinations live in nav; folders and asset types are filters
+- [feedback_failed_library_recovery](feedback_failed_library_recovery.md) — Failed shelf groups attention first, omits page headers and offers quick soft deletion
 - [feedback_campaign_information_architecture](feedback_campaign_information_architecture.md) — Campaign = Publish content program; Automate Programs; outreach in Messages
 - [feedback_messages_conversation_inbox](feedback_messages_conversation_inbox.md) — Messages nav lists social conversations; disconnected state connects accounts; read-only platforms have no composer
 - [feedback_local_dev_portless_only](feedback_local_dev_portless_only.md) — interactive local app always `https://app.genfeed.localhost/` via package `dev` (Portless); fixed ports only as `dev:debug*`

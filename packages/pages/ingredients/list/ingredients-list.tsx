@@ -8,6 +8,7 @@ import {
   ButtonVariant,
   FleetReviewStatus,
   IngredientCategory,
+  LibraryShelf,
   ModalEnum,
   PageScope,
 } from '@genfeedai/contracts';
@@ -81,10 +82,12 @@ export default function IngredientsList({
   type: typeProp,
   scope = PageScope.BRAND,
 }: IngredientsListProps) {
-  const { activeTypeLabel, ingredientType, viewMode } = useIngredientsContext();
+  const { activeTypeLabel, ingredientType, viewMode, query } =
+    useIngredientsContext();
   const {
     hostsSelectionActions = false,
     selectionSlot = null,
+    actionSlot = null,
     setHeaderMeta,
   } = useIngredientsHeaderContext();
   const { selectedBrand } = useBrand();
@@ -92,6 +95,7 @@ export default function IngredientsList({
 
   const {
     singularType,
+    failedRecovery,
     formatFilter,
     isLoading,
     isUsingCache,
@@ -158,6 +162,8 @@ export default function IngredientsList({
     fontFamilies,
     blacklists,
   } = useIngredientsList({ folderNavigation, scope, type });
+  const isRecoveryView =
+    query?.shelf === LibraryShelf.FAILED && scope === PageScope.BRAND;
   const { openPostBatchModal } = usePostModal({
     onRefresh: () => {
       void handleRefresh(true);
@@ -311,7 +317,7 @@ export default function IngredientsList({
 
   return (
     <>
-      {selectionChrome}
+      {isRecoveryView ? null : selectionChrome}
 
       {isUsingCache && (
         <Alert type={AlertCategory.WARNING}>
@@ -364,6 +370,18 @@ export default function IngredientsList({
 
           <div className="min-w-0">
             <IngredientsListContent
+              recovery={
+                isRecoveryView
+                  ? {
+                      actionSlot,
+                      isRecovering: failedRecovery.isRecovering,
+                      retriedIds: failedRecovery.retriedIds,
+                      onDelete: failedRecovery.handleDeleteFailedIngredients,
+                      onRetry: failedRecovery.handleRetryFailedIngredients,
+                      onReview: failedRecovery.handleReviewFailedIngredient,
+                    }
+                  : undefined
+              }
               type={type}
               activeTypeLabel={activeTypeLabel}
               scope={scope}

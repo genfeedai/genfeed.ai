@@ -4,6 +4,7 @@ import type { IngredientCategorySchema } from '@genfeedai/client/schemas';
 import {
   IngredientCategory,
   IngredientStatus,
+  LibraryShelf,
   PageScope,
 } from '@genfeedai/contracts';
 import {
@@ -19,6 +20,7 @@ import type {
 import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { FoldersService } from '@genfeedai/services/content/folders.service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { PagesService } from '@genfeedai/services/content/pages.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import {
@@ -292,7 +294,14 @@ export function useIngredientsLoading({
           );
         } else {
           const service = await getIngredientsService();
-          data = await service.findAll(queryParams);
+          if (
+            scope === PageScope.BRAND &&
+            query.shelf === LibraryShelf.FAILED
+          ) {
+            data = await service.findAllPages(queryParams, signal);
+          } else {
+            data = await service.findAll(queryParams);
+          }
         }
 
         if (signal?.aborted || sequence !== loadSequenceRef.current) {
@@ -302,6 +311,11 @@ export function useIngredientsLoading({
         logger.info(`${url} success`, data);
 
         setIngredients(data);
+        if (scope === PageScope.BRAND && query.shelf === LibraryShelf.FAILED) {
+          PagesService.setCurrentPage(1);
+          PagesService.setTotalPages(1);
+          PagesService.setTotalDocs(data.length);
+        }
 
         if (ingredientsCache && ingredientsCacheMeta) {
           ingredientsCache.set(
