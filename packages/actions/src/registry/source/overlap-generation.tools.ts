@@ -42,7 +42,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
   {
     name: 'get_generation_options',
     description:
-      'Read what generation can do right now: the effective image/video prompt enhancement settings with organization or brand overrides (settings, always returned), plus the Studio credit estimate and organization balance (cost, only when type is given). Returns the same catalog estimate the Generate composer shows and the same Genfeed balance as the credits bar. Does not charge credits, change a price, or authorize a generation. Omit modelKey, or pass Auto, for estimate status auto. Unsupported, missing, unpriced or voice and music types return estimate status unavailable with credits null. balance is null when the wallet cannot be read; a numeric 0 is a real empty balance. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope for settings.',
+      "Read what generation can do right now. models is always returned: this account's callable catalog. Pass an image, video or music models key as generate.model, and an image-edit key as transform_media.model. Voice rows are not generate.model; voice generation uses voiceId. settings is the effective image/video prompt enhancement with organization or brand overrides, always returned. cost is the Studio credit estimate and organization balance, only when type is given. Returns the same catalog estimate the Generate composer shows and the same Genfeed balance as the credits bar. Does not charge credits, change a price, or authorize a generation. Omit modelKey, or pass Auto, for estimate status auto. Unsupported, missing, unpriced or voice and music types return estimate status unavailable with credits null. balance is null when the wallet cannot be read; a numeric 0 is a real empty balance. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope for settings.",
     creditCost: 0,
     requiredRole: 'user',
     parameters: {
@@ -53,7 +53,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
           type: 'string',
           enum: ['image', 'image-edit', 'video', 'voice', 'music'],
           description:
-            'Return a credit estimate and balance for this generation type. Omit to read settings only.',
+            'Limit models to this type and return a credit estimate and balance. Omit to list every callable image, image-edit, video, voice and music model and read settings only.',
         },
         brandId: {
           type: 'string',
@@ -62,7 +62,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
         modelKey: {
           type: 'string',
           description:
-            'Cost only. Catalog model key. Omit for Auto, which has no estimate until a model is selected.',
+            'Cost only. Exact models key for this type. Omit or pass Auto, which has no estimate until a model is selected. An unknown alias returns MODEL_UNAVAILABLE.',
         },
         aspectRatio: { type: 'string', description: 'Cost only.' },
         resolution: { type: 'string', description: 'Cost only.' },
@@ -114,7 +114,8 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
         },
         model: {
           type: 'string',
-          description: 'edit. Image-editing model key.',
+          description:
+            'edit. Exact image-edit key from get_generation_options models. Omit for the image-editing category default.',
         },
         references: {
           type: 'array',

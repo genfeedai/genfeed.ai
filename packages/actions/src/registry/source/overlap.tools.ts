@@ -101,7 +101,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     // endpoint bills the real amount (issue #482).
     creditCost: Math.min(...Object.values(MEDIA_GENERATION_CREDIT_FLOORS)),
     description:
-      'Generate an image, video, voice (text-to-speech) or music track. Set type; a parameter marked for another type is rejected. Omit model to let the router pick the best available model. Image and video results include generationHarness with the exact submitted prompt and enhancement status: show that prompt with the result instead of reconstructing it. The advertised range is the per-type floor; the endpoint bills the selected model amount, which is at least that floor.',
+      'Generate an image, video, voice (text-to-speech) or music track. Set type; a parameter marked for another type is rejected. For model, pass a key from get_generation_options models, or omit it so the router picks. Image and video results include generationHarness with the exact submitted prompt and enhancement status: show that prompt with the result instead of reconstructing it. The advertised range is the per-type floor; the endpoint bills the selected model amount, which is at least that floor.',
     name: 'generate',
     parameters: {
       properties: {
@@ -117,7 +117,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         model: {
           description:
-            'Image, video or music only. Model key; omit for automatic router selection.',
+            'Image, video or music only. Exact models[].key from get_generation_options for that type. Omit for the router. Do not invent aliases; an unknown key is rejected.',
           type: 'string',
         },
         brandId: {
@@ -131,7 +131,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         resolution: {
           description:
-            'Image or video only. Image (FLUX.3): 768sq, 1k (default), 1.5k, 2k or 4k. Video: model-native, for example 720p, 1080p or 4k; unsupported values are rejected.',
+            'Image or video only. Use a resolution the chosen model accepts. black-forest-labs/flux-3-image accepts 768sq, 1k (default), 1.5k, 2k or 4k. Video values are model-native, for example 720p, 1080p or 4k; unsupported values are rejected.',
           type: 'string',
         },
         duration: {

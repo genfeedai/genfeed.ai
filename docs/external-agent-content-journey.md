@@ -153,9 +153,12 @@ through another client.
 
 The MCP generation toolset exposes:
 
-- `get_generation_options`: optionally supply `brandId` to inspect the effective
-  setting and its source. Add `type` to also read the credit estimate and balance
-  for that generation type.
+- `get_generation_options`: returns `models` on every call, the account's
+  callable catalog keys. Pass an image, video, or music key as `generate.model`,
+  and an image-edit key as `transform_media.model`. Voice rows are not a
+  `generate.model` value; voice generation uses `voiceId`. Optionally supply
+  `brandId` to inspect the effective setting and its source. Add `type` to limit
+  `models` to that type and also read the credit estimate and balance.
 - `set_generation_settings`: pass `scope` (`organization` or `brand`), `isEnabled`
   (`true`, `false`, or `null` to reset), and `brandId` for a brand override.
 - `enhance_prompt`: pass `prompt`, `contentType` (`image` or `video`), selected

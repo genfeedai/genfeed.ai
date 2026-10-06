@@ -61,6 +61,34 @@ describe('generation harness catalog', () => {
     expect(tool?.parameters.required).not.toContain('harness');
   });
 
+  it('tells generate to use a key from get_generation_options', () => {
+    const generate = getToolByName('generate');
+    const generateFields = generate?.parameters.properties as
+      | Record<string, { description?: string }>
+      | undefined;
+    expect(generate?.description).toContain('get_generation_options');
+    expect(generateFields?.model?.description).toContain(
+      'get_generation_options',
+    );
+    expect(generateFields?.resolution?.description).toContain(
+      'black-forest-labs/flux-3-image',
+    );
+    expect(generateFields?.resolution?.description).not.toContain(
+      'Image (FLUX.3)',
+    );
+    const options = getToolByName('get_generation_options');
+    const optionFields = options?.parameters.properties as
+      | Record<string, { description?: string }>
+      | undefined;
+    expect(options?.description).toContain('models');
+    expect(optionFields?.modelKey?.description).toContain('MODEL_UNAVAILABLE');
+    const transformFields = getToolByName('transform_media')?.parameters
+      .properties as Record<string, { description?: string }> | undefined;
+    expect(transformFields?.model?.description).toContain(
+      'get_generation_options',
+    );
+  });
+
   it('publishes the video audio toggle on get_generation_options so audio-on pricing is reachable', () => {
     const properties = getToolByName('get_generation_options')?.parameters
       .properties as Record<string, { type?: string }> | undefined;

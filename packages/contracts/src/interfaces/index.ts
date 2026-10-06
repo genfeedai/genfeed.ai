@@ -25,6 +25,7 @@ export * from './ai/agent-untrusted-content-gate.interface';
 export * from './ai/agent-wizard.interface';
 export * from './ai/agent-work-object.interface';
 export * from './ai/ai-actions.interface';
+export * from './ai/callable-generation-model.interface';
 export * from './ai/expert-positioning.interface';
 export * from './ai/generation-context-receipt.interface';
 export * from './ai/harness-pack-registry.interface';
