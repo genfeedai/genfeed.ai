@@ -88,7 +88,7 @@ beforeEach(() => {
     brandId: 'brand',
     getService: vi.fn(async () => ({
       bulkDelete: mocks.bulkDelete,
-    })) as UseFailedIngredientRecoveryProps['getService'],
+    })),
     setIngredients: vi.fn(),
     setSelectedIds: vi.fn(),
     onRefresh: vi.fn().mockResolvedValue(undefined),

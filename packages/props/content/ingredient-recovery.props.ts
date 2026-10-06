@@ -41,7 +41,7 @@ export interface UseFailedIngredientRecoveryProps {
   scopeKey: string;
   brandId?: string | null;
   ingredients: IIngredient[];
-  getService: () => Promise<IngredientsService>;
+  getService: () => Promise<Pick<IngredientsService, 'bulkDelete'>>;
   setIngredients: Dispatch<SetStateAction<IIngredient[]>>;
   setSelectedIds: Dispatch<SetStateAction<string[]>>;
   onRefresh: (isRefreshing?: boolean) => Promise<void>;
