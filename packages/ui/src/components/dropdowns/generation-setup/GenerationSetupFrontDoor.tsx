@@ -1,15 +1,42 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
+import {
+  extractBrandFromKey,
+  getBrandConfig,
+  normalizeMusicSettings,
+} from '@genfeedai/contracts/constants';
+import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import type {
   GenerationSetupCustomizeSectionId,
   GenerationSetupFrontDoorProps,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
+import ModelSelectorBrandMark from '@ui/dropdowns/model-selector/ModelSelectorBrandMark';
 import { isAutoGenerationModelKey } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { Button } from '@ui/primitives/button';
-import { ChevronRight, RotateCcw } from 'lucide-react';
+import {
+  Bookmark,
+  ChevronRight,
+  Copy,
+  Cpu,
+  type LucideIcon,
+  Megaphone,
+  Palette,
+  RotateCcw,
+  Shapes,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
+
+const SECTION_ICONS: Record<GenerationSetupCustomizeSectionId, LucideIcon> = {
+  type: Shapes,
+  model: Cpu,
+  output: Copy,
+  look: Palette,
+  brand: Megaphone,
+  presets: Bookmark,
+  enhancement: SlidersHorizontal,
+};
 
 export default function GenerationSetupFrontDoor({
   showEnhancementSettings = false,
@@ -25,6 +52,9 @@ export default function GenerationSetupFrontDoor({
   typeOptions,
 }: GenerationSetupFrontDoorProps) {
   const translate = useTranslations('agent.generationSetup');
+  const modelBrand = isAutoGenerationModelKey(setup.values.modelKey)
+    ? undefined
+    : getBrandConfig(extractBrandFromKey(setup.values.modelKey));
   const modelLabel = isAutoGenerationModelKey(setup.values.modelKey)
     ? translate('auto')
     : (models.find((model) => model.key === setup.values.modelKey)?.label ??
@@ -101,27 +131,46 @@ export default function GenerationSetupFrontDoor({
   return (
     <div className="flex min-h-0 flex-col">
       <div className="min-h-0 overflow-y-auto p-1.5">
-        {sections.map((section) => (
-          <Button
-            key={section.id}
-            ariaLabel={translate('configureSection', {
-              section: section.label,
-            })}
-            className="h-9 w-full justify-between gap-3 rounded-md px-2 text-xs"
-            isDisabled={isDisabled || section.isDisabled}
-            onClick={() => onCustomize(section.id)}
-            size={ButtonSize.SM}
-            textTransform="none"
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          >
-            <span>{section.label}</span>
-            <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
-              <span className="truncate">{section.value}</span>
-              <ChevronRight className="size-3.5 shrink-0" />
-            </span>
-          </Button>
-        ))}
+        {sections.map((section) => {
+          const Icon = SECTION_ICONS[section.id];
+          return (
+            <Button
+              key={section.id}
+              ariaLabel={translate('configureSection', {
+                section: section.label,
+              })}
+              className="h-9 w-full justify-between gap-3 rounded-md px-2 text-xs"
+              isDisabled={isDisabled || section.isDisabled}
+              onClick={() => onCustomize(section.id)}
+              size={ButtonSize.SM}
+              textTransform="none"
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            >
+              <span className="flex shrink-0 items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="flex size-5 shrink-0 items-center justify-center text-muted-foreground"
+                >
+                  {section.id === 'model' && modelBrand ? (
+                    <ModelSelectorBrandMark
+                      brandColor={modelBrand.color}
+                      brandIcon={getModelBrandIcon(modelBrand.iconKey)}
+                      brandLabel={modelBrand.label}
+                    />
+                  ) : (
+                    <Icon className="size-3.5" />
+                  )}
+                </span>
+                {section.label}
+              </span>
+              <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                <span className="truncate">{section.value}</span>
+                <ChevronRight className="size-3.5 shrink-0" />
+              </span>
+            </Button>
+          );
+        })}
       </div>
       <div className="shrink-0 border-t border-border p-1.5">
         <Button
