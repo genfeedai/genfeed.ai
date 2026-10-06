@@ -20,7 +20,10 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
+import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   Bookmark,
@@ -33,7 +36,14 @@ import {
   ThumbsUp,
 } from 'lucide-react';
 import Image from 'next/image';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 import {
   buildPostTargets,
@@ -73,11 +83,18 @@ export type {
   PlatformPreviewThreadSegment,
 } from './PlatformPreview.types';
 
+const PreviewPresentation = createContext<
+  Pick<PlatformPreviewProps, 'renderMedia' | 'statusLabel' | 'showValidation'>
+>({});
+
 const ENTITY_PATTERN = /(https?:\/\/[^\s]+|[@#][A-Za-z0-9_]+)/g;
 
 export const PLATFORM_PREVIEW_RENDERERS: Partial<
   Record<CredentialPlatform, PlatformPreviewRenderer>
 > = {
+  [CredentialPlatform.FACEBOOK]: FacebookPreviewRenderer,
+  [CredentialPlatform.PINTEREST]: PinterestPreviewRenderer,
+  [CredentialPlatform.REDDIT]: RedditPreviewRenderer,
   [CredentialPlatform.INSTAGRAM]: InstagramPreviewRenderer,
   [CredentialPlatform.LINKEDIN]: LinkedInPreviewRenderer,
   [CredentialPlatform.TIKTOK]: TikTokPreviewRenderer,
@@ -239,7 +256,7 @@ function CaptionText({
   }
 
   return (
-    <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/85">
+    <p className="description whitespace-pre-wrap break-words text-sm leading-6 text-foreground/85">
       {renderCaptionEntities(text)}
     </p>
   );
@@ -250,6 +267,8 @@ function ValidationIssues({
 }: {
   target: ResolvedPlatformPreviewTarget;
 }) {
+  const { showValidation } = useContext(PreviewPresentation);
+  if (showValidation === false) return null;
   const issues: ChannelValidationIssue[] = [
     ...target.validation.errors,
     ...target.validation.warnings,
@@ -347,6 +366,7 @@ function MediaTile({
   className?: string;
   animatedConsequence?: string;
 }) {
+  const { renderMedia } = useContext(PreviewPresentation);
   const isVideo = item.kind === 'video' || item.kind === 'short_video';
   const src = item.thumbnailUrl ?? item.url;
   const label = item.kind.replace('_', ' ');
@@ -361,7 +381,9 @@ function MediaTile({
       )}
       data-testid={`platform-preview-media-${item.id}`}
     >
-      {isVideo && item.url ? (
+      {renderMedia ? (
+        renderMedia(item, index)
+      ) : isVideo && item.url ? (
         <VideoPlayer
           src={item.url}
           thumbnail={item.thumbnailUrl}
@@ -536,39 +558,29 @@ function PreviewShell({
   children: ReactNode;
   className?: string;
 }) {
+  const { statusLabel } = useContext(PreviewPresentation);
   const status = getPreviewStatus(target);
   const Icon = getPlatformPreviewIcon(target.platform);
-
   return (
-    <article
-      aria-label={`${target.platformLabel} platform preview`}
-      className={cn(
-        'overflow-hidden rounded-lg border border-border bg-background/60',
-        className,
-      )}
-    >
-      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <Icon className="size-4 shrink-0 text-foreground/70" />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-foreground">
-              {target.platformLabel}
-            </p>
-            <p className="truncate text-xs text-muted-foreground">
-              {isApproximate ? 'Approximate preview' : eyebrow}
-            </p>
-          </div>
-        </div>
-        <span
-          className={cn(
-            'shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium',
-            status.className,
-          )}
-        >
-          {status.label}
-        </span>
-      </div>
-      <div className="p-4">
+    <article aria-label={`${target.platformLabel} platform preview`}>
+      <Card
+        data-testid="preview-card"
+        label={target.platformLabel}
+        labelAs="h2"
+        isLabelWrapped
+        icon={<Icon className="size-4" />}
+        description={isApproximate ? 'Approximate preview' : eyebrow}
+        className={className}
+        bodyClassName="gap-3"
+        headerAction={
+          <Badge
+            variant="outline"
+            className={statusLabel ? 'status' : status.className}
+          >
+            {statusLabel || status.label}
+          </Badge>
+        }
+      >
         {children}
         {target.firstComment?.trim() ? (
           <div
@@ -583,26 +595,25 @@ function PreviewShell({
             </p>
           </div>
         ) : null}
-      </div>
+      </Card>
     </article>
   );
 }
 
 function AuthorAvatar({ target }: PlatformPreviewRendererProps) {
   return (
-    <div className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-sm font-medium text-muted-foreground">
+    <Avatar className="size-10 shrink-0">
       {target.author?.avatarUrl ? (
-        <Image
+        <AvatarImage
           src={target.author.avatarUrl}
           alt={`${getAuthorName(target)} profile picture`}
-          fill
-          sizes="40px"
-          className="object-cover outline-media"
+          referrerPolicy="no-referrer"
         />
-      ) : (
-        getAuthorName(target).slice(0, 1).toUpperCase()
-      )}
-    </div>
+      ) : null}
+      <AvatarFallback>
+        {getAuthorName(target).slice(0, 1).toUpperCase()}
+      </AvatarFallback>
+    </Avatar>
   );
 }
 
@@ -666,7 +677,7 @@ function ThreadSegments({ target }: { target: ResolvedPlatformPreviewTarget }) {
                 <CharacterCounter state={state} />
               </div>
               {segment.caption.trim() ? (
-                <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/85">
+                <p className="description whitespace-pre-wrap break-words text-sm leading-6 text-foreground/85">
                   {renderCaptionEntities(state.previewText)}
                 </p>
               ) : (
@@ -789,7 +800,7 @@ function InstagramPreviewRenderer({ target }: PlatformPreviewRendererProps) {
         <Bookmark className="ml-auto size-5" />
       </div>
       <div className="mt-3 flex items-start justify-between gap-3">
-        <p className="min-w-0 whitespace-pre-wrap text-sm leading-6 text-foreground/85">
+        <p className="description min-w-0 whitespace-pre-wrap break-words text-sm leading-6 text-foreground/85">
           <span className="font-semibold">{getAuthorName(target)}</span>{' '}
           {target.captionState.previewText.trim()
             ? renderCaptionEntities(target.captionState.previewText)
@@ -814,7 +825,7 @@ function TikTokPreviewRenderer({ target }: PlatformPreviewRendererProps) {
         <MediaGrid target={target} variant="vertical" />
         <div
           className={
-            'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-4 text-white' /* design-system-allow-content-color -- platform preview */
+            'pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-4 text-white' /* design-system-allow-content-color -- platform preview */
           }
         >
           <p className="text-sm font-semibold">
@@ -863,6 +874,76 @@ function YouTubePreviewRenderer({ target }: PlatformPreviewRendererProps) {
           target={target}
           emptyMessage="Description preview appears here."
         />
+      </div>
+      <ValidationIssues target={target} />
+    </PreviewShell>
+  );
+}
+
+function FacebookPreviewRenderer({ target }: PlatformPreviewRendererProps) {
+  return (
+    <PreviewShell eyebrow="Facebook feed preview" target={target}>
+      <AuthorRow target={target} meta="Public" />
+      <CaptionText target={target} />
+      <MediaGrid target={target} />
+      <LinkPreviewCard target={target} />
+      <div
+        className="mt-3 flex gap-5 border-t border-border pt-3 text-xs text-muted-foreground"
+        aria-hidden="true"
+      >
+        <span className="inline-flex items-center gap-1">
+          <ThumbsUp className="size-4" />
+          Like
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <MessageCircle className="size-4" />
+          Comment
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <Send className="size-4" />
+          Share
+        </span>
+      </div>
+      <ValidationIssues target={target} />
+    </PreviewShell>
+  );
+}
+function PinterestPreviewRenderer({ target }: PlatformPreviewRendererProps) {
+  return (
+    <PreviewShell eyebrow="Pinterest pin preview" target={target}>
+      <MediaGrid target={target} variant="square" />
+      {target.title ? (
+        <h3 className="text-base font-semibold">{target.title}</h3>
+      ) : null}
+      <AuthorRow target={target} />
+      <CaptionText target={target} />
+      <LinkPreviewCard target={target} />
+      <ValidationIssues target={target} />
+    </PreviewShell>
+  );
+}
+function RedditPreviewRenderer({ target }: PlatformPreviewRendererProps) {
+  return (
+    <PreviewShell eyebrow="Reddit feed preview" target={target}>
+      <AuthorRow target={target} />
+      {target.title ? (
+        <h3 className="text-base font-semibold">{target.title}</h3>
+      ) : null}
+      <CaptionText target={target} />
+      <MediaGrid target={target} />
+      <LinkPreviewCard target={target} />
+      <div
+        className="mt-3 flex gap-4 text-xs text-muted-foreground"
+        aria-hidden="true"
+      >
+        <span className="inline-flex items-center gap-1">
+          <MessageCircle className="size-4" />
+          Comments
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <Send className="size-4" />
+          Share
+        </span>
       </div>
       <ValidationIssues target={target} />
     </PreviewShell>
@@ -919,6 +1000,9 @@ export default function PlatformPreview({
   activePlatform,
   className,
   emptyMessage = 'No platform preview available.',
+  renderMedia,
+  statusLabel,
+  showValidation,
 }: PlatformPreviewProps) {
   const resolvedTargets = useMemo(() => {
     const previewTargets =
@@ -1019,7 +1103,11 @@ export default function PlatformPreview({
         </div>
       ) : null}
 
-      <Renderer target={activeTarget} />
+      <PreviewPresentation.Provider
+        value={{ renderMedia, statusLabel, showValidation }}
+      >
+        <Renderer target={activeTarget} />
+      </PreviewPresentation.Provider>
     </section>
   );
 }

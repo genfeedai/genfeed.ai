@@ -6,7 +6,7 @@ import {
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import PlatformPreview, {
   buildMediaFromIngredients,
@@ -39,8 +39,23 @@ function requireCapability(platform: CredentialPlatform): ChannelCapability {
   return capability;
 }
 
+const NativeImage = window.Image;
+beforeEach(() => {
+  vi.stubGlobal(
+    'Image',
+    class extends NativeImage {
+      constructor() {
+        super();
+        Object.defineProperty(this, 'complete', { value: true });
+        Object.defineProperty(this, 'naturalWidth', { value: 100 });
+      }
+    },
+  );
+});
+afterEach(() => vi.unstubAllGlobals());
+
 describe('PlatformPreview', () => {
-  it('registers dedicated renderers for core platforms only', () => {
+  it('registers dedicated renderers for every social layout', () => {
     expect(
       hasDedicatedPlatformPreviewRenderer(CredentialPlatform.TWITTER),
     ).toBe(true);
@@ -57,7 +72,7 @@ describe('PlatformPreview', () => {
       hasDedicatedPlatformPreviewRenderer(CredentialPlatform.YOUTUBE),
     ).toBe(true);
     expect(hasDedicatedPlatformPreviewRenderer(CredentialPlatform.REDDIT)).toBe(
-      false,
+      true,
     );
   });
 
@@ -135,7 +150,7 @@ describe('PlatformPreview', () => {
     expect(screen.getByText('@team')).toBeInTheDocument();
   });
 
-  it('labels unsupported dedicated layouts as approximate fallback previews', () => {
+  it('keeps hidden publishing warnings on dedicated Reddit previews', () => {
     const capability = requireCapability(CredentialPlatform.REDDIT);
 
     render(
@@ -148,9 +163,8 @@ describe('PlatformPreview', () => {
       />,
     );
 
-    expect(screen.getAllByText('Approximate preview').length).toBeGreaterThan(
-      0,
-    );
+    expect(screen.queryByText('Approximate preview')).not.toBeInTheDocument();
+    expect(screen.getByText('Reddit feed preview')).toBeInTheDocument();
     expect(screen.getByText('Reddit')).toBeInTheDocument();
     expect(
       screen.getByText('Reddit is hidden from scheduler publishing.'),
@@ -310,6 +324,8 @@ describe('unified completed post previews', () => {
     CredentialPlatform.TIKTOK,
     CredentialPlatform.YOUTUBE,
     CredentialPlatform.REDDIT,
+    CredentialPlatform.FACEBOOK,
+    CredentialPlatform.PINTEREST,
   ])('renders the supplied author avatar on %s', (platform) => {
     render(
       <PlatformPreview

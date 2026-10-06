@@ -3,6 +3,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import type {
   McpCalendarDay,
   McpCard,
+  McpCardMedia,
   McpCardView,
 } from '@mcp/shared/interfaces/mcp-app.interface';
 import type {
@@ -14,10 +15,11 @@ import type {
   PreviewBridge,
   PreviewProps,
 } from '@mcp/shared/interfaces/mcp-preview.interface';
+import { isAccountAvatarOrigin } from '@mcp/ui/avatar-origins';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import { Avatar, AvatarFallback } from '@ui/primitives/avatar';
+import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -84,6 +86,26 @@ function card(value: unknown): McpCard | undefined {
     url: safeUrl(row.url),
     thumbnailUrl: safeUrl(row.thumbnailUrl),
     mediaUrl: safeUrl(row.mediaUrl),
+    author: {
+      name: text(record(row.author).name),
+      handle: text(record(row.author).handle),
+      avatarUrl: safeUrl(record(row.author).avatarUrl),
+    },
+    media: Array.isArray(row.media)
+      ? row.media.slice(0, 10).flatMap((value, index) => {
+          const item = record(value);
+          return ['image', 'video', 'audio'].includes(text(item.kind))
+            ? [
+                {
+                  id: text(item.id) || `media-${index}`,
+                  kind: item.kind as 'image' | 'video' | 'audio',
+                  url: safeUrl(item.url),
+                  thumbnailUrl: safeUrl(item.thumbnailUrl),
+                },
+              ]
+            : [];
+        })
+      : undefined,
     mediaKind: ['image', 'video', 'audio'].includes(text(row.mediaKind))
       ? (row.mediaKind as McpCard['mediaKind'])
       : undefined,
@@ -341,6 +363,135 @@ function CardPreview({ item, bridge, openImage }: CardPreviewProps) {
       }}
     />
   );
+  if (isPost) {
+    const avatar = safeUrl(current.author?.avatarUrl);
+    const avatarUrl =
+      avatar &&
+      (mediaUrl(avatar, bridge.origins) ||
+        isAccountAvatarOrigin(new URL(avatar)))
+        ? avatar
+        : undefined;
+    const media =
+      current.media ??
+      (current.mediaUrl && current.mediaKind
+        ? [
+            {
+              id: `${current.id}-media`,
+              kind: current.mediaKind,
+              url: current.mediaUrl,
+            },
+          ]
+        : []);
+    return (
+      <article className="post min-w-0 space-y-3">
+        {title && (
+          <Heading as="h2" size="sm">
+            {title}
+          </Heading>
+        )}
+        <PlatformPreview
+          className="min-w-0"
+          target={{
+            id: current.id,
+            platform: current.platform || 'social',
+            caption: current.description,
+            title,
+            author: { ...current.author, avatarUrl },
+            media: media.filter(
+              (item): item is McpCardMedia & { kind: 'image' | 'video' } =>
+                item.kind !== 'audio',
+            ),
+          }}
+          statusLabel={current.status || 'Preview'}
+          showValidation={false}
+          renderMedia={(mediaItem) =>
+            mediaUrl(mediaItem.url, bridge.origins) ||
+            (mediaItem.kind === 'image' &&
+              mediaUrl(mediaItem.thumbnailUrl, bridge.origins)) ? (
+              <MediaPreview
+                item={{
+                  ...current,
+                  kind:
+                    mediaItem.kind === 'video' ||
+                    mediaItem.kind === 'short_video'
+                      ? 'video'
+                      : 'image',
+                  title: title || platformName(current.platform),
+                  url: mediaItem.url,
+                  thumbnailUrl: mediaItem.thumbnailUrl,
+                }}
+                bridge={bridge}
+                openImage={openImage}
+                onError={() => {
+                  setFailed(true);
+                  bridge.resize();
+                }}
+              />
+            ) : (
+              <Text as="p" size="xs" color="muted">
+                Attachment preview unavailable
+              </Text>
+            )
+          }
+        />
+        {media
+          .filter((item) => item.kind === 'audio')
+          .map((item) => (
+            <MediaPreview
+              key={item.id}
+              item={{ ...current, kind: 'audio', url: item.url }}
+              bridge={bridge}
+              openImage={openImage}
+              onError={() => setFailed(true)}
+            />
+          ))}
+        {attachments.size > 0 && (
+          <div className="attachments flex flex-wrap gap-2">
+            {[...attachments].map(([kind, count]) => (
+              <Badge key={kind} variant="outline">
+                {kind.charAt(0).toUpperCase() + kind.slice(1)}
+                {count > 1 ? ` ×${count}` : ''}
+              </Badge>
+            ))}
+          </div>
+        )}
+        {when && (
+          <Text size="xs" color="muted">
+            {when}
+          </Text>
+        )}
+        {failed && (
+          <Text as="p" size="sm" color="muted" className="notice">
+            Preview unavailable. Open the media link to view it.
+          </Text>
+        )}
+        {link && (
+          <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
+            <a
+              href={link}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(event) => {
+                event.preventDefault();
+                bridge
+                  .request('ui/open-link', { url: link })
+                  .then((result) => {
+                    if (record(result).isError) throw new Error('blocked');
+                  })
+                  .catch(() =>
+                    bridge.notify(
+                      'The host could not open the link. Copy the link address to open it in your browser.',
+                    ),
+                  );
+              }}
+            >
+              Open published post ↗
+            </a>
+          </Button>
+        )}
+      </article>
+    );
+  }
   return (
     <article
       className={`${isPost ? 'post' : isMedia ? 'media-card' : 'content-card'} min-w-0`}
@@ -359,25 +510,6 @@ function CardPreview({ item, bridge, openImage }: CardPreviewProps) {
           ) : undefined
         }
       >
-        {isPost && (
-          <div className="post-head flex items-center gap-3">
-            <Avatar className="avatar size-8">
-              <AvatarFallback>
-                {platformName(current.platform).charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="who flex min-w-0 flex-col">
-              <Text as="strong" weight="medium" size="sm">
-                {platformName(current.platform)}
-              </Text>
-              {when && (
-                <Text size="xs" color="muted">
-                  {when}
-                </Text>
-              )}
-            </div>
-          </div>
-        )}
         {current.isPending ? (
           <div className="pending flex flex-col gap-3">
             <Text size="xs" color="muted">
@@ -398,7 +530,19 @@ function CardPreview({ item, bridge, openImage }: CardPreviewProps) {
             </Text>
           </div>
         ) : isMedia && !failed ? (
-          <div className="media-preview">{player}</div>
+          <div className="media-preview">
+            {current.kind === 'media' ? (
+              <Text as="p" size="sm" color="muted">
+                No inline preview for this file.
+              </Text>
+            ) : source ? (
+              player
+            ) : (
+              <Text as="p" size="sm" color="muted">
+                Attachment preview unavailable
+              </Text>
+            )}
+          </div>
         ) : null}
         {failed && (
           <Text as="p" size="sm" color="muted" className="notice">
@@ -442,23 +586,6 @@ function CardPreview({ item, bridge, openImage }: CardPreviewProps) {
               {current.status}
             </Text>
           )}
-        {isPost && !failed && current.mediaUrl && current.mediaKind && (
-          <div className="media-frame">
-            <MediaPreview
-              item={{
-                ...current,
-                kind: current.mediaKind,
-                url: current.mediaUrl,
-              }}
-              bridge={bridge}
-              openImage={openImage}
-              onError={() => {
-                setFailed(true);
-                bridge.resize();
-              }}
-            />
-          </div>
-        )}
         {attachments.size > 0 && (
           <div className="attachments flex flex-wrap gap-2">
             {[...attachments].map(([kind, count]) => (
@@ -650,7 +777,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
           id="cards"
           className={
             view?.layout === 'calendar'
-              ? 'calendar grid grid-cols-[repeat(auto-fill,minmax(min(100%,150px),1fr))] gap-2'
+              ? 'calendar grid grid-cols-[repeat(auto-fill,minmax(min(100%,320px),1fr))] gap-2'
               : `${view?.layout === 'posts' ? 'posts' : ''} grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-3`
           }
         >

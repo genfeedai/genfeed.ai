@@ -149,7 +149,7 @@ it('shows every generated caption in the existing post grid as safe text', () =>
   expect(document.querySelectorAll('article.post')).toHaveLength(2);
   expect(
     Array.from(
-      document.querySelectorAll('article.post h2'),
+      document.querySelectorAll('article.post > h2'),
       (node) => node.textContent,
     ),
   ).toEqual(['Variation 1', 'Variation 2']);
@@ -421,8 +421,8 @@ it('renders posts as a social preview with platform, status and media', () => {
   });
 
   const post = document.querySelector('article.post');
-  expect(post?.querySelector('.avatar')?.textContent).toBe('L');
-  expect(post?.querySelector('.who strong')?.textContent).toBe('LinkedIn');
+  expect(post?.textContent).toContain('Your Account');
+  expect(post?.querySelector('h2')?.textContent).toBe('LinkedIn');
   expect(post?.querySelector('.status')?.textContent).toBe('scheduled');
   expect(post?.querySelector('.description')?.textContent).toBe('Hello world');
 });
@@ -735,4 +735,47 @@ it('shows the external fallback when shared video playback rejects', async () =>
     'Preview unavailable. Open the media link to view it.',
   );
   expect(document.querySelector('img[alt="Video unavailable"]')).toBeNull();
+});
+
+it('uses dedicated social previews with account identity, every attachment and display-only status', () => {
+  result('get_posts', {
+    posts: [
+      {
+        id: 'p1',
+        platform: 'facebook',
+        status: 'draft',
+        description: 'Launch',
+        author: { name: 'Genfeed', handle: 'genfeed' },
+        media: [
+          { id: 'a1', kind: 'image', url: 'https://cdn.genfeed.ai/one.png' },
+          { id: 'a2', kind: 'image', url: 'https://cdn.genfeed.ai/two.png' },
+        ],
+      },
+    ],
+  });
+  const post = document.querySelector('article.post');
+  expect(
+    post?.querySelector('[aria-label="Facebook platform preview"]'),
+  ).not.toBeNull();
+  expect(post?.textContent).toContain('Genfeed');
+  expect(post?.textContent).toContain('@genfeed');
+  expect(post?.textContent).not.toContain('hidden from scheduler publishing');
+  expect(post?.textContent).not.toContain('@youraccount');
+  expect(post?.querySelectorAll('button.zoom img')).toHaveLength(2);
+});
+
+it('explains unsupported files while retaining the open action', () => {
+  result('list_assets', [
+    {
+      id: 'file',
+      category: 'DOCUMENT',
+      url: 'https://cdn.genfeed.ai/file.txt',
+    },
+  ]);
+  expect(document.querySelector('article')?.textContent).toContain(
+    'No inline preview for this file.',
+  );
+  expect(document.querySelector('article a')?.href).toBe(
+    'https://cdn.genfeed.ai/file.txt',
+  );
 });

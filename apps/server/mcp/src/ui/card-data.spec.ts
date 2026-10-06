@@ -1,5 +1,6 @@
 import { getToolsForSurface, toMcpTools } from '@genfeedai/actions';
 import { isPublicMcpRequest } from '@mcp/mcp/public-discovery';
+import { ACCOUNT_AVATAR_ORIGINS } from '@mcp/ui/avatar-origins';
 import { cardResource } from '@mcp/ui/card-app';
 import {
   buildCardView,
@@ -444,7 +445,11 @@ describe('MCP Apps card contract', () => {
       ])._meta.ui.csp,
     ).toEqual({
       connectDomains: [],
-      resourceDomains: ['https://media.example.com', 'https://mcp.genfeed.ai'],
+      resourceDomains: [
+        'https://media.example.com',
+        ...ACCOUNT_AVATAR_ORIGINS,
+        'https://mcp.genfeed.ai',
+      ],
     });
   });
 });
