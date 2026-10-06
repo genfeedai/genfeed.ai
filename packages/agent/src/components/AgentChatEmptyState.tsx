@@ -41,7 +41,6 @@ type AgentChatEmptyStateProps = {
   composerBanner?: ReactNode;
   composerPaddingPx?: number;
   isReadOnly: boolean;
-  highlightWhenEmpty?: boolean;
   isRunActive: boolean;
   isWideLayout: boolean;
   /** Compact rail layout for the workspace agent dock. */
@@ -86,7 +85,6 @@ export function AgentChatEmptyState({
   composerBanner,
   composerPaddingPx,
   isReadOnly,
-  highlightWhenEmpty = false,
   isRunActive,
   isWideLayout,
   variant = 'default',
@@ -192,7 +190,6 @@ export function AgentChatEmptyState({
                 attachments={chatAttachments}
                 clearAllAttachments={clearAllAttachments}
                 disabled={isReadOnly}
-                highlightWhenEmpty={highlightWhenEmpty}
                 hasQueuedFollowUps={followUps.length > 0}
                 onPromoteQueuedFollowUp={onPromoteQueuedFollowUp}
                 dragHandlers={dragHandlers}

@@ -44,7 +44,6 @@ type AgentChatPromptBarProps = {
   isBusy: boolean;
   isComposerUnavailable?: boolean;
   isReadOnly: boolean;
-  highlightWhenEmpty?: boolean;
   isRunActive: boolean;
   placeholder?: string;
   showSuggestedActionsWhenNotEmpty: boolean;
@@ -98,7 +97,6 @@ export function AgentChatPromptBar({
   isBusy,
   isComposerUnavailable = false,
   isReadOnly,
-  highlightWhenEmpty = false,
   isRunActive,
   placeholder,
   showSuggestedActionsWhenNotEmpty,
@@ -210,7 +208,6 @@ export function AgentChatPromptBar({
       )}
     >
       <AgentChatInput
-        highlightWhenEmpty={highlightWhenEmpty}
         agentMode={agentMode}
         onAgentModeChange={onAgentModeChange}
         onSend={onSend}

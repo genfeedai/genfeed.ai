@@ -79,8 +79,6 @@ interface AgentChatInputProps {
   density?: 'compact' | 'default' | 'dock';
   /** Joins the composer to an expandable mode/settings strip above it. */
   isTopAttached?: boolean;
-  /** Invite the first prompt in a new conversation. */
-  highlightWhenEmpty?: boolean;
   /** Unused by this component directly; forwarded by some hosts for parity. */
   creditsAvailable?: number | null;
   willQueueFollowUp?: boolean;
@@ -124,7 +122,6 @@ export function AgentChatInput({
   clearAllAttachments,
   density = 'default',
   isTopAttached = false,
-  highlightWhenEmpty = false,
   willQueueFollowUp = false,
   knowledgeSelection,
   knowledgeSection,
@@ -198,20 +195,6 @@ export function AgentChatInput({
   const handleToolbarSend = useCallback(() => {
     void handleSend();
   }, [handleSend]);
-  const showEmptyHighlight =
-    highlightWhenEmpty &&
-    Boolean(editor?.isEmpty) &&
-    promptText.length === 0 &&
-    !hasAttachments &&
-    references.length === 0 &&
-    !disabled &&
-    !showStop &&
-    !willQueueFollowUp &&
-    !hasQueuedFollowUps &&
-    !isUploading &&
-    !isDragActive &&
-    !isListening &&
-    !isTranscribing;
   return (
     <div
       className="relative w-full min-w-0 max-w-full"
@@ -265,7 +248,6 @@ export function AgentChatInput({
         }
         className={cn(
           isTopAttached && 'rounded-t-none',
-          showEmptyHighlight && 'border-border-strong',
           isDragActive && 'ring-1 ring-primary/40',
         )}
         data-testid="agent-chat-input-shell"
