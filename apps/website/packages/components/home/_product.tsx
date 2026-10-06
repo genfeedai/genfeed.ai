@@ -22,7 +22,7 @@ export default function HomeProduct(): React.ReactElement {
             </Heading>
             <Text className="mt-7 max-w-lg text-base leading-7 text-surface/72 md:text-lg">
               Give Genfeed the idea, the audience and the goal. It makes the
-              whole campaign, on brand, in every format your channels need.
+              images, videos and posts for your campaign, ready for review.
             </Text>
           </div>
 

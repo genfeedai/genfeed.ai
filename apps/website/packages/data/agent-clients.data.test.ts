@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AGENT_CLIENT_FAMILIES,
   AGENT_CLIENT_SLUGS,
   agentClients,
   buildAgentClientJsonLd,
@@ -12,6 +13,12 @@ import {
 } from './agent-clients.data';
 
 describe('agent clients', () => {
+  it('offers every client exactly once across the family chooser', () => {
+    const slugs = AGENT_CLIENT_FAMILIES.flatMap((family) => [...family.slugs]);
+    expect([...slugs].sort()).toEqual([...AGENT_CLIENT_SLUGS].sort());
+    expect(new Set(slugs).size).toBe(slugs.length);
+  });
+
   it('builds one page per slug with integration-first positioning', () => {
     expect(agentClients.map((client) => client.slug)).toEqual([
       ...AGENT_CLIENT_SLUGS,

@@ -1,5 +1,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { PLAN_COPY } from '@genfeedai/pricing';
+import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
@@ -288,7 +289,7 @@ export default function AboutContent() {
       <PageLayout
         heroMedia={<MarketingArtwork page="/about" kind="creator" />}
         title="About Genfeed"
-        description="Genfeed is an open-source content agent that makes on-brand videos, images and posts for creators, agencies and founders, to grow their audience and their revenue."
+        description={metadata.description}
       >
         <WebSection maxWidth="xl" className="gsap-section">
           <SectionHeader

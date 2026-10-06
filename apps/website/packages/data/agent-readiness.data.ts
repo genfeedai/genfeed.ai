@@ -1,3 +1,4 @@
+import { metadata } from '@helpers/media/metadata/metadata.helper';
 import 'server-only';
 
 import { createHash } from 'node:crypto';
@@ -134,7 +135,7 @@ export function buildWebsiteProtectedResourceMetadata() {
 
 export const HOMEPAGE_AGENT_MARKDOWN = `# Genfeed.ai
 
-> The open-source content agent that makes on-brand videos, images and posts to grow your audience and your revenue.
+> ${metadata.description}
 
 Genfeed gives creators, agencies, marketing teams, and autonomous agents one system for researching ideas, generating media and copy, reviewing drafts, scheduling releases, publishing to connected channels, and measuring the results. It is available as a managed cloud product and as an AGPL-licensed self-hosted stack.
 

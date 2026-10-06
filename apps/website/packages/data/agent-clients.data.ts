@@ -1,6 +1,7 @@
 import {
   agentInstallations,
   buildCursorInstallUrl,
+  buildHermesInstallUrl,
 } from '@data/agent-installation.data';
 import type {
   ConnectGenfeedClient,
@@ -45,6 +46,7 @@ export const AGENT_CLIENT_SLUGS = [
   'cursor',
   'gemini',
   'openclaw',
+  'hermes',
   'grok',
   'grok-bot',
   'muse',
@@ -131,6 +133,7 @@ const HELPER_CLIENT: Record<AgentClientSlug, ConnectGenfeedClient> = {
   'grok-bot': 'generic',
   muse: 'generic',
   openclaw: 'generic',
+  hermes: 'generic',
 };
 
 const CLIENT_LOGOS = {
@@ -139,12 +142,13 @@ const CLIENT_LOGOS = {
   'claude-code': '/agent-logos/claude.svg',
   'claude-cowork': '/agent-logos/claude.svg',
   codex: '/agent-logos/openai.svg',
-  cursor: '/agent-logos/cursor.svg',
+  cursor: '/agent-logos/cursor-mark.svg',
   gemini: '/agent-logos/gemini.png',
-  grok: '/agent-logos/grok.svg',
-  'grok-bot': '/agent-logos/grok.svg',
+  grok: '/agent-logos/grok-mark.svg',
+  'grok-bot': '/agent-logos/grok-mark.svg',
   muse: '/agent-logos/meta.svg',
   openclaw: '/agent-logos/openclaw.svg',
+  hermes: '/agent-logos/hermes.png',
 } as const satisfies Record<AgentClientSlug, string>;
 
 interface AgentClientCopy {
@@ -165,13 +169,23 @@ function buildClient(copy: AgentClientCopy): AgentClient {
     connectUrl,
     'oauth',
   );
+  if (copy.slug === 'hermes') {
+    oauth.configuration = `mcp_servers:\n  genfeed:\n    url: ${connectUrl}\n    auth: oauth`;
+    oauth.primaryCommand = 'hermes mcp login genfeed';
+    oauth.authorizationInstruction =
+      'Merge this entry into ~/.hermes/config.yaml without replacing other servers. Run the login command from a fresh terminal and approve browser sign-in, then restart Hermes or run /reload-mcp.';
+  }
   const isOAuthOnly =
     isClaude ||
     copy.isChatConnector ||
-    ['chatgpt', 'claude', 'claude-cowork', 'grok'].includes(copy.slug);
+    ['chatgpt', 'claude', 'claude-cowork', 'grok', 'hermes'].includes(
+      copy.slug,
+    );
   const installation: AgentInstallation = { ...agentInstallations[copy.slug] };
   if (copy.slug === 'cursor')
     installation.destination = buildCursorInstallUrl(connectUrl);
+  if (copy.slug === 'hermes')
+    installation.destination = buildHermesInstallUrl(connectUrl);
   const manualKey = isOAuthOnly
     ? undefined
     : buildConnectGenfeedInstructions(helperClient, connectUrl, 'manual-key');
@@ -348,7 +362,7 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
   },
   {
     about:
-      'Gemini is Google’s AI model family, available in the Gemini app and Gemini CLI. Gemini clients that support remote MCP servers connect to Genfeed with the shared URL.',
+      'Gemini CLI is Google’s terminal agent. Its Genfeed extension adds the playbook and hosted MCP connector; these instructions do not connect the Gemini web app.',
     description:
       'Extend Gemini CLI with Genfeed. Install the extension to bring brand context, media generation, and content workflows into your terminal.',
     extraFaq: [
@@ -358,7 +372,7 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
         question: 'Can Gemini use the same server as Claude?',
       },
     ],
-    name: 'Gemini',
+    name: 'Gemini CLI',
     slug: 'gemini',
   },
   {
@@ -375,6 +389,21 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     ],
     name: 'OpenClaw',
     slug: 'openclaw',
+  },
+  {
+    about:
+      'Hermes is Nous Research’s open-source agent. It connects to remote MCP servers through Hermes Desktop or the terminal client’s config.yaml.',
+    description:
+      'Connect Hermes to Genfeed with browser OAuth. Bring your brand context, content drafts and publishing tools into your agent.',
+    extraFaq: [
+      {
+        question: 'How do I connect from the Hermes terminal client?',
+        answer:
+          'Add Genfeed under mcp_servers in ~/.hermes/config.yaml with the hosted URL and auth: oauth. Run hermes mcp login genfeed from a fresh terminal, then restart Hermes or use /reload-mcp.',
+      },
+    ],
+    name: 'Hermes',
+    slug: 'hermes',
   },
   {
     about:
@@ -443,6 +472,41 @@ const clientsBySlug = new Map(
   agentClients.map((client) => [client.slug, client]),
 );
 
+export const AGENT_CLIENT_FAMILIES = [
+  {
+    name: 'Claude',
+    description: 'Chat, Cowork or Code',
+    slugs: ['claude', 'claude-cowork', 'claude-code'],
+  },
+  {
+    name: 'OpenAI',
+    description: 'ChatGPT or Codex',
+    slugs: ['chatgpt', 'codex'],
+  },
+  { name: 'Cursor', description: 'Connect in your editor', slugs: ['cursor'] },
+  {
+    name: 'Gemini CLI',
+    description: 'Install the CLI extension',
+    slugs: ['gemini'],
+  },
+  {
+    name: 'OpenClaw',
+    description: 'Playbook and MCP setup',
+    slugs: ['openclaw'],
+  },
+  { name: 'Hermes', description: 'Desktop or terminal', slugs: ['hermes'] },
+  {
+    name: 'Grok',
+    description: 'Chat or Grok Bot',
+    slugs: ['grok', 'grok-bot'],
+  },
+  { name: 'Meta Muse', description: 'Connect from a chat', slugs: ['muse'] },
+] as const satisfies readonly {
+  name: string;
+  description: string;
+  slugs: readonly AgentClientSlug[];
+}[];
+
 export function getAgentClient(slug: AgentClientSlug): AgentClient {
   const client = clientsBySlug.get(slug);
   if (!client) {
@@ -486,24 +550,32 @@ export function getAgentClientCommandBlocks(
 
   blocks.push({ label: 'Connect URL', value: client.connectUrl });
 
+  if (!client.chatPrompt && (client.oauth.primaryCommand || client.manualKey)) {
+    blocks.push(...getAgentClientMcpBlocks(client));
+  }
+
+  return blocks;
+}
+
+export function getAgentClientMcpBlocks(
+  client: AgentClient,
+): readonly AgentClientCommandBlock[] {
+  const blocks: AgentClientCommandBlock[] = [];
+  const configuration = {
+    label: client.slug === 'hermes' ? '~/.hermes/config.yaml' : 'Configuration',
+    value: client.oauth.configuration,
+  };
+  if (client.slug === 'hermes') blocks.push(configuration);
   if (client.oauth.primaryCommand) {
     blocks.push({
-      label: 'Install command',
+      label: client.slug === 'hermes' ? 'Authorize Hermes' : 'Install command',
       value: client.oauth.primaryCommand,
     });
   }
-
-  if (!client.chatPrompt && (client.oauth.primaryCommand || client.manualKey)) {
-    blocks.push({
-      label: 'Configuration',
-      value: client.oauth.configuration,
-    });
-  }
-
+  if (client.slug !== 'hermes') blocks.push(configuration);
   if (client.oauth.verifyCommand) {
     blocks.push({ label: 'Verify', value: client.oauth.verifyCommand });
   }
-
   return blocks;
 }
 

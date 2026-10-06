@@ -11,6 +11,7 @@ export interface AgentClientVisualProps {
 }
 
 export interface AgentClientLogoProps {
+  className?: string;
   client: Pick<AgentClient, 'logo'>;
 }
 

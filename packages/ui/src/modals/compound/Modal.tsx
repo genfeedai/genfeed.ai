@@ -18,6 +18,9 @@ import { useModalContentGlobalSideEffectCleanup } from '../../utils/modal-global
  *
  * Provides a slot-based API for building modals with consistent styling.
  * Uses Radix UI Dialog primitives under the hood.
+ * Content constrains the shell to the viewport. Body owns scrolling by default;
+ * Header and Footer stay outside the scroll region. A form wrapping Body and
+ * Footer must use a flex column with min-h-0 so Body can shrink.
  *
  * @example
  * ```tsx
@@ -112,7 +115,7 @@ function ModalContent({
           ref={ref}
           aria-describedby={props['aria-describedby'] ?? undefined}
           className={cn(
-            'fixed left-[50%] top-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%]',
+            'fixed left-[50%] top-[50%] z-50 flex max-h-[90dvh] w-full flex-col overflow-hidden translate-x-[-50%] translate-y-[-50%]',
             'gap-4 rounded-xl bg-card p-6 text-card-foreground shadow-dialog duration-200',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
@@ -160,7 +163,7 @@ function ModalHeader({
     <div
       ref={ref}
       className={cn(
-        'flex flex-col space-y-1.5 text-center sm:text-left',
+        'flex shrink-0 flex-col space-y-1.5 text-center sm:text-left',
         className,
       )}
       {...props}
@@ -209,7 +212,7 @@ interface ModalBodyProps extends HTMLAttributes<HTMLDivElement> {
 function ModalBody({
   ref,
   className,
-  scrollable = false,
+  scrollable = true,
   ...props
 }: ModalBodyProps & { ref?: React.Ref<HTMLDivElement> }) {
   const { size } = useModalContext();
@@ -219,10 +222,11 @@ function ModalBody({
     <div
       ref={ref}
       className={cn(
-        'py-4',
-        (scrollable || isFullSize) && 'flex-1 overflow-y-auto',
+        'min-h-0 flex-1 py-4',
+        (scrollable || isFullSize) && 'overflow-y-auto overscroll-contain',
         className,
       )}
+      data-modal-scroll-region={scrollable || isFullSize ? '' : undefined}
       {...props}
     />
   );
@@ -238,7 +242,7 @@ function ModalFooter({
     <div
       ref={ref}
       className={cn(
-        'flex flex-col-reverse gap-2 sm:flex-row sm:justify-end',
+        'flex shrink-0 flex-col-reverse gap-2 sm:flex-row sm:justify-end',
         className,
       )}
       {...props}

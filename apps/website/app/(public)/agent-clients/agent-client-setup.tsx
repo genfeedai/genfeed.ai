@@ -4,6 +4,7 @@ import {
   AGENT_CLIENT_MANUAL_KEY_HEADING,
   AGENT_CLIENT_SKILLS_ONLY_COPY,
   getAgentClientManualBlocks,
+  getAgentClientMcpBlocks,
 } from '@data/agent-clients.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentClientVisualProps } from '@props/agent-client.props';
@@ -48,8 +49,16 @@ export default function AgentClientSetup({
             >
               <a
                 href={installation.destination}
-                rel="noopener noreferrer"
-                target="_blank"
+                rel={
+                  installation.destination.startsWith('https://')
+                    ? 'noopener noreferrer'
+                    : undefined
+                }
+                target={
+                  installation.destination.startsWith('https://')
+                    ? '_blank'
+                    : undefined
+                }
               >
                 {installation.destinationLabel}
                 <ExternalLink aria-hidden className="ml-2 size-4" />
@@ -106,25 +115,19 @@ export default function AgentClientSetup({
             <Accordion collapsible type="single">
               <AccordionItem value="manual">
                 <AccordionTrigger>
-                  Advanced: manual MCP configuration
+                  {client.slug === 'hermes'
+                    ? 'CLI setup'
+                    : 'Advanced: manual MCP configuration'}
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4">
-                  {client.oauth.primaryCommand ? (
-                    <CommandBlock
-                      label="MCP-only install"
-                      value={client.oauth.primaryCommand}
-                    />
+                  {client.slug === 'hermes' ? (
+                    <p className="text-sm leading-6 text-surface/75">
+                      {client.oauth.authorizationInstruction}
+                    </p>
                   ) : null}
-                  <CommandBlock
-                    label="Configuration"
-                    value={client.oauth.configuration}
-                  />
-                  {client.oauth.verifyCommand ? (
-                    <CommandBlock
-                      label="Verify"
-                      value={client.oauth.verifyCommand}
-                    />
-                  ) : null}
+                  {getAgentClientMcpBlocks(client).map((block) => (
+                    <CommandBlock key={block.label} {...block} />
+                  ))}
                 </AccordionContent>
               </AccordionItem>
               {client.manualKey ? (

@@ -32,8 +32,11 @@ describe('page illustration coverage', () => {
     expect(PAGE_MARKETING_ASSETS['/turbo']).toEqual(
       PAGE_MARKETING_ASSETS['/studio'],
     );
+    expect(PAGE_MARKETING_ASSETS['/hermes']).toBe(
+      PAGE_MARKETING_ASSETS['/openclaw'],
+    );
     const distinctAssets = Object.entries(PAGE_MARKETING_ASSETS)
-      .filter(([route]) => route !== '/turbo')
+      .filter(([route]) => !['/turbo', '/hermes'].includes(route))
       .map(([, asset]) => asset);
     expect(new Set(distinctAssets.map(({ src }) => src)).size).toBe(
       distinctAssets.length,
