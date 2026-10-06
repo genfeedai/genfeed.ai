@@ -1,5 +1,6 @@
 import { BrandEntity } from '@api/collections/brands/entities/brand.entity';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { toPersistedFontFamily } from '@api/collections/brands/utils/persisted-font-family';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { MembersService } from '@api/collections/members/services/members.service';
@@ -251,7 +252,9 @@ export class ProactiveOnboardingService {
           description:
             scrapedData.description ??
             'Default description. Use it as a pre-prompt',
-          fontFamily: scrapedData.fontFamily ?? FontFamily.MONTSERRAT_BLACK,
+          fontFamily:
+            toPersistedFontFamily(scrapedData.fontFamily) ??
+            FontFamily.MONTSERRAT_BLACK,
           handle: brandSlug,
           label: brandLabel,
           organizationId: shadowOrgId,

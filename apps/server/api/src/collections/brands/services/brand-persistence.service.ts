@@ -2,6 +2,7 @@ import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dt
 import { BrandAssetAutofillService } from '@api/collections/brands/services/brand-asset-autofill.service';
 import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { toPersistedFontFamily } from '@api/collections/brands/utils/persisted-font-family';
 import { LinksService } from '@api/collections/links/services/links.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
@@ -77,8 +78,9 @@ export class BrandPersistenceService {
       updateData.secondaryColor = scrapedData.secondaryColor;
     }
 
-    if (scrapedData.fontFamily) {
-      updateData.fontFamily = scrapedData.fontFamily;
+    const fontFamily = toPersistedFontFamily(scrapedData.fontFamily);
+    if (fontFamily) {
+      updateData.fontFamily = fontFamily;
     }
 
     // Build system prompt from scraped content
