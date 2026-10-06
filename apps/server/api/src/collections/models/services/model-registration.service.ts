@@ -1,5 +1,11 @@
 import { ModelLifecycle } from '@genfeedai/contracts';
+import {
+  CALLABLE_GENERATION_MODEL_TYPES,
+  type CallableGenerationModel,
+  type CallableGenerationModelType,
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { platformOrTenantScope } from '@libs/prisma/platform-scope';
 import {
   BadRequestException,
   ForbiddenException,
@@ -10,7 +16,17 @@ import { OrganizationSettingsService } from '../../organization-settings/service
 import type { TrainingDocument } from '../../trainings/schemas/training.schema';
 import type { ModelDocument } from '../schemas/model.schema';
 import { isModelOnAllowlist } from '../utils/enabled-model.util';
+import {
+  findUnpriceableModelIds,
+  unpriceableModelsScope,
+} from '../utils/model-pricing-attention.util';
 import { ModelsService } from './models.service';
+
+function isCallableGenerationModelType(
+  value: string,
+): value is CallableGenerationModelType {
+  return (CALLABLE_GENERATION_MODEL_TYPES as readonly string[]).includes(value);
+}
 
 @Injectable()
 export class ModelRegistrationService {
@@ -40,18 +56,7 @@ export class ModelRegistrationService {
     // first (same contract as settings GET) so Demo/legacy orgs are not
     // enable-none until someone opens Org Settings. A non-empty list is an
     // explicit choice and ensureEnabledModelIds leaves it untouched.
-    const orgSettings = await this.orgSettingsService.findOne({
-      organizationId,
-    });
-    const ensuredSettings = orgSettings
-      ? await this.orgSettingsService.ensureEnabledModelIds(orgSettings)
-      : orgSettings;
-    const enabledModelIds = Array.isArray(
-      (ensuredSettings as Record<string, unknown> | null)?.enabledModelIds,
-    )
-      ? ((ensuredSettings as Record<string, unknown>)
-          .enabledModelIds as string[])
-      : [];
+    const enabledModelIds = await this.readEnabledModelIds(organizationId);
 
     if (enabledModelIds.length === 0) {
       throw new ForbiddenException('No models enabled for this workspace');
@@ -70,6 +75,85 @@ export class ModelRegistrationService {
     }
 
     return model;
+  }
+
+  /**
+   * Catalog keys this account can pass to generate or transform_media.
+   * Same gates as the organization model list: allowlist (id or key),
+   * active, not retired, not unpriceable, platform rows plus this org.
+   */
+  async listCallableGenerationModels(
+    organizationId: string,
+    category?: CallableGenerationModelType,
+  ): Promise<CallableGenerationModel[]> {
+    const enabledModelIds = await this.readEnabledModelIds(organizationId);
+    if (
+      enabledModelIds.length === 0 ||
+      (category !== undefined && !isCallableGenerationModelType(category))
+    ) {
+      return [];
+    }
+
+    const categories = category
+      ? [category]
+      : [...CALLABLE_GENERATION_MODEL_TYPES];
+    const unpriceableIds = await findUnpriceableModelIds(
+      this.prisma,
+      unpriceableModelsScope(organizationId),
+    );
+    // tenant-scope-ignore: platform catalog plus this organization via platformOrTenantScope, with isDeleted:false; other tenants never match
+    const rows = await this.prisma.model.findMany({
+      orderBy: [{ category: 'asc' }, { label: 'asc' }],
+      select: { category: true, id: true, key: true, label: true },
+      where: {
+        ...platformOrTenantScope(organizationId),
+        AND: [
+          {
+            OR: [
+              { id: { in: enabledModelIds } },
+              { key: { in: enabledModelIds } },
+            ],
+          },
+        ],
+        category: { in: categories },
+        isActive: true,
+        isDeleted: false,
+        lifecycle: { not: ModelLifecycle.RETIRED },
+        ...(unpriceableIds.length > 0 ? { id: { notIn: unpriceableIds } } : {}),
+      },
+    });
+
+    const models: CallableGenerationModel[] = [];
+    for (const row of rows) {
+      const key = row.key.trim();
+      if (!key || !isCallableGenerationModelType(row.category)) {
+        continue;
+      }
+      if (!isModelOnAllowlist(row, enabledModelIds)) {
+        continue;
+      }
+      models.push({
+        key,
+        label: row.label.trim() || key,
+        type: row.category,
+      });
+    }
+    return models;
+  }
+
+  private async readEnabledModelIds(organizationId: string): Promise<string[]> {
+    const orgSettings = await this.orgSettingsService.findOne({
+      organizationId,
+    });
+    const ensuredSettings = orgSettings
+      ? await this.orgSettingsService.ensureEnabledModelIds(orgSettings)
+      : orgSettings;
+    const enabledModelIds = (
+      ensuredSettings as { enabledModelIds?: unknown } | null
+    )?.enabledModelIds;
+    return Array.isArray(enabledModelIds)
+      ? enabledModelIds.filter((id): id is string => typeof id === 'string')
+      : [];
   }
 
   private async resolveRetiredSuccessor(

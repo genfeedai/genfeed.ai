@@ -1,11 +1,17 @@
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import type { ModelsService } from '@api/collections/models/services/models.service';
+import { findUnpriceableModelIds } from '@api/collections/models/utils/model-pricing-attention.util';
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelLifecycle } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
+
+vi.mock('@api/collections/models/utils/model-pricing-attention.util', () => ({
+  findUnpriceableModelIds: vi.fn(),
+  unpriceableModelsScope: vi.fn(() => ({ isDeleted: false })),
+}));
 
 const organizationId = testId('org');
 const modelId = testId('model');
@@ -176,5 +182,141 @@ describe('ModelRegistrationService.validateModelForOrg', () => {
       key: successorKey,
       organizationId: null,
     });
+  });
+});
+
+describe('ModelRegistrationService.listCallableGenerationModels', () => {
+  const schnellKey = 'black-forest-labs/flux-schnell';
+
+  function makeListService() {
+    const findMany = vi.fn();
+    const orgSettingsService = {
+      ensureEnabledModelIds: vi.fn((settings: unknown) =>
+        Promise.resolve(settings),
+      ),
+      findOne: vi.fn(),
+    };
+    const service = new ModelRegistrationService(
+      { model: { findMany } } as unknown as PrismaService,
+      orgSettingsService as unknown as OrganizationSettingsService,
+      {
+        debug: vi.fn(),
+        error: vi.fn(),
+        log: vi.fn(),
+        warn: vi.fn(),
+      } as unknown as LoggerService,
+      { findOne: vi.fn() } as unknown as ModelsService,
+    );
+    return { findMany, orgSettingsService, service };
+  }
+
+  it('returns no keys and does not query when the allowlist is empty', async () => {
+    const { findMany, orgSettingsService, service } = makeListService();
+    vi.mocked(findUnpriceableModelIds).mockClear();
+    orgSettingsService.findOne.mockResolvedValue({
+      enabledModelIds: [],
+      id: testId('setting'),
+      organizationId,
+    });
+
+    await expect(
+      service.listCallableGenerationModels(organizationId),
+    ).resolves.toEqual([]);
+    expect(findMany).not.toHaveBeenCalled();
+    expect(findUnpriceableModelIds).not.toHaveBeenCalled();
+  });
+
+  it('returns allowlisted catalog keys and hides aliases that are not stored', async () => {
+    const { findMany, orgSettingsService, service } = makeListService();
+    vi.mocked(findUnpriceableModelIds).mockResolvedValue(['red-model']);
+    orgSettingsService.findOne.mockResolvedValue({
+      enabledModelIds: [modelId, schnellKey],
+      id: testId('setting'),
+      organizationId,
+    });
+    findMany.mockResolvedValue([
+      {
+        category: 'image',
+        id: modelId,
+        key: schnellKey,
+        label: 'FLUX.1 Schnell',
+      },
+      {
+        category: 'image',
+        id: 'other',
+        key: 'fal-ai/flux/schnell',
+        label: 'fal Schnell',
+      },
+      {
+        category: 'image',
+        id: 'blank',
+        key: '   ',
+        label: 'Blank',
+      },
+      {
+        category: 'text',
+        id: 'text-model',
+        key: 'openrouter/text',
+        label: 'Text',
+      },
+    ]);
+
+    await expect(
+      service.listCallableGenerationModels(organizationId),
+    ).resolves.toEqual([
+      {
+        key: schnellKey,
+        label: 'FLUX.1 Schnell',
+        type: 'image',
+      },
+    ]);
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          category: {
+            in: ['image', 'image-edit', 'video', 'voice', 'music'],
+          },
+          isActive: true,
+          isDeleted: false,
+          lifecycle: { not: ModelLifecycle.RETIRED },
+          id: { notIn: ['red-model'] },
+        }),
+      }),
+    );
+  });
+
+  it('limits the catalog to the requested generation type', async () => {
+    const { findMany, orgSettingsService, service } = makeListService();
+    vi.mocked(findUnpriceableModelIds).mockResolvedValue([]);
+    orgSettingsService.findOne.mockResolvedValue({
+      enabledModelIds: ['video-model'],
+      id: testId('setting'),
+      organizationId,
+    });
+    findMany.mockResolvedValue([
+      {
+        category: 'video',
+        id: 'video-model',
+        key: 'kwaivgi/kling-v3-video',
+        label: ' Kling ',
+      },
+    ]);
+
+    await expect(
+      service.listCallableGenerationModels(organizationId, 'video'),
+    ).resolves.toEqual([
+      {
+        key: 'kwaivgi/kling-v3-video',
+        label: 'Kling',
+        type: 'video',
+      },
+    ]);
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          category: { in: ['video'] },
+        }),
+      }),
+    );
   });
 });

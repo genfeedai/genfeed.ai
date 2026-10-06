@@ -18,6 +18,13 @@ const COST = {
   balance: 42,
   estimate: { credits: 7, status: 'available' },
 };
+const MODELS = [
+  {
+    key: 'black-forest-labs/flux-3-image',
+    label: 'FLUX.3',
+    type: 'image',
+  },
+];
 
 function setup() {
   const settings = {
@@ -34,42 +41,55 @@ function setup() {
       success: true,
     }),
   };
+  const models = {
+    listCallableGenerationModels: vi.fn().mockResolvedValue(MODELS),
+  };
   return {
     cost,
     handler: new AgentGenerationOptionsToolHandler(
       settings as never,
       cost as never,
+      models as never,
     ),
+    models,
     settings,
   };
 }
 
 describe('AgentGenerationOptionsToolHandler', () => {
-  it('returns settings only when no type is given', async () => {
-    const { cost, handler, settings } = setup();
+  it('returns settings and callable models when no type is given', async () => {
+    const { cost, handler, models, settings } = setup();
 
     const result = await handler.execute({ brandId: 'brand-2' }, ctx);
 
     expect(settings.get).toHaveBeenCalledWith({ brandId: 'brand-2' }, ctx);
+    expect(models.listCallableGenerationModels).toHaveBeenCalledWith(
+      'org-1',
+      undefined,
+    );
     expect(cost.execute).not.toHaveBeenCalled();
     expect(result).toEqual({
       creditsUsed: 0,
-      data: { settings: SETTINGS },
+      data: { models: MODELS, settings: SETTINGS },
       success: true,
     });
     expect(result.data).not.toHaveProperty('cost');
   });
 
-  it('returns settings and the estimate when a type is given', async () => {
-    const { cost, handler } = setup();
+  it('returns settings, callable models for the type, and the estimate when a type is given', async () => {
+    const { cost, handler, models } = setup();
     const params = { duration: 8, modelKey: 'model-1', type: 'video' };
 
     const result = await handler.execute(params, ctx);
 
+    expect(models.listCallableGenerationModels).toHaveBeenCalledWith(
+      'org-1',
+      'video',
+    );
     expect(cost.execute).toHaveBeenCalledWith(params, ctx);
     expect(result).toEqual({
       creditsUsed: 0,
-      data: { cost: COST, settings: SETTINGS },
+      data: { cost: COST, models: MODELS, settings: SETTINGS },
       success: true,
     });
   });
@@ -87,24 +107,29 @@ describe('AgentGenerationOptionsToolHandler', () => {
   );
 
   it('treats a null type as absent', async () => {
-    const { cost, handler } = setup();
+    const { cost, handler, models } = setup();
 
     const result = await handler.execute({ type: null }, ctx);
 
     expect(cost.execute).not.toHaveBeenCalled();
-    expect(result.data).toEqual({ settings: SETTINGS });
+    expect(models.listCallableGenerationModels).toHaveBeenCalledWith(
+      'org-1',
+      undefined,
+    );
+    expect(result.data).toEqual({ models: MODELS, settings: SETTINGS });
   });
 
   it.each(['gif', 1, ''])(
     'rejects the invalid type %s before reading anything',
     async (type) => {
-      const { cost, handler, settings } = setup();
+      const { cost, handler, models, settings } = setup();
 
       await expect(handler.execute({ type }, ctx)).rejects.toThrow(
         'type must be one of: image, video, voice, music, image-edit',
       );
       expect(settings.get).not.toHaveBeenCalled();
       expect(cost.execute).not.toHaveBeenCalled();
+      expect(models.listCallableGenerationModels).not.toHaveBeenCalled();
     },
   );
 
@@ -145,6 +170,7 @@ describe('AgentGenerationOptionsToolHandler', () => {
         { getOrganizationCreditsBalance: vi.fn(async () => 42) } as never,
         estimate,
       ),
+      { listCallableGenerationModels: vi.fn(async () => []) } as never,
     );
 
     const result = await handler.execute(

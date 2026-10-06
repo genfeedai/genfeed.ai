@@ -14,6 +14,7 @@ export const MCP_SERVER_INSTRUCTIONS = [
   'Call get_account first: if profile.isOnboardingCompleted is false, the user just signed up, so run onboard_brand with them before generating anything.',
   'Call get_brands and work inside the brand the user means.',
   'Use generate_content for post copy and generate for images, video and audio; media generation is asynchronous, so poll get_job_status until the job finishes.',
+  'Before generate.model or transform_media.model, call get_generation_options and pass a returned models key. Omit generate.model to let the router choose. Do not invent model aliases.',
   'create_post saves a draft for review. Never publish or schedule a post unless the user explicitly asks for it.',
   'Call find_tools when a request needs a capability that is not in the current tool list.',
 ].join(' ');
