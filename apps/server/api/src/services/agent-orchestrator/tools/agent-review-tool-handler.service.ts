@@ -111,18 +111,17 @@ export class AgentReviewToolHandler {
     let pendingCount = 0;
     let readyCount = 0;
     for (const item of items) {
-      const reviewItem = item as Record<string, unknown>;
-      const decision = normalizeReviewDecision(reviewItem.reviewDecision);
+      const decision = normalizeReviewDecision(item.reviewDecision);
       if (decision === ReviewDecision.APPROVED) {
         approvedCount += 1;
       } else if (decision === ReviewDecision.REQUEST_CHANGES) {
         changesRequestedCount += 1;
       } else if (decision === ReviewDecision.UNSET) {
-        if (reviewItem.status === BatchItemStatus.COMPLETED) {
+        if (item.status === BatchItemStatus.COMPLETED) {
           readyCount += 1;
         } else if (
-          reviewItem.status === BatchItemStatus.PENDING ||
-          reviewItem.status === BatchItemStatus.PROCESSING
+          item.status === BatchItemStatus.PENDING ||
+          item.status === BatchItemStatus.PROCESSING
         ) {
           pendingCount += 1;
         }
