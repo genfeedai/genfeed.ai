@@ -378,4 +378,16 @@ describe('useIngredientsLoading', () => {
     );
     expect(result.current.ingredients).toEqual([]);
   });
+  it('preserves visible review decisions when a refresh fails', async () => {
+    const { result } = renderHook(() => useIngredientsLoading(baseProps));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const approved = { id: 'approved', status: 'VALIDATED' } as IIngredient;
+    act(() => result.current.setIngredients([approved]));
+    ingredientsFindAllMock.mockRejectedValueOnce(new Error('unavailable'));
+    await act(async () => result.current.findAllIngredientsByCategory(true));
+    expect(result.current.ingredients).toEqual([approved]);
+    expect(mockNotificationError).toHaveBeenCalledWith(
+      'Failed to refresh videos',
+    );
+  });
 });

@@ -756,6 +756,38 @@ describe('IngredientsService', () => {
       );
     });
 
+    it('intersects shelf and all-tags filters without overwriting either AND', async () => {
+      const tagFilter = {
+        AND: [
+          { tags: { some: { id: 'tag-1', isDeleted: false } } },
+          { tags: { some: { id: 'tag-2', isDeleted: false } } },
+        ],
+      };
+      await service.listLibraryAssets({
+        brandId: 'brand-1',
+        category: IngredientCategory.IMAGE,
+        limit: 10,
+        offset: 0,
+        organizationId,
+        origin: IngredientOrigin.UPLOADED,
+        shelf: LibraryShelf.UNSORTED,
+        tagFilter,
+      });
+      expect(ingredientDelegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId,
+            isDeleted: false,
+            origin: IngredientOrigin.UPLOADED,
+            AND: [
+              LibraryShelfUtil.buildShelfFilter(LibraryShelf.UNSORTED),
+              tagFilter,
+            ],
+          }),
+        }),
+      );
+    });
+
     it('adds the brand filter for a brand-scoped caller', async () => {
       await service.listLibraryAssets({
         brandId: 'brand-1',

@@ -260,11 +260,13 @@ export class IngredientsService extends BaseService<
         category: params.category,
         ...(params.shelf
           ? { AND: [LibraryShelfUtil.buildShelfFilter(params.shelf)] }
-          : { status: { notIn: [...HIDDEN_LIBRARY_ASSET_STATUSES] } }),
+          : {
+              status: { notIn: [...HIDDEN_LIBRARY_ASSET_STATUSES] },
+              ...(params.tagFilter ?? {}),
+            }),
         trainingId: null,
         ...(params.origin ? { origin: params.origin } : {}),
         ...(params.characterFilter ?? {}),
-        ...(params.tagFilter ?? {}),
       }),
     });
 
