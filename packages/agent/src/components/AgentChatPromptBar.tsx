@@ -197,7 +197,15 @@ export function AgentChatPromptBar({
       // Portal already owns max-w-4xl + matching px; fill it without re-padding.
       maxWidth={isPortaled ? 'full' : '4xl'}
       showTopFade={!hasFollowUpChips && !isDockComposer}
-      topContent={topContent}
+      topContent={
+        isDockComposer ? (
+          <div className="max-h-[min(30dvh,12rem)] overflow-y-auto overscroll-contain">
+            {topContent}
+          </div>
+        ) : (
+          topContent
+        )
+      }
       zIndex={40}
       containerRef={onOverlayElement}
       className={cn(

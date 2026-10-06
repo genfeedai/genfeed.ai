@@ -128,21 +128,21 @@ export function AgentChatEmptyState({
   if (isDock) {
     return (
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-end gap-3 overflow-y-auto px-4 pb-3 pt-6">
-          <div className="w-full max-w-sm px-1 text-center">
-            <h2 className="text-sm font-semibold tracking-[-0.01em] text-foreground">
-              {emptyStateTitle}
-            </h2>
-            <p className="mt-1 break-words text-xs leading-5 text-muted-foreground">
-              {emptyStateDescription}
-            </p>
-          </div>
-          {/* Page-contextual action cards (route-aware via pageContext store). */}
-          {promptBarSuggestions ? (
-            <div className="w-full max-w-sm [&_[role=toolbar]]:!grid-cols-1">
-              {promptBarSuggestions}
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
+          <div className="flex min-h-full flex-col justify-center gap-5">
+            <div className="w-full text-left">
+              <h2 className="text-lg font-semibold tracking-[-0.02em] text-foreground">
+                {emptyStateTitle}
+              </h2>
+              <p className="mt-1 break-words text-sm leading-5 text-muted-foreground">
+                {emptyStateDescription}
+              </p>
             </div>
-          ) : null}
+            {/* Page-contextual action cards (route-aware via pageContext store). */}
+            {promptBarSuggestions ? (
+              <div className="w-full">{promptBarSuggestions}</div>
+            ) : null}
+          </div>
         </div>
       </div>
     );
