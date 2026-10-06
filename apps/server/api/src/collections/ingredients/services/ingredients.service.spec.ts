@@ -1,12 +1,15 @@
 import type { IngredientServerCreate } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AssetScope,
+  FleetReviewStatus,
   IngredientCategory,
   IngredientOrigin,
   IngredientStatus,
+  LibraryShelf,
 } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -185,6 +188,25 @@ describe('IngredientsService', () => {
   });
 
   describe('patch', () => {
+    it.each([
+      [IngredientStatus.VALIDATED, FleetReviewStatus.APPROVED],
+      [IngredientStatus.REJECTED, FleetReviewStatus.REJECTED],
+    ])(
+      'keeps fleet review state consistent with %s',
+      async (status, reviewStatus) => {
+        ingredientDelegate.findFirst.mockResolvedValue({
+          ...mockIngredient,
+          reviewStatus: FleetReviewStatus.PENDING,
+        });
+        await service.patch(ingredientId, { status });
+        expect(ingredientDelegate.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ reviewStatus }),
+          }),
+        );
+      },
+    );
+
     it('should update an ingredient successfully', async () => {
       const id = 'test-id';
       const updateDto: UpdateIngredientDto = {
@@ -706,6 +728,62 @@ describe('IngredientsService', () => {
             },
             trainingId: null,
           },
+        }),
+      );
+    });
+
+    it('uses the Unsorted saved query with brand, origin and tenant filters', async () => {
+      await service.listLibraryAssets({
+        brandId: 'brand-1',
+        category: IngredientCategory.IMAGE,
+        limit: 10,
+        offset: 0,
+        organizationId,
+        origin: IngredientOrigin.GENERATED,
+        shelf: LibraryShelf.UNSORTED,
+      });
+      expect(ingredientDelegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            brandId: 'brand-1',
+            category: IngredientCategory.IMAGE,
+            organizationId,
+            isDeleted: false,
+            origin: IngredientOrigin.GENERATED,
+            AND: [LibraryShelfUtil.buildShelfFilter(LibraryShelf.UNSORTED)],
+          }),
+        }),
+      );
+    });
+
+    it('intersects shelf and all-tags filters without overwriting either AND', async () => {
+      const tagFilter = {
+        AND: [
+          { tags: { some: { id: 'tag-1', isDeleted: false } } },
+          { tags: { some: { id: 'tag-2', isDeleted: false } } },
+        ],
+      };
+      await service.listLibraryAssets({
+        brandId: 'brand-1',
+        category: IngredientCategory.IMAGE,
+        limit: 10,
+        offset: 0,
+        organizationId,
+        origin: IngredientOrigin.UPLOADED,
+        shelf: LibraryShelf.UNSORTED,
+        tagFilter,
+      });
+      expect(ingredientDelegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId,
+            isDeleted: false,
+            origin: IngredientOrigin.UPLOADED,
+            AND: [
+              LibraryShelfUtil.buildShelfFilter(LibraryShelf.UNSORTED),
+              tagFilter,
+            ],
+          }),
         }),
       );
     });

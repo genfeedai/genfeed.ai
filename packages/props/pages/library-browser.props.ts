@@ -69,6 +69,7 @@ export interface LibraryBrowserToolbarProps {
   sortOptions: LibraryBrowserSortOption[];
   viewMode: LibraryViewMode;
   isRefreshing: boolean;
+  reviewUnsortedHref?: string;
   onCategoriesChange: (categories: IngredientCategory[]) => void;
   onCharactersChange: (characters: string[]) => void;
   onClearCategories: () => void;

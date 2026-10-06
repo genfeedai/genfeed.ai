@@ -32,6 +32,7 @@ import {
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
+  FleetReviewStatus,
   type IngredientCategory,
   type IngredientOrigin,
   IngredientStatus,
@@ -243,6 +244,7 @@ export class IngredientsService extends BaseService<
     offset: number;
     organizationId: string;
     origin?: IngredientOrigin;
+    shelf?: LibraryShelf;
     tagFilter?: Record<string, unknown>;
   }): Promise<IngredientDocument[]> {
     const rows = await this.prisma.ingredient.findMany({
@@ -256,11 +258,20 @@ export class IngredientsService extends BaseService<
       where: scopedWhere(params.organizationId, {
         ...(params.brandId ? { brandId: params.brandId } : {}),
         category: params.category,
-        status: { notIn: [...HIDDEN_LIBRARY_ASSET_STATUSES] },
+        ...(params.shelf
+          ? {
+              AND: [
+                LibraryShelfUtil.buildShelfFilter(params.shelf),
+                ...(params.tagFilter ? [params.tagFilter] : []),
+              ],
+            }
+          : {
+              status: { notIn: [...HIDDEN_LIBRARY_ASSET_STATUSES] },
+              ...(params.tagFilter ?? {}),
+            }),
         trainingId: null,
         ...(params.origin ? { origin: params.origin } : {}),
         ...(params.characterFilter ?? {}),
-        ...(params.tagFilter ?? {}),
       }),
     });
 
@@ -374,6 +385,16 @@ export class IngredientsService extends BaseService<
       const rowWhere = organizationId ? { id, organizationId } : { id };
       const current = await this.findOne(rowWhere);
       if (!current) throw new NotFoundException('Ingredient', id);
+      if (
+        current.reviewStatus &&
+        (updateDto.status === IngredientStatus.VALIDATED ||
+          updateDto.status === IngredientStatus.REJECTED)
+      ) {
+        data.reviewStatus =
+          updateDto.status === IngredientStatus.VALIDATED
+            ? FleetReviewStatus.APPROVED
+            : FleetReviewStatus.REJECTED;
+      }
       const completed = current?.organizationId
         ? await persistQuoteGroupDisposition(
             this.prisma,

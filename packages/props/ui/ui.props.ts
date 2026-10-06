@@ -81,6 +81,7 @@ interface ContainerBaseProps {
   right?: ReactNode;
   /** Module toolbar ghost actions, placed beside Help and the inspector. */
   iconActions?: ReactNode;
+  iconActionsPlacement?: 'before-controls' | 'after-controls';
   /**
    * Keep the module bar pinned to the top of the scrolling canvas, and
    * publish its height as `--pinned-topbar-height` for sticky descendants.

@@ -2444,6 +2444,7 @@
         "searchCharacters": "Search characters",
         "searchTags": "Search tags",
         "sortAria": "Sort",
+        "startUnsortedReview": "Start Unsorted review with Agent",
         "tagLimit": "Limit of {count} tags reached",
         "tagMatchAria": "How the selected tags combine",
         "tags": "Tags",
@@ -2476,6 +2477,12 @@
       "type": "Type",
       "untitled": "Untitled asset",
       "usedIn": "Used in"
+    },
+    "review": {
+      "approve": "Approve asset",
+      "reject": "Reject asset",
+      "label": "Review asset",
+      "saveFailed": "Could not save your review. Try again."
     },
     "otherAssets": "Other assets",
     "sidebar": {

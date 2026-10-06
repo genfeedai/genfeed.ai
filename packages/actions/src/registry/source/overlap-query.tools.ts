@@ -1,3 +1,4 @@
+import { LIBRARY_SHELF_ORDER } from '@genfeedai/contracts';
 import type { SourceTool } from '../../interfaces/source-tool.interface';
 
 /**
@@ -156,6 +157,12 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
         q: {
           description:
             'Type character only. Optional handle or label prefix filter.',
+          type: 'string',
+        },
+        shelf: {
+          description:
+            'Only assets on this Library shelf, including unsorted (not filed in a folder). Not used with type character.',
+          enum: [...LIBRARY_SHELF_ORDER],
           type: 'string',
         },
         tagMatch: {

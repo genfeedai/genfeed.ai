@@ -86,6 +86,7 @@ export interface IngredientsMediaGridProps {
     parentId: string | null,
   ) => Promise<void> | void;
   onRefresh: () => void;
+  onReviewUpdated?: (ingredient: IIngredient) => void;
   onPublishIngredient: (ingredient: IIngredient) => void;
   onClickIngredient: (ingredient: IIngredient) => void;
   /** Toggle this asset in the surrounding surface's selection set. */
@@ -98,6 +99,11 @@ export interface IngredientsMediaGridProps {
   onConvertToVideo?: (ingredient: IIngredient) => void;
   onCopyPrompt?: (ingredient: IIngredient) => void;
   onReprompt?: (ingredient: IIngredient) => void;
+}
+
+export interface IngredientReviewActionsProps {
+  ingredient: IIngredient;
+  onUpdated: (ingredient: IIngredient) => void;
 }
 
 export interface IngredientInspectorRailProps {

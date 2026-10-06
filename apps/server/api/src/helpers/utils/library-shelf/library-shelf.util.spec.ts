@@ -62,6 +62,13 @@ describe('LibraryShelfUtil', () => {
       expect(
         LibraryShelfUtil.buildShelfFilter(LibraryShelf.NEEDS_REVIEW),
       ).toEqual({
+        status: {
+          in: [
+            IngredientStatus.DRAFT,
+            IngredientStatus.UPLOADED,
+            IngredientStatus.GENERATED,
+          ],
+        },
         OR: [
           {
             reviewStatus: {

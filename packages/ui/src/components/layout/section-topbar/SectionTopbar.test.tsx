@@ -37,6 +37,27 @@ vi.mock('next-intl', async () => {
 });
 
 describe('SectionTopbar', () => {
+  it.each(['visible', 'sr-only'] as const)(
+    'places Library ghost actions before controls with %s titles',
+    (titleVisibility) => {
+      render(
+        <SectionTopbar
+          title="Library"
+          titleVisibility={titleVisibility}
+          iconActionsPlacement="before-controls"
+          actions={<span>Filters</span>}
+          iconActions={<span>Refresh</span>}
+        />,
+      );
+      expect(
+        screen
+          .getByTestId('section-topbar-icon-actions')
+          .compareDocumentPosition(screen.getByText('Filters')) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    },
+  );
+
   it('keeps semantic back navigation out of the tab slot', () => {
     render(
       <SectionTopbar

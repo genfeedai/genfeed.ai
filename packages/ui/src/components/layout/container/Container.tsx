@@ -52,6 +52,7 @@ export default function Container({
   leading,
   right,
   iconActions,
+  iconActionsPlacement,
   isTopbarPinned = false,
   topbarFooter,
   help,
@@ -220,6 +221,7 @@ export default function Container({
       }
       help={resolvedHelp}
       iconActions={iconActions}
+      iconActionsPlacement={iconActionsPlacement}
       tabs={moduleTabsNode ?? undefined}
       forceVisible={moduleChrome === true}
     />

@@ -18,7 +18,7 @@ import {
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import { selectIsGenerating } from '@genfeedai/agent/stores/agent-chat.store.run';
 import { clearClientProtectedBootstrapCache } from '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -197,6 +197,8 @@ function AgentWorkspaceLayoutClientContent({
       .join(' ');
   }, [searchParams]);
   const prefillPrompt = explicitPrefillPrompt || taskPrefillPrompt;
+  const useManualBootstrap =
+    searchParams.get('agentMode') === AgentThreadMode.MANUAL;
   const effectiveIsLoaded = isLoaded || playwrightAuth?.isLoaded === true;
 
   const agentApiService = useMemo(
@@ -273,6 +275,7 @@ function AgentWorkspaceLayoutClientContent({
     void sendMessage(prefillPrompt, {
       ...(brandId ? { brandId } : {}),
       forceNewThread: true,
+      ...(useManualBootstrap ? { agentMode: AgentThreadMode.MANUAL } : {}),
       signal: controller.signal,
       source: isOnboarding ? 'onboarding' : 'agent',
     }).catch(() => undefined);
@@ -285,6 +288,7 @@ function AgentWorkspaceLayoutClientContent({
     isOnboarding,
     isUnthreadedRoute,
     prefillPrompt,
+    useManualBootstrap,
     sendMessage,
   ]);
 
