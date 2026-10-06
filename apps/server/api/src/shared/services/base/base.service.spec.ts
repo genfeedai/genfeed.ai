@@ -1197,6 +1197,27 @@ describe('BaseService', () => {
       });
     });
 
+    it('strips a caller-supplied isDeleted filter on models without the column', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'organizationId', 'hasGeneratedFirstAsset'),
+      );
+      delegate.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.patchAll(
+        {
+          hasGeneratedFirstAsset: false,
+          isDeleted: false,
+          organizationId: 'org_1',
+        },
+        { hasGeneratedFirstAsset: true },
+      );
+
+      expect(delegate.updateMany).toHaveBeenCalledWith({
+        where: { hasGeneratedFirstAsset: false, organizationId: 'org_1' },
+        data: { hasGeneratedFirstAsset: true },
+      });
+    });
+
     it('throws ValidationException when filter is null', async () => {
       await expect(
         service.patchAll(null as unknown as Record<string, unknown>, {}),

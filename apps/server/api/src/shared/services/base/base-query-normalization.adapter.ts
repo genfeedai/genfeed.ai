@@ -279,10 +279,19 @@ export class BaseQueryNormalizationAdapter {
     params: PrismaFilter = where,
     access: TenantScopeAccess = 'read',
   ): PrismaFilter {
-    const softDeleteScoped =
-      this.fieldExists('isDeleted') && !(params && 'isDeleted' in params)
-        ? { isDeleted: false, ...where }
-        : where;
+    const hasSoftDelete = this.fieldExists('isDeleted');
+    let softDeleteScoped = where;
+
+    if (!hasSoftDelete) {
+      // Callers such as scopedWhere always attach isDeleted. Prisma rejects
+      // that key on models that never declared the column.
+      if (softDeleteScoped && Object.hasOwn(softDeleteScoped, 'isDeleted')) {
+        const { isDeleted: _ignored, ...rest } = softDeleteScoped;
+        softDeleteScoped = rest;
+      }
+    } else if (!(params && Object.hasOwn(params, 'isDeleted'))) {
+      softDeleteScoped = { isDeleted: false, ...where };
+    }
 
     return this.withTenantScope(softDeleteScoped, access);
   }
