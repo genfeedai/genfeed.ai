@@ -2,9 +2,10 @@ import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestra
 import { AgentReviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-review-tool-handler.service';
 import { readReviewQueueSnapshot } from '@api/services/agent-orchestrator/utils/agent-review-queue-context.util';
 import { BatchItemStatus, ReviewDecision } from '@genfeedai/contracts';
+import { testId } from '@helpers/testing/test-id.helper';
 import { describe, expect, it, vi } from 'vitest';
 
-const batchId = '2b261e8c-44ff-5582-aa01-487b2250966f';
+const batchId = testId('reviewbatch');
 const ctx = { organizationId: 'org-1', userId: 'user-1' };
 const builder = new AgentCompletionCardBuilderService();
 
