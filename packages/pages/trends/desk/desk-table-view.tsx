@@ -35,6 +35,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@ui/primitives/hover-card';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import {
   buildSourcePostVariationsHref,
@@ -415,51 +420,64 @@ function DeskRowActions({ href, item, onSelectFinding }: DeskRowActionsProps) {
 /** Title cell: the whole label toggles the row's detail panel. */
 function DeskContentCell({
   isExpanded,
+  isPreviewActive,
   item,
   onToggle,
   onPreview,
 }: {
   isExpanded: boolean;
+  isPreviewActive: boolean;
   item: DiscoveryDeskItem;
   onToggle: (key: string) => void;
   onPreview: (key: string | null) => void;
 }) {
   return (
-    <Button
-      aria-expanded={isExpanded}
-      className="flex items-start gap-2 text-left"
-      onClick={() => onToggle(item.key)}
-      onPointerEnter={() => onPreview(item.key)}
-      onPointerLeave={() => onPreview(null)}
-      onFocus={() => onPreview(item.key)}
-      onBlur={() => onPreview(null)}
-      type="button"
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-    >
-      {item.thumbnailUrl ? (
-        <span className="relative block size-10 shrink-0 overflow-hidden rounded-md bg-secondary">
-          <Image
-            alt=""
-            className="object-cover"
-            fill
-            sizes="40px"
-            src={item.thumbnailUrl}
-            unoptimized
-          />
-        </span>
-      ) : null}
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-medium text-foreground">
-          {item.title || item.text || item.trendTopic || 'Untitled'}
-        </span>
-        {item.text && item.title ? (
-          <span className="block truncate text-xs text-foreground/55">
-            {item.text}
+    <HoverCard open={isPreviewActive && !isExpanded}>
+      <HoverCardTrigger asChild>
+        <Button
+          aria-expanded={isExpanded}
+          className="relative flex items-start gap-2 text-left"
+          onClick={() => onToggle(item.key)}
+          onPointerEnter={() => onPreview(item.key)}
+          onPointerLeave={() => onPreview(null)}
+          type="button"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+        >
+          {item.thumbnailUrl ? (
+            <span className="relative block size-10 shrink-0 overflow-hidden rounded-md bg-secondary">
+              <Image
+                alt=""
+                className="object-cover"
+                fill
+                sizes="40px"
+                src={item.thumbnailUrl}
+                unoptimized
+              />
+            </span>
+          ) : null}
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-medium text-foreground">
+              {item.title || item.text || item.trendTopic || 'Untitled'}
+            </span>
+            {item.text && item.title ? (
+              <span className="block truncate text-xs text-foreground/55">
+                {item.text}
+              </span>
+            ) : null}
           </span>
-        ) : null}
-      </span>
-    </Button>
+        </Button>
+      </HoverCardTrigger>
+      {isPreviewActive && !isExpanded ? (
+        <HoverCardContent
+          side="bottom"
+          align="start"
+          className="w-80 p-0 overflow-hidden"
+        >
+          <DeskMediaPreview item={item} isActive className="min-h-[200px]" />
+        </HoverCardContent>
+      ) : null}
+    </HoverCard>
   );
 }
 
@@ -514,7 +532,6 @@ export default function DeskTableView({
   const translateCard = useTranslations('common.trends.card');
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [previewKey, setPreviewKey] = useState<string | null>(null);
-  const activeKey = previewKey || expandedKey;
   const handlePreview = useCallback(
     (key: string | null) => setPreviewKey(key),
     [],
@@ -559,7 +576,8 @@ export default function DeskTableView({
         key: 'content',
         render: (item) => (
           <DeskContentCell
-            isExpanded={activeKey === item.key}
+            isExpanded={expandedKey === item.key}
+            isPreviewActive={previewKey === item.key}
             item={item}
             onToggle={handleToggleExpanded}
             onPreview={handlePreview}
@@ -622,7 +640,8 @@ export default function DeskTableView({
       },
     ],
     [
-      activeKey,
+      expandedKey,
+      previewKey,
       handlePreview,
       handleToggleExpanded,
       href,
@@ -646,7 +665,7 @@ export default function DeskTableView({
       onRowClick={(item) => onCursor(item.key)}
       onSelectionChange={handleSelectionChange}
       renderExpandedRow={(item) =>
-        activeKey === item.key ? (
+        expandedKey === item.key ? (
           <DeskExpandedDetail item={item} isActive={previewKey === item.key} />
         ) : undefined
       }

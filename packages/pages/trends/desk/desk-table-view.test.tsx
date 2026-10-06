@@ -51,7 +51,34 @@ function video(id: string, url: string): DiscoveryDeskItem {
 }
 
 describe('Discovery table previews', () => {
-  it('expands one video and replaces it when another is hovered', async () => {
+  it('keeps hover independent of expansion and supports collapse while hovered', async () => {
+    render(
+      <DeskTableView
+        cursorKey={null}
+        href={(path) => path}
+        items={[
+          video('First video', 'https://youtube.com/watch?v=dQw4w9WgXcQ'),
+        ]}
+        onCursor={vi.fn()}
+        onToggleSelect={vi.fn()}
+        selection={new Set()}
+      />,
+    );
+    const cell = screen.getByRole('button', { name: /First video/ });
+    fireEvent.pointerEnter(cell);
+    await screen.findByTitle('First video');
+    expect(cell).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(cell);
+    expect(cell).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(cell);
+    expect(cell).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.pointerLeave(cell);
+    expect(document.querySelectorAll('iframe')).toHaveLength(0);
+    fireEvent.focus(cell);
+    expect(cell).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('previews one video without changing row expansion', async () => {
     render(
       <DeskTableView
         cursorKey={null}
