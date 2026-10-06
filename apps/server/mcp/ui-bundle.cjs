@@ -8,6 +8,7 @@ const repoRoot = path.resolve(__dirname, '../../..');
 const entry = path.join(__dirname, 'src/ui/preview-client.tsx');
 const style = path.join(__dirname, 'src/ui/preview.css');
 const paths = {
+  '@mcp/*': ['apps/server/mcp/src/*'],
   '@ui/*': ['packages/ui/src/*', 'packages/ui/src/components/*'],
   '@genfeedai/services/*': ['packages/services/*'],
   '@genfeedai/props/*': ['packages/props/*'],
@@ -25,32 +26,43 @@ async function buildMcpPreview(
   addDependency = () => {},
   addContextDependency = () => {},
 ) {
-  const [bundle, stylesheet] = await Promise.all([
-    esbuild.build({
-      entryPoints: [entry],
-      absWorkingDir: repoRoot,
-      bundle: true,
-      write: false,
-      format: 'iife',
-      globalName: 'GenfeedPreview',
-      platform: 'browser',
-      conditions: ['browser'],
-      target: 'es2022',
-      jsx: 'automatic',
-      minify: true,
-      metafile: true,
-      define: {
-        'process.env.NODE_ENV': '"production"',
-        'process.env': '{}',
-        global: 'globalThis',
-      },
-      tsconfigRaw: { compilerOptions: { baseUrl: repoRoot, paths } },
-      logLevel: 'silent',
-    }),
-    postcss([
-      tailwindcss({ base: repoRoot, optimize: { minify: true } }),
-    ]).process(fs.readFileSync(style, 'utf8'), { from: style }),
-  ]);
+  const bundle = await esbuild.build({
+    entryPoints: [entry],
+    absWorkingDir: repoRoot,
+    bundle: true,
+    write: false,
+    format: 'iife',
+    globalName: 'GenfeedPreview',
+    platform: 'browser',
+    conditions: ['browser'],
+    target: 'es2022',
+    jsx: 'automatic',
+    minify: true,
+    metafile: true,
+    define: {
+      'process.env.NODE_ENV': '"production"',
+      'process.env': '{}',
+      global: 'globalThis',
+    },
+    tsconfigRaw: { compilerOptions: { baseUrl: repoRoot, paths } },
+    logLevel: 'silent',
+  });
+  const sources = Object.keys(bundle.metafile.inputs)
+    .map((input) => path.resolve(repoRoot, input))
+    .filter(
+      (file) =>
+        file === entry ||
+        file.startsWith(path.join(repoRoot, 'packages/ui/src/')),
+    )
+    .sort();
+  const sourceDirectives = sources
+    .map((file) => `@source ${JSON.stringify(file)};`)
+    .join('\n');
+  const stylesheet = await postcss([
+    tailwindcss({ base: repoRoot, optimize: { minify: true } }),
+  ]).process(`${fs.readFileSync(style, 'utf8')}\n${sourceDirectives}`, {
+    from: style,
+  });
   for (const input of Object.keys(bundle.metafile.inputs))
     addDependency(path.resolve(repoRoot, input));
   for (const message of stylesheet.messages) {

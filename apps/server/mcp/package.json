@@ -12,7 +12,9 @@
     "@genfeedai/contracts": "workspace:*",
     "@genfeedai/agent": "workspace:*",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "@genfeedai/styles": "workspace:*",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@types/jsdom": "^30.0.0",

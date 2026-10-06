@@ -689,7 +689,7 @@ monochrome; focus is not a place to introduce hue.
 
 Standalone MCP previews bundle the existing shared React components and shared
 Tailwind styles. They use the same `Card`, controls, typography, media players,
-and dialog as the product, with embedded Satoshi for sandboxed hosts. Consumer
+and dialog as the product, with Satoshi served from an allowed origin for sandboxed hosts. Consumer
 styles describe layout; visual components remain owned by `packages/ui`.
 
 ### Button

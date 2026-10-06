@@ -497,6 +497,7 @@
         "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
         "@genfeedai/libs": "workspace:*",
+        "@genfeedai/styles": "workspace:*",
         "@genfeedai/ui": "workspace:*",
         "@genfeedai/utils": "workspace:*",
         "@posthog/mcp": "0.21.4",
@@ -504,6 +505,7 @@
         "react": "19.3.0",
         "react-dom": "19.3.0",
         "tsconfig-paths": "4.2.0",
+        "zod": "4.6.5",
       },
       "devDependencies": {
         "@tailwindcss/postcss": "4.3.3",

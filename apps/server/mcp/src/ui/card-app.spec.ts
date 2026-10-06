@@ -162,7 +162,7 @@ it('shows every generated caption in the existing post grid as safe text', () =>
   expect(document.querySelector('article img')).toBeNull();
 });
 
-it('uses shared cards, badges, typography and the embedded product font', () => {
+it('uses shared cards, badges, typography and a CSP-compatible product font', () => {
   result('generate_content', {
     content: 'A product caption',
     platform: 'instagram',
@@ -179,7 +179,10 @@ it('uses shared cards, badges, typography and the embedded product font', () => 
     card?.querySelector('.description')?.classList.contains('text-sm'),
   ).toBe(true);
   expect(cardResource().text).toContain('@font-face');
-  expect(cardResource().text).toContain('data:font/woff2;base64,');
+  expect(cardResource().text).toContain(
+    '/assets/fonts/satoshi-variable.woff2?v=',
+  );
+  expect(cardResource().text).not.toContain('data:font/woff2');
   expect(cardResource().text).toContain('--font-satoshi: "Satoshi"');
 });
 

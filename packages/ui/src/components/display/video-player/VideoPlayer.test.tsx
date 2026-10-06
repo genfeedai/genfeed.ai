@@ -6,6 +6,24 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 afterEach(() => vi.restoreAllMocks());
 
 describe('VideoPlayer', () => {
+  it('shows a native poster before metadata without a Next image request or loading cover', () => {
+    render(
+      <VideoPlayer
+        src="https://cdn.test/video.mp4"
+        mediaProps={{
+          poster: 'https://cdn.test/poster.jpg',
+          preload: 'metadata',
+        }}
+      />,
+    );
+    const video = screen.getByLabelText('Video player');
+    expect(video).toHaveAttribute('poster', 'https://cdn.test/poster.jpg');
+    expect(video).toHaveClass('opacity-100');
+    expect(screen.queryByAltText('Video thumbnail')).not.toBeInTheDocument();
+    expect(
+      video.parentElement?.querySelector('.pointer-events-none'),
+    ).toBeNull();
+  });
   it('keeps the poster visible before playback and pauses inactive slides', () => {
     vi.useFakeTimers();
     const pause = vi

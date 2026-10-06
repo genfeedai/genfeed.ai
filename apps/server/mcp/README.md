@@ -54,7 +54,7 @@ production endpoint and cached tool list.
 
 The inline preview bundles the existing shared React UI components, including
 Card, Button, Badge, Avatar, Collapsible, Dialog, Progress, Text and Heading.
-The Tailwind stylesheet and embedded Satoshi font are shared product assets.
+The Tailwind stylesheet and CSP-compatible Satoshi font are shared product assets.
 Widget layout uses shared utilities; it must not recreate component styling.
 
 ## Toolsets

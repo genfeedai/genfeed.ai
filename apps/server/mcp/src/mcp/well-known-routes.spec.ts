@@ -155,4 +155,19 @@ describe('registerWellKnownRoutes', () => {
       });
     },
   );
+  it('serves the canonical product font cross-origin without authentication', async () => {
+    ({ baseUrl, server } = await listen());
+    const response = await fetch(
+      `${baseUrl}/assets/fonts/satoshi-variable.woff2?v=qa`,
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('font/woff2');
+    expect(response.headers.get('access-control-allow-origin')).toBe('*');
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(
+      Buffer.from(await response.arrayBuffer())
+        .subarray(0, 4)
+        .toString(),
+    ).toBe('wOF2');
+  });
 });

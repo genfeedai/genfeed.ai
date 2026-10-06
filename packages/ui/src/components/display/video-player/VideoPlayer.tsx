@@ -129,8 +129,8 @@ export default function VideoPlayer({
     setIsLoaded(false);
     setHasError(false);
     setIsMetadataLoaded(false);
-    setShowLoader(Boolean(src));
-  }, [src]);
+    setShowLoader(Boolean(src) && !mediaProps.poster);
+  }, [src, mediaProps.poster]);
 
   useEffect(() => {
     if (!isActive) resolvedVideoRef.current?.pause();
@@ -269,7 +269,9 @@ export default function VideoPlayer({
         className={cn(
           'size-full object-contain object-center',
           mediaClassName,
-          isLoaded && !hasError ? 'opacity-100' : 'opacity-0',
+          (isLoaded || mediaProps.poster) && !hasError
+            ? 'opacity-100'
+            : 'opacity-0',
         )}
       />
       {hasControls && (

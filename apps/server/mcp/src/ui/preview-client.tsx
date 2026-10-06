@@ -1,3 +1,4 @@
+import '@mcp/ui/preview-runtime';
 import { ButtonVariant } from '@genfeedai/contracts';
 import type {
   McpCalendarDay,
@@ -295,6 +296,7 @@ function MediaPreview({ item, bridge, openImage, onError }: MediaPreviewProps) {
   if (item.kind === 'audio')
     return (
       <AudioPreviewPlayer
+        isTimelineVisible
         stopOnUnmount
         onError={onError}
         audioUrl={src}
@@ -379,6 +381,7 @@ function CardPreview({ item, bridge, openImage }: CardPreviewProps) {
               {current.stage || 'Generating'}
             </Text>
             <Progress
+              isIndeterminate={current.progress === undefined && !exhausted}
               value={current.progress}
               aria-label="Generation progress"
               className={`bar ${current.progress === undefined && !exhausted ? 'indeterminate' : ''}`}
@@ -552,6 +555,10 @@ function Preview({ result, notice, bridge }: PreviewProps) {
   const closeButton = useRef<HTMLButtonElement | null>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: A new tool result closes the previous media dialog.
   useEffect(() => {
+    if (image && bridge.displayModes.includes('fullscreen'))
+      bridge
+        .request('ui/request-display-mode', { mode: 'inline' })
+        .catch(() => undefined);
     setImage(null);
     bridge.resize();
   }, [result, bridge]);
@@ -692,7 +699,7 @@ function Preview({ result, notice, bridge }: PreviewProps) {
               ))}
         </div>
         <Text as="footer" size="xs" color="muted" id="footer" className="mt-3">
-          {view && view.total > view.cards.length
+          {view && view.layout !== 'calendar' && view.total > view.cards.length
             ? `Showing ${view.cards.length} of ${view.total}. Ask for more or narrow your search.`
             : ''}
         </Text>
@@ -864,9 +871,10 @@ export function mount(origins: readonly string[]) {
     } else if (message.method === 'ui/notifications/host-context-changed')
       applyContext(message.params);
     else if (message.method === 'ui/resource-teardown') {
-      send({ id: message.id, result: {} });
+      if (message.id !== undefined) send({ id: message.id, result: {} });
       dispose();
-    } else if (message.method === 'ping') send({ id: message.id, result: {} });
+    } else if (message.method === 'ping' && message.id !== undefined)
+      send({ id: message.id, result: {} });
     else if (typeof message.id === 'number' && message.method)
       send({
         id: message.id,
