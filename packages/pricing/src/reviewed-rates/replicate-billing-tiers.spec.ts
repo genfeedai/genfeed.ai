@@ -182,17 +182,32 @@ describe('mapReplicateBillingTiers', () => {
   });
 
   it('normalizes live thousand-image and thousand-megapixel list prices', () => {
+    expect(
+      mapReplicateBillingTiers(
+        [
+          {
+            criteria: [],
+            prices: [
+              {
+                metric: 'image_output_count',
+                price: '$3',
+                title: 'per thousand output images',
+                type: 'per-unit',
+              },
+            ],
+          },
+        ],
+        {},
+      ),
+    ).toMatchObject({
+      status: 'ok',
+      rates: [{ unit: 'output', unitPriceUsd: 0.003 }],
+    });
     const result = mapReplicateBillingTiers(
       [
         {
           criteria: [],
           prices: [
-            {
-              metric: 'image_output_count',
-              price: '$3',
-              title: 'per thousand output images',
-              type: 'per-unit',
-            },
             {
               metric: 'image_input_megapixel_count',
               price: '$9',
@@ -213,7 +228,6 @@ describe('mapReplicateBillingTiers', () => {
     expect(result).toMatchObject({
       status: 'ok',
       rates: [
-        { unit: 'output', unitPriceUsd: 0.003 },
         { unit: 'input-megapixel', unitPriceUsd: 0.009 },
         { unit: 'megapixel', unitPriceUsd: 0.009, isPerOutput: true },
       ],
