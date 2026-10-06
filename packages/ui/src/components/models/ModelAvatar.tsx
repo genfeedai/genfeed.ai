@@ -20,7 +20,7 @@ export default function ModelAvatar({
   return (
     <span
       className={cn(
-        'relative inline-flex size-8 shrink-0 text-foreground',
+        'relative inline-flex h-8 w-10 shrink-0 text-foreground',
         className,
       )}
       title={`${providerLabel} · ${categoryLabel}`}

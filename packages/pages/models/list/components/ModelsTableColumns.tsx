@@ -161,7 +161,7 @@ function formatModelCreditCost(model: IModel): string {
 
   if (!Number.isFinite(model.cost) || model.cost <= 0) return 'Unresolved';
 
-  return `${model.cost.toLocaleString('en-US')} ${model.cost === 1 ? 'credit' : 'credits'}`;
+  return model.cost.toLocaleString('en-US');
 }
 
 function formatModelQuality(qualityTier: QualityTier): string {

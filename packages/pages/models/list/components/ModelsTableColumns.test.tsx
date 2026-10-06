@@ -232,7 +232,7 @@ describe('buildModelsTableColumns', () => {
     expect(screen.getByText('Basic')).toBeInTheDocument();
   });
 
-  it('renders canonical quality and exact credit cost when tiers are missing', () => {
+  it('renders canonical quality and the exact numeric cost when tiers are missing', () => {
     renderColumn('Quality', buildModel({ qualityTier: undefined }));
     renderColumn('Cost', buildModel({ costTier: undefined }));
 
@@ -241,7 +241,7 @@ describe('buildModelsTableColumns', () => {
       '3',
     );
     expect(screen.getByText('Premium')).toBeInTheDocument();
-    expect(screen.getByText('1 credit')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
   });
 
   it('distinguishes a zero credit price from an explicitly free model', () => {
@@ -293,14 +293,14 @@ describe('buildModelsTableColumns', () => {
   });
 });
 
-describe('admin credit costs', () => {
-  it('shows credits without the model-picker dollar tier', () => {
+describe('admin numeric costs', () => {
+  it('shows the numeric cost without the model-picker dollar tier', () => {
     renderColumn(
       'Cost',
       buildModel({ cost: 17, costTier: CostTier.HIGH }),
       true,
     );
-    expect(screen.getByText('17 credits')).toBeInTheDocument();
+    expect(screen.getByText('17')).toBeInTheDocument();
     expect(screen.queryByText('$$$')).not.toBeInTheDocument();
   });
   it('does not label an unpriced paid model as zero credits', () => {

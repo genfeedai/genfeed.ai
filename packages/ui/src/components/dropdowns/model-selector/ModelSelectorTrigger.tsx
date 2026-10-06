@@ -78,7 +78,7 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
             ? `${context.label} · ${selectionLabel}`
             : context.label}
         </span>
-        {selectedModels.length === 1 ? (
+        {!isAutoSelected && selectedModels.length === 1 ? (
           <span title={costTitle}>
             <ModelSelectorCostBadge costTier={selectedModel?.costTier} />
           </span>
