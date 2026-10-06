@@ -132,7 +132,7 @@ function ListSelection() {
         type="button"
         onClick={() =>
           selectTask?.(
-            { ...TASK, id: 'task-102', title: 'Second task' },
+            { ...TASK, id: 'task-102', title: 'Second task' } as Task,
             'user',
           )
         }
