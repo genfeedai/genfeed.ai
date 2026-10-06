@@ -1,5 +1,6 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
+import { agentPostPreviewInclude } from '@api/services/agent-orchestrator/tools/agent-post-preview.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
@@ -11,6 +12,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { parsePlatform, TargetExecutionState } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { serializeAgentPost } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -172,6 +174,7 @@ export class AgentProactiveToolHandler {
     // Get scheduled and draft posts for the coming week
     const posts = await this.postsService.findAll(
       {
+        include: agentPostPreviewInclude(ctx.organizationId),
         where: {
           OR: [
             { scheduledDate: { gte: now, lte: endDate } },
@@ -217,12 +220,7 @@ export class AgentProactiveToolHandler {
         draftsCount: drafts.length,
         gapDays,
         gapsCount: gapDays.length,
-        scheduled: scheduled.map((p) => ({
-          description: p.description,
-          id: String(p.id),
-          platform: p.platform,
-          scheduledDate: p.scheduledDate,
-        })),
+        scheduled: scheduled.map(serializeAgentPost),
         scheduledCount: scheduled.length,
       },
       success: true,

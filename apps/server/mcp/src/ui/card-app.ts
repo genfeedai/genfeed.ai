@@ -2,6 +2,7 @@ import {
   SATOSHI_FONT_RESOURCE_PATH,
   staticSurfaceFontCssForUrl,
 } from '@genfeedai/ui/static/font';
+import { ACCOUNT_AVATAR_ORIGINS } from '@mcp/ui/avatar-origins';
 import { cardAppScript } from '@mcp/ui/card-app-script';
 import { CARD_APP_STYLES } from '@mcp/ui/card-app-styles';
 import {
@@ -24,7 +25,11 @@ export function cardResource(
     ),
   ];
   const resourceDomains = [
-    ...new Set([...mediaOrigins, new URL(fontUrl).origin]),
+    ...new Set([
+      ...mediaOrigins,
+      ...ACCOUNT_AVATAR_ORIGINS,
+      new URL(fontUrl).origin,
+    ]),
   ];
   return {
     _meta: {

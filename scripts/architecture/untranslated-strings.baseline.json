@@ -677,7 +677,6 @@
     "packages/ui/src/components/posts/engagement-preview/EngagementPreview.tsx": 5,
     "packages/ui/src/components/posts/enhancement-bar/post-enhancement-bar/PostEnhancementBar.tsx": 7,
     "packages/ui/src/components/posts/filter/posts-filter/PostsFilter.tsx": 9,
-    "packages/ui/src/components/posts/platform-preview/PlatformPreview.tsx": 18,
     "packages/ui/src/components/posts/post-detail-sidebar/PostDetailSidebar.tsx": 2,
     "packages/ui/src/components/posts/post-detail-sidebar/PostSidebarPlatformCard.tsx": 1,
     "packages/ui/src/components/posts/post-detail-sidebar/PostSidebarReviewCard.tsx": 10,

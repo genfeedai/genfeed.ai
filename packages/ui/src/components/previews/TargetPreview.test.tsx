@@ -36,9 +36,9 @@ describe('TargetPreview', () => {
   it('falls back to a neutral card for a platform with no dedicated renderer', () => {
     render(
       <TargetPreview
-        credential={makeCredential({ platform: CredentialPlatform.REDDIT })}
+        credential={makeCredential({ platform: CredentialPlatform.MEDIUM })}
         release={makeRelease({ baseContent: 'Untruncated fallback caption' })}
-        target={makeTarget({ platform: CredentialPlatform.REDDIT })}
+        target={makeTarget({ platform: CredentialPlatform.MEDIUM })}
       />,
     );
 

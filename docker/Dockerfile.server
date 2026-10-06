@@ -194,6 +194,8 @@ RUN set -e; \
 
 # --- Layer 2: Service source code (changes most frequently) ---
 COPY apps/server/ apps/server/
+# Standalone MCP previews consume the shared UI host catalog during bundling.
+COPY apps/app/messages/en/ui.json apps/app/messages/en/ui.json
 
 # Bundle the pinned composition during the image build so the first customer
 # render does not pay a webpack startup penalty.
