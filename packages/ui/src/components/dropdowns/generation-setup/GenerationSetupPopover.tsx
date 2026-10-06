@@ -23,6 +23,7 @@ import { useTranslations } from 'next-intl';
 import { memo, useState } from 'react';
 
 const GenerationSetupPopover = memo(function GenerationSetupPopover({
+  align = 'start',
   buttonRef,
   capabilities,
   inputControls,
@@ -97,7 +98,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
       </PopoverTrigger>
 
       <PopoverContent
-        align="start"
+        align={align}
         avoidCollisions={false}
         className={cn(
           overlayMenuSurfaceClassName,

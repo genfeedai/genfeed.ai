@@ -46,6 +46,7 @@ export type GenerationSetupFieldSetter = <K extends GenerationSetupFieldKey>(
 ) => void;
 
 export interface GenerationSetupPopoverProps {
+  align?: 'start' | 'center' | 'end';
   inputControls?: CrunInputControls;
   referenceCount?: number;
   scopeKey: string;

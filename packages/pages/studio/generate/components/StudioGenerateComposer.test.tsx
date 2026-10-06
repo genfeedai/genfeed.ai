@@ -40,9 +40,22 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Admission and composer tests inspect quote states independently of hover timing.
+// StudioGenerationSummary.test.tsx covers the real focus/hover tooltip behavior.
+vi.mock('@ui/primitives/tooltip', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@ui/primitives/tooltip')>();
+  return {
+    ...actual,
+    TooltipContent: ({ children }: { children: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
+  };
+});
 
 const walletMocks = vi.hoisted(() => ({
   balance: 120 as number | null,
@@ -296,15 +309,16 @@ describe('StudioGenerateComposer', () => {
     const shell = screen.getByTestId('studio-generate-composer-shell');
     expect(shell).toHaveAttribute('data-expanded', 'false');
     expect(screen.getByRole('button', { name: 'Setup' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
     const summary = screen.getByTestId('studio-generation-summary');
     expect(summary).toBeVisible();
-    expect(summary.parentElement).toContainElement(
-      screen.getByRole('button', { name: 'Generate' }),
+
+    expect(screen.getByLabelText('120 available')).not.toHaveAttribute(
+      'tabindex',
     );
-    expect(
-      screen.getByRole('link', { name: '120 available' }),
-    ).not.toHaveAttribute('tabindex');
 
     const editor = screen.getByRole('textbox', { name: 'Prompt' });
     editor.focus();
@@ -319,12 +333,10 @@ describe('StudioGenerateComposer', () => {
     expect(shell).toHaveAttribute('data-expanded', 'true');
     expect(screen.getByTestId('studio-generation-summary')).toBeVisible();
     expect(screen.getByTestId('studio-generation-summary')).toBe(summary);
-    expect(summary.parentElement).toContainElement(
-      screen.getByRole('button', { name: 'Generate' }),
+
+    expect(screen.getByLabelText('120 available')).not.toHaveAttribute(
+      'tabindex',
     );
-    expect(
-      screen.getByRole('link', { name: '120 available' }),
-    ).not.toHaveAttribute('tabindex');
     expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
     expect(screen.getByRole('textbox', { name: 'Prompt' })).toBe(editor);
     expect(editor).toHaveFocus();
@@ -353,7 +365,10 @@ describe('StudioGenerateComposer', () => {
           type="image"
         />,
       );
-      expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
       promptEditorProps.onSubmit?.();
       expect(baseProps.onSubmit).not.toHaveBeenCalled();
     },
@@ -693,7 +708,10 @@ describe('StudioGenerateComposer', () => {
     const { rerender } = render(<StudioGenerateComposer {...props} />);
 
     expect(screen.getByText('Start Frame required')).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
 
     rerender(
       <StudioGenerateComposer
@@ -743,7 +761,10 @@ describe('StudioGenerateComposer', () => {
     expect(
       screen.getByText('Seedance uses frames or a video reference, not both'),
     ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
   });
 
   it('updates the pre-send credit quote for the selected resolution', () => {
@@ -834,6 +855,21 @@ describe('StudioGenerateComposer', () => {
         />,
       );
 
+      const promptTools = within(
+        screen.getByRole('group', { name: 'Prompt tools' }),
+      );
+      const generationControls = within(
+        screen.getByRole('group', { name: 'Generation controls' }),
+      );
+      expect(
+        promptTools.getByRole('button', { name: 'Enhance prompt' }),
+      ).toHaveTextContent('Enhance prompt');
+      expect(
+        generationControls.queryByRole('button', { name: 'Enhance prompt' }),
+      ).not.toBeInTheDocument();
+      expect(
+        generationControls.getByRole('button', { name: 'Setup' }),
+      ).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Enhance prompt' }));
 
       expect(onEnhancePrompt).toHaveBeenCalledOnce();
@@ -929,10 +965,7 @@ describe('StudioGenerateComposer', () => {
     expect(
       screen.getByLabelText('Estimate available after model selection'),
     ).toBeVisible();
-    expect(screen.getByRole('link', { name: '120 available' })).toHaveAttribute(
-      'href',
-      '/test-org/settings/credits',
-    );
+    expect(screen.getByLabelText('120 available')).toBeVisible();
     expect(screen.getByText('Auto · 1:1 · 1K · 1 output')).toBeVisible();
     Object.assign(walletMocks, {
       balance: null,
@@ -959,7 +992,7 @@ describe('StudioGenerateComposer', () => {
     expect(screen.getByLabelText('Balance unavailable')).toBeVisible();
     walletMocks.balance = 0;
     rerender(<StudioGenerateComposer {...props} />);
-    expect(screen.getByRole('link', { name: '0 available' })).toBeVisible();
+    expect(screen.getByLabelText('0 available')).toBeVisible();
     walletMocks.balance = Number.NaN;
     rerender(<StudioGenerateComposer {...props} />);
     expect(screen.getByLabelText('Balance unavailable')).toBeVisible();
@@ -1031,7 +1064,10 @@ describe('StudioGenerateComposer', () => {
     expect(
       screen.getByLabelText('This model has no confirmed price yet.'),
     ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
     expect(baseProps.onSubmit).not.toHaveBeenCalled();
   });
 
@@ -1067,8 +1103,14 @@ describe('StudioGenerateComposer', () => {
         />,
       );
       const button = screen.getByRole('button', { name: 'Generate' });
-      if (isBlocked) expect(button).toBeDisabled();
-      else expect(button).toBeEnabled();
+      if (isBlocked) {
+        expect(button).toHaveAttribute('aria-disabled', 'true');
+        fireEvent.click(button);
+        expect(baseProps.onSubmit).not.toHaveBeenCalled();
+      } else {
+        expect(button).not.toHaveAttribute('aria-disabled');
+        expect(button).toBeEnabled();
+      }
     },
   );
 
@@ -1088,7 +1130,10 @@ describe('StudioGenerateComposer', () => {
     expect(
       screen.getByLabelText('This model is not available for your workspace.'),
     ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
   });
 
   it('never blocks Generate while the estimate is loading', () => {
@@ -1190,7 +1235,10 @@ describe('StudioGenerateComposer', () => {
           onEnhancePrompt={vi.fn()}
         />,
       );
-      expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
       expect(
         screen.getByText('Choose a source image to edit.'),
       ).toBeInTheDocument();

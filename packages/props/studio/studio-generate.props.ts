@@ -18,6 +18,7 @@ import type {
   UseCrunGenerationQuoteReturn,
 } from '@genfeedai/props/studio/prompt-bar.props';
 import type { AnyExtension, JSONContent } from '@tiptap/core';
+import type { ReactElement } from 'react';
 
 /** Results-grid filter: one asset type, or every type at once. */
 export type StudioGenerateFilter = StudioGenerateType | 'all';
@@ -197,6 +198,9 @@ export interface StudioGenerateInspectorProps {
 }
 
 export interface StudioGenerationSummaryProps {
+  children: ReactElement;
+  isDisabled?: boolean;
+  label: string;
   crunQuote?: UseCrunGenerationQuoteReturn;
   estimate: StudioGenerationCostEstimate;
   model?: IModel;

@@ -1,29 +1,32 @@
 'use client';
 
 import { shouldShowCreditsNav } from '@genfeedai/config/license';
-import {
-  APP_ROUTES,
-  formatCreditBalanceExact,
-} from '@genfeedai/contracts/constants';
+import { formatCreditBalanceExact } from '@genfeedai/contracts/constants';
 import { useTopbarBalances } from '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances';
-import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import type { StudioGenerationSummaryProps } from '@genfeedai/props/studio/studio-generate.props';
 import {
   canSubmitStudioGeneration,
   getDesktopCreditsVisibility,
 } from '@genfeedai/services/core/desktop-runtime.service';
-import Link from 'next/link';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@ui/primitives/tooltip';
 import { useTranslations } from 'next-intl';
 
 export default function StudioGenerationSummary({
+  children,
+  isDisabled = false,
+  label,
   estimate,
   crunQuote,
   model,
   type,
 }: StudioGenerationSummaryProps) {
   const translate = useTranslations('pages.studioGenerate');
-  const { orgHref } = useOrgUrl();
   const { genfeedBalance, isLoaded, isLoading } = useTopbarBalances();
   const runtime = useDesktopRuntimeContext();
   const showCredits = shouldShowCreditsNav(
@@ -112,35 +115,66 @@ export default function StudioGenerationSummary({
         : '—';
 
   return (
-    <div
-      className="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1 text-xs text-muted-foreground"
-      data-testid="studio-generation-summary"
-    >
-      {showCredits ? (
-        <div className="inline-flex items-center gap-1 whitespace-nowrap tabular-nums">
-          <span role="status" aria-label={estimateLabel} title={estimateLabel}>
-            {compactEstimate}
-          </span>
-          <span aria-hidden="true">/</span>
-          <Link
-            className="rounded-sm underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            href={orgHref(APP_ROUTES.SETTINGS.CREDITS)}
-            aria-label={balanceLabel}
-            title={balanceLabel}
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {isDisabled ? (
+            <span
+              role="group"
+              aria-label={label}
+              className="inline-flex rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              {children}
+            </span>
+          ) : (
+            children
+          )}
+        </TooltipTrigger>
+        <TooltipContent
+          side="top"
+          align="end"
+          avoidCollisions={false}
+          className="flex flex-col gap-1.5"
+        >
+          <span>{label}</span>
+          <div
+            className="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1 text-xs text-muted-foreground"
+            data-testid="studio-generation-summary"
           >
-            {compactBalance}
-          </Link>
-        </div>
-      ) : runtime.status !== 'web' ? (
-        <span role="status">
-          {runtime.status === 'ready' &&
-          runtime.context?.runtimeMode === 'local'
-            ? translate('summary.serverRequired')
-            : runtime.status === 'loading' || runtime.status === 'switching'
-              ? translate('summary.costContextLoading')
-              : translate('summary.costContextUnavailable')}
-        </span>
-      ) : null}
-    </div>
+            {showCredits ? (
+              <div className="inline-flex items-center gap-1 whitespace-nowrap tabular-nums">
+                <span
+                  role="status"
+                  aria-label={estimateLabel}
+                  title={estimateLabel}
+                >
+                  {compactEstimate === '…' || compactEstimate === '—'
+                    ? estimateLabel
+                    : compactEstimate}
+                </span>
+                <span aria-hidden="true">/</span>
+                <span
+                  role="status"
+                  aria-label={balanceLabel}
+                  title={balanceLabel}
+                >
+                  {compactBalance}
+                </span>
+              </div>
+            ) : runtime.status !== 'web' ? (
+              <span role="status">
+                {runtime.status === 'ready' &&
+                runtime.context?.runtimeMode === 'local'
+                  ? translate('summary.serverRequired')
+                  : runtime.status === 'loading' ||
+                      runtime.status === 'switching'
+                    ? translate('summary.costContextLoading')
+                    : translate('summary.costContextUnavailable')}
+              </span>
+            ) : null}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

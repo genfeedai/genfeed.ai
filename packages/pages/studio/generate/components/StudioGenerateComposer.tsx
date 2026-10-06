@@ -153,7 +153,7 @@ export default function StudioGenerateComposer({
   );
   const isRuntimeBlocked = !canSubmitStudioGeneration(runtime);
   const guardedSubmit = () => {
-    if (canSubmitStudioGeneration()) onSubmit();
+    if (!isSubmitBlocked && canSubmitStudioGeneration()) onSubmit();
   };
   // Narrowed against the selected model's own registry capability — the
   // static per-type config is only the widest case across every music
@@ -739,6 +739,8 @@ export default function StudioGenerateComposer({
         }
       >
         <div
+          role="group"
+          aria-label="Prompt tools"
           className={cn(
             'flex min-w-0 flex-wrap items-center gap-2',
             isExpanded ? 'flex-1' : 'max-w-full flex-1 lg:flex-initial',
@@ -844,44 +846,6 @@ export default function StudioGenerateComposer({
               />
             </>
           ) : null}
-          <GenerationSetupPopover
-            triggerLabel={setupLabel}
-            inputControls={inputControls}
-            referenceCount={crunReferenceCount ?? attachedAssets.length}
-            capabilities={capabilities}
-            favoriteModelKeys={favoriteModelKeys}
-            isDisabled={isGenerating}
-            isPresetsLoading={isPresetsLoading}
-            lookOptions={lookOptions}
-            models={capabilities.hasModelSelection ? models : []}
-            onApplyPreset={handleApplyPreset}
-            onClearPreset={handleClearPreset}
-            onDeletePreset={handleDeletePreset}
-            onFavoriteToggle={onFavoriteToggle}
-            onResetAll={onResetSettings}
-            onResetField={handleResetField}
-            onSavePreset={handleSavePreset}
-            onSetField={handleSetField}
-            onTypeChange={(nextType) => {
-              // The shared popover speaks GenerationSetupType; Studio only
-              // offers its own registry, so anything else is not a Studio pick.
-              if (isStudioGenerateType(nextType)) {
-                onTypeChange(nextType);
-              }
-            }}
-            presets={presets}
-            reasons={reasons}
-            scopeKey={scope}
-            setup={setupForComposer}
-            typeOptions={typeOptions}
-          />
-
-          {type === 'image' || type === 'video' ? (
-            <GenerationHarnessSettingsPopover
-              className="size-8 shrink-0 p-0 [&_svg]:size-3.5"
-              isDisabled={isGenerating}
-            />
-          ) : null}
 
           {capabilities.hasIdentity ? (
             <StudioIdentityFields
@@ -975,15 +939,6 @@ export default function StudioGenerateComposer({
               ) : null}
             </>
           ) : null}
-        </div>
-
-        <div className="ml-auto flex min-w-0 max-w-full items-center gap-2">
-          <StudioGenerationSummary
-            crunQuote={crunQuote}
-            estimate={estimate}
-            model={selectedModel}
-            type={type}
-          />
           {!isEnhancingPrompt && previousPrompt !== null ? (
             <Button
               ariaLabel={translate('undoPromptEnhancement')}
@@ -1003,12 +958,7 @@ export default function StudioGenerateComposer({
                   ? translate('cancelEnhancingPrompt')
                   : translate('enhancePrompt')
               }
-              tooltip={
-                isEnhancingPrompt
-                  ? translate('cancelEnhancingPrompt')
-                  : translate('enhancePrompt')
-              }
-              className="size-8 shrink-0 min-h-0 min-w-0 p-0"
+              className="h-8 shrink-0 gap-1.5 px-2 text-xs"
               icon={
                 isEnhancingPrompt ? (
                   <Spinner className="size-4" />
@@ -1022,11 +972,63 @@ export default function StudioGenerateComposer({
               onClick={
                 isEnhancingPrompt ? onCancelEnhancePrompt : onEnhancePrompt
               }
-              size={ButtonSize.ICON}
+              label={
+                isEnhancingPrompt
+                  ? translate('cancelEnhancingPrompt')
+                  : translate('enhancePrompt')
+              }
+              textTransform="none"
+              size={ButtonSize.SM}
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             />
           ) : null}
+          {type === 'image' || type === 'video' ? (
+            <GenerationHarnessSettingsPopover
+              className="size-8 shrink-0 p-0 [&_svg]:size-3.5"
+              isDisabled={isGenerating}
+            />
+          ) : null}
+        </div>
+
+        <div
+          role="group"
+          aria-label="Generation controls"
+          className="ml-auto flex min-w-0 max-w-full flex-wrap items-center justify-end gap-2"
+        >
+          <GenerationSetupPopover
+            align="end"
+            triggerLabel={setupLabel}
+            inputControls={inputControls}
+            referenceCount={crunReferenceCount ?? attachedAssets.length}
+            capabilities={capabilities}
+            favoriteModelKeys={favoriteModelKeys}
+            isDisabled={isGenerating}
+            isPresetsLoading={isPresetsLoading}
+            lookOptions={lookOptions}
+            models={capabilities.hasModelSelection ? models : []}
+            onApplyPreset={handleApplyPreset}
+            onClearPreset={handleClearPreset}
+            onDeletePreset={handleDeletePreset}
+            onFavoriteToggle={onFavoriteToggle}
+            onResetAll={onResetSettings}
+            onResetField={handleResetField}
+            onSavePreset={handleSavePreset}
+            onSetField={handleSetField}
+            onTypeChange={(nextType) => {
+              // The shared popover speaks GenerationSetupType; Studio only
+              // offers its own registry, so anything else is not a Studio pick.
+              if (isStudioGenerateType(nextType)) {
+                onTypeChange(nextType);
+              }
+            }}
+            presets={presets}
+            reasons={reasons}
+            scopeKey={scope}
+            setup={setupForComposer}
+            typeOptions={typeOptions}
+          />
+
           {isListening || isTranscribing || shouldShowVoiceInput ? (
             <PromptBarVoiceControl
               density="compact"
@@ -1037,17 +1039,30 @@ export default function StudioGenerateComposer({
               onStopListening={onStopListening}
             />
           ) : (
-            <Button
-              ariaLabel={translate('generate')}
-              className="size-8 shrink-0 min-h-0 min-w-0 p-0"
-              icon={<ArrowUp className={SHELL_ICON_CLASS} />}
-              isDisabled={isSubmitBlocked}
-              isLoading={isGenerating}
-              onClick={guardedSubmit}
-              size={ButtonSize.ICON}
-              variant={ButtonVariant.DEFAULT}
-              withWrapper={false}
-            />
+            <StudioGenerationSummary
+              crunQuote={crunQuote}
+              estimate={estimate}
+              model={selectedModel}
+              type={type}
+              isDisabled={isGenerating}
+              label={translate('generate')}
+            >
+              <Button
+                ariaLabel={translate('generate')}
+                className={cn(
+                  'size-8 shrink-0 min-h-0 min-w-0 p-0',
+                  isSubmitBlocked && 'cursor-not-allowed opacity-50',
+                )}
+                aria-disabled={isSubmitBlocked || undefined}
+                icon={<ArrowUp className={SHELL_ICON_CLASS} />}
+                isDisabled={isGenerating}
+                isLoading={isGenerating}
+                onClick={guardedSubmit}
+                size={ButtonSize.ICON}
+                variant={ButtonVariant.DEFAULT}
+                withWrapper={false}
+              />
+            </StudioGenerationSummary>
           )}
         </div>
       </div>
