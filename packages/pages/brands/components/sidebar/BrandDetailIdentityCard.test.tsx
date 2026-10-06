@@ -70,7 +70,8 @@ vi.mock('@services/core/logger.service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/',
+  usePathname: () => '/acme/other-brand/settings/brands/brand-1',
+  useParams: () => ({}),
   useRouter: () => ({
     push: mockPush,
   }),
@@ -182,6 +183,8 @@ describe('BrandDetailIdentityCard.tsx', () => {
       agentConfig: {},
       id: 'brand-1',
       label: 'Test Brand',
+      slug: 'owner-brand',
+      organization: { slug: 'acme' },
       scope: 'BRAND',
     } as BrandDetailIdentityCardProps['brand'],
     brandId: 'brand-1',
@@ -203,6 +206,23 @@ describe('BrandDetailIdentityCard.tsx', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     updateAgentConfigMock.mockResolvedValue(undefined);
+  });
+
+  it('browses resources in the edited brand rather than the current URL brand', () => {
+    mockDefaults();
+    render(<BrandDetailIdentityCard {...props} />);
+    fireEvent.click(
+      screen.getByRole('button', { name: /Browse Avatar Library/i }),
+    );
+    expect(mockPush).toHaveBeenLastCalledWith(
+      '/acme/owner-brand/library/assets?categories=AVATAR',
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /Browse Voice Library/i }),
+    );
+    expect(mockPush).toHaveBeenLastCalledWith(
+      '/acme/owner-brand/library/voices',
+    );
   });
 
   it('renders a preview for the selected brand voice', async () => {

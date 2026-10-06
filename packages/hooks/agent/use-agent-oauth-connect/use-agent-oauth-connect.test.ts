@@ -6,7 +6,8 @@ const mockPostConnect = vi.fn();
 const mockResolveAuthToken = vi.fn();
 const mockUseParams = vi.fn();
 const mockLoggerError = vi.hoisted(() => vi.fn());
-let selectedBrand: { id: string } | undefined;
+let selectedBrand: { id: string; slug?: string } | undefined;
+let pathname = '/o/brand-x/agent/new';
 
 vi.mock('@services/external/services.service', () => ({
   ServicesService: class {
@@ -25,7 +26,15 @@ vi.mock('@services/core/logger.service', () => ({
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ selectedBrand }),
+  useBrand: () => ({
+    selectedBrand,
+    brands: selectedBrand
+      ? [
+          { id: 'brand-1', slug: 'brand-x', organization: { slug: 'o' } },
+          { id: 'brand-2', slug: 'brand-y', organization: { slug: 'o' } },
+        ]
+      : [],
+  }),
 }));
 
 vi.mock('@helpers/auth/auth.helper', () => ({
@@ -36,12 +45,8 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({ getToken: vi.fn() }),
 }));
 
-vi.mock('@hooks/navigation/use-org-url/use-org-url', () => ({
-  useOrgUrl: () => ({ orgHref: (path: string) => `/o${path}` }),
-}));
-
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/',
+  usePathname: () => pathname,
   useParams: () => mockUseParams(),
 }));
 
@@ -53,6 +58,7 @@ describe('useAgentOAuthConnect', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     selectedBrand = undefined;
+    pathname = '/o/brand-x/agent/new';
     mockUseParams.mockReturnValue({});
     mockResolveAuthToken.mockResolvedValue('token-abc');
     mockPostConnect.mockResolvedValue({ url: 'https://provider.test/oauth' });
@@ -70,10 +76,43 @@ describe('useAgentOAuthConnect', () => {
       brandId: 'brand-1',
     });
     expect(openSpy).toHaveBeenCalledWith(
-      `https://provider.test/oauth?return_to=${encodeURIComponent('/o/agent/new')}`,
+      `https://provider.test/oauth?return_to=${encodeURIComponent('/o/brand-x/agent/new')}`,
       '_self',
     );
   });
+
+  it('returns to the originating branded thread', async () => {
+    selectedBrand = { id: 'brand-1' };
+    mockUseParams.mockReturnValue({ id: 'thread-7' });
+    const { result } = renderHook(() => useAgentOAuthConnect());
+    await act(async () => {
+      await result.current('instagram');
+    });
+    expect(openSpy).toHaveBeenCalledWith(
+      `https://provider.test/oauth?return_to=${encodeURIComponent('/o/brand-x/agent/thread-7')}`,
+      '_self',
+    );
+  });
+
+  it.each(['brand-y', '~'])(
+    'returns to %s after switching or clearing the route brand',
+    async (scope) => {
+      selectedBrand = { id: 'brand-1', slug: 'stale-brand' };
+      pathname = `/o/${scope}/agent/thread-8`;
+      mockUseParams.mockReturnValue({ id: 'thread-8' });
+      const { result } = renderHook(() => useAgentOAuthConnect());
+      await act(async () => {
+        await result.current('instagram');
+      });
+      expect(mockPostConnect).toHaveBeenCalledWith('instagram', 'token-abc', {
+        brandId: scope === 'brand-y' ? 'brand-2' : 'brand-1',
+      });
+      expect(openSpy).toHaveBeenCalledWith(
+        `https://provider.test/oauth?return_to=${encodeURIComponent(`/o/${scope}/agent/thread-8`)}`,
+        '_self',
+      );
+    },
+  );
 
   it('maps underscore platform enums to hyphenated Nest service paths', async () => {
     selectedBrand = { id: 'brand-1' };
@@ -90,6 +129,7 @@ describe('useAgentOAuthConnect', () => {
 
   it('includes the active brand and threads the return_to when available', async () => {
     selectedBrand = { id: 'brand-9' };
+    pathname = '/o/~/agent/onboarding/thread-5';
     mockUseParams.mockReturnValue({ threadId: 'thread-5' });
     const { result } = renderHook(() =>
       useAgentOAuthConnect({ isOnboarding: true }),
@@ -103,9 +143,17 @@ describe('useAgentOAuthConnect', () => {
       brandId: 'brand-9',
     });
     expect(openSpy).toHaveBeenCalledWith(
-      `https://provider.test/oauth?return_to=${encodeURIComponent('/o/agent/onboarding/thread-5')}`,
+      `https://provider.test/oauth?return_to=${encodeURIComponent('/o/~/agent/onboarding/thread-5')}`,
       '_self',
     );
+  });
+
+  it('rejects an unresolved URL brand instead of connecting the stale selected brand', async () => {
+    selectedBrand = { id: 'brand-1', slug: 'stale-brand' };
+    pathname = '/o/unavailable/agent/new';
+    const { result } = renderHook(() => useAgentOAuthConnect());
+    await expect(result.current('instagram')).rejects.toThrow('Select a brand');
+    expect(mockPostConnect).not.toHaveBeenCalled();
   });
 
   it('does nothing when no auth token is available', async () => {

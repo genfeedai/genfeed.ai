@@ -5,6 +5,10 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import FeatureGate from './FeatureGate';
 
+vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/brand-x${path}` }),
+}));
+
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
@@ -22,6 +26,9 @@ describe('FeatureGate', () => {
     );
 
     expect(screen.getByText('Feature Unavailable')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Back to Workspace' }),
+    ).toHaveAttribute('href', '/acme/brand-x/workspace');
     expect(screen.queryByText('Studio content')).not.toBeInTheDocument();
   });
 
@@ -57,6 +64,9 @@ describe('FeatureGate', () => {
     );
 
     expect(screen.getByText('Feature Unavailable')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Back to Workspace' }),
+    ).toHaveAttribute('href', '/acme/brand-x/workspace');
     expect(screen.queryByText('Replies content')).not.toBeInTheDocument();
   });
 });

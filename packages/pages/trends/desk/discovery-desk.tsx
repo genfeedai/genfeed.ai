@@ -96,7 +96,7 @@ const SORT_VALUES: readonly DiscoveryDeskSort[] = [
 export default function DiscoveryDesk() {
   const translateDesk = useTranslations('common.trends.desk');
   const brandId = useBrandId();
-  const { href, orgHref } = useOrgUrl();
+  const { brandSlug, href, orgHref } = useOrgUrl();
   const surface = useOptionalResearchWorkSurface();
   const [search, setSearch] = useResearchQueryState();
   const [view, setView] = useResearchSearchParamState<
@@ -294,7 +294,9 @@ export default function DiscoveryDesk() {
   const followingHref = href(
     `${APP_ROUTES.DISCOVERY.OVERVIEW}?source=following`,
   );
-  const publishingHref = orgHref(APP_ROUTES.SETTINGS.PUBLISHING);
+  const publishingHref = brandSlug
+    ? href(APP_ROUTES.SETTINGS.SOCIAL)
+    : orgHref(APP_ROUTES.SETTINGS.BRANDS);
   const sourceHealthHref = href(APP_ROUTES.DISCOVERY.TRENDS);
 
   const handleRefresh = useCallback(() => {

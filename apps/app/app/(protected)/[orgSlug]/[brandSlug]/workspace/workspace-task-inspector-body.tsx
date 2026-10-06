@@ -11,6 +11,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import { useWorkspaceTaskHref } from './use-workspace-task-href';
 import {
   getTaskContinuityQa,
   useTaskTimestamp,
@@ -31,6 +32,7 @@ export function WorkspaceTaskInspectorBody({
   onUnkeepOutput,
   task,
 }: WorkspaceTaskInspectorBodyProps) {
+  const taskHref = useWorkspaceTaskHref();
   const translate = useTranslations('pages.workspaceOverview');
   const translateTabs = useTranslations('pages.tasks.inspector.tabs');
   const [activeTab, setActiveTab] =
@@ -249,7 +251,10 @@ export function WorkspaceTaskInspectorBody({
             className="font-semibold"
           >
             <Link
-              href={`${APP_ROUTES.AGENT.ROOT}/${linkedExecutionSummary.reportThreadId}`}
+              href={taskHref(
+                task,
+                `${APP_ROUTES.AGENT.ROOT}/${linkedExecutionSummary.reportThreadId}`,
+              )}
             >
               {translate('inspector.openReportThread')}
             </Link>

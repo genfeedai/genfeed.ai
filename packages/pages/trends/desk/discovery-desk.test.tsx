@@ -4,6 +4,7 @@ import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  brandSlug: 'brand-1',
   notifyError: vi.fn(),
   notifyInfo: vi.fn(),
   openRemix: vi.fn().mockResolvedValue(undefined),
@@ -68,8 +69,9 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
-    href: (path: string) => `/org-1/brand-1${path}`,
-    orgHref: (path: string) => `/org-1${path}`,
+    brandSlug: mocks.brandSlug,
+    href: (path: string) => `/org-1/${mocks.brandSlug || '~'}${path}`,
+    orgHref: (path: string) => `/org-1/~${path}`,
   }),
 }));
 
@@ -200,6 +202,7 @@ describe('DiscoveryDesk', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.paramState = {};
+    mocks.brandSlug = 'brand-1';
     mocks.openRemix.mockResolvedValue(undefined);
 
     mocks.useDiscoveryDeskItems.mockReturnValue({
@@ -230,13 +233,26 @@ describe('DiscoveryDesk', () => {
     );
     expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
       'data-publishing-href',
-      '/org-1/settings/publishing',
+      '/org-1/brand-1/settings/integrations',
     );
     expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
       'data-source-health-href',
       '/org-1/brand-1/discovery/trends',
     );
     expect(screen.getByTestId('discovery-readiness-cards')).toBeInTheDocument();
+  });
+
+  it('offers brand selection for organization connection setup', () => {
+    mocks.brandSlug = '';
+    mocks.useDiscoveryDeskItems.mockReturnValue({
+      ...mocks.useDiscoveryDeskItems(),
+      items: [],
+    });
+    render(<DiscoveryDesk />);
+    expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
+      'data-publishing-href',
+      '/org-1/~/settings/brands',
+    );
   });
 
   it('puts search on the left of the module topbar', () => {

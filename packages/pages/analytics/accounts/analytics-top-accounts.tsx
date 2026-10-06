@@ -11,12 +11,13 @@ import {
   isCollectionFetchReady,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
@@ -24,7 +25,7 @@ export default function AnalyticsTopAccounts({
   organizationId: organizationIdProp,
 }: AnalyticsTopAccountsProps) {
   const translate = useTranslations('pages.analytics.accounts');
-  const router = useRouter();
+  const { href } = useOrgUrl();
   const scope = useCollectionScope();
   const brandId = scope.brandId;
   const organizationId = organizationIdProp ?? scope.organizationId;
@@ -74,11 +75,9 @@ export default function AnalyticsTopAccounts({
   return (
     <WorkspaceSurface
       actions={
-        <Button
-          label="View all"
-          variant={ButtonVariant.GHOST}
-          onClick={() => router.push(APP_ROUTES.ANALYTICS.ACCOUNTS)}
-        />
+        <Button asChild variant={ButtonVariant.GHOST}>
+          <Link href={href(APP_ROUTES.ANALYTICS.ACCOUNTS)}>View all</Link>
+        </Button>
       }
       density="compact"
       flush
@@ -93,7 +92,9 @@ export default function AnalyticsTopAccounts({
             <ListRow
               key={account.identity.credentialId}
               density="compact"
-              href={`${APP_ROUTES.ANALYTICS.ACCOUNTS}/${account.identity.credentialId}`}
+              href={href(
+                `${APP_ROUTES.ANALYTICS.ACCOUNTS}/${account.identity.credentialId}`,
+              )}
               title={
                 account.identity.label ||
                 account.identity.externalHandle ||

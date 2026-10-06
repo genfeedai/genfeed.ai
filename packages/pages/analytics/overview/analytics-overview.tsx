@@ -10,6 +10,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { TopPostData } from '@hooks/data/analytics/use-top-posts/use-top-posts';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import AnalyticsTopAccounts from '@pages/analytics/accounts/analytics-top-accounts';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import type {
@@ -72,6 +73,7 @@ export default function AnalyticsOverview({
 }: AnalyticsOverviewProps) {
   const translate = useTranslations('pages.analytics.overview');
   const router = useRouter();
+  const { href } = useOrgUrl();
   const {
     agentBlocks,
     brandsLeaderboard,
@@ -94,7 +96,6 @@ export default function AnalyticsOverview({
     isTimeseriesLoading,
     isTopPostsLoading,
     isUsingAnyCache,
-    orgHref,
     orgsLeaderboard,
     persistAgentDashboardState,
     primaryKpiItems,
@@ -156,7 +157,7 @@ export default function AnalyticsOverview({
           <AnalyticsOverviewHero
             dashboardState={dashboardState}
             heroContent={heroContent}
-            orgHref={orgHref}
+            connectAccountsHref={connectAccountsHref}
           />
         ) : null}
 
@@ -222,7 +223,7 @@ export default function AnalyticsOverview({
             description={translate('placeholderDescription')}
             icon={ChartColumn}
             primaryAction={{
-              href: APP_ROUTES.PUBLISHING.OVERVIEW,
+              href: href(APP_ROUTES.PUBLISHING.OVERVIEW),
               label: translate('createPost'),
               variant: ButtonVariant.DEFAULT,
             }}

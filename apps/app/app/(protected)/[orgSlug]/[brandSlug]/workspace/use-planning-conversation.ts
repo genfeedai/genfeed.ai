@@ -5,6 +5,7 @@ import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { Task, TasksService } from '@services/management/tasks.service';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
+import { useWorkspaceTaskHref } from './use-workspace-task-href';
 
 export type { UsePlanningConversationParams } from '@genfeedai/props/workspace/workspace-planning-conversation.props';
 
@@ -20,6 +21,7 @@ export function usePlanningConversation({
 }: UsePlanningConversationParams) {
   const { getToken } = useAuthIdentity();
   const { push } = useRouter();
+  const taskHref = useWorkspaceTaskHref();
 
   const openPlanningConversation = useCallback(
     async (task: Task) => {
@@ -39,7 +41,9 @@ export function usePlanningConversation({
           new Task({ ...task, planningThreadId: planningThread.threadId }),
         );
 
-        push(`${APP_ROUTES.AGENT.ROOT}/${planningThread.threadId}`);
+        push(
+          taskHref(task, `${APP_ROUTES.AGENT.ROOT}/${planningThread.threadId}`),
+        );
       } catch (error) {
         onError(
           error instanceof Error
@@ -50,7 +54,7 @@ export function usePlanningConversation({
         setBusyTaskId(null);
       }
     },
-    [getToken, onError, onTaskUpdated, push, setBusyTaskId],
+    [getToken, onError, onTaskUpdated, push, setBusyTaskId, taskHref],
   );
 
   return { openPlanningConversation };
