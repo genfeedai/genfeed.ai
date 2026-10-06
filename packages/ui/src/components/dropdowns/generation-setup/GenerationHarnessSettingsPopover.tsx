@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationHarnessSettingsPopoverProps } from '@genfeedai/props/ui/generation-setup/generation-harness.props';
 import { useGenerationHarnessSettings } from '@hooks/data/generation/use-generation-harness-settings';
 import GenerationHarnessSettingsCard from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsCard';
@@ -10,7 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import { WandSparkles } from 'lucide-react';
+import { SlidersHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -38,7 +39,7 @@ export default function GenerationHarnessSettingsPopover({
           className={className}
           ariaLabel={translate('settings')}
           tooltip={translate('settings')}
-          icon={<WandSparkles className="size-4" />}
+          icon={<SlidersHorizontal className="size-4" />}
           isDisabled={isDisabled}
           size={ButtonSize.ICON}
           variant={ButtonVariant.GHOST}
@@ -48,7 +49,12 @@ export default function GenerationHarnessSettingsPopover({
       <PopoverContent
         align="start"
         side="top"
-        className="w-[min(360px,calc(100vw-2rem))] p-0"
+        avoidCollisions={false}
+        className={cn(
+          'w-[min(360px,calc(100vw-2rem))]',
+          'max-h-[min(560px,var(--radix-popover-content-available-height,70vh))]',
+          'overflow-y-auto overscroll-contain p-0',
+        )}
       >
         {isOpen && !isDisabled ? <SettingsContent /> : null}
       </PopoverContent>

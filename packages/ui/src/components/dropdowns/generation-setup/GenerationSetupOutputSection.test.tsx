@@ -6,11 +6,11 @@ import type {
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type { StudioGenerateCapabilities } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import type { GenerationSetupOptionPickerProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GenerationSetupOutputSection from '@ui/dropdowns/generation-setup/GenerationSetupOutputSection';
 import { useGenerationSetupStore } from '@ui/dropdowns/generation-setup/generation-setup.store';
-import { Children, isValidElement, type ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', async () => {
@@ -18,53 +18,25 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-/**
- * `SelectTrigger`'s `aria-label` is what makes the real component
- * accessible-by-label — it lives on a nested child, not a prop of `Select`
- * itself, so pull it off the still-unrendered `children` array (plain React
- * element descriptors) before deciding what to render.
- */
-function extractAriaLabel(children: ReactNode): string | undefined {
-  let label: string | undefined;
-  Children.forEach(children, (child) => {
-    if (!isValidElement(child)) {
-      return;
-    }
-    const props = child.props as Record<string, unknown>;
-    if (typeof props['aria-label'] === 'string') {
-      label = props['aria-label'];
-    }
-  });
-  return label;
-}
-
-// The real primitives render through Radix portals, which JSDOM doesn't need
-// for this test — a native `<select>` stand-in is enough to assert on the
-// rendered option grid and drive value changes without portal plumbing.
-vi.mock('@ui/primitives/select', () => ({
-  Select: ({
-    children,
-    onValueChange,
+vi.mock('@ui/dropdowns/generation-setup/GenerationSetupOptionPicker', () => ({
+  default: ({
+    label,
     value,
-  }: {
-    children: ReactNode;
-    onValueChange: (value: string) => void;
-    value: string;
-  }) => (
+    options,
+    onValueChange,
+  }: GenerationSetupOptionPickerProps) => (
     <select
-      aria-label={extractAriaLabel(children)}
-      onChange={(event) => onValueChange(event.target.value)}
+      aria-label={label}
       value={value}
+      onChange={(event) => onValueChange(event.target.value)}
     >
-      {children}
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
     </select>
   ),
-  SelectContent: ({ children }: { children: ReactNode }) => children,
-  SelectItem: ({ children, value }: { children: ReactNode; value: string }) => (
-    <option value={value}>{children}</option>
-  ),
-  SelectTrigger: () => null,
-  SelectValue: () => null,
 }));
 
 const MUSIC_CAPABILITIES: StudioGenerateCapabilities = {

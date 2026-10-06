@@ -2,254 +2,187 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
-import type { GenerationSetupFieldKey } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { getModelCategoryIcon } from '@genfeedai/helpers/ui/icons/model-category-icon';
 import type {
   GenerationSetupCustomizeSectionId,
   GenerationSetupFrontDoorProps,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import GenerationSetupFieldIcon from '@ui/dropdowns/generation-setup/GenerationSetupFieldIcon';
-import GenerationSetupSavePresetRow from '@ui/dropdowns/generation-setup/GenerationSetupSavePresetRow';
 import { isAutoGenerationModelKey } from '@ui/dropdowns/model-selector/model-selector.constants';
+import ModelAvatar from '@ui/models/ModelAvatar';
 import { Button } from '@ui/primitives/button';
-import { ChevronRight, Search, Sparkles, Trash2 } from 'lucide-react';
+import {
+  Bookmark,
+  ChevronRight,
+  Copy,
+  Cpu,
+  type LucideIcon,
+  Megaphone,
+  Palette,
+  RotateCcw,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { ReactNode } from 'react';
 
-/**
- * Layer 1 of the popover: the agent's summary of what it picked and why, the
- * preset list (apply = pin), and the entry point into the search layer. Every
- * summary field routes directly to the nested section that owns it.
- */
+const SECTION_ICONS: Record<
+  Exclude<GenerationSetupCustomizeSectionId, 'type'>,
+  LucideIcon
+> = {
+  model: Cpu,
+  output: Copy,
+  look: Palette,
+  brand: Megaphone,
+  presets: Bookmark,
+  enhancement: SlidersHorizontal,
+};
+
 export default function GenerationSetupFrontDoor({
+  showEnhancementSettings = false,
   capabilities,
-  creditQuoteLabel,
+  inputControls,
   isDisabled = false,
-  isPresetsLoading = false,
+  lookOptions,
   models,
-  onApplyPreset,
   onCustomize,
-  onDeletePreset,
-  onSavePreset,
-  onSearch,
+  onResetAll,
   presets,
-  reasons,
   setup,
   typeOptions,
 }: GenerationSetupFrontDoorProps) {
   const translate = useTranslations('agent.generationSetup');
-  const isTypeAgentOwned =
-    !setup.presetId &&
-    setup.sources.type !== 'user' &&
-    setup.sources.type !== 'preset';
-  const isTextType = setup.values.type === 'text';
-  // The panel header already reads "Agent pick". An agent-owned type row says
-  // Auto, the same word the model row uses for "the system decides", instead of
-  // repeating that header two lines below itself.
-  const typeLabel = isTypeAgentOwned
+  const isAutoModel = isAutoGenerationModelKey(setup.values.modelKey);
+  const selectedModel = isAutoModel
+    ? undefined
+    : models.find((model) => model.key === setup.values.modelKey);
+  const modelLabel = isAutoModel
     ? translate('auto')
-    : (typeOptions.find((option) => option.value === setup.values.type)
-        ?.label ?? setup.values.type);
-
-  const modelLabel = isAutoGenerationModelKey(setup.values.modelKey)
-    ? translate('auto')
-    : (models.find((model) => model.key === setup.values.modelKey)?.label ??
-      setup.values.modelKey);
-
-  const summaryRows: Array<{
-    key: GenerationSetupFieldKey;
-    label: string;
-    section: GenerationSetupCustomizeSectionId;
-    value: string;
-  }> = [
-    {
-      key: 'type',
-      label: translate('type'),
-      section: 'model',
-      value: typeLabel,
-    },
-  ];
-
+    : (selectedModel?.label ?? setup.values.modelKey);
+  const TypeIcon = getModelCategoryIcon(setup.values.type, selectedModel);
   const duration =
     setup.values.type === 'music'
       ? normalizeMusicSettings(setup.values.modelKey, setup.values).duration
       : setup.values.duration;
-  const showMediaFields = !isTypeAgentOwned && !isTextType;
-
-  if (showMediaFields) {
-    summaryRows.push({
-      key: 'modelKey',
+  const outputLabel = [
+    capabilities.hasAspectRatio && setup.values.aspectRatio,
+    capabilities.hasDuration &&
+      duration &&
+      translate('durationSeconds', { seconds: duration }),
+    capabilities.hasOutputs && `x${setup.values.outputs}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const hasLookFields = Object.entries(lookOptions).some(
+    ([key, options]) =>
+      (options?.length ?? 0) > 0 &&
+      !(key === 'resolution' && inputControls?.mediaKind === 'video'),
+  );
+  const sections: {
+    id: GenerationSetupCustomizeSectionId;
+    label: string;
+    value?: string;
+    isDisabled?: boolean;
+  }[] = [
+    {
+      id: 'type',
+      label: translate('type'),
+      value:
+        typeOptions.find((option) => option.value === setup.values.type)
+          ?.label ?? setup.values.type,
+      isDisabled: typeOptions.length < 2,
+    },
+  ];
+  if (capabilities.hasModelSelection)
+    sections.push({
+      id: 'model',
       label: translate('model'),
-      section: 'model',
       value: modelLabel,
     });
-    if (capabilities.hasAspectRatio) {
-      summaryRows.push({
-        key: 'aspectRatio',
-        label: translate('aspectRatio'),
-        section: 'output',
-        value: setup.values.aspectRatio,
-      });
-    }
-    if (capabilities.hasDuration && duration) {
-      summaryRows.push({
-        key: 'duration',
-        label: translate('duration'),
-        section: 'output',
-        value: `${duration}s`,
-      });
-    }
-    if (capabilities.hasOutputs) {
-      summaryRows.push({
-        key: 'outputs',
-        label: translate('outputs'),
-        section: 'output',
-        value: String(setup.values.outputs),
-      });
-    }
-  }
-  // Brand voice cannot affect music, avatar, or voice generations — hide the
-  // summary row entirely rather than show a setting that does nothing
-  // (#4676). The Prompt enhance summary row was removed with the switch.
-  if (capabilities.hasBrandEnrichment) {
-    summaryRows.push({
-      key: 'brandingMode',
-      label: translate('brandVoice'),
-      section: 'brand',
+  if (
+    capabilities.hasAspectRatio ||
+    capabilities.hasDuration ||
+    capabilities.hasOutputs ||
+    capabilities.hasStyle ||
+    capabilities.hasInstrumentalToggle ||
+    capabilities.hasLyrics
+  )
+    sections.push({
+      id: 'output',
+      label: translate('output'),
+      value: outputLabel,
+    });
+  if (hasLookFields) sections.push({ id: 'look', label: translate('look') });
+  if (capabilities.hasBrandEnrichment)
+    sections.push({
+      id: 'brand',
+      label: translate('brand'),
       value:
         setup.values.brandingMode === 'brand'
           ? translate('on')
           : translate('off'),
     });
-  }
-
+  sections.push({
+    id: 'presets',
+    label: translate('presets'),
+    value: presets.length ? String(presets.length) : undefined,
+  });
+  if (showEnhancementSettings)
+    sections.push({ id: 'enhancement', label: translate('enhancement') });
   return (
-    <div className="flex min-h-0 flex-col gap-3 p-3">
-      <Button
-        ariaLabel={translate('searchSetupFields')}
-        className="w-full justify-start gap-2 rounded-md border border-border bg-background-secondary px-2.5 text-xs text-muted-foreground hover:text-foreground"
-        icon={<Search className="size-3.5 shrink-0" />}
-        isDisabled={isDisabled}
-        label={translate('searchFields')}
-        onClick={onSearch}
-        size={ButtonSize.SM}
-        textTransform="none"
-        variant={ButtonVariant.SECONDARY}
-      />
-
-      <div className="flex flex-col gap-2 rounded-md border border-border bg-background-secondary p-2.5">
-        <Button
-          ariaLabel={translate('customizeSetup')}
-          className="h-control-sm w-full justify-between gap-2 px-1 text-xs hover:bg-background-tertiary"
-          isDisabled={isDisabled}
-          onClick={() => onCustomize()}
-          size={ButtonSize.SM}
-          textTransform="none"
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
-        >
-          <span className="flex items-center gap-1.5 font-medium text-primary">
-            <Sparkles className="size-3.5 shrink-0" />
-            {translate('agentPick')}
-          </span>
-          <span className="flex items-center gap-1 text-2xs text-muted-foreground">
-            {translate('customize')}
-            <ChevronRight className="size-3" />
-          </span>
-        </Button>
-
-        <div className="flex flex-col gap-1.5">
-          {summaryRows.map((row) => (
+    <div className="flex min-h-0 flex-col">
+      <div className="min-h-0 overflow-y-auto p-1.5">
+        {sections.map((section) => {
+          let sectionIcon: ReactNode;
+          if (section.id === 'model' && selectedModel) {
+            sectionIcon = <ModelAvatar model={selectedModel} />;
+          } else if (section.id === 'type') {
+            sectionIcon = <TypeIcon className="size-3.5" />;
+          } else {
+            const Icon = SECTION_ICONS[section.id];
+            sectionIcon = <Icon className="size-3.5" />;
+          }
+          return (
             <Button
-              ariaLabel={translate('editField', { field: row.label })}
-              className="group h-auto w-full justify-between gap-3 rounded-sm px-1 py-1 text-xs hover:bg-background-tertiary"
-              isDisabled={isDisabled}
-              key={row.key}
-              onClick={() => onCustomize(row.section)}
+              key={section.id}
+              ariaLabel={translate('configureSection', {
+                section: section.label,
+              })}
+              className="h-9 w-full justify-between gap-3 rounded-md px-2 text-xs"
+              isDisabled={isDisabled || section.isDisabled}
+              onClick={() => onCustomize(section.id)}
               size={ButtonSize.SM}
               textTransform="none"
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             >
-              <span className="flex items-center gap-1.5 text-muted-foreground">
-                <GenerationSetupFieldIcon
-                  fieldKey={row.key}
-                  reason={reasons[row.key as keyof typeof reasons]}
-                  source={
-                    setup.sources[row.key as keyof typeof setup.sources] ??
-                    'agent'
-                  }
-                />
-                {row.label}
+              <span className="flex shrink-0 items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="flex h-8 w-10 shrink-0 items-center justify-center text-muted-foreground"
+                >
+                  {sectionIcon}
+                </span>
+                {section.label}
               </span>
-              <span className="flex min-w-0 items-center gap-1 font-medium text-foreground">
-                <span className="truncate">{row.value}</span>
-                <ChevronRight className="size-3 shrink-0 text-muted-foreground/0 transition-colors group-hover:text-muted-foreground group-focus-visible:text-muted-foreground" />
+              <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                <span className="truncate">{section.value}</span>
+                <ChevronRight className="size-3.5 shrink-0" />
               </span>
             </Button>
-          ))}
-        </div>
-
-        {creditQuoteLabel ? (
-          <span className="text-2xs text-muted-foreground">
-            {creditQuoteLabel}
-          </span>
-        ) : null}
+          );
+        })}
       </div>
-
-      <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
-        <span className="gen-label-sm text-muted-foreground">
-          {translate('presets')}
-        </span>
-
-        {isPresetsLoading ? (
-          <span className="px-1 py-1.5 text-muted-foreground text-xs">
-            {translate('loadingPresets')}
-          </span>
-        ) : null}
-
-        {!isPresetsLoading && presets.length === 0 ? (
-          <span className="px-1 py-1.5 text-muted-foreground text-xs">
-            {translate('noPresets')}
-          </span>
-        ) : null}
-
-        <GenerationSetupSavePresetRow
+      <div className="shrink-0 border-t border-border p-1.5">
+        <Button
+          ariaLabel={translate('resetAllAria')}
+          className="text-muted-foreground"
+          icon={<RotateCcw className="size-3.5" />}
           isDisabled={isDisabled}
-          onSavePreset={onSavePreset}
+          label={translate('resetAll')}
+          onClick={onResetAll}
+          size={ButtonSize.XS}
+          textTransform="none"
+          variant={ButtonVariant.GHOST}
         />
-
-        {presets.map((preset) => (
-          <div
-            className={cn(
-              'group flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs hover:bg-background-tertiary',
-              setup.presetId === preset.id && 'bg-background-tertiary',
-            )}
-            key={preset.id}
-          >
-            <Button
-              ariaLabel={translate('applyPreset', { label: preset.label })}
-              className="min-w-0 flex-1 justify-start truncate text-left text-foreground"
-              isDisabled={isDisabled}
-              label={preset.label}
-              onClick={() => onApplyPreset(preset)}
-              size={ButtonSize.SM}
-              textTransform="none"
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-            />
-            {onDeletePreset ? (
-              <Button
-                ariaLabel={translate('deletePreset', { label: preset.label })}
-                className="size-6 shrink-0 p-0 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"
-                icon={<Trash2 className="size-3.5" />}
-                isDisabled={isDisabled}
-                onClick={() => onDeletePreset(preset.id)}
-                size={ButtonSize.ICON}
-                variant={ButtonVariant.GHOST}
-              />
-            ) : null}
-          </div>
-        ))}
       </div>
     </div>
   );

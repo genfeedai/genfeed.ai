@@ -68,7 +68,7 @@ export function getModelCategoryIcon(
   category?: string,
   context?: ModelCategoryIconContext,
 ): IconType {
-  if (isAvatarModelContext(context)) {
+  if (category === 'avatar' || isAvatarModelContext(context)) {
     return SquareUser;
   }
 
@@ -79,7 +79,7 @@ export function getModelCategoryLabel(
   category?: string,
   context?: ModelCategoryIconContext,
 ): string {
-  if (isAvatarModelContext(context)) {
+  if (category === 'avatar' || isAvatarModelContext(context)) {
     return 'Avatar';
   }
 

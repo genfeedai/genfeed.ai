@@ -1,28 +1,21 @@
 'use client';
 
 import { resolveMusicSettings } from '@genfeedai/contracts/constants';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationSetupOutputSectionProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
 import GenerationSetupFieldRow from '@ui/dropdowns/generation-setup/GenerationSetupFieldRow';
+import GenerationSetupOptionPicker from '@ui/dropdowns/generation-setup/GenerationSetupOptionPicker';
 import {
   GENERATION_SETUP_ASPECT_RATIO_OPTIONS,
   GENERATION_SETUP_DURATION_OPTIONS_SECONDS,
   GENERATION_SETUP_OUTPUTS_OPTIONS,
 } from '@ui/dropdowns/generation-setup/generation-setup.constants';
 import { Input } from '@ui/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 
-/** Output tab: aspect ratio, duration, output count, and (music only) style/instrumental/lyrics. */
+/** Output settings: aspect ratio, duration, output count, and (music only) style/instrumental/lyrics. */
 export default function GenerationSetupOutputSection({
   capabilities,
   inputControls,
@@ -58,32 +51,20 @@ export default function GenerationSetupOutputSection({
           reason={reasons.aspectRatio}
           source={setup.sources.aspectRatio ?? 'agent'}
         >
-          <Select
-            onValueChange={(value) => onSetField('aspectRatio', value)}
+          <GenerationSetupOptionPicker
+            label="Aspect ratio"
             value={setup.values.aspectRatio}
-          >
-            <SelectTrigger
-              aria-label="Aspect ratio"
-              className={cn('w-full', SHELL_CONTROL_HEIGHT_CLASS)}
-            >
-              <SelectValue placeholder="Aspect ratio" />
-            </SelectTrigger>
-            <SelectContent>
-              {(
-                inputControls?.fields.aspect_ratio?.enum?.filter(
-                  (value): value is string =>
-                    typeof value === 'string' &&
-                    (value !== 'auto' ||
-                      referenceCount > 0 ||
-                      !inputControls.isAutoAspectReferenceRequired),
-                ) ?? GENERATION_SETUP_ASPECT_RATIO_OPTIONS
-              ).map((ratio) => (
-                <SelectItem key={ratio} value={ratio}>
-                  {ratio}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onValueChange={(value) => onSetField('aspectRatio', value)}
+            options={(
+              inputControls?.fields.aspect_ratio?.enum?.filter(
+                (value): value is string =>
+                  typeof value === 'string' &&
+                  (value !== 'auto' ||
+                    referenceCount > 0 ||
+                    !inputControls.isAutoAspectReferenceRequired),
+              ) ?? GENERATION_SETUP_ASPECT_RATIO_OPTIONS
+            ).map((ratio) => ({ value: ratio, label: ratio }))}
+          />
         </GenerationSetupFieldRow>
       ) : null}
 
@@ -95,24 +76,15 @@ export default function GenerationSetupOutputSection({
           reason={reasons.duration}
           source={setup.sources.duration ?? 'agent'}
         >
-          <Select
-            onValueChange={(value) => onSetField('duration', Number(value))}
+          <GenerationSetupOptionPicker
+            label="Duration"
             value={String(setup.values.duration ?? '')}
-          >
-            <SelectTrigger
-              aria-label="Duration"
-              className={cn('w-full', SHELL_CONTROL_HEIGHT_CLASS)}
-            >
-              <SelectValue placeholder="Duration" />
-            </SelectTrigger>
-            <SelectContent>
-              {durationOptions.map((seconds) => (
-                <SelectItem key={seconds} value={String(seconds)}>
-                  {translate('durationSeconds', { seconds })}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onValueChange={(value) => onSetField('duration', Number(value))}
+            options={durationOptions.map((seconds) => ({
+              value: String(seconds),
+              label: translate('durationSeconds', { seconds }),
+            }))}
+          />
         </GenerationSetupFieldRow>
       ) : null}
 
@@ -188,26 +160,14 @@ export default function GenerationSetupOutputSection({
           reason={reasons.outputs}
           source={setup.sources.outputs ?? 'agent'}
         >
-          <Select
-            onValueChange={(value) => onSetField('outputs', Number(value))}
+          <GenerationSetupOptionPicker
+            label="Outputs"
             value={String(setup.values.outputs)}
-          >
-            <SelectTrigger
-              aria-label="Outputs"
-              className={cn('w-full', SHELL_CONTROL_HEIGHT_CLASS)}
-            >
-              <SelectValue placeholder="Outputs" />
-            </SelectTrigger>
-            <SelectContent>
-              {GENERATION_SETUP_OUTPUTS_OPTIONS.filter(
-                (count) => !inputControls || count <= inputControls.maxOutputs,
-              ).map((count) => (
-                <SelectItem key={count} value={String(count)}>
-                  {count}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onValueChange={(value) => onSetField('outputs', Number(value))}
+            options={GENERATION_SETUP_OUTPUTS_OPTIONS.filter(
+              (count) => !inputControls || count <= inputControls.maxOutputs,
+            ).map((count) => ({ value: String(count), label: String(count) }))}
+          />
         </GenerationSetupFieldRow>
       ) : null}
     </div>

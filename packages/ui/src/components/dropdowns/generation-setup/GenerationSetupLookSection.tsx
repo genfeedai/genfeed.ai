@@ -1,24 +1,15 @@
 'use client';
 
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationSetupLookSectionProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
 import GenerationSetupFieldRow from '@ui/dropdowns/generation-setup/GenerationSetupFieldRow';
+import GenerationSetupOptionPicker from '@ui/dropdowns/generation-setup/GenerationSetupOptionPicker';
 import {
   GENERATION_SETUP_LOOK_FIELD_LABELS,
   GENERATION_SETUP_LOOK_FIELD_ORDER,
 } from '@ui/dropdowns/generation-setup/generation-setup.constants';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { useTranslations } from 'next-intl';
 
 /**
- * Look tab: one Select row per look field the caller has options for. Empty
+ * Look settings: one searchable option list per look field the caller has options for. Empty
  * on the agent composer, which passes no `lookOptions` — the section then
  * renders nothing rather than a wall of empty controls.
  */
@@ -29,7 +20,6 @@ export default function GenerationSetupLookSection({
   reasons,
   setup,
 }: GenerationSetupLookSectionProps) {
-  const translate = useTranslations('agent.generationSetup');
   const fieldsWithOptions = GENERATION_SETUP_LOOK_FIELD_ORDER.filter(
     (key) => (lookOptions[key]?.length ?? 0) > 0,
   );
@@ -52,31 +42,16 @@ export default function GenerationSetupLookSection({
             reason={reasons[key]}
             source={setup.sources[key] ?? 'agent'}
           >
-            <Select
-              onValueChange={(value) => onSetField(key, value)}
+            <GenerationSetupOptionPicker
+              label={GENERATION_SETUP_LOOK_FIELD_LABELS[key]}
               value={setup.values[key] ?? ''}
-            >
-              <SelectTrigger
-                aria-label={GENERATION_SETUP_LOOK_FIELD_LABELS[key]}
-                className={cn('w-full', SHELL_CONTROL_HEIGHT_CLASS)}
-              >
-                <SelectValue
-                  placeholder={GENERATION_SETUP_LOOK_FIELD_LABELS[key]}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {options.map((option) => (
-                  <SelectItem key={option.key} value={String(option.key)}>
-                    {option.label}
-                    {option.isPlatformDefault ? (
-                      <span className="ml-2 text-xs text-foreground/60">
-                        {translate('platformDefault')}
-                      </span>
-                    ) : null}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onValueChange={(value) => onSetField(key, value)}
+              options={options.map((option) => ({
+                value: String(option.key),
+                label: option.label,
+                isPlatformDefault: option.isPlatformDefault,
+              }))}
+            />
           </GenerationSetupFieldRow>
         );
       })}

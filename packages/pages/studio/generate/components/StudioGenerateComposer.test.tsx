@@ -2,6 +2,12 @@ import type {
   CrunInputControls,
   IModel,
 } from '@genfeedai/contracts/interfaces';
+import type {
+  GenerationSetup,
+  GenerationSetupFieldKey,
+  GenerationSetupValues,
+} from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import type { GenerationSetupFieldSetter } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
 import { getDefaultStudioGenerateSettings } from '@pages/studio/generate/utils/studio-generate-settings';
 
@@ -39,10 +45,24 @@ import {
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
+import { isStudioGenerateType } from '@pages/studio/generate/utils/studio-generate-types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Admission and composer tests inspect quote states independently of hover timing.
+// StudioGenerationSummary.test.tsx covers the real focus/hover tooltip behavior.
+vi.mock('@ui/primitives/tooltip', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@ui/primitives/tooltip')>();
+  return {
+    ...actual,
+    TooltipContent: ({ children }: { children: React.ReactNode }) => (
+      <div>{children}</div>
+    ),
+  };
+});
 
 const walletMocks = vi.hoisted(() => ({
   balance: 120 as number | null,
@@ -86,7 +106,11 @@ const generationSetupPopoverMocks = vi.hoisted(() => ({
 vi.mock('@ui/dropdowns/generation-setup/GenerationSetupPopover', () => ({
   default: (props: Record<string, unknown>) => {
     generationSetupPopoverMocks.props = props;
-    return <button type="button">Setup</button>;
+    return (
+      <button type="button" aria-label="Setup">
+        {props.triggerLabel as string}
+      </button>
+    );
   },
 }));
 
@@ -237,6 +261,7 @@ describe('StudioGenerateComposer', () => {
     runtimeMocks.snapshot = { status: 'web', context: null };
     storeMocks.setupByScope = {};
     storeMocks.reasonsByScope = {};
+    storeMocks.setField.mockReset();
     Object.assign(walletMocks, {
       balance: 120,
       isLoaded: true,
@@ -244,6 +269,40 @@ describe('StudioGenerateComposer', () => {
       showCredits: true,
     });
     vi.clearAllMocks();
+  });
+
+  it('shows the selected settings in the picker and keeps library access in the context menu', () => {
+    render(
+      <StudioGenerateComposer
+        {...baseProps}
+        attachedAssets={[
+          {
+            id: 'reference',
+            name: 'Apple reference',
+            kind: 'image',
+            role: 'reference',
+            source: 'library',
+          },
+        ]}
+        models={[{ key: 'banana', label: 'Nano Banana 2 Lite' } as IModel]}
+        prompt="A green apple"
+        settings={{ ...settings, modelKey: 'banana' }}
+        type="image"
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Setup' })).toHaveTextContent(
+      'Nano Banana 2 Lite · 1:1 · 1K · x1',
+    );
+    expect(
+      screen.queryByRole('button', { name: /browse library/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Add context' }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove Apple reference' }),
+    );
+    expect(baseProps.onRemoveAttachedAsset).toHaveBeenCalledWith('reference');
   });
 
   it('keeps an empty composer compact with setup and submission controls, then expands while typing', () => {
@@ -258,12 +317,15 @@ describe('StudioGenerateComposer', () => {
     const shell = screen.getByTestId('studio-generate-composer-shell');
     expect(shell).toHaveAttribute('data-expanded', 'false');
     expect(screen.getByRole('button', { name: 'Setup' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
     const summary = screen.getByTestId('studio-generation-summary');
-    expect(summary.parentElement).toHaveClass('sr-only');
-    expect(screen.getByRole('link', { name: '120 available' })).toHaveAttribute(
+    expect(summary).toBeVisible();
+
+    expect(screen.getByLabelText('120 available')).not.toHaveAttribute(
       'tabindex',
-      '-1',
     );
 
     const editor = screen.getByRole('textbox', { name: 'Prompt' });
@@ -279,10 +341,10 @@ describe('StudioGenerateComposer', () => {
     expect(shell).toHaveAttribute('data-expanded', 'true');
     expect(screen.getByTestId('studio-generation-summary')).toBeVisible();
     expect(screen.getByTestId('studio-generation-summary')).toBe(summary);
-    expect(summary.parentElement).not.toHaveClass('sr-only');
-    expect(
-      screen.getByRole('link', { name: '120 available' }),
-    ).not.toHaveAttribute('tabindex');
+
+    expect(screen.getByLabelText('120 available')).not.toHaveAttribute(
+      'tabindex',
+    );
     expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
     expect(screen.getByRole('textbox', { name: 'Prompt' })).toBe(editor);
     expect(editor).toHaveFocus();
@@ -311,7 +373,10 @@ describe('StudioGenerateComposer', () => {
           type="image"
         />,
       );
-      expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
       promptEditorProps.onSubmit?.();
       expect(baseProps.onSubmit).not.toHaveBeenCalled();
     },
@@ -372,6 +437,7 @@ describe('StudioGenerateComposer', () => {
 
     expect(generationSetupPopoverMocks.props).toEqual(
       expect.objectContaining({
+        isTypeCommitted: true,
         scopeKey: 'studio:image',
         typeOptions: [
           { label: 'Image', value: 'image' },
@@ -400,6 +466,132 @@ describe('StudioGenerateComposer', () => {
         }
       ).hasIdentity,
     ).toBe(false);
+  });
+
+  it('keeps the pinned image preset when the type panel switches Studio mode', async () => {
+    const actual = await vi.importActual<
+      typeof import('@ui/dropdowns/generation-setup/generation-setup.store')
+    >('@ui/dropdowns/generation-setup/generation-setup.store');
+    const scope = actual.buildStudioGenerationSetupScope('image');
+    const defaults = getDefaultGenerationSetupValues('image');
+    window.localStorage.removeItem(actual.GENERATION_SETUP_STORAGE_KEY);
+    try {
+      await actual.useGenerationSetupStore.persist.rehydrate();
+      actual.useGenerationSetupStore.setState({
+        reasonsByScope: {},
+        setupByScope: {},
+      });
+      actual.applyGenerationSetupPreset(
+        scope,
+        'preset-image',
+        {
+          aspectRatio: '16:9',
+          modelKey: 'studio/preset-model',
+          outputs: 4,
+        },
+        defaults,
+      );
+      const seeded =
+        actual.useGenerationSetupStore.getState().setupByScope[scope];
+      if (!seeded?.presetId) {
+        throw new Error('Expected the image scope to keep its preset');
+      }
+      const expectedSetup: GenerationSetup = {
+        presetId: seeded.presetId,
+        sources: { ...seeded.sources },
+        values: { ...seeded.values },
+      };
+      expect(expectedSetup).toMatchObject({
+        presetId: 'preset-image',
+        values: {
+          aspectRatio: '16:9',
+          modelKey: 'studio/preset-model',
+          outputs: 4,
+          type: 'image',
+        },
+      });
+      storeMocks.setupByScope = { [scope]: expectedSetup };
+      storeMocks.setField.mockImplementation(
+        (
+          fieldScope: string,
+          key: GenerationSetupFieldKey,
+          value: GenerationSetupValues[GenerationSetupFieldKey],
+          fieldDefaults: GenerationSetupValues,
+        ) => {
+          if (key !== 'type' || !isStudioGenerateType(value)) {
+            return;
+          }
+          actual.setGenerationSetupField(
+            fieldScope,
+            'type',
+            value,
+            fieldDefaults,
+          );
+          storeMocks.setupByScope = {
+            ...actual.useGenerationSetupStore.getState().setupByScope,
+          };
+        },
+      );
+
+      const onTypeChange = vi.fn();
+      const view = render(
+        <StudioGenerateComposer
+          {...baseProps}
+          onTypeChange={onTypeChange}
+          prompt="A product photo"
+          settings={settings}
+          type="image"
+        />,
+      );
+      const props = generationSetupPopoverMocks.props as {
+        onSetField: GenerationSetupFieldSetter;
+        onTypeChange: (type: GenerationSetupValues['type']) => void;
+        setup: GenerationSetup;
+      };
+      expect(props.setup.presetId).toBe('preset-image');
+      expect(props.setup.values.aspectRatio).toBe('16:9');
+      expect(props.setup.values.modelKey).toBe('studio/preset-model');
+      expect(props.setup.values.outputs).toBe(4);
+
+      props.onSetField('type', 'video');
+      props.onTypeChange('video');
+      view.rerender(
+        <StudioGenerateComposer
+          {...baseProps}
+          onTypeChange={onTypeChange}
+          prompt="A product photo"
+          settings={settings}
+          type="image"
+        />,
+      );
+
+      const preserved =
+        actual.useGenerationSetupStore.getState().setupByScope[scope];
+      expect(preserved).toEqual(expectedSetup);
+      expect(preserved?.presetId).toBe('preset-image');
+      expect(preserved?.values).toEqual(expectedSetup.values);
+      expect(preserved?.values.type).toBe('image');
+      expect(preserved?.values.modelKey).toBe('studio/preset-model');
+      expect(preserved?.values.aspectRatio).toBe('16:9');
+      expect(preserved?.values.outputs).toBe(4);
+      const outgoing = generationSetupPopoverMocks.props as {
+        setup: GenerationSetup;
+      };
+      expect(outgoing.setup.presetId).toBe('preset-image');
+      expect(outgoing.setup.values.modelKey).toBe('studio/preset-model');
+      expect(outgoing.setup.values.aspectRatio).toBe('16:9');
+      expect(outgoing.setup.values.outputs).toBe(4);
+      expect(outgoing.setup.values.type).toBe('image');
+      expect(onTypeChange).toHaveBeenCalledOnce();
+      expect(onTypeChange).toHaveBeenCalledWith('video');
+    } finally {
+      storeMocks.setField.mockReset();
+      actual.useGenerationSetupStore.setState({
+        reasonsByScope: {},
+        setupByScope: {},
+      });
+      window.localStorage.removeItem(actual.GENERATION_SETUP_STORAGE_KEY);
+    }
   });
 
   it('shows the Identity chip only for identity-capable types', () => {
@@ -651,7 +843,10 @@ describe('StudioGenerateComposer', () => {
     const { rerender } = render(<StudioGenerateComposer {...props} />);
 
     expect(screen.getByText('Start Frame required')).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
 
     rerender(
       <StudioGenerateComposer
@@ -701,7 +896,10 @@ describe('StudioGenerateComposer', () => {
     expect(
       screen.getByText('Seedance uses frames or a video reference, not both'),
     ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
   });
 
   it('updates the pre-send credit quote for the selected resolution', () => {
@@ -740,7 +938,7 @@ describe('StudioGenerateComposer', () => {
       />,
     );
 
-    expect(screen.getByText('Estimated 50 credits')).toBeVisible();
+    expect(screen.getByText('~50')).toBeVisible();
 
     rerender(
       <StudioGenerateComposer
@@ -754,7 +952,7 @@ describe('StudioGenerateComposer', () => {
       />,
     );
 
-    expect(screen.getByText('Estimated 125 credits')).toBeVisible();
+    expect(screen.getByText('~125')).toBeVisible();
     expect(estimateMocks.resolve).toHaveBeenLastCalledWith(
       expect.objectContaining({
         category: 'video',
@@ -792,6 +990,27 @@ describe('StudioGenerateComposer', () => {
         />,
       );
 
+      const promptTools = within(
+        screen.getByRole('group', { name: 'Prompt tools' }),
+      );
+      const generationControls = within(
+        screen.getByRole('group', { name: 'Generation controls' }),
+      );
+      expect(
+        promptTools.getByRole('button', { name: 'Enhance prompt' }),
+      ).not.toHaveTextContent('Enhance prompt');
+      expect(
+        generationControls.queryByRole('button', { name: 'Enhance prompt' }),
+      ).not.toBeInTheDocument();
+      expect(
+        generationControls.getByRole('button', { name: 'Setup' }),
+      ).toBeInTheDocument();
+      expect(generationSetupPopoverMocks.props.showEnhancementSettings).toBe(
+        true,
+      );
+      expect(
+        screen.queryByRole('button', { name: 'Prompt enhancement settings' }),
+      ).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Enhance prompt' }));
 
       expect(onEnhancePrompt).toHaveBeenCalledOnce();
@@ -885,21 +1104,18 @@ describe('StudioGenerateComposer', () => {
     };
     const { rerender } = render(<StudioGenerateComposer {...props} />);
     expect(
-      screen.getByText('Estimate available after model selection'),
+      screen.getByLabelText('Estimate available after model selection'),
     ).toBeVisible();
-    expect(screen.getByRole('link', { name: '120 available' })).toHaveAttribute(
-      'href',
-      '/test-org/settings/credits',
-    );
-    expect(screen.getByText('Auto · 1:1 · 1K · 1 output')).toBeVisible();
+    expect(screen.getByLabelText('120 available')).toBeVisible();
+    expect(screen.getByText('Auto · 1:1 · 1K · x1')).toBeVisible();
     Object.assign(walletMocks, {
       balance: null,
       isLoaded: false,
       isLoading: true,
     });
     rerender(<StudioGenerateComposer {...props} isLoadingModels />);
-    expect(screen.getByText('Loading estimate…')).toBeVisible();
-    expect(screen.getByText('Loading balance…')).toBeVisible();
+    expect(screen.getByLabelText('Loading estimate…')).toBeVisible();
+    expect(screen.getByLabelText('Loading balance…')).toBeVisible();
     Object.assign(walletMocks, {
       balance: null,
       isLoaded: true,
@@ -912,22 +1128,24 @@ describe('StudioGenerateComposer', () => {
       />,
     );
     expect(
-      screen.getByText('This model is not available for your workspace.'),
+      screen.getByLabelText('This model is not available for your workspace.'),
     ).toBeVisible();
-    expect(screen.getByText('Balance unavailable')).toBeVisible();
+    expect(screen.getByLabelText('Balance unavailable')).toBeVisible();
     walletMocks.balance = 0;
     rerender(<StudioGenerateComposer {...props} />);
-    expect(screen.getByText('0 available')).toBeVisible();
+    expect(screen.getByLabelText('0 available')).toBeVisible();
     walletMocks.balance = Number.NaN;
     rerender(<StudioGenerateComposer {...props} />);
-    expect(screen.getByText('Balance unavailable')).toBeVisible();
+    expect(screen.getByLabelText('Balance unavailable')).toBeVisible();
     walletMocks.showCredits = false;
     rerender(<StudioGenerateComposer {...props} />);
     expect(
-      screen.queryByText('Estimate available after model selection'),
+      screen.queryByLabelText('Estimate available after model selection'),
     ).not.toBeInTheDocument();
-    expect(screen.queryByText('Balance unavailable')).not.toBeInTheDocument();
-    expect(screen.getByText('Auto · 1:1 · 1K · 1 output')).toBeVisible();
+    expect(
+      screen.queryByLabelText('Balance unavailable'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Auto · 1:1 · 1K · x1')).toBeVisible();
   });
 
   it('updates image count, setup and total, and blocks Generate when admission would refuse the price', () => {
@@ -958,7 +1176,7 @@ describe('StudioGenerateComposer', () => {
         settings={{ ...settings, modelKey: model.key }}
       />,
     );
-    expect(screen.getByText('Estimated 8 credits')).toBeVisible();
+    expect(screen.getByText('~8')).toBeVisible();
     rerender(
       <StudioGenerateComposer
         {...props}
@@ -971,8 +1189,8 @@ describe('StudioGenerateComposer', () => {
         }}
       />,
     );
-    expect(screen.getByText('Estimated 24 credits')).toBeVisible();
-    expect(screen.getByText('Imagen 4 · 9:16 · 2K · 3 outputs')).toBeVisible();
+    expect(screen.getByText('~24')).toBeVisible();
+    expect(screen.getByText('Imagen 4 · 9:16 · 2K · x3')).toBeVisible();
     estimateMocks.resolve.mockReturnValue({
       credits: null,
       status: 'unavailable',
@@ -985,9 +1203,12 @@ describe('StudioGenerateComposer', () => {
       />,
     );
     expect(
-      screen.getByText('This model has no confirmed price yet.'),
+      screen.getByLabelText('This model has no confirmed price yet.'),
     ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
     expect(baseProps.onSubmit).not.toHaveBeenCalled();
   });
 
@@ -1023,8 +1244,14 @@ describe('StudioGenerateComposer', () => {
         />,
       );
       const button = screen.getByRole('button', { name: 'Generate' });
-      if (isBlocked) expect(button).toBeDisabled();
-      else expect(button).toBeEnabled();
+      if (isBlocked) {
+        expect(button).toHaveAttribute('aria-disabled', 'true');
+        fireEvent.click(button);
+        expect(baseProps.onSubmit).not.toHaveBeenCalled();
+      } else {
+        expect(button).not.toHaveAttribute('aria-disabled');
+        expect(button).toBeEnabled();
+      }
     },
   );
 
@@ -1042,9 +1269,12 @@ describe('StudioGenerateComposer', () => {
       />,
     );
     expect(
-      screen.getByText('This model is not available for your workspace.'),
+      screen.getByLabelText('This model is not available for your workspace.'),
     ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
   });
 
   it('never blocks Generate while the estimate is loading', () => {
@@ -1130,10 +1360,10 @@ describe('StudioGenerateComposer', () => {
         />,
       );
       expect(
-        screen.getByText('Estimate available after model selection'),
+        screen.getByLabelText('Estimate available after model selection'),
       ).toBeVisible();
       expect(estimateMocks.resolve).not.toHaveBeenCalled();
-      expect(screen.getByText('Ideogram 4.5 · 3 outputs')).toBeVisible();
+      expect(screen.getByText('Auto (Ideogram 4.5) · x3')).toBeVisible();
     });
     it('blocks submission without a source and never offers prompt enhancement', () => {
       render(
@@ -1146,7 +1376,10 @@ describe('StudioGenerateComposer', () => {
           onEnhancePrompt={vi.fn()}
         />,
       );
-      expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Generate' })).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
       expect(
         screen.getByText('Choose a source image to edit.'),
       ).toBeInTheDocument();
@@ -1253,7 +1486,7 @@ describe('FLUX.3 composer controls', () => {
       screen.queryByLabelText('Editing output size'),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Mask (optional)')).not.toBeInTheDocument();
-    expect(screen.getByText('Estimated 12 credits')).toBeVisible();
+    expect(screen.getByText('~12')).toBeVisible();
     expect(
       screen.getByRole('combobox', { name: 'Image editing target' }),
     ).toBeVisible();
@@ -1450,7 +1683,7 @@ describe('complete reviewed Studio video scalar composition', () => {
         screen.getAllByRole('combobox', { name: 'Aspect ratio' }),
       ).toHaveLength(1);
       expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
-      expect(screen.getByText('11 credits', { exact: true })).toBeVisible();
+      expect(screen.getByText('~11', { exact: true })).toBeVisible();
       if (kling) {
         expect(
           screen.getByRole('spinbutton', { name: 'Guidance' }),

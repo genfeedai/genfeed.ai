@@ -87,7 +87,9 @@ export default function PromptBarReferenceControls({
           <Button
             ariaLabel={label ?? translate('addContext')}
             className={cn('shrink-0', label ? 'h-8 gap-1.5 px-2' : controlSize)}
-            icon={<Plus className="size-4" />}
+            icon={
+              <Plus className={density === 'compact' ? 'size-3.5' : 'size-4'} />
+            }
             isDisabled={isMenuDisabled}
             size={label ? ButtonSize.SM : ButtonSize.ICON}
             tooltip={label ?? translate('addContext')}
@@ -97,7 +99,16 @@ export default function PromptBarReferenceControls({
             {label}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56" side="top">
+        <DropdownMenuContent
+          align="start"
+          avoidCollisions={false}
+          className={cn(
+            'w-56',
+            'max-h-[min(560px,var(--radix-dropdown-menu-content-available-height,70vh))]',
+            'overflow-y-auto overscroll-contain',
+          )}
+          side="top"
+        >
           <DropdownMenuLabel>
             {label ?? translate('addContext')}
           </DropdownMenuLabel>

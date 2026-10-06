@@ -20,6 +20,30 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+const harnessMocks = vi.hoisted(() => ({
+  save: vi.fn().mockResolvedValue(undefined),
+  reads: vi.fn(),
+}));
+vi.mock('@hooks/data/generation/use-generation-harness-settings', () => ({
+  useGenerationHarnessSettings: () => {
+    harnessMocks.reads();
+    return {
+      settings: {
+        organizationEnabled: true,
+        brandEnabled: null,
+        brandId: 'brand-1',
+        isEnabled: true,
+        source: 'organization',
+      },
+      brandId: 'brand-1',
+      error: null,
+      isLoading: false,
+      isSaving: false,
+      save: harnessMocks.save,
+      refresh: vi.fn(),
+    };
+  },
+}));
 vi.mock('@ui/primitives/popover', async () => {
   const React = await import('react');
 
@@ -124,13 +148,17 @@ vi.mock('@ui/primitives/command', async () => {
       onSelect,
       onPointerDown,
       value,
+      ...props
     }: {
       children: React.ReactNode;
       onSelect?: (value: string) => void;
       onPointerDown?: React.PointerEventHandler<HTMLButtonElement>;
       value?: string;
+      'aria-label'?: string;
+      disabled?: boolean;
     }) => (
       <button
+        {...props}
         onClick={() => onSelect?.(value ?? '')}
         onPointerDown={onPointerDown}
         type="button"
@@ -156,6 +184,8 @@ vi.mock('@ui/primitives/select', async () => {
       children: React.ReactNode;
       onValueChange?: (value: string) => void;
       value?: string;
+      'aria-label'?: string;
+      disabled?: boolean;
     }) => (
       <div data-value={value}>
         {React.Children.map(children, (child) =>
@@ -320,29 +350,31 @@ function createSetup(
 function renderPopover(
   overrides: Partial<React.ComponentProps<typeof GenerationSetupPopover>> = {},
 ) {
-  return render(
-    <GenerationSetupPopover
-      capabilities={capabilities}
-      favoriteModelKeys={[]}
-      lookOptions={{}}
-      models={[
-        createModel({ key: 'google/nano-banana', label: 'Nano Banana' }),
-      ]}
-      onApplyPreset={vi.fn()}
-      onClearPreset={vi.fn()}
-      onFavoriteToggle={vi.fn()}
-      onResetAll={vi.fn()}
-      onResetField={vi.fn()}
-      onSavePreset={vi.fn()}
-      onSetField={vi.fn()}
-      presets={[]}
-      reasons={{}}
-      scopeKey="scope-1"
-      setup={createSetup()}
-      typeOptions={typeOptions}
-      {...overrides}
-    />,
-  );
+  return render(<GenerationSetupPopover {...popoverProps(overrides)} />);
+}
+
+function popoverProps(
+  overrides: Partial<React.ComponentProps<typeof GenerationSetupPopover>> = {},
+): React.ComponentProps<typeof GenerationSetupPopover> {
+  return {
+    capabilities,
+    favoriteModelKeys: [],
+    lookOptions: {},
+    models: [createModel({ key: 'google/nano-banana', label: 'Nano Banana' })],
+    onApplyPreset: vi.fn(),
+    onClearPreset: vi.fn(),
+    onFavoriteToggle: vi.fn(),
+    onResetAll: vi.fn(),
+    onResetField: vi.fn(),
+    onSavePreset: vi.fn(),
+    onSetField: vi.fn(),
+    presets: [],
+    reasons: {},
+    scopeKey: 'scope-1',
+    setup: createSetup(),
+    typeOptions,
+    ...overrides,
+  };
 }
 
 async function openPopover(user: ReturnType<typeof userEvent.setup>) {
@@ -350,118 +382,163 @@ async function openPopover(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('GenerationSetupPopover', () => {
-  it('opens on the front door with the agent-pick summary and a search entry', async () => {
+  it('opens enhancement preferences inside the same picker and preserves organization and brand writes', async () => {
     const user = userEvent.setup();
-    renderPopover();
-
+    harnessMocks.reads.mockClear();
+    harnessMocks.save.mockClear();
+    renderPopover({ showEnhancementSettings: true });
     await openPopover(user);
-
-    expect(screen.getByTestId('generation-setup-popover')).toBeVisible();
-    expect(screen.getByText('Agent pick')).toBeInTheDocument();
-    // The agent owns the type here, so the row reads Auto rather than echoing
-    // the Agent pick header, and no model or output rows are offered.
-    expect(screen.getByText('Auto')).toBeInTheDocument();
+    expect(harnessMocks.reads).not.toHaveBeenCalled();
+    await user.click(
+      screen.getByRole('button', { name: 'Configure Prompt enhancement' }),
+    );
+    await user.click(
+      screen.getByRole('switch', { name: 'Organization prompt enhancement' }),
+    );
+    expect(harnessMocks.save).toHaveBeenCalledWith('organization', false);
+    await user.click(screen.getByRole('button', { name: 'Off' }));
+    expect(harnessMocks.save).toHaveBeenCalledWith('brand', false);
+    await user.click(screen.getByRole('button', { name: 'Back to setup' }));
     expect(
-      screen.queryByRole('button', { name: 'Edit Aspect ratio' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Search setup fields' }),
+      screen.getByRole('button', { name: 'Configure Model' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('No saved presets yet.')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Save as preset…')).toBeInTheDocument();
-    expect(
-      screen
-        .getByRole('img', { name: 'Type: Set by the agent' })
-        .querySelector('svg'),
-    ).not.toBeNull();
   });
 
-  it('keeps customization open when an Auto routing priority is selected', async () => {
+  it('starts with the type and sibling config categories without help or global search', async () => {
+    const user = userEvent.setup();
+    renderPopover({
+      lookOptions: { style: [{ key: 'cinema', label: 'Cinema' }] },
+    });
+    await openPopover(user);
+    expect(
+      screen.getByRole('button', { name: 'Configure Type' }),
+    ).toBeInTheDocument();
+    for (const category of ['Model', 'Output', 'Look', 'Brand', 'Presets']) {
+      expect(
+        screen.getByRole('button', { name: `Configure ${category}` }),
+      ).toBeInTheDocument();
+    }
+    expect(screen.queryByText('Agent pick')).not.toBeInTheDocument();
+    expect(screen.queryByText('No saved presets yet.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText('Save as preset…'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Search setup fields' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('commits generation type before entering a config list', async () => {
+    const user = userEvent.setup();
+    const onSetField = vi.fn();
+    const onTypeChange = vi.fn();
+    renderPopover({
+      onSetField,
+      onTypeChange,
+      typeOptions: [...typeOptions, { label: 'Video', value: 'video' }],
+    });
+    await openPopover(user);
+    await user.click(screen.getByRole('button', { name: 'Configure Type' }));
+    await user.click(screen.getByRole('button', { name: 'Video' }));
+    expect(onSetField).toHaveBeenCalledWith('type', 'video');
+    expect(onTypeChange).toHaveBeenCalledWith('video');
+    expect(
+      screen.queryByPlaceholderText('Search models…'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('returns to setup without changing the active type or clearing its preset', async () => {
+    const user = userEvent.setup();
+    const onSetField = vi.fn();
+    const onTypeChange = vi.fn();
+    renderPopover({
+      onSetField,
+      onTypeChange,
+      setup: createSetup({ presetId: 'preset-1' }),
+      typeOptions: [...typeOptions, { label: 'Video', value: 'video' }],
+    });
+    await openPopover(user);
+    await user.click(screen.getByRole('button', { name: 'Configure Type' }));
+    await user.click(screen.getByRole('button', { name: 'Image' }));
+    expect(onSetField).not.toHaveBeenCalled();
+    expect(onTypeChange).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('button', { name: 'Configure Type' }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps model search and Auto priorities isolated from output, brand, and presets', async () => {
     const user = userEvent.setup();
     const onSetField = vi.fn();
     renderPopover({ onSetField });
-
     await openPopover(user);
-    await user.click(screen.getByRole('button', { name: 'Customize setup' }));
-
+    await user.click(screen.getByRole('button', { name: 'Configure Model' }));
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', { name: 'Aspect ratio' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Brand voice')).not.toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText('Save as preset…'),
+    ).not.toBeInTheDocument();
     fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Best Quality' }),
-      {
-        button: 0,
-      },
+      { button: 0 },
     );
-
     expect(onSetField).toHaveBeenNthCalledWith(1, 'modelKey', '');
     expect(onSetField).toHaveBeenNthCalledWith(
       2,
       'prioritize',
       RouterPriority.QUALITY,
     );
+    await user.type(screen.getByPlaceholderText('Search models…'), 'banana');
+    expect(screen.getByText('Nano Banana')).toBeInTheDocument();
+    expect(screen.queryByText('Best Quality')).not.toBeInTheDocument();
     expect(screen.getByTestId('generation-setup-popover')).toBeVisible();
-    expect(screen.getByRole('tab', { name: 'Model' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
   });
 
-  it('switches to the customize panel and resets every field on Reset all', async () => {
+  it('resets all from the category menu', async () => {
     const user = userEvent.setup();
     const onResetAll = vi.fn();
     renderPopover({ onResetAll });
-
     await openPopover(user);
-    await user.click(screen.getByRole('button', { name: 'Customize setup' }));
-
-    expect(screen.getByRole('tab', { name: 'Model' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Brand' })).toBeInTheDocument();
-
     await user.click(
       screen.getByRole('button', { name: 'Reset all fields to agent' }),
     );
-
     expect(onResetAll).toHaveBeenCalledOnce();
   });
 
-  // #4676: Brand voice cannot affect music, avatar, or voice generations —
-  // it must not appear anywhere in the popover for those output types.
-  it('hides Brand voice everywhere when the type has no brand enrichment', async () => {
+  it('hides unsupported config categories', async () => {
     const user = userEvent.setup();
     renderPopover({
       capabilities: { ...capabilities, hasBrandEnrichment: false },
     });
-
     await openPopover(user);
-
-    expect(screen.queryByText('Brand voice')).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Customize setup' }));
     expect(
-      screen.queryByRole('tab', { name: 'Brand' }),
+      screen.queryByRole('button', { name: 'Configure Brand' }),
     ).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Back to setup' }));
-    await user.click(
-      screen.getByRole('button', { name: 'Search setup fields' }),
-    );
-    expect(screen.queryByText('Brand voice')).not.toBeInTheDocument();
-    expect(screen.queryByText('Brand voice on')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Configure Look' }),
+    ).not.toBeInTheDocument();
   });
 
-  it('opens the nested section directly from a summary value', async () => {
+  it('opens Output independently and returns to the category menu', async () => {
     const user = userEvent.setup();
-    // Media rows only appear once the type is the user's own pick; an
-    // agent-owned type summarises to Auto and hides model and output fields.
-    renderPopover({ setup: createSetup({ sources: { type: 'user' } }) });
-
+    renderPopover();
     await openPopover(user);
-    await user.click(screen.getByRole('button', { name: 'Edit Aspect ratio' }));
-
-    expect(screen.getByRole('tab', { name: 'Output' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
+    await user.click(screen.getByRole('button', { name: 'Configure Output' }));
     expect(
       screen.getByRole('combobox', { name: 'Aspect ratio' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: 'Outputs' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText('Search models…'),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Back to setup' }));
+    expect(
+      screen.getByRole('button', { name: 'Configure Model' }),
     ).toBeInTheDocument();
   });
 
@@ -474,28 +551,162 @@ describe('GenerationSetupPopover', () => {
       presets: [preset],
       setup: createSetup({ presetId: 'preset-1' }),
     });
-
     await openPopover(user);
-
     expect(screen.getByText('Pinned: Studio Look')).toBeInTheDocument();
-
     await user.click(screen.getByRole('button', { name: 'Unpin preset' }));
-
     expect(onClearPreset).toHaveBeenCalledOnce();
   });
 
-  it('applies a preset from the front door and returns to the front door', async () => {
+  it('searches, saves, deletes, and applies presets only in Presets', async () => {
     const user = userEvent.setup();
     const onApplyPreset = vi.fn();
+    const onDeletePreset = vi.fn();
+    const onSavePreset = vi.fn();
     const preset = createPreset({ id: 'preset-1', label: 'Studio Look' });
-    renderPopover({ onApplyPreset, presets: [preset] });
-
+    renderPopover({
+      onApplyPreset,
+      onDeletePreset,
+      onSavePreset,
+      presets: [preset, createPreset({ id: 'preset-2', label: 'Night' })],
+    });
     await openPopover(user);
+    await user.click(screen.getByRole('button', { name: 'Configure Presets' }));
+    await user.type(screen.getByPlaceholderText('Search presets…'), 'studio');
+    expect(screen.queryByText('Night')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Delete preset Night' }),
+    ).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: 'Delete preset Studio Look' }),
+    );
+    expect(onDeletePreset).toHaveBeenCalledWith('preset-1');
+    expect(onApplyPreset).not.toHaveBeenCalled();
+    await user.type(screen.getByPlaceholderText('Save as preset…'), 'New look');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSavePreset).toHaveBeenCalledWith('New look');
     await user.click(
       screen.getByRole('button', { name: 'Apply preset Studio Look' }),
     );
-
     expect(onApplyPreset).toHaveBeenCalledWith(preset);
-    expect(screen.getByText('Agent pick')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Configure Presets' }),
+    ).toBeInTheDocument();
+  });
+
+  it('disables preset deletion while presets are loading and deletes once they load', async () => {
+    const user = userEvent.setup();
+    const onApplyPreset = vi.fn();
+    const onDeletePreset = vi.fn();
+    const preset = createPreset({ id: 'preset-1', label: 'Studio Look' });
+    const overrides = {
+      isPresetsLoading: true,
+      onApplyPreset,
+      onDeletePreset,
+      presets: [preset],
+    };
+    const view = renderPopover(overrides);
+    await openPopover(user);
+    await user.click(screen.getByRole('button', { name: 'Configure Presets' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Loading presets');
+    const deletePreset = screen.getByRole('button', {
+      name: 'Delete preset Studio Look',
+    });
+    expect(deletePreset).toBeDisabled();
+    await user.click(deletePreset);
+    expect(onDeletePreset).not.toHaveBeenCalled();
+    expect(onApplyPreset).not.toHaveBeenCalled();
+
+    view.rerender(
+      <GenerationSetupPopover
+        {...popoverProps({ ...overrides, isPresetsLoading: false })}
+      />,
+    );
+    const loadedDelete = screen.getByRole('button', {
+      name: 'Delete preset Studio Look',
+    });
+    expect(loadedDelete).toBeEnabled();
+    await user.click(loadedDelete);
+    expect(onDeletePreset).toHaveBeenCalledOnce();
+    expect(onDeletePreset).toHaveBeenCalledWith('preset-1');
+    expect(onApplyPreset).not.toHaveBeenCalled();
+  });
+
+  it('resets a customized Auto priority from the model list without resetting pinned fields', async () => {
+    const user = userEvent.setup();
+    const onClearPreset = vi.fn();
+    const onResetAll = vi.fn();
+    const onResetField = vi.fn();
+    const onSetField = vi.fn();
+    const preset = createPreset({ id: 'preset-1', label: 'Studio Look' });
+    const setup = createSetup({
+      presetId: preset.id,
+      sources: {
+        aspectRatio: 'preset',
+        modelKey: 'agent',
+        outputs: 'user',
+        prioritize: 'user',
+      },
+      values: {
+        aspectRatio: '16:9',
+        brandingMode: 'off',
+        isPromptEnhanceEnabled: false,
+        modelKey: 'google/nano-banana',
+        outputs: 4,
+        prioritize: RouterPriority.QUALITY,
+        type: 'image',
+      },
+    });
+    const view = renderPopover({
+      onClearPreset,
+      onResetAll,
+      onResetField,
+      onSetField,
+      presets: [preset],
+      setup,
+    });
+
+    await openPopover(user);
+    await user.click(screen.getByRole('button', { name: 'Configure Model' }));
+    expect(screen.getByPlaceholderText('Search models…')).toBeInTheDocument();
+    expect(screen.getByText('Pinned: Studio Look')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Reset model to agent' }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Reset priority to agent' }),
+    );
+
+    expect(onResetField).toHaveBeenCalledTimes(1);
+    expect(onResetField).toHaveBeenCalledWith('prioritize');
+    expect(onResetField).not.toHaveBeenCalledWith('modelKey');
+    expect(onResetField).not.toHaveBeenCalledWith('aspectRatio');
+    expect(onResetField).not.toHaveBeenCalledWith('outputs');
+    expect(onResetAll).not.toHaveBeenCalled();
+    expect(onSetField).not.toHaveBeenCalled();
+    expect(onClearPreset).not.toHaveBeenCalled();
+
+    view.rerender(
+      <GenerationSetupPopover
+        {...popoverProps({
+          onClearPreset,
+          onResetAll,
+          onResetField,
+          onSetField,
+          presets: [preset],
+          setup: createSetup({
+            presetId: setup.presetId,
+            sources: { ...setup.sources, prioritize: 'agent' },
+            values: setup.values,
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.getByPlaceholderText('Search models…')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Reset priority to agent' }),
+    ).not.toBeInTheDocument();
+    expect(onResetField).toHaveBeenCalledTimes(1);
   });
 });
