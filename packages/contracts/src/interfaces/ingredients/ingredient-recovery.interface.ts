@@ -9,6 +9,7 @@ export interface IngredientRecovery {
     | 'requestRejected'
     | 'missingPrompt'
     | 'unsupportedRecovery'
+    | 'referenceRolesUnavailable'
     | 'unknown';
   action:
     | 'retry'

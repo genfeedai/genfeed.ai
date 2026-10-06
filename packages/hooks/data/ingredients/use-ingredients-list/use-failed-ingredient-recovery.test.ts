@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   success: vi.fn(),
   error: vi.fn(),
   warning: vi.fn(),
+  findOne: vi.fn(),
 }));
 vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.provider',
@@ -31,10 +32,14 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     factory('token'),
 }));
 vi.mock('@genfeedai/services/ingredients/images.service', () => ({
-  ImagesService: { getInstance: () => ({ post: mocks.imagePost }) },
+  ImagesService: {
+    getInstance: () => ({ post: mocks.imagePost, findOne: mocks.findOne }),
+  },
 }));
 vi.mock('@genfeedai/services/ingredients/videos.service', () => ({
-  VideosService: { getInstance: () => ({ post: mocks.videoPost }) },
+  VideosService: {
+    getInstance: () => ({ post: mocks.videoPost, findOne: mocks.findOne }),
+  },
 }));
 vi.mock('@genfeedai/services/content/agent-studio-handoff.service', () => ({
   AgentStudioHandoffService: { getInstance: () => ({ create: mocks.create }) },
@@ -56,6 +61,7 @@ vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 function asset(id: string, extra: Partial<IIngredient> = {}): IIngredient {
   return {
     id,
+    brandId: 'brand',
     category: IngredientCategory.IMAGE,
     status: IngredientStatus.FAILED,
     generationPrompt: 'Saved prompt',
@@ -69,6 +75,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.imagePost.mockResolvedValue({ id: 'new-generation' });
   mocks.create.mockResolvedValue({ id: 'handoff-1' });
+  mocks.findOne.mockImplementation(async (id: string) =>
+    props.ingredients.find((item) => item.id === id),
+  );
   mocks.bulkDelete.mockImplementation(async ({ ids }: { ids: string[] }) => ({
     deleted: ids,
     failed: [],
@@ -172,6 +181,9 @@ describe('Failed Library recovery operations', () => {
     expect(mocks.confirm).toHaveBeenCalledTimes(1);
   });
   it('opens editable inputs in Studio through a scoped handoff without generating', async () => {
+    props.ingredients = [
+      asset('a', { sources: ['ref'], width: 1024, height: 1024 }),
+    ];
     const { result } = renderHook(() => useFailedIngredientRecovery(props));
     await act(async () =>
       result.current.handleReviewFailedIngredient(
@@ -205,6 +217,7 @@ describe('Failed Library recovery operations', () => {
       duration: 8,
       resolution: '1080p',
     };
+    props.ingredients = [video];
     await act(async () => result.current.handleReviewFailedIngredient(video));
     expect(mocks.create).toHaveBeenCalledWith(
       expect.objectContaining({

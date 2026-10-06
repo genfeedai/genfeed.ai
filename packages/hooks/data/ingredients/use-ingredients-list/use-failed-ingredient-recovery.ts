@@ -193,9 +193,23 @@ export function useFailedIngredientRecovery({
           let started = 0;
           try {
             // Sequential submission avoids flooding an already struggling provider.
-            for (const ingredient of snapshot) {
+            for (const request of snapshot) {
               if (currentScopeRef.current !== snapshotScope) break;
               try {
+                const service =
+                  request.category === IngredientCategory.IMAGE
+                    ? await getImages()
+                    : await getVideos();
+                const ingredient = await service.findOne(request.id, {
+                  brandId,
+                });
+                if (
+                  !ingredient ||
+                  ingredient.brandId !== brandId ||
+                  getIngredientRecovery(ingredient).group !== 'retry' ||
+                  currentScopeRef.current !== snapshotScope
+                )
+                  continue;
                 const saved: IVideo = ingredient;
                 const payload: Partial<IImage & IVideo> = {
                   brandId: ingredient.brandId || brandId || undefined,
@@ -225,10 +239,6 @@ export function useFailedIngredientRecovery({
                     ingredient.text?.trim(),
                   width: ingredient.width,
                 };
-                const service =
-                  ingredient.category === IngredientCategory.IMAGE
-                    ? await getImages()
-                    : await getVideos();
                 await service.post(payload);
                 started += 1;
                 setRetriedIds((current) => [...current, ingredient.id]);
@@ -266,17 +276,12 @@ export function useFailedIngredientRecovery({
   );
 
   const handleReviewFailedIngredient = useCallback(
-    async (ingredient: IIngredient) => {
-      const prompt =
-        getIngredientPromptText(ingredient) || ingredient.text?.trim();
-      const modelKey = getIngredientModelLabel(ingredient);
+    async (request: IIngredient) => {
       if (
         !brandId ||
-        (ingredient.brandId && ingredient.brandId !== brandId) ||
-        !prompt ||
-        !modelKey ||
-        (ingredient.category !== IngredientCategory.IMAGE &&
-          ingredient.category !== IngredientCategory.VIDEO)
+        (request.brandId && request.brandId !== brandId) ||
+        (request.category !== IngredientCategory.IMAGE &&
+          request.category !== IngredientCategory.VIDEO)
       ) {
         notifications.warning(t('reviewUnavailable'));
         return;
@@ -284,6 +289,27 @@ export function useFailedIngredientRecovery({
       const snapshotScope = scopeKey;
       if (!begin(snapshotScope)) return;
       try {
+        const mediaService =
+          request.category === IngredientCategory.IMAGE
+            ? await getImages()
+            : await getVideos();
+        const ingredient = await mediaService.findOne(request.id, { brandId });
+        const prompt =
+          ingredient &&
+          (getIngredientPromptText(ingredient) || ingredient.text?.trim());
+        const modelKey = ingredient && getIngredientModelLabel(ingredient);
+        if (
+          !ingredient ||
+          ingredient.status !== IngredientStatus.FAILED ||
+          ingredient.brandId !== brandId ||
+          !prompt ||
+          !modelKey ||
+          getIngredientRecovery(ingredient).reason ===
+            'referenceRolesUnavailable'
+        ) {
+          notifications.warning(t('reviewUnavailable'));
+          return;
+        }
         const saved: IVideo = ingredient;
         const payload: AgentStudioHandoffPayload = {
           brandId,
@@ -327,6 +353,8 @@ export function useFailedIngredientRecovery({
       brandId,
       finish,
       getHandoff,
+      getImages,
+      getVideos,
       href,
       notifications,
       router,

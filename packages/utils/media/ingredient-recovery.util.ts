@@ -10,6 +10,23 @@ export function getIngredientRecovery(
     ingredient.status === IngredientStatus.FAILED
       ? (ingredient.generationError?.toLowerCase() ?? '')
       : '';
+  // Historical video rows flatten start/end frames and video references into
+  // sourceIds. Their roles cannot be reconstructed reliably from order.
+  if (
+    ingredient.category === IngredientCategory.VIDEO &&
+    new Set(
+      [...(ingredient.sources ?? []), ...(ingredient.references ?? [])].map(
+        (reference) =>
+          typeof reference === 'string' ? reference : reference.id,
+      ),
+    ).size > 0
+  ) {
+    return {
+      action: 'viewDetails',
+      group: 'attention',
+      reason: 'referenceRolesUnavailable',
+    };
+  }
   if (
     /reference.*(missing|not found|unavailable|expired)|(?:missing|expired).*reference/.test(
       reason,

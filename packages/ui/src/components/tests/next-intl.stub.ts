@@ -434,6 +434,7 @@ const UI_TEST_MESSAGES = {
           requestRejected: 'Request rejected',
           missingPrompt: 'Saved prompt unavailable',
           unsupportedRecovery: 'Recovery needs review',
+          referenceRolesUnavailable: 'Saved reference roles need review',
           unknown: 'Failure reason unavailable',
         },
         untitled: 'Untitled asset',

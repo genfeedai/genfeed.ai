@@ -63,4 +63,18 @@ describe('Failed Library recovery classification', () => {
         .action,
     ).toBe('replaceReference');
   });
+  it('requires explicit review when historical video reference roles were not recorded', () => {
+    expect(
+      getIngredientRecovery(
+        failed('503', {
+          category: IngredientCategory.VIDEO,
+          sources: ['start', 'end', 'clip'],
+        }),
+      ),
+    ).toEqual({
+      action: 'viewDetails',
+      group: 'attention',
+      reason: 'referenceRolesUnavailable',
+    });
+  });
 });
