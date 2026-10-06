@@ -58,13 +58,13 @@ export default function HomeHero(): React.ReactElement {
               trackingData={{ action: 'start_signup' }}
               trackingName="home_hero_click"
             >
-              <a href={`${EnvironmentService.apps.app}/sign-up/magic-link`}>
+              <a href={`${EnvironmentService.apps.app}/sign-up`}>
                 Start for $0
               </a>
             </ButtonTracked>
           </div>
           <Text as="p" className="mt-5 text-center text-sm text-surface/72">
-            Create your free account with your email. No card required.
+            Create your free account with Google or email. No card required.
           </Text>
         </div>
       </div>
