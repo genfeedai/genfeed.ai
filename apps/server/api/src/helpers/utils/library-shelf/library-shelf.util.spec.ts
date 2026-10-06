@@ -174,6 +174,24 @@ describe('LibraryShelfUtil', () => {
         LibraryShelfUtil.buildStatusFilter(),
       );
     });
+
+    it('includes failed, rejected, and archived rows in Trash', () => {
+      expect(
+        LibraryShelfUtil.buildStatusFilter(undefined, undefined, true),
+      ).toEqual({});
+    });
+
+    it('still honours an explicit status list in Trash', () => {
+      expect(
+        LibraryShelfUtil.buildStatusFilter(
+          [IngredientStatus.FAILED],
+          undefined,
+          true,
+        ),
+      ).toEqual({
+        status: { in: [IngredientStatus.FAILED] },
+      });
+    });
   });
 
   describe('buildPlaceFilter', () => {

@@ -43,10 +43,11 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     },
     // #5763: superadmin generation review is a read-only cross-tenant ledger
     // of original/enhanced/compiled prompts plus result images. Library
-    // findAll, delete, and merge stay organization-scoped.
+    // findAll, delete, and merge stay organization-scoped. The call moved
+    // down when the library list filter gained the trash flag (#6391).
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 311,
+      line: 315,
     },
     // #5981: readPublicSources discovers only non-deleted ingredients that are
     // public (isPublic, scope PUBLIC, or on a visibility PUBLIC post) and keeps

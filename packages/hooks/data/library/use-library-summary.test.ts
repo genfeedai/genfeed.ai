@@ -3,6 +3,7 @@ import {
   clearRequestOrganizationId,
   setRequestOrganizationId,
 } from '@genfeedai/services/core/interceptor.service';
+import { dispatchLibraryAssetsRefresh } from '@hooks/data/library/library-assets-refresh';
 import { renderHook, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -210,6 +211,24 @@ describe('useLibrarySummary', () => {
 
     await act(async () => {
       result.current.refresh();
+    });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('reloads counts when the list sender already fetched the grid', async () => {
+    fetchMock.mockResolvedValue(createFetchResponse(true, SUMMARY_PAYLOAD));
+
+    renderHook(() => useLibrarySummary());
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      dispatchLibraryAssetsRefresh({ isListRefresh: false });
     });
 
     await waitFor(() => {

@@ -30,6 +30,7 @@ import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { dispatchLibraryAssetsRefresh } from '@hooks/data/library/library-assets-refresh';
 import type { VideoUpscaleSelection } from '@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
 import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
@@ -39,6 +40,10 @@ import VideoUpscaleConfirmControls, {
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { createElement, useCallback, useEffect, useRef, useState } from 'react';
+
+function broadcastLibraryAssetsChanged(): void {
+  dispatchLibraryAssetsRefresh({ isListRefresh: false });
+}
 
 interface UseIngredientsActionsProps {
   type: string;
@@ -131,6 +136,7 @@ export function useIngredientsActions({
         logger.info(`${url} success`);
         notificationsService.success('Ingredient deleted successfully');
         findAllIngredientsByCategory(true);
+        broadcastLibraryAssetsChanged();
       } catch (error) {
         logger.error(`${url} failed`, error);
         notificationsService.error('Failed to delete ingredient');
@@ -352,6 +358,7 @@ export function useIngredientsActions({
 
         setSelectedIngredientIds([]);
         findAllIngredientsByCategory(true);
+        broadcastLibraryAssetsChanged();
       }
 
       if (data.failed && data.failed.length > 0) {
@@ -685,6 +692,7 @@ export function useIngredientsActions({
   const handleRefresh = useCallback(
     async (isRefreshing?: boolean) => {
       await findAllIngredientsByCategory(Boolean(isRefreshing));
+      broadcastLibraryAssetsChanged();
     },
     [findAllIngredientsByCategory],
   );
