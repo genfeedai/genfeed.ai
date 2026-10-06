@@ -624,12 +624,14 @@ describe('Replicate derived billing refresh', () => {
     const create = first.modelProviderContract.upsert.mock.calls[0]?.[0].create;
     const approved = { ...create, id: 'approved', reviewStatus: 'approved' };
     const next = harness(approved);
+    const latestVersion = provider.latest_version;
+    if (!latestVersion) throw new Error('Missing provider version fixture');
     const b = await next.service.synchronizeModel(
       { ...row, reviewedProviderContractVersion: a.version },
       {
         ...provider,
         latest_version: {
-          ...provider.latest_version,
+          ...latestVersion,
           openapi_schema: validOpenapi({
             ...properties,
             quality: { ...properties.quality, default: 'medium' },

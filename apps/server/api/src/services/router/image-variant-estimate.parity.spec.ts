@@ -74,7 +74,6 @@ describe('image variant estimate / quote / admission parity', () => {
         verifiedAt: '2026-10-05T00:00:00Z',
         rates: mapping.rates,
         variantRules: mapping.variantRules,
-        invariantSelectors: mapping.invariantSelectors,
       },
     };
   }
@@ -169,7 +168,6 @@ describe('image variant estimate / quote / admission parity', () => {
           verifiedAt: '2026-10-05T00:00:00Z',
           rates: mapping.rates,
           variantRules: mapping.variantRules,
-          invariantSelectors: mapping.invariantSelectors,
         },
       };
       const dto = {
