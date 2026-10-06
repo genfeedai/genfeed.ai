@@ -418,6 +418,81 @@ describe('Brand OS revision settings', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows the saved value for a rejected compact field and persists include as accept', async () => {
+    const content = draft();
+    const description = content.fields.description;
+    if (!description) throw new Error('Missing description fixture');
+    content.fields.description = {
+      ...description,
+      applyActionDefault: 'reject',
+      currentValue: 'Saved description',
+      proposedValue: 'Proposed description',
+    };
+    mocks.listBrandOsRevisions.mockResolvedValue([revision({ content })]);
+    mocks.updateBrandOsRevision.mockImplementation(
+      async (
+        _brandId: string,
+        _id: string,
+        body: { content: IBrandKitDraft },
+      ) =>
+        revision({
+          content: body.content,
+          updatedAt: '2026-09-14T11:00:00.000Z',
+        }),
+    );
+    render(
+      <BrandOsSettingsCard
+        brandId="brand-1"
+        fieldGroups={['profile']}
+        onRefreshBrand={mocks.refresh}
+        onRevisionSaved={mocks.saved}
+        renderWorkspace={(workspace) => (
+          <>
+            {workspace.editor}
+            <Button
+              label="Save draft"
+              onClick={workspace.onSave}
+              isDisabled={workspace.isSaveDisabled}
+            />
+          </>
+        )}
+      />,
+    );
+    expect(await screen.findByLabelText('Description')).toHaveValue(
+      'Saved description',
+    );
+    expect(
+      screen.queryByDisplayValue('Proposed description'),
+    ).not.toBeInTheDocument();
+    const include = screen.getByRole('checkbox', {
+      name: 'Include Description in approval',
+    });
+    expect(include).not.toBeChecked();
+    fireEvent.click(include);
+    expect(include).toBeChecked();
+    expect(screen.getByLabelText('Description')).toHaveValue(
+      'Proposed description',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+    await waitFor(() =>
+      expect(mocks.updateBrandOsRevision).toHaveBeenCalledWith(
+        'brand-1',
+        'revision-1',
+        expect.objectContaining({
+          content: expect.objectContaining({
+            fields: expect.objectContaining({
+              description: expect.objectContaining({
+                applyActionDefault: 'accept',
+                currentValue: 'Saved description',
+                proposedValue: 'Proposed description',
+              }),
+            }),
+          }),
+        }),
+      ),
+    );
+  });
+
   it('forks an approved revision and retains the approved history', async () => {
     mocks.listBrandOsRevisions.mockResolvedValue([
       revision({ status: 'APPROVED' }),

@@ -20,7 +20,7 @@ const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
     label: 'Writing voice',
     description:
       'Tone, style, audience, writing rules, hooks, examples and platform overrides',
-    href: '/settings/brand-kit?tab=voice',
+    href: `${APP_ROUTES.SETTINGS.BRAND_KIT}?tab=voice`,
     keywords: ['voice', 'tone', 'style', 'writing', 'hooks', 'exemplars'],
   },
   {
@@ -29,7 +29,7 @@ const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
     group: 'Brand Kit',
     label: 'Strategy',
     description: 'Topics, goals, platforms and publishing frequency',
-    href: '/settings/brand-kit?tab=strategy',
+    href: `${APP_ROUTES.SETTINGS.BRAND_KIT}?tab=strategy`,
     keywords: ['strategy', 'topics', 'goals', 'frequency'],
   },
   {
@@ -38,7 +38,7 @@ const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
     group: 'Brand Kit',
     label: 'Guided setup',
     description: 'Brand identity interview',
-    href: '/settings/brand-kit/guided-setup',
+    href: `${APP_ROUTES.SETTINGS.BRAND_KIT}/guided-setup`,
     keywords: ['interview', 'setup', 'identity'],
   },
   {
@@ -47,7 +47,7 @@ const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
     group: 'Brand Kit',
     label: 'Content rules',
     description: 'Structure, delivery, positioning and examples',
-    href: '/settings/brand-kit/content-rules',
+    href: `${APP_ROUTES.SETTINGS.BRAND_KIT}/content-rules`,
     keywords: ['harness', 'rules', 'structure', 'delivery', 'examples'],
   },
   {
@@ -56,7 +56,7 @@ const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
     group: 'Agent settings',
     label: 'Agent context',
     description: 'Context layers, prompts and memories',
-    href: '/settings/agent?tab=context',
+    href: `${APP_ROUTES.SETTINGS.AGENT}?tab=context`,
     keywords: ['context', 'memory', 'prompts'],
   },
   {
@@ -65,7 +65,7 @@ const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
     group: 'Agent settings',
     label: 'Learning',
     description: 'Feedback and content memory',
-    href: '/settings/agent?tab=learning',
+    href: `${APP_ROUTES.SETTINGS.AGENT}?tab=learning`,
     keywords: ['learning', 'feedback', 'memory'],
   },
   {
@@ -74,7 +74,7 @@ const BRAND_SECTION_ITEMS: SettingsSearchItem[] = [
     group: 'Agent settings',
     label: 'Generation receipts',
     description: 'Generation inputs and outcomes',
-    href: '/settings/agent?tab=receipts',
+    href: `${APP_ROUTES.SETTINGS.AGENT}?tab=receipts`,
     keywords: ['generation', 'receipts', 'audit'],
   },
   {

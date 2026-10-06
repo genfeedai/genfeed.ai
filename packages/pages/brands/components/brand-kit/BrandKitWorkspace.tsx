@@ -51,6 +51,16 @@ export default function BrandKitWorkspace({
 }: BrandKitWorkspaceProps) {
   const t = useTranslations('pages.brandKitSettings');
   const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const revisionStatus = content ? (
+    <div className="flex items-center justify-between gap-3 border-t border-border py-3">
+      <span className="text-xs text-muted-foreground" role="status">
+        {isDirty ? t('unsaved') : t('saved')}
+      </span>
+      <Button onClick={onSave} isDisabled={isSaveDisabled}>
+        {t('saveDraft')}
+      </Button>
+    </div>
+  ) : null;
   return (
     <div
       className="flex min-w-0 flex-col gap-5"
@@ -141,19 +151,11 @@ export default function BrandKitWorkspace({
                   {t('snapshotHelp')}
                 </p>
                 {editor}
+                {revisionStatus}
               </CollapsibleContent>
             </Collapsible>
           )}
-          {content && (
-            <div className="flex items-center justify-between gap-3 border-t border-border py-3">
-              <span className="text-xs text-muted-foreground" role="status">
-                {isDirty ? t('unsaved') : t('saved')}
-              </span>
-              <Button onClick={onSave} isDisabled={isSaveDisabled}>
-                {t('saveDraft')}
-              </Button>
-            </div>
-          )}
+          {tab === 'voice' || tab === 'strategy' ? null : revisionStatus}
         </div>
         <div className="min-w-0 xl:sticky xl:top-4 xl:self-start">
           <BrandKitLocalPreview

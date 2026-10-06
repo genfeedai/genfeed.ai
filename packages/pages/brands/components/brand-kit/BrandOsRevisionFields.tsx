@@ -238,10 +238,13 @@ export default function BrandOsRevisionFields({
           evidence: [],
           diagnostics: [],
         };
-        const value =
-          field.applyActionDefault === 'preserve'
+        const value = showDecisions
+          ? field.applyActionDefault === 'preserve'
             ? field.currentValue
-            : (field.proposedValue ?? field.currentValue);
+            : (field.proposedValue ?? field.currentValue)
+          : field.applyActionDefault === 'accept'
+            ? (field.proposedValue ?? field.currentValue)
+            : field.currentValue;
         const role = key === 'references' ? 'reference' : key;
         const candidates = content.assetCandidates.filter(
           (candidate) => candidate.role === role,
@@ -250,20 +253,17 @@ export default function BrandOsRevisionFields({
           <div key={key} className="space-y-2 border-t border-border pt-3">
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium">{label}</span>
-              {showDecisions && (
-                <Checkbox
-                  aria-label={t('includeLabel', { label })}
-                  label={t('include')}
-                  isChecked={field.applyActionDefault !== 'reject'}
-                  isDisabled={isDisabled}
-                  onCheckedChange={(checked) =>
-                    onFieldChange(key, {
-                      applyActionDefault:
-                        checked === true ? 'accept' : 'reject',
-                    })
-                  }
-                />
-              )}
+              <Checkbox
+                aria-label={t('includeLabel', { label })}
+                label={t('include')}
+                isChecked={field.applyActionDefault !== 'reject'}
+                isDisabled={isDisabled}
+                onCheckedChange={(checked) =>
+                  onFieldChange(key, {
+                    applyActionDefault: checked === true ? 'accept' : 'reject',
+                  })
+                }
+              />
             </div>
             <p className="text-xs text-muted-foreground">
               {t(`groups.${group}`)}

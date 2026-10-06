@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  LIBRARY_ELEMENT_MENU_ITEMS,
   LIBRARY_MENU_ITEMS,
   LIBRARY_PLACE_MENU_ITEMS,
   LIBRARY_SHELF_MENU_ITEMS,
@@ -7,7 +8,7 @@ import {
 } from './library-menu-items.config';
 
 describe('LIBRARY_MENU_ITEMS', () => {
-  it('navigates by place and shelf, never by asset type', () => {
+  it('navigates by place, shelf, and Elements, never by asset type', () => {
     expect(LIBRARY_MENU_ITEMS.map((item) => item.href)).toEqual([
       '/library/assets',
       '/library/assets?place=recent',
@@ -19,8 +20,22 @@ describe('LIBRARY_MENU_ITEMS', () => {
       '/library/assets?shelf=approved',
       '/library/assets?shelf=failed',
       '/library/assets?shelf=archived',
+      '/library/elements/characters',
       '/library/assets?place=trash',
     ]);
+  });
+
+  it('keeps Characters in the Elements group on the canonical href', () => {
+    const characters = LIBRARY_ELEMENT_MENU_ITEMS.find(
+      (item) => item.label === 'Characters',
+    );
+
+    expect(characters).toEqual(
+      expect.objectContaining({
+        group: 'Elements',
+        href: '/library/elements/characters',
+      }),
+    );
   });
 
   it('lights up All assets for every type-seeded deep link', () => {

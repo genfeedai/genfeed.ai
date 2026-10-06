@@ -170,11 +170,6 @@ export const APP_ROUTES = {
     CAPTIONS: '/library/captions',
     GIFS: '/library/assets?categories=GIF',
     IMAGES: '/library/assets?categories=IMAGE&categories=IMAGE_EDIT',
-    /**
-     * Redirect alias. Brand Knowledge now lives under Settings
-     * (`SETTINGS.KNOWLEDGE`). Keep this path so old links still resolve.
-     */
-    KNOWLEDGE: '/library/knowledge',
     MUSIC: '/library/assets?categories=MUSIC&categories=AUDIO',
     /** Assets touched most recently, newest first. */
     RECENT: '/library/assets?place=recent',
