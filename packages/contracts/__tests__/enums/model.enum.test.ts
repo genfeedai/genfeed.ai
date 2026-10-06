@@ -11,8 +11,8 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 133 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(133);
+    it('should have 134 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(134);
     });
 
     it('should have correct values', () => {
@@ -44,6 +44,9 @@ describe('model.enum', () => {
       );
       expect(MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO).toBe(
         'google/nano-banana-pro',
+      );
+      expect(MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_1).toBe(
+        'google/nano-banana-2.1',
       );
       expect(MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE).toBe(
         'google/nano-banana-2-lite',

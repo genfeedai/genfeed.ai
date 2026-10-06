@@ -436,8 +436,11 @@ export const NANO_BANANA_PRO_CAPABILITY_PROFILE_ID =
 export const NANO_BANANA_2_CAPABILITY_PROFILE_ID = 'nano-banana-2-capability';
 export const NANO_BANANA_2_LITE_CAPABILITY_PROFILE_ID =
   'nano-banana-2-lite-capability';
+export const NANO_BANANA_2_1_CAPABILITY_PROFILE_ID =
+  'nano-banana-2-1-capability';
 export const NANO_BANANA_PRO_MODEL_KEY = 'google/nano-banana-pro';
 export const NANO_BANANA_2_MODEL_KEY = 'google/nano-banana-2';
+export const NANO_BANANA_2_1_MODEL_KEY = 'google/nano-banana-2.1';
 export const NANO_BANANA_2_LITE_MODEL_KEY = 'google/nano-banana-2-lite';
 
 export const NANO_BANANA_PRO_CAPABILITY_PROFILE =
@@ -462,6 +465,14 @@ export const NANO_BANANA_2_LITE_CAPABILITY_PROFILE =
     modelKey: NANO_BANANA_2_LITE_MODEL_KEY,
     maxReferences: 14,
     hasResolution: false,
+    hasSafetyFilterLevel: false,
+  });
+export const NANO_BANANA_2_1_CAPABILITY_PROFILE =
+  buildNanoBanana2CapabilityProfile({
+    id: NANO_BANANA_2_1_CAPABILITY_PROFILE_ID,
+    modelKey: NANO_BANANA_2_1_MODEL_KEY,
+    maxReferences: 14,
+    hasResolution: true,
     hasSafetyFilterLevel: false,
   });
 

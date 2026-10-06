@@ -134,6 +134,7 @@ describe('ReplicateImageBuilder', () => {
     it('should return dedicated models list', () => {
       const models = builder.getSupportedModels();
       expect(models).toContain(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_1);
       expect(models).toContain(MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE);
       expect(models).toContain(
         MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,

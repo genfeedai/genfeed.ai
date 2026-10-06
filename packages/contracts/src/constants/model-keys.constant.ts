@@ -12,6 +12,7 @@ export const MODEL_KEYS = {
   REPLICATE_GOOGLE_NANO_BANANA: 'google/nano-banana',
   REPLICATE_GOOGLE_NANO_BANANA_PRO: 'google/nano-banana-pro',
   REPLICATE_GOOGLE_NANO_BANANA_2: 'google/nano-banana-2',
+  REPLICATE_GOOGLE_NANO_BANANA_2_1: 'google/nano-banana-2.1',
   REPLICATE_GOOGLE_NANO_BANANA_2_LITE: 'google/nano-banana-2-lite',
   REPLICATE_GOOGLE_VEO_2: 'google/veo-2',
   REPLICATE_GOOGLE_VEO_3: 'google/veo-3',

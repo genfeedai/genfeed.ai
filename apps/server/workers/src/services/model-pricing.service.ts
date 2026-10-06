@@ -122,6 +122,8 @@ const REPLICATE_KNOWN_COSTS: Record<string, number> = {
   'google/imagen-4-fast': 0.02,
   'google/imagen-4-ultra': 0.08,
   'google/nano-banana-2-lite': 0.034,
+  // 1K output. 2K is $0.0504 and 4K is $0.1134 on the reviewed rate sheet.
+  'google/nano-banana-2.1': 0.0336,
   'google/veo-3': 0.5,
   'google/veo-3-fast': 0.25,
   'ideogram-ai/ideogram-4-5': 0.06, // Medium-quality editing, USD per output.

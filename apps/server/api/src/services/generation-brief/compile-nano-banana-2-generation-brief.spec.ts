@@ -21,6 +21,7 @@ function readFixture(name: string): unknown {
 
 const NANO_BANANA_PRO_MODEL_KEY = MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO;
 const NANO_BANANA_2_MODEL_KEY = MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2;
+const NANO_BANANA_2_1_MODEL_KEY = MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_1;
 const NANO_BANANA_2_LITE_MODEL_KEY =
   MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE;
 
@@ -153,7 +154,7 @@ describe('compileNanoBanana2GenerationBrief', () => {
     expect(brief).toEqual(original);
   });
 
-  it('compiles Nano Banana 2 and Nano Banana 2 Lite from their own profiles and never sets a dispatch resolution', () => {
+  it('compiles Nano Banana 2, 2.1, and 2 Lite from their own profiles and never sets a dispatch resolution', () => {
     const brief = imageGenerationBriefSchema.parse(
       readFixture('unbranded.input.json'),
     );
@@ -161,6 +162,10 @@ describe('compileNanoBanana2GenerationBrief', () => {
     const nanoBanana2Result = compileNanoBanana2GenerationBrief({
       brief,
       modelKey: NANO_BANANA_2_MODEL_KEY,
+    });
+    const nanoBanana21Result = compileNanoBanana2GenerationBrief({
+      brief,
+      modelKey: NANO_BANANA_2_1_MODEL_KEY,
     });
     const nanoBanana2LiteResult = compileNanoBanana2GenerationBrief({
       brief,
@@ -170,17 +175,25 @@ describe('compileNanoBanana2GenerationBrief', () => {
     expect(nanoBanana2Result.evidence.profileId).toBe(
       'nano-banana-2-capability',
     );
+    expect(nanoBanana21Result.evidence.profileId).toBe(
+      'nano-banana-2-1-capability',
+    );
     expect(nanoBanana2LiteResult.evidence.profileId).toBe(
       'nano-banana-2-lite-capability',
     );
-    // Nano Banana Pro and Nano Banana 2 both have `resolution: { supported: true }`
-    // on their capability profile, but the brief carries no resolution-tier
-    // value to map onto it, so the dispatch never sets `resolution`.
+    // Nano Banana Pro, Nano Banana 2, and Nano Banana 2.1 have
+    // `resolution: { supported: true }` on their capability profile, but the
+    // brief carries no resolution-tier value to map onto it, so the dispatch
+    // never sets `resolution`.
     expect(nanoBanana2Result.dispatch).not.toHaveProperty('resolution');
+    expect(nanoBanana21Result.dispatch).not.toHaveProperty('resolution');
     expect(nanoBanana2LiteResult.dispatch).not.toHaveProperty('resolution');
-    // Only Nano Banana Pro has a `safetyFilterLevel` default; the other two
+    // Only Nano Banana Pro has a `safetyFilterLevel` default; the other
     // siblings must omit the field entirely rather than dispatch `undefined`.
     expect(nanoBanana2Result.dispatch).not.toHaveProperty(
+      'safety_filter_level',
+    );
+    expect(nanoBanana21Result.dispatch).not.toHaveProperty(
       'safety_filter_level',
     );
     expect(nanoBanana2LiteResult.dispatch).not.toHaveProperty(

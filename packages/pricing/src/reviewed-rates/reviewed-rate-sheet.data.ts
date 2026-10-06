@@ -391,6 +391,38 @@ export const REVIEWED_RATE_SHEET_ENTRIES: readonly ReviewedRateSheetEntry[] = [
     verifiedAt: '2026-10-06T09:45:34.549Z',
   },
   {
+    endpoint: 'google/nano-banana-2.1',
+    provider: 'replicate',
+    rates: [
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.0336,
+        when: {
+          resolution: '1K',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.0504,
+        when: {
+          resolution: '2K',
+        },
+      },
+      {
+        component: 'output',
+        unit: 'output',
+        unitPriceUsd: 0.1134,
+        when: {
+          resolution: '4K',
+        },
+      },
+    ],
+    sourceUrl: 'https://replicate.com/google/nano-banana-2.1',
+    verifiedAt: '2026-10-06T18:40:00.000Z',
+  },
+  {
     endpoint: 'google/nano-banana-2-lite',
     provider: 'replicate',
     rates: [
