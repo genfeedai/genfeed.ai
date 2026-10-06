@@ -1,7 +1,8 @@
 import type { PromptBarInternalContextValue } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
+import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import '@testing-library/jest-dom/vitest';
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import PromptBarExpandedView from '@ui/prompt-bars/components/expanded-view/PromptBarExpandedView';
 import type { ReactElement } from 'react';
 import type { FieldValues, UseFormReturn } from 'react-hook-form';
@@ -18,6 +19,12 @@ vi.mock('react-hook-form', () => ({
   })),
   useWatch: vi.fn(),
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
 
 function createMockContext(
   mockForm: UseFormReturn<FieldValues>,
@@ -173,5 +180,27 @@ describe('PromptBarExpandedView', () => {
     expect(
       container.querySelector('[data-testid="promptbar-dropzone"]'),
     ).not.toBeInTheDocument();
+  });
+
+  it('removes a localized video reference through the supplied callback', () => {
+    const onRemoveAttachedAsset = vi.fn();
+    const videoReference: PromptBarAttachedAsset = {
+      id: 'clip-id',
+      name: 'Clip',
+      kind: 'video',
+      role: 'videoReference',
+      source: 'library',
+    };
+
+    renderWithContext({
+      attachedPromptAssets: [videoReference],
+      onRemoveAttachedAsset,
+    });
+
+    expect(
+      screen.getByRole('group', { name: 'Video reference: Clip' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Clip' }));
+    expect(onRemoveAttachedAsset).toHaveBeenCalledWith('clip-id');
   });
 });
