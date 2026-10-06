@@ -21,3 +21,12 @@ export const SERWIST_PRECACHE_GLOB_PATTERNS = [
   'public/logo.svg',
   'public/sounds/task-complete.mp3',
 ] as const;
+
+/** The complete output of the classic worker build. */
+export const SERWIST_ROUTE_FILES = ['sw.js', 'sw.js.map'] as const;
+
+export type SerwistRouteFile = (typeof SERWIST_ROUTE_FILES)[number];
+
+export function isSerwistRouteFile(value: string): value is SerwistRouteFile {
+  return SERWIST_ROUTE_FILES.some((file) => file === value);
+}
