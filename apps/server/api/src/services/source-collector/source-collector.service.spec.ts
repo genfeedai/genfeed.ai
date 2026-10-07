@@ -1,6 +1,7 @@
+import { SourceCollectionFailedException } from '@api/services/source-collector/source-collection-failed.exception';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
-import { ServiceUnavailableException } from '@nestjs/common';
+import { HttpStatus, ServiceUnavailableException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('SourceCollectorService', () => {
@@ -211,6 +212,80 @@ describe('SourceCollectorService', () => {
     ).rejects.toThrow(/All source collectors failed/);
   });
 
+  describe('when every collector rejects access (#6419)', () => {
+    function rejectXChain(apifyError: unknown) {
+      brandOAuth.canCollect.mockResolvedValue(true);
+      brandOAuth.collectTimeline.mockRejectedValue(
+        Object.assign(new Error('Request failed with code 402'), {
+          code: 402,
+          data: { detail: 'secret-bearing provider body' },
+        }),
+      );
+      appBearer.canCollect.mockResolvedValue(true);
+      appBearer.collectTimeline.mockRejectedValue(
+        Object.assign(new Error('Request failed'), {
+          response: { data: { title: 'Unauthorized' }, status: 401 },
+        }),
+      );
+      apify.canCollect.mockResolvedValue(true);
+      apify.collectTimeline.mockRejectedValue(apifyError);
+    }
+
+    it('fails as a 424 naming each provider class and status, without provider bodies', async () => {
+      rejectXChain(
+        Object.assign(new Error('Forbidden'), { response: { status: 403 } }),
+      );
+
+      const error = await service
+        .collectTimeline(SocialSourcePlatform.TWITTER, 'creator', {})
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(SourceCollectionFailedException);
+      const failed = error as SourceCollectionFailedException;
+      expect(failed.getStatus()).toBe(HttpStatus.FAILED_DEPENDENCY);
+      expect(failed.failures).toEqual([
+        { provider: 'brand-oauth', reason: 'payment_required', status: 402 },
+        { provider: 'app-bearer', reason: 'unauthorized', status: 401 },
+        { provider: 'apify', reason: 'forbidden', status: 403 },
+      ]);
+      expect(failed.message).toBe(
+        'All source collectors failed for twitter/@creator: brand-oauth: quota or plan exhausted (402) | app-bearer: not authorized (401) | apify: access forbidden (403)',
+      );
+      expect(JSON.stringify(failed.getResponse())).not.toContain(
+        'secret-bearing',
+      );
+    });
+
+    it('stays a 5xx when any collector failed for an unknown reason', async () => {
+      rejectXChain(new Error('socket hang up'));
+
+      const error = await service
+        .collectTimeline(SocialSourcePlatform.TWITTER, 'creator', {})
+        .catch((caught: unknown) => caught);
+
+      expect((error as SourceCollectionFailedException).getStatus()).toBe(
+        HttpStatus.BAD_GATEWAY,
+      );
+    });
+
+    it('reports a 424 when no collector is connected or configured', async () => {
+      brandOAuth.canCollect.mockResolvedValue(false);
+      appBearer.canCollect.mockResolvedValue(false);
+      apify.canCollect.mockResolvedValue(false);
+
+      const error = await service
+        .collectTimeline(SocialSourcePlatform.TWITTER, 'creator', {})
+        .catch((caught: unknown) => caught);
+
+      expect((error as SourceCollectionFailedException).getStatus()).toBe(
+        HttpStatus.FAILED_DEPENDENCY,
+      );
+      expect((error as Error).message).toContain(
+        'no collector is connected or configured',
+      );
+    });
+  });
+
   it('discards provider rows that do not have an external post id', async () => {
     apify.canCollect.mockResolvedValue(true);
     apify.collectTimeline.mockResolvedValue({
@@ -332,7 +407,7 @@ describe('SourceCollectorService', () => {
       await expect(
         service.collectTimeline(SocialSourcePlatform.YOUTUBE, 'creator', {}),
       ).rejects.toThrow(
-        /All source collectors failed.*app-api-key.*YouTube public API access-denied.*apify.*apify down/s,
+        /All source collectors failed.*app-api-key: access forbidden.*apify: failed/s,
       );
     });
   });

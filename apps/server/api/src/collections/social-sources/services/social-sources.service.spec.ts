@@ -1,4 +1,4 @@
-import { ServiceUnavailableException } from '@nestjs/common';
+import { HttpStatus, ServiceUnavailableException } from '@nestjs/common';
 
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
@@ -8,6 +8,7 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { SocialSourcesService } from '@api/collections/social-sources/services/social-sources.service';
+import { SourceCollectionFailedException } from '@api/services/source-collector/source-collection-failed.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SocialSourcePlatform, SocialSourceType } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -309,6 +310,56 @@ describe('SocialSourcesService', () => {
         organizationId: 'org-1',
       },
     });
+  });
+
+  it('keeps collected posts and records the classified failure when every collector rejects access (#6419)', async () => {
+    socialSource.findFirst.mockResolvedValue({
+      brandId: 'brand-1',
+      handle: 'openai',
+      id: 'source-1',
+      lastPostExternalId: 'post-9',
+      organizationId: 'org-1',
+      platform: SocialSourcePlatform.TWITTER,
+      userId: 'user-1',
+    });
+    const rejected = new SourceCollectionFailedException(
+      'All source collectors failed for twitter/@openai',
+      [
+        { provider: 'brand-oauth', reason: 'payment_required', status: 402 },
+        { provider: 'app-bearer', reason: 'unauthorized', status: 401 },
+        { provider: 'apify', reason: 'forbidden', status: 403 },
+      ],
+    );
+    sourceCollector.collectTimeline.mockRejectedValue(rejected);
+    socialSource.update.mockResolvedValue({ id: 'source-1' });
+
+    await expect(
+      service.syncSource('source-1', {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+      }),
+    ).rejects.toBe(rejected);
+
+    expect(rejected.getStatus()).toBe(HttpStatus.FAILED_DEPENDENCY);
+    expect(sourcePostsService.upsertCollectedPosts).not.toHaveBeenCalled();
+    expect(socialSource.update).toHaveBeenCalledTimes(1);
+    expect(socialSource.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          lastSyncError: rejected.message,
+          lastSyncStatus: 'failed',
+          lastSyncedAt: expect.any(Date),
+        },
+      }),
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      'Failed to sync social source',
+      expect.objectContaining({ sourceId: 'source-1' }),
+    );
+    expect(logger.error).not.toHaveBeenCalledWith(
+      'Failed to sync social source',
+      expect.anything(),
+    );
   });
 
   describe('resyncOwnAccount', () => {
