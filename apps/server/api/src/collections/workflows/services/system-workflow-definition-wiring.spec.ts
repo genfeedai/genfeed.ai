@@ -26,9 +26,30 @@ import { describe, expect, it } from 'vitest';
  * published input contract, for every system workflow definition module.
  */
 
+/**
+ * Real mismatches the injected-input sweep found (#5917), tracked in #6461.
+ * Keyed `<canonicalId>/<nodeId>/<inputKey>`; fix them, never add to this list.
+ */
+const KNOWN_UNRESOLVED_WIRING = [
+  'ai-influencer.daily-posts/finalize-daily-posts/request',
+  'content.production.autopilot.pipeline.image/generate/request',
+  'content.production.autopilot.pipeline.image/publish/request',
+  'content.production.autopilot.pipeline.image/resolve-context/request',
+  'content.production.autopilot.pipeline.music/generate/request',
+  'content.production.autopilot.pipeline.music/publish/request',
+  'content.production.autopilot.pipeline.music/resolve-context/request',
+  'content.production.autopilot.pipeline.video/generate/request',
+  'content.production.autopilot.pipeline.video/publish/request',
+  'content.production.autopilot.pipeline.video/resolve-context/request',
+  'voice.generate/execute/brandId',
+  'voice.generate/execute/pinnedSkills',
+  'voice.generate/execute/requestedSkillSlugs',
+];
+
 type NodeIssue = {
   canonicalId: string;
   detail: string;
+  keys?: string[];
   nodeId: string;
 };
 
@@ -68,17 +89,25 @@ function findWiringIssues(
     // Mirrors the engine: static config and every active edge
     // (`targetHandle ?? source`) are merged by `buildActionExecutionInput`.
     // The converter also copies supplied and default `inputVariableKeys` onto
-    // the node, so those keys are part of the closed-contract set.
+    // the node config, so the sweep checks both the unsupplied and supplied
+    // shapes. A supplied `parameters`/`payload` replaces that envelope, whose
+    // contents are unknown statically, rather than delivering its own key.
     const edgeInputs = new Map<string, unknown>();
     for (const edge of edges) {
       if (edge.target === node.id) {
         edgeInputs.set(edge.targetHandle ?? edge.source, null);
       }
     }
+    const injectedConfig = {
+      ...node.data.config,
+      ...Object.fromEntries(
+        readInjectedInputKeys(node.data).map((key) => [key, null]),
+      ),
+    };
     const delivered = [
       ...new Set([
         ...Object.keys(buildActionExecutionInput(node.data.config, edgeInputs)),
-        ...readInjectedInputKeys(node.data),
+        ...Object.keys(buildActionExecutionInput(injectedConfig, edgeInputs)),
       ]),
     ];
 
@@ -95,6 +124,7 @@ function findWiringIssues(
         issues.push({
           canonicalId: workflow.canonicalId,
           detail: `${actionId} receives undeclared input ${unexpected.join(', ')}`,
+          keys: unexpected,
           nodeId: node.id,
         });
       }
@@ -202,6 +232,26 @@ describe('system workflow definition wiring against action contracts', () => {
       expect(canonicalIds).toContain(definition.canonicalId);
     }
 
-    expect(definitions.flatMap(findWiringIssues)).toEqual([]);
+    const issues = definitions.flatMap(findWiringIssues);
+    const unresolved = issues.flatMap((issue) =>
+      (issue.keys ?? ['']).map(
+        (key) => `${issue.canonicalId}/${issue.nodeId}/${key}`,
+      ),
+    );
+    // Both ways: a new key on any node fails, and a fixed entry must be
+    // removed from the list.
+    expect(
+      issues.filter((issue) =>
+        (issue.keys ?? ['']).some(
+          (key) =>
+            !KNOWN_UNRESOLVED_WIRING.includes(
+              `${issue.canonicalId}/${issue.nodeId}/${key}`,
+            ),
+        ),
+      ),
+    ).toEqual([]);
+    expect([...new Set(unresolved)].sort()).toEqual(
+      [...KNOWN_UNRESOLVED_WIRING].sort(),
+    );
   });
 });
