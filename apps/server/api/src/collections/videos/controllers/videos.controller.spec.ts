@@ -991,6 +991,7 @@ describe('VideosController', () => {
       const buildKey = (organization: string) =>
         cacheConfig.keyGenerator({
           params: { videoId: mockVideoId.toString() },
+          query: {},
           user: {
             id: mockUser.id,
             organizationId: organization,
@@ -998,6 +999,40 @@ describe('VideosController', () => {
         });
 
       expect(buildKey('org-a')).not.toBe(buildKey('org-b'));
+    });
+
+    it('partitions verified selected organizations while preserving actor identity and refusing unverified selection', () => {
+      const cacheConfig = Reflect.getMetadata(
+        'cache',
+        VideosController.prototype.findOne,
+      ) as { keyGenerator: (request: Record<string, unknown>) => string };
+      const user = { ...mockUser, isSuperAdmin: true };
+      const request = {
+        params: { videoId: mockVideoId.toString() },
+        query: { organizationId: 'foreign-a' },
+        user,
+        context: { organizationId: user.organizationId, isSuperAdmin: true },
+      };
+      const first = cacheConfig.keyGenerator(request);
+      request.query.organizationId = 'foreign-b';
+      expect(cacheConfig.keyGenerator(request)).not.toBe(first);
+      expect(request.user).toBe(user);
+      expect(user.organizationId).toBe(mockUser.organizationId);
+      expect(request.query.organizationId).toBe('foreign-b');
+      expect(
+        cacheConfig.keyGenerator({
+          ...request,
+          params: { videoId: 'other-video' },
+        }),
+      ).not.toBe(cacheConfig.keyGenerator(request));
+      expect(
+        cacheConfig.keyGenerator({
+          ...request,
+          user: { ...user, id: 'other-user' },
+        }),
+      ).not.toBe(cacheConfig.keyGenerator(request));
+      request.context.isSuperAdmin = false;
+      expect(() => cacheConfig.keyGenerator(request)).toThrow();
     });
 
     it('should return a single video', async () => {

@@ -140,7 +140,16 @@ export class VideoProvenanceService {
       ? ((await this.metadataService.findOne({
           id: video.metadataId,
           ...(readScope
-            ? { organizationId: readScope.organizationId, isDeleted: false }
+            ? {
+                ingredients: {
+                  some: {
+                    id: assetId,
+                    organizationId: readScope.organizationId,
+                    isDeleted: false,
+                  },
+                },
+                isDeleted: false,
+              }
             : {}),
         })) as unknown as IMetadataProvenanceRecord | null)
       : null;
