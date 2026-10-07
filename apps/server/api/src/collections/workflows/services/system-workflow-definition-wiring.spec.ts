@@ -27,24 +27,10 @@ import { describe, expect, it } from 'vitest';
  */
 
 /**
- * Real mismatches the injected-input sweep found (#5917), tracked in #6461.
- * Keyed `<canonicalId>/<nodeId>/<inputKey>`; fix them, never add to this list.
+ * Mismatches the sweep has found but not yet fixed, keyed
+ * `<canonicalId>/<nodeId>/<inputKey>`. Fix them; never add to this list.
  */
-const KNOWN_UNRESOLVED_WIRING = [
-  'ai-influencer.daily-posts/finalize-daily-posts/request',
-  'content.production.autopilot.pipeline.image/generate/request',
-  'content.production.autopilot.pipeline.image/publish/request',
-  'content.production.autopilot.pipeline.image/resolve-context/request',
-  'content.production.autopilot.pipeline.music/generate/request',
-  'content.production.autopilot.pipeline.music/publish/request',
-  'content.production.autopilot.pipeline.music/resolve-context/request',
-  'content.production.autopilot.pipeline.video/generate/request',
-  'content.production.autopilot.pipeline.video/publish/request',
-  'content.production.autopilot.pipeline.video/resolve-context/request',
-  'voice.generate/execute/brandId',
-  'voice.generate/execute/pinnedSkills',
-  'voice.generate/execute/requestedSkillSlugs',
-];
+const KNOWN_UNRESOLVED_WIRING: string[] = [];
 
 type NodeIssue = {
   canonicalId: string;

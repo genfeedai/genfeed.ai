@@ -5,12 +5,14 @@ import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { AGENT_RUNTIME_ACTION_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { getActionDefinition } from '@genfeedai/actions';
 import {
   ActivityKey,
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { compileActionContract } from '@genfeedai/workflows/engine';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -294,6 +296,32 @@ describe('VoiceGenerationService', () => {
         dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
       }),
     );
+
+    // The converter copies each input value onto the action node, so the
+    // skill-pinned job must pass the closed action contract.
+    const [{ inputValues }] = workflowRunner.enqueueWorkflow.mock.calls[0];
+    const action = getActionDefinition(
+      AGENT_RUNTIME_ACTION_IDS.VOICE_GENERATION,
+    );
+    const contract = compileActionContract(
+      AGENT_RUNTIME_ACTION_IDS.VOICE_GENERATION,
+      {
+        inputSchema: (action?.inputSchema ?? {}) as Readonly<
+          Record<string, unknown>
+        >,
+        outputSchema: (action?.outputSchema ?? {}) as Readonly<
+          Record<string, unknown>
+        >,
+      },
+    );
+    expect(() =>
+      contract.validateInput(inputValues, {
+        nodeId: 'execute',
+        runId: 'run',
+        workflowId: 'voice.generate',
+        workflowVersionId: 'v1',
+      }),
+    ).not.toThrow();
   });
 
   it('re-reserves background work for an idempotent source-action retry', async () => {
