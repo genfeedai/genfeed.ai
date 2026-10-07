@@ -2,11 +2,16 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { MembersService } from '@api/collections/members/services/members.service';
 import { AdsResearchController } from '@api/endpoints/ads-research/ads-research.controller';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
+import { TENANT_READ_POLICY } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
 import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
+import { getTenantContext } from '@libs/prisma/tenant-context';
+import type { ExecutionContext } from '@nestjs/common';
 import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { defer, firstValueFrom } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdsDiscoveryService } from './ads-discovery.service';
 
@@ -203,6 +208,76 @@ describe('AdsResearchController', () => {
       );
       expect(result).toEqual({ id: 'ad-1', title: 'Test Ad' });
     });
+  });
+
+  describe('getAdDetail owner tenant boundary', () => {
+    const actor: User = { ...mockUser, isSuperAdmin: true };
+    function readDetail(query: Record<string, string>) {
+      const request = {
+        method: 'GET',
+        query,
+        user: actor,
+        context: { ...actor },
+      };
+      const originalContext = { ...request.context };
+      const context = {
+        getClass: () => AdsResearchController,
+        getHandler: () => AdsResearchController.prototype.getAdDetail,
+        switchToHttp: () => ({ getRequest: () => request }),
+      } as unknown as ExecutionContext;
+      const handle = vi.fn(() =>
+        defer(() => controller.getAdDetail(actor, 'public', 'ad-1')),
+      );
+      return { request, originalContext, handle, context };
+    }
+
+    it('marks ad detail owner-bound', () => {
+      expect(
+        Reflect.getMetadata(
+          TENANT_READ_POLICY,
+          AdsResearchController.prototype.getAdDetail,
+        ),
+      ).toBe('owner');
+    });
+
+    it('refuses foreign selection before public patterns, credentials or provider dispatch', () => {
+      const { context, handle } = readDetail({
+        organizationId: testId('org', 2),
+      });
+      expect(() =>
+        new TenantContextInterceptor().intercept(context, { handle }),
+      ).toThrow(ForbiddenException);
+      expect(handle).not.toHaveBeenCalled();
+      expect(service.getAdDetail).not.toHaveBeenCalled();
+    });
+
+    it.each<Record<string, string>>([{}, { organizationId }])(
+      'preserves owner dispatch for %j',
+      async (query) => {
+        service.getAdDetail.mockImplementation(async (org: string) => {
+          expect(getTenantContext()?.organizationId).toBe(org);
+          return { id: 'ad-1', title: 'Test Ad' };
+        });
+        const { request, originalContext, context, handle } = readDetail(query);
+        await expect(
+          firstValueFrom(
+            new TenantContextInterceptor().intercept(context, { handle }),
+          ),
+        ).resolves.toEqual({ id: 'ad-1', title: 'Test Ad' });
+        expect(service.getAdDetail).toHaveBeenCalledWith(organizationId, {
+          adAccountId: undefined,
+          brandId,
+          channel: undefined,
+          credentialId: undefined,
+          id: 'ad-1',
+          loginCustomerId: undefined,
+          platform: undefined,
+          source: 'public',
+        });
+        expect(request.user).toBe(actor);
+        expect(request.context).toEqual(originalContext);
+      },
+    );
   });
 
   describe('generateAdPack', () => {
