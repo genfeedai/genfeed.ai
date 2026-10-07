@@ -49,7 +49,7 @@ export class FacebookService {
     private readonly loggerService: LoggerService,
     private readonly httpService: HttpService,
   ) {
-    this.apiVersion = this.configService.get('FACEBOOK_API_VERSION') || 'v24.0';
+    this.apiVersion = this.configService.get('FACEBOOK_API_VERSION') || 'v26.0';
   }
 
   private requireString(value: unknown, label: string): string {

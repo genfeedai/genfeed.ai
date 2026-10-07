@@ -47,7 +47,7 @@ export class MetaGraphPaginationLimitError extends Error {
 
 @Injectable()
 export class MetaAdsService {
-  private readonly API_VERSION = 'v24.0';
+  private readonly API_VERSION = 'v26.0';
   private readonly provider = getIntegrationProviderDefinition('meta_ads');
   private readonly BASE_URL =
     this.provider?.endpoints.apiBaseUrl ?? 'https://graph.facebook.com';
@@ -626,8 +626,15 @@ export class MetaAdsService {
     });
   }
 
-  private buildTargetingSpec(targeting: MetaAdSetTargeting): string {
-    const spec: Record<string, unknown> = {};
+  private buildTargetingSpec(
+    targeting: MetaAdSetTargeting,
+    isCreation = false,
+  ): string {
+    // v26 requires an explicit audience choice for constrained HEC-F ad sets.
+    // Preserve the requested constraints; updates retain existing automation.
+    const spec: Record<string, unknown> = isCreation
+      ? { targeting_automation: { advantage_audience: 0 } }
+      : {};
 
     if (targeting.geoLocations) {
       spec.geo_locations = targeting.geoLocations;
@@ -775,7 +782,7 @@ export class MetaAdsService {
         name: params.name,
         optimization_goal: params.optimizationGoal,
         status: 'PAUSED',
-        targeting: this.buildTargetingSpec(params.targeting),
+        targeting: this.buildTargetingSpec(params.targeting, true),
       };
 
       if (params.dailyBudget !== undefined) {
