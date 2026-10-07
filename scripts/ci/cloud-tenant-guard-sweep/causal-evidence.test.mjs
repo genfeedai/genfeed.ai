@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
 import {
   chmodSync,
   mkdtempSync,
@@ -316,7 +317,7 @@ test('same observer lifecycle and sampler records feed the joiner, preserving re
   const instance = createApiObserver({
     write: (line) => records.push(JSON.parse(line)),
     now: () => at,
-    pool: { end: () => Promise.resolve() },
+    pool: Object.assign(new EventEmitter(), { end: () => Promise.resolve() }),
     setIntervalImpl: () => ({ unref() {} }),
     clearIntervalImpl() {},
     cpuUsage: () => ({ user: 0, system: 0 }),
@@ -487,4 +488,58 @@ test('new zero-failure database attribution is available and unfinished footer a
     joinCausalEvidence(f.report, f.records, options).database.unfinishedSamples,
     null,
   );
+});
+
+test('new lifecycle outcomes conserve every sample with legacy unknown/unavailable and strict current quality', () => {
+  const f = fixture();
+  const db = f.records.find((r) => r.kind === 'database');
+  Object.assign(db, {
+    connectionStateAtStart: 'initial',
+    connectionGenerationBefore: 0,
+    connectionGenerationAfter: 1,
+  });
+  const evidence = joinCausalEvidence(f.report, f.records, options);
+  assert.equal(evidence.database.lifecycleAvailable, true);
+  assert.equal(
+    evidence.database.lifecycleGroups.reduce((sum, g) => sum + g.samples, 0),
+    evidence.database.measuredSamples + evidence.database.failedSamples,
+  );
+  validateCausalEvidence(evidence, {
+    templates: f.report.inventoryTemplates,
+    actors: options.actors,
+    phases: options.phases,
+  });
+  for (const change of [
+    (d) => d.lifecycleGroups[0].samples++,
+    (d) => (d.lifecycleGroups[0].generationAfter = 451),
+    (d) => (d.lifecycleGroups[0].generationBefore = 2),
+    (d) => (d.lifecycleGroups[0].sql = 'private-canary'),
+    (d) => d.lifecycleGroups.push({ ...d.lifecycleGroups[0] }),
+    (d) => (d.lifecycleGroups[0].connectionStateAtStart = 'host-canary'),
+    (d) => delete d.lifecycleAvailable,
+  ]) {
+    const bad = structuredClone(evidence);
+    change(bad.database);
+    assert.throws(() =>
+      validateCausalEvidence(bad, {
+        templates: f.report.inventoryTemplates,
+        actors: options.actors,
+        phases: options.phases,
+      }),
+    );
+  }
+  delete db.connectionStateAtStart;
+  delete db.connectionGenerationBefore;
+  delete db.connectionGenerationAfter;
+  const historical = joinCausalEvidence(f.report, f.records, options);
+  assert.equal(historical.database.lifecycleAvailable, false);
+  assert.equal(
+    historical.database.lifecycleGroups[0].connectionStateAtStart,
+    'unknown',
+  );
+  assert.equal(historical.database.lifecycleGroups[0].generationBefore, null);
+  f.report.machineCoverageRequired = true;
+  const current = joinCausalEvidence(f.report, f.records, options);
+  assert.equal(current.quality, 'incomplete');
+  assert.ok(current.reasons.samplerFailure > 0);
 });

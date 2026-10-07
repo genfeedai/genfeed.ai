@@ -28,6 +28,7 @@ export const WAITS = [
 export const DATABASE_QUERY =
   "SELECT state, wait_event_type, count(*)::int AS sessions, count(*) FILTER (WHERE cardinality(pg_blocking_pids(pid)) > 0)::int AS blocked_sessions, coalesce(max(CASE WHEN state = 'active' AND query_start IS NOT NULL THEN greatest(0, extract(epoch FROM clock_timestamp() - query_start) * 1000) ELSE 0 END), 0)::bigint AS active_age_ms FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid() GROUP BY state, wait_event_type";
 export const POOL_OPTIONS = {
+  min: 1,
   max: 1,
   idleTimeoutMillis: 1000,
   connectionTimeoutMillis: 500,
@@ -53,6 +54,35 @@ export const exact = (value, keys) => {
   )
     throw new Error('Invalid observer schema');
 };
+export const CONNECTION_STATES = [
+  'initial',
+  'retained',
+  'reconnect',
+  'unknown',
+];
+export const CONNECTION_FIELDS = [
+  'connectionStateAtStart',
+  'connectionGenerationBefore',
+  'connectionGenerationAfter',
+];
+export function validateConnectionLifecycle(record) {
+  if (!CONNECTION_STATES.includes(record.connectionStateAtStart))
+    throw new Error('Invalid database connection state');
+  for (const key of CONNECTION_FIELDS.slice(1)) {
+    safe(record[key]);
+    if (record[key] > 450)
+      throw new Error('Invalid database connection generation');
+  }
+  if (
+    record.connectionGenerationAfter < record.connectionGenerationBefore ||
+    (record.connectionStateAtStart === 'initial' &&
+      record.connectionGenerationBefore !== 0) ||
+    (['retained', 'reconnect'].includes(record.connectionStateAtStart) &&
+      record.connectionGenerationBefore === 0) ||
+    (record.outcome === 'busy' && record.connectionStateAtStart !== 'unknown')
+  )
+    throw new Error('Inconsistent database connection lifecycle');
+}
 export const DATABASE_DIAGNOSTIC_CATEGORIES = [
   'busy',
   'invalid-rows',
@@ -206,6 +236,10 @@ export function validateObservationRecord(record) {
     ...(record.kind === 'database' && Object.hasOwn(record, 'diagnostic')
       ? ['diagnostic']
       : []),
+    ...(record.kind === 'database' &&
+    CONNECTION_FIELDS.some((key) => Object.hasOwn(record, key))
+      ? CONNECTION_FIELDS
+      : []),
   ]);
   for (const key of ['at', 'startedAt', 'endedAt', 'start', 'end'])
     if (Object.hasOwn(record, key)) safe(record[key]);
@@ -245,6 +279,8 @@ export function validateObservationRecord(record) {
       if (record[key] !== null) safe(record[key]);
   }
   if (record.kind === 'database') {
+    if (CONNECTION_FIELDS.some((key) => Object.hasOwn(record, key)))
+      validateConnectionLifecycle(record);
     if (Object.hasOwn(record, 'diagnostic'))
       validateDatabaseDiagnostic(record.diagnostic, record.outcome);
     if (
@@ -396,6 +432,20 @@ export function createApiObserver({
       mark();
     }
   };
+  let connectionGeneration = 0;
+  const connectionListener = () => {
+    if (connectionGeneration >= 450) {
+      mark();
+      return;
+    }
+    connectionGeneration++;
+  };
+  if (
+    typeof pool?.on !== 'function' ||
+    typeof pool?.removeListener !== 'function'
+  )
+    mark();
+  else pool.on('connect', connectionListener);
   emit({ kind: 'header', protocol: 1, startedAt: last });
   const guard = (run) => {
     try {
@@ -560,11 +610,23 @@ export function createApiObserver({
           start,
           end: start,
           outcome: 'busy',
+          connectionStateAtStart: 'unknown',
+          connectionGenerationBefore: connectionGeneration,
+          connectionGenerationAfter: connectionGeneration,
           diagnostic: { category: 'busy', name: 'NONE', code: 'NONE' },
           groups: [],
         });
         return;
       }
+      const connectionGenerationBefore = connectionGeneration;
+      const connectionStateAtStart =
+        connectionGeneration === 0
+          ? 'initial'
+          : pool.idleCount > 0
+            ? 'retained'
+            : pool.totalCount === 0
+              ? 'reconnect'
+              : 'unknown';
       busy = true;
       Promise.resolve()
         .then(() => pool.query(DATABASE_QUERY))
@@ -601,7 +663,15 @@ export function createApiObserver({
         .then((result) => {
           if (stopped) return;
           counts.databaseSamples++;
-          emit({ kind: 'database', start, end: now(), ...result });
+          emit({
+            kind: 'database',
+            start,
+            end: now(),
+            connectionStateAtStart,
+            connectionGenerationBefore,
+            connectionGenerationAfter: connectionGeneration,
+            ...result,
+          });
         })
         .catch(mark)
         .finally(() => {
@@ -621,6 +691,7 @@ export function createApiObserver({
       if (stopped) return;
       for (const timer of timers) clearIntervalImpl(timer);
       monitor?.disable();
+      pool?.removeListener?.('connect', connectionListener);
       if (busy) counts.databaseIncomplete = 1;
       try {
         pool?.end()?.catch?.(mark);

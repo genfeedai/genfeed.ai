@@ -53,6 +53,11 @@ import {
 import { createRequester } from './http.mjs';
 import { createWorkspaceImporter } from './imports.mjs';
 import { readMailStats, validateRunDirectory } from './local-mail-stub.mjs';
+import {
+  assertMachineResponse,
+  MACHINE_TEMPLATES,
+  machineRoute,
+} from './machine-fixture.mjs';
 
 // The repo root does not link every workspace package, so resolve the ones the
 // harness needs through the API workspace, which depends on both.
@@ -71,6 +76,7 @@ const durations = {
   memberAGets: 0,
   memberBGets: 0,
   superadminGets: 0,
+  machineGets: 0,
   controls: 0,
   readOnlyTools: 0,
   writeTools: 0,
@@ -105,6 +111,7 @@ const nextSequence =
     : undefined;
 const inventory = {};
 const inventoryTemplates = [];
+const getInventoryTemplates = [];
 let fixtureProof = {};
 let setupFailure;
 let mailStats;
@@ -164,6 +171,9 @@ try {
     '@genfeedai/prisma/client',
   );
   prisma = client;
+  const machineCrypto = await importFromApiWorkspace(
+    '@genfeedai/libs/crypto/credential-cipher.ts',
+  );
   const { getToolsForSurface, isReadOnlyToolName } =
     await importFromApiWorkspace('@genfeedai/actions');
   const setupRequest = createRequester({
@@ -191,6 +201,8 @@ try {
     getToolsForSurface('mcp'),
   );
   routeCount = targets.length;
+  getInventoryTemplates.push(...targets.map((route) => route.path));
+  planInventory('machineGets', 'MACHINE', 4);
   toolCount = tools.length;
   inventoryTemplates.push(
     ...targets.map((route) => route.path),
@@ -234,6 +246,10 @@ try {
         parentAbortSources: deadline.abortSources,
         source: 'fixture/readiness',
       }),
+      machineCrypto: {
+        ...machineCrypto,
+        secret: Reflect.get(process.env, 'TOKEN_ENCRYPTION_KEY'),
+      },
       readMailStats: () =>
         readMailStats(
           Reflect.get(process.env, 'CLOUD_SWEEP_RUN_DIR'),
@@ -315,6 +331,22 @@ try {
       ),
     sweepSignal,
   );
+  await measure('machineGets', async () => {
+    for (const template of MACHINE_TEMPLATES) {
+      sweepSignal.throwIfAborted();
+      const response = await request(
+        {
+          label: 'MACHINE',
+          token: Reflect.get(process.env, 'GENFEEDAI_API_KEY'),
+        },
+        'GET',
+        machineRoute(template, fixture.machineFixture),
+        { phase: 'machineGets', sweepPhase: 'machineGets', route: template },
+      );
+      if (!assertMachineResponse(template, response, fixture.machineFixture))
+        failures.push('machine-data-coverage');
+    }
+  });
   await measure('controls', async () => {
     await sweepOrganizationAndGrants(request, fixture);
     await activate(request, fixture.member, fixture.orgA);
@@ -363,7 +395,13 @@ try {
   );
   await getPhase(contexts[3], OVERRIDE_PHASE);
   failures.push(
-    ...coverageErrors(records, routeCount, toolCount, readOnlyToolCount),
+    ...coverageErrors(
+      records,
+      routeCount,
+      toolCount,
+      readOnlyToolCount,
+      getInventoryTemplates,
+    ),
   );
 } catch (error) {
   failures.push('Harness required proof or execution failed');
@@ -402,6 +440,8 @@ try {
     sourceSha,
     inventory,
     inventoryTemplates,
+    getInventoryTemplates,
+    machineCoverageRequired: true,
     phaseElapsed,
     fixtureProof,
     setupFailure,

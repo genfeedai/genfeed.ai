@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { validateCausalEvidence } from './causal-evidence.mjs';
 import { validateCpuEvidence } from './cpu-profile-evidence.mjs';
 import { validateMailStats } from './local-mail-stub.mjs';
+import { MACHINE_TEMPLATES, machineCoverage } from './machine-fixture.mjs';
 
 export function createDeadline(
   timeoutMs,
@@ -513,8 +514,11 @@ export function coverageErrors(
   routeCount,
   toolCount,
   readOnlyToolCount = toolCount,
+  templates,
 ) {
   const errors = [];
+  if (templates !== undefined)
+    errors.push(...machineCoverage(requests, templates, true).failures);
   if (routeCount < 100)
     errors.push(`Only ${routeCount} GET routes discovered (minimum 100)`);
   if (toolCount < 20)
@@ -535,7 +539,8 @@ export function coverageErrors(
         result.actor === actor &&
         result.status > 0 &&
         result.status !== 401 &&
-        result.status !== 429,
+        result.status !== 429 &&
+        !(templates && MACHINE_TEMPLATES.includes(result.route)),
     );
     const uniqueAttempted = new Set(
       attempted.map((result, index) => result.route ?? result.path ?? index),
@@ -547,7 +552,16 @@ export function coverageErrors(
     // Timeouts remain unknown evidence, governed by the ratio gate above.
     // They must not independently fail a minimum-sized route inventory.
     const timedOut = attempted.filter((result) => result.isTimeout).length;
-    const requiredCompleted = routeCount - timedOut;
+    const requiredCompleted =
+      routeCount -
+      timedOut -
+      (templates &&
+      MACHINE_TEMPLATES.every(
+        (template) =>
+          templates.filter((value) => value === template).length === 1,
+      )
+        ? 4
+        : 0);
     if (completed.length < requiredCompleted)
       errors.push(
         `${actor}: only ${completed.length} GET requests reached the API without auth/throttle/transport failure (minimum ${requiredCompleted}; ${timedOut} timeouts reported separately)`,
@@ -599,6 +613,7 @@ export const DIAGNOSTIC_PHASES = [
   'memberAGets',
   'memberBGets',
   'superadminGets',
+  'machineGets',
   'controls',
   'readOnlyTools',
   'writeTools',
@@ -615,6 +630,7 @@ export const DIAGNOSTIC_ACTORS = [
   'M:A',
   'M2:B',
   'S:A',
+  'MACHINE',
 ];
 export const ABORT_SOURCES = [
   'request timeout',
@@ -1029,6 +1045,11 @@ function buildTenantEvidence(report, templates) {
   };
 }
 const STATIC_FAILURE_LABELS = new Map([
+  ...[
+    'machine-route-inventory',
+    'machine-authorization-denial',
+    'machine-data-coverage',
+  ].map((label) => [label, label]),
   [
     'Harness required proof or execution failed',
     'harness-required-proof-or-execution',
@@ -1164,6 +1185,32 @@ function buildFailureEvidence(report) {
 export function buildDiagnosticSummary(report, fixtureProof = {}) {
   if (!/^[a-f0-9]{40}$/.test(report.sourceSha ?? ''))
     throw new Error('Immutable diagnostic source SHA required');
+  const machine = machineCoverage(
+    report.requests ?? [],
+    report.getInventoryTemplates ?? report.inventoryTemplates ?? [],
+    report.machineCoverageRequired === true,
+  );
+  for (const item of machine.denials) {
+    count(item.ordinaryAttempts);
+    count(item.ordinaryCompletions);
+    for (const probe of item.denials) {
+      count(probe.attempts);
+      if (
+        probe.status !== null &&
+        (!Number.isInteger(probe.status) ||
+          probe.status < 0 ||
+          probe.status > 599)
+      )
+        throw new Error('Unsafe machine status');
+    }
+  }
+  count(machine.discoveredGets);
+  if (machine.available && machine.failures.length) {
+    report.hasFailed = true;
+    report.failures ??= [];
+    for (const label of machine.failures)
+      if (!report.failures.includes(label)) report.failures.push(label);
+  }
   const templates = new Set(report.inventoryTemplates ?? []);
   for (const template of templates)
     if (
@@ -1349,6 +1396,7 @@ export function buildDiagnosticSummary(report, fixtureProof = {}) {
     throw new Error('Inconsistent diagnostic failure attempts');
   return {
     schemaVersion: 1,
+    machineCoverage: machine,
     setupEvidence: buildSetupEvidence(report),
     tenantEvidence: buildTenantEvidence(report, templates),
     failureEvidence: buildFailureEvidence(report),

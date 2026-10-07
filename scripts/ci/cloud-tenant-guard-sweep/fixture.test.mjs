@@ -6,7 +6,7 @@ import { createDeadline } from './core.mjs';
 import {
   fixtureDatabase,
   printFixtureFailure,
-  seedFixture as realSeedFixture,
+  seedFixture as seedFixtureImplementation,
   sweepOrganizationAndGrants,
   warmup,
 } from './fixture.mjs';
@@ -14,6 +14,34 @@ import {
 import { createRequester } from './http.mjs';
 
 import { zeroMailStats } from './local-mail-stub.mjs';
+
+const machineCrypto = {
+  secret: 'synthetic-cipher-key',
+  deriveEncryptionKey: (value) => value,
+  encryptWithKey: () => 'synthetic-encrypted-fixture',
+};
+function realSeedFixture(request, prisma, options = {}) {
+  const rows = new Map();
+  const transaction = Object.fromEntries(
+    ['orgIntegration', 'workflow', 'workflowVersion', 'workflowExecution'].map(
+      (name) => [
+        name,
+        {
+          create: async ({ data }) => {
+            rows.set(name, data);
+            return data;
+          },
+          findFirst: async () => rows.get(name),
+        },
+      ],
+    ),
+  );
+  return seedFixtureImplementation(
+    request,
+    { ...prisma, $transaction: async (run) => run(transaction) },
+    { machineCrypto, ...options },
+  );
+}
 
 // Existing workflow mocks retain their successful auth behavior while explicitly
 // modeling the additional verification-mail and unauthenticated denial boundary.

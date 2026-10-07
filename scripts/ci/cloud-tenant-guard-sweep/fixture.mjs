@@ -1,5 +1,4 @@
 import { setTimeout as delay } from 'node:timers/promises';
-
 import { createDeadline, sanitizeSetupAttempt, tenantHit } from './core.mjs';
 import {
   entity,
@@ -13,6 +12,7 @@ import {
   MAIL_REASONS,
   validateMailStats,
 } from './local-mail-stub.mjs';
+import { seedMachineFixture } from './machine-fixture.mjs';
 
 export async function warmup(request) {
   requireSuccess(
@@ -124,6 +124,7 @@ export async function seedFixture(
     wait = delay,
     now = () => performance.now(),
     readMailStats,
+    machineCrypto,
   } = {},
 ) {
   if (typeof readMailStats !== 'function')
@@ -353,9 +354,12 @@ export async function seedFixture(
   // This also proves that the IP-bound platform role survived middleware.
   requireSuccess(
     await request(superadmin, 'PATCH', '/v1/admin/platform-settings', {
-      body: { flags: { agent: true } },
+      body: { flags: { agent: true }, imageCompressionQuality: 47 },
     }),
     'Configure CI platform settings',
+  );
+  const machineFixture = await database('Machine fixture', () =>
+    seedMachineFixture(prisma, orgA, machineCrypto),
   );
   orgS.personaId = entity(
     requireSuccess(
@@ -482,6 +486,7 @@ export async function seedFixture(
       verifiedAuthentication: true,
     },
     mailStats,
+    machineFixture,
   };
 }
 
