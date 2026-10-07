@@ -367,6 +367,28 @@ describe('AuthBootstrapService', () => {
     expect(accessBootstrapCacheService.set).not.toHaveBeenCalled();
   });
 
+  it('loads saved personal settings instead of restoring defaults on reload', async () => {
+    const settings = {
+      agentMode: 'auto',
+      isAdvancedMode: false,
+      theme: 'light',
+    };
+    usersService.findOne.mockImplementation(async (_params, populate) => ({
+      id: 'user_1',
+      ...(populate?.some(
+        (relation: { path: string }) => relation.path === 'settings',
+      )
+        ? { settings }
+        : {}),
+    }));
+
+    const result = await service.getBootstrap({
+      user: { id: 'user_1', organizationId: 'org_1', userId: 'user_1' },
+    } as never);
+
+    expect(result.currentUser?.settings).toEqual(settings);
+  });
+
   it('builds a nested shell bootstrap payload from authoritative services', async () => {
     const userId = 'test-object-id';
     const organizationId = 'test-object-id';
@@ -498,7 +520,7 @@ describe('AuthBootstrapService', () => {
       {
         id: userId,
       },
-      [],
+      [{ path: 'settings' }],
     );
     expect(accessBootstrapCacheService.set).toHaveBeenCalledWith(
       userId,

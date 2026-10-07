@@ -237,7 +237,7 @@ export class AuthBootstrapService {
               {
                 id: userId,
               },
-              [],
+              [{ path: 'settings' }],
             )
           : null,
         hasValidOrganizationId

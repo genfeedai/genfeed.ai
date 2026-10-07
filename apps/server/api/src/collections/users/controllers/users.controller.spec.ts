@@ -441,6 +441,70 @@ describe('UsersController', () => {
   });
 
   describe('updateMeSettings', () => {
+    it.each(['personal', 'favorites', 'admin'])(
+      'invalidates the saved user snapshots after a %s settings write',
+      async (route) => {
+        const targetUserId = route === 'admin' ? 'other-user' : userId;
+        usersService.findOne.mockResolvedValue({
+          id: targetUserId,
+          settings: { id: settingsId },
+        });
+        const saved = { id: settingsId, isAdvancedMode: false };
+        settingsService.patch.mockResolvedValue(saved);
+        settingsService.patchWithFavoriteWorkflowIds.mockResolvedValue(saved);
+
+        if (route === 'admin') {
+          await relationshipsController.updateSettings(
+            mockRequest,
+            {
+              id: 'admin-subject',
+              userId,
+              organizationId: orgId,
+              isSuperAdmin: true,
+            } as never,
+            targetUserId,
+            { isAdvancedMode: false } as never,
+          );
+        } else {
+          await relationshipsController.updateMeSettings(
+            mockRequest,
+            mockUser,
+            (route === 'favorites'
+              ? { favoriteWorkflowIds: [] }
+              : { isAdvancedMode: false }) as never,
+          );
+        }
+
+        expect(
+          accessBootstrapCacheService.invalidateForUser,
+        ).toHaveBeenCalledWith(targetUserId);
+        expect(
+          requestContextCacheService.invalidateForUser,
+        ).toHaveBeenCalledWith(targetUserId);
+        expect(
+          betterAuthIdentityCacheService.invalidateForUser,
+        ).toHaveBeenCalledWith(targetUserId);
+      },
+    );
+
+    it('does not invalidate snapshots when the settings write fails', async () => {
+      usersService.findOne.mockResolvedValue({
+        id: userId,
+        settings: { id: settingsId },
+      });
+      settingsService.patch.mockRejectedValue(new Error('write failed'));
+
+      await expect(
+        relationshipsController.updateMeSettings(mockRequest, mockUser, {
+          isAdvancedMode: false,
+        } as never),
+      ).rejects.toThrow('write failed');
+
+      expect(
+        accessBootstrapCacheService.invalidateForUser,
+      ).not.toHaveBeenCalled();
+    });
+
     it('should update user settings and return serialized data', async () => {
       usersService.findOne.mockResolvedValue({
         id: userId,
