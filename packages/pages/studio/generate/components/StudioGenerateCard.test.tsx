@@ -588,6 +588,19 @@ describe('persisted failed Studio recovery', () => {
               ? actions.onSeeDetails
               : actions.failedRecovery.onReviewFailedIngredient;
         expect(callback).toHaveBeenCalledWith(ingredient);
+        if (action !== 'retry') {
+          expect(
+            actions.failedRecovery.onRetryFailedIngredient,
+          ).not.toHaveBeenCalled();
+        }
+        if (action !== 'review') {
+          expect(
+            actions.failedRecovery.onReviewFailedIngredient,
+          ).not.toHaveBeenCalled();
+        }
+        if (action !== 'inspect') {
+          expect(actions.onSeeDetails).not.toHaveBeenCalled();
+        }
         expect(
           screen.getByRole('button', { name: /Remove/ }),
         ).toBeInTheDocument();
