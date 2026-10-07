@@ -51,6 +51,8 @@ beforeEach(() => {
 describe('workspace inbox read state', () => {
   it('treats unseen completed tasks as unread and later updates as unread again', () => {
     expect(isWorkspaceInboxTaskUnread(task, [])).toBe(true);
+    expect(isWorkspaceInboxTaskUnread(task, undefined)).toBe(true);
+    expect(isWorkspaceInboxTaskUnread(task, null)).toBe(true);
     expect(isWorkspaceInboxTaskUnread(task, reads)).toBe(false);
     expect(
       isWorkspaceInboxTaskUnread(
@@ -93,6 +95,14 @@ describe('workspace inbox read state', () => {
     expect(result.current.isUnread(task)).toBe(false);
     await waitFor(() => expect(result.current.state.isSuccess).toBe(true));
     expect(mocks.get).toHaveBeenCalledTimes(1);
+    expect(result.current.isUnread(task)).toBe(true);
+  });
+  it('keeps the inbox mounted when a loaded read state omits reads', async () => {
+    mocks.get.mockResolvedValue({ id: 'org-1', unreadCount: 2 });
+    const { result } = renderHook(() => useWorkspaceInboxRead(), {
+      wrapper: createQueryWrapper(),
+    });
+    await waitFor(() => expect(result.current.state.isSuccess).toBe(true));
     expect(result.current.isUnread(task)).toBe(true);
   });
   it('keeps rows unread after a failed write', async () => {

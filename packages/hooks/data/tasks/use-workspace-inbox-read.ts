@@ -9,9 +9,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export function isWorkspaceInboxTaskUnread(
   task: Pick<Task, 'id' | 'updatedAt' | 'createdAt'>,
-  reads: readonly IWorkspaceInboxRead[],
+  reads: readonly IWorkspaceInboxRead[] | null | undefined,
 ): boolean {
-  const seen = reads.find((read) => read.taskId === task.id)?.seenUpdatedAt;
+  // A task collection (or any partial payload) has no reads list. Missing
+  // receipts mean unseen. Calling find on that list crashes the inbox.
+  const readList = Array.isArray(reads) ? reads : [];
+  const seen = readList.find((read) => read.taskId === task.id)?.seenUpdatedAt;
   return (
     !seen ||
     new Date(task.updatedAt ?? task.createdAt).getTime() >
