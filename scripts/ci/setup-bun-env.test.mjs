@@ -128,3 +128,15 @@ test('downloads only the Playwright browser when its cache is cold', () => {
     /if: \$\{\{ inputs\.cache-playwright == 'true' && steps\.playwright-cache\.outputs\.cache-hit != 'true' \}\}[\s\S]*?run: npx playwright install chromium/,
   );
 });
+
+test('supports isolated cold setup measurements while retaining cache by default', () => {
+  assert.match(action, /cache-dependencies:[\s\S]*?default: 'true'/);
+  assert.match(
+    action,
+    /name: Cache bun modules\n {6}id: bun-cache\n {6}if: \$\{\{ inputs\.cache-dependencies == 'true' \}\}/,
+  );
+  assert.match(
+    action,
+    /CI_CHECK_RUNTIME=\$\{RUNNER_OS\}\/\$\{RUNNER_ARCH\}\/\$\{SETUP_BUN_VERSION\}\/\$\(node --version\)/,
+  );
+});

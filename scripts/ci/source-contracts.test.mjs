@@ -16,6 +16,7 @@ import {
   createResolver,
   isTestSupport,
   partitionSourceContracts,
+  runSourceContracts,
   selectSourceContracts,
   sourceImports,
 } from './source-contracts.mjs';
@@ -256,4 +257,59 @@ test('retains all connected Crun cases and their real fixture-owning API job', (
     assert.match(source, /throw new Error\(\s*'Dedicated /);
     assert.equal(config.includes(path.basename(file)), false);
   }
+});
+
+test('overlaps surfaces within two workers, executes every discovered reader, and awaits all failures', async () => {
+  const surfaces = [
+    { directory: 'app', config: 'app.config' },
+    { directory: 'api', config: 'api.config' },
+  ];
+  const calls = [];
+  const pending = [];
+  const execution = runSourceContracts({
+    root: '/repo',
+    surfaces,
+    discover: (surface) => [`/repo/${surface.directory}/guard.test.ts`],
+    execute: (command, args, options) => {
+      calls.push({ command, args, options });
+      return new Promise((resolve, reject) =>
+        pending.push({ resolve, reject }),
+      );
+    },
+  });
+  assert.equal(calls.length, 2, 'both surfaces start before either finishes');
+  for (const call of calls) {
+    assert.equal(call.command, 'bunx');
+    assert.ok(call.args.includes('--maxWorkers=1'));
+    assert.ok(call.args.includes('guard.test.ts'));
+    assert.ok(!call.args.includes('--changed'));
+    assert.equal(call.options.env.CI, 'true');
+  }
+  let finished = false;
+  const outcome = execution.catch((error) => {
+    finished = true;
+    return error;
+  });
+  pending[0].reject(new Error('app contract failed'));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(finished, false, 'one failure cannot abandon another surface');
+  pending[1].reject(new Error('API contract failed'));
+  const error = await outcome;
+  assert.ok(error instanceof AggregateError);
+  assert.equal(error.errors.length, 2);
+});
+
+test('source-contract listing discovers all surfaces without executing tests', async () => {
+  const results = await runSourceContracts({
+    root: '/repo',
+    listOnly: true,
+    surfaces: [{ directory: 'app', config: 'app.config' }],
+    discover: () => ['/repo/app/guard.test.ts'],
+    execute: () => {
+      throw new Error('listing must not execute');
+    },
+  });
+  assert.deepEqual(results, [
+    { surface: 'app', files: ['guard.test.ts'], connectedFiles: [] },
+  ]);
 });

@@ -10,6 +10,10 @@ inputs:
     description: Dependency install command to run after toolchain setup
     required: false
     default: 'bun install --frozen-lockfile'
+  cache-dependencies:
+    description: Restore and save the Bun download cache (false for cold setup measurements)
+    required: false
+    default: 'true'
   cache-playwright:
     description: |
       Whether to cache Playwright browser binaries (chromium) and install
@@ -17,6 +21,14 @@ inputs:
       unaffected.
     required: false
     default: 'false'
+
+outputs:
+  resolved-bun-version:
+    description: Actual resolved Bun version
+    value: ${{ steps.setup-bun.outputs.bun-version }}
+  dependency-cache-hit:
+    description: Exact Bun download-cache key hit (empty when disabled)
+    value: ${{ steps.bun-cache.outputs.cache-hit }}
 
 runs:
   using: composite
@@ -32,7 +44,17 @@ runs:
       with:
         bun-version-file: .bun-version
 
+    # Cacheable filesystem guards include the actual rolling toolchain in
+    # their Turbo hash; a Bun/Node update must not reuse an older receipt.
+    - name: Export check runtime identity
+      shell: bash
+      env:
+        SETUP_BUN_VERSION: ${{ steps.setup-bun.outputs.bun-version }}
+      run: echo "CI_CHECK_RUNTIME=${RUNNER_OS}/${RUNNER_ARCH}/${SETUP_BUN_VERSION}/$(node --version)" >> "$GITHUB_ENV"
+
     - name: Cache bun modules
+      id: bun-cache
+      if: ${{ inputs.cache-dependencies == 'true' }}
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.bun/install/cache
