@@ -280,7 +280,7 @@ describe('MetaAdsService - Write Operations', () => {
       await service.pauseCampaign(mockAccessToken, '120001');
 
       expect(httpService.post).toHaveBeenCalledWith(
-        expect.stringContaining('v24.0/120001'),
+        expect.stringContaining('v26.0/120001'),
         null,
         expect.any(Object),
       );
@@ -422,6 +422,7 @@ describe('MetaAdsService - Write Operations', () => {
       expect(targeting.age_min).toBe(25);
       expect(targeting.age_max).toBe(45);
       expect(targeting.genders).toEqual([1, 2]);
+      expect(targeting.targeting_automation).toEqual({ advantage_audience: 0 });
     });
 
     it('should convert adset daily budget to cents', async () => {
@@ -530,6 +531,7 @@ describe('MetaAdsService - Write Operations', () => {
       >;
       const targeting = JSON.parse(params.targeting as string);
       expect(targeting.geo_locations).toEqual({ countries: ['UK'] });
+      expect(targeting).not.toHaveProperty('targeting_automation');
     });
 
     it('should convert adset daily budget on update', async () => {
@@ -731,7 +733,7 @@ describe('MetaAdsService - Write Operations', () => {
       await service.deleteAd(mockAccessToken, 'ad_001');
 
       expect(httpService.delete).toHaveBeenCalledWith(
-        expect.stringContaining('v24.0/ad_001'),
+        expect.stringContaining('v26.0/ad_001'),
         expect.objectContaining({
           params: expect.objectContaining({
             access_token: mockAccessToken,

@@ -266,7 +266,7 @@ describe('InstagramAuthorizedSignalsService', () => {
 
     service = new InstagramAuthorizedSignalsService(
       cacheService as unknown as CacheService,
-      { get: vi.fn().mockReturnValue('v24.0') } as unknown as ConfigService,
+      { get: vi.fn().mockReturnValue('v26.0') } as unknown as ConfigService,
       credentialsService as unknown as CredentialsService,
       httpService as unknown as HttpService,
       instagramService as unknown as InstagramService,
