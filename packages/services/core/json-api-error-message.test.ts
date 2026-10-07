@@ -101,6 +101,25 @@ describe('getJsonApiErrorMessage', () => {
   });
 });
 
+interface InvalidPersistedVideoIdsCase {
+  readonly label: string;
+  readonly ids: readonly unknown[];
+}
+
+const invalidPersistedVideoIdsCases: readonly InvalidPersistedVideoIdsCase[] = [
+  { label: 'empty list', ids: [] },
+  { label: 'empty ID', ids: [''] },
+  { label: 'duplicate IDs', ids: ['a', 'a'] },
+  { label: 'leading whitespace', ids: [' a'] },
+  { label: 'trailing whitespace', ids: ['a '] },
+  { label: 'newline control', ids: ['a\n'] },
+  { label: 'null control', ids: ['a\u0000'] },
+  { label: 'oversized ID', ids: ['a'.repeat(129)] },
+  { label: 'oversized list', ids: ['a', 'b', 'c', 'd', 'e'] },
+  { label: 'numeric ID', ids: [1] },
+  { label: 'mixed null ID', ids: ['a', null] },
+];
+
 describe('persisted video identity reader', () => {
   it('reads only the first actual member, direct/Axios documents and sanitized Error', () => {
     const ids = ['a', 'b', 'c', 'd'];
@@ -129,30 +148,21 @@ describe('persisted video identity reader', () => {
       }),
     ).toEqual([]);
   });
-  it.each([
-    [],
-    [''],
-    ['a', 'a'],
-    [' a'],
-    ['a '],
-    ['a\n'],
-    ['a\u0000'],
-    ['a'.repeat(129)],
-    ['a', 'b', 'c', 'd', 'e'],
-    [1],
-    ['a', null],
-  ])('refuses invalid complete envelope %j', (ids) => {
-    expect(
-      getPersistedVideoIngredientIds({
-        errors: [{ meta: { persistedVideoIngredientIds: ids } }],
-      }),
-    ).toEqual([]);
-    expect(
-      getPersistedVideoIngredientIds(
-        Object.assign(new Error('sanitized'), {
-          persistedVideoIngredientIds: ids,
+  it.each(invalidPersistedVideoIdsCases)(
+    'refuses invalid complete envelope: $label',
+    ({ ids }) => {
+      expect(
+        getPersistedVideoIngredientIds({
+          errors: [{ meta: { persistedVideoIngredientIds: ids } }],
         }),
-      ),
-    ).toEqual([]);
-  });
+      ).toEqual([]);
+      expect(
+        getPersistedVideoIngredientIds(
+          Object.assign(new Error('sanitized'), {
+            persistedVideoIngredientIds: ids,
+          }),
+        ),
+      ).toEqual([]);
+    },
+  );
 });

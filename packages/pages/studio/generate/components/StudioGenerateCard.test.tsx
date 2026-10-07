@@ -536,7 +536,7 @@ describe('StudioGenerateCard', () => {
 });
 
 describe('persisted failed Studio recovery', () => {
-  for (const view of [ViewType.LIST, ViewType.GRID]) {
+  for (const view of [ViewType.LIST, ViewType.GRID] as const) {
     it.each([
       ['503 Service unavailable', 'Retry', 'retry', false],
       ['Missing reference', 'Replace', 'review', false],
