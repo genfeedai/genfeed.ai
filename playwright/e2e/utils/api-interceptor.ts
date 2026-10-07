@@ -1692,6 +1692,24 @@ async function handleTasksRoute(route: Route): Promise<void> {
   const request = route.request();
   const { pathname } = new URL(request.url());
 
+  // Inbox read state is one resource. The empty task collection below
+  // deserializes to an array, which the inbox treats as loaded state and
+  // then crashes while reading `reads`.
+  if (/\/tasks\/inbox\/read-(?:state|all)\/?$/.test(pathname)) {
+    await route.fulfill({
+      body: JSON.stringify(
+        wrapInJsonApi(
+          { reads: [], unreadCount: 0 },
+          'workspace-inbox-read',
+          'workspace-inbox-read',
+        ),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
   // A single task the spec did not mock does not exist: the real controller
   // answers 404 to reads and updates, which the detail page renders as
   // "not found".
