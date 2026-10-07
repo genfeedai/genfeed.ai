@@ -44,18 +44,14 @@ export function buildContentPipelineWorkflowDefinition(
     createGenfeedActionNode({
       actionId: 'content.pipeline.resolve-context',
       id: contextNodeId,
-      parameters: contextConfig,
+      parameters: { request: contextConfig },
       position: { x: 0, y: 0 },
     }),
     ...config.steps.map((step, stepIndex) =>
       createGenfeedActionNode({
         actionId: PIPELINE_ACTION_BY_STEP_TYPE[step.type],
         id: `generate-${stepIndex + 1}`,
-        parameters: {
-          ...sharedConfig,
-          step,
-          stepIndex,
-        },
+        parameters: { request: { ...sharedConfig, step, stepIndex } },
         position: { x: 0, y: (stepIndex + 1) * 160 },
       }),
     ),
@@ -65,7 +61,7 @@ export function buildContentPipelineWorkflowDefinition(
     createGenfeedActionNode({
       actionId: 'content.pipeline.publish',
       id: resultNodeId,
-      parameters: sharedConfig,
+      parameters: { request: sharedConfig },
       position: { x: 0, y: (config.steps.length + 1) * 160 },
     }),
   );

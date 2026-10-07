@@ -20,6 +20,15 @@ const ANNOUNCEMENT_REQUEST = closedObjectSchema(
   },
   ['authorId', 'body', 'channels', 'organizationId'],
 );
+const PINNED_RUNTIME_SKILL = closedObjectSchema(
+  {
+    contentHash: STRING_SCHEMA,
+    instructions: STRING_SCHEMA,
+    slug: STRING_SCHEMA,
+    versionId: STRING_SCHEMA,
+  },
+  ['contentHash', 'instructions', 'slug', 'versionId'],
+);
 const JSON_OBJECT_SCHEMA = {
   additionalProperties: JSON_DOCUMENT_SCHEMA,
   type: 'object',
@@ -106,8 +115,11 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   'voice.generate.execute': {
     inputSchema: closedObjectSchema(
       {
+        brandId: STRING_SCHEMA,
         ingredientId: STRING_SCHEMA,
         organizationId: STRING_SCHEMA,
+        pinnedSkills: arraySchema(PINNED_RUNTIME_SKILL),
+        requestedSkillSlugs: arraySchema(STRING_SCHEMA),
         text: STRING_SCHEMA,
         userId: STRING_SCHEMA,
         voiceId: STRING_SCHEMA,

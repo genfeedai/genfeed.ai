@@ -1,7 +1,14 @@
+import {
+  AUTOMATION_CHILD_WORKFLOWS,
+  AUTOMATION_WORKFLOW_IDS,
+} from '@api/collections/workflows/services/automation-workflow-definitions';
 import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
 import { getActionDefinition } from '@genfeedai/actions';
 import { PersonaContentFormat } from '@genfeedai/contracts';
-import { compileActionContract } from '@genfeedai/workflows/engine';
+import {
+  buildActionExecutionInput,
+  compileActionContract,
+} from '@genfeedai/workflows/engine';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('ContentProductionWorkflowService.discoverContentPipelinePersonas', () => {
@@ -179,6 +186,106 @@ describe('ContentProductionWorkflowService atomic actions', () => {
               (result[candidate] as unknown[]).length === 0,
           ),
       ).toBe(true);
+    },
+  );
+
+  it.each([
+    [
+      PersonaContentFormat.PHOTO,
+      'imageItems',
+      AUTOMATION_WORKFLOW_IDS.CONTENT_PIPELINE_IMAGE,
+    ],
+    [
+      PersonaContentFormat.AUDIO,
+      'musicItems',
+      AUTOMATION_WORKFLOW_IDS.CONTENT_PIPELINE_MUSIC,
+    ],
+    [
+      PersonaContentFormat.VIDEO,
+      'videoItems',
+      AUTOMATION_WORKFLOW_IDS.CONTENT_PIPELINE_VIDEO,
+    ],
+  ])(
+    'delivers a prepared %s request every typed pipeline contract accepts',
+    async (format, key, canonicalId) => {
+      const { service } = buildService();
+      const prepared = await service.prepareContentPipelinePersona({
+        item: {
+          brandId: 'brand-1',
+          config: {
+            contentStrategy: { formats: [format], topics: ['shipping'] },
+            profileImageUrl: 'https://cdn.example.com/persona.png',
+          },
+          credentialCount: 1,
+          id: 'persona-1',
+          label: 'Founder',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        },
+        now: '2026-08-28T00:00:00.000Z',
+      });
+      const [request] = prepared[key] as Record<string, unknown>[];
+      const workflow = AUTOMATION_CHILD_WORKFLOWS.find(
+        (definition) => definition.canonicalId === canonicalId,
+      );
+      const edgeValues: Record<string, unknown> = {
+        pipelineContext: { hasCredentials: true },
+        stepOutcome0: {
+          ingredientId: 'ingredient-1',
+          result: { contentType: 'image/png', url: 'https://cdn/x.png' },
+          step: request?.step,
+          stepIndex: 0,
+          timingMs: 1,
+        },
+      };
+
+      expect(request).toBeDefined();
+      expect(workflow?.definition.nodes).toHaveLength(3);
+      for (const node of workflow?.definition.nodes ?? []) {
+        const config = node.data.config as Record<string, unknown>;
+        const actionId = String(config.actionId);
+        const action = getActionDefinition(actionId);
+        const contract = compileActionContract(actionId, {
+          inputSchema: (action?.inputSchema ?? {}) as Readonly<
+            Record<string, unknown>
+          >,
+          outputSchema: (action?.outputSchema ?? {}) as Readonly<
+            Record<string, unknown>
+          >,
+        });
+        // Mirrors the converter: the child's `request` input variable is
+        // copied onto every node that lists it.
+        const inputs = Object.fromEntries(
+          (workflow?.definition.edges ?? [])
+            .filter((edge) => edge.target === node.id)
+            .map((edge) => [
+              edge.targetHandle ?? edge.source,
+              edgeValues[edge.targetHandle ?? edge.source],
+            ]),
+        );
+        const provenance = {
+          nodeId: node.id,
+          runId: 'run',
+          workflowId: canonicalId,
+          workflowVersionId: 'v1',
+        };
+
+        expect(() =>
+          contract.validateInput(
+            buildActionExecutionInput({ ...config, request }, inputs),
+            provenance,
+          ),
+        ).not.toThrow();
+        expect(() =>
+          contract.validateInput(
+            buildActionExecutionInput(
+              { ...config, request: { ...request, brandId: undefined } },
+              inputs,
+            ),
+            provenance,
+          ),
+        ).toThrow(/brandId/);
+      }
     },
   );
 
