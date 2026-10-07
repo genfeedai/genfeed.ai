@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import {
   type AgentChatRequest,
   type AgentPendingInputRequest,
@@ -13,7 +14,7 @@ import {
   type AgentLiveStreamEvent,
   openAgentLiveStream,
 } from '@/shell/agent-live-stream';
-import { extractString, isRecord } from '@/utils/extract';
+import { extractString } from '@/utils/extract';
 
 const EVENT_POLL_INTERVAL_MS = 250;
 

@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 export const REDACTED_VALUE = '[REDACTED]';
 
 const SENSITIVE_KEY_PATTERN =
@@ -17,10 +18,6 @@ const PROVIDER_TOKEN_PATTERN =
 const PRIVATE_KEY_BEGIN_PREFIX = '-----BEGIN ';
 const PRIVATE_KEY_END_PREFIX = '-----END ';
 const PRIVATE_KEY_MARKER_SUFFIX = 'PRIVATE KEY-----';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 function isSensitiveKey(key: string): boolean {
   return (

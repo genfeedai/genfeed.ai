@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 
 const DEFAULT_SCENARIO_PATH = fileURLToPath(
   new URL('./scenarios/brand-os-review.json', import.meta.url),
@@ -66,10 +67,6 @@ export type DesignEvalScenario = {
     width: number;
   };
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function requireNonEmptyString(
   value: unknown,

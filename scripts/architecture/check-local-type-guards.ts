@@ -5,7 +5,9 @@
  * `readNonEmptyString`, `readNonBlankString`, `readRawString`,
  * `readRecordOrNull`, `readRecordOrUndefined`, `isObjectLike`, `readRecordCopy` and the
  * `*OrNull` string readers) live in
- * `@genfeedai/utils/data/extract.util`. Re-declaring them lets copies drift on
+ * `@genfeedai/utils/data/extract.util` (re-exported from
+ * `@genfeedai/contracts/constants/type-guards.constant`, which packages that
+ * utils depends on import directly). Re-declaring them lets copies drift on
  * array, null and trimming handling.
  *
  * Remaining copies are ratcheted in `local-type-guards.baseline.ts`: a file may
@@ -18,7 +20,12 @@ import path from 'node:path';
 import { globSync } from 'glob';
 import { LOCAL_TYPE_GUARD_BASELINE } from './local-type-guards.baseline';
 
-const SHARED_HELPER_FILE = 'packages/utils/data/extract.util.ts';
+// `@genfeedai/utils` depends on contracts/helpers/services, so the canonical
+// implementation lives in contracts and extract.util re-exports it.
+const SHARED_HELPER_FILES: ReadonlySet<string> = new Set([
+  'packages/contracts/src/constants/type-guards.constant.ts',
+  'packages/utils/data/extract.util.ts',
+]);
 
 const DEFAULT_INCLUDE_GLOBS = [
   'apps/**/*.{ts,tsx}',
@@ -98,7 +105,7 @@ export function runCheckLocalTypeGuards(options: LocalTypeGuardOptions = {}): {
 
   for (const filePath of files) {
     const file = normalizePath(path.relative(rootDir, filePath));
-    if (file === SHARED_HELPER_FILE) {
+    if (SHARED_HELPER_FILES.has(file)) {
       continue;
     }
     const count = [
@@ -122,7 +129,7 @@ export function runCheckLocalTypeGuards(options: LocalTypeGuardOptions = {}): {
         file,
         kind: 'new-local-copy',
         message:
-          'Import isRecord/readString/readRecord (or a variant) from @genfeedai/utils/data/extract.util instead of declaring a local copy.',
+          'Import isRecord/readString/readRecord (or a variant) from @genfeedai/utils/data/extract.util (or @genfeedai/contracts/constants/type-guards.constant in packages utils depends on) instead of declaring a local copy.',
       });
     } else if (count < allowed) {
       violations.push({

@@ -1,3 +1,4 @@
+import { readString } from '@genfeedai/contracts/constants/type-guards.constant';
 import { Command } from 'commander';
 import ora from 'ora';
 import { executeAgentTool } from '@/api/agent-tools';
@@ -9,10 +10,6 @@ import { GenfeedError, handleError } from '@/utils/errors';
 
 const POLL_MS = 2000;
 const DEFAULT_TIMEOUT_MS = 15 * 60 * 1000;
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
-}
 
 async function waitForAuthorization(
   connectionId: string,

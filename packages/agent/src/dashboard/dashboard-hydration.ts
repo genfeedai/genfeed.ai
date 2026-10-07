@@ -5,6 +5,7 @@ import {
   parseDashboardOpenUIDocument,
 } from '@genfeedai/agent/dashboard/dashboard-openui';
 import { DASHBOARD_KPI_CATALOG } from '@genfeedai/agent/dashboard/dashboard-presets';
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import type {
   AgentUIBlock,
   AgentUIBlockType,
@@ -48,10 +49,6 @@ const KPI_CATALOG_BY_KEY = new Map<string, DashboardKpiDefinition>(
 export interface SanitizeLayoutResult {
   document: PersistedDashboardLayoutDocument;
   issues: DashboardValidationIssue[];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function toFiniteNumber(value: unknown): number | undefined {

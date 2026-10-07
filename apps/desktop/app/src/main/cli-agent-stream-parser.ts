@@ -1,3 +1,7 @@
+import {
+  isRecord,
+  readNonEmptyStringOrNull,
+} from '@genfeedai/contracts/constants/type-guards.constant';
 import type {
   DesktopCliAgentToolCallStatus,
   IDesktopCliAgentMessageEvent,
@@ -51,13 +55,11 @@ const CLAUDE_MCP_TOOL_PREFIX = `mcp__${GENFEED_MCP_SERVER_NAME}__`;
 
 type JsonRecord = Record<string, unknown>;
 
-function isRecord(value: unknown): value is JsonRecord {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function readString(record: JsonRecord | null, key: string): string | null {
-  const value = record?.[key];
-  return typeof value === 'string' && value.length > 0 ? value : null;
+function readStringField(
+  record: JsonRecord | null,
+  key: string,
+): string | null {
+  return readNonEmptyStringOrNull(record?.[key]);
 }
 
 function readNumber(
@@ -245,17 +247,17 @@ export function createClaudeStreamParser(): CliAgentStreamParser {
   let currentStreamMessageId: string | null = null;
 
   const handleStreamEvent = (event: JsonRecord): CliAgentParsedEvent[] => {
-    const eventType = readString(event, 'type');
+    const eventType = readStringField(event, 'type');
 
     if (eventType === 'message_start') {
       const message = isRecord(event.message) ? event.message : null;
-      currentStreamMessageId = readString(message, 'id');
+      currentStreamMessageId = readStringField(message, 'id');
       return [];
     }
 
     if (eventType === 'content_block_delta') {
       const delta = isRecord(event.delta) ? event.delta : null;
-      if (readString(delta, 'type') !== 'text_delta') {
+      if (readStringField(delta, 'type') !== 'text_delta') {
         return [];
       }
 
@@ -263,7 +265,7 @@ export function createClaudeStreamParser(): CliAgentStreamParser {
       streamedMessageIds.add(messageId);
       return state.appendText(
         `${messageId}:${String(readNumber(event, 'index') ?? 0)}`,
-        readString(delta, 'text') ?? '',
+        readStringField(delta, 'text') ?? '',
       );
     }
 
@@ -272,7 +274,7 @@ export function createClaudeStreamParser(): CliAgentStreamParser {
 
   const handleAssistant = (record: JsonRecord): CliAgentParsedEvent[] => {
     const message = isRecord(record.message) ? record.message : null;
-    const messageId = readString(message, 'id') ?? 'assistant';
+    const messageId = readStringField(message, 'id') ?? 'assistant';
     const content = Array.isArray(message?.content) ? message.content : [];
     const events: CliAgentParsedEvent[] = [];
 
@@ -281,9 +283,9 @@ export function createClaudeStreamParser(): CliAgentStreamParser {
         return;
       }
 
-      const blockType = readString(block, 'type');
+      const blockType = readStringField(block, 'type');
       if (blockType === 'text') {
-        const text = readString(block, 'text') ?? '';
+        const text = readStringField(block, 'text') ?? '';
         if (!streamedMessageIds.has(messageId)) {
           events.push(...state.appendText(`${messageId}:${index}`, text));
         }
@@ -294,8 +296,8 @@ export function createClaudeStreamParser(): CliAgentStreamParser {
       }
 
       if (blockType === 'tool_use') {
-        const id = readString(block, 'id') ?? `${messageId}:${index}`;
-        const name = displayToolName(readString(block, 'name') ?? 'tool');
+        const id = readStringField(block, 'id') ?? `${messageId}:${index}`;
+        const name = displayToolName(readStringField(block, 'name') ?? 'tool');
         events.push(...state.startToolCall(id, name, block.input));
       }
     });
@@ -309,11 +311,14 @@ export function createClaudeStreamParser(): CliAgentStreamParser {
     const events: CliAgentParsedEvent[] = [];
 
     for (const block of content) {
-      if (!isRecord(block) || readString(block, 'type') !== 'tool_result') {
+      if (
+        !isRecord(block) ||
+        readStringField(block, 'type') !== 'tool_result'
+      ) {
         continue;
       }
 
-      const id = readString(block, 'tool_use_id');
+      const id = readStringField(block, 'tool_use_id');
       if (!id) {
         continue;
       }
@@ -332,7 +337,7 @@ export function createClaudeStreamParser(): CliAgentStreamParser {
   };
 
   const handleResult = (record: JsonRecord): CliAgentParsedEvent[] => {
-    const sessionId = readString(record, 'session_id') ?? state.sessionId;
+    const sessionId = readStringField(record, 'session_id') ?? state.sessionId;
     state.sessionId = sessionId;
     const usageRecord = isRecord(record.usage) ? record.usage : null;
     const usage: IDesktopCliAgentUsage = {
@@ -357,8 +362,8 @@ export function createClaudeStreamParser(): CliAgentStreamParser {
     const hasUsage = Object.keys(usage).length > 0;
     const isError =
       record.is_error === true ||
-      (readString(record, 'subtype') ?? 'success') !== 'success';
-    const resultText = readString(record, 'result') ?? '';
+      (readStringField(record, 'subtype') ?? 'success') !== 'success';
+    const resultText = readStringField(record, 'result') ?? '';
     const errors = Array.isArray(record.errors)
       ? record.errors.filter(
           (entry): entry is string => typeof entry === 'string',
@@ -367,7 +372,7 @@ export function createClaudeStreamParser(): CliAgentStreamParser {
     const errorMessage = isError
       ? resultText ||
         errors.join('\n') ||
-        readString(record, 'subtype') ||
+        readStringField(record, 'subtype') ||
         'Claude Code failed to complete the turn.'
       : undefined;
 
@@ -401,17 +406,17 @@ export function createClaudeStreamParser(): CliAgentStreamParser {
         return [];
       }
 
-      switch (readString(record, 'type')) {
+      switch (readStringField(record, 'type')) {
         case 'system': {
-          if (readString(record, 'subtype') !== 'init') {
+          if (readStringField(record, 'subtype') !== 'init') {
             return [];
           }
-          const sessionId = readString(record, 'session_id');
+          const sessionId = readStringField(record, 'session_id');
           if (!sessionId) {
             return [];
           }
           state.sessionId = sessionId;
-          const model = readString(record, 'model');
+          const model = readStringField(record, 'model');
           return [{ ...(model ? { model } : {}), sessionId, type: 'session' }];
         }
         case 'stream_event':
@@ -447,7 +452,7 @@ function readCodexErrorMessage(value: unknown): string | null {
   if (typeof value === 'string' && value) {
     return value;
   }
-  return isRecord(value) ? readString(value, 'message') : null;
+  return isRecord(value) ? readStringField(value, 'message') : null;
 }
 
 /**
@@ -463,27 +468,28 @@ export function createCodexStreamParser(): CliAgentStreamParser {
     phase: 'completed' | 'started' | 'updated',
     item: JsonRecord,
   ): CliAgentParsedEvent[] => {
-    const id = readString(item, 'id') ?? `item-${String(Date.now())}`;
-    const itemType = readString(item, 'type') ?? readString(item, 'item_type');
+    const id = readStringField(item, 'id') ?? `item-${String(Date.now())}`;
+    const itemType =
+      readStringField(item, 'type') ?? readStringField(item, 'item_type');
 
     if (itemType === 'agent_message' || itemType === 'assistant_message') {
       if (phase !== 'completed') {
         return [];
       }
-      const text = readString(item, 'text') ?? '';
+      const text = readStringField(item, 'text') ?? '';
       return text
         ? [...state.appendText(id, text), { text, type: 'message' }]
         : [];
     }
 
     if (itemType === 'mcp_tool_call') {
-      const server = readString(item, 'server');
-      const tool = readString(item, 'tool') ?? 'tool';
+      const server = readStringField(item, 'server');
+      const tool = readStringField(item, 'tool') ?? 'tool';
       const name =
         server && server !== GENFEED_MCP_SERVER_NAME
           ? `${server}.${tool}`
           : tool;
-      const status = readString(item, 'status');
+      const status = readStringField(item, 'status');
 
       if (
         phase !== 'completed' &&
@@ -509,16 +515,18 @@ export function createCodexStreamParser(): CliAgentStreamParser {
 
     if (itemType === 'command_execution') {
       const started = state.startToolCall(id, 'shell', {
-        command: readString(item, 'command') ?? '',
+        command: readStringField(item, 'command') ?? '',
       });
       if (phase !== 'completed') {
         return started;
       }
       const exitCode = readNumber(item, 'exit_code');
       const isFailed =
-        readString(item, 'status') === 'failed' ||
+        readStringField(item, 'status') === 'failed' ||
         (exitCode !== undefined && exitCode !== 0);
-      const output = summarizeToolResult(readString(item, 'aggregated_output'));
+      const output = summarizeToolResult(
+        readStringField(item, 'aggregated_output'),
+      );
       return [
         ...started,
         ...state.finishToolCall(id, isFailed ? 'failed' : 'completed', {
@@ -531,7 +539,7 @@ export function createCodexStreamParser(): CliAgentStreamParser {
 
     if (itemType === 'web_search') {
       const started = state.startToolCall(id, 'web_search', {
-        query: readString(item, 'query') ?? '',
+        query: readStringField(item, 'query') ?? '',
       });
       return phase === 'completed'
         ? [...started, ...state.finishToolCall(id, 'completed', {})]
@@ -539,7 +547,7 @@ export function createCodexStreamParser(): CliAgentStreamParser {
     }
 
     if (itemType === 'error' && phase === 'completed') {
-      state.lastError = readString(item, 'message') ?? state.lastError;
+      state.lastError = readStringField(item, 'message') ?? state.lastError;
     }
 
     return [];
@@ -566,18 +574,18 @@ export function createCodexStreamParser(): CliAgentStreamParser {
 
   /** Legacy `{ id, msg: { type, ... } }` envelope from older Codex builds. */
   const handleLegacyMessage = (message: JsonRecord): CliAgentParsedEvent[] => {
-    switch (readString(message, 'type')) {
+    switch (readStringField(message, 'type')) {
       case 'session_configured': {
-        const sessionId = readString(message, 'session_id');
+        const sessionId = readStringField(message, 'session_id');
         if (!sessionId) {
           return [];
         }
         state.sessionId = sessionId;
-        const model = readString(message, 'model');
+        const model = readStringField(message, 'model');
         return [{ ...(model ? { model } : {}), sessionId, type: 'session' }];
       }
       case 'agent_message': {
-        const text = readString(message, 'message') ?? '';
+        const text = readStringField(message, 'message') ?? '';
         return text
           ? [
               ...state.appendText(`legacy-${String(state.text.length)}`, text),
@@ -590,8 +598,8 @@ export function createCodexStreamParser(): CliAgentStreamParser {
           ? message.invocation
           : null;
         return state.startToolCall(
-          readString(message, 'call_id') ?? 'mcp',
-          readString(invocation, 'tool') ?? 'tool',
+          readStringField(message, 'call_id') ?? 'mcp',
+          readStringField(invocation, 'tool') ?? 'tool',
           invocation?.arguments,
         );
       }
@@ -599,7 +607,7 @@ export function createCodexStreamParser(): CliAgentStreamParser {
         const result = isRecord(message.result) ? message.result : null;
         const error = readCodexErrorMessage(result?.Err);
         return state.finishToolCall(
-          readString(message, 'call_id') ?? 'mcp',
+          readStringField(message, 'call_id') ?? 'mcp',
           error ? 'failed' : 'completed',
           error
             ? { error }
@@ -618,7 +626,7 @@ export function createCodexStreamParser(): CliAgentStreamParser {
         return completeTurn(false);
       case 'error': {
         const errorMessage =
-          readString(message, 'message') ??
+          readStringField(message, 'message') ??
           'Codex failed to complete the turn.';
         state.lastError = errorMessage;
         return completeTurn(true, errorMessage);
@@ -643,12 +651,13 @@ export function createCodexStreamParser(): CliAgentStreamParser {
         return handleLegacyMessage(record.msg);
       }
 
-      const eventType = readString(record, 'type');
+      const eventType = readStringField(record, 'type');
       switch (eventType) {
         case 'thread.started':
         case 'session.created': {
           const sessionId =
-            readString(record, 'thread_id') ?? readString(record, 'session_id');
+            readStringField(record, 'thread_id') ??
+            readStringField(record, 'session_id');
           if (!sessionId) {
             return [];
           }
@@ -682,7 +691,8 @@ export function createCodexStreamParser(): CliAgentStreamParser {
         }
         case 'error':
           // Codex reports transient retries here; the turn outcome follows.
-          state.lastError = readString(record, 'message') ?? state.lastError;
+          state.lastError =
+            readStringField(record, 'message') ?? state.lastError;
           return [];
         default:
           return [];

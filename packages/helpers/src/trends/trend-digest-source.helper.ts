@@ -12,6 +12,8 @@
  *
  * Pure functions only: no I/O, no `process.env`, no service access.
  */
+
+import { readRecordOrUndefined } from '@genfeedai/contracts/constants/type-guards.constant';
 import type { TrendDigestItem } from './trend-digest.helper';
 
 /** Structural view of a stored `trendingVideo.data` blob. */
@@ -140,10 +142,6 @@ function firstScore(
   return null;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 function readText(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
@@ -181,13 +179,11 @@ function firstMetadataUrl(
  * `name` / `score` inside `data`. `get_trends` reads `topic ?? name` and
  * `score`, so both locations have to resolve before the threshold runs.
  */
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return isRecord(value) ? value : undefined;
-}
-
 function flattenTopic(topic: RawTrendTopic): RawTrendTopic {
-  const data = asRecord(topic.data) ?? {};
-  const metadata = asRecord(topic.metadata) ?? asRecord(data.metadata);
+  const data = readRecordOrUndefined(topic.data) ?? {};
+  const metadata =
+    readRecordOrUndefined(topic.metadata) ??
+    readRecordOrUndefined(data.metadata);
 
   return {
     mentions:
