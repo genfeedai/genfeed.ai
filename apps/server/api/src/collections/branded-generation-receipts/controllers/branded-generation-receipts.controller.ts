@@ -9,6 +9,7 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import {
   serializeCollection,
   serializeSingle,
@@ -75,6 +76,7 @@ export class BrandedGenerationReceiptsController {
       throw new BadRequestException('receipt_query_invalid');
     return Number(value);
   }
+  @TenantReadPolicy('owner')
   @Get()
   @Header('Cache-Control', 'private,no-store')
   @Header('Vary', 'Cookie,Authorization')
@@ -92,6 +94,7 @@ export class BrandedGenerationReceiptsController {
       nextCursor: page.nextCursor,
     });
   }
+  @TenantReadPolicy('owner')
   @Get('identity-preview')
   @Header('Cache-Control', 'private,no-store')
   @Header('Vary', 'Cookie,Authorization')
@@ -130,6 +133,7 @@ export class BrandedGenerationReceiptsController {
       await this.receipts.get(this.actor(user, brandId), this.id(receiptId)),
     );
   }
+  @TenantReadPolicy('owner')
   @Get(':receiptId/history')
   @Header('Cache-Control', 'private,no-store')
   @Header('Vary', 'Cookie,Authorization')

@@ -9,6 +9,9 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import {
   serializeCollection,
   serializeSingle,
@@ -35,6 +38,7 @@ import type { Request } from 'express';
 export class BrandOsRevisionsController {
   constructor(private readonly revisions: BrandOsRevisionsService) {}
 
+  @TenantReadPolicy('mutating')
   @Get()
   async list(
     @Req() request: Request,
@@ -45,6 +49,7 @@ export class BrandOsRevisionsController {
     return serializeCollection(request, BrandOsRevisionSerializer, { docs });
   }
 
+  @TenantReadPolicy('selected')
   @Get(':revisionId')
   async get(
     @Req() request: Request,
@@ -55,7 +60,11 @@ export class BrandOsRevisionsController {
     return serializeSingle(
       request,
       BrandOsRevisionSerializer,
-      await this.revisions.get(this.organizationId(user), id, revisionId),
+      await this.revisions.get(
+        this.organizationId(user, resolveTenantReadScope(user)),
+        id,
+        revisionId,
+      ),
     );
   }
 
@@ -122,9 +131,9 @@ export class BrandOsRevisionsController {
     );
   }
 
-  private organizationId(user: User): string {
-    if (!user.organizationId)
+  private organizationId(user: User, readScope?: ITenantReadScope): string {
+    if (!(readScope?.organizationId ?? user.organizationId))
       throw new ForbiddenException('Organization context is required');
-    return user.organizationId;
+    return readScope?.organizationId ?? user.organizationId;
   }
 }

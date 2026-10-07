@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { BrandOsExportService } from '@api/services/brand-os-export/brand-os-export.service';
 import { PublishBrandOsDto } from '@api/services/brand-os-export/publish-brand-os.dto';
@@ -67,6 +68,7 @@ function sendArtifact(
 @UseFilters(BrandOsExportAuthFilter)
 export class BrandOsExportController {
   constructor(private readonly service: BrandOsExportService) {}
+  @TenantReadPolicy('owner')
   @Get('export')
   @Header('Cache-Control', 'no-store')
   async state(

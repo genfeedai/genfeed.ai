@@ -3,6 +3,9 @@ import { SubmitBrandInterviewAnswerDto } from '@api/collections/brands/brand-int
 import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import type {
   IActiveBrandInterview,
   IBrandInterviewAnswerResult,
@@ -32,8 +35,13 @@ export class BrandInterviewController {
   /**
    * Extract org context or throw 403.
    */
-  private requireOrganizationId(user: User): string {
-    const orgId = user.organizationId?.toString();
+  private requireOrganizationId(
+    user: User,
+    readScope?: ITenantReadScope,
+  ): string {
+    const orgId = (
+      readScope?.organizationId ?? user.organizationId
+    )?.toString();
 
     if (!orgId) {
       throw new HttpException(
@@ -68,12 +76,16 @@ export class BrandInterviewController {
    * GET /brands/:brandId/interview/active
    * Return the active (IN_PROGRESS) interview for a brand, or 404.
    */
+  @TenantReadPolicy('selected')
   @Get(':brandId/interview/active')
   async getActiveForBrand(
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
   ): Promise<IActiveBrandInterview | null> {
-    const organizationId = this.requireOrganizationId(user);
+    const organizationId = this.requireOrganizationId(
+      user,
+      resolveTenantReadScope(user),
+    );
     return this.brandInterviewService.getActiveForBrand(
       brandId,
       organizationId,
@@ -84,12 +96,16 @@ export class BrandInterviewController {
    * GET /brands/:brandId/completeness
    * Return brand completeness scores (interviewable gaps only).
    */
+  @TenantReadPolicy('selected')
   @Get(':brandId/completeness')
   async getCompleteness(
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
   ): Promise<IBrandInterviewCompleteness> {
-    const organizationId = this.requireOrganizationId(user);
+    const organizationId = this.requireOrganizationId(
+      user,
+      resolveTenantReadScope(user),
+    );
     return this.brandInterviewService.getCompleteness(brandId, organizationId);
   }
 
@@ -97,12 +113,16 @@ export class BrandInterviewController {
    * GET /brands/interview/:interviewId
    * Fetch a specific interview session.
    */
+  @TenantReadPolicy('selected')
   @Get('interview/:interviewId')
   async getById(
     @Param('interviewId') interviewId: string,
     @CurrentUser() user: User,
   ): Promise<BrandInterview> {
-    const organizationId = this.requireOrganizationId(user);
+    const organizationId = this.requireOrganizationId(
+      user,
+      resolveTenantReadScope(user),
+    );
     return this.brandInterviewService.getById(interviewId, organizationId);
   }
 

@@ -18,6 +18,8 @@ import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.gu
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   assertOrganizationCreditsAvailable,
@@ -78,6 +80,7 @@ export class ProfilesController {
   /**
    * Get all profiles
    */
+  @TenantReadPolicy('selected')
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
@@ -86,7 +89,7 @@ export class ProfilesController {
     @Query('search') search?: string,
     @Query('isDefault') isDefault?: string,
   ) {
-    const organization = user.organizationId;
+    const organization = resolveTenantReadScope(user).organizationId;
 
     const docs = await this.profilesService.findAll(organization, {
       isDefault: isDefault ? isDefault === 'true' : undefined,
@@ -98,6 +101,7 @@ export class ProfilesController {
   /**
    * Get one profile
    */
+  @TenantReadPolicy('selected')
   @Get(':profileId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
@@ -105,7 +109,7 @@ export class ProfilesController {
     @Param('profileId') profileId: string,
     @CurrentUser() user: User,
   ) {
-    const organization = user.organizationId;
+    const organization = resolveTenantReadScope(user).organizationId;
     const profile = await this.profilesService.findOne(profileId, organization);
     return serializeSingle(req, ProfileSerializer, profile);
   }

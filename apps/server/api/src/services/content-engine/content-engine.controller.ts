@@ -6,6 +6,8 @@ import { ContentPlansService } from '@api/collections/content-plans/services/con
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   serializeCollection,
   serializeSingle,
@@ -87,13 +89,14 @@ export class ContentEngineController {
     return this.contentPlanSeedsService.buildPreview(organization, brandId);
   }
 
+  @TenantReadPolicy('selected')
   @Get('plans')
   async listPlans(
     @Req() req: Request,
     @CurrentUser() user: User,
     @Param('brandId') brandId: string,
   ) {
-    const organization = user.organizationId;
+    const organization = resolveTenantReadScope(user).organizationId;
     const docs = await this.contentPlansService.listByBrand(
       organization,
       brandId,
@@ -101,13 +104,14 @@ export class ContentEngineController {
     return serializeCollection(req, ContentPlanSerializer, { docs });
   }
 
+  @TenantReadPolicy('selected')
   @Get('plans/:planId')
   async getPlan(
     @Req() req: Request,
     @CurrentUser() user: User,
     @Param('planId') planId: string,
   ) {
-    const organization = user.organizationId;
+    const organization = resolveTenantReadScope(user).organizationId;
     const plan = await this.contentPlansService.getByIdOrFail(
       organization,
       planId,

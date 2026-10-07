@@ -6,6 +6,7 @@ import {
 import { ImportedSourceMediaService } from '@api/collections/imported-sources/services/imported-source-media.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ImportedSourceMediaSerializer } from '@genfeedai/serializers';
 import {
@@ -38,6 +39,7 @@ export class ImportedSourceMediaController {
       await this.media.start(user, brandId, id, body),
     );
   }
+  @TenantReadPolicy('mutating')
   @Get()
   @HttpCode(200)
   async observe(

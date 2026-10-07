@@ -1,3 +1,5 @@
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 /**
  * Brands Relationships Controller
  * Brand analytics aggregates (no flat dual yet).
@@ -40,6 +42,7 @@ export class BrandsRelationshipsController {
     private readonly credentialsService: CredentialsService,
   ) {}
 
+  @TenantReadPolicy('selected')
   @Get(':brandId/analytics')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findBrandAnalytics(
@@ -48,7 +51,12 @@ export class BrandsRelationshipsController {
     @Query() query: AnalyticsQueryDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    await verifyBrandAccess(this.brandsService, brandId, user);
+    await verifyBrandAccess(
+      this.brandsService,
+      brandId,
+      user,
+      resolveTenantReadScope(user),
+    );
 
     // Count connected brands (credentials for this brand)
     const countResult = await this.credentialsService.findAll(
@@ -57,7 +65,7 @@ export class BrandsRelationshipsController {
           brandId: brandId,
           isConnected: true,
           isDeleted: false,
-          organizationId: user.organizationId,
+          organizationId: resolveTenantReadScope(user).organizationId,
         },
       },
       { pagination: false },
@@ -69,7 +77,7 @@ export class BrandsRelationshipsController {
     const startDate = query.startDate;
     const endDate = query.endDate;
     const metrics = await this.analyticsAggregationService.getOverviewMetrics(
-      user.organizationId,
+      resolveTenantReadScope(user).organizationId,
       brandId,
       startDate,
       endDate,
@@ -84,6 +92,7 @@ export class BrandsRelationshipsController {
     });
   }
 
+  @TenantReadPolicy('selected')
   @Get(':brandId/platforms/:platform/analytics')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findBrandPlatformAnalytics(
@@ -93,13 +102,18 @@ export class BrandsRelationshipsController {
     @Query() query: AnalyticsQueryDto,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    await verifyBrandAccess(this.brandsService, brandId, user);
+    await verifyBrandAccess(
+      this.brandsService,
+      brandId,
+      user,
+      resolveTenantReadScope(user),
+    );
 
     // Get platform-specific analytics for this brand
     const startDate = query.startDate;
     const endDate = query.endDate;
     const data = await this.analyticsAggregationService.getPlatformAnalytics(
-      user.organizationId,
+      resolveTenantReadScope(user).organizationId,
       platform,
       brandId,
       startDate,
@@ -112,6 +126,7 @@ export class BrandsRelationshipsController {
     });
   }
 
+  @TenantReadPolicy('selected')
   @Get(':brandId/analytics/timeseries')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findBrandAnalyticsTimeSeries(
@@ -120,7 +135,12 @@ export class BrandsRelationshipsController {
     @Query() query: TimeSeriesQueryDto,
     @CurrentUser() user: User,
   ): Promise<unknown> {
-    await verifyBrandAccess(this.brandsService, brandId, user);
+    await verifyBrandAccess(
+      this.brandsService,
+      brandId,
+      user,
+      resolveTenantReadScope(user),
+    );
 
     // Get time series data with platform breakdown
     const startDate = query.startDate;
@@ -129,7 +149,7 @@ export class BrandsRelationshipsController {
 
     const timeSeriesData =
       await this.analyticsAggregationService.getTimeSeriesDataWithPlatforms(
-        user.organizationId,
+        resolveTenantReadScope(user).organizationId,
         brandId,
         startDate,
         endDate,

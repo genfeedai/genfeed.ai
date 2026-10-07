@@ -6,6 +6,7 @@ import type { RequestWithContext } from '@api/common/middleware/request-context.
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import {
   BadRequestException,
   Body,
@@ -22,6 +23,7 @@ import {
 export class StreaksController {
   constructor(private readonly streaksService: StreaksService) {}
 
+  @TenantReadPolicy('owner')
   @Get('me')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getMyStreak(
@@ -40,6 +42,7 @@ export class StreaksController {
     );
   }
 
+  @TenantReadPolicy('owner')
   @Get('me/calendar')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getMyCalendar(
