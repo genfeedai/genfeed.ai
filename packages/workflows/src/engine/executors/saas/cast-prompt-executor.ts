@@ -1,4 +1,4 @@
-import { readRawString } from '@genfeedai/utils/data/extract.util';
+import { readRawString } from '@genfeedai/contracts/constants/type-guards.constant';
 import {
   type CASTInput,
   type CameraMovement,
