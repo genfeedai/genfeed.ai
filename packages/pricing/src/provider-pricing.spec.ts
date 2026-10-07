@@ -138,6 +138,8 @@ describe('PRICING constants', () => {
 
     expect(quote('1080P')).toBeGreaterThan(quote('768P'));
     expect(quote('1080P')).toBe(quote('768P') * 2);
+    expect(quote('480P')).toBeLessThan(quote('768P'));
+    expect(quote('480P')).toBe(Math.ceil(quote('768P') * (0.05 / 0.08)));
   });
 
   it('charges a fabricated extension for the continuation and stitch only', () => {

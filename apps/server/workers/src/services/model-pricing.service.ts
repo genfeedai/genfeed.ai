@@ -148,6 +148,8 @@ const REPLICATE_KNOWN_COSTS: Record<string, number> = {
   'bytedance/seedance-2.5': 0.51,
   // Seedream 5 Pro — 2K list price per image (1K is $0.045).
   'bytedance/seedream-5-pro': 0.09,
+  // P-Video draft-off 720p, USD per output second. 1080p is $0.04.
+  'prunaai/p-video': 0.02,
   // Video upscaler is per-output-second; proxy for a short 5s / 1080p standard pass.
   'bytedance/video-upscaler': 0.15,
 };

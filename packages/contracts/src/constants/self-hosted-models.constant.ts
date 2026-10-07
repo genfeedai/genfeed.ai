@@ -169,9 +169,10 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.13,
   },
   /**
-   * fal publishes separate text-to-video and image-to-video endpoints. The
-   * registry tracks the text contract; dispatch switches to image-to-video
-   * when a first frame is present.
+   * fal list price after the October 15, 2026 promotion: $0.05/s at 480P,
+   * $0.08/s at 768P, $0.16/s at 1080P. Text and image endpoints match.
+   * Seed the default 768P band; the resolution quote discounts 480P and
+   * doubles 1080P.
    */
   {
     category: ModelCategory.VIDEO,
@@ -192,13 +193,15 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.08,
   },
   /**
-   * Realtime Director route. Fal list price is $0.08/s with a 60-second
-   * session minimum ($1.20 provider cost) and 1080p at 2×.
-   * The reserved quantity is the user-declared ceiling, not a plan tier.
+   * Realtime Director route. Fal list price after the October 15, 2026
+   * promotion is $0.08/s, and 1080P is 2×. Every session bills at least
+   * 60 seconds ($4.80 at 480P/768P, $9.60 at 1080P). `cost` and `minCost`
+   * are that 60-second standard-rate floor. The reserved quantity is the
+   * user-declared ceiling, not a plan tier.
    */
   {
     category: ModelCategory.VIDEO,
-    cost: 400,
+    cost: 1599,
     costPerUnit: 27,
     costTier: CostTier.HIGH,
     description:
@@ -208,7 +211,7 @@ export const SELF_HOSTED_MODELS = [
     isHighlighted: false,
     key: MODEL_KEYS.FAL_MINIMAX_H3_MAX_DIRECTOR,
     label: 'H3 Max Director',
-    minCost: 400,
+    minCost: 1599,
     pricingType: PricingType.PER_SECOND,
     provider: ModelProvider.FAL,
     providerConfig: { name: 'h3-max/director', owner: 'minimax' },
@@ -236,8 +239,9 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.24,
   },
   /**
-   * fal partner endpoint. The public contract bills reference/input video at
-   * $0.13/s; seed that conservative band for text and image-reference modes.
+   * fal bills tokens. The published 720p equivalent is about $0.125/s for
+   * text and $0.13/s when reference video is included. One row covers both
+   * routes, so seed the higher published equivalent.
    * 8s → $1.04 provider cost; live credits come from applyMargin.
    */
   {
@@ -261,6 +265,7 @@ export const SELF_HOSTED_MODELS = [
   /**
    * Cheapest T2V already wired in the Replicate video builder.
    * providerCostUsd is **per second** at 720p draft-off ($0.02/s).
+   * 1080p draft-off is $0.04/s. Draft mode is not dispatched.
    * 5s → $0.10 provider cost; live credits come from applyMargin.
    * Cloud keeps MiniMax H3 as `isDefault`; local/e2e promote this row.
    */
@@ -425,15 +430,13 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.05,
   },
   /**
-   * fal.ai — https://fal.ai/learn/devs/elevenlabs-music-user-guide ,
-   * https://fal.ai/learn/tools/best-text-to-music-apis-2026 ($0.80/output
-   * minute). Seeded inactive: an operator verifies pricing/quality against a
-   * live fal account before flipping `isActive` (Settings → Models). Runs
-   * through the existing fal integration (`FalService`), not a new provider.
+   * fal.ai — https://fal.ai/models/fal-ai/elevenlabs/music ($0.60 per output
+   * minute, rounded up to the next minute). Seeded inactive until an operator
+   * turns it on. Runs through the existing fal integration (`FalService`).
    */
   {
     category: ModelCategory.MUSIC,
-    cost: 120,
+    cost: 200,
     costPerUnit: 4,
     costTier: CostTier.MEDIUM,
     description:
@@ -444,16 +447,15 @@ export const SELF_HOSTED_MODELS = [
     isHighlighted: false,
     key: MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
     label: 'Eleven Music',
-    minCost: 40,
+    minCost: 200,
     pricingType: PricingType.PER_SECOND,
     provider: ModelProvider.FAL,
     providerConfig: { name: 'music', owner: 'elevenlabs' },
-    providerCostUsd: 0.0133,
+    providerCostUsd: 0.01,
   },
   /**
-   * fal.ai — https://fal.ai/learn/tools/best-text-to-music-apis-2026
-   * ($0.08/song via fal; Google's own Gemini API lists the same $0.08/song
-   * for Lyria 3 Pro). Seeded inactive pending operator verification.
+   * fal.ai — https://fal.ai/models/fal-ai/lyria3/pro ($0.08 per audio).
+   * Seeded inactive until an operator turns it on.
    */
   {
     category: ModelCategory.MUSIC,
