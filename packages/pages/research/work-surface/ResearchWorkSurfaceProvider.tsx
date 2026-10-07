@@ -66,8 +66,15 @@ export function ResearchWorkSurfaceProvider({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
+  // Updates compose on the latest requested URL, not the last committed one:
+  // a debounced search firing before a just-clicked filter commits must not
+  // drop that filter. A new committed URL (including back/forward) wins.
+  const committedSearchParamsRef = useRef(searchParamsString);
   const searchParamsStringRef = useRef(searchParamsString);
-  searchParamsStringRef.current = searchParamsString;
+  if (committedSearchParamsRef.current !== searchParamsString) {
+    committedSearchParamsRef.current = searchParamsString;
+    searchParamsStringRef.current = searchParamsString;
+  }
   const { push, replace } = useRouter();
   const [authorizedFindingState, setAuthorizedFindingState] = useState<{
     readonly finding: AuthorizedResearchFinding | null;
@@ -148,6 +155,7 @@ export function ResearchWorkSurfaceProvider({
         return;
       }
 
+      searchParamsStringRef.current = nextSearchParams.toString();
       if (options.history === 'push') {
         push(nextHref, { scroll: false });
       } else {
