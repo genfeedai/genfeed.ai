@@ -841,7 +841,38 @@ describe('BrandsController', () => {
     it.each([mockUser.organizationId, testId('org', 2)])(
       'hydrates assets before credentials under the row organization %s',
       async (organizationId) => {
-        const row = { ...mockBrand, organizationId } as BrandDocument;
+        const row: BrandDocument = {
+          ...mockBrand,
+          organizationId,
+          agentConfig: {},
+          backgroundColor: 'transparent',
+          brandOsRevisionVersion: 0,
+          createdAt: new Date(0),
+          defaultImageModel: null,
+          defaultImageToVideoModel: null,
+          defaultMusicModel: null,
+          defaultVideoModel: null,
+          fontFamily: 'MONTSERRAT_BLACK',
+          isActive: true,
+          isDefault: false,
+          isFleetEnabled: false,
+          isHighlighted: false,
+          isPromptEnhancementEnabled: null,
+          isSocialHistoryImportEnabled: true,
+          label: mockBrand.name,
+          musicIngredientId: null,
+          primaryColor: '#000000',
+          referenceImages: [],
+          scope: 'USER',
+          secondaryColor: '#FFFFFF',
+          text: null,
+          updatedAt: new Date(0),
+          voiceIngredientId: null,
+          watermarkLogoId: null,
+          watermarkOpacity: 0.35,
+          watermarkPosition: 'bottom-right',
+          watermarkText: null,
+        };
         const identityBefore = { ...mockUser };
         const order: string[] = [];
         brandsService.attachBrandKitAssetRelations.mockImplementation(
