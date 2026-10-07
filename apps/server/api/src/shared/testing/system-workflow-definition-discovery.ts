@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { buildSocialInboxOutboundWorkflowDefinition } from '@api/collections/social-inbox/services/social-inbox-outbound-workflow-definition';
+import { SystemWorkflowDefinitionRegistrarService } from '@api/collections/workflows/services/system-workflow-definition-registrar.service';
 import { WORKFLOW_ARTIFACT_ACTION_IDS } from '@api/collections/workflows/services/workflow-artifact-lifecycle.service';
 import {
   buildWorkflowArtifactCleanupExecutionDefinition,
@@ -8,6 +9,7 @@ import {
   buildWorkflowArtifactExpiredScopeDefinition,
 } from '@api/collections/workflows/services/workflow-artifact-workflow-definition';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { readRecord } from '@genfeedai/utils/data/extract.util';
 
 /**
@@ -101,7 +103,21 @@ export async function collectSystemWorkflowDefinitions(): Promise<
       }
     }
   }
+  for (const definition of collectRegistrarDefinitions()) {
+    definitions.set(definition.canonicalId, definition);
+  }
   return [...definitions.values()];
+}
+
+/** Definitions `SystemWorkflowDefinitionRegistrarService.onModuleInit` actually registers. */
+function collectRegistrarDefinitions(): SystemWorkflowGraphDefinition[] {
+  const registered: SystemWorkflowGraphDefinition[] = [];
+  new SystemWorkflowDefinitionRegistrarService({
+    registerWorkflow: (definition: SystemWorkflowGraphDefinition) => {
+      registered.push(definition);
+    },
+  } as unknown as SystemWorkflowRunnerService).onModuleInit();
+  return registered;
 }
 
 type Constructor = new (...args: unknown[]) => Record<string, unknown>;

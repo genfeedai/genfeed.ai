@@ -4,6 +4,7 @@ import {
 } from '@api/collections/articles/services/article-workflow-definitions';
 import { YOUTUBE_LONG_FORM_WORKFLOW_ID } from '@api/collections/workflows/services/youtube-long-form-workflow.constants';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
+import { AD_SYNC_CHILD_WORKFLOW_IDS } from '@api/collections/workflows/templates/ad-automation-workflows.template';
 import {
   collectSystemWorkflowDefinitions,
   PARAMETERIZED_DEFINITIONS,
@@ -31,6 +32,21 @@ type NodeIssue = {
   nodeId: string;
 };
 
+function readInjectedInputKeys(data: unknown): string[] {
+  const record = readRecord(data);
+  const config = readRecord(record.config);
+  const keys = [record.inputVariableKeys, config.inputVariableKeys].flatMap(
+    (value) => (Array.isArray(value) ? value : []),
+  );
+  return [
+    ...new Set(
+      keys.filter(
+        (key): key is string => typeof key === 'string' && key.length > 0,
+      ),
+    ),
+  ];
+}
+
 function findWiringIssues(
   workflow: SystemWorkflowGraphDefinition,
 ): NodeIssue[] {
@@ -49,19 +65,22 @@ function findWiringIssues(
       continue;
     }
 
-    // Mirrors the engine: the node's static config and every active edge
-    // (keyed by `targetHandle ?? source`) are merged by
-    // `buildActionExecutionInput`. `inputVariableKeys` are runtime-optional, so
-    // they are not asserted here.
+    // Mirrors the engine: static config and every active edge
+    // (`targetHandle ?? source`) are merged by `buildActionExecutionInput`.
+    // The converter also copies supplied and default `inputVariableKeys` onto
+    // the node, so those keys are part of the closed-contract set.
     const edgeInputs = new Map<string, unknown>();
     for (const edge of edges) {
       if (edge.target === node.id) {
         edgeInputs.set(edge.targetHandle ?? edge.source, null);
       }
     }
-    const delivered = Object.keys(
-      buildActionExecutionInput(node.data.config, edgeInputs),
-    );
+    const delivered = [
+      ...new Set([
+        ...Object.keys(buildActionExecutionInput(node.data.config, edgeInputs)),
+        ...readInjectedInputKeys(node.data),
+      ]),
+    ];
 
     if (schema.additionalProperties === false) {
       const patterns = Object.keys(readRecord(schema.patternProperties)).map(
@@ -126,6 +145,40 @@ describe('system workflow definition wiring against action contracts', () => {
     ]);
   });
 
+  it('flags an injected input variable the contract does not declare', () => {
+    const issues = findWiringIssues({
+      canonicalId: 'test.injected-input',
+      definition: {
+        edges: [],
+        nodes: [
+          {
+            data: {
+              config: {
+                actionId: 'workflow.for-each',
+                parameters: { childWorkflowId: 'child', items: [] },
+              },
+              inputVariableKeys: ['notAForEachInput'],
+              label: 'For each',
+            },
+            id: 'b',
+            position: { x: 0, y: 0 },
+            type: 'genfeedAction',
+          },
+        ],
+      },
+      description: 'injected input fixture',
+      label: 'Injected input',
+      resultNodeId: 'b',
+    });
+
+    expect(issues).toEqual([
+      expect.objectContaining({
+        detail: expect.stringContaining('notAForEachInput'),
+        nodeId: 'b',
+      }),
+    ]);
+  });
+
   it('delivers only contract-declared inputs to every node of every system workflow', {
     timeout: 120_000,
   }, async () => {
@@ -141,6 +194,10 @@ describe('system workflow definition wiring against action contracts', () => {
     expect(canonicalIds).toContain(ARTICLE_GENERATION_CHILD_WORKFLOW_ID);
     expect(canonicalIds).toContain(ARTICLE_REVIEW_WORKFLOW_ID);
     expect(canonicalIds).toContain(YOUTUBE_LONG_FORM_WORKFLOW_ID);
+    expect(canonicalIds).toContain('content-loop-autopilot');
+    expect(canonicalIds).toContain(AD_SYNC_CHILD_WORKFLOW_IDS.GOOGLE);
+    expect(canonicalIds).toContain(AD_SYNC_CHILD_WORKFLOW_IDS.META);
+    expect(canonicalIds).toContain(AD_SYNC_CHILD_WORKFLOW_IDS.TIKTOK);
     for (const definition of PARAMETERIZED_DEFINITIONS) {
       expect(canonicalIds).toContain(definition.canonicalId);
     }
