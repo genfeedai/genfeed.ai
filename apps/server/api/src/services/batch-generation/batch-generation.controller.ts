@@ -5,6 +5,8 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
@@ -107,6 +109,7 @@ export class BatchGenerationController {
     }
   }
 
+  @TenantReadPolicy('selected')
   @Get()
   @ApiOperation({ summary: 'List batches for organization' })
   @ApiQuery({
@@ -123,7 +126,7 @@ export class BatchGenerationController {
     @Query('offset') offset?: string,
   ) {
     try {
-      const organization = user.organizationId;
+      const organization = resolveTenantReadScope(user).organizationId;
 
       const data = await this.batchGenerationService.getBatches(organization, {
         limit: limit ? parseInt(limit, 10) : undefined,
@@ -139,6 +142,7 @@ export class BatchGenerationController {
     }
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id')
   @ApiOperation({ summary: 'Get a specific batch' })
   async getBatch(
@@ -147,7 +151,7 @@ export class BatchGenerationController {
     @CurrentUser() user: User,
   ) {
     try {
-      const organization = user.organizationId;
+      const organization = resolveTenantReadScope(user).organizationId;
 
       const data = await this.batchGenerationService.getBatch(id, organization);
       return serializeSingle(req, BatchSerializer, data);

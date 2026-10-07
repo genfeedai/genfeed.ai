@@ -3,6 +3,8 @@ import { CreateTaskCommentDto } from '@api/collections/task-comments/dto/create-
 import { TaskCommentsService } from '@api/collections/task-comments/services/task-comments.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   serializeCollection,
   serializeSingle,
@@ -26,13 +28,14 @@ import type { Request } from 'express';
 export class TaskCommentsController {
   constructor(private readonly taskCommentsService: TaskCommentsService) {}
 
+  @TenantReadPolicy('selected')
   @Get()
   async findAll(
     @Req() request: Request,
     @Param('taskId') taskId: string,
     @CurrentUser() user: User,
   ) {
-    const organization = user.organizationId;
+    const organization = resolveTenantReadScope(user).organizationId;
     const docs = await this.taskCommentsService.findByTask(
       taskId,
       organization,

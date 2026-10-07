@@ -7,6 +7,8 @@ import { KnowledgeRecordsService } from '@api/collections/contexts/services/know
 import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   serializeCollection,
   serializeSingle,
@@ -81,6 +83,7 @@ export class KnowledgeSpacesController {
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get()
   @ApiQuery({
     name: 'brandId',
@@ -99,13 +102,14 @@ export class KnowledgeSpacesController {
       request,
       KnowledgeSpaceSerializer,
       await this.records.listSpaces(
-        resolveKnowledgeActor(user, brandId),
+        resolveKnowledgeActor(user, brandId, resolveTenantReadScope(user)),
         query.page,
         query.limit,
       ),
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get(':spaceId')
   @ApiQuery({
     name: 'brandId',
@@ -123,7 +127,10 @@ export class KnowledgeSpacesController {
     return serializeSingle(
       request,
       KnowledgeSpaceSerializer,
-      await this.records.getSpace(resolveKnowledgeActor(user, brandId), id),
+      await this.records.getSpace(
+        resolveKnowledgeActor(user, brandId, resolveTenantReadScope(user)),
+        id,
+      ),
     );
   }
 
@@ -174,6 +181,7 @@ export class KnowledgeSpacesController {
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get(':spaceId/memberships')
   @ApiQuery({
     name: 'brandId',
@@ -190,7 +198,7 @@ export class KnowledgeSpacesController {
   ) {
     return serializeCollection(request, KnowledgeSpaceMembershipSerializer, {
       docs: await this.records.listMemberships(
-        resolveKnowledgeActor(user, brandId),
+        resolveKnowledgeActor(user, brandId, resolveTenantReadScope(user)),
         id,
       ),
     });

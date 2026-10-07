@@ -8,6 +8,8 @@ import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-w
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import {
   serializeCollection,
@@ -45,6 +47,7 @@ export class HarnessProfilesController {
     private readonly moduleRef?: ModuleRef,
   ) {}
 
+  @TenantReadPolicy('selected')
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findForBrand(
@@ -53,7 +56,7 @@ export class HarnessProfilesController {
     @Query('brandId') brandId: string,
     @Query('isActive') isActive?: string,
   ) {
-    const organization = user.organizationId;
+    const organization = resolveTenantReadScope(user).organizationId;
     if (!brandId?.trim()) {
       throw new BadRequestException('brandId query parameter is required');
     }

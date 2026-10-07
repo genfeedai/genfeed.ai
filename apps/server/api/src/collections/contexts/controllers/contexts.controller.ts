@@ -10,6 +10,8 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   serializeCollection,
   serializeSingle,
@@ -58,6 +60,7 @@ export class ContextsController {
   /**
    * Get all context bases
    */
+  @TenantReadPolicy('selected')
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
@@ -67,7 +70,7 @@ export class ContextsController {
     @Query('isActive') isActive?: string,
     @Query('search') search?: string,
   ) {
-    const organization = user.organizationId;
+    const organization = resolveTenantReadScope(user).organizationId;
 
     const docs = await this.contextsService.findAll(organization, {
       category,
@@ -80,6 +83,7 @@ export class ContextsController {
   /**
    * Get one context base
    */
+  @TenantReadPolicy('selected')
   @Get(':contextId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
@@ -87,7 +91,7 @@ export class ContextsController {
     @Param('contextId') contextId: string,
     @CurrentUser() user: User,
   ) {
-    const organization = user.organizationId;
+    const organization = resolveTenantReadScope(user).organizationId;
     const data = await this.contextsService.findOne(contextId, organization);
     return serializeSingle(req, ContextBaseSerializer, data);
   }
@@ -213,13 +217,14 @@ export class ContextsController {
   /**
    * Get context base stats
    */
+  @TenantReadPolicy('selected')
   @Get(':contextId/stats')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getStats(
     @Param('contextId') contextId: string,
     @CurrentUser() user: User,
   ) {
-    const organization = user.organizationId;
+    const organization = resolveTenantReadScope(user).organizationId;
     return await this.contextsService.getStats(contextId, organization);
   }
 }

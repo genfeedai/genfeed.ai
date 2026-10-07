@@ -9,6 +9,8 @@ import { withAgentThreadExternalRuntime } from '@api/collections/agent-threads/u
 import { UsersService } from '@api/collections/users/services/users.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
@@ -53,6 +55,7 @@ export class AgentThreadsController {
     private readonly loggerService: LoggerService,
   ) {}
 
+  @TenantReadPolicy('owner')
   @Get()
   @ApiOperation({
     summary:
@@ -143,6 +146,7 @@ export class AgentThreadsController {
     }
   }
 
+  @TenantReadPolicy('selected')
   @Get(':threadId/messages/:messageId/artifact-references')
   @ApiOperation({
     summary: 'Resolve canonical artifact references for a thread message',
@@ -153,7 +157,10 @@ export class AgentThreadsController {
     @CurrentUser() user: User,
   ) {
     try {
-      const organizationId = this.resolveOrganizationId(user);
+      const organizationId = resolveTenantReadScope({
+        organizationId: this.resolveOrganizationId(user),
+        brandId: user.brandId,
+      }).organizationId;
       const references =
         await this.agentMessagesService.resolveMessageArtifactReferences(
           threadId,
@@ -172,6 +179,7 @@ export class AgentThreadsController {
     }
   }
 
+  @TenantReadPolicy('selected')
   @Get(':threadId/messages/:messageId')
   @ApiOperation({ summary: 'Get a single thread message' })
   async getMessage(
@@ -181,7 +189,10 @@ export class AgentThreadsController {
     @CurrentUser() user: User,
   ) {
     try {
-      const organizationId = this.resolveOrganizationId(user);
+      const organizationId = resolveTenantReadScope({
+        organizationId: this.resolveOrganizationId(user),
+        brandId: user.brandId,
+      }).organizationId;
       const message = await this.agentMessagesService.findOne({
         id: messageId,
         organizationId: organizationId,
@@ -194,6 +205,7 @@ export class AgentThreadsController {
     }
   }
 
+  @TenantReadPolicy('selected')
   @Get(':threadId')
   @ApiOperation({ summary: 'Get thread by ID' })
   async getThread(
@@ -202,7 +214,10 @@ export class AgentThreadsController {
     @CurrentUser() user: User,
   ) {
     try {
-      const organizationId = this.resolveOrganizationId(user);
+      const organizationId = resolveTenantReadScope({
+        organizationId: this.resolveOrganizationId(user),
+        brandId: user.brandId,
+      }).organizationId;
       const thread = await this.agentThreadsService.findOne({
         id: threadId,
         organizationId: organizationId,

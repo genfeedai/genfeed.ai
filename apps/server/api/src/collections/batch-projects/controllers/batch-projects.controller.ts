@@ -19,6 +19,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
@@ -100,6 +101,7 @@ export class BatchProjectsController {
     return serializeSingle(request, BatchProjectSerializer, project);
   }
 
+  @TenantReadPolicy('mutating')
   @Get(':id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(

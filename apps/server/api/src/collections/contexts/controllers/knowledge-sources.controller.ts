@@ -16,6 +16,8 @@ import { KnowledgeRefreshService } from '@api/collections/contexts/services/know
 import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   serializeCollection,
   serializeSingle,
@@ -104,6 +106,7 @@ export class KnowledgeSourcesController {
     return this.capture.backfill(user.organizationId);
   }
 
+  @TenantReadPolicy('selected')
   @Get()
   @ApiQuery({
     name: 'brandId',
@@ -122,13 +125,14 @@ export class KnowledgeSourcesController {
       request,
       KnowledgeSourceSerializer,
       await this.records.listSources(
-        resolveKnowledgeActor(user, brandId),
+        resolveKnowledgeActor(user, brandId, resolveTenantReadScope(user)),
         query.page,
         query.limit,
       ),
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get('eligible-versions')
   @ApiQuery({
     name: 'brandId',
@@ -147,13 +151,14 @@ export class KnowledgeSourcesController {
       request,
       KnowledgeSourceVersionSerializer,
       await this.records.listEligibleVersions(
-        resolveKnowledgeActor(user, brandId),
+        resolveKnowledgeActor(user, brandId, resolveTenantReadScope(user)),
         query.page,
         query.limit,
       ),
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get(':sourceId')
   @ApiQuery({
     name: 'brandId',
@@ -171,7 +176,10 @@ export class KnowledgeSourcesController {
     return serializeSingle(
       request,
       KnowledgeSourceSerializer,
-      await this.records.getSource(resolveKnowledgeActor(user, brandId), id),
+      await this.records.getSource(
+        resolveKnowledgeActor(user, brandId, resolveTenantReadScope(user)),
+        id,
+      ),
     );
   }
 
@@ -341,6 +349,7 @@ export class KnowledgeSourcesController {
     };
   }
 
+  @TenantReadPolicy('selected')
   @Get(':sourceId/versions')
   @ApiQuery({
     name: 'brandId',
@@ -360,7 +369,7 @@ export class KnowledgeSourcesController {
       request,
       KnowledgeSourceVersionSerializer,
       await this.records.listVersions(
-        resolveKnowledgeActor(user, brandId),
+        resolveKnowledgeActor(user, brandId, resolveTenantReadScope(user)),
         sourceId,
         query.page,
         query.limit,
@@ -368,6 +377,7 @@ export class KnowledgeSourcesController {
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get(':sourceId/versions/:versionId')
   @ApiQuery({
     name: 'brandId',
@@ -387,7 +397,7 @@ export class KnowledgeSourcesController {
       request,
       KnowledgeSourceVersionSerializer,
       await this.records.getVersion(
-        resolveKnowledgeActor(user, brandId),
+        resolveKnowledgeActor(user, brandId, resolveTenantReadScope(user)),
         sourceId,
         id,
       ),

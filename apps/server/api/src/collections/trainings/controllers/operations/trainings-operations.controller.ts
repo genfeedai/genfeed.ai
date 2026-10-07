@@ -1,3 +1,5 @@
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 /**
  * Trainings Operations Controller
  * Handles training operation routes:
@@ -132,6 +134,7 @@ export class TrainingsOperationsController {
     }
   }
 
+  @TenantReadPolicy('selected')
   @Get(':trainingId/images')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getTrainingImages(
@@ -144,9 +147,11 @@ export class TrainingsOperationsController {
       // Find the training
       const training = await this.trainingsService.findOne({
         id: trainingId,
+        organizationId: resolveTenantReadScope(user).organizationId,
+        isDeleted: false,
         OR: [
           { userId: user.userId ?? user.id },
-          { organizationId: user.organizationId },
+          { organizationId: resolveTenantReadScope(user).organizationId },
         ],
       });
 
@@ -164,6 +169,8 @@ export class TrainingsOperationsController {
         {
           where: {
             model: training.model,
+            organizationId: resolveTenantReadScope(user).organizationId,
+            isDeleted: false,
           },
         },
         {
@@ -184,6 +191,8 @@ export class TrainingsOperationsController {
       }
 
       const imageMatchConditions: Record<string, unknown> = {
+        organizationId: resolveTenantReadScope(user).organizationId,
+        isDeleted: false,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
         ),
@@ -210,6 +219,7 @@ export class TrainingsOperationsController {
     }
   }
 
+  @TenantReadPolicy('selected')
   @Get(':trainingId/sources')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getTrainingSources(
@@ -221,9 +231,11 @@ export class TrainingsOperationsController {
     try {
       const training = await this.trainingsService.findOne({
         id: trainingId,
+        organizationId: resolveTenantReadScope(user).organizationId,
+        isDeleted: false,
         OR: [
           { userId: user.userId ?? user.id },
-          { organizationId: user.organizationId },
+          { organizationId: resolveTenantReadScope(user).organizationId },
         ],
       });
 
@@ -242,6 +254,7 @@ export class TrainingsOperationsController {
       const sourceResult = await this.ingredientsService.findAll(
         {
           where: {
+            organizationId: resolveTenantReadScope(user).organizationId,
             id: {
               in: sources,
             },

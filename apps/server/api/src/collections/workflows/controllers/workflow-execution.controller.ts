@@ -18,6 +18,8 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { MemberRole } from '@genfeedai/contracts';
@@ -177,6 +179,7 @@ export class WorkflowExecutionController {
     }, 'Failed to resume workflow execution');
   }
 
+  @TenantReadPolicy('mutating')
   @Get(':workflowId/credits-estimate')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getCreditsEstimate(
@@ -195,6 +198,7 @@ export class WorkflowExecutionController {
     }, 'Failed to estimate credits');
   }
 
+  @TenantReadPolicy('selected')
   @Get(':workflowId/executions/:runId/logs')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getExecutionLogs(
@@ -206,7 +210,7 @@ export class WorkflowExecutionController {
       const logs = await this.workflowRunControlService.getExecutionLogs(
         workflowId,
         runId,
-        user.organizationId,
+        resolveTenantReadScope(user).organizationId,
       );
 
       return { data: logs };

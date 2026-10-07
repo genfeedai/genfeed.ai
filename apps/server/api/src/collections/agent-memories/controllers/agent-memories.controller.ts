@@ -10,6 +10,8 @@ import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
@@ -41,6 +43,7 @@ export class AgentMemoriesController {
     private readonly loggerService: LoggerService,
   ) {}
 
+  @TenantReadPolicy('owner')
   @Get()
   @ApiOperation({ summary: 'List memory entries for the user' })
   async list(@Req() _req: Request, @CurrentUser() user: User) {
@@ -57,6 +60,7 @@ export class AgentMemoriesController {
     }
   }
 
+  @TenantReadPolicy('owner')
   @Get('personal')
   @ApiOperation({
     summary: "List the requesting user's own personal memory entries",
@@ -77,6 +81,7 @@ export class AgentMemoriesController {
     }
   }
 
+  @TenantReadPolicy('selected')
   @Get('brands/:brandId')
   @ApiOperation({
     summary: 'List brand-scope memory entries for a brand (read-only)',
@@ -89,7 +94,7 @@ export class AgentMemoriesController {
     try {
       const docs = await this.memoriesService.listForBrand(
         brandId,
-        user.organizationId,
+        resolveTenantReadScope(user).organizationId,
       );
       return serializeCollection(req, AgentMemorySerializer, { docs });
     } catch (error: unknown) {
@@ -126,6 +131,7 @@ export class AgentMemoriesController {
     }
   }
 
+  @TenantReadPolicy('selected')
   @Get('organization')
   @UseGuards(RolesGuard)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
@@ -135,7 +141,7 @@ export class AgentMemoriesController {
   async listOrganization(@CurrentUser() user: User) {
     try {
       return await this.memoriesService.listForOrganization(
-        user.organizationId,
+        resolveTenantReadScope(user).organizationId,
       );
     } catch (error: unknown) {
       return ErrorResponse.handle(

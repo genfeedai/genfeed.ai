@@ -17,6 +17,8 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
@@ -83,6 +85,7 @@ export class WorkflowMarketplaceController {
    * `executionCount`. Returns an empty collection when nothing has run.
    * Requires active membership of that organization, like workflow CRUD.
    */
+  @TenantReadPolicy('selected')
   @Get('most-used')
   @UseGuards(RolesGuard)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -92,7 +95,7 @@ export class WorkflowMarketplaceController {
     @Query() query: MostUsedWorkflowsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     const docs = await this.workflowsService.findMostUsed(
-      user.organizationId,
+      resolveTenantReadScope(user).organizationId,
       query.limit ?? MOST_USED_WORKFLOWS_DEFAULT_LIMIT,
     );
 
