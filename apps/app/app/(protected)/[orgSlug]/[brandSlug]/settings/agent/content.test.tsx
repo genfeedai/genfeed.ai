@@ -72,7 +72,7 @@ describe('brand-settings-agent-page', () => {
     render(<BrandAgentSettingsPage />);
 
     expect(
-      screen.getByRole('heading', { exact: true, name: 'Agent defaults' }),
+      screen.getByRole('heading', { name: /^Agent defaults$/ }),
     ).toBeInTheDocument();
     expect(screen.getByText('Identity card')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Writing voice' })).toHaveAttribute(
@@ -86,7 +86,7 @@ describe('brand-settings-agent-page', () => {
     render(<BrandAgentSettingsPage />);
 
     expect(
-      screen.queryByRole('heading', { exact: true, name: 'Agent defaults' }),
+      screen.queryByRole('heading', { name: /^Agent defaults$/ }),
     ).not.toBeInTheDocument();
     expect(screen.getByText('Context tab')).toBeInTheDocument();
   });

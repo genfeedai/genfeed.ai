@@ -162,10 +162,10 @@ describe('BrandWritingVoiceEditor', () => {
       screen.queryByRole('button', { name: 'Manage' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { exact: true, name: 'Brand voice' }),
+      screen.getByRole('heading', { name: /^Brand voice$/ }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { exact: true, name: 'Voice fields' }),
+      screen.getByRole('heading', { name: /^Voice fields$/ }),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Persona' })).toBeInTheDocument();
     expect(
@@ -198,13 +198,13 @@ describe('BrandWritingVoiceEditor', () => {
     );
 
     expect(
-      screen.getByRole('heading', { exact: true, name: 'Brand voice' }),
+      screen.getByRole('heading', { name: /^Brand voice$/ }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { exact: true, name: 'Voice fields' }),
+      screen.getByRole('heading', { name: /^Voice fields$/ }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('heading', { exact: true, name: 'Persona' }),
+      screen.queryByRole('heading', { name: /^Persona$/ }),
     ).not.toBeInTheDocument();
     unmount();
 
@@ -218,13 +218,13 @@ describe('BrandWritingVoiceEditor', () => {
     );
 
     expect(
-      screen.queryByRole('heading', { exact: true, name: 'Brand voice' }),
+      screen.queryByRole('heading', { name: /^Brand voice$/ }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('heading', { exact: true, name: 'Voice fields' }),
+      screen.queryByRole('heading', { name: /^Voice fields$/ }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { exact: true, name: 'Persona' }),
+      screen.getByRole('heading', { name: /^Persona$/ }),
     ).toBeInTheDocument();
   });
 
