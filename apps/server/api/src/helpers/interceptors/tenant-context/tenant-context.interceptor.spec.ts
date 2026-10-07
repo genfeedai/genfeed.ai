@@ -1,4 +1,7 @@
 import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { testId } from '@helpers/testing/test-id.helper';
 import { getTenantContext } from '@libs/prisma/tenant-context';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { defer, firstValueFrom, of } from 'rxjs';
@@ -109,5 +112,34 @@ describe('TenantContextInterceptor', () => {
         }),
       ).resolves.toBeUndefined();
     });
+  });
+});
+
+describe('selected hydrated context priority', () => {
+  class Selected {
+    @TenantReadPolicy('selected') read() {}
+  }
+  it('uses hydrated org and brand before original user fallback without replacing either object', async () => {
+    const user = { organizationId: testId('org'), brandId: testId('brand') };
+    const hydrated = {
+      organizationId: testId('org', 2),
+      brandId: testId('brand', 2),
+      isSuperAdmin: false,
+    };
+    const request = { method: 'GET', user, context: hydrated, query: {} };
+    const execution = makeContext(request);
+    execution.getHandler = () => Selected.prototype.read;
+    const next = {
+      handle: () => defer(() => of(resolveTenantReadScope(user))),
+    };
+    await expect(
+      firstValueFrom(new TenantContextInterceptor().intercept(execution, next)),
+    ).resolves.toEqual({
+      organizationId: hydrated.organizationId,
+      brandId: hydrated.brandId,
+      isOrganizationOverride: false,
+    });
+    expect(request.user).toBe(user);
+    expect(request.context).toBe(hydrated);
   });
 });

@@ -3,6 +3,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { getTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { EntityDocument } from '@api/helpers/types/common/common.types';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
@@ -31,7 +32,10 @@ import type {
   PopulateOption,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getTenantContext } from '@libs/prisma/tenant-context';
+import {
+  getTenantContext,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Body,
@@ -139,12 +143,22 @@ export abstract class BaseCRUDController<
       ErrorResponse.notFound(this.entityName, id);
     }
 
-    const data = await runAsSuperAdmin(user, request, () =>
+    const readScope =
+      this.entityName === 'Brand' ? getTenantReadScope() : undefined;
+    const read = () =>
       this.service.findOne(
-        this.buildFindOneQuery(user, id, request),
+        {
+          ...this.buildFindOneQuery(user, id, request),
+          ...(readScope ? { organizationId: readScope.organizationId } : {}),
+        },
         this.getPopulateFields(),
-      ),
-    );
+      );
+    const data = readScope
+      ? await runWithTenantContext(
+          { organizationId: readScope.organizationId },
+          async () => await read(),
+        )
+      : await runAsSuperAdmin(user, request, read);
 
     if (!data) {
       ErrorResponse.notFound(this.entityName, id);

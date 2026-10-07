@@ -3,7 +3,10 @@ import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { HttpStatus } from '@nestjs/common';
 
-import { verifyBrandAccess } from './brand-access.helpers';
+import {
+  verifyBrandAccess,
+  verifyBrandSlugAccess,
+} from './brand-access.helpers';
 
 describe('verifyBrandAccess', () => {
   const user: User = {
@@ -107,5 +110,61 @@ describe('verifyBrandAccess', () => {
       verifyBrandAccess(brandsService, 'brand-1', orphan),
     ).rejects.toMatchObject(notFound);
     expect(brandsService.findOne).not.toHaveBeenCalled();
+  });
+});
+
+describe('explicit selected brand data scope', () => {
+  const user: User = {
+    id: 'actor',
+    userId: 'actor',
+    organizationId: 'original-org',
+    brandId: 'original-brand',
+    isSuperAdmin: true,
+  };
+  const scope = {
+    organizationId: 'selected-org',
+    isOrganizationOverride: true,
+  };
+  it('uses explicit read org for by-id and slug while keeping the original principal', async () => {
+    const selected = {
+      id: 'selected-brand',
+      organizationId: 'selected-org',
+    } as BrandDocument;
+    const service = {
+      findOne: vi.fn<BrandsService['findOne']>().mockResolvedValue(selected),
+      findOneBySlug: vi
+        .fn<BrandsService['findOneBySlug']>()
+        .mockResolvedValue(selected),
+    };
+    await expect(
+      verifyBrandAccess(service, 'selected-brand', user, scope),
+    ).resolves.toBe(selected);
+    await expect(
+      verifyBrandSlugAccess(service, 'selected', user, scope),
+    ).resolves.toBe(selected);
+    expect(service.findOne).toHaveBeenCalledWith({
+      id: 'selected-brand',
+      organizationId: 'selected-org',
+      isDeleted: false,
+    });
+    expect(service.findOneBySlug).toHaveBeenCalledWith({
+      slug: 'selected',
+      organizationId: 'selected-org',
+      isDeleted: false,
+    });
+    expect(user.organizationId).toBe('original-org');
+  });
+  it('keeps default write/unmarked callers constrained to the original org and404 misses', async () => {
+    const service = {
+      findOne: vi.fn<BrandsService['findOne']>().mockResolvedValue(null),
+    };
+    await expect(
+      verifyBrandAccess(service, 'selected-brand', user),
+    ).rejects.toMatchObject({ status: 404 });
+    expect(service.findOne).toHaveBeenCalledWith({
+      id: 'selected-brand',
+      organizationId: 'original-org',
+      isDeleted: false,
+    });
   });
 });
