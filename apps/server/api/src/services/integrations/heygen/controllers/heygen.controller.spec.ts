@@ -18,6 +18,7 @@ describe('HeyGenController', () => {
   let controller: HeyGenController;
   let heygenService: {
     getVoices: ReturnType<typeof vi.fn>;
+    getConnectionStatus: ReturnType<typeof vi.fn>;
     getAvatars: ReturnType<typeof vi.fn>;
   };
   let loggerService: {
@@ -27,6 +28,9 @@ describe('HeyGenController', () => {
 
   beforeEach(async () => {
     heygenService = {
+      getConnectionStatus: vi
+        .fn()
+        .mockResolvedValue({ hasCustomKey: true, isConnected: true }),
       getAvatars: vi.fn().mockResolvedValue([]),
       getVoices: vi.fn().mockResolvedValue([]),
     };
@@ -131,7 +135,7 @@ describe('HeyGenController', () => {
   });
 
   // --- getStatus ---
-  it('should return connected status when getVoices succeeds', async () => {
+  it('should return credential-derived connected status', async () => {
     heygenService.getVoices.mockResolvedValue([]);
     const result = await controller.getStatus(mockUser);
     expect(result.data.type).toBe('service-status');
@@ -141,7 +145,9 @@ describe('HeyGenController', () => {
   });
 
   it('should throw HttpException when status check fails', async () => {
-    heygenService.getVoices.mockRejectedValue(new Error('connection refused'));
+    heygenService.getConnectionStatus.mockRejectedValue(
+      new Error('connection refused'),
+    );
     await expect(controller.getStatus(mockUser)).rejects.toThrow(HttpException);
     expect(loggerService.error).toHaveBeenCalled();
   });

@@ -244,28 +244,31 @@ describe('HeygenWebhookService', () => {
     });
   });
 
-  it('should store stringified event_data as error for avatar_video.failure', async () => {
-    const metadataId = testId('metadata');
-    const eventData = { code: 'TIMEOUT', message: 'Generation timed out' };
-    const body: HeygenWebhookPayload = {
-      callback_id: metadataId,
-      event_data: eventData,
-      event_type: 'avatar_video.failure',
-    };
+  it.each(['avatar_video.fail', 'avatar_video.failed', 'avatar_video.failure'])(
+    'stores failure event data for %s',
+    async (eventType) => {
+      const metadataId = testId('metadata');
+      const eventData = { code: 'TIMEOUT', message: 'Generation timed out' };
+      const body: HeygenWebhookPayload = {
+        callback_id: metadataId,
+        event_data: eventData,
+        event_type: eventType,
+      };
 
-    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
-    deps.metadataService.patch.mockResolvedValue({});
-    deps.clipResultsService.findOne.mockResolvedValue(null);
+      deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
+      deps.metadataService.patch.mockResolvedValue({});
+      deps.clipResultsService.findOne.mockResolvedValue(null);
 
-    await service.handleCallback(body);
+      await service.handleCallback(body);
 
-    expect(deps.metadataService.patch).toHaveBeenCalledWith(
-      metadataId,
-      expect.objectContaining({
-        error: JSON.stringify(eventData),
-      }),
-    );
-  });
+      expect(deps.metadataService.patch).toHaveBeenCalledWith(
+        metadataId,
+        expect.objectContaining({
+          error: JSON.stringify(eventData),
+        }),
+      );
+    },
+  );
 
   it('should stringify event_data as result for non-video events', async () => {
     const metadataId = testId('metadata');

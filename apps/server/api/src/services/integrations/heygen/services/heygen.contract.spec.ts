@@ -265,4 +265,37 @@ describe('HeyGen v3 contracts', () => {
     expect(keys.getApiKey).not.toHaveBeenCalled();
     expect(http.get).toHaveBeenCalledTimes(1);
   });
+  it('keeps platform-owned private catalogs out of an unconnected organization', async () => {
+    http.get.mockReturnValue(
+      of({
+        status: 200,
+        data: { data: [], has_more: false, next_token: null },
+      }),
+    );
+    await service.getAvatars('unconnected');
+    expect(http.get).toHaveBeenLastCalledWith(
+      'https://api.heygen.com/v3/avatars/looks',
+      expect.objectContaining({ params: { limit: 50, ownership: 'public' } }),
+    );
+    await service.getVoices('unconnected');
+    expect(http.get).toHaveBeenCalledTimes(2);
+    expect(http.get).toHaveBeenLastCalledWith(
+      'https://api.heygen.com/v3/voices',
+      expect.objectContaining({ params: { limit: 100, type: 'public' } }),
+    );
+  });
+
+  it('probes v3 account status without inventing a custom key from the organization id', async () => {
+    http.get.mockReturnValue(of({ status: 200, data: { data: {} } }));
+    await expect(service.getConnectionStatus('unconnected')).resolves.toEqual({
+      hasCustomKey: false,
+      isConnected: true,
+    });
+    expect(http.get).toHaveBeenLastCalledWith(
+      'https://api.heygen.com/v3/users/me',
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'X-Api-Key': 'platform-key' }),
+      }),
+    );
+  });
 });

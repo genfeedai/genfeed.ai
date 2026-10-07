@@ -868,3 +868,32 @@ describe('ByokService explicit direct-provider credentials', () => {
     expect(transport).not.toHaveBeenCalled();
   });
 });
+
+describe('ByokService HeyGen v3 credential validation', () => {
+  const http = { get: vi.fn() };
+  const service = new ByokService(
+    {} as never,
+    {} as never,
+    http as never,
+    { error: vi.fn() } as never,
+    {} as never,
+    crunCache as never,
+  );
+  beforeEach(() => vi.clearAllMocks());
+  it('validates the account without fetching a catalog or submitting a paid job', async () => {
+    http.get.mockReturnValue(of({ data: { data: { id: 'account' } } }));
+    await expect(
+      service.validateKey(ByokProvider.HEYGEN, 'fixture-key'),
+    ).resolves.toEqual({ isValid: true });
+    expect(http.get).toHaveBeenCalledWith(
+      'https://api.heygen.com/v3/users/me',
+      { headers: { 'X-Api-Key': 'fixture-key' }, timeout: 15_000 },
+    );
+  });
+  it('rejects an unauthorized key', async () => {
+    http.get.mockReturnValue(throwError(() => new Error('unauthorized')));
+    await expect(
+      service.validateKey(ByokProvider.HEYGEN, 'fixture-key'),
+    ).resolves.toEqual({ isValid: false, error: 'Invalid HeyGen API key' });
+  });
+});
