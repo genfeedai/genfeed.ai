@@ -710,7 +710,7 @@ export function sanitizeSetupAttempt(record) {
   if (!record || typeof record !== 'object' || Array.isArray(record))
     throw new Error('Unsafe setup attempt');
   const numeric = (key, minimum = 0, maximum = Number.MAX_SAFE_INTEGER) => {
-    if (record[key] === undefined || record[key] === null) return null;
+    if (record[key] === undefined) return null;
     if (
       !Number.isSafeInteger(record[key]) ||
       record[key] < minimum ||
@@ -838,7 +838,11 @@ function buildSetupEvidence(report) {
   const proof = fixtureProofState(report.fixtureProof);
   const descriptor = report.setupFailure;
   let failure = null;
-  if (descriptor !== undefined || !proof.available) {
+  if (
+    descriptor !== undefined ||
+    !proof.available ||
+    Object.values(proof.proof).some((value) => value === false)
+  ) {
     const source =
       ['attached', 'last-observed'].includes(descriptor?.source) &&
       descriptor?.record

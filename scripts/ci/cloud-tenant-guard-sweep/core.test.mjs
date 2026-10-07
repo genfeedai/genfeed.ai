@@ -1274,6 +1274,8 @@ test('setup evidence rejects malformed numbers, group overflow and unsafe proof'
     ['attempt', 0],
     ['attempt', 1.5],
     ['durationMs', NaN],
+    ['durationMs', null],
+    ['attempt', null],
     ['plannedRetryWaitMs', Infinity],
     ['plannedRetryWaitMs', -1],
   ])
@@ -1326,4 +1328,21 @@ test('setup evidence rejects malformed numbers, group overflow and unsafe proof'
   assert.equal(unknown.stage, 'other');
   assert.equal(unknown.method, 'other');
   assert.equal(unknown.route, 'unknown');
+});
+
+test('historical complete false setup proof remains unknown failure attribution', async () => {
+  const { buildDiagnosticSummary } = await import('./core.mjs');
+  const report = {
+    sourceSha: 'a'.repeat(40),
+    fixtureProof: {
+      verificationRequired: true,
+      noUnverifiedSession: true,
+      acceptedMail: false,
+      verifiedAuthentication: true,
+    },
+  };
+  assert.deepEqual(
+    buildDiagnosticSummary(report, report.fixtureProof).setupEvidence.failure,
+    { source: 'unavailable', lastAttempt: null },
+  );
 });
