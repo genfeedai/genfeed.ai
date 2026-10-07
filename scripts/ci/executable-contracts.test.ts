@@ -27,7 +27,15 @@ const REPOSITORY_CONTRACTS = [
     name: 'inline type ratchet',
   },
   {
-    command: ['bunx', 'turbo', 'run', 'check:import-cycles'],
+    // CI setup exports its actual runtime identity for the task hash. Without
+    // it (for example, a local run), never trust a receipt from an older Bun.
+    command: [
+      'bunx',
+      'turbo',
+      'run',
+      'check:import-cycles',
+      ...(process.env.CI_CHECK_RUNTIME ? [] : ['--force']),
+    ],
     name: 'import cycles',
   },
   {
