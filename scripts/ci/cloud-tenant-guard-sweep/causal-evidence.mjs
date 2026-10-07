@@ -649,5 +649,5 @@ export function collectCausalEvidence(report, directory, options = {}) {
     readFailure,
     stopped,
   });
-  return { records, evidence };
+  return { records: evidence.reasons.invalidSchema ? [] : records, evidence };
 }

@@ -285,3 +285,44 @@ test('required final observer failure retains safe incomplete reasons and sticky
     false,
   );
 });
+
+test('finalization refreshes partial owned observations into complete stopped evidence', (context) => {
+  const previous = Reflect.get(process.env, 'CLOUD_SWEEP_DIAGNOSTICS');
+  Reflect.set(process.env, 'CLOUD_SWEEP_DIAGNOSTICS', '1');
+  context.after(() => {
+    if (previous === undefined)
+      Reflect.deleteProperty(process.env, 'CLOUD_SWEEP_DIAGNOSTICS');
+    else Reflect.set(process.env, 'CLOUD_SWEEP_DIAGNOSTICS', previous);
+  });
+  const f = fixture(context);
+  const at = Date.now();
+  const header = { kind: 'header', protocol: 1, startedAt: at };
+  const file = join(f.directory, 'api-observations.ndjson');
+  writeFileSync(file, `${JSON.stringify(header)}\n`, { mode: 0o600 });
+  f.write();
+  assert.equal(f.summary().causalEvidence.quality, 'partial');
+  assert.equal(f.saved().hasFailed, false);
+  const footer = {
+    kind: 'footer',
+    endedAt: at + 1,
+    unavailable: false,
+    records: 1,
+    ingress: 0,
+    pipelineEntries: 0,
+    finishes: 0,
+    closes: 0,
+    invalidSequences: 0,
+    duplicateSequences: 0,
+    runtimeSamples: 0,
+    databaseSamples: 0,
+    databaseIncomplete: 0,
+  };
+  writeFileSync(file, `${JSON.stringify(header)}\n${JSON.stringify(footer)}\n`);
+  writeFileSync(join(f.directory, 'api-stopped'), 'stopped\n', { mode: 0o600 });
+  f.report.finalLogScannedAt = new Date().toISOString();
+  f.write();
+  assert.equal(f.summary().causalEvidence.quality, 'complete');
+  assert.deepEqual(f.saved().causalEvidence, f.summary().causalEvidence);
+  assert.equal(f.saved().hasFailed, false);
+  assert.equal(Object.hasOwn(f.summary(), 'causalObservation'), false);
+});

@@ -243,6 +243,7 @@ export function createApiObserver({
   const requests = new WeakMap(),
     sequences = new Set(),
     active = new Set();
+  let recordingStopped = false;
   let unavailable = false,
     bytes = 0,
     stopped = false,
@@ -255,6 +256,7 @@ export function createApiObserver({
     unavailable = true;
   };
   const emit = (record, footer = false) => {
+    if (!footer && recordingStopped) return;
     try {
       validateObservationRecord(record);
       const at = record.at ?? record.end ?? record.startedAt ?? record.endedAt;
@@ -265,6 +267,7 @@ export function createApiObserver({
         bytes + Buffer.byteLength(line) > maxBytes ||
         (!footer && counts.records >= maxRecords - 1)
       ) {
+        recordingStopped = true;
         mark();
         return;
       }
@@ -413,8 +416,9 @@ export function createApiObserver({
         start: lastRuntime,
         end,
         tickLagMs: Math.max(0, end - lastRuntime - 1000),
-        eventLoopMaxMs: measurement(monitor?.max),
-        eventLoopP99Ms: measurement(monitor?.percentile(99)),
+        eventLoopMaxMs: monitor?.count === 0 ? null : measurement(monitor?.max),
+        eventLoopP99Ms:
+          monitor?.count === 0 ? null : measurement(monitor?.percentile(99)),
         cpuUserUs: safe(usage.user - cpu.user),
         cpuSystemUs: safe(usage.system - cpu.system),
         activeRequests: active.size,
@@ -449,10 +453,17 @@ export function createApiObserver({
       Promise.resolve()
         .then(() => pool.query(DATABASE_QUERY))
         .then(
-          ({ rows }) => ({
-            outcome: 'success',
-            groups: normalizeDatabaseRows(rows),
-          }),
+          ({ rows }) => {
+            try {
+              return {
+                outcome: 'success',
+                groups: normalizeDatabaseRows(rows),
+              };
+            } catch {
+              mark();
+              return { outcome: 'error', groups: [] };
+            }
+          },
           (error) => ({
             outcome:
               error?.name === 'TimeoutError' || error?.code === '57014'

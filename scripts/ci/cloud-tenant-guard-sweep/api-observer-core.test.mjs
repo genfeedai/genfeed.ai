@@ -347,3 +347,41 @@ test('preloader is dormant by default and rejects explicit invalid activation be
   );
   assert.notEqual(on.status, 0);
 });
+
+test('empty histogram remains unmeasured and malformed DB sample is counted without publishing rows', async () => {
+  const f = fixture({
+    monitor: {
+      count: 0,
+      max: 0,
+      percentile: () => 0,
+      enable() {},
+      reset() {},
+      disable() {},
+    },
+    pool: {
+      query: async () => ({
+        rows: [
+          {
+            state: 'active',
+            wait_event_type: 'Lock',
+            sessions: 'private-token',
+            blocked_sessions: 0,
+            active_age_ms: 0,
+          },
+        ],
+      }),
+      end: () => Promise.resolve(),
+    },
+  });
+  f.tick(1000);
+  f.runtimeTick();
+  f.databaseTick();
+  await new Promise((resolve) => setImmediate(resolve));
+  f.stop();
+  assert.equal(f.lines.find((r) => r.kind === 'runtime').eventLoopMaxMs, null);
+  assert.equal(f.lines.find((r) => r.kind === 'runtime').eventLoopP99Ms, null);
+  assert.equal(f.lines.find((r) => r.kind === 'database').outcome, 'error');
+  assert.equal(f.lines.at(-1).databaseSamples, 1);
+  assert.equal(f.lines.at(-1).unavailable, true);
+  assert.equal(JSON.stringify(f.lines).includes('private-token'), false);
+});

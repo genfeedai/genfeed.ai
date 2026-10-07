@@ -26,6 +26,11 @@ import { concat, NEVER, of } from 'rxjs';
 let handlerCalls = 0;
 let guardRelease: (() => void) | undefined;
 let guardMode = '';
+function releaseDeferredGuard() {
+  const release = guardRelease;
+  if (!release) throw new Error('Deferred guard was not initialized');
+  release();
+}
 @Controller()
 class MiniController {
   @Get('success') success() {
@@ -107,6 +112,8 @@ describe('real miniature Nest request lifecycle', () => {
       ).href
     );
     for (const enabled of [false, true]) {
+      guardMode = '';
+      guardRelease = undefined;
       handlerCalls = 0;
       const events: Record<string, unknown>[] = [];
       const instance = createApiObserver({
@@ -133,12 +140,16 @@ describe('real miniature Nest request lifecycle', () => {
       vi.stubEnv('CLOUD_SWEEP_LOCAL', undefined);
       const app = await NestFactory.create(MiniModule, { logger: false });
       const observer = getCloudTenantObserver();
+      const nativeCloses = new Set<number>();
       app.use(
         (
           req: IncomingMessage,
           res: Parameters<CloudTenantObserver['ingress']>[1],
           next: () => void,
         ) => {
+          res.once('close', () => {
+            nativeCloses.add(Number(req.headers['x-genfeed-ci-attempt']));
+          });
           observeCloudTenant(observer, (value) => value.ingress(req, res));
           next();
         },
@@ -245,7 +256,7 @@ describe('real miniature Nest request lifecycle', () => {
               (event) => event.kind === 'pipelineEnter' && event.sequence === 6,
             ),
           ).toBe(false);
-        guardRelease();
+        releaseDeferredGuard();
         await deferred;
         guardRelease = undefined;
         expect(handlerCalls).toBe(7);
@@ -253,6 +264,8 @@ describe('real miniature Nest request lifecycle', () => {
         await new Promise((resolveWait) => setTimeout(resolveWait, 60));
         guardMode = 'before';
         await send('/before', 'before');
+        while (!nativeCloses.has(sequence))
+          await new Promise<void>((resolveWait) => setImmediate(resolveWait));
         expect(handlerCalls).toBe(8);
         await new Promise<void>((resolveWait) => setImmediate(resolveWait));
         instance.stop();
@@ -268,7 +281,7 @@ describe('real miniature Nest request lifecycle', () => {
             },
           );
           expect(evidence.quality).toBe('complete');
-          expect(evidence.conservation.clientAttempts).toBe(9);
+          expect(evidence.conservation.clientAttempts).toBe(8);
           expect(evidence.conservation.classes.finished408).toBe(1);
           expect(evidence.conservation.classes.closedBeforePipeline).toBe(1);
           expect(evidence.conservation.classes.closedAfterPipeline).toBe(1);

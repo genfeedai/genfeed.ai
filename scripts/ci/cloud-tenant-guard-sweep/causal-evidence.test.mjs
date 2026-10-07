@@ -281,6 +281,17 @@ test('owned file collection rejects symlinks, modes and truncation while retaini
     collectCausalEvidence(f.report, dir, options).evidence.quality,
     'complete',
   );
+  const unsafe = f.records.map((record) => ({ ...record }));
+  unsafe[1].private = 'private-token';
+  writeFileSync(
+    path,
+    `${unsafe.map((record) => JSON.stringify(record)).join('\n')}\n`,
+  );
+  assert.deepEqual(collectCausalEvidence(f.report, dir, options).records, []);
+  writeFileSync(
+    path,
+    `${f.records.map((record) => JSON.stringify(record)).join('\n')}\n`,
+  );
   chmodSync(path, 0o644);
   assert.equal(
     collectCausalEvidence(f.report, dir, options).evidence.quality,
