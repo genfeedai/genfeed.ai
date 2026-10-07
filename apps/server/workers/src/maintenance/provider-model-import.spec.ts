@@ -1,5 +1,6 @@
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import type { PrismaClient } from '@genfeedai/prisma';
+import type { IReplicateModel } from '@workers/interfaces/model-discovery.interface';
 import {
   collectFalImportMetadata,
   collectProviderModel,
@@ -46,11 +47,20 @@ const openapi = {
     },
   },
 };
-const providerModel = {
+const providerModel: IReplicateModel = {
   owner: 'alibaba',
   name: 'wan-3',
-  latest_version: { id: 'version', openapi_schema: openapi },
+  latest_version: {
+    id: 'version',
+    openapi_schema: openapi,
+    cog_version: 'cog',
+    created_at: '2026-10-07T00:00:00Z',
+  },
   description: 'Video',
+  url: 'https://replicate.com/alibaba/wan-3',
+  default_example: null,
+  visibility: 'public',
+  run_count: 1,
 };
 const falOpenapi = {
   ...openapi,
@@ -357,9 +367,7 @@ it('retains unmapped Replicate billing evidence with a date-independent contract
     unitPriceUsd: null,
   };
   // Collection validates the required metadata before using the provider interface.
-  const model = providerModel as Parameters<
-    typeof prepareReplicateModelContract
-  >[1];
+  const model = providerModel;
   const first = prepareReplicateModelContract(
     replicate.endpoint,
     model,
