@@ -28,7 +28,7 @@ describe('InstagramAuthorizedSignalsProvider', () => {
     const provider = new InstagramAuthorizedSignalsProvider(
       httpService,
       'https://graph.facebook.com',
-      'v24.0',
+      'v26.0',
     );
 
     const result = await provider.fetch(
@@ -75,7 +75,7 @@ describe('InstagramAuthorizedSignalsProvider', () => {
     const provider = new InstagramAuthorizedSignalsProvider(
       httpService,
       'https://graph.facebook.com',
-      'v24.0',
+      'v26.0',
     );
 
     const result = await provider.fetch(

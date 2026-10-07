@@ -200,6 +200,20 @@ describe('FacebookService', () => {
       expect(url).toContain('pages_manage_posts');
     });
 
+    it('uses v26.0 when no API version is configured', () => {
+      mockConfigService.get.mockImplementationOnce(() => '');
+      const defaultService = new FacebookService(
+        mockConfigService as unknown as ConfigService,
+        mockCredentialsService,
+        mockLoggerService as unknown as LoggerService,
+        mockHttpService as unknown as HttpService,
+      );
+
+      expect(defaultService.generateAuthUrl('state')).toContain(
+        'https://www.facebook.com/v26.0/dialog/oauth',
+      );
+    });
+
     it('should include redirect_uri in auth URL', () => {
       const url = service.generateAuthUrl('state-1');
       expect(url).toContain(

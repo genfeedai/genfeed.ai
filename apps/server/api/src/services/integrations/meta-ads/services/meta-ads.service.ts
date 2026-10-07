@@ -5,7 +5,6 @@ import type {
   CreateCampaignParams,
   MetaAdAccount,
   MetaAdCreative,
-  MetaAdSetTargeting,
   MetaAdVideo,
   MetaCampaign,
   MetaCampaignComparison,
@@ -18,6 +17,7 @@ import type {
   UpdateAdSetParams,
   UpdateCampaignParams,
 } from '@api/services/integrations/meta-ads/interfaces/meta-ads.interface';
+import { buildMetaAdSetTargeting } from '@api/services/integrations/meta-ads/utils/meta-ads-targeting.util';
 import {
   getIntegrationProviderDefinition,
   IntegrationHttpClient,
@@ -47,7 +47,7 @@ export class MetaGraphPaginationLimitError extends Error {
 
 @Injectable()
 export class MetaAdsService {
-  private readonly API_VERSION = 'v24.0';
+  private readonly API_VERSION = 'v26.0';
   private readonly provider = getIntegrationProviderDefinition('meta_ads');
   private readonly BASE_URL =
     this.provider?.endpoints.apiBaseUrl ?? 'https://graph.facebook.com';
@@ -626,31 +626,6 @@ export class MetaAdsService {
     });
   }
 
-  private buildTargetingSpec(targeting: MetaAdSetTargeting): string {
-    const spec: Record<string, unknown> = {};
-
-    if (targeting.geoLocations) {
-      spec.geo_locations = targeting.geoLocations;
-    }
-    if (targeting.ageMin !== undefined) {
-      spec.age_min = targeting.ageMin;
-    }
-    if (targeting.ageMax !== undefined) {
-      spec.age_max = targeting.ageMax;
-    }
-    if (targeting.genders) {
-      spec.genders = targeting.genders;
-    }
-    if (targeting.interests) {
-      spec.interests = targeting.interests;
-    }
-    if (targeting.customAudiences) {
-      spec.custom_audiences = targeting.customAudiences;
-    }
-
-    return JSON.stringify(spec);
-  }
-
   async createCampaign(
     accessToken: string,
     adAccountId: string,
@@ -775,7 +750,7 @@ export class MetaAdsService {
         name: params.name,
         optimization_goal: params.optimizationGoal,
         status: 'PAUSED',
-        targeting: this.buildTargetingSpec(params.targeting),
+        targeting: buildMetaAdSetTargeting(params.targeting, true),
       };
 
       if (params.dailyBudget !== undefined) {
@@ -823,7 +798,7 @@ export class MetaAdsService {
         data.daily_budget = Math.round(params.dailyBudget * 100);
       }
       if (params.targeting !== undefined) {
-        data.targeting = this.buildTargetingSpec(params.targeting);
+        data.targeting = buildMetaAdSetTargeting(params.targeting);
       }
 
       await this.makePostRequest(accessToken, adSetId, data);

@@ -70,7 +70,7 @@ describe('MetaAdsService', () => {
     await service.getAdAccounts(mockAccessToken);
 
     expect(httpService.get).toHaveBeenCalledWith(
-      'https://graph.facebook.com/v24.0/me/adaccounts',
+      'https://graph.facebook.com/v26.0/me/adaccounts',
       expect.any(Object),
     );
   });
@@ -130,7 +130,7 @@ describe('MetaAdsService', () => {
       });
 
       expect(httpService.get).toHaveBeenCalledWith(
-        expect.stringContaining('graph.facebook.com/v24.0/me/adaccounts'),
+        expect.stringContaining('graph.facebook.com/v26.0/me/adaccounts'),
         expect.objectContaining({
           params: expect.objectContaining({
             access_token: mockAccessToken,
@@ -331,7 +331,7 @@ describe('MetaAdsService', () => {
               ],
               paging: {
                 cursors: { after: 'cursor-2' },
-                next: 'https://graph.facebook.com/v24.0/act_123/campaigns?after=cursor-2',
+                next: 'https://graph.facebook.com/v26.0/act_123/campaigns?after=cursor-2',
               },
             },
             headers: {},
@@ -369,7 +369,7 @@ describe('MetaAdsService', () => {
       ]);
       expect(httpService.get).toHaveBeenNthCalledWith(
         2,
-        expect.stringContaining('graph.facebook.com/v24.0/act_123/campaigns'),
+        expect.stringContaining('graph.facebook.com/v26.0/act_123/campaigns'),
         expect.objectContaining({
           params: expect.objectContaining({ after: 'cursor-2' }),
         }),

@@ -180,7 +180,7 @@ export class InstagramService {
     private readonly httpService: HttpService,
   ) {
     this.apiVersion =
-      this.configService.get('INSTAGRAM_API_VERSION') || 'v24.0';
+      this.configService.get('INSTAGRAM_API_VERSION') || 'v26.0';
     this.publishingService = new InstagramPublishingService(
       this.httpService,
       this.loggerService,

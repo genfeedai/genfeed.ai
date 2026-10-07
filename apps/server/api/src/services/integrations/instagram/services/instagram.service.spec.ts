@@ -96,7 +96,7 @@ describe('InstagramService', () => {
       );
 
       expect(httpServiceMock.post).toHaveBeenCalledWith(
-        `https://graph.facebook.com/v24.0/acc/messages`,
+        `https://graph.facebook.com/v26.0/acc/messages`,
         {
           message: { text: 'hello' },
           messaging_product: 'instagram',
@@ -153,7 +153,7 @@ describe('InstagramService', () => {
       );
 
       expect(httpServiceMock.get).toHaveBeenCalledWith(
-        'https://graph.facebook.com/v24.0/media-1/comments',
+        'https://graph.facebook.com/v26.0/media-1/comments',
         {
           params: {
             access_token: 'tok',
@@ -235,7 +235,7 @@ describe('InstagramService', () => {
       const result = await service.listConversations('org', 'brand', 10);
 
       expect(httpServiceMock.get).toHaveBeenCalledWith(
-        'https://graph.facebook.com/v24.0/account-1/conversations',
+        'https://graph.facebook.com/v26.0/account-1/conversations',
         {
           params: {
             access_token: 'tok',
@@ -464,7 +464,7 @@ describe('InstagramService', () => {
               ],
               paging: {
                 cursors: { after: 'cursor-1' },
-                next: 'https://graph.facebook.com/v24.0/me/accounts?after=cursor-1&access_token=token',
+                next: 'https://graph.facebook.com/v26.0/me/accounts?after=cursor-1&access_token=token',
               },
             },
           }),
@@ -507,7 +507,7 @@ describe('InstagramService', () => {
       ]);
       expect(httpServiceMock.get).toHaveBeenNthCalledWith(
         1,
-        'https://graph.facebook.com/v24.0/me/accounts',
+        'https://graph.facebook.com/v26.0/me/accounts',
         {
           timeout: 10_000,
           params: {
@@ -522,7 +522,7 @@ describe('InstagramService', () => {
       // the same endpoint with an `after` cursor param instead.
       expect(httpServiceMock.get).toHaveBeenNthCalledWith(
         2,
-        'https://graph.facebook.com/v24.0/me/accounts',
+        'https://graph.facebook.com/v26.0/me/accounts',
         {
           timeout: 10_000,
           params: {
@@ -550,7 +550,7 @@ describe('InstagramService', () => {
             data: [],
             paging: {
               cursors: { after: 'always-more' },
-              next: 'https://graph.facebook.com/v24.0/me/accounts?after=always-more',
+              next: 'https://graph.facebook.com/v26.0/me/accounts?after=always-more',
             },
           },
         }),

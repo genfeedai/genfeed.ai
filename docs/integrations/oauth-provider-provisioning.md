@@ -78,6 +78,30 @@ provider-specific redirect environment key listed below.
 
 Reference: [X developer apps](https://docs.x.com/fundamentals/developer-apps).
 
+### Meta API version
+
+Verified against Meta documentation on October 7, 2026: the latest Graph and
+Marketing API release is `v26.0` (July 29, 2026). Marketing API `v24.0` ended
+availability on October 6, 2026; its separate Graph API support window does
+not extend Marketing API availability.
+
+Facebook and Instagram Graph/OAuth defaults and the Meta Ads provider catalog
+use `v26.0`. Set `FACEBOOK_API_VERSION=v26.0` and
+`INSTAGRAM_API_VERSION=v26.0` in existing deployments and restart the API;
+explicit environment values override the Graph defaults. Meta Ads request URLs
+are pinned independently to `v26.0`.
+
+The v26 migration requires an explicit `targeting_automation.advantage_audience`
+for HEC-F ad sets with constrained, relaxable targeting. Genfeed sends `0` when
+creating ad sets to retain the specified audience constraints. Updates leave
+the existing audience automation setting unchanged. Genfeed does not request
+the removed Delivery Estimate fields, Explore/Messenger Stories placements,
+Commerce Order Management endpoints, poll creatives, or `applink_treatment`.
+
+References: [Meta API version availability](https://developers.facebook.com/docs/graph-api/changelog/),
+[v25.0 changes](https://developers.facebook.com/docs/graph-api/changelog/version25.0/),
+and [v26.0 migration changes](https://developers.facebook.com/docs/graph-api/changelog/version26.0/).
+
 ### Instagram
 
 1. Create a Meta app in the [Meta App Dashboard](https://developers.facebook.com/apps/)

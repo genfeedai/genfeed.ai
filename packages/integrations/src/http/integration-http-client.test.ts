@@ -27,7 +27,7 @@ describe('integration HTTP client', () => {
     const result = await client.request<{ ok: boolean }>({
       provider,
       query: { access_token: 'secret-token' },
-      url: 'https://graph.facebook.com/v24.0/me',
+      url: 'https://graph.facebook.com/v26.0/me',
     });
 
     expect(result).toEqual({ ok: true });

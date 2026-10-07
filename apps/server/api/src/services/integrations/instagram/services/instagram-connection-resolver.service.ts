@@ -56,7 +56,7 @@ export class InstagramConnectionResolverService {
   ) {
     this.redirectUri = this.configService.get('INSTAGRAM_REDIRECT_URI') ?? '';
     this.apiVersion =
-      this.configService.get('INSTAGRAM_API_VERSION') || 'v24.0';
+      this.configService.get('INSTAGRAM_API_VERSION') || 'v26.0';
   }
 
   /**
