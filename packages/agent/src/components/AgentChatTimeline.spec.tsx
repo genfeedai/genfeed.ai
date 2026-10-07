@@ -3,7 +3,7 @@ import {
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { TimelineEntry } from '@genfeedai/agent/utils/derive-timeline';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -335,5 +335,128 @@ describe('AgentChatTimeline failure card', () => {
     );
 
     expect(screen.getByTestId('ui-action-busy')).toHaveAttribute('inert');
+  });
+});
+
+describe('completed turn output focus', () => {
+  it('hides intermediate copy and work until Steps is expanded, preserving all outputs', () => {
+    const output = buildAssistantMessage('output', 'Generated image');
+    output.message.metadata = {
+      uiActions: [
+        { id: 'image', title: 'Generated image', type: 'content_preview_card' },
+      ],
+    };
+    render(
+      <AgentChatTimeline
+        {...baseProps}
+        timeline={[
+          buildUserMessage('prompt', 'Generate images'),
+          buildAssistantMessage('progress', 'Checking references'),
+          buildSucceededWorkGroup('work'),
+          output,
+          buildAssistantMessage('final', 'Your images are ready'),
+        ]}
+      />,
+    );
+    expect(screen.getByText('Generate images')).toBeVisible();
+    expect(screen.getByText('Generated image')).toBeVisible();
+    expect(screen.getByText('Your images are ready')).toBeVisible();
+    expect(screen.queryByText('Checking references')).toBeNull();
+    expect(screen.queryByTestId('work-group-work')).toBeNull();
+    const steps = screen.getByRole('button', { name: 'Steps' });
+    expect(steps).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(steps);
+    expect(screen.getByText('Checking references')).toBeVisible();
+    expect(screen.getByTestId('work-group-work')).toBeVisible();
+  });
+
+  it('keeps the active turn expanded until it settles', () => {
+    const timeline = [
+      buildUserMessage('prompt', 'Create'),
+      buildAssistantMessage('progress', 'Preparing'),
+      buildAssistantMessage('final', 'Ready'),
+    ];
+    const view = render(
+      <AgentChatTimeline {...baseProps} isBusy timeline={timeline} />,
+    );
+    expect(screen.getByText('Preparing')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Steps' })).toBeNull();
+    view.rerender(<AgentChatTimeline {...baseProps} timeline={timeline} />);
+    expect(screen.queryByText('Preparing')).toBeNull();
+    expect(screen.getByText('Ready')).toBeVisible();
+  });
+
+  it('leaves a failed turn without a final answer visible', () => {
+    render(
+      <AgentChatTimeline
+        {...baseProps}
+        timeline={[
+          buildUserMessage('prompt', 'Create'),
+          buildFailedWorkGroup('failure', 'status code 503'),
+        ]}
+      />,
+    );
+    expect(screen.getByTestId('work-group-failure')).toBeVisible();
+    expect(screen.getByRole('alert')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Steps' })).toBeNull();
+  });
+});
+
+describe('completed turn result preservation', () => {
+  it('keeps a generated text artifact visible before the final summary', () => {
+    const generated = buildAssistantMessage('generated', 'Generated post');
+    generated.message.metadata = {
+      generatedContent: 'The launch post',
+      contentType: 'post',
+    };
+    render(
+      <AgentChatTimeline
+        {...baseProps}
+        timeline={[
+          buildUserMessage('prompt', 'Write a post'),
+          buildAssistantMessage('progress', 'Reviewing context'),
+          generated,
+          buildAssistantMessage('summary', 'Post is ready'),
+        ]}
+      />,
+    );
+    expect(screen.getByText('Generated post')).toBeVisible();
+    expect(screen.getByText('Post is ready')).toBeVisible();
+    expect(screen.queryByText('Reviewing context')).toBeNull();
+  });
+
+  it('opens activity when a message in it is highlighted', () => {
+    render(
+      <AgentChatTimeline
+        {...baseProps}
+        highlightedMessageId="progress"
+        timeline={[
+          buildUserMessage('prompt', 'Write'),
+          buildAssistantMessage('progress', 'Working'),
+          buildAssistantMessage('summary', 'Ready'),
+        ]}
+      />,
+    );
+    expect(screen.getByText('Working')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Steps' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+  });
+
+  it('keeps progress visible if work fails after an intermediate assistant message', () => {
+    render(
+      <AgentChatTimeline
+        {...baseProps}
+        timeline={[
+          buildUserMessage('prompt', 'Write'),
+          buildAssistantMessage('progress', 'Starting'),
+          buildFailedWorkGroup('failure', 'status code 503'),
+        ]}
+      />,
+    );
+    expect(screen.getByText('Starting')).toBeVisible();
+    expect(screen.getByTestId('work-group-failure')).toBeVisible();
+    expect(screen.getByRole('alert')).toBeVisible();
   });
 });

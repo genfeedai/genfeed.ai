@@ -761,7 +761,9 @@ jobs:
       - name: Build API dependencies
         run: bunx turbo run build --filter=./packages/**
       - name: Run API tests
+        id: api-tests
         env:
+          API_TEST_TIMINGS_OUTPUT: ${{ runner.temp }}/api-test-timings/shard-${{ matrix.shard }}.json
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
           FORCE_FULL: ${{ needs.plan.outputs.force_full }}
           NODE_ENV: test
@@ -774,7 +776,23 @@ jobs:
           fi
           cd apps/server/api && bunx vitest run --config vitest.config.ts \
             --maxWorkers=2 "${SELECTION[@]}" \
-            --shard=${{ matrix.shard }}/${{ matrix.total }}
+            --shard=${{ matrix.shard }}/${{ matrix.total }} \
+            --reporter=default \
+            --reporter=github-actions \
+            --reporter="$GITHUB_WORKSPACE/scripts/ci/api-test-timings-reporter.mjs"
+      - name: Summarize API test timings
+        if: always() && steps.api-tests.outcome != 'skipped' && steps.api-tests.outcome != ''
+        env:
+          API_TEST_TIMINGS_OUTPUT: ${{ runner.temp }}/api-test-timings/shard-${{ matrix.shard }}.json
+        run: node scripts/ci/api-test-timings-reporter.mjs "$API_TEST_TIMINGS_OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload API test timings
+        if: always() && steps.api-tests.outcome != 'skipped' && steps.api-tests.outcome != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: api-test-timings-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: ${{ runner.temp }}/api-test-timings/shard-${{ matrix.shard }}.json
+          retention-days: 7
+          if-no-files-found: error
 
   cloud-tenant-guard:
     name: Cloud Tenant Guard Sweep

@@ -102,10 +102,9 @@ describe('media hold provider and operator recovery', () => {
     );
     expect(f.byok.resolveApiKey).toHaveBeenCalledWith('org', 'heygen');
     expect(f.http.get).toHaveBeenCalledWith(
-      'https://api.heygen.com/v1/video_status.get',
+      'https://api.heygen.com/v3/videos/stored-provider-job',
       {
         headers: { 'X-Api-Key': 'tenant-key' },
-        params: { video_id: 'stored-provider-job' },
         timeout: 10000,
       },
     );

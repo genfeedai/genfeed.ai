@@ -43,6 +43,30 @@ deployed model registry remains the source of truth for model availability. The
 configuration and execution steps below apply to deployed provider cards and
 routes; prepared direct media entries are not a launch or activation guide.
 
+## HeyGen API v3
+
+HeyGen catalog reads, account validation, avatar rendering and status polling use
+API v3. Avatar IDs are renderable look IDs from `/v3/avatars/looks`; character
+group IDs are separate. Photo animation uses an image input to `/v3/videos`.
+The prompt-driven HeyGen Video model uses `/v3/models/videos`.
+
+Catalogs follow provider cursors. Connected organization keys expose their own
+private looks and voices alongside public presets. Platform reference catalogs
+contain public entries only.
+
+For webhook completion, register the application's
+`/v1/webhooks/heygen/callback` URL through `/v3/webhooks/endpoints` and subscribe
+to `avatar_video.success` and `avatar_video.fail`. Store HeyGen's returned
+signing secret in `HEYGEN_WEBHOOK_SECRET`. The receiver verifies the `signature`
+header against the raw body and deduplicates events using their signed video ID
+and event type. A failed processing attempt releases its claim so the provider
+can retry. Request bodies carry `callback_id` for correlation; they do not send
+a per-request callback URL.
+
+See HeyGen's [v3 migration comparison](https://developers.heygen.com/endpoint-version-comparison),
+[video request contract](https://developers.heygen.com/reference/create-video)
+and [webhook contract](https://developers.heygen.com/docs/webhooks).
+
 ## Prepared direct media foundations
 
 The following compiler/client contracts were reviewed on 2026-10-02. They accept

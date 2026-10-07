@@ -30,8 +30,6 @@ describe('HeygenWebhookVerificationService', () => {
   const sign = (body: Buffer, secret = WEBHOOK_SECRET) =>
     createHmac('sha256', secret).update(body).digest('hex');
 
-  const nowSeconds = () => String(Math.floor(Date.now() / 1000));
-
   beforeEach(async () => {
     cacheService = {
       claimOnce: vi.fn().mockResolvedValue('claimed'),
@@ -58,17 +56,13 @@ describe('HeygenWebhookVerificationService', () => {
   describe('assertSignature', () => {
     it('accepts a body signed with the configured secret', () => {
       expect(() =>
-        service.assertSignature(rawBody, sign(rawBody), nowSeconds()),
+        service.assertSignature(rawBody, sign(rawBody)),
       ).not.toThrow();
     });
 
     it('rejects a signature produced with a different secret', () => {
       expect(() =>
-        service.assertSignature(
-          rawBody,
-          sign(rawBody, 'whsec_attacker'),
-          nowSeconds(),
-        ),
+        service.assertSignature(rawBody, sign(rawBody, 'whsec_attacker')),
       ).toThrow(UnauthorizedException);
     });
 
@@ -81,9 +75,9 @@ describe('HeygenWebhookVerificationService', () => {
         }),
       );
 
-      expect(() =>
-        service.assertSignature(tampered, signature, nowSeconds()),
-      ).toThrow(UnauthorizedException);
+      expect(() => service.assertSignature(tampered, signature)).toThrow(
+        UnauthorizedException,
+      );
     });
 
     it.each([
@@ -94,48 +88,27 @@ describe('HeygenWebhookVerificationService', () => {
     ])('rejects %s without throwing from the comparison', (_label, header) => {
       // `timingSafeEqual` throws a TypeError on unequal lengths, which would
       // surface as a 500 and tell a prober their guess was the wrong size.
-      expect(() =>
-        service.assertSignature(rawBody, header, nowSeconds()),
-      ).toThrow(UnauthorizedException);
+      expect(() => service.assertSignature(rawBody, header)).toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('rejects every caller when no secret is configured', () => {
       configService.get.mockReturnValue(undefined);
 
-      expect(() =>
-        service.assertSignature(rawBody, sign(rawBody), nowSeconds()),
-      ).toThrow(UnauthorizedException);
+      expect(() => service.assertSignature(rawBody, sign(rawBody))).toThrow(
+        UnauthorizedException,
+      );
 
       expect(loggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('HEYGEN_WEBHOOK_SECRET'),
       );
     });
 
-    it('rejects a correctly signed delivery replayed outside the skew window', () => {
-      const stale = String(Math.floor(Date.now() / 1000) - 301);
-
+    it('accepts the documented hex signature without undocumented timestamp headers', () => {
       expect(() =>
-        service.assertSignature(rawBody, sign(rawBody), stale),
-      ).toThrow(UnauthorizedException);
-    });
-
-    it('accepts a delivery at the edge of the skew window', () => {
-      const edge = String(Math.floor(Date.now() / 1000) - 299);
-
-      expect(() =>
-        service.assertSignature(rawBody, sign(rawBody), edge),
+        service.assertSignature(rawBody, sign(rawBody).toUpperCase()),
       ).not.toThrow();
-    });
-
-    it.each([
-      ['an absent timestamp', undefined],
-      ['an unparseable timestamp', 'not-a-number'],
-    ])('warns but accepts %s on a valid signature', (_label, timestamp) => {
-      expect(() =>
-        service.assertSignature(rawBody, sign(rawBody), timestamp),
-      ).not.toThrow();
-
-      expect(loggerService.warn).toHaveBeenCalled();
     });
   });
 
@@ -171,7 +144,7 @@ describe('HeygenWebhookVerificationService', () => {
     });
 
     it.each([undefined, null, '', 42])(
-      'fails open without a usable event id header (%s)',
+      'fails open without a usable event identity (%s)',
       async (eventId) => {
         await expect(service.isReplay(eventId)).resolves.toBe(false);
         expect(cacheService.claimOnce).not.toHaveBeenCalled();

@@ -1,5 +1,5 @@
 ### Genfeed API - HeyGen Webhook Endpoint
-### This endpoint is PUBLIC (no signature validation)
+### This endpoint is PUBLIC; requires the signature HMAC over the exact body bytes
 
 @import ../../../../../http/_environment.http
 
@@ -45,7 +45,7 @@ POST {{baseUrl}}/webhooks/heygen/callback
 Content-Type: application/json
 
 {
-  "event_type": "avatar_video.failed",
+  "event_type": "avatar_video.fail",
   "event_data": {
     "callback_id": "{{testExternalId}}",
     "error": "Generation failed due to timeout",

@@ -1,4 +1,5 @@
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
+import { ByokService } from '@api/services/byok/byok.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -26,7 +27,7 @@ describe('HeyGenService', () => {
   beforeEach(async () => {
     httpServiceMock.get.mockReturnValue(
       of({
-        data: { data: [] },
+        data: { data: [], has_more: false, next_token: null },
         status: 200,
       }),
     );
@@ -40,6 +41,10 @@ describe('HeyGenService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HeyGenService,
+        {
+          provide: ByokService,
+          useValue: { resolveApiKey: vi.fn().mockResolvedValue(null) },
+        },
         { provide: LoggerService, useValue: loggerMock },
         { provide: ApiKeyHelperService, useValue: apiKeyHelperMock },
         { provide: HttpService, useValue: httpServiceMock },
@@ -67,23 +72,21 @@ describe('HeyGenService', () => {
     expect(service).toBeDefined();
   });
 
-  it('creates an avatar', async () => {
-    const id = await service.createAvatar('name', 'url');
-    expect(id).toBe('123');
-    expect(httpServiceMock.post).toHaveBeenCalled();
-  });
-
   it('finds all voices', async () => {
     httpServiceMock.get.mockReturnValueOnce(
       of({
-        data: { data: { voices: [{ preview_url: 'p', voice_name: 'n' }] } },
+        data: {
+          data: [{ voice_id: 'voice-id', preview_audio_url: 'p', name: 'n' }],
+          has_more: false,
+          next_token: null,
+        },
         status: 200,
       }),
     );
 
     const res = await service.getVoices();
     expect(res).toEqual([
-      { index: 0, name: 'n', preview: 'p', voiceId: 'voice_0' },
+      { index: 0, name: 'n', preview: 'p', voiceId: 'voice-id' },
     ]);
     expect(httpServiceMock.get).toHaveBeenCalled();
   });
@@ -91,14 +94,18 @@ describe('HeyGenService', () => {
   it('finds all avatars', async () => {
     httpServiceMock.get.mockReturnValueOnce(
       of({
-        data: { data: { avatars: [{ avatar_name: 'n', preview_url: 'p' }] } },
+        data: {
+          data: [{ id: 'look-id', name: 'n', preview_image_url: 'p' }],
+          has_more: false,
+          next_token: null,
+        },
         status: 200,
       }),
     );
 
     const res = await service.getAvatars();
     expect(res).toEqual([
-      { avatarId: 'avatar_0', index: 0, name: 'n', preview: 'p' },
+      { avatarId: 'look-id', index: 0, name: 'n', preview: 'p' },
     ]);
     expect(httpServiceMock.get).toHaveBeenCalled();
   });

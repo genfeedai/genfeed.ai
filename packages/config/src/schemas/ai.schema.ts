@@ -114,7 +114,7 @@ export const heygenSchema = {
     .optional()
     .allow('')
     .description(
-      'HeyGen-issued signing secret for the registered webhook endpoint, returned by POST/PATCH https://api.heygen.com/v3/webhooks/endpoints and used to verify the Heygen-Signature HMAC',
+      'HeyGen-issued signing secret for the registered webhook endpoint, returned by POST/PATCH https://api.heygen.com/v3/webhooks/endpoints and used to verify the signature HMAC',
     ),
 };
 

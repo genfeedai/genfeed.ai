@@ -807,8 +807,9 @@ export class ByokService {
   ): Promise<{ isValid: boolean; error?: string }> {
     try {
       await firstValueFrom(
-        this.httpService.get('https://api.heygen.com/v2/avatars', {
+        this.httpService.get('https://api.heygen.com/v3/users/me', {
           headers: { 'X-Api-Key': apiKey },
+          timeout: 15_000,
         }),
       );
       return { isValid: true };

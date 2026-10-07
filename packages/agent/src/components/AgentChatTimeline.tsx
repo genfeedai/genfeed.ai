@@ -16,7 +16,16 @@ import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { TimelineEntry } from '@genfeedai/agent/utils/derive-timeline';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
-import { groupTimelineTurns } from '@genfeedai/agent/utils/group-timeline-turns.util';
+import {
+  groupTimelineTurns,
+  splitCompletedTimelineTurn,
+} from '@genfeedai/agent/utils/group-timeline-turns.util';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ui/primitives/collapsible';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, type RefObject, useMemo } from 'react';
 
 type AgentChatTimelineProps = {
@@ -82,6 +91,7 @@ export function AgentChatTimeline({
   hasDockedGenerationCard = false,
   suppressThinkingPlaceholder = true,
 }: AgentChatTimelineProps): ReactElement {
+  const translate = useTranslations('agent.timeline');
   // Only the terminal timeline entry may own the failure card / retry context.
   // An older failed work-group must not surface when a later group succeeded
   // or when the terminal entry is a message / stream row.
@@ -172,19 +182,50 @@ export function AgentChatTimeline({
 
   return (
     <>
-      {turns.map((turn) => (
-        <div className="relative" key={turn.id}>
-          {turn.items.map(({ entry, index }) =>
-            entry.kind === 'user-message' ? (
-              renderTimelineEntry(entry, index)
-            ) : (
-              <div className={AGENT_TIMELINE_DEFERRED_CLASS} key={entry.id}>
-                {renderTimelineEntry(entry, index)}
-              </div>
-            ),
-          )}
-        </div>
-      ))}
+      {turns.map((turn, turnIndex) => {
+        const isLiveTurn =
+          turnIndex === turns.length - 1 &&
+          (isBusy || isGenerating || isStreamingActive);
+        const { activity, visible } = isLiveTurn
+          ? { activity: [], visible: turn.items }
+          : splitCompletedTimelineTurn(turn);
+        const isActivityHighlighted = activity.some(
+          ({ entry }) =>
+            entry.kind === 'assistant-message' &&
+            entry.message.id === highlightedMessageId,
+        );
+        const renderItem = ({ entry, index }: (typeof turn.items)[number]) =>
+          entry.kind === 'user-message' ? (
+            renderTimelineEntry(entry, index)
+          ) : (
+            <div className={AGENT_TIMELINE_DEFERRED_CLASS} key={entry.id}>
+              {renderTimelineEntry(entry, index)}
+            </div>
+          );
+        return (
+          <div className="relative" key={turn.id}>
+            {visible
+              .filter(({ entry }) => entry.kind === 'user-message')
+              .map(renderItem)}
+            {activity.length > 0 ? (
+              <Collapsible
+                key={isActivityHighlighted ? 'highlighted' : 'settled'}
+                defaultOpen={isActivityHighlighted}
+              >
+                <CollapsibleTrigger className="w-auto gap-2 py-2 text-xs text-muted-foreground">
+                  {translate('steps')}
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  {activity.map(renderItem)}
+                </CollapsibleContent>
+              </Collapsible>
+            ) : null}
+            {visible
+              .filter(({ entry }) => entry.kind !== 'user-message')
+              .map(renderItem)}
+          </div>
+        );
+      })}
 
       {isTerminalFailedRunWithoutAssistant && !hasDockedGenerationCard ? (
         <AgentRunFailureCard
