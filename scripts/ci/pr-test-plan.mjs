@@ -6,6 +6,10 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
+import {
+  allPackageTestTasks,
+  buildPackageTestMatrix,
+} from './workspace-test-matrix.mjs';
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const ZERO_SHA = '0000000000000000000000000000000000000000';
@@ -18,6 +22,7 @@ const FORCE_FULL_PATTERNS = [
   /(^|\/)vitest\.(?:config|setup)\.[cm]?[jt]sx?$/,
   /^\.github\/actions\/setup-bun-env\//,
   /^scripts\/ci\/(?:pr-test-plan|tests-gate)\.mjs$/,
+  /^scripts\/ci\/workspace-test-matrix\.mjs$/,
 ];
 
 // Keep dormant surface definitions in the planner so they can be restored
@@ -209,7 +214,11 @@ export function createPrTestPlan({
   const normalizedTurboTasks = Object.fromEntries(
     Object.keys(TURBO_TEST_GROUPS).map((group) => [
       group,
-      Array.isArray(turboTasks[group]) ? [...turboTasks[group]].sort() : [],
+      group === 'packages' && forceFull
+        ? allPackageTestTasks(REPOSITORY_ROOT).sort()
+        : Array.isArray(turboTasks[group])
+          ? [...turboTasks[group]].sort()
+          : [],
     ]),
   );
 
@@ -232,6 +241,9 @@ export function createPrTestPlan({
     base,
     changedFiles: [...changedFiles].sort(),
     forceFull,
+    setupBenchmark: changedFiles.some(
+      (file) => file === '.github/actions/setup-bun-env/action.yml',
+    ),
     surfaces: { api, app },
     appTests: {
       applicable: app && (forceFull || appTests.length > 0),
@@ -249,16 +261,23 @@ export function createPrTestPlan({
     },
     turboTasks: normalizedTurboTasks,
     workspaceGroups,
-    // One Test Workspaces matrix leg per applicable group. A single turbo
-    // invocation over every group contended for one runner's CPUs and made it
-    // the slowest job in the graph.
+    // Package pools preserve the selected union; UI uses four distinct shards.
+    // Other surfaces keep their existing applicability and coverage.
     workspaceMatrix: {
       include: Object.entries(workspaceGroups)
         .filter(([, applies]) => applies)
-        .map(([group]) => ({
-          group,
-          filters: TURBO_TEST_GROUPS[group].join(' '),
-        })),
+        .flatMap(([group]) =>
+          group === 'packages'
+            ? buildPackageTestMatrix(normalizedTurboTasks.packages)
+            : [
+                {
+                  group,
+                  name: group,
+                  filters: TURBO_TEST_GROUPS[group].join(' '),
+                  ui_shard: '',
+                },
+              ],
+        ),
     },
   };
 }
@@ -391,6 +410,7 @@ function writeOutputs(plan, manifestPath) {
     app_matrix: JSON.stringify(plan.appTests.matrix),
     api_matrix: JSON.stringify(plan.apiTests.matrix),
     force_full: plan.forceFull,
+    setup_benchmark: plan.setupBenchmark,
     workspace_tests: plan.workspaceMatrix.include.length > 0,
     workspace_matrix: JSON.stringify(plan.workspaceMatrix),
     manifest: manifestPath,

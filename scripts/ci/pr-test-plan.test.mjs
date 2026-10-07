@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-
 import {
   classifyChangedFiles,
   createPrTestPlan,
@@ -13,6 +12,7 @@ import {
   readChangedFiles,
   selectShardCount,
 } from './pr-test-plan.mjs';
+import { allPackageTestTasks } from './workspace-test-matrix.mjs';
 
 test('scopes PR and merge-group surfaces by diff, forces them elsewhere', () => {
   // The master Full Suite and release dispatch have no diff base, so
@@ -142,22 +142,33 @@ test('a full-suite escalation shards each whole suite four ways', () => {
     assert.equal(surface.shards, 4);
     assert.deepEqual(surface.matrix, createShardMatrix(4));
   }
-  assert.deepEqual(plan.workspaceMatrix.include, [
-    {
-      group: 'browser-extension',
-      filters: '--filter=@genfeedai/extension-browser',
-    },
-    { group: 'packages', filters: '--filter=./packages/*' },
-    {
-      group: 'server',
-      filters: '--filter=./apps/server/* --filter=!@genfeedai/api',
-    },
-    {
-      group: 'web',
-      filters:
-        '--filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/mobile',
-    },
-  ]);
+  const packageLegs = plan.workspaceMatrix.include.filter(
+    ({ group }) => group === 'packages',
+  );
+  assert.equal(packageLegs.length, 4);
+  assert.deepEqual(
+    packageLegs.map(({ ui_shard }) => ui_shard),
+    ['1/4', '2/4', '3/4', '4/4'],
+  );
+  const selected = packageLegs.flatMap(({ filters }) =>
+    filters
+      .split(' ')
+      .filter(Boolean)
+      .map((filter) => `${filter.slice('--filter='.length)}#test`),
+  );
+  selected.push('@genfeedai/ui#test');
+  assert.deepEqual(
+    selected.sort(),
+    allPackageTestTasks(
+      fileURLToPath(new URL('../..', import.meta.url)),
+    ).sort(),
+  );
+  assert.deepEqual(
+    plan.workspaceMatrix.include
+      .filter(({ group }) => group !== 'packages')
+      .map(({ group }) => group),
+    ['browser-extension', 'server', 'web'],
+  );
 });
 
 test('creates deterministic matrix entries', () => {
@@ -232,7 +243,7 @@ test('creates a fail-closed plan with explicit applicability', () => {
     turboTasks: {
       'browser-extension': [],
       'ide-extension': [],
-      packages: ['@genfeedai/contracts/interfaces#test'],
+      packages: ['@genfeedai/contracts#test'],
       server: [],
       web: ['@genfeedai/website#test'],
     },
@@ -323,7 +334,7 @@ test('keeps the workflow wired to the planner matrices and outputs', () => {
     workflow,
     /matrix: \$\{\{ fromJSON\(needs\.plan\.outputs\.workspace_matrix\) \}\}/,
   );
-  assert.match(workflow, /name: Test Workspaces \(\$\{\{ matrix\.group \}\}\)/);
+  assert.match(workflow, /name: Test Workspaces \(\$\{\{ matrix\.name \}\}\)/);
   assert.match(workflow, /WORKSPACE_FILTERS: \$\{\{ matrix\.filters \}\}/);
   // The diff base is the merge commit's first parent, resolved once by Plan;
   // the payload's `pull_request.base.sha` can be stale and over-escalate.
@@ -354,6 +365,8 @@ test('direct browser source and config changes fail closed with an empty task gr
     assert.deepEqual(plan.workspaceMatrix.include, [
       {
         group: 'browser-extension',
+        name: 'browser-extension',
+        ui_shard: '',
         filters: '--filter=@genfeedai/extension-browser',
       },
     ]);
@@ -370,6 +383,8 @@ test('affected browser dependencies activate only the browser workspace leg', ()
   assert.deepEqual(plan.workspaceMatrix.include, [
     {
       group: 'browser-extension',
+      name: 'browser-extension',
+      ui_shard: '',
       filters: '--filter=@genfeedai/extension-browser',
     },
   ]);
@@ -417,7 +432,7 @@ test('browser workspace legs run the full filtered suite while other groups reta
   assert.match(workspaceStep, /WORKSPACE_GROUP: \$\{\{ matrix\.group \}\}/);
   assert.match(
     workspaceStep,
-    /if \[ "\$\{WORKSPACE_GROUP\}" = "browser-extension" \] \|\| \[ "\$\{FORCE_FULL\}" = "true" \] \|\| \[ -z "\$\{CI_BASE_SHA\}" \]; then\n {12}bunx turbo run test --continue \$\{WORKSPACE_FILTERS\}\n {10}else\n {12}TURBO_SCM_BASE="\$\{CI_BASE_SHA\}" bunx turbo run test --continue --affected \$\{WORKSPACE_FILTERS\}\n {10}fi/,
+    /if \[ "\$\{WORKSPACE_GROUP\}" = "browser-extension" \] \|\| \[ "\$\{FORCE_FULL\}" = "true" \] \|\| \[ -z "\$\{CI_BASE_SHA\}" \]; then\n {12}bunx turbo run test --continue --concurrency=1 \$\{WORKSPACE_FILTERS\}\n {10}else\n {12}TURBO_SCM_BASE="\$\{CI_BASE_SHA\}" bunx turbo run test --continue --concurrency=1 --affected \$\{WORKSPACE_FILTERS\}\n {10}fi/,
   );
 });
 
@@ -437,5 +452,43 @@ test('server workspace leg runs the workers cron specs with affected selection',
   assert.match(
     cronStep,
     /if \[ "\$\{FORCE_FULL\}" = "true" \] \|\| \[ -z "\$\{CI_BASE_SHA\}" \]; then\n {12}bunx turbo run test:cron --filter=@genfeedai\/workers\n {10}else\n {12}TURBO_SCM_BASE="\$\{CI_BASE_SHA\}" bunx turbo run test:cron --affected --filter=@genfeedai\/workers\n {10}fi/,
+  );
+});
+
+test('UI shards retain the environment gate, dependency builds, distinct cache arguments and failure semantics', () => {
+  const workflow = readFileSync(
+    new URL('../../.github/workflows/ci.yml', import.meta.url),
+    'utf8',
+  );
+  const turbo = readFileSync(
+    new URL('../../turbo.json', import.meta.url),
+    'utf8',
+  );
+  assert.match(
+    turbo,
+    /"test:shard":\s*\{\s*"dependsOn": \["\/\/#env:check", "\^build"\]/,
+  );
+  assert.match(
+    workflow,
+    /bunx turbo run test:shard --filter=@genfeedai\/ui --concurrency=1 -- "\$UI_SHARD"/,
+  );
+  assert.match(workflow, /if \[ -z "\$\{WORKSPACE_FILTERS\}" \]; then/);
+  assert.match(workflow, /id: formatting\n {8}background: true/);
+  assert.match(workflow, /name: Wait for formatting\n {8}wait: formatting/);
+  assert.ok(
+    workflow.indexOf('wait: formatting') <
+      workflow.indexOf('- name: Run typecheck'),
+  );
+});
+
+test('benchmarks shared action changes alongside their conservative full coverage', () => {
+  const setup = createPrTestPlan({
+    changedFiles: ['.github/actions/setup-bun-env/action.yml'],
+  });
+  assert.equal(setup.setupBenchmark, true);
+  assert.equal(setup.forceFull, true);
+  assert.equal(
+    createPrTestPlan({ changedFiles: ['docs/testing.md'] }).setupBenchmark,
+    false,
   );
 });

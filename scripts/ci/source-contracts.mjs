@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -196,11 +196,34 @@ export function discoverSourceContracts(surface, root = ROOT) {
   });
 }
 
-export function runSourceContracts({ listOnly = false } = {}) {
+function executeVitest(command, args, options) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { ...options, stdio: 'inherit' });
+    child.once('error', reject);
+    child.once('close', (code, signal) => {
+      if (code === 0) resolve();
+      else
+        reject(
+          new Error(
+            `Source contracts in ${options.cwd} failed (${signal ?? code})`,
+          ),
+        );
+    });
+  });
+}
+
+export async function runSourceContracts({
+  listOnly = false,
+  root = ROOT,
+  surfaces = SURFACES,
+  discover = discoverSourceContracts,
+  execute = executeVitest,
+} = {}) {
   const results = [];
-  for (const surface of SURFACES) {
-    const directory = path.join(ROOT, surface.directory);
-    const discovered = discoverSourceContracts(surface);
+  const executions = [];
+  for (const surface of surfaces) {
+    const directory = path.join(root, surface.directory);
+    const discovered = discover(surface, root);
     const { sourceOnly: files, connected } =
       partitionSourceContracts(discovered);
     const relativeFiles = files.map((file) => path.relative(directory, file));
@@ -217,9 +240,12 @@ export function runSourceContracts({ listOnly = false } = {}) {
       console.log(
         `Running ${files.length} filesystem source contracts in ${surface.directory}`,
       );
-      execFileSync(
-        'bunx',
-        [
+      // Two surfaces, two workers each: a bounded four-worker pool fits the
+      // 4-vCPU Linux runner. Keep each original cwd and per-file isolation.
+      // Selection is unconditional: imports cannot see filesystem reads.
+      executions.push({
+        command: 'bunx',
+        args: [
           'vitest',
           'run',
           '--config',
@@ -227,14 +253,27 @@ export function runSourceContracts({ listOnly = false } = {}) {
           '--maxWorkers=2',
           ...relativeFiles,
         ],
-        {
+        options: {
           cwd: directory,
-          stdio: 'inherit',
           env: { ...process.env, NODE_ENV: 'test', CI: 'true' },
         },
-      );
+      });
     }
   }
+  const settled = await Promise.allSettled(
+    executions.map(({ command, args, options }) => {
+      try {
+        return execute(command, args, options);
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    }),
+  );
+  const failures = settled
+    .filter((result) => result.status === 'rejected')
+    .map((result) => result.reason);
+  if (failures.length)
+    throw new AggregateError(failures, 'Filesystem source contracts failed');
   return results;
 }
 
@@ -245,6 +284,8 @@ if (
   const args = process.argv.slice(2);
   if (args.some((arg) => arg !== '--list'))
     throw new Error('Only --list is supported');
-  const results = runSourceContracts({ listOnly: args.includes('--list') });
+  const results = await runSourceContracts({
+    listOnly: args.includes('--list'),
+  });
   if (args.includes('--list')) console.log(JSON.stringify(results, null, 2));
 }

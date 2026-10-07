@@ -177,15 +177,38 @@ test('enforces executable contracts through the aggregate suite', () => {
     );
   }
 
+  const architecture = readFileSync(
+    path.join(REPOSITORY_ROOT, 'scripts/check-architecture.ts'),
+    'utf8',
+  );
+  assert.match(contracts, /'check:architecture'/);
   for (const token of [
     'check:cron-boundary',
     'check:legacy-cron-surface',
     'check:product-workflow-boundary',
     'check:bull-board-parity',
+    'check:deterministic-locale',
+    'check:route-shadowing',
+    'check:agent-tool-dispatch',
+    'check:action-versions',
+    'check:project-references',
+  ]) {
+    const command = packageJson.scripts[token].split(' ').at(-1);
+    assert.ok(
+      architecture.includes(command),
+      `architecture bundle must still invoke ${token}`,
+    );
+    assert.ok(
+      !contracts.includes(`'${token}'`),
+      `${token} must have only one contract owner`,
+    );
+  }
+
+  for (const token of [
+    'check:ui-guards',
     'check:relation-alias-reads',
     'check:relation-alias-writes',
     'check:runtime-complexity',
-    'check:deterministic-locale',
     'check:import-cycles',
   ]) {
     assert.match(
@@ -212,6 +235,10 @@ test('consolidates static validation into one runner slot', () => {
   assert.match(staticChecks, /bunx turbo run lint/);
   assert.match(staticChecks, /bunx turbo run type-check/);
   assert.match(staticChecks, /bun run test:executable-contracts/);
+  assert.doesNotMatch(
+    staticChecks,
+    /run: bun run check:(?:ui-guards|architecture)/,
+  );
   assert.match(
     staticChecks,
     /uses: gitleaks\/gitleaks-action@[0-9a-f]{40} # v\d+\.\d+\.\d+/,
