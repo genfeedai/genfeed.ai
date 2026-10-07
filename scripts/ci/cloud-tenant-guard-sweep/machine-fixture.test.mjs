@@ -122,7 +122,7 @@ test('machine fixture seeds only direct database writes in deferred identity/ver
           },
           findFirst: async ({ where }) => {
             assert.equal(where.organizationId, privateFixture.organizationId);
-            return stored.get(name);
+            return structuredClone(stored.get(name));
           },
         },
       ],
@@ -410,3 +410,144 @@ test('historical machine proof stays unavailable; current finalizer recomputes m
   assert.equal(report.hasFailed, true);
   assert.ok(report.failures.includes('machine-data-coverage'));
 });
+
+function graphReadbackFixture(graph) {
+  const stored = new Map();
+  const calls = [];
+  let readbackGraph;
+  const transaction = Object.fromEntries(
+    ['orgIntegration', 'workflow', 'workflowVersion', 'workflowExecution'].map(
+      (name) => [
+        name,
+        {
+          create: async ({ data }) => {
+            stored.set(name, structuredClone(data));
+            calls.push(name);
+            return structuredClone(data);
+          },
+          findFirst: async () => {
+            const row = structuredClone(stored.get(name));
+            if (name === 'workflowVersion') {
+              row.graph = structuredClone(graph);
+              readbackGraph = row.graph;
+            }
+            return row;
+          },
+        },
+      ],
+    ),
+  );
+  let id = 0;
+  return {
+    stored,
+    calls,
+    graph: () => readbackGraph,
+    seed: () =>
+      seedMachineFixture(
+        { $transaction: async (run) => run(transaction) },
+        privateFixture,
+        {
+          secret: 'private-key-canary',
+          deriveEncryptionKey: (value) => value,
+          encryptWithKey: () => 'private-cipher-canary',
+          uuid: () => `private-id-${++id}`,
+        },
+      ),
+  };
+}
+
+test('R20 reordered JSONB detached readback graph accepts every key permutation without changing identity hash or transaction order', async () => {
+  const permutations = [
+    ['edges', 'nodes', 'lockedNodeIds'],
+    ['edges', 'lockedNodeIds', 'nodes'],
+    ['nodes', 'edges', 'lockedNodeIds'],
+    ['nodes', 'lockedNodeIds', 'edges'],
+    ['lockedNodeIds', 'edges', 'nodes'],
+    ['lockedNodeIds', 'nodes', 'edges'],
+  ];
+  for (const keys of permutations) {
+    const graph = Object.fromEntries(keys.map((key) => [key, []]));
+    const f = graphReadbackFixture(graph);
+    const descriptor = await f.seed();
+    const workflow = f.stored.get('workflow'),
+      version = f.stored.get('workflowVersion'),
+      execution = f.stored.get('workflowExecution');
+    assert.notEqual(f.graph(), graph);
+    assert.notEqual(f.graph(), version.graph);
+    assert.deepEqual(f.graph(), MACHINE_DEFINITION.graph);
+    assert.deepEqual(Object.keys(f.graph()), keys);
+    assert.equal(version.contentHash, MACHINE_CONTENT_HASH);
+    assert.deepEqual(version.inputSchema, []);
+    assert.equal(workflow.currentVersionId, version.id);
+    assert.equal(execution.workflowVersionId, version.id);
+    assert.equal(execution.workflowId, workflow.id);
+    assert.equal(descriptor.versionId, version.id);
+    assert.equal(descriptor.executionId, execution.id);
+    assert.deepEqual(f.calls, [
+      'orgIntegration',
+      'workflow',
+      'workflowVersion',
+      'workflowExecution',
+    ]);
+    assert.equal(execution.creditsUsed, 0);
+    assert.equal(workflow.isScheduleEnabled, false);
+  }
+});
+
+for (const [label, graph] of [
+  ['missing edges', { lockedNodeIds: [], nodes: [] }],
+  ['missing nodes', { edges: [], lockedNodeIds: [] }],
+  ['missing lockedNodeIds', { edges: [], nodes: [] }],
+  [
+    'extra key',
+    {
+      edges: [],
+      lockedNodeIds: [],
+      nodes: [],
+      privateExtra: 'private-graph-canary',
+    },
+  ],
+  [
+    'nonempty edges',
+    {
+      edges: [{ privateEdge: 'private-graph-canary' }],
+      lockedNodeIds: [],
+      nodes: [],
+    },
+  ],
+  [
+    'nonempty nodes',
+    {
+      edges: [],
+      lockedNodeIds: [],
+      nodes: [{ privateNode: 'private-graph-canary' }],
+    },
+  ],
+  [
+    'nonempty lockedNodeIds',
+    { edges: [], lockedNodeIds: ['private-graph-canary'], nodes: [] },
+  ],
+  ['wrong edges type', { edges: {}, lockedNodeIds: [], nodes: [] }],
+  ['wrong nodes type', { edges: [], lockedNodeIds: [], nodes: '' }],
+  ['wrong lockedNodeIds type', { edges: [], lockedNodeIds: 0, nodes: [] }],
+  ['null array', { edges: null, lockedNodeIds: [], nodes: [] }],
+  ['array graph', []],
+  ['null graph', null],
+]) {
+  test(`R20 detached readback strictly refuses ${label} with the fixed private-safe failure`, async () => {
+    const f = graphReadbackFixture(graph);
+    await assert.rejects(f.seed(), (error) => {
+      assert.equal(error.message, 'Machine fixture readback failed');
+      assert.doesNotMatch(String(error), /private-|cipher|token|SQL/);
+      return true;
+    });
+    assert.deepEqual(
+      f.stored.get('workflowVersion').graph,
+      MACHINE_DEFINITION.graph,
+    );
+    assert.equal(
+      f.stored.get('workflowVersion').contentHash,
+      MACHINE_CONTENT_HASH,
+    );
+  });
+}

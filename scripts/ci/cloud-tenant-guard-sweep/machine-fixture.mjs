@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 
 export const MACHINE_TEMPLATES = Object.freeze([
   '/v1/internal/integrations/{platform}',
@@ -121,8 +122,7 @@ export async function seedMachineFixture(
         version?.contentHash === MACHINE_CONTENT_HASH &&
         version.version === 1 &&
         version.userId === userId &&
-        JSON.stringify(version.graph) ===
-          JSON.stringify(MACHINE_DEFINITION.graph) &&
+        isDeepStrictEqual(version.graph, MACHINE_DEFINITION.graph) &&
         JSON.stringify(version.inputSchema) === '[]' &&
         execution?.workflowId === workflowId &&
         execution.workflowVersionId === versionId &&
