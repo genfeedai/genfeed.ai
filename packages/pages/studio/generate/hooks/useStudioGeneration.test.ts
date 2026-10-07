@@ -1,7 +1,11 @@
-import { IngredientStatus, RouterPriority } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  RouterPriority,
+} from '@genfeedai/contracts';
 import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
-import type { IModel } from '@genfeedai/contracts/interfaces';
-import { act, renderHook } from '@testing-library/react';
+import type { IIngredient, IModel } from '@genfeedai/contracts/interfaces';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -1184,5 +1188,262 @@ describe('FLUX.3 submission and reusable native recipe', () => {
         outputs: 1,
       }),
     );
+  });
+});
+
+describe('persisted video submission reconciliation', () => {
+  it('hydrates a server-owned FAILED row once and refreshes both surfaces without synthetic duplication', async () => {
+    const onGenerated = vi.fn();
+    const refreshEvent = vi.fn();
+    window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refreshEvent);
+    const ingredient = {
+      id: 'saved-video',
+      brandId: 'brand-1',
+      category: IngredientCategory.VIDEO,
+      status: IngredientStatus.FAILED,
+    } as IIngredient;
+    mockVideosPost.mockRejectedValue({
+      errors: [
+        {
+          detail: 'Submission failed',
+          meta: { persistedVideoIngredientIds: ['saved-video'] },
+        },
+      ],
+    });
+    mockVideosFindOne.mockResolvedValue(ingredient);
+    const { result } = renderStudioGeneration({ type: 'video', onGenerated });
+    await act(async () => {
+      expect(await result.current.submit('Saved prompt')).toBe(false);
+    });
+    expect(mockVideosFindOne).toHaveBeenCalledWith('saved-video', {
+      brandId: 'brand-1',
+    });
+    expect(result.current.jobs).toHaveLength(1);
+    expect(result.current.jobs[0]).toMatchObject({
+      id: ingredient.id,
+      ingredientId: ingredient.id,
+      ingredient,
+      recipe: { text: 'Saved prompt' },
+      status: IngredientStatus.FAILED,
+    });
+    expect(onGenerated).toHaveBeenCalledTimes(1);
+    expect(refreshEvent).toHaveBeenCalledTimes(1);
+    expect(mockVideosPost).toHaveBeenCalledTimes(1);
+    window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refreshEvent);
+  });
+});
+
+function persistedVideoFailure(ids: unknown) {
+  return {
+    errors: [
+      {
+        detail: 'Failed submission',
+        meta: { persistedVideoIngredientIds: ids },
+      },
+    ],
+  };
+}
+function persistedVideo(
+  id: string,
+  status = IngredientStatus.FAILED,
+): IIngredient {
+  return {
+    id,
+    brandId: 'brand-1',
+    category: IngredientCategory.VIDEO,
+    status,
+  } as IIngredient;
+}
+function deferredVideo() {
+  let resolve: (value: IIngredient | null) => void = () => {
+    throw new Error('Deferred read not initialized');
+  };
+  const promise = new Promise<IIngredient | null>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+describe('collect-first persisted video hydration', () => {
+  it('publishes nothing until sequential initial reads finish and never polls refused IDs', async () => {
+    const first = deferredVideo();
+    const second = deferredVideo();
+    mockVideosPost.mockRejectedValue(
+      persistedVideoFailure(['ready', 'refused']),
+    );
+    mockVideosFindOne.mockImplementation((id: string) =>
+      id === 'ready' ? first.promise : second.promise,
+    );
+    const { result } = renderStudioGeneration({ type: 'video' });
+    let submission = Promise.resolve(false);
+    act(() => {
+      submission = result.current.submit('Saved prompt');
+    });
+    await waitFor(() => expect(mockVideosFindOne).toHaveBeenCalledTimes(1));
+    expect(
+      result.current.jobs.every(
+        (job) => job.phase === 'submitting' && !job.ingredientId,
+      ),
+    ).toBe(true);
+    expect(mockSubscribe).not.toHaveBeenCalled();
+    await act(async () => {
+      first.resolve(persistedVideo('ready'));
+    });
+    expect(mockVideosFindOne).toHaveBeenCalledTimes(2);
+    expect(
+      result.current.jobs.every(
+        (job) => job.phase === 'submitting' && !job.ingredientId,
+      ),
+    ).toBe(true);
+    expect(mockSubscribe).not.toHaveBeenCalled();
+    await act(async () => {
+      second.resolve(null);
+      await submission;
+    });
+    expect(result.current.jobs.map((job) => job.id)).toEqual(['ready']);
+    expect(mockVideosFindOne.mock.calls).toEqual([
+      ['ready', { brandId: 'brand-1' }],
+      ['refused', { brandId: 'brand-1' }],
+    ]);
+    expect(mockSubscribe).not.toHaveBeenCalled();
+  });
+  it('atomically keeps mixed terminal/pending/transient outcomes and discards refusal without POST replay', async () => {
+    mockVideosPost.mockRejectedValue(
+      persistedVideoFailure(['failed', 'pending', 'transient', 'forbidden']),
+    );
+    mockVideosFindOne.mockImplementation(
+      async (id: string, scope?: { brandId: string }) => {
+        if (!scope) return persistedVideo(id, IngredientStatus.PROCESSING);
+        if (id === 'forbidden') throw { errors: [{ status: '403' }] };
+        if (id === 'transient') throw new Error('Transport unavailable');
+        return persistedVideo(
+          id,
+          id === 'pending'
+            ? IngredientStatus.PROCESSING
+            : IngredientStatus.FAILED,
+        );
+      },
+    );
+    const { result } = renderStudioGeneration({ type: 'video' });
+    await act(async () => {
+      await result.current.submit('Saved prompt');
+    });
+    expect(result.current.jobs).toHaveLength(3);
+    const failed = result.current.jobs.find((job) => job.id === 'failed');
+    const pending = result.current.jobs.find((job) => job.id === 'pending');
+    const transient = result.current.jobs.find((job) => job.id === 'transient');
+    expect(failed?.status).toBe(IngredientStatus.FAILED);
+    expect(pending?.status).toBe(IngredientStatus.PROCESSING);
+    expect(transient).toMatchObject({
+      ingredientId: 'transient',
+      status: IngredientStatus.PROCESSING,
+      error: 'The result could not be loaded. Reconnecting…',
+    });
+    expect(transient?.ingredient).toBeUndefined();
+    expect(new Set(result.current.jobs.map((job) => job.runId)).size).toBe(1);
+    expect(
+      mockVideosFindOne.mock.calls.filter((call) => call[1]?.brandId),
+    ).toEqual(
+      ['failed', 'pending', 'transient', 'forbidden'].map((id) => [
+        id,
+        { brandId: 'brand-1' },
+      ]),
+    );
+    expect(
+      mockVideosFindOne.mock.calls
+        .filter((call) => !call[1]?.brandId)
+        .every((call) => ['pending', 'transient'].includes(call[0])),
+    ).toBe(true);
+    expect(mockSubscribe.mock.calls.map((call) => call[0]).sort()).toEqual([
+      '/videos/pending',
+      '/videos/transient',
+    ]);
+    expect(mockVideosPost).toHaveBeenCalledTimes(1);
+  });
+  it.each([
+    'missing',
+    'forbidden',
+    'brand',
+    'id',
+    'category',
+    'deleted',
+    'status',
+  ])('refuses %s identity before publication or subscription', async (kind) => {
+    mockVideosPost.mockRejectedValue(persistedVideoFailure(['saved']));
+    const row = persistedVideo('saved');
+    if (kind === 'missing') mockVideosFindOne.mockResolvedValue(null);
+    else if (kind === 'forbidden')
+      mockVideosFindOne.mockRejectedValue({ response: { status: 403 } });
+    else
+      mockVideosFindOne.mockResolvedValue({
+        ...row,
+        ...(kind === 'brand'
+          ? { brandId: 'foreign' }
+          : kind === 'id'
+            ? { id: 'other' }
+            : kind === 'category'
+              ? { category: IngredientCategory.IMAGE }
+              : kind === 'deleted'
+                ? { isDeleted: true }
+                : { status: 'INVALID' }),
+      });
+    const { result } = renderStudioGeneration({ type: 'video' });
+    await act(async () => {
+      await result.current.submit('Saved');
+    });
+    expect(result.current.jobs).toHaveLength(1);
+    expect(result.current.jobs[0].id).toMatch(/^failed-/);
+    expect(result.current.jobs[0].ingredientId).toBeUndefined();
+    expect(mockSubscribe).not.toHaveBeenCalled();
+    expect(mockVideosFindOne).toHaveBeenCalledTimes(1);
+  });
+  it.each([undefined, [], ['saved', 'saved'], ['bad ']])(
+    'keeps malformed/pre-placeholder errors local and refreshes Library (%j)',
+    async (ids) => {
+      mockVideosPost.mockRejectedValue(persistedVideoFailure(ids));
+      const refresh = vi.fn();
+      const { result } = renderStudioGeneration({
+        type: 'video',
+        onGenerated: refresh,
+      });
+      await act(async () => {
+        await result.current.submit('Saved');
+      });
+      expect(result.current.jobs[0].id).toMatch(/^failed-/);
+      expect(mockVideosFindOne).not.toHaveBeenCalled();
+      expect(refresh).toHaveBeenCalledOnce();
+    },
+  );
+  it('stops remaining hydration and refresh after a brand switch during an awaited read', async () => {
+    const read = deferredVideo();
+    mockVideosPost.mockRejectedValue(
+      persistedVideoFailure(['saved', 'second']),
+    );
+    mockVideosFindOne.mockReturnValue(read.promise);
+    const onGenerated = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ brandId }) =>
+        useStudioGeneration({
+          brandId,
+          type: 'video',
+          models: [],
+          settings: getDefaultStudioGenerateSettings('video'),
+          onGenerated,
+        }),
+      { initialProps: { brandId: 'brand-1' } },
+    );
+    let submission = Promise.resolve(false);
+    act(() => {
+      submission = result.current.submit('Saved');
+    });
+    await waitFor(() => expect(mockVideosFindOne).toHaveBeenCalledOnce());
+    rerender({ brandId: 'brand-2' });
+    await act(async () => {
+      read.resolve(persistedVideo('saved'));
+      await submission;
+    });
+    expect(result.current.jobs).toEqual([]);
+    expect(mockVideosFindOne).toHaveBeenCalledOnce();
+    expect(onGenerated).not.toHaveBeenCalled();
+    expect(mockSubscribe).not.toHaveBeenCalled();
   });
 });

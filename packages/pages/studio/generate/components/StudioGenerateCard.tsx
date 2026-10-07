@@ -15,6 +15,7 @@ import type {
 import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { StudioGenerateCardProps } from '@genfeedai/props/studio/studio-generate.props';
+import { getIngredientRecovery } from '@genfeedai/utils/media/ingredient-recovery.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import { logger } from '@services/core/logger.service';
@@ -133,6 +134,7 @@ export default function StudioGenerateCard({
   view,
 }: StudioGenerateCardProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
+  const translateRecovery = useTranslations('pages.library.recovery');
   const { href } = useOrgUrl();
   const { label } = getStudioGenerateTypeConfig(job.type);
   const [failedMediaUrl, setFailedMediaUrl] = useState<string | null>(null);
@@ -191,6 +193,44 @@ export default function StudioGenerateCard({
     job.type === 'video' &&
     Boolean(job.ingredient?.id) &&
     mediaState === 'ready';
+
+  function renderRecoveryAction(): ReactElement | null {
+    const ingredient = job.ingredient;
+    const capability = assetActions.failedRecovery;
+    if (
+      !capability ||
+      !isFailed ||
+      !ingredient ||
+      ingredient.status !== IngredientStatus.FAILED ||
+      ingredient.isDeleted ||
+      job.id !== ingredient.id ||
+      job.ingredientId !== ingredient.id
+    )
+      return null;
+    const recovery = getIngredientRecovery(ingredient);
+    const hasRetried = capability.retriedIds.includes(ingredient.id);
+    return (
+      <Button
+        label={
+          hasRetried
+            ? translateRecovery('started')
+            : translateRecovery(`actions.${recovery.action}`)
+        }
+        className="px-2 text-xs"
+        withWrapper={false}
+        size={ButtonSize.SM}
+        variant={ButtonVariant.SECONDARY}
+        isDisabled={capability.isRecovering || hasRetried}
+        onClick={() =>
+          recovery.action === 'retry'
+            ? capability.onRetryFailedIngredient(ingredient)
+            : recovery.action === 'viewDetails'
+              ? assetActions.onSeeDetails(ingredient)
+              : capability.onReviewFailedIngredient(ingredient)
+        }
+      />
+    );
+  }
 
   function renderMakeClipsAction(): ReactElement | null {
     if (!canMakeClips) {
@@ -302,6 +342,7 @@ export default function StudioGenerateCard({
             {referenceAction}
             {renderSourceAction('px-2 text-xs')}
             {renderMakeClipsAction()}
+            {showLifecycleActions && isFailed ? renderRecoveryAction() : null}
             {showLifecycleActions && isFailed ? (
               <Button
                 ariaLabel={translate('removeGenerationAria', {
@@ -357,6 +398,9 @@ export default function StudioGenerateCard({
                   {renderSourceAction(
                     'h-auto px-2 text-xs text-foreground/75 hover:text-foreground',
                   )}
+                  {showLifecycleActions && isFailed
+                    ? renderRecoveryAction()
+                    : null}
                   {showLifecycleActions && isFailed ? (
                     <Button
                       ariaLabel={translate('removeGenerationAria', {

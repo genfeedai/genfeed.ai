@@ -399,3 +399,21 @@ describe('useStudioGenerateAssetActions', () => {
     );
   });
 });
+
+it('passes only the supplied shared recovery capability through the action adapter', () => {
+  const capability = {
+    onRetryFailedIngredient: vi.fn(),
+    onReviewFailedIngredient: vi.fn().mockResolvedValue(undefined),
+    isRecovering: true,
+    retriedIds: ['saved'],
+  };
+  const { result } = renderHook(() =>
+    useStudioGenerateAssetActions({
+      failedRecovery: capability,
+      onAttachReference: vi.fn(),
+      onInspectIngredient: vi.fn(),
+      onRefresh: vi.fn(),
+    }),
+  );
+  expect(result.current.failedRecovery).toBe(capability);
+});

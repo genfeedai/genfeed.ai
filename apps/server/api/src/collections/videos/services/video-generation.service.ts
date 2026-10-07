@@ -11,6 +11,7 @@ import type {
   GenerationPlaceholderScope,
 } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
@@ -116,23 +117,30 @@ export class VideoGenerationService {
       runReferences,
     );
     try {
-      await onPlaceholderCreated?.(context.ingredientData.id.toString());
-      this.executionService.prepareProviderDispatch(context);
-      await this.creditsService.ensureDeferredCredits(
-        createVideoDto,
-        resolved.model,
-        resolved.user.organizationId,
-        request,
-        context.preparedFalDispatch?.input ?? context.promptParams,
-      );
-      await onCreditsPrepared?.();
+      try {
+        await onPlaceholderCreated?.(context.ingredientData.id.toString());
+        this.executionService.prepareProviderDispatch(context);
+        await this.creditsService.ensureDeferredCredits(
+          createVideoDto,
+          resolved.model,
+          resolved.user.organizationId,
+          request,
+          context.preparedFalDispatch?.input ?? context.promptParams,
+        );
+        await onCreditsPrepared?.();
+      } catch (error: unknown) {
+        return await this.executionService.failPlaceholderBeforeDispatch(
+          context,
+          error,
+        );
+      }
+      await this.executionService.execute(context);
+      return await this.completionService.complete(context);
     } catch (error: unknown) {
-      return this.executionService.failPlaceholderBeforeDispatch(
-        context,
+      throw PersistedVideoGenerationException.from(
         error,
+        context.pendingIngredientIds,
       );
     }
-    await this.executionService.execute(context);
-    return this.completionService.complete(context);
   }
 }

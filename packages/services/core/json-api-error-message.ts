@@ -129,3 +129,32 @@ export function getJsonApiErrorMetaBoolean(
 
   return typeof value === 'boolean' ? value : undefined;
 }
+
+/** Only server-owned persisted video identity survives this bounded reader. */
+export function getPersistedVideoIngredientIds(
+  error: unknown,
+): readonly string[] {
+  const value =
+    error instanceof Error && 'persistedVideoIngredientIds' in error
+      ? error.persistedVideoIngredientIds
+      : readErrorMetaValue(error, 'persistedVideoIngredientIds');
+  if (
+    !Array.isArray(value) ||
+    value.length < 1 ||
+    value.length > 4 ||
+    new Set(value).size !== value.length ||
+    value.some(
+      (id) =>
+        typeof id !== 'string' ||
+        id.length < 1 ||
+        id.length > 128 ||
+        id.trim() !== id ||
+        [...id].some((character) => {
+          const code = character.charCodeAt(0);
+          return code < 32 || (code >= 127 && code <= 159);
+        }),
+    )
+  )
+    return [];
+  return [...value];
+}

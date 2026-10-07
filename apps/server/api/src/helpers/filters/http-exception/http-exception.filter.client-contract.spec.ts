@@ -1,3 +1,4 @@
+import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
 /**
  * End-to-end contract between `HttpExceptionFilter`'s real JSON:API output
  * (the real `jsonapi-serializer`, not a pass-through mock — a mock cannot
@@ -158,5 +159,53 @@ describe('HttpExceptionFilter → @genfeedai/utils client contract (real jsonapi
     const body = mockResponse.json.mock.calls[0][0] as IJsonApiError;
     expect(getErrorStatus(body)).toBe(HttpStatus.BAD_REQUEST);
     expect(getJsonApiErrorStatus(body)).toBe(HttpStatus.BAD_REQUEST);
+  });
+
+  it('serializes only the typed persisted identity and preserves semantic code/status', () => {
+    const original = new HttpException(
+      {
+        code: 'VIDEO_INPUT',
+        detail: 'Review input',
+        meta: { arbitrary: 'private' },
+      },
+      422,
+    );
+    filter.catch(
+      PersistedVideoGenerationException.from(original, [
+        'saved',
+      ]) as HttpException,
+      mockArgumentsHost,
+    );
+    expect(mockResponse.json.mock.calls[0][0].errors[0]).toMatchObject({
+      status: '422',
+      code: 'VIDEO_INPUT',
+      detail: 'Review input',
+      meta: { persistedVideoIngredientIds: ['saved'] },
+    });
+    expect(
+      mockResponse.json.mock.calls[0][0].errors[0].meta.arbitrary,
+    ).toBeUndefined();
+    filter.catch(original, mockArgumentsHost);
+    expect(mockResponse.json.mock.calls[1][0].errors[0].meta).toBeUndefined();
+  });
+  it('places persisted identity only on the first validation member', () => {
+    const original = new HttpException(
+      {
+        validationErrors: [
+          { field: 'text', message: 'Required' },
+          { field: 'model', message: 'Required' },
+        ],
+      },
+      400,
+    );
+    filter.catch(
+      PersistedVideoGenerationException.from(original, [
+        'saved',
+      ]) as HttpException,
+      mockArgumentsHost,
+    );
+    const errors = mockResponse.json.mock.calls[0][0].errors;
+    expect(errors[0].meta).toEqual({ persistedVideoIngredientIds: ['saved'] });
+    expect(errors[1].meta).toBeUndefined();
   });
 });

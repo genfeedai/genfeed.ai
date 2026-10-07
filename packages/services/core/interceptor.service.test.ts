@@ -1106,4 +1106,60 @@ describe('HTTPBaseService (InterceptorService)', () => {
       }
     });
   });
+
+  it.each(['safe detail', 'long '.repeat(50), 'multiline\ndetail'])(
+    'retains only bounded IDs through production handling for %j',
+    async (detail) => {
+      const descriptor = Object.getOwnPropertyDescriptor(
+        EnvironmentService,
+        'isProduction',
+      );
+      Object.defineProperty(EnvironmentService, 'isProduction', {
+        configurable: true,
+        value: true,
+      });
+      const responseData = {
+        errors: [
+          {
+            code: 'VIDEO_INPUT',
+            status: '422',
+            detail,
+            meta: {
+              persistedVideoIngredientIds: ['saved'],
+              privateProvider: 'private',
+            },
+          },
+        ],
+      };
+      const error = {
+        response: {
+          status: 422,
+          statusText: 'Unprocessable Entity',
+          data: responseData,
+        },
+        config: {},
+      } as AxiosError;
+      const target = service as unknown as {
+        handleError: (error: AxiosError) => Promise<never>;
+      };
+      let caught: unknown;
+      try {
+        await target.handleError(error);
+      } catch (value) {
+        caught = value;
+      }
+      if (detail === 'safe detail') expect(caught).toBe(responseData);
+      else {
+        expect(caught).toBeInstanceOf(Error);
+        expect(caught).toMatchObject({
+          status: 422,
+          persistedVideoIngredientIds: ['saved'],
+        });
+        expect(JSON.stringify(caught)).not.toContain('privateProvider');
+        expect(JSON.stringify(caught)).not.toContain(detail);
+      }
+      if (descriptor)
+        Object.defineProperty(EnvironmentService, 'isProduction', descriptor);
+    },
+  );
 });

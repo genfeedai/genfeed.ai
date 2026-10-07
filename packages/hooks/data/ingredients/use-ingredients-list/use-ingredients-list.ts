@@ -111,12 +111,14 @@ export function useIngredientsList({
 
   const failedRecovery = useFailedIngredientRecovery({
     brandId,
-    getService: getBulkIngredientsService,
+    deleteOptions: {
+      getService: getBulkIngredientsService,
+      setIngredients,
+      setSelectedIds: actionsState.setSelectedIngredientIds,
+    },
     ingredients: filteredIngredients,
     onRefresh: actionsState.handleRefresh,
     scopeKey: `${organizationId}:${brandId}:${JSON.stringify(query)}`,
-    setIngredients,
-    setSelectedIds: actionsState.setSelectedIngredientIds,
   });
 
   const mediaIngredients = useMemo(

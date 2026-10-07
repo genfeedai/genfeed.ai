@@ -552,3 +552,35 @@ describe('resolveStudioAssetFacts', () => {
     expect(facts.durationSeconds).toBeUndefined();
   });
 });
+
+it('deduplicates failed stored/socket observations while retaining run recipe and a terminal result over stale pending', () => {
+  const recipe = {
+    text: 'Saved submission',
+    blacklist: [],
+    tags: [],
+    references: [],
+    outputs: 1,
+    isAudioEnabled: false,
+    modelKey: 'model',
+    type: 'video' as const,
+  };
+  const failed = {
+    id: 'saved',
+    ingredientId: 'saved',
+    createdAt: 1,
+    prompt: 'Saved',
+    type: 'video' as const,
+    status: IngredientStatus.FAILED,
+    recipe,
+    runId: 'run',
+  };
+  const stored = { ...failed, recipe: undefined, runId: undefined };
+  const once = mergeStudioGenerateJobs([failed, failed], [stored]);
+  expect(once).toHaveLength(1);
+  expect(once[0]).toMatchObject({ recipe, runId: 'run' });
+  expect(
+    mergeStudioGenerateJobs(once, [
+      { ...stored, status: IngredientStatus.PROCESSING },
+    ])[0].status,
+  ).toBe(IngredientStatus.FAILED);
+});
