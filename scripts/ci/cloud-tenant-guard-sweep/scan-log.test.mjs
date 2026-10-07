@@ -597,3 +597,125 @@ test('final scanner subprocess keeps mandatory machine proof and fatal failure l
     /private-token-canary/,
   );
 });
+
+for (const failed of [false, true])
+  test(`real final scanner retains failed temporal projection and fatal sampler verdict (${failed})`, (context) => {
+    const directory = mkdtempSync(join(tmpdir(), 'tenant-temporal-final-'));
+    chmodSync(directory, 0o700);
+    context.after(() => rmSync(directory, { recursive: true, force: true }));
+    const proof = {
+      verificationRequired: true,
+      noUnverifiedSession: true,
+      acceptedMail: true,
+      verifiedAuthentication: true,
+    };
+    const mail = zeroMailStats();
+    for (const actor of Object.keys(mail.accepted)) mail.accepted[actor] = 2;
+    writeFileSync(join(directory, 'mail-stats.json'), JSON.stringify(mail), {
+      mode: 0o600,
+    });
+    writeFileSync(join(directory, 'api.log'), 'healthy\n', { mode: 0o600 });
+    const reportPath = join(directory, 'report.json');
+    writeFileSync(
+      reportPath,
+      JSON.stringify({
+        sourceSha: 'a'.repeat(40),
+        hasFailed: false,
+        failures: [],
+        fixtureProof: proof,
+        mailStats: mail,
+        inventoryTemplates: ['/v1/voices'],
+        requests: [
+          {
+            sequence: 1,
+            sentAtEpochMs: 2000,
+            endedAtEpochMs: 2200,
+            headerAtEpochMs: null,
+            actor: 'M:A',
+            phase: 'memberAGets',
+            method: 'GET',
+            route: '/v1/voices',
+            status: 200,
+          },
+        ],
+      }),
+      { mode: 0o600 },
+    );
+    const records = [
+      { kind: 'header', protocol: 1, startedAt: 100 },
+      {
+        kind: 'database',
+        start: 500,
+        end: 1329,
+        outcome: failed ? 'error' : 'success',
+        groups: [],
+        ...(failed
+          ? {
+              diagnostic: {
+                category: 'query-read-timeout',
+                name: 'Error',
+                code: 'NONE',
+              },
+            }
+          : {}),
+        connectionStateAtStart: 'retained',
+        connectionGenerationBefore: 1,
+        connectionGenerationAfter: 1,
+      },
+      {
+        kind: 'footer',
+        endedAt: 2300,
+        unavailable: false,
+        records: 2,
+        ingress: 0,
+        pipelineEntries: 0,
+        finishes: 0,
+        closes: 0,
+        invalidSequences: 0,
+        duplicateSequences: 0,
+        runtimeSamples: 0,
+        databaseSamples: 1,
+        databaseIncomplete: 0,
+      },
+    ];
+    writeFileSync(
+      join(directory, 'api-observations.ndjson'),
+      `${records.map((r) => JSON.stringify(r)).join('\n')}\n`,
+      { mode: 0o600 },
+    );
+    writeFileSync(join(directory, 'api-stopped'), 'stopped\n', { mode: 0o600 });
+    const result = spawnSync(
+      process.execPath,
+      [new URL('./scan-log.mjs', import.meta.url).pathname],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          CLOUD_SWEEP_DIAGNOSTICS: '1',
+          CLOUD_SWEEP_CPU_PROFILE: '0',
+          CLOUD_SWEEP_RUN_DIR: directory,
+          CLOUD_SWEEP_API_LOG: join(directory, 'api.log'),
+          CLOUD_SWEEP_REPORT: reportPath,
+          CLOUD_SWEEP_API_BOOT_OUTCOME: 'success',
+        },
+      },
+    );
+    assert.equal(result.status, failed ? 1 : 0, result.stderr);
+    const summary = JSON.parse(
+      readFileSync(join(directory, 'diagnostic-summary.json'), 'utf8'),
+    );
+    const projection = summary.causalEvidence.database.failureWindows;
+    assert.equal(projection.available, true);
+    assert.equal(projection.windows.length, failed ? 1 : 0);
+    if (failed)
+      assert.equal(
+        projection.windows[0].relation,
+        'before-first-instrumented-attempt',
+      );
+    assert.deepEqual(
+      JSON.parse(readFileSync(reportPath, 'utf8')).causalEvidence.database
+        .failureWindows,
+      projection,
+    );
+    assert.equal(summary.causalEvidence.reasons.samplerFailure, failed ? 1 : 0);
+  });

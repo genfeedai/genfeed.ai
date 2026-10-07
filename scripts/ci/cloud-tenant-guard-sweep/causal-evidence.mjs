@@ -193,6 +193,352 @@ function databaseAggregate(samples) {
       .map(([, g]) => g),
   };
 }
+const FAILURE_RELATIONS = [
+  'overlaps-instrumented-attempt',
+  'before-first-instrumented-attempt',
+  'after-last-instrumented-attempt',
+  'between-instrumented-attempts',
+  'unavailable',
+];
+function failureWindowProjection(samples, runtime, clients, origin) {
+  const offset = (at) =>
+    Number.isSafeInteger(origin) && Number.isSafeInteger(at) && at >= origin
+      ? at - origin
+      : null;
+  const clientClocks =
+    clients.length > 0 &&
+    clients.every(
+      (client) =>
+        offset(client.sentAtEpochMs) !== null &&
+        offset(client.endedAtEpochMs) !== null &&
+        client.endedAtEpochMs >= client.sentAtEpochMs &&
+        (client.headerAtEpochMs === null ||
+          (Number.isSafeInteger(client.headerAtEpochMs) &&
+            client.headerAtEpochMs >= client.sentAtEpochMs &&
+            client.headerAtEpochMs <= client.endedAtEpochMs)),
+    );
+  const sourceClocks = [...samples, ...runtime].every(
+    (sample) => offset(sample.start) !== null && offset(sample.end) !== null,
+  );
+  const available =
+    Number.isSafeInteger(origin) && clientClocks && sourceClocks;
+  const first = available
+    ? Math.min(...clients.map((c) => c.sentAtEpochMs))
+    : null;
+  const last = available
+    ? Math.max(...clients.map((c) => c.endedAtEpochMs))
+    : null;
+  const used = new Set();
+  const windows = samples.flatMap((sample, index) => {
+    if (sample.outcome === 'success') return [];
+    const startOffsetMs = offset(sample.start);
+    const endOffsetMs = offset(sample.end);
+    const knownRuntime =
+      startOffsetMs !== null &&
+      endOffsetMs !== null &&
+      runtime.every((r) => offset(r.start) !== null && offset(r.end) !== null);
+    const runtimeWindowOrdinals = knownRuntime
+      ? runtime.flatMap((record, ordinal) => {
+          if (record.end < sample.start || record.start > sample.end) return [];
+          used.add(ordinal + 1);
+          return [ordinal + 1];
+        })
+      : null;
+    const overlappingClientAttempts = available
+      ? clients.filter(
+          (c) =>
+            sample.end >= c.sentAtEpochMs && sample.start <= c.endedAtEpochMs,
+        ).length
+      : null;
+    const relation = !available
+      ? 'unavailable'
+      : overlappingClientAttempts > 0
+        ? 'overlaps-instrumented-attempt'
+        : sample.end < first
+          ? 'before-first-instrumented-attempt'
+          : sample.start > last
+            ? 'after-last-instrumented-attempt'
+            : 'between-instrumented-attempts';
+    return [
+      {
+        observationOrdinal: index + 1,
+        startOffsetMs,
+        endOffsetMs,
+        durationMs: safe(sample.end - sample.start),
+        outcome: sample.outcome,
+        ...(sample.diagnostic ?? {
+          category: 'unavailable',
+          name: 'NONE',
+          code: 'NONE',
+        }),
+        connectionStateAtStart: sample.connectionStateAtStart ?? 'unknown',
+        generationBefore: sample.connectionGenerationBefore ?? null,
+        generationAfter: sample.connectionGenerationAfter ?? null,
+        relation,
+        overlappingClientAttempts,
+        runtimeWindowOrdinals,
+      },
+    ];
+  });
+  return {
+    version: 1,
+    available,
+    firstClientStartOffsetMs: first === null ? null : offset(first),
+    lastClientEndOffsetMs: last === null ? null : offset(last),
+    windows,
+    runtimeWindows: runtime.flatMap((record, index) =>
+      used.has(index + 1)
+        ? [
+            {
+              ordinal: index + 1,
+              startOffsetMs: offset(record.start),
+              endOffsetMs: offset(record.end),
+              tickLagMs: record.tickLagMs,
+              eventLoopMaxMs: record.eventLoopMaxMs,
+              eventLoopP99Ms: record.eventLoopP99Ms,
+            },
+          ]
+        : [],
+    ),
+  };
+}
+function validateFailureWindowIdentity(window, sampleCount) {
+  exact(window, [
+    'observationOrdinal',
+    'startOffsetMs',
+    'endOffsetMs',
+    'durationMs',
+    'outcome',
+    'category',
+    'name',
+    'code',
+    'connectionStateAtStart',
+    'generationBefore',
+    'generationAfter',
+    'relation',
+    'overlappingClientAttempts',
+    'runtimeWindowOrdinals',
+  ]);
+  safe(window.observationOrdinal);
+  if (
+    !window.observationOrdinal ||
+    window.observationOrdinal > sampleCount ||
+    !['error', 'timeout', 'busy'].includes(window.outcome) ||
+    !CONNECTION_STATES.includes(window.connectionStateAtStart) ||
+    !FAILURE_RELATIONS.includes(window.relation)
+  )
+    throw new Error('Invalid database temporal identity');
+  if (window.category === 'unavailable') {
+    if (window.name !== 'NONE' || window.code !== 'NONE')
+      throw new Error('Invalid legacy temporal diagnostic');
+  } else
+    validateDatabaseDiagnostic(
+      {
+        category: window.category,
+        name: window.name,
+        code: window.code,
+      },
+      window.outcome,
+    );
+  const legacy =
+    window.generationBefore === null && window.generationAfter === null;
+  if (legacy) {
+    if (window.connectionStateAtStart !== 'unknown')
+      throw new Error('Invalid legacy temporal lifecycle');
+  } else {
+    for (const key of ['generationBefore', 'generationAfter']) {
+      safe(window[key]);
+      if (window[key] > 450) throw new Error('Invalid temporal generation');
+    }
+    if (
+      window.generationAfter < window.generationBefore ||
+      (window.connectionStateAtStart === 'initial' &&
+        window.generationBefore !== 0) ||
+      (['retained', 'reconnect'].includes(window.connectionStateAtStart) &&
+        window.generationBefore === 0) ||
+      (window.outcome === 'busy' && window.connectionStateAtStart !== 'unknown')
+    )
+      throw new Error('Inconsistent temporal generation');
+  }
+  safe(window.durationMs);
+  for (const key of ['startOffsetMs', 'endOffsetMs'])
+    if (window[key] !== null) safe(window[key]);
+  if (
+    window.startOffsetMs !== null &&
+    window.endOffsetMs !== null &&
+    window.endOffsetMs - window.startOffsetMs !== window.durationMs
+  )
+    throw new Error('Invalid temporal duration');
+}
+function validateFailureWindowRelation(window, projection, attempts) {
+  const first = projection.firstClientStartOffsetMs;
+  const last = projection.lastClientEndOffsetMs;
+  const count = window.overlappingClientAttempts;
+  if (!projection.available) {
+    if (window.relation !== 'unavailable' || count !== null)
+      throw new Error('Invalid unavailable temporal relation');
+    return;
+  }
+  safe(count);
+  if (
+    window.startOffsetMs === null ||
+    window.endOffsetMs === null ||
+    count > attempts ||
+    window.relation === 'unavailable'
+  )
+    throw new Error('Invalid available temporal relation');
+  const start = window.startOffsetMs,
+    end = window.endOffsetMs;
+  const valid = {
+    'overlaps-instrumented-attempt': count > 0 && end >= first && start <= last,
+    'before-first-instrumented-attempt': count === 0 && end < first,
+    'after-last-instrumented-attempt': count === 0 && start > last,
+    'between-instrumented-attempts':
+      count === 0 && end >= first && start <= last,
+  };
+  if (!valid[window.relation])
+    throw new Error('Inconsistent temporal relation');
+}
+function validateFailureWindowReferences(window, runtime, used) {
+  const refs = window.runtimeWindowOrdinals;
+  if (refs === null) {
+    if (
+      window.startOffsetMs !== null &&
+      window.endOffsetMs !== null &&
+      runtime.size
+    )
+      throw new Error('Unknown temporal references with known runtime');
+    return;
+  }
+  if (
+    !Array.isArray(refs) ||
+    refs.length > 900 ||
+    window.startOffsetMs === null
+  )
+    throw new Error('Invalid temporal references');
+  let previous = 0;
+  for (const ordinal of refs) {
+    safe(ordinal);
+    if (ordinal <= previous || !runtime.has(ordinal))
+      throw new Error('Duplicate or dangling temporal reference');
+    previous = ordinal;
+    used.add(ordinal);
+  }
+  for (const [ordinal, record] of runtime) {
+    const overlaps =
+      record.endOffsetMs >= window.startOffsetMs &&
+      record.startOffsetMs <= window.endOffsetMs;
+    if (refs.includes(ordinal) !== overlaps)
+      throw new Error('Inconsistent runtime temporal overlap');
+  }
+}
+function validateFailureWindows(projection, database, attempts) {
+  exact(projection, [
+    'version',
+    'available',
+    'firstClientStartOffsetMs',
+    'lastClientEndOffsetMs',
+    'windows',
+    'runtimeWindows',
+  ]);
+  if (
+    projection.version !== 1 ||
+    typeof projection.available !== 'boolean' ||
+    !Array.isArray(projection.windows) ||
+    projection.windows.length > 450 ||
+    projection.windows.length !== database.failedSamples ||
+    !Array.isArray(projection.runtimeWindows) ||
+    projection.runtimeWindows.length > 900 ||
+    !Array.isArray(database.failureGroups)
+  )
+    throw new Error('Invalid database temporal projection');
+  const first = projection.firstClientStartOffsetMs,
+    last = projection.lastClientEndOffsetMs;
+  if (projection.available) {
+    safe(first);
+    safe(last);
+    if (!attempts || last < first)
+      throw new Error('Invalid temporal client bounds');
+  } else if (first !== null || last !== null)
+    throw new Error('Invalid unavailable temporal bounds');
+  const runtime = new Map();
+  let previous = 0;
+  for (const record of projection.runtimeWindows) {
+    exact(record, [
+      'ordinal',
+      'startOffsetMs',
+      'endOffsetMs',
+      'tickLagMs',
+      'eventLoopMaxMs',
+      'eventLoopP99Ms',
+    ]);
+    for (const key of ['ordinal', 'startOffsetMs', 'endOffsetMs', 'tickLagMs'])
+      safe(record[key]);
+    for (const key of ['eventLoopMaxMs', 'eventLoopP99Ms'])
+      if (record[key] !== null) safe(record[key]);
+    if (
+      record.ordinal <= previous ||
+      record.ordinal > 900 ||
+      record.endOffsetMs < record.startOffsetMs
+    )
+      throw new Error('Invalid temporal runtime record');
+    previous = record.ordinal;
+    runtime.set(record.ordinal, record);
+  }
+  const groups = new Map(),
+    used = new Set();
+  previous = 0;
+  for (const window of projection.windows) {
+    validateFailureWindowIdentity(
+      window,
+      database.measuredSamples + database.failedSamples,
+    );
+    if (window.observationOrdinal <= previous)
+      throw new Error('Unsorted temporal window');
+    previous = window.observationOrdinal;
+    validateFailureWindowRelation(window, projection, attempts);
+    if (projection.available && window.runtimeWindowOrdinals === null)
+      throw new Error('Unknown available runtime references');
+    validateFailureWindowReferences(window, runtime, used);
+    const key = JSON.stringify([
+      window.outcome,
+      window.category,
+      window.name,
+      window.code,
+    ]);
+    const group = groups.get(key) ?? {
+      samples: 0,
+      durationMs: 0,
+      maxDurationMs: 0,
+    };
+    group.samples = safe(group.samples + 1);
+    group.durationMs = safe(group.durationMs + window.durationMs);
+    group.maxDurationMs = Math.max(group.maxDurationMs, window.durationMs);
+    groups.set(key, group);
+  }
+  if (
+    used.size !== runtime.size ||
+    groups.size !== database.failureGroups.length
+  )
+    throw new Error('Nonconserved temporal records');
+  for (const expected of database.failureGroups) {
+    const key = JSON.stringify([
+      expected.outcome,
+      expected.category,
+      expected.name,
+      expected.code,
+    ]);
+    const actual = groups.get(key);
+    if (
+      !actual ||
+      ['samples', 'durationMs', 'maxDurationMs'].some(
+        (k) => actual[k] !== expected[k],
+      )
+    )
+      throw new Error('Nonconserved temporal failure tuple');
+  }
+}
+
 export function joinCausalEvidence(
   report,
   records,
@@ -503,6 +849,12 @@ export function joinCausalEvidence(
     },
     database: {
       ...databaseAggregate(database),
+      failureWindows: failureWindowProjection(
+        database,
+        runtime,
+        clients,
+        valid ? records[0].startedAt : null,
+      ),
       unfinishedSamples: footer?.databaseIncomplete ?? null,
       missingWindows: missingDatabaseWindows,
     },
@@ -582,6 +934,9 @@ export function validateCausalEvidence(
         ? ['lifecycleGroups', 'lifecycleAvailable']
         : []),
       ...(overall ? ['missingWindows'] : []),
+      ...(overall && Object.hasOwn(d, 'failureWindows')
+        ? ['failureWindows']
+        : []),
       ...(Object.hasOwn(d, 'failureAttributionAvailable') ||
       Object.hasOwn(d, 'failureGroups')
         ? ['failureAttributionAvailable', 'failureGroups']
@@ -747,6 +1102,12 @@ export function validateCausalEvidence(
   };
   validateRuntime(value.runtime, true);
   validateDatabase(value.database, true);
+  if (Object.hasOwn(value.database, 'failureWindows'))
+    validateFailureWindows(
+      value.database.failureWindows,
+      value.database,
+      value.conservation.clientAttempts,
+    );
   if (
     !Array.isArray(value.requestGroups) ||
     value.requestGroups.length > value.conservation.clientAttempts

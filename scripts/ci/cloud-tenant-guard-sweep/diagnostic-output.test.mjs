@@ -736,3 +736,80 @@ test('finalizer retains mandatory machine failures and historical unavailable pr
   f.write();
   assert.equal(f.summary().machineCoverage.available, false);
 });
+
+test('finalization durably retains failed-sample offsets and keeps sampler failure fatal', (context) => {
+  const previous = Reflect.get(process.env, 'CLOUD_SWEEP_DIAGNOSTICS');
+  Reflect.set(process.env, 'CLOUD_SWEEP_DIAGNOSTICS', '1');
+  context.after(() => {
+    if (previous === undefined)
+      Reflect.deleteProperty(process.env, 'CLOUD_SWEEP_DIAGNOSTICS');
+    else Reflect.set(process.env, 'CLOUD_SWEEP_DIAGNOSTICS', previous);
+  });
+  const f = fixture(context);
+  f.report.requests = [
+    {
+      sequence: 1,
+      sentAtEpochMs: 2000,
+      endedAtEpochMs: 2200,
+      headerAtEpochMs: null,
+      actor: 'M:A',
+      phase: 'memberAGets',
+      method: 'GET',
+      route: '/v1/voices',
+      status: 200,
+    },
+  ];
+  const records = [
+    { kind: 'header', protocol: 1, startedAt: 100 },
+    {
+      kind: 'database',
+      start: 500,
+      end: 1329,
+      outcome: 'error',
+      groups: [],
+      diagnostic: {
+        category: 'query-read-timeout',
+        name: 'Error',
+        code: 'NONE',
+      },
+      connectionStateAtStart: 'retained',
+      connectionGenerationBefore: 1,
+      connectionGenerationAfter: 1,
+    },
+    {
+      kind: 'footer',
+      endedAt: 2300,
+      unavailable: false,
+      records: 2,
+      ingress: 0,
+      pipelineEntries: 0,
+      finishes: 0,
+      closes: 0,
+      invalidSequences: 0,
+      duplicateSequences: 0,
+      runtimeSamples: 0,
+      databaseSamples: 1,
+      databaseIncomplete: 0,
+    },
+  ];
+  writeFileSync(
+    join(f.directory, 'api-observations.ndjson'),
+    `${records.map((r) => JSON.stringify(r)).join('\n')}\n`,
+    { mode: 0o600 },
+  );
+  writeFileSync(join(f.directory, 'api-stopped'), 'stopped\n', { mode: 0o600 });
+  f.report.finalLogScannedAt = new Date().toISOString();
+  f.write();
+  f.write();
+  const p = f.summary().causalEvidence.database.failureWindows;
+  assert.equal(p.available, true);
+  assert.equal(p.windows[0].relation, 'before-first-instrumented-attempt');
+  assert.equal(p.windows[0].durationMs, 829);
+  assert.deepEqual(f.saved().causalEvidence.database.failureWindows, p);
+  assert.equal(f.saved().hasFailed, true);
+  assert.equal(f.summary().causalEvidence.reasons.samplerFailure, 1);
+  assert.doesNotMatch(
+    JSON.stringify(p),
+    /Epoch|SQL|sequence|token|actor|route/,
+  );
+});
