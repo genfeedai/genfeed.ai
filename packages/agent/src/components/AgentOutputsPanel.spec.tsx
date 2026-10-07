@@ -1,5 +1,6 @@
 import '@agent-tests/media-preview-mocks';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
+import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -13,7 +14,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 }));
 
 const seedComposer = vi.fn();
-const defaultMessages = [
+const defaultMessages: AgentChatMessage[] = [
   {
     content: 'assistant',
     createdAt: '2026-03-20T10:00:00.000Z',
