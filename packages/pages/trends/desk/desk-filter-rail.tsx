@@ -6,7 +6,6 @@ import type { DiscoveryDeskContentTypeFilter } from '@pages/trends/desk/desk-sta
 import type {
   DiscoveryDeskItem,
   DiscoveryDeskSort,
-  DiscoveryDeskSource,
 } from '@props/trends/discovery-desk.props';
 import type { TrendsSummary } from '@props/trends/trends-page.props';
 import { Button } from '@ui/primitives/button';
@@ -42,8 +41,6 @@ const SORT_OPTIONS: DiscoveryDeskSort[] = [
 
 export default function DeskFilterRail({
   contentType,
-  source,
-  onSourceChange,
   activePlatforms,
   onTogglePlatform,
   onClearPlatforms,
@@ -53,8 +50,6 @@ export default function DeskFilterRail({
   onSort,
   sort,
 }: {
-  source: DiscoveryDeskSource | 'all';
-  onSourceChange: (value: DiscoveryDeskSource | 'all') => void;
   activePlatforms: Set<string>;
   onTogglePlatform: (platform: string) => void;
   onClearPlatforms: () => void;
@@ -75,29 +70,6 @@ export default function DeskFilterRail({
   ).sort();
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Select
-        value={source}
-        onValueChange={(value) =>
-          onSourceChange(value as DiscoveryDeskSource | 'all')
-        }
-      >
-        <SelectTrigger
-          aria-label={translate('filters.source')}
-          className="h-8 w-32"
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {(['all', 'trends', 'owned', 'imported'] as const).map((value) => (
-            <SelectItem key={value} value={value}>
-              {translate(`sourceTabs.${value}`)}
-            </SelectItem>
-          ))}
-          <SelectItem value="following">
-            {translate('following.title')}
-          </SelectItem>
-        </SelectContent>
-      </Select>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
