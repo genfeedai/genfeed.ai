@@ -1561,10 +1561,15 @@ describe('branded receipt full-migration service and relocation acceptance', () 
     });
     const access = new BrandedGenerationReceiptAccessService();
     const receipts = services[0];
+    const providerIds: string[] = [];
     const openRouter = {
-      chatCompletion: vi.fn().mockResolvedValue({
-        id: 'seam-generation-1',
-        choices: [{ message: { content: ' Seam post text ' } }],
+      chatCompletion: vi.fn().mockImplementation(async () => {
+        const id = `seam-generation-${randomUUID()}`;
+        providerIds.push(id);
+        return {
+          id,
+          choices: [{ message: { content: ' Seam post text ' } }],
+        };
       }),
     };
     const seam = new BrandedTextGenerationService(
@@ -1651,7 +1656,7 @@ describe('branded receipt full-migration service and relocation acceptance', () 
     expect(completed.receipt.compliance).not.toBe('compliant');
     expect(completed.receipt.snapshot?.approval).toBe('approved');
     expect(completed.receipt.execution?.providerAttemptRef).toBe(
-      'openrouter:seam-generation-1',
+      `openrouter:${providerIds[0]}`,
     );
     expect(completed.receipt.artifact?.id).toBe(completed.postId);
     expect(openRouter.chatCompletion).toHaveBeenCalledTimes(1);
