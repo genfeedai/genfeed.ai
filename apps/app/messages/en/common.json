@@ -69,9 +69,6 @@
       "ready": "Content is ready for review"
     },
     "agent": {
-      "timeline": {
-        "steps": "Steps"
-      },
       "review_changed": "Agent review updated",
       "review_expired": "Agent review expired"
     },
@@ -1061,6 +1058,9 @@
     }
   },
   "agent": {
+    "timeline": {
+      "steps": "Steps"
+    },
     "composer": {
       "dropPlaceholder": "drop it here?",
       "queueFull": "Follow-up queue is full. Remove a prompt or wait until one sends.",
