@@ -129,6 +129,46 @@ describe('StudioGenerateCard', () => {
     expect(onSelect).toHaveBeenCalledWith(generatedJob);
   });
 
+  it('sets a ready asset as a reference from the hover layer', () => {
+    const onUseAsReference = vi.fn();
+    const onSelect = vi.fn();
+    render(
+      <StudioGenerateCard
+        assetActions={buildAssetActions()}
+        job={generatedJob}
+        onReprompt={vi.fn()}
+        onSelect={onSelect}
+        onUseAsReference={onUseAsReference}
+        view={ViewType.GRID}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: `Use this image as a reference: ${generatedJob.prompt}`,
+      }),
+    );
+
+    expect(onUseAsReference).toHaveBeenCalledWith(generatedJob);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('hides use-as-reference when the open composer cannot accept the asset', () => {
+    render(
+      <StudioGenerateCard
+        assetActions={buildAssetActions()}
+        isUseAsReferenceEnabled={false}
+        job={{ ...generatedJob, type: 'video' }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        onUseAsReference={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+
+    expect(screen.queryByTestId('studio-asset-reference-job-1')).toBeNull();
+  });
+
   it('replaces a broken image with the shared preview fallback', () => {
     render(
       <StudioGenerateCard

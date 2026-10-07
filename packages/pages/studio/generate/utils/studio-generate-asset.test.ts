@@ -1,15 +1,22 @@
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import type { StudioGenerateJob } from '@pages/studio/generate/types';
+import type {
+  StudioGenerateJob,
+  StudioGenerateReferenceRole,
+} from '@pages/studio/generate/types';
 import { describe, expect, it } from 'vitest';
 import {
+  canUseStudioJobAsReference,
   filterStudioGenerateJobs,
   mergeStudioGenerateJobs,
+  replaceStudioContentReference,
   resolveJsonApiIngredientId,
   resolveStudioAssetFacts,
   resolveStudioAssetUrl,
   resolveStudioTypeFromCategory,
   STUDIO_GENERATE_CATEGORIES,
+  studioJobToContentMention,
+  studioReferenceRoleForJob,
   toStudioGenerateJob,
 } from './studio-generate-asset';
 
@@ -171,6 +178,143 @@ describe('toStudioGenerateJob', () => {
     expect(
       toStudioGenerateJob(
         buildIngredient({ category: IngredientCategory.SOURCE }),
+      ),
+    ).toBeNull();
+  });
+});
+
+describe('studio gallery references', () => {
+  it('lists a ready generated image for the reference picker', () => {
+    const job = toStudioGenerateJob(
+      buildIngredient({
+        brandId: 'brand-1',
+        cdnUrl: 'https://cdn/apple.png',
+        promptText: 'a green apple',
+      }),
+    );
+
+    expect(job && studioJobToContentMention(job)).toEqual({
+      brandId: 'brand-1',
+      contentTitle: 'a green apple',
+      contentType: 'image',
+      id: 'ing-1',
+      thumbnailUrl: 'https://cdn/apple.png',
+    });
+  });
+
+  it('lists a ready video separately from images', () => {
+    const job = toStudioGenerateJob(
+      buildIngredient({
+        category: IngredientCategory.VIDEO,
+        cdnUrl: 'https://cdn/clip.mp4',
+        promptText: 'a walk cycle',
+      }),
+    );
+
+    expect(job && studioJobToContentMention(job)?.contentType).toBe('video');
+    expect(job && studioReferenceRoleForJob(job, 'video')).toBe(
+      'videoReference',
+    );
+  });
+
+  it('keeps the open composer type when an image is used on a video prompt', () => {
+    const job = buildJob({
+      ingredientId: 'ing-1',
+      type: 'image',
+      url: 'https://cdn/apple.png',
+    });
+
+    expect(studioReferenceRoleForJob(job, 'video')).toBe('startFrame');
+    expect(studioReferenceRoleForJob(job, 'image')).toBe('reference');
+    expect(studioReferenceRoleForJob(job, 'image-edit')).toBe('editSource');
+    expect(studioJobToContentMention(job)?.id).toBe('ing-1');
+  });
+
+  it('hides use-as-reference when the open composer cannot accept the asset', () => {
+    const image = buildJob({ type: 'image' });
+    const video = buildJob({ type: 'video' });
+    const supported = {
+      isStartFrameSupported: true,
+      isVideoReferenceSupported: true,
+    };
+
+    expect(studioReferenceRoleForJob(video, 'image')).toBeNull();
+    expect(canUseStudioJobAsReference(video, 'image', supported)).toBe(false);
+    expect(canUseStudioJobAsReference(image, 'video', supported)).toBe(true);
+    expect(
+      canUseStudioJobAsReference(video, 'video', {
+        ...supported,
+        isVideoReferenceSupported: false,
+      }),
+    ).toBe(false);
+    expect(
+      canUseStudioJobAsReference(image, 'video', {
+        ...supported,
+        isStartFrameSupported: false,
+      }),
+    ).toBe(false);
+  });
+
+  it('replaces the stored role when the same asset is attached again', () => {
+    const item = { id: 'ing-1' };
+    const other = { id: 'ing-2' };
+    const reference = (
+      id: { id: string },
+      role: StudioGenerateReferenceRole,
+    ): { item: { id: string }; role: StudioGenerateReferenceRole } => ({
+      item: id,
+      role,
+    });
+
+    expect(
+      replaceStudioContentReference(
+        [reference(item, 'reference')],
+        reference(item, 'startFrame'),
+        true,
+      ),
+    ).toEqual([reference(item, 'startFrame')]);
+
+    const sameRole = [reference(item, 'startFrame')];
+    expect(
+      replaceStudioContentReference(
+        sameRole,
+        reference(item, 'startFrame'),
+        true,
+      ),
+    ).toBe(sameRole);
+
+    expect(
+      replaceStudioContentReference(
+        [reference(other, 'endFrame'), reference(item, 'reference')],
+        reference(item, 'startFrame'),
+        true,
+      ),
+    ).toEqual([reference(other, 'endFrame'), reference(item, 'startFrame')]);
+
+    expect(
+      replaceStudioContentReference(
+        [reference(other, 'startFrame'), reference(item, 'reference')],
+        reference(item, 'startFrame'),
+        false,
+      ),
+    ).toEqual([reference(item, 'startFrame')]);
+  });
+
+  it('skips assets that are still generating or have no preview', () => {
+    expect(
+      studioJobToContentMention(
+        buildJob({
+          status: IngredientStatus.PROCESSING,
+          url: 'https://cdn/x.png',
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      studioJobToContentMention(buildJob({ type: 'image', url: undefined })),
+    ).toBeNull();
+    expect(
+      studioJobToContentMention(
+        buildJob({ type: 'music', url: 'https://cdn/song.mp3' }),
       ),
     ).toBeNull();
   });

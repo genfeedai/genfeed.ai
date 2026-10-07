@@ -32,6 +32,7 @@ import {
   AlertTriangle,
   GitBranch,
   ImageOff,
+  ImagePlus,
   RotateCcw,
   Scissors,
   Trash2,
@@ -124,8 +125,10 @@ export default function StudioGenerateCard({
   assetActions,
   isSelected = false,
   job,
+  isUseAsReferenceEnabled,
   onReprompt,
   onSelect,
+  onUseAsReference,
   parentJob,
   view,
 }: StudioGenerateCardProps): ReactElement {
@@ -208,6 +211,37 @@ export default function StudioGenerateCard({
 
   // Transformations (extend, upscale, reframe, resize, GIF) point back at the
   // asset they came from; the link selects that card's inspector.
+  function renderUseAsReferenceAction(className: string): ReactElement | null {
+    if (
+      !onUseAsReference ||
+      isUseAsReferenceEnabled === false ||
+      mediaState !== 'ready' ||
+      (job.type !== 'image' &&
+        job.type !== 'image-edit' &&
+        job.type !== 'video' &&
+        job.type !== 'avatar')
+    ) {
+      return null;
+    }
+
+    return (
+      <Button
+        ariaLabel={translate('useAsReferenceAria', {
+          prompt: job.prompt || job.id,
+          type: label.toLowerCase(),
+        })}
+        className={className}
+        data-testid={`studio-asset-reference-${job.id}`}
+        icon={<ImagePlus className="size-3.5" />}
+        label={translate('useAsReference')}
+        onClick={() => onUseAsReference(job)}
+        size={ButtonSize.SM}
+        variant={ButtonVariant.GHOST}
+        withWrapper={false}
+      />
+    );
+  }
+
   function renderSourceAction(className: string): ReactElement | null {
     if (!parentJob) {
       return null;
@@ -229,6 +263,13 @@ export default function StudioGenerateCard({
   }
 
   function renderDetails(showLifecycleActions = false): ReactElement {
+    const referenceAction = renderUseAsReferenceAction('px-2 text-xs');
+    const hasDetailActions =
+      Boolean(referenceAction) ||
+      showLifecycleActions ||
+      Boolean(parentJob) ||
+      canMakeClips;
+
     return (
       <div
         className={`flex min-w-0 flex-col gap-3 bg-card p-3 ${
@@ -256,8 +297,9 @@ export default function StudioGenerateCard({
           {job.prompt}
         </p>
 
-        {showLifecycleActions || parentJob || canMakeClips ? (
+        {hasDetailActions ? (
           <div className="flex items-center gap-1 border-t border-border pt-2">
+            {referenceAction}
             {renderSourceAction('px-2 text-xs')}
             {renderMakeClipsAction()}
             {showLifecycleActions && isFailed ? (
@@ -297,44 +339,55 @@ export default function StudioGenerateCard({
   }
 
   function renderHoverDetails(showLifecycleActions = false): ReactElement {
+    const referenceAction = renderUseAsReferenceAction(
+      'h-auto px-2 text-xs text-foreground/75 hover:text-foreground',
+    );
+    const hasLifecycleActions =
+      showLifecycleActions || Boolean(parentJob) || canMakeClips;
+
     return (
       <AssetHoverDetails
         actions={
-          showLifecycleActions || parentJob || canMakeClips ? (
+          referenceAction || hasLifecycleActions ? (
             <>
-              {renderMakeClipsAction()}
-              {renderSourceAction(
-                'h-auto px-2 text-xs text-foreground/75 hover:text-foreground',
-              )}
-              {showLifecycleActions && isFailed ? (
-                <Button
-                  ariaLabel={translate('removeGenerationAria', {
-                    prompt: job.prompt || job.id,
-                    type: label,
-                  })}
-                  className="h-auto px-2 text-xs text-foreground/75 hover:text-foreground"
-                  icon={<Trash2 className="size-3.5" />}
-                  label={translate('remove')}
-                  onClick={() => assetActions.onRemoveGeneration(job)}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  withWrapper={false}
-                />
-              ) : null}
-              {showLifecycleActions ? (
-                <Button
-                  ariaLabel={translate('repromptGenerationAria', {
-                    prompt: job.prompt || job.id,
-                    type: label,
-                  })}
-                  className="h-auto px-2 text-xs text-foreground/75 hover:text-foreground"
-                  icon={<RotateCcw className="size-3.5" />}
-                  label={translate('reprompt')}
-                  onClick={() => onReprompt(job)}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  withWrapper={false}
-                />
+              {referenceAction}
+              {hasLifecycleActions ? (
+                <>
+                  {renderMakeClipsAction()}
+                  {renderSourceAction(
+                    'h-auto px-2 text-xs text-foreground/75 hover:text-foreground',
+                  )}
+                  {showLifecycleActions && isFailed ? (
+                    <Button
+                      ariaLabel={translate('removeGenerationAria', {
+                        prompt: job.prompt || job.id,
+                        type: label,
+                      })}
+                      className="h-auto px-2 text-xs text-foreground/75 hover:text-foreground"
+                      icon={<Trash2 className="size-3.5" />}
+                      label={translate('remove')}
+                      onClick={() => assetActions.onRemoveGeneration(job)}
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.GHOST}
+                      withWrapper={false}
+                    />
+                  ) : null}
+                  {showLifecycleActions ? (
+                    <Button
+                      ariaLabel={translate('repromptGenerationAria', {
+                        prompt: job.prompt || job.id,
+                        type: label,
+                      })}
+                      className="h-auto px-2 text-xs text-foreground/75 hover:text-foreground"
+                      icon={<RotateCcw className="size-3.5" />}
+                      label={translate('reprompt')}
+                      onClick={() => onReprompt(job)}
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.GHOST}
+                      withWrapper={false}
+                    />
+                  ) : null}
+                </>
               ) : null}
             </>
           ) : undefined

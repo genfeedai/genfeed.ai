@@ -171,6 +171,13 @@ export interface StudioGenerateResultsProps {
   jobs: readonly StudioGenerateJob[];
   onReprompt: (job: StudioGenerateJob) => void;
   onSelect: (job: StudioGenerateJob) => void;
+  /**
+   * Ready assets the open composer can accept. Omit to keep every ready
+   * image, edit, video, and avatar actionable.
+   */
+  isUseAsReferenceEnabled?: (job: StudioGenerateJob) => boolean;
+  /** Attaches a ready asset to the open composer without changing its type. */
+  onUseAsReference?: (job: StudioGenerateJob) => void;
   selectedJobId?: string | null;
   view: ViewType.GRID | ViewType.LIST;
 }
@@ -183,6 +190,13 @@ export interface StudioGenerateCardProps {
   parentJob?: StudioGenerateJob | null;
   onReprompt: (job: StudioGenerateJob) => void;
   onSelect: (job: StudioGenerateJob) => void;
+  /**
+   * False when the open composer cannot accept this asset. Omit to show the
+   * action for every ready image, edit, video, and avatar.
+   */
+  isUseAsReferenceEnabled?: boolean;
+  /** Attaches a ready asset to the open composer without changing its type. */
+  onUseAsReference?: (job: StudioGenerateJob) => void;
   view: ViewType.GRID | ViewType.LIST;
 }
 

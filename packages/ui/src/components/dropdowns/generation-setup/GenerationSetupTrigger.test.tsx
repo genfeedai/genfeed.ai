@@ -221,6 +221,7 @@ describe('GenerationSetupTrigger', () => {
     expect(
       within(button).getByText('Image · Nano Banana Pro · 16:9'),
     ).toBeInTheDocument();
+    expect(within(button).queryByRole('img')).toBeNull();
     expect(button).not.toHaveClass('border-primary/30');
   });
 });

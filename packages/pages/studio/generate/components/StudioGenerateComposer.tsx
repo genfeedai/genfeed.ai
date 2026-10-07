@@ -509,20 +509,6 @@ export default function StudioGenerateComposer({
     .filter(Boolean)
     .join(' · ');
 
-  const isExpanded =
-    prompt.length > 0 ||
-    attachedAssets.length > 0 ||
-    isGenerating ||
-    isListening ||
-    isTranscribing ||
-    isUploading ||
-    isEnhancingPrompt ||
-    isFlux ||
-    type === 'image-edit' ||
-    isFirstFrameMissing ||
-    isReferenceCombinationInvalid ||
-    isKling4KReferenceInvalid;
-
   const referenceControls = (
     <>
       {capabilities.hasReferences && type === 'image' ? (
@@ -613,9 +599,6 @@ export default function StudioGenerateComposer({
 
   return (
     <PromptBarComposer
-      bodyClassName={
-        isExpanded ? undefined : 'flex flex-wrap items-center gap-2'
-      }
       beforeBody={
         attachedAssets.length > 0 ||
         type === 'image' ||
@@ -635,16 +618,13 @@ export default function StudioGenerateComposer({
         ) : null
       }
       className={cn(isDragActive && 'ring-1 ring-primary/40')}
-      data-expanded={isExpanded}
+      data-expanded="true"
       data-testid="studio-generate-composer-shell"
       density="compact"
     >
       <PromptEditor
         ariaLabel={translate('prompt')}
-        className={cn(
-          'min-h-6 min-w-0 [&_.ProseMirror]:min-h-6',
-          isExpanded ? 'w-full' : 'basis-full lg:min-w-64 lg:basis-0',
-        )}
+        className="min-h-6 min-w-0 w-full [&_.ProseMirror]:min-h-6"
         editorClassName="py-0.5"
         documentSeed={documentSeed}
         extraExtensions={type === 'image-edit' ? undefined : extraExtensions}
@@ -842,20 +822,11 @@ export default function StudioGenerateComposer({
               : translate('kling4KReferenceConflict')}
         </p>
       ) : null}
-      <div
-        className={
-          isExpanded
-            ? 'mt-2 flex min-h-8 min-w-0 flex-wrap items-center justify-between gap-2'
-            : 'contents'
-        }
-      >
+      <div className="mt-2 flex min-h-8 min-w-0 flex-wrap items-center justify-between gap-2">
         <div
           role="group"
           aria-label={translateSetup('promptTools')}
-          className={cn(
-            'flex min-w-0 flex-wrap items-center gap-2',
-            isExpanded ? 'flex-1' : 'max-w-full flex-1 lg:flex-initial',
-          )}
+          className="flex min-w-0 flex-1 flex-wrap items-center gap-2"
         >
           {inputControls?.mediaKind === 'image' ? (
             <PromptBarCrunControls

@@ -69,8 +69,10 @@ export default function StudioGenerateResults({
   assetActions,
   isLoading,
   jobs,
+  isUseAsReferenceEnabled,
   onReprompt,
   onSelect,
+  onUseAsReference,
   selectedJobId,
   view,
 }: StudioGenerateResultsProps): ReactElement {
@@ -93,8 +95,10 @@ export default function StudioGenerateResults({
         isSelected={selectedJobId === job.id}
         job={job}
         key={job.id}
+        isUseAsReferenceEnabled={isUseAsReferenceEnabled?.(job)}
         onReprompt={onReprompt}
         onSelect={onSelect}
+        onUseAsReference={onUseAsReference}
         parentJob={
           job.parentId ? jobsByIngredientId.get(job.parentId) : undefined
         }
