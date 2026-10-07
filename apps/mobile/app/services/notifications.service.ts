@@ -73,6 +73,7 @@ class NotificationsService {
   ): Promise<void> {
     const platform = Platform.OS as 'ios' | 'android';
 
+    // Gap: no device-registration route. The push child owns this call.
     await apiRequest(authToken, 'notifications/register', {
       body: { platform, token: pushToken },
       method: 'POST',
@@ -84,6 +85,7 @@ class NotificationsService {
       return;
     }
 
+    // Gap: no device-registration route. The push child owns this call.
     await apiRequest(authToken, 'notifications/unregister', {
       body: { token: this.expoPushToken },
       method: 'POST',

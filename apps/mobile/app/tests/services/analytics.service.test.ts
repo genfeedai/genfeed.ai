@@ -6,10 +6,9 @@ vi.mock('@/services/api/base-http.service', () => ({
   apiRequest,
 }));
 
-import {
-  type AnalyticsQueryOptions,
-  analyticsService,
-} from '@/services/api/analytics.service';
+import { analyticsService } from '@/services/api/analytics.service';
+
+const scope = { brandId: 'brand-1', organizationId: 'org-1' };
 
 describe('analyticsService', () => {
   beforeEach(() => {
@@ -17,49 +16,46 @@ describe('analyticsService', () => {
     apiRequest.mockResolvedValue({ data: {} });
   });
 
-  // The API's `AnalyticsDateRangeDto` only declares `brandId`; the validation
-  // pipe silently strips `brand`, widening reads to the whole organization.
-  it('prefixes every request with analytics/ and forwards query params', async () => {
-    const options = {
-      brandId: 'acme',
+  it('prefixes every request with analytics/ and forwards org and brand scope', async () => {
+    const options = { startDate: '2026-08-01' };
+    const scoped = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
       startDate: '2026-08-01',
-    } satisfies AnalyticsQueryOptions;
+    };
 
-    await analyticsService.getOverview('token', options);
-    await analyticsService.getTopContent('token', { ...options, limit: 5 });
-    await analyticsService.getPlatformStats('token', options);
-    await analyticsService.getGrowthTrends('token', options);
-    await analyticsService.getEngagement('token', options);
+    await analyticsService.getOverview('token', scope, options);
+    await analyticsService.getTopContent('token', scope, {
+      ...options,
+      limit: 5,
+    });
+    await analyticsService.getPlatformStats('token', scope, options);
+    await analyticsService.getGrowthTrends('token', scope, options);
+    await analyticsService.getEngagement('token', scope, options);
 
     expect(apiRequest).toHaveBeenNthCalledWith(
       1,
       'token',
       'analytics/overview',
-      {
-        params: options,
-      },
+      { params: scoped },
     );
     expect(apiRequest).toHaveBeenNthCalledWith(2, 'token', 'analytics/top', {
-      params: { ...options, limit: 5 },
+      params: { ...scoped, limit: 5 },
     });
     expect(apiRequest).toHaveBeenNthCalledWith(
       3,
       'token',
       'analytics/platforms',
-      {
-        params: options,
-      },
+      { params: scoped },
     );
     expect(apiRequest).toHaveBeenNthCalledWith(4, 'token', 'analytics/growth', {
-      params: options,
+      params: scoped,
     });
     expect(apiRequest).toHaveBeenNthCalledWith(
       5,
       'token',
       'analytics/engagement',
-      {
-        params: options,
-      },
+      { params: scoped },
     );
   });
 });

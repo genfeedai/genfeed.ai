@@ -1,126 +1,97 @@
-import type { IPlatformComparison } from '@genfeedai/contracts/interfaces';
+import type {
+  IPlatformComparison,
+  JsonApiCollectionResponse,
+  JsonApiSingleResponse,
+} from '@genfeedai/contracts/interfaces';
 import { apiRequest } from '@/services/api/base-http.service';
+import type { RequestScope } from '@/services/api/request-scope';
 
-export interface AnalyticsOverview {
-  totalViews: number;
-  totalLikes: number;
-  totalComments: number;
-  totalShares: number;
-  totalSaves: number;
-  totalEngagement: number;
-  avgEngagementRate: number;
-  totalPosts: number;
-  viewsGrowth: number;
-  engagementGrowth: number;
-}
-
-export interface TopContent {
-  id: string;
-  title: string;
-  platform: string;
-  views: number;
-  likes: number;
-  comments: number;
-  engagementRate: number;
-  thumbnailUrl?: string;
-  publishedAt: string;
-}
-
-export interface GrowthData {
-  date: string;
-  views: number;
-  engagement: number;
-  posts: number;
-}
-
-export interface EngagementBreakdown {
-  likes: number;
-  comments: number;
-  shares: number;
-  saves: number;
-  totalEngagement: number;
-  likesPercentage: number;
-  commentsPercentage: number;
-  sharesPercentage: number;
-  savesPercentage: number;
-}
-
-interface JsonApiWrapper<T> {
-  data: {
-    id: string;
-    type: string;
-    attributes: T;
-  };
-}
-
-interface JsonApiArrayWrapper<T> {
-  data: Array<{
-    id: string;
-    type: string;
-    attributes: T;
-  }>;
-}
-
-export type AnalyticsOverviewResponse = JsonApiWrapper<AnalyticsOverview>;
-export type TopContentResponse = JsonApiArrayWrapper<TopContent>;
-export type PlatformStatsResponse = JsonApiArrayWrapper<IPlatformComparison>;
-export type GrowthDataResponse = JsonApiArrayWrapper<GrowthData>;
-export type EngagementResponse = JsonApiWrapper<EngagementBreakdown>;
-
-/** Query params of `/analytics/*` (`AnalyticsDateRangeDto` and its extensions). */
 export interface AnalyticsQueryOptions {
-  startDate?: string;
   endDate?: string;
-  brandId?: string;
-  metric?: string;
   limit?: number;
+  metric?: string;
   platform?: string;
+  startDate?: string;
+}
+
+function scopedParams(
+  scope: RequestScope,
+  options?: AnalyticsQueryOptions,
+): Record<string, string | number | undefined> {
+  const params: Record<string, string | number | undefined> = {
+    brandId: scope.brandId,
+    organizationId: scope.organizationId,
+  };
+
+  if (options?.endDate) {
+    params.endDate = options.endDate;
+  }
+  if (options?.limit !== undefined) {
+    params.limit = options.limit;
+  }
+  if (options?.metric) {
+    params.metric = options.metric;
+  }
+  if (options?.platform) {
+    params.platform = options.platform;
+  }
+  if (options?.startDate) {
+    params.startDate = options.startDate;
+  }
+
+  return params;
 }
 
 class AnalyticsService {
   private request<T>(
     token: string,
     endpoint: string,
+    scope: RequestScope,
     options?: AnalyticsQueryOptions,
   ): Promise<T> {
     return apiRequest<T>(token, `analytics/${endpoint}`, {
-      params: options as Record<string, string | number | undefined>,
+      params: scopedParams(scope, options),
     });
   }
 
   getOverview(
     token: string,
+    scope: RequestScope,
     options?: AnalyticsQueryOptions,
-  ): Promise<AnalyticsOverviewResponse> {
-    return this.request<AnalyticsOverviewResponse>(token, 'overview', options);
+  ): Promise<JsonApiSingleResponse<unknown>> {
+    return this.request(token, 'overview', scope, options);
   }
 
   getTopContent(
     token: string,
+    scope: RequestScope,
     options?: AnalyticsQueryOptions,
-  ): Promise<TopContentResponse> {
-    return this.request<TopContentResponse>(token, 'top', options);
+  ): Promise<JsonApiCollectionResponse<unknown>> {
+    return this.request(token, 'top', scope, options);
   }
 
   getPlatformStats(
     token: string,
+    scope: RequestScope,
     options?: AnalyticsQueryOptions,
-  ): Promise<PlatformStatsResponse> {
-    return this.request<PlatformStatsResponse>(token, 'platforms', options);
+  ): Promise<JsonApiCollectionResponse<IPlatformComparison>> {
+    return this.request(token, 'platforms', scope, options);
   }
 
   getGrowthTrends(
     token: string,
+    scope: RequestScope,
     options?: AnalyticsQueryOptions,
-  ): Promise<GrowthDataResponse> {
-    return this.request<GrowthDataResponse>(token, 'growth', options);
+  ): Promise<JsonApiSingleResponse<unknown>> {
+    return this.request(token, 'growth', scope, options);
   }
 
   getEngagement(
     token: string,
+    scope: RequestScope,
     options?: AnalyticsQueryOptions,
-  ): Promise<EngagementResponse> {
-    return this.request<EngagementResponse>(token, 'engagement', options);
+  ): Promise<JsonApiSingleResponse<unknown>> {
+    return this.request(token, 'engagement', scope, options);
   }
 }
 

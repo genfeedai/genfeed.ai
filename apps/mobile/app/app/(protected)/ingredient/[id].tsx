@@ -6,38 +6,139 @@ import { ErrorScreen, LoadingScreen } from '@/components/ScreenStates';
 import { borderRadius } from '@/constants';
 import { useIngredient } from '@/hooks/use-ingredients';
 import { useThemedStyles } from '@/hooks/use-themed-styles';
+import type { DetailCategory } from '@/services/api/ingredients.service';
 import { formatFullDate } from '@/utils/format-date';
+import {
+  libraryCreatedAt,
+  libraryDescription,
+  libraryDimensions,
+  libraryDuration,
+  libraryMediaUrl,
+  libraryTitle,
+} from '@/utils/library-item';
+import { recoverableErrorCopy } from '@/utils/request-error';
+
+function readParam(value: string | string[] | undefined): string | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw && raw.trim() !== '' ? raw : null;
+}
+
+function readCategory(
+  value: string | string[] | undefined,
+): DetailCategory | null {
+  const raw = readParam(value);
+  if (raw === 'image' || raw === 'video' || raw === 'article') {
+    return raw;
+  }
+
+  return null;
+}
+
+function MetaRow({ label, value }: { label: string; value: string }) {
+  const styles = useThemedStyles(createStyles);
+
+  return (
+    <View style={styles.metaRow}>
+      <Text style={styles.metaLabel}>{label}</Text>
+      <Text style={styles.metaValue}>{value}</Text>
+    </View>
+  );
+}
 
 export default function IngredientDetail() {
   const styles = useThemedStyles(createStyles);
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { ingredient, isLoading, error } = useIngredient(id || null);
+  const params = useLocalSearchParams<{
+    category?: string | string[];
+    id: string | string[];
+  }>();
+  const id = readParam(params.id);
+  const category = readCategory(params.category);
+  const { detail, isLoading, error } = useIngredient(id, category);
 
   if (isLoading) {
     return <LoadingScreen message="Loading ingredient..." />;
   }
 
-  if (error || !ingredient) {
+  if (error || !detail) {
+    const copy = error
+      ? recoverableErrorCopy(error)
+      : {
+          message: 'Not found',
+          subMessage: 'That record was not found.',
+        };
+
+    return <ErrorScreen message={copy.message} subMessage={copy.subMessage} />;
+  }
+
+  if (detail.kind === 'article') {
+    const item = detail.item;
+    const createdAt = libraryCreatedAt(item);
+    const updatedAt = typeof item.updatedAt === 'string' ? item.updatedAt : '';
+    const cover =
+      typeof item.coverImageUrl === 'string' && item.coverImageUrl !== ''
+        ? item.coverImageUrl
+        : null;
+
     return (
-      <ErrorScreen
-        message="Failed to load ingredient"
-        subMessage={error?.message || 'Ingredient not found'}
-      />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
+        {cover ? (
+          <View style={styles.imageContainer}>
+            <Image
+              source={{ uri: cover }}
+              style={styles.image}
+              contentFit="cover"
+            />
+          </View>
+        ) : null}
+        <View style={styles.infoSection}>
+          <Text style={styles.categoryBadge}>Article</Text>
+          <Text style={styles.title}>{item.label || 'Untitled'}</Text>
+          {item.summary ? (
+            <Text style={styles.description}>{item.summary}</Text>
+          ) : null}
+          <View style={styles.metaSection}>
+            {item.status ? (
+              <MetaRow label="Status:" value={String(item.status)} />
+            ) : null}
+            {createdAt ? (
+              <MetaRow label="Created:" value={formatFullDate(createdAt)} />
+            ) : null}
+            {updatedAt && updatedAt !== createdAt ? (
+              <MetaRow label="Updated:" value={formatFullDate(updatedAt)} />
+            ) : null}
+            {typeof item.wordCount === 'number' && item.wordCount > 0 ? (
+              <MetaRow label="Words:" value={String(item.wordCount)} />
+            ) : null}
+            {typeof item.readingTime === 'number' && item.readingTime > 0 ? (
+              <MetaRow
+                label="Reading time:"
+                value={`${item.readingTime} min`}
+              />
+            ) : null}
+          </View>
+        </View>
+      </ScrollView>
     );
   }
 
-  const attrs = ingredient.attributes;
-  const metadata = attrs.metadata || {};
-  const thumbnail = attrs.ingredientUrl || metadata.thumbnailUrl;
-  const title = metadata.title || 'Untitled';
-  const description = metadata.description || '';
+  const item = detail.item;
+  const thumbnail = libraryMediaUrl(item);
+  const createdAt = libraryCreatedAt(item);
+  const updatedAt = typeof item.updatedAt === 'string' ? item.updatedAt : '';
+  const description = libraryDescription(item);
+  const dimensions = libraryDimensions(item);
+  const duration = libraryDuration(item);
+  const badge = category === 'video' ? 'Video' : 'Image';
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
     >
-      {thumbnail && (
+      {thumbnail ? (
         <View style={styles.imageContainer}>
           <Image
             source={{ uri: thumbnail }}
@@ -45,48 +146,32 @@ export default function IngredientDetail() {
             contentFit="contain"
           />
         </View>
-      )}
-
+      ) : null}
       <View style={styles.infoSection}>
-        <Text style={styles.categoryBadge}>{attrs.category.toUpperCase()}</Text>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.categoryBadge}>{badge}</Text>
+        <Text style={styles.title}>{libraryTitle(item, 'Untitled')}</Text>
         {description ? (
           <Text style={styles.description}>{description}</Text>
         ) : null}
-
         <View style={styles.metaSection}>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Status:</Text>
-            <Text style={styles.metaValue}>{attrs.status}</Text>
-          </View>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Created:</Text>
-            <Text style={styles.metaValue}>
-              {formatFullDate(attrs.createdAt)}
-            </Text>
-          </View>
-          {attrs.updatedAt !== attrs.createdAt && (
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Updated:</Text>
-              <Text style={styles.metaValue}>
-                {formatFullDate(attrs.updatedAt)}
-              </Text>
-            </View>
-          )}
-          {Number(metadata.width) > 0 && Number(metadata.height) > 0 && (
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Dimensions:</Text>
-              <Text style={styles.metaValue}>
-                {metadata.width} × {metadata.height}
-              </Text>
-            </View>
-          )}
-          {Number(metadata.duration) > 0 && (
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Duration:</Text>
-              <Text style={styles.metaValue}>{metadata.duration}s</Text>
-            </View>
-          )}
+          {item.status ? (
+            <MetaRow label="Status:" value={String(item.status)} />
+          ) : null}
+          {createdAt ? (
+            <MetaRow label="Created:" value={formatFullDate(createdAt)} />
+          ) : null}
+          {updatedAt && updatedAt !== createdAt ? (
+            <MetaRow label="Updated:" value={formatFullDate(updatedAt)} />
+          ) : null}
+          {dimensions ? (
+            <MetaRow
+              label="Dimensions:"
+              value={`${dimensions.width} × ${dimensions.height}`}
+            />
+          ) : null}
+          {duration ? (
+            <MetaRow label="Duration:" value={`${duration}s`} />
+          ) : null}
         </View>
       </View>
     </ScrollView>

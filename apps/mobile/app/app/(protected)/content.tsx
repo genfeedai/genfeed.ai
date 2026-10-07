@@ -3,12 +3,26 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { EmptyState, LoadingScreen } from '@/components/ScreenStates';
+import {
+  EmptyState,
+  ErrorScreen,
+  LoadingScreen,
+} from '@/components/ScreenStates';
 import { borderRadius } from '@/constants';
 import { useIngredients } from '@/hooks/use-ingredients';
 import { useThemedStyles } from '@/hooks/use-themed-styles';
-import type { Ingredient } from '@/services/api/ingredients.service';
+import type {
+  LibraryCategory,
+  LibraryItem,
+} from '@/services/api/ingredients.service';
 import { formatRelativeDateVerbose } from '@/utils/format-date';
+import {
+  libraryCreatedAt,
+  libraryDescription,
+  libraryMediaUrl,
+  libraryTitle,
+} from '@/utils/library-item';
+import { recoverableErrorCopy } from '@/utils/request-error';
 
 function SectionHeader({ label }: { label: string }) {
   const styles = useThemedStyles(createStyles);
@@ -21,8 +35,8 @@ function SectionHeader({ label }: { label: string }) {
 }
 
 interface MediaCardProps {
-  item: Ingredient;
-  category: 'video' | 'image';
+  item: LibraryItem;
+  category: LibraryCategory;
   defaultTitle: string;
 }
 
@@ -33,11 +47,10 @@ function MediaCard({
 }: MediaCardProps): ReactNode {
   const router = useRouter();
   const styles = useThemedStyles(createStyles);
-  const thumbnail =
-    item.attributes.ingredientUrl || item.attributes.metadata?.thumbnailUrl;
-  const title = item.attributes.metadata?.title || defaultTitle;
-  const description = item.attributes.metadata?.description || '';
-  const createdAt = formatRelativeDateVerbose(item.attributes.createdAt);
+  const thumbnail = libraryMediaUrl(item);
+  const title = libraryTitle(item, defaultTitle);
+  const description = libraryDescription(item);
+  const createdAt = formatRelativeDateVerbose(libraryCreatedAt(item));
   const thumbnailStyle =
     category === 'video' ? styles.videoThumbnail : styles.squareThumbnail;
 
@@ -69,56 +82,33 @@ function MediaCard({
   );
 }
 
-function ArticleCard({ item }: { item: Ingredient }) {
-  const router = useRouter();
-  const styles = useThemedStyles(createStyles);
-  const title = item.attributes.metadata?.title || 'Untitled Article';
-  const description = item.attributes.metadata?.description || '';
-  const createdAt = formatRelativeDateVerbose(item.attributes.createdAt);
-  const wordCount = item.attributes.metadata?.wordCount || 0;
-  const readingTime =
-    wordCount > 0 ? `${Math.ceil(wordCount / 200)} min read` : '';
-
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.articleCard,
-        pressed && styles.articleCardPressed,
-      ]}
-      onPress={() => router.push(`/ingredient/${item.id}?category=article`)}
-    >
-      {readingTime ? (
-        <View style={styles.articleBadge}>
-          <Text style={styles.articleBadgeText}>{readingTime}</Text>
-        </View>
-      ) : null}
-      <Text style={styles.cardTitle}>{title}</Text>
-      <Text style={styles.cardMeta}>{createdAt}</Text>
-      {description ? (
-        <Text style={styles.cardDescription}>{description}</Text>
-      ) : null}
-    </Pressable>
-  );
-}
-
 export default function Content() {
   const styles = useThemedStyles(createStyles);
-  const { ingredients: videos, isLoading: isLoadingVideos } = useIngredients({
-    category: 'video',
-    pageSize: 10,
-  });
-  const { ingredients: images, isLoading: isLoadingImages } = useIngredients({
-    category: 'image',
-    pageSize: 10,
-  });
-  const { ingredients: articles, isLoading: isLoadingArticles } =
-    useIngredients({ category: 'article', pageSize: 10 });
-
-  const isLoading = isLoadingVideos || isLoadingImages || isLoadingArticles;
+  const videosQuery = useIngredients({ category: 'video', limit: 10 });
+  const imagesQuery = useIngredients({ category: 'image', limit: 10 });
+  const isLoading = videosQuery.isLoading || imagesQuery.isLoading;
+  const loadError = videosQuery.error ?? imagesQuery.error;
 
   if (isLoading) {
     return <LoadingScreen message="Loading your content..." />;
   }
+
+  if (loadError) {
+    const copy = recoverableErrorCopy(loadError);
+    return (
+      <ErrorScreen
+        message={copy.message}
+        subMessage={copy.subMessage}
+        onRetry={() => {
+          void videosQuery.refetch();
+          void imagesQuery.refetch();
+        }}
+      />
+    );
+  }
+
+  const videos = videosQuery.ingredients;
+  const images = imagesQuery.ingredients;
 
   return (
     <ScrollView
@@ -131,7 +121,7 @@ export default function Content() {
           Latest creations from your workspace
         </Text>
         <Text style={styles.heroSubtitle}>
-          View your generated content and saved ideas.
+          View your generated images and videos.
         </Text>
       </View>
 
@@ -163,16 +153,7 @@ export default function Content() {
         </View>
       )}
 
-      {articles.length > 0 && (
-        <View style={styles.section}>
-          <SectionHeader label="Articles" />
-          {articles.map((item) => (
-            <ArticleCard key={item.id} item={item} />
-          ))}
-        </View>
-      )}
-
-      {videos.length === 0 && images.length === 0 && articles.length === 0 && (
+      {videos.length === 0 && images.length === 0 && (
         <EmptyState
           title="No content yet"
           message="Your generated ingredients will appear here"
@@ -184,28 +165,6 @@ export default function Content() {
 
 const createStyles = (colors: NativeThemeColors) =>
   StyleSheet.create({
-    articleBadge: {
-      alignSelf: 'flex-start',
-      backgroundColor: colors.agent,
-      borderRadius: borderRadius.full,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-    },
-    articleBadgeText: {
-      color: colors.agentForeground,
-      fontSize: 12,
-      fontWeight: '600',
-      textTransform: 'uppercase',
-    },
-    articleCard: {
-      backgroundColor: colors.bgTertiary,
-      borderRadius: borderRadius.xxxl,
-      gap: 12,
-      padding: 20,
-    },
-    articleCardPressed: {
-      opacity: 0.8,
-    },
     card: {
       backgroundColor: colors.bgTertiary,
       borderRadius: borderRadius.xxxl,

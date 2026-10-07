@@ -3,21 +3,15 @@ import {
   isThemePreference,
   type ThemePreference,
 } from '@genfeedai/contracts/constants';
+import type {
+  ISetting,
+  JsonApiSingleResponse,
+} from '@genfeedai/contracts/interfaces';
 import { apiRequest } from '@/services/api/base-http.service';
-
-interface SettingsResponse {
-  data?: {
-    attributes?: {
-      theme?: unknown;
-    };
-    id: string;
-    type: 'setting';
-  };
-}
 
 class MobileSettingsService {
   async getTheme(token: string): Promise<ThemePreference> {
-    const response = await apiRequest<SettingsResponse>(
+    const response = await apiRequest<JsonApiSingleResponse<Partial<ISetting>>>(
       token,
       'users/me/settings',
     );
@@ -27,10 +21,14 @@ class MobileSettingsService {
   }
 
   async updateTheme(token: string, theme: ThemePreference): Promise<void> {
-    await apiRequest<SettingsResponse>(token, 'users/me/settings', {
-      body: { theme },
-      method: 'PATCH',
-    });
+    await apiRequest<JsonApiSingleResponse<Partial<ISetting>>>(
+      token,
+      'users/me/settings',
+      {
+        body: { theme },
+        method: 'PATCH',
+      },
+    );
   }
 }
 

@@ -17,6 +17,7 @@ import { useMobileTheme } from '@/contexts/theme-context';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { useThemedStyles } from '@/hooks/use-themed-styles';
 import { formatNumber, formatPercentage } from '@/utils/format-date';
+import { recoverableErrorCopy } from '@/utils/request-error';
 
 interface StatCardProps {
   label: string;
@@ -244,9 +245,11 @@ export default function AnalyticsScreen() {
   }
 
   if (error) {
+    const copy = recoverableErrorCopy(error);
     return (
       <ErrorScreen
-        message="Failed to load analytics"
+        message={copy.message}
+        subMessage={copy.subMessage}
         onRetry={refetch}
         retryLabel="Retry"
       />
@@ -297,10 +300,10 @@ export default function AnalyticsScreen() {
             comments={engagement.comments}
             shares={engagement.shares}
             saves={engagement.saves}
-            likesPercentage={engagement.likesPercentage || 25}
-            commentsPercentage={engagement.commentsPercentage || 25}
-            sharesPercentage={engagement.sharesPercentage || 25}
-            savesPercentage={engagement.savesPercentage || 25}
+            likesPercentage={engagement.likesPercentage}
+            commentsPercentage={engagement.commentsPercentage}
+            sharesPercentage={engagement.sharesPercentage}
+            savesPercentage={engagement.savesPercentage}
           />
         </View>
       )}
@@ -325,11 +328,11 @@ export default function AnalyticsScreen() {
           <Text style={styles.sectionTitle}>Top Performing</Text>
           {topContent.map((content, index) => (
             <TopContentCard
-              key={content.id || index}
+              key={content.postId || index}
               rank={index + 1}
-              title={content.title || 'Untitled'}
+              title={content.label}
               platform={content.platform}
-              views={content.views}
+              views={content.totalViews}
             />
           ))}
         </View>
