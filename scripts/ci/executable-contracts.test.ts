@@ -11,20 +11,8 @@ const repositoryRoot = fileURLToPath(new URL('../..', import.meta.url));
  */
 const REPOSITORY_CONTRACTS = [
   {
-    command: ['bun', 'run', 'check:cron-boundary'],
-    name: 'platform cron boundary',
-  },
-  {
-    command: ['bun', 'run', 'check:legacy-cron-surface'],
-    name: 'legacy cron jobs surface',
-  },
-  {
-    command: ['bun', 'run', 'check:product-workflow-boundary'],
-    name: 'product workflow boundary',
-  },
-  {
-    command: ['bun', 'run', 'check:bull-board-parity'],
-    name: 'bull board queue parity',
+    command: ['bun', 'run', 'check:architecture'],
+    name: 'architecture guards',
   },
   {
     command: ['bun', 'run', 'check:di-value-imports'],
@@ -35,14 +23,21 @@ const REPOSITORY_CONTRACTS = [
     name: 'untranslated string ratchet',
   },
   {
-    command: ['bun', 'run', 'check:deterministic-locale'],
-    name: 'deterministic locale ratchet',
-  },
-  {
     command: ['bun', 'run', 'check:inline-types'],
     name: 'inline type ratchet',
   },
-  { command: ['bun', 'run', 'check:import-cycles'], name: 'import cycles' },
+  {
+    // CI setup exports its actual runtime identity for the task hash. Without
+    // it (for example, a local run), never trust a receipt from an older Bun.
+    command: [
+      'bunx',
+      'turbo',
+      'run',
+      'check:import-cycles',
+      ...(process.env.CI_CHECK_RUNTIME ? [] : ['--force']),
+    ],
+    name: 'import cycles',
+  },
   {
     command: ['bun', 'run', 'check:type-assertions'],
     name: 'type assertions',
@@ -60,10 +55,6 @@ const REPOSITORY_CONTRACTS = [
     name: 'runtime complexity ratchet',
   },
   {
-    command: ['bun', 'run', 'check:route-shadowing'],
-    name: 'controller route shadowing',
-  },
-  {
     command: ['bun', 'run', 'check:route-inventory'],
     name: 'product route inventory',
   },
@@ -71,18 +62,6 @@ const REPOSITORY_CONTRACTS = [
   {
     command: ['bun', 'run', 'check:test-id-literals'],
     name: 'test id literal guard',
-  },
-  {
-    command: ['bun', 'run', 'check:agent-tool-dispatch'],
-    name: 'agent tool dispatch coverage',
-  },
-  {
-    command: ['bun', 'run', 'check:action-versions'],
-    name: 'GitHub Action version consistency',
-  },
-  {
-    command: ['bun', 'run', 'check:project-references'],
-    name: 'project reference dependency parity',
   },
   { command: ['bun', 'run', 'check:ui-guards'], name: 'UI guards' },
   { command: ['bun', 'run', 'design:check'], name: 'design system contracts' },
