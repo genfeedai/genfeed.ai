@@ -1,4 +1,4 @@
-import { isRecord } from '../../constants/type-guards.constant';
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 
 export const SYSTEM_WORKFLOW_METADATA_KEY = 'systemWorkflow';
 export const SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY =

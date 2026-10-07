@@ -11,6 +11,9 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "./dist",
+    "paths": {
+      "@genfeedai/contracts/constants/*": ["./src/constants/*"]
+    },
     "resolveJsonModule": true,
     "rootDir": "./src",
     "skipLibCheck": true,
