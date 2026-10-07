@@ -86,11 +86,18 @@ export default function BrandWritingVoiceEditor({
       }),
     [form.platformOverrides],
   );
+  const showsVoiceHeading = !section || section === 'voice';
 
   return (
     <div className="mx-auto flex min-w-0 flex-col gap-3">
       {section !== 'agent' && (
         <Card
+          label={showsVoiceHeading ? 'Brand voice' : undefined}
+          description={
+            showsVoiceHeading
+              ? 'How agents write as this brand — tone, style, and messaging. Not the spoken TTS voice.'
+              : undefined
+          }
           headerAction={
             <div className="flex shrink-0 items-center gap-2">
               <Button
