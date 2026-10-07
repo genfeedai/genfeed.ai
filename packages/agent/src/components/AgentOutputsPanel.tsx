@@ -29,16 +29,33 @@ interface AgentOutputsPanelProps {
   mode?: 'compact' | 'standard';
 }
 
-function buildAttachContent(
+const REFINE_EXCERPT_MAX_LENGTH = 80;
+
+/**
+ * Seeds the composer with a short pointer to the selected output, not its full
+ * body: the output already lives in this thread, so the agent only needs to
+ * know which one the next instruction is about.
+ */
+function buildRefineContent(
   group: ThreadOutputGroup,
   variant: ThreadOutputVariant,
 ): string {
+  const label = variant.title ?? group.title;
+
   if (variant.kind === 'text' && variant.textContent) {
-    return variant.threadSegments?.join('\n\n') ?? variant.textContent;
+    const source = (variant.threadSegments?.[0] ?? variant.textContent)
+      .replace(/\s+/g, ' ')
+      .trim();
+    const excerpt =
+      source.length > REFINE_EXCERPT_MAX_LENGTH
+        ? `${source.slice(0, REFINE_EXCERPT_MAX_LENGTH).trimEnd()}…`
+        : source;
+    return `Refine the ${label} ("${excerpt}"): `;
   }
 
-  const label = variant.title ?? group.title;
-  return `Use this output in the current thread:\n${label}\n${variant.url ?? ''}`.trim();
+  return variant.url
+    ? `Refine ${label} (${variant.url}): `
+    : `Refine ${label}: `;
 }
 
 function getVariantLabel(
@@ -250,13 +267,13 @@ export function AgentOutputsPanel({
               className="gen-shell-control inline-flex h-9 items-center rounded-xl px-3 text-xs font-semibold"
               onClick={() =>
                 seedComposer(
-                  buildAttachContent(selectedGroup, selectedVariant),
+                  buildRefineContent(selectedGroup, selectedVariant),
                   activeThreadId,
                 )
               }
             >
               <MessageSquare className="mr-1.5 size-4" />
-              Use in chat
+              Refine
             </Button>
 
             {selectedVariant.url ? (

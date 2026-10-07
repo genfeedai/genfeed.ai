@@ -81,14 +81,6 @@
       "workspace": "agent"
     },
     {
-      "code": 2353,
-      "count": 1,
-      "file": "packages/agent/src/components/AgentOutputsPanel.spec.tsx",
-      "fingerprint": "50ead604c09a7630732e",
-      "message": "Object literal may only specify known properties, and 'contentFormat' does not exist in type '{ id: string; images: string[]; title: string; tweets: string[]; type: string; }'.",
-      "workspace": "agent"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "packages/agent/src/components/BrandCreateCard.spec.tsx",
