@@ -2,6 +2,7 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { describe, expect, it } from 'vitest';
 import {
+  imageEditEntryForAsset,
   readImageEditSourceAspect,
   readImageEditSourceModel,
   resolveImageEditEntry,
@@ -28,6 +29,7 @@ describe('resolveImageEditEntry', () => {
         aspectRatio: '16:9',
         modelKey: AUTO_MODEL_OPTION_VALUE,
       },
+      replacedModelKey: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
     });
   });
 
@@ -46,6 +48,7 @@ describe('resolveImageEditEntry', () => {
         aspectRatio: '16:9',
         modelKey: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_3_IMAGE_EDIT,
       },
+      replacedModelKey: null,
     });
   });
 
@@ -60,6 +63,9 @@ describe('resolveImageEditEntry', () => {
     expect(entry.patch.aspectRatio).toBe('auto');
     expect(entry.patch.aspectRatio).not.toBe('1:1');
     expect(entry.patch.modelKey).toBe(AUTO_MODEL_OPTION_VALUE);
+    expect(entry.replacedModelKey).toBe(
+      MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+    );
   });
 
   it('leaves the current editor settings alone when the source recorded neither', () => {
@@ -70,6 +76,7 @@ describe('resolveImageEditEntry', () => {
     ).toEqual({
       droppedAspectRatio: null,
       patch: editFields,
+      replacedModelKey: null,
     });
   });
 
@@ -132,5 +139,59 @@ describe('readImageEditSourceModel', () => {
         recipeModelKey: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
       }),
     ).toBe(MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5);
+  });
+
+  it('prefers the ledger model over a display model', () => {
+    expect(
+      readImageEditSourceModel({
+        modelKey: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+        modelUsed: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
+      }),
+    ).toBe(MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3);
+  });
+});
+
+describe('imageEditEntryForAsset', () => {
+  it('keeps a recorded 16:9 and does not reset a generation model to an image default', () => {
+    expect(
+      imageEditEntryForAsset({
+        aspectRatio: '16:9',
+        id: 'source-1',
+        modelUsed: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
+      }),
+    ).toMatchObject({
+      droppedAspectRatio: null,
+      patch: {
+        aspectRatio: '16:9',
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      },
+      replacedModelKey: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
+    });
+  });
+
+  it('ignores a CSS aspect class instead of inventing a ratio from missing pixels', () => {
+    expect(
+      imageEditEntryForAsset({
+        aspectRatio: 'aspect-[16/9]',
+        id: 'source-1',
+      }).patch.aspectRatio,
+    ).toBeUndefined();
+  });
+
+  it('reads 16:9 from stored pixels and keeps an editing model', () => {
+    expect(
+      imageEditEntryForAsset({
+        id: 'source-1',
+        metadata: { height: 1080, width: 1920 },
+        model: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+      }),
+    ).toMatchObject({
+      droppedAspectRatio: null,
+      patch: {
+        aspectRatio: '16:9',
+        modelKey: MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_4_5,
+      },
+      replacedModelKey: null,
+    });
   });
 });
