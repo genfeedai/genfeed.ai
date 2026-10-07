@@ -37,6 +37,7 @@ type FixtureWindow = Window & {
   desktopRuntimeEmit: (context: IDesktopRuntimeContext) => void;
   desktopRuntimeResolve: () => void;
   desktopRuntimeReads: number;
+  desktopOfflineModeActivated: () => Promise<void>;
 };
 
 interface DesktopFixtureOptions {
@@ -44,6 +45,7 @@ interface DesktopFixtureOptions {
   pending: boolean;
 }
 interface DesktopNetworkObservation {
+  offlineModeActivations: number;
   walletRequests: number;
   generationRequests: number;
   pageErrors: string[];
@@ -60,7 +62,12 @@ const test = authenticatedTest.extend<{
   desktopRuntime: [{ context: cloud, pending: false }, { option: true }],
   desktopNetwork: async ({ context }, use) => {
     void context;
-    await use({ walletRequests: 0, generationRequests: 0, pageErrors: [] });
+    await use({
+      walletRequests: 0,
+      generationRequests: 0,
+      pageErrors: [],
+      offlineModeActivations: 0,
+    });
   },
   desktopSetup: [
     async ({ context, desktopRuntime, desktopNetwork }, use) => {
@@ -76,6 +83,9 @@ const test = authenticatedTest.extend<{
           desktopNetwork.pageErrors.push(error.message),
         ),
       );
+      await context.exposeBinding('desktopOfflineModeActivated', () => {
+        desktopNetwork.offlineModeActivations += 1;
+      });
       await installBridge(
         context,
         desktopRuntime.context,
@@ -157,6 +167,7 @@ async function installBridge(
       Object.assign(app, {
         getBootstrap: async () => bootstrap,
         enableOfflineMode: async () => {
+          await target.desktopOfflineModeActivated();
           if (context.status === 'unavailable')
             throw new Error(
               'Restart Genfeed Desktop to recover the local workspace.',
@@ -507,7 +518,12 @@ for (const networkAccess of [
   };
   desktopTest(context)(
     `desktop local route cost ${networkAccess}`,
-    async ({ authenticatedPage: page, desktopNetwork }) => {
+    async ({ authenticatedPage: page, context: browser, desktopNetwork }) => {
+      await browser.addInitScript(() => {
+        (globalThis as { [key: symbol]: unknown })[
+          Symbol.for('genfeed.desktop.localModeTestOverride')
+        ] = true;
+      });
       await page.route('**/v1/public/platform-flags**', async (route) =>
         route.fulfill({ json: { desktop_local_workspace: true } }),
       );
@@ -558,3 +574,47 @@ for (const networkAccess of [
     },
   );
 }
+
+desktopTest({
+  ...cloud,
+  runtimeMode: 'local',
+  status: 'ready',
+  generationExecution: 'local-byok',
+  localProvider: { provider: 'openai-compatible', networkAccess: 'local' },
+})(
+  'desktop local route stays closed without the test override',
+  async ({ unauthenticatedPage: page, desktopNetwork }) => {
+    await page.route('**/v1/public/platform-flags**', async (route) =>
+      route.fulfill({ json: { desktop_local_workspace: true } }),
+    );
+    await page.goto('/desktop/local');
+    await expect(page).toHaveURL((url) => url.pathname === '/login');
+    await expect(
+      page.getByRole('button', { name: 'Sign in with Genfeed' }),
+    ).toBeVisible();
+    await expect(page.getByTestId('desktop-local-generation-cost')).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByTestId('desktop-provider-generation-cost'),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: /use a local workspace/i }),
+    ).toHaveCount(0);
+    await expect(page.getByText(/local workspace|local mode/i)).toHaveCount(0);
+    expect(
+      await page.evaluate(
+        () =>
+          (globalThis as { [key: symbol]: unknown })[
+            Symbol.for('genfeed.desktop.localModeTestOverride')
+          ],
+      ),
+    ).toBeUndefined();
+    expect(desktopNetwork.offlineModeActivations).toBe(0);
+    await captureRuntimeState(
+      page,
+      desktopNetwork,
+      'desktop-local-gate-closed',
+    );
+  },
+);
