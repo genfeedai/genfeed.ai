@@ -14,6 +14,9 @@ import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.d
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import {
   serializeCollection,
   serializeSingle,
@@ -57,6 +60,7 @@ import type { Request } from 'express';
 export class SocialReplyCampaignController {
   constructor(private readonly campaignService: SocialReplyCampaignService) {}
 
+  @TenantReadPolicy('selected')
   @Get()
   @ApiOperation({ summary: 'List throttled inbox reply campaigns' })
   async list(
@@ -64,7 +68,7 @@ export class SocialReplyCampaignController {
     @CurrentUser() user: User,
     @Query() query: SocialReplyCampaignQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    const scope = this.buildScope(user);
+    const scope = this.buildScope(user, resolveTenantReadScope(user));
     const data = await this.campaignService.list(scope, query);
     return serializeCollection(request, SocialReplyCampaignSerializer, data);
   }
@@ -85,6 +89,7 @@ export class SocialReplyCampaignController {
     return serializeSingle(request, SocialReplyCampaignSerializer, data);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':campaignId')
   @ApiOperation({ summary: 'Inspect one reply campaign' })
   async get(
@@ -92,11 +97,12 @@ export class SocialReplyCampaignController {
     @CurrentUser() user: User,
     @Param('campaignId') campaignId: string,
   ): Promise<JsonApiSingleResponse> {
-    const scope = this.buildScope(user);
+    const scope = this.buildScope(user, resolveTenantReadScope(user));
     const data = await this.campaignService.get(scope, campaignId);
     return serializeSingle(request, SocialReplyCampaignSerializer, data);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':campaignId/recipients')
   @ApiOperation({ summary: 'List a campaign’s recipients in drain order' })
   async listRecipients(
@@ -105,7 +111,7 @@ export class SocialReplyCampaignController {
     @Param('campaignId') campaignId: string,
     @Query() query: SocialReplyCampaignRecipientQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    const scope = this.buildScope(user);
+    const scope = this.buildScope(user, resolveTenantReadScope(user));
     const data = await this.campaignService.listRecipients(
       scope,
       campaignId,
@@ -164,7 +170,10 @@ export class SocialReplyCampaignController {
     return serializeSingle(request, SocialReplyCampaignSerializer, data);
   }
 
-  private buildScope(user: User): SocialInboxScope {
+  private buildScope(
+    user: User,
+    readScope?: ITenantReadScope,
+  ): SocialInboxScope {
     if (!user.organizationId) {
       throw new UnauthorizedException(
         'Invalid organization context. Please sign in again.',
@@ -172,8 +181,10 @@ export class SocialReplyCampaignController {
     }
 
     return {
-      brandId: user.brandId,
-      organizationId: user.organizationId,
+      brandId: readScope ? readScope.brandId : user.brandId,
+      organizationId: readScope
+        ? readScope.organizationId
+        : user.organizationId,
       userId: user.userId ?? user.id,
     };
   }

@@ -10,6 +10,8 @@ import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   serializeCollection,
   serializeSingle,
@@ -34,6 +36,7 @@ export class CreditsController {
     readonly _loggerService: LoggerService,
   ) {}
 
+  @TenantReadPolicy('mutating')
   @Get('usage')
   @RateLimit({ limit: 20, scope: 'user', windowMs: 60000 })
   @Cache({
@@ -65,6 +68,7 @@ export class CreditsController {
    * Org credit ledger for Settings → Usage. Optional brandId filters rows that
    * recorded brandId in transaction metadata (agent/gen call sites).
    */
+  @TenantReadPolicy('selected')
   @Get('transactions')
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60000 })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -77,8 +81,10 @@ export class CreditsController {
     @Query('limit') limitRaw?: string,
     @Query('skip') skipRaw?: string,
   ) {
-    const organizationId =
-      req.context?.organizationId ?? user.organizationId.toString();
+    const organizationId = resolveTenantReadScope({
+      organizationId: req.context?.organizationId ?? user.organizationId,
+      brandId: req.context?.brandId ?? user.brandId,
+    }).organizationId;
 
     const limit = Math.min(
       Math.max(Number.parseInt(limitRaw ?? '50', 10) || 50, 1),
@@ -116,6 +122,7 @@ export class CreditsController {
     return serializeSingle(req, TopbarBalancesSerializer, data);
   }
 
+  @TenantReadPolicy('mutating')
   @Get('last-purchase-baseline')
   @RateLimit({ limit: 20, scope: 'user', windowMs: 60000 })
   @Cache({

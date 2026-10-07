@@ -15,6 +15,8 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   assertOrganizationCreditsAvailable,
@@ -123,6 +125,7 @@ export class SchedulesController {
   /**
    * Get schedule calendar
    */
+  @TenantReadPolicy('selected')
   @Get('calendar')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getCalendar(
@@ -131,7 +134,8 @@ export class SchedulesController {
     @Query('start') start?: string,
     @Query('end') end?: string,
   ) {
-    const organization = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organization = readScope.organizationId;
 
     const startDate = start || new Date().toISOString();
     const endDate =

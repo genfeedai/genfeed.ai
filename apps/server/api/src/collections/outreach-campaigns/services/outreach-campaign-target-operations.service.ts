@@ -5,6 +5,7 @@ import type { OutreachCampaignDocument } from '@api/collections/outreach-campaig
 import { parseCampaignTargetUrl } from '@api/collections/outreach-campaigns/services/campaign-target-url.util';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discovery.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import {
@@ -75,8 +76,12 @@ export class OutreachCampaignTargetOperationsService {
     };
   }
 
-  async getTargets(id: string, user: User): Promise<unknown[]> {
-    const campaign = await this.findCampaign(id, user);
+  async getTargets(
+    id: string,
+    user: User,
+    readScope?: ITenantReadScope,
+  ): Promise<unknown[]> {
+    const campaign = await this.findCampaign(id, user, readScope);
 
     return this.campaignTargetsService.findByCampaign(
       id,
@@ -156,11 +161,12 @@ export class OutreachCampaignTargetOperationsService {
   private async findCampaign(
     id: string,
     user: User,
+    readScope?: ITenantReadScope,
   ): Promise<OutreachCampaignDocument> {
     const campaign = await this.outreachCampaignsService.findOneById(
       id,
-      user.organizationId,
-      user.brandId,
+      readScope ? readScope.organizationId : user.organizationId,
+      readScope ? readScope.brandId : user.brandId,
     );
 
     if (!campaign) {

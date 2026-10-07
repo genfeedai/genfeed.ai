@@ -26,6 +26,8 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   serializeCollection,
   serializeSingle,
@@ -140,6 +142,7 @@ export class ContentRunsController {
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get('brands/:brandId/content-runs')
   @ApiQuery({
     enum: ContentRunStatus,
@@ -154,7 +157,7 @@ export class ContentRunsController {
     @Query('skillSlug') skillSlug?: string,
     @Query('status') status?: ContentRunStatus,
   ) {
-    const organization = user.organizationId;
+    const organization = resolveTenantReadScope(user).organizationId;
 
     const docs = await this.contentRunsService.listByBrand(
       organization,
@@ -217,19 +220,21 @@ export class ContentRunsController {
     return serializeSingle(req, ContentRunSerializer, data);
   }
 
+  @TenantReadPolicy('selected')
   @Get('content-runs/:id')
   async getRun(
     @Req() req: Request,
     @Param('id') id: string,
     @CurrentUser() user: User,
   ) {
-    const organization = user.organizationId;
+    const organization = resolveTenantReadScope(user).organizationId;
 
     const data = await this.contentRunsService.getRunById(organization, id);
 
     return serializeSingle(req, ContentRunSerializer, data);
   }
 
+  @TenantReadPolicy('mutating')
   @Get('content-runs/:id/remix')
   async getBrandRemixRun(
     @Req() req: Request,

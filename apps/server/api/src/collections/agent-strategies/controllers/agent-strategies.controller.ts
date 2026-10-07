@@ -13,6 +13,8 @@ import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { parseOptionalBoolean } from '@api/helpers/dto/optional-boolean.transform';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -197,6 +199,7 @@ export class AgentStrategiesController extends BaseCRUDController<
     };
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id/workflow-binding')
   @ApiOperation({
     summary:
@@ -205,7 +208,7 @@ export class AgentStrategiesController extends BaseCRUDController<
   async workflowBinding(@Param('id') id: string, @CurrentUser() user: User) {
     return this.agentStrategyWorkflowRunService.preview(
       id,
-      user.organizationId,
+      resolveTenantReadScope(user).organizationId,
     );
   }
 
@@ -240,6 +243,7 @@ export class AgentStrategiesController extends BaseCRUDController<
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id/performance-snapshot')
   @ApiOperation({ summary: 'Fetch the latest autopilot performance snapshot' })
   async performanceSnapshot(
@@ -248,10 +252,11 @@ export class AgentStrategiesController extends BaseCRUDController<
   ) {
     return this.agentStrategyAutopilotService.getPerformanceSnapshot(
       id,
-      user.organizationId,
+      resolveTenantReadScope(user).organizationId,
     );
   }
 
+  @TenantReadPolicy('mutating')
   @Get(':id/opportunities')
   @ApiOperation({ summary: 'Refresh and list strategy opportunities' })
   async listOpportunities(@Param('id') id: string, @CurrentUser() user: User) {
@@ -261,12 +266,13 @@ export class AgentStrategiesController extends BaseCRUDController<
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id/reports')
   @ApiOperation({ summary: 'List strategy report history' })
   async listReports(@Param('id') id: string, @CurrentUser() user: User) {
     return this.agentStrategyReportsService.listByStrategy(
       id,
-      user.organizationId,
+      resolveTenantReadScope(user).organizationId,
     );
   }
 }

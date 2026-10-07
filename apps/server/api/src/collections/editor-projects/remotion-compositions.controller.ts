@@ -4,6 +4,7 @@ import { RemotionCompositionsService } from '@api/collections/editor-projects/se
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import {
   serializeCollection,
   serializeSingle,
@@ -52,6 +53,7 @@ export class RemotionCompositionsController {
     );
   }
 
+  @TenantReadPolicy('owner')
   @Get(':id')
   async status(
     @Req() request: Request,

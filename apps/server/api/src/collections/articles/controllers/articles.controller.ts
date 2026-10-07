@@ -10,6 +10,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import {
   ARTICLE_PREVIEW_TOKEN_TTL_SECONDS,
@@ -283,6 +284,7 @@ export class ArticlesController extends BaseCRUDController<
     return serializeSingle(request, this.serializer, data);
   }
 
+  @TenantReadPolicy('owner')
   @Get(':articleId/versions')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getVersions(

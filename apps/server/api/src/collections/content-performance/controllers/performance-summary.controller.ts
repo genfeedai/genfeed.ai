@@ -5,6 +5,8 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { PerformanceSummarySerializer } from '@genfeedai/serializers';
@@ -53,6 +55,7 @@ export class PerformanceSummaryController {
    * Get weekly performance summary including top/worst content,
    * platform breakdown, posting time analysis, and trends.
    */
+  @TenantReadPolicy('selected')
   @Get('weekly')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getWeeklySummary(
@@ -64,8 +67,9 @@ export class PerformanceSummaryController {
     @Query('endDate') endDate: string | undefined,
     @CurrentUser() user: User,
   ) {
+    const readScope = resolveTenantReadScope(user);
     validateBrandId(brandId);
-    const organization = user.organizationId;
+    const organization = readScope.organizationId;
     const summary = await this.performanceSummaryService.getWeeklySummary(
       organization,
       brandId,
@@ -82,6 +86,7 @@ export class PerformanceSummaryController {
   /**
    * Get top N performing content ranked by engagement rate.
    */
+  @TenantReadPolicy('selected')
   @Get('top-performers')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getTopPerformers(
@@ -91,8 +96,9 @@ export class PerformanceSummaryController {
     @Query('endDate') endDate: string | undefined,
     @CurrentUser() user: User,
   ) {
+    const readScope = resolveTenantReadScope(user);
     validateBrandId(brandId);
-    const organization = user.organizationId;
+    const organization = readScope.organizationId;
     return await this.performanceSummaryService.getTopPerformers(
       organization,
       brandId,
@@ -107,6 +113,7 @@ export class PerformanceSummaryController {
   /**
    * Get prompt/content performance rankings — which descriptions produce the best results.
    */
+  @TenantReadPolicy('selected')
   @Get('prompt-performance')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getPromptPerformance(
@@ -115,8 +122,9 @@ export class PerformanceSummaryController {
     @Query('endDate') endDate: string | undefined,
     @CurrentUser() user: User,
   ) {
+    const readScope = resolveTenantReadScope(user);
     validateBrandId(brandId);
-    const organization = user.organizationId;
+    const organization = readScope.organizationId;
     return await this.performanceSummaryService.getPromptPerformance(
       organization,
       brandId,
@@ -128,14 +136,16 @@ export class PerformanceSummaryController {
   /**
    * Get a text block of performance context for injection into AI generation prompts.
    */
+  @TenantReadPolicy('selected')
   @Get('generation-context')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getGenerationContext(
     @Query('brandId') brandId: string,
     @CurrentUser() user: User,
   ) {
+    const readScope = resolveTenantReadScope(user);
     validateBrandId(brandId);
-    const organization = user.organizationId;
+    const organization = readScope.organizationId;
     const context =
       await this.performanceSummaryService.generatePerformanceContext(
         organization,

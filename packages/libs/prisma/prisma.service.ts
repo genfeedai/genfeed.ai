@@ -96,6 +96,7 @@ export class PrismaService
     const enableQueryEvents = Boolean(options.onQueryEvent);
     super({
       adapter,
+      errorFormat: 'minimal',
       ...(enableQueryEvents
         ? { log: [{ emit: 'event' as const, level: 'query' as const }] }
         : {}),

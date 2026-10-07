@@ -14,6 +14,8 @@ import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import {
   serializeCollection,
@@ -56,18 +58,20 @@ export class PostingCadencesController {
     return serializeSingle(request, PostingCadenceSerializer, data);
   }
 
+  @TenantReadPolicy('selected')
   @Get()
   async list(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Query('brandId') brandId: string,
   ) {
+    const readScope = resolveTenantReadScope(user);
     if (!brandId) {
       return serializeCollection(request, PostingCadenceSerializer, {
         docs: [],
       });
     }
-    const data = await this.service.list(user.organizationId, brandId);
+    const data = await this.service.list(readScope.organizationId, brandId);
     return serializeCollection(request, PostingCadenceSerializer, {
       docs: data,
     });

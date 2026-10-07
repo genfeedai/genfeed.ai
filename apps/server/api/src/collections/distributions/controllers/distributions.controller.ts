@@ -6,6 +6,8 @@ import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   serializeCollection,
   serializeSingle,
@@ -83,6 +85,7 @@ export class DistributionsController {
    *
    * GET /distributions?platform=telegram&status=published
    */
+  @TenantReadPolicy('selected')
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async list(
@@ -90,7 +93,8 @@ export class DistributionsController {
     @Query() query: QueryDistributionDto,
     @CurrentUser() user: User,
   ) {
-    const organization = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organization = readScope.organizationId;
     const page = query.page ? Number.parseInt(query.page, 10) : 1;
     const limit = query.limit ? Number.parseInt(query.limit, 10) : 20;
 
@@ -112,6 +116,7 @@ export class DistributionsController {
    *
    * GET /distributions/:id
    */
+  @TenantReadPolicy('selected')
   @Get(':id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
@@ -119,7 +124,8 @@ export class DistributionsController {
     @Param('id') id: string,
     @CurrentUser() user: User,
   ) {
-    const organization = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organization = readScope.organizationId;
 
     const data = await this.distributionsService.findOneByOrganization(
       id,

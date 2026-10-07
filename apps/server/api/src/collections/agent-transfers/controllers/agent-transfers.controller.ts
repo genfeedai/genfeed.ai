@@ -3,6 +3,7 @@ import { CreateAgentTransferDto } from '@api/collections/agent-transfers/dto/cre
 import { AgentTransfersService } from '@api/collections/agent-transfers/services/agent-transfers.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
@@ -36,6 +37,7 @@ export class AgentTransfersController {
     private readonly loggerService: LoggerService,
   ) {}
 
+  @TenantReadPolicy('owner')
   @Get('conversations')
   @ApiOperation({ summary: 'Discover authorized destination conversations' })
   async discoverConversations(
@@ -62,6 +64,7 @@ export class AgentTransfersController {
     }
   }
 
+  @TenantReadPolicy('owner')
   @Get()
   @ApiOperation({ summary: 'List transfers for an authorized conversation' })
   async list(
@@ -86,6 +89,7 @@ export class AgentTransfersController {
     }
   }
 
+  @TenantReadPolicy('owner')
   @Get(':id')
   @ApiOperation({ summary: 'Get one authorized transfer' })
   async getOne(

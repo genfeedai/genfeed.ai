@@ -7,7 +7,7 @@ import {
   verifyBrandAccess,
   verifyBrandSlugAccess,
 } from '@api/collections/brands/controllers/brand-access.helpers';
-import { attachBrandCredentialRelations } from '@api/collections/brands/controllers/brand-credential-relations.helpers';
+import { decorateBrandResponse } from '@api/collections/brands/controllers/brand-response.helpers';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
@@ -27,6 +27,8 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -42,10 +44,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { BrandSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  crossOrgUnsafe,
-  runWithTenantContext,
-} from '@libs/prisma/tenant-context';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Body,
@@ -411,6 +410,7 @@ export class BrandsController extends BaseCRUDController<
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get('slug')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOneBySlug(
@@ -422,7 +422,12 @@ export class BrandsController extends BaseCRUDController<
       throw new BadRequestException('slug query param is required');
     }
 
-    const brand = await verifyBrandSlugAccess(this.brandsService, slug, user);
+    const brand = await verifyBrandSlugAccess(
+      this.brandsService,
+      slug,
+      user,
+      resolveTenantReadScope(user),
+    );
 
     return serializeSingle(
       request,
@@ -443,27 +448,10 @@ export class BrandsController extends BaseCRUDController<
     brand: BrandDocument,
     _user: User,
   ): Promise<BrandDocument> {
-    // The brand's own org owns its assets — never the caller's session org,
-    // which differs for a superadmin reading across tenants.
-    const organizationId = brand.organizationId;
-
-    if (typeof organizationId !== 'string' || !organizationId) {
-      return brand;
-    }
-
-    // Reads run under the brand's own organization: a relocation response
-    // carries the destination org and a superadmin reads across tenants.
-    return runWithTenantContext({ organizationId }, async () =>
-      attachBrandCredentialRelations(
-        this.credentialsService,
-        (
-          await this.brandsService.attachBrandKitAssetRelations(
-            [brand],
-            organizationId,
-          )
-        )[0],
-        organizationId,
-      ),
+    return decorateBrandResponse(
+      brand,
+      this.brandsService,
+      this.credentialsService,
     );
   }
 
@@ -476,6 +464,7 @@ export class BrandsController extends BaseCRUDController<
    * collections update.
    * This matches the org.settings solution where we bypass population for fresh data.
    */
+  @TenantReadPolicy('selected')
   @Get(':brandId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
@@ -483,7 +472,12 @@ export class BrandsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('brandId') brandId: string,
   ): Promise<JsonApiSingleResponse> {
-    await verifyBrandAccess(this.brandsService, brandId, user);
+    await verifyBrandAccess(
+      this.brandsService,
+      brandId,
+      user,
+      resolveTenantReadScope(user),
+    );
 
     return super.findOne(request, user, brandId);
   }

@@ -8,6 +8,8 @@ import { PatternAnalyzerService } from '@api/collections/content-intelligence/se
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -44,13 +46,15 @@ export class CreatorsController {
     readonly _logger: LoggerService,
   ) {}
 
+  @TenantReadPolicy('selected')
   @Get()
   async findAll(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Query() query: CreatorsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    const organizationId = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organizationId = readScope.organizationId;
 
     const options = {
       customLabels,
@@ -89,19 +93,21 @@ export class CreatorsController {
     return serializeCollection(request, CreatorAnalysisSerializer, data);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id')
   async findOne(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
+    const readScope = resolveTenantReadScope(user);
     if (!isEntityId(id)) {
       ErrorResponse.notFound('CreatorAnalysis', id);
     }
 
     const data = await this.contentIntelligenceService.findOne({
       id: id,
-      organizationId: user.organizationId,
+      organizationId: readScope.organizationId,
     });
 
     if (!data) {

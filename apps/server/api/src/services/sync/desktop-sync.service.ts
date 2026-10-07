@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
@@ -19,6 +20,7 @@ import {
   decodeThreadCursor,
   encodeManifestCursor,
   encodeThreadCursor,
+  sliceManifestPage,
 } from './desktop-sync-cursor.util';
 import type { DesktopBrandManifestQueryDto } from './dto/desktop-brand-manifest-query.dto';
 import type {
@@ -86,8 +88,11 @@ export class DesktopSyncService {
     private readonly prisma: PrismaService,
   ) {}
 
-  private getCloudContext(user: User): {
-    brandId: string;
+  private getCloudContext(
+    user: User,
+    readScope?: ITenantReadScope,
+  ): {
+    brandId: string | undefined;
     organizationId: string;
     userId: string;
   } {
@@ -98,8 +103,10 @@ export class DesktopSyncService {
     }
 
     return {
-      brandId: user.brandId,
-      organizationId: user.organizationId,
+      brandId: readScope ? readScope.brandId : user.brandId,
+      organizationId: readScope
+        ? readScope.organizationId
+        : user.organizationId,
       userId: user.userId ?? user.id,
     };
   }
@@ -344,9 +351,15 @@ export class DesktopSyncService {
   }
 
   @LogMethod()
-  async getBrandManifest(user: User, query: DesktopBrandManifestQueryDto) {
-    const { brandId: selectedBrandId, organizationId } =
-      this.getCloudContext(user);
+  async getBrandManifest(
+    user: User,
+    query: DesktopBrandManifestQueryDto,
+    readScope?: ITenantReadScope,
+  ) {
+    const { brandId: selectedBrandId, organizationId } = this.getCloudContext(
+      user,
+      readScope,
+    );
     const brandId = query.brandId ?? selectedBrandId;
     // Lossless keyset paging: each collection advances an ascending
     // (updatedAt, id) cursor to the last row the client actually received.
@@ -459,19 +472,16 @@ export class DesktopSyncService {
         }),
       ]);
 
-    const hasMoreBrands = brandPage.length > MANIFEST_BRAND_PAGE_LIMIT;
-    const brands = hasMoreBrands
-      ? brandPage.slice(0, MANIFEST_BRAND_PAGE_LIMIT)
-      : brandPage;
-    const hasMoreIngredients =
-      ingredientPage.length > MANIFEST_INGREDIENT_PAGE_LIMIT;
-    const ingredients = hasMoreIngredients
-      ? ingredientPage.slice(0, MANIFEST_INGREDIENT_PAGE_LIMIT)
-      : ingredientPage;
-    const hasMoreAssets = assetPage.length > MANIFEST_ASSET_PAGE_LIMIT;
-    const assets = hasMoreAssets
-      ? assetPage.slice(0, MANIFEST_ASSET_PAGE_LIMIT)
-      : assetPage;
+    const { rows: brands, hasMore: hasMoreBrands } = sliceManifestPage(
+      brandPage,
+      MANIFEST_BRAND_PAGE_LIMIT,
+    );
+    const { rows: ingredients, hasMore: hasMoreIngredients } =
+      sliceManifestPage(ingredientPage, MANIFEST_INGREDIENT_PAGE_LIMIT);
+    const { rows: assets, hasMore: hasMoreAssets } = sliceManifestPage(
+      assetPage,
+      MANIFEST_ASSET_PAGE_LIMIT,
+    );
 
     const updatedCursor = encodeManifestCursor({
       assets: advanceCursorPosition(assets, positions.assets),

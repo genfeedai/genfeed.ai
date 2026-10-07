@@ -7,6 +7,8 @@ import { SocialInboxService } from '@api/collections/social-inbox/services/socia
 import { UsersService } from '@api/collections/users/services/users.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-model-access.service';
@@ -279,6 +281,7 @@ export class AgentOrchestratorController {
     }
   }
 
+  @TenantReadPolicy('selected')
   @Get('goals')
   @ApiOperation({ summary: 'List agent goals for the current organization' })
   async listGoals(
@@ -286,7 +289,10 @@ export class AgentOrchestratorController {
     @Query('brandId') brandId?: string,
   ) {
     try {
-      const organization = this.resolveOrganizationId(user);
+      const organization = resolveTenantReadScope({
+        organizationId: this.resolveOrganizationId(user),
+        brandId: user.brandId,
+      }).organizationId;
       return await this.agentGoalsService.list(organization, brandId);
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'agentListGoals');
@@ -310,6 +316,7 @@ export class AgentOrchestratorController {
     }
   }
 
+  @TenantReadPolicy('mutating')
   @Get('goals/:goalId')
   @ApiOperation({ summary: 'Get current agent goal progress' })
   async getGoal(@Param('goalId') goalId: string, @CurrentUser() user: User) {

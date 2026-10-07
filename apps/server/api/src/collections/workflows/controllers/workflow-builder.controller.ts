@@ -32,6 +32,8 @@ import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WorkflowTrigger } from '@genfeedai/contracts';
@@ -176,6 +178,7 @@ export class WorkflowBuilderController {
     }, 'Failed to import workflow');
   }
 
+  @TenantReadPolicy('selected')
   @Get(':workflowId/interface')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getWorkflowInterface(
@@ -185,7 +188,7 @@ export class WorkflowBuilderController {
     data: { inputs: Record<string, unknown>; outputs: Record<string, unknown> };
   }> {
     const workflow = await this.workflowsService.findOwnedOrThrow(workflowId, {
-      organizationId: user.organizationId,
+      organizationId: resolveTenantReadScope(user).organizationId,
     });
 
     const inputs: Record<string, unknown> = {};

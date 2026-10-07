@@ -32,6 +32,8 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
@@ -122,16 +124,19 @@ export class CampaignsController {
     return serializeSingle(request, CampaignComparisonSerializer, data);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id')
   async getOne(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const data = await this.service.getOne(user.organizationId, id);
+    const readScope = resolveTenantReadScope(user);
+    const data = await this.service.getOne(readScope.organizationId, id);
     return serializeSingle(request, CampaignSerializer, data);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id/performance')
   async getPerformance(
     @Req() request: Request,
@@ -140,21 +145,27 @@ export class CampaignsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
+    const readScope = resolveTenantReadScope(user);
     const data = await this.performanceService.getPerformance(
-      user.organizationId,
+      readScope.organizationId,
       id,
       { endDate, startDate },
     );
     return serializeSingle(request, CampaignPerformanceSerializer, data);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id/activations')
   async listActivations(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const data = await this.paidActivationService.list(user.organizationId, id);
+    const readScope = resolveTenantReadScope(user);
+    const data = await this.paidActivationService.list(
+      readScope.organizationId,
+      id,
+    );
     return serializeCollection(request, CampaignPaidActivationSerializer, {
       docs: data,
     });

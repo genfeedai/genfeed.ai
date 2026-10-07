@@ -19,6 +19,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import {
   getIsSuperAdmin,
   getStripeSubscriptionStatus,
@@ -165,6 +166,7 @@ export class UsersController {
     return serializeCollection(request, UserSerializer, data);
   }
 
+  @TenantReadPolicy('owner')
   @Get('me')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findMe(@Req() request: RequestWithContext, @CurrentUser() user: User) {

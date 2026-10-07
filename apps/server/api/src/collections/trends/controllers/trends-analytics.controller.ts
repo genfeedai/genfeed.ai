@@ -9,6 +9,8 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   GetTrendingHashtagsDto,
   GetTrendingSoundsDto,
@@ -25,6 +27,7 @@ import { ApiOperation } from '@nestjs/swagger';
 export class TrendsAnalyticsController {
   constructor(private readonly trendsService: TrendsService) {}
 
+  @TenantReadPolicy('selected')
   @Get('videos')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -35,9 +38,10 @@ export class TrendsAnalyticsController {
     @Query() query: GetViralVideosDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
+    const readScope = resolveTenantReadScope(user);
     const videos = await this.trendsService.getBrandViralVideos(
-      user.organizationId,
-      query.brandId || user.brandId,
+      readScope.organizationId,
+      (query.brandId || readScope.brandId) ?? '',
       {
         limit: query.limit,
         platform: query.platform,

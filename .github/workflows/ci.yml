@@ -794,6 +794,138 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
+  cloud-tenant-guard:
+    name: Cloud Tenant Guard Sweep
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUD_SWEEP_BASE_SHA: ${{ needs.plan.outputs.base || github.sha }}
+    needs: plan
+    if: needs.plan.outputs.api_tests == 'true'
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: genfeed
+          POSTGRES_PASSWORD: genfeed_local
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Fetch trusted baseline commit
+        run: git fetch origin "$CLOUD_SWEEP_BASE_SHA" --depth=1
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+      # Build uploads only OpenAPI, not API dist. Keep this job independent:
+      # waiting for all of Build would serialize unrelated package/docs work.
+      # Workflow-level TURBO_TOKEN/TURBO_TEAM apply here; cache hits are expected.
+      # Runtime CLOUD configuration is loaded only after compilation.
+      - name: Build API (compiled bundle)
+        run: bunx turbo run build --filter=@genfeedai/api
+      - name: Validate synthetic CLOUD configuration
+        run: node --test scripts/ci/cloud-tenant-guard-sweep/*.test.mjs
+      - name: Load job-local placeholder environment
+        run: |
+          sed '/^#/d; /^$/d' scripts/ci/cloud-tenant-guard-sweep/cloud-sweep.placeholders >> "$GITHUB_ENV"
+      - name: Create owned private evidence directory
+        run: |
+          set -euo pipefail
+          sweep_run_dir="$(mktemp -d "$RUNNER_TEMP/cloud-tenant-XXXXXX")"
+          chmod 700 "$sweep_run_dir"
+          echo "CLOUD_SWEEP_RUN_DIR=$sweep_run_dir" >> "$GITHUB_ENV"
+          echo "CLOUD_SWEEP_DIAGNOSTICS=1" >> "$GITHUB_ENV"
+          echo "CLOUD_SWEEP_CPU_PROFILE=0" >> "$GITHUB_ENV"
+          echo "CLOUD_SWEEP_API_LOG=$sweep_run_dir/api.log" >> "$GITHUB_ENV"
+          echo "CLOUD_SWEEP_REPORT=$sweep_run_dir/cloud-tenant-guard-report.json" >> "$GITHUB_ENV"
+      - name: Apply Prisma migrations to test DB
+        run: bun x prisma migrate deploy
+        working-directory: packages/prisma
+      - name: Prepare required verification policy before API boot
+        run: bun scripts/ci/cloud-tenant-guard-sweep/prepare-fixture.mjs
+      - name: Start restricted verification transport
+        run: |
+          set -euo pipefail
+          node scripts/ci/cloud-tenant-guard-sweep/local-mail-stub.mjs > "$CLOUD_SWEEP_RUN_DIR/mail.log" 2>&1 &
+          echo "$!" > "$CLOUD_SWEEP_RUN_DIR/mail.pid"
+          for attempt in $(seq 1 20); do
+            if curl -fsS -H "Authorization: Bearer $GENFEEDAI_API_KEY" http://localhost:3011/v1/internal/email-deliveries | node -e 'let value="";process.stdin.on("data",chunk=>value+=chunk);process.stdin.on("end",()=>process.exit(JSON.parse(value).isConfigured===true?0:1))'; then
+              exit 0
+            fi
+            if ! kill -0 "$(cat "$CLOUD_SWEEP_RUN_DIR/mail.pid")" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          echo "::error::Restricted verification transport unavailable"
+          exit 1
+      - name: Start real API in CLOUD mode
+        id: cloud-api
+        run: |
+          set -euo pipefail
+          node --import ./scripts/ci/cloud-tenant-guard-sweep/api-observer.mjs apps/server/dist/apps/api/main.js > "$CLOUD_SWEEP_API_LOG" 2>&1 &
+          echo "$!" > "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid"
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3010/v1/health >/dev/null 2>&1; then
+              echo "CLOUD API healthy after ~$((attempt * 2))s"
+              exit 0
+            fi
+            if ! kill -0 "$(cat "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid")" 2>/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          echo "::error::CLOUD API did not become healthy within 120s"
+          exit 1
+      - name: Sweep handlers with tenant enforcement enabled
+        timeout-minutes: 10
+        run: bun run ci:cloud-tenant-guard-sweep
+      - name: Stop API
+        if: always()
+        run: |
+          if [ -f "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid" ]; then
+            kill "$(cat "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid")" 2>/dev/null || true
+            for _ in $(seq 1 10); do
+              if ! kill -0 "$(cat "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid")" 2>/dev/null; then break; fi
+              sleep 1
+            done
+            if kill -0 "$(cat "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid")" 2>/dev/null; then
+              echo "::error::Owned CLOUD API did not stop within existing bound"
+              exit 1
+            fi
+            (umask 077; printf 'stopped\n' > "$CLOUD_SWEEP_RUN_DIR/api-stopped")
+          fi
+      - name: Scan final API stdout for swallowed tenant errors
+        if: always()
+        env:
+          CLOUD_SWEEP_API_BOOT_OUTCOME: ${{ steps.cloud-api.outcome }}
+        run: node scripts/ci/cloud-tenant-guard-sweep/scan-log.mjs
+      - name: Stop restricted verification transport
+        if: always()
+        run: |
+          if [ -f "$CLOUD_SWEEP_RUN_DIR/mail.pid" ]; then
+            kill "$(cat "$CLOUD_SWEEP_RUN_DIR/mail.pid")" 2>/dev/null || true
+          fi
+      - name: Upload sanitized CLOUD tenant diagnostic summary
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cloud-tenant-guard-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.CLOUD_SWEEP_RUN_DIR }}/diagnostic-summary.json
+          retention-days: 7
+
   # Build, plus the OpenAPI documentation gate (#1247) whenever the API is in
   # scope. The spec is a generated artifact and is NOT committed: it is emitted
   # fresh from the compiled bundle (headless — no DB/Redis), must be
@@ -863,6 +995,7 @@ jobs:
       - test-workspaces
       - test-app
       - test-api
+      - cloud-tenant-guard
       - build
     if: >-
       ${{ always()
@@ -912,6 +1045,7 @@ jobs:
           TEST_WORKSPACES_RESULT: ${{ needs.test-workspaces.result }}
           TEST_APP_RESULT: ${{ needs.test-app.result }}
           TEST_API_RESULT: ${{ needs.test-api.result }}
+          CLOUD_TENANT_GUARD_RESULT: ${{ needs.cloud-tenant-guard.result }}
           BUILD_RESULT: ${{ needs.build.result }}
         shell: bash
         run: node scripts/ci/tests-gate.mjs | tee -a "$GITHUB_STEP_SUMMARY"

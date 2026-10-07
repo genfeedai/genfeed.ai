@@ -14,6 +14,8 @@ import { StoryboardRunsService } from '@api/collections/content-runs/services/st
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   serializeCollection,
   serializeSingle,
@@ -56,6 +58,7 @@ export class StoryboardRunsController {
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get()
   async list(
     @Req() request: Request,
@@ -64,10 +67,15 @@ export class StoryboardRunsController {
     @Query() query: ListStoryboardRunsDto,
   ) {
     return serializeCollection(request, StoryboardRunSummarySerializer, {
-      docs: await this.runs.list(user.organizationId, brandId, query),
+      docs: await this.runs.list(
+        resolveTenantReadScope(user).organizationId,
+        brandId,
+        query,
+      ),
     });
   }
 
+  @TenantReadPolicy('selected')
   @Get(':runId')
   async get(
     @Req() request: Request,
@@ -78,7 +86,11 @@ export class StoryboardRunsController {
     return serializeSingle(
       request,
       StoryboardRunSerializer,
-      await this.runs.get(user.organizationId, brandId, runId),
+      await this.runs.get(
+        resolveTenantReadScope(user).organizationId,
+        brandId,
+        runId,
+      ),
     );
   }
 
@@ -100,6 +112,7 @@ export class StoryboardRunsController {
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get(':runId/shots/:shotId/character-replacements')
   characterReplacements(
     @Param('brandId') brandId: string,
@@ -107,9 +120,15 @@ export class StoryboardRunsController {
     @Param('shotId') shotId: string,
     @CurrentUser() user: User,
   ) {
-    return this.characters.list(user.organizationId, brandId, runId, shotId);
+    return this.characters.list(
+      resolveTenantReadScope(user).organizationId,
+      brandId,
+      runId,
+      shotId,
+    );
   }
 
+  @TenantReadPolicy('mutating')
   @Get(':runId/shots/:shotId/character-replacements/:operationId')
   characterReplacementStatus(
     @Param('brandId') brandId: string,
@@ -127,13 +146,18 @@ export class StoryboardRunsController {
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get(':runId/capabilities')
   async getCapabilities(
     @Param('brandId') brandId: string,
     @Param('runId') runId: string,
     @CurrentUser() user: User,
   ) {
-    return this.capabilities.get(user.organizationId, brandId, runId);
+    return this.capabilities.get(
+      resolveTenantReadScope(user).organizationId,
+      brandId,
+      runId,
+    );
   }
 
   @Patch(':runId/plan')

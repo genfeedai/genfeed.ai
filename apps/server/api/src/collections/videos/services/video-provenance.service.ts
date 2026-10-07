@@ -2,6 +2,7 @@ import { CaptionsService } from '@api/collections/captions/services/captions.ser
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import {
   AssetScope,
@@ -53,6 +54,7 @@ export class VideoProvenanceService {
   async buildProvenance(
     videoId: string,
     scope: IProvenanceScope = {},
+    readScope?: ITenantReadScope,
   ): Promise<IMediaProvenancePackage> {
     this.loggerService.debug(`${this.constructorName} buildProvenance`, {
       videoId,
@@ -77,9 +79,10 @@ export class VideoProvenanceService {
       OR: orScopes,
       id: videoId,
       isDeleted: false,
+      ...(readScope ? { organizationId: readScope.organizationId } : {}),
     };
 
-    return this.buildPackageFromVideoQuery(videoId, where);
+    return this.buildPackageFromVideoQuery(videoId, where, readScope);
   }
 
   async buildPublicProvenance(
@@ -109,6 +112,7 @@ export class VideoProvenanceService {
   private async buildPackageFromVideoQuery(
     videoId: string,
     where: Record<string, unknown>,
+    readScope?: ITenantReadScope,
   ): Promise<IMediaProvenancePackage> {
     const video = (await this.videosService.findOne(
       where,
@@ -135,11 +139,26 @@ export class VideoProvenanceService {
     const metadata = video.metadataId
       ? ((await this.metadataService.findOne({
           id: video.metadataId,
+          ...(readScope
+            ? {
+                ingredients: {
+                  some: {
+                    id: assetId,
+                    organizationId: readScope.organizationId,
+                    isDeleted: false,
+                  },
+                },
+                isDeleted: false,
+              }
+            : {}),
         })) as unknown as IMetadataProvenanceRecord | null)
       : null;
 
     const captions = (await this.captionsService.find({
       ingredientId: videoId,
+      ...(readScope
+        ? { organizationId: readScope.organizationId, isDeleted: false }
+        : {}),
     })) as unknown as Array<{ content?: string | null }>;
 
     const transcriptText =
@@ -190,8 +209,9 @@ export class VideoProvenanceService {
   async buildWatermarkAttributionEvaluation(
     videoId: string,
     scope: IProvenanceScope = {},
+    readScope?: ITenantReadScope,
   ): Promise<IMediaWatermarkAttributionEvaluation> {
-    const mediaPackage = await this.buildProvenance(videoId, scope);
+    const mediaPackage = await this.buildProvenance(videoId, scope, readScope);
 
     return buildMediaWatermarkAttributionEvaluation(mediaPackage);
   }

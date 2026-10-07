@@ -6,6 +6,8 @@ import {
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import {
@@ -39,12 +41,14 @@ export class PlaybooksController {
     readonly _logger: LoggerService,
   ) {}
 
+  @TenantReadPolicy('selected')
   @Get()
   async findAll(
     @Req() request: Request,
     @CurrentUser() user: User,
   ): Promise<JsonApiCollectionResponse> {
-    const organizationId = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organizationId = readScope.organizationId;
 
     const pipeline = {
       include: { sourceCreators: { select: { id: true } } },
@@ -64,12 +68,14 @@ export class PlaybooksController {
     return serializeCollection(request, PatternPlaybookSerializer, data);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id')
   async findOne(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
+    const readScope = resolveTenantReadScope(user);
     if (!isEntityId(id)) {
       ErrorResponse.notFound('PatternPlaybook', id);
     }
@@ -77,7 +83,7 @@ export class PlaybooksController {
     const data = await this.playbookBuilderService.findOne(
       {
         id: id,
-        organizationId: user.organizationId,
+        organizationId: readScope.organizationId,
       },
       ['sourceCreators'],
     );

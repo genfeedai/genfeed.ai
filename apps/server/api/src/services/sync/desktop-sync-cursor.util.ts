@@ -164,3 +164,8 @@ export function advanceCursorPosition(
   }
   return { id: lastRow.id, updatedAt: lastRow.updatedAt.toISOString() };
 }
+
+export function sliceManifestPage<T>(page: T[], limit: number) {
+  const hasMore = page.length > limit;
+  return { rows: hasMore ? page.slice(0, limit) : page, hasMore };
+}

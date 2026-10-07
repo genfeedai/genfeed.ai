@@ -34,3 +34,31 @@ describe('Knowledge HTTP actor', () => {
     );
   });
 });
+
+describe('explicit read-only knowledge data scope', () => {
+  it('selects data organization while preserving real actor and explicit brand semantics', () => {
+    const readScope = {
+      organizationId: 'selected-org',
+      brandId: 'selected-brand',
+      isOrganizationOverride: true,
+    };
+    expect(resolveKnowledgeActor(user, 'selected-brand', readScope)).toEqual({
+      organizationId: 'selected-org',
+      userId: user.userId,
+      brandId: 'selected-brand',
+    });
+    expect(resolveKnowledgeActor(user, undefined, readScope)).toEqual({
+      organizationId: 'selected-org',
+      userId: user.userId,
+      brandId: undefined,
+    });
+    expect(resolveKnowledgeActor(user)).toEqual({
+      organizationId: 'org',
+      userId: user.userId,
+      brandId: undefined,
+    });
+    expect(() =>
+      resolveKnowledgeActor(user, ['selected-brand'], readScope),
+    ).toThrow('single string');
+  });
+});

@@ -3,6 +3,7 @@ import { AgentThreadsService } from '@api/collections/agent-threads/services/age
 import { UsersService } from '@api/collections/users/services/users.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { AgentRunSerializer } from '@genfeedai/serializers';
@@ -27,6 +28,7 @@ export class AgentRunsController {
     private readonly loggerService: LoggerService,
   ) {}
 
+  @TenantReadPolicy('owner')
   @Get()
   @ApiOperation({
     summary:

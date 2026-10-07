@@ -9,6 +9,7 @@ import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { WorkflowWebhookAuthType } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -134,6 +135,7 @@ export class WorkflowWebhookManagementController {
     return { data: { message: 'Webhook deleted' } };
   }
 
+  @TenantReadPolicy('owner')
   @Get(':workflowId/webhook')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getWebhookInfo(

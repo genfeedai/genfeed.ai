@@ -9,6 +9,9 @@ import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
@@ -39,14 +42,23 @@ const MAX_LOCAL_MUTATION_BATCH_SIZE = 50;
 export class SavedAdsController {
   constructor(private readonly savedAdsService: SavedAdsService) {}
 
+  @TenantReadPolicy('selected')
   @Get()
   async list(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Query('brandId') requestedBrandId?: string,
   ) {
-    const brandId = this.resolveBrand(user, requestedBrandId);
-    const docs = await this.savedAdsService.list(user.organizationId, brandId);
+    const readScope = resolveTenantReadScope(user);
+    const brandId = this.resolveBrand(
+      user,
+      requestedBrandId,
+      resolveTenantReadScope(user),
+    );
+    const docs = await this.savedAdsService.list(
+      readScope.organizationId,
+      brandId,
+    );
     return serializeCollection(request, SavedAdSerializer, { docs });
   }
 
@@ -108,8 +120,13 @@ export class SavedAdsController {
     };
   }
 
-  private resolveBrand(user: User, requestedBrandId?: string): string {
-    const candidate = requestedBrandId ?? user.brandId;
+  private resolveBrand(
+    user: User,
+    requestedBrandId?: string,
+    readScope?: ITenantReadScope,
+  ): string {
+    const candidate =
+      requestedBrandId ?? (readScope ? readScope.brandId : user.brandId);
     if (!candidate) throw new ForbiddenException('A brand is required');
     const authorized = CollectionFilterUtil.buildAuthorizedBrandFilter(
       candidate,

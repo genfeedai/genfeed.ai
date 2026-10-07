@@ -7,6 +7,7 @@ import {
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import {
   serializeCollection,
   serializeSingle,
@@ -169,6 +170,7 @@ export class GoogleSearchConsoleController {
     return serializeSingle(request, CredentialSerializer, updatedCredential);
   }
 
+  @TenantReadPolicy('owner')
   @Get('sites')
   async listSites(
     @Req() request: Request,
@@ -188,6 +190,7 @@ export class GoogleSearchConsoleController {
     });
   }
 
+  @TenantReadPolicy('owner')
   @Get('search-analytics')
   async getSearchAnalytics(
     @Req() request: Request,

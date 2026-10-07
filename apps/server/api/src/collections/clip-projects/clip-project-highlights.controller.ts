@@ -8,6 +8,8 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -34,6 +36,7 @@ export class ClipProjectHighlightsController {
     private readonly highlightRewriteService: HighlightRewriteService,
   ) {}
 
+  @TenantReadPolicy('selected')
   @Get(':projectId/highlights')
   @ApiOperation({
     description:
@@ -46,10 +49,11 @@ export class ClipProjectHighlightsController {
     @CurrentUser() user: User,
     @Param('projectId') projectId: string,
   ) {
+    const readScope = resolveTenantReadScope(user);
     const project = await this.clipProjectsService.findOne({
       id: projectId,
       isDeleted: false,
-      organizationId: user.organizationId,
+      organizationId: readScope.organizationId,
     });
 
     if (!project) {

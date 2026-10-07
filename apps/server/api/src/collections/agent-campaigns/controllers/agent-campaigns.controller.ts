@@ -10,6 +10,8 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -127,13 +129,15 @@ export class AgentCampaignsController extends BaseCRUDController<
     return super.patch(request, user, id, updateDto);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id/status')
   @ApiOperation({ summary: 'Get campaign execution status' })
   async getCampaignStatus(
     @Param('id') id: string,
     @CurrentUser() user: User,
   ): Promise<IAgentCampaignStatusResponse> {
-    const organizationId = user.organizationId?.toString();
+    const organizationId =
+      resolveTenantReadScope(user).organizationId?.toString();
 
     if (!organizationId) {
       throw new UnauthorizedException('Organization not found');

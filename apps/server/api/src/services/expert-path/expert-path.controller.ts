@@ -1,6 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import {
   serializeCollection,
   serializeSingle,
@@ -39,12 +42,16 @@ export class ExpertPathController {
     private readonly expertFirstSystemService: ExpertFirstSystemService,
   ) {}
 
+  @TenantReadPolicy('selected')
   @Get()
   getStatus(
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
   ): Promise<IExpertPathStatus> {
-    return this.expertPathService.getStatus(this.requireOrg(user), brandId);
+    return this.expertPathService.getStatus(
+      this.requireOrg(user, resolveTenantReadScope(user)),
+      brandId,
+    );
   }
 
   /** Re-score stored positioning answers and refresh the harness draft. */
@@ -84,6 +91,7 @@ export class ExpertPathController {
   }
 
   /** The current first content system plan and its items, for review. */
+  @TenantReadPolicy('selected')
   @Get('first-system')
   async getFirstSystem(
     @Req() req: Request,
@@ -91,7 +99,7 @@ export class ExpertPathController {
     @CurrentUser() user: User,
   ) {
     const result = await this.expertFirstSystemService.getCurrentPlan(
-      this.requireOrg(user),
+      this.requireOrg(user, resolveTenantReadScope(user)),
       brandId,
     );
     if (!result) {
@@ -127,8 +135,10 @@ export class ExpertPathController {
     return serializeSingle(req, ContentPlanItemSerializer, item);
   }
 
-  private requireOrg(user: User): string {
-    const organizationId = user.organizationId?.toString();
+  private requireOrg(user: User, readScope?: ITenantReadScope): string {
+    const organizationId = (
+      readScope?.organizationId ?? user.organizationId
+    )?.toString();
     if (!organizationId) {
       throw new ForbiddenException('Organization context is required');
     }

@@ -1,11 +1,15 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  getTenantContext,
   isCrossOrgUnsafe,
   runWithTenantContext,
 } from '@libs/prisma/tenant-context';
@@ -143,6 +147,61 @@ describe('BaseCRUDController', () => {
     expect(controller).toBeDefined();
   });
 
+  describe('populate projections', () => {
+    it('preserves relation order, known projections, fallback and object identity', () => {
+      const explicit: PopulateOption = { path: 'credential', select: ['id'] };
+      const fields = [
+        'user',
+        'brand',
+        'organization',
+        'metadata',
+        'asset',
+        'parent',
+        'customRelation',
+        explicit,
+      ];
+      const projected = new TestController(
+        logger,
+        service as unknown as BaseService<unknown, unknown, unknown>,
+        serializer,
+        'TestEntity',
+        fields,
+      );
+      expect(projected.constructorName).toBe('TestController');
+      expect(projected.populateFields).toBe(fields);
+      expect(projected.optimizedPopulateFields).toEqual([
+        PopulatePatterns.brandMinimal,
+        PopulatePatterns.organizationMinimal,
+        PopulatePatterns.metadataFull,
+        PopulatePatterns.assetMinimal,
+        PopulatePatterns.parentMinimal,
+        { path: 'customRelation' },
+        explicit,
+      ]);
+      const known = [
+        PopulatePatterns.brandMinimal,
+        PopulatePatterns.organizationMinimal,
+        PopulatePatterns.metadataFull,
+        PopulatePatterns.assetMinimal,
+        PopulatePatterns.parentMinimal,
+      ];
+      known.forEach((field, index) => {
+        expect(projected.optimizedPopulateFields[index]).toBe(field);
+      });
+      expect(projected.optimizedPopulateFields[6]).toBe(explicit);
+      expect(fields).toEqual([
+        'user',
+        'brand',
+        'organization',
+        'metadata',
+        'asset',
+        'parent',
+        'customRelation',
+        explicit,
+      ]);
+    });
+  });
+
   describe('findAll', () => {
     it('should return paginated results', async () => {
       const mockData = {
@@ -232,6 +291,60 @@ describe('BaseCRUDController', () => {
           limit: 10,
           page: 1,
         }),
+      );
+    });
+  });
+
+  describe('selected Brand-only inherited read', () => {
+    it('conjoins selected organization without cross-org escape and keeps original decoration actor', async () => {
+      const brandController = new TestController(
+        logger,
+        service as unknown as BaseService<unknown, unknown, unknown>,
+        serializer,
+        'Brand',
+        [],
+      );
+      const row = {
+        id: MOCK_BRAND_ID,
+        organizationId: FOREIGN_ORG_ID,
+        userId: OTHER_USER_ID,
+      };
+      service.findOne.mockImplementation(async (where) => {
+        expect(isCrossOrgUnsafe()).toBe(false);
+        expect(getTenantContext()).toEqual({ organizationId: FOREIGN_ORG_ID });
+        expect(where).toEqual({
+          id: MOCK_BRAND_ID,
+          isDeleted: false,
+          organizationId: FOREIGN_ORG_ID,
+        });
+        return row;
+      });
+      const decorate = vi.spyOn(brandController, 'decorateForResponse');
+      await runWithTenantReadScope(
+        { organizationId: FOREIGN_ORG_ID, isOrganizationOverride: true },
+        async () =>
+          await brandController.findOne(
+            mockRequest,
+            superAdminUser,
+            MOCK_BRAND_ID,
+          ),
+      );
+      expect(decorate).toHaveBeenCalledWith(row, superAdminUser);
+      expect(superAdminUser.organizationId).toBe(MOCK_ORG_ID);
+    });
+    it('does not alter other BaseCRUD entities even when a read scope exists', async () => {
+      service.findOne.mockResolvedValue({
+        id: MOCK_BRAND_ID,
+        organizationId: MOCK_ORG_ID,
+      });
+      await runWithTenantReadScope(
+        { organizationId: FOREIGN_ORG_ID, isOrganizationOverride: true },
+        async () =>
+          await controller.findOne(mockRequest, superAdminUser, MOCK_BRAND_ID),
+      );
+      expect(service.findOne).toHaveBeenCalledWith(
+        { id: MOCK_BRAND_ID, isDeleted: false },
+        expect.anything(),
       );
     });
   });

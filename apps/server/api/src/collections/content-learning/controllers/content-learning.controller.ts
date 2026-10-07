@@ -12,6 +12,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import {
   serializeCollection,
   serializeSingle,
@@ -62,7 +63,9 @@ export class ContentLearningController {
     await this.operations.assertMember(actor);
     return actor;
   }
-  @Get('accounts') async accountsList(
+  @TenantReadPolicy('owner')
+  @Get('accounts')
+  async accountsList(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: LearningQueryDto,
@@ -73,7 +76,9 @@ export class ContentLearningController {
       docs: await this.accounts.list(actor, query.brandId),
     });
   }
-  @Get('accounts/:credentialId') async account(
+  @TenantReadPolicy('owner')
+  @Get('accounts/:credentialId')
+  async account(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('credentialId') credentialId: string,
@@ -85,7 +90,9 @@ export class ContentLearningController {
       await this.accounts.read(actor.organizationId, credentialId),
     );
   }
-  @Get('accounts/:credentialId/evidence') async evidence(
+  @TenantReadPolicy('owner')
+  @Get('accounts/:credentialId/evidence')
+  async evidence(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('credentialId') credentialId: string,
@@ -106,7 +113,9 @@ export class ContentLearningController {
       }),
     });
   }
-  @Get('decisions/:id') async decision(
+  @TenantReadPolicy('owner')
+  @Get('decisions/:id')
+  async decision(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -120,7 +129,9 @@ export class ContentLearningController {
     return serializeSingle(request, ContentLearningEvidenceSerializer, row);
   }
   /** The learning decision that generated, or was bound to, a post. */
-  @Get('posts/:postId/decision') async postDecision(
+  @TenantReadPolicy('owner')
+  @Get('posts/:postId/decision')
+  async postDecision(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('postId') postId: string,
@@ -157,7 +168,9 @@ export class ContentLearningController {
     if (rows.length !== 1) throw new NotFoundException('Decision not found');
     return serializeSingle(request, ContentLearningEvidenceSerializer, rows[0]);
   }
-  @Get('policies/:id') async policy(
+  @TenantReadPolicy('owner')
+  @Get('policies/:id')
+  async policy(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,

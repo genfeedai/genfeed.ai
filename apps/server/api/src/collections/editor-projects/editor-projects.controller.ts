@@ -15,6 +15,8 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -245,6 +247,7 @@ export class EditorProjectsController {
     return serializeCollection(request, EditorProjectSerializer, data);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
@@ -252,12 +255,13 @@ export class EditorProjectsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
+    const readScope = resolveTenantReadScope(user);
     // Org-scoped id lookup only — do not require brandId match. Projects are
     // often opened from the org shell (`/:org/~`) even when created under a
     // brand; brand-filtering here caused false 404s ("Controller doesn't exist").
     const data = await this.editorProjectsService.findOne({
       id,
-      organizationId: user.organizationId,
+      organizationId: readScope.organizationId,
     });
 
     if (!data) {

@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { BRAND_HANDLE_TAKEN_MESSAGE } from '@genfeedai/contracts/constants';
 import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
@@ -10,8 +11,8 @@ import { ConflictException } from '@nestjs/common';
 /**
  * Resolve a brand inside the caller's session organization, or 404.
  *
- * Tenancy is the session organization only: creating a brand never grants
- * access to it from another organization (a former org, a demo org). A miss
+ * Default callers remain bound to the session organization. Policy-authorized
+ * reads may supply an explicit data scope without replacing the principal. A miss
  * is 404 for everyone, matching base-crud.controller.ts, so the response never
  * confirms that the id exists elsewhere. A session without an organization
  * fails closed instead of issuing an unscoped read.
@@ -20,9 +21,14 @@ export function verifyBrandAccess(
   brandsService: Pick<BrandsService, 'findOne'>,
   brandId: string,
   user: User,
+  readScope?: ITenantReadScope,
 ): Promise<BrandDocument> {
-  return findSessionBrand(user, brandId, (organizationId) =>
-    brandsService.findOne(scopedWhere(organizationId, { id: brandId })),
+  return findSessionBrand(
+    user,
+    brandId,
+    (organizationId) =>
+      brandsService.findOne(scopedWhere(organizationId, { id: brandId })),
+    readScope,
   );
 }
 
@@ -31,9 +37,14 @@ export function verifyBrandSlugAccess(
   brandsService: Pick<BrandsService, 'findOneBySlug'>,
   slug: string,
   user: User,
+  readScope?: ITenantReadScope,
 ): Promise<BrandDocument> {
-  return findSessionBrand(user, slug, (organizationId) =>
-    brandsService.findOneBySlug(scopedWhere(organizationId, { slug })),
+  return findSessionBrand(
+    user,
+    slug,
+    (organizationId) =>
+      brandsService.findOneBySlug(scopedWhere(organizationId, { slug })),
+    readScope,
   );
 }
 
@@ -41,8 +52,9 @@ async function findSessionBrand(
   user: User,
   identifier: string,
   find: (organizationId: string) => Promise<BrandDocument | null>,
+  readScope?: ITenantReadScope,
 ): Promise<BrandDocument> {
-  const organizationId = user.organizationId;
+  const organizationId = readScope?.organizationId ?? user.organizationId;
   const brand = organizationId ? await find(organizationId) : null;
 
   if (!brand) {

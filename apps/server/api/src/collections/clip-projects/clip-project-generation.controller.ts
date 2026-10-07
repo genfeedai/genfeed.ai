@@ -10,6 +10,8 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type {
   ClipReferenceApplication,
   HookClipApprovalStatus,
@@ -83,6 +85,7 @@ export class ClipProjectGenerationController {
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get(':projectId/hook-approval')
   @ApiOperation({
     operationId: 'ClipProjectsController.getHookClipApproval',
@@ -93,9 +96,10 @@ export class ClipProjectGenerationController {
     @CurrentUser() user: User,
     @Param('projectId') projectId: string,
   ): Promise<{ data: HookClipApprovalStatus }> {
+    const readScope = resolveTenantReadScope(user);
     const data = await this.hookClipApprovalService.getStatus(
       projectId,
-      user.organizationId,
+      readScope.organizationId,
     );
     return { data };
   }

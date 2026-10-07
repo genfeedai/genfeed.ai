@@ -4,6 +4,7 @@ import { AgentThreadsService } from '@api/collections/agent-threads/services/age
 import { UsersService } from '@api/collections/users/services/users.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { AgentScopeContextService } from '@api/index';
@@ -43,6 +44,7 @@ export class AgentThreadRuntimeController {
     private readonly workObjects: AgentWorkObjectService,
   ) {}
 
+  @TenantReadPolicy('mutating')
   @Get(':threadId/snapshot')
   @ApiOperation({ summary: 'Get the current projected thread snapshot' })
   async getSnapshot(
@@ -84,6 +86,7 @@ export class AgentThreadRuntimeController {
     }
   }
 
+  @TenantReadPolicy('mutating')
   @Get(':threadId/work-objects')
   async getWorkObjects(
     @Param('threadId') threadId: string,
@@ -162,6 +165,7 @@ export class AgentThreadRuntimeController {
     };
   }
 
+  @TenantReadPolicy('owner')
   @Get(':threadId/events')
   @ApiOperation({ summary: 'Get ordered persisted thread events' })
   async listEvents(

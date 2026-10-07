@@ -19,6 +19,8 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -233,6 +235,7 @@ export class PromptsController {
     return serializeCollection(request, PromptSerializer, data);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':promptId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
@@ -240,10 +243,11 @@ export class PromptsController {
     @Param('promptId') promptId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
+    const readScope = resolveTenantReadScope(user);
     const data = (await this.promptsService.findOne(
       {
         id: promptId,
-        organizationId: user.organizationId,
+        organizationId: readScope.organizationId,
       },
       [{ path: 'ingredients' }],
     )) as unknown as PromptWithIngredients | null;
@@ -253,7 +257,7 @@ export class PromptsController {
     // If prompt exists but has no ingredient, check if any ingredient references this prompt
     if (data && !data.ingredients?.length) {
       const ingredient = await this.ingredientsService.findOne({
-        organizationId: user.organizationId,
+        organizationId: readScope.organizationId,
         promptId: promptId,
       });
 

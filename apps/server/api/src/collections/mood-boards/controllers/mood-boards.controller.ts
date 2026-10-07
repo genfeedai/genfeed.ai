@@ -5,6 +5,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import {
   returnNotFound,
   serializeSingle,
@@ -35,6 +36,7 @@ export class MoodBoardsController {
     readonly service: MoodBoardsService,
   ) {}
 
+  @TenantReadPolicy('mutating')
   @Get()
   async findByBrand(
     @Req() request: Request,

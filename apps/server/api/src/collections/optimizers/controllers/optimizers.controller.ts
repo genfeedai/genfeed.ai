@@ -17,6 +17,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   assertOrganizationCreditsAvailable,
@@ -284,6 +285,7 @@ export class OptimizersController {
   /**
    * Get optimization history
    */
+  @TenantReadPolicy('owner')
   @Get('history')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getOptimizationHistory(

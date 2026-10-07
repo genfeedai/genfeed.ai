@@ -3,6 +3,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { getTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { EntityDocument } from '@api/helpers/types/common/common.types';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
@@ -16,14 +17,11 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { buildOptimizedPopulateFields } from '@api/shared/controllers/base-crud/base-crud-populate.util';
 import {
   BaseService,
   type PrismaFindAllInput,
 } from '@api/shared/services/base/base.service';
-import {
-  PopulateBuilder,
-  PopulatePatterns,
-} from '@api/shared/utils/populate/populate.util';
 import type {
   IJsonApiSerializer,
   JsonApiCollectionResponse,
@@ -31,7 +29,10 @@ import type {
   PopulateOption,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getTenantContext } from '@libs/prisma/tenant-context';
+import {
+  getTenantContext,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Body,
@@ -66,30 +67,7 @@ export abstract class BaseCRUDController<
   ) {
     this.constructorName = this.constructor.name;
 
-    // Convert known relation names to explicit projections. Unknown relations
-    // retain full loading because their serializer requirements are domain-specific.
-    this.optimizedPopulateFields = populateFields
-      .filter((field) => field !== 'user')
-      .map((field) => {
-        if (typeof field === 'string') {
-          // Apply default optimizations for common fields
-          switch (field) {
-            case 'brand':
-              return PopulatePatterns.brandMinimal;
-            case 'organization':
-              return PopulatePatterns.organizationMinimal;
-            case 'metadata':
-              return PopulatePatterns.metadataFull;
-            case 'asset':
-              return PopulatePatterns.assetMinimal;
-            case 'parent':
-              return PopulatePatterns.parentMinimal;
-            default:
-              return PopulateBuilder.create(field);
-          }
-        }
-        return field;
-      });
+    this.optimizedPopulateFields = buildOptimizedPopulateFields(populateFields);
   }
 
   /**
@@ -139,12 +117,22 @@ export abstract class BaseCRUDController<
       ErrorResponse.notFound(this.entityName, id);
     }
 
-    const data = await runAsSuperAdmin(user, request, () =>
+    const readScope =
+      this.entityName === 'Brand' ? getTenantReadScope() : undefined;
+    const read = () =>
       this.service.findOne(
-        this.buildFindOneQuery(user, id, request),
+        {
+          ...this.buildFindOneQuery(user, id, request),
+          ...(readScope ? { organizationId: readScope.organizationId } : {}),
+        },
         this.getPopulateFields(),
-      ),
-    );
+      );
+    const data = readScope
+      ? await runWithTenantContext(
+          { organizationId: readScope.organizationId },
+          async () => await read(),
+        )
+      : await runAsSuperAdmin(user, request, read);
 
     if (!data) {
       ErrorResponse.notFound(this.entityName, id);

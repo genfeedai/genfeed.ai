@@ -2,6 +2,8 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiresCloudAuth } from '@api/helpers/decorators/requires-cloud-auth.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { DesktopSyncService } from './desktop-sync.service';
 import { DesktopBrandManifestQueryDto } from './dto/desktop-brand-manifest-query.dto';
@@ -42,6 +44,7 @@ export class DesktopSyncController {
     return this.desktopSyncService.pushThreads(user, body);
   }
 
+  @TenantReadPolicy('selected')
   @Get('brand-manifest')
   @RequiresCloudAuth()
   @LogMethod()
@@ -49,7 +52,11 @@ export class DesktopSyncController {
     @CurrentUser() user: User,
     @Query() query: DesktopBrandManifestQueryDto,
   ) {
-    return this.desktopSyncService.getBrandManifest(user, query);
+    return this.desktopSyncService.getBrandManifest(
+      user,
+      query,
+      resolveTenantReadScope(user),
+    );
   }
 
   @Post('assets/metadata')

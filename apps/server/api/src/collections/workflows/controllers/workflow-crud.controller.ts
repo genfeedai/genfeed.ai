@@ -18,6 +18,8 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
@@ -182,6 +184,7 @@ export class WorkflowCrudController {
     });
   }
 
+  @TenantReadPolicy('owner')
   @Get(':workflowId/export-comfyui')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async exportComfyUI(
@@ -204,6 +207,7 @@ export class WorkflowCrudController {
     return { data: template };
   }
 
+  @TenantReadPolicy('selected')
   @Get(':workflowId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
@@ -214,7 +218,7 @@ export class WorkflowCrudController {
     const workflow = await this.workflowsService.findVisibleOrThrow(
       workflowId,
       {
-        organizationId: user.organizationId,
+        organizationId: resolveTenantReadScope(user).organizationId,
         userId: user.userId ?? user.id,
       },
     );

@@ -77,6 +77,11 @@ describe('VideosProvenanceController', () => {
     expect(videoProvenanceService.buildProvenance).toHaveBeenCalledWith(
       'video-1',
       { organizationId: 'org-1', userId: 'user-1' },
+      {
+        organizationId: 'org-1',
+        brandId: mockUser.brandId,
+        isOrganizationOverride: false,
+      },
     );
   });
 
@@ -91,9 +96,17 @@ describe('VideosProvenanceController', () => {
 
     expect(
       videoProvenanceService.buildWatermarkAttributionEvaluation,
-    ).toHaveBeenCalledWith('video-1', {
-      organizationId: 'org-1',
-      userId: 'user-1',
-    });
+    ).toHaveBeenCalledWith(
+      'video-1',
+      {
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+      {
+        organizationId: 'org-1',
+        brandId: mockUser.brandId,
+        isOrganizationOverride: false,
+      },
+    );
   });
 });
