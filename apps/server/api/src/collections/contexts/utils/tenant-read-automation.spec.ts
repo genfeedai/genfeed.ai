@@ -9,6 +9,7 @@ import { ContextsController } from '@api/collections/contexts/controllers/contex
 import { KnowledgeSourcesController } from '@api/collections/contexts/controllers/knowledge-sources.controller';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { TENANT_READ_AUTOMATION_ROUTES } from '@api/collections/contexts/utils/tenant-read-automation.registry';
+import { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
 import { PersonaGrantsController } from '@api/collections/personas/controllers/persona-grants.controller';
 import { PersonasContentController } from '@api/collections/personas/controllers/personas-content.controller';
 import { SkillsController } from '@api/collections/skills/controllers/skills.controller';
@@ -17,6 +18,7 @@ import { TrainingsOperationsController } from '@api/collections/trainings/contro
 import { WorkflowBuilderController } from '@api/collections/workflows/controllers/workflow-builder.controller';
 import { WorkflowCrudController } from '@api/collections/workflows/controllers/workflow-crud.controller';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
 import { TENANT_READ_POLICY } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
@@ -69,7 +71,7 @@ function context(
 function selected<T>(work: () => T): T {
   return runWithTenantReadScope(scope, work);
 }
-function instance<T>(
+function instance<T extends object>(
   controller: { prototype: T },
   services: Record<string, unknown>,
 ): T {
@@ -274,6 +276,37 @@ describe('automation selected data and immutable actor', () => {
         controller.getPersonaPosts(request, testId('persona'), 1, 10, user),
       ),
     ).toEqual({ docs: [target] });
+    expect(findAll).toHaveBeenLastCalledWith(
+      {
+        isDeleted: false,
+        organizationId: selectedOrg,
+        personaId: testId('persona'),
+      },
+      { limit: 10, page: 1 },
+    );
+    expect(
+      await controller.getPersonaPosts(request, testId('persona'), 1, 10, user),
+    ).toEqual({ docs: [original] });
+    expect(findAll).toHaveBeenLastCalledWith(
+      {
+        isDeleted: false,
+        organizationId: originalOrg,
+        personaId: testId('persona'),
+      },
+      { limit: 10, page: 1 },
+    );
+    findAll.mockClear();
+    await expect(
+      runWithTenantReadScope(
+        { organizationId: selectedOrg, isOrganizationOverride: true },
+        () =>
+          controller.getPersonaPosts(request, testId('persona'), 1, 10, user),
+      ),
+    ).rejects.toMatchObject({
+      status: 422,
+      response: { detail: 'brandId is required and must be a string' },
+    });
+    expect(findAll).not.toHaveBeenCalled();
     await selected(() => controller.generatePhoto(testId('persona'), {}, user));
     expect(generatePhoto).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -301,12 +334,22 @@ describe('automation selected data and immutable actor', () => {
     });
     expect(
       await selected(() =>
-        controller.getTrainingImages(request, user, testId('training'), {}),
+        controller.getTrainingImages(
+          request,
+          user,
+          testId('training'),
+          new ImagesQueryDto(),
+        ),
       ),
     ).toEqual({ docs: [target] });
     expect(
       await selected(() =>
-        controller.getTrainingSources(request, user, testId('training'), {}),
+        controller.getTrainingSources(
+          request,
+          user,
+          testId('training'),
+          new BaseQueryDto(),
+        ),
       ),
     ).toEqual({ docs: [target] });
     for (const call of findOne.mock.calls)
