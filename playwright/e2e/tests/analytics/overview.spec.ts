@@ -13,7 +13,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { AnalyticsPage } from '../../pages/analytics.page';
-import { brandPath } from '../../utils/app-chrome';
+import { brandPath, orgPath } from '../../utils/app-chrome';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 /**
@@ -367,33 +367,22 @@ test.describe('Analytics Overview', () => {
         brandPath('/analytics/insights'),
       );
 
-      // The section nav's "Overview" is the organization-wide analytics
-      // overview (`/:orgSlug/~/analytics/overview`,
-      // `AnalyticsOrganizationOverview`), not the brand overview.
-      await mockOrganizationOverviewData(authenticatedPage);
+      // Overview preserves the brand scope of the Hooks and Insights routes.
       await analyticsPage.navigateToOverview();
-      // Exact overview pathname — the previous `analytics.*overview|analytics`
-      // pattern's second alternative matched any analytics URL regardless of
-      // the first, so it could not fail even on a stale page.
-      await expect(authenticatedPage).toHaveURL(/\/~\/analytics\/overview/);
+      await expect
+        .poll(() => new URL(authenticatedPage.url()).pathname)
+        .toBe(OVERVIEW_ROUTE);
       await analyticsPage.waitForPageLoad();
-      await expect(
-        analyticsPage.sectionHeading('Organization Analytics'),
-      ).toBeVisible();
-      const orgMetrics = authenticatedPage.getByRole('region', {
-        name: 'Organization metrics',
-      });
-      await expect(orgMetrics).toContainText('Total Posts');
-      await expect(orgMetrics).toContainText('18');
-      await expect(
-        authenticatedPage
-          .locator('main table tbody tr')
-          .filter({ hasText: 'Brand 1' }),
-      ).toHaveCount(1);
-      await assertNoErrorBoundaryFallback(
-        authenticatedPage,
-        new URL(authenticatedPage.url()).pathname,
+      await expect(kpiCard(authenticatedPage, 'Total Posts')).toContainText(
+        '18',
       );
+      await expect(kpiCard(authenticatedPage, 'Total Views')).toContainText(
+        '12450',
+      );
+      await expect(
+        kpiCard(authenticatedPage, 'Total Engagement'),
+      ).toContainText('824');
+      await assertNoErrorBoundaryFallback(authenticatedPage, OVERVIEW_ROUTE);
       // A URL-pattern check alone would still pass on an "Organization
       // unavailable" fallback (its suggested link also contains "trends" in
       // the path), so also assert the real surface rendered and that no
@@ -411,6 +400,35 @@ test.describe('Analytics Overview', () => {
         authenticatedPage,
         brandPath(APP_ROUTES.DISCOVERY.TRENDS),
       );
+    });
+
+    test('should display the organization-wide overview', async ({
+      authenticatedPage,
+    }) => {
+      const analyticsPage = new AnalyticsPage(authenticatedPage);
+      const route = orgPath(APP_ROUTES.ANALYTICS.OVERVIEW);
+      await mockOverviewData(authenticatedPage);
+      await mockOrganizationOverviewData(authenticatedPage);
+
+      await authenticatedPage.goto(route);
+      await expect
+        .poll(() => new URL(authenticatedPage.url()).pathname)
+        .toBe(route);
+      await analyticsPage.waitForPageLoad();
+      await expect(
+        analyticsPage.sectionHeading('Organization Analytics'),
+      ).toBeVisible();
+      const orgMetrics = authenticatedPage.getByRole('region', {
+        name: 'Organization metrics',
+      });
+      await expect(orgMetrics).toContainText('Total Posts');
+      await expect(orgMetrics).toContainText('18');
+      await expect(
+        authenticatedPage
+          .locator('main table tbody tr')
+          .filter({ hasText: 'Brand 1' }),
+      ).toHaveCount(1);
+      await assertNoErrorBoundaryFallback(authenticatedPage, route);
     });
 
     test('should display trends page', async ({ authenticatedPage }) => {
