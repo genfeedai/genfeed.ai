@@ -57,6 +57,59 @@ describe('ResearchWorkSurfaceProvider', () => {
     mocks.searchParamsString.value = '';
   });
 
+  it('composes a debounced update on a filter selected before the router commits', () => {
+    mocks.searchParamsString.value = 'q=winter';
+    const { result } = renderHook(
+      () => ({
+        platform: useResearchSearchParamState<'all' | 'google'>({
+          defaultValue: 'all',
+          key: 'platform',
+        }),
+        query: useResearchQueryState(),
+      }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.platform[1]('google');
+    });
+    // The search debounce fires before navigation commits `platform=google`.
+    act(() => {
+      result.current.query[1]('');
+    });
+
+    expect(mocks.replace).toHaveBeenNthCalledWith(
+      1,
+      '/research?q=winter&platform=google',
+      { scroll: false },
+    );
+    expect(mocks.replace).toHaveBeenLastCalledWith(
+      '/research?platform=google',
+      { scroll: false },
+    );
+  });
+
+  it('adopts an external navigation over a stale pending update', () => {
+    mocks.searchParamsString.value = 'q=winter';
+    const { result, rerender } = renderHook(() => useResearchQueryState(), {
+      wrapper,
+    });
+
+    act(() => {
+      result.current[1]('summer');
+    });
+    mocks.searchParamsString.value = 'q=autumn';
+    rerender();
+    act(() => {
+      result.current[1]('');
+    });
+
+    expect(mocks.replace).toHaveBeenLastCalledWith('/research', {
+      scroll: false,
+    });
+    expect(result.current[0]).toBe('autumn');
+  });
+
   it('exposes url state and replaces non-canonical urls', () => {
     mocks.searchParamsString.value = 'q=+spaced+&page=abc';
     const { result } = renderHook(() => useOptionalResearchWorkSurface(), {
@@ -110,9 +163,10 @@ describe('ResearchWorkSurfaceProvider', () => {
   it('updateSearchParams resets page and finding by default and skips no-ops', () => {
     mocks.searchParamsString.value =
       'q=old&page=3&finding=research-source-post:post-1';
-    const { result } = renderHook(() => useOptionalResearchWorkSurface(), {
-      wrapper,
-    });
+    const { rerender, result } = renderHook(
+      () => useOptionalResearchWorkSurface(),
+      { wrapper },
+    );
 
     act(() => {
       result.current?.updateSearchParams({ q: 'new' });
@@ -121,11 +175,13 @@ describe('ResearchWorkSurfaceProvider', () => {
       scroll: false,
     });
 
+    mocks.searchParamsString.value = 'q=new';
+    rerender();
     mocks.replace.mockClear();
     mocks.push.mockClear();
     act(() => {
       result.current?.updateSearchParams(
-        { q: 'old' },
+        { q: 'new' },
         { clearFinding: false, resetPage: false },
       );
     });
