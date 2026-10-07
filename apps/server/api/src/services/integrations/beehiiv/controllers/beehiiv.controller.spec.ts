@@ -20,13 +20,25 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
+import { TENANT_READ_POLICY } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { getTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { BeehiivController } from '@api/services/integrations/beehiiv/controllers/beehiiv.controller';
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
+import {
+  type ExecutionContext,
+  ForbiddenException,
+  RequestMethod,
+} from '@nestjs/common';
+import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
+import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
+import { defer, firstValueFrom } from 'rxjs';
 
 describe('BeehiivController', () => {
   let controller: BeehiivController;
@@ -111,6 +123,273 @@ describe('BeehiivController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('original owner read boundary', () => {
+    const routes = [
+      { handler: 'listPublications', path: 'publications' },
+      { handler: 'getSubscribers', path: 'subscribers' },
+    ] as const;
+    const owner: User = {
+      id: testId('user'),
+      userId: testId('user'),
+      organizationId: testId('org'),
+      brandId: testId('brand'),
+      isSuperAdmin: true,
+    };
+    const credentialId = testId('credential');
+    const subscriberData = {
+      data: [{ id: 'sub_owner', email: 'owner@example.com' }],
+      total_results: 1,
+    };
+    const interceptor = new TenantContextInterceptor(new Reflector());
+
+    function run(
+      handler: (typeof routes)[number]['handler'],
+      query: Record<string, unknown>,
+      actor = owner,
+      context = { ...actor },
+      page: string | undefined = '2',
+      limit: string | undefined = '30',
+    ) {
+      const request = { method: 'GET', query, user: actor, context };
+      const handlerCall = vi.fn(() =>
+        handler === 'listPublications'
+          ? controller.listPublications(actor, testId('brand'), credentialId)
+          : controller.getSubscribers(
+              actor,
+              testId('brand'),
+              page,
+              limit,
+              credentialId,
+            ),
+      );
+      const execution = {
+        getClass: () => BeehiivController,
+        getHandler: () => BeehiivController.prototype[handler],
+        switchToHttp: () => ({ getRequest: () => request }),
+      } as unknown as ExecutionContext;
+      const next = { handle: vi.fn(() => defer(() => handlerCall())) };
+      return {
+        request,
+        next,
+        handlerCall,
+        execute: async () =>
+          firstValueFrom(interceptor.intercept(execution, next)),
+      };
+    }
+
+    function expectNoOwnerWork() {
+      expect(beehiivService.getDecryptedApiKey).not.toHaveBeenCalled();
+      expect(beehiivService.listPublications).not.toHaveBeenCalled();
+      expect(beehiivService.getSubscribers).not.toHaveBeenCalled();
+      expect(beehiivService.createSubscribers).not.toHaveBeenCalled();
+      expect(brandsService.findOne).not.toHaveBeenCalled();
+      expect(credentialsService.createPendingForBrand).not.toHaveBeenCalled();
+      expect(credentialsService.updateExternalProfile).not.toHaveBeenCalled();
+    }
+
+    beforeEach(() => {
+      beehiivService.getDecryptedApiKey.mockImplementation(async () => {
+        expect(getTenantContext()?.organizationId).toBe(owner.organizationId);
+        expect(getTenantReadScope()).toBeUndefined();
+        return {
+          apiKey: 'synthetic-owner-key',
+          publicationId: mockPublication.id,
+        };
+      });
+      beehiivService.listPublications.mockResolvedValue([mockPublication]);
+      beehiivService.getSubscribers.mockResolvedValue(subscriberData);
+    });
+
+    it.each(routes)(
+      'marks the actual $handler GET as owner',
+      ({ handler, path }) => {
+        const actual = BeehiivController.prototype[handler];
+        expect(Reflect.getMetadata(TENANT_READ_POLICY, actual)).toBe('owner');
+        expect(Reflect.getMetadata(METHOD_METADATA, actual)).toBe(
+          RequestMethod.GET,
+        );
+        expect(Reflect.getMetadata(PATH_METADATA, actual)).toBe(path);
+        expect(Reflect.getMetadata(PATH_METADATA, BeehiivController)).toBe(
+          'services/beehiiv',
+        );
+      },
+    );
+
+    for (const actor of [
+      { name: 'superadmin', user: owner, context: { ...owner } },
+      {
+        name: 'member',
+        user: { ...owner, isSuperAdmin: false },
+        context: { ...owner, isSuperAdmin: false },
+      },
+      {
+        name: 'IP-unverified superadmin',
+        user: owner,
+        context: { ...owner, isSuperAdmin: false },
+      },
+    ]) {
+      it.each(routes)(
+        `rejects foreign selection for ${actor.name} before $handler`,
+        async ({ handler }) => {
+          const fixture = run(
+            handler,
+            {
+              organizationId: testId('org', 2),
+              brandId: testId('brand'),
+              credentialId,
+            },
+            actor.user,
+            actor.context,
+          );
+          const before = structuredClone(fixture.request);
+          await expect(fixture.execute()).rejects.toBeInstanceOf(
+            ForbiddenException,
+          );
+          expect(fixture.next.handle).not.toHaveBeenCalled();
+          expect(fixture.handlerCall).not.toHaveBeenCalled();
+          expectNoOwnerWork();
+          expect(fixture.request.user).toBe(actor.user);
+          expect(fixture.request.context).toBe(actor.context);
+          expect(fixture.request).toEqual(before);
+        },
+      );
+    }
+
+    for (const selector of [
+      { name: 'malformed', value: 'not-an-entity' },
+      { name: 'array', value: [testId('org', 2)] },
+    ]) {
+      it.each(routes)(
+        `rejects ${selector.name} selection before $handler`,
+        async ({ handler }) => {
+          const fixture = run(handler, { organizationId: selector.value });
+          await expect(fixture.execute()).rejects.toBeInstanceOf(
+            ForbiddenException,
+          );
+          expect(fixture.next.handle).not.toHaveBeenCalled();
+          expect(fixture.handlerCall).not.toHaveBeenCalled();
+          expectNoOwnerWork();
+        },
+      );
+    }
+
+    for (const selection of [
+      { name: 'no', query: {} },
+      { name: 'equal', query: { organizationId: owner.organizationId } },
+    ]) {
+      it.each(routes)(
+        `preserves original credentials and provider arguments for ${selection.name} selection in $handler`,
+        async ({ handler }) => {
+          const fixture = run(handler, selection.query);
+          const originalContext = fixture.request.context;
+          const before = structuredClone(fixture.request);
+          const result = await fixture.execute();
+          expect(fixture.next.handle).toHaveBeenCalledOnce();
+          expect(fixture.handlerCall).toHaveBeenCalledOnce();
+          expect(fixture.request.user).toBe(owner);
+          expect(fixture.request.context).toBe(originalContext);
+          expect(fixture.request).toEqual(before);
+          expect(
+            beehiivService.getDecryptedApiKey,
+          ).toHaveBeenCalledExactlyOnceWith(
+            owner.organizationId,
+            testId('brand'),
+            credentialId,
+          );
+          if (handler === 'listPublications') {
+            expect(
+              beehiivService.listPublications,
+            ).toHaveBeenCalledExactlyOnceWith('synthetic-owner-key');
+            expect(beehiivService.getSubscribers).not.toHaveBeenCalled();
+            expect(result).toEqual({ data: [mockPublication] });
+          } else {
+            expect(
+              beehiivService.getSubscribers,
+            ).toHaveBeenCalledExactlyOnceWith(
+              'synthetic-owner-key',
+              mockPublication.id,
+              2,
+              30,
+            );
+            expect(beehiivService.listPublications).not.toHaveBeenCalled();
+            expect(result).toEqual({ data: subscriberData });
+          }
+        },
+      );
+
+      it(`preserves subscriber page/limit defaults for ${selection.name} selection`, async () => {
+        const fixture = run(
+          'getSubscribers',
+          selection.query,
+          owner,
+          { ...owner },
+          '',
+          '',
+        );
+        await fixture.execute();
+        expect(beehiivService.getSubscribers).toHaveBeenCalledExactlyOnceWith(
+          'synthetic-owner-key',
+          mockPublication.id,
+          undefined,
+          undefined,
+        );
+      });
+    }
+
+    it.each(routes)(
+      'preserves missing-session-org behavior for $handler',
+      async ({ handler }) => {
+        const actor = { ...owner, organizationId: undefined };
+        beehiivService.getDecryptedApiKey.mockImplementation(async () => {
+          expect(getTenantContext()).toBeUndefined();
+          expect(getTenantReadScope()).toBeUndefined();
+          throw new Error('Credential not found');
+        });
+        const fixture = run(handler, {}, actor, { ...actor });
+        await expect(fixture.execute()).resolves.toEqual({
+          errors: [
+            {
+              detail:
+                handler === 'listPublications'
+                  ? 'Failed to list Beehiiv publications'
+                  : 'Failed to get Beehiiv subscribers',
+            },
+          ],
+        });
+        expect(
+          beehiivService.getDecryptedApiKey,
+        ).toHaveBeenCalledExactlyOnceWith('', testId('brand'), credentialId);
+        expect(fixture.handlerCall).toHaveBeenCalledOnce();
+      },
+    );
+
+    it.each(routes)(
+      'preserves safe provider error results for $handler',
+      async ({ handler }) => {
+        const provider =
+          handler === 'listPublications'
+            ? beehiivService.listPublications
+            : beehiivService.getSubscribers;
+        provider.mockRejectedValue(new Error('Provider unavailable'));
+        const fixture = run(handler, {});
+        await expect(fixture.execute()).resolves.toEqual({
+          errors: [
+            {
+              detail:
+                handler === 'listPublications'
+                  ? 'Failed to list Beehiiv publications'
+                  : 'Failed to get Beehiiv subscribers',
+            },
+          ],
+        });
+        expect(loggerMock.error).toHaveBeenCalledWith(
+          expect.stringContaining('failed'),
+          { error: 'Provider unavailable' },
+        );
+      },
+    );
   });
 
   describe('connect', () => {
