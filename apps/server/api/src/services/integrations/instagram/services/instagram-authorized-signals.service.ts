@@ -141,7 +141,7 @@ export class InstagramAuthorizedSignalsService {
     private readonly socialWarmupEnrollmentsService: SocialWarmupEnrollmentsService,
   ) {
     this.apiVersion =
-      this.configService.get('INSTAGRAM_API_VERSION') || 'v24.0';
+      this.configService.get('INSTAGRAM_API_VERSION') || 'v26.0';
     this.provider = new InstagramAuthorizedSignalsProvider(
       this.httpService,
       this.graphUrl,

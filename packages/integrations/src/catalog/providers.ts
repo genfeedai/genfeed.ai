@@ -253,9 +253,9 @@ export const INTEGRATION_PROVIDER_DEFINITIONS = [
     },
     key: 'meta_ads',
     oauth: {
-      authorizationUrl: 'https://www.facebook.com/v24.0/dialog/oauth',
+      authorizationUrl: 'https://www.facebook.com/v26.0/dialog/oauth',
       scopes: ['ads_management', 'ads_read'],
-      tokenUrl: 'https://graph.facebook.com/v24.0/oauth/access_token',
+      tokenUrl: 'https://graph.facebook.com/v26.0/oauth/access_token',
     },
     platform: CredentialPlatform.FACEBOOK,
     retry: DEFAULT_RETRY,
