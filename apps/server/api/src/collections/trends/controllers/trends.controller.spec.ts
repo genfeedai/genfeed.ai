@@ -244,7 +244,12 @@ describe('TrendsController', () => {
     );
 
     it('preserves missing organization without calling preferences', async () => {
-      const user: User = { id: actor.id, userId: actor.userId };
+      const user: User = {
+        id: actor.id,
+        userId: actor.userId,
+        organizationId: '',
+        brandId: '',
+      };
       await expect(readPreferences({}, user).result).resolves.toEqual({
         preferences: null,
       });
