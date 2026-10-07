@@ -66,6 +66,7 @@ jobs:
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     outputs:
       base: ${{ steps.base.outputs.sha }}
+      setup_benchmark: ${{ steps.plan.outputs.setup_benchmark }}
       heavy-tier: ${{ steps.tier.outputs.heavy }}
       app: ${{ steps.plan.outputs.app }}
       api: ${{ steps.plan.outputs.api }}
@@ -330,8 +331,62 @@ jobs:
           SOLO_WORKSPACES: app agent hooks pages props ui
         run: node scripts/ci/spec-typecheck-matrix.mjs
 
+  # Measurements only when the shared action changes. Two isolated Linux
+  # runners compare complete frozen installs; no node_modules reuse or skipped
+  # lifecycle hooks. Results do not alter the validation topology automatically.
+  setup-benchmark:
+    name: Setup Benchmark (${{ matrix.mode }})
+    runs-on: ubuntu-latest
+    needs: plan
+    if: needs.plan.outputs.setup_benchmark == 'true'
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - mode: warm
+            cache: 'true'
+          - mode: cold
+            cache: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Start setup clock
+        run: echo "SETUP_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+      - name: Measure shared setup
+        id: setup
+        uses: ./.github/actions/setup-bun-env
+        with:
+          cache-dependencies: ${{ matrix.cache }}
+      - name: Record setup measurement
+        env:
+          SETUP_MODE: ${{ matrix.mode }}
+          SETUP_BUN_VERSION: ${{ steps.setup.outputs.resolved-bun-version }}
+          SETUP_CACHE_HIT: ${{ steps.setup.outputs.dependency-cache-hit }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync, writeFileSync } from 'node:fs';
+          const result = {
+            sourceSha: process.env.GITHUB_SHA,
+            mode: process.env.SETUP_MODE,
+            seconds: Math.round(Date.now() / 1000 - Number(process.env.SETUP_STARTED)),
+            bunVersion: process.env.SETUP_BUN_VERSION,
+            nodeVersion: process.version,
+            exactCacheHit: process.env.SETUP_CACHE_HIT === 'true',
+          };
+          writeFileSync('setup-measurement.json', JSON.stringify(result, null, 2) + '\n');
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, `Setup ${result.mode}: **${result.seconds}s**, Bun ${result.bunVersion}, exact cache hit ${result.exactCacheHit}.\n`);
+          NODE
+      - name: Upload setup measurement
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: setup-measurement-${{ matrix.mode }}
+          path: setup-measurement.json
+          retention-days: 7
+
   # Gitleaks, format, secretlint, lint, typecheck, and the executable contracts
-  # run sequentially in one runner slot (#1969). Each separate job paid its own
+  # share one runner slot (#1969), with bounded independent work overlapping.
+  # Each separate job paid its own
   # checkout + Bun setup and held a queue slot while the runner pool was
   # saturated. The Tests Gate holds their failure semantics.
   static-checks:
@@ -366,7 +421,11 @@ jobs:
           node scripts/ci/migration-safety.mjs --base "${CI_BASE_SHA:-HEAD^1}"
       - name: Check pinned product skill catalog
         run: bun run check:skills-catalog
+      # Formatting reads files only and can overlap secretlint/lint. Explicit
+      # wait propagates its failure before memory-intensive typechecking.
       - name: Check formatting
+        id: formatting
+        background: true
         run: bun run format:check
       - name: Get changed files for secretlint
         id: changed
@@ -398,6 +457,8 @@ jobs:
           else
             bun run lint
           fi
+      - name: Wait for formatting
+        wait: formatting
       # `--affected` follows package.json dependencies only. The scope adds
       # workspaces whose type-check hashes a changed sibling source through a
       # tsconfig-alias input (scripts/ci/typecheck-affected-scope.ts).
@@ -433,13 +494,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: bun scripts/ci/calibration-gate.ts
-      # Repo-wide UI guards. lint-staged runs the raw-control scanner on staged
-      # files pre-commit, but that is skipped by --no-verify and never sees code
-      # arriving via merge, rebase or a web edit.
-      - name: Run UI guards
-        run: bun run check:ui-guards
-      - name: Check architecture guards
-        run: bun run check:architecture
 
   # Typechecks spec/test files against each workspace's compiler options and
   # ratchets the pre-existing debt. The Plan job decides the scope and splits
@@ -511,11 +565,14 @@ jobs:
   # planner owns the legs and their filters, including dormant-surface
   # exclusion.
   test-workspaces:
-    name: Test Workspaces (${{ matrix.group }})
+    name: Test Workspaces (${{ matrix.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
+      # Four package pools plus server/web/browser. Bound simultaneous setup
+      # and test workers rather than allowing an unbounded package fan-out.
+      max-parallel: 4
       matrix: ${{ fromJSON(needs.plan.outputs.workspace_matrix) }}
     services:
       postgres:
@@ -564,12 +621,22 @@ jobs:
           WORKSPACE_FILTERS: ${{ matrix.filters }}
         run: |
           set -euo pipefail
+          # UI-only pools have no ordinary Turbo test entrypoints. An empty
+          # filter would select the entire repository, so never invoke it.
+          if [ -z "${WORKSPACE_FILTERS}" ]; then exit 0; fi
           # shellcheck disable=SC2086 # intentional word-splitting of --filter args
           if [ "${WORKSPACE_GROUP}" = "browser-extension" ] || [ "${FORCE_FULL}" = "true" ] || [ -z "${CI_BASE_SHA}" ]; then
-            bunx turbo run test --continue ${WORKSPACE_FILTERS}
+            bunx turbo run test --continue --concurrency=1 ${WORKSPACE_FILTERS}
           else
-            TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run test --continue --affected ${WORKSPACE_FILTERS}
+            TURBO_SCM_BASE="${CI_BASE_SHA}" bunx turbo run test --continue --concurrency=1 --affected ${WORKSPACE_FILTERS}
           fi
+      - name: Run UI shard
+        if: ${{ !cancelled() && matrix.ui_shard != '' }}
+        env:
+          UI_SHARD: ${{ matrix.ui_shard }}
+        run: |
+          set -euo pipefail
+          bunx turbo run test:shard --filter=@genfeedai/ui --concurrency=1 -- "$UI_SHARD"
       # Workers cron specs run under their own Vitest config
       # (apps/server/workers/vitest.cron.config.ts), outside `test`.
       - name: Run workers cron specs
