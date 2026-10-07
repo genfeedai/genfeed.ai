@@ -7,8 +7,6 @@ export interface NotificationData {
 export type NotificationRoute =
   | { path: `/ingredient/${string}` }
   | { path: '/analytics' }
-  | { path: `/approval/${string}` }
-  | { path: '/approvals' }
   | null;
 
 export function getNotificationRoute(
@@ -21,9 +19,8 @@ export function getNotificationRoute(
       return { path: '/analytics' };
     case 'approval_request':
     case 'approval_reminder':
-      return data.approvalId ? { path: `/approval/${data.approvalId}` } : null;
     case 'approval_decision':
-      return { path: '/approvals' };
+      return null;
     default:
       return null;
   }

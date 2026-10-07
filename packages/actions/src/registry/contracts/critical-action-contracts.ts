@@ -325,6 +325,9 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
         dto: JSON_DOCUMENT_SCHEMA,
         item: JSON_DOCUMENT_SCHEMA,
         params: JSON_DOCUMENT_SCHEMA,
+        // Ordering-only edges (`targetHandle: 'previous'`) run the child after
+        // an upstream node without feeding it a declared input.
+        previous: JSON_DOCUMENT_SCHEMA,
         request: JSON_DOCUMENT_SCHEMA,
       },
       ['childWorkflowId'],

@@ -31,7 +31,7 @@ describe('apiRequest', () => {
     expect(result).toEqual({ data: { id: '1' } });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toContain('/ingredients?');
+    expect(url).toContain('/v1/ingredients?');
     expect(url).toContain('category=image');
     expect(url).toContain('page=2');
     expect(url).not.toContain('unused');
@@ -49,14 +49,14 @@ describe('apiRequest', () => {
       status: 200,
     });
 
-    await apiRequest('token-1', 'ideas', {
-      body: { title: 'Ship it' },
+    await apiRequest('token-1', 'users/me/settings', {
+      body: { theme: 'dark' },
       method: 'POST',
     });
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(init.method).toBe('POST');
-    expect(init.body).toBe(JSON.stringify({ title: 'Ship it' }));
+    expect(init.body).toBe(JSON.stringify({ theme: 'dark' }));
   });
 
   it('returns undefined for a 204 DELETE and throws on a failed response', async () => {
@@ -70,13 +70,14 @@ describe('apiRequest', () => {
     ).resolves.toBeUndefined();
 
     fetchMock.mockResolvedValueOnce({
+      json: async () => ({}),
       ok: false,
       status: 500,
       statusText: 'Internal Server Error',
     });
 
     await expect(apiRequest('token-1', 'ingredients')).rejects.toThrow(
-      'Request failed: Internal Server Error',
+      'Request failed (500 Internal Server Error).',
     );
   });
 });
