@@ -310,7 +310,10 @@ describe('useIngredientsActions', () => {
     });
 
     const confirm = mockOpenConfirm.mock.calls[0][0] as ConfirmOptions;
-    expect(confirm.label).toBe('Delete Ingredient');
+    expect(confirm.label).toBe('Move to Trash');
+    expect(confirm.message).toBe(
+      'Move this asset to Trash? You can restore it later.',
+    );
 
     await act(async () => {
       await confirm.onConfirm();
@@ -456,7 +459,10 @@ describe('useIngredientsActions', () => {
     });
 
     const confirm = mockOpenConfirm.mock.calls[0][0] as ConfirmOptions;
-    expect(confirm.label).toBe('Delete 2 Ingredients');
+    expect(confirm.label).toBe('Move 2 assets to Trash');
+    expect(confirm.message).toBe(
+      'Move 2 selected assets to Trash? You can restore them later.',
+    );
 
     mockBulkDelete.mockResolvedValue({
       deleted: ['ing-1', 'ing-2'],

@@ -153,11 +153,10 @@ export function useIngredientsActions({
   const handleDeleteIngredient = useCallback(
     (ingredient: IIngredient) => {
       openConfirm({
-        confirmLabel: 'Delete',
+        confirmLabel: 'Move to Trash',
         isError: true,
-        label: 'Delete Ingredient',
-        message:
-          'Are you sure you want to delete this ingredient? This action cannot be undone.',
+        label: 'Move to Trash',
+        message: 'Move this asset to Trash? You can restore it later.',
         onConfirm: () => confirmDeleteIngredient(ingredient),
       });
     },
@@ -639,11 +638,13 @@ export function useIngredientsActions({
       return;
     }
 
+    const count = selectedIngredientIds.length;
+    const assets = count === 1 ? 'asset' : 'assets';
     openConfirm({
-      confirmLabel: 'Delete',
+      confirmLabel: 'Move to Trash',
       isError: true,
-      label: `Delete ${selectedIngredientIds.length} Ingredient${selectedIngredientIds.length !== 1 ? 's' : ''}`,
-      message: `Are you sure you want to delete ${selectedIngredientIds.length} selected ingredient${selectedIngredientIds.length !== 1 ? 's' : ''}? This action cannot be undone.`,
+      label: `Move ${count} ${assets} to Trash`,
+      message: `Move ${count} selected ${assets} to Trash? You can restore them later.`,
       onConfirm: confirmBulkDelete,
     });
   }, [confirmBulkDelete, openConfirm, selectedIngredientIds.length]);

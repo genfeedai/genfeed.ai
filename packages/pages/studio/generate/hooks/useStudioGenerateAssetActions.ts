@@ -156,10 +156,10 @@ export function useStudioGenerateAssetActions({
   const onDeleteIngredient = useCallback(
     (ingredient: IIngredient) => {
       openConfirm({
-        confirmLabel: 'Delete',
+        confirmLabel: 'Move to Trash',
         isError: true,
-        label: 'Delete Ingredient',
-        message: 'Move this ingredient to Trash? You can restore it later.',
+        label: 'Move to Trash',
+        message: 'Move this asset to Trash? You can restore it later.',
         onConfirm: () =>
           deletePersistedIngredient(ingredient.id, ingredient.id),
       });

@@ -277,9 +277,10 @@ describe('useStudioGenerateAssetActions', () => {
       onConfirm: () => Promise<void>;
     };
     expect(confirm).toMatchObject({
-      confirmLabel: 'Delete',
+      confirmLabel: 'Move to Trash',
       isError: true,
-      message: 'Move this ingredient to Trash? You can restore it later.',
+      label: 'Move to Trash',
+      message: 'Move this asset to Trash? You can restore it later.',
     });
 
     await act(confirm.onConfirm);

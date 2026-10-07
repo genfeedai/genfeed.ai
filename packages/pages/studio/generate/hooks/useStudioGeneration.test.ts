@@ -1,4 +1,5 @@
 import { IngredientStatus, RouterPriority } from '@genfeedai/contracts';
+import { LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/contracts/constants';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { act, renderHook } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
@@ -390,6 +391,11 @@ describe('useStudioGeneration socket tracking', () => {
   });
 
   it('fails the card and toasts when the socket reports an error', async () => {
+    const refreshEvents: Event[] = [];
+    const recordRefresh = (event: Event) => {
+      refreshEvents.push(event);
+    };
+    window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, recordRefresh);
     const captured = captureHandler();
     const { result } = renderStudioGeneration();
 
@@ -403,6 +409,8 @@ describe('useStudioGeneration socket tracking', () => {
 
     expect(result.current.jobs[0]?.status).toBe(IngredientStatus.FAILED);
     expect(mockNotificationsError).toHaveBeenCalledWith('GPU timeout');
+    expect(refreshEvents).toHaveLength(1);
+    window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, recordRefresh);
   });
 
   it('drops every subscription on unmount', async () => {

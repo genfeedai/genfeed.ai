@@ -8,6 +8,7 @@ import {
   IMAGE_EDIT_QUALITY,
   isFlux3ImageModel,
   isImageEditModel,
+  LIBRARY_ASSETS_REFRESH_EVENT,
 } from '@genfeedai/contracts/constants';
 import type {
   IModel,
@@ -319,6 +320,9 @@ export function useStudioGeneration({
               url: resolveStudioAssetUrl(ingredient),
               ...(dimensions.width ? { width: dimensions.width } : {}),
             });
+            if (ingredient.status === IngredientStatus.FAILED) {
+              window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
+            }
             onGeneratedRef.current?.();
           } catch (error) {
             logger.error(
@@ -343,6 +347,7 @@ export function useStudioGeneration({
             phase: message === 'Cancelled by user' ? 'cancelled' : undefined,
             status: IngredientStatus.FAILED,
           });
+          window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
           if (message !== 'Cancelled by user')
             notificationsService.error(message);
           cleanup();
