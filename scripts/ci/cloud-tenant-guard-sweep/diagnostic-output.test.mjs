@@ -668,3 +668,46 @@ for (const missing of ['none', 'footer', 'stopped', 'mail refusal'])
       assert.ok(f.saved().failures.includes(refusal));
     assert.equal(Object.hasOwn(f.summary(), 'cpuProfileEvidence'), false);
   });
+
+test('finalizer retains safe tenant and failure tuples without excusing hits', (context) => {
+  const f = fixture(context);
+  const canary = 'SECRET-cookie-email-token-SQL';
+  f.report.hasFailed = true;
+  f.report.failures = [
+    'Harness required proof or execution failed',
+    `Expand/request ${canary}`,
+  ];
+  f.report.requests = [
+    {
+      actor: 'S:A',
+      phase: 'get',
+      sweepPhase: 'superadminOverrideGets',
+      method: 'GET',
+      route: '/v1/voices',
+      status: 500,
+      hasTenantHit: true,
+      message: `Tenant isolation: findMany on Post used organizationId ${canary} but the request tenant is ${canary}`,
+    },
+  ];
+  f.report.apiLogHits = [
+    {
+      phase: 'strict',
+      message: `Tenant isolation: findMany on Post is missing organizationId in CLOUD mode. ${canary}`,
+    },
+  ];
+  f.report.tenantHitGroups = [{}];
+  f.write();
+  const summary = f.summary();
+  assert.equal(f.saved().hasFailed, true);
+  assert.equal(summary.tenantEvidence.responseHits, 1);
+  assert.equal(summary.tenantEvidence.logHits, 1);
+  assert.equal(summary.tenantEvidence.responseGroups[0].actor, 'S:A');
+  assert.equal(summary.tenantEvidence.responseGroups[0].route, '/v1/voices');
+  assert.equal(summary.tenantEvidence.logGroups[0].actor, 'unknown');
+  assert.equal(summary.failureEvidence.total, 2);
+  assert.deepEqual(summary.failureEvidence.groups.map((x) => x.label).sort(), [
+    'harness-required-proof-or-execution',
+    'route-request',
+  ]);
+  assert.doesNotMatch(JSON.stringify(summary), /SECRET|cookie|email-token|SQL/);
+});

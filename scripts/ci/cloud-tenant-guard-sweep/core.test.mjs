@@ -1346,3 +1346,260 @@ test('historical complete false setup proof remains unknown failure attribution'
     { source: 'unavailable', lastAttempt: null },
   );
 });
+
+test('tenant and failure evidence independently conserves canonical responses and uncorrelated logs', async () => {
+  const { buildDiagnosticSummary } = await import('./core.mjs');
+  const message =
+    'Tenant isolation: findMany on Post used organizationId secret-canary but the request tenant is secret-canary.';
+  const report = {
+    sourceSha: 'a'.repeat(40),
+    inventoryTemplates: ['/v1/posts'],
+    requests: [
+      {
+        actor: 'S:A',
+        sweepPhase: 'superadminOverrideGets',
+        phase: 'get',
+        method: 'GET',
+        route: '/v1/posts',
+        path: '/v1/posts?token=secret-canary',
+        status: 500,
+        hasTenantHit: true,
+        message,
+      },
+      {
+        actor: 'M:A',
+        sweepPhase: 'memberAGets',
+        method: 'GET',
+        route: '/v1/posts',
+        status: 500,
+        hasTenantHit: true,
+        message:
+          'Tenant isolation: findMany on Post is missing organizationId in CLOUD mode.',
+      },
+    ],
+    apiLogHits: [
+      { message, phase: 'strict', url: 'secret-canary' },
+      {
+        message,
+        phase: 'superadminOverrideGets',
+        actor: 'S:A',
+        route: '/v1/posts',
+      },
+    ],
+    tenantHitGroups: [{}, {}],
+    failures: [
+      'Harness required proof or execution failed',
+      'M:A: only 2 GET requests reached the API without auth/throttle/transport failure (minimum 4; 1 timeouts reported separately)',
+      'secret-canary',
+    ],
+  };
+  const summary = buildDiagnosticSummary(report);
+  assert.equal(summary.tenantEvidence.responseHits, 2);
+  assert.equal(summary.tenantEvidence.logHits, 2);
+  assert.equal(summary.tenantEvidence.observedGroupedFindings, 2);
+  assert.equal(
+    summary.tenantEvidence.responseGroups.find((g) => g.actor === 'S:A').reason,
+    'organization-id-mismatch',
+  );
+  assert.ok(
+    summary.tenantEvidence.logGroups.every(
+      (g) => g.actor === 'unknown' && g.route === 'unknown',
+    ),
+  );
+  assert.equal(summary.failureEvidence.total, 3);
+  assert.equal(
+    summary.failureEvidence.groups.find(
+      (g) => g.label === 'get-completion-coverage',
+    ).timeouts,
+    1,
+  );
+  assert.doesNotMatch(JSON.stringify(summary), /secret-canary/);
+});
+
+test('tenant schema/operation allowlists match checked-in source and unknown inputs never expose canaries', async () => {
+  const { buildDiagnosticSummary, TENANT_EVIDENCE_OPERATIONS } = await import(
+    './core.mjs'
+  );
+  const source = readFileSync(
+    new URL(
+      '../../../packages/libs/prisma/discover-tenant-models.ts',
+      import.meta.url,
+    ),
+    'utf8',
+  );
+  const block = source.match(/TENANT_QUERY_OPERATIONS = \[([\s\S]*?)\]/)[1];
+  assert.deepEqual(
+    TENANT_EVIDENCE_OPERATIONS,
+    [...block.matchAll(/'([^']+)'/g)].map((x) => x[1]),
+  );
+  const schema = readFileSync(
+    new URL('../../../packages/prisma/prisma/schema.prisma', import.meta.url),
+    'utf8',
+  );
+  assert.match(schema, /^model Post \{/m);
+  const messages = [
+    'TenantIsolationError secret-canary',
+    'Tenant isolation: secretOperation on Post is missing organizationId in CLOUD mode.',
+    'Tenant isolation: findMany on SecretModel is missing organizationId in CLOUD mode.',
+    'Tenant isolation: findMany on Post used billingAccountId secret-canary without an active BillingAccountScope in CLOUD mode.',
+  ];
+  const report = {
+    sourceSha: 'a'.repeat(40),
+    inventoryTemplates: ['/v1/posts'],
+    requests: messages.map((message) => ({
+      status: 403,
+      hasTenantHit: true,
+      message,
+      actor: 'secret-canary',
+      phase: 'secret-canary',
+      method: 'SQL',
+      route: '/v1/posts?secret-canary',
+      path: 'secret-canary',
+      body: 'secret-canary',
+      headers: { cookie: 'secret-canary' },
+      stack: 'secret-canary',
+    })),
+    apiLogHits: messages,
+  };
+  const e = buildDiagnosticSummary(report).tenantEvidence;
+  assert.equal(e.responseHits, 4);
+  assert.equal(e.logHits, 4);
+  assert.equal(e.observedGroupedFindings, null);
+  assert.equal(
+    e.responseGroups.reduce((n, g) => n + g.count, 0),
+    4,
+  );
+  assert.equal(
+    e.logGroups.reduce((n, g) => n + g.count, 0),
+    4,
+  );
+  assert.ok(
+    e.responseGroups.every(
+      (g) =>
+        g.actor === 'unknown' && g.route === 'unknown' && g.phase === 'unknown',
+    ),
+  );
+  assert.ok(e.responseGroups.some((g) => g.model === 'unknown'));
+  assert.ok(e.responseGroups.some((g) => g.operation === 'unknown'));
+  assert.ok(
+    e.responseGroups.some((g) => g.reason === 'billing-account-id-mismatch'),
+  );
+  assert.doesNotMatch(
+    JSON.stringify(e),
+    /secret-canary|SecretModel|secretOperation|cookie|body|stack/,
+  );
+  const empty = buildDiagnosticSummary({ sourceSha: 'a'.repeat(40) });
+  assert.deepEqual(empty.tenantEvidence.responseGroups, []);
+  assert.deepEqual(empty.failureEvidence, { version: 1, total: 0, groups: [] });
+  assert.throws(() =>
+    buildDiagnosticSummary({
+      ...report,
+      requests: [{ ...report.requests[0], status: 600 }],
+    }),
+  );
+  assert.throws(() =>
+    buildDiagnosticSummary({ ...report, tenantHitGroups: { length: 1 } }),
+  );
+  assert.throws(() => buildDiagnosticSummary({ ...report, failures: [{}] }));
+});
+test('failure evidence conserves exact fixed/dynamic labels and source count fields', async () => {
+  const { buildDiagnosticSummary } = await import('./core.mjs');
+  const failures = [
+    'Only 2 GET routes discovered (minimum 100)',
+    'Only 3 distinct tools discovered (minimum 20)',
+    'M:A: only 2/4 GET routes attempted',
+    'S:A: only 2 GET requests reached the API without auth/throttle/transport failure (minimum 4; 1 timeouts reported separately)',
+    'M:A: 2/4 tool requests attempted',
+    'S: 2/4 tool requests reached the API',
+    'S: only 2 tools accepted (minimum 4)',
+    '2/40 requests timed out (5.00%; maximum 0 unresolved requests)',
+    '2 unresolved timeout/transport requests cannot prove tenant safety',
+    'Harness required proof or execution failed',
+    'Fixture setup proof unavailable',
+    'Fixture setup proof incomplete',
+    'Restricted transport recorded rejected requests',
+    'Causal diagnostic evidence unavailable',
+    'CPU profile diagnostic evidence unavailable',
+    'Final diagnostic evidence unavailable',
+    'CPU profile trigger unavailable',
+    'Sweep exceeded its 480-second wall-clock budget',
+    'Harness exceeded its 570-second overall budget',
+    'Sweep did not produce a JSON report',
+    'Cannot read final API stdout log',
+    'Expand/request canary',
+    'Tool canary',
+    'Disconnect fixture client: canary',
+    'Cannot scan API stdout: canary',
+    'Cannot load superadmin override baseline: canary',
+    'unknown canary',
+    'unknown canary',
+  ];
+  const e = buildDiagnosticSummary({
+    sourceSha: 'a'.repeat(40),
+    failures,
+  }).failureEvidence;
+  assert.equal(e.total, failures.length);
+  assert.equal(
+    e.groups.reduce((n, g) => n + g.count, 0),
+    failures.length,
+  );
+  assert.equal(e.groups.find((g) => g.label === 'unknown').count, 2);
+  assert.equal(
+    e.groups.find((g) => g.label === 'get-inventory-minimum').expected,
+    100,
+  );
+  assert.equal(
+    e.groups.find((g) => g.label === 'get-completion-coverage').timeouts,
+    1,
+  );
+  assert.equal(
+    e.groups.find((g) => g.label === 'get-completion-coverage').actor,
+    'S:A',
+  );
+  assert.ok(
+    e.groups
+      .filter((g) => g.label !== 'get-completion-coverage')
+      .every((g) => g.timeouts === null),
+  );
+  assert.ok(
+    e.groups.some(
+      (g) => g.label === 'unresolved-request-failure' && g.expected === 0,
+    ),
+  );
+  assert.doesNotMatch(JSON.stringify(e), /canary/);
+  assert.throws(() =>
+    buildDiagnosticSummary({
+      sourceSha: 'a'.repeat(40),
+      failures: ['Only 9007199254740992 GET routes discovered (minimum 100)'],
+    }),
+  );
+  assert.throws(
+    () =>
+      buildDiagnosticSummary({
+        sourceSha: 'a'.repeat(40),
+        failures: Array.from(
+          { length: 257 },
+          (_, i) => `Only ${i} GET routes discovered (minimum 100)`,
+        ),
+      }),
+    /Too many failure/,
+  );
+});
+test('tenant response grouping cap rejects overflow without truncation', async () => {
+  const { buildDiagnosticSummary } = await import('./core.mjs');
+  const paths = Array.from({ length: 10001 }, (_, i) => `/v1/fixed-${i}`);
+  assert.throws(
+    () =>
+      buildDiagnosticSummary({
+        sourceSha: 'a'.repeat(40),
+        inventoryTemplates: paths,
+        requests: paths.map((route) => ({
+          route,
+          status: 500,
+          hasTenantHit: true,
+          message: 'TenantIsolationError',
+        })),
+      }),
+    /Too many tenant response/,
+  );
+});

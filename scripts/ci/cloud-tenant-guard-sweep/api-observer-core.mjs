@@ -53,6 +53,114 @@ export const exact = (value, keys) => {
   )
     throw new Error('Invalid observer schema');
 };
+export const DATABASE_DIAGNOSTIC_CATEGORIES = [
+  'busy',
+  'invalid-rows',
+  'query-read-timeout',
+  'connection-timeout',
+  'connection-terminated',
+  'query-canceled',
+  'timeout',
+  'transport',
+  'database',
+  'other',
+];
+export const DATABASE_DIAGNOSTIC_NAMES = [
+  'Error',
+  'error',
+  'TimeoutError',
+  'DatabaseError',
+  'OTHER',
+  'NONE',
+];
+export const DATABASE_TRANSPORT_CODES = [
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  'EPIPE',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+];
+export const DATABASE_POSTGRES_CODES = [
+  '57014',
+  '40001',
+  '40P01',
+  '53300',
+  '57P01',
+  '57P02',
+  '57P03',
+  '08000',
+  '08001',
+  '08003',
+  '08004',
+  '08006',
+  '08007',
+  '08P01',
+];
+export const DATABASE_DIAGNOSTIC_CODES = [
+  ...DATABASE_POSTGRES_CODES,
+  ...DATABASE_TRANSPORT_CODES,
+  'OTHER',
+  'NONE',
+];
+export function classifyDatabaseFailure(error) {
+  const name = ['Error', 'error', 'TimeoutError', 'DatabaseError'].includes(
+    error?.name,
+  )
+    ? error.name
+    : 'OTHER';
+  const code =
+    error?.code === undefined
+      ? 'NONE'
+      : DATABASE_DIAGNOSTIC_CODES.filter(
+            (value) => !['OTHER', 'NONE'].includes(value),
+          ).includes(error.code)
+        ? error.code
+        : 'OTHER';
+  let category = 'other';
+  if (code === '57014') category = 'query-canceled';
+  else if (error?.message === 'Query read timeout')
+    category = 'query-read-timeout';
+  else if (error?.message === 'Connection terminated due to connection timeout')
+    category = 'connection-timeout';
+  else if (
+    ['Connection terminated', 'Connection terminated unexpectedly'].includes(
+      error?.message,
+    )
+  )
+    category = 'connection-terminated';
+  else if (name === 'TimeoutError') category = 'timeout';
+  else if (DATABASE_TRANSPORT_CODES.includes(code)) category = 'transport';
+  else if (DATABASE_POSTGRES_CODES.includes(code)) category = 'database';
+  return { category, name, code };
+}
+export function validateDatabaseDiagnostic(diagnostic, outcome) {
+  if (outcome === 'success') {
+    if (diagnostic !== null)
+      throw new Error('Invalid successful database diagnostic');
+    return;
+  }
+  exact(diagnostic, ['category', 'name', 'code']);
+  if (
+    !DATABASE_DIAGNOSTIC_CATEGORIES.includes(diagnostic.category) ||
+    !DATABASE_DIAGNOSTIC_NAMES.includes(diagnostic.name) ||
+    !DATABASE_DIAGNOSTIC_CODES.includes(diagnostic.code)
+  )
+    throw new Error('Invalid database diagnostic enum');
+  if (
+    outcome === 'busy' ||
+    ['busy', 'invalid-rows'].includes(diagnostic.category)
+  ) {
+    if (
+      diagnostic.name !== 'NONE' ||
+      diagnostic.code !== 'NONE' ||
+      (outcome === 'busy') !== (diagnostic.category === 'busy') ||
+      (diagnostic.category === 'invalid-rows' && outcome !== 'error')
+    )
+      throw new Error('Inconsistent synthetic database diagnostic');
+  } else if (diagnostic.name === 'NONE')
+    throw new Error('Invalid native database diagnostic');
+}
 const shapes = {
   header: ['kind', 'protocol', 'startedAt'],
   ingress: ['kind', 'sequence', 'at'],
@@ -93,7 +201,12 @@ const shapes = {
 };
 export function validateObservationRecord(record) {
   if (!shapes[record?.kind]) throw new Error('Invalid observer kind');
-  exact(record, shapes[record.kind]);
+  exact(record, [
+    ...shapes[record.kind],
+    ...(record.kind === 'database' && Object.hasOwn(record, 'diagnostic')
+      ? ['diagnostic']
+      : []),
+  ]);
   for (const key of ['at', 'startedAt', 'endedAt', 'start', 'end'])
     if (Object.hasOwn(record, key)) safe(record[key]);
   if (Object.hasOwn(record, 'start') && record.end < record.start)
@@ -132,6 +245,8 @@ export function validateObservationRecord(record) {
       if (record[key] !== null) safe(record[key]);
   }
   if (record.kind === 'database') {
+    if (Object.hasOwn(record, 'diagnostic'))
+      validateDatabaseDiagnostic(record.diagnostic, record.outcome);
     if (
       !['success', 'timeout', 'error', 'busy'].includes(record.outcome) ||
       !Array.isArray(record.groups) ||
@@ -445,6 +560,7 @@ export function createApiObserver({
           start,
           end: start,
           outcome: 'busy',
+          diagnostic: { category: 'busy', name: 'NONE', code: 'NONE' },
           groups: [],
         });
         return;
@@ -457,14 +573,24 @@ export function createApiObserver({
             try {
               return {
                 outcome: 'success',
+                diagnostic: null,
                 groups: normalizeDatabaseRows(rows),
               };
             } catch {
               mark();
-              return { outcome: 'error', groups: [] };
+              return {
+                outcome: 'error',
+                diagnostic: {
+                  category: 'invalid-rows',
+                  name: 'NONE',
+                  code: 'NONE',
+                },
+                groups: [],
+              };
             }
           },
           (error) => ({
+            diagnostic: classifyDatabaseFailure(error),
             outcome:
               error?.name === 'TimeoutError' || error?.code === '57014'
                 ? 'timeout'

@@ -371,3 +371,120 @@ test('same observer lifecycle and sampler records feed the joiner, preserving re
   assert.equal(e.runtime.measuredSamples, 0);
   assert.equal(e.runtime.maxEventLoopMaxMs, null);
 });
+
+test('database failure groups conserve native/legacy samples and overlapping windows without changing fatality', () => {
+  const f = fixture();
+  const samples = [
+    {
+      kind: 'database',
+      start: 150,
+      end: 200,
+      outcome: 'error',
+      groups: [],
+      diagnostic: {
+        category: 'query-read-timeout',
+        name: 'Error',
+        code: 'NONE',
+      },
+    },
+    {
+      kind: 'database',
+      start: 160,
+      end: 200,
+      outcome: 'timeout',
+      groups: [],
+      diagnostic: { category: 'query-canceled', name: 'Error', code: '57014' },
+    },
+    { kind: 'database', start: 170, end: 200, outcome: 'error', groups: [] },
+    {
+      kind: 'database',
+      start: 200,
+      end: 200,
+      outcome: 'busy',
+      groups: [],
+      diagnostic: { category: 'busy', name: 'NONE', code: 'NONE' },
+    },
+  ];
+  f.records.splice(-1, 0, ...samples);
+  const footer = f.records.at(-1);
+  footer.records = f.records.length - 1;
+  footer.databaseSamples = 5;
+  footer.databaseIncomplete = 1;
+  const e = joinCausalEvidence(f.report, f.records, options);
+  assert.equal(e.quality, 'incomplete');
+  assert.equal(e.reasons.samplerFailure, 5);
+  assert.equal(e.database.failedSamples, 4);
+  assert.equal(e.database.failureAttributionAvailable, false);
+  assert.equal(e.database.unfinishedSamples, 1);
+  assert.equal(
+    e.database.failureGroups.reduce((n, g) => n + g.samples, 0),
+    4,
+  );
+  assert.equal(
+    e.database.failureGroups.reduce((n, g) => n + g.durationMs, 0),
+    120,
+  );
+  assert.equal(
+    e.database.failureGroups.find((g) => g.category === 'unavailable').name,
+    'NONE',
+  );
+  assert.ok(
+    e.requestGroups
+      .filter((g) => g.database.failedSamples)
+      .every(
+        (g) =>
+          g.database.failureGroups.reduce((n, x) => n + x.samples, 0) ===
+          g.database.failedSamples,
+      ),
+  );
+  assert.doesNotMatch(JSON.stringify(e.database), /sequence|"start"|"end"|SQL/);
+  validateCausalEvidence(e, {
+    templates: f.report.inventoryTemplates,
+    actors: options.actors,
+    phases: options.phases,
+  });
+  const legacy = structuredClone(e);
+  delete legacy.database.failureAttributionAvailable;
+  delete legacy.database.failureGroups;
+  delete legacy.database.unfinishedSamples;
+  for (const g of legacy.requestGroups) {
+    delete g.database.failureAttributionAvailable;
+    delete g.database.failureGroups;
+  }
+  validateCausalEvidence(legacy, {
+    templates: f.report.inventoryTemplates,
+    actors: options.actors,
+    phases: options.phases,
+  });
+  for (const change of [
+    (d) => d.failureGroups[0].samples++,
+    (d) => (d.failureGroups[0].durationMs = -1),
+    (d) => (d.failureGroups[0].maxDurationMs = Number.MAX_SAFE_INTEGER),
+    (d) => (d.failureAttributionAvailable = true),
+    (d) => (d.unfinishedSamples = 2),
+    (d) => (d.failureGroups[0].sql = 'canary'),
+    (d) => delete d.failureAttributionAvailable,
+  ]) {
+    const bad = structuredClone(e);
+    change(bad.database);
+    assert.throws(() =>
+      validateCausalEvidence(bad, {
+        templates: f.report.inventoryTemplates,
+        actors: options.actors,
+        phases: options.phases,
+      }),
+    );
+  }
+});
+test('new zero-failure database attribution is available and unfinished footer absence stays null', () => {
+  const f = fixture();
+  const e = joinCausalEvidence(f.report, f.records, options);
+  assert.equal(e.database.failureAttributionAvailable, true);
+  assert.deepEqual(e.database.failureGroups, []);
+  assert.equal(e.database.unfinishedSamples, 0);
+  f.records.pop();
+  assert.equal(
+    joinCausalEvidence(f.report, f.records, options).database.unfinishedSamples,
+    null,
+  );
+});

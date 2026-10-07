@@ -12,6 +12,7 @@ import {
   MAX_RECORDS,
   STATES,
   safe,
+  validateDatabaseDiagnostic,
   validateObservationRecord,
   WAITS,
 } from './api-observer-core.mjs';
@@ -130,7 +131,39 @@ function databaseAggregate(samples) {
       group.maxActiveAgeMs = Math.max(group.maxActiveAgeMs, item.activeAgeMs);
       groups.set(key, group);
     }
+  const failures = new Map();
+  let failureAttributionAvailable = true;
+  for (const sample of samples.filter(
+    (sample) => sample.outcome !== 'success',
+  )) {
+    if (!Object.hasOwn(sample, 'diagnostic'))
+      failureAttributionAvailable = false;
+    const diagnostic = sample.diagnostic ?? {
+      category: 'unavailable',
+      name: 'NONE',
+      code: 'NONE',
+    };
+    const tuple = { outcome: sample.outcome, ...diagnostic };
+    const key = JSON.stringify(tuple);
+    const group = failures.get(key) ?? {
+      ...tuple,
+      samples: 0,
+      durationMs: 0,
+      maxDurationMs: 0,
+    };
+    const duration = safe(sample.end - sample.start);
+    group.samples = safe(group.samples + 1);
+    group.durationMs = safe(group.durationMs + duration);
+    group.maxDurationMs = Math.max(group.maxDurationMs, duration);
+    failures.set(key, group);
+    if (failures.size > 256)
+      throw new Error('Too many database failure groups');
+  }
   return {
+    failureAttributionAvailable,
+    failureGroups: [...failures]
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([, group]) => group),
     measuredSamples: samples.filter((s) => s.outcome === 'success').length,
     failedSamples: samples.filter((s) => s.outcome !== 'success').length,
     groups: [...groups]
@@ -444,6 +477,7 @@ export function joinCausalEvidence(
     },
     database: {
       ...databaseAggregate(database),
+      unfinishedSamples: footer?.databaseIncomplete ?? null,
       missingWindows: missingDatabaseWindows,
     },
   };
@@ -518,10 +552,81 @@ export function validateCausalEvidence(
       'failedSamples',
       'groups',
       ...(overall ? ['missingWindows'] : []),
+      ...(Object.hasOwn(d, 'failureAttributionAvailable') ||
+      Object.hasOwn(d, 'failureGroups')
+        ? ['failureAttributionAvailable', 'failureGroups']
+        : []),
+      ...(overall && Object.hasOwn(d, 'unfinishedSamples')
+        ? ['unfinishedSamples']
+        : []),
     ]);
     safe(d.measuredSamples);
     safe(d.failedSamples);
     if (overall) safe(d.missingWindows);
+    if (
+      overall &&
+      Object.hasOwn(d, 'unfinishedSamples') &&
+      d.unfinishedSamples !== null &&
+      ![0, 1].includes(d.unfinishedSamples)
+    )
+      throw new Error('Invalid unfinished database samples');
+    if (Object.hasOwn(d, 'failureGroups')) {
+      if (
+        typeof d.failureAttributionAvailable !== 'boolean' ||
+        !Array.isArray(d.failureGroups) ||
+        d.failureGroups.length > 256
+      )
+        throw new Error('Invalid database failure attribution');
+      const seenFailures = new Set();
+      let samples = 0,
+        unavailable = false;
+      for (const group of d.failureGroups) {
+        exact(group, [
+          'outcome',
+          'category',
+          'name',
+          'code',
+          'samples',
+          'durationMs',
+          'maxDurationMs',
+        ]);
+        if (!['error', 'timeout', 'busy'].includes(group.outcome))
+          throw new Error('Invalid database failure outcome');
+        if (group.category === 'unavailable') {
+          if (group.name !== 'NONE' || group.code !== 'NONE')
+            throw new Error('Invalid legacy database attribution');
+          unavailable = true;
+        } else
+          validateDatabaseDiagnostic(
+            { category: group.category, name: group.name, code: group.code },
+            group.outcome,
+          );
+        const key = JSON.stringify([
+          group.outcome,
+          group.category,
+          group.name,
+          group.code,
+        ]);
+        if (seenFailures.has(key))
+          throw new Error('Duplicate database failure attribution');
+        seenFailures.add(key);
+        safe(group.samples);
+        safe(group.durationMs);
+        safe(group.maxDurationMs);
+        if (
+          !group.samples ||
+          group.maxDurationMs > group.durationMs ||
+          group.durationMs > group.samples * group.maxDurationMs
+        )
+          throw new Error('Invalid database failure durations');
+        samples = safe(samples + group.samples);
+      }
+      if (
+        samples !== d.failedSamples ||
+        d.failureAttributionAvailable === unavailable
+      )
+        throw new Error('Nonconserved database failure attribution');
+    }
     if (!Array.isArray(d.groups) || d.groups.length > 72)
       throw new Error('Invalid causal database');
     const seen = new Set();

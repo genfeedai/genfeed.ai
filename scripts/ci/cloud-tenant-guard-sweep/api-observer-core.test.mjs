@@ -385,3 +385,174 @@ test('empty histogram remains unmeasured and malformed DB sample is counted with
   assert.equal(f.lines.at(-1).unavailable, true);
   assert.equal(JSON.stringify(f.lines).includes('private-token'), false);
 });
+
+for (const [message, category] of [
+  ['Query read timeout', 'query-read-timeout'],
+  ['Connection terminated due to connection timeout', 'connection-timeout'],
+])
+  test(`native DB diagnostic retains ${category} without changing outcome`, async () => {
+    let queries = 0;
+    const f = fixture({
+      pool: {
+        query: async () => {
+          queries++;
+          throw new Error(message);
+        },
+        end: async () => {},
+      },
+    });
+    f.databaseTick();
+    await new Promise((resolve) => setImmediate(resolve));
+    f.stop();
+    const record = f.lines.find((r) => r.kind === 'database');
+    assert.equal(record.outcome, 'error');
+    assert.deepEqual(record.diagnostic, {
+      category,
+      name: 'Error',
+      code: 'NONE',
+    });
+    assert.equal(queries, 1);
+  });
+
+for (const [error, category, outcome] of [
+  [
+    { name: 'Error', code: '57014', message: 'hostile SQL canary' },
+    'query-canceled',
+    'timeout',
+  ],
+  [
+    { name: 'Error', message: 'Connection terminated' },
+    'connection-terminated',
+    'error',
+  ],
+  [
+    { name: 'error', message: 'Connection terminated unexpectedly' },
+    'connection-terminated',
+    'error',
+  ],
+  [
+    { name: 'TimeoutError', message: 'hostile SQL canary' },
+    'timeout',
+    'timeout',
+  ],
+  [
+    { name: 'Error', code: 'ECONNRESET', message: 'hostile SQL canary' },
+    'transport',
+    'error',
+  ],
+  [
+    { name: 'DatabaseError', code: '40001', message: 'hostile SQL canary' },
+    'database',
+    'error',
+  ],
+  [
+    {
+      name: 'hostile-name',
+      code: 'hostile-code',
+      message: 'hostile SQL canary',
+      cause: { code: '57014' },
+    },
+    'other',
+    'error',
+  ],
+])
+  test(`native database classifier preserves ${category}/${outcome}`, async () => {
+    let calls = 0;
+    const f = fixture({
+      pool: {
+        query: async (query) => {
+          calls++;
+          assert.equal(query, DATABASE_QUERY);
+          throw error;
+        },
+        end: async () => {},
+      },
+    });
+    f.databaseTick();
+    await new Promise((resolve) => setImmediate(resolve));
+    f.stop();
+    const r = f.lines.find((record) => record.kind === 'database');
+    assert.equal(r.outcome, outcome);
+    assert.equal(r.diagnostic.category, category);
+    assert.equal(calls, 1);
+    assert.doesNotMatch(JSON.stringify(r), /hostile|cause|message|stack|SQL/);
+    validateObservationRecord(r);
+  });
+test('database diagnostic validates legacy/new success/failure and rejects unsafe optional fields', async () => {
+  const base = {
+    kind: 'database',
+    start: 1,
+    end: 2,
+    outcome: 'success',
+    groups: [],
+  };
+  validateObservationRecord(base);
+  validateObservationRecord({ ...base, diagnostic: null });
+  const error = { ...base, outcome: 'error' };
+  validateObservationRecord(error);
+  validateObservationRecord({
+    ...error,
+    diagnostic: { category: 'query-read-timeout', name: 'Error', code: 'NONE' },
+  });
+  for (const diagnostic of [
+    null,
+    { category: 'other', name: 'secret', code: 'NONE' },
+    { category: 'other', name: 'Error', code: 'secret' },
+    { category: 'other', name: 'Error', code: 'NONE', message: 'secret' },
+    { category: 'busy', name: 'NONE', code: 'NONE' },
+  ])
+    assert.throws(() => validateObservationRecord({ ...error, diagnostic }));
+  assert.throws(() =>
+    validateObservationRecord({
+      ...base,
+      diagnostic: { category: 'other', name: 'Error', code: 'NONE' },
+    }),
+  );
+  assert.throws(() =>
+    validateObservationRecord({ ...base, diagnostic: null, sql: 'canary' }),
+  );
+  const malformed = fixture({
+    pool: {
+      query: async () => ({
+        rows: [
+          {
+            state: 'active',
+            wait_event_type: null,
+            sessions: -1,
+            blocked_sessions: 0,
+            active_age_ms: 0,
+          },
+        ],
+      }),
+      end: async () => {},
+    },
+  });
+  malformed.databaseTick();
+  await new Promise((resolve) => setImmediate(resolve));
+  malformed.stop();
+  assert.deepEqual(
+    malformed.lines.find((r) => r.kind === 'database').diagnostic,
+    { category: 'invalid-rows', name: 'NONE', code: 'NONE' },
+  );
+  let resolveQuery;
+  const busy = fixture({
+    pool: {
+      query: () =>
+        new Promise((resolve) => {
+          resolveQuery = resolve;
+        }),
+      end: async () => {},
+    },
+  });
+  busy.databaseTick();
+  await new Promise((resolve) => setImmediate(resolve));
+  busy.databaseTick();
+  assert.deepEqual(busy.lines.find((r) => r.kind === 'database').diagnostic, {
+    category: 'busy',
+    name: 'NONE',
+    code: 'NONE',
+  });
+  resolveQuery({ rows: [] });
+  await new Promise((resolve) => setImmediate(resolve));
+  busy.stop();
+});

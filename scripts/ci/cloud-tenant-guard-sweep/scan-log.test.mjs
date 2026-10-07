@@ -465,3 +465,61 @@ test('real scanner rejects malformed recovered historical proof', (context) => {
   assert.equal(f.scan().status, 1);
   assert.throws(() => readFileSync(f.summaryPath));
 });
+
+test('actual final scanner conserves canonical response and uncorrelated duplicated log hits', (context) => {
+  const proof = {
+    verificationRequired: true,
+    noUnverifiedSession: true,
+    acceptedMail: true,
+    verifiedAuthentication: true,
+  };
+  const f = setupScanner(context, proof);
+  const canary = 'SECRET-cookie-token-SQL';
+  f.report.inventoryTemplates = ['/v1/posts'];
+  f.report.requests = [
+    {
+      actor: 'S:A',
+      phase: 'get',
+      sweepPhase: 'superadminOverrideGets',
+      method: 'GET',
+      route: '/v1/posts',
+      status: 500,
+      hasTenantHit: true,
+      message: `Tenant isolation: findMany on Post used organizationId ${canary} but the request tenant is ${canary}`,
+    },
+  ];
+  const line = `Tenant isolation: findMany on Post is missing organizationId in CLOUD mode. ${canary}\n`;
+  writeFileSync(join(f.directory, 'api.log'), line + line, { mode: 0o600 });
+  f.save();
+  const result = f.scan();
+  assert.equal(result.status, 1, result.stderr);
+  const summary = JSON.parse(readFileSync(f.summaryPath, 'utf8'));
+  assert.equal(summary.fixtureProofAvailable, true);
+  assert.equal(summary.tenantEvidence.responseHits, 1);
+  assert.equal(summary.tenantEvidence.logHits, 2);
+  assert.equal(summary.tenantEvidence.responseGroups[0].route, '/v1/posts');
+  assert.equal(summary.tenantEvidence.responseGroups[0].actor, 'S:A');
+  assert.equal(summary.tenantEvidence.logGroups[0].count, 2);
+  assert.equal(summary.tenantEvidence.logGroups[0].route, 'unknown');
+  assert.ok(summary.failureEvidence.groups.some((x) => x.label === 'unknown'));
+  assert.doesNotMatch(JSON.stringify(summary), /SECRET|cookie|token-SQL/);
+  assert.doesNotMatch(result.stdout, /SECRET|organizationId|findMany/);
+});
+test('actual final scanner keeps complete proof and healthy no-hit report passing', (context) => {
+  const f = setupScanner(context, {
+    verificationRequired: true,
+    noUnverifiedSession: true,
+    acceptedMail: true,
+    verifiedAuthentication: true,
+  });
+  f.report.hasFailed = false;
+  f.report.failures = [];
+  f.save();
+  const result = f.scan();
+  assert.equal(result.status, 0, result.stderr);
+  const summary = JSON.parse(readFileSync(f.summaryPath, 'utf8'));
+  assert.equal(summary.fixtureProofAvailable, true);
+  assert.equal(summary.tenantEvidence.responseHits, 0);
+  assert.equal(summary.tenantEvidence.logHits, 0);
+  assert.equal(summary.failureEvidence.total, 0);
+});

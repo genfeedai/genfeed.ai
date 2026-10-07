@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { validateCausalEvidence } from './causal-evidence.mjs';
 import { validateCpuEvidence } from './cpu-profile-evidence.mjs';
 import { validateMailStats } from './local-mail-stub.mjs';
@@ -872,6 +873,294 @@ function buildSetupEvidence(report) {
   };
 }
 
+export const TENANT_EVIDENCE_OPERATIONS = [
+  'aggregate',
+  'count',
+  'delete',
+  'deleteMany',
+  'findFirst',
+  'findFirstOrThrow',
+  'findMany',
+  'findUnique',
+  'findUniqueOrThrow',
+  'groupBy',
+  'update',
+  'updateMany',
+  'updateManyAndReturn',
+  'upsert',
+];
+let tenantModels;
+function schemaModels() {
+  if (!tenantModels) {
+    const schema = readFileSync(
+      new URL('../../../packages/prisma/prisma/schema.prisma', import.meta.url),
+      'utf8',
+    );
+    tenantModels = new Set(
+      [...schema.matchAll(/^model ([A-Za-z_][A-Za-z0-9_]*) \{/gm)].map(
+        (match) => match[1],
+      ),
+    );
+    if (!tenantModels.size) {
+      tenantModels = undefined;
+      throw new Error('Missing tenant diagnostic schema models');
+    }
+  }
+  return tenantModels;
+}
+function tenantClassification(message) {
+  const text = typeof message === 'string' ? message : '';
+  const match = text.match(
+    /Tenant isolation: ([A-Za-z_][A-Za-z0-9_]*) on ([A-Za-z_][A-Za-z0-9_]*)(?= |$)/,
+  );
+  const model = schemaModels().has(match?.[2]) ? match[2] : 'unknown';
+  const operation = TENANT_EVIDENCE_OPERATIONS.includes(match?.[1])
+    ? match[1]
+    : 'unknown';
+  let reason = 'unknown';
+  if (match) {
+    const tail = text.slice(match.index + match[0].length);
+    if (tail.startsWith(' is missing organizationId in CLOUD mode.'))
+      reason = 'missing-organization-id';
+    else if (
+      /^ used organizationId [^\r\n]* but the request tenant is [^\r\n]*/.test(
+        tail,
+      )
+    )
+      reason = 'organization-id-mismatch';
+    else if (
+      /^ used billingAccountId [^\r\n]* without an active BillingAccountScope in CLOUD mode\./.test(
+        tail,
+      )
+    )
+      reason = 'billing-account-id-mismatch';
+  }
+  return { model, operation, reason };
+}
+function diagnosticGroups(values, maximum, label) {
+  const groups = new Map();
+  for (const tuple of values) {
+    const key = JSON.stringify(tuple);
+    const group = groups.get(key) ?? { ...tuple, count: 0 };
+    group.count = count(group.count + 1);
+    groups.set(key, group);
+    if (groups.size > maximum) throw new Error(`Too many ${label} groups`);
+  }
+  const result = [...groups]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([, group]) => group);
+  if (
+    result.reduce((sum, group) => count(sum + group.count), 0) !==
+    count(values.length)
+  )
+    throw new Error('Nonconserved diagnostic groups');
+  return result;
+}
+function buildTenantEvidence(report, templates) {
+  schemaModels();
+  const responses = (report.requests ?? [])
+    .filter((request) => request.hasTenantHit === true)
+    .map((request) => {
+      if (
+        !Number.isInteger(request.status) ||
+        request.status < 0 ||
+        request.status > 599
+      )
+        throw new Error('Invalid tenant response status');
+      return {
+        actor: DIAGNOSTIC_ACTORS.includes(request.actor)
+          ? request.actor
+          : 'unknown',
+        phase: DIAGNOSTIC_PHASES.includes(request.sweepPhase)
+          ? request.sweepPhase
+          : DIAGNOSTIC_PHASES.includes(request.phase)
+            ? request.phase
+            : 'unknown',
+        method: [
+          'GET',
+          'POST',
+          'PATCH',
+          'PUT',
+          'DELETE',
+          'OPTIONS',
+          'HEAD',
+        ].includes(request.method)
+          ? request.method
+          : 'other',
+        route: templates.has(request.route) ? request.route : 'unknown',
+        status: request.status,
+        ...tenantClassification(request.message),
+      };
+    });
+  const logs = (report.apiLogHits ?? []).map((record) => {
+    if (
+      typeof record !== 'string' &&
+      (!record ||
+        typeof record !== 'object' ||
+        typeof record.message !== 'string')
+    )
+      throw new Error('Unsafe tenant log evidence');
+    return {
+      logPartition: ['strict', 'superadminOverrideGets'].includes(record.phase)
+        ? record.phase
+        : 'unknown',
+      actor: 'unknown',
+      route: 'unknown',
+      ...tenantClassification(
+        typeof record === 'string' ? record : record.message,
+      ),
+    };
+  });
+  if (
+    report.tenantHitGroups !== undefined &&
+    !Array.isArray(report.tenantHitGroups)
+  )
+    throw new Error('Invalid observed tenant findings');
+  return {
+    version: 1,
+    responseHits: count(responses.length),
+    logHits: count(logs.length),
+    observedGroupedFindings:
+      report.tenantHitGroups === undefined
+        ? null
+        : count(report.tenantHitGroups.length),
+    responseGroups: diagnosticGroups(responses, 10000, 'tenant response'),
+    logGroups: diagnosticGroups(logs, 10000, 'tenant log'),
+  };
+}
+const STATIC_FAILURE_LABELS = new Map([
+  [
+    'Harness required proof or execution failed',
+    'harness-required-proof-or-execution',
+  ],
+  ['Fixture setup proof unavailable', 'fixture-proof-unavailable'],
+  ['Fixture setup proof incomplete', 'fixture-proof-incomplete'],
+  [
+    'Restricted transport recorded rejected requests',
+    'restricted-transport-refusal',
+  ],
+  ['Causal diagnostic evidence unavailable', 'causal-diagnostic-unavailable'],
+  [
+    'CPU profile diagnostic evidence unavailable',
+    'cpu-profile-diagnostic-unavailable',
+  ],
+  ['Final diagnostic evidence unavailable', 'final-diagnostic-unavailable'],
+  ['CPU profile trigger unavailable', 'cpu-trigger-unavailable'],
+  ['Sweep exceeded its 480-second wall-clock budget', 'sweep-budget'],
+  ['Harness exceeded its 570-second overall budget', 'overall-budget'],
+  ['Sweep did not produce a JSON report', 'missing-report'],
+  ['Cannot read final API stdout log', 'final-api-log-unavailable'],
+]);
+function failureClassification(value) {
+  if (typeof value !== 'string') throw new Error('Unsafe failure evidence');
+  const tuple = {
+    label: STATIC_FAILURE_LABELS.get(value) ?? 'unknown',
+    actor: 'unknown',
+    actual: null,
+    expected: null,
+    timeouts: null,
+  };
+  const actor = '(A|B|M2|M|S:A|M:A|M2:B|S)';
+  const rules = [
+    [
+      /^Only (\d+) GET routes discovered \(minimum (\d+)\)$/,
+      'get-inventory-minimum',
+      false,
+    ],
+    [
+      /^Only (\d+) distinct tools discovered \(minimum (\d+)\)$/,
+      'tool-inventory-minimum',
+      false,
+    ],
+    [
+      new RegExp(`^${actor}: only (\\d+)/(\\d+) GET routes attempted$`),
+      'get-attempt-coverage',
+      true,
+    ],
+    [
+      new RegExp(
+        `^${actor}: only (\\d+) GET requests reached the API without auth/throttle/transport failure \\(minimum (\\d+); (\\d+) timeouts reported separately\\)$`,
+      ),
+      'get-completion-coverage',
+      true,
+    ],
+    [
+      new RegExp(`^${actor}: (\\d+)/(\\d+) tool requests attempted$`),
+      'tool-attempt-coverage',
+      true,
+    ],
+    [
+      new RegExp(`^${actor}: (\\d+)/(\\d+) tool requests reached the API$`),
+      'tool-completion-coverage',
+      true,
+    ],
+    [
+      new RegExp(`^${actor}: only (\\d+) tools accepted \\(minimum (\\d+)\\)$`),
+      'tool-acceptance-minimum',
+      true,
+    ],
+  ];
+  for (const [regex, label, hasActor] of rules) {
+    const match = value.match(regex);
+    if (match) {
+      const offset = hasActor ? 2 : 1;
+      return {
+        label,
+        actor: hasActor ? match[1] : 'unknown',
+        actual: count(Number(match[offset])),
+        expected: count(Number(match[offset + 1])),
+        timeouts:
+          label === 'get-completion-coverage'
+            ? count(Number(match[offset + 2]))
+            : null,
+      };
+    }
+  }
+  const timeoutRatio = value.match(
+    /^(\d+)\/(\d+) requests timed out \(\d+\.\d{2}%; maximum (\d+) unresolved requests\)$/,
+  );
+  if (timeoutRatio) {
+    count(Number(timeoutRatio[2]));
+    return {
+      ...tuple,
+      label: 'unresolved-request-failure',
+      actual: count(Number(timeoutRatio[1])),
+      expected: count(Number(timeoutRatio[3])),
+    };
+  }
+  const unresolved = value.match(
+    /^(\d+) unresolved timeout\/transport requests cannot prove tenant safety$/,
+  );
+  if (unresolved)
+    return {
+      ...tuple,
+      label: 'unresolved-request-failure',
+      actual: count(Number(unresolved[1])),
+    };
+  for (const [prefix, label] of [
+    ['Expand/request ', 'route-request'],
+    ['Tool ', 'tool-request'],
+    ['Disconnect fixture client: ', 'fixture-disconnect'],
+    ['Cannot scan API stdout: ', 'api-log-read'],
+    ['Cannot load superadmin override baseline: ', 'baseline-read'],
+  ])
+    if (value.startsWith(prefix)) return { ...tuple, label };
+  return tuple;
+}
+function buildFailureEvidence(report) {
+  const failures = report.failures ?? [];
+  if (!Array.isArray(failures)) throw new Error('Unsafe failure list');
+  return {
+    version: 1,
+    total: count(failures.length),
+    groups: diagnosticGroups(
+      failures.map(failureClassification),
+      256,
+      'failure',
+    ),
+  };
+}
+
 export function buildDiagnosticSummary(report, fixtureProof = {}) {
   if (!/^[a-f0-9]{40}$/.test(report.sourceSha ?? ''))
     throw new Error('Immutable diagnostic source SHA required');
@@ -1061,6 +1350,8 @@ export function buildDiagnosticSummary(report, fixtureProof = {}) {
   return {
     schemaVersion: 1,
     setupEvidence: buildSetupEvidence(report),
+    tenantEvidence: buildTenantEvidence(report, templates),
+    failureEvidence: buildFailureEvidence(report),
     fixtureProofAvailable: fixtureProofState(fixtureProof).available,
     ...(report.cpuProfileEvidence === undefined
       ? {}
