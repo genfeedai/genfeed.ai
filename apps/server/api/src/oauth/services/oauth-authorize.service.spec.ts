@@ -61,6 +61,7 @@ function makeOrganization(
 
 function buildHarness() {
   const records = new Map<string, Record<string, unknown>>();
+  const membershipContexts: Array<string | undefined> = [];
   const apiKeysService = {
     createWithKey: vi.fn().mockResolvedValue({
       apiKey: {
@@ -93,6 +94,7 @@ function buildHarness() {
   const prisma = {
     organization: {
       findMany: vi.fn().mockImplementation(async (args: unknown) => {
+        membershipContexts.push(getTenantContext()?.organizationId);
         assertTenantScopedQuery({
           args,
           isCloud: true,
@@ -174,6 +176,7 @@ function buildHarness() {
 
   return {
     apiKeysService,
+    membershipContexts,
     organizations,
     prisma,
     refreshTokenService,
@@ -732,24 +735,10 @@ describe('Claude resource grant', () => {
 describe('OAuth consent HTTP tenant context', () => {
   let app: INestApplication;
   let harness: ReturnType<typeof buildHarness>;
-  const contexts: Array<string | undefined> = [];
 
   beforeEach(async () => {
     harness = buildHarness();
     harness.organizations.push(makeOrganization('org-2'));
-    contexts.length = 0;
-    const findMany = vi
-      .mocked(harness.prisma.organization.findMany)
-      .getMockImplementation();
-    vi.mocked(harness.prisma.organization.findMany).mockImplementation(
-      async (...args) => {
-        contexts.push(getTenantContext()?.organizationId);
-        if (!findMany) {
-          throw new Error('Missing membership discovery implementation');
-        }
-        return findMany(...args);
-      },
-    );
     const moduleRef = await Test.createTestingModule({
       controllers: [OAuthAuthorizeController],
       providers: [
@@ -787,7 +776,7 @@ describe('OAuth consent HTTP tenant context', () => {
       .post('/v1/oauth/authorize/decision')
       .send(decision({ organizationId: 'org-2' }))
       .expect(201);
-    expect(contexts).toEqual(['org-1']);
+    expect(harness.membershipContexts).toEqual(['org-1']);
     expect(harness.prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ organizationId: 'org-2' }),
     });
