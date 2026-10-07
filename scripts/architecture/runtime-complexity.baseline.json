@@ -186,7 +186,7 @@
     "symbol": "FacebookService.getPostAnalytics"
   },
   {
-    "actual": 1049,
+    "actual": 1024,
     "file": "apps/server/api/src/services/integrations/meta-ads/services/meta-ads.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/integrations/meta-ads/services/meta-ads.service.ts"
