@@ -164,6 +164,11 @@ describe('PersonaGrantsController (#6037)', () => {
         handle: () =>
           defer(() => {
             pinnedOrganizationId = getTenantContext()?.organizationId;
+            expect(pinnedOrganizationId).toBe(
+              isSuperAdmin && organizationQuery === foreignOrganizationId
+                ? foreignOrganizationId
+                : organizationId,
+            );
             return controller.listGrants(actor, id, organizationQuery);
           }),
       };
@@ -229,7 +234,7 @@ describe('PersonaGrantsController (#6037)', () => {
     it('preserves no-query persona ID validation', async () => {
       await expect(
         listWithTenant(true, undefined, 'invalid-persona'),
-      ).rejects.toMatchObject({ status: 400 });
+      ).rejects.toMatchObject({ status: 422 });
       expect(grants.listForPersona).not.toHaveBeenCalled();
       expect(delegate).not.toHaveBeenCalled();
     });

@@ -27,6 +27,7 @@ export function createRequester({
     const url = new URL(path, baseUrl);
     if (url.origin !== new URL(baseUrl).origin)
       throw new Error(`Off-origin sweep request: ${url.origin}`);
+    const organizationQueryPresent = url.searchParams.has('organizationId');
     let outcome;
     const requestPhase = options.phase ?? phase;
     const isSetup = ['fixture', 'warmup'].includes(requestPhase);
@@ -92,6 +93,7 @@ export function createRequester({
           path,
           status: response.status,
           phase: requestPhase,
+          organizationQueryPresent,
           route: options.route ?? path,
           hasTenantHit: Boolean(message),
           message,
@@ -110,6 +112,7 @@ export function createRequester({
           path,
           status: 0,
           phase: requestPhase,
+          organizationQueryPresent,
           route: options.route ?? path,
           hasTenantHit: Boolean(tenantHit(String(error))),
           message: tenantHit(String(error)),

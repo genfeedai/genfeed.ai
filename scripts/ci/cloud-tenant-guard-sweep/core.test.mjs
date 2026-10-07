@@ -834,3 +834,81 @@ test('safe summary keeps unstarted inventory and excludes private request detail
     }),
   );
 });
+
+test('controls query syntax counts retained attempts independently of coverage and actor', async () => {
+  const { buildDiagnosticSummary } = await import('./core.mjs');
+  const { classifyHits } = await import('./baseline.mjs');
+  const requests = [
+    {
+      phase: 'controls',
+      actor: 'S',
+      organizationQueryPresent: true,
+      isRetry: true,
+    },
+    {
+      phase: 'controls',
+      actor: 'S',
+      organizationQueryPresent: true,
+      hasTenantHit: true,
+      method: 'GET',
+      route: '/v1/personas/{id}/grants',
+      status: 500,
+      message:
+        'Tenant isolation: findFirst on Persona is missing organizationId',
+      path: '/v1/personas/private-id/grants?organizationId=private-org',
+    },
+    { phase: 'controls', actor: 'M', organizationQueryPresent: false },
+    { phase: 'controls', actor: 'S' },
+    { phase: 'get', actor: 'S:A', organizationQueryPresent: true },
+  ];
+  const report = {
+    sourceSha: 'a'.repeat(40),
+    requests,
+    inventoryTemplates: ['/v1/personas/{id}/grants'],
+    inventory: {
+      superadminOverrideGets: {
+        'S:A': { discovered: 613, enqueued: 0, started: 0, completed: 0 },
+      },
+    },
+  };
+  const summary = buildDiagnosticSummary(report);
+  assert.deepEqual(summary.controlOrganizationQueryAttempts, {
+    present: 2,
+    absent: 1,
+    unknown: 1,
+  });
+  assert.equal(summary.schemaVersion, 1);
+  assert.equal(
+    summary.phases.superadminOverrideGets.coverage['S:A'].completed,
+    0,
+  );
+  assert.equal(
+    summary.phases.superadminOverrideGets.coverage['S:A'].unstarted,
+    613,
+  );
+  assert.equal(summary.tenantHits.strict, 1);
+  assert.equal(summary.tenantHits.override, 0);
+  assert.equal(summary.slowRoutes[0].route, '/v1/personas/{id}/grants');
+  assert.doesNotMatch(
+    JSON.stringify(summary),
+    /private-id|private-org|organizationId=/,
+  );
+  const hits = classifyHits(requests, [], { entries: [] });
+  assert.equal(hits.tenantHitGroups.length, 1);
+  assert.equal(hits.knownHits.length, 0);
+  assert.equal(hits.suggestedBaseline.entries.length, 0);
+});
+
+for (const value of [null, undefined, 0, 1, 'true', [], {}]) {
+  test(`rejects nonboolean query-presence evidence ${JSON.stringify(value)}`, async () => {
+    const { buildDiagnosticSummary } = await import('./core.mjs');
+    assert.throws(
+      () =>
+        buildDiagnosticSummary({
+          sourceSha: 'a'.repeat(40),
+          requests: [{ phase: 'controls', organizationQueryPresent: value }],
+        }),
+      /organization query presence/,
+    );
+  });
+}

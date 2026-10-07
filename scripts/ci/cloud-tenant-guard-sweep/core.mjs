@@ -756,7 +756,26 @@ export function buildDiagnosticSummary(report, fixtureProof = {}) {
     names: Object.fromEntries(ERROR_NAMES.map((value) => [value, 0])),
   };
   const routes = new Map();
+  const controlOrganizationQueryAttempts = {
+    present: 0,
+    absent: 0,
+    unknown: 0,
+  };
   for (const request of report.requests ?? []) {
+    if (
+      Object.hasOwn(request, 'organizationQueryPresent') &&
+      typeof request.organizationQueryPresent !== 'boolean'
+    )
+      throw new Error('Unsafe diagnostic organization query presence');
+    if (request.phase === 'controls') {
+      const kind =
+        request.organizationQueryPresent === true
+          ? 'present'
+          : request.organizationQueryPresent === false
+            ? 'absent'
+            : 'unknown';
+      controlOrganizationQueryAttempts[kind]++;
+    }
     if (request.status === 0) {
       if (
         !ABORT_SOURCES.includes(request.abortSource) ||
@@ -797,6 +816,7 @@ export function buildDiagnosticSummary(report, fixtureProof = {}) {
     ),
     mail: structuredClone(mail),
     phases,
+    controlOrganizationQueryAttempts,
     aborts,
     errors,
     limiter: {

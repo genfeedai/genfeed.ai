@@ -9,9 +9,11 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 
@@ -38,7 +40,19 @@ export class PersonaGrantsController {
   }
 
   @Get(':id/grants')
-  async listGrants(@CurrentUser() user: User, @Param('id') id: string) {
+  async listGrants(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Query('organizationId') organizationId?: unknown,
+  ) {
+    if (
+      organizationId !== undefined &&
+      (typeof organizationId !== 'string' ||
+        !EntityIdUtil.isValid(organizationId.trim()) ||
+        organizationId.trim() !== user.organizationId)
+    ) {
+      throw new ForbiddenException('Organization context changed');
+    }
     return {
       grants: await this.grantsService.listForPersona({
         brandId: user.brandId,

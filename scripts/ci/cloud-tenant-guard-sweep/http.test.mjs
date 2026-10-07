@@ -543,3 +543,47 @@ test('parent deadline abort remains overall rather than request timeout', async 
   });
   assert.equal(records[0].abortSource, 'overall');
 });
+
+for (const [query, present] of [
+  ['', false],
+  ['?other=private', false],
+  ['?organizationId=private', true],
+  ['?organizationId=', true],
+  ['?organizationId=private&organizationId=another', true],
+  ['?%6FrganizationId=private', true],
+]) {
+  for (const outcome of ['success', 'transport', 'retry']) {
+    test(`records actual organization query presence ${JSON.stringify(query)} on ${outcome}`, async () => {
+      const records = [];
+      let calls = 0;
+      const request = createRequester({
+        baseUrl: 'http://localhost:3010',
+        records,
+        wait: async () => {},
+        fetchImpl: async () => {
+          calls++;
+          if (outcome === 'transport')
+            throw new TypeError('Synthetic transport failure');
+          return {
+            status: outcome === 'retry' && calls === 1 ? 429 : 200,
+            headers: new Headers(),
+            text: async () => '{}',
+          };
+        },
+      });
+      await request({ label: 'S' }, 'GET', `/v1/example${query}`, {
+        organizationQueryPresent: !present,
+      });
+      assert.equal(records.length, outcome === 'retry' ? 2 : 1);
+      assert.ok(
+        records.every((record) => record.organizationQueryPresent === present),
+      );
+      assert.ok(
+        records.every(
+          (record) => !Object.hasOwn(record, 'organizationQueryValue'),
+        ),
+      );
+      if (outcome === 'retry') assert.equal(records[0].isRetry, true);
+    });
+  }
+}

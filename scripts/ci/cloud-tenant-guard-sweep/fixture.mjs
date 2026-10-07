@@ -490,11 +490,12 @@ export async function sweepOrganizationAndGrants(request, fixture) {
     await request(actor, 'GET', '/v1/personas/grantable-organizations');
     await request(actor, 'GET', `/v1/personas/${personaId}/grants`);
   }
-  // Read the grant as a member of its recipient, before the final revoke.
+  // Owner-only grant reads refuse a superadmin query conflicting with its session.
   await request(
     superadmin,
     'GET',
     `/v1/personas/${personaId}/grants?organizationId=${orgA.organizationId}`,
+    { route: '/v1/personas/{id}/grants' },
   );
   // Grant management is owner-only. The receiving member must see 404,
   // while their brand's persona collection must expose the granted identity.

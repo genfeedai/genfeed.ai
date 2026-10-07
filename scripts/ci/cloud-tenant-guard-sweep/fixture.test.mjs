@@ -315,8 +315,8 @@ test('HTTP fixture verifies before sign-in without a sign-up session, elevates b
 
 test('control sweep retains later requests after a thrown-mode response hit', async () => {
   const calls = [];
-  const request = async (actor, method, path) => {
-    calls.push({ actor: actor.label, method, path });
+  const request = async (actor, method, path, options) => {
+    calls.push({ actor: actor.label, method, path, options });
     return {
       record: {
         status: path.includes('activate') ? 200 : 500,
@@ -336,6 +336,18 @@ test('control sweep retains later requests after a thrown-mode response hit', as
     personaId: 'cpersonaA12345',
     grantId: 'cgrant12345',
   });
+  const overrideControl = calls.find((call) =>
+    call.path.includes('?organizationId='),
+  );
+  assert.equal(overrideControl.actor, 'S');
+  assert.equal(
+    overrideControl.path,
+    '/v1/personas/cpersonaA12345/grants?organizationId=corgA12345',
+  );
+  assert.deepEqual(overrideControl.options, {
+    route: '/v1/personas/{id}/grants',
+  });
+  assert.equal(calls.length, 17);
   assert.equal(calls.filter((call) => call.method === 'POST').length, 2);
   assert.equal(
     calls.filter((call) => call.path.endsWith('activate')).length,
