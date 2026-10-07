@@ -176,7 +176,12 @@ it('list/get/recapture retain canonical pagination and exact unchanged path sele
     limit: 20,
   });
   await request(app.getHttpServer()).get(`${base}/${view.id}`).expect(200);
-  expect(sources.get).toHaveBeenCalledWith(user, user.brandId, view.id);
+  expect(sources.get).toHaveBeenCalledWith(user, user.brandId, view.id, {
+    organizationId: user.organizationId,
+    brandId: user.brandId,
+    isOrganizationOverride: false,
+  });
+  expect(sources.get.mock.calls[0][0]).toBe(user);
   const body = { requestId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
   await request(app.getHttpServer())
     .post(`${base}/${view.id}/recaptures`)

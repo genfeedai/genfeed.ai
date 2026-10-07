@@ -41,6 +41,7 @@ import {
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  getTenantContext,
   isCrossOrgUnsafe,
   runWithTenantContext,
 } from '@libs/prisma/tenant-context';
@@ -825,14 +826,65 @@ describe('BrandsController', () => {
     });
 
     it('leaves a brand without an organization untouched', async () => {
+      const row = { ...mockBrand, organizationId: null };
       const decorated = await controller.decorateForResponse(
-        { ...mockBrand, organizationId: null } as never,
+        row as never,
         mockUser,
       );
 
+      expect(brandsService.attachBrandKitAssetRelations).not.toHaveBeenCalled();
       expect(credentialsService.find).not.toHaveBeenCalled();
+      expect(decorated).toBe(row);
       expect(decorated.credentials).toBeUndefined();
     });
+
+    it.each([mockUser.organizationId, testId('org', 2)])(
+      'hydrates assets before credentials under the row organization %s',
+      async (organizationId) => {
+        const row = { ...mockBrand, organizationId } as BrandDocument;
+        const identityBefore = { ...mockUser };
+        const order: string[] = [];
+        brandsService.attachBrandKitAssetRelations.mockImplementation(
+          async (brands, org) => {
+            expect(org).toBe(organizationId);
+            expect(getTenantContext()).toEqual({ organizationId });
+            order.push('assets-start');
+            await Promise.resolve();
+            expect(getTenantContext()).toEqual({ organizationId });
+            order.push('assets-end');
+            return brands.map((brand) => ({ ...brand, label: 'hydrated' }));
+          },
+        );
+        credentialsService.find.mockImplementation(async (query) => {
+          expect(query).toEqual({
+            brandId: row.id,
+            organizationId,
+            isDeleted: false,
+          });
+          expect(getTenantContext()).toEqual({ organizationId });
+          order.push('credentials');
+          return [];
+        });
+        const outerOrg = testId('org', 3);
+        const decorated = await runWithTenantContext(
+          { organizationId: outerOrg },
+          async () => {
+            const result = await controller.decorateForResponse(row, mockUser);
+            expect(getTenantContext()).toEqual({ organizationId: outerOrg });
+            return result;
+          },
+        );
+        expect(order).toEqual(['assets-start', 'assets-end', 'credentials']);
+        expect(decorated).toMatchObject({
+          id: row.id,
+          organizationId,
+          label: 'hydrated',
+          credentials: [],
+        });
+        expect(row).not.toHaveProperty('credentials');
+        expect(mockUser).toEqual(identityBefore);
+      },
+    );
   });
 
   describe('brand created by the caller in another organization', () => {

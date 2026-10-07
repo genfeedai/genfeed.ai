@@ -7,7 +7,7 @@ import {
   verifyBrandAccess,
   verifyBrandSlugAccess,
 } from '@api/collections/brands/controllers/brand-access.helpers';
-import { attachBrandCredentialRelations } from '@api/collections/brands/controllers/brand-credential-relations.helpers';
+import { decorateBrandResponse } from '@api/collections/brands/controllers/brand-response.helpers';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
@@ -44,10 +44,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { BrandSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  crossOrgUnsafe,
-  runWithTenantContext,
-} from '@libs/prisma/tenant-context';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import {
   BadRequestException,
   Body,
@@ -451,27 +448,10 @@ export class BrandsController extends BaseCRUDController<
     brand: BrandDocument,
     _user: User,
   ): Promise<BrandDocument> {
-    // The brand's own org owns its assets — never the caller's session org,
-    // which differs for a superadmin reading across tenants.
-    const organizationId = brand.organizationId;
-
-    if (typeof organizationId !== 'string' || !organizationId) {
-      return brand;
-    }
-
-    // Reads run under the brand's own organization: a relocation response
-    // carries the destination org and a superadmin reads across tenants.
-    return runWithTenantContext({ organizationId }, async () =>
-      attachBrandCredentialRelations(
-        this.credentialsService,
-        (
-          await this.brandsService.attachBrandKitAssetRelations(
-            [brand],
-            organizationId,
-          )
-        )[0],
-        organizationId,
-      ),
+    return decorateBrandResponse(
+      brand,
+      this.brandsService,
+      this.credentialsService,
     );
   }
 
