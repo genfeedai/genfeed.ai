@@ -200,16 +200,11 @@ for (const { model, editing } of [
       .getByTestId('studio-generate-prompt')
       .getByRole('textbox');
     if (!editing) {
+      // Trigger name is `Generation setup: {summary}`; models are Configure Model.
+      await page.getByRole('button', { name: /^Generation setup:/ }).click();
       await page
-        .getByRole('button', { name: 'Generation setup', exact: true })
+        .getByRole('button', { name: 'Configure Model', exact: true })
         .click();
-      await page
-        .getByRole('button', { name: 'Edit Type', exact: true })
-        .click();
-      await page
-        .getByRole('combobox', { name: 'Generation type', exact: true })
-        .click();
-      await page.getByRole('option', { name: 'Image', exact: true }).click();
       await page
         .getByRole('option')
         .filter({ hasText: 'FLUX.3' })
