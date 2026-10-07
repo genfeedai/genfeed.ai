@@ -14,6 +14,10 @@ const WORKFLOWS_DIRECTORY = path.join(
 // file plus a job it must still define. Adding a scheduled workflow requires
 // adding its family here, and removing an owner job fails the test.
 const SUITE_FAMILY_OWNERS = {
+  'cla-status-recovery': {
+    workflow: 'cla-status-recovery.yml',
+    job: 'recover',
+  },
   'api-e2e-full': { workflow: 'e2e.yml', job: 'e2e-api-full' },
   'frontend-e2e-authed': { workflow: 'e2e.yml', job: 'e2e-frontend-authed' },
   'frontend-playwright-full': {
