@@ -9,6 +9,7 @@ import { runInNewContext } from 'node:vm';
 import { RECOVERY_GREEN_THRESHOLD } from './scheduled-failure-tracker.mjs';
 
 import './coverage-failure-reporter.test.mjs';
+import './cla-status-recovery.test.mjs';
 import './full-suite-evidence.test.mjs';
 import './nightly-e2e-failure-reporter.test.mjs';
 import './nightly-playwright-full-failure-reporter.test.mjs';
