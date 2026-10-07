@@ -1,3 +1,4 @@
+import { readRecordOrNull } from '@genfeedai/contracts/constants/type-guards.constant';
 export type LastGeneratedAssetKind = 'audio' | 'image' | 'video';
 
 export interface LastGeneratedAsset {
@@ -13,14 +14,6 @@ export interface LastGeneratedIngredientCandidate {
 
 const VIDEO_EXTENSIONS = ['.mp4', '.mov', '.webm'];
 const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.ogg'];
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-
-  return value as Record<string, unknown>;
-}
 
 function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
@@ -81,7 +74,7 @@ function parseEpochTime(timestamp?: string): number | null {
 }
 
 function extractFromIngredient(value: unknown): LastGeneratedAsset | null {
-  const ingredient = asRecord(value);
+  const ingredient = readRecordOrNull(value);
   if (!ingredient) {
     return null;
   }
@@ -101,7 +94,7 @@ function extractFromIngredient(value: unknown): LastGeneratedAsset | null {
 }
 
 function extractFromOutputVariant(value: unknown): LastGeneratedAsset | null {
-  const variant = asRecord(value);
+  const variant = readRecordOrNull(value);
   if (!variant) {
     return null;
   }
@@ -120,7 +113,7 @@ function extractFromOutputVariant(value: unknown): LastGeneratedAsset | null {
 }
 
 function extractFromAction(value: unknown): LastGeneratedAsset | null {
-  const action = asRecord(value);
+  const action = readRecordOrNull(value);
   if (!action) {
     return null;
   }
@@ -157,7 +150,7 @@ function extractFromAction(value: unknown): LastGeneratedAsset | null {
 export function extractLastGeneratedAssetFromMetadata(
   metadata: unknown,
 ): LastGeneratedAsset | null {
-  const record = asRecord(metadata);
+  const record = readRecordOrNull(metadata);
   if (!record) {
     return null;
   }

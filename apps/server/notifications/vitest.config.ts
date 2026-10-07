@@ -24,6 +24,13 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, './src/config'),
       },
       {
+        find: '@genfeedai/contracts/constants/type-guards.constant',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/contracts/src/constants/type-guards.constant.ts',
+        ),
+      },
+      {
         find: '@genfeedai/contracts/constants',
         replacement: path.resolve(
           serviceDir,

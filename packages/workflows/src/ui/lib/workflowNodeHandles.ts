@@ -1,4 +1,5 @@
 import { getActionDefinition } from '@genfeedai/actions';
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import type {
   NodeType,
   VisualNodeDefinition,
@@ -9,10 +10,6 @@ import { getNodeDefinition } from '../../nodes/registry/merged-registry';
 import type { SaaSHandleType } from '../../nodes/types';
 import { createActionVisualDefinition } from '../nodes/saas/action-schema';
 import { generateHandlesFromSchema } from './schemaHandles';
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 export function resolveWorkflowNodeDefinition(
   nodeType: string,

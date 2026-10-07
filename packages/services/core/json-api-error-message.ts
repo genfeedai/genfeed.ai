@@ -1,3 +1,5 @@
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
+
 interface JsonApiErrorDocument {
   readonly errors?: unknown;
 }
@@ -7,10 +9,6 @@ export interface JsonApiErrorMemberView {
   readonly detail?: string;
   readonly status?: number;
   readonly title?: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function parseHttpStatusCode(value: unknown): number | undefined {

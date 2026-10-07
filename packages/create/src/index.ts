@@ -50,7 +50,7 @@ interface RunCommandOptions {
 
 type FetchImplementation = typeof fetch;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function isNonNullObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
@@ -108,7 +108,7 @@ export async function resolveReleaseTag(
   }
 
   const payload: unknown = await response.json();
-  if (!isRecord(payload)) {
+  if (!isNonNullObject(payload)) {
     throw new Error('GitHub returned invalid latest-release metadata.');
   }
 
@@ -126,7 +126,7 @@ export function readPackageVersion(
   const manifest: unknown = JSON.parse(
     readFileSync(fileURLToPath(packageJsonUrl), 'utf8'),
   );
-  if (!isRecord(manifest) || typeof manifest.version !== 'string') {
+  if (!isNonNullObject(manifest) || typeof manifest.version !== 'string') {
     throw new Error('Could not read the @genfeedai/create package version.');
   }
 
@@ -178,7 +178,7 @@ export function parseReleaseManifest(
   expectedReleaseTag: string,
 ): ReleaseManifest {
   const parsed: unknown = JSON.parse(content);
-  if (!isRecord(parsed)) {
+  if (!isNonNullObject(parsed)) {
     throw new Error('Release manifest is not an object.');
   }
 

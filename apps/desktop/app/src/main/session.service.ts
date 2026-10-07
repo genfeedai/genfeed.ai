@@ -1,4 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { isObjectLike } from '@genfeedai/contracts/constants/type-guards.constant';
 import type {
   IDesktopSession as IDesktopContractSession,
   IDesktopEnvironment,
@@ -128,16 +129,13 @@ interface ResolvedDesktopUser {
   userName?: string;
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
-
 const isOptionalString = (value: unknown): value is string | undefined =>
   value === undefined || typeof value === 'string';
 
 const parseDesktopAuthExchangeResponse = (
   value: unknown,
 ): DesktopAuthExchangeResponse | null => {
-  if (!isRecord(value)) {
+  if (!isObjectLike(value)) {
     return null;
   }
 
@@ -165,7 +163,11 @@ const parseDesktopAuthExchangeResponse = (
 };
 
 const parseWhoamiUser = (value: unknown): ResolvedDesktopUser | null => {
-  if (!isRecord(value) || !isRecord(value.data) || !isRecord(value.data.user)) {
+  if (
+    !isObjectLike(value) ||
+    !isObjectLike(value.data) ||
+    !isObjectLike(value.data.user)
+  ) {
     return null;
   }
 
@@ -188,7 +190,7 @@ const parseWhoamiUser = (value: unknown): ResolvedDesktopUser | null => {
 };
 
 const parseSessionCookie = (value: unknown): IDesktopSessionCookie | null => {
-  if (!isRecord(value)) {
+  if (!isObjectLike(value)) {
     return null;
   }
 
@@ -231,7 +233,7 @@ const parseSessionCookie = (value: unknown): IDesktopSessionCookie | null => {
 };
 
 const parseDesktopSession = (value: unknown): IDesktopSession | null => {
-  if (!isRecord(value)) {
+  if (!isObjectLike(value)) {
     return null;
   }
 
@@ -310,13 +312,13 @@ const failedCallback = (
 });
 
 const parseApiErrorDetail = (value: unknown): string | null => {
-  if (!isRecord(value) || !Array.isArray(value.errors)) {
+  if (!isObjectLike(value) || !Array.isArray(value.errors)) {
     return null;
   }
 
   const [first] = value.errors;
 
-  if (!isRecord(first) || typeof first.detail !== 'string') {
+  if (!isObjectLike(first) || typeof first.detail !== 'string') {
     return null;
   }
 

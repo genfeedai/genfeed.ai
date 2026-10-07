@@ -71,7 +71,11 @@ describe('check-local-type-guards', () => {
     expect(violations.map((v) => v.kind)).toEqual(['stale-baseline']);
   });
 
-  it('ignores the shared helper file and test files', () => {
+  it('ignores the canonical helper, compatibility export and test files', () => {
+    write(
+      'packages/contracts/src/constants/type-guards.constant.ts',
+      'export function isRecord(v: unknown) { return !!v; }\n',
+    );
     write(
       'packages/utils/data/extract.util.ts',
       'export function isRecord(v: unknown) { return !!v; }\n',

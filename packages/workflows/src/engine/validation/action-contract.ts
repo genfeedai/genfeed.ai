@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import Ajv, {
   type AnySchema,
   type ErrorObject,
@@ -374,10 +375,6 @@ function propertyPath(property: string): string {
   return /^[A-Za-z_$][\w$]*$/.test(property)
     ? `.${property}`
     : `[${JSON.stringify(property)}]`;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function failCompilation(

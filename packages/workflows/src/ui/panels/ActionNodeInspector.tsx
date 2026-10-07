@@ -2,6 +2,7 @@
 
 import { getActionDefinition } from '@genfeedai/actions';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { readRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { X } from 'lucide-react';
 import { useCallback } from 'react';
@@ -9,12 +10,6 @@ import { ActionSchemaFields } from '../nodes/saas/ActionSchemaFields';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
 import { PanelContainer } from './PanelContainer';
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
 
 export function ActionNodeInspector() {
   const selectedNodeId = useUIStore((state) => state.selectedNodeId);

@@ -1,3 +1,4 @@
+import { readRawString } from '@genfeedai/contracts/constants/type-guards.constant';
 import {
   type CASTInput,
   type CameraMovement,
@@ -30,8 +31,8 @@ function readCameraMovement(value: unknown): CameraMovement {
   return 'static';
 }
 
-function readString(value: unknown): string {
-  return typeof value === 'string' ? value : '';
+function readStringOrEmpty(value: unknown): string {
+  return readRawString(value) ?? '';
 }
 
 export class CastPromptExecutor extends BaseExecutor {
@@ -45,14 +46,14 @@ export class CastPromptExecutor extends BaseExecutor {
       (typeof startFrame === 'string' && startFrame.length > 0);
 
     const castInput: CASTInput = {
-      action: readString(config.action),
+      action: readStringOrEmpty(config.action),
       cameraMovement: readCameraMovement(config.cameraMovement),
-      colorPalette: readString(config.colorPalette),
+      colorPalette: readStringOrEmpty(config.colorPalette),
       hasStartFrameReference,
-      lighting: readString(config.lighting),
-      mood: readString(config.mood),
-      presetId: readString(config.presetId),
-      subject: readString(config.subject),
+      lighting: readStringOrEmpty(config.lighting),
+      mood: readStringOrEmpty(config.mood),
+      presetId: readStringOrEmpty(config.presetId),
+      subject: readStringOrEmpty(config.subject),
     };
 
     const result = generateCASTPrompt(castInput);
@@ -74,7 +75,7 @@ export class CastPromptExecutor extends BaseExecutor {
 
   validate(node: ExecutableNode): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
-    const presetId = readString(node.config.presetId);
+    const presetId = readStringOrEmpty(node.config.presetId);
 
     if (!presetId) {
       errors.push('Preset is required');

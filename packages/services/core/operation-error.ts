@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import type { IStructuredError } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 
@@ -18,10 +19,6 @@ const PRIVATE_ERROR_KEYS = new Set([
 
 const UNSAFE_DIAGNOSTIC_PATTERN =
   /[^\s@]+@[^\s@]+\.[^\s@]+|Bearer\s+\S+|sk[-_]|eyJ[A-Za-z0-9_-]{20,}/i;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 export function isCancelledRequest(error: unknown): boolean {
   return isRecord(error) && error.isCancelled === true;

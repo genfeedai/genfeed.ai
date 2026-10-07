@@ -1,4 +1,5 @@
 import { CLIP_REFERENCE_FRAME_MAX_CANDIDATES } from '@genfeedai/contracts/constants';
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import {
   CLIP_REFERENCE_FRAME_CANDIDATE_STATUSES,
   CLIP_REFERENCE_FRAME_DIAGNOSTIC_SEVERITIES,
@@ -46,8 +47,11 @@ export class ClipReferenceFrameValidationError extends Error {
   }
 }
 
-function readRecord(value: unknown, field: string): Record<string, unknown> {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+function readRecordOrThrow(
+  value: unknown,
+  field: string,
+): Record<string, unknown> {
+  if (!isRecord(value)) {
     throw new ClipReferenceFrameValidationError(`${field} must be an object`);
   }
 
@@ -144,7 +148,7 @@ function normalizeDiagnostic(
   value: unknown,
   field: string,
 ): ClipReferenceFrameDiagnostic {
-  const diagnostic = readRecord(value, field);
+  const diagnostic = readRecordOrThrow(value, field);
   const severity = readRequiredString(diagnostic.severity, `${field}.severity`);
 
   if (!diagnosticSeverities.has(severity)) {
@@ -186,7 +190,7 @@ function normalizeCandidate(
   index: number,
 ): ClipReferenceFrameCandidate {
   const field = `referenceFrames.candidates[${index}]`;
-  const candidate = readRecord(value, field);
+  const candidate = readRecordOrThrow(value, field);
   const id = readRequiredString(candidate.id, `${field}.id`);
   const status = readRequiredString(candidate.status, `${field}.status`);
 
@@ -283,7 +287,7 @@ function deriveStatus(
 export function normalizeClipReferenceFrameSet(
   value: unknown,
 ): ClipReferenceFrameSet {
-  const referenceFrames = readRecord(value, 'referenceFrames');
+  const referenceFrames = readRecordOrThrow(value, 'referenceFrames');
 
   if (referenceFrames.schemaVersion !== CLIP_REFERENCE_FRAME_SCHEMA_VERSION) {
     throw new ClipReferenceFrameValidationError(

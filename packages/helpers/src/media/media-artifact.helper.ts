@@ -1,3 +1,4 @@
+import { readString } from '@genfeedai/contracts/constants/type-guards.constant';
 import type {
   McpImageContentPart,
   McpMediaContentPart,
@@ -8,14 +9,11 @@ import type {
 
 const IMAGE_URL_PATTERN = /\.(avif|gif|jpe?g|png|webp)(\?|$)/i;
 
-function readString(
+function readStringField(
   record: Record<string, unknown>,
   key: string,
 ): string | undefined {
-  const value = record[key];
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : undefined;
+  return readString(record[key]);
 }
 
 function readNumber(
@@ -32,16 +30,17 @@ export function inferMediaArtifactKind(
   payload: Record<string, unknown>,
 ): MediaArtifactKind | undefined {
   const explicit =
-    readString(payload, 'kind') ??
-    readString(payload, 'assetKind') ??
-    readString(payload, 'category')?.toLowerCase();
+    readStringField(payload, 'kind') ??
+    readStringField(payload, 'assetKind') ??
+    readStringField(payload, 'category')?.toLowerCase();
   if (explicit === 'image' || explicit === 'video' || explicit === 'audio') {
     return explicit;
   }
   if (explicit === 'music' || explicit === 'voice') {
     return 'audio';
   }
-  const url = readString(payload, 'url') ?? readString(payload, 'cdnUrl');
+  const url =
+    readStringField(payload, 'url') ?? readStringField(payload, 'cdnUrl');
   if (!url) {
     return undefined;
   }
@@ -64,7 +63,8 @@ export function inferMediaArtifactKind(
 export function serializeMediaArtifact(
   payload: Record<string, unknown>,
 ): MediaArtifactResult | undefined {
-  const id = readString(payload, 'id') ?? readString(payload, 'assetId');
+  const id =
+    readStringField(payload, 'id') ?? readStringField(payload, 'assetId');
   if (!id) {
     return undefined;
   }
@@ -72,14 +72,15 @@ export function serializeMediaArtifact(
   if (!kind) {
     return undefined;
   }
-  const url = readString(payload, 'url') ?? readString(payload, 'cdnUrl');
-  const status = readString(payload, 'status') ?? 'PROCESSING';
+  const url =
+    readStringField(payload, 'url') ?? readStringField(payload, 'cdnUrl');
+  const status = readStringField(payload, 'status') ?? 'PROCESSING';
   if (kind === 'image') {
     return {
       height: readNumber(payload, 'height'),
       id,
       kind,
-      mimeType: readString(payload, 'mimeType') ?? inferImageMimeType(url),
+      mimeType: readStringField(payload, 'mimeType') ?? inferImageMimeType(url),
       renderMode: url ? 'resource_link' : 'open_url',
       status,
       url,
