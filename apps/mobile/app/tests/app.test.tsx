@@ -46,10 +46,6 @@ describe('App Routes Export Components', () => {
     expectDefaultComponentExport('app/(protected)/content.tsx');
   });
 
-  it('exports default ideas component', () => {
-    expectDefaultComponentExport('app/(protected)/ideas.tsx');
-  });
-
   it('exports default analytics component', () => {
     expectDefaultComponentExport('app/(protected)/analytics.tsx');
   });

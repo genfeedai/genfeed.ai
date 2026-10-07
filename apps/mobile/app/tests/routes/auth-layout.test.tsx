@@ -1,27 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const { mockUsePendingApprovalCount } = vi.hoisted(() => ({
-  mockUsePendingApprovalCount: vi.fn(),
-}));
-
-vi.mock('@/hooks/use-approvals', () => ({
-  usePendingApprovalCount: mockUsePendingApprovalCount,
-}));
-
 import { useRouter } from 'expo-router';
+import { describe, expect, it, vi } from 'vitest';
 import ProtectedLayout from '@/app/(protected)/_layout';
 import Index from '@/app/index';
 import { useMobileAuth } from '@/contexts/auth-context';
 
 describe('Auth route behavior', () => {
-  beforeEach(() => {
-    mockUsePendingApprovalCount.mockReturnValue({
-      count: 0,
-      isLoading: false,
-    });
-  });
-
   it('redirects signed-out users from the index route to login', () => {
     vi.mocked(useMobileAuth).mockReturnValue({
       getToken: vi.fn(),
@@ -116,10 +100,6 @@ describe('Auth route behavior', () => {
       push: vi.fn(),
       replace: vi.fn(),
     } as unknown as ReturnType<typeof useRouter>);
-    mockUsePendingApprovalCount.mockReturnValue({
-      count: 132,
-      isLoading: false,
-    });
 
     render(<ProtectedLayout />);
 
@@ -127,7 +107,7 @@ describe('Auth route behavior', () => {
     expect(screen.getByTestId('tab-screen-analytics')).toBeTruthy();
     expect(screen.getByTestId('tab-screen-approvals')).toBeTruthy();
     expect(screen.getByTestId('tab-screen-settings')).toBeTruthy();
-    expect(screen.getByText('99+')).toBeTruthy();
+    expect(screen.queryByText('99+')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
 
