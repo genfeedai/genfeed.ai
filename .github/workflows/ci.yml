@@ -848,6 +848,7 @@ jobs:
           sweep_run_dir="$(mktemp -d "$RUNNER_TEMP/cloud-tenant-XXXXXX")"
           chmod 700 "$sweep_run_dir"
           echo "CLOUD_SWEEP_RUN_DIR=$sweep_run_dir" >> "$GITHUB_ENV"
+          echo "CLOUD_SWEEP_DIAGNOSTICS=1" >> "$GITHUB_ENV"
           echo "CLOUD_SWEEP_API_LOG=$sweep_run_dir/api.log" >> "$GITHUB_ENV"
           echo "CLOUD_SWEEP_REPORT=$sweep_run_dir/cloud-tenant-guard-report.json" >> "$GITHUB_ENV"
       - name: Apply Prisma migrations to test DB
@@ -873,7 +874,7 @@ jobs:
         id: cloud-api
         run: |
           set -euo pipefail
-          node apps/server/dist/apps/api/main.js > "$CLOUD_SWEEP_API_LOG" 2>&1 &
+          node --import ./scripts/ci/cloud-tenant-guard-sweep/api-observer.mjs apps/server/dist/apps/api/main.js > "$CLOUD_SWEEP_API_LOG" 2>&1 &
           echo "$!" > "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid"
           for attempt in $(seq 1 60); do
             if curl -fsS http://127.0.0.1:3010/v1/health >/dev/null 2>&1; then
@@ -899,6 +900,11 @@ jobs:
               if ! kill -0 "$(cat "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid")" 2>/dev/null; then break; fi
               sleep 1
             done
+            if kill -0 "$(cat "$CLOUD_SWEEP_RUN_DIR/cloud-api.pid")" 2>/dev/null; then
+              echo "::error::Owned CLOUD API did not stop within existing bound"
+              exit 1
+            fi
+            (umask 077; printf 'stopped\n' > "$CLOUD_SWEEP_RUN_DIR/api-stopped")
           fi
       - name: Scan final API stdout for swallowed tenant errors
         if: always()

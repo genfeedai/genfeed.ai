@@ -1112,3 +1112,29 @@ test('sanitized summary preserves independent probe history without inventing hi
     false,
   );
 });
+
+test('summary accepts only fixed validated causal evidence and leaves historical reports unchanged', async () => {
+  const { buildDiagnosticSummary } = await import('./core.mjs');
+  const { joinCausalEvidence } = await import('./causal-evidence.mjs');
+  const report = {
+    sourceSha: 'a'.repeat(40),
+    requests: [],
+    inventoryTemplates: [],
+  };
+  assert.equal(
+    Object.hasOwn(buildDiagnosticSummary(report), 'causalEvidence'),
+    false,
+  );
+  const evidence = joinCausalEvidence(report, [], { readFailure: true });
+  assert.deepEqual(
+    buildDiagnosticSummary({ ...report, causalEvidence: evidence })
+      .causalEvidence,
+    evidence,
+  );
+  assert.throws(() =>
+    buildDiagnosticSummary({
+      ...report,
+      causalEvidence: { ...evidence, private: 'private-token' },
+    }),
+  );
+});

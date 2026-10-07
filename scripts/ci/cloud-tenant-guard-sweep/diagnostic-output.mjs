@@ -8,7 +8,12 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { buildDiagnosticSummary } from './core.mjs';
+import { collectCausalEvidence } from './causal-evidence.mjs';
+import {
+  buildDiagnosticSummary,
+  DIAGNOSTIC_ACTORS,
+  DIAGNOSTIC_PHASES,
+} from './core.mjs';
 import { readMailStats, validateRunDirectory } from './local-mail-stub.mjs';
 
 const unavailable = 'Final diagnostic evidence unavailable';
@@ -67,6 +72,18 @@ export function writeDiagnosticEvidence(
     report.mailStats = readMailStats(directory, report.mailStats);
     if (Object.values(report.mailStats.rejected).some((value) => value !== 0))
       fail(report, refused);
+    if (Reflect.get(process.env, 'CLOUD_SWEEP_DIAGNOSTICS') === '1') {
+      const final = Boolean(report.finalLogScannedAt);
+      const snapshot = collectCausalEvidence(report, directory, {
+        final,
+        actors: DIAGNOSTIC_ACTORS,
+        phases: DIAGNOSTIC_PHASES,
+      });
+      report.causalObservation = snapshot.records;
+      report.causalEvidence = snapshot.evidence;
+      if (final && snapshot.evidence.quality !== 'complete')
+        fail(report, 'Causal diagnostic evidence unavailable');
+    }
     const summary = buildDiagnosticSummary(report, fixtureProof);
     writeOwned(reportPath, report);
     writeOwned(summaryPath, summary);

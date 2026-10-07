@@ -92,6 +92,16 @@ const sourceSha = execFileSync('git', ['rev-parse', 'HEAD'], {
   cwd: new URL('../../../', import.meta.url),
   encoding: 'utf8',
 }).trim();
+let diagnosticSequence = 0;
+const nextSequence =
+  Reflect.get(process.env, 'CLOUD_SWEEP_DIAGNOSTICS') === '1'
+    ? () => {
+        diagnosticSequence++;
+        if (!Number.isSafeInteger(diagnosticSequence))
+          throw new Error('Diagnostic sequence exhausted');
+        return diagnosticSequence;
+      }
+    : undefined;
 const inventory = {};
 const inventoryTemplates = [];
 let fixtureProof = {};
@@ -139,8 +149,8 @@ let prisma;
 
 try {
   const runtime = validateRuntimeConfig(process.env);
-  validateRunDirectory(process.env.CLOUD_SWEEP_RUN_DIR);
-  mailStats = readMailStats(process.env.CLOUD_SWEEP_RUN_DIR);
+  validateRunDirectory(Reflect.get(process.env, 'CLOUD_SWEEP_RUN_DIR'));
+  mailStats = readMailStats(Reflect.get(process.env, 'CLOUD_SWEEP_RUN_DIR'));
   const importFromApiWorkspace = createWorkspaceImporter({
     mode: runtime.mode,
     resolveSpecifier: (specifier) => apiWorkspaceRequire.resolve(specifier),
@@ -154,6 +164,7 @@ try {
   const { getToolsForSurface, isReadOnlyToolName } =
     await importFromApiWorkspace('@genfeedai/actions');
   const setupRequest = createRequester({
+    nextSequence,
     baseUrl: runtime.baseUrl,
     records,
     phase: 'fixture',
@@ -221,7 +232,10 @@ try {
         source: 'fixture/readiness',
       }),
       readMailStats: () =>
-        readMailStats(process.env.CLOUD_SWEEP_RUN_DIR, mailStats),
+        readMailStats(
+          Reflect.get(process.env, 'CLOUD_SWEEP_RUN_DIR'),
+          mailStats,
+        ),
     }),
   );
   fixtureProof = fixture.proof;
@@ -237,6 +251,7 @@ try {
   );
   sweepSignal = sweepDeadline.signal;
   const request = createRequester({
+    nextSequence,
     baseUrl: runtime.baseUrl,
     records,
     sweepSignal,
@@ -410,7 +425,7 @@ try {
     writeDiagnosticEvidence(
       report,
       fixtureProof,
-      process.env.CLOUD_SWEEP_RUN_DIR,
+      Reflect.get(process.env, 'CLOUD_SWEEP_RUN_DIR'),
       reportPath,
     );
   } catch {

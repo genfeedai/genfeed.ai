@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { validateCausalEvidence } from './causal-evidence.mjs';
 import { validateMailStats } from './local-mail-stub.mjs';
 
 export function createDeadline(
@@ -862,6 +863,15 @@ export function buildDiagnosticSummary(report, fixtureProof = {}) {
     throw new Error('Inconsistent diagnostic failure attempts');
   return {
     schemaVersion: 1,
+    ...(report.causalEvidence === undefined
+      ? {}
+      : {
+          causalEvidence: validateCausalEvidence(report.causalEvidence, {
+            templates: [...templates],
+            actors: DIAGNOSTIC_ACTORS,
+            phases: DIAGNOSTIC_PHASES,
+          }),
+        }),
     sourceSha: report.sourceSha,
     fixtureProof: Object.fromEntries(
       [

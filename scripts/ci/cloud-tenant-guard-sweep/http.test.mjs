@@ -587,3 +587,58 @@ for (const [query, present] of [
     });
   }
 }
+
+test('activation counter correlates every actual retry across requesters without changing off mode', async () => {
+  const records = [];
+  let sequence = 0,
+    calls = 0,
+    epoch = 100;
+  const options = {
+    baseUrl: 'http://127.0.0.1:3010',
+    records,
+    nextSequence: () => ++sequence,
+    epochNow: () => ++epoch,
+    wait: async () => {},
+    fetchImpl: async (_url, options) => {
+      assert.equal(options.headers['x-genfeed-ci-attempt'], String(++calls));
+      return new Response('{}', { status: calls === 1 ? 429 : 200 });
+    },
+  };
+  const first = createRequester(options),
+    second = createRequester({ ...options, phase: 'fixture' });
+  await first({ label: 'M:A' }, 'GET', '/v1/fixed', {
+    headers: { 'x-genfeed-ci-attempt': 'private-spoof' },
+  });
+  await second({ label: 'S' }, 'GET', '/v1/fixed');
+  assert.deepEqual(
+    records.map((r) => r.sequence),
+    [1, 2, 3],
+  );
+  assert.equal(records.length, calls);
+  assert.ok(
+    records.every(
+      (r) =>
+        r.sentAtEpochMs <= r.headerAtEpochMs &&
+        r.headerAtEpochMs <= r.endedAtEpochMs,
+    ),
+  );
+  const off = [];
+  await createRequester({
+    baseUrl: options.baseUrl,
+    records: off,
+    fetchImpl: async (_url, options) => {
+      assert.equal(
+        Object.hasOwn(options.headers, 'x-genfeed-ci-attempt'),
+        false,
+      );
+      return new Response('{}');
+    },
+  })(null, 'GET', '/v1/fixed');
+  assert.equal(Object.hasOwn(off[0], 'sequence'), false);
+  await assert.rejects(
+    createRequester({
+      ...options,
+      nextSequence: () => Number.MAX_SAFE_INTEGER + 1,
+    })(null, 'GET', '/v1/fixed'),
+  );
+});

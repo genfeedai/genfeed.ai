@@ -551,3 +551,79 @@ describe('APIMetricsInterceptor', () => {
     });
   });
 });
+
+describe('PerformanceInterceptor dormant diagnostic callbacks', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    Reflect.deleteProperty(
+      globalThis,
+      Symbol.for('genfeed.cloudTenantGuard.observer.v1'),
+    );
+  });
+  it('observes each value and cancellation without adding handler subscriptions or changing failures', async () => {
+    const key = Symbol.for('genfeed.cloudTenantGuard.observer.v1');
+    for (const [name, value] of Object.entries({
+      CLOUD_SWEEP_DIAGNOSTICS: '1',
+      CI: 'true',
+      GITHUB_ACTIONS: 'true',
+      GENFEED_CLOUD: 'true',
+      NODE_ENV: 'test',
+    }))
+      vi.stubEnv(name, value);
+    vi.stubEnv('CLOUD_SWEEP_LOCAL', undefined);
+    const observer = {
+      protocol: 1,
+      ingress: vi.fn(),
+      pipelineEnter: vi.fn(() => 1),
+      pipelineNext: vi.fn(() => {
+        throw new Error('observer failure');
+      }),
+      pipelineError: vi.fn(() => {
+        throw new Error('observer failure');
+      }),
+      pipelineFinalize: vi.fn(),
+      unavailable: vi.fn(),
+    };
+    Reflect.set(globalThis, key, observer);
+    const logger = {
+      debug: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    } as unknown as LoggerService;
+    const config = {
+      get: (name: string) => (name === 'NODE_ENV' ? 'test' : undefined),
+    } as unknown as ConfigService;
+    const instance = new PerformanceInterceptor(logger, config);
+    const context = {
+      switchToHttp: () => ({
+        getRequest: () => ({ method: 'GET', url: '/synthetic', headers: {} }),
+        getResponse: () => ({ statusCode: 200 }),
+      }),
+    } as unknown as ExecutionContext;
+    let subscriptions = 0;
+    const next = {
+      handle: () =>
+        new Observable<string>((subscriber) => {
+          subscriptions++;
+          subscriber.next('first');
+          subscriber.next('second');
+          subscriber.complete();
+        }),
+    };
+    expect(await firstValueFrom(instance.intercept(context, next))).toBe(
+      'first',
+    );
+    expect(subscriptions).toBe(1);
+    expect(observer.pipelineFinalize).toHaveBeenCalledTimes(1);
+    expect(observer.unavailable).toHaveBeenCalled();
+    const failure = new Error('unchanged handler');
+    await expect(
+      firstValueFrom(
+        instance.intercept(context, {
+          handle: () => throwError(() => failure),
+        }),
+      ),
+    ).rejects.toBe(failure);
+    expect(observer.pipelineError).toHaveBeenCalledTimes(1);
+  });
+});

@@ -20,6 +20,8 @@ export function createRequester({
   phase = 'controls',
   now = () => performance.now(),
   limit = createConcurrencyLimiter(10),
+  nextSequence,
+  epochNow = Date.now,
 }) {
   const request = async (actor, method, path, options, enqueued) => {
     const granted = now();
@@ -65,6 +67,14 @@ export function createRequester({
           ? [{ signal: sweepSignal, source: 'unknown' }]
           : []),
       ]);
+      const sequence = nextSequence?.();
+      if (
+        sequence !== undefined &&
+        (!Number.isSafeInteger(sequence) || sequence < 1)
+      )
+        throw new Error('Invalid diagnostic sequence');
+      const sentAtEpochMs = sequence === undefined ? undefined : epochNow();
+      let headerAtEpochMs = null;
       let headerAt;
       let bodyAt;
       try {
@@ -76,12 +86,16 @@ export function createRequester({
             'content-type': 'application/json',
             ...(actor?.token ? { Authorization: `Bearer ${actor.token}` } : {}),
             ...options.headers,
+            ...(sequence === undefined
+              ? {}
+              : { 'x-genfeed-ci-attempt': String(sequence) }),
           },
           ...(options.body === undefined
             ? {}
             : { body: JSON.stringify(options.body) }),
         });
         headerAt = now();
+        if (sequence !== undefined) headerAtEpochMs = epochNow();
         // Keep the timeout alive until the body is consumed (including SSE).
         const body = await response.text();
         bodyAt = now();
@@ -126,6 +140,13 @@ export function createRequester({
       }
       observer.dispose();
       const ended = now();
+      if (sequence !== undefined)
+        Object.assign(record, {
+          sequence,
+          sentAtEpochMs,
+          headerAtEpochMs,
+          endedAtEpochMs: epochNow(),
+        });
       record.durationMs = Math.round(ended - started);
       record.queueWaitMs = Math.round(granted - enqueued);
       record.headerMs = Math.round((headerAt ?? ended) - started);

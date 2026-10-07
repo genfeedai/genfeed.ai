@@ -261,3 +261,27 @@ for (const kind of ['missing', 'malformed', 'regressed']) {
     assert.equal(f.saved().hasFailed, true);
   });
 }
+
+test('required final observer failure retains safe incomplete reasons and sticky acceptance failure', (context) => {
+  const previous = Reflect.get(process.env, 'CLOUD_SWEEP_DIAGNOSTICS');
+  Reflect.set(process.env, 'CLOUD_SWEEP_DIAGNOSTICS', '1');
+  context.after(() => {
+    if (previous === undefined)
+      Reflect.deleteProperty(process.env, 'CLOUD_SWEEP_DIAGNOSTICS');
+    else Reflect.set(process.env, 'CLOUD_SWEEP_DIAGNOSTICS', previous);
+  });
+  const f = fixture(context);
+  f.write();
+  assert.equal(f.summary().causalEvidence.quality, 'incomplete');
+  f.report.finalLogScannedAt = new Date().toISOString();
+  f.write();
+  assert.equal(f.saved().hasFailed, true);
+  assert.ok(
+    f.saved().failures.includes('Causal diagnostic evidence unavailable'),
+  );
+  assert.equal(f.summary().causalEvidence.reasons.invalidSchema, 1);
+  assert.equal(
+    JSON.stringify(f.summary()).includes('causalObservation'),
+    false,
+  );
+});

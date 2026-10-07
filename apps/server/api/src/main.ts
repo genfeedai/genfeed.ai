@@ -1,3 +1,8 @@
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import {
+  getCloudTenantObserver,
+  observeCloudTenant,
+} from '@api/helpers/cloud-tenant-diagnostics/cloud-tenant-diagnostics';
 import './instrument';
 
 import { bootstrap, setupGracefulShutdown } from '@libs/bootstrap';
@@ -136,6 +141,21 @@ async function main() {
       process.exit(0);
     }
 
+    const tenantObserver = getCloudTenantObserver();
+    if (tenantObserver) {
+      app.use(
+        (
+          request: IncomingMessage,
+          response: ServerResponse,
+          next: () => void,
+        ) => {
+          observeCloudTenant(tenantObserver, (observer) =>
+            observer.ingress(request, response),
+          );
+          next();
+        },
+      );
+    }
     const configService = app.get(ConfigService);
     logger = app.get<LoggerService>(LoggerService);
     reportLicenseVerificationWarning(logger);

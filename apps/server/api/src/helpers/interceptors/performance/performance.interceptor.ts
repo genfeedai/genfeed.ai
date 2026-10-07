@@ -1,3 +1,7 @@
+import {
+  getCloudTenantObserver,
+  observeCloudTenant,
+} from '@api/helpers/cloud-tenant-diagnostics/cloud-tenant-diagnostics';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
 import {
   createRequestPerformanceStore,
@@ -24,7 +28,7 @@ import {
   Optional,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { finalize, tap } from 'rxjs/operators';
 
 @Injectable()
 export class PerformanceInterceptor implements NestInterceptor {
@@ -74,6 +78,10 @@ export class PerformanceInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse();
 
+    const observer = getCloudTenantObserver();
+    const entry = observeCloudTenant(observer, (value) =>
+      value.pipelineEnter(request),
+    );
     const { method, headers, user } = request;
     const url = redactEmailTrackingUrl(String(request.url ?? ''));
     const userAgent = headers['user-agent'];
@@ -82,6 +90,10 @@ export class PerformanceInterceptor implements NestInterceptor {
     const observable = next.handle().pipe(
       tap({
         error: (error: unknown) => {
+          if (entry !== undefined)
+            observeCloudTenant(observer, (value) =>
+              value.pipelineError(request, entry, error),
+            );
           const errorDetails = this.readError(error);
           this.logPerformance(
             now,
@@ -94,6 +106,10 @@ export class PerformanceInterceptor implements NestInterceptor {
           );
         },
         next: () => {
+          if (entry !== undefined)
+            observeCloudTenant(observer, (value) =>
+              value.pipelineNext(request, entry),
+            );
           this.logPerformance(
             now,
             method,
@@ -103,6 +119,12 @@ export class PerformanceInterceptor implements NestInterceptor {
             userId,
           );
         },
+      }),
+      finalize(() => {
+        if (entry !== undefined)
+          observeCloudTenant(observer, (value) =>
+            value.pipelineFinalize(request, entry),
+          );
       }),
     );
 
