@@ -1,9 +1,16 @@
-vi.mock('@api/helpers/utils/response/response.util', () => ({
-  serializeCollection: vi.fn((_req, _serializer, data) => ({
-    data: data.docs || data,
-  })),
-  serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
-}));
+vi.mock('@api/helpers/utils/response/response.util', async () => {
+  const actual = await vi.importActual<
+    typeof import('@api/helpers/utils/response/response.util')
+  >('@api/helpers/utils/response/response.util');
+
+  return {
+    ...actual,
+    serializeCollection: vi.fn((_req, _serializer, data) => ({
+      data: data.docs || data,
+    })),
+    serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
+  };
+});
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
@@ -376,7 +383,9 @@ describe('IngredientsOperationsController', () => {
 
       await expect(
         controller.deleteIngredient(mockRequest, mockUser, ingredientId),
-      ).rejects.toBeInstanceOf(HttpException);
+      ).rejects.toSatisfy((error: unknown) => {
+        return error instanceof HttpException && error.getStatus() === 404;
+      });
 
       expect(mockServices.cacheService.invalidateByTags).not.toHaveBeenCalled();
       expect(mockServices.loggerService.warn).toHaveBeenCalled();
