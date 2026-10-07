@@ -253,3 +253,82 @@ test('final scan fails closed on a missing baseline or a truncated boundary', (c
   assert.equal(report.hasFailed, true);
   assert.equal(report.failures.length, 2);
 });
+
+for (const rejection of [false, true, 'missing']) {
+  test(`final CLI verdict follows latest mail evidence (${rejection})`, (context) => {
+    const directory = mkdtempSync(join(tmpdir(), 'tenant-final-cli-'));
+    context.after(() => rmSync(directory, { recursive: true, force: true }));
+    const reportPath = join(directory, 'report.json');
+    const stats = {
+      version: 1,
+      statusRequests: 3,
+      accepted: { A: 2, B: 2, M: 2, M2: 2, S: 2 },
+      rejected: {
+        authorization: 0,
+        path: 0,
+        method: 0,
+        contentType: 0,
+        size: 0,
+        json: 0,
+        payload: 0,
+      },
+    };
+    const report = {
+      sourceSha: 'a'.repeat(40),
+      hasFailed: false,
+      failures: [],
+      requests: [],
+      mailStats: stats,
+      fixtureProof: {
+        verificationRequired: true,
+        noUnverifiedSession: true,
+        acceptedMail: true,
+        verifiedAuthentication: true,
+      },
+    };
+    writeFileSync(reportPath, JSON.stringify(report), { mode: 0o600 });
+    const latest = structuredClone(stats);
+    latest.statusRequests = 9;
+    if (rejection === true) latest.rejected.path = 1;
+    if (rejection !== 'missing')
+      writeFileSync(
+        join(directory, 'mail-stats.json'),
+        JSON.stringify(latest),
+        { mode: 0o600 },
+      );
+    writeFileSync(join(directory, 'api.log'), 'API healthy\n');
+    const result = spawnSync(
+      process.execPath,
+      [new URL('./scan-log.mjs', import.meta.url).pathname],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          CLOUD_SWEEP_RUN_DIR: directory,
+          CLOUD_SWEEP_REPORT: reportPath,
+          CLOUD_SWEEP_API_LOG: join(directory, 'api.log'),
+          CLOUD_SWEEP_API_BOOT_OUTCOME: 'success',
+        },
+      },
+    );
+    assert.equal(result.status, rejection === false ? 0 : 1);
+    assert.match(
+      result.stdout,
+      rejection === false ? /failed=false/ : /failed=true/,
+    );
+    const saved = JSON.parse(readFileSync(reportPath, 'utf8'));
+    assert.equal(saved.hasFailed, rejection !== false);
+    if (rejection !== 'missing') {
+      assert.deepEqual(saved.mailStats, latest);
+      assert.deepEqual(
+        JSON.parse(
+          readFileSync(join(directory, 'diagnostic-summary.json'), 'utf8'),
+        ).mail,
+        latest,
+      );
+    } else
+      assert.deepEqual(saved.failures, [
+        'Final diagnostic evidence unavailable',
+      ]);
+  });
+}

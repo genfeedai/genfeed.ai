@@ -8,8 +8,7 @@ import { dirname, join } from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 import { classifyHits, loadBaseline, logEvidence } from './baseline.mjs';
-import { buildDiagnosticSummary } from './core.mjs';
-import { validateRunDirectory } from './local-mail-stub.mjs';
+import { writeDiagnosticEvidence } from './diagnostic-output.mjs';
 
 // Run once more after CI stops the API so deferred logging is also evidence.
 // Missing evidence fails closed unless CI already failed the API boot step.
@@ -78,16 +77,34 @@ if (
       `${process.env.RUNNER_TEMP}/cloud-tenant-guard-report.json`,
     process.env.CLOUD_SWEEP_API_BOOT_OUTCOME,
   );
-  try {
-    const directory = validateRunDirectory(process.env.CLOUD_SWEEP_RUN_DIR);
-    const summaryFile = join(directory, 'diagnostic-summary.json');
-    const prior = JSON.parse(readFileSync(summaryFile, 'utf8'));
-    const summary = buildDiagnosticSummary(report, prior.fixtureProof);
-    writeFileSync(summaryFile, `${JSON.stringify(summary, null, 2)}\n`, {
-      mode: 0o600,
-    });
-  } catch {
-    report.hasFailed = true;
+  if (!report.hasSkipped) {
+    try {
+      let proof = report.fixtureProof;
+      if (!proof) {
+        try {
+          proof = JSON.parse(
+            readFileSync(
+              join(process.env.CLOUD_SWEEP_RUN_DIR, 'diagnostic-summary.json'),
+              'utf8',
+            ),
+          ).fixtureProof;
+        } catch {
+          /* The helper rejects absent proof and removes stale evidence. */
+        }
+      }
+      writeDiagnosticEvidence(
+        report,
+        proof,
+        process.env.CLOUD_SWEEP_RUN_DIR,
+        process.env.CLOUD_SWEEP_REPORT ??
+          `${process.env.RUNNER_TEMP}/cloud-tenant-guard-report.json`,
+      );
+    } catch {
+      report.hasFailed = true;
+      if (!report.failures.includes('Final diagnostic evidence unavailable'))
+        report.failures.push('Final diagnostic evidence unavailable');
+      process.exitCode = 1;
+    }
   }
   process.stdout.write(
     `Final log scan: failed=${report.hasFailed}; tenant hit groups=${report.tenantHitGroups.length}\n`,

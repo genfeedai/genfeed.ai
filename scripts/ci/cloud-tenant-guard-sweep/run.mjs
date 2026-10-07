@@ -8,14 +8,9 @@
 // final log scanning and dropping only the freshly created owned database.
 
 import { execFileSync } from 'node:child_process';
-import {
-  appendFileSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from 'node:fs';
+import { appendFileSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import process from 'node:process';
 import { setTimeout as delay } from 'node:timers/promises';
 import {
@@ -29,7 +24,6 @@ import {
 } from './baseline.mjs';
 import { validateRuntimeConfig } from './config.mjs';
 import {
-  buildDiagnosticSummary,
   concurrentMap,
   coverageErrors,
   createConcurrencyLimiter,
@@ -47,6 +41,7 @@ import {
   timeoutStats,
   toolSkipReason,
 } from './core.mjs';
+import { writeDiagnosticEvidence } from './diagnostic-output.mjs';
 import {
   activate,
   printFixtureFailure,
@@ -411,24 +406,22 @@ try {
       ],
     },
   };
-  mkdirSync(dirname(reportPath), { recursive: true });
-  writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
+  try {
+    writeDiagnosticEvidence(
+      report,
+      fixtureProof,
+      process.env.CLOUD_SWEEP_RUN_DIR,
+      reportPath,
+    );
+  } catch {
+    report.hasFailed = true;
+    if (!failures.includes('Final diagnostic evidence unavailable'))
+      failures.push('Final diagnostic evidence unavailable');
+    process.exitCode = 1;
+  }
   process.stdout.write(
     `Cloud tenant guard: ${routeCount} GET routes × 4 actors, ${toolCount} tools as M:A + ${readOnlyToolCount} read-only tools as S\n`,
   );
-  try {
-    mailStats = readMailStats(process.env.CLOUD_SWEEP_RUN_DIR, mailStats);
-    report.mailStats = mailStats;
-    const summary = buildDiagnosticSummary(report, fixtureProof);
-    writeFileSync(
-      resolve(process.env.CLOUD_SWEEP_RUN_DIR, 'diagnostic-summary.json'),
-      `${JSON.stringify(summary, null, 2)}\n`,
-      { mode: 0o600 },
-    );
-  } catch {
-    failures.push('Safe diagnostic summary unavailable');
-    process.exitCode = 1;
-  }
   process.stdout.write(
     `Tenant hit groups=${groups.length}; failures=${failures.length}\n`,
   );
@@ -453,7 +446,7 @@ try {
   if (process.env.GITHUB_STEP_SUMMARY)
     appendFileSync(
       process.env.GITHUB_STEP_SUMMARY,
-      `Cloud tenant guard: ${hasFailed ? 'FAILED' : 'PASSED'}\n\n${phaseSummary}\n\n${summary}\n\nTimeouts: ${timeouts.count}/${timeouts.requests} (${(timeouts.ratio * 100).toFixed(2)}%)\n\nTenant hit groups: ${groups.length}; known S:A groups: ${report.knownHits.length}; stale baseline entries: ${report.staleBaselineEntries.length}\n`,
+      `Cloud tenant guard: ${report.hasFailed ? 'FAILED' : 'PASSED'}\n\n${phaseSummary}\n\n${summary}\n\nTimeouts: ${timeouts.count}/${timeouts.requests} (${(timeouts.ratio * 100).toFixed(2)}%)\n\nTenant hit groups: ${groups.length}; known S:A groups: ${report.knownHits.length}; stale baseline entries: ${report.staleBaselineEntries.length}\n`,
     );
-  process.exitCode = hasFailed || failures.length ? 1 : 0;
+  process.exitCode = report.hasFailed || failures.length ? 1 : 0;
 }

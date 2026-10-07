@@ -714,7 +714,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      CLOUD_SWEEP_BASE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
+      CLOUD_SWEEP_BASE_SHA: ${{ needs.plan.outputs.base || github.sha }}
     needs: plan
     if: needs.plan.outputs.api_tests == 'true'
     services:
