@@ -118,15 +118,8 @@ export class HeyGenController {
     this.loggerService.log(url);
 
     try {
-      // Try to fetch voices to check if API key is valid
-      let isConnected = false;
-      let hasCustomKey = false;
-
-      await this.heygenService.getVoices(user.organizationId);
-      isConnected = true;
-
-      // Check if using custom key (this is simplified - you may want to check org settings directly)
-      hasCustomKey = !!user.organizationId;
+      const { hasCustomKey, isConnected } =
+        await this.heygenService.getConnectionStatus(user.organizationId);
 
       return serializeProviderCatalog({
         attributes: {

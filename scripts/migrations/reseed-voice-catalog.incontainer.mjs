@@ -62,21 +62,45 @@ async function fetchHeyGen() {
     // Fail closed on a missing credential (see fetchElevenLabs).
     throw new Error('HEYGEN_KEY is not set');
   }
-  const res = await fetch('https://api.heygen.com/v2/voices', {
-    headers: { 'X-Api-Key': key, accept: 'application/json' },
+  const voices = [];
+  const seenTokens = new Set();
+  let token;
+  for (let page = 0; ; page++) {
+    if (page >= 100)
+      throw new Error('HeyGen catalog exceeded the pagination limit');
+    const url = new URL('https://api.heygen.com/v3/voices');
+    url.searchParams.set('type', 'public');
+    url.searchParams.set('limit', '100');
+    if (token) url.searchParams.set('token', token);
+    const res = await fetch(url, {
+      headers: { 'X-Api-Key': key, accept: 'application/json' },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) throw new Error(`HeyGen ${res.status}`);
+    const body = await res.json();
+    if (!Array.isArray(body.data) || typeof body.has_more !== 'boolean')
+      throw new Error('Invalid HeyGen catalog response');
+    voices.push(...body.data);
+    if (!body.has_more) break;
+    if (!body.next_token || seenTokens.has(body.next_token))
+      throw new Error('Invalid HeyGen catalog cursor');
+    token = body.next_token;
+    seenTokens.add(token);
+  }
+  return voices.map((voice, index) => {
+    if (typeof voice.voice_id !== 'string' || !voice.voice_id.trim())
+      throw new Error('HeyGen voice has no identity');
+    return {
+      provider: 'HEYGEN',
+      externalId: voice.voice_id,
+      name: typeof voice.name === 'string' ? voice.name : voice.voice_id,
+      preview:
+        typeof voice.preview_audio_url === 'string'
+          ? voice.preview_audio_url
+          : null,
+      providerData: { index },
+    };
   });
-  if (!res.ok) throw new Error(`HeyGen ${res.status}`);
-  const body = await res.json();
-  const arr = Array.isArray(body?.data)
-    ? body.data
-    : (body?.data?.voices ?? []);
-  return arr.map((v, index) => ({
-    provider: 'HEYGEN',
-    externalId: String(v.voice_id ?? v.id ?? `voice_${index}`),
-    name: String(v.voice_name ?? v.name ?? `Voice ${index + 1}`),
-    preview: String(v.preview_url ?? v.preview ?? '') || null,
-    providerData: { index },
-  }));
 }
 
 async function main() {

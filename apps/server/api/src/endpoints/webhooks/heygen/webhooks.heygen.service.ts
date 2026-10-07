@@ -217,6 +217,7 @@ export class HeygenWebhookService {
 
   private isFailureEvent(eventType?: string): boolean {
     return (
+      eventType === 'avatar_video.fail' ||
       eventType === 'avatar_video.failed' ||
       eventType === 'avatar_video.failure'
     );
