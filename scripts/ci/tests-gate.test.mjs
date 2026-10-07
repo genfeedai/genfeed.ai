@@ -24,6 +24,7 @@ const ALL_SUCCESS_ENV = {
   TEST_WORKSPACES_RESULT: 'success',
   TEST_APP_RESULT: 'success',
   TEST_API_RESULT: 'success',
+  CLOUD_TENANT_GUARD_RESULT: 'success',
   BUILD_RESULT: 'success',
 };
 
@@ -48,6 +49,7 @@ const CANCELLED_RUN_ENV = {
   TEST_WORKSPACES_RESULT: 'cancelled',
   TEST_APP_RESULT: 'cancelled',
   TEST_API_RESULT: 'cancelled',
+  CLOUD_TENANT_GUARD_RESULT: 'cancelled',
   BUILD_RESULT: 'cancelled',
 };
 
@@ -149,6 +151,7 @@ test('accepts skipped jobs only when the plan marks them inapplicable', () => {
     TEST_APP_RESULT: 'skipped',
     PLAN_API_TESTS: 'false',
     TEST_API_RESULT: 'skipped',
+    CLOUD_TENANT_GUARD_RESULT: 'skipped',
     PLAN_SPEC_TYPECHECK: 'false',
     SPEC_TYPECHECK_RESULT: 'skipped',
   });
@@ -158,6 +161,7 @@ test('accepts skipped jobs only when the plan marks them inapplicable', () => {
     'Workspace tests',
     'App tests',
     'API tests',
+    'Cloud Tenant Guard Sweep',
     'Spec typecheck',
   ]) {
     assert.equal(classificationOf(result, name), 'not applicable');
@@ -169,6 +173,7 @@ test('rejects a skipped job the plan marked applicable', () => {
     ['TEST_WORKSPACES_RESULT', 'Workspace tests'],
     ['TEST_APP_RESULT', 'App tests'],
     ['TEST_API_RESULT', 'API tests'],
+    ['CLOUD_TENANT_GUARD_RESULT', 'Cloud Tenant Guard Sweep'],
     ['SPEC_TYPECHECK_RESULT', 'Spec typecheck'],
   ]) {
     const result = evaluate({ [key]: 'skipped' });
@@ -328,6 +333,7 @@ test('a plan that never finished fails the gate on its own row', () => {
     TEST_WORKSPACES_RESULT: 'skipped',
     TEST_APP_RESULT: 'skipped',
     TEST_API_RESULT: 'skipped',
+    CLOUD_TENANT_GUARD_RESULT: 'skipped',
     STATIC_CHECKS_RESULT: 'skipped',
     BUILD_RESULT: 'skipped',
   });
@@ -370,6 +376,7 @@ test('keeps the workflow contract stable', () => {
     'test-workspaces',
     'test-app',
     'test-api',
+    'cloud-tenant-guard',
     'build',
   ]) {
     assert.match(workflow, new RegExp(`^ {6}- ${job}$`, 'm'));
@@ -442,4 +449,10 @@ test('unrelated inapplicable workspace skips remain distinct from IDE dormancy',
     ['IDE extension tests'],
   );
   assert.equal(classificationOf(result, 'Extension tests'), undefined);
+});
+
+test('tenant diagnostic failure blocks gate', () => {
+  for (const result of ['failure', 'cancelled']) {
+    assert.equal(evaluate({ CLOUD_TENANT_GUARD_RESULT: result }).passed, false);
+  }
 });
