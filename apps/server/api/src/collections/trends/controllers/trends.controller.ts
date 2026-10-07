@@ -22,6 +22,8 @@ import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.gu
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   assertOrganizationCreditsAvailable,
@@ -63,6 +65,7 @@ export class TrendsController {
     private readonly apiKeysService: ApiKeysService,
   ) {}
 
+  @TenantReadPolicy('selected')
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getTrends(
@@ -71,8 +74,9 @@ export class TrendsController {
     @Query('platform') platform?: string,
     @Query('refresh') refresh?: string,
   ) {
-    const organizationId = user.organizationId;
-    const brandId = user.brandId;
+    const readScope = resolveTenantReadScope(user);
+    const organizationId = readScope.organizationId;
+    const brandId = readScope.brandId;
 
     if (refresh === 'true') {
       throw new BadRequestException(
@@ -319,6 +323,7 @@ export class TrendsController {
     };
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id/sources')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getTrendSources(
@@ -326,7 +331,8 @@ export class TrendsController {
     @Param('id') id: string,
     @Query('limit') limitParam?: string,
   ) {
-    const organizationId = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organizationId = readScope.organizationId;
     const parsedLimit = Number.parseInt(limitParam ?? '5', 10);
     const limit = Number.isNaN(parsedLimit)
       ? 5
@@ -341,6 +347,7 @@ export class TrendsController {
     return { items };
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getTrendById(
@@ -348,7 +355,8 @@ export class TrendsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const organizationId = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organizationId = readScope.organizationId;
 
     // Get the trend
     const trend = await this.trendsService.getTrendById(id, organizationId);

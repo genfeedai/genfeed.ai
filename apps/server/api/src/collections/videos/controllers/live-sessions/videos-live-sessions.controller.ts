@@ -17,6 +17,7 @@ import {
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import {
@@ -77,6 +78,7 @@ export class VideosLiveSessionsController {
     return serializeSingle(request, LiveSessionSerializer, session);
   }
 
+  @TenantReadPolicy('mutating')
   @Get('live-sessions/:sessionId')
   @SetMetadata('roles', [
     'superadmin',

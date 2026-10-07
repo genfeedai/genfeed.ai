@@ -16,6 +16,8 @@ import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.d
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import {
@@ -55,6 +57,7 @@ export class MetaAdsOptimizationController {
 
   // ─── Recommendations ──────────────────────────────────────────────────────
 
+  @TenantReadPolicy('selected')
   @Get('recommendations')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
@@ -65,10 +68,15 @@ export class MetaAdsOptimizationController {
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
+    const readScope = resolveTenantReadScope(user);
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
-    const ctx = extractRequestContext(user);
+    const ctx = {
+      ...extractRequestContext(user),
+      organizationId: readScope.organizationId,
+      brandId: readScope.brandId ?? '',
+    };
 
     return this.recommendationsService.findByOrganization(ctx.organizationId, {
       limit: limit ? Number(limit) : undefined,
@@ -195,14 +203,20 @@ export class MetaAdsOptimizationController {
 
   // ─── Config ───────────────────────────────────────────────────────────────
 
+  @TenantReadPolicy('selected')
   @Get('config')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   async getConfig(@CurrentUser() user: User) {
+    const readScope = resolveTenantReadScope(user);
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
-    const ctx = extractRequestContext(user);
+    const ctx = {
+      ...extractRequestContext(user),
+      organizationId: readScope.organizationId,
+      brandId: readScope.brandId ?? '',
+    };
     const config = await this.configsService.findByOrganization(
       ctx.organizationId,
     );
@@ -227,6 +241,7 @@ export class MetaAdsOptimizationController {
 
   // ─── Audit Logs ───────────────────────────────────────────────────────────
 
+  @TenantReadPolicy('selected')
   @Get('audit-logs')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
@@ -235,10 +250,15 @@ export class MetaAdsOptimizationController {
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
+    const readScope = resolveTenantReadScope(user);
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
-    const ctx = extractRequestContext(user);
+    const ctx = {
+      ...extractRequestContext(user),
+      organizationId: readScope.organizationId,
+      brandId: readScope.brandId ?? '',
+    };
 
     return this.auditLogsService.findByOrganization(ctx.organizationId, {
       limit: limit ? Number(limit) : undefined,

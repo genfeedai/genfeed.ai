@@ -7,6 +7,8 @@ import {
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   serializeCollection,
   serializeSingle,
@@ -31,6 +33,7 @@ export class BotActivitiesController {
   /**
    * Get paginated list of bot activities with filters
    */
+  @TenantReadPolicy('selected')
   @Get()
   @ApiOperation({ summary: 'Get bot activities with pagination and filters' })
   @ApiResponse({
@@ -42,10 +45,11 @@ export class BotActivitiesController {
     @Query() query: BotActivitiesQueryDto,
     @CurrentUser() user: User,
   ) {
+    const readScope = resolveTenantReadScope(user);
     const { activities, total } =
       await this.botActivitiesService.findWithFilters(
-        user.organizationId,
-        user.brandId,
+        readScope.organizationId,
+        readScope.brandId,
         query,
       );
 
@@ -58,6 +62,7 @@ export class BotActivitiesController {
   /**
    * Get a single bot activity by ID
    */
+  @TenantReadPolicy('selected')
   @Get(':id')
   @ApiOperation({ summary: 'Get a single bot activity' })
   @ApiResponse({
@@ -69,10 +74,11 @@ export class BotActivitiesController {
     @Param('id') id: string,
     @CurrentUser() user: User,
   ) {
+    const readScope = resolveTenantReadScope(user);
     const activity = await this.botActivitiesService.findOne({
-      ...(user.brandId ? { brandId: user.brandId } : {}),
+      ...(readScope.brandId ? { brandId: readScope.brandId } : {}),
       id: id,
-      organizationId: user.organizationId,
+      organizationId: readScope.organizationId,
     });
     return serializeSingle(req, BotActivitySerializer, activity);
   }
@@ -80,6 +86,7 @@ export class BotActivitiesController {
   /**
    * Get aggregated statistics for bot activities
    */
+  @TenantReadPolicy('selected')
   @Get('stats/summary')
   @ApiOperation({ summary: 'Get aggregated bot activity statistics' })
   @ApiResponse({
@@ -92,9 +99,10 @@ export class BotActivitiesController {
     @Query('toDate') toDate: string,
     @CurrentUser() user: User,
   ): Promise<BotActivityStats> {
+    const readScope = resolveTenantReadScope(user);
     return this.botActivitiesService.getStats(
-      user.organizationId,
-      user.brandId,
+      readScope.organizationId,
+      readScope.brandId,
       replyBotConfigId,
       fromDate ? new Date(fromDate) : undefined,
       toDate ? new Date(toDate) : undefined,

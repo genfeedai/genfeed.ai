@@ -1,6 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import {
   ConfigureUnipileDto,
   ListUnipileEmailsQueryDto,
@@ -30,22 +33,27 @@ export class UnipileController {
     return this.unipileService.configure(this.getOrganizationId(user), body);
   }
 
+  @TenantReadPolicy('selected')
   @Get('status')
   status(@CurrentUser() user: User): ReturnType<UnipileService['getStatus']> {
-    return this.unipileService.getStatus(this.getOrganizationId(user));
+    return this.unipileService.getStatus(
+      this.getOrganizationId(user, resolveTenantReadScope(user)),
+    );
   }
 
+  @TenantReadPolicy('selected')
   @Get('accounts')
   accounts(
     @CurrentUser() user: User,
     @Query('cursor') cursor?: string,
   ): ReturnType<UnipileService['listAccounts']> {
     return this.unipileService.listAccounts(
-      this.getOrganizationId(user),
+      this.getOrganizationId(user, resolveTenantReadScope(user)),
       cursor,
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get('messages')
   messages(
     @CurrentUser() user: User,
@@ -53,13 +61,17 @@ export class UnipileController {
   ): ReturnType<UnipileService['listMessages']> {
     const limit = this.toOptionalNumber(query.limit);
 
-    return this.unipileService.listMessages(this.getOrganizationId(user), {
-      ...(query.accountId ? { accountId: query.accountId } : {}),
-      ...(query.cursor ? { cursor: query.cursor } : {}),
-      ...(limit ? { limit } : {}),
-    });
+    return this.unipileService.listMessages(
+      this.getOrganizationId(user, resolveTenantReadScope(user)),
+      {
+        ...(query.accountId ? { accountId: query.accountId } : {}),
+        ...(query.cursor ? { cursor: query.cursor } : {}),
+        ...(limit ? { limit } : {}),
+      },
+    );
   }
 
+  @TenantReadPolicy('selected')
   @Get('emails')
   emails(
     @CurrentUser() user: User,
@@ -67,14 +79,17 @@ export class UnipileController {
   ): ReturnType<UnipileService['listEmails']> {
     const limit = this.toOptionalNumber(query.limit);
 
-    return this.unipileService.listEmails(this.getOrganizationId(user), {
-      ...(query.accountId ? { accountId: query.accountId } : {}),
-      ...(query.after ? { after: query.after } : {}),
-      ...(query.before ? { before: query.before } : {}),
-      ...(query.cursor ? { cursor: query.cursor } : {}),
-      ...(limit ? { limit } : {}),
-      ...(query.metaOnly !== undefined ? { metaOnly: query.metaOnly } : {}),
-    });
+    return this.unipileService.listEmails(
+      this.getOrganizationId(user, resolveTenantReadScope(user)),
+      {
+        ...(query.accountId ? { accountId: query.accountId } : {}),
+        ...(query.after ? { after: query.after } : {}),
+        ...(query.before ? { before: query.before } : {}),
+        ...(query.cursor ? { cursor: query.cursor } : {}),
+        ...(limit ? { limit } : {}),
+        ...(query.metaOnly !== undefined ? { metaOnly: query.metaOnly } : {}),
+      },
+    );
   }
 
   @Post('emails/send')
@@ -85,6 +100,7 @@ export class UnipileController {
     return this.unipileService.sendEmail(this.getOrganizationId(user), body);
   }
 
+  @TenantReadPolicy('selected')
   @Get('calendar/events')
   calendarEvents(
     @CurrentUser() user: User,
@@ -93,7 +109,7 @@ export class UnipileController {
     const limit = this.toOptionalNumber(query.limit);
 
     return this.unipileService.listCalendarEvents(
-      this.getOrganizationId(user),
+      this.getOrganizationId(user, resolveTenantReadScope(user)),
       {
         ...(query.accountId ? { accountId: query.accountId } : {}),
         ...(query.cursor ? { cursor: query.cursor } : {}),
@@ -102,13 +118,13 @@ export class UnipileController {
     );
   }
 
-  private getOrganizationId(user: User): string {
+  private getOrganizationId(user: User, readScope?: ITenantReadScope): string {
     const organizationId = user.organizationId?.toString();
     if (!organizationId) {
       throw new BadRequestException('Organization context is required');
     }
 
-    return organizationId;
+    return readScope ? readScope.organizationId : organizationId;
   }
 
   private toOptionalNumber(value: string | undefined): number | undefined {

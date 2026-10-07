@@ -7,6 +7,7 @@ import type {
 import { WorkflowFormatConverterService } from '@api/collections/workflows/services/workflow-format-converter.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -131,8 +132,13 @@ export class SyncService {
     return obj;
   }
 
-  async getStatus(user: User): Promise<SyncStatusResponse> {
-    const organization = user.organizationId;
+  async getStatus(
+    user: User,
+    readScope?: ITenantReadScope,
+  ): Promise<SyncStatusResponse> {
+    const organization = readScope
+      ? readScope.organizationId
+      : user.organizationId;
 
     // Fetch all non-deleted workflows for this org
     const allWorkflows =

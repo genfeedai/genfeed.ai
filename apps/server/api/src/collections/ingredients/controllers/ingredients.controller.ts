@@ -17,6 +17,8 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
@@ -237,6 +239,7 @@ export class IngredientsController {
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get('batch')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get multiple ingredients by ID' })
@@ -246,6 +249,7 @@ export class IngredientsController {
     @Query('ids') idsParam: string,
     @CurrentUser() user: User,
   ) {
+    const readScope = resolveTenantReadScope(user);
     if (!idsParam || idsParam.trim().length === 0) {
       throw new BadRequestException('ids query parameter is required');
     }
@@ -262,7 +266,7 @@ export class IngredientsController {
 
     const ingredients = await this.ingredientsService.findByIds(
       ids,
-      user.organizationId,
+      readScope.organizationId,
     );
     const cdnOrigin = this.configService.ingredientsEndpoint.replace(
       /\/ingredients\/?$/,

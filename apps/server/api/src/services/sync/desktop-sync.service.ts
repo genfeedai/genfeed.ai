@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
@@ -86,8 +87,11 @@ export class DesktopSyncService {
     private readonly prisma: PrismaService,
   ) {}
 
-  private getCloudContext(user: User): {
-    brandId: string;
+  private getCloudContext(
+    user: User,
+    readScope?: ITenantReadScope,
+  ): {
+    brandId: string | undefined;
     organizationId: string;
     userId: string;
   } {
@@ -98,8 +102,10 @@ export class DesktopSyncService {
     }
 
     return {
-      brandId: user.brandId,
-      organizationId: user.organizationId,
+      brandId: readScope ? readScope.brandId : user.brandId,
+      organizationId: readScope
+        ? readScope.organizationId
+        : user.organizationId,
       userId: user.userId ?? user.id,
     };
   }
@@ -344,9 +350,15 @@ export class DesktopSyncService {
   }
 
   @LogMethod()
-  async getBrandManifest(user: User, query: DesktopBrandManifestQueryDto) {
-    const { brandId: selectedBrandId, organizationId } =
-      this.getCloudContext(user);
+  async getBrandManifest(
+    user: User,
+    query: DesktopBrandManifestQueryDto,
+    readScope?: ITenantReadScope,
+  ) {
+    const { brandId: selectedBrandId, organizationId } = this.getCloudContext(
+      user,
+      readScope,
+    );
     const brandId = query.brandId ?? selectedBrandId;
     // Lossless keyset paging: each collection advances an ascending
     // (updatedAt, id) cursor to the last row the client actually received.

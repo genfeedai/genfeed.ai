@@ -2,6 +2,8 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { returnBadRequest } from '@api/helpers/utils/response/response.util';
 import { WhatsappService } from '@api/services/integrations/whatsapp/services/whatsapp.service';
 import type {
@@ -93,12 +95,14 @@ export class WhatsappController {
     return { data: result };
   }
 
+  @TenantReadPolicy('selected')
   @Get('status/:messageSid')
   async getMessageStatus(
     @CurrentUser() user: User,
     @Param('messageSid') messageSid: string,
     @Query('brandId') brandId: string,
   ) {
+    const readScope = resolveTenantReadScope(user);
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { messageSid });
 
@@ -111,7 +115,7 @@ export class WhatsappController {
 
     const brand = await this.brandsService.findOne({
       id: brandId,
-      organizationId: user.organizationId,
+      organizationId: readScope.organizationId,
     });
 
     if (!brand) {

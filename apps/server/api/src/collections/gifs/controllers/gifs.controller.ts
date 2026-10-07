@@ -7,6 +7,8 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
@@ -152,6 +154,7 @@ export class GifsController {
     return serializeCollection(request, IngredientSerializer, data);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':gifId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
@@ -159,6 +162,7 @@ export class GifsController {
     @Param('gifId') gifId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
+    const readScope = resolveTenantReadScope(user);
     const data = await this.gifsService.findOne(
       {
         id: gifId,
@@ -166,7 +170,7 @@ export class GifsController {
           IngredientCategory.GIF,
         ),
         OR: [
-          { organizationId: user.organizationId },
+          { organizationId: readScope.organizationId },
           { isDefault: true, organizationId: null },
         ],
       },
@@ -188,7 +192,7 @@ export class GifsController {
       entityId: gifId,
       entityModel: ActivityEntityModel.INGREDIENT,
       isDeleted: false,
-      organizationId: user.organizationId,
+      organizationId: readScope.organizationId,
       userId: user.userId ?? user.id,
     });
 

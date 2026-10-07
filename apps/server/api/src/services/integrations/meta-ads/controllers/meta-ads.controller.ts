@@ -6,6 +6,7 @@ import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.d
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import {
   INVALID_CAMPAIGN_STATUS_MESSAGE,
   isAcceptedCampaignStatus,
@@ -55,6 +56,7 @@ export class MetaAdsController {
     private readonly metaAdsService: MetaAdsService,
   ) {}
 
+  @TenantReadPolicy('owner')
   @Get('accounts')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
@@ -66,6 +68,7 @@ export class MetaAdsController {
     return this.metaAdsService.getAdAccounts(accessToken);
   }
 
+  @TenantReadPolicy('owner')
   @Get('campaigns')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
@@ -85,6 +88,7 @@ export class MetaAdsController {
     });
   }
 
+  @TenantReadPolicy('owner')
   @Get('campaigns/compare')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
@@ -104,6 +108,7 @@ export class MetaAdsController {
     return this.metaAdsService.compareCampaigns(accessToken, ids, params);
   }
 
+  @TenantReadPolicy('owner')
   @Get('campaigns/:id/insights')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
@@ -129,6 +134,7 @@ export class MetaAdsController {
     );
   }
 
+  @TenantReadPolicy('owner')
   @Get('adsets/:id/insights')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
@@ -150,6 +156,7 @@ export class MetaAdsController {
     return this.metaAdsService.getAdSetInsights(accessToken, adSetId, params);
   }
 
+  @TenantReadPolicy('owner')
   @Get('ads/:id/insights')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
@@ -171,6 +178,7 @@ export class MetaAdsController {
     return this.metaAdsService.getAdInsights(accessToken, adId, params);
   }
 
+  @TenantReadPolicy('owner')
   @Get('creatives')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
@@ -188,6 +196,7 @@ export class MetaAdsController {
     });
   }
 
+  @TenantReadPolicy('owner')
   @Get('top-performers')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)

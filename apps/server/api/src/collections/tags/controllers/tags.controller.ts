@@ -9,6 +9,8 @@ import { TagsService } from '@api/collections/tags/services/tags.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
@@ -70,6 +72,7 @@ export class TagsController extends BaseCRUDController<
    * number of the brand's assets carrying it. Another brand's tags never
    * appear, and a member can only ask for their own active brand.
    */
+  @TenantReadPolicy('selected')
   @Get('library')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findLibrary(
@@ -77,6 +80,7 @@ export class TagsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Query() query: TagsLibraryQueryDto,
   ): Promise<JsonApiCollectionResponse> {
+    const readScope = resolveTenantReadScope(user);
     if (!user.organizationId) {
       throw new ForbiddenException({
         detail: 'An authenticated organization is required',
@@ -94,8 +98,8 @@ export class TagsController extends BaseCRUDController<
 
     const docs = await this.tagsService.listLibraryTags(
       {
-        brandId: query.brandId ?? user.brandId ?? null,
-        organizationId: user.organizationId,
+        brandId: query.brandId ?? readScope.brandId ?? null,
+        organizationId: readScope.organizationId,
       },
       query.search,
     );

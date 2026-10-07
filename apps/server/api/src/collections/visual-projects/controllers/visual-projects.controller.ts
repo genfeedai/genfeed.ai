@@ -7,6 +7,7 @@ import { VisualProjectsService } from '@api/collections/visual-projects/services
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import {
   serializeCollection,
   serializeSingle,
@@ -39,7 +40,9 @@ import type { Request, Response } from 'express';
 @UseGuards(RolesGuard)
 export class VisualProjectsController {
   constructor(private readonly projects: VisualProjectsService) {}
-  @Get('catalog') async catalog(
+  @TenantReadPolicy('owner')
+  @Get('catalog')
+  async catalog(
     @Req() req: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Query('brandId') brandId?: unknown,
@@ -62,7 +65,9 @@ export class VisualProjectsController {
       ...(await this.projects.quote(user, input)),
     });
   }
-  @Get('projects') async list(
+  @TenantReadPolicy('owner')
+  @Get('projects')
+  async list(
     @Req() req: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Query('brandId') brandId?: unknown,
@@ -91,7 +96,9 @@ export class VisualProjectsController {
       await this.projects.create(user, input),
     );
   }
-  @Get(':id') async get(
+  @TenantReadPolicy('owner')
+  @Get(':id')
+  async get(
     @Req() req: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,

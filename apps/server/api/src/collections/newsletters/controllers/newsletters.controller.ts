@@ -8,6 +8,8 @@ import { NewslettersService } from '@api/collections/newsletters/services/newsle
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
@@ -54,13 +56,19 @@ export class NewslettersController {
     });
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id')
   async findOne(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const ctx = extractRequestContext(user);
+    const readScope = resolveTenantReadScope(user);
+    const ctx = {
+      ...extractRequestContext(user),
+      organizationId: readScope.organizationId,
+      brandId: readScope.brandId ?? '',
+    };
     const data = await this.newslettersService.findOneScoped(id, ctx);
     return serializeSingle(request, NewsletterSerializer, data);
   }
@@ -121,9 +129,15 @@ export class NewslettersController {
     return serializeSingle(request, NewsletterSerializer, data);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id/context')
   async context(@CurrentUser() user: User, @Param('id') id: string) {
-    const ctx = extractRequestContext(user);
+    const readScope = resolveTenantReadScope(user);
+    const ctx = {
+      ...extractRequestContext(user),
+      organizationId: readScope.organizationId,
+      brandId: readScope.brandId ?? '',
+    };
     return {
       data: await this.newslettersService.getContextPreview(id, ctx),
     };

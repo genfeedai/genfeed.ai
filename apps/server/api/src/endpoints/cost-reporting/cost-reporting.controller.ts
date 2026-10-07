@@ -13,6 +13,9 @@ import {
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import {
   serializeCollection,
   serializeSingle,
@@ -34,6 +37,7 @@ import type { Response } from 'express';
 export class CostReportingController {
   constructor(private readonly costReportingService: CostReportingService) {}
 
+  @TenantReadPolicy('selected')
   @Get('workflows')
   @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
@@ -43,7 +47,7 @@ export class CostReportingController {
     @Query() query: CostReportQueryDto,
   ) {
     const docs = await this.costReportingService.getWorkflowExecutions(
-      this.organizationId(request, user),
+      this.organizationId(request, user, resolveTenantReadScope(user)),
       query,
     );
     return serializeCollection(request, WorkflowExecutionSerializer, {
@@ -164,7 +168,15 @@ export class CostReportingController {
     response.send(buildUsageReportCsv(entries));
   }
 
-  private organizationId(request: RequestWithContext, user: User): string {
-    return request.context?.organizationId ?? user.organizationId.toString();
+  private organizationId(
+    request: RequestWithContext,
+    user: User,
+    readScope?: ITenantReadScope,
+  ): string {
+    return (
+      readScope?.organizationId ??
+      request.context?.organizationId ??
+      user.organizationId.toString()
+    );
   }
 }

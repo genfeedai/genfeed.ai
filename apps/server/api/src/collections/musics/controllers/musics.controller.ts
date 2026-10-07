@@ -7,6 +7,9 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
@@ -80,6 +83,7 @@ export class MusicsController {
     return serializeCollection(request, MusicSerializer, data);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
@@ -92,7 +96,7 @@ export class MusicsController {
     }
 
     const data = await this.musicsService.findOne(
-      this.buildFindOneQuery(user, id),
+      this.buildFindOneQuery(user, id, resolveTenantReadScope(user)),
       MUSIC_POPULATE_FIELDS,
     );
     if (!data) {
@@ -254,11 +258,19 @@ export class MusicsController {
     };
   }
 
-  public buildFindOneQuery(user: User, id: string): Record<string, unknown> {
+  public buildFindOneQuery(
+    user: User,
+    id: string,
+    readScope?: ITenantReadScope,
+  ): Record<string, unknown> {
     return {
       id,
       OR: [
-        { organizationId: user.organizationId },
+        {
+          organizationId: readScope
+            ? readScope.organizationId
+            : user.organizationId,
+        },
         { isDefault: true, organizationId: null },
       ],
       category: CategoryPrismaUtil.toIngredientCategory(

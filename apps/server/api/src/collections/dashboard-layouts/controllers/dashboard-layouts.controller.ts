@@ -3,6 +3,8 @@ import { UpsertDashboardLayoutDto } from '@api/collections/dashboard-layouts/dto
 import { DashboardLayoutsService } from '@api/collections/dashboard-layouts/services/dashboard-layouts.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   returnNotFound,
   serializeSingle,
@@ -36,6 +38,7 @@ export class DashboardLayoutsController {
     readonly service: DashboardLayoutsService,
   ) {}
 
+  @TenantReadPolicy('selected')
   @Get()
   // Without the Nest Swagger CLI plugin, @nestjs/swagger can't see that
   // `pageKey` is a TS-optional (`?`) handler param, so it defaults the
@@ -53,13 +56,14 @@ export class DashboardLayoutsController {
     @Query('brand') brandId: string,
     @Query('pageKey') pageKey?: string,
   ): Promise<JsonApiSingleResponse> {
+    const readScope = resolveTenantReadScope(user);
     if (!brandId?.trim()) {
       throw new BadRequestException({
         message: 'Query param `brand` is required',
       });
     }
 
-    const organizationId = user.organizationId;
+    const organizationId = readScope.organizationId;
 
     const data = await this.service.findForPage(
       brandId,

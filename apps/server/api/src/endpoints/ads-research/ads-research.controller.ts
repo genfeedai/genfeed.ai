@@ -5,6 +5,9 @@ import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
@@ -84,6 +87,7 @@ export class AdsResearchController {
     return this.paidCreativeProviderRegistry.getReadiness();
   }
 
+  @TenantReadPolicy('selected')
   @Get()
   async listAds(
     @CurrentUser() user: User,
@@ -100,8 +104,13 @@ export class AdsResearchController {
     @Query('adAccountId') adAccountId?: string,
     @Query('loginCustomerId') loginCustomerId?: string,
   ) {
-    const authorizedBrandId = this.resolveAuthorizedBrandId(user, brandId);
-    return this.adsResearchService.listAds(user.organizationId, {
+    const readScope = resolveTenantReadScope(user);
+    const authorizedBrandId = this.resolveAuthorizedBrandId(
+      user,
+      brandId,
+      resolveTenantReadScope(user),
+    );
+    return this.adsResearchService.listAds(readScope.organizationId, {
       adAccountId,
       brandId: authorizedBrandId,
       brandName,
@@ -226,12 +235,14 @@ export class AdsResearchController {
   private resolveAuthorizedBrandId(
     user: User,
     requestedBrandId?: string,
+    readScope?: ITenantReadScope,
   ): string | undefined {
     if (requestedBrandId && !isEntityId(requestedBrandId)) {
       throw new BadRequestException('brandId is invalid');
     }
 
-    const candidate = requestedBrandId ?? user.brandId;
+    const candidate =
+      requestedBrandId ?? (readScope ? readScope.brandId : user.brandId);
     if (!candidate) {
       return undefined;
     }

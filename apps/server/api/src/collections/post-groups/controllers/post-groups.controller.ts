@@ -7,6 +7,8 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import {
   serializeCollection,
@@ -38,6 +40,7 @@ export class PostGroupsController {
     private readonly postGroupRecurrenceService: PostGroupRecurrenceService,
   ) {}
 
+  @TenantReadPolicy('selected')
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
@@ -45,7 +48,8 @@ export class PostGroupsController {
     @CurrentUser() user: User,
     @Query() query: PostGroupsQueryDto,
   ) {
-    const organization = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organization = readScope.organizationId;
     const data = await this.postGroupsService.list(organization, query);
     return serializeCollection(req, ReleaseGroupSerializer, data);
   }
@@ -103,6 +107,7 @@ export class PostGroupsController {
     return this.postGroupRecurrenceService.preview(body);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getOne(
@@ -110,7 +115,8 @@ export class PostGroupsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const organization = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organization = readScope.organizationId;
     const data = await this.postGroupsService.getOne(organization, id);
     return serializeSingle(req, ReleaseGroupSerializer, data);
   }

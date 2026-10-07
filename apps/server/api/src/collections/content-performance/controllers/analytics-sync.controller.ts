@@ -7,6 +7,8 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { IsDateString, IsEmail, IsOptional, IsString } from 'class-validator';
 
@@ -91,13 +93,15 @@ export class AnalyticsSyncController {
   /**
    * Get the last sync timestamp for this organization.
    */
+  @TenantReadPolicy('selected')
   @Get('status')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getSyncStatus(
     @Query('brandId') brandId: string | undefined,
     @CurrentUser() user: User,
   ) {
-    const organizationId = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organizationId = readScope.organizationId;
 
     const lastSyncDate = await this.analyticsSyncService.getLastSyncDate(
       organizationId,
