@@ -21,6 +21,7 @@ import { MembersController } from '@api/collections/members/controllers/members.
 import type { MembersService } from '@api/collections/members/services/members.service';
 import { ProfilesController } from '@api/collections/profiles/controllers/profiles.controller';
 import type { ProfilesService } from '@api/collections/profiles/services/profiles.service';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
@@ -34,7 +35,7 @@ import type { ExecutionContext } from '@nestjs/common';
 import { ForbiddenException } from '@nestjs/common';
 import { PATH_METADATA } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
-import type { Request } from 'express';
+import type { Observable } from 'rxjs';
 import { defer, firstValueFrom, of } from 'rxjs';
 
 const originalOrg = testId('org');
@@ -166,12 +167,12 @@ describe('account tenant read policies', () => {
       user,
       query: { organizationId: selectedOrg },
       originalUrl: '/v1/profiles',
-    } as unknown as Request;
+    } as unknown as RequestWithContext;
     const result = await firstValueFrom(
       interceptor.intercept(
         context(request, ProfilesController.prototype.findAll),
         { handle: () => defer(() => controller.findAll(request, user)) },
-      ),
+      ) as Observable<JsonApiCollectionResponse>,
     );
     expect(result.data.map((r) => r.id)).toEqual([rows[1].id]);
     expect(findAll).toHaveBeenCalledWith(selectedOrg, expect.anything());
@@ -182,14 +183,23 @@ describe('account tenant read policies', () => {
 const selectedBrand = testId('brand', 2);
 const requestFor = (
   query: Record<string, unknown> = { organizationId: selectedOrg },
-) =>
+): RequestWithContext =>
   ({
     method: 'GET',
     user,
     query,
     originalUrl: '/v1/account-test',
-  }) as unknown as Request;
-function instance<T>(prototype: T, dependencies: object): T {
+    context: {
+      organizationId: originalOrg,
+      brandId: user.brandId,
+      userId: user.userId,
+      isSuperAdmin: true,
+      subscriptionTier: 'test',
+      stripeSubscriptionStatus: 'active',
+      hydratedAt: 0,
+    },
+  }) as unknown as RequestWithContext;
+function instance<T extends object>(prototype: T, dependencies: object): T {
   return Object.assign(Object.create(prototype), dependencies) as T;
 }
 async function selected<T>(
@@ -200,7 +210,7 @@ async function selected<T>(
   return firstValueFrom(
     interceptor.intercept(context(request, handler), {
       handle: () => defer(async () => work()),
-    }),
+    }) as Observable<T>,
   );
 }
 describe('account selected data and original authorization', () => {
@@ -406,7 +416,7 @@ describe('account selected data and original authorization', () => {
         },
       },
     );
-    const result = await selected(
+    const result = await selected<JsonApiCollectionResponse>(
       CreditsController.prototype.listTransactions,
       () => controller.listTransactions(request, user, selectedBrand),
       request,
