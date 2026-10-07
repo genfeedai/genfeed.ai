@@ -3,6 +3,7 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { AgentScopeContextService } from '@api/index';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { AgentThreadStatus } from '@genfeedai/contracts';
@@ -539,6 +540,67 @@ describe('AgentThreadsController', () => {
         threadId: 'thread-1',
         userId: mockUserId,
       });
+    });
+  });
+
+  describe('original thread identity resolution', () => {
+    it('keeps the original actor and organization for owner listing in a selected data scope', async () => {
+      service.getUserThreads.mockResolvedValue([]);
+      const originalIdentity = { ...mockUser };
+      await runWithTenantReadScope(
+        { organizationId: testId('org', 2), isOrganizationOverride: true },
+        () => controller.listThreads({} as never, mockUser),
+      );
+      expect(service.getUserThreads).toHaveBeenCalledWith(
+        mockUser.userId,
+        mockUser.organizationId,
+        undefined,
+        undefined,
+        undefined,
+      );
+      expect(mockUser).toEqual(originalIdentity);
+      expect(usersService.findOne).not.toHaveBeenCalled();
+    });
+    it('retains the exact missing organization refusal before user lookup', async () => {
+      await expect(
+        controller.listThreads({} as never, {
+          ...mockUser,
+          organizationId: '',
+        }),
+      ).rejects.toMatchObject({
+        status: 401,
+        message: 'Invalid organization context. Please sign in again.',
+      });
+      expect(usersService.findOne).not.toHaveBeenCalled();
+      expect(service.getUserThreads).not.toHaveBeenCalled();
+    });
+    it('retains the exact missing identity refusal before database lookup', async () => {
+      await expect(
+        controller.listThreads({} as never, {
+          ...mockUser,
+          id: '',
+          userId: '',
+        }),
+      ).rejects.toMatchObject({
+        status: 401,
+        message: 'Missing user identity. Please sign in again.',
+      });
+      expect(usersService.findOne).not.toHaveBeenCalled();
+      expect(service.getUserThreads).not.toHaveBeenCalled();
+    });
+    it('retains the exact canonical fallback not-found refusal', async () => {
+      usersService.findOne.mockResolvedValueOnce(null);
+      await expect(
+        controller.listThreads({} as never, { ...mockUser, userId: '' }),
+      ).rejects.toMatchObject({
+        status: 401,
+        message: 'User account not found',
+      });
+      expect(usersService.findOne).toHaveBeenCalledWith(
+        { id: mockUser.id },
+        [],
+      );
+      expect(service.getUserThreads).not.toHaveBeenCalled();
     });
   });
 
