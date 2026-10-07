@@ -2746,6 +2746,7 @@ describe('StudioGenerateWorkspace', () => {
           modelKey: AUTO_MODEL_OPTION_VALUE,
         }),
       );
+      expect(mocks.notify).toHaveBeenCalledWith('editImage.modelFallback');
       expect(mocks.notify).not.toHaveBeenCalledWith(
         'editImage.aspectRatioFallback',
       );
@@ -2805,6 +2806,40 @@ describe('StudioGenerateWorkspace', () => {
       expect(mocks.notify).toHaveBeenCalledWith(
         'editImage.aspectRatioFallback',
       );
+    });
+    it('keeps a recorded 16:9 and the ledger model without using portrait placeholders', async () => {
+      mocks.searchParams.value = 'editImage=source-recorded';
+      mocks.findOne.mockImplementation(async (id: string) => ({
+        id,
+        brandId: 'brand-1',
+        category: 'IMAGE',
+        status: 'GENERATED',
+        cdnUrl: 'https://example.com/recorded.png',
+        promptText: 'Wide shot',
+        aspectRatio: '16:9',
+        metadataWidth: 1080,
+        metadataHeight: 1920,
+        modelUsed: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
+      }));
+      render(<StudioGenerateWorkspace />);
+      await waitFor(() =>
+        expect(mocks.applyTypeSettings).toHaveBeenCalledWith('image-edit', {
+          editSize: 'source',
+          editSeed: undefined,
+          editPrimaryId: 'source-recorded',
+          aspectRatio: '16:9',
+          modelKey: AUTO_MODEL_OPTION_VALUE,
+        }),
+      );
+      expect(mocks.applyTypeSettings).not.toHaveBeenCalledWith(
+        'image-edit',
+        expect.objectContaining({ aspectRatio: '9:16' }),
+      );
+      expect(mocks.applyTypeSettings).not.toHaveBeenCalledWith(
+        'image-edit',
+        expect.objectContaining({ aspectRatio: '1:1' }),
+      );
+      expect(mocks.notify).toHaveBeenCalledWith('editImage.modelFallback');
     });
     it('keeps an edit model stored only on the image-edit recipe', async () => {
       mocks.searchParams.value = 'editImage=source-edited';

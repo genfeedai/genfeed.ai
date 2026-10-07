@@ -1363,7 +1363,31 @@ describe('StudioGenerateComposer', () => {
         screen.getByLabelText('Estimate available after model selection'),
       ).toBeVisible();
       expect(estimateMocks.resolve).not.toHaveBeenCalled();
-      expect(screen.getByText('Auto (Ideogram 4.5) · x3')).toBeVisible();
+      expect(screen.getByText('Auto (Ideogram 4.5) · 1:1 · x3')).toBeVisible();
+    });
+    it('shows the source ratio and does not label Auto with an image-generation default', () => {
+      const imageDefault = {
+        ...editModel,
+        category: ModelCategory.IMAGE,
+        isDefault: true,
+        key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+        label: 'Nano Banana',
+      } as IModel;
+      render(
+        <StudioGenerateComposer
+          {...baseProps}
+          models={[imageDefault, editModel]}
+          prompt="Change the sign"
+          settings={{
+            ...settings,
+            aspectRatio: '16:9',
+            modelKey: AUTO_MODEL_OPTION_VALUE,
+          }}
+          type="image-edit"
+        />,
+      );
+      expect(screen.getByText('Auto (Ideogram 4.5) · 16:9 · x1')).toBeVisible();
+      expect(screen.queryByText(/Nano Banana/)).not.toBeInTheDocument();
     });
     it('blocks submission without a source and never offers prompt enhancement', () => {
       render(

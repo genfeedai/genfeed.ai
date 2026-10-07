@@ -3,6 +3,7 @@ import {
   isFlux3AspectRatio,
   isImageEditModel,
 } from '@genfeedai/contracts/constants';
+import type { ImageEditingRecipe } from '@genfeedai/contracts/interfaces';
 import type { StudioGenerateSettings } from '@pages/studio/generate/types';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 
@@ -21,14 +22,20 @@ export interface ImageEditEntryResolution {
    * then uses `auto` (match the source image) instead of the 1:1 default.
    */
   droppedAspectRatio: string | null;
+  /**
+   * Set when the source model cannot edit. The patch then selects the editor
+   * default instead of a generation model such as Nano Banana or Hailuo.
+   */
+  replacedModelKey: string | null;
   patch: Partial<StudioGenerateSettings>;
 }
 
 /**
  * Edit image attaches the source and opens the editor. A generation model
- * such as Hailuo is not an editor, so that case keeps the editor default.
- * A ratio the editor lists is copied through. Anything else matches the
- * source image rather than resetting to the type default.
+ * such as Hailuo is not an editor, so that case keeps the editor default
+ * and says so. An editing model the user already selected is kept. A ratio
+ * the editor lists is copied through. Anything else matches the source
+ * image rather than resetting to the type default.
  */
 export function resolveImageEditEntry(
   source: ImageEditEntrySource,
@@ -38,34 +45,130 @@ export function resolveImageEditEntry(
     editSeed: undefined,
     editSize: 'source',
   };
+  let replacedModelKey: string | null = null;
   const sourceModelKey = source.sourceModelKey?.trim();
   if (sourceModelKey) {
-    patch.modelKey = isImageEditModel(sourceModelKey)
-      ? sourceModelKey
-      : AUTO_MODEL_OPTION_VALUE;
+    if (isImageEditModel(sourceModelKey)) {
+      patch.modelKey = sourceModelKey;
+    } else {
+      patch.modelKey = AUTO_MODEL_OPTION_VALUE;
+      replacedModelKey = sourceModelKey;
+    }
   }
 
   const sourceAspectRatio = source.sourceAspectRatio?.trim();
   if (!sourceAspectRatio) {
-    return { droppedAspectRatio: null, patch };
+    return { droppedAspectRatio: null, patch, replacedModelKey };
   }
   if (isFlux3AspectRatio(sourceAspectRatio)) {
     patch.aspectRatio = sourceAspectRatio;
-    return { droppedAspectRatio: null, patch };
+    return { droppedAspectRatio: null, patch, replacedModelKey };
   }
 
   patch.aspectRatio = 'auto';
-  return { droppedAspectRatio: sourceAspectRatio, patch };
+  return {
+    droppedAspectRatio: sourceAspectRatio,
+    patch,
+    replacedModelKey,
+  };
+}
+
+/** `16:9` or `2.39:1`. CSS helpers such as `aspect-[16/9]` are not ratios. */
+function ratioShaped(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (trimmed === 'auto') return trimmed;
+  return /^\d+(?:\.\d+)?:\d+(?:\.\d+)?$/.test(trimmed) ? trimmed : undefined;
+}
+
+function text(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function positive(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? value
+    : undefined;
+}
+
+interface ImageEditMetadataRecord {
+  height?: number;
+  model?: string;
+  width?: number;
+}
+
+function readMetadata(value: unknown): ImageEditMetadataRecord | undefined {
+  if (typeof value !== 'object' || value === null) return undefined;
+  const record = value as ImageEditMetadataRecord;
+  return {
+    height: positive(record.height),
+    model: text(record.model),
+    width: positive(record.width),
+  };
+}
+
+/**
+ * Facts stored on the asset. `metadataWidth` / `metadataHeight` are not read:
+ * the client model invents 1080×1920 when nothing was measured, and that
+ * placeholder was landing the editor on the wrong ratio.
+ */
+export interface ImageEditAssetRecord {
+  aspectRatio?: string;
+  height?: number;
+  id: string;
+  imageEdit?: Pick<ImageEditingRecipe, 'aspectRatio' | 'model'>;
+  metadata?: unknown;
+  metadataModel?: string;
+  model?: string;
+  modelUsed?: string | null;
+  width?: number;
+}
+
+export function imageEditEntryForAsset(
+  asset: ImageEditAssetRecord,
+  recorded?: {
+    height?: number;
+    modelKey?: string;
+    recipeAspectRatio?: string;
+    recipeModelKey?: string;
+    width?: number;
+  },
+): ImageEditEntryResolution {
+  const metadata = readMetadata(asset.metadata);
+  return resolveImageEditEntry({
+    editPrimaryId: asset.id,
+    sourceAspectRatio: readImageEditSourceAspect({
+      height: metadata?.height ?? positive(asset.height) ?? recorded?.height,
+      recipeAspectRatio: recorded?.recipeAspectRatio,
+      recipeEditAspectRatio: asset.imageEdit?.aspectRatio,
+      recordedAspectRatio: asset.aspectRatio,
+      width: metadata?.width ?? positive(asset.width) ?? recorded?.width,
+    }),
+    sourceModelKey: readImageEditSourceModel({
+      modelKey:
+        recorded?.modelKey ||
+        metadata?.model ||
+        asset.metadataModel ||
+        asset.model,
+      modelUsed: asset.modelUsed ?? undefined,
+      recipeEditModel: asset.imageEdit?.model,
+      recipeModelKey: recorded?.recipeModelKey,
+    }),
+  });
 }
 
 export function readImageEditSourceAspect(input: {
   height?: number;
   recipeAspectRatio?: string;
   recipeEditAspectRatio?: string;
+  recordedAspectRatio?: string;
   width?: number;
 }): string | undefined {
-  const recorded = input.recipeEditAspectRatio || input.recipeAspectRatio;
-  if (recorded?.trim()) {
+  const recorded =
+    input.recipeEditAspectRatio?.trim() ||
+    input.recipeAspectRatio?.trim() ||
+    ratioShaped(input.recordedAspectRatio);
+  if (recorded) {
     return recorded;
   }
   if (
@@ -124,8 +227,14 @@ function selectableRatioForDimensions(
 
 export function readImageEditSourceModel(input: {
   modelKey?: string;
+  modelUsed?: string;
   recipeEditModel?: string;
   recipeModelKey?: string;
 }): string | undefined {
-  return input.recipeEditModel || input.recipeModelKey || input.modelKey;
+  return (
+    text(input.recipeEditModel) ||
+    text(input.modelUsed) ||
+    text(input.recipeModelKey) ||
+    text(input.modelKey)
+  );
 }
