@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
+import { isRecord } from '../../packages/contracts/src/constants/type-guards.constant';
 
 const DEFAULT_SCENARIO_PATH = fileURLToPath(
   new URL('./scenarios/brand-os-review.json', import.meta.url),
