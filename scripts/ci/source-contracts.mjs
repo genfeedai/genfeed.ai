@@ -240,9 +240,9 @@ export async function runSourceContracts({
       console.log(
         `Running ${files.length} filesystem source contracts in ${surface.directory}`,
       );
-      // Two surfaces, one worker each: overlap startup without increasing the
-      // previous two-worker ceiling. Selection remains unconditional, since
-      // Vitest's import graph cannot see files read through the filesystem.
+      // Two surfaces, two workers each: a bounded four-worker pool fits the
+      // 4-vCPU Linux runner. Keep each original cwd and per-file isolation.
+      // Selection is unconditional: imports cannot see filesystem reads.
       executions.push({
         command: 'bunx',
         args: [
@@ -250,7 +250,7 @@ export async function runSourceContracts({
           'run',
           '--config',
           surface.config,
-          '--maxWorkers=1',
+          '--maxWorkers=2',
           ...relativeFiles,
         ],
         options: {

@@ -129,8 +129,8 @@ test('downloads only the Playwright browser when its cache is cold', () => {
   );
 });
 
-test('supports isolated cold setup measurements while retaining cache by default', () => {
-  assert.match(action, /cache-dependencies:[\s\S]*?default: 'true'/);
+test('keeps the measured cold default while allowing cache comparison', () => {
+  assert.match(action, /cache-dependencies:[\s\S]*?default: 'false'/);
   assert.match(
     action,
     /name: Cache bun modules\n {6}id: bun-cache\n {6}if: \$\{\{ inputs\.cache-dependencies == 'true' \}\}/,

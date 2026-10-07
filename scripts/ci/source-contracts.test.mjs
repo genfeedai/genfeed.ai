@@ -259,7 +259,7 @@ test('retains all connected Crun cases and their real fixture-owning API job', (
   }
 });
 
-test('overlaps surfaces within two workers, executes every discovered reader, and awaits all failures', async () => {
+test('overlaps surfaces within four workers, executes every discovered reader, and awaits all failures', async () => {
   const surfaces = [
     { directory: 'app', config: 'app.config' },
     { directory: 'api', config: 'api.config' },
@@ -280,7 +280,7 @@ test('overlaps surfaces within two workers, executes every discovered reader, an
   assert.equal(calls.length, 2, 'both surfaces start before either finishes');
   for (const call of calls) {
     assert.equal(call.command, 'bunx');
-    assert.ok(call.args.includes('--maxWorkers=1'));
+    assert.ok(call.args.includes('--maxWorkers=2'));
     assert.ok(call.args.includes('guard.test.ts'));
     assert.ok(!call.args.includes('--changed'));
     assert.equal(call.options.env.CI, 'true');

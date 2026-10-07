@@ -10,10 +10,12 @@ inputs:
     description: Dependency install command to run after toolchain setup
     required: false
     default: 'bun install --frozen-lockfile'
+  # Run 37593927324: warm 85s vs cold 45s, same source and toolchain.
+  # Restoring ~1.2 GB of downloads costs more than fetching from the registry.
   cache-dependencies:
-    description: Restore and save the Bun download cache (false for cold setup measurements)
+    description: Opt into the Bun download cache (cold installs measured faster on Linux)
     required: false
-    default: 'true'
+    default: 'false'
   cache-playwright:
     description: |
       Whether to cache Playwright browser binaries (chromium) and install
