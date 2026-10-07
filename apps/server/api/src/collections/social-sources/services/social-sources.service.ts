@@ -18,6 +18,7 @@ import { SourcePostsService } from '@api/collections/source-posts/services/sourc
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { RequestContext } from '@api/helpers/utils/auth/auth.util';
 import { scopedWhere } from '@api/index';
+import { SourceCollectionFailedException } from '@api/services/source-collector/source-collection-failed.exception';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
 import type {
   CollectedSourcePost,
@@ -34,6 +35,7 @@ import type { SocialSourceValidationResult } from '@genfeedai/contracts/interfac
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
+  HttpStatus,
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -391,11 +393,17 @@ export class SocialSourcesService {
     } catch (error: unknown) {
       if (error instanceof ServiceUnavailableException) throw error;
       const message = (error as Error)?.message ?? 'Failed to fetch post';
-      this.logger.error('Social post import fetch failed', {
+      this.logger.warn('Social post import fetch failed', {
         error: message,
         platform: reference.platform,
         postId: reference.postId,
       });
+      if (
+        error instanceof SourceCollectionFailedException &&
+        error.getStatus() !== HttpStatus.NOT_FOUND
+      ) {
+        throw error;
+      }
       if (/not found|deleted|private|incomplete/i.test(message)) {
         throw new NotFoundException({
           message:
@@ -627,7 +635,13 @@ export class SocialSourcesService {
       };
     } catch (error: unknown) {
       const message = (error as Error)?.message ?? 'Failed to sync source';
-      this.logger.error('Failed to sync social source', {
+      // Provider rejections are expected states (reconnect, quota, private
+      // handle); the source keeps its last collected posts either way.
+      const log =
+        error instanceof SourceCollectionFailedException
+          ? this.logger.warn
+          : this.logger.error;
+      log.call(this.logger, 'Failed to sync social source', {
         error: message,
         sourceId: source.id,
       });

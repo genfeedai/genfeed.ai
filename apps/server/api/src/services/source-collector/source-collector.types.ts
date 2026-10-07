@@ -76,3 +76,24 @@ export interface SocialSourceResearchContext {
   organizationId: string | undefined;
   origin: 'social-source';
 }
+
+/**
+ * Why one provider in the chain could not collect. Access classes
+ * (`unauthorized`, `payment_required`, `forbidden`, `rate_limited`) need the
+ * user or operator to reconnect, top up, or wait; they are not server faults.
+ */
+export type SourceCollectorFailureReason =
+  | 'unauthorized'
+  | 'payment_required'
+  | 'forbidden'
+  | 'rate_limited'
+  | 'not_found'
+  | 'unavailable'
+  | 'error';
+
+export type SourceCollectorFailure = {
+  provider: SourceProviderName | 'none';
+  reason: SourceCollectorFailureReason;
+  /** Upstream HTTP status when the provider reported one. */
+  status?: number;
+};

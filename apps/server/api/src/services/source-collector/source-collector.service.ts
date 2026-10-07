@@ -9,10 +9,15 @@ import {
 } from '@api/services/source-collector/providers/twitter-official.provider';
 import { YoutubeOfficialProvider } from '@api/services/source-collector/providers/youtube-official.provider';
 import { YoutubePublicProvider } from '@api/services/source-collector/providers/youtube-public.provider';
+import {
+  classifySourceCollectorFailure,
+  SourceCollectionFailedException,
+} from '@api/services/source-collector/source-collection-failed.exception';
 import type { SourceTimelineProvider } from '@api/services/source-collector/source-collector.interface';
 import type {
   CollectedSourcePost,
   SourceCollectContext,
+  SourceCollectorFailure,
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
 import type { SocialPostUrlReference } from '@genfeedai/contracts';
@@ -39,7 +44,8 @@ function hasExternalPostId(
  *
  * A successful native result — including an empty upload list — ends the
  * chain; Apify is never started after a native provider already succeeded.
- * Throws when every provider fails (no silent empty success).
+ * Throws {@link SourceCollectionFailedException} when every provider fails
+ * (no silent empty success), naming each provider's failure class.
  */
 @Injectable()
 export class SourceCollectorService {
@@ -84,7 +90,7 @@ export class SourceCollectorService {
       throw new Error(`No source collectors registered for ${platform}`);
     }
 
-    const errors: string[] = [];
+    const failures: SourceCollectorFailure[] = [];
 
     for (const provider of candidates) {
       try {
@@ -120,19 +126,22 @@ export class SourceCollectorService {
           error instanceof ServiceUnavailableException
         )
           throw error;
-        const message = (error as Error)?.message ?? 'unknown error';
-        errors.push(`${provider.name}: ${message}`);
+        const failure = classifySourceCollectorFailure(provider.name, error);
+        failures.push(failure);
         this.logger.warn('SourceCollector provider failed', {
-          error: message,
+          error: (error as Error)?.message ?? 'unknown error',
           handle,
           platform,
           provider: provider.name,
+          reason: failure.reason,
+          status: failure.status,
         });
       }
     }
 
-    throw new Error(
-      `All source collectors failed for ${platform}/@${handle}: ${errors.join(' | ')}`,
+    throw new SourceCollectionFailedException(
+      `All source collectors failed for ${platform}/@${handle}`,
+      failures,
     );
   }
 
@@ -159,7 +168,7 @@ export class SourceCollectorService {
       );
     }
 
-    const errors: string[] = [];
+    const failures: SourceCollectorFailure[] = [];
 
     for (const provider of candidates) {
       try {
@@ -184,19 +193,22 @@ export class SourceCollectorService {
           error instanceof ServiceUnavailableException
         )
           throw error;
-        const message = (error as Error)?.message ?? 'unknown error';
-        errors.push(`${provider.name}: ${message}`);
+        const failure = classifySourceCollectorFailure(provider.name, error);
+        failures.push(failure);
         this.logger.warn('SourceCollector post provider failed', {
-          error: message,
+          error: (error as Error)?.message ?? 'unknown error',
           platform: reference.platform,
           postId: reference.postId,
           provider: provider.name,
+          reason: failure.reason,
+          status: failure.status,
         });
       }
     }
 
-    throw new Error(
-      `All single-post collectors failed for ${reference.platform} post ${reference.postId}: ${errors.join(' | ')}`,
+    throw new SourceCollectionFailedException(
+      `All single-post collectors failed for ${reference.platform} post ${reference.postId}`,
+      failures,
     );
   }
 }
