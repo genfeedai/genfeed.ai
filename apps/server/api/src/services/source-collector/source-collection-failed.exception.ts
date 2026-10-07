@@ -114,9 +114,9 @@ export class SourceCollectionFailedException extends HttpException {
     const isAccessOnly = failures.every((failure) =>
       ACCESS_REASONS.has(failure.reason),
     );
-    const isNotFound = failures.some(
-      (failure) => failure.reason === 'not_found',
-    );
+    const isNotFound =
+      failures.length > 0 &&
+      failures.every((failure) => failure.reason === 'not_found');
     const summary =
       failures.length > 0
         ? failures.map(describeFailure).join(' | ')
