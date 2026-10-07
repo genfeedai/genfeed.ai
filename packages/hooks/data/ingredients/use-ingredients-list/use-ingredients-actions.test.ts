@@ -354,6 +354,66 @@ describe('useIngredientsActions', () => {
     window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, recordRefresh);
   });
 
+  it('does not send a second delete while the first request is pending', async () => {
+    let resolveDelete: (value: unknown) => void = () => undefined;
+    mockIngredientsServiceDelete.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveDelete = resolve;
+        }),
+    );
+    const { result } = renderHook(() => useIngredientsActions(baseProps));
+
+    act(() => {
+      result.current.handleDeleteIngredient(createIngredient());
+    });
+
+    const confirm = mockOpenConfirm.mock.calls[0][0] as ConfirmOptions;
+    let firstDelete: Promise<unknown> = Promise.resolve();
+
+    act(() => {
+      firstDelete = Promise.resolve(confirm.onConfirm());
+    });
+
+    await act(async () => {
+      await confirm.onConfirm();
+    });
+
+    expect(mockIngredientsServiceDelete).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveDelete(undefined);
+      await firstDelete;
+    });
+
+    expect(mockNotificationsService.success).toHaveBeenCalledTimes(1);
+    expect(mockFindAll).toHaveBeenCalledWith(true);
+  });
+
+  it('allows another single delete after the previous attempt finishes', async () => {
+    mockIngredientsServiceDelete.mockRejectedValueOnce(new Error('boom'));
+    const { result } = renderHook(() => useIngredientsActions(baseProps));
+
+    act(() => {
+      result.current.handleDeleteIngredient(createIngredient());
+    });
+
+    const confirm = mockOpenConfirm.mock.calls[0][0] as ConfirmOptions;
+
+    await act(async () => {
+      await confirm.onConfirm();
+    });
+
+    mockIngredientsServiceDelete.mockResolvedValueOnce(undefined);
+
+    await act(async () => {
+      await confirm.onConfirm();
+    });
+
+    expect(mockIngredientsServiceDelete).toHaveBeenCalledTimes(2);
+    expect(mockNotificationsService.success).toHaveBeenCalledTimes(1);
+  });
+
   it('updates the parent relationship optimistically', async () => {
     renderHook(() => useIngredientsActions(baseProps));
 

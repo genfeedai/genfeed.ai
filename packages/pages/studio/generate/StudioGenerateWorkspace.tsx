@@ -115,9 +115,8 @@ import {
 } from '@pages/studio/generate/utils/studio-generate-types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
 import {
-  readImageEditSourceAspect,
-  readImageEditSourceModel,
-  resolveImageEditEntry,
+  type ImageEditEntryResolution,
+  imageEditEntryForAsset,
 } from '@pages/studio/generate/utils/studio-image-edit-entry';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -172,6 +171,18 @@ interface StudioContentReference {
 
 const EMPTY_KNOWLEDGE_SELECTION: KnowledgeSelection = {};
 const EMPTY_ATTACHMENTS: AttachmentItem[] = [];
+
+function warnForImageEditEntry(
+  entry: ImageEditEntryResolution,
+  messages: {
+    model: (model: string) => string;
+    ratio: (ratio: string) => string;
+  },
+  warn: (message: string) => void,
+): void {
+  if (entry.replacedModelKey) warn(messages.model(entry.replacedModelKey));
+  if (entry.droppedAspectRatio) warn(messages.ratio(entry.droppedAspectRatio));
+}
 
 function toContentReference(
   asset: IIngredient,
@@ -1770,28 +1781,29 @@ export default function StudioGenerateWorkspace(): ReactElement {
       restoredRolesRef.current.clear();
       setContentReferences([reference]);
       setPrompt('');
-      const entry = resolveImageEditEntry({
-        editPrimaryId: reference.item.id,
-        sourceAspectRatio: readImageEditSourceAspect({
+      const entry = imageEditEntryForAsset(
+        {
+          ...job.ingredient,
+          imageEdit: job.ingredient.imageEdit ?? job.recipe?.imageEdit,
+        },
+        {
           height: job.height,
-          recipeAspectRatio: job.recipe?.aspectRatio,
-          recipeEditAspectRatio: job.recipe?.imageEdit?.aspectRatio,
-          width: job.width,
-        }),
-        sourceModelKey: readImageEditSourceModel({
           modelKey: job.modelKey,
-          recipeEditModel: job.recipe?.imageEdit?.model,
+          recipeAspectRatio: job.recipe?.aspectRatio,
           recipeModelKey: job.recipe?.modelKey,
-        }),
-      });
+          width: job.width,
+        },
+      );
       applyTypeSettings('image-edit', entry.patch);
-      if (entry.droppedAspectRatio) {
-        notificationsService.warning(
-          translate('editImage.aspectRatioFallback', {
-            ratio: entry.droppedAspectRatio,
-          }),
-        );
-      }
+      warnForImageEditEntry(
+        entry,
+        {
+          model: (model) => translate('editImage.modelFallback', { model }),
+          ratio: (ratio) =>
+            translate('editImage.aspectRatioFallback', { ratio }),
+        },
+        (message) => notificationsService.warning(message),
+      );
     },
     [
       clearAttachments,
@@ -1836,30 +1848,18 @@ export default function StudioGenerateWorkspace(): ReactElement {
         setContentReferences([reference]);
         setType('image-edit');
         setPrompt('');
-        const recipe = recipeFromIngredient(
-          ingredient,
-          ingredient.imageEdit ? 'image-edit' : 'image',
-        );
-        const entry = resolveImageEditEntry({
-          editPrimaryId: reference.item.id,
-          sourceAspectRatio: readImageEditSourceAspect({
-            height: ingredient.metadataHeight || ingredient.height,
-            recipeEditAspectRatio: ingredient.imageEdit?.aspectRatio,
-            width: ingredient.metadataWidth || ingredient.width,
-          }),
-          sourceModelKey: readImageEditSourceModel({
-            modelKey: recipe.modelKey,
-            recipeEditModel: ingredient.imageEdit?.model,
-          }),
-        });
+        const entry = imageEditEntryForAsset(ingredient);
         applyTypeSettings('image-edit', entry.patch);
-        if (entry.droppedAspectRatio) {
-          notificationsService.warning(
-            translateRef.current('editImage.aspectRatioFallback', {
-              ratio: entry.droppedAspectRatio,
-            }),
-          );
-        }
+        warnForImageEditEntry(
+          entry,
+          {
+            model: (model) =>
+              translateRef.current('editImage.modelFallback', { model }),
+            ratio: (ratio) =>
+              translateRef.current('editImage.aspectRatioFallback', { ratio }),
+          },
+          (message) => notificationsService.warning(message),
+        );
       })
       .catch((error: unknown) => {
         if (isCurrent())

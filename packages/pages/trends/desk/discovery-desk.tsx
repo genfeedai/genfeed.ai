@@ -79,6 +79,20 @@ const SOURCE_VALUES: readonly DiscoveryDeskSource[] = [
   'imported',
 ];
 
+const DESK_SOURCE_TABS = [
+  'all',
+  'trends',
+  'owned',
+  'imported',
+  'following',
+] as const;
+
+function isDeskSourceTab(
+  value: string,
+): value is (typeof DESK_SOURCE_TABS)[number] {
+  return (DESK_SOURCE_TABS as readonly string[]).includes(value);
+}
+
 const SORT_VALUES: readonly DiscoveryDeskSort[] = [
   'velocity',
   'virality',
@@ -227,6 +241,26 @@ export default function DiscoveryDesk() {
     [setSourceParam],
   );
 
+  const handleSourceTabChange = useCallback(
+    (value: string) => {
+      if (isDeskSourceTab(value)) {
+        handleSourceChange(value);
+      }
+    },
+    [handleSourceChange],
+  );
+
+  const sourceTabs = useMemo(
+    () => [
+      { id: 'all', label: translateDesk('sourceTabs.all') },
+      { id: 'trends', label: translateDesk('sourceTabs.trends') },
+      { id: 'owned', label: translateDesk('sourceTabs.owned') },
+      { id: 'imported', label: translateDesk('sourceTabs.imported') },
+      { id: 'following', label: translateDesk('following.title') },
+    ],
+    [translateDesk],
+  );
+
   const handleContentTypeChange = useCallback(
     (value: DiscoveryDeskContentTypeFilter) => {
       dispatch({ contentType: value, type: 'SET_CONTENT_TYPE' });
@@ -345,6 +379,13 @@ export default function DiscoveryDesk() {
     <>
       <Container
         description={translateDesk('subtitle')}
+        headerTabs={{
+          activeTab: sourceParam,
+          ariaLabel: translateDesk('sourcesLabel'),
+          fullWidth: false,
+          onTabChange: handleSourceTabChange,
+          tabs: sourceTabs,
+        }}
         icon={TrendingUp}
         label={translateDesk('title')}
         leading={
@@ -362,11 +403,9 @@ export default function DiscoveryDesk() {
               items={items}
               onContentTypeChange={handleContentTypeChange}
               onSort={handleSort}
-              onSourceChange={handleSourceChange}
               onTogglePlatform={handleTogglePlatform}
               onClearPlatforms={handleClearPlatforms}
               sort={state.sort}
-              source={sourceParam}
               summary={summary}
             />
           </div>

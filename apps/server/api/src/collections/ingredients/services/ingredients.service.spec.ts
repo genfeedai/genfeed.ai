@@ -711,6 +711,84 @@ describe('IngredientsService', () => {
     });
   });
 
+  describe('softDeleteOneScoped', () => {
+    const editor = { brandId: 'brand-1', userId: 'user-1' };
+
+    it('soft-deletes an editable live row inside the organization', async () => {
+      ingredientDelegate.findFirst.mockResolvedValue({
+        id: 'ing-1',
+        userId: 'user-1',
+        scope: AssetScope.USER,
+        brandId: 'brand-1',
+      });
+      ingredientDelegate.update.mockResolvedValue({
+        id: 'ing-1',
+        isDeleted: true,
+        organizationId: 'org-1',
+      });
+
+      const result = await runWithTenantContext(
+        { organizationId: 'org-1' },
+        () =>
+          service.softDeleteOneScoped({
+            editor,
+            id: 'ing-1',
+            organizationId: 'org-1',
+          }),
+      );
+
+      expect(ingredientDelegate.findFirst).toHaveBeenCalledWith({
+        select: { id: true, userId: true, scope: true, brandId: true },
+        where: { id: 'ing-1', isDeleted: false, organizationId: 'org-1' },
+      });
+      expect(ingredientDelegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { isDeleted: true },
+          where: { id: 'ing-1', isDeleted: false, organizationId: 'org-1' },
+        }),
+      );
+      expect(result).toMatchObject({ id: 'ing-1', isDeleted: true });
+      const updateArgs = ingredientDelegate.update.mock.calls[0][0];
+      expect(() =>
+        assertTenantScopedQuery({
+          args: updateArgs,
+          isCloud: true,
+          model: 'Ingredient',
+          operation: 'update',
+          tenantModelNames: new Set(['Ingredient']),
+        }),
+      ).not.toThrow();
+    });
+
+    it('does not write when the asset is missing or not editable', async () => {
+      ingredientDelegate.findFirst.mockResolvedValueOnce(null);
+      await expect(
+        service.softDeleteOneScoped({
+          editor,
+          id: 'missing',
+          organizationId: 'org-1',
+        }),
+      ).resolves.toBeNull();
+
+      ingredientDelegate.findFirst.mockResolvedValueOnce({
+        id: 'private',
+        userId: 'other-user',
+        scope: AssetScope.USER,
+        brandId: 'brand-1',
+      });
+      await expect(
+        service.softDeleteOneScoped({
+          editor,
+          id: 'private',
+          organizationId: 'org-1',
+        }),
+      ).resolves.toBeNull();
+
+      expect(ingredientDelegate.update).not.toHaveBeenCalled();
+      expect(ingredientDelegate.updateMany).not.toHaveBeenCalled();
+    });
+  });
+
   describe('findOne', () => {
     it('should find one ingredient', async () => {
       const params = { id: 'test-id' };

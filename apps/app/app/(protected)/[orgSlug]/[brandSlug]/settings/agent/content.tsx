@@ -8,6 +8,7 @@ import BrandWritingVoiceEditor from '@pages/brands/components/brand-kit/writing-
 import BrandDetailDefaultModelsCard from '@pages/brands/components/sidebar/BrandDetailDefaultModelsCard';
 import BrandDetailIdentityCard from '@pages/brands/components/sidebar/BrandDetailIdentityCard';
 import BrandDetailSystemPrompt from '@pages/brands/components/system-prompt/BrandDetailSystemPrompt';
+import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import Tabs from '@ui/navigation/tabs/Tabs';
@@ -79,6 +80,14 @@ export default function BrandAgentSettingsPage() {
           <GenerationReceipts />
         ) : (
           <div className="flex flex-col gap-3">
+            <Card
+              label={t('defaultsTitle')}
+              description={t('defaultsDescription')}
+            >
+              <p className="text-xs leading-5 text-muted-foreground">
+                {t('defaultsVoiceNote')}
+              </p>
+            </Card>
             <BrandDetailIdentityCard
               brand={brand}
               brandId={brandId}

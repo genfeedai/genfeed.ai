@@ -10,7 +10,6 @@ vi.mock('next-intl', async () => {
 
 function renderFilters() {
   const props = {
-    source: 'all' as const,
     activePlatforms: new Set(['youtube']),
     contentType: 'all' as const,
     sort: 'velocity' as const,
@@ -21,7 +20,6 @@ function renderFilters() {
       totalItems: 0,
       totalTrends: 0,
     },
-    onSourceChange: vi.fn(),
     onTogglePlatform: vi.fn(),
     onClearPlatforms: vi.fn(),
     onSort: vi.fn(),
@@ -47,11 +45,11 @@ describe('Discovery dropdown filters', () => {
     );
     expect(props.onClearPlatforms).toHaveBeenCalledOnce();
   });
-  it('exposes source, content type and sorting as dropdown controls', () => {
+  it('exposes content type and sorting as dropdown controls', () => {
     renderFilters();
     expect(
-      screen.getByRole('combobox', { name: 'Source' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('combobox', { name: 'Source' }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('combobox', { name: 'Content type' }),
     ).toBeInTheDocument();

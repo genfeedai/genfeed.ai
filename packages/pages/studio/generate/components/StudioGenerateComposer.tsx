@@ -10,6 +10,7 @@ import {
   IMAGE_EDIT_SIZES,
   isFlux3ImageModel,
   isFlux3Resolution,
+  isImageEditModel,
   isImageEditSize,
   MODEL_KEYS,
   normalizeMusicSettings,
@@ -159,9 +160,13 @@ export default function StudioGenerateComposer({
   // Narrowed against the selected model's own registry capability — the
   // static per-type config is only the widest case across every music
   // model (see `resolveStudioGenerateCapabilities`).
+  const editDefaultModel =
+    type === 'image-edit'
+      ? models.find((model) => isImageEditModel(model.key) && model.isDefault)
+      : undefined;
   const effectiveModelKey =
     settings.modelKey === AUTO_MODEL_OPTION_VALUE && type === 'image-edit'
-      ? models.find((model) => model.isDefault)?.key
+      ? editDefaultModel?.key
       : settings.modelKey;
   const isFlux = isFlux3ImageModel(effectiveModelKey ?? '');
   const editSourceLimit = getImageEditMaxSources(effectiveModelKey);
@@ -227,7 +232,7 @@ export default function StudioGenerateComposer({
   const isAutoMode = settings.modelKey === AUTO_MODEL_OPTION_VALUE;
   const selectedModel = models.find((model) =>
     type === 'image-edit' && isAutoMode
-      ? model.isDefault
+      ? model === editDefaultModel
       : model.key === settings.modelKey,
   );
   const displaySettings =
@@ -497,7 +502,9 @@ export default function StudioGenerateComposer({
       : costPromptData.resolution;
   const setupLabel = [
     modelLabel ?? typeOptions.find((option) => option.value === type)?.label,
-    capabilities.hasAspectRatio ? displaySettings.aspectRatio : undefined,
+    capabilities.hasAspectRatio || type === 'image-edit'
+      ? displaySettings.aspectRatio
+      : undefined,
     type === 'image' || type === 'video' ? resolutionLabel : undefined,
     capabilities.hasDuration && costPromptData.duration
       ? translate('inspector.durationSeconds', {

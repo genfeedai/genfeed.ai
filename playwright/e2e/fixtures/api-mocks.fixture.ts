@@ -1475,6 +1475,60 @@ export async function mockWorkspaceTasks(
           }),
         ];
 
+  const inboxReads: { seenUpdatedAt: string; taskId: string }[] = [];
+  const isInboxQueuedTask = (task: MockWorkspaceTaskRecord) =>
+    task.dismissedAt == null && task.reviewState !== 'dismissed';
+  const fulfillInboxReadState = async (route: Route) => {
+    const unreadCount = tasks.filter((task) => {
+      if (!isInboxQueuedTask(task)) return false;
+      const seen = inboxReads.find(
+        (read) => read.taskId === task.id,
+      )?.seenUpdatedAt;
+      return (
+        !seen ||
+        new Date(task.updatedAt ?? task.createdAt).getTime() >
+          new Date(seen).getTime()
+      );
+    }).length;
+
+    await route.fulfill({
+      body: JSON.stringify(
+        buildJsonApiDocument('workspace-inbox-read', 'workspace-inbox-read', {
+          reads: [...inboxReads],
+          unreadCount,
+        }),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+  };
+  const rememberInboxReads = (route: Route) => {
+    const incoming = extractRequestPayload(route).reads;
+    if (!Array.isArray(incoming)) return;
+
+    for (const read of incoming) {
+      if (
+        typeof read !== 'object' ||
+        read === null ||
+        !('taskId' in read) ||
+        typeof read.taskId !== 'string'
+      ) {
+        continue;
+      }
+
+      const seenUpdatedAt =
+        'seenUpdatedAt' in read && typeof read.seenUpdatedAt === 'string'
+          ? read.seenUpdatedAt
+          : new Date().toISOString();
+      const existing = inboxReads.find((item) => item.taskId === read.taskId);
+      if (existing) {
+        existing.seenUpdatedAt = seenUpdatedAt;
+      } else {
+        inboxReads.push({ seenUpdatedAt, taskId: read.taskId });
+      }
+    }
+  };
+
   const getTaskById = (taskId: string): MockWorkspaceTaskRecord | undefined =>
     tasks.find((task) => task.id === taskId);
 
@@ -1577,6 +1631,33 @@ export async function mockWorkspaceTasks(
     const method = route.request().method();
     const url = new URL(route.request().url());
     const pathname = url.pathname;
+
+    // Must run before the task-list GET. That handler answers every GET,
+    // and a collection is not a read-state resource.
+    if (/\/tasks\/inbox\/read-state\/?$/.test(pathname)) {
+      if (method === 'GET') {
+        await fulfillInboxReadState(route);
+        return;
+      }
+      if (method === 'PATCH') {
+        rememberInboxReads(route);
+        await fulfillInboxReadState(route);
+        return;
+      }
+    }
+
+    if (method === 'PATCH' && /\/tasks\/inbox\/read-all\/?$/.test(pathname)) {
+      inboxReads.length = 0;
+      for (const task of tasks) {
+        if (!isInboxQueuedTask(task)) continue;
+        inboxReads.push({
+          seenUpdatedAt: task.updatedAt ?? task.createdAt,
+          taskId: task.id,
+        });
+      }
+      await fulfillInboxReadState(route);
+      return;
+    }
 
     if (method === 'GET') {
       const view = url.searchParams.get('view');
