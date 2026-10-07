@@ -4,16 +4,24 @@ import { createHash, randomUUID } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
+import { BrandValidationService } from '@api/services/brand-validation/brand-validation.service';
+import { BrandValidationReceiptService } from '@api/services/brand-validation/brand-validation-receipt.service';
+import { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
+import { BrandedGenerationArtifactMaterialService } from '@api/services/branded-generation-receipts/branded-generation-artifact-material.service';
 import {
   hashBrandedGenerationArtifactManifestV1,
   hashBrandedGenerationTextV1,
+  hashBrandGenerationRulesReviewV1,
 } from '@api/services/branded-generation-receipts/branded-generation-hash.util';
 import { BrandedGenerationPromptStoreService } from '@api/services/branded-generation-receipts/branded-generation-prompt-store.service';
 import { BrandedGenerationReceiptAccessService } from '@api/services/branded-generation-receipts/branded-generation-receipt-access.service';
 import { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
 import type { BrandedGenerationActorV1 } from '@api/services/branded-generation-receipts/branded-generation-receipts.types';
 import type { BrandedGenerationCompilerRecipeV1 } from '@api/services/branded-generation-receipts/branded-generation-recompile.types';
+import { BrandedTextGenerationService } from '@api/services/branded-text-generation/branded-text-generation.service';
+import type { BrandedTextGenerationRequestV1 } from '@api/services/branded-text-generation/branded-text-generation.types';
 import { compileSnapshotBriefResolution } from '@api/services/harness/branded-generation-compiler';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   assertControllerOwnedMigrationConnection,
@@ -27,8 +35,13 @@ import type {
   BrandedGenerationInputV1,
   BrandedGenerationReceiptV1,
   BrandedGenerationResolutionV1,
+  BrandGenerationRulesV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
-import { PrismaClient } from '@genfeedai/prisma';
+import {
+  BrandOsRevisionStatus,
+  PrismaClient,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { ConflictException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -74,6 +87,30 @@ function outcome<T>(operation: Promise<T>) {
     (reason: unknown) => ({ status: 'rejected' as const, reason }),
   );
 }
+const emptyGenerationRules: BrandGenerationRulesV1 = {
+  schemaVersion: 1,
+  evidence: [],
+  facts: [],
+  palette: [],
+  typography: [],
+  mandatory: [],
+  avoid: [],
+  examples: [],
+  assets: [],
+};
+const baselinePrivateLearning: BrandedTextGenerationRequestV1['privateLearning'] =
+  {
+    mode: 'no_destination',
+    configVersion: 'v1',
+    synthetic: false,
+    application: {
+      status: 'unavailable',
+      reasonCodes: ['no_destination'],
+      privatePolicyApplied: false,
+      sharedReleaseApplied: false,
+      revalidatedAt: '2026-10-07T00:00:00.000Z',
+    },
+  };
 async function seed() {
   const [
     owner,
@@ -1501,4 +1538,199 @@ describe('branded receipt full-migration service and relocation acceptance', () 
     });
     expect(membership.currentBrandId).toBe(s.fallback);
   }, 60000);
+  it('drives an approved-brand text generation through the saved receipt with a fake provider', async () => {
+    const s = await seed();
+    await clients[0].brandOsRevision.create({
+      data: {
+        id: randomUUID(),
+        organizationId: s.source,
+        brandId: s.brand,
+        version: 1,
+        status: BrandOsRevisionStatus.APPROVED,
+        content: toPrismaJson({
+          brandId: s.brand,
+          organizationId: s.source,
+          fields: { label: { currentValue: 'Seam brand' } },
+          generationRules: emptyGenerationRules,
+        }),
+        generationRulesReviewHash:
+          hashBrandGenerationRulesReviewV1(emptyGenerationRules),
+        approvedById: s.owner,
+        approvedAt: new Date(),
+      },
+    });
+    const access = new BrandedGenerationReceiptAccessService();
+    const receipts = services[0];
+    const openRouter = {
+      chatCompletion: vi.fn().mockResolvedValue({
+        id: 'seam-generation-1',
+        choices: [{ message: { content: ' Seam post text ' } }],
+      }),
+    };
+    const seam = new BrandedTextGenerationService(
+      receipts,
+      new BrandIdentitySnapshotService(
+        clients[0] as unknown as PrismaService,
+        access,
+        receipts,
+      ),
+      new BrandedGenerationArtifactMaterialService(
+        clients[0] as unknown as PrismaService,
+        access,
+        receipts,
+      ),
+      new BrandValidationService(),
+      new BrandValidationReceiptService(
+        new BrandedGenerationArtifactMaterialService(
+          clients[0] as unknown as PrismaService,
+          access,
+          receipts,
+        ),
+        receipts,
+        new BrandValidationService(),
+      ),
+      new HarnessGenerationService(
+        { composeBriefLayers: vi.fn().mockResolvedValue([]) } as never,
+        {
+          log: vi.fn(),
+          debug: vi.fn(),
+          warn: vi.fn(),
+          error: vi.fn(),
+        } as never,
+      ),
+      {
+        resolveActiveSkills: vi.fn().mockResolvedValue([]),
+        buildSkillPromptSections: vi.fn().mockReturnValue(''),
+      } as never,
+      openRouter as never,
+    );
+    const seamInput = (
+      override: Partial<BrandedGenerationInputV1> = {},
+    ): BrandedGenerationInputV1 => ({
+      ...input(s.actor, 'Write one post about the launch'),
+      mode: 'approved_brand',
+      provider: 'openrouter',
+      model: 'openai/gpt-4o-mini',
+      generationParameters: { maxTokens: 500, temperature: 0.8 },
+      platform: 'twitter',
+      objective: 'engagement',
+      ...override,
+    });
+    const request = (
+      value: BrandedGenerationInputV1,
+      postOrganizationId = value.organizationId,
+      postBrandId = value.brandId,
+    ): BrandedTextGenerationRequestV1 => ({
+      input: value,
+      privateLearning: baselinePrivateLearning,
+      resolveApiKey: async () => undefined,
+      acceptText: () => true,
+      persistText: async (text) => {
+        const post = await clients[0].post.create({
+          data: {
+            id: randomUUID(),
+            userId: s.owner,
+            organizationId: postOrganizationId,
+            brandId: postBrandId,
+            description: text,
+          },
+        });
+        return { postId: post.id };
+      },
+    });
+
+    const value = seamInput();
+    const completed = await seam.generate(request(value));
+    expect(completed.kind).toBe('completed');
+    if (completed.kind !== 'completed') throw new Error('not completed');
+    expect(completed).toMatchObject({
+      text: 'Seam post text',
+      hasNewDispatch: true,
+    });
+    expect(['ready', 'needs_review']).toContain(completed.receipt.state);
+    expect(completed.receipt.compliance).not.toBe('compliant');
+    expect(completed.receipt.snapshot?.approval).toBe('approved');
+    expect(completed.receipt.execution?.providerAttemptRef).toBe(
+      'openrouter:seam-generation-1',
+    );
+    expect(completed.receipt.artifact?.id).toBe(completed.postId);
+    expect(openRouter.chatCompletion).toHaveBeenCalledTimes(1);
+    const sent = openRouter.chatCompletion.mock.calls[0][0].messages;
+    expect(sent).toHaveLength(1);
+    expect(sent[0].role).toBe('user');
+    expect(sent[0].content).toContain('Write one post about the launch');
+    const compiled = await receipts.readPrompt(
+      s.actor,
+      completed.receipt.id,
+      'compiled',
+    );
+    expect(compiled).toMatchObject({
+      status: 'retained',
+      text: sent[0].content,
+    });
+    const events = await clients[0].brandedGenerationReceiptEvent.findMany({
+      where: {
+        receiptId: completed.receipt.id,
+        organizationId: s.source,
+        brandId: s.brand,
+        isDeleted: false,
+      },
+      orderBy: { revision: 'asc' },
+    });
+    expect(events.map((event) => event.type)).toEqual([
+      'create',
+      'resolve',
+      'dispatch',
+      'bind_artifact',
+      'validate',
+    ]);
+
+    // The same request key replays the original without another provider call.
+    const replay = await seam.generate(request(value));
+    expect(replay).toMatchObject({
+      kind: 'completed',
+      postId: completed.postId,
+      text: null,
+      hasNewDispatch: false,
+    });
+    expect(replay.receipt.id).toBe(completed.receipt.id);
+    expect(openRouter.chatCompletion).toHaveBeenCalledTimes(1);
+
+    // Another actor reusing the key is rejected before any provider call.
+    await expect(
+      seam.generate(request(seamInput({ ...value, actorId: s.member }))),
+    ).rejects.toThrow('request_payload_conflict');
+    expect(openRouter.chatCompletion).toHaveBeenCalledTimes(1);
+
+    // A brand without an approved revision blocks and never dispatches.
+    const unapproved = seamInput({
+      brandId: s.fallback,
+      requestKey: randomUUID(),
+    });
+    const blocked = await seam.generate(request(unapproved));
+    expect(blocked).toMatchObject({
+      kind: 'stopped',
+      reasonCode: 'no_approved_revision',
+      hasNewDispatch: false,
+    });
+    expect(blocked.receipt.state).toBe('blocked');
+    expect(blocked.receipt.execution).toBeNull();
+    expect(openRouter.chatCompletion).toHaveBeenCalledTimes(1);
+
+    // A post saved in another organization cannot be bound to the receipt.
+    const foreign = await seam.generate(
+      request(
+        seamInput({ requestKey: randomUUID() }),
+        s.destination,
+        s.destinationBrand,
+      ),
+    );
+    expect(foreign).toMatchObject({
+      kind: 'stopped',
+      reasonCode: 'artifact_bind_failed',
+      hasNewDispatch: true,
+    });
+    expect(foreign.receipt.state).toBe('failed');
+    expect(openRouter.chatCompletion).toHaveBeenCalledTimes(2);
+  }, 120000);
 });
