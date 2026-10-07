@@ -15,6 +15,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { SkillLibraryController } from '@api/collections/skills/controllers/skill-library.controller';
 import { SkillsController } from '@api/collections/skills/controllers/skills.controller';
 import { StudioGenerateDraftsController } from '@api/collections/studio-generate-drafts/controllers/studio-generate-drafts.controller';
+import { SubscriptionsController } from '@api/collections/subscriptions/controllers/subscriptions.controller';
 import { TrendsController } from '@api/collections/trends/controllers/trends.controller';
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
@@ -29,6 +30,7 @@ import { BrandOsExportController } from '@api/services/brand-os-export/brand-os-
 import { ContentEngineController } from '@api/services/content-engine/content-engine.controller';
 import { ContentPlanSeedsService } from '@api/services/content-engine/content-plan-seeds.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
+import { BeehiivController } from '@api/services/integrations/beehiiv/controllers/beehiiv.controller';
 import { testId } from '@helpers/testing/test-id.helper';
 import { getTenantContext } from '@libs/prisma/tenant-context';
 import { type ExecutionContext, RequestMethod } from '@nestjs/common';
@@ -673,6 +675,151 @@ describe('fourteen independent remaining caller policies', () => {
         ).toThrow(expect.objectContaining({ status: 403 }));
         expect(handle).not.toHaveBeenCalled();
       }
+    },
+  );
+});
+
+const measuredProducerRoutes = [
+  {
+    controller: BeehiivController,
+    handler: 'listPublications',
+    route: '/v1/services/beehiiv/publications',
+    policy: 'owner',
+  },
+  {
+    controller: BeehiivController,
+    handler: 'getSubscribers',
+    route: '/v1/services/beehiiv/subscribers',
+    policy: 'owner',
+  },
+  {
+    controller: SubscriptionsController,
+    handler: 'getCreditsBreakdown',
+    route: '/v1/subscriptions/current/credits',
+    policy: 'mutating',
+  },
+] as const;
+describe('three independently measured tenant guard callers', () => {
+  it('keeps the three producer routes unique and disjoint from all prior policy tables', () => {
+    expect(originalRoutes).toHaveLength(248);
+    expect(residualRoutes).toHaveLength(9);
+    expect(callerRoutes).toHaveLength(14);
+    expect(measuredProducerRoutes).toHaveLength(3);
+    expect(
+      new Set(measuredProducerRoutes.map((entry) => entry.route)).size,
+    ).toBe(3);
+    expect(
+      measuredProducerRoutes.filter((entry) => entry.policy === 'owner'),
+    ).toHaveLength(2);
+    expect(
+      measuredProducerRoutes.filter((entry) => entry.policy === 'mutating'),
+    ).toHaveLength(1);
+    const previous = new Set<string>(
+      [...originalRoutes, ...residualRoutes, ...callerRoutes].map(
+        (entry) => entry.route,
+      ),
+    );
+    for (const entry of measuredProducerRoutes)
+      expect(previous.has(entry.route)).toBe(false);
+  });
+  it.each(measuredProducerRoutes)(
+    '$route has exact actual GET and $policy metadata',
+    (entry) => {
+      const handler = actualHandler(entry.controller, entry.handler);
+      expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
+        RequestMethod.GET,
+      );
+      expect(canonicalRoutes(entry.controller, handler)).toEqual([entry.route]);
+      expect(Reflect.getMetadata(TENANT_READ_POLICY, handler)).toBe(
+        entry.policy,
+      );
+    },
+  );
+  it.each(measuredProducerRoutes)(
+    '$route refuses foreign selection before callback and preserves concurrent original scope',
+    async (entry) => {
+      const handler = actualHandler(entry.controller, entry.handler);
+      for (const isSuperAdmin of [true, false]) {
+        const user = { ...actor, isSuperAdmin };
+        const req = request({ organizationId: foreignOrg }, user);
+        const originalContext = { ...req.context };
+        const handle = vi.fn(() =>
+          defer(async () => {
+            await Promise.resolve();
+            expect(getTenantContext()?.organizationId).toBe(
+              user.organizationId,
+            );
+            expect(getTenantReadScope()).toBeUndefined();
+            expect(req.user).toBe(user);
+            expect(req.context).toEqual(originalContext);
+            return 'original';
+          }),
+        );
+        expect(() =>
+          interceptor.intercept(execution(req, entry.controller, handler), {
+            handle,
+          }),
+        ).toThrow(expect.objectContaining({ status: 403 }));
+        expect(handle).not.toHaveBeenCalled();
+        const queries: Array<Record<string, string>> = [
+          {},
+          { organizationId: user.organizationId },
+        ];
+        await Promise.all(
+          queries.map(async (query) => {
+            const original = request(query, user);
+            const context = original.context;
+            await expect(
+              firstValueFrom(
+                interceptor.intercept(
+                  execution(original, entry.controller, handler),
+                  {
+                    handle: () =>
+                      defer(async () => {
+                        await Promise.resolve();
+                        expect(getTenantContext()?.organizationId).toBe(
+                          user.organizationId,
+                        );
+                        expect(getTenantReadScope()).toBeUndefined();
+                        expect(original.user).toBe(user);
+                        expect(original.context).toBe(context);
+                        return 'original';
+                      }),
+                  },
+                ),
+              ),
+            ).resolves.toBe('original');
+          }),
+        );
+        expect(req.user).toBe(user);
+        expect(req.context).toEqual(originalContext);
+      }
+    },
+  );
+  it.each(measuredProducerRoutes)(
+    '$route rejects malformed selectors and unverified superadmin before next',
+    (entry) => {
+      const handler = actualHandler(entry.controller, entry.handler);
+      for (const organizationId of ['', [], [foreignOrg], {}, 7]) {
+        const req = request({});
+        Reflect.set(req.query, 'organizationId', organizationId);
+        const handle = vi.fn(() => of('must not run'));
+        expect(() =>
+          interceptor.intercept(execution(req, entry.controller, handler), {
+            handle,
+          }),
+        ).toThrow(expect.objectContaining({ status: 403 }));
+        expect(handle).not.toHaveBeenCalled();
+      }
+      const req = request({ organizationId: foreignOrg });
+      req.context.isSuperAdmin = false;
+      const handle = vi.fn(() => of('must not run'));
+      expect(() =>
+        interceptor.intercept(execution(req, entry.controller, handler), {
+          handle,
+        }),
+      ).toThrow(expect.objectContaining({ status: 403 }));
+      expect(handle).not.toHaveBeenCalled();
     },
   );
 });
