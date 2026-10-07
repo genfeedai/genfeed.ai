@@ -80,7 +80,7 @@ export function serializeMediaArtifact(
       height: readNumber(payload, 'height'),
       id,
       kind,
-      mimeType: readString(payload, 'mimeType') ?? inferImageMimeType(url),
+      mimeType: readStringField(payload, 'mimeType') ?? inferImageMimeType(url),
       renderMode: url ? 'resource_link' : 'open_url',
       status,
       url,
