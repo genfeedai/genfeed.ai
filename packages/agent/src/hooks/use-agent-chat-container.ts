@@ -990,6 +990,7 @@ export function useAgentChatContainer({
 
   // Scroll tracking
   useEffect(() => {
+    if (isEmpty || !activeThreadId) return;
     const container = scrollContainerRef.current;
     if (!container) {
       return;
@@ -1010,7 +1011,7 @@ export function useAgentChatContainer({
 
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [loadOlderMessages]);
+  }, [activeThreadId, isEmpty, loadOlderMessages]);
 
   // Stick-to-bottom: while the user is pinned to the bottom, every streamed
   // token, tool transition, work event, or new message re-pins the viewport.
@@ -1062,7 +1063,8 @@ export function useAgentChatContainer({
     if (
       (hasFinishedLoading || isUnpinnedThread) &&
       !isLoadingThread &&
-      messagesMatchActiveThread
+      messagesMatchActiveThread &&
+      scrollContainerRef.current
     ) {
       scrolledThreadIdRef.current = activeThreadId;
       pinConversationScrollToBottom(scrollContainerRef.current);
@@ -1072,6 +1074,36 @@ export function useAgentChatContainer({
 
     wasLoadingThreadRef.current = isLoadingThread;
   }, [activeThreadId, isLoadingThread, messages]);
+
+  // Deferred markdown/media and composer measurement can change height after
+  // the opening layout pass. Follow those changes only while pinned.
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (
+      !container ||
+      isEmpty ||
+      !isAtBottom ||
+      isLoadingThread ||
+      !conversationMessagesBelongToThread(messages, activeThreadId)
+    )
+      return;
+    let frame = 0;
+    const pinAfterLayout = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() =>
+        pinConversationScrollToBottom(container),
+      );
+    };
+    pinAfterLayout();
+    const observer = new ResizeObserver(pinAfterLayout);
+    observer.observe(container);
+    if (container.firstElementChild)
+      observer.observe(container.firstElementChild);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [activeThreadId, isAtBottom, isEmpty, isLoadingThread, messages]);
 
   // Elapsed timer for run duration
   useEffect(() => {
