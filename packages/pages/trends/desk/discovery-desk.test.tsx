@@ -83,6 +83,16 @@ vi.mock('@genfeedai/contexts/ui/page-help-context', () => ({
   usePageHelp: () => null,
 }));
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/org-1/brand-1/discovery/overview',
+  useRouter: () => ({
+    back: vi.fn(),
+    push: vi.fn(),
+    replace: vi.fn(),
+  }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
@@ -265,6 +275,95 @@ describe('DiscoveryDesk', () => {
     expect(
       screen.getByTestId('container-header-actions').contains(search),
     ).toBe(false);
+  });
+
+  it('filters visible rows from the source tabs and records the URL source', () => {
+    const trendsItem = buildItem({
+      key: 'trend:public',
+      source: 'trends',
+      title: 'Workflow demo clip',
+    });
+    const followingItem = buildItem({
+      key: 'post:followed',
+      source: 'following',
+      title: 'Creator collab teaser',
+    });
+    mocks.useDiscoveryDeskItems.mockReturnValue({
+      ...mocks.useDiscoveryDeskItems(),
+      items: [trendsItem, followingItem],
+    });
+
+    render(<DiscoveryDesk />);
+
+    expect(screen.getByRole('tab', { name: 'All' })).toHaveAttribute(
+      'data-state',
+      'active',
+    );
+    expect(screen.getByText('Workflow demo clip')).toBeInTheDocument();
+    expect(screen.getByText('Creator collab teaser')).toBeInTheDocument();
+
+    const trendsTab = screen.getByRole('tab', { name: 'Public trends' });
+    fireEvent.mouseDown(trendsTab, { button: 0, ctrlKey: false });
+
+    expect(trendsTab).toHaveAttribute('data-state', 'active');
+    expect(mocks.setParamState).toHaveBeenCalledWith('source', 'trends');
+    expect(screen.getByText('Workflow demo clip')).toBeInTheDocument();
+    expect(screen.queryByText('Creator collab teaser')).not.toBeInTheDocument();
+
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'My accounts' }), {
+      button: 0,
+      ctrlKey: false,
+    });
+
+    expect(mocks.setParamState).toHaveBeenCalledWith('source', 'owned');
+    expect(screen.getByTestId('desk-empty-state')).toBeInTheDocument();
+    expect(screen.queryByText('Workflow demo clip')).not.toBeInTheDocument();
+
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'All' }), {
+      button: 0,
+      ctrlKey: false,
+    });
+
+    expect(mocks.setParamState).toHaveBeenCalledWith('source', 'all');
+    expect(screen.getByText('Workflow demo clip')).toBeInTheDocument();
+    expect(screen.getByText('Creator collab teaser')).toBeInTheDocument();
+  });
+
+  it('activates a source tab from the keyboard', () => {
+    render(<DiscoveryDesk />);
+
+    const trendsTab = screen.getByRole('tab', { name: 'Public trends' });
+    fireEvent.keyDown(trendsTab, { key: 'Enter' });
+
+    expect(trendsTab).toHaveAttribute('data-state', 'active');
+    expect(mocks.setParamState).toHaveBeenCalledWith('source', 'trends');
+  });
+
+  it('keeps the active source tab after the URL source is restored', () => {
+    mocks.paramState.source = 'trends';
+    const trendsItem = buildItem({
+      key: 'trend:public',
+      source: 'trends',
+      title: 'Workflow demo clip',
+    });
+    const followingItem = buildItem({
+      key: 'post:followed',
+      source: 'following',
+      title: 'Creator collab teaser',
+    });
+    mocks.useDiscoveryDeskItems.mockReturnValue({
+      ...mocks.useDiscoveryDeskItems(),
+      items: [trendsItem, followingItem],
+    });
+
+    render(<DiscoveryDesk />);
+
+    expect(screen.getByRole('tab', { name: 'Public trends' })).toHaveAttribute(
+      'data-state',
+      'active',
+    );
+    expect(screen.getByText('Workflow demo clip')).toBeInTheDocument();
+    expect(screen.queryByText('Creator collab teaser')).not.toBeInTheDocument();
   });
 
   it('keeps search on the left of the Following topbar', () => {
