@@ -222,6 +222,7 @@ try {
     seedFixture(setupRequest, prisma, {
       deadline: createDeadline(Math.min(240_000, deadline.remaining()), {
         parentSignal: deadline.signal,
+        parentAbortSources: deadline.abortSources,
         source: 'fixture/readiness',
       }),
       readMailStats: () =>
@@ -235,6 +236,7 @@ try {
     Math.min(480_000, deadline.remaining()),
     {
       parentSignal: deadline.signal,
+      parentAbortSources: deadline.abortSources,
       source: 'sweep',
     },
   );

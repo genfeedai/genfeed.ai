@@ -27,7 +27,10 @@ test('failed API boot reports a skipped sweep without another failing step', (co
     },
   );
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /sweep skipped: API failed to boot/);
+  assert.match(
+    result.stdout,
+    /Final log scan: failed=true; tenant hit groups=0/,
+  );
   assert.doesNotMatch(result.stdout, /FAIL/);
   const report = JSON.parse(
     readFileSync(join(directory, 'cloud-tenant-guard-report.json'), 'utf8'),

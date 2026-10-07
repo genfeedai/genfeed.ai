@@ -2,7 +2,12 @@ import { randomUUID } from 'node:crypto';
 
 export function createDeadline(
   timeoutMs,
-  { parentSignal, source = 'unknown', now = () => performance.now() } = {},
+  {
+    parentSignal,
+    parentAbortSources,
+    source = 'unknown',
+    now = () => performance.now(),
+  } = {},
 ) {
   const expiresAt = now() + timeoutMs;
   const timeout = AbortSignal.timeout(timeoutMs);
@@ -13,7 +18,8 @@ export function createDeadline(
     signal,
     abortSources: [
       { signal: timeout, source },
-      ...(parentSignal ? [{ signal: parentSignal, source: 'unknown' }] : []),
+      ...(parentAbortSources ??
+        (parentSignal ? [{ signal: parentSignal, source: 'unknown' }] : [])),
     ],
     remaining() {
       signal.throwIfAborted();

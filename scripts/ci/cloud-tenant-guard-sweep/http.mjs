@@ -57,8 +57,12 @@ export function createRequester({
         ...abortSources,
         ...(options.abortSources ?? []),
         ...(deadline?.abortSources ?? []),
-        { signal: options.signal, source: 'unknown' },
-        { signal: sweepSignal, source: 'unknown' },
+        ...(!options.abortSources?.length
+          ? [{ signal: options.signal, source: 'unknown' }]
+          : []),
+        ...(!abortSources.length
+          ? [{ signal: sweepSignal, source: 'unknown' }]
+          : []),
       ]);
       let headerAt;
       let bodyAt;

@@ -513,3 +513,33 @@ test('blocked unverified signin never retries transport or server failure', asyn
     assert.equal(calls, 1);
   }
 });
+
+test('parent deadline abort remains overall rather than request timeout', async () => {
+  const { createDeadline } = await import('./core.mjs');
+  const controller = new AbortController();
+  const deadline = createDeadline(60_000, {
+    parentSignal: controller.signal,
+    parentAbortSources: [{ signal: controller.signal, source: 'overall' }],
+    source: 'fixture/readiness',
+  });
+  const records = [];
+  const request = createRequester({
+    baseUrl: 'http://localhost:3010',
+    records,
+    deadline,
+    fetchImpl: async (_url, { signal }) =>
+      new Promise((_resolve, reject) => {
+        signal.addEventListener('abort', () => reject(signal.reason), {
+          once: true,
+        });
+        controller.abort(new DOMException('private reason', 'AbortError'));
+      }),
+  });
+  await request(null, 'GET', '/v1/example', {
+    phase: 'fixture',
+    allowSigninRetry: false,
+    signal: deadline.signal,
+    abortSources: deadline.abortSources,
+  });
+  assert.equal(records[0].abortSource, 'overall');
+});

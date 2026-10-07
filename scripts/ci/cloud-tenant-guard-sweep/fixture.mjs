@@ -130,6 +130,19 @@ export async function seedFixture(
     ].some((value) => value !== 0)
   )
     throw new Error('Mail proof initial counters must be zero');
+  async function beforeMail() {
+    const before = validateMailStats(await readMailStats(), mailStats);
+    if (
+      MAIL_LABELS.some(
+        (label) => before.accepted[label] !== mailStats.accepted[label],
+      ) ||
+      MAIL_REASONS.some(
+        (reason) => before.rejected[reason] !== mailStats.rejected[reason],
+      )
+    )
+      throw new Error('Mail proof changed outside an auth attempt');
+    return before;
+  }
   async function proveMail(label, before) {
     const after = validateMailStats(await readMailStats(), before);
     if (
@@ -166,7 +179,7 @@ export async function seedFixture(
       name: `CI Cloud ${label}`,
       password: 'ci-placeholder-password-for-ephemeral-test',
     };
-    const before = validateMailStats(await readMailStats(), mailStats);
+    const before = await beforeMail();
     const response = await request(null, 'POST', '/v1/auth/sign-up/email', {
       body: credentials,
     });
@@ -191,7 +204,7 @@ export async function seedFixture(
     )
       throw new Error(`Sign up ${label}: unverified session proof failed`);
     await proveMail(label, before);
-    const blockedBefore = validateMailStats(await readMailStats(), mailStats);
+    const blockedBefore = await beforeMail();
     const blocked = await request(null, 'POST', '/v1/auth/sign-in/email', {
       body: { email: credentials.email, password: credentials.password },
       allowSigninRetry: false,
@@ -253,6 +266,7 @@ export async function seedFixture(
   async function workspace(actor) {
     const readiness = createDeadline(Math.min(20_000, deadline.remaining()), {
       parentSignal: deadline.signal,
+      parentAbortSources: deadline.abortSources,
       source: 'fixture/readiness',
       now,
     });
