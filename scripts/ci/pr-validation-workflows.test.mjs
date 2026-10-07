@@ -9,6 +9,7 @@ import { runInNewContext } from 'node:vm';
 import { RECOVERY_GREEN_THRESHOLD } from './scheduled-failure-tracker.mjs';
 
 import './coverage-failure-reporter.test.mjs';
+import './cla-status-recovery.test.mjs';
 import './full-suite-evidence.test.mjs';
 import './nightly-e2e-failure-reporter.test.mjs';
 import './nightly-playwright-full-failure-reporter.test.mjs';
@@ -114,11 +115,25 @@ test('keeps privileged PR triggers limited to metadata and trusted master code',
     )
     .sort();
 
-  assert.deepEqual(targetWorkflows, ['pr-title.yml']);
+  assert.deepEqual(targetWorkflows, [
+    'cla-status-recovery.yml',
+    'pr-title.yml',
+  ]);
   const title = readWorkflow('pr-title.yml');
   assert.match(title, /^permissions:\n {2}pull-requests: read$/m);
   assert.doesNotMatch(title, /uses: actions\/checkout@/);
   assert.doesNotMatch(title, /uses: \.\//);
+  const cla = readWorkflow('cla-status-recovery.yml');
+  assert.match(
+    cla,
+    /^permissions:\n {2}contents: read\n {2}pull-requests: read\n {2}statuses: read$/m,
+  );
+  assert.match(
+    cla,
+    /ref: \$\{\{ github\.event\.repository\.default_branch \}\}/,
+  );
+  assert.match(cla, /persist-credentials: false/);
+  assert.doesNotMatch(cla, /pull_request\.head|uses: \.\//);
 });
 
 test('enforces executable contracts through the aggregate suite', () => {

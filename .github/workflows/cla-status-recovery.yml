@@ -1,0 +1,63 @@
+name: CLA Status Recovery
+
+on:
+  pull_request_target:
+    branches: [master]
+    types: [opened, synchronize, reopened, ready_for_review]
+  schedule:
+    - cron: '17,47 * * * *'
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: 'PR number to recheck; leave empty to check every open PR'
+        type: string
+        required: false
+
+# Only CLA Assistant evaluates signatures and writes license/cla. This job
+# requests a genuine recheck and verifies the result, including unsigned results.
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: read
+
+concurrency:
+  group: cla-status-recovery-${{ github.event.pull_request.number || 'open-prs' }}
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    name: Recover missing CLA statuses
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # pull_request_target must never run code from the contribution's branch.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Recheck and verify hosted CLA results
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          INPUT_PULL_REQUEST: ${{ inputs.pull_request }}
+        with:
+          script: |
+            const { pathToFileURL } = await import('node:url');
+            const { recoverClaStatuses } = await import(pathToFileURL(`${process.env.GITHUB_WORKSPACE}/scripts/ci/cla-status-recovery.mjs`));
+            const { owner, repo } = context.repo;
+            let numbers;
+            if (context.payload.pull_request) {
+              numbers = [context.payload.pull_request.number];
+            } else if (process.env.INPUT_PULL_REQUEST) {
+              if (!/^[1-9]\d*$/.test(process.env.INPUT_PULL_REQUEST)) {
+                throw new Error('pull_request must be a positive integer.');
+              }
+              numbers = [Number(process.env.INPUT_PULL_REQUEST)];
+            } else {
+              const pulls = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', base: 'master', per_page: 100 });
+              numbers = pulls.map(pull => pull.number);
+            }
+            const results = await recoverClaStatuses(github, { owner, repo, numbers, log: core.info });
+            await core.summary.addHeading('Hosted CLA status recovery').addTable([
+              [{ data: 'PR', header: true }, { data: 'Commit', header: true }, { data: 'Result', header: true }],
+              ...results.map(result => [`#${result.number}`, result.sha || '', result.state || result.outcome]),
+            ]).write();
