@@ -428,7 +428,7 @@ export class UsersRelationshipsController {
     settingsId: string,
     updateSettingDto: UpdateSettingDto,
     caller: User,
-    notFoundId: string,
+    targetUserId: string,
   ) {
     // `null` passes the optional DTO validator; the service rejects it.
     const data =
@@ -443,16 +443,20 @@ export class UsersRelationshipsController {
             caller.organizationId,
           );
 
-    return data
-      ? serializeSingle(
-          request,
-          SettingSerializer,
-          await this.settingsService.withLiveFavoriteWorkflowIds(
-            data,
-            caller.organizationId,
-          ),
-        )
-      : returnNotFound(this.constructorName, notFoundId);
+    if (!data) {
+      return returnNotFound(this.constructorName, targetUserId);
+    }
+
+    await this.userAccessCacheService.invalidateAll(targetUserId);
+
+    return serializeSingle(
+      request,
+      SettingSerializer,
+      await this.settingsService.withLiveFavoriteWorkflowIds(
+        data,
+        caller.organizationId,
+      ),
+    );
   }
 
   private async findUserSettings(userData: unknown): Promise<object | null> {

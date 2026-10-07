@@ -17,6 +17,7 @@ const useAuthUserMock = vi.fn();
 const findMeMock = vi.fn();
 const patchSettingsMock = vi.fn();
 const bootstrapMock = vi.fn();
+const clearBootstrapMock = vi.fn();
 const loggerWarnMock = vi.fn();
 const loggerErrorMock = vi.fn();
 
@@ -46,7 +47,7 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
 }));
 
 vi.mock('@providers/protected-bootstrap/client-protected-bootstrap', () => ({
-  clearClientProtectedBootstrapCache: vi.fn(),
+  clearClientProtectedBootstrapCache: () => clearBootstrapMock(),
   loadClientProtectedBootstrap: (...args: unknown[]) => bootstrapMock(...args),
 }));
 
@@ -297,6 +298,37 @@ describe('UserProvider behavior', () => {
     await waitFor(() => {
       expect(contextValue.currentUser?.id).toBe('user_replaced');
     });
+  });
+
+  it('does not restore a stale bootstrap after personal settings are saved', async () => {
+    const savedUser = {
+      id: 'user_1',
+      settings: { isAdvancedMode: false },
+    } as IUser;
+    let bootstrapUser = {
+      id: 'user_1',
+      settings: { isAdvancedMode: true },
+    } as IUser;
+    bootstrapMock.mockImplementation(async () => ({
+      currentUser: bootstrapUser,
+    }));
+    clearBootstrapMock.mockImplementation(() => {
+      bootstrapUser = savedUser;
+    });
+    const view = renderWithProvider();
+    await waitFor(() =>
+      expect(contextValue.currentUser?.settings?.isAdvancedMode).toBe(true),
+    );
+
+    act(() => contextValue.mutateUser(savedUser));
+    await act(async () => {
+      await view.queryClient.invalidateQueries({ queryKey: ['user-context'] });
+    });
+
+    expect(clearBootstrapMock).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(contextValue.currentUser?.settings?.isAdvancedMode).toBe(false),
+    );
   });
 
   it('refetchUser re-runs the user query', async () => {

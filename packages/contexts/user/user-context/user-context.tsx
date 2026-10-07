@@ -130,6 +130,7 @@ export function UserProvider({
 
   const mutate = useCallback(
     (nextUser: User | null) => {
+      clearClientProtectedBootstrapCache();
       queryClient.setQueryData<UserBootstrapData>(queryKey, (previous) => ({
         currentUser: nextUser,
         memberRole: previous?.memberRole ?? null,
