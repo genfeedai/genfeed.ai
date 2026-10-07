@@ -1,6 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import {
   BrandMemoryInsightSerializer,
@@ -13,6 +15,7 @@ import type { Request } from 'express';
 export class BrandMemoryController {
   constructor(private readonly brandMemoryService: BrandMemoryService) {}
 
+  @TenantReadPolicy('selected')
   @Get()
   async getMemory(
     @Req() req: Request,
@@ -21,7 +24,7 @@ export class BrandMemoryController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    const organizationId = user.organizationId;
+    const organizationId = resolveTenantReadScope(user).organizationId;
 
     const docs = await this.brandMemoryService.getMemory(
       organizationId,
@@ -34,6 +37,7 @@ export class BrandMemoryController {
     return serializeCollection(req, BrandMemorySerializer, { docs });
   }
 
+  @TenantReadPolicy('selected')
   @Get('insights')
   async getInsights(
     @Req() req: Request,
@@ -41,7 +45,7 @@ export class BrandMemoryController {
     @CurrentUser() user: User,
     @Query('limit') limit?: string,
   ) {
-    const organizationId = user.organizationId;
+    const organizationId = resolveTenantReadScope(user).organizationId;
 
     const parsedLimit = limit ? Number(limit) : 20;
     const insights = await this.brandMemoryService.getInsights(

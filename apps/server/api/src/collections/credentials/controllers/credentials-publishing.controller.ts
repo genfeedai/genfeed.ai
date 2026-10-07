@@ -16,6 +16,8 @@ import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.d
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import type {
   AccountHealthSummary,
@@ -66,6 +68,7 @@ export class CredentialsPublishingController {
     private readonly credentialPublishingReadinessService: CredentialPublishingReadinessService,
   ) {}
 
+  @TenantReadPolicy('mutating')
   @Get('brand/:brandId/account-health')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -82,6 +85,7 @@ export class CredentialsPublishingController {
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get('brand/:brandId/publishing-readiness')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -93,11 +97,12 @@ export class CredentialsPublishingController {
     @CurrentUser() user: User,
   ): Promise<IPublishingProviderReadiness[]> {
     return this.credentialPublishingReadinessService.resolveForBrand(
-      user.organizationId,
+      resolveTenantReadScope(user).organizationId,
       brandId,
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get(':credentialId/posting-times')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -109,7 +114,7 @@ export class CredentialsPublishingController {
     @CurrentUser() user: User,
   ) {
     const times = await this.credentialPostingTimesService.list(
-      user.organizationId,
+      resolveTenantReadScope(user).organizationId,
       credentialId,
     );
     return { times };
@@ -175,6 +180,7 @@ export class CredentialsPublishingController {
     return { times };
   }
 
+  @TenantReadPolicy('selected')
   @Get(':credentialId/next-slot')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -187,12 +193,13 @@ export class CredentialsPublishingController {
     @CurrentUser() user: User,
   ) {
     return this.credentialPostingTimesService.findNextSlot(
-      user.organizationId,
+      resolveTenantReadScope(user).organizationId,
       credentialId,
       query.after,
     );
   }
 
+  @TenantReadPolicy('mutating')
   @Get(':credentialId/publishing-context')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -250,6 +257,7 @@ export class CredentialsPublishingController {
     });
   }
 
+  @TenantReadPolicy('selected')
   @Get('mentions')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -258,10 +266,11 @@ export class CredentialsPublishingController {
   })
   getMentions(@CurrentUser() user: User) {
     return this.credentialPublishingOperationsService.getMentions(
-      user.organizationId,
+      resolveTenantReadScope(user).organizationId,
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get(':credentialId/quota')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -274,7 +283,7 @@ export class CredentialsPublishingController {
   ): Promise<JsonApiSingleResponse> {
     return this.credentialPublishingOperationsService.getQuotaStatus(
       credentialId,
-      user.organizationId,
+      resolveTenantReadScope(user).organizationId,
     );
   }
 }

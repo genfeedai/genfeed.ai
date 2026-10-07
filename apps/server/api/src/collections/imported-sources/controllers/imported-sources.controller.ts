@@ -7,6 +7,8 @@ import {
 import { ImportedSourcesService } from '@api/collections/imported-sources/services/imported-sources.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   serializeCollection,
   serializeSingle,
@@ -56,6 +58,7 @@ export class ImportedSourcesController {
       await this.sources.list(user, brandId, query),
     );
   }
+  @TenantReadPolicy('selected')
   @Get(':id')
   async get(
     @Req() request: Request,
@@ -66,7 +69,7 @@ export class ImportedSourcesController {
     return serializeSingle(
       request,
       ImportedSourceSerializer,
-      await this.sources.get(user, brandId, id),
+      await this.sources.get(user, brandId, id, resolveTenantReadScope(user)),
     );
   }
   @Post(':id/recaptures')

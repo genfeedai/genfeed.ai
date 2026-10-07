@@ -27,6 +27,8 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -411,6 +413,7 @@ export class BrandsController extends BaseCRUDController<
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get('slug')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOneBySlug(
@@ -422,7 +425,12 @@ export class BrandsController extends BaseCRUDController<
       throw new BadRequestException('slug query param is required');
     }
 
-    const brand = await verifyBrandSlugAccess(this.brandsService, slug, user);
+    const brand = await verifyBrandSlugAccess(
+      this.brandsService,
+      slug,
+      user,
+      resolveTenantReadScope(user),
+    );
 
     return serializeSingle(
       request,
@@ -476,6 +484,7 @@ export class BrandsController extends BaseCRUDController<
    * collections update.
    * This matches the org.settings solution where we bypass population for fresh data.
    */
+  @TenantReadPolicy('selected')
   @Get(':brandId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
@@ -483,7 +492,12 @@ export class BrandsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('brandId') brandId: string,
   ): Promise<JsonApiSingleResponse> {
-    await verifyBrandAccess(this.brandsService, brandId, user);
+    await verifyBrandAccess(
+      this.brandsService,
+      brandId,
+      user,
+      resolveTenantReadScope(user),
+    );
 
     return super.findOne(request, user, brandId);
   }

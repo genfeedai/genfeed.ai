@@ -9,6 +9,8 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -132,6 +134,7 @@ export class MembersController {
    * GET /members/invitations
    * List invitations for the current organization, optionally filtered by status.
    */
+  @TenantReadPolicy('selected')
   @Get('invitations')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -140,7 +143,7 @@ export class MembersController {
     @Query() query: InvitationsQueryDto,
     @CurrentUser() user: User,
   ): Promise<unknown> {
-    const orgId = user.organizationId;
+    const orgId = resolveTenantReadScope(user).organizationId;
 
     if (!orgId) {
       throw new HttpException(
@@ -228,6 +231,7 @@ export class MembersController {
   // Wildcard param routes — keep last so static sibling paths win.
   // ────────────────────────────────────────────────────────────────────────────
 
+  @TenantReadPolicy('selected')
   @Get(':memberId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
@@ -235,7 +239,7 @@ export class MembersController {
     @CurrentUser() user: User,
     @Param('memberId') memberId: string,
   ) {
-    const organizationId = user.organizationId;
+    const organizationId = resolveTenantReadScope(user).organizationId;
 
     // Tenant scoping has to live here: RolesGuard only proves the CALLER is an
     // active member of their OWN organization — it never inspects the requested

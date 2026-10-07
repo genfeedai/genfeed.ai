@@ -5,6 +5,7 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { MemberRole } from '@genfeedai/contracts';
 import { BrandOnboardingScanSerializer } from '@genfeedai/serializers';
@@ -46,6 +47,7 @@ export class BrandOsScanController {
       }),
     );
   }
+  @TenantReadPolicy('mutating')
   @Get()
   async get(
     @Req() request: Request,

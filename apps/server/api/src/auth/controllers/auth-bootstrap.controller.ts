@@ -1,10 +1,12 @@
 import { AuthBootstrapService } from '@api/auth/services/auth-bootstrap.service';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { Controller, Get, Req } from '@nestjs/common';
 
 @Controller('auth')
 export class AuthBootstrapController {
   constructor(private readonly authBootstrapService: AuthBootstrapService) {}
 
+  @TenantReadPolicy('owner')
   @Get('bootstrap')
   async bootstrap(
     @Req() req: Parameters<AuthBootstrapService['getBootstrap']>[0],

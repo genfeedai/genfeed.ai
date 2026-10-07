@@ -9,6 +9,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
@@ -242,6 +243,7 @@ export class CredentialsController {
     }
   }
 
+  @TenantReadPolicy('mutating')
   @Get(':credentialId/instagram/pages')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAllInstagramPages(

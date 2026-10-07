@@ -13,6 +13,7 @@ import {
   readImportedSourceEnvelope,
 } from '@api/collections/imported-sources/services/imported-source-state';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { IngredientOrigin } from '@genfeedai/contracts';
@@ -38,7 +39,11 @@ import {
 @Injectable()
 export class ImportedSourcesService {
   constructor(private readonly prisma: PrismaService) {}
-  private scope(user: AuthenticatedUser, brandId: string): ImportedSourceScope {
+  private scope(
+    user: AuthenticatedUser,
+    brandId: string,
+    readScope?: ITenantReadScope,
+  ): ImportedSourceScope {
     if (user.isApiKey === true || user.apiKeyId?.trim())
       throw new ForbiddenException({
         code: 'IMPORTED_SOURCE_SESSION_REQUIRED',
@@ -47,7 +52,7 @@ export class ImportedSourcesService {
     if (
       typeof user.userId !== 'string' ||
       user.userId.trim().length === 0 ||
-      !isEntityId(user.organizationId) ||
+      !isEntityId(readScope?.organizationId ?? user.organizationId) ||
       !isEntityId(brandId)
     )
       throw new BadRequestException({
@@ -56,7 +61,7 @@ export class ImportedSourcesService {
       });
     return {
       userId: user.userId,
-      organizationId: user.organizationId,
+      organizationId: readScope?.organizationId ?? user.organizationId,
       brandId,
     };
   }
@@ -186,8 +191,9 @@ export class ImportedSourcesService {
     user: AuthenticatedUser,
     brandId: string,
     id: string,
+    readScope?: ITenantReadScope,
   ): Promise<ImportedSourceView> {
-    const scope = this.scope(user, brandId);
+    const scope = this.scope(user, brandId, readScope);
     this.requireId(id);
     await this.requireBrand(this.prisma, scope);
     const record = await this.prisma.ingredient.findFirst({

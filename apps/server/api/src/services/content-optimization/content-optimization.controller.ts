@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { AbTestSuggestionHarnessService } from '@api/services/content-optimization/ab-test-suggestion-harness.service';
 import {
   type AnalyzePerformanceOptions,
@@ -96,6 +97,7 @@ export class ContentOptimizationController {
    * GET v1/brands/:brandId/optimization/recommendations
    * Returns actionable recommendations.
    */
+  @TenantReadPolicy('mutating')
   @Get('recommendations')
   async getRecommendations(
     @Param('brandId') brandId: string,
@@ -113,6 +115,7 @@ export class ContentOptimizationController {
    * GET v1/brands/:brandId/optimization/suggestions
    * Returns memory-driven optimization suggestions.
    */
+  @TenantReadPolicy('mutating')
   @Get('suggestions')
   async getSuggestions(
     @Param('brandId') brandId: string,

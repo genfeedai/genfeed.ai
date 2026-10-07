@@ -20,6 +20,9 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ActivitySource } from '@genfeedai/contracts';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
@@ -194,6 +197,7 @@ export class BrandsAgentConfigController {
     return serializeSingle(request, BrandOsDraftHandoffSerializer, handoff);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id/brand-kit/brand-os')
   @Header('Cache-Control', 'no-store')
   @Header('Pragma', 'no-cache')
@@ -203,8 +207,16 @@ export class BrandsAgentConfigController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    await verifyBrandAccess(this.brandsService, id, user);
-    const organizationId = this.requireOrganizationId(user);
+    await verifyBrandAccess(
+      this.brandsService,
+      id,
+      user,
+      resolveTenantReadScope(user),
+    );
+    const organizationId = this.requireOrganizationId(
+      user,
+      resolveTenantReadScope(user),
+    );
     const handoff = await this.brandsService.readClaimedBrandOsPreview(
       id,
       organizationId,
@@ -316,8 +328,13 @@ export class BrandsAgentConfigController {
     return serializeSingle(request, BrandSerializer, updatedBrand);
   }
 
-  private requireOrganizationId(user: User): string {
-    const organizationId = user.organizationId?.toString();
+  private requireOrganizationId(
+    user: User,
+    readScope?: ITenantReadScope,
+  ): string {
+    const organizationId = (
+      readScope?.organizationId ?? user.organizationId
+    )?.toString();
 
     if (!organizationId) {
       throw new HttpException(
