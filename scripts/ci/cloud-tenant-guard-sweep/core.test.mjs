@@ -1649,3 +1649,20 @@ test('v19 partitions 609 ordinary completions and four exact machine denials wit
   );
   assert.ok(coverageErrors(broken, 613, 20, 20, routes).length);
 });
+
+test('provenance failure labels remain fixed and independent of stdout copies', async () => {
+  const { buildDiagnosticSummary } = await import('./core.mjs');
+  const summary = buildDiagnosticSummary({
+    sourceSha: 'a'.repeat(40),
+    failures: [
+      'Tenant guard provenance unavailable',
+      'Tenant guard failures observed',
+    ],
+  });
+  assert.deepEqual(summary.failureEvidence.groups.map((g) => g.label).sort(), [
+    'tenant-guard-failures-observed',
+    'tenant-guard-provenance-unavailable',
+  ]);
+  assert.equal(summary.tenantEvidence.logHits, 0);
+  assert.equal(summary.tenantEvidence.responseHits, 0);
+});

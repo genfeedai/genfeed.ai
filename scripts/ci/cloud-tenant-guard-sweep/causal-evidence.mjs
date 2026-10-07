@@ -18,6 +18,11 @@ import {
   WAITS,
 } from './api-observer-core.mjs';
 import { validateRunDirectory } from './local-mail-stub.mjs';
+import {
+  MAX_TENANT_FAILURES,
+  schemaModels,
+  validateTenantFailure,
+} from './tenant-evidence-policy.mjs';
 export const CAUSAL_CLASSES = [
   'telemetryIncomplete',
   'noIngress',
@@ -539,6 +544,163 @@ function validateFailureWindows(projection, database, attempts) {
   }
 }
 
+function unavailableTenantFailures() {
+  return {
+    version: 1,
+    available: false,
+    total: null,
+    attributed: null,
+    unattributed: null,
+    groups: [],
+  };
+}
+function tenantFailureProjection(events, clients, templates, actors, phases) {
+  const candidates = new Map();
+  for (const client of clients) {
+    const list = candidates.get(client.sequence) ?? [];
+    list.push(client);
+    candidates.set(client.sequence, list);
+  }
+  const groups = new Map();
+  let attributed = 0;
+  for (const event of events) {
+    const matches = candidates.get(event.sequence) ?? [];
+    const client = matches.length === 1 ? matches[0] : undefined;
+    const phase =
+      client &&
+      (Object.hasOwn(client, 'sweepPhase') ? client.sweepPhase : client.phase);
+    const known =
+      event.sequence !== null &&
+      client &&
+      Number.isSafeInteger(client.sequence) &&
+      client.sequence > 0 &&
+      Number.isSafeInteger(client.sentAtEpochMs) &&
+      client.sentAtEpochMs >= 0 &&
+      Number.isSafeInteger(client.endedAtEpochMs) &&
+      client.endedAtEpochMs >= client.sentAtEpochMs &&
+      (client.headerAtEpochMs === null ||
+        (Number.isSafeInteger(client.headerAtEpochMs) &&
+          client.headerAtEpochMs >= client.sentAtEpochMs &&
+          client.headerAtEpochMs <= client.endedAtEpochMs)) &&
+      actors.includes(client.actor) &&
+      client.actor !== 'unknown' &&
+      phases.includes(phase) &&
+      phase !== 'unknown' &&
+      METHODS.includes(client.method) &&
+      client.method !== 'other' &&
+      templates.has(client.route);
+    const tuple = {
+      actor: known ? client.actor : 'unknown',
+      phase: known ? phase : 'unknown',
+      method: known ? client.method : 'other',
+      route: known ? client.route : 'unknown',
+      model: event.model,
+      operation: event.operation,
+      reason: event.reason,
+    };
+    const key = JSON.stringify(Object.values(tuple));
+    const group = groups.get(key) ?? { ...tuple, count: 0 };
+    group.count = safe(group.count + 1);
+    groups.set(key, group);
+    attributed += Number(Boolean(known));
+  }
+  return {
+    version: 1,
+    available: true,
+    total: events.length,
+    attributed,
+    unattributed: events.length - attributed,
+    groups: [...groups]
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([, group]) => group),
+  };
+}
+function validateTenantFailures(value, { templates, actors, phases }) {
+  exact(value, [
+    'version',
+    'available',
+    'total',
+    'attributed',
+    'unattributed',
+    'groups',
+  ]);
+  if (
+    value.version !== 1 ||
+    typeof value.available !== 'boolean' ||
+    !Array.isArray(value.groups) ||
+    value.groups.length > MAX_TENANT_FAILURES
+  )
+    throw new Error('Invalid tenant provenance');
+  if (!value.available) {
+    if (
+      value.total !== null ||
+      value.attributed !== null ||
+      value.unattributed !== null ||
+      value.groups.length
+    )
+      throw new Error('Unavailable tenant provenance has counts');
+    return;
+  }
+  schemaModels();
+  for (const n of [value.total, value.attributed, value.unattributed]) {
+    safe(n);
+    if (n > MAX_TENANT_FAILURES)
+      throw new Error('Tenant provenance capacity exceeded');
+  }
+  let total = 0,
+    attributed = 0,
+    previous;
+  for (const group of value.groups) {
+    exact(group, [
+      'actor',
+      'phase',
+      'method',
+      'route',
+      'model',
+      'operation',
+      'reason',
+      'count',
+    ]);
+    validateTenantFailure(group.model, group.operation, group.reason);
+    safe(group.count);
+    if (!group.count || group.count > MAX_TENANT_FAILURES)
+      throw new Error('Invalid tenant group count');
+    const known =
+      actors.includes(group.actor) &&
+      group.actor !== 'unknown' &&
+      phases.includes(group.phase) &&
+      group.phase !== 'unknown' &&
+      METHODS.includes(group.method) &&
+      group.method !== 'other' &&
+      templates.includes(group.route);
+    const unknown =
+      group.actor === 'unknown' &&
+      group.phase === 'unknown' &&
+      group.method === 'other' &&
+      group.route === 'unknown';
+    if (!known && !unknown) throw new Error('Unsafe tenant attribution');
+    const key = JSON.stringify([
+      group.actor,
+      group.phase,
+      group.method,
+      group.route,
+      group.model,
+      group.operation,
+      group.reason,
+    ]);
+    if (previous !== undefined && key <= previous)
+      throw new Error('Duplicate or unsorted tenant groups');
+    previous = key;
+    total = safe(total + group.count);
+    if (known) attributed = safe(attributed + group.count);
+  }
+  if (
+    total !== value.total ||
+    attributed !== value.attributed ||
+    value.total !== value.attributed + value.unattributed
+  )
+    throw new Error('Tenant provenance conservation failure');
+}
 export function joinCausalEvidence(
   report,
   records,
@@ -552,6 +714,7 @@ export function joinCausalEvidence(
 ) {
   const reasons = zeroReasons();
   const lifecycles = new Map();
+  const tenantEvents = [];
   let runtime = [],
     database = [],
     footer,
@@ -584,6 +747,15 @@ export function joinCausalEvidence(
       if (record.kind === 'footer') {
         if (i !== records.length - 1) throw new Error('Footer is not final');
         footer = record;
+        continue;
+      }
+      if (record.kind === 'tenantFailure') {
+        if (
+          records[0].tenantFailuresVersion !== 1 ||
+          record.ordinal !== tenantEvents.length + 1
+        )
+          throw new Error('Invalid tenant event ordinal');
+        tenantEvents.push(record);
         continue;
       }
       if (record.kind === 'runtime') {
@@ -638,6 +810,13 @@ export function joinCausalEvidence(
       throw new Error('Sample capacity exceeded');
     }
     if (footer) {
+      if (
+        Object.hasOwn(records[0], 'tenantFailuresVersion') !==
+          Object.hasOwn(footer, 'tenantFailures') ||
+        (Object.hasOwn(footer, 'tenantFailures') &&
+          footer.tenantFailures !== tenantEvents.length)
+      )
+        throw new Error('Tenant producer counter mismatch');
       if (
         footer.records !== records.length - 1 ||
         footer.ingress !== lifecycles.size ||
@@ -841,6 +1020,21 @@ export function joinCausalEvidence(
       classes,
     },
     requestGroups,
+    tenantFailures:
+      valid &&
+      footer &&
+      records[0].tenantFailuresVersion === 1 &&
+      !footer.unavailable &&
+      !footer.invalidSequences &&
+      !footer.duplicateSequences
+        ? tenantFailureProjection(
+            tenantEvents,
+            clients,
+            templates,
+            actors,
+            phases,
+          )
+        : unavailableTenantFailures(),
     runtime: {
       ...runtimeAggregate(runtime),
       cpuUserUs: runtime.reduce((sum, s) => safe(sum + s.cpuUserUs), 0),
@@ -877,7 +1071,10 @@ export function validateCausalEvidence(
     'requestGroups',
     'runtime',
     'database',
+    ...(Object.hasOwn(value, 'tenantFailures') ? ['tenantFailures'] : []),
   ]);
+  if (Object.hasOwn(value, 'tenantFailures'))
+    validateTenantFailures(value.tenantFailures, { templates, actors, phases });
   if (
     value.version !== 1 ||
     !['partial', 'complete', 'incomplete'].includes(value.quality)

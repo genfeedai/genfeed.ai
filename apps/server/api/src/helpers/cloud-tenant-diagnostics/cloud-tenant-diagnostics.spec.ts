@@ -1,3 +1,4 @@
+import type { IncomingMessage } from 'node:http';
 import type { CloudTenantObserver } from '@api/helpers/cloud-tenant-diagnostics/cloud-tenant-diagnostics';
 import {
   CLOUD_TENANT_OBSERVER,
@@ -9,6 +10,8 @@ describe('CI-only tenant observation seam', () => {
   const observer: CloudTenantObserver = {
     protocol: 1,
     ingress: vi.fn(),
+    bindRequest: vi.fn((_request: IncomingMessage, next: () => void) => next),
+    tenantFailure: vi.fn(),
     pipelineEnter: vi.fn(),
     pipelineNext: vi.fn(),
     pipelineError: vi.fn(),
@@ -50,6 +53,8 @@ describe('CI-only tenant observation seam', () => {
       undefined,
       { ...observer, protocol: 2 },
       { ...observer, ingress: undefined },
+      { ...observer, bindRequest: undefined },
+      { ...observer, tenantFailure: undefined },
       { ...observer, private: 'token' },
     ]) {
       Reflect.set(globalThis, CLOUD_TENANT_OBSERVER, value);
@@ -80,5 +85,44 @@ describe('CI-only tenant observation seam', () => {
         throw new Error('private');
       }),
     ).not.toThrow();
+  });
+  it('binding failure falls back once while application throws escape unchanged', () => {
+    const request = { headers: {} } as IncomingMessage;
+    const applicationError = new Error('application');
+    const run = (value: CloudTenantObserver, next: () => void) => {
+      const bound = observeCloudTenant(value, (active) =>
+        active.bindRequest(request, next),
+      );
+      if (typeof bound !== 'function')
+        observeCloudTenant(value, (active) => active.unavailable());
+      (typeof bound === 'function' ? bound : next)();
+    };
+    const next = vi.fn(() => {
+      throw applicationError;
+    });
+    expect(() => run(observer, next)).toThrow(applicationError);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(observer.unavailable).not.toHaveBeenCalled();
+    const broken = {
+      ...observer,
+      bindRequest: () => {
+        throw new Error('binding');
+      },
+    };
+    expect(() => run(broken, next)).toThrow(applicationError);
+    expect(next).toHaveBeenCalledTimes(2);
+    expect(observer.unavailable).toHaveBeenCalled();
+    const invalid = { ...observer, bindRequest: vi.fn(() => undefined) };
+    // Runtime protocol validation must not retry application execution.
+    Reflect.set(globalThis, CLOUD_TENANT_OBSERVER, invalid);
+    const bound = observeCloudTenant(getCloudTenantObserver(), (active) =>
+      active.bindRequest(request, next),
+    );
+    if (typeof bound !== 'function')
+      observeCloudTenant(observer, (active) => active.unavailable());
+    expect(() => (typeof bound === 'function' ? bound : next)()).toThrow(
+      applicationError,
+    );
+    expect(next).toHaveBeenCalledTimes(3);
   });
 });

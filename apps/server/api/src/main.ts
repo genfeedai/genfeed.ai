@@ -152,7 +152,14 @@ async function main() {
           observeCloudTenant(tenantObserver, (observer) =>
             observer.ingress(request, response),
           );
-          next();
+          const bound = observeCloudTenant(tenantObserver, (observer) =>
+            observer.bindRequest(request, next),
+          );
+          if (typeof bound !== 'function')
+            observeCloudTenant(tenantObserver, (observer) =>
+              observer.unavailable(),
+            );
+          (typeof bound === 'function' ? bound : next)();
         },
       );
     }

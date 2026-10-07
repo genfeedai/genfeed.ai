@@ -1,3 +1,9 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
+import {
+  MAX_TENANT_FAILURES,
+  schemaModels,
+  validateTenantFailure,
+} from './tenant-evidence-policy.mjs';
 export const OBSERVER_SYMBOL = Symbol.for(
   'genfeed.cloudTenantGuard.observer.v1',
 );
@@ -194,6 +200,15 @@ export function validateDatabaseDiagnostic(diagnostic, outcome) {
 const shapes = {
   header: ['kind', 'protocol', 'startedAt'],
   ingress: ['kind', 'sequence', 'at'],
+  tenantFailure: [
+    'kind',
+    'ordinal',
+    'sequence',
+    'at',
+    'model',
+    'operation',
+    'reason',
+  ],
   pipelineEnter: ['kind', 'sequence', 'entry', 'at'],
   pipelineNext: ['kind', 'sequence', 'entry', 'at'],
   pipelineFinalize: ['kind', 'sequence', 'entry', 'at'],
@@ -233,6 +248,13 @@ export function validateObservationRecord(record) {
   if (!shapes[record?.kind]) throw new Error('Invalid observer kind');
   exact(record, [
     ...shapes[record.kind],
+    ...(record.kind === 'header' &&
+    Object.hasOwn(record, 'tenantFailuresVersion')
+      ? ['tenantFailuresVersion']
+      : []),
+    ...(record.kind === 'footer' && Object.hasOwn(record, 'tenantFailures')
+      ? ['tenantFailures']
+      : []),
     ...(record.kind === 'database' && Object.hasOwn(record, 'diagnostic')
       ? ['diagnostic']
       : []),
@@ -245,7 +267,25 @@ export function validateObservationRecord(record) {
     if (Object.hasOwn(record, key)) safe(record[key]);
   if (Object.hasOwn(record, 'start') && record.end < record.start)
     throw new Error('Observer clock regression');
-  if (Object.hasOwn(record, 'sequence')) positive(record.sequence);
+  if (
+    Object.hasOwn(record, 'sequence') &&
+    !(record.kind === 'tenantFailure' && record.sequence === null)
+  )
+    positive(record.sequence);
+  if (record.kind === 'tenantFailure') {
+    positive(record.ordinal);
+    if (record.ordinal > MAX_TENANT_FAILURES)
+      throw new Error('Tenant event capacity exceeded');
+    validateTenantFailure(record.model, record.operation, record.reason);
+  }
+  if (
+    record.kind === 'header' &&
+    Object.hasOwn(record, 'tenantFailuresVersion')
+  ) {
+    if (record.tenantFailuresVersion !== 1)
+      throw new Error('Invalid tenant producer version');
+    schemaModels();
+  }
   if (Object.hasOwn(record, 'entry')) positive(record.entry);
   if (record.kind === 'header' && record.protocol !== 1)
     throw new Error('Invalid observer protocol');
@@ -314,6 +354,11 @@ export function validateObservationRecord(record) {
     }
   }
   if (record.kind === 'footer') {
+    if (Object.hasOwn(record, 'tenantFailures')) {
+      safe(record.tenantFailures);
+      if (record.tenantFailures > MAX_TENANT_FAILURES)
+        throw new Error('Tenant event capacity exceeded');
+    }
     if (typeof record.unavailable !== 'boolean')
       throw new Error('Invalid footer availability');
     for (const key of shapes.footer.filter(
@@ -390,7 +435,9 @@ export function createApiObserver({
     runtimeSamples: 0,
     databaseSamples: 0,
     databaseIncomplete: 0,
+    tenantFailures: 0,
   };
+  const requestScope = new AsyncLocalStorage();
   const requests = new WeakMap(),
     sequences = new Set(),
     active = new Set();
@@ -446,7 +493,12 @@ export function createApiObserver({
   )
     mark();
   else pool.on('connect', connectionListener);
-  emit({ kind: 'header', protocol: 1, startedAt: last });
+  emit({
+    kind: 'header',
+    protocol: 1,
+    startedAt: last,
+    tenantFailuresVersion: 1,
+  });
   const guard = (run) => {
     try {
       if (!stopped) return run();
@@ -488,6 +540,27 @@ export function createApiObserver({
   const observer = {
     protocol: 1,
     unavailable: mark,
+    bindRequest: (request, next) => {
+      const sequence = requests.get(request)?.sequence ?? null;
+      return () => requestScope.run(sequence, next);
+    },
+    tenantFailure: (model, operation, reason) =>
+      guard(() => {
+        validateTenantFailure(model, operation, reason);
+        if (counts.tenantFailures >= MAX_TENANT_FAILURES) {
+          mark();
+          return;
+        }
+        emit({
+          kind: 'tenantFailure',
+          ordinal: ++counts.tenantFailures,
+          sequence: requestScope.getStore() ?? null,
+          at: now(),
+          model,
+          operation,
+          reason,
+        });
+      }),
     ingress: (request, response) =>
       guard(() => {
         const header = request.headers['x-genfeed-ci-attempt'];
@@ -705,6 +778,7 @@ export function createApiObserver({
       } catch {
         mark();
       }
+      requestScope.disable();
     },
   };
 }

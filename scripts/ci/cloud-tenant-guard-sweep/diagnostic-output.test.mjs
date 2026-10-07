@@ -296,7 +296,12 @@ test('finalization refreshes partial owned observations into complete stopped ev
   });
   const f = fixture(context);
   const at = Date.now();
-  const header = { kind: 'header', protocol: 1, startedAt: at };
+  const header = {
+    kind: 'header',
+    protocol: 1,
+    startedAt: at,
+    tenantFailuresVersion: 1,
+  };
   const file = join(f.directory, 'api-observations.ndjson');
   writeFileSync(file, `${JSON.stringify(header)}\n`, { mode: 0o600 });
   f.write();
@@ -316,6 +321,7 @@ test('finalization refreshes partial owned observations into complete stopped ev
     runtimeSamples: 0,
     databaseSamples: 0,
     databaseIncomplete: 0,
+    tenantFailures: 0,
   };
   writeFileSync(file, `${JSON.stringify(header)}\n${JSON.stringify(footer)}\n`);
   writeFileSync(join(f.directory, 'api-stopped'), 'stopped\n', { mode: 0o600 });
@@ -350,7 +356,12 @@ for (const scenario of [
     });
     const f = fixture(context);
     const at = Date.now();
-    const header = { kind: 'header', protocol: 1, startedAt: at };
+    const header = {
+      kind: 'header',
+      protocol: 1,
+      startedAt: at,
+      tenantFailuresVersion: 1,
+    };
     const footer = {
       kind: 'footer',
       endedAt: at + 1,
@@ -365,6 +376,7 @@ for (const scenario of [
       runtimeSamples: 0,
       databaseSamples: 0,
       databaseIncomplete: 0,
+      tenantFailures: 0,
     };
     writeFileSync(
       join(f.directory, 'api-observations.ndjson'),
@@ -603,7 +615,7 @@ for (const missing of ['none', 'footer', 'stopped', 'mail refusal'])
         process.env[key],
       ]),
     );
-    process.env.CLOUD_SWEEP_DIAGNOSTICS = '1';
+    Reflect.set(process.env, 'CLOUD_SWEEP_DIAGNOSTICS', '1');
     process.env.CLOUD_SWEEP_CPU_PROFILE = '0';
     context.after(() => {
       for (const [key, value] of previous)
@@ -613,7 +625,12 @@ for (const missing of ['none', 'footer', 'stopped', 'mail refusal'])
     const f = fixture(context);
     for (const key of Object.keys(f.proof)) delete f.proof[key];
     const at = Date.now();
-    const header = { kind: 'header', protocol: 1, startedAt: at };
+    const header = {
+      kind: 'header',
+      protocol: 1,
+      startedAt: at,
+      tenantFailuresVersion: 1,
+    };
     const footer = {
       kind: 'footer',
       endedAt: at + 1,
@@ -628,6 +645,7 @@ for (const missing of ['none', 'footer', 'stopped', 'mail refusal'])
       runtimeSamples: 0,
       databaseSamples: 0,
       databaseIncomplete: 0,
+      tenantFailures: 0,
     };
     writeFileSync(
       join(f.directory, 'api-observations.ndjson'),
@@ -760,7 +778,7 @@ test('finalization durably retains failed-sample offsets and keeps sampler failu
     },
   ];
   const records = [
-    { kind: 'header', protocol: 1, startedAt: 100 },
+    { kind: 'header', protocol: 1, startedAt: 100, tenantFailuresVersion: 1 },
     {
       kind: 'database',
       start: 500,
@@ -790,6 +808,7 @@ test('finalization durably retains failed-sample offsets and keeps sampler failu
       runtimeSamples: 0,
       databaseSamples: 1,
       databaseIncomplete: 0,
+      tenantFailures: 0,
     },
   ];
   writeFileSync(
@@ -813,3 +832,82 @@ test('finalization durably retains failed-sample offsets and keeps sampler failu
     /Epoch|SQL|sequence|token|actor|route/,
   );
 });
+
+for (const mode of ['positive', 'legacy', 'zero'])
+  test(`finalization conserves guard provenance and sticky failure (${mode})`, (context) => {
+    const previous = Reflect.get(process.env, 'CLOUD_SWEEP_DIAGNOSTICS');
+    Reflect.set(process.env, 'CLOUD_SWEEP_DIAGNOSTICS', '1');
+    context.after(() => {
+      if (previous === undefined)
+        Reflect.deleteProperty(process.env, 'CLOUD_SWEEP_DIAGNOSTICS');
+      else Reflect.set(process.env, 'CLOUD_SWEEP_DIAGNOSTICS', previous);
+    });
+    const f = fixture(context);
+    const records = [
+      {
+        kind: 'header',
+        protocol: 1,
+        startedAt: 100,
+        ...(mode === 'legacy' ? {} : { tenantFailuresVersion: 1 }),
+      },
+    ];
+    if (mode === 'positive')
+      records.push({
+        kind: 'tenantFailure',
+        ordinal: 1,
+        sequence: null,
+        at: 101,
+        model: 'Credential',
+        operation: 'findFirst',
+        reason: 'organization-id-mismatch',
+      });
+    records.push({
+      kind: 'footer',
+      endedAt: 102,
+      unavailable: false,
+      records: records.length,
+      ingress: 0,
+      pipelineEntries: 0,
+      finishes: 0,
+      closes: 0,
+      invalidSequences: 0,
+      duplicateSequences: 0,
+      runtimeSamples: 0,
+      databaseSamples: 0,
+      databaseIncomplete: 0,
+      ...(mode === 'legacy'
+        ? {}
+        : { tenantFailures: mode === 'positive' ? 1 : 0 }),
+    });
+    writeFileSync(
+      join(f.directory, 'api-observations.ndjson'),
+      `${records.map((r) => JSON.stringify(r)).join('\n')}\n`,
+      { mode: 0o600 },
+    );
+    writeFileSync(join(f.directory, 'api-stopped'), 'stopped\n', {
+      mode: 0o600,
+    });
+    f.report.finalLogScannedAt = new Date().toISOString();
+    f.write();
+    f.write();
+    assert.equal(f.saved().hasFailed, mode !== 'zero');
+    assert.deepEqual(
+      f.saved().failures,
+      mode === 'zero'
+        ? []
+        : [
+            mode === 'legacy'
+              ? 'Tenant guard provenance unavailable'
+              : 'Tenant guard failures observed',
+          ],
+    );
+    const projection = f.summary().causalEvidence.tenantFailures;
+    assert.equal(projection.available, mode !== 'legacy');
+    assert.equal(
+      projection.total,
+      mode === 'legacy' ? null : mode === 'positive' ? 1 : 0,
+    );
+    assert.deepEqual(f.saved().causalEvidence.tenantFailures, projection);
+    assert.equal(f.summary().tenantEvidence.logHits, 0);
+    assert.equal(f.summary().tenantEvidence.responseHits, 0);
+  });

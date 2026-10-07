@@ -967,3 +967,261 @@ test('empty runtime overlap remains known empty and malformed raw evidence is ne
   assert.equal(invalid.database.failureWindows.available, false);
   assert.equal(JSON.stringify(invalid).includes('privacy-canary'), false);
 });
+
+function tenantFixture(events = []) {
+  const f = fixture();
+  f.records[0].tenantFailuresVersion = 1;
+  const footer = f.records.pop();
+  f.records.push(
+    ...events.map((event, i) => ({
+      kind: 'tenantFailure',
+      ordinal: i + 1,
+      sequence: 4,
+      at: 200,
+      model: 'Credential',
+      operation: 'findFirst',
+      reason: 'organization-id-mismatch',
+      ...event,
+    })),
+  );
+  footer.records = f.records.length;
+  footer.tenantFailures = events.length;
+  f.records.push(footer);
+  return f;
+}
+test('actual throws have conserved canonical groups independent of repeated log lines', () => {
+  const f = tenantFixture([{}, {}, { sequence: null }, { sequence: 99 }]);
+  f.report.apiLogHits = Array.from({ length: 6 }, () => ({
+    message: 'private log copy',
+  }));
+  const evidence = joinCausalEvidence(f.report, f.records, options);
+  assert.equal(evidence.quality, 'complete');
+  assert.deepEqual(evidence.tenantFailures, {
+    version: 1,
+    available: true,
+    total: 4,
+    attributed: 2,
+    unattributed: 2,
+    groups: [
+      {
+        actor: 'M:A',
+        phase: 'memberAGets',
+        method: 'GET',
+        route: '/v1/fixed/{id}',
+        model: 'Credential',
+        operation: 'findFirst',
+        reason: 'organization-id-mismatch',
+        count: 2,
+      },
+      {
+        actor: 'unknown',
+        phase: 'unknown',
+        method: 'other',
+        route: 'unknown',
+        model: 'Credential',
+        operation: 'findFirst',
+        reason: 'organization-id-mismatch',
+        count: 2,
+      },
+    ],
+  });
+  assert.equal(evidence.conservation.clientAttempts, 8);
+  assert.equal(
+    JSON.stringify(evidence.tenantFailures).includes('sequence'),
+    false,
+  );
+  validateCausalEvidence(evidence, {
+    ...options,
+    templates: f.report.inventoryTemplates,
+  });
+});
+test('legacy provenance is unavailable and current zero is explicit', () => {
+  const legacy = fixture();
+  assert.deepEqual(
+    joinCausalEvidence(legacy.report, legacy.records, options).tenantFailures,
+    {
+      version: 1,
+      available: false,
+      total: null,
+      attributed: null,
+      unattributed: null,
+      groups: [],
+    },
+  );
+  const current = tenantFixture();
+  assert.deepEqual(
+    joinCausalEvidence(current.report, current.records, options).tenantFailures,
+    {
+      version: 1,
+      available: true,
+      total: 0,
+      attributed: 0,
+      unattributed: 0,
+      groups: [],
+    },
+  );
+});
+for (const mutation of [
+  (f) => {
+    f.records.at(-2).ordinal = 2;
+  },
+  (f) => {
+    f.records.at(-1).tenantFailures = 2;
+  },
+  (f) => {
+    f.records.at(-2).model = 'private-canary';
+  },
+  (f) => {
+    f.records.at(-2).operation = 'private-canary';
+  },
+  (f) => {
+    f.records.at(-2).reason = 'private-canary';
+  },
+  (f) => {
+    f.records.at(-2).query = 'private-canary';
+  },
+  (f) => {
+    delete f.records[0].tenantFailuresVersion;
+  },
+  (f) => {
+    f.records.pop();
+  },
+])
+  test('malformed or incomplete producer cannot become provenance zero', () => {
+    const f = tenantFixture([{}]);
+    mutation(f);
+    const evidence = joinCausalEvidence(f.report, f.records, options);
+    assert.equal(evidence.tenantFailures.available, false);
+    assert.equal(evidence.tenantFailures.total, null);
+    assert.deepEqual(evidence.tenantFailures.groups, []);
+  });
+
+test('invalid partial client identity remains wholly uncorrelated', () => {
+  for (const mutation of [
+    (client) => {
+      client.actor = 'secret';
+    },
+    (client) => {
+      client.sweepPhase = 'secret';
+    },
+    (client) => {
+      client.method = 'secret';
+    },
+    (client) => {
+      client.route = '/v1/private-id';
+    },
+    (client) => {
+      client.endedAtEpochMs = 0;
+    },
+  ]) {
+    const f = tenantFixture([{}]);
+    mutation(f.report.requests[3]);
+    const projection = joinCausalEvidence(
+      f.report,
+      f.records,
+      options,
+    ).tenantFailures;
+    assert.equal(projection.available, true);
+    assert.equal(projection.attributed, 0);
+    assert.deepEqual(projection.groups[0], {
+      actor: 'unknown',
+      phase: 'unknown',
+      method: 'other',
+      route: 'unknown',
+      model: 'Credential',
+      operation: 'findFirst',
+      reason: 'organization-id-mismatch',
+      count: 1,
+    });
+    assert.doesNotMatch(JSON.stringify(projection), /secret|private-id/);
+  }
+  const f = tenantFixture([{}]);
+  f.report.requests.push({ ...f.report.requests[3] });
+  assert.equal(
+    joinCausalEvidence(f.report, f.records, options).tenantFailures.attributed,
+    0,
+  );
+});
+test('public projection rejects unsafe fields, enums, tuples and inconsistent counts', () => {
+  const f = tenantFixture([{}]);
+  const original = joinCausalEvidence(f.report, f.records, options);
+  for (const mutation of [
+    (p) => {
+      p.total = 2;
+    },
+    (p) => {
+      p.attributed = 0;
+    },
+    (p) => {
+      p.total = Number.MAX_SAFE_INTEGER + 1;
+    },
+    (p) => {
+      p.groups[0].count = 0;
+    },
+    (p) => {
+      p.groups[0].model = 'secret';
+    },
+    (p) => {
+      p.groups[0].operation = 'secret';
+    },
+    (p) => {
+      p.groups[0].reason = 'secret';
+    },
+    (p) => {
+      p.groups[0].sequence = 1;
+    },
+    (p) => {
+      p.groups[0].route = '/v1/private-id';
+    },
+    (p) => {
+      p.groups[0].actor = 'unknown';
+    },
+    (p) => {
+      p.available = false;
+    },
+  ]) {
+    const evidence = structuredClone(original);
+    mutation(evidence.tenantFailures);
+    assert.throws(() =>
+      validateCausalEvidence(evidence, {
+        ...options,
+        templates: f.report.inventoryTemplates,
+      }),
+    );
+  }
+  const historical = structuredClone(original);
+  delete historical.tenantFailures;
+  assert.equal(
+    validateCausalEvidence(historical, {
+      ...options,
+      templates: f.report.inventoryTemplates,
+    }),
+    historical,
+  );
+});
+
+test('independent sampler failure cannot erase valid actual-throw attribution', () => {
+  const f = tenantFixture([{}]);
+  const sample = f.records.find((record) => record.kind === 'database');
+  sample.outcome = 'error';
+  sample.groups = [];
+  const evidence = joinCausalEvidence(f.report, f.records, options);
+  assert.equal(evidence.quality, 'incomplete');
+  assert.equal(evidence.reasons.samplerFailure, 1);
+  assert.equal(evidence.reasons.observerUnavailable, 0);
+  assert.equal(evidence.tenantFailures.available, true);
+  assert.equal(evidence.tenantFailures.total, 1);
+  assert.equal(evidence.tenantFailures.attributed, 1);
+  assert.deepEqual(evidence.tenantFailures.groups, [
+    {
+      actor: 'M:A',
+      phase: 'memberAGets',
+      method: 'GET',
+      route: '/v1/fixed/{id}',
+      model: 'Credential',
+      operation: 'findFirst',
+      reason: 'organization-id-mismatch',
+      count: 1,
+    },
+  ]);
+});

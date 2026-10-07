@@ -756,3 +756,158 @@ test('optional lifecycle schemas reject partial unsafe and invented connection a
     assert.throws(() => validateObservationRecord(bad));
   }
 });
+
+// The private scope must survive asynchronous work without changing native outcomes.
+test('tenant throw scope isolates concurrent continuations and retains detached work', async () => {
+  const f = fixture();
+  const requests = [1, 2].map((sequence) => ({
+    headers: { 'x-genfeed-ci-attempt': String(sequence) },
+  }));
+  const responses = requests.map(() => f.response());
+  requests.forEach((request, i) => {
+    f.observer.ingress(request, responses[i]);
+  });
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const first = f.observer.bindRequest(requests[0], async () => {
+    await gate;
+    f.observer.tenantFailure(
+      'Credential',
+      'findFirst',
+      'organization-id-mismatch',
+    );
+    responses[0].emit('finish');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    f.observer.tenantFailure(
+      'Credential',
+      'findFirst',
+      'organization-id-mismatch',
+    );
+    f.observer.bindRequest({ headers: {} }, () =>
+      f.observer.tenantFailure(
+        'Credential',
+        'findFirst',
+        'organization-id-mismatch',
+      ),
+    )();
+  })();
+  await f.observer.bindRequest(requests[1], async () => {
+    await Promise.resolve();
+    f.observer.tenantFailure('Member', 'findFirst', 'missing-organization-id');
+    release();
+  })();
+  await first;
+  f.observer.tenantFailure(
+    'Credential',
+    'findFirst',
+    'organization-id-mismatch',
+  );
+  await f.stop();
+  const events = f.lines.filter((r) => r.kind === 'tenantFailure');
+  assert.deepEqual(
+    events.map((r) => r.sequence),
+    [2, 1, 1, null, null],
+  );
+  assert.deepEqual(
+    events.map((r) => r.ordinal),
+    [1, 2, 3, 4, 5],
+  );
+  assert.equal(f.lines[0].tenantFailuresVersion, 1);
+  assert.equal(f.lines.at(-1).tenantFailures, 5);
+  assert.equal(f.lines.at(-1).ingress, 2);
+  assert.equal(f.lines.at(-1).finishes, 1);
+});
+test('binding propagates original application failures exactly once', async () => {
+  const f = fixture();
+  const error = new Error('private application failure');
+  let calls = 0;
+  assert.throws(
+    f.observer.bindRequest({ headers: {} }, () => {
+      calls++;
+      throw error;
+    }),
+    (e) => e === error,
+  );
+  await assert.rejects(
+    f.observer.bindRequest({ headers: {} }, async () => {
+      calls++;
+      throw error;
+    })(),
+    (e) => e === error,
+  );
+  assert.equal(calls, 2);
+  await f.stop();
+  assert.equal(f.lines.at(-1).unavailable, false);
+});
+
+test('invalid headers never inherit another request sequence', async () => {
+  const f = fixture();
+  const first = { headers: { 'x-genfeed-ci-attempt': '1' } };
+  f.observer.ingress(first, f.response());
+  f.observer.bindRequest(first, () => {
+    for (const header of ['01', ['1', '2'], '1']) {
+      const invalid = { headers: { 'x-genfeed-ci-attempt': header } };
+      f.observer.ingress(invalid, f.response());
+      f.observer.bindRequest(invalid, () =>
+        f.observer.tenantFailure(
+          'Credential',
+          'findFirst',
+          'organization-id-mismatch',
+        ),
+      )();
+    }
+  })();
+  await f.stop();
+  assert.deepEqual(
+    f.lines.filter((r) => r.kind === 'tenantFailure').map((r) => r.sequence),
+    [null, null, null],
+  );
+  assert.equal(f.lines.at(-1).unavailable, true);
+  assert.equal(f.lines.at(-1).invalidSequences, 2);
+  assert.equal(f.lines.at(-1).duplicateSequences, 1);
+});
+test('tenant event cap and failed writes remain fatal, never usable lower totals', async () => {
+  const f = fixture();
+  for (let i = 0; i < 10001; i++)
+    f.observer.tenantFailure(
+      'Credential',
+      'findFirst',
+      'organization-id-mismatch',
+    );
+  await f.stop();
+  assert.equal(f.lines.filter((r) => r.kind === 'tenantFailure').length, 10000);
+  assert.equal(f.lines.at(-1).tenantFailures, 10000);
+  assert.equal(f.lines.at(-1).unavailable, true);
+  const records = [];
+  const failed = fixture({
+    write(line) {
+      const record = JSON.parse(line);
+      if (record.kind === 'tenantFailure') throw new Error('write');
+      records.push(record);
+    },
+  });
+  failed.observer.tenantFailure(
+    'Credential',
+    'findFirst',
+    'organization-id-mismatch',
+  );
+  await failed.stop();
+  assert.equal(records.at(-1).unavailable, true);
+  assert.equal(records.at(-1).tenantFailures, 1);
+  assert.equal(records.filter((r) => r.kind === 'tenantFailure').length, 0);
+});
+test('unsafe tenant producer enums never serialize canaries', async () => {
+  const f = fixture();
+  for (const tuple of [
+    ['secret-model', 'findFirst', 'organization-id-mismatch'],
+    ['Credential', 'secret-operation', 'organization-id-mismatch'],
+    ['Credential', 'findFirst', 'secret-reason'],
+  ])
+    f.observer.tenantFailure(...tuple);
+  await f.stop();
+  assert.equal(f.lines.at(-1).unavailable, true);
+  assert.equal(f.lines.at(-1).tenantFailures, 0);
+  assert.doesNotMatch(JSON.stringify(f.lines), /secret-/);
+});

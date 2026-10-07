@@ -573,6 +573,8 @@ describe('PerformanceInterceptor dormant diagnostic callbacks', () => {
     vi.stubEnv('CLOUD_SWEEP_LOCAL', undefined);
     const observer = {
       protocol: 1,
+      bindRequest: vi.fn((_request: unknown, next: () => void) => next),
+      tenantFailure: vi.fn(),
       ingress: vi.fn(),
       pipelineEnter: vi.fn(() => 1),
       pipelineNext: vi.fn(() => {
