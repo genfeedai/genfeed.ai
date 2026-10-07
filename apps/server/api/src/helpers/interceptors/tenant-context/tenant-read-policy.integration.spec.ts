@@ -3,6 +3,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
 import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { testId } from '@helpers/testing/test-id.helper';
 import { getTenantContext } from '@libs/prisma/tenant-context';
 import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
@@ -114,13 +115,13 @@ describe('tenant read policy boundaries and subscription lifecycle', () => {
   ) => ({ method: 'GET', user: { ...original }, query, ...extra });
   async function scopeFor(
     r: Record<string, unknown>,
-    handler = PolicyController.prototype.selected,
+    handler: () => unknown = PolicyController.prototype.selected,
   ) {
     return firstValueFrom(
       interceptor.intercept(context(r, handler), {
         handle: () => defer(() => of(resolveTenantReadScope(original))),
       }),
-    );
+    ) as Promise<ITenantReadScope>;
   }
   it.each([undefined, originalOrg])(
     'preserves original brand for absent/equal organization %s',
