@@ -61,7 +61,7 @@ describe('ResearchWorkSurfaceProvider', () => {
     mocks.searchParamsString.value = 'q=winter';
     const { result } = renderHook(
       () => ({
-        platform: useResearchSearchParamState({
+        platform: useResearchSearchParamState<'all' | 'google'>({
           defaultValue: 'all',
           key: 'platform',
         }),
