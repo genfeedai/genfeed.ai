@@ -32,10 +32,11 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT,
   clearConversationComposerDraft,
+  flushConversationComposerDocument,
   readConversationComposerDraft,
   readDismissedSurfaceReferenceKeys,
+  scheduleConversationComposerDocument,
   writeConversationComposerContentReferences,
-  writeConversationComposerDocument,
   writeDismissedSurfaceReferenceKeys,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
@@ -599,6 +600,7 @@ export function useAgentChatInput({
       promptCommandsExtension,
     ],
     immediatelyRender: false,
+    shouldRerenderOnTransaction: false,
   });
 
   // Track editor state and keep the tab-scoped reload draft current.
@@ -606,30 +608,45 @@ export function useAgentChatInput({
     if (!editor) {
       return;
     }
+    let presentationTimer: ReturnType<typeof setTimeout> | undefined;
     const updateHandler = () => {
       const nextText = editor.getText();
       setIsEmpty(editor.isEmpty);
-      setPromptText(nextText);
-      const document = editor.getJSON();
-      const nextReferences = mapMentionsToReferences(extractMentions(document));
-      // Editor fires on every keystroke; only promote mention state when the
-      // chip list actually changes so the attachment tray / toolbar stay still.
-      setMentionReferences((current) =>
-        areAgentChatMentionReferencesEqual(current, nextReferences)
-          ? current
-          : nextReferences,
+      // ProseMirror documents are immutable: capture this edit without walking
+      // or serializing the whole document until the operator pauses typing.
+      const document = editor.state.doc;
+      scheduleConversationComposerDocument(
+        draftScopeKey,
+        () => document.toJSON(),
+        nextText,
       );
-      writeConversationComposerDocument(draftScopeKey, document, nextText);
-      // Slash-command decorations and same-text plugin updates must not
-      // dismiss dispatch feedback for an unchanged draft.
+      clearTimeout(presentationTimer);
+      presentationTimer = setTimeout(() => {
+        setPromptText(nextText);
+        const nextReferences = mapMentionsToReferences(
+          extractMentions(document.toJSON()),
+        );
+        setMentionReferences((current) =>
+          areAgentChatMentionReferencesEqual(current, nextReferences)
+            ? current
+            : nextReferences,
+        );
+      }, 150);
       if (nextText !== lastEditorTextRef.current) {
         lastEditorTextRef.current = nextText;
         setActionFeedback(null);
       }
     };
+    const flushDraft = () => flushConversationComposerDocument(draftScopeKey);
     editor.on('update', updateHandler);
+    editor.on('blur', flushDraft);
+    window.addEventListener('pagehide', flushDraft);
     return () => {
       editor.off('update', updateHandler);
+      editor.off('blur', flushDraft);
+      window.removeEventListener('pagehide', flushDraft);
+      clearTimeout(presentationTimer);
+      flushDraft();
     };
   }, [draftScopeKey, editor]);
 

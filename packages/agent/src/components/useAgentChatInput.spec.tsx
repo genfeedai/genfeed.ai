@@ -1238,3 +1238,51 @@ describe('useAgentChatInput picked post context', () => {
     expect(onSend.mock.calls[0]?.[3].brandId).toBeUndefined();
   });
 });
+
+describe('composer typing performance and draft durability', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    microphoneState.isListening = false;
+    microphoneState.isTranscribing = false;
+  });
+
+  it('does not rerender the composer for each edit in a typing burst', async () => {
+    const onSend = vi.fn();
+    let renderCount = 0;
+    const view = renderHook(
+      () => {
+        renderCount += 1;
+        return useAgentChatInput({ onSend });
+      },
+      { wrapper: Wrapper },
+    );
+    await waitFor(() => expect(view.result.current.editor).not.toBeNull());
+    act(() => view.result.current.editor?.commands.setContent('Start'));
+    const baseline = renderCount;
+    for (const character of ' a long typing burst') {
+      act(() => {
+        view.result.current.editor?.commands.insertContent(character);
+      });
+    }
+    expect(renderCount - baseline).toBeLessThan(3);
+    await waitFor(() =>
+      expect(view.result.current.promptText).toContain('typing burst'),
+    );
+  });
+
+  it('flushes the latest draft when unmounted before the debounce completes', async () => {
+    const view = renderHook(() => useAgentChatInput({ onSend: vi.fn() }), {
+      wrapper: Wrapper,
+    });
+    await waitFor(() => expect(view.result.current.editor).not.toBeNull());
+    act(() =>
+      view.result.current.editor?.commands.setContent('Do not lose this draft'),
+    );
+    view.unmount();
+    const raw = sessionStorage.getItem(
+      `genfeed:conversation-composer:v1:${draftScopeKey}`,
+    );
+    expect(raw).not.toBeNull();
+    expect(JSON.parse(raw ?? '{}').plainText).toBe('Do not lose this draft');
+  });
+});
