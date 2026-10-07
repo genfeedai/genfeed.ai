@@ -28,9 +28,7 @@ describe('HeygenWebhookController', () => {
     return {
       body: Buffer.from(typeof body === 'string' ? body : JSON.stringify(body)),
       headers: {
-        'heygen-event-id': 'evt_1',
-        'heygen-signature': 'deadbeef',
-        'heygen-timestamp': '1770000000',
+        signature: 'deadbeef',
       },
     } as unknown as Request;
   }
@@ -90,7 +88,6 @@ describe('HeygenWebhookController', () => {
       expect(verificationService.assertSignature).toHaveBeenCalledWith(
         Buffer.from(JSON.stringify(body)),
         'deadbeef',
-        '1770000000',
       );
     });
 
@@ -141,12 +138,40 @@ describe('HeygenWebhookController', () => {
       verificationService.isReplay.mockResolvedValue(true);
 
       const result = await controller.handleCallback(
-        signedRequest({ video_id: 'vid_1' }),
+        signedRequest({
+          event_type: 'avatar_video.success',
+          event_data: { video_id: 'vid_1' },
+        }),
       );
 
-      expect(verificationService.isReplay).toHaveBeenCalledWith('evt_1');
+      expect(verificationService.isReplay).toHaveBeenCalledWith(
+        JSON.stringify(['avatar_video.success', 'vid_1']),
+      );
       expect(result).toEqual({ detail: 'Webhook already processed' });
       expect(heygenWebhookService.handleCallback).not.toHaveBeenCalled();
+    });
+
+    it('uses different replay identities for success and failure of the same video', async () => {
+      await controller.handleCallback(
+        signedRequest({
+          event_type: 'avatar_video.success',
+          event_data: { video_id: 'vid_1' },
+        }),
+      );
+      await controller.handleCallback(
+        signedRequest({
+          event_type: 'avatar_video.fail',
+          event_data: { video_id: 'vid_1' },
+        }),
+      );
+      expect(verificationService.isReplay).toHaveBeenNthCalledWith(
+        1,
+        JSON.stringify(['avatar_video.success', 'vid_1']),
+      );
+      expect(verificationService.isReplay).toHaveBeenNthCalledWith(
+        2,
+        JSON.stringify(['avatar_video.fail', 'vid_1']),
+      );
     });
 
     it('rejects a signed body that is not valid JSON', async () => {
@@ -195,7 +220,7 @@ describe('HeygenWebhookController', () => {
       ).rejects.toThrow('Video processing failed');
 
       expect(verificationService.releaseReplayClaim).toHaveBeenCalledWith(
-        'evt_1',
+        JSON.stringify(['unknown', 'cb_789']),
       );
     });
 

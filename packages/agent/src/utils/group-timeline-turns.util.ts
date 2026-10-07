@@ -1,3 +1,4 @@
+import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
 import type { TimelineEntry } from '@genfeedai/agent/utils/derive-timeline';
 
 export type TimelineTurnGroup = {
@@ -23,4 +24,40 @@ export function groupTimelineTurns(
   });
 
   return turns;
+}
+
+/** Keep final copy and every structured result/action outside the activity fold. */
+export function splitCompletedTimelineTurn(turn: TimelineTurnGroup): {
+  activity: TimelineTurnGroup['items'];
+  visible: TimelineTurnGroup['items'];
+} {
+  const finalAssistant = [...turn.items]
+    .reverse()
+    .find(({ entry }) => entry.kind === 'assistant-message');
+  const terminal = turn.items.at(-1)?.entry;
+  const hasTerminalFailure =
+    terminal?.kind === 'work-group' &&
+    [AgentWorkEventStatus.FAILED, AgentWorkEventStatus.CANCELLED].includes(
+      terminal.events.at(-1)?.status ?? AgentWorkEventStatus.COMPLETED,
+    );
+  if (!finalAssistant || hasTerminalFailure)
+    return { activity: [], visible: turn.items };
+  const activity: TimelineTurnGroup['items'] = [];
+  const visible: TimelineTurnGroup['items'] = [];
+  for (const item of turn.items) {
+    const { entry } = item;
+    if (
+      entry.kind === 'user-message' ||
+      item === finalAssistant ||
+      (entry.kind === 'assistant-message' &&
+        ((entry.message.metadata?.uiActions?.length ?? 0) > 0 ||
+          Boolean(entry.message.metadata?.generatedContent) ||
+          Boolean(entry.message.metadata?.agentTransfer?.transfer)))
+    ) {
+      visible.push(item);
+    } else {
+      activity.push(item);
+    }
+  }
+  return { activity, visible };
 }

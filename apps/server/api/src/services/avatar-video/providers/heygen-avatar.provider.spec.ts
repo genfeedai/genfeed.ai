@@ -124,10 +124,9 @@ describe('HeygenAvatarProvider', () => {
 
       expect(byokService.resolveApiKey).toHaveBeenCalledWith('org-1', 'heygen');
       expect(httpService.get).toHaveBeenCalledWith(
-        'https://api.heygen.com/v1/video_status.get',
+        'https://api.heygen.com/v3/videos/video-1',
         expect.objectContaining({
           headers: { 'X-Api-Key': 'byok-xyz' },
-          params: { video_id: 'video-1' },
         }),
       );
       expect(result).toEqual({
@@ -191,7 +190,9 @@ describe('HeygenAvatarProvider', () => {
     it('returns failed status only when HeyGen reports failure', async () => {
       byokService.resolveApiKey.mockResolvedValue({ apiKey: 'valid' });
       httpService.get.mockReturnValue(
-        of({ data: { data: { status: 'failed', error: 'bad avatar' } } }),
+        of({
+          data: { data: { status: 'failed', failure_message: 'bad avatar' } },
+        }),
       );
 
       const result = await provider.getStatus('video-7', 'org-7');

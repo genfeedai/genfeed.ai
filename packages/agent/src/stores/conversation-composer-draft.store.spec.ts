@@ -1,11 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   attachContentToConversationDraft,
   attachContentToNewConversationDraft,
   buildConversationComposerDraftScopeKey,
   CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT,
   clearConversationComposerDraft,
+  flushConversationComposerDocument,
   readConversationComposerDraft,
+  scheduleConversationComposerDocument,
   writeConversationComposerAttachments,
   writeConversationComposerContentReferences,
   writeConversationComposerDocument,
@@ -14,6 +16,73 @@ import {
 describe('conversation composer draft persistence', () => {
   beforeEach(() => {
     sessionStorage.clear();
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('serializes and persists only the latest edit after typing pauses', () => {
+    vi.useFakeTimers();
+    const first = vi.fn(() => ({ type: 'doc' }));
+    const latest = vi.fn(() => ({
+      type: 'doc',
+      content: [{ type: 'paragraph' }],
+    }));
+    const writes = vi.spyOn(Storage.prototype, 'setItem');
+    scheduleConversationComposerDocument('typing', first, 'a');
+    scheduleConversationComposerDocument('typing', latest, 'abc');
+    expect(first).not.toHaveBeenCalled();
+    expect(latest).not.toHaveBeenCalled();
+    expect(writes).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(250);
+    expect(first).not.toHaveBeenCalled();
+    expect(latest).toHaveBeenCalledTimes(1);
+    expect(writes).toHaveBeenCalledTimes(1);
+    expect(readConversationComposerDraft('typing').plainText).toBe('abc');
+    writes.mockRestore();
+  });
+
+  it('flushes on read or navigation and preserves references updated during typing', () => {
+    vi.useFakeTimers();
+    scheduleConversationComposerDocument(
+      'scope',
+      () => ({ type: 'doc' }),
+      'latest',
+    );
+    writeConversationComposerContentReferences('scope', [
+      { id: 'p1', contentTitle: 'Post', contentType: 'post' },
+    ]);
+    expect(readConversationComposerDraft('scope')).toMatchObject({
+      plainText: 'latest',
+      contentReferences: [{ id: 'p1' }],
+    });
+    scheduleConversationComposerDocument(
+      'scope',
+      () => ({ type: 'doc' }),
+      'navigation',
+    );
+    flushConversationComposerDocument('scope');
+    expect(readConversationComposerDraft('scope').plainText).toBe('navigation');
+  });
+
+  it('restores a pending edit into a new context version before unmount cleanup', () => {
+    vi.useFakeTimers();
+    scheduleConversationComposerDocument(
+      'org:thread:1',
+      () => ({ type: 'doc' }),
+      'Latest edit',
+    );
+    expect(readConversationComposerDraft('org:thread:2').plainText).toBe(
+      'Latest edit',
+    );
+  });
+
+  it('does not resurrect a sent draft from a delayed persistence timer', () => {
+    vi.useFakeTimers();
+    const serialize = vi.fn(() => ({ type: 'doc' }));
+    scheduleConversationComposerDocument('sent', serialize, 'sent text');
+    clearConversationComposerDraft('sent');
+    vi.advanceTimersByTime(1000);
+    expect(serialize).not.toHaveBeenCalled();
+    expect(readConversationComposerDraft('sent').plainText).toBe('');
   });
 
   it('restores document, attachments, and content references by scoped key', () => {

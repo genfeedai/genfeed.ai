@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import process from 'node:process';
-import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
+import type { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
+import { ByokService } from '@api/services/byok/byok.service';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import {
   buildHeyGenVideoCreateBody,
@@ -17,42 +17,81 @@ import {
 } from '@api/services/integrations/heygen/helpers/heygen-video';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
-import { ApiKeyCategory } from '@genfeedai/contracts';
+import { ApiKeyCategory, ByokProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { isAxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
+import { z } from 'zod';
 
-type HeyGenApiRecord = Record<string, unknown>;
+const catalogPageSchema = z.object({
+  data: z.array(z.record(z.string(), z.unknown())),
+  has_more: z.boolean(),
+  next_token: z.string().nullable(),
+});
+const voiceSchema = z.object({
+  voice_id: z.string().trim().min(1),
+  name: z.string(),
+  preview_audio_url: z.string().nullish(),
+});
+const lookSchema = z.object({
+  id: z.string().trim().min(1),
+  name: z.string(),
+  preview_image_url: z.string().nullish(),
+});
+
+type HeyGenSpeechInput =
+  | string
+  | {
+      audioUrl?: string;
+      inputText?: string;
+      voiceId?: string;
+    };
 
 @Injectable()
 export class HeyGenService {
   private readonly constructorName: string = String(this.constructor.name);
-
-  private readonly endpoint = 'https://api.heygen.com/v2';
+  private readonly endpoint = `${HEYGEN_API_ORIGIN}/v3`;
 
   constructor(
     private readonly loggerService: LoggerService,
     private readonly httpService: HttpService,
     private readonly apiKeyHelperService: ApiKeyHelperService,
     private readonly pollUntilService: PollUntilService,
+    private readonly byokService: ByokService,
   ) {}
 
   private getApiKey(): string {
     return this.apiKeyHelperService.getApiKey(ApiKeyCategory.HEYGEN);
   }
 
-  private resolveApiKey(apiKeyOverride?: string): string {
-    return apiKeyOverride || this.getApiKey();
+  private async resolveCredential(
+    apiKeyOverride?: string,
+    organizationId?: string,
+  ) {
+    if (apiKeyOverride) return { apiKey: apiKeyOverride, hasCustomKey: true };
+    if (organizationId) {
+      const credential = await this.byokService.resolveApiKey(
+        organizationId,
+        ByokProvider.HEYGEN,
+      );
+      if (credential) return { apiKey: credential.apiKey, hasCustomKey: true };
+    }
+    return { apiKey: this.getApiKey(), hasCustomKey: false };
+  }
+
+  private async resolveApiKey(
+    apiKeyOverride?: string,
+    organizationId?: string,
+  ): Promise<string> {
+    return (await this.resolveCredential(apiKeyOverride, organizationId))
+      .apiKey;
   }
 
   private getHeaders(apiKey: string) {
-    return {
-      'Content-Type': 'application/json',
-      'X-Api-Key': apiKey,
-    };
+    return { 'Content-Type': 'application/json', 'X-Api-Key': apiKey };
   }
 
   public async generateAvatarVideo(
@@ -60,317 +99,192 @@ export class HeyGenService {
     avatarId: string,
     voiceId: string,
     inputText: string,
-    _organizationId?: string,
+    organizationId?: string,
     _userId?: string,
     apiKeyOverride?: string,
   ): Promise<string> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      this.loggerService.log(`${url} started`, {
-        avatarId,
-      });
-
-      const apiKey = this.resolveApiKey(apiKeyOverride);
-
-      const res = await firstValueFrom(
-        this.httpService.post(
-          `${this.endpoint}/video/generate`,
-          {
-            callback_id: metadataId,
-            caption: false,
-            dimension: {
-              height: 720,
-              width: 1280,
-            },
-            video_inputs: [
-              {
-                character: {
-                  avatar_id: avatarId,
-                  avatar_style: 'normal',
-                  expression: 'happy',
-                  scale: 1,
-                  talking_style: 'expressive',
-                  type: 'avatar',
-                },
-                voice: {
-                  emotion: 'Excited',
-                  input_text: inputText,
-                  locale: 'en-US',
-                  type: 'text',
-                  voice_id: voiceId,
-                },
-              },
-            ],
-          },
-          {
-            headers: this.getHeaders(apiKey),
-          },
-        ),
-      );
-
-      if (res.status !== 200) {
-        throw new Error('HeyGen API returned non-200 status');
-      }
-
-      return res.data.data?.video_id || res.data.data?.task_id;
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} error`, error);
-      throw error;
+    if (!avatarId.trim() || !voiceId.trim() || !inputText.trim()) {
+      throw new BadRequestException('Avatar, voice and script are required');
     }
+    const apiKey = await this.resolveApiKey(apiKeyOverride, organizationId);
+    return this.submitAvatarVideo(apiKey, {
+      type: 'avatar',
+      avatar_id: avatarId,
+      script: inputText,
+      voice_id: voiceId,
+      aspect_ratio: '16:9',
+      resolution: '720p',
+      callback_id: metadataId,
+    });
   }
 
-  /**
-   * Generate photo avatar video using HeyGen Photo Avatar API
-   * Supports external audio URLs and direct HeyGen voice IDs.
-   */
+  /** Animate an image directly; trained avatar looks use generateAvatarVideo. */
   public async generatePhotoAvatarVideo(
     metadataId: string,
     photoUrl: string,
-    voiceInput:
-      | string
-      | {
-          audioUrl?: string;
-          inputText?: string;
-          voiceId?: string;
-        },
-    _organizationId?: string,
+    voiceInput: HeyGenSpeechInput,
+    organizationId?: string,
     _userId?: string,
     apiKeyOverride?: string,
     aspectRatio: AvatarVideoAspectRatio = '9:16',
   ): Promise<string> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const normalizedVoiceInput =
-        typeof voiceInput === 'string' ? { audioUrl: voiceInput } : voiceInput;
-
-      this.loggerService.log(`${url} started`, {
-        audioUrl: normalizedVoiceInput.audioUrl,
-        photoUrl,
-        voiceId: normalizedVoiceInput.voiceId,
-      });
-
-      const apiKey = this.resolveApiKey(apiKeyOverride);
-
-      const dimensions = this.getAvatarDimensions(aspectRatio);
-
-      if (!normalizedVoiceInput.audioUrl && !normalizedVoiceInput.voiceId) {
-        throw new Error(
-          'Either audioUrl or voiceId is required for photo avatar generation',
-        );
-      }
-
-      const voicePayload = normalizedVoiceInput.audioUrl
-        ? {
-            audio_url: normalizedVoiceInput.audioUrl,
-            type: 'audio',
-          }
-        : {
-            emotion: 'Excited',
-            input_text: normalizedVoiceInput.inputText,
-            locale: 'en-US',
-            type: 'text',
-            voice_id: normalizedVoiceInput.voiceId,
-          };
-
-      const res = await firstValueFrom(
-        this.httpService.post(
-          `${this.endpoint}/video/generate`,
-          {
-            callback_id: metadataId,
-            caption: false,
-            dimension: dimensions,
-            video_inputs: [
-              {
-                character: {
-                  photo_url: photoUrl,
-                  type: 'photo_avatar',
-                },
-                voice: voicePayload,
-              },
-            ],
-          },
-          {
-            headers: this.getHeaders(apiKey),
-          },
-        ),
+    const speech =
+      typeof voiceInput === 'string' ? { audioUrl: voiceInput } : voiceInput;
+    const audioUrl = speech.audioUrl?.trim();
+    if (!photoUrl.trim())
+      throw new BadRequestException('A photo URL is required');
+    if (!audioUrl && (!speech.voiceId?.trim() || !speech.inputText?.trim())) {
+      throw new BadRequestException(
+        'Either audioUrl or voiceId with inputText is required for photo avatar generation',
       );
-
-      if (res.status === 402) throw new HeyGenSubmissionRejectedError();
-      if (res.status !== 200) {
-        throw new Error('HeyGen API returned non-200 status');
-      }
-
-      const externalId: unknown =
-        res.data.data?.video_id || res.data.data?.task_id;
-      if (typeof externalId !== 'string' || !externalId.trim()) {
-        throw new Error('HeyGen submission returned no operation identity');
-      }
-      return externalId;
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} error`, error);
-      if (isAxiosError(error) && error.response?.status === 402) {
-        throw new HeyGenSubmissionRejectedError();
-      }
-      throw error;
     }
+    const apiKey = await this.resolveApiKey(apiKeyOverride, organizationId);
+    return this.submitAvatarVideo(apiKey, {
+      type: 'image',
+      image: { type: 'url', url: photoUrl },
+      ...(audioUrl
+        ? { audio_url: audioUrl }
+        : { script: speech.inputText, voice_id: speech.voiceId }),
+      aspect_ratio: aspectRatio,
+      resolution: aspectRatio === '1:1' ? '1080p' : '720p',
+      callback_id: metadataId,
+    });
   }
 
-  private getAvatarDimensions(aspectRatio: AvatarVideoAspectRatio): {
-    height: number;
-    width: number;
-  } {
-    if (aspectRatio === '16:9') {
-      return { height: 720, width: 1280 };
-    }
-
-    if (aspectRatio === '1:1') {
-      return { height: 1080, width: 1080 };
-    }
-
-    return { height: 1280, width: 720 };
-  }
-
-  public async createAvatar(
-    name: string,
-    videoUrl: string,
-    _organizationId?: string,
-    _userId?: string,
-    apiKeyOverride?: string,
+  private async submitAvatarVideo(
+    apiKey: string,
+    body: Record<string, unknown>,
   ): Promise<string> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
-      this.loggerService.log(`${url} started`, {
-        name,
-      });
-
-      const apiKey = this.resolveApiKey(apiKeyOverride);
-
-      const res = await firstValueFrom(
-        this.httpService.post(
-          `${this.endpoint}/avatar/create`,
-          {
-            avatar_name: name,
-            test: process.env.NODE_ENV === 'development',
-            video_url: videoUrl,
+      // Never automatically retry an ambiguous paid submission.
+      const response = await firstValueFrom(
+        this.httpService.post<unknown>(`${this.endpoint}/videos`, body, {
+          headers: {
+            ...this.getHeaders(apiKey),
+            'Idempotency-Key': randomUUID(),
           },
-          {
-            headers: this.getHeaders(apiKey),
-          },
-        ),
+          timeout: 30_000,
+        }),
       );
-
-      if (res.status !== 200) {
+      if (response.status === 402) throw new HeyGenSubmissionRejectedError();
+      if (response.status !== 200)
         throw new Error('HeyGen API returned non-200 status');
-      }
-
-      return res.data.data?.avatar_id || res.data.data?.task_id;
+      const videoId = readHeyGenVideoId(response.data);
+      if (!videoId)
+        throw new Error('HeyGen submission returned no operation identity');
+      return videoId;
     } catch (error: unknown) {
-      this.loggerService.error(`${url} error`, error);
+      this.loggerService.error(`${caller} error`, error);
+      if (isAxiosError(error) && error.response?.status === 402)
+        throw new HeyGenSubmissionRejectedError();
       throw error;
     }
   }
 
   public async getVoices(
-    _organizationId?: string,
+    organizationId?: string,
     _userId?: string,
     apiKeyOverride?: string,
   ): Promise<
     Array<{ preview: string; name: string; index: number; voiceId: string }>
   > {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      this.loggerService.log(`${url} started`);
-
-      const apiKey = this.resolveApiKey(apiKeyOverride);
-
-      const res = await firstValueFrom(
-        this.httpService.get(`${this.endpoint}/voices`, {
-          headers: this.getHeaders(apiKey),
-        }),
+    const { apiKey, hasCustomKey } = await this.resolveCredential(
+      apiKeyOverride,
+      organizationId,
+    );
+    // Global reference catalogs contain public voices only. Connected accounts
+    // also expose their private voices, under the same resolved credential.
+    const voices = await this.getCatalog('/voices', apiKey, 100, {
+      type: 'public',
+    });
+    if (hasCustomKey)
+      voices.push(
+        ...(await this.getCatalog('/voices', apiKey, 100, { type: 'private' })),
       );
-
-      if (res.status !== 200) {
-        throw new Error('HeyGen API returned non-200 status');
-      }
-
-      const voices = res.data?.data?.voices || res.data?.data || [];
-      return voices.map((voice: unknown, index: number) => {
-        const voiceRecord = voice as HeyGenApiRecord;
-
-        return {
-          index,
-          name:
-            String(
-              voiceRecord.voice_name ??
-                voiceRecord.name ??
-                `Voice ${index + 1}`,
-            ) || `Voice ${index + 1}`,
-          preview: String(voiceRecord.preview_url ?? voiceRecord.preview ?? ''),
-          voiceId:
-            String(
-              voiceRecord.voice_id ?? voiceRecord.id ?? `voice_${index}`,
-            ) || `voice_${index}`,
-        };
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} error`, error);
-      throw error;
-    }
+    return voices.map((item, index) => {
+      const voice = voiceSchema.parse(item);
+      return {
+        index,
+        name: voice.name,
+        preview: voice.preview_audio_url ?? '',
+        voiceId: voice.voice_id,
+      };
+    });
   }
 
   public async getAvatars(
-    _organizationId?: string,
+    organizationId?: string,
     _userId?: string,
     apiKeyOverride?: string,
   ): Promise<
     Array<{ preview: string; name: string; index: number; avatarId: string }>
   > {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const { apiKey, hasCustomKey } = await this.resolveCredential(
+      apiKeyOverride,
+      organizationId,
+    );
+    const looks = await this.getCatalog(
+      '/avatars/looks',
+      apiKey,
+      50,
+      hasCustomKey ? {} : { ownership: 'public' },
+    );
+    return looks.map((item, index) => {
+      const look = lookSchema.parse(item);
+      return {
+        avatarId: look.id,
+        index,
+        name: look.name,
+        preview: look.preview_image_url ?? '',
+      };
+    });
+  }
 
-    try {
-      this.loggerService.log(`${url} started`);
+  public async getConnectionStatus(
+    organizationId?: string,
+  ): Promise<{ hasCustomKey: boolean; isConnected: boolean }> {
+    const { apiKey, hasCustomKey } = await this.resolveCredential(
+      undefined,
+      organizationId,
+    );
+    await firstValueFrom(
+      this.httpService.get(`${this.endpoint}/users/me`, {
+        headers: this.getHeaders(apiKey),
+        timeout: 15_000,
+      }),
+    );
+    return { hasCustomKey, isConnected: true };
+  }
 
-      const apiKey = this.resolveApiKey(apiKeyOverride);
-
-      const res = await firstValueFrom(
-        this.httpService.get(`${this.endpoint}/avatars`, {
+  private async getCatalog(
+    path: string,
+    apiKey: string,
+    limit: number,
+    filters: Record<string, string> = {},
+  ): Promise<Record<string, unknown>[]> {
+    const items: Record<string, unknown>[] = [];
+    const seenTokens = new Set<string>();
+    let token: string | undefined;
+    for (let page = 0; page < 100; page++) {
+      const response = await firstValueFrom(
+        this.httpService.get<unknown>(`${this.endpoint}${path}`, {
           headers: this.getHeaders(apiKey),
+          params: { ...filters, limit, ...(token ? { token } : {}) },
+          timeout: 15_000,
         }),
       );
-
-      if (res.status !== 200) {
+      if (response.status !== 200)
         throw new Error('HeyGen API returned non-200 status');
-      }
-
-      const avatars = res.data?.data?.avatars || res.data?.data || [];
-      return avatars.map((avatar: unknown, index: number) => {
-        const avatarRecord = avatar as HeyGenApiRecord;
-
-        return {
-          avatarId:
-            String(
-              avatarRecord.avatar_id ?? avatarRecord.id ?? `avatar_${index}`,
-            ) || `avatar_${index}`,
-          index,
-          name:
-            String(
-              avatarRecord.avatar_name ??
-                avatarRecord.name ??
-                `Avatar ${index + 1}`,
-            ) || `Avatar ${index + 1}`,
-          preview: String(
-            avatarRecord.preview_url ?? avatarRecord.preview ?? '',
-          ),
-        };
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} error`, error);
-      throw error;
+      const data = catalogPageSchema.parse(response.data);
+      items.push(...data.data);
+      if (!data.has_more) return items;
+      if (!data.next_token || seenTokens.has(data.next_token))
+        throw new Error('HeyGen returned an invalid catalog cursor');
+      token = data.next_token;
+      seenTokens.add(token);
     }
+    throw new Error('HeyGen catalog exceeded the pagination limit');
   }
 
   /**
@@ -389,7 +303,7 @@ export class HeyGenService {
     seed?: number;
     videoUrls?: readonly string[];
   }): Promise<{ videoUrl: string }> {
-    const apiKey = this.resolveApiKey(params.apiKeyOverride);
+    const apiKey = await this.resolveApiKey(params.apiKeyOverride);
     const body = this.buildModelVideoBody(params);
     const videoId = await this.submitModelVideo(
       apiKey,

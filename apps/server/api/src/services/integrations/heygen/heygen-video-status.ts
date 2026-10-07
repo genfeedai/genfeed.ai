@@ -11,8 +11,8 @@ const heygenStatusSchema = z.object({
   data: z
     .object({
       status: z.string(),
-      video_url: z.string().optional(),
-      error: z.string().optional(),
+      video_url: z.string().nullish(),
+      failure_message: z.string().nullish(),
     })
     .nullish(),
 });
@@ -53,11 +53,13 @@ export async function readHeygenVideoStatus(
     }
 
     const response = await firstValueFrom(
-      httpService.get('https://api.heygen.com/v1/video_status.get', {
-        headers: { 'X-Api-Key': apiKey },
-        params: { video_id: jobId },
-        timeout: timeoutMs,
-      }),
+      httpService.get(
+        `https://api.heygen.com/v3/videos/${encodeURIComponent(jobId)}`,
+        {
+          headers: { 'X-Api-Key': apiKey },
+          timeout: timeoutMs,
+        },
+      ),
     );
 
     const parsed = heygenStatusSchema.safeParse(response.data);
@@ -72,13 +74,13 @@ export async function readHeygenVideoStatus(
         jobId,
         providerName: 'heygen',
         status: 'completed',
-        videoUrl: data.video_url,
+        videoUrl: data.video_url ?? undefined,
       };
     }
 
     if (data.status === 'failed' || data.status === 'error') {
       return {
-        error: data.error || 'HeyGen video generation failed',
+        error: data.failure_message || 'HeyGen video generation failed',
         jobId,
         providerName: 'heygen',
         status: 'failed',

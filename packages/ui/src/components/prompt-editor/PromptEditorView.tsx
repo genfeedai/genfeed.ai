@@ -66,6 +66,7 @@ function PromptEditorView({
       placeholder,
     }),
     immediatelyRender: false,
+    shouldRerenderOnTransaction: false,
   });
 
   const editor = injectedEditor ?? ownedEditor;
@@ -134,6 +135,40 @@ function PromptEditorView({
     onValueChangeRef.current?.(editor.getText());
     onDocumentChangeRef.current?.(editor.getJSON());
   }, [documentSeed, editor, injectedEditor]);
+
+  useEffect(() => {
+    if (!editor) return;
+    let frame = 0;
+    const followCaret = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (editor.isDestroyed || !editor.isFocused) return;
+        const viewport = editor.view.dom;
+        const { selection, doc } = editor.state;
+        // Typing at the tail must follow wrapped lines and Shift+Enter even
+        // when the editor's own DOM node is the capped scroll container.
+        if (selection.empty && selection.to >= doc.content.size - 1) {
+          viewport.scrollTop = viewport.scrollHeight;
+          return;
+        }
+        const caret = editor.view.coordsAtPos(selection.head);
+        const bounds = viewport.getBoundingClientRect();
+        if (caret.bottom > bounds.bottom)
+          viewport.scrollTop += caret.bottom - bounds.bottom;
+        else if (caret.top < bounds.top)
+          viewport.scrollTop -= bounds.top - caret.top;
+      });
+    };
+    editor.on('update', followCaret);
+    editor.on('selectionUpdate', followCaret);
+    editor.on('focus', followCaret);
+    return () => {
+      cancelAnimationFrame(frame);
+      editor.off('update', followCaret);
+      editor.off('selectionUpdate', followCaret);
+      editor.off('focus', followCaret);
+    };
+  }, [editor]);
 
   return (
     <EditorContent

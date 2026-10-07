@@ -5,6 +5,15 @@ import type {
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { JSONContent } from '@tiptap/core';
 
+const pendingDocuments = new Map<
+  string,
+  {
+    document: () => JSONContent;
+    plainText: string;
+    timer: ReturnType<typeof setTimeout>;
+  }
+>();
+
 const STORAGE_PREFIX = 'genfeed:conversation-composer:v1';
 
 /**
@@ -102,6 +111,17 @@ function normalizeDraft(
 export function readConversationComposerDraft(
   scopeKey: string | null,
 ): PersistedConversationComposerDraft {
+  flushConversationComposerDocument(scopeKey);
+  // A context version can change during render, before the old composer's
+  // cleanup runs. Flush sibling versions before looking up the fallback.
+  const separator = scopeKey?.lastIndexOf(':') ?? -1;
+  if (scopeKey && separator > 0) {
+    const prefix = scopeKey.slice(0, separator + 1);
+    for (const pendingKey of pendingDocuments.keys()) {
+      if (pendingKey.startsWith(prefix))
+        flushConversationComposerDocument(pendingKey);
+    }
+  }
   const storage = getStorage();
   if (!scopeKey || !storage) {
     return EMPTY_DRAFT;
@@ -174,6 +194,37 @@ function writeDraft(
   }
 }
 
+/** Keep serialization and storage off the keystroke path. */
+export function scheduleConversationComposerDocument(
+  scopeKey: string | null,
+  document: () => JSONContent,
+  plainText: string,
+): void {
+  if (!scopeKey) return;
+  const previous = pendingDocuments.get(scopeKey);
+  if (previous) clearTimeout(previous.timer);
+  pendingDocuments.set(scopeKey, {
+    document,
+    plainText,
+    timer: setTimeout(() => flushConversationComposerDocument(scopeKey), 250),
+  });
+}
+
+export function flushConversationComposerDocument(
+  scopeKey: string | null,
+): void {
+  if (!scopeKey) return;
+  const pending = pendingDocuments.get(scopeKey);
+  if (!pending) return;
+  pendingDocuments.delete(scopeKey);
+  clearTimeout(pending.timer);
+  writeConversationComposerDocument(
+    scopeKey,
+    pending.document(),
+    pending.plainText,
+  );
+}
+
 export function writeConversationComposerDocument(
   scopeKey: string | null,
   document: JSONContent,
@@ -197,6 +248,11 @@ export function writeConversationComposerContentReferences(
 }
 
 export function clearConversationComposerDraft(scopeKey: string | null): void {
+  if (scopeKey) {
+    const pending = pendingDocuments.get(scopeKey);
+    if (pending) clearTimeout(pending.timer);
+    pendingDocuments.delete(scopeKey);
+  }
   const storage = getStorage();
   if (!scopeKey || !storage) {
     return;

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { HeygenWebhookService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.service';
 import { HeygenWebhookVerificationService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.verification.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -50,19 +51,14 @@ export class HeygenWebhookController {
 
     this.heygenWebhookVerificationService.assertSignature(
       rawBody,
-      request.headers['heygen-signature'],
-      request.headers['heygen-timestamp'],
+      request.headers.signature,
     );
 
-    if (
-      await this.heygenWebhookVerificationService.isReplay(
-        request.headers['heygen-event-id'],
-      )
-    ) {
+    const payload = this.parsePayload(rawBody, url);
+    const replayIdentity = this.getReplayIdentity(payload, rawBody);
+    if (await this.heygenWebhookVerificationService.isReplay(replayIdentity)) {
       return { detail: 'Webhook already processed' };
     }
-
-    const payload = this.parsePayload(rawBody, url);
 
     try {
       this.loggerService.log(`${url} received`, payload);
@@ -73,13 +69,28 @@ export class HeygenWebhookController {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       // The replay claim was taken before processing; releasing it here lets
-      // HeyGen's retry (same event id) be processed instead of being
+      // HeyGen's retry (same signed event) be processed instead of being
       // suppressed as "already processed" for the whole replay window.
       await this.heygenWebhookVerificationService.releaseReplayClaim(
-        request.headers['heygen-event-id'],
+        replayIdentity,
       );
       throw error;
     }
+  }
+
+  private getReplayIdentity(
+    payload: HeygenWebhookPayload,
+    rawBody: Buffer,
+  ): string {
+    const eventType =
+      typeof payload.event_type === 'string' ? payload.event_type : 'unknown';
+    const resourceId =
+      payload.event_data?.video_id ??
+      payload.event_data?.callback_id ??
+      payload.callback_id;
+    return typeof resourceId === 'string' && resourceId.length > 0
+      ? JSON.stringify([eventType, resourceId])
+      : createHash('sha256').update(rawBody).digest('hex');
   }
 
   private parsePayload(rawBody: Buffer, url: string): HeygenWebhookPayload {

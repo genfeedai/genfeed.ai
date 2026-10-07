@@ -1730,6 +1730,43 @@ describe('AgentChatContainer', () => {
     expect(screen.getByTestId('chat-input')).toBe(composer);
   });
 
+  it('follows delayed transcript layout only while the reader stays at the bottom', async () => {
+    const callbacks: ResizeObserverCallback[] = [];
+    const disconnect = vi.fn();
+    const observerMock = class {
+      constructor(callback: ResizeObserverCallback) {
+        callbacks.push(callback);
+      }
+      observe() {}
+      disconnect = disconnect;
+    };
+    vi.stubGlobal('ResizeObserver', observerMock);
+    const view = render(
+      <AgentChatContainer apiService={createApiService() as never} />,
+    );
+    await waitFor(() => expect(callbacks.length).toBeGreaterThan(0));
+    pinConversationScrollToBottomMock.mockClear();
+    act(() => callbacks.at(-1)?.([], {} as ResizeObserver));
+    await waitFor(() =>
+      expect(pinConversationScrollToBottomMock).toHaveBeenCalled(),
+    );
+    const container = view.container.querySelector('.overflow-y-auto');
+    if (!(container instanceof HTMLDivElement))
+      throw new Error('Missing scroll container');
+    Object.defineProperties(container, {
+      clientHeight: { configurable: true, value: 500 },
+      scrollHeight: { configurable: true, value: 1000 },
+    });
+    container.scrollTop = 100;
+    fireEvent.scroll(container);
+    expect(disconnect).toHaveBeenCalled();
+    pinConversationScrollToBottomMock.mockClear();
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(pinConversationScrollToBottomMock).not.toHaveBeenCalled();
+    view.unmount();
+    vi.unstubAllGlobals();
+  });
+
   it('loads older messages near the top and preserves the visible scroll anchor', async () => {
     const olderMessage = buildAssistantMessage({
       content: 'Older reply',
