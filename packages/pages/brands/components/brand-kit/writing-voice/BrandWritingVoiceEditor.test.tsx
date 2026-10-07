@@ -161,6 +161,12 @@ describe('BrandWritingVoiceEditor', () => {
     expect(
       screen.queryByRole('button', { name: 'Manage' }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /^Brand voice$/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /^Voice fields$/ }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Persona' })).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Messaging Pillars' }),
@@ -179,6 +185,47 @@ describe('BrandWritingVoiceEditor', () => {
     expect(
       screen.queryByRole('button', { name: 'Save' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('names the voice section without labeling agent defaults as brand voice', () => {
+    const { unmount } = render(
+      <BrandWritingVoiceEditor
+        brand={brand}
+        brandId="brand-1"
+        onRefreshBrand={onRefreshBrand}
+        section="voice"
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: /^Brand voice$/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /^Voice fields$/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /^Persona$/ }),
+    ).not.toBeInTheDocument();
+    unmount();
+
+    render(
+      <BrandWritingVoiceEditor
+        brand={brand}
+        brandId="brand-1"
+        onRefreshBrand={onRefreshBrand}
+        section="agent"
+      />,
+    );
+
+    expect(
+      screen.queryByRole('heading', { name: /^Brand voice$/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /^Voice fields$/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /^Persona$/ }),
+    ).toBeInTheDocument();
   });
 
   it('auto-saves a committed field with the full updated payload', async () => {
