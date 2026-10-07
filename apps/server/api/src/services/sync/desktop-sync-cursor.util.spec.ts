@@ -7,6 +7,7 @@ import {
   decodeThreadCursor,
   encodeManifestCursor,
   encodeThreadCursor,
+  sliceManifestPage,
 } from './desktop-sync-cursor.util';
 
 describe('desktop-sync-cursor.util', () => {
@@ -147,5 +148,22 @@ describe('desktop-sync-cursor.util', () => {
       expect(advanceCursorPosition([], previous)).toEqual(previous);
       expect(advanceCursorPosition([], undefined)).toBeUndefined();
     });
+  });
+});
+
+describe('sliceManifestPage', () => {
+  it.each([0, 1, 2, 3])('slices %i rows without mutating the page', (size) => {
+    const page = Array.from({ length: size }, (_, i) => ({
+      id: String(i),
+      updatedAt: new Date('2026-05-01T00:00:00Z'),
+    }));
+    const before = [...page];
+    const { rows, hasMore } = sliceManifestPage(page, 2);
+    expect(hasMore).toBe(size > 2);
+    expect(rows).toEqual(before.slice(0, 2));
+    expect(page).toEqual(before);
+    if (size <= 2) expect(rows).toBe(page);
+    else expect(rows).not.toBe(page);
+    expect(advanceCursorPosition(rows)?.id).toBe(rows.at(-1)?.id);
   });
 });

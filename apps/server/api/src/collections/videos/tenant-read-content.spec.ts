@@ -692,8 +692,20 @@ describe('provenance resource and children boundary', () => {
     ),
   };
   const metadataRows = [
-    { id: wrongVideo.metadataId, organizationId: originalOrg, duration: 99 },
-    { id: targetVideo.metadataId, organizationId: selectedOrg, duration: 12 },
+    {
+      id: wrongVideo.metadataId,
+      ingredients: [
+        { id: wrongVideo.id, organizationId: originalOrg, isDeleted: false },
+      ],
+      duration: 99,
+    },
+    {
+      id: targetVideo.metadataId,
+      ingredients: [
+        { id: targetVideo.id, organizationId: selectedOrg, isDeleted: false },
+      ],
+      duration: 12,
+    },
   ];
   const captionRows = [
     {
@@ -713,15 +725,28 @@ describe('provenance resource and children boundary', () => {
     },
   ];
   const metadataService = {
-    findOne: vi.fn((where: { id: string; organizationId?: string }) =>
-      Promise.resolve(
-        metadataRows.find(
-          (row) =>
-            row.id === where.id &&
-            (!where.organizationId ||
-              row.organizationId === where.organizationId),
+    findOne: vi.fn(
+      (where: {
+        id: string;
+        isDeleted?: boolean;
+        ingredients?: {
+          some: { id: string; organizationId: string; isDeleted: boolean };
+        };
+      }) =>
+        Promise.resolve(
+          metadataRows.find(
+            (row) =>
+              row.id === where.id &&
+              (!where.ingredients ||
+                row.ingredients.some(
+                  (parent) =>
+                    parent.id === where.ingredients?.some.id &&
+                    parent.organizationId ===
+                      where.ingredients?.some.organizationId &&
+                    parent.isDeleted === where.ingredients?.some.isDeleted,
+                )),
+          ),
         ),
-      ),
     ),
   };
   const captionsService = {
@@ -766,7 +791,13 @@ describe('provenance resource and children boundary', () => {
     });
     expect(metadataService.findOne).toHaveBeenLastCalledWith({
       id: targetVideo.metadataId,
-      organizationId: selectedOrg,
+      ingredients: {
+        some: {
+          id: targetVideo.id,
+          organizationId: selectedOrg,
+          isDeleted: false,
+        },
+      },
       isDeleted: false,
     });
     expect(captionsService.find).toHaveBeenLastCalledWith({
@@ -774,6 +805,54 @@ describe('provenance resource and children boundary', () => {
       organizationId: selectedOrg,
       isDeleted: false,
     });
+  });
+  it.each([
+    {
+      label: 'original organization',
+      parent: {
+        id: targetVideo.id,
+        organizationId: originalOrg,
+        isDeleted: false,
+      },
+    },
+    {
+      label: 'deleted parent',
+      parent: {
+        id: targetVideo.id,
+        organizationId: selectedOrg,
+        isDeleted: true,
+      },
+    },
+    {
+      label: 'wrong parent',
+      parent: {
+        id: wrongVideo.id,
+        organizationId: selectedOrg,
+        isDeleted: false,
+      },
+    },
+    { label: 'unlinked metadata', parent: undefined },
+  ])('excludes metadata with $label', async ({ parent }) => {
+    const previous = metadataRows[1].ingredients;
+    metadataRows[1].ingredients = parent ? [parent] : [];
+    try {
+      const result = await service.buildProvenance(
+        targetVideo.id,
+        { userId: actor.userId, organizationId: selectedOrg },
+        selected,
+      );
+      expect(result.manifest.media).toEqual({
+        durationSeconds: null,
+        fps: null,
+        hasAudio: null,
+        height: null,
+        resolution: null,
+        width: null,
+      });
+      expect(JSON.stringify(result)).toContain('selected transcript');
+    } finally {
+      metadataRows[1].ingredients = previous;
+    }
   });
   it('default/public provenance retain original predicates and child call shape', async () => {
     await service.buildProvenance(wrongVideo.id, {

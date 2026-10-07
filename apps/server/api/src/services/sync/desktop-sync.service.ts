@@ -20,6 +20,7 @@ import {
   decodeThreadCursor,
   encodeManifestCursor,
   encodeThreadCursor,
+  sliceManifestPage,
 } from './desktop-sync-cursor.util';
 import type { DesktopBrandManifestQueryDto } from './dto/desktop-brand-manifest-query.dto';
 import type {
@@ -471,19 +472,16 @@ export class DesktopSyncService {
         }),
       ]);
 
-    const hasMoreBrands = brandPage.length > MANIFEST_BRAND_PAGE_LIMIT;
-    const brands = hasMoreBrands
-      ? brandPage.slice(0, MANIFEST_BRAND_PAGE_LIMIT)
-      : brandPage;
-    const hasMoreIngredients =
-      ingredientPage.length > MANIFEST_INGREDIENT_PAGE_LIMIT;
-    const ingredients = hasMoreIngredients
-      ? ingredientPage.slice(0, MANIFEST_INGREDIENT_PAGE_LIMIT)
-      : ingredientPage;
-    const hasMoreAssets = assetPage.length > MANIFEST_ASSET_PAGE_LIMIT;
-    const assets = hasMoreAssets
-      ? assetPage.slice(0, MANIFEST_ASSET_PAGE_LIMIT)
-      : assetPage;
+    const { rows: brands, hasMore: hasMoreBrands } = sliceManifestPage(
+      brandPage,
+      MANIFEST_BRAND_PAGE_LIMIT,
+    );
+    const { rows: ingredients, hasMore: hasMoreIngredients } =
+      sliceManifestPage(ingredientPage, MANIFEST_INGREDIENT_PAGE_LIMIT);
+    const { rows: assets, hasMore: hasMoreAssets } = sliceManifestPage(
+      assetPage,
+      MANIFEST_ASSET_PAGE_LIMIT,
+    );
 
     const updatedCursor = encodeManifestCursor({
       assets: advanceCursorPosition(assets, positions.assets),

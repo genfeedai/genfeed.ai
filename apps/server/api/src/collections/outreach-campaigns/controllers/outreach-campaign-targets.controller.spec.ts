@@ -87,6 +87,11 @@ describe('OutreachCampaignTargetsController', () => {
     expect(targetOperationsService.getTargets).toHaveBeenCalledWith(
       'campaign_1',
       user,
+      {
+        organizationId: user.organizationId,
+        brandId: user.brandId,
+        isOrganizationOverride: false,
+      },
     );
   });
 
