@@ -120,6 +120,7 @@ export function useIngredientsActions({
   const videoUpscaleSelectionRef = useRef<VideoUpscaleSelection | undefined>(
     undefined,
   );
+  const pendingDeleteIdsRef = useRef(new Set<string>());
 
   const handleClose = useCallback(() => {
     findAllIngredientsByCategory(true);
@@ -127,6 +128,11 @@ export function useIngredientsActions({
 
   const confirmDeleteIngredient = useCallback(
     async (ingredient: IIngredient) => {
+      if (pendingDeleteIdsRef.current.has(ingredient.id)) {
+        return;
+      }
+
+      pendingDeleteIdsRef.current.add(ingredient.id);
       const url = `DELETE /ingredients/${ingredient.id}`;
 
       try {
@@ -140,6 +146,8 @@ export function useIngredientsActions({
       } catch (error) {
         logger.error(`${url} failed`, error);
         notificationsService.error('Failed to delete ingredient');
+      } finally {
+        pendingDeleteIdsRef.current.delete(ingredient.id);
       }
     },
     [

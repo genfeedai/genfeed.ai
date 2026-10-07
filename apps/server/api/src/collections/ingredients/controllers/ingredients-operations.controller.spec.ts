@@ -13,12 +13,14 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MembersService } from '@api/collections/members/services/members.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { IngredientCategory, IngredientOrigin } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { HttpException } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -65,6 +67,9 @@ describe('IngredientsOperationsController', () => {
   };
 
   const mockServices = {
+    cacheService: {
+      invalidateByTags: vi.fn().mockResolvedValue(1),
+    },
     configService: {
       ingredientsEndpoint: 'https://api.example.com/ingredients',
       isAuthorizedMediaDeliveryEnabled: false,
@@ -94,6 +99,7 @@ describe('IngredientsOperationsController', () => {
         .mockResolvedValue({ deleted: [], failed: [] }),
       findOne: vi.fn().mockResolvedValue(mockIngredient),
       patch: vi.fn().mockResolvedValue(mockIngredient),
+      softDeleteOneScoped: vi.fn().mockResolvedValue(null),
     },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     metadataService: {
@@ -128,6 +134,7 @@ describe('IngredientsOperationsController', () => {
               if (token === SharedService) return mockServices.sharedService;
               if (token === FilesClientService)
                 return mockServices.filesClientService;
+              if (token === CacheService) return mockServices.cacheService;
               // NotificationsPublisherService fallback
               return {
                 publishIngredientStatus: vi.fn().mockResolvedValue(undefined),
@@ -333,6 +340,46 @@ describe('IngredientsOperationsController', () => {
 
       expect(metadataService.patch).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('deleteIngredient', () => {
+    it('soft-deletes one editable asset and returns the serialized row', async () => {
+      const deleted = { ...mockIngredient, isDeleted: true };
+      mockServices.ingredientsService.softDeleteOneScoped.mockResolvedValueOnce(
+        deleted,
+      );
+
+      const result = await controller.deleteIngredient(
+        mockRequest,
+        mockUser,
+        ingredientId,
+      );
+
+      expect(
+        mockServices.ingredientsService.softDeleteOneScoped,
+      ).toHaveBeenCalledWith({
+        editor: { brandId, userId },
+        id: ingredientId,
+        organizationId,
+      });
+      expect(mockServices.cacheService.invalidateByTags).toHaveBeenCalledWith([
+        'ingredients',
+      ]);
+      expect(result).toEqual({ data: deleted });
+    });
+
+    it('rejects a missing or non-editable asset without a list refresh', async () => {
+      mockServices.ingredientsService.softDeleteOneScoped.mockResolvedValueOnce(
+        null,
+      );
+
+      await expect(
+        controller.deleteIngredient(mockRequest, mockUser, ingredientId),
+      ).rejects.toBeInstanceOf(HttpException);
+
+      expect(mockServices.cacheService.invalidateByTags).not.toHaveBeenCalled();
+      expect(mockServices.loggerService.warn).toHaveBeenCalled();
     });
   });
 
