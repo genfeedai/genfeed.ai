@@ -170,7 +170,7 @@ describe('content selected data arguments', () => {
     ({ ControllerClass }) => {
       const instance = new ControllerClass({} as never, {} as never);
       const query = runWithTenantReadScope(selected, () =>
-        instance.buildFindAllQuery(actor, {}),
+        instance.buildFindAllQuery(actor, new PresetsQueryDto()),
       );
       const rows = [
         { organizationId: null, label: 'global' },
