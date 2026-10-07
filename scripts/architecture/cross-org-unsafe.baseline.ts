@@ -47,7 +47,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // down when the library list filter gained the trash flag (#6391).
     {
       file: 'apps/server/api/src/collections/ingredients/controllers/ingredients.controller.ts',
-      line: 315,
+      line: 319,
     },
     // #5981: readPublicSources discovers only non-deleted ingredients that are
     // public (isPublic, scope PUBLIC, or on a visibility PUBLIC post) and keeps
@@ -87,13 +87,13 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin-only cross-organization workflow failure feed.
     {
       file: 'apps/server/api/src/collections/workflow-executions/controllers/workflow-executions.controller.ts',
-      line: 193,
+      line: 195,
     },
     // #6120: marketplace lists public workflow templates published by every
     // organization.
     {
       file: 'apps/server/api/src/collections/workflows/controllers/workflow-marketplace.controller.ts',
-      line: 130,
+      line: 133,
     },
     // #6120: runAsSuperAdmin, the single generic-CRUD seam where a verified
     // superadmin reads, edits or removes another organization's row or a
@@ -177,37 +177,37 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin may edit any live brand's handle.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brand-access.helpers.ts',
-      line: 77,
+      line: 89,
     },
     // #6120: brand relocation source lookup may live in another organization;
     // assertCanRelocate authorizes.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brand-access.helpers.ts',
-      line: 107,
+      line: 119,
     },
     // #6120: brand relocation spans the source and destination tenants;
     // assertCanRelocate authorizes.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 268,
+      line: 267,
     },
     // #6120: brand relocation preview across tenants; assertCanRelocate
     // authorizes.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 314,
+      line: 313,
     },
     // #6120: superadmin brand list filtered by another organization or by
     // brand only.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 395,
+      line: 394,
     },
     // #6120: list relation reads for rows already authorized, each pinned to
     // the brand's own organization.
     {
       file: 'apps/server/api/src/collections/brands/controllers/brands.controller.ts',
-      line: 409,
+      line: 408,
     },
     // #6120: brand slugs are globally unique across organizations, including
     // soft-deleted rows.
@@ -301,12 +301,12 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: superadmin list of another organization's credentials.
     {
       file: 'apps/server/api/src/collections/credentials/controllers/credentials.controller.ts',
-      line: 148,
+      line: 149,
     },
     // #6120: superadmin-only GET credential by id across organizations.
     {
       file: 'apps/server/api/src/collections/credentials/controllers/credentials.controller.ts',
-      line: 164,
+      line: 165,
     },
     // #6120: ledger idempotency keys are globally unique, so replay detection
     // is cross-organization.
@@ -344,21 +344,21 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // families.
     {
       file: 'apps/server/api/src/collections/font-families/controllers/font-families.controller.ts',
-      line: 64,
-    },
-    {
-      file: 'apps/server/api/src/collections/font-families/controllers/font-families.controller.ts',
-      line: 90,
+      line: 78,
     },
     {
       file: 'apps/server/api/src/collections/font-families/controllers/font-families.controller.ts',
       line: 104,
     },
+    {
+      file: 'apps/server/api/src/collections/font-families/controllers/font-families.controller.ts',
+      line: 118,
+    },
     // #6120: superadmin may read any organization's article (findOne,
     // createPreviewLink).
     {
       file: 'apps/server/api/src/collections/articles/controllers/articles.controller.ts',
-      line: 109,
+      line: 110,
     },
     // #6120: published public article slugs are unique across all
     // organizations.

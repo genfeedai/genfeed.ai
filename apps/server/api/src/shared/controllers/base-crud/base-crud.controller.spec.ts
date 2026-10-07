@@ -4,6 +4,8 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -143,6 +145,61 @@ describe('BaseCRUDController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('populate projections', () => {
+    it('preserves relation order, known projections, fallback and object identity', () => {
+      const explicit: PopulateOption = { path: 'credential', select: ['id'] };
+      const fields = [
+        'user',
+        'brand',
+        'organization',
+        'metadata',
+        'asset',
+        'parent',
+        'customRelation',
+        explicit,
+      ];
+      const projected = new TestController(
+        logger,
+        service as unknown as BaseService<unknown, unknown, unknown>,
+        serializer,
+        'TestEntity',
+        fields,
+      );
+      expect(projected.constructorName).toBe('TestController');
+      expect(projected.populateFields).toBe(fields);
+      expect(projected.optimizedPopulateFields).toEqual([
+        PopulatePatterns.brandMinimal,
+        PopulatePatterns.organizationMinimal,
+        PopulatePatterns.metadataFull,
+        PopulatePatterns.assetMinimal,
+        PopulatePatterns.parentMinimal,
+        { path: 'customRelation' },
+        explicit,
+      ]);
+      const known = [
+        PopulatePatterns.brandMinimal,
+        PopulatePatterns.organizationMinimal,
+        PopulatePatterns.metadataFull,
+        PopulatePatterns.assetMinimal,
+        PopulatePatterns.parentMinimal,
+      ];
+      known.forEach((field, index) => {
+        expect(projected.optimizedPopulateFields[index]).toBe(field);
+      });
+      expect(projected.optimizedPopulateFields[6]).toBe(explicit);
+      expect(fields).toEqual([
+        'user',
+        'brand',
+        'organization',
+        'metadata',
+        'asset',
+        'parent',
+        'customRelation',
+        explicit,
+      ]);
+    });
   });
 
   describe('findAll', () => {

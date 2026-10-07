@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import type { IncomingMessage } from 'node:http';
 import { request as nativeRequest } from 'node:http';
 import { resolve } from 'node:path';
@@ -116,14 +117,18 @@ describe('real miniature Nest request lifecycle', () => {
       guardRelease = undefined;
       handlerCalls = 0;
       const events: Record<string, unknown>[] = [];
+      const pool = Object.assign(new EventEmitter(), {
+        end: () => Promise.resolve(),
+      });
       const instance = createApiObserver({
         write: (line: string) => events.push(JSON.parse(line)),
-        pool: { end: () => Promise.resolve() },
+        pool,
         setIntervalImpl: () => ({ unref() {} }),
         clearIntervalImpl: () => {},
         cpuUsage: () => ({ user: 0, system: 0 }),
         hrtime: () => 0n,
       });
+      expect(pool.listenerCount('connect')).toBe(1);
       Reflect.set(
         globalThis,
         CLOUD_TENANT_OBSERVER,
@@ -269,6 +274,7 @@ describe('real miniature Nest request lifecycle', () => {
         expect(handlerCalls).toBe(8);
         await new Promise<void>((resolveWait) => setImmediate(resolveWait));
         instance.stop();
+        expect(pool.listenerCount('connect')).toBe(0);
         if (enabled) {
           const evidence = joinCausalEvidence(
             { requests: clients, inventoryTemplates: ['/v1/case'] },
@@ -280,6 +286,7 @@ describe('real miniature Nest request lifecycle', () => {
               phases: ['memberAGets'],
             },
           );
+          expect(evidence.reasons.observerUnavailable).toBe(0);
           expect(evidence.quality).toBe('complete');
           expect(evidence.conservation.clientAttempts).toBe(8);
           expect(evidence.conservation.classes.finished408).toBe(1);

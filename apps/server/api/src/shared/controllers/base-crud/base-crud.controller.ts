@@ -17,14 +17,11 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { buildOptimizedPopulateFields } from '@api/shared/controllers/base-crud/base-crud-populate.util';
 import {
   BaseService,
   type PrismaFindAllInput,
 } from '@api/shared/services/base/base.service';
-import {
-  PopulateBuilder,
-  PopulatePatterns,
-} from '@api/shared/utils/populate/populate.util';
 import type {
   IJsonApiSerializer,
   JsonApiCollectionResponse,
@@ -70,30 +67,7 @@ export abstract class BaseCRUDController<
   ) {
     this.constructorName = this.constructor.name;
 
-    // Convert known relation names to explicit projections. Unknown relations
-    // retain full loading because their serializer requirements are domain-specific.
-    this.optimizedPopulateFields = populateFields
-      .filter((field) => field !== 'user')
-      .map((field) => {
-        if (typeof field === 'string') {
-          // Apply default optimizations for common fields
-          switch (field) {
-            case 'brand':
-              return PopulatePatterns.brandMinimal;
-            case 'organization':
-              return PopulatePatterns.organizationMinimal;
-            case 'metadata':
-              return PopulatePatterns.metadataFull;
-            case 'asset':
-              return PopulatePatterns.assetMinimal;
-            case 'parent':
-              return PopulatePatterns.parentMinimal;
-            default:
-              return PopulateBuilder.create(field);
-          }
-        }
-        return field;
-      });
+    this.optimizedPopulateFields = buildOptimizedPopulateFields(populateFields);
   }
 
   /**
