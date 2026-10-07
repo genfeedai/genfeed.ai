@@ -43,6 +43,7 @@ export const CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES = [
         id: 'e-sync-promote',
         source: 'syncEachAnalyticsItem',
         target: 'promoteHarnessWinners',
+        targetHandle: 'previous',
       },
     ],
     icon: 'trophy',

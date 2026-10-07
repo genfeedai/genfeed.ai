@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Ingredient } from '@/services/api/ingredients.service';
+import type { LibraryDetail } from '@/services/api/ingredients.service';
 
 vi.mock('@/contexts/auth-context', () => ({
   useMobileAuth: vi.fn(() => ({
@@ -14,7 +14,13 @@ vi.mock('@/contexts/auth-context', () => ({
   })),
 }));
 
-// Mock the ingredients service
+vi.mock('@/services/api/request-scope', () => ({
+  loadRequestScope: vi.fn(async () => ({
+    brandId: 'brand-1',
+    organizationId: 'org-1',
+  })),
+}));
+
 vi.mock('@/services/api/ingredients.service', () => ({
   ingredientsService: {
     findAll: vi.fn(),
@@ -25,6 +31,9 @@ vi.mock('@/services/api/ingredients.service', () => ({
 import { useMobileAuth } from '@/contexts/auth-context';
 import { useIngredient, useIngredients } from '@/hooks/use-ingredients';
 import { ingredientsService } from '@/services/api/ingredients.service';
+import { loadRequestScope } from '@/services/api/request-scope';
+
+const scope = { brandId: 'brand-1', organizationId: 'org-1' };
 
 describe('useIngredients', () => {
   beforeEach(() => {
@@ -51,21 +60,8 @@ describe('useIngredients', () => {
   });
 
   it('should fetch ingredients on mount', async () => {
-    const mockIngredients: Ingredient[] = [
-      {
-        attributes: {
-          category: 'image',
-          createdAt: '',
-          status: 'active',
-          updatedAt: '',
-        },
-        id: '1',
-        type: 'attributes',
-      },
-    ];
-    vi.mocked(ingredientsService.findAll).mockResolvedValue({
-      data: mockIngredients,
-    });
+    const items = [{ id: '1' }];
+    vi.mocked(ingredientsService.findAll).mockResolvedValue({ data: items });
 
     const { result } = renderHook(() => useIngredients());
 
@@ -73,19 +69,24 @@ describe('useIngredients', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.ingredients).toEqual(mockIngredients);
-    expect(ingredientsService.findAll).toHaveBeenCalledWith('test-token', {});
+    expect(result.current.ingredients).toEqual(items);
+    expect(ingredientsService.findAll).toHaveBeenCalledWith(
+      'test-token',
+      scope,
+      {},
+    );
   });
 
   it('should pass options to service', async () => {
     vi.mocked(ingredientsService.findAll).mockResolvedValue({ data: [] });
 
-    const options = { category: 'video' as const, page: 2, pageSize: 20 };
+    const options = { category: 'video' as const, limit: 20, page: 2 };
     renderHook(() => useIngredients(options));
 
     await waitFor(() => {
       expect(ingredientsService.findAll).toHaveBeenCalledWith(
         'test-token',
+        scope,
         options,
       );
     });
@@ -111,6 +112,7 @@ describe('useIngredients', () => {
     expect(result.current.error?.message).toBe(
       'No authentication token available',
     );
+    expect(loadRequestScope).not.toHaveBeenCalled();
   });
 
   it('should handle API errors', async () => {
@@ -165,41 +167,48 @@ describe('useIngredient', () => {
   });
 
   it('should return null when id is null', async () => {
-    const { result } = renderHook(() => useIngredient(null));
+    const { result } = renderHook(() => useIngredient(null, 'image'));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.ingredient).toBeNull();
+    expect(result.current.detail).toBeNull();
     expect(ingredientsService.findOne).not.toHaveBeenCalled();
   });
 
-  it('should fetch ingredient when id is provided', async () => {
-    const mockIngredient: Ingredient = {
-      attributes: {
-        category: 'image',
-        createdAt: '',
-        status: 'active',
-        updatedAt: '',
-      },
-      id: '123',
-      type: 'attributes',
-    };
-    vi.mocked(ingredientsService.findOne).mockResolvedValue({
-      data: mockIngredient,
-    });
-
-    const { result } = renderHook(() => useIngredient('123'));
+  it('should refuse a detail load that has no content type', async () => {
+    const { result } = renderHook(() => useIngredient('123', null));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.ingredient).toEqual(mockIngredient);
+    expect(result.current.error?.message).toBe(
+      'A content type is required to load this item.',
+    );
+    expect(ingredientsService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('should fetch an image when id and category are provided', async () => {
+    const detail = {
+      item: { id: '123' },
+      kind: 'media',
+    } satisfies LibraryDetail;
+    vi.mocked(ingredientsService.findOne).mockResolvedValue({ data: detail });
+
+    const { result } = renderHook(() => useIngredient('123', 'image'));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.detail).toEqual(detail);
     expect(ingredientsService.findOne).toHaveBeenCalledWith(
       'test-token',
+      scope,
       '123',
+      'image',
     );
   });
 
@@ -214,7 +223,7 @@ describe('useIngredient', () => {
       user: null,
     } as unknown as ReturnType<typeof useMobileAuth>);
 
-    const { result } = renderHook(() => useIngredient('123'));
+    const { result } = renderHook(() => useIngredient('123', 'image'));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -230,7 +239,7 @@ describe('useIngredient', () => {
       new Error('Not found'),
     );
 
-    const { result } = renderHook(() => useIngredient('123'));
+    const { result } = renderHook(() => useIngredient('123', 'image'));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
