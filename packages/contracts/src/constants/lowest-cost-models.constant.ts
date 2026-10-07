@@ -4,8 +4,8 @@ import { MODEL_KEYS } from './model-keys.constant';
 /**
  * Named input for lowest-cost vs cloud-quality model default selection.
  *
- * Cloud production (`isCloud` + `nodeEnv === 'production'`) keeps quality
- * defaults. Every other combination — local, self-hosted, e2e, cloud staging,
+ * Production keeps quality defaults, including self-hosted production.
+ * Every other combination — local development, e2e, cloud staging,
  * and an unset `NODE_ENV` — uses the lowest-cost keys.
  */
 export interface LowestCostModelDefaultsInput {
@@ -14,11 +14,11 @@ export interface LowestCostModelDefaultsInput {
 }
 
 /**
- * Lowest-cost models for local, self-hosted, and e2e.
+ * Lowest-cost models for development, staging, and e2e.
  *
- * Cloud production keeps the quality media catalogue defaults (Nano Banana 2
- * Lite and MiniMax H3). Everything else — community
- * installs, cloud staging, an unset `NODE_ENV`, `NODE_ENV=development`,
+ * Production keeps the quality media catalogue defaults (Nano Banana 2
+ * Lite and MiniMax H3). Everything else — cloud staging,
+ * an unset `NODE_ENV`, `NODE_ENV=development`,
  * and `NODE_ENV=test` — should land on these keys so a generate / chat
  * turn does not bill flagship rates.
  *
@@ -42,16 +42,12 @@ export const CLOUD_QUALITY_VIDEO_MODEL_KEY = MODEL_KEYS.REPLICATE_MINIMAX_H3;
 
 /**
  * When true, seed / UI / non-prod fallbacks must use the lowest-cost keys.
- * Cloud production (`isCloud` + `NODE_ENV=production`) keeps quality defaults.
+ * Production (`NODE_ENV=production`) keeps quality defaults on every deployment.
  */
 export function shouldUseLowestCostModelDefaults(
   input: LowestCostModelDefaultsInput,
 ): boolean {
-  if (input.nodeEnv === 'development' || input.nodeEnv === 'test') {
-    return true;
-  }
-
-  return !(input.isCloud && input.nodeEnv === 'production');
+  return input.nodeEnv !== 'production';
 }
 
 /** Empty-registry image fallback for the given deployment. */

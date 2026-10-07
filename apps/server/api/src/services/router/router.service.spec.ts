@@ -311,6 +311,34 @@ describe('RouterService', () => {
         expect(result.reason).toContain('quality');
       });
 
+      it('keeps the category default on Auto Balanced when an ultra row is also recommended', async () => {
+        const defaultModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          isDefault: true,
+          key: 'google/nano-banana-2-lite',
+          qualityTier: 'standard',
+        });
+        const ultraModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          isHighlighted: true,
+          key: 'openai/gpt-image-2.5-sunburst',
+          qualityTier: 'ultra',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          ultraModel,
+          defaultModel,
+        ]);
+
+        const result = await service.selectModel({
+          category: ModelCategory.IMAGE,
+          prioritize: 'balanced',
+          prompt: 'A product photo',
+        });
+
+        expect(result.selectedModel).toBe('google/nano-banana-2-lite');
+      });
+
       it('should select high quality model when ultra is not available', async () => {
         const highModel = createMockModel({
           category: ModelCategory.IMAGE,

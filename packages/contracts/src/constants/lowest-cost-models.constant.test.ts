@@ -63,13 +63,13 @@ describe('shouldUseLowestCostModelDefaults', () => {
     ).toBe(true);
   });
 
-  it('is true for self-hosted production (operator pays the provider)', () => {
+  it('is false for self-hosted production so legacy models are not defaults', () => {
     expect(
       shouldUseLowestCostModelDefaults({
         isCloud: false,
         nodeEnv: 'production',
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('is true for cloud staging so preview deploys stay on cheapest keys', () => {
@@ -89,7 +89,7 @@ describe('shouldUseLowestCostModelDefaults', () => {
     ).toBe(true);
   });
 
-  it('is false only for cloud production', () => {
+  it('is false for cloud production', () => {
     expect(
       shouldUseLowestCostModelDefaults({
         isCloud: true,
@@ -100,6 +100,16 @@ describe('shouldUseLowestCostModelDefaults', () => {
 });
 
 describe('deployment fallback model keys', () => {
+  it('uses quality media for self-hosted production', () => {
+    const input: LowestCostModelDefaultsInput = {
+      isCloud: false,
+      nodeEnv: 'production',
+    };
+
+    expect(getFallbackImageModelKey(input)).toBe(CLOUD_QUALITY_IMAGE_MODEL_KEY);
+    expect(getFallbackVideoModelKey(input)).toBe(CLOUD_QUALITY_VIDEO_MODEL_KEY);
+  });
+
   it('uses quality media and low-cost chat for cloud production', () => {
     const input: LowestCostModelDefaultsInput = {
       isCloud: true,

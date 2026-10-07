@@ -12,9 +12,10 @@
  * start from this list; provider discovery adds drafts on top. These constants
  * are seed *input* only — never a parallel runtime allowlist.
  */
-import type { CostTier } from '..';
+import type { CostTier, QualityTier, SpeedTier } from '..';
 import { ModelCategory, ModelLifecycle, ModelProvider } from '..';
 import {
+  AGENT_CHAT_MODEL_KEYS,
   AGENT_CHAT_MODELS,
   AGENT_FALLBACK_ROUND_CREDITS,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
@@ -43,6 +44,8 @@ export interface ModelCatalogSeedEntry {
   /** Credits per second (or per megapixel) when pricingType is not FLAT. */
   costPerUnit?: number;
   costTier?: CostTier;
+  qualityTier?: QualityTier;
+  speedTier?: SpeedTier;
   defaultAspectRatio?: string;
   defaultDuration?: number;
   description: string;
@@ -136,6 +139,17 @@ const CURATED_MEDIA_BY_KEY = new Map<
   (typeof SELF_HOSTED_MODELS)[number]
 >(SELF_HOSTED_MODELS.map((model) => [model.key, model]));
 
+/** Hosted FLUX.1 stays legacy; explicit use still requires active, priced rows. */
+const LEGACY_FLUX_MEDIA_KEYS: ReadonlySet<string> = new Set([
+  MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+  MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
+  MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO,
+  MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_MAX,
+  MODEL_KEYS.FAL_FLUX_SCHNELL,
+  MODEL_KEYS.FAL_FLUX_DEV,
+  MODEL_KEYS.FAL_FLUX_PRO,
+]);
+
 /**
  * Every media key we know how to call, so Settings → Models lists the real
  * catalogue rather than the four curated defaults.
@@ -161,8 +175,9 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
       isActive: isCurated,
       isDefault: curated?.isDefault ?? false,
       isHighlighted: curated?.isHighlighted ?? false,
-      lifecycle:
-        curated && 'lifecycle' in curated && curated.lifecycle
+      lifecycle: LEGACY_FLUX_MEDIA_KEYS.has(key)
+        ? ModelLifecycle.LEGACY
+        : curated && 'lifecycle' in curated && curated.lifecycle
           ? curated.lifecycle
           : curated?.isDefault || curated?.isHighlighted
             ? ModelLifecycle.RECOMMENDED
@@ -176,6 +191,12 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
     if (curated && 'endpoint' in curated) entry.endpoint = curated.endpoint;
     if (curated?.costTier) {
       entry.costTier = curated.costTier;
+    }
+    if (curated && 'qualityTier' in curated && curated.qualityTier) {
+      entry.qualityTier = curated.qualityTier;
+    }
+    if (curated && 'speedTier' in curated && curated.speedTier) {
+      entry.speedTier = curated.speedTier;
     }
     if (curated && 'costPerUnit' in curated && curated.costPerUnit != null) {
       entry.costPerUnit = curated.costPerUnit;
@@ -268,13 +289,17 @@ function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
       category: ModelCategory.TEXT,
       cost: model.creditCostPerRound,
       costTier: model.costTier,
+      qualityTier: model.qualityTier,
+      speedTier: model.speedTier,
       description: model.description,
       inputCostPerMillionTokens: model.pricing.promptPerMillion,
       isActive: !isSelfHosted,
       isDefault,
       isHighlighted: isDefault,
       lifecycle:
-        isDefault || model.key === HIGHLIGHTED_AGENT_CHAT_MODEL_KEY
+        isDefault ||
+        model.key === HIGHLIGHTED_AGENT_CHAT_MODEL_KEY ||
+        model.key === AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL
           ? ModelLifecycle.RECOMMENDED
           : ModelLifecycle.AVAILABLE,
       isPublic: !isSelfHosted,
@@ -402,8 +427,8 @@ function applyLowestCostDefaults(
 /**
  * Catalogue the seed writes for a deployment.
  *
- * Cloud production keeps {@link UNIFIED_MODEL_CATALOG} quality defaults.
- * Local, self-hosted, and e2e (`isCloudQualityDefaultsEnabled === false`)
+ * Production keeps {@link UNIFIED_MODEL_CATALOG} quality defaults.
+ * Development, staging, and e2e (`isCloudQualityDefaultsEnabled === false`)
  * promote the lowest-cost image / video / chat rows so a generate does not
  * bill Seedance / Nano Banana / a mid-tier chat model.
  */

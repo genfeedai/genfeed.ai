@@ -1,4 +1,4 @@
-import { CostTier } from '..';
+import { CostTier, QualityTier, SpeedTier } from '..';
 
 import { MODEL_KEYS } from './model-keys.constant';
 
@@ -25,6 +25,8 @@ export interface AgentChatModel {
   /** Derived from `pricing` — credits burned per LLM round. */
   creditCostPerRound: number;
   costTier: CostTier;
+  qualityTier: QualityTier;
+  speedTier: SpeedTier;
   description: string;
   /**
    * Every route this key can pick costs $0, so billing zero credits is exact.
@@ -241,6 +243,8 @@ interface AgentChatModelDefinition {
   key: AgentChatModelKey;
   label: string;
   pricing: AgentChatModelPricing;
+  qualityTier: QualityTier;
+  speedTier: SpeedTier;
 }
 
 const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
@@ -253,6 +257,8 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     label: 'OpenRouter Auto',
     // Maximum reservation envelope: current most expensive curated route.
     pricing: { completionPerMillion: 60, promptPerMillion: 5 },
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
     usesExactProviderCost: true,
   },
   {
@@ -263,6 +269,8 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     key: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
     label: 'OpenRouter Free (Experimental)',
     pricing: { completionPerMillion: 0, promptPerMillion: 0 },
+    qualityTier: QualityTier.BASIC,
+    speedTier: SpeedTier.FAST,
     usesExactProviderCost: true,
   },
   {
@@ -274,6 +282,8 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     label: 'DeepSeek V4 Flash',
     // OpenRouter live (2026-09-01): $0.05 / $0.16 per 1M
     pricing: { completionPerMillion: 0.16, promptPerMillion: 0.05 },
+    qualityTier: QualityTier.BASIC,
+    speedTier: SpeedTier.FAST,
   },
   {
     brandSlug: 'google',
@@ -284,6 +294,8 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     label: 'Gemini 2.5 Flash Lite',
     // OpenRouter live (2026-08-07): $0.10 / $0.40 per 1M
     pricing: { completionPerMillion: 0.4, promptPerMillion: 0.1 },
+    qualityTier: QualityTier.BASIC,
+    speedTier: SpeedTier.FAST,
   },
   {
     brandSlug: 'openai',
@@ -291,6 +303,8 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     key: AGENT_CHAT_MODEL_KEYS.GPT_5_6_LUNA,
     label: 'GPT-5.6 Luna',
     pricing: { completionPerMillion: 0.6, promptPerMillion: 0.1 },
+    qualityTier: QualityTier.STANDARD,
+    speedTier: SpeedTier.FAST,
   },
   {
     brandSlug: 'google',
@@ -300,6 +314,8 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     label: 'Gemini 3.5 Flash Lite',
     // OpenRouter live (2026-08-07): $0.30 / $2.50 per 1M
     pricing: { completionPerMillion: 2.5, promptPerMillion: 0.3 },
+    qualityTier: QualityTier.STANDARD,
+    speedTier: SpeedTier.FAST,
   },
   {
     brandSlug: 'openai',
@@ -308,6 +324,8 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     key: AGENT_CHAT_MODEL_KEYS.GPT_5_6_TERRA,
     label: 'GPT-5.6 Terra',
     pricing: { completionPerMillion: 6, promptPerMillion: 1 },
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
   },
   {
     brandSlug: 'x-ai',
@@ -316,6 +334,8 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     key: AGENT_CHAT_MODEL_KEYS.GROK_4_6,
     label: 'Grok 4.6',
     pricing: { completionPerMillion: 6, promptPerMillion: 2 },
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.FAST,
   },
   {
     brandSlug: 'google',
@@ -324,6 +344,8 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     key: AGENT_CHAT_MODEL_KEYS.GEMINI_3_6_FLASH,
     label: 'Gemini 3.6 Flash',
     pricing: { completionPerMillion: 7.5, promptPerMillion: 1.5 },
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.FAST,
   },
   {
     brandSlug: 'anthropic',
@@ -332,6 +354,8 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     key: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
     label: 'Claude Sonnet 5',
     pricing: { completionPerMillion: 10, promptPerMillion: 2 },
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
   },
   {
     brandSlug: 'moonshotai',
@@ -340,6 +364,8 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     key: AGENT_CHAT_MODEL_KEYS.KIMI_K3,
     label: 'Kimi K3',
     pricing: { completionPerMillion: 15, promptPerMillion: 3 },
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.MEDIUM,
   },
   {
     brandSlug: 'anthropic',
@@ -348,6 +374,8 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     key: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5,
     label: 'Claude Opus 5',
     pricing: { completionPerMillion: 25, promptPerMillion: 5 },
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.SLOW,
   },
   {
     brandSlug: 'openai',
@@ -356,6 +384,8 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     key: AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL,
     label: 'GPT-5.6 Sol',
     pricing: { completionPerMillion: 30, promptPerMillion: 5 },
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.SLOW,
   },
   {
     brandSlug: 'genfeed-ai',
@@ -364,6 +394,8 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     key: AGENT_CHAT_MODEL_KEYS.LOCAL_QWEN_32B,
     label: 'Qwen 32B (self-hosted)',
     pricing: { completionPerMillion: 0, promptPerMillion: 0 },
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
   },
   {
     brandSlug: 'genfeed-ai',
@@ -372,6 +404,8 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     key: AGENT_CHAT_MODEL_KEYS.LOCAL_MISTRAL_SMALL,
     label: 'Mistral Small (self-hosted)',
     pricing: { completionPerMillion: 0, promptPerMillion: 0 },
+    qualityTier: QualityTier.STANDARD,
+    speedTier: SpeedTier.FAST,
   },
 ];
 
@@ -389,6 +423,8 @@ export const AGENT_CHAT_MODELS: AgentChatModel[] =
       ...definition,
       costTier: resolveCostTier(creditCostPerRound),
       creditCostPerRound,
+      qualityTier: definition.qualityTier,
+      speedTier: definition.speedTier,
     };
   });
 

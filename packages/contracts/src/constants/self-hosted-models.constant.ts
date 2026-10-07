@@ -4,6 +4,8 @@ import {
   ModelLifecycle,
   ModelProvider,
   PricingType,
+  QualityTier,
+  SpeedTier,
 } from '..';
 import { MODEL_KEYS } from './model-keys.constant';
 
@@ -29,6 +31,8 @@ export const SELF_HOSTED_MODELS = [
     category,
     cost: 8,
     costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
     description:
       'FLUX.3 Image — generation and reference editing with up to ten images, five resolutions and one output.',
     isDefault: false,
@@ -54,6 +58,8 @@ export const SELF_HOSTED_MODELS = [
     category: ModelCategory.IMAGE_EDIT,
     cost: 20,
     costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.MEDIUM,
     description:
       'Ideogram 4.5 — instruction-based image editing with up to five source images and an optional mask. Medium quality preserves source proportions by default.',
     isDefault: true,
@@ -69,6 +75,8 @@ export const SELF_HOSTED_MODELS = [
     category: ModelCategory.IMAGE,
     cost: 12,
     costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.STANDARD,
+    speedTier: SpeedTier.MEDIUM,
     description:
       'Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.',
     isDefault: true,
@@ -83,6 +91,8 @@ export const SELF_HOSTED_MODELS = [
     category: ModelCategory.IMAGE,
     cost: 13,
     costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.STANDARD,
+    speedTier: SpeedTier.MEDIUM,
     description: 'Replicate Nano Banana image generation model',
     isDefault: false,
     isHighlighted: false,
@@ -96,6 +106,8 @@ export const SELF_HOSTED_MODELS = [
     category: ModelCategory.IMAGE,
     cost: 45,
     costTier: CostTier.HIGH,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.MEDIUM,
     description: 'Replicate Nano Banana Pro image generation model',
     isDefault: false,
     isHighlighted: false,
@@ -109,6 +121,8 @@ export const SELF_HOSTED_MODELS = [
     category: ModelCategory.IMAGE,
     cost: 13,
     costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
     description: 'Replicate Nano Banana 2 image generation model',
     isDefault: false,
     isHighlighted: false,
@@ -122,6 +136,8 @@ export const SELF_HOSTED_MODELS = [
     category: ModelCategory.IMAGE,
     cost: 12,
     costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.FAST,
     description:
       'Google Nano Banana 2.1 — image generation and editing at 1K, 2K, and 4K with up to 14 references. The seeded USD is the 1K output price; 2K and 4K bill from the reviewed rate sheet.',
     isDefault: false,
@@ -136,11 +152,15 @@ export const SELF_HOSTED_MODELS = [
     category: ModelCategory.IMAGE,
     cost: 2,
     costTier: CostTier.LOW,
-    description: 'Replicate FLUX Schnell image generation model',
+    qualityTier: QualityTier.BASIC,
+    speedTier: SpeedTier.FAST,
+    description:
+      'FLUX.1 Schnell — legacy speed-focused image model for development and compatibility. Production Auto uses current recommended models.',
     isDefault: false,
-    isHighlighted: true,
+    isHighlighted: false,
     key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
-    label: 'FLUX Schnell',
+    label: 'FLUX.1 Schnell',
+    lifecycle: ModelLifecycle.LEGACY,
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'flux-schnell', owner: 'black-forest-labs' },
     providerCostUsd: 0.003,
@@ -156,6 +176,8 @@ export const SELF_HOSTED_MODELS = [
     cost: 217,
     costPerUnit: 44,
     costTier: CostTier.HIGH,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
     description:
       'MiniMax H3 — multimodal text, first/last-frame, and reference video generation with native audio at 768P or 2K.',
     isDefault: true,
@@ -179,6 +201,8 @@ export const SELF_HOSTED_MODELS = [
     cost: 134,
     costPerUnit: 27,
     costTier: CostTier.HIGH,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
     description:
       'MiniMax H3 Max via fal — 5–15 second video with native synchronized audio, 480P/768P/1080P output, and optional first/last frames.',
     endpoint: 'minimax/h3-max/text-to-video',
@@ -204,6 +228,8 @@ export const SELF_HOSTED_MODELS = [
     cost: 1599,
     costPerUnit: 27,
     costTier: CostTier.HIGH,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
     description:
       'MiniMax H3 Max Director — realtime steered video billed per elapsed second, including idle time, with a 60-second session minimum.',
     endpoint: 'minimax/h3-max/director',
@@ -226,6 +252,8 @@ export const SELF_HOSTED_MODELS = [
     cost: 400,
     costPerUnit: 80,
     costTier: CostTier.HIGH,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.SLOW,
     description:
       'ByteDance Seedance 2.5 — flagship multimodal video with native audio (up to 30s). Expensive; prefer short drafts.',
     isDefault: false,
@@ -249,6 +277,8 @@ export const SELF_HOSTED_MODELS = [
     cost: 347,
     costPerUnit: 44,
     costTier: CostTier.HIGH,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.FAST,
     description:
       'Google Gemini Omni Flash via fal — synchronized-audio video from text, a first image, or up to three reference images.',
     endpoint: 'google/gemini-omni-flash',
@@ -274,6 +304,8 @@ export const SELF_HOSTED_MODELS = [
     cost: 35,
     costPerUnit: 7,
     costTier: CostTier.LOW,
+    qualityTier: QualityTier.BASIC,
+    speedTier: SpeedTier.FAST,
     description:
       'PrunaAI P-Video — cheapest text-to-video (T2V/I2V, draft mode). Use for local and e2e.',
     isDefault: false,
@@ -294,6 +326,8 @@ export const SELF_HOSTED_MODELS = [
     category: ModelCategory.IMAGE,
     cost: 30,
     costTier: CostTier.HIGH,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
     description:
       'ByteDance Seedream 5 Pro — flagship image (1K/2K, up to 10 reference images).',
     isDefault: false,
@@ -312,6 +346,8 @@ export const SELF_HOSTED_MODELS = [
     category: ModelCategory.IMAGE,
     cost: 18,
     costTier: CostTier.HIGH,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
     description:
       'OpenAI GPT Image 1.5 — previous GPT Image generation and editing model.',
     isDefault: false,
@@ -331,6 +367,8 @@ export const SELF_HOSTED_MODELS = [
     category: ModelCategory.IMAGE,
     cost: 18,
     costTier: CostTier.HIGH,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
     description:
       'OpenAI GPT Image 2 — instruction-following image generation and editing.',
     isDefault: false,
@@ -349,6 +387,8 @@ export const SELF_HOSTED_MODELS = [
     category: ModelCategory.IMAGE,
     cost: 70,
     costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
     description:
       'OpenAI GPT Image 2.5 Flare — fastest 2.5 image model, high-quality everyday generation and editing.',
     isDefault: false,
@@ -366,6 +406,8 @@ export const SELF_HOSTED_MODELS = [
     category: ModelCategory.IMAGE,
     cost: 70,
     costTier: CostTier.HIGH,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.SLOW,
     description:
       'OpenAI GPT Image 2.5 Sunburst — most capable 2.5 image model for precise edits and detailed control.',
     isDefault: false,
@@ -385,6 +427,8 @@ export const SELF_HOSTED_MODELS = [
     cost: 250,
     costPerUnit: 50,
     costTier: CostTier.HIGH,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
     description:
       'ByteDance vCube video upscaler — up to 4K/60fps with scene presets (aigc/ugc/film).',
     isDefault: false,
@@ -417,6 +461,8 @@ export const SELF_HOSTED_MODELS = [
     category: ModelCategory.MUSIC,
     cost: 17,
     costTier: CostTier.LOW,
+    qualityTier: QualityTier.BASIC,
+    speedTier: SpeedTier.FAST,
     description:
       'Meta MusicGen — text-to-music generation, 5-30 second instrumental clips.',
     endpoint:
@@ -439,12 +485,14 @@ export const SELF_HOSTED_MODELS = [
     cost: 200,
     costPerUnit: 4,
     costTier: CostTier.MEDIUM,
+    qualityTier: QualityTier.ULTRA,
+    speedTier: SpeedTier.SLOW,
     description:
       'ElevenLabs Music via fal — full compositions with vocals and lyrics, 10s-90s.',
     endpoint: MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
     isActive: false,
     isDefault: false,
-    isHighlighted: false,
+    isHighlighted: true,
     key: MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
     label: 'Eleven Music',
     minCost: 200,
@@ -461,6 +509,8 @@ export const SELF_HOSTED_MODELS = [
     category: ModelCategory.MUSIC,
     cost: 27,
     costTier: CostTier.LOW,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
     description:
       'Google Lyria 3 Pro via fal — full songs with vocals, lyrics, and multi-language support, up to 90s.',
     endpoint: MODEL_KEYS.FAL_LYRIA3_PRO,
@@ -484,6 +534,8 @@ export const SELF_HOSTED_MODELS = [
     category: ModelCategory.MUSIC,
     cost: 15,
     costTier: CostTier.LOW,
+    qualityTier: QualityTier.HIGH,
+    speedTier: SpeedTier.MEDIUM,
     description:
       'Mureka V9 — lyrics-first song generation via a direct API integration, up to 90s.',
     isActive: false,

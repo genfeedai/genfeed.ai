@@ -174,6 +174,25 @@ describe('ModelCatalogSeedService', () => {
   });
 
   describe('curated legacy selection', () => {
+    it('demotes a priced production Schnell row while preserving operator activation', async () => {
+      const entry = UNIFIED_MODEL_CATALOG.find(
+        (model) =>
+          model.key === MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+      );
+      if (!entry) throw new Error('Expected Schnell in the real catalog');
+      prisma.model.findUnique.mockResolvedValue({
+        cost: entry.cost,
+        id: 'existing',
+      });
+
+      await service.reconcileCatalog([entry]);
+
+      const update = callForKey(entry.key)?.update;
+      expect(update).toMatchObject({ lifecycle: ModelLifecycle.LEGACY });
+      expect(update).not.toHaveProperty('isActive');
+      expect(update).not.toHaveProperty('isDefault');
+    });
+
     const gptImage = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.key === 'openai/gpt-image-1.5',
     );
@@ -398,6 +417,30 @@ describe('ModelCatalogSeedService', () => {
         expect(call.create.lifecycle).toBe(entry?.lifecycle);
         expect(call.update.lifecycle).toBe(entry?.lifecycle);
       }
+    });
+
+    it('writes catalog quality and speed tiers onto existing rows', async () => {
+      const sunburst = UNIFIED_MODEL_CATALOG.find(
+        (entry) =>
+          entry.key === MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_SUNBURST,
+      );
+      if (!sunburst) {
+        throw new Error('Expected GPT Image 2.5 Sunburst in the real catalog');
+      }
+      expect(sunburst.qualityTier).toBeDefined();
+      prisma.model.findUnique.mockResolvedValue({
+        cost: sunburst.cost,
+        id: 'existing',
+        isLegacy: false,
+        lifecycle: ModelLifecycle.RECOMMENDED,
+      });
+
+      await service.reconcileCatalog([sunburst]);
+
+      expect(callForKey(sunburst.key)?.update).toMatchObject({
+        qualityTier: sunburst.qualityTier,
+        speedTier: sunburst.speedTier,
+      });
     });
   });
 
