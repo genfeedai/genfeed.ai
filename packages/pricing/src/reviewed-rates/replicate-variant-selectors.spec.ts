@@ -62,6 +62,40 @@ function rules(endpoint = 'openai/gpt-image-2'): ReviewedVariantRule[] {
 const date = '2026-10-05T00:00:00Z';
 
 describe('checked-in Replicate variant selectors', () => {
+  it('prices FLUX 3 draft and continuation independently of audio', () => {
+    const { rates, variantRules } = mapped('black-forest-labs/flux-3');
+    expect(rates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          unit: 'second',
+          unitPriceUsd: 0.17,
+          when: { model_variant: 't2v_i2v', resolution: '720p' },
+        }),
+        expect.objectContaining({
+          unit: 'second',
+          unitPriceUsd: 0.06,
+          when: { model_variant: 't2v_i2v_draft', resolution: '720p' },
+        }),
+        expect.objectContaining({
+          unit: 'second',
+          unitPriceUsd: 0.53,
+          when: { model_variant: 'v2v', resolution: '1080p' },
+        }),
+        expect.objectContaining({
+          unit: 'second',
+          unitPriceUsd: 0.12,
+          when: { model_variant: 'v2v_draft', resolution: '720p' },
+        }),
+      ]),
+    );
+    expect(variantRules?.[0]?.derive).toMatchObject({
+      kind: 'composite',
+      parts: [
+        { field: 'start_video', mode: 'presence' },
+        { field: 'draft', mode: 'value', default: false },
+      ],
+    });
+  });
   it.each(Object.keys(REPLICATE_VARIANT_SELECTORS))(
     'maps all captured tiers for %s',
     (endpoint) => {

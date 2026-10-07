@@ -64,6 +64,26 @@ export const REPLICATE_VARIANT_SELECTORS: Readonly<
   'black-forest-labs/flux-2-dev': [
     field('go_fast', { true: 'go_fast', false: 'regular' }),
   ],
+  // Public schema and billingConfig, 2026-10-07: draft and continuation rates.
+  'black-forest-labs/flux-3': [
+    {
+      criterionTitle: 'model variant',
+      selectorKey: 'model_variant',
+      derive: {
+        kind: 'composite',
+        parts: [
+          { field: 'start_video', mode: 'presence' },
+          { field: 'draft', mode: 'value' },
+        ],
+        cases: [
+          { when: [false, false], selector: 't2v_i2v' },
+          { when: [false, true], selector: 't2v_i2v_draft' },
+          { when: [true, false], selector: 'v2v' },
+          { when: [true, true], selector: 'v2v_draft' },
+        ],
+      },
+    },
+  ],
   'bytedance/seedance-2.0': seedance,
   'bytedance/seedance-2.0-fast': seedance,
   'bytedance/seedance-2.5': seedance,
