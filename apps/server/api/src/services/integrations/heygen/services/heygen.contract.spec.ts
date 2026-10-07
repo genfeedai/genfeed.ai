@@ -1,235 +1,268 @@
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
+import { ByokService } from '@api/services/byok/byok.service';
 import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { Test, type TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { isAxiosError } from 'axios';
 import { of, throwError } from 'rxjs';
 
-/**
- * Contract tests for the HeyGen integration (avatar-video revenue path).
- *
- * These pin the outgoing request payload shape sent to the HeyGen v2 REST API
- * and the response shape the service parses back (`data.data.video_id`). The
- * `HttpService` is mocked; no network calls are made. Fixtures cover a success
- * response and provider failure shapes (non-200 status, network error).
- *
- * To update when HeyGen changes its API: adjust the `/video/generate` and
- * `/avatar/create` body assertions and the response fixtures below.
- */
-describe('HeyGenService (contract)', () => {
+// Contracts verified against developers.heygen.com/reference on 2026-10-07.
+describe('HeyGen v3 contracts', () => {
   let service: HeyGenService;
-  let httpService: {
-    get: ReturnType<typeof vi.fn>;
-    post: ReturnType<typeof vi.fn>;
-  };
-  let logger: {
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-  };
+  const http = { get: vi.fn(), post: vi.fn() };
+  const byok = { resolveApiKey: vi.fn() };
+  const keys = { getApiKey: vi.fn() };
+  const logger = { error: vi.fn(), log: vi.fn() };
+  const accepted = () =>
+    of({ status: 200, data: { data: { video_id: 'vid_abc' } } });
 
   beforeEach(async () => {
-    httpService = { get: vi.fn(), post: vi.fn() };
-    logger = { error: vi.fn(), log: vi.fn() };
-
-    const apiKeyHelperMock = {
-      getApiKey: vi.fn().mockReturnValue('heygen-key'),
-    };
-
-    const module: TestingModule = await Test.createTestingModule({
+    vi.resetAllMocks();
+    keys.getApiKey.mockReturnValue('platform-key');
+    byok.resolveApiKey.mockResolvedValue(null);
+    http.post.mockReturnValue(accepted());
+    const module = await Test.createTestingModule({
       providers: [
         HeyGenService,
         { provide: LoggerService, useValue: logger },
-        { provide: ApiKeyHelperService, useValue: apiKeyHelperMock },
-        { provide: HttpService, useValue: httpService },
+        { provide: ApiKeyHelperService, useValue: keys },
+        { provide: ByokService, useValue: byok },
+        { provide: HttpService, useValue: http },
         { provide: PollUntilService, useValue: { poll: vi.fn() } },
       ],
     }).compile();
-
-    service = module.get<HeyGenService>(HeyGenService);
+    service = module.get(HeyGenService);
   });
 
-  afterEach(() => vi.clearAllMocks());
+  it('submits a native avatar with its script, voice and callback correlation', async () => {
+    await expect(
+      service.generateAvatarVideo('meta', 'look', 'voice', 'Hello'),
+    ).resolves.toBe('vid_abc');
+    expect(http.post).toHaveBeenCalledWith(
+      'https://api.heygen.com/v3/videos',
+      {
+        type: 'avatar',
+        avatar_id: 'look',
+        script: 'Hello',
+        voice_id: 'voice',
+        aspect_ratio: '16:9',
+        resolution: '720p',
+        callback_id: 'meta',
+      },
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-Api-Key': 'platform-key',
+          'Idempotency-Key': expect.any(String),
+        }),
+      }),
+    );
+    expect(http.post.mock.calls[0][1]).not.toHaveProperty('callback_url');
+  });
 
-  describe('generateAvatarVideo — /video/generate request/response contract', () => {
-    it('POSTs the avatar video payload with X-Api-Key and returns data.video_id', async () => {
-      // Success fixture: HeyGen returns the queued video id under data.data.
-      httpService.post.mockReturnValue(
-        of({ data: { data: { video_id: 'vid_abc' } }, status: 200 }),
-      );
+  it('animates an image with external audio and preserves framing', async () => {
+    await expect(
+      service.generatePhotoAvatarVideo(
+        'meta',
+        'https://cdn/photo.png',
+        {
+          audioUrl: 'https://cdn/audio.mp3',
+          inputText: 'unused',
+          voiceId: 'unused',
+        },
+        undefined,
+        undefined,
+        'pinned-key',
+        '1:1',
+      ),
+    ).resolves.toBe('vid_abc');
+    expect(http.post).toHaveBeenCalledWith(
+      'https://api.heygen.com/v3/videos',
+      {
+        type: 'image',
+        image: { type: 'url', url: 'https://cdn/photo.png' },
+        audio_url: 'https://cdn/audio.mp3',
+        aspect_ratio: '1:1',
+        resolution: '1080p',
+        callback_id: 'meta',
+      },
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'X-Api-Key': 'pinned-key' }),
+      }),
+    );
+    expect(byok.resolveApiKey).not.toHaveBeenCalled();
+  });
 
-      const id = await service.generateAvatarVideo(
-        'meta_1',
-        'avatar_1',
-        'voice_1',
-        'Hello world',
-      );
+  it('animates an image with a script and a HeyGen voice', async () => {
+    await service.generatePhotoAvatarVideo('meta', 'https://cdn/photo.png', {
+      inputText: 'Hello',
+      voiceId: 'voice',
+    });
+    expect(http.post.mock.calls[0][1]).toEqual({
+      type: 'image',
+      image: { type: 'url', url: 'https://cdn/photo.png' },
+      script: 'Hello',
+      voice_id: 'voice',
+      aspect_ratio: '9:16',
+      resolution: '720p',
+      callback_id: 'meta',
+    });
+  });
 
-      expect(id).toBe('vid_abc');
-      expect(httpService.post).toHaveBeenCalledWith(
-        'https://api.heygen.com/v2/video/generate',
-        expect.objectContaining({
-          callback_id: 'meta_1',
-          caption: false,
-          dimension: { height: 720, width: 1280 },
-          video_inputs: [
-            expect.objectContaining({
-              character: expect.objectContaining({
-                avatar_id: 'avatar_1',
-                type: 'avatar',
-              }),
-              voice: expect.objectContaining({
-                input_text: 'Hello world',
-                type: 'text',
-                voice_id: 'voice_1',
-              }),
-            }),
+  it.each([{}, { voiceId: 'voice' }, { voiceId: 'voice', inputText: ' ' }])(
+    'rejects incomplete speech before submission: %j',
+    async (input) => {
+      await expect(
+        service.generatePhotoAvatarVideo(
+          'meta',
+          'https://cdn/photo.png',
+          input,
+        ),
+      ).rejects.toThrow();
+      expect(http.post).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    { data: {} },
+    { data: { task_id: 'legacy-task' } },
+    { data: { video_id: ' ' } },
+  ])('rejects ambiguous acceptance without a v3 video id: %j', async (data) => {
+    http.post.mockReturnValue(of({ status: 200, data }));
+    await expect(
+      service.generateAvatarVideo('meta', 'look', 'voice', 'Hello'),
+    ).rejects.toThrow('HeyGen submission returned no operation identity');
+  });
+
+  it('classifies payment rejection while preserving transport ambiguity', async () => {
+    vi.mocked(isAxiosError).mockReturnValueOnce(true);
+    http.post.mockReturnValueOnce(
+      throwError(() => ({ isAxiosError: true, response: { status: 402 } })),
+    );
+    await expect(
+      service.generatePhotoAvatarVideo('meta', 'https://cdn/photo.png', {
+        voiceId: 'voice',
+        inputText: 'Hello',
+      }),
+    ).rejects.toBeInstanceOf(HeyGenSubmissionRejectedError);
+    const transport = new Error('Response lost');
+    http.post.mockReturnValueOnce(throwError(() => transport));
+    await expect(
+      service.generateAvatarVideo('meta', 'look', 'voice', 'Hello'),
+    ).rejects.toBe(transport);
+  });
+
+  it('does not retry an ambiguous paid submission', async () => {
+    http.post.mockReturnValue(throwError(() => new Error('timeout')));
+    await expect(
+      service.generateAvatarVideo('meta', 'look', 'voice', 'Hello'),
+    ).rejects.toThrow('timeout');
+    expect(http.post).toHaveBeenCalledTimes(1);
+  });
+
+  it('fetches every catalog page using the owning organization key and real look ids', async () => {
+    byok.resolveApiKey.mockResolvedValue({ apiKey: 'tenant-key' });
+    http.get.mockReturnValueOnce(
+      of({
+        status: 200,
+        data: {
+          data: [
+            {
+              id: 'look1',
+              name: 'First',
+              preview_image_url: 'https://cdn/one.jpg',
+            },
           ],
-        }),
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Api-Key': 'heygen-key',
-          },
+          has_more: true,
+          next_token: 'cursor/2',
         },
-      );
-    });
-
-    it('sends no callback_url, so no secret can ride the request line', async () => {
-      // Deliveries arrive at the endpoint registered with HeyGen and are
-      // authenticated by the Heygen-Signature HMAC. Reintroducing a per-request
-      // callback_url would mean unsigned callbacks the verifier must reject.
-      httpService.post.mockReturnValue(
-        of({ data: { data: { video_id: 'vid_abc' } }, status: 200 }),
-      );
-
-      await service.generateAvatarVideo('meta_1', 'a', 'v', 'text');
-
-      const [, body] = httpService.post.mock.calls[0];
-      expect(body).not.toHaveProperty('callback_url');
-      expect(body.callback_id).toBe('meta_1');
-    });
-
-    it('falls back to data.task_id when video_id is absent', async () => {
-      httpService.post.mockReturnValue(
-        of({ data: { data: { task_id: 'task_xyz' } }, status: 200 }),
-      );
-
-      const id = await service.generateAvatarVideo('m', 'a', 'v', 'text');
-      expect(id).toBe('task_xyz');
-    });
-
-    it('throws on a non-200 provider response', async () => {
-      // Failure fixture: HeyGen 400 with an error body.
-      httpService.post.mockReturnValue(
-        of({ data: { error: 'invalid avatar' }, status: 400 }),
-      );
-
-      await expect(
-        service.generateAvatarVideo('m', 'a', 'v', 'text'),
-      ).rejects.toThrow('HeyGen API returned non-200 status');
-    });
-
-    it('rethrows and logs on a network/transport error', async () => {
-      // Failure fixture: transport-level failure (e.g. 500 → axios throws).
-      httpService.post.mockReturnValue(
-        throwError(() => ({ response: { data: {}, status: 500 } })),
-      );
-
-      await expect(
-        service.generateAvatarVideo('m', 'a', 'v', 'text'),
-      ).rejects.toBeDefined();
-      expect(logger.error).toHaveBeenCalled();
-    });
+      }),
+    );
+    http.get.mockReturnValueOnce(
+      of({
+        status: 200,
+        data: {
+          data: [{ id: 'look2', name: 'Second', preview_image_url: null }],
+          has_more: false,
+          next_token: null,
+        },
+      }),
+    );
+    await expect(service.getAvatars('org')).resolves.toEqual([
+      {
+        avatarId: 'look1',
+        name: 'First',
+        index: 0,
+        preview: 'https://cdn/one.jpg',
+      },
+      { avatarId: 'look2', name: 'Second', index: 1, preview: '' },
+    ]);
+    expect(byok.resolveApiKey).toHaveBeenCalledWith('org', 'heygen');
+    expect(keys.getApiKey).not.toHaveBeenCalled();
+    expect(http.get).toHaveBeenNthCalledWith(
+      2,
+      'https://api.heygen.com/v3/avatars/looks',
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'X-Api-Key': 'tenant-key' }),
+        params: { limit: 50, token: 'cursor/2' },
+      }),
+    );
   });
 
-  describe('generatePhotoAvatarVideo — voice payload contract', () => {
-    it('uses an audio voice payload when an audio url is supplied', async () => {
-      httpService.post.mockReturnValue(
-        of({ data: { data: { video_id: 'vid_photo' } }, status: 200 }),
-      );
-
-      const id = await service.generatePhotoAvatarVideo(
-        'meta_2',
-        'https://p/photo.png',
-        {
-          audioUrl: 'https://a/audio.mp3',
+  it('maps public and private v3 voices and their audio previews without leaking private voices into the platform catalog', async () => {
+    const page = (voice: string) =>
+      of({
+        status: 200,
+        data: {
+          data: [
+            {
+              voice_id: voice,
+              name: voice,
+              preview_audio_url: 'https://cdn/voice.mp3',
+            },
+          ],
+          has_more: false,
+          next_token: null,
         },
-      );
-
-      expect(id).toBe('vid_photo');
-      const [, body] = httpService.post.mock.calls[0];
-      expect(body.video_inputs[0].character).toEqual({
-        photo_url: 'https://p/photo.png',
-        type: 'photo_avatar',
       });
-      expect(body.video_inputs[0].voice).toEqual({
-        audio_url: 'https://a/audio.mp3',
-        type: 'audio',
-      });
-    });
-
-    it('classifies an explicit HTTP402 payment rejection, preserving transport ambiguity', async () => {
-      vi.mocked(isAxiosError).mockReturnValueOnce(true);
-      httpService.post.mockReturnValueOnce(
-        throwError(() => ({ isAxiosError: true, response: { status: 402 } })),
-      );
-      await expect(
-        service.generatePhotoAvatarVideo('meta', 'https://p/photo.png', {
-          voiceId: 'voice',
-        }),
-      ).rejects.toBeInstanceOf(HeyGenSubmissionRejectedError);
-      const transportError = new Error('Response lost');
-      httpService.post.mockReturnValueOnce(throwError(() => transportError));
-      await expect(
-        service.generatePhotoAvatarVideo('meta', 'https://p/photo.png', {
-          voiceId: 'voice',
-        }),
-      ).rejects.toBe(transportError);
-    });
-
-    it('treats a success response missing its operation identity as unresolved', async () => {
-      httpService.post.mockReturnValueOnce(
-        of({ status: 200, data: { data: {} } }),
-      );
-      await expect(
-        service.generatePhotoAvatarVideo('meta', 'https://p/photo.png', {
-          voiceId: 'voice',
-        }),
-      ).rejects.toThrow('HeyGen submission returned no operation identity');
-    });
-
-    it('rejects when neither audio url nor voice id is supplied', async () => {
-      await expect(
-        service.generatePhotoAvatarVideo('meta_3', 'https://p/photo.png', {}),
-      ).rejects.toThrow(/audioUrl or voiceId is required/i);
-    });
+    http.get.mockReturnValue(page('public'));
+    await expect(service.getVoices()).resolves.toEqual([
+      {
+        voiceId: 'public',
+        name: 'public',
+        preview: 'https://cdn/voice.mp3',
+        index: 0,
+      },
+    ]);
+    expect(http.get).toHaveBeenCalledTimes(1);
+    byok.resolveApiKey.mockResolvedValue({ apiKey: 'tenant-key' });
+    http.get
+      .mockReturnValueOnce(page('public'))
+      .mockReturnValueOnce(page('private'));
+    await expect(service.getVoices('org')).resolves.toHaveLength(2);
+    expect(http.get).toHaveBeenLastCalledWith(
+      'https://api.heygen.com/v3/voices',
+      expect.objectContaining({ params: { type: 'private', limit: 100 } }),
+    );
   });
 
-  describe('createAvatar — /avatar/create request/response contract', () => {
-    it('POSTs avatar_name + video_url and returns data.avatar_id', async () => {
-      httpService.post.mockReturnValue(
-        of({ data: { data: { avatar_id: 'av_new' } }, status: 200 }),
-      );
+  it.each([
+    { data: [], has_more: true, next_token: null },
+    { data: 'invalid', has_more: false, next_token: null },
+    { data: [], has_more: true, next_token: 'same' },
+  ])('fails closed on broken pagination: %j', async (data) => {
+    http.get.mockReturnValue(of({ status: 200, data }));
+    await expect(service.getAvatars()).rejects.toThrow();
+    expect(http.get.mock.calls.length).toBeLessThanOrEqual(2);
+  });
 
-      const id = await service.createAvatar('My Avatar', 'https://v/clip.mp4');
-
-      expect(id).toBe('av_new');
-      expect(httpService.post).toHaveBeenCalledWith(
-        'https://api.heygen.com/v2/avatar/create',
-        expect.objectContaining({
-          avatar_name: 'My Avatar',
-          video_url: 'https://v/clip.mp4',
-        }),
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Api-Key': 'heygen-key',
-          },
-        },
-      );
-    });
+  it('never falls back to the platform credential after a tenant key is rejected', async () => {
+    byok.resolveApiKey.mockResolvedValue({ apiKey: 'tenant-key' });
+    http.get.mockReturnValue(throwError(() => new Error('unauthorized')));
+    await expect(service.getAvatars('org')).rejects.toThrow('unauthorized');
+    expect(keys.getApiKey).not.toHaveBeenCalled();
+    expect(http.get).toHaveBeenCalledTimes(1);
   });
 });
