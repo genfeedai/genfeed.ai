@@ -401,3 +401,62 @@ describe('completed turn output focus', () => {
     expect(screen.queryByRole('button', { name: 'Steps' })).toBeNull();
   });
 });
+
+describe('completed turn result preservation', () => {
+  it('keeps a generated text artifact visible before the final summary', () => {
+    const generated = buildAssistantMessage('generated', 'Generated post');
+    generated.message.metadata = {
+      generatedContent: 'The launch post',
+      contentType: 'post',
+    };
+    render(
+      <AgentChatTimeline
+        {...baseProps}
+        timeline={[
+          buildUserMessage('prompt', 'Write a post'),
+          buildAssistantMessage('progress', 'Reviewing context'),
+          generated,
+          buildAssistantMessage('summary', 'Post is ready'),
+        ]}
+      />,
+    );
+    expect(screen.getByText('Generated post')).toBeVisible();
+    expect(screen.getByText('Post is ready')).toBeVisible();
+    expect(screen.queryByText('Reviewing context')).toBeNull();
+  });
+
+  it('opens activity when a message in it is highlighted', () => {
+    render(
+      <AgentChatTimeline
+        {...baseProps}
+        highlightedMessageId="progress"
+        timeline={[
+          buildUserMessage('prompt', 'Write'),
+          buildAssistantMessage('progress', 'Working'),
+          buildAssistantMessage('summary', 'Ready'),
+        ]}
+      />,
+    );
+    expect(screen.getByText('Working')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Steps' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+  });
+
+  it('keeps progress visible if work fails after an intermediate assistant message', () => {
+    render(
+      <AgentChatTimeline
+        {...baseProps}
+        timeline={[
+          buildUserMessage('prompt', 'Write'),
+          buildAssistantMessage('progress', 'Starting'),
+          buildFailedWorkGroup('failure', 'status code 503'),
+        ]}
+      />,
+    );
+    expect(screen.getByText('Starting')).toBeVisible();
+    expect(screen.getByTestId('work-group-failure')).toBeVisible();
+    expect(screen.getByRole('alert')).toBeVisible();
+  });
+});

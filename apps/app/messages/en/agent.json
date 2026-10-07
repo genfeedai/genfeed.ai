@@ -1,4 +1,7 @@
 {
+  "timeline": {
+    "steps": "Steps"
+  },
   "markdownCodeBlock": {
     "copied": "Copied",
     "copy": "Copy code",

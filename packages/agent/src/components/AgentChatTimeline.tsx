@@ -91,7 +91,7 @@ export function AgentChatTimeline({
   hasDockedGenerationCard = false,
   suppressThinkingPlaceholder = true,
 }: AgentChatTimelineProps): ReactElement {
-  const translate = useTranslations('common.agent.timeline');
+  const translate = useTranslations('agent.timeline');
   // Only the terminal timeline entry may own the failure card / retry context.
   // An older failed work-group must not surface when a later group succeeded
   // or when the terminal entry is a message / stream row.
