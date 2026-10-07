@@ -167,6 +167,13 @@
       }
     },
     "consent": {
+      "organization": {
+        "choiceRequired": "Choose the organization this client can access.",
+        "empty": "You need an active organization membership to authorize access.",
+        "error": "Organizations could not be loaded. Reload this page to try again.",
+        "label": "Organization",
+        "loading": "Loading organizations…"
+      },
       "callbackHost": {
         "unknownClient": "the requesting client"
       },

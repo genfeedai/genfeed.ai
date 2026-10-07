@@ -137,9 +137,31 @@ export class OAuthAuthorizeService {
     }
 
     const userId = user.userId;
-    const organizationId = user.organizationId;
-    if (!userId || !organizationId) {
+    if (!userId) {
       throw new UnauthorizedException('User identity is incomplete');
+    }
+
+    // Discover only this canonical user's live memberships. Organization is
+    // a root model, so this relation-filtered read does not inherit the active
+    // request tenant or require a cross-organization bypass.
+    const organizations = await this.prisma.organization.findMany({
+      select: { id: true },
+      where: {
+        isDeleted: false,
+        members: { some: { userId, isActive: true, isDeleted: false } },
+      },
+    });
+    const organizationId =
+      dto.organizationId ??
+      (organizations.length === 1 ? organizations[0].id : undefined);
+    if (
+      !organizationId ||
+      !organizations.some((organization) => organization.id === organizationId)
+    ) {
+      throw oauthError(
+        'invalid_request',
+        'Choose an organization where you have an active membership',
+      );
     }
 
     const scopes = this.clampScopes(dto.scope, resource);

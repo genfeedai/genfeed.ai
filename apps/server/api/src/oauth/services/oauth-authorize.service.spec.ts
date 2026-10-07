@@ -1,12 +1,24 @@
 import 'reflect-metadata';
 
+import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { buildCodeChallenge } from '@api/auth/shared/pkce.util';
 import type { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import { OAuthAuthorizeController } from '@api/oauth/controllers/oauth-authorize.controller';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { ConfigService } from '@libs/config/config.service';
+import { PRISMA_MODEL_METADATA } from '@genfeedai/prisma';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { tenantModelsFromMetadata } from '@libs/prisma/discover-tenant-models';
+import { getTenantContext } from '@libs/prisma/tenant-context';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
+import { type ExecutionContext, type INestApplication } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
+import request from 'supertest';
 import { OAuthAuthorizeDecisionDto } from '../dto/authorize-decision.dto';
 import { OAuthAuthorizeRequestDto } from '../dto/authorize-request.dto';
 import { OAuthAuthorizeService } from './oauth-authorize.service';
@@ -33,8 +45,23 @@ function makeUser(): User {
   };
 }
 
+function makeOrganization(
+  id: string,
+  isDeleted = false,
+  isActive = true,
+  isMemberDeleted = false,
+  userId = 'user-1',
+) {
+  return {
+    id,
+    isDeleted,
+    members: [{ isActive, isDeleted: isMemberDeleted, userId }],
+  };
+}
+
 function buildHarness() {
   const records = new Map<string, Record<string, unknown>>();
+  const membershipContexts: Array<string | undefined> = [];
   const apiKeysService = {
     createWithKey: vi.fn().mockResolvedValue({
       apiKey: {
@@ -63,7 +90,43 @@ function buildHarness() {
       return undefined;
     }),
   } as unknown as ConfigService;
+  const organizations = [makeOrganization('org-1')];
   const prisma = {
+    organization: {
+      findMany: vi.fn().mockImplementation(async (args: unknown) => {
+        membershipContexts.push(getTenantContext()?.organizationId);
+        assertTenantScopedQuery({
+          args,
+          isCloud: true,
+          model: 'Organization',
+          operation: 'findMany',
+          tenantModelNames: new Set(
+            tenantModelsFromMetadata(PRISMA_MODEL_METADATA).map(
+              ({ model }) => model,
+            ),
+          ),
+        });
+        expect(args).toEqual({
+          select: { id: true },
+          where: {
+            isDeleted: false,
+            members: {
+              some: { userId: 'user-1', isActive: true, isDeleted: false },
+            },
+          },
+        });
+        return organizations.filter(
+          (organization) =>
+            !organization.isDeleted &&
+            organization.members.some(
+              (member) =>
+                member.userId === 'user-1' &&
+                member.isActive &&
+                !member.isDeleted,
+            ),
+        );
+      }),
+    },
     mcpOAuthAuthCode: {
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
         const record = { ...data, id: 'code-1', usedAt: null };
@@ -113,7 +176,10 @@ function buildHarness() {
 
   return {
     apiKeysService,
+    membershipContexts,
+    organizations,
     prisma,
+    refreshTokenService,
     service: new OAuthAuthorizeService(
       apiKeysService,
       clientService,
@@ -143,6 +209,123 @@ function decision(
 describe('OAuthAuthorizeService', () => {
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('requires an explicit choice for multiple live memberships before creating a grant', async () => {
+    const { organizations, prisma, service } = buildHarness();
+    organizations.push(makeOrganization('org-2'));
+    await expect(
+      service.decideAuthorization(makeUser(), decision()),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ error: 'invalid_request' }),
+    });
+    expect(prisma.mcpOAuthAuthCode.create).not.toHaveBeenCalled();
+  });
+
+  it('binds the code, access key and refresh session only to the chosen organization', async () => {
+    const {
+      apiKeysService,
+      organizations,
+      prisma,
+      refreshTokenService,
+      service,
+    } = buildHarness();
+    organizations.push(makeOrganization('org-2'));
+    const authorization = await service.decideAuthorization(
+      makeUser(),
+      decision({ organizationId: 'org-2' }),
+    );
+    expect(prisma.organization.findMany).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        isDeleted: false,
+        members: {
+          some: { userId: 'user-1', isActive: true, isDeleted: false },
+        },
+      },
+    });
+    expect(prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        organizationId: 'org-2',
+        userId: 'user-1',
+      }),
+    });
+    await service.exchangeToken({
+      client_id: clientId,
+      code: new URL(authorization.redirectUrl).searchParams.get(
+        'code',
+      ) as string,
+      code_verifier: verifier,
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri,
+      resource,
+    });
+    expect(apiKeysService.createWithKey).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationId: 'org-2', userId: 'user-1' }),
+      'mcp',
+    );
+    expect(refreshTokenService.issue).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationId: 'org-2', userId: 'user-1' }),
+    );
+  });
+
+  it.each([
+    'foreign-org',
+    'deleted-membership',
+    'inactive-membership',
+    'deleted-org',
+  ])(
+    'rejects %s rather than falling back to the active organization',
+    async (organizationId) => {
+      const { organizations, prisma, service } = buildHarness();
+      organizations.push(
+        makeOrganization(
+          organizationId,
+          organizationId === 'deleted-org',
+          organizationId !== 'inactive-membership',
+          organizationId === 'deleted-membership',
+          organizationId === 'foreign-org' ? 'another-user' : 'user-1',
+        ),
+      );
+      await expect(
+        service.decideAuthorization(makeUser(), decision({ organizationId })),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ error: 'invalid_request' }),
+      });
+      expect(prisma.mcpOAuthAuthCode.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it('approves the sole live organization even when the default identity is stale', async () => {
+    const { organizations, prisma, service } = buildHarness();
+    organizations.splice(0, organizations.length, makeOrganization('org-2'));
+    await service.decideAuthorization(makeUser(), decision());
+    expect(prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ organizationId: 'org-2' }),
+    });
+  });
+
+  it('rejects approval when no live memberships remain', async () => {
+    const { organizations, prisma, service } = buildHarness();
+    organizations.splice(0);
+    await expect(
+      service.decideAuthorization(makeUser(), decision()),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ error: 'invalid_request' }),
+    });
+    expect(prisma.mcpOAuthAuthCode.create).not.toHaveBeenCalled();
+  });
+
+  it('can deny access without selecting or discovering an organization', async () => {
+    const { organizations, prisma, service } = buildHarness();
+    organizations.push(makeOrganization('org-2'));
+    await expect(
+      service.decideAuthorization(makeUser(), decision({ approved: false })),
+    ).resolves.toMatchObject({
+      redirectUrl: expect.stringContaining('access_denied'),
+    });
+    expect(prisma.organization.findMany).not.toHaveBeenCalled();
+    expect(prisma.mcpOAuthAuthCode.create).not.toHaveBeenCalled();
   });
 
   it('builds a consent redirect only after validating client and resource', async () => {
@@ -547,4 +730,79 @@ describe('Claude resource grant', () => {
       'mcp',
     );
   });
+});
+
+describe('OAuth consent HTTP tenant context', () => {
+  let app: INestApplication;
+  let harness: ReturnType<typeof buildHarness>;
+
+  beforeEach(async () => {
+    harness = buildHarness();
+    harness.organizations.push(makeOrganization('org-2'));
+    const moduleRef = await Test.createTestingModule({
+      controllers: [OAuthAuthorizeController],
+      providers: [
+        { provide: OAuthAuthorizeService, useValue: harness.service },
+        { provide: ConfigService, useValue: { get: () => undefined } },
+        {
+          provide: LoggerService,
+          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
+        },
+      ],
+    })
+      .overrideGuard(BetterAuthGuard)
+      .useValue({
+        canActivate(context: ExecutionContext) {
+          // Model the real strategy: it restores the default identity, regardless
+          // of the choice carried in the request body/header.
+          context.switchToHttp().getRequest().user = makeUser();
+          return true;
+        },
+      })
+      .compile();
+    app = moduleRef.createNestApplication();
+    app.setGlobalPrefix('v1');
+    app.useGlobalPipes(new ValidationPipe());
+    app.useGlobalInterceptors(new TenantContextInterceptor());
+    await app.init();
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('keeps the approved workspace through real DTO validation and the default request tenant', async () => {
+    const result = await request(app.getHttpServer())
+      .post('/v1/oauth/authorize/decision')
+      .send(decision({ organizationId: 'org-2' }))
+      .expect(201);
+    expect(harness.membershipContexts).toEqual(['org-1']);
+    expect(harness.prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ organizationId: 'org-2' }),
+    });
+    await harness.service.exchangeToken({
+      client_id: clientId,
+      code: new URL(result.body.redirectUrl).searchParams.get('code') as string,
+      code_verifier: verifier,
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri,
+      resource,
+    });
+    expect(harness.apiKeysService.createWithKey).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationId: 'org-2' }),
+      'mcp',
+    );
+  });
+
+  it.each([undefined, 'foreign-org', ''])(
+    'rejects an omitted, foreign or empty HTTP choice (%s)',
+    async (organizationId) => {
+      const result = await request(app.getHttpServer())
+        .post('/v1/oauth/authorize/decision')
+        .send(decision({ organizationId }))
+        .expect(400);
+      expect(result.body.error).toBe('invalid_request');
+      expect(harness.prisma.mcpOAuthAuthCode.create).not.toHaveBeenCalled();
+    },
+  );
 });
