@@ -139,6 +139,17 @@ const CURATED_MEDIA_BY_KEY = new Map<
   (typeof SELF_HOSTED_MODELS)[number]
 >(SELF_HOSTED_MODELS.map((model) => [model.key, model]));
 
+/** Previous-generation hosted FLUX endpoints remain explicit legacy choices. */
+const LEGACY_FLUX_MEDIA_KEYS: ReadonlySet<string> = new Set([
+  MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+  MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
+  MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO,
+  MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_MAX,
+  MODEL_KEYS.FAL_FLUX_SCHNELL,
+  MODEL_KEYS.FAL_FLUX_DEV,
+  MODEL_KEYS.FAL_FLUX_PRO,
+]);
+
 /**
  * Every media key we know how to call, so Settings → Models lists the real
  * catalogue rather than the four curated defaults.
@@ -164,8 +175,9 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
       isActive: isCurated,
       isDefault: curated?.isDefault ?? false,
       isHighlighted: curated?.isHighlighted ?? false,
-      lifecycle:
-        curated && 'lifecycle' in curated && curated.lifecycle
+      lifecycle: LEGACY_FLUX_MEDIA_KEYS.has(key)
+        ? ModelLifecycle.LEGACY
+        : curated && 'lifecycle' in curated && curated.lifecycle
           ? curated.lifecycle
           : curated?.isDefault || curated?.isHighlighted
             ? ModelLifecycle.RECOMMENDED
@@ -415,8 +427,8 @@ function applyLowestCostDefaults(
 /**
  * Catalogue the seed writes for a deployment.
  *
- * Cloud production keeps {@link UNIFIED_MODEL_CATALOG} quality defaults.
- * Local, self-hosted, and e2e (`isCloudQualityDefaultsEnabled === false`)
+ * Production keeps {@link UNIFIED_MODEL_CATALOG} quality defaults.
+ * Development, staging, and e2e (`isCloudQualityDefaultsEnabled === false`)
  * promote the lowest-cost image / video / chat rows so a generate does not
  * bill Seedance / Nano Banana / a mid-tier chat model.
  */

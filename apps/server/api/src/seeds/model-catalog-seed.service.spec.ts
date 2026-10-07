@@ -174,6 +174,25 @@ describe('ModelCatalogSeedService', () => {
   });
 
   describe('curated legacy selection', () => {
+    it('demotes a priced production Schnell row while preserving operator activation', async () => {
+      const entry = UNIFIED_MODEL_CATALOG.find(
+        (model) =>
+          model.key === MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+      );
+      if (!entry) throw new Error('Expected Schnell in the real catalog');
+      prisma.model.findUnique.mockResolvedValue({
+        cost: entry.cost,
+        id: 'existing',
+      });
+
+      await service.reconcileCatalog([entry]);
+
+      const update = callForKey(entry.key)?.update;
+      expect(update).toMatchObject({ lifecycle: ModelLifecycle.LEGACY });
+      expect(update).not.toHaveProperty('isActive');
+      expect(update).not.toHaveProperty('isDefault');
+    });
+
     const gptImage = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.key === 'openai/gpt-image-1.5',
     );

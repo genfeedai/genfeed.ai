@@ -1,6 +1,7 @@
 import {
   type IngredientFormat,
   ModelCategory,
+  ModelLifecycle,
   QualityTier,
 } from '@genfeedai/contracts';
 import {
@@ -47,19 +48,16 @@ const QUALITY_TIER_ORDER: QualityTier[] = [
 
 export const IMAGE_QUALITY_MODELS: Record<QualityTier, string[]> = {
   [QualityTier.BASIC]: [
-    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+    MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
     MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST,
     MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO,
     MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST,
-    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
   ],
   [QualityTier.STANDARD]: [
     MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
-    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
     MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO,
     MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST,
     MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST,
-    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
   ],
   [QualityTier.HIGH]: [
     MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE,
@@ -79,7 +77,6 @@ export const IMAGE_QUALITY_MODELS: Record<QualityTier, string[]> = {
     MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO,
     MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_ULTRA,
     MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY,
-    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO,
   ],
 };
 
@@ -274,7 +271,7 @@ function isModelFormatCompatibleFromDoc(
 
 /**
  * Resolve quality tier to a model using model documents from the database.
- * Models are filtered by category, quality tier, format compatibility, and active status.
+ * Legacy and retired rows are explicit choices, never quality-tier fallbacks.
  * Falls back to lower tiers if the requested tier has no compatible models.
  */
 export function resolveQualityToModelFromDb(
@@ -284,7 +281,12 @@ export function resolveQualityToModelFromDb(
   models: IModel[],
 ): IModel | null {
   const activeModels = models.filter(
-    (m) => m.category === category && m.isActive && !m.isDeleted,
+    (m) =>
+      m.category === category &&
+      m.isActive &&
+      !m.isDeleted &&
+      m.lifecycle !== ModelLifecycle.LEGACY &&
+      m.lifecycle !== ModelLifecycle.RETIRED,
   );
 
   for (const model of activeModels) {

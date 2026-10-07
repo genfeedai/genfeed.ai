@@ -419,7 +419,7 @@ export class RouterService {
   /**
    * Cost priority: prefer low tiers, then fall back to numeric provider/list
    * cost so registries with null costTier (common before re-seed) still pick
-   * FLUX Schnell ($0.003) over Nano Banana ($0.039).
+   * the cheaper eligible Recommended row. Legacy models stay outside Auto.
    */
   private scoreCostPriority(model: ModelDocument): number {
     if (model.costTier === 'low') {

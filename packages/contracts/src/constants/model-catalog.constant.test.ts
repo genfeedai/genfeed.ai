@@ -152,6 +152,39 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(mispricedFreeRows).toEqual([]);
   });
 
+  it('keeps FLUX.1 Schnell explicit-only in production and enables it for development', () => {
+    const key = MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL;
+    expect(
+      getModelCatalogForDeployment(true).find((entry) => entry.key === key),
+    ).toMatchObject({
+      isActive: true,
+      isPublic: true,
+      isDefault: false,
+      isHighlighted: false,
+      lifecycle: ModelLifecycle.LEGACY,
+    });
+    expect(
+      getModelCatalogForDeployment(false).find((entry) => entry.key === key),
+    ).toMatchObject({
+      isActive: true,
+      isDefault: true,
+      lifecycle: ModelLifecycle.RECOMMENDED,
+    });
+  });
+
+  it.each([
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO,
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_MAX,
+    MODEL_KEYS.FAL_FLUX_SCHNELL,
+    MODEL_KEYS.FAL_FLUX_DEV,
+    MODEL_KEYS.FAL_FLUX_PRO,
+  ])('seeds previous-generation FLUX endpoint %s as legacy', (key) => {
+    expect(
+      UNIFIED_MODEL_CATALOG.find((entry) => entry.key === key)?.lifecycle,
+    ).toBe(ModelLifecycle.LEGACY);
+  });
+
   it('keeps GPT Image 1.5 selectable as legacy and GPT Image 2 in the main list', () => {
     const image15 = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.key === MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5,
@@ -231,7 +264,7 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     }
   });
 
-  it('routes Auto Best Quality to the SOTA recommended row per media category', () => {
+  it('seeds an ultra-tier recommended candidate per curated media category', () => {
     const recommendedUltra = UNIFIED_MODEL_CATALOG.filter(
       (entry) =>
         entry.lifecycle === ModelLifecycle.RECOMMENDED &&

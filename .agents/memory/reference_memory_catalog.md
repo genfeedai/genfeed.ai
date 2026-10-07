@@ -51,7 +51,8 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [feedback_messages_conversation_inbox](feedback_messages_conversation_inbox.md) — Messages nav lists social conversations; disconnected state connects accounts; read-only platforms have no composer
 - [feedback_local_dev_portless_only](feedback_local_dev_portless_only.md) — interactive local app always `https://app.genfeed.localhost/` via package `dev` (Portless); fixed ports only as `dev:debug*`
 - [feedback_local_replicate_key_source](feedback_local_replicate_key_source.md) — edit only root `.env.local`; `env:sync local` regenerates app copies; never hand-edit generated env files
-- [feedback_lowest_cost_local_models](feedback_lowest_cost_local_models.md) — local/e2e/self-hosted default to FLUX Schnell, P-Video, DeepSeek V4 Flash; cloud production keeps quality defaults
+- [feedback_lowest_cost_local_models](feedback_lowest_cost_local_models.md) — development/test/staging use cheap defaults; production uses quality media defaults
+- [media model benchmark policy](feedback_media_model_benchmark_policy.md) — FLUX.1 is legacy in production; task-specific benchmarks and product qualification govern media recommendations
 - [feedback_local_saas_staging_cdn](feedback_local_saas_staging_cdn.md) — local SaaS publishes media via staging-cdn; files host is API-only, never `/local/` paths
 - [feedback_tdd_first](feedback_tdd_first.md) — TDD first (red→green→refactor); deterministic tests; MacBook keeps full suites CI-only
 - [feedback_code_ci_not_workflow_gates](feedback_code_ci_not_workflow_gates.md) — product contracts are tests; do not add named `check:*` steps to the CI guards job

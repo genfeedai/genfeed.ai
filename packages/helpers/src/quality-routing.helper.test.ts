@@ -1,5 +1,6 @@
 import {
   ModelCategory,
+  ModelLifecycle,
   ModelProvider,
   QualityTier,
 } from '@genfeedai/contracts';
@@ -375,6 +376,39 @@ describe('quality-routing.helper', () => {
   }
 
   describe('resolveQualityToModelFromDb', () => {
+    it.each([ModelLifecycle.LEGACY, ModelLifecycle.RETIRED])(
+      'excludes %s models even when active and the only format-compatible fallback',
+      (lifecycle) => {
+        const legacy = createMockModel({
+          key: 'ultra-image',
+          lifecycle,
+          qualityTier: QualityTier.ULTRA,
+        });
+        const current = createMockModel({
+          key: 'standard-image',
+          lifecycle: ModelLifecycle.RECOMMENDED,
+          qualityTier: QualityTier.STANDARD,
+        });
+
+        expect(
+          resolveQualityToModelFromDb(
+            QualityTier.ULTRA,
+            ModelCategory.IMAGE,
+            'landscape',
+            [legacy, current],
+          ),
+        ).toBe(current);
+        expect(
+          resolveQualityToModelFromDb(
+            QualityTier.ULTRA,
+            ModelCategory.IMAGE,
+            'landscape',
+            [legacy],
+          ),
+        ).toBeNull();
+      },
+    );
+
     it('should return model matching quality tier and format', () => {
       const models = [
         createMockModel({
