@@ -326,3 +326,107 @@ test('finalization refreshes partial owned observations into complete stopped ev
   assert.equal(f.saved().hasFailed, false);
   assert.equal(Object.hasOwn(f.summary(), 'causalObservation'), false);
 });
+
+test('final unavailable CPU capture turns initially clean acceptance red without deleting the safe summary', async (context) => {
+  const f = fixture(context);
+  const previous = Reflect.get(process.env, 'CLOUD_SWEEP_CPU_PROFILE');
+  Reflect.set(process.env, 'CLOUD_SWEEP_CPU_PROFILE', '1');
+  context.after(() => {
+    if (previous === undefined)
+      Reflect.deleteProperty(process.env, 'CLOUD_SWEEP_CPU_PROFILE');
+    else Reflect.set(process.env, 'CLOUD_SWEEP_CPU_PROFILE', previous);
+  });
+  assert.equal(f.report.hasFailed, false);
+  assert.equal(f.write().cpuProfileEvidence.quality, 'partial');
+  assert.equal(f.report.hasFailed, false);
+  f.report.finalLogScannedAt = 1;
+  const summary = f.write();
+  assert.equal(summary.cpuProfileEvidence.quality, 'incomplete');
+  assert.equal(summary.cpuProfileEvidence.reasons.triggerMissing, 1);
+  assert.equal(f.report.hasFailed, true);
+  assert.ok(
+    f.report.failures.includes('CPU profile diagnostic evidence unavailable'),
+  );
+  assert.ok(existsSync(f.summaryPath));
+});
+
+test('early sealed CPU profile survives missing API footer and stopped marker while acceptance stays false', async (context) => {
+  const f = fixture(context);
+  const { atomicCpuFile, digestCpu, writeCpuTrigger } = await import(
+    './cpu-profile-core.mjs'
+  );
+  const previousCpu = Reflect.get(process.env, 'CLOUD_SWEEP_CPU_PROFILE'),
+    previousCausal = Reflect.get(process.env, 'CLOUD_SWEEP_DIAGNOSTICS');
+  Reflect.set(process.env, 'CLOUD_SWEEP_CPU_PROFILE', '1');
+  Reflect.set(process.env, 'CLOUD_SWEEP_DIAGNOSTICS', '1');
+  context.after(() => {
+    for (const [key, value] of [
+      ['CLOUD_SWEEP_CPU_PROFILE', previousCpu],
+      ['CLOUD_SWEEP_DIAGNOSTICS', previousCausal],
+    ]) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+  writeCpuTrigger(f.directory, 1);
+  const profile = {
+    nodes: [
+      {
+        id: 1,
+        callFrame: {
+          functionName: 'SECRET_FUNCTION',
+          scriptId: 'BUSINESS_ID',
+          url: '',
+          lineNumber: -1,
+          columnNumber: -1,
+        },
+      },
+    ],
+    startTime: 0,
+    endTime: 100,
+    samples: [1],
+    timeDeltas: [90],
+  };
+  const raw = Buffer.from(JSON.stringify(profile));
+  atomicCpuFile(f.directory, 'cpu-profile.raw.json', raw);
+  atomicCpuFile(
+    f.directory,
+    'cpu-profile-seal.json',
+    Buffer.from(
+      JSON.stringify({
+        version: 1,
+        state: 'complete',
+        reason: null,
+        triggerAt: 1,
+        startedAt: 1,
+        stoppedAt: 2,
+        sealedAt: 3,
+        plannedDurationMs: 90000,
+        samplingIntervalUs: 2000,
+        actualDurationUs: 100,
+        sampleCount: 1,
+        nodeCount: 1,
+        rawBytes: raw.length,
+        rawSha256: digestCpu(raw),
+      }),
+    ),
+  );
+  f.report.finalLogScannedAt = 1;
+  const summary = f.write();
+  assert.equal(summary.cpuProfileEvidence.quality, 'complete');
+  assert.equal(summary.causalEvidence.quality, 'incomplete');
+  assert.equal(f.report.hasFailed, true);
+  assert.ok(
+    f.report.failures.includes('Causal diagnostic evidence unavailable'),
+  );
+  assert.ok(
+    !f.report.failures.includes('CPU profile diagnostic evidence unavailable'),
+  );
+  for (const sentinel of [
+    'SECRET_FUNCTION',
+    'BUSINESS_ID',
+    'cpu-profile.raw.json',
+    'startTime',
+  ])
+    assert.ok(!JSON.stringify(summary).includes(sentinel));
+});

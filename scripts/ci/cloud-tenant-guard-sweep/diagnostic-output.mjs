@@ -14,6 +14,7 @@ import {
   DIAGNOSTIC_ACTORS,
   DIAGNOSTIC_PHASES,
 } from './core.mjs';
+import { collectCpuEvidence } from './cpu-profile-evidence.mjs';
 import { readMailStats, validateRunDirectory } from './local-mail-stub.mjs';
 
 const unavailable = 'Final diagnostic evidence unavailable';
@@ -83,6 +84,12 @@ export function writeDiagnosticEvidence(
       report.causalEvidence = snapshot.evidence;
       if (final && snapshot.evidence.quality !== 'complete')
         fail(report, 'Causal diagnostic evidence unavailable');
+    }
+    if (Reflect.get(process.env, 'CLOUD_SWEEP_CPU_PROFILE') === '1') {
+      const final = Boolean(report.finalLogScannedAt);
+      report.cpuProfileEvidence = collectCpuEvidence(directory, { final });
+      if (final && report.cpuProfileEvidence.quality !== 'complete')
+        fail(report, 'CPU profile diagnostic evidence unavailable');
     }
     const summary = buildDiagnosticSummary(report, fixtureProof);
     writeOwned(reportPath, report);

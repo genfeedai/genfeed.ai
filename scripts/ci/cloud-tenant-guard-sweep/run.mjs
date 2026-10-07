@@ -1,3 +1,4 @@
+import { cpuActivation, writeCpuTrigger } from './cpu-profile-core.mjs';
 // Exercises live OpenAPI GETs and the agent/MCP tool union with CLOUD tenant
 // enforcement, independent dual-org members, and superadmin override contexts.
 // Strict or unbaselined S:A tenant hits, incomplete coverage and unresolved timeout/transport failures fail.
@@ -149,6 +150,7 @@ let prisma;
 
 try {
   const runtime = validateRuntimeConfig(process.env);
+  const cpuEnabled = cpuActivation(process.env, runtime.mode === 'ci');
   validateRunDirectory(Reflect.get(process.env, 'CLOUD_SWEEP_RUN_DIR'));
   mailStats = readMailStats(Reflect.get(process.env, 'CLOUD_SWEEP_RUN_DIR'));
   const importFromApiWorkspace = createWorkspaceImporter({
@@ -294,6 +296,13 @@ try {
         sweepSignal,
       );
     });
+  if (cpuEnabled) {
+    try {
+      writeCpuTrigger(Reflect.get(process.env, 'CLOUD_SWEEP_RUN_DIR'));
+    } catch {
+      failures.push('CPU profile trigger unavailable');
+    }
+  }
   // All strict phases finish before the override boundary is recorded.
   await concurrentMap(
     contexts.slice(0, 3),

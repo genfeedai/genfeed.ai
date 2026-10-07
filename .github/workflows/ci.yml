@@ -849,6 +849,7 @@ jobs:
           chmod 700 "$sweep_run_dir"
           echo "CLOUD_SWEEP_RUN_DIR=$sweep_run_dir" >> "$GITHUB_ENV"
           echo "CLOUD_SWEEP_DIAGNOSTICS=1" >> "$GITHUB_ENV"
+          echo "CLOUD_SWEEP_CPU_PROFILE=1" >> "$GITHUB_ENV"
           echo "CLOUD_SWEEP_API_LOG=$sweep_run_dir/api.log" >> "$GITHUB_ENV"
           echo "CLOUD_SWEEP_REPORT=$sweep_run_dir/cloud-tenant-guard-report.json" >> "$GITHUB_ENV"
       - name: Apply Prisma migrations to test DB

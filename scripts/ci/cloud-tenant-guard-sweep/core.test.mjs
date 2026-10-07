@@ -1138,3 +1138,36 @@ test('summary accepts only fixed validated causal evidence and leaves historical
     }),
   );
 });
+
+test('CPU evidence validates independently and does not retroactively modify disabled summaries', async () => {
+  const { buildDiagnosticSummary } = await import('./core.mjs');
+  const { emptyCpuEvidence } = await import('./cpu-profile-evidence.mjs');
+  const report = {
+    sourceSha: 'a'.repeat(40),
+    requests: [],
+    inventoryTemplates: [],
+  };
+  assert.equal(
+    Object.hasOwn(buildDiagnosticSummary(report), 'cpuProfileEvidence'),
+    false,
+  );
+  const cpu = emptyCpuEvidence('incomplete', 'workerMissing');
+  assert.deepEqual(
+    buildDiagnosticSummary({ ...report, cpuProfileEvidence: cpu })
+      .cpuProfileEvidence,
+    cpu,
+  );
+  assert.throws(() =>
+    buildDiagnosticSummary({
+      ...report,
+      cpuProfileEvidence: { ...cpu, privateProfile: 'SECRET_TOKEN' },
+    }),
+  );
+  assert.equal(
+    Object.hasOwn(
+      buildDiagnosticSummary({ ...report, cpuProfileEvidence: cpu }),
+      'causalEvidence',
+    ),
+    false,
+  );
+});

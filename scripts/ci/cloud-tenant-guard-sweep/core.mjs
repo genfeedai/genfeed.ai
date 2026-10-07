@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { validateCausalEvidence } from './causal-evidence.mjs';
+import { validateCpuEvidence } from './cpu-profile-evidence.mjs';
 import { validateMailStats } from './local-mail-stub.mjs';
 
 export function createDeadline(
@@ -863,6 +864,9 @@ export function buildDiagnosticSummary(report, fixtureProof = {}) {
     throw new Error('Inconsistent diagnostic failure attempts');
   return {
     schemaVersion: 1,
+    ...(report.cpuProfileEvidence === undefined
+      ? {}
+      : { cpuProfileEvidence: validateCpuEvidence(report.cpuProfileEvidence) }),
     ...(report.causalEvidence === undefined
       ? {}
       : {

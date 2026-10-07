@@ -2,13 +2,22 @@ import { closeSync, constants, openSync, writeSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { monitorEventLoopDelay } from 'node:perf_hooks';
+import { fileURLToPath } from 'node:url';
+import { Worker } from 'node:worker_threads';
 import {
   createApiObserver,
   OBSERVER_SYMBOL,
   POOL_OPTIONS,
 } from './api-observer-core.mjs';
 import { validateRuntimeConfig } from './config.mjs';
+import { cpuActivation } from './cpu-profile-core.mjs';
 import { validateRunDirectory } from './local-mail-stub.mjs';
+
+if (
+  Reflect.get(process.env, 'CLOUD_SWEEP_CPU_PROFILE') === '1' &&
+  Reflect.get(process.env, 'CLOUD_SWEEP_DIAGNOSTICS') !== '1'
+)
+  cpuActivation(process.env);
 
 if (Reflect.get(process.env, 'CLOUD_SWEEP_DIAGNOSTICS') === '1') {
   const runtime = validateRuntimeConfig(process.env);
@@ -48,4 +57,27 @@ if (Reflect.get(process.env, 'CLOUD_SWEEP_DIAGNOSTICS') === '1') {
   });
   globalThis[OBSERVER_SYMBOL] = instance.observer;
   process.once('exit', instance.stop);
+  if (cpuActivation(process.env, true)) {
+    const worker = new Worker(
+      new URL('./cpu-profile-worker.mjs', import.meta.url),
+      {
+        execArgv: [],
+        env: {},
+        workerData: {
+          version: 1,
+          directory,
+          repositoryRoot: fileURLToPath(
+            new URL('../../../', import.meta.url),
+          ).replace(/\/$/, ''),
+        },
+      },
+    );
+    worker.on('error', () => {
+      /* Missing seal is retained by the collector. */
+    });
+    worker.on('exit', () => {
+      /* Never control or replace API shutdown. */
+    });
+    worker.unref();
+  }
 }
