@@ -38,7 +38,11 @@ it('keeps wrapped multiline typing visible without rerendering the editor on eac
   expect(element.scrollTop).toBeGreaterThan(0);
   expect(onRender.mock.calls.length).toBeLessThan(12);
   // Editing an earlier line follows that caret instead of snapping to the tail.
-  await userEvent.keyboard('{Control>}{Home}{/Control}');
+  await userEvent.keyboard(
+    navigator.platform.includes('Mac')
+      ? '{Meta>}{ArrowUp}{/Meta}'
+      : '{Control>}{Home}{/Control}',
+  );
   await userEvent.keyboard('Edited ');
   await expect.poll(() => element.scrollTop).toBeLessThan(30);
 });
