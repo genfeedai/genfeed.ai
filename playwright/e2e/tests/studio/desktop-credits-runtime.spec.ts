@@ -368,7 +368,7 @@ for (const theme of ['light', 'dark'] as const)
           .getByRole('button', { name: 'Generate', exact: true });
         let summary = await openGenerationSummary(page);
         await expect(summary.getByRole('status')).toHaveText(
-          'Loading cost context',
+          'Loading cost context…',
         );
         expect(walletRequests).toBe(0);
         expect(desktopNetwork.walletRequests).toBe(0);
@@ -414,7 +414,7 @@ for (const theme of ['light', 'dark'] as const)
         );
         summary = await openGenerationSummary(page);
         await expect(summary.getByRole('status')).toHaveText(
-          'Loading cost context',
+          'Loading cost context…',
         );
         await generate.press('Escape');
         await expect(summary).toHaveCount(0);
