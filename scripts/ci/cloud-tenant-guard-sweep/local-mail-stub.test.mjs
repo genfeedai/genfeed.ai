@@ -228,13 +228,13 @@ test('refusal attribution records only exact fixed tuples and preserves authoriz
   context.after(() => rmSync(runDir, { recursive: true, force: true }));
   const { handler, counts } = createLocalMailStub({ mode: 'ci', key, runDir });
   const cases = [
-    ['/v1/health', undefined, 'health', 'absent', 401],
+    ['/v1/health/', undefined, 'other', 'absent', 401],
     ['/v1/health', 'private-token', 'health', 'other', 401],
-    ['/v1/health', `Bearer ${key}`, 'health', 'matched', 404],
+    ['/v1/health/', `Bearer ${key}`, 'other', 'matched', 404],
     [
-      '/v1/internal/system-notifications',
+      '/v1/internal/system-notifications?private-query',
       `Bearer ${key}`,
-      'systemNotifications',
+      'other',
       'matched',
       404,
     ],
@@ -318,6 +318,7 @@ test('mail attribution validates compatibility, exact enums, sums, uniqueness an
   const { validateMailStats } = await import('./local-mail-stub.mjs');
   const historical = zeroMailStats();
   delete historical.rejectedRequests;
+  delete historical.probeRequests;
   assert.equal(validateMailStats(historical), historical);
   const stats = zeroMailStats();
   stats.rejected.path = 2;
@@ -371,4 +372,187 @@ test('mail attribution validates compatibility, exact enums, sums, uniqueness an
   const shifted = structuredClone(stats);
   shifted.rejectedRequests[0].route = 'other';
   assert.throws(() => validateMailStats(shifted, stats));
+});
+
+test('exact fixture probes report liveness and unavailable delivery with independent concurrent counters', async (context) => {
+  const runDir = mkdtempSync(join(tmpdir(), 'tenant-probes-'));
+  context.after(() => rmSync(runDir, { recursive: true, force: true }));
+  const { handler, counts } = createLocalMailStub({ mode: 'ci', key, runDir });
+  context.mock.method(globalThis, 'fetch', () =>
+    assert.fail('No outgoing probe call'),
+  );
+  async function call(url, authorization, method = 'GET') {
+    let status, body;
+    await handler(
+      { url, method, headers: { authorization } },
+      {
+        writeHead(value) {
+          status = value;
+        },
+        end(value) {
+          body = value ? JSON.parse(value) : undefined;
+        },
+      },
+    );
+    return { status, body };
+  }
+  assert.deepEqual(await call('/v1/health', undefined), {
+    status: 200,
+    body: { status: 'ok' },
+  });
+  assert.deepEqual(await call('/v1/health', `Bearer ${key}`), {
+    status: 200,
+    body: { status: 'ok' },
+  });
+  assert.deepEqual(
+    await call('/v1/internal/system-notifications', `Bearer ${key}`),
+    {
+      status: 503,
+      body: {
+        message: 'System notification delivery is unavailable in this fixture',
+      },
+    },
+  );
+  await Promise.all(
+    Array.from({ length: 20 }, () => call('/v1/health', undefined)),
+  );
+  await Promise.all(
+    Array.from({ length: 20 }, () =>
+      call('/v1/internal/system-notifications', `Bearer ${key}`),
+    ),
+  );
+  assert.deepEqual(counts, {
+    ...zeroMailStats(),
+    probeRequests: { health: 22, systemNotificationsUnavailable: 21 },
+  });
+  for (const [url, authorization, method, status] of [
+    ['/v1/health', 'private-token', 'GET', 401],
+    ['/v1/internal/system-notifications', undefined, 'GET', 401],
+    ['/v1/internal/system-notifications', 'private-token', 'GET', 401],
+    ['/v1/internal/system-notifications', `Bearer ${key}`, 'POST', 404],
+    ['/v1/health', `Bearer ${key}`, 'POST', 404],
+    ['/v1/health', `Bearer ${key}`, 'HEAD', 404],
+    ['/v1/health?private-query', undefined, 'GET', 401],
+    ['/v1/health?private-query', `Bearer ${key}`, 'GET', 404],
+    ['/v1/%68ealth', `Bearer ${key}`, 'GET', 404],
+    ['/v1/health/', `Bearer ${key}`, 'GET', 404],
+    ['/v1/internal/system-notifications/', `Bearer ${key}`, 'GET', 404],
+    [
+      '/v1/internal/system-notifications?private-query',
+      `Bearer ${key}`,
+      'GET',
+      404,
+    ],
+    ['/v1/internal/%73ystem-notifications', `Bearer ${key}`, 'GET', 404],
+    ['/v1/internal/channel-deliveries', `Bearer ${key}`, 'GET', 404],
+    ['/private-path', `Bearer ${key}`, 'GET', 404],
+  ])
+    assert.equal((await call(url, authorization, method)).status, status);
+  assert.deepEqual(counts.probeRequests, {
+    health: 22,
+    systemNotificationsUnavailable: 21,
+  });
+  assert.equal(counts.rejected.authorization, 4);
+  assert.equal(counts.rejected.path, 11);
+  for (const value of [
+    'private-token',
+    'private-query',
+    'private-path',
+    key,
+    'isAvailable',
+    'delivered',
+    'emailId',
+  ])
+    assert.equal(JSON.stringify(counts).includes(value), false);
+});
+
+test('probe statistics validate independent optional history, exact safe schema and monotonicity', async () => {
+  const { validateMailStats } = await import('./local-mail-stub.mjs');
+  const current = zeroMailStats();
+  for (const fields of [
+    [],
+    ['probeRequests'],
+    ['rejectedRequests'],
+    ['probeRequests', 'rejectedRequests'],
+  ]) {
+    const historical = structuredClone(current);
+    for (const field of fields) delete historical[field];
+    validateMailStats(historical);
+    validateMailStats(current, historical);
+    if (fields.includes('probeRequests'))
+      assert.equal(Object.hasOwn(historical, 'probeRequests'), false);
+  }
+  for (const probes of [
+    null,
+    [],
+    {},
+    { health: 0 },
+    { health: 0, systemNotificationsUnavailable: 0, private: 'token' },
+    ...[
+      -1,
+      1.5,
+      Infinity,
+      NaN,
+      Number.MAX_SAFE_INTEGER + 1,
+      'private',
+      undefined,
+    ].flatMap((value) => [
+      { health: value, systemNotificationsUnavailable: 0 },
+      { health: 0, systemNotificationsUnavailable: value },
+    ]),
+  ])
+    assert.throws(() =>
+      validateMailStats({ ...current, probeRequests: probes }),
+    );
+  const prior = {
+    ...current,
+    probeRequests: { health: 2, systemNotificationsUnavailable: 3 },
+  };
+  for (const probes of [
+    { health: 1, systemNotificationsUnavailable: 3 },
+    { health: 2, systemNotificationsUnavailable: 2 },
+  ])
+    assert.throws(() =>
+      validateMailStats({ ...current, probeRequests: probes }, prior),
+    );
+  const lost = structuredClone(prior);
+  delete lost.probeRequests;
+  assert.throws(() => validateMailStats(lost, prior));
+  validateMailStats(
+    {
+      ...current,
+      probeRequests: { health: 3, systemNotificationsUnavailable: 4 },
+    },
+    prior,
+  );
+});
+
+test('probe persistence failure remains fatal instead of returning successful liveness', async (context) => {
+  const runDir = mkdtempSync(join(tmpdir(), 'tenant-probe-persist-'));
+  context.after(() => rmSync(runDir, { recursive: true, force: true }));
+  let writes = 0,
+    fatal = 0,
+    status;
+  const stub = createLocalMailStub({
+    mode: 'ci',
+    key,
+    runDir,
+    writeSnapshot() {
+      if (++writes > 1) throw new Error('disk');
+    },
+    onFatal() {
+      fatal++;
+    },
+  });
+  await stub.handler(
+    { url: '/v1/health', method: 'GET', headers: {} },
+    {
+      writeHead(value) {
+        status = value;
+      },
+      end() {},
+    },
+  );
+  assert.equal(status, 500);
+  assert.equal(fatal, 1);
 });

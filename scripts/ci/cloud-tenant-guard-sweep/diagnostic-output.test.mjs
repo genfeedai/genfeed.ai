@@ -175,7 +175,9 @@ test('unowned directory remains untouched', (context) => {
 test('historical final mail statistics keep attribution unavailable without exempting refusals', (context) => {
   const f = fixture(context);
   delete f.report.mailStats.rejectedRequests;
+  delete f.report.mailStats.probeRequests;
   delete f.latest.rejectedRequests;
+  delete f.latest.probeRequests;
   f.latest.rejected.path = 1;
   f.save();
   f.write();
@@ -210,5 +212,52 @@ for (const kind of [
     f.save();
     assert.throws(f.write, { message: unavailable });
     assert.equal(existsSync(f.summaryPath), false);
+  });
+}
+
+test('latest valid probes survive both files and genuine refusal remains fatal', (context) => {
+  const f = fixture(context);
+  f.latest.probeRequests = { health: 3, systemNotificationsUnavailable: 1 };
+  f.save();
+  f.write();
+  assert.equal(f.saved().hasFailed, false);
+  assert.deepEqual(
+    f.saved().mailStats.probeRequests,
+    f.summary().mail.probeRequests,
+  );
+  f.latest.probeRequests = { health: 4, systemNotificationsUnavailable: 2 };
+  f.latest.rejected.path = 1;
+  f.latest.rejectedRequests = [
+    {
+      method: 'GET',
+      route: 'other',
+      authorization: 'matched',
+      reason: 'path',
+      count: 1,
+    },
+  ];
+  f.save();
+  f.write();
+  assert.equal(f.saved().hasFailed, true);
+  assert.deepEqual(f.saved().failures, [refusal]);
+  assert.deepEqual(f.summary().mail.probeRequests, {
+    health: 4,
+    systemNotificationsUnavailable: 2,
+  });
+  assert.deepEqual(f.saved().mailStats, f.summary().mail);
+});
+for (const kind of ['missing', 'malformed', 'regressed']) {
+  test(`${kind} final probe evidence fails closed and removes stale summary`, (context) => {
+    const f = fixture(context);
+    f.latest.probeRequests = { health: 3, systemNotificationsUnavailable: 1 };
+    f.save();
+    f.write();
+    if (kind === 'missing') delete f.latest.probeRequests;
+    if (kind === 'malformed') f.latest.probeRequests.private = 'private-token';
+    if (kind === 'regressed') f.latest.probeRequests.health = 2;
+    f.save();
+    assert.throws(f.write, { message: unavailable });
+    assert.equal(existsSync(f.summaryPath), false);
+    assert.equal(f.saved().hasFailed, true);
   });
 }

@@ -42,6 +42,7 @@ export function zeroMailStats() {
   return {
     version: 1,
     rejectedRequests: [],
+    probeRequests: { health: 0, systemNotificationsUnavailable: 0 },
     statusRequests: 0,
     accepted: Object.fromEntries(MAIL_LABELS.map((label) => [label, 0])),
     rejected: Object.fromEntries(MAIL_REASONS.map((reason) => [reason, 0])),
@@ -57,14 +58,16 @@ function exactKeys(value, keys) {
 }
 export function validateMailStats(stats, previous) {
   if (
-    (!exactKeys(stats, ['version', 'statusRequests', 'accepted', 'rejected']) &&
-      !exactKeys(stats, [
-        'version',
-        'statusRequests',
-        'accepted',
-        'rejected',
-        'rejectedRequests',
-      ])) ||
+    !exactKeys(stats, [
+      'version',
+      'statusRequests',
+      'accepted',
+      'rejected',
+      ...(Object.hasOwn(stats ?? {}, 'rejectedRequests')
+        ? ['rejectedRequests']
+        : []),
+      ...(Object.hasOwn(stats ?? {}, 'probeRequests') ? ['probeRequests'] : []),
+    ]) ||
     stats.version !== 1 ||
     !exactKeys(stats.accepted, MAIL_LABELS) ||
     !exactKeys(stats.rejected, MAIL_REASONS)
@@ -111,8 +114,27 @@ export function validateMailStats(stats, previous) {
     if (MAIL_REASONS.some((reason) => sums[reason] !== stats.rejected[reason]))
       throw new Error('Inconsistent mail attribution');
   }
+  if (
+    Object.hasOwn(stats, 'probeRequests') &&
+    (!exactKeys(stats.probeRequests, [
+      'health',
+      'systemNotificationsUnavailable',
+    ]) ||
+      Object.values(stats.probeRequests).some(
+        (value) => !Number.isSafeInteger(value) || value < 0,
+      ))
+  )
+    throw new Error('Invalid mail probe statistics');
   if (previous) {
     validateMailStats(previous);
+    if (
+      Object.hasOwn(previous, 'probeRequests') &&
+      (!Object.hasOwn(stats, 'probeRequests') ||
+        Object.keys(previous.probeRequests).some(
+          (key) => stats.probeRequests[key] < previous.probeRequests[key],
+        ))
+    )
+      throw new Error('Mail probe statistics regressed');
     if (Object.hasOwn(previous, 'rejectedRequests')) {
       if (!Object.hasOwn(stats, 'rejectedRequests'))
         throw new Error('Mail attribution disappeared');
@@ -287,8 +309,27 @@ export function createLocalMailStub({
               : 0,
         );
       });
+    if (
+      request.method === 'GET' &&
+      request.url === '/v1/health' &&
+      (request.headers.authorization === undefined ||
+        request.headers.authorization === `Bearer ${key}`)
+    )
+      return reply(200, { status: 'ok' }, () => counts.probeRequests.health++);
     if (request.headers.authorization !== `Bearer ${key}`)
       return reject('authorization', 401);
+    if (
+      request.method === 'GET' &&
+      request.url === '/v1/internal/system-notifications'
+    )
+      return reply(
+        503,
+        {
+          message:
+            'System notification delivery is unavailable in this fixture',
+        },
+        () => counts.probeRequests.systemNotificationsUnavailable++,
+      );
     if (request.url !== '/v1/internal/email-deliveries')
       return reject('path', 404);
     if (request.method === 'GET')

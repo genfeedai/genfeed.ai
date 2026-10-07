@@ -1071,7 +1071,44 @@ test('summary carries validated fixed mail tuples while historical and absent at
   ];
   assert.deepEqual(buildDiagnosticSummary(report).mail, report.mailStats);
   delete report.mailStats.rejectedRequests;
+  delete report.mailStats.probeRequests;
   assert.equal(buildDiagnosticSummary(report).mailAttributionAvailable, false);
   report.mailStats.rejectedRequests = [];
   assert.throws(() => buildDiagnosticSummary(report));
+});
+
+test('sanitized summary preserves independent probe history without inventing historical counts', async () => {
+  const { buildDiagnosticSummary } = await import('./core.mjs');
+  const { zeroMailStats } = await import('./local-mail-stub.mjs');
+  const report = {
+    sourceSha: 'a'.repeat(40),
+    mailStats: zeroMailStats(),
+    private: 'private-body-token',
+  };
+  report.mailStats.probeRequests = {
+    health: 3,
+    systemNotificationsUnavailable: 1,
+  };
+  assert.deepEqual(
+    buildDiagnosticSummary(report).mail.probeRequests,
+    report.mailStats.probeRequests,
+  );
+  assert.equal(buildDiagnosticSummary(report).mailAttributionAvailable, true);
+  delete report.mailStats.rejectedRequests;
+  assert.equal(buildDiagnosticSummary(report).mailAttributionAvailable, false);
+  assert.deepEqual(buildDiagnosticSummary(report).mail.probeRequests, {
+    health: 3,
+    systemNotificationsUnavailable: 1,
+  });
+  delete report.mailStats.probeRequests;
+  assert.equal(
+    Object.hasOwn(buildDiagnosticSummary(report).mail, 'probeRequests'),
+    false,
+  );
+  assert.equal(
+    JSON.stringify(buildDiagnosticSummary(report)).includes(
+      'private-body-token',
+    ),
+    false,
+  );
 });
