@@ -43,6 +43,11 @@ test('records separate phases, retries and states without recording test data', 
           result: () => ({ state: 'skipped' }),
           diagnostic: () => undefined,
         },
+        {
+          options: { mode: 'todo' },
+          result: () => ({ state: 'skipped' }),
+          diagnostic: () => undefined,
+        },
       ],
     },
   };
@@ -52,6 +57,7 @@ test('records separate phases, retries and states without recording test data', 
     passed: 1,
     failed: 1,
     skipped: 1,
+    todo: 1,
     pending: 0,
   });
   assert.equal(timing.retryCount, 1);
@@ -134,7 +140,7 @@ test('real Vitest sharding preserves the selected union, skips, retries and fail
     ).href;
     const sources = {
       'a.spec.mjs': `import { it, expect } from ${JSON.stringify(vitestUrl)}; it('pass', () => expect(1).toBe(1));`,
-      'b.spec.mjs': `import { it } from ${JSON.stringify(vitestUrl)}; it.skip('skip', () => {});`,
+      'b.spec.mjs': `import { it } from ${JSON.stringify(vitestUrl)}; it.skip('skip', () => {}); it.todo('future coverage');`,
       'c.spec.mjs': `import { it } from ${JSON.stringify(vitestUrl)}; let attempts = 0; it('retry', { retry: 1 }, () => { if (attempts++ === 0) throw new Error('first attempt'); });`,
       'd.spec.mjs': `import { it, expect } from ${JSON.stringify(vitestUrl)}; it('fail', () => expect(1).toBe(2));`,
     };
@@ -219,6 +225,14 @@ test('real Vitest sharding preserves the selected union, skips, retries and fail
     assert.equal(
       files.reduce((sum, f) => sum + f.tests.skipped, 0),
       baselineRecord.numPendingTests,
+    );
+    assert.equal(
+      files.reduce((sum, f) => sum + f.tests.todo, 0),
+      baselineRecord.numTodoTests,
+    );
+    assert.equal(
+      files.reduce((sum, f) => sum + f.tests.todo, 0),
+      1,
     );
     assert.equal(
       files.reduce((sum, f) => sum + f.tests.failed, 0),

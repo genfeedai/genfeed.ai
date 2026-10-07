@@ -9,10 +9,13 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 // changes test order, or prints assertion names, error messages or environment data.
 export function collectModuleTimings(module, root) {
   const diagnostic = module.diagnostic();
-  const tests = { passed: 0, failed: 0, skipped: 0, pending: 0 };
+  const tests = { passed: 0, failed: 0, skipped: 0, todo: 0, pending: 0 };
   let retryCount = 0;
   for (const item of module.children.allTests()) {
-    tests[item.result().state]++;
+    // Vitest's public result groups todo with skipped; retain the distinction
+    // its normal reporter makes so missing coverage cannot look like a skip.
+    const state = item.options?.mode === 'todo' ? 'todo' : item.result().state;
+    tests[state]++;
     // Skipped or not-yet-run test cases have no diagnostic object.
     retryCount += item.diagnostic()?.retryCount ?? 0;
   }
@@ -134,7 +137,7 @@ export function formatTimingSummary(record) {
     (a, b) =>
       b.observedWorkMs - a.observedWorkMs || a.file.localeCompare(b.file),
   );
-  const counts = { passed: 0, failed: 0, skipped: 0, pending: 0 };
+  const counts = { passed: 0, failed: 0, skipped: 0, todo: 0, pending: 0 };
   let retries = 0;
   for (const file of files) {
     for (const state of Object.keys(counts)) counts[state] += file.tests[state];
@@ -146,7 +149,7 @@ export function formatTimingSummary(record) {
     '',
     `Source: \`${tableCell(record.sourceSha || 'local')}\`. Selection: ${record.selection.mode}. Complete receipt: **${record.isComplete}**.`,
     '',
-    `Vitest wall time: **${seconds(record.wallMs)}s**. Files with results: ${files.length}. Candidates before sharding: ${record.candidateFiles.length}. Assertions: ${counts.passed} passed, ${counts.failed} failed, ${counts.skipped} skipped, ${counts.pending} pending. Retries: ${retries}. Unhandled errors: ${record.unhandledErrorCount}.`,
+    `Vitest wall time: **${seconds(record.wallMs)}s**. Files with results: ${files.length}. Candidates before sharding: ${record.candidateFiles.length}. Assertions: ${counts.passed} passed, ${counts.failed} failed, ${counts.skipped} skipped, ${counts.todo} todo, ${counts.pending} pending. Retries: ${retries}. Unhandled errors: ${record.unhandledErrorCount}.`,
     '',
     'Phase values are accumulated per-file measurements; their sums across workers are not job wall time. Tests/hooks can overlap. Outer setup, database and dependency-build time remains in the Actions step timings.',
     '',
