@@ -169,7 +169,12 @@ export class TrainingsOperationsController {
         {
           where: {
             model: training.model,
-            organizationId: resolveTenantReadScope(user).organizationId,
+            ingredients: {
+              some: {
+                organizationId: resolveTenantReadScope(user).organizationId,
+                isDeleted: false,
+              },
+            },
             isDeleted: false,
           },
         },

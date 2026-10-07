@@ -24,6 +24,7 @@ import { TENANT_READ_POLICY } from '@api/helpers/interceptors/tenant-context/ten
 import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { KnowledgeMemoryScope } from '@genfeedai/contracts';
+import type { Prisma } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ExecutionContext } from '@nestjs/common';
 import { PATH_METADATA } from '@nestjs/common/constants';
@@ -321,9 +322,58 @@ describe('automation selected data and immutable actor', () => {
       model: 'model',
       sources: [testId('ingredient')],
     }));
-    const metadataFindAll = vi.fn(async (_query: Record<string, unknown>) => ({
-      docs: [{ id: testId('metadata') }],
-    }));
+    const metadataRows = [
+      {
+        id: testId('metadata'),
+        model: 'model',
+        isDeleted: false,
+        ingredients: [{ organizationId: selectedOrg, isDeleted: false }],
+      },
+      {
+        id: testId('metadata', 2),
+        model: 'model',
+        isDeleted: false,
+        ingredients: [{ organizationId: originalOrg, isDeleted: false }],
+      },
+      {
+        id: testId('metadata', 3),
+        model: 'model',
+        isDeleted: false,
+        ingredients: [{ organizationId: selectedOrg, isDeleted: true }],
+      },
+      {
+        id: testId('metadata', 4),
+        model: 'model',
+        isDeleted: false,
+        ingredients: [],
+      },
+      {
+        id: testId('metadata', 5),
+        model: 'model',
+        isDeleted: true,
+        ingredients: [{ organizationId: selectedOrg, isDeleted: false }],
+      },
+    ];
+    const metadataFindAll = vi.fn(
+      async (query: Prisma.MetadataFindManyArgs) => {
+        const parent = query.where?.ingredients?.some;
+        return {
+          docs: metadataRows
+            .filter(
+              (row) =>
+                row.model === query.where?.model &&
+                row.isDeleted === query.where?.isDeleted &&
+                parent &&
+                row.ingredients.some(
+                  (ingredient) =>
+                    ingredient.organizationId === parent.organizationId &&
+                    ingredient.isDeleted === parent.isDeleted,
+                ),
+            )
+            .map((row) => ({ id: row.id })),
+        };
+      },
+    );
     const ingredientsFindAll = vi.fn(
       async (_query: Record<string, unknown>) => ({ docs: [target] }),
     );
@@ -361,7 +411,21 @@ describe('automation selected data and immutable actor', () => {
         }),
       );
     expect(metadataFindAll.mock.calls[0]?.[0]).toEqual({
-      where: { model: 'model', organizationId: selectedOrg, isDeleted: false },
+      where: {
+        model: 'model',
+        isDeleted: false,
+        ingredients: {
+          some: { organizationId: selectedOrg, isDeleted: false },
+        },
+      },
+    });
+    expect(metadataFindAll.mock.calls[0]?.[0].where).not.toHaveProperty(
+      'organizationId',
+    );
+    expect(ingredientsFindAll.mock.calls[0]?.[0]).toEqual({
+      where: expect.objectContaining({
+        metadataId: { in: [testId('metadata')] },
+      }),
     });
     for (const call of ingredientsFindAll.mock.calls)
       expect(call[0]).toEqual({
@@ -370,6 +434,19 @@ describe('automation selected data and immutable actor', () => {
           isDeleted: false,
         }),
       });
+    metadataFindAll.mockResolvedValueOnce({ docs: [] });
+    ingredientsFindAll.mockClear();
+    expect(
+      await selected(() =>
+        controller.getTrainingImages(
+          request,
+          user,
+          testId('training'),
+          new ImagesQueryDto(),
+        ),
+      ),
+    ).toEqual({ docs: [] });
+    expect(ingredientsFindAll).not.toHaveBeenCalled();
   });
   it('workflow visible and organization-only interface preserve their distinct ownership predicates', async () => {
     const findVisibleOrThrow = vi.fn(

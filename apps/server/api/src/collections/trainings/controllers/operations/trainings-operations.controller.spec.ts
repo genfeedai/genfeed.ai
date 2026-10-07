@@ -1,3 +1,5 @@
+import { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn((_req, _serializer, data) => data.docs || data),
   serializeSingle: vi.fn((_req, _serializer, data) => data),
@@ -232,13 +234,20 @@ describe('TrainingsOperationsController', () => {
         {} as unknown as Request,
         mockUser,
         mockTraining.id,
-        {},
+        new ImagesQueryDto(),
       );
 
       expect(mockServices.metadataService.findAll).toHaveBeenCalledWith(
         {
           where: {
             model: mockTraining.model,
+            isDeleted: false,
+            ingredients: {
+              some: {
+                organizationId: mockUser.organizationId,
+                isDeleted: false,
+              },
+            },
           },
         },
         { pagination: false },
