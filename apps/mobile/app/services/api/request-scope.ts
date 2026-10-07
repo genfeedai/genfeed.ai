@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import { ApiRequestError, apiRequest } from '@/services/api/base-http.service';
 
 export interface RequestScope {
@@ -6,10 +7,6 @@ export interface RequestScope {
 }
 
 let cachedScope: { scope: RequestScope; token: string } | null = null;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 function readScope(payload: unknown): RequestScope | null {
   if (!isRecord(payload) || !isRecord(payload.access)) {

@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import Constants from 'expo-constants';
 
 export const API_URL =
@@ -45,10 +46,6 @@ function buildUrl(endpoint: string, params?: RequestOptions['params']): string {
 
   const queryString = searchParams.toString();
   return queryString ? `${url}?${queryString}` : url;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function readErrorDetail(payload: unknown): string | null {

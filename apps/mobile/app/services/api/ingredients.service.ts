@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import type {
   IArticle,
   IIngredient,
@@ -38,10 +39,6 @@ const DETAIL_ENDPOINTS: Record<DetailCategory, string> = {
   image: 'images',
   video: 'videos',
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 function isMetadata(value: unknown): value is Partial<IMetadata> {
   return isRecord(value) && ('label' in value || 'description' in value);

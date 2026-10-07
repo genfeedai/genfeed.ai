@@ -1,3 +1,7 @@
+import {
+  isRecord,
+  readNonBlankStringOrNull,
+} from '@genfeedai/contracts/constants/type-guards.constant';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMobileAuth } from '@/contexts/auth-context';
 import { useAsyncList } from '@/hooks/use-async-data';
@@ -55,16 +59,8 @@ const INITIAL_DATA: AnalyticsData = {
   topContent: [],
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
 function readNumber(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
-}
-
-function readString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() !== '' ? value : null;
 }
 
 function readOverview(attributes: unknown): AnalyticsOverviewView {
@@ -85,9 +81,9 @@ function readTopPost(attributes: unknown): TopPostView {
   const record = isRecord(attributes) ? attributes : {};
 
   return {
-    label: readString(record.label) ?? 'Untitled',
-    platform: readString(record.platform) ?? '',
-    postId: readString(record.postId) ?? '',
+    label: readNonBlankStringOrNull(record.label) ?? 'Untitled',
+    platform: readNonBlankStringOrNull(record.platform) ?? '',
+    postId: readNonBlankStringOrNull(record.postId) ?? '',
     totalViews: readNumber(record.totalViews),
   };
 }
@@ -101,7 +97,7 @@ function readPlatforms(
 ): PlatformStatView[] {
   return resources.flatMap((resource) => {
     const record = isRecord(resource.attributes) ? resource.attributes : null;
-    const platform = record ? readString(record.platform) : null;
+    const platform = record ? readNonBlankStringOrNull(record.platform) : null;
     if (!record || !platform) {
       return [];
     }
