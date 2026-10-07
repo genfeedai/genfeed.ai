@@ -37,7 +37,9 @@ test.describe('Onboarding Steps', () => {
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(APP_ROUTES.ONBOARDING.BRAND);
-    await expect(authenticatedPage).toHaveURL(/\/settings\/kit$/);
+    await expect(authenticatedPage).toHaveURL((url) =>
+      url.pathname.endsWith(APP_ROUTES.SETTINGS.BRAND_KIT),
+    );
     await expect(authenticatedPage.locator('#brand-guide-website')).toHaveCount(
       0,
     );

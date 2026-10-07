@@ -162,7 +162,13 @@ test('Brand OS settings downloads privately, publishes, explicitly updates a new
   });
 
   await adminPage.goto('/test-org/brand-1/settings/brand-kit');
-  const settings = adminPage.getByTestId('brand-os-settings');
+  // Revision review, export and publication live in the Review changes panel.
+  await adminPage
+    .getByRole('button', { name: 'Review changes', exact: true })
+    .click();
+  const settings = adminPage
+    .getByRole('dialog')
+    .getByTestId('brand-os-settings');
   await expect(
     settings.getByRole('heading', { name: 'design.md · private' }),
   ).toBeVisible();
@@ -183,6 +189,9 @@ test('Brand OS settings downloads privately, publishes, explicitly updates a new
   );
   expect(publications).toEqual(['revision-1']);
 
+  await settings
+    .getByRole('button', { name: 'Review identity fields', exact: true })
+    .click();
   await settings
     .getByRole('textbox', { name: 'Description', exact: true })
     .fill('New approved brand voice');
