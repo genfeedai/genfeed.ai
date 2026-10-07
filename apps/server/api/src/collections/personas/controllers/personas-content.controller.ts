@@ -3,6 +3,9 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
@@ -39,11 +42,18 @@ export class PersonasContentController {
     private readonly postsService: PostsService,
   ) {}
 
-  private resolvePersonaContext(user: User, personaId: string) {
+  private resolvePersonaContext(
+    user: User,
+    personaId: string,
+    readScope?: ITenantReadScope,
+  ) {
     return {
-      brandId: EntityIdUtil.validate(user.brandId, 'brandId'),
+      brandId: EntityIdUtil.validate(
+        readScope ? readScope.brandId : user.brandId,
+        'brandId',
+      ),
       organizationId: EntityIdUtil.validate(
-        user.organizationId,
+        readScope?.organizationId ?? user.organizationId,
         'organizationId',
       ),
       personaId: EntityIdUtil.validate(personaId, 'personaId'),
@@ -216,6 +226,7 @@ export class PersonasContentController {
     }
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id/posts')
   async getPersonaPosts(
     @Req() request: Request,
@@ -225,7 +236,11 @@ export class PersonasContentController {
     @CurrentUser() user: User,
   ) {
     try {
-      const context = this.resolvePersonaContext(user, id);
+      const context = this.resolvePersonaContext(
+        user,
+        id,
+        resolveTenantReadScope(user),
+      );
       const posts = await this.postsService.findAll(
         {
           isDeleted: false,

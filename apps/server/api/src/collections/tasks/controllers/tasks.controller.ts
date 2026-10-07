@@ -14,6 +14,8 @@ import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   serializeCollection,
   serializeSingle,
@@ -247,13 +249,14 @@ export class TasksController extends BaseCRUDController<
     return Boolean(userOrgId) && entity.organizationId === userOrgId;
   }
 
+  @TenantReadPolicy('selected')
   @Get('by-identifier/:identifier')
   async findByIdentifier(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('identifier') identifier: string,
   ) {
-    const organization = user.organizationId;
+    const organization = resolveTenantReadScope(user).organizationId;
     const doc = await this.tasksService.findByIdentifier(
       identifier,
       organization,
@@ -264,13 +267,14 @@ export class TasksController extends BaseCRUDController<
     return serializeSingle(request, TaskSerializer, doc);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id')
   override async findOne(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    const organization = user.organizationId;
+    const organization = resolveTenantReadScope(user).organizationId;
     const doc = await this.tasksService.findOne(
       scopedWhere(organization, { id: id }),
     );
@@ -282,6 +286,7 @@ export class TasksController extends BaseCRUDController<
     return serializeSingle(request, TaskSerializer, doc);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id/children')
   async findChildren(
     @Req() request: Request,
@@ -290,7 +295,7 @@ export class TasksController extends BaseCRUDController<
   ): Promise<JsonApiCollectionResponse> {
     const children = await this.tasksService.findChildren(
       id,
-      user.organizationId,
+      resolveTenantReadScope(user).organizationId,
     );
     return serializeCollection(request, TaskSerializer, {
       docs: children,

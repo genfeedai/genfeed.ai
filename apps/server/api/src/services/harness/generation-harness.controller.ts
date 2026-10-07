@@ -1,5 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import type { UpdateGenerationHarnessSettings } from '@genfeedai/contracts/interfaces';
 import { Body, Controller, Get, Patch, Query } from '@nestjs/common';
@@ -30,12 +32,16 @@ export class UpdateGenerationHarnessSettingsDto
 export class GenerationHarnessController {
   constructor(private readonly settings: GenerationHarnessSettingsService) {}
 
+  @TenantReadPolicy('selected')
   @Get('settings')
   get(
     @CurrentUser() user: AuthenticatedUser,
     @Query('brandId') brandId?: string,
   ) {
-    return this.settings.get(user.organizationId, brandId);
+    return this.settings.get(
+      resolveTenantReadScope(user).organizationId,
+      brandId,
+    );
   }
 
   @Patch('settings')

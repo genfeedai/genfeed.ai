@@ -12,6 +12,8 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import {
   returnNotFound,
@@ -232,6 +234,7 @@ export class EvaluationsController extends BaseCRUDController<
   /**
    * Get evaluation trends and analytics
    */
+  @TenantReadPolicy('selected')
   @Get('analytics/trends')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getTrends(
@@ -239,7 +242,7 @@ export class EvaluationsController extends BaseCRUDController<
     @CurrentUser() user: User,
   ) {
     return await this.evaluationsService.getEvaluationTrends(
-      user.organizationId,
+      resolveTenantReadScope(user).organizationId,
       filters,
     );
   }

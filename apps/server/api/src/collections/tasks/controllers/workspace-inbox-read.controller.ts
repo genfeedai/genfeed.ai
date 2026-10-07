@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { WorkspaceInboxReadDto } from '@api/collections/tasks/dto/workspace-inbox-read.dto';
 import { WorkspaceInboxReadService } from '@api/collections/tasks/services/workspace-inbox-read.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WorkspaceInboxReadSerializer } from '@genfeedai/serializers';
 import { Body, Controller, Get, Patch, Req } from '@nestjs/common';
@@ -11,6 +12,7 @@ import type { Request } from 'express';
 export class WorkspaceInboxReadController {
   constructor(private readonly inbox: WorkspaceInboxReadService) {}
 
+  @TenantReadPolicy('owner')
   @Get('read-state')
   async list(@Req() request: Request, @CurrentUser() user: AuthenticatedUser) {
     return serializeSingle(

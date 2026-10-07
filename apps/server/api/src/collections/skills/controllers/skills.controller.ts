@@ -8,6 +8,8 @@ import { SkillLibraryService } from '@api/collections/skills/services/skill-libr
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   serializeCollection,
   serializeSingle,
@@ -61,14 +63,22 @@ export class SkillsController {
     return serializeCollection(req, SkillSerializer, { docs });
   }
 
+  @TenantReadPolicy('selected')
   @Get('skills/:slug')
   async getSkill(
     @Req() req: Request,
     @CurrentUser() user: User,
     @Param('slug') idOrSlug: string,
   ) {
-    const organization = this.requireOrganizationId(user);
-    const actor = this.actor(user);
+    const organization = resolveTenantReadScope({
+      organizationId: this.requireOrganizationId(user),
+      brandId: user.brandId,
+    }).organizationId;
+    const actor = {
+      ...this.actor(user),
+      organizationId: organization,
+      brandId: resolveTenantReadScope(user).brandId,
+    };
     const found = await this.skillsService.getSkillById(
       organization,
       idOrSlug,

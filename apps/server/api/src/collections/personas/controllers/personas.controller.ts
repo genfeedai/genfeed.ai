@@ -20,6 +20,8 @@ import { ValidationException } from '@api/exceptions/validation.exception';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
@@ -153,12 +155,13 @@ export class PersonasController extends BaseCRUDController<
     return input;
   }
 
+  @TenantReadPolicy('selected')
   @Get('mentions')
   async getMentions(
     @CurrentUser() user: User,
     @Query('q') q?: string,
   ): Promise<AgentCharacterMentionsResponse> {
-    if (!user.organizationId) {
+    if (!resolveTenantReadScope(user).organizationId) {
       throw new BadRequestException({
         detail: 'Organization not found in metadata',
         title: 'Bad Request',
@@ -166,8 +169,8 @@ export class PersonasController extends BaseCRUDController<
     }
 
     const mentions = await this.personasService.listCharacterMentions({
-      brandId: user.brandId,
-      organizationId: user.organizationId,
+      brandId: resolveTenantReadScope(user).brandId,
+      organizationId: resolveTenantReadScope(user).organizationId,
       q,
     });
 

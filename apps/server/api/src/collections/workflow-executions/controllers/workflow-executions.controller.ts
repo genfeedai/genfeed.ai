@@ -15,6 +15,8 @@ import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
@@ -257,6 +259,7 @@ export class WorkflowExecutionsController {
     return serializeCollection(req, WorkflowExecutionSerializer, result);
   }
 
+  @TenantReadPolicy('selected')
   @Get('workflow/:workflowId/stats')
   @ApiOperation({ summary: 'Get execution statistics for a workflow' })
   @ApiParam({ description: 'Workflow ID', name: 'workflowId' })
@@ -267,10 +270,11 @@ export class WorkflowExecutionsController {
   ) {
     return this.workflowExecutionsService.getExecutionStats(
       workflowId,
-      user.organizationId,
+      resolveTenantReadScope(user).organizationId,
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id')
   @ApiOperation({ summary: 'Get a specific execution by ID' })
   @ApiParam({ description: 'Execution ID', name: 'id' })
@@ -284,8 +288,13 @@ export class WorkflowExecutionsController {
     const execution =
       await this.workflowExecutionsService.findOneWithAccounting({
         ...(getIsSuperAdmin(user, req)
-          ? { organizationId: user.organizationId, isDeleted: false }
-          : buildCustomerExecutionWhere(user.organizationId)),
+          ? {
+              organizationId: resolveTenantReadScope(user).organizationId,
+              isDeleted: false,
+            }
+          : buildCustomerExecutionWhere(
+              resolveTenantReadScope(user).organizationId,
+            )),
         id,
       });
     return serializeSingle(req, WorkflowExecutionSerializer, execution);

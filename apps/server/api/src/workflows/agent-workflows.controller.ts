@@ -2,6 +2,8 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { AgentWorkflowsService } from '@api/workflows/agent-workflows.service';
 import { CreateAgentWorkflowDto } from '@api/workflows/dto/create-agent-workflow.dto';
 import { PatchAgentWorkflowDto } from '@api/workflows/dto/patch-agent-workflow.dto';
@@ -29,6 +31,7 @@ export class AgentWorkflowsController {
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get(':workflowId')
   @ApiOperation({ summary: 'Get an agent workflow state machine' })
   async getWorkflow(
@@ -37,7 +40,7 @@ export class AgentWorkflowsController {
   ) {
     return this.agentWorkflowsService.getWorkflow(
       workflowId,
-      user.organizationId,
+      resolveTenantReadScope(user).organizationId,
     );
   }
 

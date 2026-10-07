@@ -15,6 +15,8 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { TrainingAccessGuard } from '@api/helpers/guards/training-access/training-access.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -146,6 +148,7 @@ export class TrainingsController extends BaseCRUDController<
   /**
    * Override findOne to add virtual fields (totalSources, totalGeneratedImages)
    */
+  @TenantReadPolicy('selected')
   @Get(':trainingId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
@@ -165,7 +168,7 @@ export class TrainingsController extends BaseCRUDController<
 
     const data = await this.trainingsService.findOne({
       id: trainingId,
-      organizationId: user.organizationId,
+      organizationId: resolveTenantReadScope(user).organizationId,
     });
 
     if (!data) {
