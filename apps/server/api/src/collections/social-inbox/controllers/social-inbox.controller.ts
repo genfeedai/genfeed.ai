@@ -32,6 +32,9 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import {
   serializeCollection,
@@ -231,6 +234,7 @@ export class SocialInboxController {
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get(':conversationId')
   @ApiOperation({ summary: 'Inspect one social conversation' })
   async getConversation(
@@ -238,7 +242,12 @@ export class SocialInboxController {
     @CurrentUser() user: User,
     @Param('conversationId') conversationId: string,
   ): Promise<JsonApiSingleResponse> {
-    const scope = this.buildScope(user);
+    const scope = this.buildScope(
+      user,
+      {},
+      request,
+      resolveTenantReadScope(user),
+    );
     const data = await this.socialInboxService.getConversation(
       scope,
       conversationId,
@@ -246,6 +255,7 @@ export class SocialInboxController {
     return serializeSingle(request, SocialConversationSerializer, data);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':conversationId/messages')
   @ApiOperation({ summary: 'List messages in a social conversation' })
   async listMessages(
@@ -254,7 +264,12 @@ export class SocialInboxController {
     @Param('conversationId') conversationId: string,
     @Query() query: SocialMessagesQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    const scope = this.buildScope(user);
+    const scope = this.buildScope(
+      user,
+      {},
+      request,
+      resolveTenantReadScope(user),
+    );
     const data = await this.socialInboxService.listMessages(
       scope,
       conversationId,
@@ -440,6 +455,7 @@ export class SocialInboxController {
     user: User,
     query: Pick<SocialInboxQueryDto, 'organizationId' | 'brandId'> = {},
     request?: Request,
+    readScope?: ITenantReadScope,
   ): SocialInboxScope {
     const tenant = CollectionFilterUtil.resolveListOrganizationId(
       query,
@@ -453,10 +469,13 @@ export class SocialInboxController {
     }
 
     return {
-      brandId:
-        tenant.brandId ??
-        (tenant.isOrganizationOverride ? undefined : user.brandId),
-      organizationId: tenant.organizationId,
+      brandId: readScope
+        ? readScope.brandId
+        : (tenant.brandId ??
+          (tenant.isOrganizationOverride ? undefined : user.brandId)),
+      organizationId: readScope
+        ? readScope.organizationId
+        : tenant.organizationId,
       userId: user.userId ?? user.id,
     };
   }

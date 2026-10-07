@@ -14,6 +14,8 @@ import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/servi
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
@@ -137,6 +139,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
   /**
    * Inbox: unreplied comments on this brand's own X posts (last N hours).
    */
+  @TenantReadPolicy('mutating')
   @Get('author-reply/inbox')
   @ApiOperation({
     summary: 'List comments on brand posts that still need an author reply',
@@ -263,16 +266,18 @@ export class ReplyBotConfigsController extends BaseCRUDController<
   // (`GET /reply-bot-configs/queue-status` would resolve to findOne).
   // ────────────────────────────────────────────────────────────────────────────
 
+  @TenantReadPolicy('selected')
   @Get(':id')
   async findOne(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
+    const readScope = resolveTenantReadScope(user);
     const data = await this.replyBotConfigsService.findOne({
-      ...(user.brandId ? { brandId: user.brandId } : {}),
+      ...(readScope.brandId ? { brandId: readScope.brandId } : {}),
       id: id,
-      organizationId: user.organizationId,
+      organizationId: readScope.organizationId,
     });
 
     return serializeSingle(request, ReplyBotConfigSerializer, data);

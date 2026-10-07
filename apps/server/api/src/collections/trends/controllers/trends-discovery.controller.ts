@@ -10,6 +10,8 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   BadRequestException,
   Controller,
@@ -47,6 +49,7 @@ export class TrendsDiscoveryController {
 
   constructor(private readonly trendsService: TrendsService) {}
 
+  @TenantReadPolicy('selected')
   @Get('discovery')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -58,8 +61,9 @@ export class TrendsDiscoveryController {
     @Query('platform') platform?: string,
     @Query('refresh') refresh?: string,
   ) {
-    const organizationId = user.organizationId;
-    const brandId = user.brandId;
+    const readScope = resolveTenantReadScope(user);
+    const organizationId = readScope.organizationId;
+    const brandId = readScope.brandId;
 
     if (refresh === 'true') {
       throw new BadRequestException(
@@ -83,6 +87,7 @@ export class TrendsDiscoveryController {
     };
   }
 
+  @TenantReadPolicy('selected')
   @Get('content')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
@@ -96,8 +101,9 @@ export class TrendsDiscoveryController {
     @Query('refresh') refresh?: string,
     @Query('brandId') requestedBrandId?: string,
   ) {
-    const organizationId = user.organizationId;
-    const brandId = requestedBrandId || user.brandId;
+    const readScope = resolveTenantReadScope(user);
+    const organizationId = readScope.organizationId;
+    const brandId = requestedBrandId || readScope.brandId;
     if (refresh === 'true') {
       throw new BadRequestException(
         'Use POST /trends/refresh to start ingestion.',

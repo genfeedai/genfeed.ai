@@ -2,6 +2,8 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiresCloudAuth } from '@api/helpers/decorators/requires-cloud-auth.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { parseAuthorizationHeader } from '@libs/auth/authorization-header';
 import { Controller, Get, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
@@ -12,11 +14,12 @@ import { SyncService } from './sync.service';
 export class SyncController {
   constructor(private readonly syncService: SyncService) {}
 
+  @TenantReadPolicy('selected')
   @Get('status')
   @RequiresCloudAuth()
   @LogMethod()
   async getStatus(@CurrentUser() user: User) {
-    return this.syncService.getStatus(user);
+    return this.syncService.getStatus(user, resolveTenantReadScope(user));
   }
 
   @Post('workflows/push/:id')

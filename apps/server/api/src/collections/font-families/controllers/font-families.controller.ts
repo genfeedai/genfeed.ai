@@ -9,6 +9,8 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { FontFamilySerializer } from '@genfeedai/serializers';
@@ -22,6 +24,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   SetMetadata,
   UseGuards,
@@ -50,6 +53,17 @@ export class FontFamiliesController extends BaseCRUDController<
       FontFamilySerializer,
       'FontFamily',
     );
+  }
+
+  @TenantReadPolicy('selected')
+  @Get()
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  override findAll(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query() query: BaseQueryDto,
+  ) {
+    return super.findAll(request, user, query);
   }
 
   @Get(':fontFamilyId')
@@ -122,12 +136,13 @@ export class FontFamiliesController extends BaseCRUDController<
    * Load items with: (no org) OR (user's org)
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
+    const readScope = resolveTenantReadScope(user);
     // Build OR conditions: global items OR user's org items
     const orConditions: Record<string, unknown>[] = [{ organizationId: null }];
 
-    if (user.organizationId) {
+    if (readScope.organizationId) {
       orConditions.push({
-        organizationId: user.organizationId,
+        organizationId: readScope.organizationId,
       });
     }
 

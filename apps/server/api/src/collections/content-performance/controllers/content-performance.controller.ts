@@ -11,6 +11,8 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   returnNotFound,
   serializeCollection,
@@ -68,6 +70,7 @@ export class ContentPerformanceController {
    * Query content performance with filters
    * GET /content-performance
    */
+  @TenantReadPolicy('selected')
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async query(
@@ -75,9 +78,10 @@ export class ContentPerformanceController {
     @Query() filters: QueryContentPerformanceDto,
     @CurrentUser() user: User,
   ) {
+    const readScope = resolveTenantReadScope(user);
     const docs = await this.contentPerformanceService.queryPerformance(
       filters,
-      user.organizationId,
+      readScope.organizationId,
     );
 
     return serializeCollection(req, ContentPerformanceSerializer, { docs });
@@ -142,6 +146,7 @@ export class ContentPerformanceController {
    * GET /content-performance/attribution/ranking
    * NOTE: Must be defined BEFORE :generationId to avoid param capture
    */
+  @TenantReadPolicy('selected')
   @Get('attribution/ranking')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getStrategyRanking(
@@ -149,8 +154,9 @@ export class ContentPerformanceController {
     @Query('limit') limit: string,
     @CurrentUser() user: User,
   ) {
+    const readScope = resolveTenantReadScope(user);
     return this.attributionService.rankGenerationStrategies(
-      user.organizationId,
+      readScope.organizationId,
       brandId,
       limit ? parseInt(limit, 10) || 20 : 20,
     );
@@ -160,14 +166,16 @@ export class ContentPerformanceController {
    * Get attribution data for a generationId
    * GET /content-performance/attribution/:generationId
    */
+  @TenantReadPolicy('selected')
   @Get('attribution/:generationId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getAttribution(
     @Param('generationId') generationId: string,
     @CurrentUser() user: User,
   ) {
+    const readScope = resolveTenantReadScope(user);
     const result = await this.attributionService.getAttributionByGenerationId(
-      user.organizationId,
+      readScope.organizationId,
       generationId,
     );
 
@@ -182,14 +190,16 @@ export class ContentPerformanceController {
    * Get aggregated metrics for a generationId
    * GET /content-performance/aggregate/:generationId
    */
+  @TenantReadPolicy('selected')
   @Get('aggregate/:generationId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getAggregated(
     @Param('generationId') generationId: string,
     @CurrentUser() user: User,
   ) {
+    const readScope = resolveTenantReadScope(user);
     return this.contentPerformanceService.aggregateByGenerationId(
-      user.organizationId,
+      readScope.organizationId,
       generationId,
     );
   }
@@ -198,6 +208,7 @@ export class ContentPerformanceController {
    * Get a single performance record
    * GET /content-performance/:id
    */
+  @TenantReadPolicy('selected')
   @Get(':id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
@@ -205,9 +216,10 @@ export class ContentPerformanceController {
     @Param('id') id: string,
     @CurrentUser() user: User,
   ) {
+    const readScope = resolveTenantReadScope(user);
     const record = await this.contentPerformanceService.findOne({
       id: id,
-      organizationId: user.organizationId,
+      organizationId: readScope.organizationId,
     });
 
     if (!record) {

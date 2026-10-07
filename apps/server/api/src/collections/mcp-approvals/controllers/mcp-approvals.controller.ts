@@ -9,6 +9,8 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { assertMcpAccessModeAllowsTool } from '@api/helpers/utils/auth/mcp-access-mode.util';
 import { scopedWhere } from '@api/index';
 import { MemberRole } from '@genfeedai/contracts';
@@ -79,6 +81,7 @@ export class McpApprovalsController {
     return { data: this.toResponse(result) };
   }
 
+  @TenantReadPolicy('selected')
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List MCP approval requests for the organization' })
@@ -88,11 +91,13 @@ export class McpApprovalsController {
     @Query('status', new ParseEnumPipe(McpApprovalStatus, { optional: true }))
     status?: McpApprovalStatus,
   ): Promise<{ data: McpApprovalResponse[] }> {
-    const organization = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organization = readScope.organizationId;
     const list = await this.service.findByOrganization(organization, status);
     return { data: list.map((a) => this.toResponse(a)) };
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get a single MCP approval by ID' })
@@ -101,7 +106,8 @@ export class McpApprovalsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<{ data: McpApprovalResponse }> {
-    const organization = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organization = readScope.organizationId;
     const approval = await this.service.findOne(
       scopedWhere(organization, { id }),
     );

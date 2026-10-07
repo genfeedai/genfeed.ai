@@ -18,6 +18,8 @@ import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.gu
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   assertOrganizationCreditsAvailable,
@@ -80,6 +82,7 @@ export class TemplatesController {
    * Get all templates
    * Uses TemplateFilterUtil for consistent filter building
    */
+  @TenantReadPolicy('selected')
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
@@ -87,7 +90,8 @@ export class TemplatesController {
     @CurrentUser() user: User,
     @Query() query: TemplatesQueryDto,
   ) {
-    const organization = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organization = readScope.organizationId;
 
     // Use TemplateFilterUtil to build filters
     const filters = TemplateFilterUtil.buildTemplateFilters(query);
@@ -105,6 +109,7 @@ export class TemplatesController {
   /**
    * Get one template
    */
+  @TenantReadPolicy('selected')
   @Get(':templateId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
@@ -112,7 +117,8 @@ export class TemplatesController {
     @Param('templateId') templateId: string,
     @CurrentUser() user: User,
   ) {
-    const organization = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organization = readScope.organizationId;
     const template = await this.templatesService.findOne(
       templateId,
       organization,

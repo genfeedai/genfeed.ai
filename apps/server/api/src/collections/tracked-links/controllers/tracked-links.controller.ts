@@ -5,6 +5,8 @@ import { TrackedLinksService } from '@api/collections/tracked-links/services/tra
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   serializeCollection,
   serializeSingle,
@@ -57,6 +59,7 @@ export class TrackedLinksController {
   /**
    * Get link by ID
    */
+  @TenantReadPolicy('selected')
   @Get('links/:id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getLink(
@@ -64,7 +67,8 @@ export class TrackedLinksController {
     @Param('id') linkId: string,
     @CurrentUser() user: User,
   ) {
-    const organization = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organization = readScope.organizationId;
     const data = await this.trackedLinksService.getById(linkId, organization);
     return serializeSingle(req, TrackedLinkSerializer, data);
   }
@@ -72,6 +76,7 @@ export class TrackedLinksController {
   /**
    * Get links (by content or organization)
    */
+  @TenantReadPolicy('selected')
   @Get('links')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getLinks(
@@ -81,7 +86,8 @@ export class TrackedLinksController {
     @Query('campaignName') campaignName: string | undefined,
     @CurrentUser() user: User,
   ) {
-    const organization = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organization = readScope.organizationId;
 
     if (contentId) {
       const docs = await this.trackedLinksService.getContentLinks(
@@ -104,13 +110,15 @@ export class TrackedLinksController {
   /**
    * Get link performance
    */
+  @TenantReadPolicy('selected')
   @Get('links/:id/performance')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getLinkPerformance(
     @Param('id') linkId: string,
     @CurrentUser() user: User,
   ) {
-    const organization = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organization = readScope.organizationId;
     return await this.trackedLinksService.getLinkPerformance(
       linkId,
       organization,
@@ -120,13 +128,15 @@ export class TrackedLinksController {
   /**
    * Get content CTA stats
    */
+  @TenantReadPolicy('selected')
   @Get('content/:contentId/cta-stats')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getContentCTAStats(
     @Param('contentId') contentId: string,
     @CurrentUser() user: User,
   ) {
-    const organization = user.organizationId;
+    const readScope = resolveTenantReadScope(user);
+    const organization = readScope.organizationId;
     return await this.trackedLinksService.getContentCTAStats(
       contentId,
       organization,

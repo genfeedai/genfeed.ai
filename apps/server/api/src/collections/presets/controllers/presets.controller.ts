@@ -8,6 +8,8 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { PresetFilterUtil } from '@api/helpers/utils/preset-filter/preset-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ScopedCRUDController } from '@api/shared/controllers/base-crud/scoped-crud.controller';
@@ -18,9 +20,11 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   Param,
   Patch,
   Post,
+  Query,
   Req,
   SetMetadata,
   UseGuards,
@@ -46,6 +50,17 @@ export class PresetsController extends ScopedCRUDController<
     super(loggerService, presetsService, PresetSerializer, 'Preset');
   }
 
+  @TenantReadPolicy('selected')
+  @Get()
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  override findAll(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query() query: PresetsQueryDto,
+  ) {
+    return super.findAll(request, user, query);
+  }
+
   protected buildScopeConditions(user: User): Record<string, unknown>[] {
     return PresetFilterUtil.buildScopeOrConditions(user);
   }
@@ -56,9 +71,13 @@ export class PresetsController extends ScopedCRUDController<
    * Uses PresetFilterUtil for consistent three-tier scope filtering
    */
   public buildFindAllQuery(user: User, query: PresetsQueryDto) {
+    const readScope = resolveTenantReadScope(user);
     // Use PresetFilterUtil to build base match stage
     const matchStage = PresetFilterUtil.buildBaseMatch(
-      user,
+      {
+        organizationId: readScope.organizationId,
+        userId: user.userId ?? user.id,
+      },
       {
         category: query.category,
         isActive: query.isActive,

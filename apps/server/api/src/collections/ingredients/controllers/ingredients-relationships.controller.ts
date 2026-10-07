@@ -10,6 +10,9 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -122,6 +125,7 @@ export class IngredientsRelationshipsController {
    * Library, so this route does not use `AssetAccessGuard`: an asset the member
    * cannot list is a 404 here, not a 403 that confirms it exists.
    */
+  @TenantReadPolicy('selected')
   @Get(':ingredientId/lineage/made-from')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findMadeFrom(
@@ -136,10 +140,12 @@ export class IngredientsRelationshipsController {
       IngredientLineageDirection.MADE_FROM,
       query,
       user,
+      resolveTenantReadScope(user),
     );
   }
 
   /** Assets that used this one as a reference (`sourceOf`), newest first. */
+  @TenantReadPolicy('selected')
   @Get(':ingredientId/lineage/used-in')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findUsedIn(
@@ -154,6 +160,7 @@ export class IngredientsRelationshipsController {
       IngredientLineageDirection.USED_IN,
       query,
       user,
+      resolveTenantReadScope(user),
     );
   }
 
@@ -163,13 +170,19 @@ export class IngredientsRelationshipsController {
     direction: IngredientLineageDirection,
     query: IngredientLineageQueryDto,
     user: User,
+    readScope?: ITenantReadScope,
   ): Promise<JsonApiCollectionResponse> {
     const { hiddenCount, ...page } = await this.lineageService.findLineage({
       direction,
       ingredientId,
       limit: query.limit,
       page: query.page,
-      viewer: { brandId: user.brandId, organizationId: user.organizationId },
+      viewer: {
+        brandId: readScope ? readScope.brandId : user.brandId,
+        organizationId: readScope
+          ? readScope.organizationId
+          : user.organizationId,
+      },
     });
 
     return {

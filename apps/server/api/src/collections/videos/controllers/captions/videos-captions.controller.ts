@@ -14,6 +14,9 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -108,10 +111,11 @@ export class VideosCaptionsController {
     return url;
   }
 
+  @TenantReadPolicy('selected')
   @Get(':videoId/captions')
   @Cache({
     keyGenerator: (req) =>
-      `videos:${req.params?.videoId ?? 'unknown'}:captions:user:${req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,
+      `videos:${req.params?.videoId ?? 'unknown'}:captions:org:${CollectionFilterUtil.resolveListCacheScope(req).organizationId || 'global'}:user:${req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,
     tags: ['videos', 'captions'],
     ttl: 300, // 5 minutes
   })
@@ -122,9 +126,10 @@ export class VideosCaptionsController {
     @Param('videoId') videoId: string,
     @Query() query: BaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
+    const readScope = resolveTenantReadScope(user);
     // Verify video exists and user has access
     const video = await this.videosService.findOne(
-      scopedWhere(user.organizationId, { id: videoId }),
+      scopedWhere(readScope.organizationId, { id: videoId }),
     );
 
     if (!video) {
@@ -141,7 +146,7 @@ export class VideosCaptionsController {
       where: {
         ingredientId: videoId,
         isDeleted: false,
-        organizationId: user.organizationId,
+        organizationId: readScope.organizationId,
       },
       orderBy: { createdAt: -1 },
     };

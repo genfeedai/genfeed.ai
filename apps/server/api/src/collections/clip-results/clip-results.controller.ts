@@ -7,6 +7,8 @@ import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import {
   returnNotFound,
   serializeCollection,
@@ -64,6 +66,7 @@ export class ClipResultsController {
     return serializeSingle(request, ClipResultSerializer, data);
   }
 
+  @TenantReadPolicy('selected')
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
@@ -72,12 +75,13 @@ export class ClipResultsController {
     @Query('filter[project]') filterProjectId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiCollectionResponse> {
+    const readScope = resolveTenantReadScope(user);
     const resolvedProjectId = projectId || filterProjectId;
 
     if (resolvedProjectId) {
       const data = await this.clipResultsService.findByProject(
         resolvedProjectId,
-        user.organizationId,
+        readScope.organizationId,
         CLIP_RESULTS_LIST_LIMIT,
       );
       return serializeCollection(request, ClipResultSerializer, {
@@ -95,7 +99,7 @@ export class ClipResultsController {
     }
 
     const data = await this.clipResultsService.findRecentByOrganization(
-      user.organizationId,
+      readScope.organizationId,
       CLIP_RESULTS_LIST_LIMIT,
     );
 
@@ -113,6 +117,7 @@ export class ClipResultsController {
     });
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
@@ -120,9 +125,10 @@ export class ClipResultsController {
     @Param('id') id: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
+    const readScope = resolveTenantReadScope(user);
     const data = await this.clipResultsService.findOne({
       id: id,
-      organizationId: user.organizationId,
+      organizationId: readScope.organizationId,
     });
 
     if (!data) {

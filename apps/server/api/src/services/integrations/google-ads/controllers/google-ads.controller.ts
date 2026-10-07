@@ -10,6 +10,7 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { GoogleAdsMetricsParams } from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
@@ -160,6 +161,7 @@ export class GoogleAdsController {
     return serializeSingle(request, CredentialSerializer, updatedCredential);
   }
 
+  @TenantReadPolicy('owner')
   @Get('customers')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async listCustomers(@CurrentUser() user: User) {
@@ -170,6 +172,7 @@ export class GoogleAdsController {
     return this.googleAdsService.listAccessibleCustomers(accessToken);
   }
 
+  @TenantReadPolicy('owner')
   @Get('campaigns')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async listCampaigns(
@@ -191,6 +194,7 @@ export class GoogleAdsController {
     );
   }
 
+  @TenantReadPolicy('owner')
   @Get('campaigns/:id/metrics')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async getCampaignMetrics(
@@ -222,6 +226,7 @@ export class GoogleAdsController {
     );
   }
 
+  @TenantReadPolicy('owner')
   @Get('ad-groups/:id/insights')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async getAdGroupInsights(
@@ -249,6 +254,7 @@ export class GoogleAdsController {
     );
   }
 
+  @TenantReadPolicy('owner')
   @Get('keywords')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async getKeywordPerformance(
@@ -278,6 +284,7 @@ export class GoogleAdsController {
     );
   }
 
+  @TenantReadPolicy('owner')
   @Get('search-terms/:campaignId')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
   async getSearchTerms(

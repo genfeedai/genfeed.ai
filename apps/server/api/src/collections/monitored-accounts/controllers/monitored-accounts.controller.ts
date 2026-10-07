@@ -7,6 +7,8 @@ import type { MonitoredAccountDocument } from '@api/collections/monitored-accoun
 import { MonitoredAccountsService } from '@api/collections/monitored-accounts/services/monitored-accounts.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
@@ -93,16 +95,18 @@ export class MonitoredAccountsController extends BaseCRUDController<
     return Boolean(user?.isSuperAdmin);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id')
   async findOne(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
+    const readScope = resolveTenantReadScope(user);
     const data = await this.monitoredAccountsService.findOne({
-      ...(user.brandId ? { brandId: user.brandId } : {}),
+      ...(readScope.brandId ? { brandId: readScope.brandId } : {}),
       id: id,
-      organizationId: user.organizationId,
+      organizationId: readScope.organizationId,
     });
 
     return serializeSingle(request, MonitoredAccountSerializer, data);

@@ -8,6 +8,8 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oauth-callback-error.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
@@ -202,14 +204,16 @@ export class FacebookController {
     };
   }
 
+  @TenantReadPolicy('selected')
   @Get('pages')
   async getUserPages(@CurrentUser() user: User) {
+    const readScope = resolveTenantReadScope(user);
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
     const pages = await this.facebookService.getUserPages(
-      user.organizationId,
-      user.brandId,
+      readScope.organizationId,
+      readScope.brandId ?? '',
     );
 
     return { pages };

@@ -26,6 +26,8 @@ import {
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
@@ -199,10 +201,11 @@ export class VideosController {
     );
   }
 
+  @TenantReadPolicy('selected')
   @Get(':videoId')
   @Cache({
     keyGenerator: (req) =>
-      `video:${req.params?.videoId ?? 'unknown'}:org:${(req.user?.organizationId as string | undefined) ?? 'global'}:user:${req.user?.id ?? 'anonymous'}`,
+      `video:${req.params?.videoId ?? 'unknown'}:org:${CollectionFilterUtil.resolveListCacheScope(req).organizationId || 'global'}:user:${req.user?.id ?? 'anonymous'}`,
     tags: ['videos'],
     ttl: 900, // 15 minutes
   })
@@ -212,8 +215,9 @@ export class VideosController {
     @Param('videoId') videoId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
+    const readScope = resolveTenantReadScope(user);
     const pipeline = {
-      where: scopedWhere(user.organizationId, {
+      where: scopedWhere(readScope.organizationId, {
         id: videoId,
         isDeleted: false,
         category: CategoryPrismaUtil.toIngredientCategory(
@@ -234,7 +238,7 @@ export class VideosController {
 
     // Populate relationships that aren't in aggregation
     const populatedData = await this.videosService.findOne(
-      scopedWhere(user.organizationId, {
+      scopedWhere(readScope.organizationId, {
         id: videoId,
         isDeleted: false,
         category: CategoryPrismaUtil.toIngredientCategory(
@@ -242,12 +246,15 @@ export class VideosController {
         ),
       }),
       [
-        PopulatePatterns.metadataFull,
+        {
+          ...PopulatePatterns.metadataFull,
+          where: scopedWhere(readScope.organizationId),
+        },
         PopulatePatterns.promptFull,
         PopulatePatterns.userMinimal,
         PopulatePatterns.brandMinimal,
         PopulatePatterns.organizationMinimal,
-        { path: 'captions' },
+        { path: 'captions', where: scopedWhere(readScope.organizationId) },
         // Vote status is loaded via VotesService below. `votes` and `posts`
         // are not Ingredient relations (`postIngredients` is the post link).
       ],
@@ -277,7 +284,7 @@ export class VideosController {
       request,
       VideoSerializer,
       (await this.evaluationProjection?.attachToItem(mergedData, {
-        brandId: user.brandId,
+        brandId: readScope.brandId,
         contentType: 'video',
       })) ?? mergedData,
     );

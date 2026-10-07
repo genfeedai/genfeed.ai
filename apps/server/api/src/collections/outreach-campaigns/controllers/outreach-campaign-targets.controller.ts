@@ -4,6 +4,8 @@ import { OutreachCampaignTargetOperationsService } from '@api/collections/outrea
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type {
   CampaignPlatform,
   CampaignTargetType,
@@ -59,6 +61,7 @@ export class OutreachCampaignTargetsController {
     return this.targetOperationsService.parseUrl(body.url);
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id/targets')
   @ApiOperation({
     operationId: 'OutreachCampaignsController.getTargets',
@@ -69,7 +72,11 @@ export class OutreachCampaignTargetsController {
     @Param('id') id: string,
     @CurrentUser() user: User,
   ): Promise<unknown[]> {
-    return this.targetOperationsService.getTargets(id, user);
+    return this.targetOperationsService.getTargets(
+      id,
+      user,
+      resolveTenantReadScope(user),
+    );
   }
 
   @Post(':id/targets/discover')

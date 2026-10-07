@@ -11,6 +11,9 @@ import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import type { ITenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.types';
 import {
   serializeCollection,
   serializeSingle,
@@ -46,19 +49,26 @@ export class OutliersController {
     private readonly service: OutliersService,
     private readonly configuration: OutlierConfigurationService,
   ) {}
-  private organization(user: AuthenticatedUser): string {
+  private organization(
+    user: AuthenticatedUser,
+    readScope?: ITenantReadScope,
+  ): string {
     if (!user.organizationId)
       throw new BadRequestException('Organization context is required');
-    return user.organizationId;
+    return readScope ? readScope.organizationId : user.organizationId;
   }
-  @Get('configuration') async getConfiguration(
+  @TenantReadPolicy('selected')
+  @Get('configuration')
+  async getConfiguration(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return serializeSingle(
       request,
       OutlierConfigurationSerializer,
-      await this.configuration.resolve(this.organization(user)),
+      await this.configuration.resolve(
+        this.organization(user, resolveTenantReadScope(user)),
+      ),
     );
   }
   @Patch('configuration')
@@ -90,7 +100,9 @@ export class OutliersController {
       }),
     });
   }
-  @Get() async list(
+  @TenantReadPolicy('selected')
+  @Get()
+  async list(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ValidationPipe({ transform: true })) query: OutlierQueryDto,
@@ -100,7 +112,7 @@ export class OutliersController {
       OutlierBaselineSnapshotSerializer,
       await this.service.list(
         {
-          organizationId: this.organization(user),
+          organizationId: this.organization(user, resolveTenantReadScope(user)),
           brandId: query.brandId,
           accountType: query.accountType,
           accountId: query.accountId,
@@ -109,7 +121,9 @@ export class OutliersController {
       ),
     );
   }
-  @Get('posts') async rankedPosts(
+  @TenantReadPolicy('selected')
+  @Get('posts')
+  async rankedPosts(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ValidationPipe({ transform: true }))
@@ -118,10 +132,15 @@ export class OutliersController {
     return serializeCollection(
       request,
       OutlierPostPerformanceSerializer,
-      await this.service.listLatestPerformances(this.organization(user), query),
+      await this.service.listLatestPerformances(
+        this.organization(user, resolveTenantReadScope(user)),
+        query,
+      ),
     );
   }
-  @Get(':id') async findOne(
+  @TenantReadPolicy('selected')
+  @Get(':id')
+  async findOne(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -129,10 +148,15 @@ export class OutliersController {
     return serializeSingle(
       request,
       OutlierBaselineSnapshotSerializer,
-      await this.service.findOne(this.organization(user), id),
+      await this.service.findOne(
+        this.organization(user, resolveTenantReadScope(user)),
+        id,
+      ),
     );
   }
-  @Get(':id/posts') async posts(
+  @TenantReadPolicy('selected')
+  @Get(':id/posts')
+  async posts(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -142,7 +166,7 @@ export class OutliersController {
       request,
       OutlierPostPerformanceSerializer,
       await this.service.posts(
-        this.organization(user),
+        this.organization(user, resolveTenantReadScope(user)),
         id,
         query.page,
         query.limit,

@@ -4,6 +4,8 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import type { AgentContentMentionsResponse } from '@genfeedai/contracts/interfaces';
 import {
   BadRequestException,
@@ -19,12 +21,14 @@ import {
 export class ContentMentionsController {
   constructor(private readonly postsService: PostsService) {}
 
+  @TenantReadPolicy('selected')
   @Get('mentions')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getMentions(
     @CurrentUser() user: User,
     @Query('brandId') brandIdParam?: unknown,
   ): Promise<AgentContentMentionsResponse> {
+    const readScope = resolveTenantReadScope(user);
     if (!user.organizationId) {
       throw new BadRequestException({
         detail: 'Organization not found in metadata',
@@ -33,7 +37,7 @@ export class ContentMentionsController {
     }
 
     const mentions = await this.postsService.listContentMentions(
-      user.organizationId,
+      readScope.organizationId,
       parseOptionalBrandId(brandIdParam),
     );
 

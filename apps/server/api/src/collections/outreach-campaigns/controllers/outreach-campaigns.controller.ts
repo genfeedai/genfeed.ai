@@ -9,6 +9,8 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { resolveTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
@@ -106,6 +108,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
     };
   }
 
+  @TenantReadPolicy('selected')
   @Get(':id')
   @ApiOperation({ summary: 'Find a single campaign by ID' })
   async findOne(
@@ -113,10 +116,11 @@ export class OutreachCampaignsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
+    const readScope = resolveTenantReadScope(user);
     const campaign = await this.outreachCampaignsService.findOneById(
       id,
-      user.organizationId,
-      user.brandId,
+      readScope.organizationId,
+      readScope.brandId,
     );
 
     if (!campaign) {
@@ -236,6 +240,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
   /**
    * Get campaign analytics
    */
+  @TenantReadPolicy('selected')
   @Get(':id/analytics')
   @ApiOperation({ summary: 'Get campaign analytics' })
   @ApiResponse({ description: 'Returns campaign analytics', status: 200 })
@@ -256,14 +261,15 @@ export class OutreachCampaignsController extends BaseCRUDController<
       failed: number;
     };
   }> {
+    const readScope = resolveTenantReadScope(user);
     const analytics = await this.outreachCampaignsService.getAnalytics(
       id,
-      user.organizationId,
-      user.brandId,
+      readScope.organizationId,
+      readScope.brandId,
     );
     const targetStats = await this.campaignTargetsService.getTargetStats(
       id,
-      user.organizationId,
+      readScope.organizationId,
     );
 
     return {

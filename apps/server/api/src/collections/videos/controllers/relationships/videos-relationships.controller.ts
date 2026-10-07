@@ -1,3 +1,4 @@
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 /**
  * Videos Relationships Controller
  * Handles video relationship operations:
@@ -62,6 +63,7 @@ export class VideosRelationshipsController {
     return serializeCollection(request, VideoSerializer, data);
   }
 
+  @TenantReadPolicy('owner')
   @Get(':videoId/posts')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAllPosts(
