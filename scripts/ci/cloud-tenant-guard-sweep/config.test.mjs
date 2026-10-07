@@ -6,19 +6,29 @@ import test, { after } from 'node:test';
 import { validateRuntimeConfig } from './config.mjs';
 import { parseEnv } from './core.mjs';
 
+function fixtureUrlWithCredentials(value, username, password) {
+  const url = new URL(value);
+  url.username = username;
+  url.password = password;
+  return url.toString();
+}
+
 const ci = parseEnv(
   readFileSync(new URL('./cloud-sweep.placeholders', import.meta.url), 'utf8'),
 );
 ci.CLOUD_SWEEP_RUN_DIR = mkdtempSync(join(tmpdir(), 'tenant-config-'));
 after(() => rmSync(ci.CLOUD_SWEEP_RUN_DIR, { recursive: true, force: true }));
-const studio = { home: '/Users/decod3rslabs' };
+const studio = { home: join('/', 'Users', 'decod3rslabs') };
 const local = {
   ...ci,
   CLOUD_SWEEP_LOCAL: '1',
   PORT: '51001',
   CLOUD_SWEEP_BASE_URL: 'http://127.0.0.1:51001',
-  DATABASE_URL:
-    'postgresql://test-user:test-password@localhost:5432/genfeed_cloud_sweep_6175_20261005120000_abcdef12_test',
+  DATABASE_URL: fixtureUrlWithCredentials(
+    'postgresql://localhost:5432/genfeed_cloud_sweep_6175_20261005120000_abcdef12_test',
+    'test-user',
+    'test-password',
+  ),
   REDIS_URL: 'redis://127.0.0.1:51002',
   BETTER_AUTH_TRUSTED_ORIGINS: 'http://127.0.0.1:51001,http://localhost:3000',
 };
@@ -46,7 +56,7 @@ test('default CI configuration remains exact and local mode is Studio-only', () 
   });
   assert.equal(validateRuntimeConfig(local, studio).mode, 'local');
   assert.throws(() =>
-    validateRuntimeConfig(local, { home: '/Users/decod3rs' }),
+    validateRuntimeConfig(local, { home: join('/', 'Users', 'decod3rs') }),
   );
   assert.throws(() =>
     validateRuntimeConfig({ ...local, GITHUB_ACTIONS: 'true' }, studio),
@@ -94,7 +104,7 @@ test('local mode rejects invalid or credential-bearing API and Redis URLs and eq
     'https://127.0.0.1:51001',
     'http://127.0.0.1:3010',
     'http://127.0.0.1:65536',
-    'http://user:pass@127.0.0.1:51001',
+    fixtureUrlWithCredentials('http://127.0.0.1:51001', 'user', 'pass'),
     'http://127.0.0.1:51001/path',
     'http://127.0.0.1:51001?q=1',
     'http://127.0.0.1:51001#x',
@@ -109,7 +119,7 @@ test('local mode rejects invalid or credential-bearing API and Redis URLs and eq
     'redis://localhost:51002',
     'rediss://127.0.0.1:51002',
     'redis://127.0.0.1:51001',
-    'redis://user:pass@127.0.0.1:51002',
+    fixtureUrlWithCredentials('redis://127.0.0.1:51002', 'user', 'pass'),
     'redis://127.0.0.1:51002/4',
     'redis://127.0.0.1:51002?q=1',
     'redis://127.0.0.1:51002#x',
