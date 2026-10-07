@@ -12,8 +12,10 @@ availability. Production Auto considers active, priced, reviewed `RECOMMENDED`
 rows admitted by the organization's allowlist and required capabilities.
 
 Hosted FLUX.1 endpoints (Schnell, dev, pro/1.1 and Kontext) are `LEGACY`.
-Keep existing keys resolvable for explicit selection and stored workflows;
-do not promote them because they are cheap or fast. FLUX.2/FLUX.3 and custom
+Keep existing keys in the registry for stored workflows. Explicit selection
+requires an active row with approved pricing; uncurated rows remain inactive
+until an operator approves pricing and activation. Do not promote them because
+they are cheap or fast. FLUX.2/FLUX.3 and custom
 trained models require their own evidence rather than inheriting a family score.
 
 `NODE_ENV=production` uses current media defaults on cloud and self-hosted
@@ -22,8 +24,8 @@ Development, tests, staging and an unset `NODE_ENV` retain inexpensive defaults
 (Schnell and P-Video). That non-production catalog explicitly promotes Schnell
 to `RECOMMENDED`; its production row remains legacy. Existing operator settings
 are preserved by the seed, so an explicitly configured legacy default remains
-an explicit choice. Switching defaults can increase provider spend on new
-self-hosted production installs.
+an explicit choice when the row is active and priced. Switching defaults can
+increase provider spend on new self-hosted production installs.
 
 ## Evidence snapshot
 

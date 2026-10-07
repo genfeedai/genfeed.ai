@@ -139,7 +139,7 @@ const CURATED_MEDIA_BY_KEY = new Map<
   (typeof SELF_HOSTED_MODELS)[number]
 >(SELF_HOSTED_MODELS.map((model) => [model.key, model]));
 
-/** Previous-generation hosted FLUX endpoints remain explicit legacy choices. */
+/** Hosted FLUX.1 stays legacy; explicit use still requires active, priced rows. */
 const LEGACY_FLUX_MEDIA_KEYS: ReadonlySet<string> = new Set([
   MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
   MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,

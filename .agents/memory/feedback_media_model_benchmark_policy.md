@@ -6,8 +6,9 @@ last_verified: 2026-10-07
 ---
 
 **Rule:** Keep hosted FLUX.1 endpoints, including Schnell, as legacy explicit
-choices in production. Cheap defaults belong to non-production development,
-test and staging environments. Self-hosted production uses current quality
+choices in production when active with approved pricing. Keep uncurated rows
+inactive until pricing and activation are approved. Cheap defaults belong to
+non-production development, test and staging environments. Self-hosted production uses current quality
 media defaults too. Preserve operator choices and existing stored model keys.
 
 **Why:** The operator reported poor Schnell outputs and requested legacy
