@@ -3,14 +3,20 @@ import { ContentPlanItemsService } from '@api/collections/content-plan-items/ser
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
+import { TENANT_READ_POLICY } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
+import { getTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { ContentEngineController } from '@api/services/content-engine/content-engine.controller';
 import { ContentPlanSeedsService } from '@api/services/content-engine/content-plan-seeds.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
+import { getTenantContext } from '@libs/prisma/tenant-context';
+import type { ExecutionContext } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
+import { defer, firstValueFrom } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -254,6 +260,149 @@ describe('ContentEngineController', () => {
         'brand-1',
       );
       expect(result).toEqual(preview);
+    });
+  });
+
+  describe('seed preview selected tenant boundary', () => {
+    const selectedOrganization = testId('org', 2);
+    const routeBrand = testId('brand', 2);
+    const identity: User = {
+      ...mockUser,
+      brandId: testId('brand'),
+      isSuperAdmin: true,
+    };
+
+    function execute(
+      query: Record<string, string | undefined>,
+      actor: User = identity,
+    ) {
+      const context = {
+        organizationId: actor.organizationId,
+        brandId: actor.brandId,
+        isSuperAdmin: actor.isSuperAdmin === true,
+      };
+      const request = { method: 'GET', user: actor, context, query };
+      const next = {
+        handle: vi.fn(() =>
+          defer(() => controller.getPlanSeeds(actor, routeBrand)),
+        ),
+      };
+      const execution = {
+        getClass: () => ContentEngineController,
+        getHandler: () => ContentEngineController.prototype.getPlanSeeds,
+        switchToHttp: () => ({ getRequest: () => request }),
+      } as unknown as ExecutionContext;
+      return { request, context, next, execution, actor };
+    }
+
+    it('declares selected policy on the actual seed handler', () => {
+      expect(
+        Reflect.getMetadata(
+          TENANT_READ_POLICY,
+          ContentEngineController.prototype.getPlanSeeds,
+        ),
+      ).toBe('selected');
+    });
+
+    it.each([
+      {
+        label: 'original',
+        query: {},
+        expectedOrg: orgId,
+        expectedBrand: identity.brandId,
+      },
+      {
+        label: 'equal',
+        query: { organizationId: orgId },
+        expectedOrg: orgId,
+        expectedBrand: identity.brandId,
+      },
+      {
+        label: 'foreign',
+        query: { organizationId: selectedOrganization },
+        expectedOrg: selectedOrganization,
+        expectedBrand: undefined,
+      },
+      {
+        label: 'explicit foreign brand',
+        query: { organizationId: selectedOrganization, brandId: routeBrand },
+        expectedOrg: selectedOrganization,
+        expectedBrand: routeBrand,
+      },
+    ])(
+      'uses $label data scope and the unchanged route brand',
+      async ({ query, expectedOrg, expectedBrand }) => {
+        const call = execute(query);
+        const original = { ...identity };
+        contentPlanSeedsService.buildPreview.mockImplementation(
+          async (organizationId: string, brandId: string) => {
+            await Promise.resolve();
+            expect(getTenantContext()?.organizationId).toBe(expectedOrg);
+            expect(getTenantReadScope()).toMatchObject({
+              organizationId: expectedOrg,
+              brandId: expectedBrand,
+            });
+            return { organizationId, brandId };
+          },
+        );
+        expect(
+          await firstValueFrom(
+            new TenantContextInterceptor().intercept(call.execution, call.next),
+          ),
+        ).toEqual({ organizationId: expectedOrg, brandId: routeBrand });
+        expect(
+          contentPlanSeedsService.buildPreview,
+        ).toHaveBeenCalledExactlyOnceWith(expectedOrg, routeBrand);
+        expect(call.request.user).toBe(identity);
+        expect(call.request.context).toBe(call.context);
+        expect(identity).toEqual(original);
+        expect(call.context).toEqual({
+          organizationId: orgId,
+          brandId: identity.brandId,
+          isSuperAdmin: true,
+        });
+      },
+    );
+
+    it('refuses foreign selection for an ordinary member before seed/cache dispatch', () => {
+      const call = execute(
+        { organizationId: selectedOrganization },
+        { ...identity, isSuperAdmin: false },
+      );
+      expect(() =>
+        new TenantContextInterceptor().intercept(call.execution, call.next),
+      ).toThrow(expect.objectContaining({ status: 403 }));
+      expect(call.next.handle).not.toHaveBeenCalled();
+      expect(contentPlanSeedsService.buildPreview).not.toHaveBeenCalled();
+    });
+
+    it('keeps concurrent selected seed reads isolated in Prisma and read scope', async () => {
+      const otherOrg = testId('org', 3);
+      contentPlanSeedsService.buildPreview.mockImplementation(
+        async (organizationId: string, brandId: string) => {
+          await Promise.resolve();
+          expect(getTenantContext()?.organizationId).toBe(organizationId);
+          expect(getTenantReadScope()?.organizationId).toBe(organizationId);
+          return { organizationId, brandId };
+        },
+      );
+      const results = await Promise.all(
+        [selectedOrganization, otherOrg].map((organizationId) => {
+          const call = execute({ organizationId });
+          return firstValueFrom(
+            new TenantContextInterceptor().intercept(call.execution, call.next),
+          );
+        }),
+      );
+      expect(results).toEqual(
+        [selectedOrganization, otherOrg].map((organizationId) => ({
+          organizationId,
+          brandId: routeBrand,
+        })),
+      );
+      expect(identity.organizationId).toBe(orgId);
+      expect(getTenantReadScope()).toBeUndefined();
+      expect(getTenantContext()).toBeUndefined();
     });
   });
 

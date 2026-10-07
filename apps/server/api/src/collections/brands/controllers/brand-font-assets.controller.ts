@@ -10,6 +10,7 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import {
@@ -52,6 +53,7 @@ export class BrandFontAssetsController {
       brandId: InputValidationUtil.validateEntityId(brandId, 'brandId'),
     };
   }
+  @TenantReadPolicy('owner')
   @Get()
   async list(
     @Req() req: Request,

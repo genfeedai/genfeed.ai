@@ -1,6 +1,8 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
+import { TENANT_READ_POLICY } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import {
   BrandOsExportController,
@@ -11,6 +13,7 @@ import type { CacheService } from '@api/services/cache/cache.service';
 import { RateLimitGuard } from '@api/shared/guards/rate-limit/rate-limit.guard';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -129,6 +132,8 @@ describe('Brand OS export real HTTP pipeline', () => {
       ) => {
         if (req.headers.authorization === 'Bearer member-session')
           req.user = actor;
+        if (req.headers.authorization === 'Bearer superadmin-session')
+          req.user = { ...actor, isSuperAdmin: true };
         if (req.headers.authorization === 'Bearer owner-key')
           req.user = {
             ...actor,
@@ -158,10 +163,12 @@ describe('Brand OS export real HTTP pipeline', () => {
         rateLimitCache as unknown as CacheService,
       ),
     );
+    app.useGlobalInterceptors(new TenantContextInterceptor());
     app.useGlobalPipes(new ValidationPipe());
     await app.init();
   });
   beforeEach(() => {
+    vi.clearAllMocks();
     published = false;
     revoked = false;
     rateLimitCache.incr.mockResolvedValue(1);
@@ -193,6 +200,50 @@ describe('Brand OS export real HTTP pipeline', () => {
     expect(result.headers['x-brand-os-revision']).toBe('revision-1');
     expect(result.text).toContain('Portable Brand');
   });
+  it.each(['member-session', 'superadmin-session'])(
+    'rejects foreign %s design downloads before lookup and preserves equal/original authority',
+    async (token) => {
+      const queryCalls = () => [
+        db.brand.findFirst,
+        db.member.findFirst,
+        db.brandOsRevision.findFirst,
+        db.$queryRaw,
+      ];
+      await request(app.getHttpServer())
+        .get(
+          `/brands/brand-1/brand-os/design.md?organizationId=${testId('org', 2)}`,
+        )
+        .set('Authorization', `Bearer ${token}`)
+        .expect(403);
+      for (const query of queryCalls()) expect(query).not.toHaveBeenCalled();
+      expect(
+        Reflect.getMetadata(
+          TENANT_READ_POLICY,
+          BrandOsExportController.prototype.download,
+        ),
+      ).toBe('owner');
+      for (const suffix of ['', `?organizationId=${actor.organizationId}`]) {
+        const result = await request(app.getHttpServer())
+          .get(`/brands/brand-1/brand-os/design.md${suffix}`)
+          .set('Authorization', `Bearer ${token}`)
+          .expect(200);
+        expect(result.text).toContain('Portable Brand');
+        expect(result.headers['cache-control']).toBe('no-store');
+      }
+      expect(actor.organizationId).toBe('cbrandosexportorg0000000001');
+      expect(actor.userId).toBe('user-1');
+      memberRole = MemberRole.USER;
+      await request(app.getHttpServer())
+        .get('/brands/brand-1/brand-os/design.md')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      for (const token of ['owner-key', 'admin-key'])
+        await request(app.getHttpServer())
+          .get('/brands/brand-1/brand-os/design.md')
+          .set('Authorization', `Bearer ${token}`)
+          .expect(200);
+    },
+  );
   it('serializes export state through the canonical JSON API serializer', async () => {
     const result = await request(app.getHttpServer())
       .get('/brands/brand-1/brand-os/export')

@@ -55,15 +55,20 @@ import {
   BrandedGenerationReceiptListQueryDto,
   BrandIdentityPreviewQueryDto,
 } from '@api/collections/branded-generation-receipts/dto/branded-generation-receipt-query.dto';
+import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
+import { TENANT_READ_POLICY } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import type { BrandIdentitySnapshotService } from '@api/services/branded-generation-receipts/brand-identity-snapshot.service';
 import type { BrandedGenerationReceiptsService } from '@api/services/branded-generation-receipts/branded-generation-receipts.service';
 import type { BrandIdentitySnapshotV1 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import { testId } from '@helpers/testing/test-id.helper';
+import type { ExecutionContext } from '@nestjs/common';
 import {
   BadRequestException,
   ForbiddenException,
   ValidationPipe,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { defer, firstValueFrom } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const request = { originalUrl: '/brands/brand/generation-receipts' } as Request;
@@ -306,6 +311,115 @@ describe('receipt read controller', () => {
     ).rejects.toThrow(BadRequestException);
     expect(service.get).not.toHaveBeenCalled();
   });
+  it.each(['get', 'getRevision', 'readPrompt'] as const)(
+    'keeps %s owner-bound before service dispatch and preserves no/equal scope',
+    async (method) => {
+      const { controller, service } = setup();
+      const identity: AuthenticatedUser = {
+        ...user,
+        organizationId: testId('org'),
+        brandId: testId('brand'),
+        isSuperAdmin: true,
+      };
+      const context = {
+        organizationId: identity.organizationId,
+        brandId: identity.brandId,
+        isSuperAdmin: true,
+      };
+      const original = { ...identity };
+      function invoke() {
+        if (method === 'get')
+          return controller.get(
+            request,
+            identity,
+            identity.brandId,
+            'receipt',
+            new BrandedGenerationReceiptEmptyQueryDto(),
+          );
+        if (method === 'getRevision')
+          return controller.getRevision(
+            request,
+            identity,
+            identity.brandId,
+            'receipt',
+            '0',
+            new BrandedGenerationReceiptEmptyQueryDto(),
+          );
+        return controller.readPrompt(
+          request,
+          identity,
+          identity.brandId,
+          'receipt',
+          'original',
+          { revision: 2 },
+        );
+      }
+      const makeCall = (query: Record<string, string | undefined>) => {
+        const incoming = { method: 'GET', user: identity, context, query };
+        const execution = {
+          getClass: () => BrandedGenerationReceiptsController,
+          getHandler: () =>
+            BrandedGenerationReceiptsController.prototype[method],
+          switchToHttp: () => ({ getRequest: () => incoming }),
+        } as unknown as ExecutionContext;
+        return {
+          execution,
+          incoming,
+          next: { handle: vi.fn(() => defer(invoke)) },
+        };
+      };
+      const foreign = makeCall({ organizationId: testId('org', 2) });
+      expect(() =>
+        new TenantContextInterceptor().intercept(
+          foreign.execution,
+          foreign.next,
+        ),
+      ).toThrow(expect.objectContaining({ status: 403 }));
+      expect(foreign.next.handle).not.toHaveBeenCalled();
+      expect(service.get).not.toHaveBeenCalled();
+      expect(service.history).not.toHaveBeenCalled();
+      expect(service.readPrompt).not.toHaveBeenCalled();
+      expect(
+        Reflect.getMetadata(
+          TENANT_READ_POLICY,
+          BrandedGenerationReceiptsController.prototype[method],
+        ),
+      ).toBe('owner');
+      for (const query of [{}, { organizationId: identity.organizationId }]) {
+        const call = makeCall(query);
+        await firstValueFrom(
+          new TenantContextInterceptor().intercept(call.execution, call.next),
+        );
+        expect(call.next.handle).toHaveBeenCalledOnce();
+        expect(call.incoming.user).toBe(identity);
+        expect(call.incoming.context).toBe(context);
+      }
+      const expectedActor = {
+        organizationId: identity.organizationId,
+        actorId: identity.userId,
+        brandId: identity.brandId,
+      };
+      if (method === 'get')
+        expect(service.get).toHaveBeenCalledWith(expectedActor, 'receipt');
+      else if (method === 'getRevision')
+        expect(service.history).toHaveBeenCalledWith(expectedActor, 'receipt', {
+          limit: 1,
+        });
+      else
+        expect(service.readPrompt).toHaveBeenCalledWith(
+          expectedActor,
+          'receipt',
+          'original',
+          2,
+        );
+      expect(identity).toEqual(original);
+      expect(context).toEqual({
+        organizationId: identity.organizationId,
+        brandId: identity.brandId,
+        isSuperAdmin: true,
+      });
+    },
+  );
   it('strictly validates every read query including empty metadata queries', async () => {
     const pipe = new ValidationPipe({
       transform: true,
