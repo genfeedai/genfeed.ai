@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import type { Socket } from 'socket.io-client';
 import { createWebSocketConnection } from '@/utils/websocket';
 
@@ -39,10 +40,6 @@ export interface AgentLiveStream {
   drain(): AgentLiveStreamEvent[];
   waitForActivity(timeoutMs: number): Promise<void>;
   waitUntilReady(): Promise<void>;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function asIdentityPayload(value: unknown): AgentLivePayload | undefined {

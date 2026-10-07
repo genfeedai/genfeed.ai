@@ -1,6 +1,6 @@
 import { VideoTransition } from '@genfeedai/contracts';
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import type { ExecutableNode } from '../../types';
-import { isRecord } from '../../utils/record';
 import {
   BaseExecutor,
   type ExecutorInput,

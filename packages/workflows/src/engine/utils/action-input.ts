@@ -1,9 +1,4 @@
-function readRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
+import { readRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 /**
  * Builds the exact JSON object delivered to a Genfeed action implementation.
  * Persisted engine metadata is removed before payload, node config, and edge

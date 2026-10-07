@@ -1,3 +1,4 @@
+import { readNonEmptyString } from '@genfeedai/contracts/constants/type-guards.constant';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { io, type Socket } from 'socket.io-client';
@@ -82,10 +83,6 @@ export function isCrossIdentitySocketRotation(
     previous.userId !== next.userId ||
     previous.organizationId !== next.organizationId
   );
-}
-
-function readNonEmptyString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
 function decodeJwtPayloadSegment(

@@ -6,6 +6,13 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: '@genfeedai/contracts/constants/type-guards.constant',
+        replacement: path.resolve(
+          import.meta.dirname,
+          '../../packages/contracts/src/constants/type-guards.constant.ts',
+        ),
+      },
+      {
         find: '@genfeedai/contracts/constants',
         replacement: path.resolve(
           import.meta.dirname,

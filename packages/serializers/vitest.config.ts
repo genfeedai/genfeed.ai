@@ -13,6 +13,13 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../helpers/src/$1'),
       },
       {
+        find: '@genfeedai/contracts/constants/type-guards.constant',
+        replacement: path.resolve(
+          __dirname,
+          '../contracts/src/constants/type-guards.constant.ts',
+        ),
+      },
+      {
         find: '@genfeedai/contracts/constants',
         replacement: path.resolve(
           __dirname,

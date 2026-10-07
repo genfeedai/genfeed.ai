@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import type {
   AgentAlertSeverity,
   AgentBlockSourceParams,
@@ -169,10 +170,6 @@ function isPrimitive(value: unknown): value is DashboardPrimitive {
     typeof value === 'number' ||
     typeof value === 'string'
   );
-}
-
-function isRecord(value: unknown): value is DashboardRecord {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function readRecordField(

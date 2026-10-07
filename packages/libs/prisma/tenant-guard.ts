@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import { TENANT_QUERY_OPERATION_SET } from './discover-tenant-models';
 import {
   getActiveBillingAccountScopes,
@@ -195,10 +196,6 @@ export function assertTenantScopedQuery(input: TenantGuardArgs): void {
       );
     }
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function addFieldValue(value: unknown, ids: Set<string>): void {

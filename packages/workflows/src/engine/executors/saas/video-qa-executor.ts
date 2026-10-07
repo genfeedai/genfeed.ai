@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import type {
   VideoContinuityClipFinding,
   VideoContinuityQaReport,
@@ -16,7 +17,6 @@ import type {
 } from '@genfeedai/contracts/types';
 import { PermanentExecutionError } from '../../execution/execution-error';
 import type { ExecutableNode } from '../../types';
-import { isRecord } from '../../utils/record';
 import {
   BaseExecutor,
   type ExecutorInput,

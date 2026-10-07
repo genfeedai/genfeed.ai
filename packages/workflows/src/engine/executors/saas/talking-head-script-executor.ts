@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import type {
   TalkingHeadScript,
   TalkingHeadScriptNodeOutput,
@@ -5,7 +6,6 @@ import type {
   TalkingHeadScriptSegmentPurpose,
 } from '../../../contracts/talking-head-script';
 import type { ExecutableNode } from '../../types';
-import { isRecord } from '../../utils/record';
 import {
   BaseExecutor,
   type ExecutorInput,

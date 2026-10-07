@@ -9,6 +9,7 @@ import {
   AGENT_EXTERNAL_RUNTIME_THREAD_SOURCE,
   isAgentExternalRuntimeKey,
 } from '@genfeedai/contracts/constants/agent-external-runtime.constant';
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import type {
   DesktopCliAgentErrorCode,
   DesktopCliAgentEvent,
@@ -114,10 +115,6 @@ interface ActiveCliTurn {
   stopReason: TurnStopReason | null;
   threadId: string;
   turnTimer: NodeJS.Timeout | null;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function readOptionalEntityId(value: unknown, field: string): string | null {

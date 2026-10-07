@@ -1,3 +1,4 @@
+import { isRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import type {
   DesktopServerKind,
   IDesktopSelfHostedServerConfig,
@@ -33,10 +34,6 @@ type FetchLike = (
   input: string,
   init?: { signal?: AbortSignal },
 ) => Promise<{ json(): Promise<unknown>; ok: boolean; status: number }>;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function parseSelfHostedConfig(
   value: unknown,

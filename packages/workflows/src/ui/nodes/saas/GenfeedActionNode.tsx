@@ -1,6 +1,7 @@
 'use client';
 
 import { getActionDefinition } from '@genfeedai/actions';
+import { readRecord } from '@genfeedai/contracts/constants/type-guards.constant';
 import type { NodeProps } from '@xyflow/react';
 import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo } from 'react';
@@ -15,12 +16,6 @@ import {
 
 const ACTION_NODE_MIN_WIDTH = 300;
 const ACTION_NODE_MIN_HEIGHT = 220;
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
 
 function GenfeedActionNodeComponent(props: NodeProps) {
   const translate = useTranslations('pages.workflows.actionNode');
