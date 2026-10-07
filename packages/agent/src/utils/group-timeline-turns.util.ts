@@ -31,9 +31,9 @@ export function splitCompletedTimelineTurn(turn: TimelineTurnGroup): {
   activity: TimelineTurnGroup['items'];
   visible: TimelineTurnGroup['items'];
 } {
-  const finalAssistant = turn.items.findLast(
-    ({ entry }) => entry.kind === 'assistant-message',
-  );
+  const finalAssistant = [...turn.items]
+    .reverse()
+    .find(({ entry }) => entry.kind === 'assistant-message');
   const terminal = turn.items.at(-1)?.entry;
   const hasTerminalFailure =
     terminal?.kind === 'work-group' &&
