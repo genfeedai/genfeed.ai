@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { runInNewContext } from 'node:vm';
 
 import { createPrTestPlan } from './pr-test-plan.mjs';
 
@@ -62,6 +63,69 @@ function runGateCli(env = {}) {
 function classificationOf(result, name) {
   return result.rows.find((row) => row.name === name)?.classification;
 }
+
+function workflowGate() {
+  const workflow = readFileSync(
+    new URL('../../.github/workflows/ci.yml', import.meta.url),
+    'utf8',
+  );
+  const block = workflow.match(
+    /^ {2}tests-gate:\n((?: {4}.*(?:\n|$)|\n)+)/m,
+  )?.[1];
+  assert.ok(block, 'CI must define the required aggregate gate');
+  return block;
+}
+
+test('draft-to-ready on the same head never leaves a skipped required gate', () => {
+  const gate = workflowGate();
+  const expression = gate.match(
+    /^ {4}if: >-\n {6}\$\{\{ ([\s\S]+?) \}\}/m,
+  )?.[1];
+  assert.ok(expression);
+
+  // #6343: a skipped draft gate was still accepted at the ready head while
+  // the replacement run's expensive validation was in progress.
+  for (const draft of [true, false]) {
+    assert.equal(
+      runInNewContext(expression, {
+        always: () => true,
+        github: {
+          event_name: 'pull_request',
+          event: { pull_request: { draft } },
+        },
+      }),
+      true,
+      `Tests Gate must run instead of reporting skipped (draft=${draft})`,
+    );
+  }
+
+  const firstStep = gate.split('    steps:\n')[1].split('\n      - ')[0];
+  assert.match(firstStep, /name: Require a ready pull request/);
+  assert.match(
+    firstStep,
+    /if: github\.event_name == 'pull_request' && github\.event\.pull_request\.draft/,
+  );
+  assert.doesNotMatch(firstStep, /checkout|setup-bun/);
+  const script = firstStep
+    .split('        run: |\n')[1]
+    ?.split('\n')
+    .map((line) => line.replace(/^ {10}/, ''))
+    .join('\n');
+  assert.ok(script);
+  const refusal = spawnSync('bash', ['-e', '-c', script], {
+    encoding: 'utf8',
+  });
+  assert.equal(refusal.status, 1, 'draft gate must refuse merge authorization');
+  assert.match(refusal.stdout, /ready.*validation/i);
+
+  // Once ready, only real completed validation can replace that failure.
+  const unvalidated = runGateCli({
+    ...CANCELLED_RUN_ENV,
+    PLAN_RESULT: 'skipped',
+  });
+  assert.equal(unvalidated.status, 1);
+  assert.equal(runGateCli().status, 0);
+});
 
 test('passes when applicable jobs succeed', () => {
   const result = evaluate();
@@ -291,12 +355,12 @@ test('keeps the workflow contract stable', () => {
 
   assert.match(workflow, /^ {2}tests-gate:\n/m);
   assert.match(workflow, /^ {4}name: Tests Gate\n/m);
-  // Ready pull requests and merge groups reach a conclusive gate. The `push`
-  // arm is dormant (the Full Suite no longer runs on master pushes); drafts and
-  // the Full Suite dispatch/release path (workflow_dispatch) do not.
+  // Draft and ready pull requests reach a conclusive gate. The `push` arm is
+  // dormant (the Full Suite no longer runs on master pushes); the Full Suite
+  // dispatch/release path (workflow_dispatch) uses its own SHA verdict.
   assert.match(
     workflow,
-    /^ {4}if: >-\n {6}\$\{\{ always\(\)\n {6}&& !github\.event\.pull_request\.draft\n {6}&& \(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group' \|\| github\.event_name == 'push'\) \}\}\n/m,
+    /^ {4}if: >-\n {6}\$\{\{ always\(\)\n {6}&& \(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group' \|\| github\.event_name == 'push'\) \}\}\n/m,
   );
 
   for (const job of [

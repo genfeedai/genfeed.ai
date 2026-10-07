@@ -1,9 +1,9 @@
 name: CI
 
 # Two callers, one graph:
-#   - pull_request: the affected tier. Draft pull requests run nothing; CI runs
-#     once when the PR is marked ready (`ready_for_review`) and on every push
-#     after that.
+#   - pull_request: the affected tier. Draft pull requests run only a cheap
+#     refusal in the required Tests Gate; validation runs when the PR is marked
+#     ready (`ready_for_review`) and on every push after that.
 #   - workflow_call: full-suite.yml (manual dispatch and the release QA path)
 #     and pr-heavy-ci.yml (the `full-suite` PR label) pass
 #     `run_heavy_tests: true` for the complete matrix.
@@ -759,7 +759,10 @@ jobs:
   # skipped cannot produce a false-green gate; plan-filtered skips are accepted
   # only when the exact plan marked them non-applicable.
   #
-  # Runs on ready pull requests and merge groups. The `push` arm is dormant
+  # Runs on every pull request and merge group. A skipped required check is
+  # merge-acceptable to GitHub: drafts must fail this cheap gate so their same
+  # head cannot auto-merge while ready_for_review validation is still running.
+  # The `push` arm is dormant
   # since the Full Suite stopped running on master pushes: it would only match a
   # Full Suite called from a push, and the master failure tracker below keys off
   # it. The Full Suite paths (workflow_dispatch, release) are gated by the Master
@@ -778,9 +781,15 @@ jobs:
       - build
     if: >-
       ${{ always()
-      && !github.event.pull_request.draft
       && (github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'push') }}
     steps:
+      - name: Require a ready pull request
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft
+        shell: bash
+        run: |
+          echo "::error::Draft pull request: mark ready to run validation before merging."
+          exit 1
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # A pull request run is cancelled when a newer push supersedes it. Its
