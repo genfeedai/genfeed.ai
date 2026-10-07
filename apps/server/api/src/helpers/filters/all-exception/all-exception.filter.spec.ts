@@ -1,3 +1,4 @@
+import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
 import { type ArgumentsHost, HttpStatus } from '@nestjs/common';
 
 const jsonApiSerializerMock = {
@@ -184,5 +185,31 @@ describe('AllExceptionFilter', () => {
       }),
     );
     expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it('only the typed persisted wrapper exposes bounded identity with redacted generic detail', () => {
+    filter.catch(
+      PersistedVideoGenerationException.from(
+        new Error('private provider detail'),
+        ['saved'],
+      ),
+      mockArgumentsHost,
+    );
+    expect(mockResponse.json.mock.calls[0][0].errors[0]).toMatchObject({
+      status: '500',
+      detail: 'An unexpected error occurred',
+      meta: { persistedVideoIngredientIds: ['saved'] },
+    });
+    filter.catch(
+      {
+        getStatus: () => 422,
+        getResponse: () => ({
+          detail: 'Review',
+          meta: { persistedVideoIngredientIds: ['forged'] },
+        }),
+      },
+      mockArgumentsHost,
+    );
+    expect(mockResponse.json.mock.calls[1][0].errors[0].meta).toBeUndefined();
   });
 });

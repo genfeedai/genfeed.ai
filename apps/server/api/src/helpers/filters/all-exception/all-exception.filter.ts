@@ -1,3 +1,4 @@
+import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
 import { redactEmailTrackingUrl } from '@api/helpers/utils/email-tracking-url.util';
 import {
   isOAuthErrorPath,
@@ -111,6 +112,10 @@ export class AllExceptionFilter implements ExceptionFilter {
 
     this.writeJsonApiError(res, {
       detail,
+      persistedVideoIngredientIds:
+        exception instanceof PersistedVideoGenerationException
+          ? exception.persistedVideoIngredientIds
+          : undefined,
       pointer: redactEmailTrackingUrl(req.originalUrl),
       status,
       title,
@@ -151,6 +156,7 @@ export class AllExceptionFilter implements ExceptionFilter {
        * string so every JSON:API error keeps a `code` member (#5080).
        */
       code?: string;
+      persistedVideoIngredientIds?: readonly string[];
       detail: string;
       pointer: string;
       source?: Record<string, unknown>;
@@ -161,6 +167,15 @@ export class AllExceptionFilter implements ExceptionFilter {
     res.status(error.status).json(
       new this.JSONAPIError({
         code: error.code ?? error.status.toString(),
+        ...(error.persistedVideoIngredientIds
+          ? {
+              meta: {
+                persistedVideoIngredientIds: [
+                  ...error.persistedVideoIngredientIds,
+                ],
+              },
+            }
+          : {}),
         detail: error.detail,
         source: error.source ?? {
           pointer: error.pointer,

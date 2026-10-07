@@ -42,6 +42,7 @@ import {
   resolveJsonApiIngredientId,
   resolveStudioAssetDimensions,
   resolveStudioAssetUrl,
+  toStudioGenerateJob,
 } from '@pages/studio/generate/utils/studio-generate-asset';
 import {
   isStudioGenerateJobPending,
@@ -54,6 +55,7 @@ import {
 import { buildStudioPromptData } from '@pages/studio/generate/utils/studio-generate-settings';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import { IngredientsService } from '@services/content/ingredients.service';
+import { getPersistedVideoIngredientIds } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { createMediaHandler } from '@services/core/socket-manager.service';
@@ -63,6 +65,7 @@ import { MusicsService } from '@services/ingredients/musics.service';
 import { VideosService } from '@services/ingredients/videos.service';
 import { VoicesService } from '@services/ingredients/voices.service';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
+import { getErrorStatus } from '@utils/error/json-api-status.util';
 import { resolvePendingIds } from '@utils/network/generation.util';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -975,23 +978,86 @@ export function useStudioGeneration({
             )
           : toErrorMessage(error, `Failed to generate ${config.label}`);
 
-        // A toast disappears. Leave a failed card so the operator can see what
-        // died and reprompt it without retyping.
-        setJobs((previous) => [
-          {
+        const persistedIds =
+          type === 'video' ? getPersistedVideoIngredientIds(error) : [];
+        const reconciled: StudioGenerateJob[] = [];
+        const pendingIds: string[] = [];
+        for (const id of persistedIds) {
+          const shell: StudioGenerateJob = {
             createdAt: Date.now(),
-            error: message,
             ...jobDimensions,
-            id: `failed-${crypto.randomUUID()}`,
+            id,
+            ingredientId: id,
             modelKey: modelKey || undefined,
             prompt: promptText,
             recipe,
             runId,
-            status: IngredientStatus.FAILED,
+            status: IngredientStatus.PROCESSING,
             type,
-          },
-          ...previous.filter((job) => job.runId !== runId),
-        ]);
+          };
+          try {
+            const service = await getVideosService();
+            if (activeBrandRef.current !== brandId) return false;
+            const ingredient = await service.findOne(id, { brandId });
+            if (activeBrandRef.current !== brandId) return false;
+            if (
+              !ingredient ||
+              ingredient.id !== id ||
+              ingredient.brandId !== brandId ||
+              ingredient.category !== IngredientCategory.VIDEO ||
+              ingredient.isDeleted ||
+              !Object.values(IngredientStatus).includes(ingredient.status)
+            )
+              continue;
+            const hydrated = toStudioGenerateJob(ingredient);
+            if (!hydrated) continue;
+            reconciled.push({ ...hydrated, recipe, runId });
+            if (isStudioGenerateJobPending(ingredient.status))
+              pendingIds.push(id);
+          } catch (readError) {
+            if (activeBrandRef.current !== brandId) return false;
+            const status = getErrorStatus(readError);
+            if (status !== undefined && status >= 400 && status < 500) continue;
+            reconciled.push({
+              ...shell,
+              error: 'The result could not be loaded. Reconnecting…',
+              phase: 'saving',
+            });
+            pendingIds.push(id);
+          }
+        }
+        if (activeBrandRef.current !== brandId) return false;
+        // Publish only after scoped initial hydration settles, so refused IDs
+        // can never trigger the existing immediate fallback polling effect.
+        setJobs((previous) =>
+          mergeStudioGenerateJobs(
+            previous.filter(
+              (job) => job.runId !== runId || job.phase !== 'submitting',
+            ),
+            reconciled.length
+              ? reconciled
+              : [
+                  {
+                    createdAt: Date.now(),
+                    error: message,
+                    ...jobDimensions,
+                    id: `failed-${crypto.randomUUID()}`,
+                    modelKey: modelKey || undefined,
+                    prompt: promptText,
+                    recipe,
+                    runId,
+                    status: IngredientStatus.FAILED,
+                    type,
+                  },
+                ],
+          ),
+        );
+        for (const id of pendingIds) {
+          if (activeBrandRef.current !== brandId) return false;
+          subscribeToPendingJob(id, type);
+        }
+        onGeneratedRef.current?.();
+        window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
         notificationsService.error(message);
       } finally {
         submittingRef.current = false;
@@ -1011,6 +1077,7 @@ export function useStudioGeneration({
       notificationsService,
       settings,
       trackPendingIds,
+      subscribeToPendingJob,
       translateCrun,
       type,
     ],

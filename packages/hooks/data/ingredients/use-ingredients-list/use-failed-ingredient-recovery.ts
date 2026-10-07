@@ -60,9 +60,7 @@ export function useFailedIngredientRecovery({
   scopeKey,
   brandId,
   ingredients,
-  getService,
-  setIngredients,
-  setSelectedIds,
+  deleteOptions,
   onRefresh,
 }: UseFailedIngredientRecoveryProps) {
   const { openConfirm } = useConfirmModal();
@@ -106,6 +104,7 @@ export function useFailedIngredientRecovery({
 
   const handleDeleteFailedIngredients = useCallback(
     (ids: string[]) => {
+      if (!deleteOptions) return;
       const failedIds = new Set(
         ingredients
           .filter((ingredient) => ingredient.status === IngredientStatus.FAILED)
@@ -123,7 +122,7 @@ export function useFailedIngredientRecovery({
           if (!begin(snapshotScope)) return;
           const deleted = new Set<string>();
           try {
-            const service = await getService();
+            const service = await deleteOptions.getService();
             // The API accepts at most 100 IDs. Each batch keeps the confirmed snapshot.
             for (let offset = 0; offset < snapshot.length; offset += 100) {
               const batch = snapshot.slice(offset, offset + 100);
@@ -140,10 +139,10 @@ export function useFailedIngredientRecovery({
               }
             }
             if (snapshotScope === currentScopeRef.current) {
-              setIngredients((current) =>
+              deleteOptions.setIngredients((current) =>
                 current.filter((ingredient) => !deleted.has(ingredient.id)),
               );
-              setSelectedIds((current) =>
+              deleteOptions.setSelectedIds((current) =>
                 current.filter((id) => !deleted.has(id)),
               );
             }
@@ -169,14 +168,12 @@ export function useFailedIngredientRecovery({
     [
       begin,
       finish,
-      getService,
+      deleteOptions,
       ingredients,
       notifications,
       onRefresh,
       openConfirm,
       scopeKey,
-      setIngredients,
-      setSelectedIds,
       t,
     ],
   );

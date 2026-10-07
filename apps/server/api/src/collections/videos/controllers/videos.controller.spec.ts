@@ -3,6 +3,7 @@ import { ModelCreditQuoteService } from '@api/collections/models/services/model-
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { CrunVideoGenerationService } from '@api/collections/videos/services/crun-video-generation.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -1572,13 +1573,25 @@ describe('VideosController', () => {
     });
 
     it('should handle generation failure and cleanup', async () => {
-      klingAIService.queueGenerateTextToVideo.mockRejectedValue(
-        new Error('Generation failed'),
-      );
+      const original = new Error('Generation failed');
+      klingAIService.queueGenerateTextToVideo.mockRejectedValue(original);
 
-      await expect(
-        controller.create(mockRequest, baseCreateDto, mockUser),
-      ).rejects.toThrow('Generation failed');
+      const error: unknown = await controller
+        .create(mockRequest, baseCreateDto, mockUser)
+        .catch((caught: unknown) => caught);
+      expect(error).toBeInstanceOf(PersistedVideoGenerationException);
+      if (!(error instanceof PersistedVideoGenerationException))
+        throw new Error('Expected persisted video generation failure');
+      expect(error.cause).toBe(original);
+      expect(error.persistedVideoIngredientIds).toEqual([mockVideoId]);
+      expect(error.getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+      expect(error.getResponse()).toEqual({
+        title: 'Internal Server Error',
+        detail: 'An unexpected error occurred',
+      });
+      expect(JSON.stringify(error.getResponse())).not.toContain(
+        'Generation failed',
+      );
 
       expect(
         failedGenerationService.handleFailedVideoGeneration,

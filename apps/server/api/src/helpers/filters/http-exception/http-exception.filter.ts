@@ -1,3 +1,4 @@
+import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
 import { redactEmailTrackingUrl } from '@api/helpers/utils/email-tracking-url.util';
 import { isRecord } from '@genfeedai/utils/data/extract.util';
@@ -135,7 +136,17 @@ export class HttpExceptionFilter extends AllExceptionFilter {
 
     if (fieldErrors.length > 0) {
       res.status(status).json({
-        errors: fieldErrors.map((fieldError) => ({
+        errors: fieldErrors.map((fieldError, index) => ({
+          ...(index === 0 &&
+          exception instanceof PersistedVideoGenerationException
+            ? {
+                meta: {
+                  persistedVideoIngredientIds: [
+                    ...exception.persistedVideoIngredientIds,
+                  ],
+                },
+              }
+            : {}),
           code: String(status),
           detail: fieldError.message,
           source: { pointer: `/${fieldError.field}` },
@@ -149,6 +160,10 @@ export class HttpExceptionFilter extends AllExceptionFilter {
     this.writeJsonApiError(res, {
       code,
       detail,
+      persistedVideoIngredientIds:
+        exception instanceof PersistedVideoGenerationException
+          ? exception.persistedVideoIngredientIds
+          : undefined,
       pointer: redactEmailTrackingUrl(req.originalUrl),
       source,
       status,

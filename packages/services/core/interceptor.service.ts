@@ -14,6 +14,7 @@ import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/
 import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { setErrorDebugInfo } from '@services/core/error-debug-store';
+import { getPersistedVideoIngredientIds } from '@services/core/json-api-error-message';
 import {
   buildInstanceKey,
   ServiceInstanceManager,
@@ -446,6 +447,11 @@ export abstract class HTTPBaseService {
         }
       }
 
+      const persistedVideoIngredientIds = getPersistedVideoIngredientIds(
+        response.data,
+      );
+      if (persistedVideoIngredientIds.length)
+        Object.assign(sanitizedError, { persistedVideoIngredientIds });
       throw sanitizedError;
     }
 

@@ -69,7 +69,15 @@ export interface StudioGenerateComposerProps {
   type: StudioGenerateType;
 }
 
+export interface StudioFailedIngredientRecoveryActions {
+  onRetryFailedIngredient(ingredient: IIngredient): void;
+  onReviewFailedIngredient(ingredient: IIngredient): Promise<void>;
+  isRecovering: boolean;
+  retriedIds: readonly string[];
+}
+
 export interface StudioGenerateAssetActions {
+  failedRecovery?: StudioFailedIngredientRecoveryActions;
   onCancelGeneration?: (job: StudioGenerateJob) => void | Promise<void>;
   onClickIngredient: (ingredient: IIngredient) => void;
   onConvertToVideo: (ingredient: IIngredient) => void;

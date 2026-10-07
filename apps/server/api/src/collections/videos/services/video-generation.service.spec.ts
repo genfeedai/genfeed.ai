@@ -634,7 +634,10 @@ describe('VideoGenerationService', () => {
           throw new Error('run linkage failed');
         },
       ),
-    ).rejects.toThrow('run linkage failed');
+    ).rejects.toMatchObject({
+      cause: { message: 'run linkage failed' },
+      persistedVideoIngredientIds: ['ing-0'],
+    });
 
     expect(
       failedGenerationService.handleFailedVideoGeneration,
@@ -1452,4 +1455,113 @@ describe('VideoGenerationService', () => {
       );
     });
   });
+});
+
+describe('persisted video error identity', () => {
+  it('keeps persisted IDs on post-prepare dispatch rejection', async () => {
+    const original = new HttpException(
+      { code: 'PRICING_UNAVAILABLE', detail: 'Unavailable' },
+      422,
+    );
+    const context = {
+      ingredientData: { id: 'persisted-video' },
+      pendingIngredientIds: ['persisted-video', 'pending-output'],
+    };
+    const preparation = {
+      resolve: vi
+        .fn()
+        .mockResolvedValue({ model: 'model', user: { organizationId: 'org' } }),
+      prepare: vi.fn().mockResolvedValue(context),
+    };
+    const execution = {
+      prepareProviderDispatch: vi.fn(() => {
+        throw original;
+      }),
+      failPlaceholderBeforeDispatch: vi.fn().mockRejectedValue(original),
+    };
+    const service = new VideoGenerationService(
+      {} as never,
+      {} as never,
+      execution as never,
+      preparation as never,
+      {} as never,
+      {} as never,
+    );
+    const error = await service
+      .generateVideo({} as never, {} as never, {} as never)
+      .catch((caught: unknown) => caught);
+    expect(error).toMatchObject({
+      persistedVideoIngredientIds: context.pendingIngredientIds,
+    });
+    expect((error as HttpException).getStatus()).toBe(422);
+    expect((error as HttpException).getResponse()).toEqual(
+      original.getResponse(),
+    );
+    expect(execution.failPlaceholderBeforeDispatch).toHaveBeenCalledWith(
+      context,
+      original,
+    );
+  });
+
+  it.each(['resolve', 'prepare', 'cleanup', 'execute', 'complete'])(
+    'preserves the %s boundary without inventing identity before context',
+    async (stage) => {
+      const original = new HttpException(
+        { code: 'ORIGINAL', detail: 'Original error' },
+        409,
+      );
+      const context = {
+        ingredientData: { id: 'persisted' },
+        pendingIngredientIds: ['persisted'],
+      };
+      const preparation = {
+        resolve: vi.fn().mockResolvedValue({
+          model: 'model',
+          user: { organizationId: 'org' },
+        }),
+        prepare: vi.fn().mockResolvedValue(context),
+      };
+      const execution = {
+        prepareProviderDispatch: vi.fn(),
+        execute: vi.fn().mockResolvedValue(undefined),
+        failPlaceholderBeforeDispatch: vi.fn().mockRejectedValue(original),
+      };
+      const completion = { complete: vi.fn().mockResolvedValue({}) };
+      const credits = {
+        ensureDeferredCredits: vi.fn().mockResolvedValue(undefined),
+      };
+      if (stage === 'resolve' || stage === 'prepare')
+        preparation[stage].mockRejectedValue(original);
+      if (stage === 'cleanup') {
+        execution.prepareProviderDispatch.mockImplementation(() => {
+          throw new Error('dispatch');
+        });
+      }
+      if (stage === 'execute')
+        execution.execute.mockImplementation(async () => {
+          context.pendingIngredientIds.push('second-output');
+          throw original;
+        });
+      if (stage === 'complete') completion.complete.mockRejectedValue(original);
+      const service = new VideoGenerationService(
+        completion as never,
+        credits as never,
+        execution as never,
+        preparation as never,
+        {} as never,
+        {} as never,
+      );
+      const error = await service
+        .generateVideo({} as never, {} as never, {} as never)
+        .catch((caught: unknown) => caught);
+      if (stage === 'resolve' || stage === 'prepare')
+        expect(error).toBe(original);
+      else
+        expect(error).toMatchObject({
+          persistedVideoIngredientIds: context.pendingIngredientIds,
+          cause: original,
+        });
+      expect((error as HttpException).getStatus()).toBe(409);
+    },
+  );
 });

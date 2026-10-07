@@ -13,6 +13,7 @@ export interface IHttpCancelledError {
 }
 
 export interface IHttpSanitizedError {
+  readonly persistedVideoIngredientIds?: readonly string[];
   message: string;
   status: number;
   statusText: string;
