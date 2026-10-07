@@ -912,3 +912,166 @@ for (const value of [null, undefined, 0, 1, 'true', [], {}]) {
     );
   });
 }
+
+test('complete failure attribution conserves attempts, fixed groups and unknown historical timings', async () => {
+  const { buildDiagnosticSummary } = await import('./core.mjs');
+  const templates = Array.from({ length: 12 }, (_, i) => `/v1/failure-${i}`);
+  const record = {
+    status: 0,
+    actor: 'M:A',
+    sweepPhase: 'memberAGets',
+    phase: 'gets',
+    method: 'GET',
+    abortSource: 'request timeout',
+    errorName: 'TimeoutError',
+    errorCode: 'OTHER',
+    queueWaitMs: 1,
+    headerMs: 2,
+    bodyMs: 3,
+    totalMs: 6,
+  };
+  const requests = templates.map((route) => ({ ...record, route }));
+  requests.push({ ...record, route: templates[0] });
+  requests.push({
+    ...record,
+    route: templates[0],
+    actor: 'S',
+    sweepPhase: 'superadminGets',
+  });
+  requests.push({
+    ...record,
+    route: templates[0],
+    actor: 'private-actor',
+    sweepPhase: 'private-phase',
+    method: 'private-method',
+  });
+  const historical = { ...record, route: templates[1] };
+  for (const key of ['queueWaitMs', 'headerMs', 'bodyMs', 'totalMs'])
+    delete historical[key];
+  requests.push(historical);
+  requests.push({
+    ...record,
+    route: '/private-id?private-query',
+    body: 'private-body',
+    error: 'private-error',
+    token: 'private-token',
+  });
+  const report = {
+    sourceSha: 'a'.repeat(40),
+    inventoryTemplates: templates,
+    requests,
+  };
+  const summary = buildDiagnosticSummary(report);
+  assert.equal(summary.failedRequestGroups.length, 14);
+  assert.equal(summary.unattributedFailureAttempts, 1);
+  assert.equal(
+    summary.failedRequestGroups.reduce(
+      (sum, g) => sum + g.attempts,
+      summary.unattributedFailureAttempts,
+    ),
+    requests.length,
+  );
+  const first = summary.failedRequestGroups.find(
+    (g) => g.route === templates[0] && g.actor === 'M:A',
+  );
+  assert.equal(first.attempts, 2);
+  assert.equal(first.timedAttempts, 2);
+  assert.equal(first.totalMs, 12);
+  assert.equal(first.maximumMs, 6);
+  const second = summary.failedRequestGroups.find(
+    (g) => g.route === templates[1],
+  );
+  assert.equal(second.attempts, 2);
+  assert.equal(second.timedAttempts, 1);
+  assert.equal(second.totalMs, 6);
+  assert.ok(
+    summary.failedRequestGroups.some(
+      (g) =>
+        g.actor === 'unknown' && g.phase === 'unknown' && g.method === 'other',
+    ),
+  );
+  assert.deepEqual(
+    buildDiagnosticSummary({ ...report, requests: [...requests].reverse() })
+      .failedRequestGroups,
+    summary.failedRequestGroups,
+  );
+  assert.equal(summary.mailAttributionAvailable, false);
+  for (const value of [
+    'private-id',
+    'private-query',
+    'private-body',
+    'private-error',
+    'private-token',
+    'private-actor',
+    'private-phase',
+    'private-method',
+  ])
+    assert.equal(JSON.stringify(summary).includes(value), false);
+  const unknownTiming = buildDiagnosticSummary({
+    ...report,
+    requests: [historical],
+  }).failedRequestGroups[0];
+  assert.equal(unknownTiming.timedAttempts, 0);
+  assert.equal(unknownTiming.maximumMs, null);
+  assert.equal(unknownTiming.totalMs, 0);
+  const fallback = { ...historical, phase: 'controls' };
+  delete fallback.sweepPhase;
+  assert.equal(
+    buildDiagnosticSummary({ ...report, requests: [fallback] })
+      .failedRequestGroups[0].phase,
+    'controls',
+  );
+  for (const key of ['queueWaitMs', 'headerMs', 'bodyMs', 'totalMs'])
+    for (const value of [
+      -1,
+      null,
+      undefined,
+      1.5,
+      Number.MAX_SAFE_INTEGER + 1,
+      'private',
+    ])
+      assert.throws(() =>
+        buildDiagnosticSummary({
+          ...report,
+          requests: [{ ...record, route: templates[0], [key]: value }],
+        }),
+      );
+  assert.throws(() =>
+    buildDiagnosticSummary({
+      ...report,
+      requests: [
+        { ...record, route: templates[0], totalMs: Number.MAX_SAFE_INTEGER },
+        { ...record, route: templates[0] },
+      ],
+    }),
+  );
+  for (const key of ['abortSource', 'errorName', 'errorCode'])
+    assert.throws(() =>
+      buildDiagnosticSummary({
+        ...report,
+        requests: [{ ...record, route: templates[0], [key]: 'private' }],
+      }),
+    );
+});
+
+test('summary carries validated fixed mail tuples while historical and absent attribution stay unknown', async () => {
+  const { buildDiagnosticSummary } = await import('./core.mjs');
+  const { zeroMailStats } = await import('./local-mail-stub.mjs');
+  const report = { sourceSha: 'a'.repeat(40), mailStats: zeroMailStats() };
+  assert.equal(buildDiagnosticSummary(report).mailAttributionAvailable, true);
+  report.mailStats.rejected.path = 1;
+  report.mailStats.rejectedRequests = [
+    {
+      method: 'GET',
+      route: 'systemNotifications',
+      authorization: 'matched',
+      reason: 'path',
+      count: 1,
+    },
+  ];
+  assert.deepEqual(buildDiagnosticSummary(report).mail, report.mailStats);
+  delete report.mailStats.rejectedRequests;
+  assert.equal(buildDiagnosticSummary(report).mailAttributionAvailable, false);
+  report.mailStats.rejectedRequests = [];
+  assert.throws(() => buildDiagnosticSummary(report));
+});

@@ -69,6 +69,15 @@ for (const reason of MAIL_REASONS) {
   test(`final ${reason} refusal fails otherwise clean evidence exactly once`, (context) => {
     const f = fixture(context);
     f.latest.rejected[reason] = 1;
+    f.latest.rejectedRequests = [
+      {
+        method: 'POST',
+        route: 'emailDeliveries',
+        authorization: 'matched',
+        reason,
+        count: 1,
+      },
+    ];
     f.save();
     f.write();
     f.write();
@@ -87,6 +96,15 @@ test('success remains clean and later finalization persists increasing counters 
   assert.equal(f.saved().hasFailed, false);
   f.latest.statusRequests = 9;
   f.latest.rejected.path = 1;
+  f.latest.rejectedRequests = [
+    {
+      method: 'GET',
+      route: 'systemNotifications',
+      authorization: 'matched',
+      reason: 'path',
+      count: 1,
+    },
+  ];
   f.report.hasFailed = true;
   f.report.failures.push('Existing failure');
   f.report.apiLogHits.push({ message: 'private evidence' });
@@ -153,3 +171,44 @@ test('unowned directory remains untouched', (context) => {
   assert.throws(f.write);
   assert.equal(readFileSync(f.summaryPath, 'utf8'), prior);
 });
+
+test('historical final mail statistics keep attribution unavailable without exempting refusals', (context) => {
+  const f = fixture(context);
+  delete f.report.mailStats.rejectedRequests;
+  delete f.latest.rejectedRequests;
+  f.latest.rejected.path = 1;
+  f.save();
+  f.write();
+  assert.equal(f.summary().mailAttributionAvailable, false);
+  assert.equal(f.saved().hasFailed, true);
+  assert.deepEqual(f.saved().failures, [refusal]);
+});
+for (const kind of [
+  'lost-attribution',
+  'invalid-attribution',
+  'regressed-attribution',
+]) {
+  test(`${kind} finalization fails closed and removes stale success`, (context) => {
+    const f = fixture(context);
+    f.latest.rejected.path = 1;
+    f.latest.rejectedRequests = [
+      {
+        method: 'GET',
+        route: 'health',
+        authorization: 'matched',
+        reason: 'path',
+        count: 1,
+      },
+    ];
+    f.save();
+    f.write();
+    if (kind === 'lost-attribution') delete f.latest.rejectedRequests;
+    if (kind === 'invalid-attribution')
+      f.latest.rejectedRequests[0].route = 'private-path';
+    if (kind === 'regressed-attribution')
+      f.latest.rejectedRequests[0].route = 'other';
+    f.save();
+    assert.throws(f.write, { message: unavailable });
+    assert.equal(existsSync(f.summaryPath), false);
+  });
+}

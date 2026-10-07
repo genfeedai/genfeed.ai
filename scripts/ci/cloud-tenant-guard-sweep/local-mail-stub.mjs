@@ -25,11 +25,23 @@ export const MAIL_REASONS = [
   'json',
   'payload',
 ];
+const MAIL_METHODS = ['GET', 'POST', 'other'];
+const MAIL_ROUTES = [
+  'health',
+  'emailDeliveries',
+  'systemNotifications',
+  'channelDeliveries',
+  'other',
+];
+const MAIL_AUTHORIZATION = ['absent', 'matched', 'other'];
+const refusalKey = ({ method, route, authorization, reason }) =>
+  [method, route, authorization, reason].join('|');
 const BODY_LIMIT = 256 * 1024;
 const INTERNAL_KEY = 'ci-placeholder-internal-service-api-key';
 export function zeroMailStats() {
   return {
     version: 1,
+    rejectedRequests: [],
     statusRequests: 0,
     accepted: Object.fromEntries(MAIL_LABELS.map((label) => [label, 0])),
     rejected: Object.fromEntries(MAIL_REASONS.map((reason) => [reason, 0])),
@@ -45,7 +57,14 @@ function exactKeys(value, keys) {
 }
 export function validateMailStats(stats, previous) {
   if (
-    !exactKeys(stats, ['version', 'statusRequests', 'accepted', 'rejected']) ||
+    (!exactKeys(stats, ['version', 'statusRequests', 'accepted', 'rejected']) &&
+      !exactKeys(stats, [
+        'version',
+        'statusRequests',
+        'accepted',
+        'rejected',
+        'rejectedRequests',
+      ])) ||
     stats.version !== 1 ||
     !exactKeys(stats.accepted, MAIL_LABELS) ||
     !exactKeys(stats.rejected, MAIL_REASONS)
@@ -58,8 +77,55 @@ export function validateMailStats(stats, previous) {
   ];
   if (numbers.some((value) => !Number.isSafeInteger(value) || value < 0))
     throw new Error('Invalid mail statistics count');
+  if (Object.hasOwn(stats, 'rejectedRequests')) {
+    if (
+      !Array.isArray(stats.rejectedRequests) ||
+      stats.rejectedRequests.length > 315
+    )
+      throw new Error('Invalid mail attribution');
+    const seen = new Set();
+    const sums = Object.fromEntries(MAIL_REASONS.map((reason) => [reason, 0]));
+    for (const entry of stats.rejectedRequests) {
+      if (
+        !exactKeys(entry, [
+          'method',
+          'route',
+          'authorization',
+          'reason',
+          'count',
+        ]) ||
+        !MAIL_METHODS.includes(entry.method) ||
+        !MAIL_ROUTES.includes(entry.route) ||
+        !MAIL_AUTHORIZATION.includes(entry.authorization) ||
+        !MAIL_REASONS.includes(entry.reason) ||
+        !Number.isSafeInteger(entry.count) ||
+        entry.count <= 0 ||
+        seen.has(refusalKey(entry))
+      )
+        throw new Error('Invalid mail attribution');
+      seen.add(refusalKey(entry));
+      sums[entry.reason] += entry.count;
+      if (!Number.isSafeInteger(sums[entry.reason]))
+        throw new Error('Invalid mail attribution count');
+    }
+    if (MAIL_REASONS.some((reason) => sums[reason] !== stats.rejected[reason]))
+      throw new Error('Inconsistent mail attribution');
+  }
   if (previous) {
     validateMailStats(previous);
+    if (Object.hasOwn(previous, 'rejectedRequests')) {
+      if (!Object.hasOwn(stats, 'rejectedRequests'))
+        throw new Error('Mail attribution disappeared');
+      const current = new Map(
+        stats.rejectedRequests.map((entry) => [refusalKey(entry), entry.count]),
+      );
+      if (
+        previous.rejectedRequests.some(
+          (entry) => (current.get(refusalKey(entry)) ?? 0) < entry.count,
+        )
+      )
+        throw new Error('Mail attribution regressed');
+    }
     if (
       stats.statusRequests < previous.statusRequests ||
       MAIL_LABELS.some(
@@ -186,11 +252,41 @@ export function createLocalMailStub({
       response.end(JSON.stringify(body));
     };
     const reject = (reason, status = 400) =>
-      reply(
-        status,
-        { error: 'Rejected fixture transport request' },
-        () => counts.rejected[reason]++,
-      );
+      reply(status, { error: 'Rejected fixture transport request' }, () => {
+        counts.rejected[reason]++;
+        const tuple = {
+          method: ['GET', 'POST'].includes(request.method)
+            ? request.method
+            : 'other',
+          route:
+            new Map([
+              ['/v1/health', 'health'],
+              ['/v1/internal/email-deliveries', 'emailDeliveries'],
+              ['/v1/internal/system-notifications', 'systemNotifications'],
+              ['/v1/internal/channel-deliveries', 'channelDeliveries'],
+            ]).get(request.url) ?? 'other',
+          authorization:
+            request.headers.authorization === undefined
+              ? 'absent'
+              : request.headers.authorization === `Bearer ${key}`
+                ? 'matched'
+                : 'other',
+          reason,
+          count: 1,
+        };
+        const existing = counts.rejectedRequests.find(
+          (entry) => refusalKey(entry) === refusalKey(tuple),
+        );
+        if (existing) existing.count++;
+        else counts.rejectedRequests.push(tuple);
+        counts.rejectedRequests.sort((a, b) =>
+          refusalKey(a) < refusalKey(b)
+            ? -1
+            : refusalKey(a) > refusalKey(b)
+              ? 1
+              : 0,
+        );
+      });
     if (request.headers.authorization !== `Bearer ${key}`)
       return reject('authorization', 401);
     if (request.url !== '/v1/internal/email-deliveries')

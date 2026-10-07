@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { validateMailStats } from './local-mail-stub.mjs';
 
 export function createDeadline(
   timeoutMs,
@@ -698,18 +699,8 @@ export function buildDiagnosticSummary(report, fixtureProof = {}) {
       payload: 0,
     },
   };
-  if (
-    Object.keys(mail).sort().join(',') !==
-      'accepted,rejected,statusRequests,version' ||
-    mail.version !== 1 ||
-    Object.keys(mail.accepted).sort().join(',') !== 'A,B,M,M2,S' ||
-    Object.keys(mail.rejected).sort().join(',') !==
-      'authorization,contentType,json,method,path,payload,size'
-  )
-    throw new Error('Unsafe diagnostic mail schema');
-  count(mail.statusRequests);
-  Object.values(mail.accepted).forEach(count);
-  Object.values(mail.rejected).forEach(count);
+  validateMailStats(mail);
+  const mailAttributionAvailable = Array.isArray(mail.rejectedRequests);
   const phases = Object.fromEntries(
     DIAGNOSTIC_PHASES.map((name) => {
       const elapsed = report.phaseElapsed?.[name] ?? { startMs: 0, endMs: 0 };
@@ -756,6 +747,10 @@ export function buildDiagnosticSummary(report, fixtureProof = {}) {
     names: Object.fromEntries(ERROR_NAMES.map((value) => [value, 0])),
   };
   const routes = new Map();
+  const failedGroups = new Map();
+  let unattributedFailureAttempts = 0;
+  let failedAttempts = 0;
+  const timingKeys = ['queueWaitMs', 'headerMs', 'bodyMs', 'totalMs'];
   const controlOrganizationQueryAttempts = {
     present: 0,
     absent: 0,
@@ -783,6 +778,56 @@ export function buildDiagnosticSummary(report, fixtureProof = {}) {
         !ERROR_NAMES.includes(request.errorName)
       )
         throw new Error('Unsafe diagnostic classification');
+      failedAttempts = count(failedAttempts + 1);
+      for (const key of timingKeys)
+        if (Object.hasOwn(request, key)) count(request[key]);
+      if (!templates.has(request.route)) {
+        unattributedFailureAttempts = count(unattributedFailureAttempts + 1);
+      } else {
+        const phase = Object.hasOwn(request, 'sweepPhase')
+          ? request.sweepPhase
+          : request.phase;
+        const tuple = {
+          route: request.route,
+          actor: DIAGNOSTIC_ACTORS.includes(request.actor)
+            ? request.actor
+            : 'unknown',
+          phase: DIAGNOSTIC_PHASES.includes(phase) ? phase : 'unknown',
+          method: [
+            'GET',
+            'POST',
+            'PUT',
+            'PATCH',
+            'DELETE',
+            'HEAD',
+            'OPTIONS',
+          ].includes(request.method)
+            ? request.method
+            : 'other',
+          abortSource: request.abortSource,
+          errorName: request.errorName,
+          errorCode: request.errorCode,
+        };
+        const key = JSON.stringify(Object.values(tuple));
+        const group = failedGroups.get(key) ?? {
+          ...tuple,
+          attempts: 0,
+          timedAttempts: 0,
+          queueWaitMs: 0,
+          headerMs: 0,
+          bodyMs: 0,
+          totalMs: 0,
+          maximumMs: null,
+        };
+        group.attempts = count(group.attempts + 1);
+        if (timingKeys.every((name) => Object.hasOwn(request, name))) {
+          group.timedAttempts = count(group.timedAttempts + 1);
+          for (const name of timingKeys)
+            group[name] = count(group[name] + request[name]);
+          group.maximumMs = Math.max(group.maximumMs ?? 0, request.totalMs);
+        }
+        failedGroups.set(key, group);
+      }
       aborts[request.abortSource]++;
       errors.codes[request.errorCode]++;
       errors.names[request.errorName]++;
@@ -803,6 +848,18 @@ export function buildDiagnosticSummary(report, fixtureProof = {}) {
     values.maximumMs = Math.max(values.maximumMs, count(request.totalMs ?? 0));
     routes.set(request.route, values);
   }
+  const failedRequestGroups = [...failedGroups.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([, group]) => group);
+  if (
+    count(
+      failedRequestGroups.reduce(
+        (sum, group) => count(sum + group.attempts),
+        unattributedFailureAttempts,
+      ),
+    ) !== failedAttempts
+  )
+    throw new Error('Inconsistent diagnostic failure attempts');
   return {
     schemaVersion: 1,
     sourceSha: report.sourceSha,
@@ -815,6 +872,9 @@ export function buildDiagnosticSummary(report, fixtureProof = {}) {
       ].map((key) => [key, fixtureProof[key] === true]),
     ),
     mail: structuredClone(mail),
+    mailAttributionAvailable,
+    failedRequestGroups,
+    unattributedFailureAttempts,
     phases,
     controlOrganizationQueryAttempts,
     aborts,

@@ -222,3 +222,153 @@ test('statistics persistence failure fails the response and signals shutdown', a
   assert.equal(status, 500);
   assert.equal(fatal, 1);
 });
+
+test('refusal attribution records only exact fixed tuples and preserves authorization-first ordering', async (context) => {
+  const runDir = mkdtempSync(join(tmpdir(), 'tenant-mail-attribution-'));
+  context.after(() => rmSync(runDir, { recursive: true, force: true }));
+  const { handler, counts } = createLocalMailStub({ mode: 'ci', key, runDir });
+  const cases = [
+    ['/v1/health', undefined, 'health', 'absent', 401],
+    ['/v1/health', 'private-token', 'health', 'other', 401],
+    ['/v1/health', `Bearer ${key}`, 'health', 'matched', 404],
+    [
+      '/v1/internal/system-notifications',
+      `Bearer ${key}`,
+      'systemNotifications',
+      'matched',
+      404,
+    ],
+    [
+      '/v1/internal/channel-deliveries',
+      `Bearer ${key}`,
+      'channelDeliveries',
+      'matched',
+      404,
+    ],
+    [
+      '/v1/internal/email-deliveries',
+      undefined,
+      'emailDeliveries',
+      'absent',
+      401,
+    ],
+    ['/v1/health?private-query', `Bearer ${key}`, 'other', 'matched', 404],
+    ['/private-id/path', 'private-token', 'other', 'other', 401],
+    ['/v1/%68ealth', `Bearer ${key}`, 'other', 'matched', 404],
+  ];
+  for (const [url, authorization, route, auth, expected] of cases) {
+    let status;
+    await handler(
+      { method: 'GET', url, headers: { authorization } },
+      {
+        writeHead: (value) => {
+          status = value;
+        },
+        end() {},
+      },
+    );
+    assert.equal(status, expected);
+    assert.ok(
+      counts.rejectedRequests.some(
+        (entry) =>
+          entry.route === route &&
+          entry.authorization === auth &&
+          entry.reason === (expected === 401 ? 'authorization' : 'path'),
+      ),
+    );
+  }
+  const serialized = JSON.stringify(counts);
+  for (const sentinel of ['private-token', 'private-query', 'private-id', key])
+    assert.equal(serialized.includes(sentinel), false);
+  const { validateMailStats } = await import('./local-mail-stub.mjs');
+  validateMailStats(counts);
+});
+
+test('concurrent refusals group atomically and all original refusal reasons reconcile', async (context) => {
+  const { stub, request } = await setup(context);
+  await Promise.all(
+    Array.from({ length: 20 }, () =>
+      request(undefined, {
+        method: 'GET',
+        headers: { authorization: 'private-token' },
+      }),
+    ),
+  );
+  assert.equal(stub.counts.rejectedRequests[0].count, 20);
+  await request(payload, { path: '/private' });
+  await request(undefined, { method: 'DELETE' });
+  await request(payload, { headers: { 'content-type': 'text/plain' } });
+  await request('invalid');
+  await request({});
+  await request({ ...payload, html: 'x'.repeat(256 * 1024) });
+  const { validateMailStats, MAIL_REASONS } = await import(
+    './local-mail-stub.mjs'
+  );
+  validateMailStats(stub.counts);
+  for (const reason of MAIL_REASONS)
+    assert.ok(stub.counts.rejected[reason] > 0);
+  const keys = stub.counts.rejectedRequests.map(
+    ({ method, route, authorization, reason }) =>
+      [method, route, authorization, reason].join('|'),
+  );
+  assert.deepEqual(keys, [...keys].sort());
+});
+
+test('mail attribution validates compatibility, exact enums, sums, uniqueness and monotonic snapshots', async () => {
+  const { validateMailStats } = await import('./local-mail-stub.mjs');
+  const historical = zeroMailStats();
+  delete historical.rejectedRequests;
+  assert.equal(validateMailStats(historical), historical);
+  const stats = zeroMailStats();
+  stats.rejected.path = 2;
+  stats.rejectedRequests = [
+    {
+      method: 'GET',
+      route: 'health',
+      authorization: 'matched',
+      reason: 'path',
+      count: 2,
+    },
+  ];
+  validateMailStats(stats, historical);
+  for (const mutate of [
+    (s) => {
+      s.extra = 'private';
+    },
+    (s) => {
+      s.rejectedRequests = null;
+    },
+    (s) => {
+      s.rejectedRequests[0].extra = 'private';
+    },
+    ...['method', 'route', 'authorization', 'reason'].map((key) => (s) => {
+      s.rejectedRequests[0][key] = 'private';
+    }),
+    ...[0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1].map((count) => (s) => {
+      s.rejectedRequests[0].count = count;
+    }),
+    (s) => {
+      s.rejectedRequests.push({ ...s.rejectedRequests[0] });
+    },
+    (s) => {
+      s.rejectedRequests = [];
+    },
+    (s) => {
+      s.rejectedRequests = Array.from({ length: 316 }, () => ({
+        ...s.rejectedRequests[0],
+      }));
+    },
+  ]) {
+    const invalid = structuredClone(stats);
+    mutate(invalid);
+    assert.throws(() => validateMailStats(invalid));
+  }
+  assert.throws(() => validateMailStats(historical, zeroMailStats()));
+  const smaller = structuredClone(stats);
+  smaller.rejected.path = 1;
+  smaller.rejectedRequests[0].count = 1;
+  assert.throws(() => validateMailStats(smaller, stats));
+  const shifted = structuredClone(stats);
+  shifted.rejectedRequests[0].route = 'other';
+  assert.throws(() => validateMailStats(shifted, stats));
+});

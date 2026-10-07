@@ -557,7 +557,16 @@ for (const mode of [
           if (path.endsWith('sign-up/email')) {
             if (mode !== 'mailMissing') stats.accepted.A++;
             if (mode === 'mailOther') stats.accepted.B++;
-            if (mode === 'mailRejected') stats.rejected.payload++;
+            if (mode === 'mailRejected') {
+              stats.rejected.payload++;
+              stats.rejectedRequests.push({
+                method: 'POST',
+                route: 'emailDeliveries',
+                authorization: 'matched',
+                reason: 'payload',
+                count: 1,
+              });
+            }
             return {
               record: { status: 200, hasTenantHit: false },
               json: {
