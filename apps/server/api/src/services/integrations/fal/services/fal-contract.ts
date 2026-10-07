@@ -134,11 +134,11 @@ export function extractFalEndpointSchemas(
     throw new Error('Fal OpenAPI contract is missing paths');
   }
 
-  const operation = Object.values(openapi.paths)
-    .filter(isRecord)
-    .map((path) => path.post)
-    .find(isRecord);
-  if (!operation) {
+  const entry = Object.entries(openapi.paths).find(
+    ([, path]) => isRecord(path) && isRecord(path.post),
+  );
+  const operation = entry && isRecord(entry[1]) ? entry[1].post : undefined;
+  if (!isRecord(operation)) {
     throw new Error('Fal OpenAPI contract is missing a POST operation');
   }
   if (!isRecord(operation.responses)) {
@@ -147,9 +147,20 @@ export function extractFalEndpointSchemas(
 
   const successResponse =
     operation.responses['200'] ?? operation.responses['201'];
+  let output = readContentSchema(openapi, successResponse);
+  // Queue POST returns an acknowledgement; the matching result GET describes media.
+  if (output.properties?.request_id && output.properties?.status && entry) {
+    const resultPath = openapi.paths[`${entry[0]}/requests/{request_id}`];
+    const resultOperation = isRecord(resultPath) ? resultPath.get : undefined;
+    if (!isRecord(resultOperation) || !isRecord(resultOperation.responses))
+      throw new Error(
+        'Fal queue OpenAPI contract is missing a result operation',
+      );
+    output = readContentSchema(openapi, resultOperation.responses['200']);
+  }
   return {
     input: readContentSchema(openapi, operation.requestBody),
-    output: readContentSchema(openapi, successResponse),
+    output,
   };
 }
 

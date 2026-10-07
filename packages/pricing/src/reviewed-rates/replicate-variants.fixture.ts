@@ -3567,4 +3567,279 @@ export const REPLICATE_VARIANT_FIXTURES: Readonly<
       },
     ],
   },
+  // Provider evidence captured 2026-10-07.
+  'black-forest-labs/flux-3': {
+    sourceUrl: 'https://replicate.com/black-forest-labs/flux-3',
+    inputProperties: {
+      draft: {
+        type: 'boolean',
+        title: 'Draft',
+        default: false,
+        'x-order': 7,
+        description:
+          'Generate a fast, low-cost draft preview instead of a full-quality clip. Drafts are 720p.',
+      },
+      images: {
+        type: 'array',
+        items: {
+          type: 'string',
+          format: 'uri',
+        },
+        title: 'Images',
+        default: [],
+        'x-order': 1,
+        description:
+          'Optional images to drive the video, placed on screen pixel for pixel. One image opens the clip (image-to-video). Two images start and end it. Three or more (up to 10) become a storyboard — the first starts it, the last ends it, and the rest fall evenly in between (needs a duration). Leave empty for text-to-video. Must be PNG, JPEG, or WebP.',
+      },
+      prompt: {
+        type: 'string',
+        title: 'Prompt',
+        'x-order': 0,
+        description:
+          'Text description of the video to generate. Plain language works — the prompt is interpreted and expanded before generation. Describe the scene, action, camera moves, and any audio you want.',
+      },
+      duration: {
+        allOf: [
+          {
+            $ref: '#/components/schemas/duration',
+          },
+        ],
+        default: 'auto',
+        'x-order': 5,
+        description:
+          "Length of the generated clip in seconds. 'auto' lets the model pick to fit the content. Three or more images need an explicit duration.",
+      },
+      resolution: {
+        allOf: [
+          {
+            $ref: '#/components/schemas/resolution',
+          },
+        ],
+        default: '720p',
+        'x-order': 4,
+        description: 'Output resolution.',
+      },
+      start_video: {
+        type: 'string',
+        title: 'Start Video',
+        format: 'uri',
+        default: null,
+        'x-order': 2,
+        nullable: true,
+        description:
+          "A video to continue from its final frames. Use this to extend a shot or chain generations into a longer sequence. Must be an mp4, at most 50MB and 15 seconds. Can't be combined with images.",
+      },
+      aspect_ratio: {
+        allOf: [
+          {
+            $ref: '#/components/schemas/aspect_ratio',
+          },
+        ],
+        default: 'auto',
+        'x-order': 3,
+        description:
+          "Aspect ratio of the generated video. 'auto' picks a ratio from your prompt and any inputs.",
+      },
+      generate_audio: {
+        type: 'boolean',
+        title: 'Generate Audio',
+        default: true,
+        'x-order': 6,
+        description:
+          'Generate synchronized audio (ambient sound, speech, effects). Set to false for a silent clip.',
+      },
+      safety_tolerance: {
+        type: 'integer',
+        title: 'Safety Tolerance',
+        default: 2,
+        maximum: 4,
+        minimum: 0,
+        'x-order': 8,
+        description:
+          'Moderation tolerance for input and output, 0 (strictest) to 4 (most permissive). Requests with image or video inputs are limited to 2.',
+      },
+    },
+    tiers: [
+      {
+        criteria: [
+          {
+            description: 't2v_i2v',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 't2v_i2v',
+          },
+          {
+            description: '720p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '720p',
+          },
+        ],
+        description: 'Text-to-video and image-to-video at 720p',
+        prices: [
+          {
+            description: 'or around 58 seconds for $10',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.17',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: '720p',
+      },
+      {
+        criteria: [
+          {
+            description: 't2v_i2v',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 't2v_i2v',
+          },
+          {
+            description: '1080p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '1080p',
+          },
+        ],
+        description: 'Text-to-video and image-to-video at 1080p',
+        prices: [
+          {
+            description: 'or around 34 seconds for $10',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.29',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: '1080p',
+      },
+      {
+        criteria: [
+          {
+            description: 't2v_i2v_draft',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 't2v_i2v_draft',
+          },
+          {
+            description: '720p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '720p',
+          },
+        ],
+        description: 'Fast draft preview at 720p',
+        prices: [
+          {
+            description: 'or around 16 seconds for $1',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.06',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Draft 720p',
+      },
+      {
+        criteria: [
+          {
+            description: 'v2v',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'v2v',
+          },
+          {
+            description: '720p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '720p',
+          },
+        ],
+        description: 'Video continuation at 720p',
+        prices: [
+          {
+            description: 'or around 24 seconds for $10',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.41',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Video-to-video 720p',
+      },
+      {
+        criteria: [
+          {
+            description: 'v2v',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'v2v',
+          },
+          {
+            description: '1080p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '1080p',
+          },
+        ],
+        description: 'Video continuation at 1080p',
+        prices: [
+          {
+            description: 'or around 18 seconds for $10',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.53',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Video-to-video 1080p',
+      },
+      {
+        criteria: [
+          {
+            description: 'v2v_draft',
+            subtype: 'string',
+            title: 'model variant',
+            type: 'equals',
+            value: 'v2v_draft',
+          },
+          {
+            description: '720p',
+            subtype: 'string',
+            title: 'target resolution',
+            type: 'equals',
+            value: '720p',
+          },
+        ],
+        description: 'Fast video continuation draft at 720p',
+        prices: [
+          {
+            description: 'or around 83 seconds for $10',
+            metric: 'video_output_duration_seconds',
+            metric_display: 'second of output video',
+            price: '$0.12',
+            title: 'per second of output video',
+            type: 'per-unit',
+          },
+        ],
+        title: 'Video-to-video draft 720p',
+      },
+    ],
+  },
 };

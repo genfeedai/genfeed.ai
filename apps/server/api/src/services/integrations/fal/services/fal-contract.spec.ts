@@ -35,6 +35,45 @@ function withoutProperty(
 }
 
 describe('reviewed Fal execution contracts', () => {
+  it('extracts generated media from the matching queue result operation', () => {
+    const document = fixture('video-openapi.json');
+    const paths = document.paths as Record<
+      string,
+      { post: { responses: Record<string, unknown> } }
+    >;
+    const entry = Object.entries(paths)[0];
+    expect(entry).toBeDefined();
+    const [path, operation] = entry as NonNullable<typeof entry>;
+    const originalOutput = operation.post.responses['200'];
+    operation.post.responses['200'] = {
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              request_id: { type: 'string' },
+              status: { type: 'string' },
+            },
+          },
+        },
+      },
+    };
+    const queue = {
+      ...document,
+      paths: {
+        ...paths,
+        [`${path}/requests/{request_id}`]: {
+          get: { responses: { '200': originalOutput } },
+        },
+      },
+    };
+    expect(
+      extractFalEndpointSchemas(queue).output.properties?.video,
+    ).toBeDefined();
+    expect(() => extractFalEndpointSchemas(document)).toThrow(
+      'missing a result operation',
+    );
+  });
   it('extracts referenced input/output schemas and classifies modern image edit', () => {
     const schemas = extractFalEndpointSchemas(fixture('image-openapi.json'));
 
