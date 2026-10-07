@@ -114,6 +114,28 @@ async function captureRuntimeState(
   });
 }
 
+async function openGenerationSummary(page: Page) {
+  const prompt = page
+    .getByTestId('studio-generate-prompt')
+    .locator('[contenteditable=true]');
+  await prompt.focus();
+  await expect(prompt).toBeFocused();
+  const generate = page
+    .getByTestId('studio-generate-composer-shell')
+    .getByRole('button', { name: 'Generate', exact: true });
+  await generate.focus();
+  await expect(generate).toBeFocused();
+  const tooltip = page.getByRole('tooltip');
+  await expect(tooltip).toBeVisible();
+  const descriptionId = await tooltip.getAttribute('id');
+  expect(descriptionId).toBeTruthy();
+  await expect(generate).toHaveAttribute(
+    'aria-describedby',
+    descriptionId ?? '',
+  );
+  return tooltip;
+}
+
 async function installBridge(
   browser: BrowserContext,
   context: IDesktopRuntimeContext,
@@ -341,16 +363,22 @@ for (const theme of ['light', 'dark'] as const)
         await page.goto(brandPath(APP_ROUTES.STUDIO.GENERATE));
         await expect(page.locator('body')).toHaveClass(/gf-desktop-shell/);
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-        const summary = page.getByTestId('studio-generation-summary');
-        await expect(summary).toContainText('Loading cost context');
+        const generate = page
+          .getByTestId('studio-generate-composer-shell')
+          .getByRole('button', { name: 'Generate', exact: true });
+        let summary = await openGenerationSummary(page);
+        await expect(summary.getByRole('status')).toHaveText(
+          'Loading cost context',
+        );
         expect(walletRequests).toBe(0);
         expect(desktopNetwork.walletRequests).toBe(0);
         const prompt = page
           .getByTestId('studio-generate-prompt')
           .locator('[contenteditable=true]');
-        await expect(
-          page.getByRole('button', { name: 'Generate', exact: true }),
-        ).toBeDisabled();
+        await expect(generate).toBeDisabled();
+        await expect(generate).toHaveAttribute('aria-disabled', 'true');
+        await generate.press('Escape');
+        await expect(summary).toHaveCount(0);
         await prompt.focus();
         await page.keyboard.press('Enter');
         await page.keyboard.press('Control+Enter');
@@ -366,7 +394,15 @@ for (const theme of ['light', 'dark'] as const)
           (window as FixtureWindow).desktopRuntimeResolve(),
         );
         await expect.poll(() => walletRequests).toBe(1);
-        await expect(summary).toContainText('Estimated 8 credits');
+        summary = await openGenerationSummary(page);
+        const estimate = summary.getByRole('status', {
+          name: 'Estimated 8 credits',
+          exact: true,
+        });
+        await expect(estimate).toBeVisible();
+        await expect(estimate).toHaveText('~8');
+        await generate.press('Escape');
+        await expect(summary).toHaveCount(0);
         await page.evaluate(
           (context) => (window as FixtureWindow).desktopRuntimeEmit(context),
           {
@@ -376,12 +412,16 @@ for (const theme of ['light', 'dark'] as const)
             generationExecution: 'unknown',
           },
         );
-        await expect(summary).toContainText('Loading cost context');
+        summary = await openGenerationSummary(page);
+        await expect(summary.getByRole('status')).toHaveText(
+          'Loading cost context',
+        );
+        await generate.press('Escape');
+        await expect(summary).toHaveCount(0);
         releaseWallet();
         await expect(page.getByTestId('topbar-credits-trigger')).toHaveCount(0);
-        await expect(
-          page.getByRole('button', { name: 'Generate', exact: true }),
-        ).toBeDisabled();
+        await expect(generate).toBeDisabled();
+        await expect(generate).toHaveAttribute('aria-disabled', 'true');
         await prompt.focus();
         await page.keyboard.press('Enter');
         await page.keyboard.press('Control+Enter');
@@ -404,7 +444,15 @@ for (const theme of ['light', 'dark'] as const)
         );
         await expect.poll(() => walletRequests).toBe(2);
         releaseWallet();
-        await expect(summary).toContainText('500 available');
+        summary = await openGenerationSummary(page);
+        const balance = summary.getByRole('status', {
+          name: '500 available',
+          exact: true,
+        });
+        await expect(balance).toBeVisible();
+        await expect(balance).toHaveText('500');
+        await generate.press('Escape');
+        await expect(summary).toHaveCount(0);
         expect(
           await page.evaluate(
             () => (window as FixtureWindow).desktopRuntimeReads,
@@ -458,7 +506,8 @@ for (const mode of [
         await route.fulfill({ json: walletBody });
       });
       await page.goto(brandPath(APP_ROUTES.STUDIO.GENERATE));
-      await expect(page.getByTestId('studio-generation-summary')).toContainText(
+      const summary = await openGenerationSummary(page);
+      await expect(summary.getByRole('status')).toHaveText(
         mode === 'local'
           ? 'This Studio generator requires a server connection'
           : 'Cost context unavailable',
@@ -466,16 +515,22 @@ for (const mode of [
       await expect(page.getByTestId('topbar-credits-trigger')).toHaveCount(0);
       expect(walletRequests).toBe(0);
       expect(desktopNetwork.walletRequests).toBe(0);
+      await expect(summary).not.toContainText('Estimated');
       await expect(
-        page.getByTestId('studio-generation-summary'),
-      ).not.toContainText('Estimated');
+        summary.getByRole('status', { name: /^Estimated/ }),
+      ).toHaveCount(0);
       const button = page.getByRole('button', {
         name: 'Generate',
         exact: true,
       });
-      if (mode === 'self-hosted') await expect(button).toBeEnabled();
-      else {
+      await button.press('Escape');
+      await expect(summary).toHaveCount(0);
+      if (mode === 'self-hosted') {
+        await expect(button).toBeEnabled();
+        await expect(button).not.toHaveAttribute('aria-disabled', 'true');
+      } else {
         await expect(button).toBeDisabled();
+        await expect(button).toHaveAttribute('aria-disabled', 'true');
         await page
           .getByTestId('studio-generate-prompt')
           .locator('[contenteditable=true]')
