@@ -7,6 +7,7 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import {
+  CONNECTION_STATES,
   exact,
   MAX_BYTES,
   MAX_RECORDS,
@@ -131,6 +132,23 @@ function databaseAggregate(samples) {
       group.maxActiveAgeMs = Math.max(group.maxActiveAgeMs, item.activeAgeMs);
       groups.set(key, group);
     }
+  const lifecycleGroups = new Map();
+  let lifecycleAvailable = true;
+  for (const sample of samples) {
+    const present = Object.hasOwn(sample, 'connectionStateAtStart');
+    if (!present || sample.connectionStateAtStart === 'unknown')
+      lifecycleAvailable = false;
+    const tuple = {
+      outcome: sample.outcome,
+      connectionStateAtStart: sample.connectionStateAtStart ?? 'unknown',
+      generationBefore: sample.connectionGenerationBefore ?? null,
+      generationAfter: sample.connectionGenerationAfter ?? null,
+    };
+    const key = JSON.stringify(tuple);
+    const group = lifecycleGroups.get(key) ?? { ...tuple, samples: 0 };
+    group.samples = safe(group.samples + 1);
+    lifecycleGroups.set(key, group);
+  }
   const failures = new Map();
   let failureAttributionAvailable = true;
   for (const sample of samples.filter(
@@ -160,6 +178,10 @@ function databaseAggregate(samples) {
       throw new Error('Too many database failure groups');
   }
   return {
+    lifecycleAvailable,
+    lifecycleGroups: [...lifecycleGroups]
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([, group]) => group),
     failureAttributionAvailable,
     failureGroups: [...failures]
       .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
@@ -302,7 +324,11 @@ export function joinCausalEvidence(
   if (!footer) reasons.missingFooter++;
   if (final && !stopped) reasons.missingStop++;
   reasons.samplerFailure += database.filter(
-    (sample) => sample.outcome !== 'success',
+    (sample) =>
+      sample.outcome !== 'success' ||
+      (report.machineCoverageRequired === true &&
+        (!Object.hasOwn(sample, 'connectionStateAtStart') ||
+          sample.connectionStateAtStart === 'unknown')),
   ).length;
   const clients = report.requests ?? [],
     seen = new Set();
@@ -551,6 +577,10 @@ export function validateCausalEvidence(
       'measuredSamples',
       'failedSamples',
       'groups',
+      ...(Object.hasOwn(d, 'lifecycleGroups') ||
+      Object.hasOwn(d, 'lifecycleAvailable')
+        ? ['lifecycleGroups', 'lifecycleAvailable']
+        : []),
       ...(overall ? ['missingWindows'] : []),
       ...(Object.hasOwn(d, 'failureAttributionAvailable') ||
       Object.hasOwn(d, 'failureGroups')
@@ -570,6 +600,71 @@ export function validateCausalEvidence(
       ![0, 1].includes(d.unfinishedSamples)
     )
       throw new Error('Invalid unfinished database samples');
+    if (Object.hasOwn(d, 'lifecycleGroups')) {
+      if (
+        typeof d.lifecycleAvailable !== 'boolean' ||
+        !Array.isArray(d.lifecycleGroups) ||
+        d.lifecycleGroups.length > 450
+      )
+        throw new Error('Invalid database lifecycle attribution');
+      let total = 0,
+        unavailable = false;
+      const seen = new Set();
+      for (const group of d.lifecycleGroups) {
+        exact(group, [
+          'outcome',
+          'connectionStateAtStart',
+          'generationBefore',
+          'generationAfter',
+          'samples',
+        ]);
+        if (
+          !['success', 'error', 'timeout', 'busy'].includes(group.outcome) ||
+          !CONNECTION_STATES.includes(group.connectionStateAtStart)
+        )
+          throw new Error('Invalid database lifecycle outcome');
+        const legacy =
+          group.generationBefore === null && group.generationAfter === null;
+        if (legacy) {
+          if (group.connectionStateAtStart !== 'unknown')
+            throw new Error('Invalid legacy database lifecycle');
+        } else {
+          for (const key of ['generationBefore', 'generationAfter']) {
+            safe(group[key]);
+            if (group[key] > 450)
+              throw new Error('Invalid database lifecycle generation');
+          }
+          if (
+            group.generationAfter < group.generationBefore ||
+            (group.connectionStateAtStart === 'initial' &&
+              group.generationBefore !== 0) ||
+            (['retained', 'reconnect'].includes(group.connectionStateAtStart) &&
+              group.generationBefore === 0) ||
+            (group.outcome === 'busy' &&
+              group.connectionStateAtStart !== 'unknown')
+          )
+            throw new Error('Inconsistent database lifecycle generation');
+        }
+        unavailable ||= group.connectionStateAtStart === 'unknown';
+        safe(group.samples);
+        if (!group.samples) throw new Error('Empty database lifecycle group');
+        total = safe(total + group.samples);
+        const key = JSON.stringify([
+          group.outcome,
+          group.connectionStateAtStart,
+          group.generationBefore,
+          group.generationAfter,
+        ]);
+        if (seen.has(key))
+          throw new Error('Duplicate database lifecycle group');
+        seen.add(key);
+      }
+      if (
+        total !== d.measuredSamples + d.failedSamples ||
+        d.lifecycleAvailable === unavailable
+      )
+        throw new Error('Nonconserved database lifecycle attribution');
+    }
     if (Object.hasOwn(d, 'failureGroups')) {
       if (
         typeof d.failureAttributionAvailable !== 'boolean' ||

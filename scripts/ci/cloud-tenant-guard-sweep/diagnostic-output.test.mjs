@@ -711,3 +711,28 @@ test('finalizer retains safe tenant and failure tuples without excusing hits', (
   ]);
   assert.doesNotMatch(JSON.stringify(summary), /SECRET|cookie|email-token|SQL/);
 });
+
+test('finalizer retains mandatory machine failures and historical unavailable projection without leaking private fields', (context) => {
+  const f = fixture(context);
+  f.report.machineCoverageRequired = true;
+  f.report.getInventoryTemplates = ['/v1/voices'];
+  f.report.machinePrivate = {
+    token: 'private-token-canary',
+    cipher: 'private-cipher-canary',
+    key: 'private-key-canary',
+    organizationId: 'private-id-canary',
+    sql: 'private-sql-canary',
+  };
+  f.write();
+  assert.equal(f.saved().hasFailed, true);
+  assert.ok(f.saved().failures.includes('machine-route-inventory'));
+  assert.ok(f.saved().failures.includes('machine-authorization-denial'));
+  assert.ok(f.saved().failures.includes('machine-data-coverage'));
+  const summary = f.summary();
+  assert.equal(summary.machineCoverage.available, true);
+  assert.equal(summary.failureEvidence.total, 3);
+  assert.doesNotMatch(JSON.stringify(summary), /private-|machinePrivate/);
+  delete f.report.machineCoverageRequired;
+  f.write();
+  assert.equal(f.summary().machineCoverage.available, false);
+});

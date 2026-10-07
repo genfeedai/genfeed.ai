@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -522,4 +528,72 @@ test('actual final scanner keeps complete proof and healthy no-hit report passin
   assert.equal(summary.tenantEvidence.responseHits, 0);
   assert.equal(summary.tenantEvidence.logHits, 0);
   assert.equal(summary.failureEvidence.total, 0);
+});
+
+test('final scanner subprocess keeps mandatory machine proof and fatal failure labels in sanitized output', (context) => {
+  const directory = mkdtempSync(join(tmpdir(), 'cloud-machine-final-'));
+  context.after(() => rmSync(directory, { recursive: true, force: true }));
+  chmodSync(directory, 0o700);
+  const proof = {
+    verificationRequired: true,
+    noUnverifiedSession: true,
+    acceptedMail: true,
+    verifiedAuthentication: true,
+  };
+  const mail = zeroMailStats();
+  for (const label of Object.keys(mail.accepted)) mail.accepted[label] = 2;
+  writeFileSync(join(directory, 'mail-stats.json'), JSON.stringify(mail), {
+    mode: 0o600,
+  });
+  writeFileSync(join(directory, 'api.log'), 'healthy\n', { mode: 0o600 });
+  const reportPath = join(directory, 'report.json');
+  writeFileSync(
+    reportPath,
+    JSON.stringify({
+      sourceSha: 'a'.repeat(40),
+      hasFailed: false,
+      failures: [],
+      requests: [],
+      inventoryTemplates: ['/v1/voices'],
+      getInventoryTemplates: ['/v1/voices'],
+      machineCoverageRequired: true,
+      fixtureProof: proof,
+      mailStats: mail,
+      privateToken: 'private-token-canary',
+    }),
+    { mode: 0o600 },
+  );
+  const result = spawnSync(
+    process.execPath,
+    [new URL('./scan-log.mjs', import.meta.url).pathname],
+    {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        CLOUD_SWEEP_DIAGNOSTICS: '0',
+        CLOUD_SWEEP_CPU_PROFILE: '0',
+        CLOUD_SWEEP_RUN_DIR: directory,
+        CLOUD_SWEEP_API_LOG: join(directory, 'api.log'),
+        CLOUD_SWEEP_REPORT: reportPath,
+      },
+    },
+  );
+  assert.equal(result.status, 1, result.stderr);
+  const saved = JSON.parse(readFileSync(reportPath, 'utf8'));
+  assert.equal(saved.hasFailed, true);
+  assert.ok(saved.failures.includes('machine-data-coverage'));
+  const summary = JSON.parse(
+    readFileSync(join(directory, 'diagnostic-summary.json'), 'utf8'),
+  );
+  assert.equal(summary.machineCoverage.available, true);
+  assert.equal(
+    summary.failureEvidence.groups.find(
+      (group) => group.label === 'machine-data-coverage',
+    ).count,
+    1,
+  );
+  assert.doesNotMatch(
+    JSON.stringify(summary) + result.stdout + result.stderr,
+    /private-token-canary/,
+  );
 });

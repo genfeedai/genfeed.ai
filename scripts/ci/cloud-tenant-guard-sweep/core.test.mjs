@@ -1603,3 +1603,49 @@ test('tenant response grouping cap rejects overflow without truncation', async (
     /Too many tenant response/,
   );
 });
+
+test('v19 partitions 609 ordinary completions and four exact machine denials without waiving arbitrary 401', () => {
+  const templates = [
+    '/v1/internal/integrations/{platform}',
+    '/v1/internal/integrations/{platform}/{id}',
+    '/v1/internal/platform-runtime-settings',
+    '/v1/internal/orgs/{orgId}/workflow-executions/{id}',
+  ];
+  const routes = [
+    ...Array.from({ length: 609 }, (_, i) => `/v1/example-${i}`),
+    ...templates,
+  ];
+  const records = ['M:A', 'M2:B', 'S', 'S:A'].flatMap((actor) =>
+    routes.map((route) => ({
+      actor,
+      route,
+      phase: 'get',
+      status: templates.includes(route) ? 401 : 200,
+    })),
+  );
+  records.push(
+    ...['M:A', 'S'].flatMap((actor) =>
+      Array.from({ length: 20 }, (_, i) => ({
+        actor,
+        route: `/v1/agent-tools/tool${i}/execute`,
+        phase: 'tool',
+        status: 200,
+      })),
+    ),
+  );
+  records.push(
+    ...templates.map((route) => ({
+      actor: 'MACHINE',
+      route,
+      phase: 'machineGets',
+      sweepPhase: 'machineGets',
+      status: 200,
+      machineDataAsserted: true,
+    })),
+  );
+  assert.deepEqual(coverageErrors(records, 613, 20, 20, routes), []);
+  const broken = records.map((record) =>
+    record.route === '/v1/example-0' ? { ...record, status: 401 } : record,
+  );
+  assert.ok(coverageErrors(broken, 613, 20, 20, routes).length);
+});

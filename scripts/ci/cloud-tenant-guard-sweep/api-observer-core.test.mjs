@@ -14,10 +14,12 @@ function fixture(options = {}) {
   let clock = 1000;
   const lines = [],
     timers = [];
-  const pool = {
+  const pool = Object.assign(new EventEmitter(), {
+    idleCount: 1,
+    totalCount: 1,
     query: async () => ({ rows: [] }),
     end: () => Promise.resolve(),
-  };
+  });
   const instance = createApiObserver({
     write: (line) => lines.push(JSON.parse(line)),
     now: () => clock,
@@ -34,7 +36,7 @@ function fixture(options = {}) {
   return {
     ...instance,
     lines,
-    pool,
+    pool: options.pool ?? pool,
     tick: (n = 1) => {
       clock += n;
     },
@@ -250,6 +252,7 @@ test('database sampler uses one fixed read-only query, no overlapping call or re
     1,
   );
   assert.deepEqual(POOL_OPTIONS, {
+    min: 1,
     max: 1,
     idleTimeoutMillis: 1000,
     connectionTimeoutMillis: 500,
@@ -555,4 +558,201 @@ test('database diagnostic validates legacy/new success/failure and rejects unsaf
   resolveQuery({ rows: [] });
   await new Promise((resolve) => setImmediate(resolve));
   busy.stop();
+});
+
+test('v19 retained sampler preserves every clock and retains min one successful connection', () => {
+  assert.deepEqual(POOL_OPTIONS, {
+    min: 1,
+    max: 1,
+    idleTimeoutMillis: 1000,
+    connectionTimeoutMillis: 500,
+    query_timeout: 750,
+    statement_timeout: 500,
+    allowExitOnIdle: true,
+  });
+});
+
+test('v19 native Pool reuses successful fake Client beyond idle timeout with no second handshake', async (t) => {
+  const { createRequire } = await import('node:module');
+  const apiRequire = createRequire(
+    new URL('../../../apps/server/api/package.json', import.meta.url),
+  );
+  const { Pool } = apiRequire('pg');
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let handshakes = 0,
+    queries = 0;
+  class FakeClient extends EventEmitter {
+    constructor() {
+      super();
+      this._queryable = true;
+      this._ending = false;
+      this.connection = { stream: { ref() {}, unref() {} } };
+    }
+    connect(callback) {
+      handshakes++;
+      callback(null);
+    }
+    query(...args) {
+      queries++;
+      args.at(-1)(null, { rows: [] });
+    }
+    end(callback) {
+      this._ending = true;
+      callback?.();
+      this.emit('end');
+    }
+    ref() {}
+    unref() {}
+  }
+  const pool = new Pool({ ...POOL_OPTIONS, Client: FakeClient });
+  const f = fixture({ pool });
+  try {
+    f.databaseTick();
+    await new Promise((resolve) => setImmediate(resolve));
+    t.mock.timers.tick(2001);
+    f.tick(2001);
+    f.databaseTick();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(handshakes, 1, 'successful idle client must remain retained');
+    assert.equal(queries, 2, 'one unchanged query per sample');
+    assert.deepEqual(
+      f.lines
+        .filter((record) => record.kind === 'database')
+        .map((record) => [
+          record.connectionStateAtStart,
+          record.connectionGenerationBefore,
+          record.connectionGenerationAfter,
+        ]),
+      [
+        ['initial', 0, 1],
+        ['retained', 1, 1],
+      ],
+    );
+  } finally {
+    f.stop();
+    await new Promise((resolve) => setImmediate(resolve));
+    t.mock.timers.reset();
+  }
+});
+
+test('connection lifecycle records initial retained reconnect and ambiguous pool state without extra queries or listener removal', async () => {
+  const pool = Object.assign(new EventEmitter(), {
+    idleCount: 0,
+    totalCount: 0,
+    end: () => Promise.resolve(),
+  });
+  let calls = 0,
+    fail = false;
+  pool.query = async (sql) => {
+    assert.equal(sql, DATABASE_QUERY);
+    calls++;
+    if (fail)
+      throw new Error('Connection terminated due to connection timeout');
+    if (pool.totalCount === 0) {
+      pool.totalCount = 1;
+      pool.emit('connect', {});
+    }
+    pool.idleCount = 1;
+    return { rows: [] };
+  };
+  const unowned = () => {};
+  pool.on('connect', unowned);
+  const f = fixture({ pool });
+  async function sample() {
+    f.tick(2001);
+    f.databaseTick();
+    await new Promise((resolve) => setImmediate(resolve));
+    return f.lines.filter((r) => r.kind === 'database').at(-1);
+  }
+  const initial = await sample();
+  assert.equal(initial.connectionStateAtStart, 'initial');
+  assert.equal(initial.connectionGenerationBefore, 0);
+  assert.equal(initial.connectionGenerationAfter, 1);
+  const retained = await sample();
+  assert.equal(retained.connectionStateAtStart, 'retained');
+  assert.equal(retained.connectionGenerationAfter, 1);
+  pool.idleCount = 0;
+  pool.totalCount = 0;
+  fail = true;
+  const reconnect = await sample();
+  assert.equal(reconnect.connectionStateAtStart, 'reconnect');
+  assert.equal(reconnect.outcome, 'error');
+  assert.equal(reconnect.connectionGenerationAfter, 1);
+  fail = false;
+  const replaced = await sample();
+  assert.equal(replaced.connectionStateAtStart, 'reconnect');
+  assert.equal(replaced.connectionGenerationAfter, 2);
+  pool.idleCount = 0;
+  pool.totalCount = 1;
+  const unknown = await sample();
+  assert.equal(unknown.connectionStateAtStart, 'unknown');
+  assert.equal(calls, 5);
+  f.stop();
+  assert.deepEqual(pool.listeners('connect'), [unowned]);
+  assert.equal(f.lines.at(-1).databaseIncomplete, 0);
+});
+
+test('first failed handshake stays initial; absent listeners and generation overflow remain unavailable', async () => {
+  const pool = Object.assign(new EventEmitter(), {
+    idleCount: 0,
+    totalCount: 0,
+    query: async () => {
+      throw new Error('Connection terminated due to connection timeout');
+    },
+    end: () => Promise.resolve(),
+  });
+  const f = fixture({ pool });
+  f.databaseTick();
+  await new Promise((resolve) => setImmediate(resolve));
+  const sample = f.lines.find((r) => r.kind === 'database');
+  assert.equal(sample.connectionStateAtStart, 'initial');
+  assert.equal(sample.connectionGenerationBefore, 0);
+  assert.equal(sample.connectionGenerationAfter, 0);
+  f.stop();
+  assert.equal(f.lines.at(-1).unavailable, false);
+  const overflow = fixture({
+    pool: Object.assign(new EventEmitter(), { end: () => Promise.resolve() }),
+  });
+  for (let i = 0; i < 451; i++) overflow.pool.emit('connect', {});
+  overflow.stop();
+  assert.equal(overflow.lines.at(-1).unavailable, true);
+  const missing = fixture({ pool: { end: () => Promise.resolve() } });
+  missing.stop();
+  assert.equal(missing.lines.at(-1).unavailable, true);
+});
+
+test('optional lifecycle schemas reject partial unsafe and invented connection attribution', () => {
+  const base = {
+    kind: 'database',
+    start: 1,
+    end: 2,
+    outcome: 'error',
+    diagnostic: { category: 'connection-timeout', name: 'Error', code: 'NONE' },
+    groups: [],
+  };
+  assert.doesNotThrow(() => validateObservationRecord(base));
+  const current = {
+    ...base,
+    connectionStateAtStart: 'initial',
+    connectionGenerationBefore: 0,
+    connectionGenerationAfter: 0,
+  };
+  assert.doesNotThrow(() => validateObservationRecord(current));
+  for (const change of [
+    (r) => delete r.connectionGenerationAfter,
+    (r) => (r.connectionGenerationAfter = 451),
+    (r) => (r.connectionGenerationBefore = -1),
+    (r) => (r.connectionStateAtStart = 'host-canary'),
+    (r) => (r.connectionStateAtStart = 'retained'),
+    (r) => (r.sql = 'sql-canary'),
+    (r) => {
+      r.connectionGenerationBefore = 2;
+      r.connectionGenerationAfter = 1;
+      r.connectionStateAtStart = 'reconnect';
+    },
+  ]) {
+    const bad = structuredClone(current);
+    change(bad);
+    assert.throws(() => validateObservationRecord(bad));
+  }
 });
