@@ -48,11 +48,12 @@ function actionNode(
   actionId: AiInfluencerActionId,
   id: string,
   y: number,
+  inputVariableKeys: string[] = ['request'],
 ): WorkflowVisualNode {
   return createGenfeedActionNode({
     actionId,
     id,
-    inputVariableKeys: ['request'],
+    inputVariableKeys,
     position: { x: 0, y },
   });
 }
@@ -311,10 +312,13 @@ export function buildAiInfluencerDailyPostsWorkflowDefinition(): SystemWorkflowG
     AI_INFLUENCER_WORKFLOW_IDS.DAILY_POST,
     160,
   );
+  // Finalize aggregates only the fan-out `batch`; its contract does not take
+  // the workflow `request`.
   const finalize = actionNode(
     AI_INFLUENCER_ACTION_IDS.DAILY_FINALIZE,
     'finalize-daily-posts',
     320,
+    [],
   );
   return definition(
     AI_INFLUENCER_WORKFLOW_IDS.DAILY_POSTS,

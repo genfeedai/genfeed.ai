@@ -6,6 +6,7 @@ import {
   closedObjectSchema,
   enumSchema,
   NUMBER_SCHEMA,
+  type ObjectSchemaProperties,
   STRING_SCHEMA,
 } from './schema-builders';
 
@@ -70,41 +71,62 @@ const step = (
       ? ['model', 'type', 'voiceId']
       : ['model', 'type'],
   );
+const ANY_STEP = {
+  oneOf: [
+    step('image-to-video'),
+    step('text-to-image'),
+    step('text-to-music'),
+    step('text-to-speech'),
+  ],
+} as const;
 const OUTCOME_PROPERTIES = {
   ingredientId: STRING_SCHEMA,
   result: STEP_RESULT,
-  step: {
-    oneOf: [
-      step('image-to-video'),
-      step('text-to-image'),
-      step('text-to-music'),
-      step('text-to-speech'),
-    ],
-  },
+  step: ANY_STEP,
   stepIndex: NUMBER_SCHEMA,
 } as const;
 const OUTCOME = closedObjectSchema(
   { ...OUTCOME_PROPERTIES, timingMs: NUMBER_SCHEMA },
   ['ingredientId', 'result', 'step', 'stepIndex', 'timingMs'],
 );
+/**
+ * Pipeline fields arrive in a `request` envelope: persona autopilot children
+ * receive their for-each item as the `request` input variable, and
+ * `generateAndPublish` authors the same shape as node parameters. Edge inputs
+ * (`pipelineContext`, outcomes) stay at the top level.
+ */
+const requestSchema = (
+  properties: ObjectSchemaProperties,
+  required: readonly string[],
+) =>
+  closedObjectSchema(
+    { ...properties, idempotencyKey: STRING_SCHEMA },
+    required,
+  );
 const generationInput = (
   type: 'image-to-video' | 'text-to-image' | 'text-to-music' | 'text-to-speech',
 ): ActionJsonSchema =>
   closedObjectSchema(
     {
-      ...BASE_PROPERTIES,
       pipelineContext: CONTEXT,
       previousOutcome: OUTCOME,
-      step: step(type),
-      stepIndex: NUMBER_SCHEMA,
+      request: requestSchema(
+        { ...BASE_PROPERTIES, step: step(type), stepIndex: NUMBER_SCHEMA },
+        [...BASE_REQUIRED, 'step', 'stepIndex'],
+      ),
     },
-    [...BASE_REQUIRED, 'pipelineContext', 'step', 'stepIndex'],
+    ['pipelineContext', 'request'],
   );
+// A persona child shares one request (including its step) across nodes.
+const BASE_REQUEST = requestSchema(
+  { ...BASE_PROPERTIES, step: ANY_STEP, stepIndex: NUMBER_SCHEMA },
+  BASE_REQUIRED,
+);
 const PUBLISH_INPUT: ActionJsonSchema = {
   additionalProperties: false,
   patternProperties: { '^stepOutcome[0-9]+$': OUTCOME },
-  properties: { ...BASE_PROPERTIES, pipelineContext: CONTEXT },
-  required: [...BASE_REQUIRED, 'pipelineContext'],
+  properties: { pipelineContext: CONTEXT, request: BASE_REQUEST },
+  required: ['pipelineContext', 'request'],
   type: 'object',
 };
 const FINAL_OUTCOME = closedObjectSchema(OUTCOME_PROPERTIES, [
@@ -147,7 +169,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
     ),
   },
   'content.pipeline.resolve-context': {
-    inputSchema: closedObjectSchema(BASE_PROPERTIES, BASE_REQUIRED),
+    inputSchema: closedObjectSchema({ request: BASE_REQUEST }, ['request']),
     outputSchema: CONTEXT,
   },
 };
