@@ -13,6 +13,7 @@ import {
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import {
   serializeCollection,
   serializeSingle,
@@ -139,6 +140,7 @@ export class SkillLibraryController {
     return this.library.archive(this.actor(user), id, body);
   }
 
+  @TenantReadPolicy('owner')
   @Get(':id/export')
   exportSkill(@CurrentUser() user: User, @Param('id') id: string) {
     return this.library.export(this.actor(user), id);

@@ -1,6 +1,14 @@
 import { AuthBootstrapController } from '@api/auth/controllers/auth-bootstrap.controller';
+import type { AuthenticatedUser as PolicyUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { AuthBootstrapService } from '@api/auth/services/auth-bootstrap.service';
+import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
+import { getTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { testId as policyTestId } from '@helpers/testing/test-id.helper';
+import { getTenantContext } from '@libs/prisma/tenant-context';
+import type { ExecutionContext } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { defer, firstValueFrom } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockShellBootstrapPayload = {
@@ -58,6 +66,76 @@ const mockAuthBootstrapService = {
 };
 
 describe('AuthBootstrapController', () => {
+  it('keeps overviewBootstrap original identity behind the real owner interceptor', async () => {
+    const owner: PolicyUser = {
+      id: policyTestId('user'),
+      userId: policyTestId('user'),
+      organizationId: policyTestId('org'),
+      brandId: policyTestId('brand'),
+      isSuperAdmin: true,
+      isApiKey: true,
+      scopes: ['read'],
+    };
+    const req = {
+      method: 'GET',
+      query: {} as Record<string, string>,
+      user: owner,
+      context: {
+        ...owner,
+        isSuperAdmin: true,
+        subscriptionTier: 'pro',
+        stripeSubscriptionStatus: 'active',
+        hydratedAt: 1,
+      },
+    };
+    const context = req.context;
+    const before = { ...context };
+    const execution = {
+      getClass: () => AuthBootstrapController,
+      getHandler: () => AuthBootstrapController.prototype.overviewBootstrap,
+      switchToHttp: () => ({ getRequest: () => req }),
+    } as unknown as ExecutionContext;
+    const interceptor = new TenantContextInterceptor(new Reflector());
+    mockAuthBootstrapService.getOverviewBootstrap.mockResolvedValue(
+      mockOverviewBootstrapPayload,
+    );
+    const handle = vi.fn(() =>
+      defer(async () => {
+        expect(getTenantContext()?.organizationId).toBe(owner.organizationId);
+        expect(getTenantReadScope()).toBeUndefined();
+        return controller.overviewBootstrap(
+          req as unknown as Parameters<
+            AuthBootstrapController['overviewBootstrap']
+          >[0],
+        );
+      }),
+    );
+    req.query = { organizationId: policyTestId('org', 2) };
+    expect(() => interceptor.intercept(execution, { handle })).toThrow(
+      expect.objectContaining({ status: 403 }),
+    );
+    expect(handle).not.toHaveBeenCalled();
+    expect(
+      mockAuthBootstrapService.getOverviewBootstrap,
+    ).not.toHaveBeenCalled();
+    const selections: Array<Record<string, string>> = [
+      {},
+      { organizationId: owner.organizationId },
+    ];
+    for (const query of selections) {
+      req.query = query;
+      const result = await firstValueFrom(
+        interceptor.intercept(execution, { handle }),
+      );
+      expect(
+        mockAuthBootstrapService.getOverviewBootstrap,
+      ).toHaveBeenCalledWith(req);
+      expect(result).toEqual(mockOverviewBootstrapPayload);
+      expect(req.user).toBe(owner);
+      expect(req.context).toBe(context);
+      expect(req.context).toEqual(before);
+    }
+  });
   let controller: AuthBootstrapController;
 
   beforeEach(async () => {

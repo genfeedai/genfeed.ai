@@ -7,6 +7,7 @@ import {
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { StudioGenerateDraftSerializer } from '@genfeedai/serializers';
@@ -31,6 +32,7 @@ export class StudioGenerateDraftsController {
     private readonly studioGenerateDraftsService: StudioGenerateDraftsService,
   ) {}
 
+  @TenantReadPolicy('owner')
   @Get('current')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findCurrent(

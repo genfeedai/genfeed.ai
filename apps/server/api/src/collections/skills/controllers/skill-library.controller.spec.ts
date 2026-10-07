@@ -1,3 +1,11 @@
+import type { AuthenticatedUser as PolicyUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
+import { getTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { testId as policyTestId } from '@helpers/testing/test-id.helper';
+import { getTenantContext } from '@libs/prisma/tenant-context';
+import type { ExecutionContext } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { defer, firstValueFrom } from 'rxjs';
 import 'reflect-metadata';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { SkillLibraryController } from '@api/collections/skills/controllers/skill-library.controller';
@@ -30,7 +38,95 @@ const request = {
   headers: { 'x-brand-id': 'client-brand' },
 } as unknown as Request;
 describe('skill immutable versions controller', () => {
-  const library = { listVersions: vi.fn(), getVersion: vi.fn() };
+  it('propagates the existing export capability refusal without replacing the actor', async () => {
+    const failure = new BadRequestException('Export capability unavailable');
+    library.export.mockRejectedValueOnce(failure);
+    await expect(controller.exportSkill(user, 'skill')).rejects.toBe(failure);
+    expect(library.export).toHaveBeenCalledWith(
+      {
+        organizationId: user.organizationId,
+        brandId: user.brandId,
+        userId: user.userId,
+      },
+      'skill',
+    );
+  });
+  it('keeps exportSkill original identity behind the real owner interceptor', async () => {
+    const owner: PolicyUser = {
+      id: policyTestId('user'),
+      userId: policyTestId('user'),
+      organizationId: policyTestId('org'),
+      brandId: policyTestId('brand'),
+      isSuperAdmin: true,
+      isApiKey: true,
+      scopes: ['read'],
+    };
+    const req = {
+      method: 'GET',
+      query: {} as Record<string, string>,
+      user: owner,
+      context: {
+        ...owner,
+        isSuperAdmin: true,
+        subscriptionTier: 'pro',
+        stripeSubscriptionStatus: 'active',
+        hydratedAt: 1,
+      },
+    };
+    const context = req.context;
+    const before = { ...context };
+    const execution = {
+      getClass: () => SkillLibraryController,
+      getHandler: () => SkillLibraryController.prototype.exportSkill,
+      switchToHttp: () => ({ getRequest: () => req }),
+    } as unknown as ExecutionContext;
+    const interceptor = new TenantContextInterceptor(new Reflector());
+    library.export.mockResolvedValue({
+      contentHash: 'hash',
+      instructions: 'body',
+      versionId: 'version',
+    });
+    const handle = vi.fn(() =>
+      defer(async () => {
+        expect(getTenantContext()?.organizationId).toBe(owner.organizationId);
+        expect(getTenantReadScope()).toBeUndefined();
+        return controller.exportSkill(owner, 'skill');
+      }),
+    );
+    req.query = { organizationId: policyTestId('org', 2) };
+    expect(() => interceptor.intercept(execution, { handle })).toThrow(
+      expect.objectContaining({ status: 403 }),
+    );
+    expect(handle).not.toHaveBeenCalled();
+    expect(library.export).not.toHaveBeenCalled();
+    const selections: Array<Record<string, string>> = [
+      {},
+      { organizationId: owner.organizationId },
+    ];
+    for (const query of selections) {
+      req.query = query;
+      const result = await firstValueFrom(
+        interceptor.intercept(execution, { handle }),
+      );
+      expect(library.export).toHaveBeenCalledWith(
+        {
+          organizationId: owner.organizationId,
+          userId: owner.userId,
+          brandId: owner.brandId,
+        },
+        'skill',
+      );
+      expect(result).toMatchObject({ instructions: 'body' });
+      expect(req.user).toBe(owner);
+      expect(req.context).toBe(context);
+      expect(req.context).toEqual(before);
+    }
+  });
+  const library = {
+    listVersions: vi.fn(),
+    getVersion: vi.fn(),
+    export: vi.fn(),
+  };
   const controller = new SkillLibraryController(
     library as unknown as SkillLibraryService,
   );

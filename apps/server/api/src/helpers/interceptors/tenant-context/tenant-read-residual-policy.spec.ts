@@ -1,3 +1,5 @@
+import { AuthBootstrapController } from '@api/auth/controllers/auth-bootstrap.controller';
+import { AuthWhoamiController } from '@api/auth/controllers/auth-whoami.controller';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { BrandedGenerationReceiptsController } from '@api/collections/branded-generation-receipts/controllers/branded-generation-receipts.controller';
@@ -10,6 +12,9 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { TENANT_READ_ACCOUNT_ROUTES } from '@api/collections/imported-sources/tenant-read-account.registry';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { SkillLibraryController } from '@api/collections/skills/controllers/skill-library.controller';
+import { SkillsController } from '@api/collections/skills/controllers/skills.controller';
+import { StudioGenerateDraftsController } from '@api/collections/studio-generate-drafts/controllers/studio-generate-drafts.controller';
 import { TrendsController } from '@api/collections/trends/controllers/trends.controller';
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
@@ -19,6 +24,7 @@ import { AdsResearchController } from '@api/endpoints/ads-research/ads-research.
 import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
 import { TENANT_READ_POLICY } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { getTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
 import { BrandOsExportController } from '@api/services/brand-os-export/brand-os-export.controller';
 import { ContentEngineController } from '@api/services/content-engine/content-engine.controller';
 import { ContentPlanSeedsService } from '@api/services/content-engine/content-plan-seeds.service';
@@ -475,4 +481,198 @@ describe.each(selectedRoutes)('$route actual selected method', (entry) => {
       await f.close();
     }
   });
+});
+
+const callerRoutes = [
+  {
+    controller: AdsGatewayController,
+    handler: 'comparePlatforms',
+    route: '/v1/ads/compare',
+    policy: 'owner',
+  },
+  {
+    controller: AdsGatewayController,
+    handler: 'getAdAccounts',
+    route: '/v1/ads/{platform}/accounts',
+    policy: 'owner',
+  },
+  {
+    controller: AdsGatewayController,
+    handler: 'listCampaigns',
+    route: '/v1/ads/{platform}/campaigns',
+    policy: 'owner',
+  },
+  {
+    controller: AdsGatewayController,
+    handler: 'getCampaignInsights',
+    route: '/v1/ads/{platform}/campaigns/{campaignId}/insights',
+    policy: 'owner',
+  },
+  {
+    controller: AdsGatewayController,
+    handler: 'getAdSetInsights',
+    route: '/v1/ads/{platform}/adsets/{adSetId}/insights',
+    policy: 'owner',
+  },
+  {
+    controller: AdsGatewayController,
+    handler: 'getAdInsights',
+    route: '/v1/ads/{platform}/ads/{adId}/insights',
+    policy: 'owner',
+  },
+  {
+    controller: AdsGatewayController,
+    handler: 'getTopPerformers',
+    route: '/v1/ads/{platform}/top-performers',
+    policy: 'owner',
+  },
+  {
+    controller: AdsGatewayController,
+    handler: 'listAdSets',
+    route: '/v1/ads/{platform}/adsets',
+    policy: 'owner',
+  },
+  {
+    controller: AdsGatewayController,
+    handler: 'listAds',
+    route: '/v1/ads/{platform}/ads',
+    policy: 'owner',
+  },
+  {
+    controller: AuthWhoamiController,
+    handler: 'whoami',
+    route: '/v1/auth/whoami',
+    policy: 'owner',
+  },
+  {
+    controller: AuthBootstrapController,
+    handler: 'overviewBootstrap',
+    route: '/v1/auth/bootstrap/overview',
+    policy: 'owner',
+  },
+  {
+    controller: StudioGenerateDraftsController,
+    handler: 'findCurrent',
+    route: '/v1/studio-generate-drafts/current',
+    policy: 'owner',
+  },
+  {
+    controller: SkillsController,
+    handler: 'listSkills',
+    route: '/v1/skills',
+    policy: 'selected',
+  },
+  {
+    controller: SkillLibraryController,
+    handler: 'exportSkill',
+    route: '/v1/skills/{id}/export',
+    policy: 'owner',
+  },
+] as const;
+
+describe('fourteen independent remaining caller policies', () => {
+  it('keeps the original248 and prior nine tables disjoint from fourteen caller routes', () => {
+    expect(originalRoutes).toHaveLength(248);
+    expect(residualRoutes).toHaveLength(9);
+    expect(callerRoutes).toHaveLength(14);
+    expect(new Set(callerRoutes.map((entry) => entry.route)).size).toBe(14);
+    expect(
+      callerRoutes.filter((entry) => entry.policy === 'owner'),
+    ).toHaveLength(13);
+    expect(
+      callerRoutes.filter((entry) => entry.policy === 'selected'),
+    ).toHaveLength(1);
+    const previous = new Set<string>(
+      [...originalRoutes, ...residualRoutes].map((entry) => entry.route),
+    );
+    for (const entry of callerRoutes)
+      expect(previous.has(entry.route)).toBe(false);
+  });
+  it.each(callerRoutes)('$route has exact GET and policy metadata', (entry) => {
+    const handler = actualHandler(entry.controller, entry.handler);
+    expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
+      RequestMethod.GET,
+    );
+    expect(canonicalRoutes(entry.controller, handler)).toEqual([entry.route]);
+    expect(Reflect.getMetadata(TENANT_READ_POLICY, handler)).toBe(entry.policy);
+  });
+  it.each(callerRoutes.filter((entry) => entry.policy === 'owner'))(
+    '$route refuses foreign override before downstream but retains no/equal owner identity',
+    async (entry) => {
+      const handler = actualHandler(entry.controller, entry.handler);
+      const req = request({ organizationId: foreignOrg });
+      const originalContext = { ...req.context };
+      const handle = vi.fn(() =>
+        defer(() => {
+          expect(getTenantContext()?.organizationId).toBe(actor.organizationId);
+          expect(getTenantReadScope()).toBeUndefined();
+          expect(req.user).toBe(actor);
+          expect(req.context).toEqual(originalContext);
+          return of('original-owner-path');
+        }),
+      );
+      expect(() =>
+        interceptor.intercept(execution(req, entry.controller, handler), {
+          handle,
+        }),
+      ).toThrow(expect.objectContaining({ status: 403 }));
+      expect(handle).not.toHaveBeenCalled();
+      const queries: Array<Record<string, string>> = [
+        {},
+        { organizationId: actor.organizationId },
+      ];
+      for (const query of queries) {
+        req.query = query;
+        await expect(
+          firstValueFrom(
+            interceptor.intercept(execution(req, entry.controller, handler), {
+              handle,
+            }),
+          ),
+        ).resolves.toBe('original-owner-path');
+      }
+      expect(handle).toHaveBeenCalledTimes(2);
+      expect(req.user).toBe(actor);
+      expect(req.context).toEqual(originalContext);
+    },
+  );
+  it.each(callerRoutes.filter((entry) => entry.policy === 'owner'))(
+    '$route fails closed for invalid selectors and unprivileged foreign selection',
+    (entry) => {
+      for (const organizationId of [[], [foreignOrg], {}, 7]) {
+        const req = request({});
+        Reflect.set(req.query, 'organizationId', organizationId);
+        const handle = vi.fn(() => of('must not run'));
+        expect(() =>
+          interceptor.intercept(
+            execution(
+              req,
+              entry.controller,
+              actualHandler(entry.controller, entry.handler),
+            ),
+            { handle },
+          ),
+        ).toThrow();
+        expect(handle).not.toHaveBeenCalled();
+      }
+      for (const isApiKey of [false, true]) {
+        const req = request(
+          { organizationId: foreignOrg },
+          { ...actor, isSuperAdmin: false, isApiKey },
+        );
+        const handle = vi.fn(() => of('must not run'));
+        expect(() =>
+          interceptor.intercept(
+            execution(
+              req,
+              entry.controller,
+              actualHandler(entry.controller, entry.handler),
+            ),
+            { handle },
+          ),
+        ).toThrow(expect.objectContaining({ status: 403 }));
+        expect(handle).not.toHaveBeenCalled();
+      }
+    },
+  );
 });
