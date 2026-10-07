@@ -49,7 +49,7 @@ export class PersonasContentController {
   ) {
     return {
       brandId: EntityIdUtil.validate(
-        readScope ? readScope.brandId : user.brandId,
+        (readScope ? readScope.brandId : user.brandId) ?? '',
         'brandId',
       ),
       organizationId: EntityIdUtil.validate(
