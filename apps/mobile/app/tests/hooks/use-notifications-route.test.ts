@@ -9,17 +9,15 @@ describe('getNotificationRoute', () => {
     expect(getNotificationRoute({ type: 'content_ready' })).toBeNull();
   });
 
-  it('routes analytics and approval notifications to their screens', () => {
+  it('routes analytics updates and drops approval notifications', () => {
     expect(getNotificationRoute({ type: 'analytics_update' })).toEqual({
       path: '/analytics',
     });
     expect(
       getNotificationRoute({ approvalId: 'appr_1', type: 'approval_request' }),
-    ).toEqual({ path: '/approval/appr_1' });
+    ).toBeNull();
     expect(getNotificationRoute({ type: 'approval_reminder' })).toBeNull();
-    expect(getNotificationRoute({ type: 'approval_decision' })).toEqual({
-      path: '/approvals',
-    });
+    expect(getNotificationRoute({ type: 'approval_decision' })).toBeNull();
   });
 
   it('ignores unknown notification types', () => {

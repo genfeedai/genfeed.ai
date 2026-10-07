@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock expo-constants
 vi.mock('expo-constants', () => ({
   default: {
     expoConfig: {
@@ -11,7 +10,6 @@ vi.mock('expo-constants', () => ({
   },
 }));
 
-// Mock fetch
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
@@ -19,22 +17,22 @@ function mockSuccessfulFetch(response: unknown): void {
   mockFetch.mockResolvedValueOnce({
     json: () => Promise.resolve(response),
     ok: true,
+    status: 200,
   });
 }
 
-function mockFailedFetch(statusText: string): void {
+function mockFailedFetch(status: number, statusText: string): void {
   mockFetch.mockResolvedValueOnce({
+    json: () => Promise.resolve({}),
     ok: false,
+    status,
     statusText,
   });
 }
 
-import {
-  type Ingredient,
-  type IngredientResponse,
-  type IngredientsResponse,
-  ingredientsService,
-} from '@/services/api/ingredients.service';
+import { ingredientsService } from '@/services/api/ingredients.service';
+
+const scope = { brandId: 'brand-1', organizationId: 'org-1' };
 
 describe('IngredientsService', () => {
   beforeEach(() => {
@@ -42,44 +40,34 @@ describe('IngredientsService', () => {
   });
 
   describe('findAll', () => {
-    const mockIngredients: Ingredient[] = [
-      {
-        attributes: {
-          category: 'image',
-          createdAt: '2024-01-01T00:00:00Z',
-          ingredientUrl: 'https://example.com/image.jpg',
-          metadata: {
-            height: 600,
-            title: 'Test Image',
-            width: 800,
+    const imageDocument = {
+      data: [
+        {
+          attributes: {
+            category: 'IMAGE',
+            cdnUrl: 'https://cdn.example/image.jpg',
+            createdAt: '2024-01-01T00:00:00Z',
+            metadata: {
+              height: 600,
+              label: 'Test Image',
+              width: 800,
+            },
+            status: 'COMPLETED',
+            updatedAt: '2024-01-01T00:00:00Z',
           },
-          status: 'active',
-          updatedAt: '2024-01-01T00:00:00Z',
+          id: '1',
+          type: 'images',
         },
-        id: '1',
-        type: 'attributes',
-      },
-    ];
-
-    const mockResponse: IngredientsResponse = {
-      data: mockIngredients,
-      meta: {
-        pagination: {
-          page: 1,
-          pageCount: 1,
-          pageSize: 10,
-          total: 1,
-        },
-      },
+      ],
     };
 
-    it('should fetch images by default', async () => {
-      mockSuccessfulFetch(mockResponse);
+    it('should fetch images by default with organization and brand scope', async () => {
+      mockSuccessfulFetch(imageDocument);
 
-      const result = await ingredientsService.findAll('test-token');
+      const result = await ingredientsService.findAll('test-token', scope);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.test.com/images',
+        'https://api.test.com/v1/images?brandId=brand-1&organizationId=org-1',
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: 'Bearer test-token',
@@ -87,74 +75,102 @@ describe('IngredientsService', () => {
           method: 'GET',
         }),
       );
-      expect(result).toEqual(mockResponse);
+      expect(result.data[0]).toMatchObject({
+        cdnUrl: 'https://cdn.example/image.jpg',
+        id: '1',
+        metadata: { height: 600, label: 'Test Image', width: 800 },
+      });
     });
 
     it('should fetch videos when category is video', async () => {
-      mockSuccessfulFetch(mockResponse);
+      mockSuccessfulFetch(imageDocument);
 
-      await ingredientsService.findAll('test-token', { category: 'video' });
+      await ingredientsService.findAll('test-token', scope, {
+        category: 'video',
+      });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.test.com/videos',
+        'https://api.test.com/v1/videos?brandId=brand-1&organizationId=org-1',
         expect.any(Object),
       );
     });
 
-    it('should fetch articles when category is article', async () => {
-      mockSuccessfulFetch(mockResponse);
+    it('should send page and limit, not pageSize', async () => {
+      mockSuccessfulFetch(imageDocument);
 
-      await ingredientsService.findAll('test-token', { category: 'article' });
+      await ingredientsService.findAll('test-token', scope, {
+        limit: 20,
+        page: 2,
+      });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.test.com/articles',
+        'https://api.test.com/v1/images?brandId=brand-1&limit=20&organizationId=org-1&page=2',
         expect.any(Object),
       );
     });
 
-    it('should include pagination params when provided', async () => {
-      mockSuccessfulFetch(mockResponse);
+    it('resolves metadata from included resources', async () => {
+      mockSuccessfulFetch({
+        data: [
+          {
+            attributes: { cdnUrl: 'https://cdn.example/a.jpg' },
+            id: '1',
+            relationships: {
+              metadata: { data: { id: 'meta-1', type: 'metadata' } },
+            },
+            type: 'images',
+          },
+        ],
+        included: [
+          {
+            attributes: { description: 'A clip', label: 'From included' },
+            id: 'meta-1',
+            type: 'metadata',
+          },
+        ],
+      });
 
-      await ingredientsService.findAll('test-token', { page: 2, pageSize: 20 });
+      const result = await ingredientsService.findAll('test-token', scope);
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.test.com/images?page=2&pageSize=20',
-        expect.any(Object),
-      );
+      expect(result.data[0]?.metadata).toEqual({
+        description: 'A clip',
+        label: 'From included',
+      });
     });
 
-    it('should throw error when response is not ok', async () => {
-      mockFailedFetch('Not Found');
+    it('should throw a not-found error when the list response fails', async () => {
+      mockFailedFetch(404, 'Not Found');
 
-      await expect(ingredientsService.findAll('test-token')).rejects.toThrow(
-        'Request failed: Not Found',
-      );
+      await expect(
+        ingredientsService.findAll('test-token', scope),
+      ).rejects.toThrow('That record was not found.');
     });
   });
 
   describe('findOne', () => {
-    const mockIngredient: Ingredient = {
-      attributes: {
-        category: 'image',
-        createdAt: '2024-01-01T00:00:00Z',
-        status: 'active',
-        updatedAt: '2024-01-01T00:00:00Z',
-      },
-      id: '1',
-      type: 'attributes',
-    };
+    it('should fetch an image by id', async () => {
+      mockSuccessfulFetch({
+        data: {
+          attributes: {
+            category: 'IMAGE',
+            createdAt: '2024-01-01T00:00:00Z',
+            status: 'COMPLETED',
+            updatedAt: '2024-01-01T00:00:00Z',
+          },
+          id: '123',
+          type: 'images',
+        },
+      });
 
-    const mockResponse: IngredientResponse = {
-      data: mockIngredient,
-    };
-
-    it('should fetch single ingredient by id', async () => {
-      mockSuccessfulFetch(mockResponse);
-
-      const result = await ingredientsService.findOne('test-token', '123');
+      const result = await ingredientsService.findOne(
+        'test-token',
+        scope,
+        '123',
+        'image',
+      );
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.test.com/ingredients/123',
+        'https://api.test.com/v1/images/123?brandId=brand-1&organizationId=org-1',
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: 'Bearer test-token',
@@ -162,37 +178,67 @@ describe('IngredientsService', () => {
           method: 'GET',
         }),
       );
-      expect(result).toEqual(mockResponse);
+      expect(result.data).toEqual({
+        item: {
+          category: 'IMAGE',
+          createdAt: '2024-01-01T00:00:00Z',
+          id: '123',
+          status: 'COMPLETED',
+          updatedAt: '2024-01-01T00:00:00Z',
+        },
+        kind: 'media',
+      });
     });
 
-    it('should use category-specific endpoint when category is provided', async () => {
-      mockSuccessfulFetch(mockResponse);
+    it('should use the videos endpoint for a video', async () => {
+      mockSuccessfulFetch({
+        data: {
+          attributes: { status: 'COMPLETED' },
+          id: '123',
+          type: 'videos',
+        },
+      });
 
-      await ingredientsService.findOne('test-token', '123', 'image');
+      await ingredientsService.findOne('test-token', scope, '123', 'video');
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.test.com/images/123',
+        'https://api.test.com/v1/videos/123?brandId=brand-1&organizationId=org-1',
         expect.any(Object),
       );
     });
 
-    it('should use articles endpoint for article category', async () => {
-      mockSuccessfulFetch(mockResponse);
+    it('should use the articles endpoint for an article', async () => {
+      mockSuccessfulFetch({
+        data: {
+          attributes: { label: 'Note', summary: 'Short' },
+          id: '123',
+          type: 'articles',
+        },
+      });
 
-      await ingredientsService.findOne('test-token', '123', 'article');
+      const result = await ingredientsService.findOne(
+        'test-token',
+        scope,
+        '123',
+        'article',
+      );
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.test.com/articles/123',
+        'https://api.test.com/v1/articles/123?brandId=brand-1&organizationId=org-1',
         expect.any(Object),
       );
+      expect(result.data).toEqual({
+        item: { id: '123', label: 'Note', summary: 'Short' },
+        kind: 'article',
+      });
     });
 
-    it('should throw error when response is not ok', async () => {
-      mockFailedFetch('Not Found');
+    it('should throw a not-found error when the detail response fails', async () => {
+      mockFailedFetch(404, 'Not Found');
 
       await expect(
-        ingredientsService.findOne('test-token', '123'),
-      ).rejects.toThrow('Request failed: Not Found');
+        ingredientsService.findOne('test-token', scope, '123', 'image'),
+      ).rejects.toThrow('That record was not found.');
     });
   });
 });

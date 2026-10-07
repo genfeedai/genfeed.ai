@@ -42,14 +42,7 @@ export default function ProtectedLayout() {
     >
       <Tabs.Screen name="content" options={{ title: 'Library' }} />
       <Tabs.Screen name="analytics" options={{ title: 'Analytics' }} />
-      <Tabs.Screen name="approvals" options={{ title: 'Approvals' }} />
       <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
-      <Tabs.Screen
-        name="approval"
-        options={{
-          href: null, // Hide from tab bar - only accessible via deep link
-        }}
-      />
     </Tabs>
   );
 }

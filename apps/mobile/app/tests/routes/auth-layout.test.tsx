@@ -105,8 +105,9 @@ describe('Auth route behavior', () => {
 
     expect(screen.getByTestId('tab-screen-content')).toBeTruthy();
     expect(screen.getByTestId('tab-screen-analytics')).toBeTruthy();
-    expect(screen.getByTestId('tab-screen-approvals')).toBeTruthy();
     expect(screen.getByTestId('tab-screen-settings')).toBeTruthy();
+    expect(screen.queryByTestId('tab-screen-approvals')).toBeNull();
+    expect(screen.queryByTestId('tab-screen-ideas')).toBeNull();
     expect(screen.queryByText('99+')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
