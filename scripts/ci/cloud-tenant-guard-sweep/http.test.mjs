@@ -642,3 +642,165 @@ test('activation counter correlates every actual retry across requesters without
     })(null, 'GET', '/v1/fixed'),
   );
 });
+
+for (const seconds of [1, 10]) {
+  test(`fixture auth throttle waits the exact ${seconds}-second boundary before denial`, async () => {
+    const records = [];
+    const waits = [];
+    let sends = 0;
+    const request = createRequester({
+      baseUrl: 'http://localhost:3010',
+      records,
+      wait: async (ms) => waits.push(ms),
+      fetchImpl: async () =>
+        ++sends === 1
+          ? new Response(
+              JSON.stringify({
+                message: 'Too many requests. Please try again later.',
+              }),
+              { status: 429, headers: { 'x-retry-after': String(seconds) } },
+            )
+          : new Response(JSON.stringify({ token: null }), { status: 403 }),
+    });
+    const result = await request(null, 'POST', '/v1/auth/sign-in/email', {
+      phase: 'fixture',
+      allowSigninRetry: false,
+      allowFixtureAuthThrottleRetry: true,
+      fixtureActor: 'A',
+      fixtureStage: 'unverified-signin',
+    });
+    assert.equal(result.record.status, 403);
+    assert.equal(sends, 2);
+    assert.deepEqual(waits, [seconds * 1000 + 1]);
+    assert.equal(records[0].isRetry, true);
+    assert.equal(records[0].retryReason, 'fixture-auth-throttle');
+    assert.equal(records[0].plannedRetryWaitMs, seconds * 1000 + 1);
+    assert.equal(records[0].actor, 'anonymous');
+    assert.equal(records[0].fixtureActor, 'A');
+    assert.equal(records[1].fixtureStage, 'unverified-signin');
+  });
+}
+
+const throttleBody = { message: 'Too many requests. Please try again later.' };
+const throttleSettings = {
+  phase: 'fixture',
+  allowFixtureAuthThrottleRetry: true,
+  allowSigninRetry: false,
+};
+const invalidThrottles = [
+  ['no opt-in', { settings: { allowFixtureAuthThrottleRetry: false } }],
+  ['wrong phase', { settings: { phase: 'controls' } }],
+  ['wrong method', { method: 'GET' }],
+  ['wrong path', { path: '/v1/other' }],
+  ['query', { path: '/v1/auth/sign-in/email?secret=canary' }],
+  ...[
+    '0',
+    '11',
+    '1.0',
+    '+1',
+    ' 1',
+    '1 ',
+    'Wed, 01 Jan 2020 00:00:00 GMT',
+    '1, 1',
+    null,
+  ].map((header) => [`header ${String(header)}`, { header }]),
+  ['wrong message', { body: { message: 'different' } }],
+  ['extra JSON', { body: { ...throttleBody, extra: true } }],
+  ['JSON array', { body: [throttleBody] }],
+  ['cookie', { cookie: true }],
+  ['tenant marker', { body: { message: 'Tenant isolation: canary' } }],
+  ...[400, 401, 403, 409, 500].map((status) => [
+    `status ${status}`,
+    { status },
+  ]),
+];
+for (const [name, mutation] of invalidThrottles)
+  test(`fixture throttle boundary rejects ${name}`, async () => {
+    const records = [];
+    let sends = 0;
+    const request = createRequester({
+      baseUrl: 'http://localhost:3010',
+      records,
+      wait: async () => assert.fail('No wait allowed'),
+      fetchImpl: async () => {
+        sends++;
+        return {
+          status: mutation.status ?? 429,
+          text: async () => JSON.stringify(mutation.body ?? throttleBody),
+          headers: {
+            get: () => (mutation.header === undefined ? '1' : mutation.header),
+            has: (key) => key === 'set-cookie' && Boolean(mutation.cookie),
+          },
+        };
+      },
+    });
+    await request(
+      null,
+      mutation.method ?? 'POST',
+      mutation.path ?? '/v1/auth/sign-in/email',
+      { ...throttleSettings, ...mutation.settings },
+    );
+    assert.equal(sends, 1);
+    assert.equal(records.length, 1);
+    assert.equal(records[0].isRetry, undefined);
+  });
+for (const statuses of [
+  [429, 429, 429],
+  [500, 429, 429],
+  [429, 500, 200],
+])
+  test(`fixture throttle shares three attempts with ${statuses}`, async () => {
+    const records = [],
+      waits = [];
+    let sends = 0;
+    const request = createRequester({
+      baseUrl: 'http://localhost:3010',
+      records,
+      wait: async (ms) => waits.push(ms),
+      fetchImpl: async () =>
+        new Response(JSON.stringify(throttleBody), {
+          status: statuses[sends++],
+          headers: { 'x-retry-after': '1' },
+        }),
+    });
+    const response = await request(null, 'POST', '/v1/auth/sign-in/email', {
+      ...throttleSettings,
+      allowSigninRetry: true,
+    });
+    assert.equal(sends, 3);
+    assert.equal(records.length, 3);
+    assert.equal(records[2].isRetry, undefined);
+    assert.equal(response.record.status, statuses[2]);
+    assert.equal(waits.length, 2);
+  });
+test('fixture throttle wait cancellation preserves planned wait without replay', async () => {
+  const controller = new AbortController();
+  const records = [];
+  let sends = 0;
+  const request = createRequester({
+    baseUrl: 'http://localhost:3010',
+    records,
+    wait: async (ms, _value, { signal }) => {
+      assert.equal(ms, 1001);
+      controller.abort(new Error('fixture deadline'));
+      signal.throwIfAborted();
+    },
+    fetchImpl: async () => {
+      sends++;
+      return new Response(JSON.stringify(throttleBody), {
+        status: 429,
+        headers: { 'x-retry-after': '1' },
+      });
+    },
+  });
+  await assert.rejects(
+    request(null, 'POST', '/v1/auth/sign-in/email', {
+      ...throttleSettings,
+      signal: controller.signal,
+    }),
+    /fixture deadline/,
+  );
+  assert.equal(sends, 1);
+  assert.equal(records.length, 1);
+  assert.equal(records[0].plannedRetryWaitMs, 1001);
+});

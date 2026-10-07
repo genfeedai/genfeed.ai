@@ -1,6 +1,6 @@
 import { setTimeout as delay } from 'node:timers/promises';
 
-import { createDeadline, tenantHit } from './core.mjs';
+import { createDeadline, sanitizeSetupAttempt, tenantHit } from './core.mjs';
 import {
   entity,
   hasSessionCookie,
@@ -38,9 +38,15 @@ export function printFixtureFailure(
       .at(-1);
   write('Fixture failed: required setup proof unavailable\n');
   if (record)
-    write(
-      `Setup status=${record.status} duration=${record.durationMs ?? 0}ms\n`,
-    );
+    write(`Setup attempt=${JSON.stringify(sanitizeSetupAttempt(record))}\n`);
+  return {
+    source: error.record
+      ? 'attached'
+      : record
+        ? 'last-observed'
+        : 'unavailable',
+    record: record ?? null,
+  };
 }
 
 export async function fixtureDatabase(
@@ -181,6 +187,9 @@ export async function seedFixture(
     };
     const before = await beforeMail();
     const response = await request(null, 'POST', '/v1/auth/sign-up/email', {
+      allowFixtureAuthThrottleRetry: true,
+      fixtureActor: label,
+      fixtureStage: 'signup',
       body: credentials,
     });
     const signedUp = requireSuccess(response, `Sign up ${label}`);
@@ -206,6 +215,9 @@ export async function seedFixture(
     await proveMail(label, before);
     const blockedBefore = await beforeMail();
     const blocked = await request(null, 'POST', '/v1/auth/sign-in/email', {
+      allowFixtureAuthThrottleRetry: true,
+      fixtureActor: label,
+      fixtureStage: 'unverified-signin',
       body: { email: credentials.email, password: credentials.password },
       allowSigninRetry: false,
     });
@@ -237,6 +249,9 @@ export async function seedFixture(
       }),
     );
     const signedIn = await request(null, 'POST', '/v1/auth/sign-in/email', {
+      allowFixtureAuthThrottleRetry: true,
+      fixtureActor: label,
+      fixtureStage: 'verified-signin',
       body: { email: credentials.email, password: credentials.password },
     });
     const session = requireSuccess(signedIn, `Sign in ${label}`);
@@ -253,6 +268,8 @@ export async function seedFixture(
       throw error;
     }
     const tokenResponse = await request(null, 'GET', '/v1/auth/token', {
+      fixtureActor: label,
+      fixtureStage: 'token',
       headers: { cookie },
     });
     const token = requireSuccess(tokenResponse, `JWT ${label}`)?.token;
@@ -275,6 +292,8 @@ export async function seedFixture(
       const organizations = rows(
         requireSuccess(
           await request(actor, 'GET', '/v1/organizations?mine=true', {
+            fixtureActor: actor.label,
+            fixtureStage: 'organizations',
             signal: readiness.signal,
             abortSources: readiness.abortSources,
           }),
@@ -289,7 +308,11 @@ export async function seedFixture(
               actor,
               'GET',
               `/v1/brands?organizationId=${organization.id}`,
-              { signal: readiness.signal },
+              {
+                signal: readiness.signal,
+                fixtureActor: actor.label,
+                fixtureStage: 'brands',
+              },
             ),
             `Brands ${actor.label}`,
           ),

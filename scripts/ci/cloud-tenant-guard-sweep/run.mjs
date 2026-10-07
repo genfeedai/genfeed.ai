@@ -106,6 +106,7 @@ const nextSequence =
 const inventory = {};
 const inventoryTemplates = [];
 let fixtureProof = {};
+let setupFailure;
 let mailStats;
 const limit = createConcurrencyLimiter(10);
 const progress = new Map();
@@ -366,7 +367,7 @@ try {
   );
 } catch (error) {
   failures.push('Harness required proof or execution failed');
-  if (isSetup) printFixtureFailure(error, records, apiLog);
+  if (isSetup) setupFailure = printFixtureFailure(error, records, apiLog);
 } finally {
   if (prisma)
     await prisma
@@ -403,6 +404,7 @@ try {
     inventoryTemplates,
     phaseElapsed,
     fixtureProof,
+    setupFailure,
     mailStats,
     limiter: limit.stats,
     hasFailed,

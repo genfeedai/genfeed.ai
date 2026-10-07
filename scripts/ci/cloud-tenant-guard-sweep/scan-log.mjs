@@ -80,16 +80,24 @@ if (
   if (!report.hasSkipped) {
     try {
       let proof = report.fixtureProof;
-      if (!proof) {
+      if (proof === null || proof === undefined) {
         try {
-          proof = JSON.parse(
+          const summary = JSON.parse(
             readFileSync(
               join(process.env.CLOUD_SWEEP_RUN_DIR, 'diagnostic-summary.json'),
               'utf8',
             ),
-          ).fixtureProof;
+          );
+          if (
+            summary &&
+            typeof summary === 'object' &&
+            !Array.isArray(summary) &&
+            (!Object.hasOwn(summary, 'fixtureProofAvailable') ||
+              summary.fixtureProofAvailable === true)
+          )
+            proof = summary.fixtureProof;
         } catch {
-          /* The helper rejects absent proof and removes stale evidence. */
+          /* Preserve unavailable private proof; the finalizer retains safe failed evidence. */
         }
       }
       writeDiagnosticEvidence(

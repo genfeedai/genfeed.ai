@@ -5,6 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
+import { writeDiagnosticEvidence } from './diagnostic-output.mjs';
+import { zeroMailStats } from './local-mail-stub.mjs';
+
 import { scanFinalLog } from './scan-log.mjs';
 
 test('failed API boot reports a skipped sweep without another failing step', (context) => {
@@ -332,3 +335,133 @@ for (const rejection of [false, true, 'missing']) {
       ]);
   });
 }
+
+function setupScanner(context, proof) {
+  const directory = mkdtempSync(join(tmpdir(), 'tenant-partial-scan-'));
+  context.after(() => rmSync(directory, { recursive: true, force: true }));
+  const reportPath = join(directory, 'report.json');
+  const log = join(directory, 'api.log');
+  const summaryPath = join(directory, 'diagnostic-summary.json');
+  const stats = zeroMailStats();
+  writeFileSync(join(directory, 'mail-stats.json'), JSON.stringify(stats), {
+    mode: 0o600,
+  });
+  writeFileSync(log, 'API ready\n', { mode: 0o600 });
+  const report = {
+    sourceSha: 'a'.repeat(40),
+    hasFailed: true,
+    failures: ['Existing failure'],
+    fixtureProof: proof,
+    mailStats: stats,
+    inventoryTemplates: [],
+    requests: [],
+    apiLogHits: [],
+  };
+  const save = () =>
+    writeFileSync(reportPath, JSON.stringify(report), { mode: 0o600 });
+  save();
+  const scan = () =>
+    spawnSync(
+      process.execPath,
+      [new URL('./scan-log.mjs', import.meta.url).pathname],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          CLOUD_SWEEP_API_LOG: log,
+          CLOUD_SWEEP_REPORT: reportPath,
+          CLOUD_SWEEP_RUN_DIR: directory,
+          CLOUD_SWEEP_DIAGNOSTICS: '0',
+          CLOUD_SWEEP_CPU_PROFILE: '0',
+          CLOUD_SWEEP_API_BOOT_OUTCOME: 'success',
+        },
+      },
+    );
+  return { directory, reportPath, summaryPath, report, save, scan };
+}
+for (const proof of [undefined, null, {}, { acceptedMail: true }])
+  test(`real scanner twice preserves unavailable private proof ${JSON.stringify(proof)}`, (context) => {
+    const f = setupScanner(context, proof);
+    writeDiagnosticEvidence(f.report, proof, f.directory, f.reportPath);
+    for (let i = 0; i < 2; i++) {
+      const result = f.scan();
+      assert.equal(result.status, 1, result.stderr);
+      const summary = JSON.parse(readFileSync(f.summaryPath, 'utf8'));
+      const saved = JSON.parse(readFileSync(f.reportPath, 'utf8'));
+      assert.equal(summary.fixtureProofAvailable, false);
+      assert.deepEqual(Object.values(summary.fixtureProof), [
+        false,
+        false,
+        false,
+        false,
+      ]);
+      assert.deepEqual(saved.fixtureProof, proof);
+      assert.equal(
+        saved.failures.filter((x) => x === 'Fixture setup proof unavailable')
+          .length,
+        1,
+      );
+      assert.equal(
+        saved.failures.includes('Fixture setup proof incomplete'),
+        false,
+      );
+      assert.ok(saved.failures.includes('Existing failure'));
+    }
+  });
+for (const availability of [undefined, true, false, null, 'true', 0])
+  test(`real scanner historical availability ${String(availability)}`, (context) => {
+    const f = setupScanner(context, null);
+    const old = {
+      fixtureProof: {
+        verificationRequired: true,
+        noUnverifiedSession: true,
+        acceptedMail: true,
+        verifiedAuthentication: true,
+      },
+    };
+    if (availability !== undefined) old.fixtureProofAvailable = availability;
+    writeFileSync(f.summaryPath, JSON.stringify(old), { mode: 0o600 });
+    const result = f.scan();
+    assert.equal(result.status, 1);
+    const summary = JSON.parse(readFileSync(f.summaryPath, 'utf8'));
+    const recovered = availability === undefined || availability === true;
+    assert.equal(summary.fixtureProofAvailable, recovered);
+    const report = JSON.parse(readFileSync(f.reportPath, 'utf8'));
+    assert.equal(
+      report.failures.includes('Fixture setup proof unavailable'),
+      !recovered,
+    );
+    assert.ok(report.failures.includes('Existing failure'));
+  });
+for (const proof of [false, 0, '', [], { acceptedMail: 'true' }])
+  test(`real scanner cannot recover malformed private proof ${JSON.stringify(proof)}`, (context) => {
+    const f = setupScanner(context, proof);
+    writeFileSync(
+      f.summaryPath,
+      JSON.stringify({
+        fixtureProof: {
+          verificationRequired: true,
+          noUnverifiedSession: true,
+          acceptedMail: true,
+          verifiedAuthentication: true,
+        },
+      }),
+      { mode: 0o600 },
+    );
+    assert.equal(f.scan().status, 1);
+    assert.throws(() => readFileSync(f.summaryPath));
+    assert.deepEqual(
+      JSON.parse(readFileSync(f.reportPath, 'utf8')).fixtureProof,
+      proof,
+    );
+  });
+test('real scanner rejects malformed recovered historical proof', (context) => {
+  const f = setupScanner(context, null);
+  writeFileSync(
+    f.summaryPath,
+    JSON.stringify({ fixtureProof: { acceptedMail: 'true' } }),
+    { mode: 0o600 },
+  );
+  assert.equal(f.scan().status, 1);
+  assert.throws(() => readFileSync(f.summaryPath));
+});

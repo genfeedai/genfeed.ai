@@ -124,7 +124,7 @@ for (const kind of [
   'regressed',
   'symlink',
   'wrong-mode',
-  'missing-proof',
+  'unsafe-proof',
   'unsafe-summary',
 ]) {
   test(`${kind} evidence fails closed and removes stale summary`, (context) => {
@@ -141,7 +141,7 @@ for (const kind of [
       symlinkSync(f.reportPath, f.mailPath);
     }
     if (kind === 'wrong-mode') chmodSync(f.mailPath, 0o644);
-    if (kind === 'missing-proof') delete f.proof.acceptedMail;
+    if (kind === 'unsafe-proof') f.proof.acceptedMail = 'not-a-boolean';
     if (kind === 'unsafe-summary') {
       rmSync(f.summaryPath);
       symlinkSync(f.mailPath, f.summaryPath);
@@ -526,3 +526,145 @@ test('early sealed CPU profile survives missing API footer and stopped marker wh
   ])
     assert.ok(!JSON.stringify(summary).includes(sentinel));
 });
+
+test('safe partial fixture proof retains failed diagnostic artifact on repeated finalization', (context) => {
+  const f = fixture(context);
+  for (const key of Object.keys(f.proof)) delete f.proof[key];
+  f.proof.verificationRequired = true;
+  f.write();
+  f.write();
+  assert.equal(f.saved().hasFailed, true);
+  assert.deepEqual(f.saved().fixtureProof, { verificationRequired: true });
+  assert.equal(f.summary().fixtureProofAvailable, false);
+  assert.deepEqual(Object.values(f.summary().fixtureProof), [
+    false,
+    false,
+    false,
+    false,
+  ]);
+  assert.equal(
+    f.saved().failures.filter((x) => x === 'Fixture setup proof unavailable')
+      .length,
+    1,
+  );
+});
+
+for (const proof of [
+  undefined,
+  null,
+  {},
+  { acceptedMail: true },
+  {
+    verificationRequired: true,
+    noUnverifiedSession: true,
+    acceptedMail: false,
+    verifiedAuthentication: true,
+  },
+])
+  test(`fixture proof availability retains safe failure ${JSON.stringify(proof)}`, (context) => {
+    const f = fixture(context);
+    f.report.fixtureProof = proof;
+    f.report.failures.push('Existing failure');
+    const write = () =>
+      writeDiagnosticEvidence(f.report, proof, f.directory, f.reportPath);
+    write();
+    write();
+    const available =
+      proof !== null && proof !== undefined && Object.keys(proof).length === 4;
+    assert.equal(f.summary().fixtureProofAvailable, available);
+    assert.equal(f.saved().hasFailed, true);
+    assert.deepEqual(f.saved().fixtureProof, proof);
+    assert.ok(f.saved().failures.includes('Existing failure'));
+    assert.equal(
+      f
+        .saved()
+        .failures.filter(
+          (x) =>
+            x ===
+            (available
+              ? 'Fixture setup proof incomplete'
+              : 'Fixture setup proof unavailable'),
+        ).length,
+      1,
+    );
+    if (!available)
+      assert.deepEqual(Object.values(f.summary().fixtureProof), [
+        false,
+        false,
+        false,
+        false,
+      ]);
+  });
+for (const missing of ['none', 'footer', 'stopped', 'mail refusal'])
+  test(`partial setup retains fatal final lifecycle artifact ${missing}`, (context) => {
+    const previous = new Map(
+      ['CLOUD_SWEEP_DIAGNOSTICS', 'CLOUD_SWEEP_CPU_PROFILE'].map((key) => [
+        key,
+        process.env[key],
+      ]),
+    );
+    process.env.CLOUD_SWEEP_DIAGNOSTICS = '1';
+    process.env.CLOUD_SWEEP_CPU_PROFILE = '0';
+    context.after(() => {
+      for (const [key, value] of previous)
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+    });
+    const f = fixture(context);
+    for (const key of Object.keys(f.proof)) delete f.proof[key];
+    const at = Date.now();
+    const header = { kind: 'header', protocol: 1, startedAt: at };
+    const footer = {
+      kind: 'footer',
+      endedAt: at + 1,
+      unavailable: false,
+      records: 1,
+      ingress: 0,
+      pipelineEntries: 0,
+      finishes: 0,
+      closes: 0,
+      invalidSequences: 0,
+      duplicateSequences: 0,
+      runtimeSamples: 0,
+      databaseSamples: 0,
+      databaseIncomplete: 0,
+    };
+    writeFileSync(
+      join(f.directory, 'api-observations.ndjson'),
+      `${JSON.stringify(header)}\n${missing === 'footer' ? '' : `${JSON.stringify(footer)}\n`}`,
+      { mode: 0o600 },
+    );
+    if (missing !== 'stopped')
+      writeFileSync(join(f.directory, 'api-stopped'), 'stopped\n', {
+        mode: 0o600,
+      });
+    if (missing === 'mail refusal') {
+      f.latest.rejected.path = 1;
+      f.latest.rejectedRequests = [
+        {
+          method: 'POST',
+          route: 'emailDeliveries',
+          authorization: 'matched',
+          reason: 'path',
+          count: 1,
+        },
+      ];
+      f.save();
+    }
+    f.report.finalLogScannedAt = new Date().toISOString();
+    f.write();
+    f.write();
+    assert.equal(f.saved().hasFailed, true);
+    assert.equal(f.summary().fixtureProofAvailable, false);
+    assert.equal(
+      f.summary().causalEvidence.quality,
+      ['footer', 'stopped'].includes(missing) ? 'incomplete' : 'complete',
+    );
+    assert.equal(
+      f.saved().failures.includes('Causal diagnostic evidence unavailable'),
+      ['footer', 'stopped'].includes(missing),
+    );
+    if (missing === 'mail refusal')
+      assert.ok(f.saved().failures.includes(refusal));
+    assert.equal(Object.hasOwn(f.summary(), 'cpuProfileEvidence'), false);
+  });

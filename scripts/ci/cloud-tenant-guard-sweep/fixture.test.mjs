@@ -11,6 +11,8 @@ import {
   warmup,
 } from './fixture.mjs';
 
+import { createRequester } from './http.mjs';
+
 import { zeroMailStats } from './local-mail-stub.mjs';
 
 // Existing workflow mocks retain their successful auth behavior while explicitly
@@ -439,7 +441,8 @@ test('fixture failure never prints authentication bodies or private API logs', (
     '/private-path',
     (value) => (output += value),
   );
-  assert.match(output, /status=0 duration=3ms/);
+  assert.match(output, /"status":0/);
+  assert.match(output, /"durationMs":3/);
   assert.doesNotMatch(output, /private/);
 });
 
@@ -605,3 +608,192 @@ for (const mode of [
     assert.ok(calls <= 2);
   });
 }
+
+for (const mode of [
+  'complete',
+  'throttle-mail',
+  'wrong-identity',
+  'missing-cookie',
+  'missing-jwt',
+])
+  test(`shared ten-second auth bucket fixture ${mode}`, async () => {
+    let clock = 0,
+      sends = 0;
+    const buckets = new Map(),
+      stats = zeroMailStats(),
+      verified = new Set(),
+      records = [],
+      waits = [];
+    const request = createRequester({
+      baseUrl: 'http://localhost:3010',
+      records,
+      now: () => clock,
+      wait: async (ms) => {
+        waits.push(ms);
+        clock += ms;
+      },
+      fetchImpl: async (url, options) => {
+        sends++;
+        const body = options.body ? JSON.parse(options.body) : {};
+        let json = { data: { id: 'synthetic-persona' } },
+          status = 200;
+        const headers = {};
+        if (
+          url.pathname.endsWith('/sign-up/email') ||
+          url.pathname.endsWith('/sign-in/email')
+        ) {
+          const label = body.email.match(/ci-cloud-(.+)@/)[1].toUpperCase();
+          const bucket = buckets.get(url.pathname) ?? { at: clock, count: 0 };
+          if (clock - bucket.at > 10000) {
+            bucket.at = clock;
+            bucket.count = 0;
+          }
+          if (bucket.count >= 3) {
+            if (mode === 'throttle-mail' && !verified.has(label))
+              stats.accepted[label]++;
+            return new Response(
+              JSON.stringify({
+                message: 'Too many requests. Please try again later.',
+              }),
+              {
+                status: 429,
+                headers: {
+                  'x-retry-after': String(
+                    Math.ceil((bucket.at + 10000 - clock) / 1000),
+                  ),
+                },
+              },
+            );
+          }
+          bucket.count++;
+          buckets.set(url.pathname, bucket);
+          if (url.pathname.endsWith('/sign-up/email')) {
+            stats.accepted[label]++;
+            json = {
+              token: null,
+              user: { id: `synthetic-${label}`, emailVerified: false },
+            };
+          } else if (!verified.has(label)) {
+            status = 403;
+            stats.accepted[label]++;
+            json = { token: null };
+          } else {
+            json = {
+              user: {
+                id:
+                  mode === 'wrong-identity'
+                    ? 'incorrect'
+                    : `synthetic-${label}`,
+              },
+            };
+            if (mode !== 'missing-cookie')
+              headers['set-cookie'] =
+                `better-auth.session_token=synthetic-${label}; Path=/`;
+          }
+        } else if (url.pathname === '/v1/auth/token') {
+          json = mode === 'missing-jwt' ? {} : { token: 'synthetic-jwt' };
+        } else if (url.pathname === '/v1/organizations')
+          json = [{ id: 'synthetic-organization', slug: 'synthetic' }];
+        else if (url.pathname === '/v1/brands')
+          json = { data: [{ id: 'synthetic-brand' }] };
+        else if (url.pathname === '/v1/roles')
+          json = { data: [{ id: 'synthetic-role', key: 'admin' }] };
+        else if (url.pathname === '/v1/personas' && options.method === 'GET')
+          json = { data: [{ id: 'synthetic-persona' }] };
+        return new Response(JSON.stringify(json), { status, headers });
+      },
+    });
+    const operation = realSeedFixture(
+      request,
+      {
+        user: {
+          update: async ({ where, data }) => {
+            if (data.emailVerified)
+              verified.add(where.id.replace('synthetic-', ''));
+          },
+        },
+        member: { create: async () => ({ id: 'synthetic-membership' }) },
+      },
+      {
+        readMailStats: () => structuredClone(stats),
+        now: () => clock,
+        deadline: createDeadline(240000, { now: () => clock }),
+      },
+    );
+    if (mode === 'complete') {
+      const f = await operation;
+      assert.deepEqual(Object.values(f.proof), [true, true, true, true]);
+      assert.deepEqual(Object.values(stats.accepted), [2, 2, 2, 2, 2]);
+      assert.equal(
+        Object.values(stats.rejected).reduce((a, b) => a + b, 0),
+        0,
+      );
+      assert.equal(
+        records.filter(
+          (x) => x.fixtureStage === 'unverified-signin' && !x.isRetry,
+        ).length,
+        5,
+      );
+      assert.equal(
+        records.filter(
+          (x) => x.fixtureStage === 'verified-signin' && !x.isRetry,
+        ).length,
+        5,
+      );
+      assert.ok(waits.length >= 3);
+      assert.ok(waits.every((ms) => ms === 10001));
+      assert.equal(sends, records.length);
+      assert.ok(
+        records
+          .filter((x) => x.isRetry)
+          .every((x) => x.retryReason === 'fixture-auth-throttle'),
+      );
+      assert.ok(
+        records
+          .filter(
+            (x) =>
+              x.fixtureStage === 'signup' ||
+              x.fixtureStage === 'unverified-signin' ||
+              x.fixtureStage === 'verified-signin',
+          )
+          .every((x) => x.actor === 'anonymous'),
+      );
+    } else
+      await assert.rejects(
+        operation,
+        mode === 'throttle-mail'
+          ? /exact acceptance delta/
+          : mode === 'wrong-identity'
+            ? /canonical user id mismatch/
+            : mode === 'missing-cookie'
+              ? /no session cookie/
+              : /no token/,
+      );
+  });
+test('fixture failure descriptor uses attached or last-observed bounded attempts', () => {
+  let output = '';
+  const record = {
+    phase: 'fixture',
+    status: 429,
+    fixtureActor: 'B',
+    fixtureStage: 'verified-signin',
+    method: 'POST',
+    path: '/v1/auth/sign-in/email',
+    attempt: 3,
+    durationMs: 3,
+    body: 'secret-canary',
+  };
+  assert.equal(
+    printFixtureFailure({ record }, [], null, (x) => (output += x)).source,
+    'attached',
+  );
+  assert.equal(
+    printFixtureFailure({}, [record], null, (x) => (output += x)).source,
+    'last-observed',
+  );
+  assert.deepEqual(
+    printFixtureFailure({}, [], null, (x) => (output += x)),
+    { source: 'unavailable', record: null },
+  );
+  assert.doesNotMatch(output, /secret-canary/);
+});

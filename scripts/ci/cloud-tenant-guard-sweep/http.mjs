@@ -155,6 +155,37 @@ export function createRequester({
       record.totalMs = Math.round(ended - enqueued);
       record.attempt = attempt + 1;
       record.sweepPhase = options.sweepPhase ?? requestPhase;
+      if (['A', 'B', 'M', 'M2', 'S'].includes(options.fixtureActor))
+        record.fixtureActor = options.fixtureActor;
+      if (
+        [
+          'signup',
+          'unverified-signin',
+          'verified-signin',
+          'token',
+          'organizations',
+          'brands',
+        ].includes(options.fixtureStage)
+      )
+        record.fixtureStage = options.fixtureStage;
+      const throttleHeader = outcome.headers?.get('x-retry-after');
+      const fixtureThrottle =
+        options.allowFixtureAuthThrottleRetry === true &&
+        requestPhase === 'fixture' &&
+        method === 'POST' &&
+        !url.search &&
+        ['/v1/auth/sign-up/email', '/v1/auth/sign-in/email'].includes(
+          url.pathname,
+        ) &&
+        record.status === 429 &&
+        !record.hasTenantHit &&
+        outcome.json !== null &&
+        typeof outcome.json === 'object' &&
+        !Array.isArray(outcome.json) &&
+        Object.keys(outcome.json).length === 1 &&
+        outcome.json.message === 'Too many requests. Please try again later.' &&
+        !outcome.headers?.has('set-cookie') &&
+        /^(?:[1-9]|10)$/.test(throttleHeader ?? '');
       // Setup tolerates transient cold-start failures; sweep requests retain
       // their bounded deadlines and retry only throttling. Preserve every attempt.
       const isSignin =
@@ -166,12 +197,21 @@ export function createRequester({
         ? [0, 500, 502, 503, 504].includes(record.status)
         : !isSetup && method === 'GET' && record.status === 429;
       if (
-        isRetryable &&
+        (fixtureThrottle || isRetryable) &&
         !record.hasTenantHit &&
         attempt < 2 &&
         !requestSignal?.aborted
       ) {
-        records.push({ ...record, isRetry: true });
+        const plannedRetryWaitMs = fixtureThrottle
+          ? Number(throttleHeader) * 1000 + 1
+          : undefined;
+        records.push({
+          ...record,
+          isRetry: true,
+          ...(fixtureThrottle
+            ? { retryReason: 'fixture-auth-throttle', plannedRetryWaitMs }
+            : {}),
+        });
         const seconds = Number(
           outcome.headers?.get('retry-after') ??
             outcome.headers?.get('x-retry-after') ??
@@ -179,10 +219,14 @@ export function createRequester({
         );
         await wait(
           // A long Retry-After must not turn a bounded sweep into an hour.
-          isSetup
-            ? 1_000 * 2 ** attempt
-            : Math.min(1, Math.max(0, Number.isFinite(seconds) ? seconds : 1)) *
-                1_000,
+          fixtureThrottle
+            ? plannedRetryWaitMs
+            : isSetup
+              ? 1_000 * 2 ** attempt
+              : Math.min(
+                  1,
+                  Math.max(0, Number.isFinite(seconds) ? seconds : 1),
+                ) * 1_000,
           undefined,
           { signal: requestSignal },
         );

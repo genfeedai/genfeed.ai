@@ -816,7 +816,8 @@ test('safe summary keeps unstarted inventory and excludes private request detail
   assert.equal(summary.phases.memberAGets.coverage['M:A'].unstarted, 1);
   assert.equal(summary.phases.readOnlyTools.coverage.S.unstarted, 4);
   assert.equal(summary.tenantHits.finalLog, 1);
-  assert.equal(summary.fixtureProof.acceptedMail, true);
+  assert.equal(summary.fixtureProofAvailable, false);
+  assert.equal(summary.fixtureProof.acceptedMail, false);
   assert.doesNotMatch(JSON.stringify(summary), /private/);
   assert.throws(() =>
     buildDiagnosticSummary({ ...report, inventory: { unexpected: {} } }),
@@ -1170,4 +1171,159 @@ test('CPU evidence validates independently and does not retroactively modify dis
     ),
     false,
   );
+});
+
+test('setup projection conserves every fixed group and excludes secret-bearing fields', async () => {
+  const { buildDiagnosticSummary, sanitizeSetupAttempt } = await import(
+    './core.mjs'
+  );
+  const attempt = {
+    phase: 'fixture',
+    fixtureStage: 'verified-signin',
+    fixtureActor: 'B',
+    method: 'POST',
+    path: '/v1/auth/sign-in/email',
+    status: 429,
+    attempt: 1,
+    isRetry: true,
+    retryReason: 'fixture-auth-throttle',
+    plannedRetryWaitMs: 1001,
+    durationMs: 3,
+    body: 'secret-canary',
+    headers: { token: 'secret-canary' },
+    error: 'secret-canary',
+    sequence: 999,
+  };
+  const requests = [
+    { ...attempt },
+    { ...attempt, attempt: 2 },
+    {
+      ...attempt,
+      status: 200,
+      attempt: 3,
+      isRetry: false,
+      retryReason: undefined,
+      plannedRetryWaitMs: undefined,
+    },
+    { phase: 'warmup', method: 'GET', path: '/v1/health', status: 200 },
+    {
+      phase: 'fixture',
+      method: 'GET',
+      path: '/v1/brands?organizationId=secret-canary',
+      status: 200,
+    },
+  ];
+  const report = {
+    sourceSha: 'a'.repeat(40),
+    requests,
+    fixtureProof: {},
+    setupFailure: { source: 'attached', record: attempt },
+  };
+  const evidence = buildDiagnosticSummary(report).setupEvidence;
+  assert.equal(evidence.attemptCount, 5);
+  assert.equal(evidence.retryCount, 2);
+  assert.equal(evidence.authThrottleRetries, 2);
+  assert.equal(evidence.plannedRetryWaitMs, 2002);
+  assert.equal(
+    evidence.groups.reduce((n, g) => n + g.count, 0),
+    5,
+  );
+  assert.equal(
+    evidence.groups.reduce((n, g) => n + g.plannedRetryWaitMs, 0),
+    2002,
+  );
+  assert.equal(evidence.failure.source, 'attached');
+  assert.equal(evidence.failure.lastAttempt.attempt, 1);
+  assert.equal(
+    evidence.groups.find((g) => g.route === '/v1/brands').actor,
+    'unknown',
+  );
+  assert.equal(sanitizeSetupAttempt(requests[3]).durationMs, null);
+  assert.equal(sanitizeSetupAttempt(requests[3]).attempt, null);
+  assert.doesNotMatch(
+    JSON.stringify(evidence),
+    /secret-canary|sequence|headers|body|error/,
+  );
+  assert.deepEqual(buildDiagnosticSummary(report).setupEvidence, evidence);
+  assert.deepEqual(
+    buildDiagnosticSummary({ ...report, setupFailure: undefined }).setupEvidence
+      .failure,
+    { source: 'unavailable', lastAttempt: null },
+  );
+  assert.equal(
+    buildDiagnosticSummary({
+      ...report,
+      fixtureProof: {
+        verificationRequired: true,
+        noUnverifiedSession: true,
+        acceptedMail: true,
+        verifiedAuthentication: true,
+      },
+      setupFailure: undefined,
+    }).setupEvidence.failure,
+    null,
+  );
+});
+test('setup evidence rejects malformed numbers, group overflow and unsafe proof', async () => {
+  const { buildDiagnosticSummary, sanitizeSetupAttempt } = await import(
+    './core.mjs'
+  );
+  for (const [key, value] of [
+    ['status', 600],
+    ['status', -1],
+    ['attempt', 0],
+    ['attempt', 1.5],
+    ['durationMs', NaN],
+    ['plannedRetryWaitMs', Infinity],
+    ['plannedRetryWaitMs', -1],
+  ])
+    assert.throws(() =>
+      sanitizeSetupAttempt({ phase: 'fixture', status: 200, [key]: value }),
+    );
+  assert.throws(
+    () =>
+      buildDiagnosticSummary({
+        sourceSha: 'a'.repeat(40),
+        requests: Array.from({ length: 257 }, (_, status) => ({
+          phase: 'fixture',
+          status: status + 1,
+        })),
+      }),
+    /group limit/,
+  );
+  assert.throws(() =>
+    buildDiagnosticSummary({
+      sourceSha: 'a'.repeat(40),
+      requests: [0, 1].map(() => ({
+        phase: 'fixture',
+        status: 200,
+        plannedRetryWaitMs: Number.MAX_SAFE_INTEGER,
+      })),
+    }),
+  );
+  for (const proof of [
+    false,
+    0,
+    '',
+    [],
+    { unknown: true },
+    { acceptedMail: 'true' },
+  ])
+    assert.throws(
+      () => buildDiagnosticSummary({ sourceSha: 'a'.repeat(40) }, proof),
+      /Unsafe fixture proof/,
+    );
+  const unknown = sanitizeSetupAttempt({
+    phase: 'canary',
+    fixtureActor: 'canary',
+    fixtureStage: 'canary',
+    method: 'canary',
+    path: '/v1/auth/sign-in/email?canary',
+    status: 0,
+  });
+  assert.equal(unknown.phase, 'unknown');
+  assert.equal(unknown.actor, 'unknown');
+  assert.equal(unknown.stage, 'other');
+  assert.equal(unknown.method, 'other');
+  assert.equal(unknown.route, 'unknown');
 });

@@ -676,6 +676,198 @@ const count = (value) => {
     throw new Error('Unsafe diagnostic count');
   return value;
 };
+const FIXTURE_PROOF_KEYS = [
+  'verificationRequired',
+  'noUnverifiedSession',
+  'acceptedMail',
+  'verifiedAuthentication',
+];
+export function fixtureProofState(value) {
+  if (value === undefined || value === null)
+    return {
+      available: false,
+      proof: Object.fromEntries(FIXTURE_PROOF_KEYS.map((key) => [key, false])),
+    };
+  if (
+    typeof value !== 'object' ||
+    Array.isArray(value) ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value)) ||
+    Object.keys(value).some(
+      (key) =>
+        !FIXTURE_PROOF_KEYS.includes(key) || typeof value[key] !== 'boolean',
+    )
+  )
+    throw new Error('Unsafe fixture proof');
+  const available = Object.keys(value).length === FIXTURE_PROOF_KEYS.length;
+  return {
+    available,
+    proof: Object.fromEntries(
+      FIXTURE_PROOF_KEYS.map((key) => [key, available && value[key] === true]),
+    ),
+  };
+}
+export function sanitizeSetupAttempt(record) {
+  if (!record || typeof record !== 'object' || Array.isArray(record))
+    throw new Error('Unsafe setup attempt');
+  const numeric = (key, minimum = 0, maximum = Number.MAX_SAFE_INTEGER) => {
+    if (record[key] === undefined || record[key] === null) return null;
+    if (
+      !Number.isSafeInteger(record[key]) ||
+      record[key] < minimum ||
+      record[key] > maximum
+    )
+      throw new Error('Unsafe setup attempt number');
+    return record[key];
+  };
+  const phase = ['warmup', 'fixture'].includes(record.phase)
+    ? record.phase
+    : 'unknown';
+  const stage =
+    phase === 'warmup'
+      ? 'warmup'
+      : [
+            'signup',
+            'unverified-signin',
+            'verified-signin',
+            'token',
+            'organizations',
+            'brands',
+          ].includes(record.fixtureStage)
+        ? record.fixtureStage
+        : 'other';
+  const fixed = [
+    '/v1/health',
+    '/v1/openapi.json',
+    '/v1/auth/sign-up/email',
+    '/v1/auth/sign-in/email',
+    '/v1/auth/token',
+    '/v1/organizations',
+    '/v1/brands',
+  ];
+  const path = typeof record.path === 'string' ? record.path : '';
+  const pathname = path.split('?')[0];
+  const route = fixed.includes(path)
+    ? path
+    : ['/v1/organizations', '/v1/brands'].includes(pathname)
+      ? pathname
+      : 'unknown';
+  const status = numeric('status', 0, 599);
+  if (status === null) throw new Error('Missing setup status');
+  return {
+    phase,
+    stage,
+    actor: ['A', 'B', 'M', 'M2', 'S'].includes(record.fixtureActor)
+      ? record.fixtureActor
+      : 'unknown',
+    method: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'DB'].includes(
+      record.method,
+    )
+      ? record.method
+      : 'other',
+    route,
+    status,
+    attempt: numeric('attempt', 1),
+    isRetry: record.isRetry === true,
+    durationMs: numeric('durationMs'),
+    retryReason:
+      record.retryReason === 'fixture-auth-throttle'
+        ? 'fixture-auth-throttle'
+        : record.retryReason === undefined
+          ? 'none'
+          : 'other',
+    plannedRetryWaitMs: numeric('plannedRetryWaitMs'),
+  };
+}
+function buildSetupEvidence(report) {
+  const attempts = (report.requests ?? [])
+    .filter((record) => ['warmup', 'fixture'].includes(record.phase))
+    .map(sanitizeSetupAttempt);
+  const grouped = new Map();
+  for (const record of attempts) {
+    const { phase, stage, actor, method, route, status, isRetry, retryReason } =
+      record;
+    const tuple = {
+      phase,
+      stage,
+      actor,
+      method,
+      route,
+      status,
+      isRetry,
+      retryReason,
+    };
+    const key = JSON.stringify(tuple);
+    const group = grouped.get(key) ?? {
+      ...tuple,
+      count: 0,
+      plannedRetryWaitMs: 0,
+    };
+    group.count = count(group.count + 1);
+    group.plannedRetryWaitMs = count(
+      group.plannedRetryWaitMs + (record.plannedRetryWaitMs ?? 0),
+    );
+    grouped.set(key, group);
+    if (grouped.size > 256) throw new Error('Setup group limit exceeded');
+  }
+  const groups = [...grouped.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([, group]) => group);
+  const retryCount = count(attempts.filter((x) => x.isRetry).length);
+  const authThrottleRetries = count(
+    attempts.filter(
+      (x) => x.isRetry && x.retryReason === 'fixture-auth-throttle',
+    ).length,
+  );
+  const plannedRetryWaitMs = attempts.reduce(
+    (sum, x) => count(sum + (x.plannedRetryWaitMs ?? 0)),
+    0,
+  );
+  const attemptCount = count(attempts.length);
+  if (
+    groups.reduce((sum, x) => count(sum + x.count), 0) !== attemptCount ||
+    groups
+      .filter((x) => x.isRetry)
+      .reduce((sum, x) => count(sum + x.count), 0) !== retryCount ||
+    groups
+      .filter((x) => x.isRetry && x.retryReason === 'fixture-auth-throttle')
+      .reduce((sum, x) => count(sum + x.count), 0) !== authThrottleRetries ||
+    groups.reduce((sum, x) => count(sum + x.plannedRetryWaitMs), 0) !==
+      plannedRetryWaitMs
+  )
+    throw new Error('Nonconserved setup evidence');
+  const proof = fixtureProofState(report.fixtureProof);
+  const descriptor = report.setupFailure;
+  let failure = null;
+  if (descriptor !== undefined || !proof.available) {
+    const source =
+      ['attached', 'last-observed'].includes(descriptor?.source) &&
+      descriptor?.record
+        ? descriptor.source
+        : 'unavailable';
+    failure = {
+      source,
+      lastAttempt:
+        source === 'unavailable'
+          ? null
+          : sanitizeSetupAttempt(descriptor.record),
+    };
+    if (
+      failure.lastAttempt?.method !== 'DB' &&
+      failure.lastAttempt?.attempt > 3
+    )
+      throw new Error('Unsafe setup retry attempt');
+  }
+  return {
+    version: 1,
+    attemptCount,
+    retryCount,
+    authThrottleRetries,
+    plannedRetryWaitMs,
+    groups,
+    failure,
+  };
+}
+
 export function buildDiagnosticSummary(report, fixtureProof = {}) {
   if (!/^[a-f0-9]{40}$/.test(report.sourceSha ?? ''))
     throw new Error('Immutable diagnostic source SHA required');
@@ -864,6 +1056,8 @@ export function buildDiagnosticSummary(report, fixtureProof = {}) {
     throw new Error('Inconsistent diagnostic failure attempts');
   return {
     schemaVersion: 1,
+    setupEvidence: buildSetupEvidence(report),
+    fixtureProofAvailable: fixtureProofState(fixtureProof).available,
     ...(report.cpuProfileEvidence === undefined
       ? {}
       : { cpuProfileEvidence: validateCpuEvidence(report.cpuProfileEvidence) }),
@@ -877,14 +1071,7 @@ export function buildDiagnosticSummary(report, fixtureProof = {}) {
           }),
         }),
     sourceSha: report.sourceSha,
-    fixtureProof: Object.fromEntries(
-      [
-        'verificationRequired',
-        'noUnverifiedSession',
-        'acceptedMail',
-        'verifiedAuthentication',
-      ].map((key) => [key, fixtureProof[key] === true]),
-    ),
+    fixtureProof: fixtureProofState(fixtureProof).proof,
     mail: structuredClone(mail),
     mailAttributionAvailable,
     failedRequestGroups,

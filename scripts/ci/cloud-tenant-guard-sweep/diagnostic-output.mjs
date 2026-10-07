@@ -13,6 +13,7 @@ import {
   buildDiagnosticSummary,
   DIAGNOSTIC_ACTORS,
   DIAGNOSTIC_PHASES,
+  fixtureProofState,
 } from './core.mjs';
 import { collectCpuEvidence } from './cpu-profile-evidence.mjs';
 import { readMailStats, validateRunDirectory } from './local-mail-stub.mjs';
@@ -58,18 +59,11 @@ export function writeDiagnosticEvidence(
     resolve(reportPath) !== summaryPath &&
     resolve(reportPath) !== join(directory, 'mail-stats.json');
   try {
-    if (
-      !ownedReport ||
-      !report.mailStats ||
-      !fixtureProof ||
-      [
-        'verificationRequired',
-        'noUnverifiedSession',
-        'acceptedMail',
-        'verifiedAuthentication',
-      ].some((key) => typeof fixtureProof[key] !== 'boolean')
-    )
-      throw new Error(unavailable);
+    if (!ownedReport || !report.mailStats) throw new Error(unavailable);
+    const state = fixtureProofState(fixtureProof);
+    if (!state.available) fail(report, 'Fixture setup proof unavailable');
+    else if (Object.values(state.proof).some((value) => value === false))
+      fail(report, 'Fixture setup proof incomplete');
     report.mailStats = readMailStats(directory, report.mailStats);
     if (Object.values(report.mailStats.rejected).some((value) => value !== 0))
       fail(report, refused);
