@@ -327,6 +327,102 @@ test('finalization refreshes partial owned observations into complete stopped ev
   assert.equal(Object.hasOwn(f.summary(), 'causalObservation'), false);
 });
 
+for (const scenario of [
+  'complete',
+  'missing lifecycle',
+  'mail refusal',
+  'existing failure',
+]) {
+  test(`CPU off retains ${scenario} acceptance semantics without capture files`, (context) => {
+    const previous = new Map(
+      ['CLOUD_SWEEP_DIAGNOSTICS', 'CLOUD_SWEEP_CPU_PROFILE'].map((key) => [
+        key,
+        Reflect.get(process.env, key),
+      ]),
+    );
+    Reflect.set(process.env, 'CLOUD_SWEEP_DIAGNOSTICS', '1');
+    Reflect.set(process.env, 'CLOUD_SWEEP_CPU_PROFILE', '0');
+    context.after(() => {
+      for (const [key, value] of previous) {
+        if (value === undefined) Reflect.deleteProperty(process.env, key);
+        else Reflect.set(process.env, key, value);
+      }
+    });
+    const f = fixture(context);
+    const at = Date.now();
+    const header = { kind: 'header', protocol: 1, startedAt: at };
+    const footer = {
+      kind: 'footer',
+      endedAt: at + 1,
+      unavailable: false,
+      records: 1,
+      ingress: 0,
+      pipelineEntries: 0,
+      finishes: 0,
+      closes: 0,
+      invalidSequences: 0,
+      duplicateSequences: 0,
+      runtimeSamples: 0,
+      databaseSamples: 0,
+      databaseIncomplete: 0,
+    };
+    writeFileSync(
+      join(f.directory, 'api-observations.ndjson'),
+      `${JSON.stringify(header)}\n${scenario === 'missing lifecycle' ? '' : `${JSON.stringify(footer)}\n`}`,
+      { mode: 0o600 },
+    );
+    if (scenario !== 'missing lifecycle')
+      writeFileSync(join(f.directory, 'api-stopped'), 'stopped\n', {
+        mode: 0o600,
+      });
+    if (scenario === 'mail refusal') {
+      f.latest.rejected.path = 1;
+      f.latest.rejectedRequests = [
+        {
+          method: 'POST',
+          route: 'emailDeliveries',
+          authorization: 'matched',
+          reason: 'path',
+          count: 1,
+        },
+      ];
+      f.save();
+    }
+    if (scenario === 'existing failure') {
+      f.report.hasFailed = true;
+      f.report.failures.push('Existing failure');
+    }
+    f.report.finalLogScannedAt = new Date().toISOString();
+    f.write();
+    f.write();
+    assert.equal(Object.hasOwn(f.summary(), 'cpuProfileEvidence'), false);
+    assert.equal(Object.hasOwn(f.saved(), 'cpuProfileEvidence'), false);
+    assert.equal(
+      f.saved().failures.some((failure) => /CPU/.test(failure)),
+      false,
+    );
+    assert.equal(f.saved().hasFailed, scenario !== 'complete');
+    assert.equal(
+      f.summary().causalEvidence.quality,
+      scenario === 'missing lifecycle' ? 'incomplete' : 'complete',
+    );
+    if (scenario === 'missing lifecycle')
+      assert.ok(
+        f.saved().failures.includes('Causal diagnostic evidence unavailable'),
+      );
+    if (scenario === 'mail refusal')
+      assert.deepEqual(f.saved().failures, [refusal]);
+    if (scenario === 'existing failure')
+      assert.deepEqual(f.saved().failures, ['Existing failure']);
+    for (const filename of [
+      'cpu-profile-trigger.json',
+      'cpu-profile.raw.json',
+      'cpu-profile-seal.json',
+    ])
+      assert.equal(existsSync(join(f.directory, filename)), false);
+  });
+}
+
 test('final unavailable CPU capture turns initially clean acceptance red without deleting the safe summary', async (context) => {
   const f = fixture(context);
   const previous = Reflect.get(process.env, 'CLOUD_SWEEP_CPU_PROFILE');
