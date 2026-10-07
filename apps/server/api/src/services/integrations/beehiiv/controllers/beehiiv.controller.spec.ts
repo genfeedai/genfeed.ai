@@ -341,7 +341,7 @@ describe('BeehiivController', () => {
     it.each(routes)(
       'preserves missing-session-org behavior for $handler',
       async ({ handler }) => {
-        const actor = { ...owner, organizationId: undefined };
+        const actor = { ...owner, organizationId: '' };
         beehiivService.getDecryptedApiKey.mockImplementation(async () => {
           expect(getTenantContext()).toBeUndefined();
           expect(getTenantReadScope()).toBeUndefined();
