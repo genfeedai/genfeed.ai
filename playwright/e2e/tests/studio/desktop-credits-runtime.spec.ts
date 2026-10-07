@@ -37,6 +37,7 @@ type FixtureWindow = Window & {
   desktopRuntimeEmit: (context: IDesktopRuntimeContext) => void;
   desktopRuntimeResolve: () => void;
   desktopRuntimeReads: number;
+  desktopOfflineModeActivated: () => Promise<void>;
 };
 
 interface DesktopFixtureOptions {
@@ -44,6 +45,7 @@ interface DesktopFixtureOptions {
   pending: boolean;
 }
 interface DesktopNetworkObservation {
+  offlineModeActivations: number;
   walletRequests: number;
   generationRequests: number;
   pageErrors: string[];
@@ -60,7 +62,12 @@ const test = authenticatedTest.extend<{
   desktopRuntime: [{ context: cloud, pending: false }, { option: true }],
   desktopNetwork: async ({ context }, use) => {
     void context;
-    await use({ walletRequests: 0, generationRequests: 0, pageErrors: [] });
+    await use({
+      walletRequests: 0,
+      generationRequests: 0,
+      pageErrors: [],
+      offlineModeActivations: 0,
+    });
   },
   desktopSetup: [
     async ({ context, desktopRuntime, desktopNetwork }, use) => {
@@ -76,6 +83,9 @@ const test = authenticatedTest.extend<{
           desktopNetwork.pageErrors.push(error.message),
         ),
       );
+      await context.exposeBinding('desktopOfflineModeActivated', () => {
+        desktopNetwork.offlineModeActivations += 1;
+      });
       await installBridge(
         context,
         desktopRuntime.context,
@@ -102,6 +112,28 @@ async function captureRuntimeState(
     fullPage: true,
     style: 'nextjs-portal { visibility: hidden !important; }',
   });
+}
+
+async function openGenerationSummary(page: Page) {
+  const prompt = page
+    .getByTestId('studio-generate-prompt')
+    .locator('[contenteditable=true]');
+  await prompt.focus();
+  await expect(prompt).toBeFocused();
+  const generate = page
+    .getByTestId('studio-generate-composer-shell')
+    .getByRole('button', { name: 'Generate', exact: true });
+  await generate.focus();
+  await expect(generate).toBeFocused();
+  const tooltip = page.getByRole('tooltip');
+  await expect(tooltip).toBeVisible();
+  const descriptionId = await tooltip.getAttribute('id');
+  expect(descriptionId).toBeTruthy();
+  await expect(generate).toHaveAttribute(
+    'aria-describedby',
+    descriptionId ?? '',
+  );
+  return tooltip;
 }
 
 async function installBridge(
@@ -157,6 +189,7 @@ async function installBridge(
       Object.assign(app, {
         getBootstrap: async () => bootstrap,
         enableOfflineMode: async () => {
+          await target.desktopOfflineModeActivated();
           if (context.status === 'unavailable')
             throw new Error(
               'Restart Genfeed Desktop to recover the local workspace.',
@@ -330,16 +363,22 @@ for (const theme of ['light', 'dark'] as const)
         await page.goto(brandPath(APP_ROUTES.STUDIO.GENERATE));
         await expect(page.locator('body')).toHaveClass(/gf-desktop-shell/);
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-        const summary = page.getByTestId('studio-generation-summary');
-        await expect(summary).toContainText('Loading cost context');
+        const generate = page
+          .getByTestId('studio-generate-composer-shell')
+          .getByRole('button', { name: 'Generate', exact: true });
+        let summary = await openGenerationSummary(page);
+        await expect(summary.getByRole('status')).toHaveText(
+          'Loading cost context…',
+        );
         expect(walletRequests).toBe(0);
         expect(desktopNetwork.walletRequests).toBe(0);
         const prompt = page
           .getByTestId('studio-generate-prompt')
           .locator('[contenteditable=true]');
-        await expect(
-          page.getByRole('button', { name: 'Generate', exact: true }),
-        ).toBeDisabled();
+        await expect(generate).toBeDisabled();
+        await expect(generate).toHaveAttribute('aria-disabled', 'true');
+        await generate.press('Escape');
+        await expect(summary).toHaveCount(0);
         await prompt.focus();
         await page.keyboard.press('Enter');
         await page.keyboard.press('Control+Enter');
@@ -355,7 +394,15 @@ for (const theme of ['light', 'dark'] as const)
           (window as FixtureWindow).desktopRuntimeResolve(),
         );
         await expect.poll(() => walletRequests).toBe(1);
-        await expect(summary).toContainText('Estimated 8 credits');
+        summary = await openGenerationSummary(page);
+        const estimate = summary.getByRole('status', {
+          name: 'Estimated 8 credits',
+          exact: true,
+        });
+        await expect(estimate).toBeVisible();
+        await expect(estimate).toHaveText('~8');
+        await generate.press('Escape');
+        await expect(summary).toHaveCount(0);
         await page.evaluate(
           (context) => (window as FixtureWindow).desktopRuntimeEmit(context),
           {
@@ -365,12 +412,16 @@ for (const theme of ['light', 'dark'] as const)
             generationExecution: 'unknown',
           },
         );
-        await expect(summary).toContainText('Loading cost context');
+        summary = await openGenerationSummary(page);
+        await expect(summary.getByRole('status')).toHaveText(
+          'Loading cost context…',
+        );
+        await generate.press('Escape');
+        await expect(summary).toHaveCount(0);
         releaseWallet();
         await expect(page.getByTestId('topbar-credits-trigger')).toHaveCount(0);
-        await expect(
-          page.getByRole('button', { name: 'Generate', exact: true }),
-        ).toBeDisabled();
+        await expect(generate).toBeDisabled();
+        await expect(generate).toHaveAttribute('aria-disabled', 'true');
         await prompt.focus();
         await page.keyboard.press('Enter');
         await page.keyboard.press('Control+Enter');
@@ -393,7 +444,15 @@ for (const theme of ['light', 'dark'] as const)
         );
         await expect.poll(() => walletRequests).toBe(2);
         releaseWallet();
-        await expect(summary).toContainText('500 available');
+        summary = await openGenerationSummary(page);
+        const balance = summary.getByRole('status', {
+          name: '500 available',
+          exact: true,
+        });
+        await expect(balance).toBeVisible();
+        await expect(balance).toHaveText('500');
+        await generate.press('Escape');
+        await expect(summary).toHaveCount(0);
         expect(
           await page.evaluate(
             () => (window as FixtureWindow).desktopRuntimeReads,
@@ -447,7 +506,8 @@ for (const mode of [
         await route.fulfill({ json: walletBody });
       });
       await page.goto(brandPath(APP_ROUTES.STUDIO.GENERATE));
-      await expect(page.getByTestId('studio-generation-summary')).toContainText(
+      const summary = await openGenerationSummary(page);
+      await expect(summary.getByRole('status')).toHaveText(
         mode === 'local'
           ? 'This Studio generator requires a server connection'
           : 'Cost context unavailable',
@@ -455,16 +515,22 @@ for (const mode of [
       await expect(page.getByTestId('topbar-credits-trigger')).toHaveCount(0);
       expect(walletRequests).toBe(0);
       expect(desktopNetwork.walletRequests).toBe(0);
+      await expect(summary).not.toContainText('Estimated');
       await expect(
-        page.getByTestId('studio-generation-summary'),
-      ).not.toContainText('Estimated');
+        summary.getByRole('status', { name: /^Estimated/ }),
+      ).toHaveCount(0);
       const button = page.getByRole('button', {
         name: 'Generate',
         exact: true,
       });
-      if (mode === 'self-hosted') await expect(button).toBeEnabled();
-      else {
+      await button.press('Escape');
+      await expect(summary).toHaveCount(0);
+      if (mode === 'self-hosted') {
+        await expect(button).toBeEnabled();
+        await expect(button).not.toHaveAttribute('aria-disabled', 'true');
+      } else {
         await expect(button).toBeDisabled();
+        await expect(button).toHaveAttribute('aria-disabled', 'true');
         await page
           .getByTestId('studio-generate-prompt')
           .locator('[contenteditable=true]')
@@ -507,7 +573,12 @@ for (const networkAccess of [
   };
   desktopTest(context)(
     `desktop local route cost ${networkAccess}`,
-    async ({ authenticatedPage: page, desktopNetwork }) => {
+    async ({ authenticatedPage: page, context: browser, desktopNetwork }) => {
+      await browser.addInitScript(() => {
+        (globalThis as { [key: symbol]: unknown })[
+          Symbol.for('genfeed.desktop.localModeTestOverride')
+        ] = true;
+      });
       await page.route('**/v1/public/platform-flags**', async (route) =>
         route.fulfill({ json: { desktop_local_workspace: true } }),
       );
@@ -558,3 +629,47 @@ for (const networkAccess of [
     },
   );
 }
+
+desktopTest({
+  ...cloud,
+  runtimeMode: 'local',
+  status: 'ready',
+  generationExecution: 'local-byok',
+  localProvider: { provider: 'openai-compatible', networkAccess: 'local' },
+})(
+  'desktop local route stays closed without the test override',
+  async ({ unauthenticatedPage: page, desktopNetwork }) => {
+    await page.route('**/v1/public/platform-flags**', async (route) =>
+      route.fulfill({ json: { desktop_local_workspace: true } }),
+    );
+    await page.goto('/desktop/local');
+    await expect(page).toHaveURL((url) => url.pathname === '/login');
+    await expect(
+      page.getByRole('button', { name: 'Sign in with Genfeed' }),
+    ).toBeVisible();
+    await expect(page.getByTestId('desktop-local-generation-cost')).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByTestId('desktop-provider-generation-cost'),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: /use a local workspace/i }),
+    ).toHaveCount(0);
+    await expect(page.getByText(/local workspace|local mode/i)).toHaveCount(0);
+    expect(
+      await page.evaluate(
+        () =>
+          (globalThis as { [key: symbol]: unknown })[
+            Symbol.for('genfeed.desktop.localModeTestOverride')
+          ],
+      ),
+    ).toBeUndefined();
+    expect(desktopNetwork.offlineModeActivations).toBe(0);
+    await captureRuntimeState(
+      page,
+      desktopNetwork,
+      'desktop-local-gate-closed',
+    );
+  },
+);
