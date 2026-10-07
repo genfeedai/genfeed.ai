@@ -389,6 +389,37 @@ export class IngredientsOperationsController {
   }
 
   /**
+   * Soft-delete one Library asset. The same edit rule as bulk delete applies.
+   * A missing, foreign, or non-editable asset is a 404.
+   */
+  @Delete(':ingredientId')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async deleteIngredient(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('ingredientId') ingredientId: string,
+  ): Promise<JsonApiSingleResponse> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const deleted = await this.ingredientsService.softDeleteOneScoped({
+      editor: { brandId: user.brandId, userId: user.userId },
+      id: ingredientId,
+      organizationId: user.organizationId.toString(),
+    });
+
+    if (!deleted) {
+      this.loggerService.warn(`${url} rejected single ingredient delete`, {
+        orgId: user.organizationId,
+        userId: user.userId,
+      });
+      return returnNotFound(this.constructorName, ingredientId);
+    }
+
+    await this.invalidateIngredientListCache();
+    this.loggerService.log(`${url} completed`, { ingredientId });
+    return serializeSingle(request, IngredientSerializer, deleted);
+  }
+
+  /**
    * Bulk delete ingredients
    * Validates user permissions for each ingredient before deletion
    */

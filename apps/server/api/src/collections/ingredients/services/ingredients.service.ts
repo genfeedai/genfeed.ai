@@ -603,6 +603,44 @@ export class IngredientsService extends BaseService<
   }
 
   /**
+   * Soft-delete one live ingredient the caller may edit.
+   *
+   * Missing, already-deleted, other-organization, and non-editable rows return
+   * null. The route maps that to 404 so those cases are not distinguishable.
+   * The write repeats the organization and live-row predicates.
+   */
+  async softDeleteOneScoped(params: {
+    id: string;
+    organizationId: string;
+    editor: { brandId: string; userId: string };
+  }): Promise<IngredientDocument | null> {
+    const { id, organizationId, editor } = params;
+
+    if (!id) {
+      return null;
+    }
+
+    const existing = await this.prisma.ingredient.findFirst({
+      select: { id: true, userId: true, scope: true, brandId: true },
+      where: scopedWhere(organizationId, { id }),
+    });
+
+    if (
+      !existing ||
+      !canEditAssetTags(existing, {
+        brandId: editor.brandId,
+        userIds: [editor.userId],
+      })
+    ) {
+      return null;
+    }
+
+    return this.patchOneWhere(scopedWhere(organizationId, { id }), {
+      isDeleted: true,
+    });
+  }
+
+  /**
    * Soft-delete a caller-supplied id list in two queries.
    *
    * Both queries require the active organization and live rows. The existing
