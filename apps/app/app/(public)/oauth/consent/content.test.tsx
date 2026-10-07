@@ -11,14 +11,15 @@ const useSearchParamsMock = vi.fn();
 const resolveAuthTokenMock = vi.fn();
 const redirectMock = vi.fn();
 const loginPropsMock = vi.fn();
+const getMyOrganizationsMock = vi.fn();
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../../tests/next-intl.stub'
   );
-  const translate = translateFromCatalog('common.oauth.consent');
-
-  return { useTranslations: () => translate };
+  return {
+    useTranslations: (namespace: string) => translateFromCatalog(namespace),
+  };
 });
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
@@ -27,6 +28,12 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
 
 vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
+}));
+
+vi.mock('@services/organization/organizations.service', () => ({
+  OrganizationsService: {
+    getInstance: () => ({ getMyOrganizations: () => getMyOrganizationsMock() }),
+  },
 }));
 
 vi.mock('@services/core/environment.service', () => ({
@@ -132,12 +139,79 @@ describe('OAuthConsentPage', () => {
     });
     resolveAuthTokenMock.mockResolvedValue('session-token');
     redirectMock.mockReset();
+    getMyOrganizationsMock.mockResolvedValue([
+      { id: 'org-1', label: 'First workspace', isActive: true },
+    ]);
   });
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
     vi.clearAllMocks();
   });
+
+  it('requires deliberate organization selection even when another workspace is active', async () => {
+    getMyOrganizationsMock.mockResolvedValue([
+      { id: 'org-1', label: 'First workspace', isActive: true },
+      { id: 'org-2', label: 'Second workspace', isActive: false },
+    ]);
+    mockDecisionResponse();
+    render(<OAuthConsentPage />);
+    const first = await screen.findByRole('radio', { name: 'First workspace' });
+    const second = screen.getByRole('radio', { name: 'Second workspace' });
+    expect(first).not.toBeChecked();
+    expect(second).not.toBeChecked();
+    expect(screen.getByRole('button', { name: 'Authorize' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    fireEvent.click(second);
+    expect(screen.getByRole('button', { name: 'Authorize' })).toBeEnabled();
+    expect(screen.getByText('Videos')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+    await waitFor(() => expect(redirectMock).toHaveBeenCalled());
+    expect(lastDecisionBody()).toMatchObject({
+      approved: true,
+      organizationId: 'org-2',
+    });
+  });
+
+  it('shows the sole organization and grants it without another step', async () => {
+    mockDecisionResponse();
+    render(<OAuthConsentPage />);
+    await screen.findByText('First workspace');
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+    await waitFor(() => expect(redirectMock).toHaveBeenCalled());
+    expect(lastDecisionBody()).toMatchObject({ organizationId: 'org-1' });
+  });
+
+  it('cannot grant while membership discovery is pending but can deny', async () => {
+    getMyOrganizationsMock.mockReturnValue(new Promise(() => {}));
+    mockDecisionResponse();
+    render(<OAuthConsentPage />);
+    expect(screen.getByRole('button', { name: 'Authorize' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Deny' }));
+    await waitFor(() => expect(redirectMock).toHaveBeenCalled());
+    expect(lastDecisionBody()).toMatchObject({ approved: false });
+    expect(lastDecisionBody()).not.toHaveProperty('organizationId');
+  });
+
+  it.each(['error', 'empty'])(
+    'blocks approval after a membership %s',
+    async (failure) => {
+      if (failure === 'error') {
+        getMyOrganizationsMock.mockRejectedValue(
+          new Error('Membership unavailable'),
+        );
+      } else {
+        getMyOrganizationsMock.mockResolvedValue([]);
+      }
+      mockDecisionResponse();
+      render(<OAuthConsentPage />);
+      await screen.findByRole('alert');
+      expect(screen.getByRole('button', { name: 'Authorize' })).toBeDisabled();
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     ['https://claude.ai/oauth/callback', 'Returns to claude.ai'],
@@ -146,15 +220,19 @@ describe('OAuthConsentPage', () => {
       'Returns to cursor://anysphere.cursor-mcp',
     ],
     ['com.genfeed.desktop:/oauth/callback', 'Returns to com.genfeed.desktop:'],
-  ])('names the app a %s redirect returns to', (redirectUri, expected) => {
-    useSearchParamsMock.mockReturnValue(
-      oauthParams({ redirect_uri: redirectUri }),
-    );
+  ])(
+    'names the app a %s redirect returns to',
+    async (redirectUri, expected) => {
+      useSearchParamsMock.mockReturnValue(
+        oauthParams({ redirect_uri: redirectUri }),
+      );
 
-    render(<OAuthConsentPage />);
+      render(<OAuthConsentPage />);
 
-    expect(screen.getByText(expected)).toBeInTheDocument();
-  });
+      expect(screen.getByText(expected)).toBeInTheDocument();
+      await screen.findByText('First workspace');
+    },
+  );
 
   it('offers every sign-in and sign-up path in place, returning to this request (#6268)', () => {
     useAuthMock.mockReturnValue({
@@ -184,12 +262,13 @@ describe('OAuthConsentPage', () => {
     );
   });
 
-  it('shows human-readable scope labels', () => {
+  it('shows human-readable scope labels', async () => {
     render(<OAuthConsentPage />);
 
     expect(screen.getByText('Videos')).toBeInTheDocument();
     expect(screen.getByText('Images')).toBeInTheDocument();
     expect(screen.getByText('Returns to claude.ai')).toBeInTheDocument();
+    await screen.findByText('First workspace');
   });
 
   it.each<[string, boolean]>([
@@ -201,6 +280,11 @@ describe('OAuthConsentPage', () => {
       mockDecisionResponse();
 
       render(<OAuthConsentPage />);
+      if (approved) {
+        await waitFor(() =>
+          expect(screen.getByRole('button', { name: label })).toBeEnabled(),
+        );
+      }
       fireEvent.click(screen.getByRole('button', { name: label }));
 
       await waitFor(() => {
@@ -227,6 +311,9 @@ describe('OAuthConsentPage', () => {
     );
 
     render(<OAuthConsentPage />);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Authorize' })).toBeEnabled(),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
 
     const link = await screen.findByRole('link', { name: /Return to/ });
@@ -240,6 +327,9 @@ describe('OAuthConsentPage', () => {
   it('resets a frozen submit state when restored from the back/forward cache', async () => {
     render(<OAuthConsentPage />);
     globalThis.fetch = vi.fn(() => new Promise(() => {})) as typeof fetch;
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Authorize' })).toBeEnabled(),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
     expect(
       await screen.findByRole('button', { name: 'Authorizing…' }),
@@ -265,6 +355,9 @@ describe('OAuthConsentPage', () => {
     expect(
       screen.queryByText('Invalid authorization request'),
     ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Authorize' })).toBeEnabled(),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
 
     await waitFor(() => {

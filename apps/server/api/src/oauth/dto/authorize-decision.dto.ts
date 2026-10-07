@@ -41,6 +41,12 @@ export class OAuthAuthorizeDecisionDto {
   @MaxLength(2048)
   resource!: string;
 
+  /** Explicit workspace choice; optional only for a single live membership. */
+  @IsOptional()
+  @IsString()
+  @Length(1, 200)
+  organizationId?: string;
+
   @IsBoolean()
   approved!: boolean;
 }

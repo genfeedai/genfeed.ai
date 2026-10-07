@@ -15,9 +15,12 @@ import type {
   OAuthDecisionResponse,
 } from '@props/auth/oauth-consent-content.props';
 import { EnvironmentService } from '@services/core/environment.service';
+import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
+import { Label } from '@ui/primitives/label';
+import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { ArrowUpRight, Lock } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -63,6 +66,9 @@ function getCallbackHost(
 
 export default function OAuthConsentContent() {
   const translate = useTranslations('common.oauth.consent');
+  const translateOrganization = useTranslations(
+    'common.oauth.consent.organization',
+  );
   const searchParams = useSearchParams();
   const { getToken, isLoaded, isSignedIn } = useAuthIdentity();
   const controllerRef = useRef<AbortController | null>(null);
@@ -71,6 +77,15 @@ export default function OAuthConsentContent() {
     isSubmitting: false,
     result: null,
   });
+
+  const [organizations, setOrganizations] = useState<
+    Awaited<ReturnType<OrganizationsService['getMyOrganizations']>>
+  >([]);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState('');
+  const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(true);
+  const [organizationError, setOrganizationError] = useState<string | null>(
+    null,
+  );
 
   const callbackPath = `/oauth/consent?${searchParams.toString()}`;
   const clientName =
@@ -96,6 +111,59 @@ export default function OAuthConsentContent() {
     Boolean(searchParams.get(key)),
   );
 
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !hasRequiredParams) {
+      return;
+    }
+    const controller = new AbortController();
+    setIsLoadingOrganizations(true);
+    setSelectedOrganizationId('');
+    setOrganizations([]);
+    setOrganizationError(null);
+
+    async function loadOrganizations(): Promise<void> {
+      try {
+        const token = await resolveAuthToken(getToken);
+        if (!token) {
+          throw new Error(translate('errors.sessionExpired'));
+        }
+        const available =
+          await OrganizationsService.getInstance(token).getMyOrganizations();
+        if (controller.signal.aborted) {
+          return;
+        }
+        setOrganizations(available);
+        setSelectedOrganizationId(
+          available.length === 1 ? available[0].id : '',
+        );
+        if (!available.length) {
+          setOrganizationError(translateOrganization('empty'));
+        }
+      } catch (error: unknown) {
+        if (!controller.signal.aborted) {
+          setOrganizationError(
+            error instanceof Error
+              ? error.message
+              : translateOrganization('error'),
+          );
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoadingOrganizations(false);
+        }
+      }
+    }
+    void loadOrganizations();
+    return () => controller.abort();
+  }, [
+    getToken,
+    hasRequiredParams,
+    isLoaded,
+    isSignedIn,
+    translate,
+    translateOrganization,
+  ]);
+
   useEffect(
     () => () => {
       controllerRef.current?.abort();
@@ -116,6 +184,15 @@ export default function OAuthConsentContent() {
   }, []);
 
   async function submitDecision(approved: boolean): Promise<void> {
+    if (
+      approved &&
+      (isLoadingOrganizations ||
+        !organizations.some(
+          (organization) => organization.id === selectedOrganizationId,
+        ))
+    ) {
+      return;
+    }
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
@@ -135,6 +212,7 @@ export default function OAuthConsentContent() {
             client_id: searchParams.get('client_id'),
             code_challenge: searchParams.get('code_challenge'),
             code_challenge_method: searchParams.get('code_challenge_method'),
+            organizationId: approved ? selectedOrganizationId : undefined,
             redirect_uri: redirectUri,
             resource: searchParams.get('resource'),
             scope: searchParams.get('scope') || undefined,
@@ -261,6 +339,55 @@ export default function OAuthConsentContent() {
             </Card>
 
             <div className="space-y-3">
+              <p
+                className="text-sm font-medium"
+                id="consent-organization-label"
+              >
+                {translateOrganization('label')}
+              </p>
+              {isLoadingOrganizations ? (
+                <p className="text-sm text-muted-foreground" role="status">
+                  {translateOrganization('loading')}
+                </p>
+              ) : organizationError ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {organizationError}
+                </p>
+              ) : organizations.length === 1 ? (
+                <p className="text-sm">{organizations[0].label}</p>
+              ) : (
+                <RadioGroup
+                  aria-labelledby="consent-organization-label"
+                  disabled={consentState.isSubmitting}
+                  value={selectedOrganizationId}
+                  onValueChange={setSelectedOrganizationId}
+                >
+                  {organizations.map((organization) => (
+                    <div
+                      className="flex items-center gap-3"
+                      key={organization.id}
+                    >
+                      <RadioGroupItem
+                        id={`consent-organization-${organization.id}`}
+                        value={organization.id}
+                      />
+                      <Label
+                        htmlFor={`consent-organization-${organization.id}`}
+                      >
+                        {organization.label}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              )}
+              {!isLoadingOrganizations && organizations.length > 1 && (
+                <p className="text-sm text-muted-foreground">
+                  {translateOrganization('choiceRequired')}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-3">
               <p className="text-sm font-medium">
                 {translate('request.scopesLabel')}
               </p>
@@ -300,7 +427,11 @@ export default function OAuthConsentContent() {
               </Button>
               <Button
                 className="w-full"
-                disabled={consentState.isSubmitting}
+                disabled={
+                  consentState.isSubmitting ||
+                  isLoadingOrganizations ||
+                  !selectedOrganizationId
+                }
                 withWrapper={false}
                 onClick={() => submitDecision(true)}
               >
