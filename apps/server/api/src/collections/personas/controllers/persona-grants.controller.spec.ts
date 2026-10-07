@@ -2,9 +2,14 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { PersonaGrantsController } from '@api/collections/personas/controllers/persona-grants.controller';
 import { PersonaGrantsService } from '@api/collections/personas/services/persona-grants.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
 import { PersonaAvailabilityMode } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
+import { getTenantContext } from '@libs/prisma/tenant-context';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
+import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { defer, firstValueFrom } from 'rxjs';
 
 const organizationId = testId('org');
 const brandId = testId('brand');
@@ -100,5 +105,133 @@ describe('PersonaGrantsController (#6037)', () => {
     await controller.listGrants(user, personaId);
 
     expect(grants.listForPersona).toHaveBeenCalledOnce();
+  });
+
+  describe('owner-only organization query boundary', () => {
+    const foreignOrganizationId = testId('org', 2);
+    const delegate = vi.fn();
+    let pinnedOrganizationId: string | undefined;
+
+    beforeEach(() => {
+      pinnedOrganizationId = undefined;
+      delegate.mockReset();
+      delegate.mockResolvedValue([]);
+      grants.listForPersona.mockReset();
+      grants.listForPersona.mockImplementation(
+        async (params: {
+          organizationId: string;
+          brandId: string;
+          personaId: string;
+        }) => {
+          const args = {
+            where: {
+              id: params.personaId,
+              organizationId: params.organizationId,
+              brandId: params.brandId,
+              isDeleted: false,
+            },
+          };
+          assertTenantScopedQuery({
+            args,
+            isCloud: true,
+            model: 'Persona',
+            operation: 'findFirst',
+            tenantModelNames: new Set(['Persona']),
+          });
+          return delegate(args);
+        },
+      );
+    });
+
+    function listWithTenant(
+      isSuperAdmin: boolean,
+      organizationQuery: unknown,
+      id = personaId,
+    ) {
+      const actor = { ...user, isSuperAdmin };
+      const request = {
+        context: { organizationId, isSuperAdmin },
+        user: actor,
+        query:
+          organizationQuery === undefined
+            ? {}
+            : { organizationId: organizationQuery },
+      };
+      const context = {
+        switchToHttp: () => ({ getRequest: () => request }),
+      } as unknown as ExecutionContext;
+      const next: CallHandler = {
+        handle: () =>
+          defer(() => {
+            pinnedOrganizationId = getTenantContext()?.organizationId;
+            return controller.listGrants(actor, id, organizationQuery);
+          }),
+      };
+      return firstValueFrom(
+        new TenantContextInterceptor().intercept(context, next),
+      );
+    }
+
+    it.each([true, false])(
+      'refuses a foreign organization before a guarded owner read (superadmin=%s)',
+      async (isSuperAdmin) => {
+        await expect(
+          listWithTenant(isSuperAdmin, foreignOrganizationId),
+        ).rejects.toMatchObject({
+          status: 403,
+          message: 'Organization context changed',
+        });
+        expect(pinnedOrganizationId).toBe(
+          isSuperAdmin ? foreignOrganizationId : organizationId,
+        );
+        expect(grants.listForPersona).not.toHaveBeenCalled();
+        expect(delegate).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([undefined, organizationId, ` ${organizationId} `])(
+      'preserves owner context for absent or redundant query %j',
+      async (query) => {
+        await expect(listWithTenant(true, query)).resolves.toEqual({
+          grants: [],
+        });
+        expect(pinnedOrganizationId).toBe(organizationId);
+        expect(grants.listForPersona).toHaveBeenCalledWith({
+          organizationId,
+          brandId,
+          personaId,
+        });
+        expect(delegate).toHaveBeenCalledOnce();
+      },
+    );
+
+    it.each([
+      '',
+      '   ',
+      'malformed',
+      null,
+      [organizationId],
+      { id: organizationId },
+    ])(
+      'refuses invalid explicit query %j before persona validation',
+      async (query) => {
+        await expect(
+          listWithTenant(true, query, 'invalid-persona'),
+        ).rejects.toMatchObject({
+          status: 403,
+          message: 'Organization context changed',
+        });
+        expect(grants.listForPersona).not.toHaveBeenCalled();
+        expect(delegate).not.toHaveBeenCalled();
+      },
+    );
+
+    it('preserves no-query persona ID validation', async () => {
+      await expect(
+        listWithTenant(true, undefined, 'invalid-persona'),
+      ).rejects.toMatchObject({ status: 400 });
+      expect(grants.listForPersona).not.toHaveBeenCalled();
+      expect(delegate).not.toHaveBeenCalled();
+    });
   });
 });
