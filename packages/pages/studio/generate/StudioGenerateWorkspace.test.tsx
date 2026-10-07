@@ -6,6 +6,7 @@ import {
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import {
   IMAGE_EDIT_CONTRACT_VERSION,
+  LIBRARY_ASSETS_REFRESH_EVENT,
   MODEL_KEYS,
 } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
@@ -75,6 +76,9 @@ function ContextSidebarHost({ children }: { readonly children: ReactNode }) {
 }
 
 const mocks = vi.hoisted(() => ({
+  failedRecoveryHook: vi.fn(),
+  retryFailed: vi.fn(),
+  reviewFailed: vi.fn().mockResolvedValue(undefined),
   createFromUploadAssetId: vi.fn(),
   assetActions: {
     onClickIngredient: vi.fn(),
@@ -164,6 +168,21 @@ const characterMentionMocks = vi.hoisted(() => ({
     }),
   ),
 }));
+
+vi.mock(
+  '@hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery',
+  () => ({
+    useFailedIngredientRecovery: (props: unknown) => {
+      mocks.failedRecoveryHook(props);
+      return {
+        handleRetryFailedIngredients: mocks.retryFailed,
+        handleReviewFailedIngredient: mocks.reviewFailed,
+        isRecovering: false,
+        retriedIds: [],
+      };
+    },
+  }),
+);
 
 vi.mock('@hooks/ui/use-storyboard-entry/use-storyboard-entry', () => ({
   useStoryboardEntry: () => ({
@@ -2830,4 +2849,57 @@ describe('StudioGenerateWorkspace', () => {
       expect(characterMentionMocks.resolveSubmit).not.toHaveBeenCalled();
     });
   });
+});
+
+it('supplies unique canonical current-brand persisted rows to shared recovery without deletion capability', async () => {
+  const ingredient = {
+    id: 'saved',
+    brandId: mocks.brandId.value,
+    category: IngredientCategory.IMAGE,
+    status: IngredientStatus.FAILED,
+  } as IIngredient;
+  const row: StudioGenerateJob = {
+    id: 'saved',
+    ingredientId: 'saved',
+    ingredient,
+    status: IngredientStatus.FAILED,
+    createdAt: 1,
+    type: 'image',
+    prompt: 'Saved',
+  };
+  const refresh = vi.fn().mockResolvedValue(undefined);
+  mocks.gallery.mockReturnValue({
+    galleryError: null,
+    isLoadingGallery: false,
+    refresh,
+    storedJobs: [
+      row,
+      row,
+      {
+        ...row,
+        id: 'foreign',
+        ingredientId: 'foreign',
+        ingredient: { ...ingredient, id: 'foreign', brandId: 'other-brand' },
+      },
+    ],
+  });
+  await act(async () => {
+    render(<StudioGenerateWorkspace />);
+  });
+  const props = mocks.failedRecoveryHook.mock.calls.at(-1)?.[0];
+  expect(props.ingredients).toEqual([ingredient]);
+  expect(props.scopeKey).toBe(
+    `${mocks.organizationId.value}:${mocks.brandId.value}`,
+  );
+  expect(props.deleteOptions).toBeUndefined();
+  const refreshed = vi.fn();
+  window.addEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refreshed);
+  await act(async () => props.onRefresh());
+  expect(refresh).toHaveBeenCalledTimes(1);
+  expect(refreshed).toHaveBeenCalledTimes(1);
+  window.removeEventListener(LIBRARY_ASSETS_REFRESH_EVENT, refreshed);
+  const capability =
+    mocks.assetActionsHook.mock.calls.at(-1)?.[0].failedRecovery;
+  capability.onRetryFailedIngredient(ingredient);
+  expect(mocks.retryFailed).toHaveBeenCalledWith([ingredient]);
 });

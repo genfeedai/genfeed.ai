@@ -8,7 +8,10 @@ import {
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { StudioGenerateJob } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
-import type { StudioGenerateAssetActions } from '@genfeedai/props/studio/studio-generate.props';
+import type {
+  StudioFailedIngredientRecoveryActions,
+  StudioGenerateAssetActions,
+} from '@genfeedai/props/studio/studio-generate.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
@@ -26,6 +29,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useRef } from 'react';
 
 export interface UseStudioGenerateAssetActionsParams {
+  failedRecovery?: StudioFailedIngredientRecoveryActions;
   onAttachReference: (ingredient: IIngredient, type: 'image' | 'video') => void;
   onDeleted?: (id: string) => void;
   onRefresh: () => void;
@@ -38,6 +42,7 @@ export interface UseStudioGenerateAssetActionsParams {
  * product actions that need Studio state, global overlays, or a confirmation.
  */
 export function useStudioGenerateAssetActions({
+  failedRecovery,
   onAttachReference,
   onDeleted,
   onRefresh,
@@ -244,6 +249,7 @@ export function useStudioGenerateAssetActions({
 
   return useMemo(
     () => ({
+      failedRecovery,
       onClickIngredient: onSeeDetails,
       onConvertToVideo: (ingredient: IIngredient) =>
         onAttachReference(ingredient, 'video'),
@@ -269,6 +275,7 @@ export function useStudioGenerateAssetActions({
     [
       changeStatus,
       createFromAsset,
+      failedRecovery,
       onAttachReference,
       onCopyPrompt,
       onDeleteIngredient,

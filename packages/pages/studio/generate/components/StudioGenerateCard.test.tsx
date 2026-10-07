@@ -534,3 +534,116 @@ describe('StudioGenerateCard', () => {
     ).toBeNull();
   });
 });
+
+describe('persisted failed Studio recovery', () => {
+  for (const view of [ViewType.LIST, ViewType.GRID]) {
+    it.each([
+      ['503 Service unavailable', 'Retry', 'retry', false],
+      ['Missing reference', 'Replace', 'review', false],
+      ['Safety content blocked', 'Edit', 'review', false],
+      ['422 Invalid input', 'Review', 'review', false],
+      ['503 Service unavailable', 'Inspect', 'inspect', true],
+    ])(
+      `uses Library classification in ${view}: %s`,
+      (error, label, action, ambiguous) => {
+        const ingredient = {
+          id: 'saved',
+          brandId: 'brand',
+          category: ambiguous
+            ? IngredientCategory.VIDEO
+            : IngredientCategory.IMAGE,
+          status: IngredientStatus.FAILED,
+          generationError: error,
+          generationPrompt: 'Saved prompt',
+          modelUsed: 'saved-model',
+          ...(ambiguous ? { sources: ['reference'] } : {}),
+        } as IImage | IVideo;
+        const actions = buildAssetActions();
+        actions.failedRecovery = {
+          onRetryFailedIngredient: vi.fn(),
+          onReviewFailedIngredient: vi.fn().mockResolvedValue(undefined),
+          isRecovering: false,
+          retriedIds: [],
+        };
+        render(
+          <StudioGenerateCard
+            assetActions={actions}
+            job={{
+              ...generatedJob,
+              id: ingredient.id,
+              ingredientId: ingredient.id,
+              ingredient,
+              status: IngredientStatus.FAILED,
+            }}
+            onReprompt={vi.fn()}
+            onSelect={vi.fn()}
+            view={view}
+          />,
+        );
+        fireEvent.click(screen.getByRole('button', { name: label }));
+        const callback =
+          action === 'retry'
+            ? actions.failedRecovery.onRetryFailedIngredient
+            : action === 'inspect'
+              ? actions.onSeeDetails
+              : actions.failedRecovery.onReviewFailedIngredient;
+        expect(callback).toHaveBeenCalledWith(ingredient);
+        expect(
+          screen.getByRole('button', { name: /Remove/ }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /Reprompt/ }),
+        ).toBeInTheDocument();
+      },
+    );
+    it(`disables Started action and keeps synthetic failures local in ${view}`, () => {
+      const ingredient = {
+        id: 'saved',
+        brandId: 'brand',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.FAILED,
+        generationError: '503 Service unavailable',
+        generationPrompt: 'Saved prompt',
+        modelUsed: 'saved-model',
+      } as IImage;
+      const actions = buildAssetActions();
+      actions.failedRecovery = {
+        onRetryFailedIngredient: vi.fn(),
+        onReviewFailedIngredient: vi.fn().mockResolvedValue(undefined),
+        isRecovering: true,
+        retriedIds: ['saved'],
+      };
+      const { rerender } = render(
+        <StudioGenerateCard
+          assetActions={actions}
+          job={{
+            ...generatedJob,
+            id: ingredient.id,
+            ingredientId: ingredient.id,
+            ingredient,
+            status: IngredientStatus.FAILED,
+          }}
+          onReprompt={vi.fn()}
+          onSelect={vi.fn()}
+          view={view}
+        />,
+      );
+      expect(screen.getByRole('button', { name: 'Started' })).toBeDisabled();
+      rerender(
+        <StudioGenerateCard
+          assetActions={actions}
+          job={{
+            ...generatedJob,
+            id: 'failed-local',
+            status: IngredientStatus.FAILED,
+          }}
+          onReprompt={vi.fn()}
+          onSelect={vi.fn()}
+          view={view}
+        />,
+      );
+      expect(screen.queryByRole('button', { name: 'Started' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    });
+  }
+});

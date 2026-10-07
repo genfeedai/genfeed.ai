@@ -4,6 +4,7 @@ import {
   getJsonApiErrorMessage,
   getJsonApiErrorMetaBoolean,
   getJsonApiErrorMetaNumber,
+  getPersistedVideoIngredientIds,
 } from './json-api-error-message';
 
 describe('getJsonApiErrorMessage', () => {
@@ -97,5 +98,61 @@ describe('getJsonApiErrorMessage', () => {
       expect(getJsonApiErrorMetaNumber(error, 'maxRetries')).toBeUndefined();
       expect(getJsonApiErrorMetaBoolean(error, 'isRetryable')).toBeUndefined();
     });
+  });
+});
+
+describe('persisted video identity reader', () => {
+  it('reads only the first actual member, direct/Axios documents and sanitized Error', () => {
+    const ids = ['a', 'b', 'c', 'd'];
+    const document = {
+      errors: [
+        null,
+        { meta: { persistedVideoIngredientIds: ids } },
+        { meta: { persistedVideoIngredientIds: ['other'] } },
+      ],
+    };
+    expect(getPersistedVideoIngredientIds(document)).toEqual(ids);
+    expect(
+      getPersistedVideoIngredientIds({ response: { data: document } }),
+    ).toEqual(ids);
+    expect(getPersistedVideoIngredientIds(document)).not.toBe(ids);
+    expect(
+      getPersistedVideoIngredientIds(
+        Object.assign(new Error('sanitized'), {
+          persistedVideoIngredientIds: ['a'],
+        }),
+      ),
+    ).toEqual(['a']);
+    expect(
+      getPersistedVideoIngredientIds({
+        errors: [{}, { meta: { persistedVideoIngredientIds: ids } }],
+      }),
+    ).toEqual([]);
+  });
+  it.each([
+    [],
+    [''],
+    ['a', 'a'],
+    [' a'],
+    ['a '],
+    ['a\n'],
+    ['a\u0000'],
+    ['a'.repeat(129)],
+    ['a', 'b', 'c', 'd', 'e'],
+    [1],
+    ['a', null],
+  ])('refuses invalid complete envelope %j', (ids) => {
+    expect(
+      getPersistedVideoIngredientIds({
+        errors: [{ meta: { persistedVideoIngredientIds: ids } }],
+      }),
+    ).toEqual([]);
+    expect(
+      getPersistedVideoIngredientIds(
+        Object.assign(new Error('sanitized'), {
+          persistedVideoIngredientIds: ids,
+        }),
+      ),
+    ).toEqual([]);
   });
 });

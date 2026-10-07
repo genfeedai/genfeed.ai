@@ -71,6 +71,10 @@ function asset(id: string, extra: Partial<IIngredient> = {}): IIngredient {
   } as IIngredient;
 }
 let props: UseFailedIngredientRecoveryProps;
+function deletion() {
+  if (!props.deleteOptions) throw new Error('Test deletion adapter missing');
+  return props.deleteOptions;
+}
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.imagePost.mockResolvedValue({ id: 'new-generation' });
@@ -86,11 +90,13 @@ beforeEach(() => {
     ingredients: [asset('a'), asset('b')],
     scopeKey: 'org:brand:failed',
     brandId: 'brand',
-    getService: vi.fn(async () => ({
-      bulkDelete: mocks.bulkDelete,
-    })),
-    setIngredients: vi.fn(),
-    setSelectedIds: vi.fn(),
+    deleteOptions: {
+      getService: vi.fn(async () => ({
+        bulkDelete: mocks.bulkDelete,
+      })),
+      setIngredients: vi.fn(),
+      setSelectedIds: vi.fn(),
+    },
     onRefresh: vi.fn().mockResolvedValue(undefined),
   };
 });
@@ -106,13 +112,14 @@ describe('Failed Library recovery operations', () => {
       ids: ['a', 'b'],
       type: 'ingredients-delete',
     });
-    const updateRows = vi.mocked(props.setIngredients).mock.calls[0][0];
+    const updateRows = vi.mocked(deletion().setIngredients).mock.calls[0][0];
     expect(
       typeof updateRows === 'function'
         ? updateRows(props.ingredients).map((item) => item.id)
         : [],
     ).toEqual(['b']);
-    const updateSelection = vi.mocked(props.setSelectedIds).mock.calls[0][0];
+    const updateSelection = vi.mocked(deletion().setSelectedIds).mock
+      .calls[0][0];
     expect(
       typeof updateSelection === 'function' ? updateSelection(['a', 'b']) : [],
     ).toEqual(['b']);
@@ -131,7 +138,7 @@ describe('Failed Library recovery operations', () => {
     expect(
       mocks.bulkDelete.mock.calls.map(([request]) => request.ids.length),
     ).toEqual([100, 100, 5]);
-    const updateRows = vi.mocked(props.setIngredients).mock.calls[0][0];
+    const updateRows = vi.mocked(deletion().setIngredients).mock.calls[0][0];
     expect(
       typeof updateRows === 'function'
         ? updateRows(props.ingredients).length
@@ -174,7 +181,7 @@ describe('Failed Library recovery operations', () => {
       resolveDelete?.({ deleted: ['a'], failed: [] });
       await completion;
     });
-    expect(props.setIngredients).not.toHaveBeenCalled();
+    expect(deletion().setIngredients).not.toHaveBeenCalled();
     expect(props.onRefresh).not.toHaveBeenCalled();
   });
   it('preserves saved scope, prompt, model and references on retry and skips input failures', async () => {
@@ -310,4 +317,73 @@ describe('Failed Library recovery operations', () => {
     expect(mocks.create).not.toHaveBeenCalled();
     expect(mocks.warning).toHaveBeenCalledWith('reviewUnavailable');
   });
+});
+
+it('absent deletion capability cannot confirm or delete', () => {
+  const { result } = renderHook(() =>
+    useFailedIngredientRecovery({ ...props, deleteOptions: undefined }),
+  );
+  result.current.handleDeleteFailedIngredients(['a']);
+  expect(mocks.confirm).not.toHaveBeenCalled();
+  expect(mocks.bulkDelete).not.toHaveBeenCalled();
+});
+
+it('confirms a scoped saved-video retry without deletion capability and prevents repeat submission', async () => {
+  const video = {
+    ...asset('video', {
+      category: IngredientCategory.VIDEO,
+      references: [],
+      folderId: 'folder',
+      aspectRatio: '16:9',
+      width: 1920,
+      height: 1080,
+      seed: 42,
+    }),
+    duration: 8,
+    resolution: '1080p',
+  };
+  props = { ...props, ingredients: [video], deleteOptions: undefined };
+  mocks.videoPost.mockResolvedValue({ id: 'new-video' });
+  const { result } = renderHook(() => useFailedIngredientRecovery(props));
+  result.current.handleRetryFailedIngredients([video]);
+  expect(mocks.videoPost).not.toHaveBeenCalled();
+  expect(mocks.findOne).not.toHaveBeenCalled();
+  // Leaving the confirmation unopened performs no operation.
+  await act(async () => Promise.resolve());
+  expect(mocks.videoPost).not.toHaveBeenCalled();
+  await act(async () => mocks.confirm.mock.calls[0][0].onConfirm());
+  expect(mocks.findOne).toHaveBeenCalledWith('video', { brandId: 'brand' });
+  expect(mocks.videoPost).toHaveBeenCalledWith(
+    expect.objectContaining({
+      brandId: 'brand',
+      category: IngredientCategory.VIDEO,
+      folderId: 'folder',
+      text: 'Saved prompt',
+      model: 'original-model',
+      references: [],
+      aspectRatio: '16:9',
+      width: 1920,
+      height: 1080,
+      seed: 42,
+      duration: 8,
+      resolution: '1080p',
+    }),
+  );
+  expect(result.current.retriedIds).toEqual(['video']);
+  result.current.handleRetryFailedIngredients([video]);
+  expect(mocks.confirm).toHaveBeenCalledTimes(1);
+  expect(mocks.bulkDelete).not.toHaveBeenCalled();
+});
+
+it('refuses a retry confirmation after its scope changes', async () => {
+  const { result, rerender } = renderHook(
+    (input) => useFailedIngredientRecovery(input),
+    { initialProps: props },
+  );
+  result.current.handleRetryFailedIngredients([props.ingredients[0]]);
+  rerender({ ...props, scopeKey: 'other-brand', brandId: 'other-brand' });
+  await act(async () => mocks.confirm.mock.calls[0][0].onConfirm());
+  expect(mocks.findOne).not.toHaveBeenCalled();
+  expect(mocks.imagePost).not.toHaveBeenCalled();
+  expect(mocks.warning).toHaveBeenCalledWith('scopeChanged');
 });

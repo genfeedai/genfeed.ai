@@ -26,6 +26,7 @@ import {
   hasEndFrame,
   hasInterpolation,
   hasVideoReferences,
+  LIBRARY_ASSETS_REFRESH_EVENT,
   MODEL_KEYS,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -51,6 +52,7 @@ import type {
 import type { AttachmentItem } from '@genfeedai/props/ui/attachments.props';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useFailedIngredientRecovery } from '@hooks/data/ingredients/use-ingredients-list/use-failed-ingredient-recovery';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import KnowledgeReferenceSection, {
@@ -691,6 +693,32 @@ export default function StudioGenerateWorkspace(): ReactElement {
     () => mergeStudioGenerateJobs(jobs, storedJobs),
     [jobs, storedJobs],
   );
+  const persistedRecoveryIngredients = useMemo(
+    () => [
+      ...new Map(
+        galleryJobs.flatMap((job) =>
+          job.ingredient &&
+          job.id === job.ingredient.id &&
+          job.ingredientId === job.ingredient.id &&
+          job.ingredient.brandId === brandId &&
+          !job.ingredient.isDeleted
+            ? [[job.ingredient.id, job.ingredient] as const]
+            : [],
+        ),
+      ).values(),
+    ],
+    [brandId, galleryJobs],
+  );
+  const refreshRecovery = useCallback(async () => {
+    await refresh();
+    window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
+  }, [refresh]);
+  const failedRecovery = useFailedIngredientRecovery({
+    ingredients: persistedRecoveryIngredients,
+    scopeKey: `${organizationId}:${brandId}`,
+    brandId,
+    onRefresh: refreshRecovery,
+  });
   const contentLibraryItems = useMemo(() => {
     const requiresVideo = contentLibraryRole === 'videoReference';
     const generated = galleryJobs.flatMap((job) => {
@@ -738,6 +766,13 @@ export default function StudioGenerateWorkspace(): ReactElement {
     [revealInspector, selectedJobId, visibleJobs],
   );
   const assetActions = useStudioGenerateAssetActions({
+    failedRecovery: {
+      onRetryFailedIngredient: (ingredient) =>
+        failedRecovery.handleRetryFailedIngredients([ingredient]),
+      onReviewFailedIngredient: failedRecovery.handleReviewFailedIngredient,
+      isRecovering: failedRecovery.isRecovering,
+      retriedIds: failedRecovery.retriedIds,
+    },
     onAttachReference: handleAttachGeneratedReference,
     onDeleted: removeJob,
     onInspectIngredient: handleInspectIngredient,

@@ -1,3 +1,4 @@
+import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
 import { type ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 
 const jsonApiSerializerMock = {
@@ -535,5 +536,53 @@ describe('HttpExceptionFilter', () => {
       expect(responseStr).not.toContain('sk-secret-api-key');
       expect(responseStr).not.toContain('user-password-123');
     });
+  });
+
+  it('serializes only the typed persisted identity and preserves semantic code/status', () => {
+    const original = new HttpException(
+      {
+        code: 'VIDEO_INPUT',
+        detail: 'Review input',
+        meta: { arbitrary: 'private' },
+      },
+      422,
+    );
+    filter.catch(
+      PersistedVideoGenerationException.from(original, [
+        'saved',
+      ]) as HttpException,
+      mockArgumentsHost,
+    );
+    expect(mockResponse.json.mock.calls[0][0].errors[0]).toMatchObject({
+      status: '422',
+      code: 'VIDEO_INPUT',
+      detail: 'Review input',
+      meta: { persistedVideoIngredientIds: ['saved'] },
+    });
+    expect(
+      mockResponse.json.mock.calls[0][0].errors[0].meta.arbitrary,
+    ).toBeUndefined();
+    filter.catch(original, mockArgumentsHost);
+    expect(mockResponse.json.mock.calls[1][0].errors[0].meta).toBeUndefined();
+  });
+  it('places persisted identity only on the first validation member', () => {
+    const original = new HttpException(
+      {
+        validationErrors: [
+          { field: 'text', message: 'Required' },
+          { field: 'model', message: 'Required' },
+        ],
+      },
+      400,
+    );
+    filter.catch(
+      PersistedVideoGenerationException.from(original, [
+        'saved',
+      ]) as HttpException,
+      mockArgumentsHost,
+    );
+    const errors = mockResponse.json.mock.calls[0][0].errors;
+    expect(errors[0].meta).toEqual({ persistedVideoIngredientIds: ['saved'] });
+    expect(errors[1].meta).toBeUndefined();
   });
 });
