@@ -63,6 +63,18 @@ describe('conversation composer draft persistence', () => {
     expect(readConversationComposerDraft('scope').plainText).toBe('navigation');
   });
 
+  it('restores a pending edit into a new context version before unmount cleanup', () => {
+    vi.useFakeTimers();
+    scheduleConversationComposerDocument(
+      'org:thread:1',
+      () => ({ type: 'doc' }),
+      'Latest edit',
+    );
+    expect(readConversationComposerDraft('org:thread:2').plainText).toBe(
+      'Latest edit',
+    );
+  });
+
   it('does not resurrect a sent draft from a delayed persistence timer', () => {
     vi.useFakeTimers();
     const serialize = vi.fn(() => ({ type: 'doc' }));

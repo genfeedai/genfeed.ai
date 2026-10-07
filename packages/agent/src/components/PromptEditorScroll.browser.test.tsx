@@ -28,7 +28,7 @@ it('keeps wrapped multiline typing visible without rerendering the editor on eac
   onRender.mockClear();
   for (let i = 0; i < 12; i += 1) {
     await userEvent.keyboard('{Shift>}{Enter}{/Shift}');
-    await textbox.type(
+    await userEvent.keyboard(
       'A long line that wraps while typing in this narrow prompt',
     );
   }
@@ -39,6 +39,6 @@ it('keeps wrapped multiline typing visible without rerendering the editor on eac
   expect(onRender.mock.calls.length).toBeLessThan(12);
   // Editing an earlier line follows that caret instead of snapping to the tail.
   await userEvent.keyboard('{Control>}{Home}{/Control}');
-  await userEvent.type(textbox, 'Edited ');
+  await userEvent.keyboard('Edited ');
   await expect.poll(() => element.scrollTop).toBeLessThan(30);
 });

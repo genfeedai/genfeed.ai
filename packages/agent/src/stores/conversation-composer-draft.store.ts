@@ -112,6 +112,16 @@ export function readConversationComposerDraft(
   scopeKey: string | null,
 ): PersistedConversationComposerDraft {
   flushConversationComposerDocument(scopeKey);
+  // A context version can change during render, before the old composer's
+  // cleanup runs. Flush sibling versions before looking up the fallback.
+  const separator = scopeKey?.lastIndexOf(':') ?? -1;
+  if (scopeKey && separator > 0) {
+    const prefix = scopeKey.slice(0, separator + 1);
+    for (const pendingKey of pendingDocuments.keys()) {
+      if (pendingKey.startsWith(prefix))
+        flushConversationComposerDocument(pendingKey);
+    }
+  }
   const storage = getStorage();
   if (!scopeKey || !storage) {
     return EMPTY_DRAFT;

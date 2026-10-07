@@ -342,7 +342,9 @@ describe('completed turn output focus', () => {
   it('hides intermediate copy and work until Steps is expanded, preserving all outputs', () => {
     const output = buildAssistantMessage('output', 'Generated image');
     output.message.metadata = {
-      uiActions: [{ id: 'image', type: 'content_preview_card' }],
+      uiActions: [
+        { id: 'image', title: 'Generated image', type: 'content_preview_card' },
+      ],
     };
     render(
       <AgentChatTimeline
