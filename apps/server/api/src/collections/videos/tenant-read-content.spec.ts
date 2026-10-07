@@ -3,8 +3,10 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { ArticlesTrafficController } from '@api/collections/articles/controllers/articles-traffic.controller';
 import { FontFamiliesController } from '@api/collections/font-families/controllers/font-families.controller';
 import { PresetsController } from '@api/collections/presets/controllers/presets.controller';
+import { PresetsQueryDto } from '@api/collections/presets/dto/presets-query.dto';
 import { SavedAdsController } from '@api/collections/saved-ads/controllers/saved-ads.controller';
 import { TENANT_READ_CONTENT_ROUTES } from '@api/collections/videos/tenant-read-content.registry';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
 import { runWithTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -431,7 +433,7 @@ describe('content mandatory selected-data regressions', () => {
     });
     expect(
       await selectedRead(() =>
-        c.getCaptions(request, actor, tenantRows[1].id, {}),
+        c.getCaptions(request, actor, tenantRows[1].id, new BaseQueryDto()),
       ),
     ).toEqual({ data: [children[1]] });
     expect(videosService.findOne).toHaveBeenCalledWith(
@@ -957,7 +959,12 @@ describe('inherited catalog forwarding', () => {
       const data = await firstValueFrom(
         new TenantContextInterceptor().intercept(
           context(r, ControllerClass.prototype.findAll),
-          { handle: () => defer(() => from(c.findAll(request, actor, {}))) },
+          {
+            handle: () =>
+              defer(() =>
+                from(c.findAll(request, actor, new PresetsQueryDto())),
+              ),
+          },
         ),
       );
       expect(data).toEqual({ data: [rows[0], tenantRows[1]] });
