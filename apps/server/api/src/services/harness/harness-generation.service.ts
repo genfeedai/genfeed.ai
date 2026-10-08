@@ -532,7 +532,6 @@ export class HarnessGenerationService {
     >;
     try {
       const retrievalInput = {
-        organizationId: input.organizationId,
         ...initiatingActor,
         brandId: input.brandId,
         query: input.originalPrompt,
