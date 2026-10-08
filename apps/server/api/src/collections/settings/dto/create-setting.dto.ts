@@ -105,8 +105,9 @@ export class CreateSettingDto {
 
   @IsBoolean()
   @ApiProperty({
-    default: true,
-    description: 'Whether the user is in advanced mode',
+    default: false,
+    description:
+      'Whether the prompt bar offers manual model choice (otherwise Auto)',
     required: true,
   })
   readonly isAdvancedMode!: boolean;

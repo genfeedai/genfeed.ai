@@ -2,7 +2,6 @@ export * from './clip-chain-identity.interface';
 export * from './content-delivery-workflow.interface';
 export * from './metadata.interface';
 export * from './setting.interface';
-export * from './setting-option.interface';
 export * from './sort.interface';
 export * from './system-workflow-contract.interface';
 export * from './workflow.interface';

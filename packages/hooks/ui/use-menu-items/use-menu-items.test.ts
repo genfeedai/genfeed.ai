@@ -25,15 +25,11 @@ import { useMenuItems } from './use-menu-items';
 
 const STATIC_ITEMS: MenuItemConfig[] = [
   { group: 'Posts', href: '/posts', label: 'All posts' },
-  { advancedOnly: true, group: 'Posts', href: '/drafts', label: 'Drafts' },
   { group: 'Other', href: '/settings', label: 'Settings' },
 ] as MenuItemConfig[];
 
-function setBrand(
-  credentials: MockCredential[] | undefined,
-  settings?: { isAdvancedMode?: boolean },
-): void {
-  mockUseBrand.mockReturnValue({ credentials, settings });
+function setBrand(credentials: MockCredential[] | undefined): void {
+  mockUseBrand.mockReturnValue({ credentials });
 }
 
 describe('useMenuItems', () => {
@@ -42,23 +38,11 @@ describe('useMenuItems', () => {
     setBrand(undefined);
   });
 
-  it('filters advanced-only items outside advanced mode', () => {
+  it('returns static items without credentials', () => {
     const { result } = renderHook(() => useMenuItems({ items: STATIC_ITEMS }));
 
     expect(result.current.map((item) => item.label)).toEqual([
       'All posts',
-      'Settings',
-    ]);
-  });
-
-  it('keeps advanced-only items in advanced mode', () => {
-    setBrand(undefined, { isAdvancedMode: true });
-
-    const { result } = renderHook(() => useMenuItems({ items: STATIC_ITEMS }));
-
-    expect(result.current.map((item) => item.label)).toEqual([
-      'All posts',
-      'Drafts',
       'Settings',
     ]);
   });

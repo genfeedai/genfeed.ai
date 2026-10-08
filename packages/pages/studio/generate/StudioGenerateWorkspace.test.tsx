@@ -76,6 +76,9 @@ function ContextSidebarHost({ children }: { readonly children: ReactNode }) {
 }
 
 const mocks = vi.hoisted(() => ({
+  advancedMode: {
+    value: { isAdvancedMode: true, isLoaded: true, setAdvancedMode: vi.fn() },
+  },
   failedRecoveryHook: vi.fn(),
   retryFailed: vi.fn(),
   reviewFailed: vi.fn().mockResolvedValue(undefined),
@@ -333,6 +336,13 @@ vi.mock('@pages/studio/generate/hooks/useCrunGenerationQuote', () => ({
   useCrunGenerationQuote: (...args: unknown[]) => mocks.crunQuote(...args),
 }));
 
+vi.mock(
+  '@hooks/utils/use-advanced-mode-preference/use-advanced-mode-preference',
+  () => ({
+    useAdvancedModePreference: () => mocks.advancedMode.value,
+  }),
+);
+
 vi.mock('@pages/studio/generate/hooks/useStudioGenerateModels', () => ({
   useStudioGenerateModels: () => mocks.models.value,
 }));
@@ -568,6 +578,11 @@ describe('StudioGenerateWorkspace', () => {
     mocks.preserveSettings.value = false;
     mocks.handoff.value = { isLoading: false, payload: null };
     mocks.models.value = { isLoadingModels: false, models: [] };
+    mocks.advancedMode.value = {
+      isAdvancedMode: true,
+      isLoaded: true,
+      setAdvancedMode: vi.fn(),
+    };
     mocks.findByIds.mockResolvedValue([]);
     mocks.findOne.mockReset().mockResolvedValue(null);
     window.localStorage.clear();
@@ -1654,6 +1669,117 @@ describe('StudioGenerateWorkspace', () => {
     expect(mocks.findByIds).not.toHaveBeenCalled();
     expect(mocks.updateSettings).not.toHaveBeenCalled();
     expect(screen.getByText('Original handoff')).toBeVisible();
+  });
+
+  it.each([
+    {
+      expected: true,
+      label: 'falls back to Auto when a saved model left the loaded catalog',
+      models: {
+        isLoadingModels: false,
+        isModelCatalogReady: true,
+        models: [{ key: 'provider/live' }],
+      },
+      modelKey: 'provider/retired',
+    },
+    {
+      expected: false,
+      label: 'keeps a saved model while the catalog has not loaded',
+      models: { isLoadingModels: true, isModelCatalogReady: false, models: [] },
+      modelKey: 'provider/retired',
+    },
+    {
+      expected: false,
+      label: 'keeps a saved model the catalog still offers',
+      models: {
+        isLoadingModels: false,
+        isModelCatalogReady: true,
+        models: [{ key: 'provider/live' }],
+      },
+      modelKey: 'provider/live',
+    },
+  ])('$label', async ({ expected, models, modelKey }) => {
+    mocks.models.value = models;
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: { modelKey },
+      setType: mocks.setType,
+      type: 'image',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioGenerateWorkspace />);
+    await act(async () => {});
+
+    if (expected) {
+      expect(mocks.updateSettings).toHaveBeenCalledWith({
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      });
+      expect(mocks.notify).toHaveBeenCalledWith(
+        'Your saved model is no longer available — Studio switched to Auto.',
+      );
+    } else {
+      expect(mocks.updateSettings).not.toHaveBeenCalledWith({
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      });
+    }
+  });
+
+  it('returns a hidden saved model to Auto in simple mode', async () => {
+    mocks.advancedMode.value = {
+      isAdvancedMode: false,
+      isLoaded: true,
+      setAdvancedMode: vi.fn(),
+    };
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: { modelKey: 'provider/live' },
+      setType: mocks.setType,
+      type: 'image',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioGenerateWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.updateSettings).toHaveBeenCalledWith({
+      modelKey: AUTO_MODEL_OPTION_VALUE,
+    });
+  });
+
+  it('keeps an Agent handoff model in simple mode', async () => {
+    mocks.advancedMode.value = {
+      isAdvancedMode: false,
+      isLoaded: true,
+      setAdvancedMode: vi.fn(),
+    };
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        modelKey: 'provider/live',
+        prompt: 'From the Agent',
+        type: 'image',
+      },
+    };
+    mocks.models.value = {
+      isLoadingModels: false,
+      models: [{ key: 'provider/live' }],
+    };
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: { modelKey: 'provider/live' },
+      setType: mocks.setType,
+      type: 'image',
+      updateSettings: vi.fn(),
+    });
+
+    render(<StudioGenerateWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.updateSettings).not.toHaveBeenCalledWith({
+      modelKey: AUTO_MODEL_OPTION_VALUE,
+    });
   });
 
   it('does not request references after unmount while acquiring the service', async () => {

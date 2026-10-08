@@ -108,15 +108,6 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
     scope: SettingsSurface.PERSONAL,
   },
   {
-    description: 'Show studio, workflow editor, and generation pages',
-    group: 'Account',
-    href: `${APP_ROUTES.SETTINGS.PERSONAL}#${PERSONAL_SETTINGS_ANCHOR.FEATURES}`,
-    id: `personal-section:${PERSONAL_SETTINGS_ANCHOR.FEATURES}`,
-    keywords: ['advanced mode', 'features', 'studio', 'power user'],
-    label: 'Advanced Mode',
-    scope: SettingsSurface.PERSONAL,
-  },
-  {
     description: 'Workflow and video generation emails',
     group: 'Account',
     href: APP_ROUTES.SETTINGS.NOTIFICATIONS,

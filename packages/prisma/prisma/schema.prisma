@@ -1686,7 +1686,7 @@ model Setting {
   isMenuCollapsed                  Boolean                    @default(false)
   isSidebarProgressVisible         Boolean                    @default(true)
   isSidebarProgressCollapsed       Boolean                    @default(false)
-  isAdvancedMode                   Boolean                    @default(true)
+  isAdvancedMode                   Boolean                    @default(false)
   isTrendNotificationsInApp        Boolean                    @default(true)
   isTrendNotificationsTelegram     Boolean                    @default(false)
   isTrendNotificationsEmail        Boolean                    @default(false)
@@ -1759,7 +1759,6 @@ model OrganizationSetting {
   hasGeneratedFirstAsset         Boolean           @default(false)
   onboardingJourneyMissions      Json              @default("[]")
   onboardingJourneyCompletedAt   DateTime?
-  isAdvancedMode                 Boolean           @default(false)
   agentReplyStyle                AgentReplyStyle   @default(CONCISE)
   byokOpenrouterApiKey           String?
   defaultAvatarPhotoUrl          String?

@@ -186,7 +186,7 @@ export function usePromptBarState({
   const [selectedPreset, setSelectedPreset] = useState('');
   const [selectedProfile, setSelectedProfile] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(isCollapsible);
-  const isAdvancedMode = currentUser?.settings?.isAdvancedMode ?? true;
+  const isAdvancedMode = currentUser?.settings?.isAdvancedMode ?? false;
   const [isAutoMode, setIsAutoMode] = useState(!isAdvancedMode);
   const isAdvancedControlsEnabled = !isAutoMode;
 

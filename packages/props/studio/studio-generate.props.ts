@@ -65,7 +65,15 @@ export interface StudioGenerateComposerProps {
   /** Set only once an enhancement has actually replaced the prompt. */
   previousPrompt?: string | null;
   settings: StudioGenerateSettings;
-  shouldShowVoiceInput: boolean;
+  /** Org Voice Control is on and the browser can record; the composer decides placement. */
+  isVoiceInputAvailable: boolean;
+  type: StudioGenerateType;
+}
+
+export interface StudioTypeDropdownProps {
+  className?: string;
+  isDisabled?: boolean;
+  onChange: (type: StudioGenerateType) => void;
   type: StudioGenerateType;
 }
 

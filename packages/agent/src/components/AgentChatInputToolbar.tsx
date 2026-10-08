@@ -11,15 +11,20 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import GenerationHarnessSettingsPopover from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsPopover';
 import { Button } from '@ui/primitives/button';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
-import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
-import { ArrowUp, Square } from 'lucide-react';
+import PromptBarSubmitSlot from '@ui/prompt-bars/components/toolbar/PromptBarSubmitSlot';
+import PromptBarToolbar from '@ui/prompt-bars/components/toolbar/PromptBarToolbar';
+import { ArrowUp } from 'lucide-react';
 import { memo, type ReactElement, useEffect } from 'react';
 
 export interface AgentChatInputToolbarProps {
   agentMode: AgentThreadMode;
   canSendMessage: boolean;
+  /** Voice Control is on and the browser can record, regardless of field state. */
+  canUseVoiceInput: boolean;
   disabled: boolean | undefined;
   hasEditor: boolean;
+  /** No text and no ready attachments: the mic owns the submit slot. */
+  isEmptyComposer: boolean;
   isListening: boolean;
   isTranscribing: boolean;
   isUploading: boolean;
@@ -34,8 +39,6 @@ export interface AgentChatInputToolbarProps {
   onStartListening: () => void;
   onStop: (() => void | Promise<void>) | undefined;
   onStopListening: () => void;
-  shouldShowSendButton: boolean;
-  shouldShowVoiceInput: boolean;
   showStop: boolean;
   /** Send will enqueue instead of starting a new turn. */
   willQueueFollowUp?: boolean;
@@ -45,8 +48,10 @@ export interface AgentChatInputToolbarProps {
 function AgentChatInputToolbarInner({
   agentMode,
   canSendMessage,
+  canUseVoiceInput,
   disabled,
   hasEditor,
+  isEmptyComposer,
   isListening,
   isTranscribing,
   isUploading,
@@ -60,8 +65,6 @@ function AgentChatInputToolbarInner({
   onStartListening,
   onStop,
   onStopListening,
-  shouldShowSendButton,
-  shouldShowVoiceInput,
   showStop,
   willQueueFollowUp = false,
   density = 'default',
@@ -77,140 +80,76 @@ function AgentChatInputToolbarInner({
     );
   }, [onGenerationModeChange, promptText]);
 
-  // Match paperclip / link / actions: square ICON control with default
-  // design-system radius (rounded-md via ButtonSize.ICON) — never a full pill.
   const controlSize = isCompact ? 'size-8' : 'size-9';
-  const trailingControlClass = cn(
-    'shrink-0',
-    controlSize,
-    'min-h-0 min-w-0 p-0',
-  );
-  // Pull only the far-right send into the shell padding — leading setup chip
-  // keeps natural shell inset so it doesn't hug the border or fight icon gap.
-  const trailingEdgeOffset = isCompact ? '-mr-1.5' : '-mr-2';
-
-  // Trailing primary: Stop replaces mic during a run; send sits beside Stop
-  // only when the field has text to queue.
-  let trailingPrimary: ReactElement | null = null;
-
-  if (isTranscribing || isListening) {
-    trailingPrimary = (
-      <PromptBarVoiceControl
-        density={density}
-        isDisabled={disabled}
-        isListening={isListening}
-        isTranscribing={isTranscribing}
-        onStartListening={onStartListening}
-        onStopListening={onStopListening}
+  const send =
+    showStop && !canSendMessage ? null : (
+      <Button
+        ariaLabel={
+          willQueueFollowUp
+            ? 'Queue follow-up'
+            : generationMode === AgentGenerationMode.IMAGE
+              ? 'Generate image'
+              : generationMode === AgentGenerationMode.VIDEO
+                ? 'Generate video'
+                : 'Send message'
+        }
+        className={cn('shrink-0 min-h-0 min-w-0 p-0', controlSize)}
+        icon={<ArrowUp className="size-4" />}
+        isDisabled={disabled || !hasEditor || !canSendMessage || isUploading}
+        onClick={onSend}
+        size={ButtonSize.ICON}
+        tooltip={willQueueFollowUp ? 'Queue follow-up (Enter)' : 'Send (Enter)'}
+        variant={ButtonVariant.DEFAULT}
+        withWrapper={false}
       />
     );
-  } else {
-    const stopButton =
-      showStop && onStop ? (
-        <Button
-          ariaLabel="Stop agent"
-          className={trailingControlClass}
-          icon={
-            <Square aria-hidden className="size-2.5 fill-current stroke-none" />
-          }
-          onClick={() => {
-            void onStop();
-          }}
-          size={ButtonSize.ICON}
-          tooltip="Stop"
-          variant={ButtonVariant.DESTRUCTIVE}
-          withWrapper={false}
-        />
-      ) : null;
-
-    let actionButton: ReactElement | null = null;
-    if (shouldShowVoiceInput && !showStop) {
-      actionButton = (
-        <PromptBarVoiceControl
-          density={density}
-          isDisabled={disabled}
-          isListening={false}
-          isTranscribing={false}
-          onStartListening={onStartListening}
-          onStopListening={onStopListening}
-        />
-      );
-    } else if (shouldShowSendButton) {
-      actionButton = (
-        <Button
-          ariaLabel={
-            willQueueFollowUp
-              ? 'Queue follow-up'
-              : generationMode === AgentGenerationMode.IMAGE
-                ? 'Generate image'
-                : generationMode === AgentGenerationMode.VIDEO
-                  ? 'Generate video'
-                  : 'Send message'
-          }
-          className={trailingControlClass}
-          icon={<ArrowUp className="size-4" />}
-          isDisabled={disabled || !hasEditor || !canSendMessage || isUploading}
-          onClick={onSend}
-          size={ButtonSize.ICON}
-          tooltip={
-            willQueueFollowUp ? 'Queue follow-up (Enter)' : 'Send (Enter)'
-          }
-          variant={ButtonVariant.DEFAULT}
-          withWrapper={false}
-        />
-      );
-    }
-
-    trailingPrimary =
-      stopButton || actionButton ? (
-        <>
-          {stopButton}
-          {actionButton}
-        </>
-      ) : null;
-  }
 
   return (
-    <div
-      className={cn(
-        // min-w-0 + wrap: narrow dock rails must not stack labels on icons.
-        'mt-0.5 flex min-w-0 items-center justify-between gap-2',
-        isCompact ? 'min-h-8 flex-wrap pt-0.5' : 'min-h-9 pt-1',
-      )}
-    >
-      {/* Leading: mode dropdown, then tools tight to it (no inflated gap). */}
-      <div className="flex min-w-0 shrink items-center gap-0.5">
-        <AgentModeDropdown
-          className={cn('shrink-0', controlSize)}
-          isDisabled={disabled || showStop}
-          mode={agentMode}
-          onChange={onAgentModeChange}
-        />
-
-        <GenerationHarnessSettingsPopover
-          className={controlSize}
-          isDisabled={disabled || showStop}
-        />
-
-        <PromptBarReferenceControls
+    <PromptBarToolbar
+      density={density}
+      leading={
+        <>
+          <PromptBarReferenceControls
+            density={density}
+            isAttachmentDisabled={disabled}
+            isLibraryDisabled={disabled || !hasEditor}
+            onAddFiles={onAddFiles}
+            onOpenLibrary={onInsertReference}
+          />
+          <AgentModeDropdown
+            isDisabled={disabled || showStop}
+            mode={agentMode}
+            onChange={onAgentModeChange}
+          />
+          <GenerationHarnessSettingsPopover
+            className={controlSize}
+            isDisabled={disabled || showStop}
+          />
+        </>
+      }
+      trailing={
+        <PromptBarSubmitSlot
           density={density}
-          isAttachmentDisabled={disabled}
-          isLibraryDisabled={disabled || !hasEditor}
-          onAddFiles={onAddFiles}
-          onOpenLibrary={onInsertReference}
+          isDisabled={disabled}
+          isEmpty={isEmptyComposer}
+          isListening={isListening}
+          isTranscribing={isTranscribing}
+          isVoiceAvailable={canUseVoiceInput}
+          onStartListening={onStartListening}
+          onStop={
+            onStop
+              ? () => {
+                  void onStop();
+                }
+              : undefined
+          }
+          onStopListening={onStopListening}
+          send={send}
+          showStop={showStop}
+          stopLabel="Stop agent"
         />
-      </div>
-
-      {/* Trailing: stop (replaces mic) + optional queue send */}
-      <div
-        className={cn(
-          'flex min-w-0 shrink items-center justify-end',
-          trailingEdgeOffset,
-        )}
-      >
-        {trailingPrimary}
-      </div>
-    </div>
+      }
+    />
   );
 }
 

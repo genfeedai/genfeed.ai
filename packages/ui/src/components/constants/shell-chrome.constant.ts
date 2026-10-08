@@ -24,6 +24,9 @@ export const CONTENT_ICON_CLASS = 'size-4 shrink-0';
  */
 export const SHELL_ICON_SVG_CLASS = '[&_svg]:size-3.5';
 
+/** Leading prompt-bar chip (Agent mode, Studio type): icon + label + chevron. */
+export const PROMPT_BAR_CHIP_CLASS = 'h-8 shrink-0 gap-1.5 px-2 text-xs';
+
 /** Compact square hit target for icon-only shell buttons (refresh, etc.). */
 export const SHELL_ICON_BUTTON_CLASS = 'size-8 shrink-0 p-0 [&_svg]:size-3.5';
 
