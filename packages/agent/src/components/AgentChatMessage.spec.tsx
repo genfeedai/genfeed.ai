@@ -243,26 +243,66 @@ describe('AgentChatMessage', () => {
     expect(screen.queryByText('1cr')).toBeNull();
   });
 
-  it('reveals recent assistant content progressively', () => {
+  it('renders a completed recent answer in full without replaying the stream', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-03-06T14:00:05.000Z'));
-
+    const content = `${'Completed answer. '.repeat(100)}tail-marker`;
     render(
       <AgentChatMessage
         message={{
-          ...buildMessage('assistant', 'Animated recent answer'),
+          ...buildMessage('assistant', content),
           createdAt: '2026-03-06T14:00:00.000Z',
         }}
       />,
     );
+    expect(screen.getByText(/tail-marker/).textContent).toBe(content);
+  });
 
-    expect(screen.queryByText('Animated recent answer')).toBeNull();
+  it('defers next-step controls until the current response settles', () => {
+    const onUiAction = vi.fn();
+    const message: AgentChatMessageType = {
+      ...buildMessage('assistant', 'Choose what to do next.'),
+      metadata: {
+        uiActions: [
+          {
+            id: 'next-steps-stream',
+            type: 'next_steps_card',
+            title: 'Next steps',
+            nextSteps: [
+              {
+                id: 'review',
+                title: 'Review your posts',
+                ctas: [
+                  {
+                    action: 'send_prompt',
+                    label: 'Do it here',
+                    payload: { prompt: 'Review my posts' },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const view = render(
+      <AgentChatMessage
+        message={message}
+        deferNextSteps
+        onUiAction={onUiAction}
+      />,
+    );
+    expect(screen.getByText('Choose what to do next.')).toBeVisible();
+    expect(screen.queryByText('Review your posts')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Start' })).toBeNull();
 
-    act(() => {
-      vi.advanceTimersByTime(260);
+    view.rerender(
+      <AgentChatMessage message={message} onUiAction={onUiAction} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    expect(onUiAction).toHaveBeenCalledWith('send_prompt', {
+      prompt: 'Review my posts',
     });
-
-    expect(screen.getByText('Animated recent answer')).toBeTruthy();
   });
 
   it('renders assistant messages as inline content instead of bubbles', () => {

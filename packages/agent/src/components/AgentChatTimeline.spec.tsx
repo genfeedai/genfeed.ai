@@ -1,4 +1,5 @@
 import {
+  type AgentUiAction,
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
@@ -36,13 +37,18 @@ vi.mock('@ui/primitives/button', () => ({
 vi.mock('./AgentChatMessage', () => ({
   AgentChatMessage: function MockMessage({
     isRetryableUserPrompt,
+    deferNextSteps,
     message,
   }: {
     isRetryableUserPrompt?: boolean;
+    deferNextSteps?: boolean;
     message: { id: string; content: string };
   }) {
     return (
-      <div data-testid={`message-${message.id}`}>
+      <div
+        data-testid={`message-${message.id}`}
+        data-defer-next-steps={deferNextSteps}
+      >
         {message.content}
         {isRetryableUserPrompt ? (
           <button type="button">Retry message</button>
@@ -50,9 +56,16 @@ vi.mock('./AgentChatMessage', () => ({
       </div>
     );
   },
-  UiActionRenderer: ({ isDisabled }: { isDisabled?: boolean }) => (
+  UiActionRenderer: ({
+    isDisabled,
+    action,
+  }: {
+    isDisabled?: boolean;
+    action: AgentUiAction;
+  }) => (
     <div
       data-testid={isDisabled ? 'ui-action-busy' : 'ui-action-interactive'}
+      data-action-type={action.type}
       inert={isDisabled ? true : undefined}
     />
   ),
@@ -458,5 +471,100 @@ describe('completed turn result preservation', () => {
     expect(screen.getByText('Starting')).toBeVisible();
     expect(screen.getByTestId('work-group-failure')).toBeVisible();
     expect(screen.getByRole('alert')).toBeVisible();
+  });
+});
+
+describe('next-step availability', () => {
+  it.each(['isBusy', 'isGenerating', 'isStreamingActive'] as const)(
+    'waits for %s to settle before showing pending next steps',
+    (liveFlag) => {
+      const pendingUiActions: AgentUiAction[] = [
+        {
+          id: 'next-steps',
+          type: 'next_steps_card',
+          title: 'Next steps',
+          nextSteps: [],
+        },
+      ];
+      const view = render(
+        <AgentChatTimeline
+          {...baseProps}
+          {...{ [liveFlag]: true }}
+          timeline={[]}
+          pendingUiActions={pendingUiActions}
+        />,
+      );
+      expect(screen.queryByTestId('ui-action-busy')).toBeNull();
+      expect(screen.queryByTestId('ui-action-interactive')).toBeNull();
+      view.rerender(
+        <AgentChatTimeline
+          {...baseProps}
+          timeline={[]}
+          pendingUiActions={pendingUiActions}
+        />,
+      );
+      expect(screen.getByTestId('ui-action-interactive')).toHaveAttribute(
+        'data-action-type',
+        'next_steps_card',
+      );
+    },
+  );
+
+  it('defers only the live turn next steps, preserving historical output', () => {
+    const timeline = [
+      buildUserMessage('old-prompt', 'Earlier prompt'),
+      buildAssistantMessage('old-answer', 'Earlier answer'),
+      buildUserMessage('current-prompt', 'Current prompt'),
+      buildAssistantMessage('current-answer', 'Current answer'),
+    ];
+    const view = render(
+      <AgentChatTimeline
+        {...baseProps}
+        isStreamingActive
+        timeline={timeline}
+      />,
+    );
+    expect(screen.getByTestId('message-old-answer')).toHaveAttribute(
+      'data-defer-next-steps',
+      'false',
+    );
+    expect(screen.getByTestId('message-current-answer')).toHaveAttribute(
+      'data-defer-next-steps',
+      'true',
+    );
+    view.rerender(<AgentChatTimeline {...baseProps} timeline={timeline} />);
+    expect(screen.getByTestId('message-current-answer')).toHaveAttribute(
+      'data-defer-next-steps',
+      'false',
+    );
+  });
+
+  it('keeps pending scheduling controls mounted while next steps wait', () => {
+    render(
+      <AgentChatTimeline
+        {...baseProps}
+        isBusy
+        timeline={[]}
+        pendingUiActions={[
+          {
+            id: 'next-steps',
+            type: 'next_steps_card',
+            title: 'Next steps',
+            nextSteps: [],
+          },
+          {
+            id: 'schedule',
+            type: 'schedule_post_card',
+            title: 'Schedule post',
+          },
+        ]}
+      />,
+    );
+    expect(screen.getAllByTestId('ui-action-busy')).toHaveLength(1);
+    expect(screen.getByTestId('ui-action-busy')).toHaveAttribute(
+      'data-action-type',
+      'schedule_post_card',
+    );
+    expect(screen.getByTestId('ui-action-busy')).toHaveAttribute('inert');
   });
 });
