@@ -26,9 +26,6 @@ import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
-/**
- * Threads API Media Types
- */
 export enum ThreadsMediaType {
   CAROUSEL = 'CAROUSEL',
   TEXT = 'TEXT',
@@ -42,9 +39,6 @@ export type ThreadsCarouselMediaItem = {
   altText?: string;
 };
 
-/**
- * Threads API Container Status
- */
 export enum ThreadsContainerStatus {
   EXPIRED = 'EXPIRED',
   ERROR = 'ERROR',
@@ -126,17 +120,14 @@ export class ThreadsService {
     const decryptedAccessToken = EncryptionUtil.decrypt(credential.accessToken);
 
     try {
-      // Threads uses the same token refresh endpoint as Instagram/Facebook
+      // Token endpoints are unversioned; resource endpoints use the Threads API version.
       const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.graphUrl}/${this.apiVersion}/refresh_access_token`,
-          {
-            params: {
-              access_token: decryptedAccessToken,
-              grant_type: OAuthGrantType.TH_REFRESH_TOKEN,
-            },
+        this.httpService.get(`${this.graphUrl}/refresh_access_token`, {
+          params: {
+            access_token: decryptedAccessToken,
+            grant_type: OAuthGrantType.TH_REFRESH_TOKEN,
           },
-        ),
+        }),
       );
 
       const { access_token, expires_in } = response.data || {};

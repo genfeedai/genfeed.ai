@@ -199,6 +199,69 @@ describe('FacebookService', () => {
     expect(service).toBeDefined();
   });
 
+  it('stores the Page post ID returned by a published photo for downstream analytics', async () => {
+    mockHttpService.post.mockReturnValue(
+      of({ data: { id: 'photo-1', post_id: 'page_post-1' } }),
+    );
+    expect(
+      await service.uploadImage(
+        'page',
+        'page-token',
+        'https://cdn.example/photo.jpg',
+        'caption',
+      ),
+    ).toBe('page_post-1');
+    mockHttpService.post.mockReturnValue(of({ data: { id: 'photo-1' } }));
+    await expect(
+      service.uploadImage(
+        'page',
+        'page-token',
+        'https://cdn.example/photo.jpg',
+        'caption',
+      ),
+    ).rejects.toThrow('Facebook photo post ID');
+  });
+
+  it('collects video insights on the Video node without requesting Page post metrics', async () => {
+    mockHttpService.get.mockReturnValue(
+      of({
+        data: {
+          id: 'video-1',
+          likes: { summary: { total_count: 4 } },
+          comments: { summary: { total_count: 2 } },
+          video_insights: {
+            data: [{ name: 'total_video_views', values: [{ value: 100 }] }],
+          },
+        },
+      }),
+    );
+    const result = await service.getPostAnalytics(
+      'video-1',
+      'page-token',
+      undefined,
+      true,
+    );
+    expect(mockHttpService.get).toHaveBeenCalledWith(
+      'https://graph.facebook.com/v26.0/video-1',
+      {
+        params: {
+          access_token: 'page-token',
+          fields:
+            'likes.summary(true),comments.summary(true),video_insights.metric(total_video_views)',
+        },
+      },
+    );
+    expect(result).toMatchObject({ views: 100, likes: 4, comments: 2 });
+    expect(result.learningMetrics?.metrics.views).toEqual({
+      value: 100,
+      availability: 'observed',
+      source: 'total_video_views',
+    });
+    expect(result.learningMetrics?.metrics.shares?.availability).toBe(
+      'unavailable',
+    );
+  });
+
   it('publishes a video by URL using the supplied Page token without an invalid chunk transfer', async () => {
     mockHttpService.post.mockReturnValue(of({ data: { id: 'video-1' } }));
     expect(

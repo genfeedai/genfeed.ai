@@ -15,6 +15,7 @@ export async function readMetaPages(
   http: HttpService,
   apiBaseUrl: string,
   userAccessToken: string,
+  isInstagramIncluded = false,
 ): Promise<FacebookPage[]> {
   const pages: FacebookPage[] = [];
   const seen = new Set<string>();
@@ -24,8 +25,7 @@ export async function readMetaPages(
       http.get<MetaPageListResponse>(`${apiBaseUrl}/me/accounts`, {
         params: {
           access_token: userAccessToken,
-          fields:
-            'id,name,access_token,category,picture,instagram_business_account{id}',
+          fields: `id,name,access_token,category,picture${isInstagramIncluded ? ',instagram_business_account{id}' : ''}`,
           ...(after ? { after } : {}),
         },
         timeout: 10_000,
@@ -58,7 +58,12 @@ export async function resolveMetaPageAccess(
     throw new BadRequestException(
       'The connected Meta account is missing its identity. Reconnect the account.',
     );
-  const pages = await readMetaPages(http, apiBaseUrl, userAccessToken);
+  const pages = await readMetaPages(
+    http,
+    apiBaseUrl,
+    userAccessToken,
+    Boolean(identity.instagramAccountId),
+  );
   const page = pages.find((candidate) =>
     identity.pageId
       ? candidate.id === identity.pageId

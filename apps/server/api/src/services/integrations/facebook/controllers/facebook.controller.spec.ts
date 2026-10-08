@@ -349,6 +349,21 @@ describe('FacebookController', () => {
   });
 
   describe('getPostAnalytics', () => {
+    it('collects the Video node when mediaType is video', async () => {
+      await controller.getPostAnalytics(
+        mockUser,
+        'video',
+        'page-token',
+        'video',
+      );
+      expect(facebookService.getPostAnalytics).toHaveBeenCalledWith(
+        'video',
+        'page-token',
+        undefined,
+        true,
+      );
+    });
+
     it('should return post analytics', async () => {
       const id = 'post_123';
       const accessToken = 'token123';

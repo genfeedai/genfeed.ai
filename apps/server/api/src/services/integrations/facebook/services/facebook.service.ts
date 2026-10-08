@@ -6,17 +6,13 @@ import {
   readMetaPages,
   resolveMetaPageAccess,
 } from '@api/services/integrations/_shared/meta-page-access.util';
-import { getInstagramErrorCode as getMetaGraphErrorCode } from '@api/services/integrations/instagram/utils/instagram-error.util';
+import {
+  type FacebookAnalyticsResult,
+  failedFacebookAnalytics,
+  parseFacebookAnalytics,
+} from '@api/services/integrations/facebook/utils/facebook-analytics.util';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
-import {
-  captureLearningMetrics,
-  type LearningMetrics,
-} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
-import type {
-  FacebookInsight,
-  FacebookReaction,
-} from '@genfeedai/contracts/interfaces/integrations/facebook.interface';
 import {
   buildGrantedScopesCredentialPatch,
   readOAuthTokenScopeField,
@@ -395,7 +391,10 @@ export class FacebookService {
 
       this.loggerService.log(`${url} succeeded`, response.data);
 
-      return response.data.id;
+      return this.requireString(
+        response.data?.post_id,
+        'Facebook photo post ID',
+      );
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
@@ -557,26 +556,9 @@ export class FacebookService {
     postId: string,
     accessToken: string,
     pageId?: string,
-  ): Promise<{
-    learningMetrics?: LearningMetrics;
-    views: number;
-    likes: number;
-    comments: number;
-    shares: number;
-    reach?: number;
-    impressions?: number;
-    engagementRate?: number;
-    reactions?: {
-      like?: number;
-      love?: number;
-      wow?: number;
-      haha?: number;
-      sad?: number;
-      angry?: number;
-    };
-  }> {
+    isVideo = false,
+  ): Promise<FacebookAnalyticsResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
     try {
       const pageAccessToken = pageId
         ? await this.getPageAccessToken(accessToken, pageId)
@@ -585,132 +567,16 @@ export class FacebookService {
         this.httpService.get(`${this.graphUrl}/${this.apiVersion}/${postId}`, {
           params: {
             access_token: pageAccessToken,
-            fields:
-              'reactions.summary(true),comments.summary(true),shares,insights.metric(post_media_view)',
+            fields: isVideo
+              ? 'likes.summary(true),comments.summary(true),video_insights.metric(total_video_views)'
+              : 'reactions.summary(true),comments.summary(true),shares,insights.metric(post_media_view)',
           },
         }),
       );
-
-      const data = response.data;
-      if (
-        !data ||
-        typeof data !== 'object' ||
-        Array.isArray(data) ||
-        typeof data.id !== 'string' ||
-        data.id !== postId
-      )
-        throw new Error('malformed_provider_response');
-      const insights = data.insights?.data || [];
-
-      // Extract insights metrics
-      const getInsightValue = (metricName: string): number => {
-        const insight = (insights as FacebookInsight[]).find(
-          (i) => i.name === metricName,
-        );
-        return insight?.values?.[0]?.value || 0;
-      };
-
-      const views = getInsightValue('post_media_view');
-      const interactions =
-        (data.reactions?.summary?.total_count ?? 0) +
-        (data.comments?.summary?.total_count ?? 0) +
-        (data.shares?.count ?? 0);
-
-      // Calculate engagement rate
-      const engagementRate = views > 0 ? (interactions / views) * 100 : 0;
-
-      // Extract reaction breakdown
-      const reactions: Record<string, number> = {};
-      if (data.reactions?.data) {
-        (data.reactions.data as FacebookReaction[]).forEach((reaction) => {
-          const type = reaction.type.toLowerCase();
-          reactions[type] = (reactions[type] || 0) + 1;
-        });
-      }
-
-      const rawInsights = Object.fromEntries(
-        (insights as FacebookInsight[]).map((insight) => [
-          insight.name,
-          insight.values?.[0]?.value,
-        ]),
-      );
-      return {
-        learningMetrics: captureLearningMetrics(
-          {
-            post_media_view: rawInsights.post_media_view,
-            'reactions.summary.total_count':
-              data.reactions?.summary?.total_count,
-            'comments.summary.total_count': data.comments?.summary?.total_count,
-            'shares.count': data.shares?.count,
-          },
-          {
-            views: 'post_media_view',
-            likes: 'reactions.summary.total_count',
-            comments: 'comments.summary.total_count',
-            shares: 'shares.count',
-          },
-        ),
-        comments: data.comments?.summary?.total_count || 0,
-        engagementRate:
-          engagementRate > 0 ? Number(engagementRate.toFixed(2)) : undefined,
-        likes: data.reactions?.summary?.total_count || 0,
-        reactions: Object.keys(reactions).length > 0 ? reactions : undefined,
-        shares: data.shares?.count || 0,
-        views,
-      };
+      return parseFacebookAnalytics(response.data, postId, isVideo);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      const response =
-        error && typeof error === 'object' && 'response' in error
-          ? error.response
-          : null;
-      const status =
-        response &&
-        typeof response === 'object' &&
-        'status' in response &&
-        typeof response.status === 'number'
-          ? response.status
-          : null;
-      const graphCode = getMetaGraphErrorCode(error);
-      const rateLimited =
-        status === 429 ||
-        (graphCode !== undefined && [4, 17, 32, 613].includes(graphCode));
-      const unauthorized =
-        !rateLimited &&
-        (status === 401 ||
-          status === 403 ||
-          (graphCode !== undefined &&
-            [190, 102, 10, 200, 294].includes(graphCode)));
-      const permanent =
-        !rateLimited &&
-        (unauthorized || (status !== null && [404, 405, 410].includes(status)));
-      return {
-        learningMetrics: {
-          collection: {
-            version: 1,
-            outcome: permanent ? 'terminal_unavailable' : 'retryable_failure',
-            reasonCode: rateLimited
-              ? 'rate_limited'
-              : unauthorized
-                ? 'unauthorized'
-                : status === 404 || status === 410
-                  ? 'publication_unavailable'
-                  : status === 405
-                    ? 'unsupported_metric'
-                    : 'provider_fetch_failed',
-          },
-          metrics: {
-            views: { availability: 'failed', source: 'post_media_view' },
-            likes: { availability: 'failed', source: 'reactions.summary' },
-            comments: { availability: 'failed', source: 'comments.summary' },
-            shares: { availability: 'failed', source: 'shares.count' },
-          },
-        },
-        comments: 0,
-        likes: 0,
-        shares: 0,
-        views: 0,
-      };
+      return failedFacebookAnalytics(error, isVideo);
     }
   }
 

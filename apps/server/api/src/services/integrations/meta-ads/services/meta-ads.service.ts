@@ -17,14 +17,16 @@ import type {
   UpdateAdSetParams,
   UpdateCampaignParams,
 } from '@api/services/integrations/meta-ads/interfaces/meta-ads.interface';
+import { buildMetaAdCreative } from '@api/services/integrations/meta-ads/utils/meta-ad-creative.util';
+import { readMetaAdImageBytes } from '@api/services/integrations/meta-ads/utils/meta-ad-image.util';
 import { buildMetaAdSetTargeting } from '@api/services/integrations/meta-ads/utils/meta-ads-targeting.util';
+import { buildMetaCampaign } from '@api/services/integrations/meta-ads/utils/meta-campaign.util';
 import {
   getIntegrationProviderDefinition,
   IntegrationHttpClient,
   META_GRAPH_API_VERSION,
   META_GRAPH_URL,
 } from '@genfeedai/integrations';
-import { safeFetch } from '@libs/security/destination-guard';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
@@ -637,27 +639,7 @@ export class MetaAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const data: Record<string, unknown> = {
-        name: params.name,
-        objective: params.objective,
-        special_ad_categories: JSON.stringify(params.specialAdCategories || []),
-        status: params.status || 'PAUSED',
-      };
-
-      if (
-        params.dailyBudget === undefined &&
-        params.lifetimeBudget === undefined
-      ) {
-        data.is_adset_budget_sharing_enabled = false;
-      }
-
-      if (params.dailyBudget !== undefined) {
-        data.daily_budget = Math.round(params.dailyBudget * 100);
-      }
-      if (params.lifetimeBudget !== undefined) {
-        data.lifetime_budget = Math.round(params.lifetimeBudget * 100);
-      }
-
+      const data = buildMetaCampaign(params);
       const response = await this.makePostRequest<{ id: string }>(
         accessToken,
         `${adAccountId}/campaigns`,
@@ -832,56 +814,10 @@ export class MetaAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const linkData = {
-        link: params.creative.linkUrl,
-        ...(params.creative.title && { name: params.creative.title }),
-        ...(params.creative.body && { message: params.creative.body }),
-        ...(params.creative.imageHash && {
-          image_hash: params.creative.imageHash,
-        }),
-        ...(params.creative.callToAction && {
-          call_to_action: {
-            type: params.creative.callToAction,
-            value: { link: params.creative.linkUrl },
-          },
-        }),
-      };
-      const objectStorySpec: Record<string, unknown> = {
-        page_id: params.creative.pageId ?? '',
-      };
-
-      if (params.creative.videoId) {
-        objectStorySpec.video_data = {
-          ...(params.creative.thumbnailUrl && {
-            image_url: params.creative.thumbnailUrl,
-          }),
-          video_id: params.creative.videoId,
-          ...(params.creative.title && { title: params.creative.title }),
-          ...(params.creative.body && { message: params.creative.body }),
-          ...(params.creative.callToAction && {
-            call_to_action: {
-              type: params.creative.callToAction,
-              value: { link: params.creative.linkUrl },
-            },
-          }),
-        };
-      } else {
-        objectStorySpec.link_data = linkData;
-      }
-      const creativeSpec = {
-        object_story_spec: objectStorySpec,
-        ...(params.creative.linkUrl
-          ? {
-              destination_spec: {
-                destination_type: 'WEBSITE_AND_SHOP_OPT_OUT',
-              },
-            }
-          : {}),
-      };
-
+      const creativeSpec = buildMetaAdCreative(params.creative);
       const data: Record<string, unknown> = {
         adset_id: params.adSetId,
-        creative: JSON.stringify(creativeSpec),
+        creative: creativeSpec,
         name: params.name,
         status: 'PAUSED',
       };
@@ -936,53 +872,12 @@ export class MetaAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const download = await safeFetch(
-        imageUrl,
-        { signal: AbortSignal.timeout(30_000) },
-        { allowedSchemes: ['https:'] },
-      );
-      if (!download.ok || !download.body) {
-        await download.body?.cancel();
-        throw new Error('The ad image could not be downloaded.');
-      }
-      const contentType = download.headers
-        .get('content-type')
-        ?.split(';')[0]
-        .trim()
-        .toLowerCase();
-      const maxBytes = 30 * 1024 * 1024;
-      if (
-        !contentType ||
-        !['image/jpeg', 'image/png'].includes(contentType) ||
-        Number(download.headers.get('content-length')) > maxBytes
-      ) {
-        await download.body.cancel();
-        throw new Error(
-          'Meta ad images must be JPEG or PNG and no larger than 30 MB.',
-        );
-      }
-      const reader = download.body.getReader();
-      const chunks: Buffer[] = [];
-      let byteCount = 0;
-      try {
-        for (;;) {
-          const chunk = await reader.read();
-          if (chunk.done) break;
-          byteCount += chunk.value.byteLength;
-          if (byteCount > maxBytes)
-            throw new Error('Meta ad image exceeds the 30 MB limit.');
-          chunks.push(Buffer.from(chunk.value));
-        }
-      } finally {
-        await reader.cancel();
-        reader.releaseLock();
-      }
-      if (byteCount === 0) throw new Error('Meta ad image is empty.');
+      const bytes = await readMetaAdImageBytes(imageUrl);
       const response = await this.integrationHttpClient.request<{
         images: Record<string, { hash: string; url: string }>;
       }>({
         body: new URLSearchParams({
-          bytes: Buffer.concat(chunks).toString('base64'),
+          bytes,
         }),
         headers: { 'content-type': 'application/x-www-form-urlencoded' },
         method: 'POST',

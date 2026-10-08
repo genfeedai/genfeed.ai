@@ -413,7 +413,7 @@ describe('InstagramAuthorizedSignalsService', () => {
     }
   });
 
-  it('treats a personal or creator-limited account as an actionable state, not a failed check', async () => {
+  it('allows publishing for a professional Creator account with the publish grant', async () => {
     httpService.get.mockImplementation((url: string) => {
       if (url.includes('/media')) {
         return of({ data: { data: [], paging: {} } });
@@ -434,7 +434,7 @@ describe('InstagramAuthorizedSignalsService', () => {
       organizationId: 'org-1',
     });
 
-    expect(snapshot.state).toBe('partial');
+    expect(snapshot.state).toBe('empty');
     expect(
       evidenceOf(snapshot, 'publishing-capability-snapshot'),
     ).toMatchObject({

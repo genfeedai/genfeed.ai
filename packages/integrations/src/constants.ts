@@ -78,3 +78,13 @@ export const INSTAGRAM_OAUTH_SCOPES = [
   'ads_management',
   'ads_read',
 ] as const;
+
+/** Campaign creation uses ODAX objectives; historical read responses may contain older values. */
+export const META_CAMPAIGN_OBJECTIVES = [
+  'OUTCOME_APP_PROMOTION',
+  'OUTCOME_AWARENESS',
+  'OUTCOME_ENGAGEMENT',
+  'OUTCOME_LEADS',
+  'OUTCOME_SALES',
+  'OUTCOME_TRAFFIC',
+] as const;

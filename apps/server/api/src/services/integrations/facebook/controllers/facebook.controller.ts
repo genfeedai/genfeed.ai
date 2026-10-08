@@ -310,14 +310,20 @@ export class FacebookController {
     @CurrentUser() _user: User,
     @Param('facebookId') facebookId: string,
     @Query('accessToken') accessToken: string,
+    @Query('mediaType') mediaType?: string,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
-    const analytics = await this.facebookService.getPostAnalytics(
-      facebookId,
-      accessToken,
-    );
+    const analytics =
+      mediaType === 'video'
+        ? await this.facebookService.getPostAnalytics(
+            facebookId,
+            accessToken,
+            undefined,
+            true,
+          )
+        : await this.facebookService.getPostAnalytics(facebookId, accessToken);
 
     return analytics;
   }

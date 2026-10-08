@@ -5,6 +5,7 @@ export type AnalyticsCollectionPost = {
   credentialId?: string;
   externalId: string;
   id: string;
+  isVideo?: boolean;
   organizationId: string;
   platform: CredentialPlatform;
 };

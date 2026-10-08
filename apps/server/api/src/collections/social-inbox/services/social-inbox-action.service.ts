@@ -754,7 +754,6 @@ export class SocialInboxActionService implements OnModuleInit {
     if (!messageId) throw new Error('Instagram did not return a message_id.');
     return { messageId };
   }
-
   private async completeOutboundAction(
     state: SocialInboxOutboundWorkflowState,
     conversation: SocialConversationDocument,

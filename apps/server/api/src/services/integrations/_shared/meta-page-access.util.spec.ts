@@ -86,4 +86,27 @@ describe('Meta Page access resolution', () => {
       ),
     ).rejects.toThrow('did not advance');
   });
+  it('does not request Instagram fields for Facebook-only grants', async () => {
+    const get = vi
+      .fn()
+      .mockReturnValue(
+        of({ data: { data: [{ id: 'page', access_token: 'page-token' }] } }),
+      );
+    expect(
+      await resolveMetaPageAccess(
+        { get } as unknown as HttpService,
+        'https://graph.facebook.com/v26.0',
+        'token',
+        { pageId: 'page' },
+      ),
+    ).toMatchObject({ pageId: 'page', accessToken: 'page-token' });
+    expect(get).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        params: expect.objectContaining({
+          fields: expect.not.stringContaining('instagram_business_account'),
+        }),
+      }),
+    );
+  });
 });

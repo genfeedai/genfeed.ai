@@ -101,6 +101,7 @@ export class AnalyticsProviderCollectionService {
         post.externalId,
         EncryptionUtil.decrypt(credential.accessToken),
         credential.externalId,
+        post.isVideo === true,
       );
       const receivedAt = new Date();
       await this.postAnalyticsService.processFacebookAnalytics(

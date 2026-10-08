@@ -68,7 +68,7 @@ describe('MetaAdsService - Write Operations', () => {
   describe('createCampaign', () => {
     const defaultParams: CreateCampaignParams = {
       name: 'Summer Sale 2024',
-      objective: 'LINK_CLICKS',
+      objective: 'OUTCOME_TRAFFIC',
     };
 
     it('should create a campaign and return its ID', async () => {
@@ -89,10 +89,31 @@ describe('MetaAdsService - Write Operations', () => {
             access_token: mockAccessToken,
             is_adset_budget_sharing_enabled: 'false',
             name: 'Summer Sale 2024',
-            objective: 'LINK_CLICKS',
+            objective: 'OUTCOME_TRAFFIC',
             status: 'PAUSED',
           }),
         }),
+      );
+    });
+
+    it('rejects deprecated campaign objectives before calling Meta', async () => {
+      await expect(
+        service.createCampaign(mockAccessToken, mockAdAccountId, {
+          name: 'legacy',
+          objective: 'LINK_CLICKS',
+        }),
+      ).rejects.toThrow('OUTCOME_');
+      expect(httpService.post).not.toHaveBeenCalled();
+    });
+
+    it('omits the ad-set budget-sharing option for a campaign-budget campaign', async () => {
+      httpService.post.mockReturnValue(mockAxiosResponse({ id: 'campaign' }));
+      await service.createCampaign(mockAccessToken, mockAdAccountId, {
+        ...defaultParams,
+        dailyBudget: 25,
+      });
+      expect(httpService.post.mock.calls[0]?.[2]?.params).not.toHaveProperty(
+        'is_adset_budget_sharing_enabled',
       );
     });
 

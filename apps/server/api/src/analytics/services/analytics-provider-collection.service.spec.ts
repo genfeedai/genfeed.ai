@@ -60,6 +60,28 @@ function harness(platform: CredentialPlatform) {
 }
 describe('provider collection resolved account boundaries', () => {
   afterEach(() => vi.restoreAllMocks());
+  it('uses the selected Page token and video metrics for a published Facebook video', async () => {
+    const h = harness(CredentialPlatform.FACEBOOK);
+    await h.service.collectFacebook({
+      posts: [
+        {
+          id: 'post',
+          externalId: 'video-1',
+          brandId: 'brand',
+          organizationId: 'org',
+          platform: CredentialPlatform.FACEBOOK,
+          isVideo: true,
+        },
+      ],
+    });
+    expect(h.facebook.getPostAnalytics).toHaveBeenCalledWith(
+      'video-1',
+      'token',
+      'page',
+      true,
+    );
+  });
+
   it.each([CredentialPlatform.FACEBOOK, CredentialPlatform.THREADS])(
     'returns resolved legacy context after %s persistence and ready state',
     async (platform) => {
