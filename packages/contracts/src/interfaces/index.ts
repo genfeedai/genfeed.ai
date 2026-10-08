@@ -44,6 +44,7 @@ export * from './analytics/analytics-context.interface';
 export * from './analytics/analytics-query-reference.interface';
 export * from './analytics/analytics-ui.interface';
 export * from './analytics/breakout-evidence.interface';
+export * from './analytics/breakout-response.interface';
 export * from './analytics/dashboard-preset.interface';
 export * from './analytics/evaluation.interface';
 export * from './analytics/evaluation-judge-input.interface';

@@ -45,7 +45,49 @@ An output plan has at most five total slots. An X quote uses slot one and counts
 inside that limit. Slots and generation identities are never recycled after failure
 or deletion. A post's persistent breakout output link identifies generated responses
 independently of ordinary quote fields and prevents recursive response chains.
-Generation must attach that link before publication.
+Generation must attach that link before publication. The transaction-local
+`bindBreakoutTextArtifact` utility now verifies a completed approved-brand text
+receipt against the actual post text/version/manifest and current source identity.
+It attaches the existing output ID and, for an X quote, the source external ID to an
+existing draft before review starts. It never creates a post or changes its publish
+state, approval or credit accounting. Conflicting lineage, changed text, media/thread
+material and posts already entering review/publication are held. The writer is not
+yet called from generation or an authorized product endpoint.
+
+## Capacity and recovery interfaces
+
+`planBreakoutCapacity` reduces a requested one-to-five total output plan within a
+supplied server budget snapshot and remaining publication slots. It includes
+separate generation and quality estimates, daily/weekly/monthly budgets, available
+organization funds, platform limits, pacing limits and configured format caps. The
+X quote is the first text slot; other outputs preserve the winning format/account.
+Missing prices, unknown configured caps, unsupported formats and exhausted capacity
+have explicit reasons. Explicit zero prices remain different from unavailable
+prices. These estimates neither debit credits nor reserve future publishing slots.
+
+`reserveBreakoutCapacityPlan` revalidates the current source and serializes planning
+with the existing parent-row lock. Replays retain their original slots and generation
+keys, even when today's budget changes. A replay reports no original price estimate
+because that price snapshot is not persisted; it does not invent one. Dispatch and
+scheduling still need fresh accounting and transactional cadence admission. This
+utility is not yet connected to a policy-authorized workflow caller.
+
+`readBreakoutOutputRecovery` reads the existing scoped branded generation receipt
+using the output generation key and candidate index zero, validates its canonical
+schema and retained identity, and returns normalized internal status without prompts,
+actor identity or a fabricated cost total. Pending generation waits; indeterminate
+outcomes, missing in-flight receipts and invalid projections require reconciliation.
+Every result forbids repeating a paid request based on this read alone. Approved
+brand readiness is separate from platform quality, actor and publication permission.
+Current text material is checked before treating a bound text artifact as reusable;
+composed media still requires its own verified material-binding path.
+
+Draft, review, scheduled, paused, publishing, confirmed publication, suppression,
+expiry and failure remain distinct. Published status requires the existing canonical
+publication resolver's real approval, material/version and provider-finalization
+proof; a queue, workflow or output state is insufficient. Confirmed publication
+remains a fact after response suppression. These are internal transaction utilities,
+not customer/MCP routes: brand-authorized adapters and serializers remain required.
 
 ## Required connected outcome
 
@@ -64,15 +106,17 @@ scheduling, confirmed publication, suppression, expiry and failure, with retaine
 lineage and subsequent measurements.
 
 Imported own-account sources, additional qualified provider exposure mappings,
-priority workflow execution, artifact and quote attachment, recovery, product/agent
-status surfaces and connected acceptance remain unfinished. The human response
-lifetime choice and the authoritative automatic actor contract are unresolved.
+priority workflow execution, generation-to-artifact/quote attachment, recovery
+workflow wiring, authorized product/agent status routes/UI and connected acceptance
+remain unfinished. The human response lifetime choice and the authoritative automatic actor contract are unresolved.
 No default lifetime or synthetic owner principal grants permission to execute.
 
 ## Evidence and delivery
 
 Unit fixtures are written for capture, comparable-age evaluation, immutable
-receipts, source identity, output caps, lineage and the capture-to-detection path.
+receipts, source identity, output caps, lineage, the capture-to-detection path,
+bounded capacity, immutable plan replay, receipt recovery and pre-review text
+lineage attachment.
 They remain unrun until the final designated-host verification batch. Schema
 generation and permitted package builds do not prove PostgreSQL constraints,
 concurrent delivery or the complete provider workflow.

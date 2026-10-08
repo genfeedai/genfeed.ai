@@ -1,0 +1,104 @@
+import { reserveBreakoutOutputPlan } from '@api/collections/outliers/services/breakout-response-identity.util';
+import { loadPostExposurePublication } from '@api/collections/outliers/services/post-exposure-observation.util';
+import type {
+  BreakoutCapacityReservationInput,
+  BreakoutCapacityReservationResult,
+  BreakoutOutputPlanSlot,
+  LearningFormat,
+} from '@genfeedai/contracts/interfaces';
+import { planBreakoutCapacity } from '@genfeedai/helpers';
+import { Prisma } from '@genfeedai/prisma';
+
+function isFormat(value: string): value is LearningFormat {
+  return ['text', 'image', 'carousel', 'video', 'short', 'thread'].includes(
+    value,
+  );
+}
+
+/** Reserve immutable identities from a capacity snapshot. Live execution still needs admission. */
+export async function reserveBreakoutCapacityPlan(
+  tx: Prisma.TransactionClient,
+  input: Readonly<BreakoutCapacityReservationInput>,
+): Promise<BreakoutCapacityReservationResult> {
+  const { organizationId, brandId, credentialId, platform } = input.source;
+  // Serialize replay and first planning with the registry's same parent row lock.
+  await tx.$queryRaw(Prisma.sql`
+    SELECT "id" FROM "breakout_responses"
+    WHERE "id" = ${input.responseId} AND "organizationId" = ${organizationId}
+      AND "brandId" = ${brandId} AND "credentialId" = ${credentialId}
+      AND "platform" = ${platform} AND "isDeleted" = false FOR UPDATE
+  `);
+  const response = await tx.breakoutResponse.findFirst({
+    where: {
+      id: input.responseId,
+      organizationId,
+      brandId,
+      credentialId,
+      platform,
+      isDeleted: false,
+    },
+  });
+  if (!response) return { status: 'missing_response' };
+  const source = await loadPostExposurePublication(tx, {
+    organizationId,
+    brandId,
+    credentialId,
+    platform,
+    postId: response.sourcePostId,
+    externalId: response.externalId,
+  });
+  if (
+    !source ||
+    source.isResponse ||
+    source.format !== input.source.format ||
+    source.postId !== input.source.postId ||
+    source.externalId !== input.source.externalId ||
+    source.logicalPostId !== response.logicalPostId ||
+    source.logicalPostId !== input.source.logicalPostId ||
+    source.contentDigest !== response.contentDigest ||
+    source.contentDigest !== input.source.contentDigest ||
+    source.publicationFingerprint !== response.publicationFingerprint ||
+    source.publicationFingerprint !== input.source.publicationFingerprint
+  )
+    return { status: 'source_changed' };
+  const scope = {
+    organizationId,
+    brandId,
+    credentialId,
+    platform,
+    responseId: response.id,
+  };
+  if (response.outputPlanFingerprint !== null) {
+    const retained = await tx.breakoutResponseOutput.findMany({
+      where: {
+        organizationId,
+        brandId,
+        credentialId,
+        responseId: response.id,
+        isDeleted: false,
+      },
+      orderBy: { ordinal: 'asc' },
+      take: 6,
+      select: { ordinal: true, kind: true, format: true },
+    });
+    const slots: BreakoutOutputPlanSlot[] = [];
+    for (const row of retained) {
+      if (
+        !isFormat(row.format) ||
+        (row.kind !== 'quote' && row.kind !== 'follow_up')
+      )
+        return { status: 'plan_conflict' };
+      slots.push({ ordinal: row.ordinal, kind: row.kind, format: row.format });
+    }
+    if (!slots.length) return { status: 'plan_conflict' };
+    const result = await reserveBreakoutOutputPlan(tx, { ...scope, slots });
+    return 'outputIds' in result ? { ...result, estimate: null } : result;
+  }
+  const estimate = planBreakoutCapacity({ ...input, source });
+  if (estimate.status === 'held') return { status: 'capacity_held', estimate };
+  const result = await reserveBreakoutOutputPlan(tx, {
+    ...scope,
+    slots: estimate.slots,
+  });
+  return 'outputIds' in result ? { ...result, estimate } : result;
+}

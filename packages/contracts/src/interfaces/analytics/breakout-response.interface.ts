@@ -1,0 +1,151 @@
+import type {
+  BreakoutObservationScope,
+  BreakoutOutputPlanResult,
+  BreakoutOutputPlanSlot,
+  BreakoutPublicationSourceV1,
+} from './breakout-evidence.interface';
+import type { LearningFormat } from './content-learning.interface';
+
+/** Estimates for planning only; live debit/admission must use current server accounting. */
+export interface BreakoutFormatCostEstimate {
+  generationCredits: number | null;
+  qualityCredits: number | null;
+}
+export interface BreakoutKnownFormatCostEstimate
+  extends BreakoutFormatCostEstimate {
+  generationCredits: number;
+  qualityCredits: number;
+}
+export interface BreakoutPlanningBudget {
+  remainingDailyCredits: number | null;
+  remainingWeeklyCredits: number | null;
+  remainingMonthlyCredits: number | null;
+  availableOrganizationCredits: number | null;
+  remainingPlatformCredits: number | null;
+  remainingPacingCredits: number | null;
+  /** Undefined means no configured cap. Null means a configured cap is unreadable. */
+  remainingFormatCredits: Partial<Record<LearningFormat, number | null>>;
+}
+export interface BreakoutCapacityInput {
+  source: Readonly<BreakoutPublicationSourceV1>;
+  requestedTotalOutputs: number;
+  remainingPublicationSlots: number | null;
+  budget: Readonly<BreakoutPlanningBudget>;
+  supportedFormats: readonly LearningFormat[];
+  costsByFormat: Readonly<
+    Partial<Record<LearningFormat, Readonly<BreakoutFormatCostEstimate>>>
+  >;
+}
+export interface BreakoutEstimatedOutputSlot extends BreakoutOutputPlanSlot {
+  generationCredits: number;
+  qualityCredits: number;
+  estimatedCredits: number;
+  quoteExternalId: string | null;
+}
+export type BreakoutCapacityLimit =
+  | 'quota_unavailable'
+  | 'quota_exhausted'
+  | 'budget_unavailable'
+  | 'budget_exhausted'
+  | 'format_cap_exhausted'
+  | 'cost_unavailable'
+  | 'unsupported_format'
+  | 'quote_unsupported'
+  | 'response_source';
+export interface BreakoutCapacityPlan {
+  version: 1;
+  status: 'planned' | 'held';
+  requestedTotalOutputs: number;
+  selectedTotalOutputs: number;
+  slots: BreakoutEstimatedOutputSlot[];
+  estimatedCredits: number;
+  limits: BreakoutCapacityLimit[];
+}
+export interface BreakoutCapacityReservationInput
+  extends BreakoutCapacityInput {
+  responseId: string;
+}
+export type BreakoutCapacityReservationResult =
+  | (Extract<BreakoutOutputPlanResult, { outputIds: string[] }> & {
+      /** Replay does not fabricate the original cost estimate. */
+      estimate: BreakoutCapacityPlan | null;
+    })
+  | Exclude<BreakoutOutputPlanResult, { outputIds: string[] }>
+  | { status: 'source_changed' }
+  | { status: 'capacity_held'; estimate: BreakoutCapacityPlan };
+
+export interface BreakoutOutputRecoveryInput
+  extends Omit<BreakoutObservationScope, 'format'> {
+  responseId: string;
+  outputId: string;
+}
+export interface BreakoutTextArtifactBindingInput
+  extends BreakoutOutputRecoveryInput {
+  postId: string;
+}
+export type BreakoutTextArtifactBindingResult =
+  | { status: 'bound' | 'replayed'; outputId: string; postId: string }
+  | {
+      status: 'held';
+      reason:
+        | 'missing_output'
+        | 'source_changed'
+        | 'receipt_invalid'
+        | 'artifact_changed'
+        | 'binding_conflict'
+        | 'review_or_publication_started'
+        | 'unsupported_format';
+    };
+export type BreakoutOutputRecoveryState =
+  | 'not_submitted'
+  | 'generation_in_flight'
+  | 'reconciliation_required'
+  | 'generated'
+  | 'draft'
+  | 'awaiting_review'
+  | 'scheduled'
+  | 'paused'
+  | 'publishing'
+  | 'published'
+  | 'failed'
+  | 'suppressed'
+  | 'expired';
+export type BreakoutOutputRecoveryReason =
+  | 'not_dispatched'
+  | 'provider_pending'
+  | 'generation_receipt_missing'
+  | 'receipt_invalid'
+  | 'generation_outcome_indeterminate'
+  | 'generation_failed'
+  | 'quality_or_brand_blocked'
+  | 'approved_brand_required'
+  | 'brand_review_required'
+  | 'artifact_binding_missing'
+  | 'publication_admission_required'
+  | 'publication_confirmation_missing'
+  | 'publication_in_flight'
+  | 'publication_failed'
+  | 'publication_paused'
+  | 'publication_cancelled'
+  | 'output_suppressed'
+  | 'output_expired'
+  | 'confirmed_publication';
+export type BreakoutOutputRecoveryResult =
+  | {
+      status: 'available';
+      responseId: string;
+      outputId: string;
+      state: BreakoutOutputRecoveryState;
+      reason: BreakoutOutputRecoveryReason;
+      action:
+        | 'requires_admission'
+        | 'wait'
+        | 'reconcile'
+        | 'use_existing_artifact'
+        | 'none';
+      /** No status/projection alone may authorize another paid request. */
+      mayRepeatPaidRequest: false;
+      postId: string | null;
+      externalId: string | null;
+    }
+  | { status: 'unavailable'; reason: 'missing_output' | 'scope_mismatch' };

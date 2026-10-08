@@ -4,6 +4,7 @@ export * from './analytics.interface';
 export * from './analytics-collection-state.interface';
 export * from './analytics-query-reference.interface';
 export * from './breakout-evidence.interface';
+export * from './breakout-response.interface';
 export * from './content-learning.interface';
 export * from './evaluation.interface';
 export * from './fleet-evaluation-policy.interface';
