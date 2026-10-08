@@ -157,6 +157,16 @@ test('enforces executable contracts through the aggregate suite', () => {
     'the static-checks job must run the executable-contracts test script',
   );
   assert.match(
+    staticChecks,
+    /^ {6}- name: Build contracts for executable imports\n {8}run: bun run --cwd packages\/contracts build$/m,
+    'metadata-only checks must build real contracts exports before runtime imports',
+  );
+  assert.ok(
+    staticChecks.indexOf('- name: Build contracts for executable imports') <
+      staticChecks.indexOf('- name: Run executable contracts'),
+    'contracts build must precede executable runtime imports',
+  );
+  assert.match(
     script,
     /scripts\/ci\/vitest\.config\.ts/,
     'test:executable-contracts must run the CI vitest suite',

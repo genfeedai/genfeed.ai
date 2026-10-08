@@ -487,6 +487,10 @@ jobs:
         if: ${{ !cancelled() && env.TURBO_TOKEN != '' }}
         continue-on-error: true
         run: node scripts/ci/check-turbo-remote-cache.mjs "${RUNNER_TEMP}/turbo-type-check.log"
+      # Real workspace imports resolve the contracts package dist exports even
+      # when metadata-only changes select no affected typecheck build tasks.
+      - name: Build contracts for executable imports
+        run: bun run --cwd packages/contracts build
       - name: Run executable contracts
         run: bun run test:executable-contracts
       - name: Check judge calibration link
