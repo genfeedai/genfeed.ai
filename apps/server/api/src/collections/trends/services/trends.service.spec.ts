@@ -609,6 +609,32 @@ describe('TrendsService', () => {
   });
 
   describe('getTrendsWithAccessControl', () => {
+    it('reads the global market without applying the selected brand’s relevance filter', async () => {
+      vi.spyOn(service, 'getConnectedPlatforms').mockResolvedValue([]);
+      const getTrends = vi
+        .spyOn(service, 'getTrends')
+        .mockResolvedValue([
+          new TrendEntity({ ...mockTrend, requiresAuth: false } as never),
+        ]);
+      const preferences = (
+        service as unknown as {
+          trendPreferencesService: TrendPreferencesService;
+        }
+      ).trendPreferencesService;
+      const getPreferences = vi.spyOn(preferences, 'getPreferences');
+      const result = await service.getTrendsWithAccessControl(
+        mockOrganizationId,
+        mockBrandId,
+        'twitter',
+        { relevance: 'market' },
+      );
+      expect(getTrends).toHaveBeenCalledWith(undefined, undefined, 'twitter', {
+        allowFetchIfMissing: false,
+      });
+      expect(getPreferences).not.toHaveBeenCalled();
+      expect(result.trends[0].requiresAuth).toBe(false);
+    });
+
     it('preserves the last-good dataset when active cache is empty', async () => {
       prisma.trend.findMany.mockResolvedValue([
         makePrismaTrendDoc({

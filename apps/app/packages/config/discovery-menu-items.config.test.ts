@@ -28,14 +28,14 @@ describe('DISCOVERY_MENU_ITEMS', () => {
     expect(DISCOVERY_MENU_ITEMS[0]?.href).toBe('/discovery/overview');
   });
 
-  it('treats Following as a query-param variant of Overview, not its own route', () => {
+  it('routes Following directly to its dedicated timeline surface', () => {
     const following = DISCOVERY_MENU_ITEMS.find(
       (item) => item.label === 'Following',
     );
 
-    expect(following?.href).toBe('/discovery/overview?source=following');
-    expect(following?.matchSearchParams).toEqual({ source: 'following' });
-    expect(following?.matchPaths).toEqual(['/discovery/overview']);
+    expect(following?.href).toBe('/discovery/following');
+    expect(following?.matchSearchParams).toBeUndefined();
+    expect(following?.matchPaths).toEqual(['/discovery/following']);
   });
 
   it('only marks Overview active when the source query param is absent', () => {
@@ -68,7 +68,6 @@ describe('DISCOVERY_MENU_ITEMS', () => {
     expect(hrefs).not.toContain('/messages');
     expect(hrefs).not.toContain('/discovery/socials');
     expect(hrefs).not.toContain('/discovery/discovery');
-    expect(hrefs).not.toContain('/discovery/following');
     expect(hrefs).not.toContain('/discovery/twitter');
     expect(hrefs).not.toContain('/discovery/instagram');
   });

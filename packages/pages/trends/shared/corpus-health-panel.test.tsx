@@ -1,5 +1,5 @@
 import type { TrendCorpusFreshnessHealth } from '@props/trends/trends-page.props';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
 import CorpusHealthPanel from './corpus-health-panel';
@@ -26,226 +26,112 @@ const emptyHealth: TrendCorpusFreshnessHealth = {
 };
 
 describe('CorpusHealthPanel', () => {
-  it('shows unavailable platform coverage for an empty corpus, never healthy zero', () => {
-    render(<CorpusHealthPanel health={emptyHealth} />);
+  const successful = {
+    platform: 'tiktok',
+    dataset: 'videos' as const,
+    scope: 'global' as const,
+    outcome: 'fallback_available' as const,
+    reason: null,
+    completedAt: '2026-10-08T12:00:00Z',
+    lastAttemptAt: '2026-10-08T11:59:00Z',
+    lastSuccessfulRefreshAt: '2026-10-08T12:00:00Z',
+  };
+  it('never labels an unrecorded empty corpus healthy', () => {
+    render(
+      <CorpusHealthPanel health={emptyHealth} selectedPlatforms={['tiktok']} />,
+    );
     expect(
       screen.getByRole('region', { name: 'Source health' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Trend corpus empty')).toBeInTheDocument();
-    for (const name of ['X / Twitter', 'Reddit', 'TikTok']) {
-      expect(
-        within(screen.getByRole('group', { name })).getByText(
-          'Health unavailable',
-        ),
-      ).toBeInTheDocument();
-    }
-    expect(screen.queryByText('healthy')).not.toBeInTheDocument();
-    expect(screen.getAllByText('Last refresh')).toHaveLength(3);
-    expect(screen.getAllByText('Last attempt')).toHaveLength(3);
-    // Three platforms × observed / refresh / attempt, all honestly unrecorded.
-    expect(screen.getAllByText('Not recorded')).toHaveLength(9);
+    expect(screen.getByText('No collection recorded')).toBeInTheDocument();
+    expect(screen.getByText('tiktok · not recorded')).toBeInTheDocument();
+    expect(screen.queryByText(/healthy/)).not.toBeInTheDocument();
   });
-
-  it('scopes health to selected platforms and honestly labels stale observations', () => {
+  it('keeps account failures out of global market health and shows collection without requiring preview references', () => {
     render(
       <CorpusHealthPanel
+        scope="global"
         health={{
           ...emptyHealth,
-          status: 'stale',
-          segments: [
+          refreshHealth: [
+            successful,
             {
-              id: 'one',
-              platform: 'reddit',
-              provider: 'apify',
-              status: 'stale',
-              latestSeenAt: '2026-09-01T09:00:00Z',
+              ...successful,
+              scope: 'scoped',
+              dataset: 'trends',
+              outcome: 'native_failed',
+              reason: 'authentication_required',
             },
           ],
         }}
-        selectedPlatforms={['reddit']}
       />,
     );
-    expect(
-      screen.queryByRole('group', { name: 'X / Twitter' }),
-    ).not.toBeInTheDocument();
-    const reddit = within(screen.getByRole('group', { name: 'Reddit' }));
-    expect(reddit.getByText('Reddit · stale')).toBeInTheDocument();
-    expect(reddit.queryByText(/Apify/)).not.toBeInTheDocument();
-    expect(reddit.getByText('Last observed')).toBeInTheDocument();
-    expect(reddit.queryByText('Health unavailable')).not.toBeInTheDocument();
-    // Refresh and attempt are never claimed when nothing was recorded.
-    expect(reddit.getAllByText('Not recorded')).toHaveLength(2);
+    expect(screen.getByText('tiktok · available')).toBeInTheDocument();
+    expect(screen.getByText('Collection recorded')).toBeInTheDocument();
+    expect(screen.queryByText(/Reconnect/)).not.toBeInTheDocument();
+    expect(screen.getByText(/2026-10-08 12:00 UTC/)).toBeInTheDocument();
   });
-
-  it('includes observed platforms and fixed degraded reason copy without raw provider errors', () => {
+  it('keeps a successful video dataset distinct from a failed sound dataset', () => {
     render(
       <CorpusHealthPanel
         health={{
           ...emptyHealth,
-          status: 'degraded',
+          refreshHealth: [
+            successful,
+            {
+              ...successful,
+              dataset: 'sounds',
+              outcome: 'fallback_failed',
+              reason: 'budget_exhausted',
+              lastSuccessfulRefreshAt: null,
+            },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText('tiktok · degraded')).toBeInTheDocument();
+    expect(screen.getByText('Available')).toBeInTheDocument();
+    expect(screen.getByText('Failed')).toBeInTheDocument();
+    expect(screen.getByText(/Provider credits/)).toBeInTheDocument();
+  });
+  it('filters receipt details as well as platform badges', () => {
+    render(
+      <CorpusHealthPanel
+        selectedPlatforms={['youtube']}
+        health={{
+          ...emptyHealth,
+          refreshHealth: [successful, { ...successful, platform: 'youtube' }],
+        }}
+      />,
+    );
+    expect(screen.queryByText(/tiktok/)).not.toBeInTheDocument();
+    expect(screen.getByText('youtube · available')).toBeInTheDocument();
+  });
+  it('separates preview coverage from provider health and never prints raw errors', () => {
+    render(
+      <CorpusHealthPanel
+        health={{
+          ...emptyHealth,
+          refreshHealth: [successful],
           providerFailures: [
             {
-              platform: 'youtube',
-              provider: 'native-api',
+              platform: 'tiktok',
+              provider: 'apify',
               reason: 'fallback_source_preview',
               message: 'secret raw provider error',
               retryAction: 'secret action',
               affectedTrendCount: 2,
               severity: 'warning',
-              latestObservedAt: '2026-09-05T08:00:00Z',
             },
           ],
         }}
       />,
     );
-    const youtube = within(screen.getByRole('group', { name: 'Youtube' }));
+    expect(screen.getByText('Collection recorded')).toBeInTheDocument();
+    expect(screen.getByText('Source preview coverage')).toBeInTheDocument();
     expect(
-      youtube.getByText(/Native Api: Saved fallback previews/),
+      screen.getByText(/Source previews use fallback data/),
     ).toBeInTheDocument();
     expect(screen.queryByText(/secret/)).not.toBeInTheDocument();
-  });
-
-  it('marks the health request unavailable even if a previous snapshot is cached', () => {
-    render(
-      <CorpusHealthPanel
-        health={{ ...emptyHealth, status: 'healthy' }}
-        isUnavailable
-      />,
-    );
-    expect(screen.getByText('Trend corpus unavailable')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Previously loaded health may be outdated/),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Trend corpus healthy')).not.toBeInTheDocument();
-  });
-  it('does not call a selected missing platform healthy because another platform is healthy', () => {
-    render(
-      <CorpusHealthPanel
-        health={{
-          ...emptyHealth,
-          status: 'healthy',
-          segments: [
-            {
-              id: 'tiktok',
-              platform: 'tiktok',
-              provider: 'apify',
-              status: 'healthy',
-            },
-          ],
-        }}
-        selectedPlatforms={['twitter']}
-      />,
-    );
-    expect(screen.getByText('Trend corpus unavailable')).toBeInTheDocument();
-    expect(screen.queryByText('Trend corpus healthy')).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/No saved health is available for this platform/),
-    ).toBeInTheDocument();
-  });
-
-  it('shows checking while the first health response is pending', () => {
-    render(<CorpusHealthPanel />);
-    expect(screen.getByText('Checking trend corpus')).toBeInTheDocument();
-    expect(screen.getAllByText('Checking health')).toHaveLength(3);
-    expect(screen.queryByText('Health unavailable')).not.toBeInTheDocument();
-  });
-
-  it('collapses seed accounts into one platform row and keeps uncovered expected platforms visible', () => {
-    render(
-      <CorpusHealthPanel
-        health={{
-          ...emptyHealth,
-          status: 'healthy',
-          segments: [
-            {
-              id: 'li-anthropic',
-              platform: 'linkedin',
-              provider: 'anthropic_ai',
-              status: 'healthy',
-              latestSeenAt: '2026-09-10T00:16:00Z',
-            },
-            {
-              id: 'li-canva',
-              platform: 'linkedin',
-              provider: 'canva',
-              status: 'healthy',
-            },
-            {
-              id: 'li-figma',
-              platform: 'linkedin',
-              provider: 'figma',
-              status: 'healthy',
-            },
-          ],
-        }}
-      />,
-    );
-    expect(screen.getByRole('group', { name: 'LinkedIn' })).toBeInTheDocument();
-    expect(screen.getByText('LinkedIn · healthy')).toBeInTheDocument();
-    expect(screen.queryByText(/Anthropic/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Canva/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Figma/)).not.toBeInTheDocument();
-    for (const name of ['X / Twitter', 'Reddit', 'TikTok']) {
-      expect(
-        within(screen.getByRole('group', { name })).getByText(
-          'Health unavailable',
-        ),
-      ).toBeInTheDocument();
-    }
-    // Healthy LinkedIn coverage must not report the whole corpus healthy.
-    expect(screen.getByText('Trend corpus unavailable')).toBeInTheDocument();
-    expect(screen.queryByText('Trend corpus healthy')).not.toBeInTheDocument();
-  });
-  it('renders actual refresh and attempt timestamps independently from source observations', () => {
-    render(
-      <CorpusHealthPanel
-        health={{
-          ...emptyHealth,
-          refreshHealth: [
-            {
-              dataset: 'trends',
-              platform: 'reddit',
-              scope: 'global',
-              completedAt: '2026-09-05T09:05:00Z',
-              lastAttemptAt: '2026-09-05T09:00:00Z',
-              lastSuccessfulRefreshAt: '2026-09-04T12:15:00Z',
-              outcome: 'native_failed',
-              reason: 'native_failed',
-            },
-          ],
-        }}
-        selectedPlatforms={['reddit']}
-      />,
-    );
-    const row = within(screen.getByRole('group', { name: 'Reddit' }));
-    expect(row.getByText('Sep 5, 09:00 AM')).toBeInTheDocument();
-    expect(row.getByText('Sep 4, 12:15 PM')).toBeInTheDocument();
-    expect(row.getAllByText('Not recorded')).toHaveLength(1);
-  });
-
-  it('distinguishes a recorded failed attempt with no success from entirely missing evidence', () => {
-    render(
-      <CorpusHealthPanel
-        health={{
-          ...emptyHealth,
-          refreshHealth: [
-            {
-              dataset: 'trends',
-              platform: 'reddit',
-              scope: 'global',
-              completedAt: '2026-09-05T09:05:00Z',
-              lastAttemptAt: '2026-09-05T09:00:00Z',
-              lastSuccessfulRefreshAt: null,
-              outcome: 'native_failed',
-              reason: 'native_failed',
-            },
-          ],
-        }}
-        selectedPlatforms={['reddit']}
-      />,
-    );
-    const row = within(screen.getByRole('group', { name: 'Reddit' }));
-    expect(row.getByText('No successful refresh')).toBeInTheDocument();
-    expect(row.getAllByText('Not recorded')).toHaveLength(1);
   });
 });

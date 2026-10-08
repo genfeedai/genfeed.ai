@@ -108,13 +108,12 @@ export function markTrendRefreshPersistenceFailed(
   }
 }
 
-export function getTrendNativeFailureReason():
-  | 'native_failed'
-  | 'native_unavailable'
-  | null {
-  const reason = current.getStore()?.reason;
-  return reason === 'native_failed' || reason === 'native_unavailable'
-    ? reason
+export function getTrendNativeFailureReason(): TrendRefreshReason | null {
+  const attempt = current.getStore();
+  return (attempt?.outcome === 'native_failed' &&
+    attempt.reason !== 'provider_failed') ||
+    attempt?.reason === 'native_unavailable'
+    ? attempt.reason
     : null;
 }
 
@@ -132,4 +131,50 @@ export function recordTrendRefreshFailure(reason: TrendRefreshReason): void {
         : 'native_failed',
       reason,
     );
+}
+
+/** Classify provider failures without persisting token-bearing error messages. */
+export function classifyTrendProviderError(error: unknown): TrendRefreshReason {
+  const record =
+    error && typeof error === 'object'
+      ? (error as Record<string, unknown>)
+      : {};
+  const response =
+    record.response && typeof record.response === 'object'
+      ? (record.response as Record<string, unknown>)
+      : {};
+  const data =
+    response.data && typeof response.data === 'object'
+      ? (response.data as Record<string, unknown>)
+      : {};
+  const providerError =
+    data.error && typeof data.error === 'object'
+      ? (data.error as Record<string, unknown>)
+      : {};
+  const status = Number(
+    response.status ?? record.status ?? record.statusCode ?? record.code,
+  );
+  const message = [
+    error instanceof Error ? error.message : '',
+    providerError.type,
+    providerError.message,
+  ]
+    .filter((value): value is string => typeof value === 'string')
+    .join(' ');
+  if (
+    status === 402 ||
+    /not-enough-usage|usage limit|budget|payment required|credits depleted/i.test(
+      message,
+    )
+  )
+    return 'budget_exhausted';
+  if (
+    status === 401 ||
+    status === 89 ||
+    /invalid.grant|invalid.*token|expired.*token/i.test(message)
+  )
+    return 'authentication_required';
+  if (status === 403) return 'access_required';
+  if (status === 429) return 'rate_limited';
+  return 'provider_failed';
 }

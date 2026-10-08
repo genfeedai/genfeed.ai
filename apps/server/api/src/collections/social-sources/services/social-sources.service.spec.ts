@@ -58,6 +58,33 @@ describe('SocialSourcesService', () => {
     );
   });
 
+  it('keeps connected snapshots out of manual source creation and deletion', async () => {
+    const context = {
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+      userId: 'user-1',
+    };
+    await expect(
+      service.createScoped(
+        {
+          handle: 'timeline:credential',
+          platform: SocialSourcePlatform.TWITTER,
+          sourceType: SocialSourceType.TIMELINE,
+        },
+        context,
+      ),
+    ).rejects.toThrow('managed through Following');
+    expect(socialSource.create).not.toHaveBeenCalled();
+    socialSource.findFirst.mockResolvedValue({
+      id: 'timeline-1',
+      sourceType: SocialSourceType.TIMELINE,
+    });
+    await expect(service.removeScoped('timeline-1', context)).rejects.toThrow(
+      'Disconnect the account',
+    );
+    expect(socialSource.update).not.toHaveBeenCalled();
+  });
+
   it('creates a brand-scoped source with normalized handle', async () => {
     brand.findFirst.mockResolvedValue({ id: 'brand-1' });
     socialSource.create.mockResolvedValue({

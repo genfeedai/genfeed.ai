@@ -344,7 +344,8 @@ export class ApifyInstagramService {
           thumbnailUrl: post.imageUrl,
           title: post.caption?.substring(0, 100),
           velocity: metrics.velocity,
-          videoUrl: post.videoUrl,
+          videoUrl: post.url || post.videoUrl,
+          playUrl: post.videoUrl,
           viewCount,
           viralScore: metrics.viralScore,
         };

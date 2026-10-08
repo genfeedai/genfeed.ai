@@ -1,5 +1,8 @@
 export interface TrendingVideoDocument {
   id?: string;
+  publishedAt?: Date | string;
+  creatorHandle?: string;
+  thumbnailUrl?: string;
   externalId?: string;
   platform?: string;
   title?: string;

@@ -67,6 +67,7 @@ export class TrendsService extends BaseService<Trend> {
     options: IViralVideoOptions = {},
   ): Promise<ITrendVideo[]> {
     const params: Record<string, string | number> = {};
+    if (options.relevance) params.relevance = options.relevance;
     if (options.brandId) params.brandId = options.brandId;
     if (options.platform) {
       params.platform = options.platform;
@@ -156,6 +157,7 @@ export class TrendsService extends BaseService<Trend> {
    * Matches GET /trends controller with platform/refresh query params
    */
   async getTrendsDiscovery(options?: {
+    relevance?: 'market' | 'brand';
     platform?: string;
     signal?: AbortSignal;
   }): Promise<TrendsResponse> {
@@ -164,6 +166,7 @@ export class TrendsService extends BaseService<Trend> {
       params.platform = options.platform;
     }
 
+    if (options?.relevance) params.relevance = options.relevance;
     const response = await this.instance.get<TrendsResponse>('/discovery', {
       params,
       signal: options?.signal,

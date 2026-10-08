@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 
 export default function TrendsPageHeader({
   corpusHealth,
+  corpusScope,
   formattedLastSyncedAt,
   isCorpusHealthUnavailable,
   videoCount,
@@ -18,6 +19,7 @@ export default function TrendsPageHeader({
   return (
     <header>
       <CorpusHealthPanel
+        scope={corpusScope}
         health={corpusHealth}
         isUnavailable={isCorpusHealthUnavailable}
       />

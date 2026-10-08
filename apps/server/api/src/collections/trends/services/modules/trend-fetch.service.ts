@@ -8,6 +8,7 @@ import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema
 import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import {
   captureTrendRefreshEvidence,
+  classifyTrendProviderError,
   getTrendNativeFailureReason,
   markTrendRefreshPersistenceFailed,
   recordTrendProviderOutcome,
@@ -26,6 +27,7 @@ import { GrokTrendData } from '@api/services/integrations/xai/dto/grok-trends.dt
 import { XaiService } from '@api/services/integrations/xai/services/xai.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { TrendRefreshReason } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 
@@ -239,7 +241,10 @@ export class TrendFetchService {
       );
       return this.toTrendDataArray(apifyTrends);
     } catch (error: unknown) {
-      recordTrendProviderOutcome('fallback_failed', 'provider_failed');
+      recordTrendProviderOutcome(
+        'fallback_failed',
+        classifyTrendProviderError(error),
+      );
       this.loggerService.error('twitter Apify trend fallback failed', error);
       return [];
     }
@@ -531,8 +536,7 @@ export class TrendFetchService {
     fallbackFetch: () => Promise<TrendData[]>,
     allowApifyFallback: boolean,
   ): Promise<TrendData[]> {
-    let reason: 'native_empty' | 'native_failed' | 'native_unavailable' =
-      'native_empty';
+    let reason: TrendRefreshReason = 'native_empty';
     try {
       const nativeTrends = await nativeFetch();
       if (nativeTrends.length > 0) {
@@ -540,12 +544,15 @@ export class TrendFetchService {
         return nativeTrends;
       }
       reason = getTrendNativeFailureReason() ?? 'native_empty';
-    } catch {
-      reason = 'native_failed';
+    } catch (error: unknown) {
+      const classified = classifyTrendProviderError(error);
+      reason = classified === 'provider_failed' ? 'native_failed' : classified;
     }
     if (!allowApifyFallback) {
       recordTrendProviderOutcome(
-        reason === 'native_unavailable' ? 'native_empty' : reason,
+        reason === 'native_unavailable' || reason === 'native_empty'
+          ? 'native_empty'
+          : 'native_failed',
         reason,
       );
       return [];
@@ -558,7 +565,10 @@ export class TrendFetchService {
       );
       return fallback;
     } catch (error: unknown) {
-      recordTrendProviderOutcome('fallback_failed', 'provider_failed');
+      recordTrendProviderOutcome(
+        'fallback_failed',
+        classifyTrendProviderError(error),
+      );
       this.loggerService.error(
         `${platform} Apify trend fallback failed`,
         error,
@@ -589,8 +599,11 @@ export class TrendFetchService {
           'native_unavailable',
         );
         return trends;
-      } catch {
-        recordTrendProviderOutcome('fallback_failed', 'provider_failed');
+      } catch (error: unknown) {
+        recordTrendProviderOutcome(
+          'fallback_failed',
+          classifyTrendProviderError(error),
+        );
         return [];
       }
     }
@@ -637,8 +650,11 @@ export class TrendFetchService {
           'native_unavailable',
         );
         return trends;
-      } catch {
-        recordTrendProviderOutcome('fallback_failed', 'provider_failed');
+      } catch (error: unknown) {
+        recordTrendProviderOutcome(
+          'fallback_failed',
+          classifyTrendProviderError(error),
+        );
         return [];
       }
     }

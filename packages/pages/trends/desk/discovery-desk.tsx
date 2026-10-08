@@ -56,6 +56,7 @@ import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { LayoutGrid, TableProperties, TrendingUp } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useReducer } from 'react';
 
@@ -107,6 +108,7 @@ const SORT_VALUES: readonly DiscoveryDeskSort[] = [
  * "Light table" grid.
  */
 export default function DiscoveryDesk() {
+  const router = useRouter();
   const translateDesk = useTranslations('common.trends.desk');
   const brandId = useBrandId();
   const { brandSlug, href, orgHref } = useOrgUrl();
@@ -243,11 +245,15 @@ export default function DiscoveryDesk() {
 
   const handleSourceTabChange = useCallback(
     (value: string) => {
+      if (value === 'following') {
+        router.push(href(APP_ROUTES.DISCOVERY.FOLLOWING));
+        return;
+      }
       if (isDeskSourceTab(value)) {
         handleSourceChange(value);
       }
     },
-    [handleSourceChange],
+    [handleSourceChange, href, router],
   );
 
   const sourceTabs = useMemo(
@@ -329,9 +335,7 @@ export default function DiscoveryDesk() {
       filteredBySearch.find((item) => item.key === state.cursorKey) ?? null,
   });
 
-  const followingHref = href(
-    `${APP_ROUTES.DISCOVERY.OVERVIEW}?source=following`,
-  );
+  const followingHref = href(APP_ROUTES.DISCOVERY.FOLLOWING);
   const publishingHref = brandSlug
     ? href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)
     : orgHref(APP_ROUTES.SETTINGS.BRANDS);

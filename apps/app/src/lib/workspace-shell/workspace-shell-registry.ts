@@ -603,6 +603,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/~/discovery/overview',
+      '/:orgSlug/~/discovery/following',
       '/:orgSlug/~/discovery/trends',
       '/:orgSlug/~/discovery/trend-turnover',
       '/:orgSlug/~/discovery/ads',
@@ -834,6 +835,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/discovery/overview',
+      '/:orgSlug/:brandSlug/discovery/following',
       '/:orgSlug/:brandSlug/discovery/trends',
       '/:orgSlug/:brandSlug/discovery/trends/detail/:id',
       '/:orgSlug/:brandSlug/discovery/trends/platforms/:platform',

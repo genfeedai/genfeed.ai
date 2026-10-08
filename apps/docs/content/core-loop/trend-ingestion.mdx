@@ -6,6 +6,40 @@ description: "Trace Genfeed's OSS trend-ingestion path through registered module
 
 This page documents the OSS v1 trend-ingestion surface tracked by `#159`.
 
+## Discovery feeds and playable content
+
+Discovery separates account-curated feeds from public trend observations:
+
+- **Following** lives at `/<organization>/<brand>/discovery/following`.
+  Existing `discovery/overview?source=following` links redirect there. Connected
+  accounts appear automatically; users do not need to enter their follows again.
+  Refresh collects X's reverse-chronological home timeline and recent videos from
+  YouTube subscriptions. YouTube collection is bounded to 200 subscriptions and
+  five recent uploads per channel. Other networks show their current API
+  limitations and a link to the native feed.
+- **Trends** defaults to public market observations. The brand relevance filter
+  is an explicit option; Overview keeps its brand relevance behavior. Video
+  cards and topic examples have click-to-play controls. Sound cards retain
+  available audio metadata and example videos using that sound. Missing or
+  expired media keeps a source link instead of a pretend play control.
+- Hashtag and sound counts derived from collected videos say **observed**.
+  Growth without a measured comparison window says **not measured**. These
+  samples are not platform-wide popularity totals.
+
+Following actions use the selected connected account: X supports likes, replies,
+reposts and quotes; YouTube supports likes and comments when granted permissions
+allow them. A durable action receipt reserves each idempotency key before calling
+the provider. If publication cannot be confirmed, the UI asks the user to check
+the source rather than automatically publishing again. Apply the
+`20261008160000_source_post_native_actions` Prisma migration before enabling these
+actions.
+
+Public collection and account feeds have separate health evidence. Authentication,
+API access, rate limits and provider budget failures remain actionable; hiding
+them would not restore ingestion. Apify can supply public content and media
+metadata, but does not provide native account permissions. Actor availability,
+provider credits and credential access must also be healthy for live collection.
+
 ## Live Module Inventory
 
 The current repo has a real Step 1 ingestion path, not a placeholder:

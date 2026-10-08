@@ -34,8 +34,9 @@ export class ApifyTikTokService {
   async getTikTokTrends(options?: TrendOptions): Promise<ApifyTrendData[]> {
     try {
       const input = {
-        maxItems: options?.limit || 20,
-        region: options?.region || 'US',
+        resultsPerPage: options?.limit || 20,
+        adsCountryCode: options?.region || 'US',
+        adsScrapeHashtags: true,
       };
 
       const rawTrends = await this.baseService.runActor<ApifyTikTokTrend>(
@@ -60,8 +61,7 @@ export class ApifyTikTokService {
     try {
       const input = {
         hashtags: ['trending', 'fyp', 'viral'],
-        maxItems: limit,
-        sortBy: 'views',
+        resultsPerPage: Math.max(1, Math.ceil(limit / 3)),
       };
 
       const rawVideos = await this.baseService.runActor<ApifyTikTokVideo>(
@@ -69,7 +69,7 @@ export class ApifyTikTokService {
         input,
       );
 
-      return this.normalizeTikTokVideos(rawVideos);
+      return this.normalizeTikTokVideos(rawVideos).slice(0, limit);
     } catch (error: unknown) {
       this.baseService.loggerService.error(
         `${this.constructorName}.getTikTokVideos failed`,
@@ -90,20 +90,35 @@ export class ApifyTikTokService {
       // Extract unique sounds
       const soundMap = new Map<string, ApifySoundData>();
 
+      const seenVideos = new Set<string>();
       for (const video of videos) {
+        if (seenVideos.has(video.externalId)) continue;
+        seenVideos.add(video.externalId);
         if (!video.soundId) {
           continue;
         }
         const existing = soundMap.get(video.soundId);
         if (existing) {
           existing.usageCount += 1;
+          existing.viralityScore = Math.max(
+            existing.viralityScore,
+            video.viralScore,
+          );
+          if ((existing.examples?.length ?? 0) < 3)
+            existing.examples?.push(video);
         } else {
           soundMap.set(video.soundId, {
+            authorName: video.soundAuthorName,
+            coverUrl: video.soundCoverUrl,
+            duration: video.soundDuration,
+            examples: [video],
+            playUrl: video.soundPlayUrl,
             growthRate: 0,
             platform: 'tiktok',
             soundId: video.soundId,
             soundName: video.soundName || 'Unknown',
             usageCount: 1,
+            usageCountScope: 'observed',
             viralityScore: Math.min(100, video.viralScore),
           });
         }
@@ -267,24 +282,32 @@ export class ApifyTikTokService {
   }
 
   private normalizeTikTokTrends(trends: ApifyTikTokTrend[]): ApifyTrendData[] {
-    return trends.map((trend) => ({
-      growthRate: this.baseService.calculateGrowthRate(trend.videoCount || 0),
-      mentions: trend.videoCount || 0,
-      metadata: {
-        hashtags: trend.hashtag ? [trend.hashtag] : [],
-        source: 'apify' as const,
-        thumbnailUrl: trend.coverUrl,
-        trendType: 'hashtag' as const,
-        videoCount: trend.videoCount,
-        viewCount: trend.viewCount,
-      },
-      platform: 'tiktok',
-      topic: trend.hashtag || trend.title || 'Unknown',
-      viralityScore: this.baseService.calculateViralityScore(
-        trend.viewCount || 0,
-        trend.videoCount || 0,
-      ),
-    }));
+    return trends
+      .filter((trend) => Boolean(trend.name || trend.hashtag || trend.title))
+      .map((trend) => ({
+        growthRate: 0,
+        mentions: trend.videoCount || 0,
+        metadata: {
+          hashtags:
+            trend.type === 'hashtag' || !trend.type
+              ? [trend.name || trend.hashtag || ''].filter(Boolean)
+              : [],
+          rank: trend.rank,
+          growthMeasured: false,
+          urls: trend.url ? [trend.url] : [],
+          source: 'apify' as const,
+          thumbnailUrl: trend.coverUrl,
+          trendType: trend.type || 'hashtag',
+          videoCount: trend.videoCount,
+          viewCount: trend.viewCount,
+        },
+        platform: 'tiktok',
+        topic: trend.name || trend.hashtag || trend.title || 'Unknown',
+        viralityScore: this.baseService.calculateViralityScore(
+          trend.viewCount || 0,
+          trend.videoCount || 0,
+        ),
+      }));
   }
 
   private normalizeTikTokVideos(videos: ApifyTikTokVideo[]): ApifyVideoData[] {
@@ -323,7 +346,13 @@ export class ApifyTikTokService {
         shareCount,
         soundId: video.musicMeta?.musicId,
         soundName: video.musicMeta?.musicName,
-        thumbnailUrl: undefined,
+        soundPlayUrl: video.musicMeta?.playUrl,
+        soundCoverUrl:
+          video.musicMeta?.coverMediumUrl || video.musicMeta?.coverUrl,
+        soundAuthorName: video.musicMeta?.musicAuthor,
+        soundDuration: video.musicMeta?.duration,
+        thumbnailUrl:
+          video.videoMeta?.coverUrl || video.videoMeta?.originalCoverUrl,
         title: video.text?.substring(0, 100),
         velocity: metrics.velocity,
         videoUrl: video.webVideoUrl,

@@ -81,7 +81,7 @@ export function TrendingHashtags({
             Trending Hashtags
           </h3>
           <p className="text-sm text-foreground/60">
-            Most viral hashtags across platforms
+            Observed hashtags and the videos behind them.
           </p>
         </div>
 
@@ -163,7 +163,11 @@ export function TrendingHashtags({
 
               <div className="space-y-1.5 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-foreground/60">Posts</span>
+                  <span className="text-foreground/60">
+                    {hashtag.postCountScope === 'observed'
+                      ? 'Observed posts'
+                      : 'Posts'}
+                  </span>
                   <span className="font-medium tabular-nums">
                     {formatCompactNumber(hashtag.postCount)}
                   </span>
@@ -190,8 +194,9 @@ export function TrendingHashtags({
                           : ''
                     }`}
                   >
-                    {hashtag.growthRate > 0 ? '+' : ''}
-                    {hashtag.growthRate.toFixed(0)}%
+                    {hashtag.growthMeasured === false
+                      ? 'Not measured'
+                      : `${hashtag.growthRate > 0 ? '+' : ''}${hashtag.growthRate.toFixed(0)}%`}
                   </span>
                 </div>
               </div>

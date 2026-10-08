@@ -61,6 +61,11 @@ export class GetTrendsDto {
  * DTO for fetching viral videos
  */
 export class GetViralVideosDto {
+  @ApiPropertyOptional({ enum: ['market', 'brand'] })
+  @IsOptional()
+  @IsEnum(['market', 'brand'])
+  relevance?: 'market' | 'brand';
+
   @ApiPropertyOptional({
     description: 'Active brand for relevant video discovery',
   })
@@ -224,6 +229,9 @@ export class TrendingHashtagResponseDto {
 
   @ApiProperty({ description: 'Number of posts using this hashtag' })
   postCount!: number;
+
+  postCountScope?: 'observed' | 'platform';
+  growthMeasured?: boolean;
 
   @ApiProperty({ description: 'Total view count' })
   viewCount!: number;

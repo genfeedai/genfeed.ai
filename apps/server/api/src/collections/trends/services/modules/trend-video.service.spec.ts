@@ -163,6 +163,55 @@ describe('TrendVideoService', () => {
     expect(videos.map((video) => video.id)).toEqual(['db-a', 'db-b']);
   });
 
+  it('uses actual publication time and independent cache keys for each window', async () => {
+    mockPrisma.trendingVideo.findMany.mockResolvedValue([
+      makeVideoDoc({
+        externalId: 'recent',
+        publishedAt: new Date(Date.now() - 3600000).toISOString(),
+      }),
+      makeVideoDoc({
+        externalId: 'two-days',
+        publishedAt: new Date(Date.now() - 48 * 3600000).toISOString(),
+      }),
+      makeVideoDoc({ externalId: 'unknown' }),
+      makeVideoDoc({ externalId: 'invalid', publishedAt: 'not-a-date' }),
+    ]);
+    expect(
+      (await service.getViralVideos({ timeframe: Timeframe.H24 })).map(
+        (video) => video.externalId,
+      ),
+    ).toEqual(['recent']);
+    expect(
+      (await service.getViralVideos({ timeframe: Timeframe.H72 })).map(
+        (video) => video.externalId,
+      ),
+    ).toEqual(['recent', 'two-days']);
+    expect(mockCacheService.get).toHaveBeenCalledWith(
+      expect.stringContaining(`:time${Timeframe.H24}`),
+    );
+    expect(mockCacheService.get).toHaveBeenCalledWith(
+      expect.stringContaining(`:time${Timeframe.H72}`),
+    );
+  });
+
+  it('hydrates hashtag and sound IDs while labeling sample-derived metrics', async () => {
+    mockPrisma.trendingHashtag.findMany.mockResolvedValue([
+      makeHashtagDoc({ platform: 'instagram', hashtag: 'example' }),
+    ]);
+    mockPrisma.trendingSound.findMany.mockResolvedValue([
+      makeSoundDoc({ platform: 'tiktok', soundId: 'sample' }),
+    ]);
+    expect((await service.getTrendingHashtags())[0]).toMatchObject({
+      id: 'hashtag-1',
+      postCountScope: 'observed',
+      growthMeasured: false,
+    });
+    expect((await service.getTrendingSounds())[0]).toMatchObject({
+      id: 'sound-1',
+      usageCountScope: 'observed',
+    });
+  });
+
   it('returns empty hashtags when the database is empty without triggering Apify', async () => {
     mockPrisma.trendingHashtag.findMany.mockResolvedValue([]);
 

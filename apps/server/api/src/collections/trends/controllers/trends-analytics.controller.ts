@@ -39,15 +39,22 @@ export class TrendsAnalyticsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     const readScope = resolveTenantReadScope(user);
-    const videos = await this.trendsService.getBrandViralVideos(
-      readScope.organizationId,
-      (query.brandId || readScope.brandId) ?? '',
-      {
-        limit: query.limit,
-        platform: query.platform,
-        timeframe: query.timeframe,
-      },
-    );
+    const videos =
+      query.relevance === 'market'
+        ? await this.trendsService.getViralVideos({
+            limit: query.limit,
+            platform: query.platform,
+            timeframe: query.timeframe,
+          })
+        : await this.trendsService.getBrandViralVideos(
+            readScope.organizationId,
+            (query.brandId || readScope.brandId) ?? '',
+            {
+              limit: query.limit,
+              platform: query.platform,
+              timeframe: query.timeframe,
+            },
+          );
 
     return {
       summary: {
