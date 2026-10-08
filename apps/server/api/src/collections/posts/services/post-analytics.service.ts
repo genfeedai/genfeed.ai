@@ -1,3 +1,4 @@
+import { assertExposureCollectionScope } from '@api/analytics/services/analytics-exposure-source.util';
 import {
   LearningCheckpointService,
   learningCheckpointCollection,
@@ -17,6 +18,7 @@ import { PostAnalyticsEntity } from '@api/collections/posts/entities/post-analyt
 import { type PostDocument } from '@api/collections/posts/post.schema';
 import type { PostAnalyticsDocument } from '@api/collections/posts/schemas/post-analytics.schema';
 import {
+  mapBreakoutExposureMetrics,
   mapTikTokPostMetrics,
   mapYouTubePostMetrics,
   type TikTokPostMetrics,
@@ -106,23 +108,6 @@ export class PostAnalyticsService extends BaseService<
     return loadPostExposurePublication(this.prisma, input);
   }
 
-  private assertExposureSource(
-    postId: string,
-    platform: CredentialPlatform,
-    context: AnalyticsPersistenceContext,
-  ): void {
-    const source = context.exposureObservation?.source;
-    if (!source) return;
-    if (
-      source.organizationId !== context.organizationId ||
-      source.brandId !== context.brandId ||
-      source.credentialId !== context.credentialId ||
-      source.postId !== postId ||
-      source.platform !== fromPrismaCredentialPlatform(platform)
-    )
-      throw new Error('Exposure collection source does not match its account');
-  }
-
   private async persistExposureObservation(
     postId: string,
     platform: CredentialPlatform,
@@ -132,20 +117,12 @@ export class PostAnalyticsService extends BaseService<
     const observation = context.exposureObservation;
     if (!observation) return;
     const { source } = observation;
-    this.assertExposureSource(postId, platform, context);
-    const exposures: Partial<
-      Record<BreakoutExposureMetric, BreakoutExposureEvidence>
-    > = {};
-    for (const metric of ['views', 'impressions'] as const) {
-      const explicit = metrics.breakoutExposures?.[metric];
-      const evidence = metrics.learningMetrics?.metrics[metric];
-      exposures[metric] = explicit ?? {
-        availability: evidence?.availability ?? 'unavailable',
-        value: evidence?.value ?? null,
-        source: `${source.platform}:aggregate:${evidence?.source ?? metric}`,
-        scope: evidence?.availability === 'observed' ? 'aggregate' : 'unknown',
-      };
-    }
+    assertExposureCollectionScope(
+      context,
+      postId,
+      fromPrismaCredentialPlatform(platform),
+    );
+    const exposures = mapBreakoutExposureMetrics(metrics, source.platform);
     const result = await this.prisma.$transaction((tx) =>
       capturePostExposureObservation(tx, {
         ...observation,
@@ -272,7 +249,11 @@ export class PostAnalyticsService extends BaseService<
     metrics: UpdateTodayAnalyticsMetrics,
     context: AnalyticsPersistenceContext,
   ): Promise<PostAnalyticsEntity | null> {
-    this.assertExposureSource(postId, platform, context);
+    assertExposureCollectionScope(
+      context,
+      postId,
+      fromPrismaCredentialPlatform(platform),
+    );
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 

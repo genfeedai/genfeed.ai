@@ -1,3 +1,4 @@
+import type { Platform } from '@genfeedai/contracts';
 import type {
   BreakoutExposureEvidence,
   BreakoutExposureMetric,
@@ -23,6 +24,25 @@ export interface UpdateTodayAnalyticsMetrics {
   totalViews: number;
   videoViews?: number | null;
   watchTimeSeconds?: number | null;
+}
+
+export function mapBreakoutExposureMetrics(
+  metrics: UpdateTodayAnalyticsMetrics,
+  platform: Platform,
+): Partial<Record<BreakoutExposureMetric, BreakoutExposureEvidence>> {
+  const exposures: Partial<
+    Record<BreakoutExposureMetric, BreakoutExposureEvidence>
+  > = {};
+  for (const metric of ['views', 'impressions'] as const) {
+    const evidence = metrics.learningMetrics?.metrics[metric];
+    exposures[metric] = metrics.breakoutExposures?.[metric] ?? {
+      availability: evidence?.availability ?? 'unavailable',
+      value: evidence?.value ?? null,
+      source: `${platform}:aggregate:${evidence?.source ?? metric}`,
+      scope: evidence?.availability === 'observed' ? 'aggregate' : 'unknown',
+    };
+  }
+  return exposures;
 }
 
 export interface YouTubePostMetrics {
