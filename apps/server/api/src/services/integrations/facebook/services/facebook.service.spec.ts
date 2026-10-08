@@ -90,17 +90,28 @@ describe('FacebookService', () => {
           comments: { summary: { total_count: 2 } },
           shares: { count: 3 },
           insights: {
-            data: [{ name: 'post_impressions', values: [{ value: 100 }] }],
+            data: [{ name: 'post_media_view', values: [{ value: 100 }] }],
           },
         },
       }),
     );
     const result = await service.getPostAnalytics('post', 'token');
+    expect(mockHttpService.get).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        params: expect.objectContaining({
+          fields: expect.stringContaining('insights.metric(post_media_view)'),
+        }),
+      }),
+    );
+    expect(result.reach).toBeUndefined();
+    expect(result.impressions).toBeUndefined();
+    expect(result.views).toBe(100);
     expect(result.learningMetrics?.metrics).toEqual({
-      impressions: {
+      views: {
         value: 100,
         availability: 'observed',
-        source: 'post_impressions',
+        source: 'post_media_view',
       },
       likes: {
         value: 0,

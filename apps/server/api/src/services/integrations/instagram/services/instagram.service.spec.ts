@@ -84,8 +84,26 @@ describe('InstagramService', () => {
         externalId: 'acc',
       });
 
+      (httpServiceMock.get as Mock).mockReturnValue(
+        of({
+          data: {
+            data: [
+              {
+                id: 'page-other',
+                access_token: 'wrong-token',
+                instagram_business_account: { id: 'other' },
+              },
+              {
+                id: 'page-acc',
+                access_token: 'page-token',
+                instagram_business_account: { id: 'acc' },
+              },
+            ],
+          },
+        }),
+      );
       (httpServiceMock.post as Mock).mockReturnValue(
-        of({ data: { id: 'msg' } }),
+        of({ data: { recipient_id: 'user', message_id: 'msg' } }),
       );
 
       const result = await service.sendCommentReplyDm(
@@ -96,18 +114,44 @@ describe('InstagramService', () => {
       );
 
       expect(httpServiceMock.post).toHaveBeenCalledWith(
-        `https://graph.facebook.com/v26.0/acc/messages`,
+        `https://graph.facebook.com/v26.0/page-acc/messages`,
         {
           message: { text: 'hello' },
-          messaging_product: 'instagram',
           messaging_type: 'RESPONSE',
           recipient: { id: 'user' },
         },
-        { params: { access_token: 'tok' } },
+        { params: { access_token: 'page-token' } },
       );
 
       expect(result).toBe('msg');
     });
+  });
+
+  it('rejects a messaging success response without message_id', async () => {
+    vi.spyOn(service, 'getValidCredential').mockResolvedValue({
+      id: 'credential-id',
+      accessToken: 'tok',
+      externalId: 'acc',
+    });
+    (httpServiceMock.get as Mock).mockReturnValue(
+      of({
+        data: {
+          data: [
+            {
+              id: 'page-acc',
+              access_token: 'page-token',
+              instagram_business_account: { id: 'acc' },
+            },
+          ],
+        },
+      }),
+    );
+    (httpServiceMock.post as Mock).mockReturnValue(
+      of({ data: { recipient_id: 'user' } }),
+    );
+    await expect(
+      service.sendCommentReplyDm('org', 'brand', 'user', 'hello'),
+    ).rejects.toThrow('message_id');
   });
 
   describe('listMediaComments', () => {
@@ -192,53 +236,71 @@ describe('InstagramService', () => {
         externalId: 'account-1',
       });
 
-      (httpServiceMock.get as Mock).mockReturnValue(
-        of({
-          data: {
-            data: [
-              {
-                id: 'conversation-1',
-                messages: {
-                  data: [
-                    {
-                      created_time: '2026-08-01T11:00:00+0000',
-                      from: {
+      (httpServiceMock.get as Mock)
+        .mockReturnValueOnce(
+          of({
+            data: {
+              data: [
+                {
+                  id: 'page-1',
+                  access_token: 'page-token',
+                  instagram_business_account: { id: 'account-1' },
+                },
+              ],
+            },
+          }),
+        )
+        .mockReturnValue(
+          of({
+            data: {
+              data: [
+                {
+                  id: 'conversation-1',
+                  messages: {
+                    data: [
+                      {
+                        created_time: '2026-08-01T11:00:00+0000',
+                        from: {
+                          id: 'participant-1',
+                          name: 'Taylor',
+                          username: 'taylor',
+                        },
+                        id: 'message-1',
+                        message: 'Do you ship to the EU?',
+                      },
+                      // Our own send — recorded when the DM action ran.
+                      {
+                        created_time: '2026-08-01T11:02:00+0000',
+                        from: { id: 'account-1', username: 'brand' },
+                        id: 'message-2',
+                        message: 'We do!',
+                      },
+                    ],
+                  },
+                  participants: {
+                    data: [
+                      { id: 'account-1', username: 'brand' },
+                      {
                         id: 'participant-1',
                         name: 'Taylor',
                         username: 'taylor',
                       },
-                      id: 'message-1',
-                      message: 'Do you ship to the EU?',
-                    },
-                    // Our own send — recorded when the DM action ran.
-                    {
-                      created_time: '2026-08-01T11:02:00+0000',
-                      from: { id: 'account-1', username: 'brand' },
-                      id: 'message-2',
-                      message: 'We do!',
-                    },
-                  ],
+                    ],
+                  },
+                  updated_time: '2026-08-01T11:02:00+0000',
                 },
-                participants: {
-                  data: [
-                    { id: 'account-1', username: 'brand' },
-                    { id: 'participant-1', name: 'Taylor', username: 'taylor' },
-                  ],
-                },
-                updated_time: '2026-08-01T11:02:00+0000',
-              },
-            ],
-          },
-        }),
-      );
+              ],
+            },
+          }),
+        );
 
       const result = await service.listConversations('org', 'brand', 10);
 
       expect(httpServiceMock.get).toHaveBeenCalledWith(
-        'https://graph.facebook.com/v26.0/account-1/conversations',
+        'https://graph.facebook.com/v26.0/page-1/conversations',
         {
           params: {
-            access_token: 'tok',
+            access_token: 'page-token',
             fields:
               'id,updated_time,participants{id,username,name},messages.limit(10){id,message,created_time,from{id,username,name}}',
             limit: 10,

@@ -84,6 +84,7 @@ describe('MetaAdsService - Write Operations', () => {
         expect.objectContaining({
           params: expect.objectContaining({
             access_token: mockAccessToken,
+            is_adset_budget_sharing_enabled: 'false',
             name: 'Summer Sale 2024',
             objective: 'LINK_CLICKS',
             status: 'PAUSED',
@@ -767,6 +768,14 @@ describe('MetaAdsService - Write Operations', () => {
   // ─── uploadAdImage ───────────────────────────────────────────────────────
 
   describe('uploadAdImage', () => {
+    beforeEach(() => {
+      httpService.get.mockReturnValue(
+        of({
+          data: Buffer.from('image-bytes'),
+          headers: { 'content-type': 'image/jpeg' },
+        }),
+      );
+    });
     it('should upload an image and return hash and url', async () => {
       httpService.post.mockReturnValue(
         mockAxiosResponse({
@@ -789,7 +798,7 @@ describe('MetaAdsService - Write Operations', () => {
       expect(result.url).toBe('https://fbcdn.net/abc123.jpg');
     });
 
-    it('should pass image URL to the API', async () => {
+    it('uploads downloaded base64 image bytes to the API', async () => {
       httpService.post.mockReturnValue(
         mockAxiosResponse({
           images: {
@@ -809,7 +818,7 @@ describe('MetaAdsService - Write Operations', () => {
         null,
         expect.objectContaining({
           params: expect.objectContaining({
-            url: 'https://example.com/photo.png',
+            bytes: Buffer.from('image-bytes').toString('base64'),
           }),
         }),
       );
