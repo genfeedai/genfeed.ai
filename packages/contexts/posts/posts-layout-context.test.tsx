@@ -10,6 +10,7 @@ describe('PostsLayoutContext', () => {
         value={{
           setExportNode: vi.fn(),
           setFiltersNode: vi.fn(),
+          setLeadingNode: vi.fn(),
           setIsRefreshing: vi.fn(),
           setRefresh: vi.fn(),
           setScheduleActionsNode: vi.fn(),
@@ -28,6 +29,7 @@ describe('PostsLayoutContext', () => {
         value={{
           setExportNode: vi.fn(),
           setFiltersNode: vi.fn(),
+          setLeadingNode: vi.fn(),
           setIsRefreshing: vi.fn(),
           setRefresh: vi.fn(),
           setScheduleActionsNode: vi.fn(),
@@ -46,6 +48,7 @@ describe('PostsLayoutContext', () => {
         value={{
           setExportNode: vi.fn(),
           setFiltersNode: vi.fn(),
+          setLeadingNode: vi.fn(),
           setIsRefreshing: vi.fn(),
           setRefresh: vi.fn(),
           setScheduleActionsNode: vi.fn(),

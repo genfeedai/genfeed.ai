@@ -1,4 +1,6 @@
 import '@testing-library/jest-dom/vitest';
+import { usePostsLayout } from '@contexts/posts/posts-layout-context';
+import { PageHelpProvider } from '@contexts/ui/page-help-context';
 import type {
   ModalArticleProps,
   ModalNewsletterProps,
@@ -6,6 +8,7 @@ import type {
 } from '@props/modals/modal.props';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PublishingLayoutContent from './publishing-layout-content';
 
@@ -83,6 +86,21 @@ class MockIntersectionObserver {
 
 vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
 
+function ToolbarFixture() {
+  const { setLeadingNode, setFiltersNode, setExportNode } = usePostsLayout();
+  useEffect(() => {
+    setLeadingNode(<input aria-label="Search posts" />);
+    setFiltersNode(<button type="button">Filter posts</button>);
+    setExportNode(<a href="/acme/main/publishing/review">Approval queue</a>);
+    return () => {
+      setLeadingNode(null);
+      setFiltersNode(null);
+      setExportNode(null);
+    };
+  }, [setLeadingNode, setFiltersNode, setExportNode]);
+  return <div>posts</div>;
+}
+
 describe('PublishingLayoutContent', () => {
   beforeEach(() => {
     modalCallbacks.articleMount.mockClear();
@@ -97,6 +115,34 @@ describe('PublishingLayoutContent', () => {
     useSearchParamsMock.mockReturnValue(
       new URLSearchParams('platform=youtube'),
     );
+  });
+
+  it('puts existing search left and Help, queue, refresh, filters, New post on the right', () => {
+    render(
+      <PageHelpProvider help={{ title: 'Publishing', body: 'Publishing help' }}>
+        <PublishingLayoutContent>
+          <ToolbarFixture />
+        </PublishingLayoutContent>
+      </PageHelpProvider>,
+    );
+    const search = screen.getByRole('textbox', { name: 'Search posts' });
+    expect(screen.getByTestId('section-topbar-leading')).toContainElement(
+      search,
+    );
+    const controls = [
+      search,
+      screen.getByRole('button', { name: 'About this page' }),
+      screen.getByRole('link', { name: 'Approval queue' }),
+      screen.getByRole('button', { name: /refresh/i }),
+      screen.getByRole('button', { name: 'Filter posts' }),
+      screen.getByRole('button', { name: /new post/i }),
+    ];
+    for (let index = 1; index < controls.length; index++) {
+      expect(
+        controls[index - 1].compareDocumentPosition(controls[index]) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
   });
 
   it('lets Campaigns own their chrome instead of the Posts New post menu', () => {
