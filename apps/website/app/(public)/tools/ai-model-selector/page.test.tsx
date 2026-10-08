@@ -4,6 +4,7 @@ import {
 } from '@data/ai-model-selector';
 import { getMarketingOgImage } from '@data/marketing-og.data';
 import { render, screen } from '@testing-library/react';
+import type { ResolvingMetadata } from 'next';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -46,7 +47,10 @@ describe('AI model selector SEO', () => {
     expect(schema['@graph'][0].offers.price).toBe('0');
   });
   it('has a canonical, query-specific social metadata, and bounded route caching', async () => {
-    const metadata = await generateMetadata();
+    const metadata = await generateMetadata(
+      undefined,
+      Promise.resolve({ openGraph: { images: [] } }) as ResolvingMetadata,
+    );
     expect(metadata.title).toContain('Free AI Model Selector');
     expect(metadata.description).toContain('no signup');
     expect(metadata.alternates?.canonical).toBe(

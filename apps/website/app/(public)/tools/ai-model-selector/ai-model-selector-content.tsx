@@ -92,7 +92,7 @@ export default function AiModelSelectorContent({
                 }}
                 variant={
                   format === option.value
-                    ? ButtonVariant.PRIMARY
+                    ? ButtonVariant.DEFAULT
                     : ButtonVariant.SECONDARY
                 }
                 withWrapper={false}
@@ -117,7 +117,7 @@ export default function AiModelSelectorContent({
                 }}
                 variant={
                   priority === option.value
-                    ? ButtonVariant.PRIMARY
+                    ? ButtonVariant.DEFAULT
                     : ButtonVariant.SECONDARY
                 }
                 withWrapper={false}
@@ -146,7 +146,7 @@ export default function AiModelSelectorContent({
                   }}
                   variant={
                     orientation === option.value
-                      ? ButtonVariant.PRIMARY
+                      ? ButtonVariant.DEFAULT
                       : ButtonVariant.SECONDARY
                   }
                   withWrapper={false}
