@@ -321,7 +321,7 @@ export function usePostDetailState({
             accent: 'text-success',
             icon: TrendingUp,
             label: 'Engagement',
-            value: `${(engagementRate * 100).toFixed(1)}%`,
+            value: `${engagementRate.toFixed(1)}%`,
           },
     ];
 
