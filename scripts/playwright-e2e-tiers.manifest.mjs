@@ -37,6 +37,12 @@ export const PLAYWRIGHT_E2E_LANE_EXCLUSIONS = [
       'Requires a real Better Auth session. Executed by the hermetic authed job (`test:e2e:authed` / e2e-frontend-authed), not the mocked app-core full tier.',
   },
   {
+    lane: 'authed',
+    file: 'playwright/e2e/tests/smoke/studio-motion.authed.spec.ts',
+    reason:
+      'Requires a real Better Auth session. Executed by the hermetic authed job (`test:e2e:authed` / e2e-frontend-authed), not the mocked app-core full tier.',
+  },
+  {
     lane: 'cross-app',
     file: 'playwright/e2e/tests/website/home.spec.ts',
     reason:
