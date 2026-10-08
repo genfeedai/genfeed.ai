@@ -76,7 +76,7 @@ describe('runContentEval with the stub dispatcher', () => {
       }
     }
     expect(report.rubrics.map((rubric) => rubric.version).sort()).toEqual([
-      'autoevals-battle@0.4.0',
+      'autoevals-battle@0.3.0',
       'content-quality-v1',
     ]);
 

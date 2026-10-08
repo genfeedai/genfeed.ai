@@ -10,7 +10,7 @@ import { templates } from 'autoevals';
 import type { EvalRubricSpec, RubricRecord } from '../contracts';
 import { canonicalJson, sha256Digest } from '../provenance';
 
-export const AUTOEVALS_VERSION = '0.4.0';
+export const AUTOEVALS_VERSION = '0.3.0';
 
 export const CONTENT_QUALITY_RUBRIC: EvalRubricSpec = {
   choiceScores: { '1': 0, '2': 0.25, '3': 0.5, '4': 0.75, '5': 1 },
