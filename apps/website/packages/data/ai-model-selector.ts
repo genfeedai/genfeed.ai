@@ -99,32 +99,45 @@ export function selectModels(
 
 export const MODEL_SELECTOR_FAQ = [
   {
-    question: 'Is the AI model selector free, with no signup?',
+    question: 'Is the AI model selector free?',
     answer:
-      'Yes. You can compare catalog matches and copy your shortlist without an account, API key, or payment. Generating content in Genfeed is a separate product action and may use paid credits.',
+      'Yes. Get instant matches without signup or an API key. Creating content in Genfeed may use paid credits.',
   },
   {
-    question: 'Which AI model should I use for content creation?',
+    question: 'How are AI models compared?',
     answer:
-      'Start with the output you need: images, video, writing, voice, or music. Then choose a priority and, for images or video, an aspect ratio. The selector returns models listed for that format in Genfeed. Test a small draft before committing to a full campaign.',
+      'Choose a format, then sort by the catalog’s cost, speed, or quality tiers. Missing tiers sort last; the format default breaks ties. These labels are not benchmark scores.',
   },
   {
-    question: 'How are AI models compared here?',
+    question: 'Are the examples benchmark results?',
     answer:
-      'Matches use the public product registry. Lower cost, faster drafts, and higher quality sort by the recorded relative tiers, with the format default breaking ties. Missing tiers are shown as not listed and sort after known tiers. These are catalog signals, not measured benchmark scores or exact prices.',
-  },
-  {
-    question:
-      'Does this tool generate AI content or send my prompt to a model?',
-    answer:
-      'No. It helps you choose a model; it does not run a prompt or generate media. Filters run in your browser after the catalog loads. Search text is not submitted to the API.',
-  },
-  {
-    question: 'What if no AI model matches my requirements?',
-    answer:
-      'Clear the name search or choose any aspect ratio. A model with no recorded aspect ratios cannot satisfy a specific orientation filter. If a format has no listed models, the selector says so instead of inventing recommendations.',
+      'No. They are provider examples from Replicate, made with different prompts and settings. The linked Genfeed benchmark reports only recorded judged matches.',
   },
 ] as const;
+
+/** Public provider examples, checked 2026-10-08. Exact model keys only. */
+export const MODEL_EXAMPLES: Record<
+  string,
+  { src: string; source: string; alt: string }
+> = {
+  'google/nano-banana-2-lite': {
+    src: 'https://replicate.delivery/xezq/uTjeeWCfjuSJOJGTnewlGqXjFKVoR8nr4ep8oL7I3kff4YOaLA/tmpmlo3k05y.jpeg',
+    source:
+      'https://replicate.com/google/nano-banana-2-lite?prediction=erw1rfhng1rmy0cz383txf94rm',
+    alt: 'Nano Banana 2 Lite provider example: two bananas with model name lettering',
+  },
+  'black-forest-labs/flux-1.1-pro': {
+    src: 'https://replicate.delivery/czjl/XetPfMnnBtnyLUNiNcnl2Hneyeo8AsfsOl2AG5Znql5f3VK9E/tmpuv7lgrx7.jpg',
+    source: 'https://replicate.com/black-forest-labs/flux-1.1-pro',
+    alt: 'FLUX 1.1 Pro provider example: a black forest cake with lettering',
+  },
+  'black-forest-labs/flux-2-pro': {
+    src: 'https://replicate.delivery/xezq/EXuyWm6qQuK9J19lUCtc9sbO4k2RyHwoOP6GoYMCpeyM4a2KA/tmpzd16m4x2.webp',
+    source:
+      'https://replicate.com/black-forest-labs/flux-2-pro?prediction=rwn48vjygdrma0ctqcgbrd06t4',
+    alt: 'FLUX 2 Pro provider example: colorful lettering beside a swimming pool',
+  },
+};
 
 export const MODEL_SELECTOR_PATH = '/tools/ai-model-selector';
 export const MODEL_SELECTOR_TITLE =

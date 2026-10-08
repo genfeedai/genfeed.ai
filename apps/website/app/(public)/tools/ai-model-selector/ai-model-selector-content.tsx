@@ -1,12 +1,12 @@
 'use client';
 
 import {
+  MODEL_EXAMPLES,
   MODEL_FORMATS,
   MODEL_PRIORITIES,
   type ModelFormat,
   type ModelOrientation,
   type ModelPriority,
-  matchesOrientation,
   selectModels,
 } from '@data/ai-model-selector';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
@@ -14,9 +14,23 @@ import type { AiModelSelectorProps } from '@props/tools/ai-model-selector.props'
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { Button } from '@ui/primitives/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ui/primitives/collapsible';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { ArrowRight, Copy } from 'lucide-react';
+import {
+  ArrowRight,
+  Copy,
+  ImageIcon,
+  Mic,
+  Music2,
+  Type,
+  Video,
+} from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -26,15 +40,24 @@ const ORIENTATIONS = [
   { label: 'Landscape', value: 'landscape' },
   { label: 'Square', value: 'square' },
 ] as const;
+const FORMAT_ICONS = {
+  image: ImageIcon,
+  video: Video,
+  text: Type,
+  voice: Mic,
+  music: Music2,
+};
 
 export default function AiModelSelectorContent({
   models,
+  benchmark = null,
 }: AiModelSelectorProps): React.ReactElement {
   const [format, setFormat] = useState<ModelFormat>('image');
   const [priority, setPriority] = useState<ModelPriority>('default');
   const [orientation, setOrientation] = useState<ModelOrientation>('any');
   const [query, setQuery] = useState('');
   const [copyStatus, setCopyStatus] = useState('');
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const matches = selectModels(
     models ?? [],
     format,
@@ -44,10 +67,7 @@ export default function AiModelSelectorContent({
   );
   const shortlist = matches.slice(0, 3);
   const hasVisualOutput = format === 'image' || format === 'video';
-
-  function resetCopy(): void {
-    setCopyStatus('');
-  }
+  const FormatIcon = FORMAT_ICONS[format];
 
   async function copyShortlist(): Promise<void> {
     try {
@@ -63,22 +83,15 @@ export default function AiModelSelectorContent({
       );
       setCopyStatus('Shortlist copied.');
     } catch {
-      setCopyStatus(
-        'Could not copy. Select the model names below and copy them manually.',
-      );
+      setCopyStatus('Could not copy. Select the model names to copy manually.');
     }
   }
 
   return (
-    <section
-      aria-label="AI model selector"
-      className="grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-12"
-    >
-      <div className="min-w-0 space-y-6">
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-semibold">
-            1. What are you creating?
-          </legend>
+    <section aria-label="AI model selector" className="space-y-6">
+      <div className="grid gap-5 lg:grid-cols-2">
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium">Create</legend>
           <div className="flex flex-wrap gap-2">
             {MODEL_FORMATS.map((option) => (
               <Button
@@ -88,7 +101,7 @@ export default function AiModelSelectorContent({
                 label={option.label}
                 onClick={() => {
                   setFormat(option.value);
-                  resetCopy();
+                  setCopyStatus('');
                 }}
                 variant={
                   format === option.value
@@ -100,19 +113,9 @@ export default function AiModelSelectorContent({
             ))}
           </div>
         </fieldset>
-        {models ? (
-          <Link
-            className="inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4 lg:hidden"
-            href="#model-shortlist"
-          >
-            See your {matches.length} catalog matches &darr;
-          </Link>
-        ) : null}
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-semibold">
-            2. What matters most?
-          </legend>
-          <div className="grid grid-cols-2 gap-2">
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium">Prioritize</legend>
+          <div className="flex flex-wrap gap-2">
             {MODEL_PRIORITIES.map((option) => (
               <Button
                 aria-pressed={priority === option.value}
@@ -121,7 +124,7 @@ export default function AiModelSelectorContent({
                 label={option.label}
                 onClick={() => {
                   setPriority(option.value);
-                  resetCopy();
+                  setCopyStatus('');
                 }}
                 variant={
                   priority === option.value
@@ -132,215 +135,219 @@ export default function AiModelSelectorContent({
               />
             ))}
           </div>
-          <p className="text-sm leading-6 text-muted-foreground">
-            Relative catalog tiers, not exact prices or measured performance.
-          </p>
         </fieldset>
-        {hasVisualOutput ? (
-          <fieldset className="space-y-3">
-            <legend className="text-sm font-semibold">
-              3. Choose an aspect ratio
-            </legend>
-            <div className="grid grid-cols-2 gap-2">
-              {ORIENTATIONS.map((option) => (
-                <Button
-                  aria-pressed={orientation === option.value}
-                  className="min-h-11"
-                  key={option.value}
-                  label={option.label}
-                  onClick={() => {
-                    setOrientation(option.value);
-                    resetCopy();
-                  }}
-                  variant={
-                    orientation === option.value
-                      ? ButtonVariant.DEFAULT
-                      : ButtonVariant.SECONDARY
-                  }
-                  withWrapper={false}
-                />
-              ))}
-            </div>
-          </fieldset>
-        ) : null}
-        <Field label="Find a model or provider (optional)">
-          <Input
-            className="min-h-11"
-            id="model-search"
-            maxLength={100}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              resetCopy();
-            }}
-            placeholder="Search by name or provider"
-            value={query}
-          />
-        </Field>
-        <p className="text-sm leading-6 text-muted-foreground">
-          No account, API key, or generation queue. Results update as you
-          choose.
-        </p>
       </div>
-
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-          <h2
-            className="scroll-mt-24 text-xl font-semibold"
-            id="model-shortlist"
-          >
-            Your AI model shortlist
-          </h2>
-          <span aria-live="polite" className="text-sm text-muted-foreground">
-            {models
-              ? `${matches.length} catalog matches`
-              : 'Catalog unavailable'}
-          </span>
-        </div>
-        {models === null ? (
-          <div className="space-y-3 py-8" role="status">
-            <h3 className="text-lg font-semibold">
-              The model catalog could not be reached.
-            </h3>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Reload to try again. We only show models from the product
-              registry.
-            </p>
-            <Button
-              asChild
-              className="min-h-11"
-              variant={ButtonVariant.SECONDARY}
-              withWrapper={false}
-            >
-              <Link href="/tools/ai-model-selector">Reload catalog</Link>
-            </Button>
+      <Collapsible className="border-b border-border">
+        <CollapsibleTrigger className="min-h-11">
+          More filters
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="grid gap-4 pb-2 sm:grid-cols-2">
+            <Field label="Find a model or provider (optional)">
+              <Input
+                className="min-h-11"
+                id="model-search"
+                maxLength={100}
+                placeholder="Search models"
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setCopyStatus('');
+                }}
+                value={query}
+              />
+            </Field>
+            {hasVisualOutput ? (
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium">Aspect ratio</legend>
+                <div className="flex flex-wrap gap-2">
+                  {ORIENTATIONS.map((option) => (
+                    <Button
+                      aria-pressed={orientation === option.value}
+                      className="min-h-11"
+                      key={option.value}
+                      label={option.label}
+                      onClick={() => {
+                        setOrientation(option.value);
+                        setCopyStatus('');
+                      }}
+                      variant={
+                        orientation === option.value
+                          ? ButtonVariant.DEFAULT
+                          : ButtonVariant.SECONDARY
+                      }
+                      withWrapper={false}
+                    />
+                  ))}
+                </div>
+              </fieldset>
+            ) : null}
           </div>
-        ) : shortlist.length === 0 ? (
-          <div className="space-y-3 py-8" role="status">
-            <h3 className="text-lg font-semibold">
-              {models.length === 0
-                ? 'No models are currently listed.'
-                : 'No models match these choices.'}
-            </h3>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Try another format, clear the search, or choose any aspect ratio.
-              Specific ratios require recorded support.
-            </p>
+        </CollapsibleContent>
+      </Collapsible>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="scroll-mt-24 text-xl font-semibold" id="model-shortlist">
+          Your shortlist
+        </h2>
+        <span aria-live="polite" className="text-sm text-muted-foreground">
+          {models ? `${matches.length} matches` : 'Catalog unavailable'}
+        </span>
+      </div>
+      {models === null ? (
+        <div className="space-y-3 py-6" role="status">
+          <h3 className="font-semibold">
+            The model catalog could not be reached.
+          </h3>
+          <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
+            <Link href="/tools/ai-model-selector">Reload catalog</Link>
+          </Button>
+        </div>
+      ) : shortlist.length === 0 ? (
+        <div className="space-y-3 py-6" role="status">
+          <h3 className="font-semibold">
+            {models.length === 0
+              ? 'No models are currently listed.'
+              : 'No models match these choices.'}
+          </h3>
+          <Button
+            label="Reset filters"
+            onClick={() => {
+              setFormat('image');
+              setPriority('default');
+              setOrientation('any');
+              setQuery('');
+              setCopyStatus('');
+            }}
+            variant={ButtonVariant.SECONDARY}
+            withWrapper={false}
+          />
+        </div>
+      ) : (
+        <>
+          <ol className="grid gap-4 sm:grid-cols-3">
+            {shortlist.map((model) => {
+              const example = MODEL_EXAMPLES[model.key];
+              return (
+                <li
+                  className="grid min-w-0 grid-cols-[7rem_minmax(0,1fr)] gap-3 sm:block"
+                  key={model.id}
+                >
+                  <div className="relative aspect-square overflow-hidden rounded-lg bg-secondary sm:aspect-[4/3]">
+                    {example && !failedImages[model.key] ? (
+                      <Image
+                        alt={example.alt}
+                        className="object-cover"
+                        fill
+                        loading="lazy"
+                        sizes="(min-width: 640px) 33vw, 112px"
+                        src={example.src}
+                        unoptimized
+                        onError={() =>
+                          setFailedImages((current) => ({
+                            ...current,
+                            [model.key]: true,
+                          }))
+                        }
+                      />
+                    ) : (
+                      <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                        <FormatIcon aria-hidden="true" className="size-8" />
+                        {hasVisualOutput ? (
+                          <span className="text-xs">No preview</span>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 sm:pt-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="break-words font-semibold">
+                        {model.label}
+                      </h3>
+                      {model.isDefault ? (
+                        <span className="text-xs text-muted-foreground">
+                          Default
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {model.provider}
+                    </p>
+                    <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                      {[
+                        ['Cost', model.costTier],
+                        ['Speed', model.speedTier],
+                        ['Quality', model.qualityTier],
+                      ].map(([label, value]) => (
+                        <div key={label}>
+                          <dt className="text-muted-foreground">{label}</dt>
+                          <dd className="mt-1 capitalize">{value ?? '—'}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    {example ? (
+                      <a
+                        className="mt-3 inline-flex min-h-11 items-center text-xs underline underline-offset-4"
+                        href={example.source}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        Replicate example ↗
+                      </a>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+          <div className="flex flex-wrap items-center gap-3">
             <Button
               className="min-h-11"
-              label="Reset filters"
-              onClick={() => {
-                setFormat('image');
-                setPriority('default');
-                setOrientation('any');
-                setQuery('');
-                resetCopy();
-              }}
+              icon={<Copy aria-hidden="true" className="size-4" />}
+              label="Copy shortlist"
+              onClick={() => void copyShortlist()}
               variant={ButtonVariant.SECONDARY}
               withWrapper={false}
             />
+            <p className="text-sm text-muted-foreground" role="status">
+              {copyStatus}
+            </p>
           </div>
-        ) : (
-          <>
-            <ol className="divide-y divide-border">
-              {shortlist.map((model, index) => (
-                <li className="py-5" key={model.id}>
-                  <div className="flex items-start gap-4">
-                    <span
-                      aria-hidden="true"
-                      className="pt-1 text-sm tabular-nums text-muted-foreground"
-                    >
-                      0{index + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="break-words text-lg font-semibold">
-                          {model.label}
-                        </h3>
-                        {model.isDefault ? (
-                          <span className="rounded-full bg-secondary px-2 py-1 text-xs text-secondary-foreground">
-                            Format default
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-1 break-words text-sm text-muted-foreground">
-                        {model.provider} · {model.category}
-                      </p>
-                      {model.description ? (
-                        <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                          {model.description}
-                        </p>
-                      ) : null}
-                      <dl className="mt-4 grid grid-cols-3 gap-3 text-xs">
-                        {[
-                          ['Cost', model.costTier],
-                          ['Speed', model.speedTier],
-                          ['Quality', model.qualityTier],
-                        ].map(([label, value]) => (
-                          <div key={label}>
-                            <dt className="text-muted-foreground">{label}</dt>
-                            <dd className="mt-1 font-medium capitalize">
-                              {value ?? 'Not listed'}
-                            </dd>
-                          </div>
-                        ))}
-                      </dl>
-                      {hasVisualOutput && orientation !== 'any' ? (
-                        <p className="mt-3 text-xs text-muted-foreground">
-                          Recorded {orientation} ratios:{' '}
-                          {model.aspectRatios
-                            .filter((ratio) =>
-                              matchesOrientation(ratio, orientation),
-                            )
-                            .join(', ')}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ol>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <Button
-                className="min-h-11"
-                icon={<Copy aria-hidden="true" className="size-4" />}
-                label="Copy shortlist"
-                onClick={() => void copyShortlist()}
-                variant={ButtonVariant.SECONDARY}
-                withWrapper={false}
-              />
-              <p className="text-sm text-muted-foreground" role="status">
-                {copyStatus}
-              </p>
-            </div>
-          </>
-        )}
-        <p className="mt-5 text-sm leading-6 text-muted-foreground">
-          Up to three matches, ordered by your priority. When sorting by cost,
-          speed, or quality, missing tiers follow recorded ones. The format
-          default breaks ties. Availability comes from Genfeed’s public
-          registry, refreshed hourly.
-        </p>
-        <div className="mt-8 space-y-4 border-t border-border pt-6">
-          <p className="text-sm leading-6">
-            Take your shortlist into Genfeed to create content, review it, and
-            publish across your channels.
-          </p>
-          <ButtonTracked
-            asChild
-            className="min-h-11 w-full sm:w-auto"
-            size={ButtonSize.PUBLIC}
-            trackingData={{ action: 'create_content_model_selector' }}
-            trackingName="ai_model_selector_cta"
-          >
-            <a href={`${EnvironmentService.apps.app}/sign-up`}>
-              Create content in Genfeed{' '}
-              <ArrowRight aria-hidden="true" className="size-4" />
-            </a>
-          </ButtonTracked>
-          <p className="text-xs text-muted-foreground">
-            The selector is free. Content generation may use paid credits.
-          </p>
-        </div>
+        </>
+      )}
+      <p className="text-xs text-muted-foreground">
+        Catalog tiers, not measured scores. Provider examples use different
+        prompts.
+      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-y border-border py-3 text-sm">
+        <span>
+          {benchmark === null
+            ? 'Benchmark unavailable'
+            : benchmark.season.matchCount === 0
+              ? 'Benchmark: no judged matches yet'
+              : `${benchmark.season.matchCount} judged ${benchmark.season.medium} matches`}
+        </span>
+        <Link
+          className="inline-flex min-h-11 items-center gap-2 underline underline-offset-4"
+          href="/benchmark"
+        >
+          View benchmark <ArrowRight aria-hidden="true" className="size-4" />
+        </Link>
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <ButtonTracked
+          asChild
+          className="min-h-11 w-full sm:w-auto"
+          size={ButtonSize.PUBLIC}
+          trackingData={{ action: 'create_content_model_selector' }}
+          trackingName="ai_model_selector_cta"
+        >
+          <a href={`${EnvironmentService.apps.app}/sign-up`}>
+            Create content in Genfeed{' '}
+            <ArrowRight aria-hidden="true" className="size-4" />
+          </a>
+        </ButtonTracked>
+        <span className="text-xs text-muted-foreground">
+          Generation may use paid credits.
+        </span>
       </div>
     </section>
   );

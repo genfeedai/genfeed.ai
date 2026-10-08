@@ -11,6 +11,9 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('@public/models/models-loader', () => ({
   getPublicModels: vi.fn(async () => []),
 }));
+vi.mock('@public/benchmark/benchmark-loader', () => ({
+  getBenchmarkData: vi.fn(async () => null),
+}));
 vi.mock('@ui/footers', () => ({ SiteFooter: () => null }));
 vi.mock('@ui/buttons/tracked/ButtonTracked', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -23,7 +26,7 @@ describe('AI model selector SEO', () => {
     const { container } = render(await AiModelSelectorPage());
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      'Free AI model selector for content creation',
+      'Free AI model selector',
     );
     expect(
       screen.getByRole('link', { name: 'Browse all AI models' }),

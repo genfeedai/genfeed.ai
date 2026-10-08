@@ -48,9 +48,10 @@ describe('free AI model selector', () => {
     expect(
       screen.getByRole('heading', { name: 'Portrait Model' }),
     ).toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'See your 1 catalog matches ↓' }),
-    ).toHaveAttribute('href', '#model-shortlist');
+      screen.queryByRole('button', { name: 'Landscape' }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getAllByRole('link', { name: /Create content in Genfeed/ }),
     ).toHaveLength(1);
@@ -68,6 +69,7 @@ describe('free AI model selector', () => {
   });
   it('explains a non-match and restores the initial result when filters reset', () => {
     render(<AiModelSelectorContent models={models} />);
+    fireEvent.click(screen.getByRole('button', { name: 'More filters' }));
     fireEvent.click(screen.getByRole('button', { name: 'Landscape' }));
     expect(
       screen.getByRole('heading', { name: 'No models match these choices.' }),
@@ -84,6 +86,29 @@ describe('free AI model selector', () => {
     expect(
       screen.getByRole('heading', { name: 'Portrait Model' }),
     ).toBeInTheDocument();
+  });
+  it('shows sourced examples only for the exact model, and survives a broken image', () => {
+    const sampleModel = { ...models[0], key: 'google/nano-banana-2-lite' };
+    render(<AiModelSelectorContent models={[sampleModel]} />);
+    const image = screen.getByRole('img', {
+      name: /Nano Banana 2 Lite provider example/,
+    });
+    expect(image).toHaveAttribute(
+      'src',
+      expect.stringContaining('replicate.delivery'),
+    );
+    expect(
+      screen.getByRole('link', { name: /Replicate example/ }),
+    ).toHaveAttribute(
+      'href',
+      expect.stringContaining('replicate.com/google/nano-banana-2-lite'),
+    );
+    fireEvent.error(image);
+    expect(screen.getByText('No preview')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Portrait Model' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Benchmark unavailable')).toBeInTheDocument();
   });
   it('distinguishes a catalog outage from an empty catalog', () => {
     const { rerender } = render(<AiModelSelectorContent models={null} />);
