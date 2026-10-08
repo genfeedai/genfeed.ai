@@ -41,10 +41,14 @@ describe('literal MCP instruction contract', () => {
             '```json',
             '{ "name": "schema_example", "brand_id": "fixture" }',
             '```',
+            'Genfeed response schema:',
+            '```json',
+            '{ "name": "schema_example", "brand_id": "fixture" }',
+            '```',
             'Genfeed call:',
             '```json',
             '{ "server": "genfeed", "tool":',
-            '  "get_brands", "arguments": { "name": "brand_name", "brand_id": "fixture" } }',
+            '  "get_brands", "display_name": "schema_label", "arguments": { "name": "brand_name", "brand_id": "fixture" } }',
             '```',
           ].join('\n'),
         ),
@@ -129,6 +133,15 @@ describe('literal MCP instruction contract', () => {
         name: 'missing_action',
         surface: 'missing',
       },
+    ]);
+  });
+  it.each([
+    'Genfeed call:\n```json\n{ "name": "missing_action", "arguments": { "name": "schema_label" } }\n```',
+    'Genfeed tool example:\n```json\n{ "tool": "missing_action" }\n```',
+    '```json\n{ "server": "genfeed", "name": "missing_action" }\n```',
+  ])('rejects unknown named tools in explicit Genfeed calls', (text) => {
+    expect(checkReferenceSources(catalog, source(text))).toEqual([
+      expect.objectContaining({ name: 'missing_action', surface: 'missing' }),
     ]);
   });
   it('fails when a referenced tool loses its MCP surface', () => {

@@ -76,11 +76,14 @@ export function checkReferenceSources(
             .slice(index + 1, closing < 0 ? undefined : closing)
             .join('\n');
           genfeedExample =
-            /(?:mcp__genfeed__|["']?server["']?\s*:\s*["']genfeed["']|\bgenfeed\b)/iu.test(
+            /(?:mcp__genfeed__|["']?server["']?\s*:\s*["']genfeed["'])/iu.test(
               example,
             ) ||
-            /\bgenfeed\b/iu.test(
-              lines.slice(Math.max(0, index - 2), index).join(' '),
+            /^(?:#{1,6}\s+)?Genfeed\s+(?:tool\s+)?(?:call|tools?|invoke)\b/iu.test(
+              lines
+                .slice(0, index)
+                .findLast((previous) => previous.trim())
+                ?.trim() ?? '',
             );
         }
         if (fenced && genfeedExample) {
@@ -91,7 +94,7 @@ export function checkReferenceSources(
             .slice(index + 1, end < 0 ? undefined : end)
             .join('\n');
           for (const field of block.matchAll(
-            /(?:["']?(tool|tool_name|name)["']?\s*:\s*["'])([a-z][a-z0-9_]+)["']/gu,
+            /(?<![a-z0-9_])(?:["']?(tool|tool_name|name)["']?\s*:\s*["'])([a-z][a-z0-9_]+)["']/gu,
           )) {
             const prefix = block.slice(0, field.index);
             const depth =
