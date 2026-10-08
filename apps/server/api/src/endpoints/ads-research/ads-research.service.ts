@@ -192,7 +192,7 @@ export class AdsResearchService {
 
   async generateAdPack(
     organizationId: string,
-    input: Omit<RemixWorkflowInput, 'organizationId' | 'userId'>,
+    input: Omit<RemixWorkflowInput, 'organizationId'>,
   ): Promise<AdPack> {
     const ad = await this.getAdDetail(organizationId, {
       adAccountId: input.adAccountId,
@@ -209,6 +209,7 @@ export class AdsResearchService {
 
     const harnessNotes = await this.resolveAdHarnessNotes(
       organizationId,
+      input.userId,
       input.brandId,
       input.platform ?? ad.platform,
     );
@@ -239,6 +240,7 @@ export class AdsResearchService {
     this.assertRemixAllowed(ad);
     const harnessNotes = await this.resolveAdHarnessNotes(
       input.organizationId,
+      input.userId,
       input.brandId,
       input.platform ?? ad.platform,
     );
@@ -290,6 +292,7 @@ export class AdsResearchService {
     input: LaunchPrepInput,
   ): Promise<CampaignLaunchPrep> {
     const adPack = await this.generateAdPack(input.organizationId, {
+      userId: input.userId,
       adAccountId: input.adAccountId,
       adId: input.adId,
       brandId: input.brandId,
@@ -936,6 +939,7 @@ export class AdsResearchService {
 
   private async resolveAdHarnessNotes(
     organizationId: string,
+    userId: string,
     brandId: string | undefined,
     platform: string | undefined,
   ): Promise<string | undefined> {
@@ -944,6 +948,7 @@ export class AdsResearchService {
       return undefined;
     }
     const brief = await harnessGenerationService.resolveBrief({
+      userId,
       brandId,
       contentType: 'ad-creative',
       objective: 'conversion',

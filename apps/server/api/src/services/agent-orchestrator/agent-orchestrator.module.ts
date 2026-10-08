@@ -1,3 +1,4 @@
+import { BrandAccessModule } from '@api/authorization/brand-access/brand-access.module';
 import { AgentCampaignsModule } from '@api/collections/agent-campaigns/agent-campaigns.module';
 import { AgentGoalsModule } from '@api/collections/agent-goals/agent-goals.module';
 import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memories.module';
@@ -169,6 +170,7 @@ import { Module } from '@nestjs/common';
     AgentWorkObjectService,
   ],
   imports: [
+    BrandAccessModule,
     CommonModule,
     SignupPrefillModule,
     VisualProjectsCoreModule,

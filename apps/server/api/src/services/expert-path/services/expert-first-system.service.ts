@@ -377,6 +377,7 @@ export class ExpertFirstSystemService {
       profile?.label;
 
     const brief = await this.harnessGenerationService.resolveBrief({
+      userId,
       brandId,
       contentType: 'post',
       includeContentMemory: true,

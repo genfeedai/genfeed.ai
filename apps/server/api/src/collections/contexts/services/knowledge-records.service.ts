@@ -41,10 +41,16 @@ export class KnowledgeRecordsService {
     return role === MemberRole.OWNER || role === MemberRole.ADMIN;
   }
 
+  async assertCanBackfill(actor: KnowledgeActor): Promise<void> {
+    await this.brandAccessService.resolve(actor);
+    await this.assertCanGovern(actor);
+  }
+
   private async assertCanGovern(actor: KnowledgeActor): Promise<void> {
     const member = await this.prisma.member.findFirst({
       select: { role: { select: { key: true } } },
       where: {
+        organization: { isDeleted: false },
         isActive: true,
         isDeleted: false,
         organizationId: actor.organizationId,

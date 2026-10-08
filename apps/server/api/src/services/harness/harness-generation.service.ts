@@ -796,6 +796,12 @@ export class HarnessGenerationService {
       params.organizationId,
       params.brandId,
       params.knowledgeSelection,
+      {
+        userId: params.userId ?? '',
+        organizationId: params.organizationId,
+        isApiKey: params.isApiKey,
+        scopes: params.scopes,
+      },
     );
   }
 

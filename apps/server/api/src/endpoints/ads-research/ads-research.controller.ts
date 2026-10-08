@@ -172,6 +172,7 @@ export class AdsResearchController {
     const brandId = this.resolveAuthorizedBrandId(user, body.brandId);
     return this.adsResearchService.generateAdPack(user.organizationId, {
       ...body,
+      userId: user.userId ?? user.id,
       brandId,
     });
   }

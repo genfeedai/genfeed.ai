@@ -35,6 +35,9 @@ const LIST_MAX_LIMIT = 100;
 const PREVIEW_LENGTH = 1500;
 
 type KnowledgeActor = {
+  isApiKey?: boolean;
+  scopes?: string[];
+  apiKeyId?: string;
   brandId?: string;
   isWorkflowScoped?: boolean;
   organizationId: string;
@@ -47,6 +50,7 @@ function toActor(ctx: ToolExecutionContext): KnowledgeActor {
     ...(ctx.isWorkflowScoped ? { isWorkflowScoped: true } : {}),
     organizationId: ctx.organizationId,
     userId: ctx.userId,
+    ...ctx.apiKeyContext,
   };
 }
 

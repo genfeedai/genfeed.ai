@@ -88,7 +88,9 @@ export class ContentQualityScorerService {
         : contentTypeRaw === 'ad-creative'
           ? 'ad-creative'
           : 'image';
+    const userId = typeof context.userId === 'string' ? context.userId : '';
     const brief = await harnessGenerationService.resolveBrief({
+      userId,
       brandId,
       contentType,
       objective: 'engagement',

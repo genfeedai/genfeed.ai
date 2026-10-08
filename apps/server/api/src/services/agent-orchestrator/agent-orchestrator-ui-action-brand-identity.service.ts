@@ -173,8 +173,6 @@ export class AgentOrchestratorUiActionBrandIdentityService {
           strategyId: input.params.context.strategyId,
           threadId: input.params.threadId,
           userId: input.params.context.userId,
-          isApiKey: input.params.context.apiKeyContext?.isApiKey,
-          scopes: input.params.context.apiKeyContext?.scopes,
           validatedScope: input.scope,
         },
       );

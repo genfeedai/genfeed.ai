@@ -1,8 +1,6 @@
-import {
-  type BrandAccessActor,
-  BrandAccessService,
-} from '@api/authorization/brand-access/brand-access.service';
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeTranscriptIngestService } from '@api/collections/contexts/services/knowledge-transcript-ingest.service';
 import {
   extractSourceText,
@@ -17,6 +15,10 @@ import {
   KNOWLEDGE_SOURCE_CHUNK_KIND,
 } from '@api/collections/contexts/utils/knowledge-source.util';
 import { chunkTranscriptCues } from '@api/collections/contexts/utils/knowledge-transcript.util';
+import {
+  denyKnowledgeWork,
+  refreshKnowledgeWorkflowActor,
+} from '@api/collections/contexts/utils/knowledge-workflow-actor.util';
 import { chunkText } from '@api/collections/contexts/utils/text-chunker.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -39,8 +41,9 @@ import type {
   KnowledgeSourceCapturePayload,
   KnowledgeSourceIngestWorkflowInput,
 } from '@genfeedai/contracts/interfaces';
+import type { KnowledgeWorkflowInitiatingActor } from '@genfeedai/contracts/interfaces/automation/content-delivery-workflow.interface';
 import { Prisma } from '@genfeedai/prisma';
-import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 export type KnowledgeSourceIngestStatus =
   | 'completed'
@@ -76,7 +79,7 @@ export interface KnowledgeSourceIngestVersion {
 }
 
 export interface KnowledgeSourceIngestState {
-  initiatingActor?: BrandAccessActor;
+  initiatingActor?: KnowledgeWorkflowInitiatingActor;
   chunks?: string[];
   extracted?: {
     endMs?: number;
@@ -160,19 +163,61 @@ export class KnowledgeSourceIngestService {
     private readonly prisma: PrismaService,
     private readonly contextsService: ContextsService,
     private readonly brandAccessService: BrandAccessService,
+    private readonly records: KnowledgeRecordsService,
     @Optional() private readonly transcripts?: KnowledgeTranscriptIngestService,
   ) {}
 
+  private async sourceOwnership(
+    actor: KnowledgeWorkflowInitiatingActor | undefined,
+    organizationId: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ): Promise<Prisma.KnowledgeSourceWhereInput> {
+    if (!actor && !isCloudDeployment())
+      return { organizationId, isDeleted: false };
+    if (!actor) denyKnowledgeWork();
+    const where = await this.brandAccessService.predicate(actor, tx);
+    return {
+      organizationId,
+      isDeleted: false,
+      organization: { isDeleted: false },
+      OR: [
+        { scope: KnowledgeMemoryScope.ORG, brandId: null },
+        {
+          scope: KnowledgeMemoryScope.PERSONAL,
+          brandId: null,
+          userId: actor.userId,
+        },
+        { scope: KnowledgeMemoryScope.BRAND, brand: { is: where } },
+      ],
+    };
+  }
+
   private async assertInitiator(
     state: KnowledgeSourceIngestState,
-    brandId?: string,
+    _brandId?: string,
+    tx: Prisma.TransactionClient = this.prisma,
   ): Promise<void> {
+    const actor = await refreshKnowledgeWorkflowActor(
+      tx,
+      this.brandAccessService,
+      state.initiatingActor,
+      state.organizationId,
+    );
+    state.initiatingActor = actor;
     if (!isCloudDeployment()) return;
-    if (!state.initiatingActor)
-      throw new ForbiddenException('Knowledge access denied');
-    await this.brandAccessService.resolve(state.initiatingActor);
-    if (brandId)
-      await this.brandAccessService.assert(state.initiatingActor, brandId);
+    const version = await tx.knowledgeSourceVersion.findFirst({
+      where: {
+        id: state.versionId,
+        sourceId: state.sourceId,
+        organizationId: state.organizationId,
+        isDeleted: false,
+        source: {
+          is: await this.sourceOwnership(actor, state.organizationId, tx),
+        },
+      },
+      select: { id: true },
+    });
+    if (!version) denyKnowledgeWork();
   }
 
   async loadSource(
@@ -180,6 +225,12 @@ export class KnowledgeSourceIngestService {
   ): Promise<KnowledgeSourceIngestState> {
     const base: KnowledgeSourceIngestState = {
       organizationId: request.organizationId,
+      initiatingActor: await refreshKnowledgeWorkflowActor(
+        this.prisma,
+        this.brandAccessService,
+        request.initiatingActor,
+        request.organizationId,
+      ),
       sourceId: request.sourceId,
       status: 'skipped',
       versionId: request.versionId,
@@ -190,7 +241,12 @@ export class KnowledgeSourceIngestService {
         sourceId: request.sourceId,
         organizationId: request.organizationId,
         isDeleted: false,
-        source: { is: { isDeleted: false } },
+        source: {
+          is: await this.sourceOwnership(
+            base.initiatingActor,
+            request.organizationId,
+          ),
+        },
       },
       include: {
         source: {
@@ -219,29 +275,6 @@ export class KnowledgeSourceIngestService {
       (!row.isCurrent && !isRefreshCandidate)
     ) {
       return base;
-    }
-    const provenance = row.provenance;
-    const storedActor =
-      provenance && typeof provenance === 'object' && !Array.isArray(provenance)
-        ? provenance.initiatingActor
-        : undefined;
-    if (
-      storedActor &&
-      typeof storedActor === 'object' &&
-      !Array.isArray(storedActor) &&
-      typeof storedActor.userId === 'string' &&
-      storedActor.organizationId === request.organizationId
-    ) {
-      base.initiatingActor = {
-        userId: storedActor.userId,
-        organizationId: request.organizationId,
-        isApiKey: storedActor.isApiKey === true,
-        scopes: Array.isArray(storedActor.scopes)
-          ? storedActor.scopes.filter(
-              (scope): scope is string => typeof scope === 'string',
-            )
-          : [],
-      };
     }
     await this.assertInitiator(base, row.source.brandId ?? undefined);
     const payload = readPayload(row.payload);
@@ -300,6 +333,7 @@ export class KnowledgeSourceIngestService {
   async markSource(
     state: KnowledgeSourceIngestState,
   ): Promise<KnowledgeSourceIngestState> {
+    await this.assertInitiator(state, state.source?.brandId);
     if (!state.source || state.status === 'skipped') return state;
     if (state.status === 'ready') {
       await this.writeProcessingState(
@@ -400,7 +434,10 @@ export class KnowledgeSourceIngestService {
     return { ...state, extracted };
   }
 
-  chunkSource(state: KnowledgeSourceIngestState): KnowledgeSourceIngestState {
+  async chunkSource(
+    state: KnowledgeSourceIngestState,
+  ): Promise<KnowledgeSourceIngestState> {
+    await this.assertInitiator(state, state.source?.brandId);
     if (!state.extracted) return state;
     if (state.extractedCues && state.extractedCues.length > 0) {
       const chunks = chunkTranscriptCues(state.extractedCues, chunkText);
@@ -427,6 +464,7 @@ export class KnowledgeSourceIngestService {
     const sourceId = state.source.id;
     const versionId = state.version.id;
     await this.prisma.$transaction(async (tx) => {
+      await this.assertInitiator(state, state.source?.brandId, tx);
       // Take the same source row lock createVersion holds, then re-read
       // isCurrent: the flag loaded at the start of this run may be stale, and
       // a superseded run must only replace its own version's chunks.
@@ -489,6 +527,7 @@ export class KnowledgeSourceIngestService {
     state: KnowledgeSourceIngestState | undefined,
     error?: string,
   ): Promise<KnowledgeSourceIngestResult> {
+    if (state) await this.assertInitiator(state, state.source?.brandId);
     if (!state?.source) {
       return {
         chunkCount: 0,
@@ -558,6 +597,7 @@ export class KnowledgeSourceIngestService {
   ): Promise<void> {
     const now = new Date();
     await this.prisma.$transaction(async (tx) => {
+      await this.assertInitiator(state, state.source?.brandId, tx);
       const run = await tx.knowledgeSourceRefreshRun.findFirst({
         where: scopedWhere(state.organizationId, {
           candidateVersionId: state.versionId,
@@ -641,6 +681,7 @@ export class KnowledgeSourceIngestService {
   ): Promise<void> {
     const now = new Date();
     await this.prisma.$transaction(async (tx) => {
+      await this.assertInitiator(state, state.source?.brandId, tx);
       await this.writeFailedRefreshRun(tx, state, now, error);
       await tx.knowledgeCaptureRequest.updateMany({
         where: scopedWhere(state.organizationId, {
@@ -735,6 +776,13 @@ export class KnowledgeSourceIngestService {
   async scanForBackfill(
     input: KnowledgeSourceBackfillWorkflowInput,
   ): Promise<KnowledgeSourceBackfillScanResult> {
+    const initiatingActor = await refreshKnowledgeWorkflowActor(
+      this.prisma,
+      this.brandAccessService,
+      input.initiatingActor,
+      input.organizationId,
+    );
+    if (initiatingActor) await this.records.assertCanBackfill(initiatingActor);
     const rows = await this.prisma.knowledgeSourceVersion.findMany({
       where: {
         organizationId: input.organizationId,
@@ -748,7 +796,9 @@ export class KnowledgeSourceIngestService {
             KnowledgeProcessingState.FAILED,
           ],
         },
-        source: { is: { isDeleted: false } },
+        source: {
+          is: await this.sourceOwnership(initiatingActor, input.organizationId),
+        },
       },
       select: { id: true, sourceId: true },
       orderBy: { createdAt: 'asc' },
@@ -756,6 +806,7 @@ export class KnowledgeSourceIngestService {
     return {
       queued: rows.map((row) => ({
         organizationId: input.organizationId,
+        initiatingActor,
         sourceId: row.sourceId,
         versionId: row.id,
       })),

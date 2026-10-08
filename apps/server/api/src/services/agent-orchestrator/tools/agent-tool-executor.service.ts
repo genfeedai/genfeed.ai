@@ -1,3 +1,4 @@
+import { BrandAccessService } from '@api/authorization/brand-access/brand-access.service';
 import { mergeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { VisualProjectsService } from '@api/collections/visual-projects/services/visual-projects.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
@@ -274,6 +275,9 @@ export class AgentToolExecutorService implements OnModuleInit {
 
   @Inject(AgentOnboardingBrandSetupToolHandler)
   private readonly onboardingBrandSetupHandler!: AgentOnboardingBrandSetupToolHandler;
+
+  @Inject(BrandAccessService)
+  private readonly brandAccessService!: BrandAccessService;
 
   constructor(
     private readonly loggerService: LoggerService,
@@ -613,7 +617,7 @@ export class AgentToolExecutorService implements OnModuleInit {
         Boolean(id),
       ),
     )) {
-      await this.agentScopeContextService.assertBrandAuthorized(brandId, actor);
+      await this.brandAccessService.assert(actor, brandId);
     }
     const scope = context.validatedScope;
     if (!scope) return;

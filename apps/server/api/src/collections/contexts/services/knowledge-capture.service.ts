@@ -6,6 +6,7 @@ import { KnowledgeRecordsService } from '@api/collections/contexts/services/know
 import { KnowledgeRefreshService } from '@api/collections/contexts/services/knowledge-refresh.service';
 import { isIngestibleKnowledgeSourceKind } from '@api/collections/contexts/services/knowledge-source-ingest.service';
 import { KnowledgeSourceIngestWorkflowService } from '@api/collections/contexts/services/knowledge-source-ingest-workflow.service';
+import { toKnowledgeWorkflowActor } from '@api/collections/contexts/utils/knowledge-workflow-actor.util';
 import {
   KnowledgeProcessingState,
   KnowledgeSourceKind,
@@ -134,6 +135,7 @@ export class KnowledgeCaptureService {
         return result;
       const jobId = await this.ingestWorkflow.enqueueIngest({
         organizationId: actor.organizationId,
+        initiatingActor: toKnowledgeWorkflowActor(actor),
         sourceId: result.source.id,
         versionId: result.version.id,
       });
@@ -215,6 +217,7 @@ export class KnowledgeCaptureService {
     const version = await this.records.createVersion(actor, sourceId, dto);
     const jobId = await this.ingestWorkflow.enqueueIngest({
       organizationId: actor.organizationId,
+      initiatingActor: toKnowledgeWorkflowActor(actor),
       sourceId,
       versionId: version.id,
     });
@@ -249,14 +252,19 @@ export class KnowledgeCaptureService {
         : current;
     const jobId = await this.ingestWorkflow.enqueueIngest({
       organizationId: actor.organizationId,
+      initiatingActor: toKnowledgeWorkflowActor(actor),
       sourceId,
       versionId: version.id,
     });
     return { jobId, version };
   }
 
-  async backfill(organizationId: string): Promise<{ jobId: string }> {
-    const jobId = await this.ingestWorkflow.enqueueBackfill({ organizationId });
+  async backfill(actor: KnowledgeActor): Promise<{ jobId: string }> {
+    await this.records.assertCanBackfill(actor);
+    const jobId = await this.ingestWorkflow.enqueueBackfill({
+      organizationId: actor.organizationId,
+      initiatingActor: toKnowledgeWorkflowActor(actor),
+    });
     return { jobId };
   }
 
