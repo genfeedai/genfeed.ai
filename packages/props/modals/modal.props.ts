@@ -163,6 +163,7 @@ export interface IngredientOverlayViewProps
 export interface ModalProps {
   id: string;
   title?: string;
+  accessibleTitle?: string;
   children: ReactNode;
   isFullScreen?: boolean;
   isError?: boolean;

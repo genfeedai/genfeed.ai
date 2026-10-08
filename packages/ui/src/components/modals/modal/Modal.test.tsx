@@ -10,6 +10,22 @@ function triggerOpen(id: string) {
 }
 
 describe('Modal', () => {
+  it('names a custom-heading dialog without adding visible header chrome', () => {
+    render(
+      <Modal id="modal-custom-heading" accessibleTitle="New post">
+        <h2>New post</h2>
+      </Modal>,
+    );
+    triggerOpen('modal-custom-heading');
+
+    expect(
+      screen.getByRole('dialog', { name: 'New post' }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('New post')[0].parentElement).toHaveClass(
+      'sr-only',
+    );
+  });
+
   it('should render without crashing', () => {
     render(
       <Modal id="modal-test" title="Test Modal">
