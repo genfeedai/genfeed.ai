@@ -6,6 +6,7 @@ import type { PromptBarSubmitSlotProps } from '@genfeedai/props/prompt-bars/prom
 import { Button } from '@ui/primitives/button';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
 import { Square } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 /**
@@ -27,8 +28,10 @@ export default function PromptBarSubmitSlot({
   onStopListening,
   send,
   showStop = false,
-  stopLabel = 'Stop',
+  stopLabel,
 }: PromptBarSubmitSlotProps): ReactElement {
+  const translate = useTranslations('ui.promptBarSubmitSlot');
+  const resolvedStopLabel = stopLabel ?? translate('stop');
   if (isListening || isTranscribing) {
     return (
       <PromptBarVoiceControl
@@ -70,7 +73,7 @@ export default function PromptBarSubmitSlot({
       ) : null}
       {showStop && onStop ? (
         <Button
-          ariaLabel={stopLabel}
+          ariaLabel={resolvedStopLabel}
           className={cn(
             'shrink-0 min-h-0 min-w-0 p-0',
             density === 'compact' ? 'size-8' : 'size-9',
@@ -80,7 +83,7 @@ export default function PromptBarSubmitSlot({
           }
           onClick={onStop}
           size={ButtonSize.ICON}
-          tooltip="Stop"
+          tooltip={resolvedStopLabel}
           variant={ButtonVariant.DESTRUCTIVE}
           withWrapper={false}
         />
