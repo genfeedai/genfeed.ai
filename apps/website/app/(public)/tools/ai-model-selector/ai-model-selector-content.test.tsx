@@ -49,6 +49,9 @@ describe('free AI model selector', () => {
       screen.getByRole('heading', { name: 'Portrait Model' }),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole('link', { name: 'See your 1 catalog matches ↓' }),
+    ).toHaveAttribute('href', '#model-shortlist');
+    expect(
       screen.getAllByRole('link', { name: /Create content in Genfeed/ }),
     ).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: 'Video' }));

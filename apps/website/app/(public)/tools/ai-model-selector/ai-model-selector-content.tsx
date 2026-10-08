@@ -100,6 +100,14 @@ export default function AiModelSelectorContent({
             ))}
           </div>
         </fieldset>
+        {models ? (
+          <Link
+            className="inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4 lg:hidden"
+            href="#model-shortlist"
+          >
+            See your {matches.length} catalog matches &darr;
+          </Link>
+        ) : null}
         <fieldset className="space-y-3">
           <legend className="text-sm font-semibold">
             2. What matters most?
@@ -176,7 +184,12 @@ export default function AiModelSelectorContent({
 
       <div className="min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-          <h2 className="text-xl font-semibold">Your AI model shortlist</h2>
+          <h2
+            className="scroll-mt-24 text-xl font-semibold"
+            id="model-shortlist"
+          >
+            Your AI model shortlist
+          </h2>
           <span aria-live="polite" className="text-sm text-muted-foreground">
             {models
               ? `${matches.length} catalog matches`
@@ -302,9 +315,10 @@ export default function AiModelSelectorContent({
           </>
         )}
         <p className="mt-5 text-sm leading-6 text-muted-foreground">
-          Up to three matches, ordered by your priority. Missing tiers sort
-          after recorded ones; the format default breaks ties. Availability
-          comes from Genfeed’s public registry, refreshed hourly.
+          Up to three matches, ordered by your priority. When sorting by cost,
+          speed, or quality, missing tiers follow recorded ones. The format
+          default breaks ties. Availability comes from Genfeed’s public
+          registry, refreshed hourly.
         </p>
         <div className="mt-8 space-y-4 border-t border-border pt-6">
           <p className="text-sm leading-6">
