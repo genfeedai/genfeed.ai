@@ -239,46 +239,50 @@ export class TwitterResponseMapper {
     const nonPublicMetrics = tweet?.non_public_metrics ?? {};
     const organicMetrics = tweet?.organic_metrics ?? {};
     const mediaType = this.resolveMediaType(media);
-    const impressions =
-      nonPublicMetrics.impression_count || organicMetrics.impression_count || 0;
+    const videoViews =
+      mediaType === 'video'
+        ? media.find((item) => item.type === 'video')?.public_metrics
+            ?.view_count
+        : undefined;
+    const learningMetrics = captureLearningMetrics(
+      {
+        ...metrics,
+        ...nonPublicMetrics,
+        ...organicMetrics,
+        view_count: videoViews ?? metrics.view_count,
+      },
+      {
+        views: 'view_count',
+        impressions: 'impression_count',
+        likes: 'like_count',
+        comments: 'reply_count',
+        shares: 'retweet_count',
+        saves: 'bookmark_count',
+      },
+    );
+    const impressions = learningMetrics.metrics.impressions?.value;
     const totalEngagements =
       (metrics.like_count || 0) +
       (metrics.retweet_count || 0) +
       (metrics.reply_count || 0) +
       (metrics.quote_count || 0);
     const engagementRate =
-      impressions > 0 ? (totalEngagements / impressions) * 100 : 0;
-
-    let views = metrics.view_count || 0;
-    if (mediaType === 'video') {
-      const video = media.find((item) => item.type === 'video');
-      if (video?.public_metrics?.view_count) {
-        views = video.public_metrics.view_count;
-      }
-    }
+      impressions !== undefined && impressions > 0
+        ? (totalEngagements / impressions) * 100
+        : 0;
 
     return {
-      learningMetrics: captureLearningMetrics(
-        { ...metrics, ...nonPublicMetrics, ...organicMetrics },
-        {
-          views: 'view_count',
-          impressions: 'impression_count',
-          likes: 'like_count',
-          comments: 'reply_count',
-          shares: 'retweet_count',
-          saves: 'bookmark_count',
-        },
-      ),
+      learningMetrics,
       bookmarks: metrics.bookmark_count || 0,
       comments: metrics.reply_count || 0,
       engagementRate:
         engagementRate > 0 ? Number(engagementRate.toFixed(2)) : undefined,
-      impressions: impressions || undefined,
+      impressions,
       likes: metrics.like_count || 0,
       mediaType,
       quotes: metrics.quote_count || 0,
       retweets: metrics.retweet_count || 0,
-      views: views || 0,
+      views: learningMetrics.metrics.views?.value ?? 0,
     };
   }
 

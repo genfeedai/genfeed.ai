@@ -539,8 +539,22 @@ export class PostAnalyticsService extends BaseService<
         CREDENTIAL_PLATFORM.TWITTER,
         {
           learningMetrics: analytics.learningMetrics,
+          impressions: analytics.impressions ?? null,
+          isPinned:
+            analytics.isPinned ?? analytics.learningMetrics?.isPinned ?? null,
+          isPromoted:
+            analytics.isPromoted ?? analytics.learningMetrics?.isPaid ?? null,
+          metricAvailability: {
+            impressions:
+              analytics.learningMetrics?.metrics.impressions?.availability ??
+              (analytics.impressions == null ? 'unavailable' : 'observed'),
+            views:
+              analytics.learningMetrics?.metrics.views?.availability ??
+              'observed',
+          },
           totalComments: analytics.comments,
           totalLikes: analytics.likes,
+          totalSaves: analytics.bookmarks ?? 0,
           totalShares: analytics.retweets || 0,
           totalViews: analytics.views,
         },

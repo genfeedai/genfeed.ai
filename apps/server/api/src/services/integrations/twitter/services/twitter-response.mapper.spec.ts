@@ -132,6 +132,50 @@ describe('TwitterResponseMapper', () => {
   });
 
   describe('analytics projections', () => {
+    it('retains observed-zero impressions and views', () => {
+      const result = mapper.mapAnalytics({
+        data: [
+          {
+            public_metrics: { view_count: 0 },
+            organic_metrics: { impression_count: 0 },
+          },
+        ],
+      });
+      expect(result).toMatchObject({ impressions: 0, views: 0 });
+      expect(result.learningMetrics?.metrics.impressions).toMatchObject({
+        availability: 'observed',
+        value: 0,
+      });
+    });
+
+    it('uses the same selected impression count in descriptive and learning evidence', () => {
+      const result = mapper.mapAnalytics({
+        data: [
+          {
+            non_public_metrics: { impression_count: 90 },
+            organic_metrics: { impression_count: 10 },
+          },
+        ],
+      });
+      expect(result.impressions).toBe(
+        result.learningMetrics?.metrics.impressions?.value,
+      );
+    });
+
+    it('retains observed-zero video views over a tweet-level fallback', () => {
+      const result = mapper.mapAnalytics({
+        data: [{ public_metrics: { view_count: 50 } }],
+        includes: {
+          media: [{ type: 'video', public_metrics: { view_count: 0 } }],
+        },
+      });
+      expect(result.views).toBe(0);
+      expect(result.learningMetrics?.metrics.views).toMatchObject({
+        availability: 'observed',
+        value: 0,
+      });
+    });
+
     it('projects video views, impressions, and engagement rate', () => {
       const result = mapper.mapAnalytics({
         data: [
