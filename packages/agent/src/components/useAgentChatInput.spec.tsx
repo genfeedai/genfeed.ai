@@ -121,6 +121,12 @@ describe('areAgentChatMentionReferencesEqual', () => {
   });
 });
 
+beforeEach(() => {
+  microphoneState.isListening = false;
+  microphoneState.isTranscribing = false;
+  microphoneState.isSupported = true;
+});
+
 describe('useAgentChatInput voice exclusivity', () => {
   beforeEach(() => {
     vi.clearAllMocks();
