@@ -27,6 +27,10 @@ import {
   instagramAuthorizedSignalStatusValues,
   instagramAuthorizedSignalsSnapshotSchema,
 } from '@genfeedai/contracts/api-types/contracts/instagram-authorized-signals.contract';
+import {
+  META_GRAPH_API_VERSION,
+  META_GRAPH_URL,
+} from '@genfeedai/integrations';
 import { readRawString, readRecord } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -84,7 +88,7 @@ const PUBLISHING_FIELDS = [
 const PERFORMANCE_FIELDS = [
   'commentCount',
   'id',
-  'impressions',
+  'views',
   'likeCount',
   'reach',
   'saved',
@@ -119,13 +123,9 @@ type PlatformEvidenceKey = Exclude<
   'genfeed-publish-outcomes-observed'
 >;
 
-function isProfessionalAccountType(accountType: string | undefined): boolean {
-  return accountType === 'BUSINESS' || accountType === 'MEDIA_CREATOR';
-}
-
 @Injectable()
 export class InstagramAuthorizedSignalsService {
-  private readonly graphUrl = 'https://graph.facebook.com';
+  private readonly graphUrl = META_GRAPH_URL;
   private readonly apiVersion: string;
   private readonly constructorName = this.constructor.name;
   private readonly provider: InstagramAuthorizedSignalsProvider;
@@ -141,7 +141,7 @@ export class InstagramAuthorizedSignalsService {
     private readonly socialWarmupEnrollmentsService: SocialWarmupEnrollmentsService,
   ) {
     this.apiVersion =
-      this.configService.get('INSTAGRAM_API_VERSION') || 'v26.0';
+      this.configService.get('INSTAGRAM_API_VERSION') || META_GRAPH_API_VERSION;
     this.provider = new InstagramAuthorizedSignalsProvider(
       this.httpService,
       this.graphUrl,
@@ -401,7 +401,7 @@ export class InstagramAuthorizedSignalsService {
     }
 
     const value = {
-      accountType: readRawString(result.value.account_type),
+      accountType: undefined,
       biography: readRawString(result.value.biography),
       followersCount: readNonNegativeInteger(result.value.followers_count),
       followsCount: readNonNegativeInteger(result.value.follows_count),
@@ -516,15 +516,18 @@ export class InstagramAuthorizedSignalsService {
       );
     }
 
-    const accountType = readRawString(result.value.account_type);
-    const isProfessional = isProfessionalAccountType(accountType);
-    const canPublish = accountType === 'BUSINESS';
+    const accountType = undefined;
+    // A successful Facebook-login IGUser read identifies a professional account.
+    // Creator and Business accounts both support content publishing.
+    const isProfessional = Boolean(readRawString(result.value.id));
+    const canPublish =
+      isProfessional && grantedScopes.includes('instagram_content_publish');
     const value = {
       accountType,
       canPublish,
       isProfessionalAccount: isProfessional,
     };
-    const professionalLimited = accountType !== undefined && !canPublish;
+    const professionalLimited = !isProfessional;
     const fieldAvailability = toFieldAvailability(
       PUBLISHING_FIELDS.map((field) => [
         field,

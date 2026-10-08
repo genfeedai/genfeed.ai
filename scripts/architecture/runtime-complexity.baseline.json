@@ -90,7 +90,7 @@
     "symbol": "apps/server/api/src/collections/social-inbox/services/social-inbox-ingestion.service.ts"
   },
   {
-    "actual": 1186,
+    "actual": 1181,
     "file": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts"
@@ -172,18 +172,6 @@
     "file": "apps/server/api/src/services/content-optimization/content-optimization.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/content-optimization/content-optimization.service.ts"
-  },
-  {
-    "actual": 157,
-    "file": "apps/server/api/src/services/integrations/facebook/services/facebook.service.ts",
-    "metric": "method-lines",
-    "symbol": "FacebookService.getPostAnalytics"
-  },
-  {
-    "actual": 1024,
-    "file": "apps/server/api/src/services/integrations/meta-ads/services/meta-ads.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/services/integrations/meta-ads/services/meta-ads.service.ts"
   },
   {
     "actual": 1134,

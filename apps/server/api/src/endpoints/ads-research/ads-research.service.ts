@@ -4,6 +4,10 @@ import { CreativePatternsService } from '@api/collections/creative-patterns/crea
 import type { CreativePatternDocument } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import {
+  resolveAdsLaunchObjectives,
+  toPlatformLabel,
+} from '@api/endpoints/ads-research/ads-launch-goals.util';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
@@ -253,7 +257,7 @@ export class AdsResearchService {
       {
         description:
           'Analyze a winning ad, adapt the angle to the selected brand, draft an ad pack, and keep launch prep paused for human review.',
-        label: `${input.brandName || 'Brand'} ${this.toPlatformLabel(ad.platform)} Ad Remix`,
+        label: `${input.brandName || 'Brand'} ${toPlatformLabel(ad.platform)} Ad Remix`,
         metadata: {
           adPack,
           brandId: input.brandId,
@@ -310,6 +314,11 @@ export class AdsResearchService {
       source: input.source,
     });
 
+    const objectives = resolveAdsLaunchObjectives(
+      detail.platform,
+      input.objective || detail.campaignObjective,
+    );
+
     let workflowId: string | undefined;
     let workflowName: string | undefined;
 
@@ -325,14 +334,13 @@ export class AdsResearchService {
         callToAction: adPack.cta,
         headline: adPack.headlines[0],
         linkUrl: detail.landingPageUrl,
-        name: `${input.brandName || 'Brand'} ${this.toPlatformLabel(detail.platform)} Ad`,
+        name: `${input.brandName || 'Brand'} ${toPlatformLabel(detail.platform)} Ad`,
       },
       adAccountId: input.adAccountId,
       adPack,
       adSet: {
         name: `${input.brandName || 'Brand'} ${detail.channel.toUpperCase()} Audience`,
-        optimizationGoal:
-          input.objective || detail.campaignObjective || 'CONVERSIONS',
+        optimizationGoal: objectives.adSet,
         targeting: {
           industry: input.industry || detail.industry || 'general',
           placements: adPack.campaignRecipe.placements,
@@ -344,8 +352,8 @@ export class AdsResearchService {
         dailyBudget: input.dailyBudget,
         name:
           input.campaignName ||
-          `${input.brandName || 'Brand'} ${detail.channel === AdsChannel.ALL ? this.toPlatformLabel(detail.platform) : detail.channel} Campaign`,
-        objective: input.objective || detail.campaignObjective || 'CONVERSIONS',
+          `${input.brandName || 'Brand'} ${detail.channel === AdsChannel.ALL ? toPlatformLabel(detail.platform) : detail.channel} Campaign`,
+        objective: objectives.campaign,
         status: 'PAUSED',
       },
       channel: detail.channel,
@@ -851,13 +859,13 @@ export class AdsResearchService {
 
     return {
       accountId: params.adAccountId,
-      accountName: `Connected ${this.toPlatformLabel(params.platform)} account`,
+      accountName: `Connected ${toPlatformLabel(params.platform)} account`,
       adAccountId: params.adAccountId,
       body: creative?.body,
       channel,
       credentialId: params.credentialId,
       cta: creative?.callToAction,
-      explanation: `This ad is performing well in your connected ${this.toPlatformLabel(
+      explanation: `This ad is performing well in your connected ${toPlatformLabel(
         params.platform,
       )} account. Keep the core angle, tighten the promise, and adapt the proof for your brand before launch.`,
       headline: creative?.title,
@@ -984,7 +992,7 @@ export class AdsResearchService {
       : '';
 
     return {
-      assetCreativeBrief: `Build a ${this.toPlatformLabel(
+      assetCreativeBrief: `Build a ${toPlatformLabel(
         params.ad.platform,
       )} creative for ${brandName} in ${niche}. Keep the winning angle from "${sourceHeadline}", make the promise clearer, add brand-specific proof, and leave space for a direct CTA.${harnessSuffix}`,
       campaignRecipe: {
@@ -1024,7 +1032,7 @@ export class AdsResearchService {
     patterns: Array<{ label: string }>;
   }): string {
     const parts = [
-      `This ${this.toPlatformLabel(params.platform)} ad is outperforming peers`,
+      `This ${toPlatformLabel(params.platform)} ad is outperforming peers`,
     ];
 
     if (params.industry) {
@@ -1093,19 +1101,6 @@ export class AdsResearchService {
         return 'x_ads';
       case AdsPlatform.GOOGLE:
         return 'google_ads';
-    }
-  }
-
-  private toPlatformLabel(platform: AdsResearchPlatform | AdsPlatform): string {
-    switch (platform) {
-      case AdsPlatform.META:
-        return 'Meta Ads';
-      case AdsPlatform.TIKTOK:
-        return 'TikTok Ads';
-      case AdsPlatform.X:
-        return 'X Ads';
-      case AdsPlatform.GOOGLE:
-        return 'Google Ads';
     }
   }
 

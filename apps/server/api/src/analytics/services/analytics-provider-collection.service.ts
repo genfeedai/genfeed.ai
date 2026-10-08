@@ -93,9 +93,18 @@ export class AnalyticsProviderCollectionService {
         });
       const sourceAttemptId = randomUUID(),
         requestStartedAt = new Date();
+      if (!credential.externalId)
+        throw Object.assign(
+          new Error(
+            'Facebook credential is missing its selected Page ID. Reconnect the account.',
+          ),
+          { status: 401 },
+        );
       const analytics = await this.facebookService.getPostAnalytics(
         post.externalId,
         EncryptionUtil.decrypt(credential.accessToken),
+        credential.externalId,
+        post.isVideo === true,
       );
       const receivedAt = new Date();
       await this.postAnalyticsService.processFacebookAnalytics(

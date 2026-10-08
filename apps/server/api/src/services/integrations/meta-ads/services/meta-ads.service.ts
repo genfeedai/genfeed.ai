@@ -17,10 +17,15 @@ import type {
   UpdateAdSetParams,
   UpdateCampaignParams,
 } from '@api/services/integrations/meta-ads/interfaces/meta-ads.interface';
+import { buildMetaAdCreative } from '@api/services/integrations/meta-ads/utils/meta-ad-creative.util';
+import { readMetaAdImageBytes } from '@api/services/integrations/meta-ads/utils/meta-ad-image.util';
 import { buildMetaAdSetTargeting } from '@api/services/integrations/meta-ads/utils/meta-ads-targeting.util';
+import { buildMetaCampaign } from '@api/services/integrations/meta-ads/utils/meta-campaign.util';
 import {
   getIntegrationProviderDefinition,
   IntegrationHttpClient,
+  META_GRAPH_API_VERSION,
+  META_GRAPH_URL,
 } from '@genfeedai/integrations';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
@@ -47,10 +52,10 @@ export class MetaGraphPaginationLimitError extends Error {
 
 @Injectable()
 export class MetaAdsService {
-  private readonly API_VERSION = 'v26.0';
+  private readonly API_VERSION = META_GRAPH_API_VERSION;
   private readonly provider = getIntegrationProviderDefinition('meta_ads');
   private readonly BASE_URL =
-    this.provider?.endpoints.apiBaseUrl ?? 'https://graph.facebook.com';
+    this.provider?.endpoints.apiBaseUrl ?? META_GRAPH_URL;
   private readonly constructorName: string = String(this.constructor.name);
   private readonly integrationHttpClient: IntegrationHttpClient;
 
@@ -634,20 +639,7 @@ export class MetaAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const data: Record<string, unknown> = {
-        name: params.name,
-        objective: params.objective,
-        special_ad_categories: JSON.stringify(params.specialAdCategories || []),
-        status: params.status || 'PAUSED',
-      };
-
-      if (params.dailyBudget !== undefined) {
-        data.daily_budget = Math.round(params.dailyBudget * 100);
-      }
-      if (params.lifetimeBudget !== undefined) {
-        data.lifetime_budget = Math.round(params.lifetimeBudget * 100);
-      }
-
+      const data = buildMetaCampaign(params);
       const response = await this.makePostRequest<{ id: string }>(
         accessToken,
         `${adAccountId}/campaigns`,
@@ -822,47 +814,10 @@ export class MetaAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const linkData = {
-        link: params.creative.linkUrl,
-        ...(params.creative.title && { name: params.creative.title }),
-        ...(params.creative.body && { message: params.creative.body }),
-        ...(params.creative.imageHash && {
-          image_hash: params.creative.imageHash,
-        }),
-        ...(params.creative.callToAction && {
-          call_to_action: {
-            type: params.creative.callToAction,
-            value: { link: params.creative.linkUrl },
-          },
-        }),
-      };
-      const objectStorySpec: Record<string, unknown> = {
-        page_id: params.creative.pageId ?? '',
-      };
-
-      if (params.creative.videoId) {
-        objectStorySpec.video_data = {
-          ...(params.creative.thumbnailUrl && {
-            image_url: params.creative.thumbnailUrl,
-          }),
-          video_id: params.creative.videoId,
-          ...(params.creative.title && { title: params.creative.title }),
-          ...(params.creative.body && { message: params.creative.body }),
-          ...(params.creative.callToAction && {
-            call_to_action: {
-              type: params.creative.callToAction,
-              value: { link: params.creative.linkUrl },
-            },
-          }),
-        };
-      } else {
-        objectStorySpec.link_data = linkData;
-      }
-      const creativeSpec = { object_story_spec: objectStorySpec };
-
+      const creativeSpec = buildMetaAdCreative(params.creative);
       const data: Record<string, unknown> = {
         adset_id: params.adSetId,
-        creative: JSON.stringify(creativeSpec),
+        creative: creativeSpec,
         name: params.name,
         status: 'PAUSED',
       };
@@ -917,10 +872,19 @@ export class MetaAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const response = await this.makePostRequest<{
+      const bytes = await readMetaAdImageBytes(imageUrl);
+      const response = await this.integrationHttpClient.request<{
         images: Record<string, { hash: string; url: string }>;
-      }>(accessToken, `${adAccountId}/adimages`, {
-        url: imageUrl,
+      }>({
+        body: new URLSearchParams({
+          bytes,
+        }),
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        method: 'POST',
+        provider: this.provider,
+        query: this.buildIntegrationQuery(accessToken),
+        timeoutMs: 30_000,
+        url: this.getApiUrl(`${adAccountId}/adimages`),
       });
 
       const imageData = Object.values(response.images)[0];

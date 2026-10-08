@@ -85,6 +85,20 @@ describe('AdsResearchService', () => {
     );
   });
 
+  it('prepares current Meta campaign objectives separately from ad-set optimization goals', async () => {
+    adPerformanceService.findPublicById.mockResolvedValue(buildPublicAd());
+    const prepared = await service.prepareCampaignForReview({
+      organizationId: 'org-1',
+      userId: 'user-1',
+      adId: 'public-ad',
+      source: 'public',
+      platform: AdsPlatform.META,
+    });
+    expect(prepared.campaign.objective).toBe('OUTCOME_SALES');
+    expect(prepared.adSet.optimizationGoal).toBe('OFFSITE_CONVERSIONS');
+    expect(prepared.campaign.status).toBe('PAUSED');
+  });
+
   it('normalizes public top-performer filters before querying ad performance', async () => {
     await service.listAds('org-1', {
       industry: 'fitness',

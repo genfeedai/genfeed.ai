@@ -9,6 +9,10 @@ import {
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import type { InstagramPageResponse } from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
+import {
+  META_GRAPH_API_VERSION,
+  META_GRAPH_URL,
+} from '@genfeedai/integrations';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -42,7 +46,7 @@ const INSTAGRAM_PAGES_SCOPE = 'pages_show_list';
 @Injectable()
 export class InstagramConnectionResolverService {
   private readonly redirectUri: string;
-  private readonly graphUrl: string = 'https://graph.facebook.com';
+  private readonly graphUrl: string = META_GRAPH_URL;
   private readonly apiVersion: string;
 
   constructor(
@@ -56,7 +60,7 @@ export class InstagramConnectionResolverService {
   ) {
     this.redirectUri = this.configService.get('INSTAGRAM_REDIRECT_URI') ?? '';
     this.apiVersion =
-      this.configService.get('INSTAGRAM_API_VERSION') || 'v26.0';
+      this.configService.get('INSTAGRAM_API_VERSION') || META_GRAPH_API_VERSION;
   }
 
   /**

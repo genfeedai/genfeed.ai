@@ -29,6 +29,8 @@ export interface InstagramCredentialResponse {
   accessToken: string;
   externalId?: string;
   isConnected?: boolean;
+  /** Present only when the grant was captured; omitted for unknown historical grants. */
+  grantedScopes?: string[];
 }
 
 /**
@@ -58,7 +60,7 @@ export interface InstagramGraphMessageNode {
 }
 
 /**
- * Raw Graph API conversation node, as returned by `/{ig-user-id}/conversations`.
+ * Raw Graph API conversation node, as returned by `/{page-id}/conversations`.
  */
 export interface InstagramGraphConversationNode {
   id?: string;
@@ -119,3 +121,5 @@ export interface InstagramTrendingHashtag {
   mentions: number;
   growthRate: number;
 }
+
+export type InstagramMessageRecipient = { id: string } | { comment_id: string };

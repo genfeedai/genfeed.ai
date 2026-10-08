@@ -615,7 +615,9 @@ export class PostAnalyticsService extends BaseService<
             impressions:
               analytics.impressions == null ? 'unavailable' : 'observed',
             reach: analytics.reach == null ? 'unavailable' : 'observed',
-            views: analytics.views == null ? 'unavailable' : 'observed',
+            views:
+              analytics.learningMetrics?.metrics.views?.availability ??
+              'unavailable',
           },
           reach: analytics.reach ?? null,
           totalComments: analytics.comments,
@@ -843,7 +845,9 @@ export class PostAnalyticsService extends BaseService<
             impressions:
               analytics.impressions == null ? 'unavailable' : 'observed',
             reach: analytics.reach == null ? 'unavailable' : 'observed',
-            views: 'observed',
+            views:
+              analytics.learningMetrics?.metrics.views?.availability ??
+              'unavailable',
           },
           reach: analytics.reach ?? null,
           totalComments: analytics.comments,
@@ -887,6 +891,11 @@ export class PostAnalyticsService extends BaseService<
         CREDENTIAL_PLATFORM.THREADS,
         {
           learningMetrics: analytics.learningMetrics,
+          metricAvailability: {
+            views:
+              analytics.learningMetrics?.metrics.views?.availability ??
+              'unavailable',
+          },
           totalComments: analytics.replies,
           totalLikes: analytics.likes,
           totalShares: analytics.reposts + analytics.quotes,

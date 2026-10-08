@@ -58,7 +58,7 @@ export class InstagramAnalyticsService {
           params: {
             access_token: accessToken,
             fields:
-              'like_count,comments_count,media_type,media_product_type,insights.metric(impressions,reach,saved,shares,total_interactions)',
+              'like_count,comments_count,media_type,media_product_type,insights.metric(views,reach,saved,shares,total_interactions)',
           },
         }),
       );
@@ -77,20 +77,21 @@ export class InstagramAnalyticsService {
           insights as Array<{
             name: string;
             values?: Array<{ value: number }>;
+            total_value?: { value: number };
           }>
         ).find((item) => item.name === metricName);
-        return insight?.values?.[0]?.value || 0;
+        return insight?.values?.[0]?.value ?? insight?.total_value?.value ?? 0;
       };
-      const impressions = getInsightValue('impressions');
+      const views = getInsightValue('views');
       const reach = getInsightValue('reach');
       const saves = getInsightValue('saved');
       const shares = getInsightValue('shares');
       const totalInteractions = getInsightValue('total_interactions');
       const engagementRate =
-        impressions > 0
+        views > 0
           ? ((totalInteractions ||
               data.like_count + data.comments_count + saves) /
-              impressions) *
+              views) *
             100
           : 0;
       let mediaType: InstagramMediaType | undefined;
@@ -105,14 +106,18 @@ export class InstagramAnalyticsService {
           insights as Array<{
             name: string;
             values?: Array<{ value: unknown }>;
+            total_value?: { value: unknown };
           }>
-        ).map((insight) => [insight.name, insight.values?.[0]?.value]),
+        ).map((insight) => [
+          insight.name,
+          insight.values?.[0]?.value ?? insight.total_value?.value,
+        ]),
       );
       return {
         learningMetrics: captureLearningMetrics(
           { ...data, ...rawInsights },
           {
-            impressions: 'impressions',
+            views: 'views',
             reach: 'reach',
             likes: 'like_count',
             comments: 'comments_count',
@@ -123,13 +128,12 @@ export class InstagramAnalyticsService {
         comments: data.comments_count || 0,
         engagementRate:
           engagementRate > 0 ? Number(engagementRate.toFixed(2)) : undefined,
-        impressions: impressions || undefined,
         likes: data.like_count || 0,
         mediaType,
         reach: reach || undefined,
         saves: saves || undefined,
         shares: shares || undefined,
-        views: impressions || 0,
+        views,
       };
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);

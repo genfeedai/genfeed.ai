@@ -2,22 +2,26 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
-import { getInstagramErrorCode as getMetaGraphErrorCode } from '@api/services/integrations/instagram/utils/instagram-error.util';
+import {
+  readMetaPages,
+  resolveMetaPageAccess,
+} from '@api/services/integrations/_shared/meta-page-access.util';
+import {
+  type FacebookAnalyticsResult,
+  failedFacebookAnalytics,
+  parseFacebookAnalytics,
+} from '@api/services/integrations/facebook/utils/facebook-analytics.util';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
-import {
-  captureLearningMetrics,
-  type LearningMetrics,
-} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
-import type {
-  FacebookInsight,
-  FacebookPage,
-  FacebookReaction,
-} from '@genfeedai/contracts/interfaces/integrations/facebook.interface';
 import {
   buildGrantedScopesCredentialPatch,
   readOAuthTokenScopeField,
 } from '@genfeedai/helpers';
+import {
+  FACEBOOK_OAUTH_SCOPES,
+  META_GRAPH_API_VERSION,
+  META_GRAPH_URL,
+} from '@genfeedai/integrations';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -39,7 +43,7 @@ interface FacebookPermission {
 export class FacebookService {
   private readonly constructorName: string = String(this.constructor.name);
 
-  private readonly graphUrl: string = 'https://graph.facebook.com';
+  private readonly graphUrl: string = META_GRAPH_URL;
   private readonly apiVersion: string;
 
   constructor(
@@ -49,7 +53,8 @@ export class FacebookService {
     private readonly loggerService: LoggerService,
     private readonly httpService: HttpService,
   ) {
-    this.apiVersion = this.configService.get('FACEBOOK_API_VERSION') || 'v26.0';
+    this.apiVersion =
+      this.configService.get('FACEBOOK_API_VERSION') || META_GRAPH_API_VERSION;
   }
 
   private requireString(value: unknown, label: string): string {
@@ -67,23 +72,13 @@ export class FacebookService {
     userAccessToken: string,
     pageId: string,
   ): Promise<string> {
-    const pagesResponse = await firstValueFrom(
-      this.httpService.get(`${this.graphUrl}/${this.apiVersion}/me/accounts`, {
-        params: {
-          access_token: userAccessToken,
-          fields: 'id,access_token',
-        },
-      }),
+    const page = await resolveMetaPageAccess(
+      this.httpService,
+      `${this.graphUrl}/${this.apiVersion}`,
+      userAccessToken,
+      { pageId },
     );
-
-    const page = (pagesResponse.data.data as FacebookPage[] | undefined)?.find(
-      (p) => p.id === pageId,
-    );
-    if (!page?.access_token) {
-      throw new Error('Page access token not found');
-    }
-
-    return page.access_token;
+    return page.accessToken;
   }
 
   public generateAuthUrl(state: string): string {
@@ -100,17 +95,7 @@ export class FacebookService {
       );
     }
     // Organic publishing + Meta Marketing API (Meta Ads reuses this token).
-    const scope = [
-      'ads_management',
-      'ads_read',
-      'public_profile',
-      'email',
-      'pages_show_list',
-      'pages_manage_posts',
-      'pages_read_engagement',
-      'pages_manage_metadata',
-      'publish_video',
-    ].join(',');
+    const scope = FACEBOOK_OAUTH_SCOPES.join(',');
 
     return `https://www.facebook.com/${this.apiVersion}/dialog/oauth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
   }
@@ -327,19 +312,11 @@ export class FacebookService {
         this.requireString(credential.accessToken, 'Facebook access token'),
       );
 
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.graphUrl}/${this.apiVersion}/me/accounts`,
-          {
-            params: {
-              access_token: decryptedAccessToken,
-              fields: 'id,name,access_token,category,picture',
-            },
-          },
-        ),
+      const pages = await readMetaPages(
+        this.httpService,
+        `${this.graphUrl}/${this.apiVersion}`,
+        decryptedAccessToken,
       );
-
-      const pages = (response.data.data as FacebookPage[]) || [];
 
       return pages.map((page) => ({
         accessToken: page.access_token,
@@ -414,7 +391,10 @@ export class FacebookService {
 
       this.loggerService.log(`${url} succeeded`, response.data);
 
-      return response.data.id;
+      return this.requireString(
+        response.data?.post_id,
+        'Facebook photo post ID',
+      );
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
@@ -422,151 +402,18 @@ export class FacebookService {
   }
 
   public async uploadVideo(
-    organizationId: string,
-    brandId: string,
+    pageId: string,
+    pageAccessToken: string,
     videoUrl: string,
     title: string,
     description: string,
-    pageId?: string,
-    credentialId?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(
-        organizationId,
-        brandId,
-        credentialId,
-      );
-
-      if (!credential?.accessToken) {
-        throw new Error('Facebook credential not found or invalid');
-      }
-
-      const decryptedAccessToken = EncryptionUtil.decrypt(
-        this.requireString(credential.accessToken, 'Facebook access token'),
-      );
-
-      const targetPageId =
-        pageId ?? this.requireString(credential.externalId, 'Facebook page ID');
-      if (!targetPageId) {
-        throw new Error('Facebook page ID not found');
-      }
-
-      const pageAccessToken = await this.getPageAccessToken(
-        decryptedAccessToken,
-        targetPageId,
-      );
-
-      // Initialize video upload
-      const initResponse = await firstValueFrom(
-        this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${targetPageId}/videos`,
-          null,
-          {
-            params: {
-              access_token: pageAccessToken,
-              upload_phase: 'start',
-            },
-          },
-        ),
-      );
-
-      const uploadSessionId = initResponse.data.upload_session_id;
-      const videoId = initResponse.data.video_id;
-
-      // Download video data
-      const videoData = await firstValueFrom(
-        this.httpService.get(videoUrl, {
-          responseType: 'arraybuffer',
-        }),
-      );
-
-      // Upload video chunks (for simplicity, uploading as single chunk)
-      await firstValueFrom(
-        this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${targetPageId}/videos`,
-          videoData.data,
-          {
-            headers: {
-              'Content-Type': 'application/octet-stream',
-            },
-            params: {
-              access_token: pageAccessToken,
-              start_offset: 0,
-              upload_phase: 'transfer',
-              upload_session_id: uploadSessionId,
-            },
-          },
-        ),
-      );
-
-      // Finish upload and publish
-      const finishResponse = await firstValueFrom(
-        this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${targetPageId}/videos`,
-          null,
-          {
-            params: {
-              access_token: pageAccessToken,
-              description,
-              title,
-              upload_phase: 'finish',
-              upload_session_id: uploadSessionId,
-            },
-          },
-        ),
-      );
-
-      this.loggerService.log(`${url} succeeded`, finishResponse.data);
-
-      return videoId;
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
-  }
-
-  public async uploadVideoByUrl(
-    organizationId: string,
-    brandId: string,
-    videoUrl: string,
-    title: string,
-    description: string,
-    pageId?: string,
-    credentialId?: string,
-  ): Promise<string> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const credential = await this.refreshToken(
-        organizationId,
-        brandId,
-        credentialId,
-      );
-
-      if (!credential?.accessToken) {
-        throw new Error('Facebook credential not found or invalid');
-      }
-
-      const decryptedAccessToken = EncryptionUtil.decrypt(
-        this.requireString(credential.accessToken, 'Facebook access token'),
-      );
-
-      const targetPageId =
-        pageId ?? this.requireString(credential.externalId, 'Facebook page ID');
-      if (!targetPageId) {
-        throw new Error('Facebook page ID not found');
-      }
-
-      const pageAccessToken = await this.getPageAccessToken(
-        decryptedAccessToken,
-        targetPageId,
-      );
-
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${targetPageId}/videos`,
+          `${this.graphUrl}/${this.apiVersion}/${pageId}/videos`,
           null,
           {
             params: {
@@ -581,7 +428,7 @@ export class FacebookService {
 
       this.loggerService.log(`${url} succeeded`, response.data);
 
-      return response.data.id;
+      return this.requireString(response.data?.id, 'Facebook video ID');
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
@@ -708,158 +555,28 @@ export class FacebookService {
   public async getPostAnalytics(
     postId: string,
     accessToken: string,
-  ): Promise<{
-    learningMetrics?: LearningMetrics;
-    views: number;
-    likes: number;
-    comments: number;
-    shares: number;
-    reach?: number;
-    impressions?: number;
-    engagementRate?: number;
-    reactions?: {
-      like?: number;
-      love?: number;
-      wow?: number;
-      haha?: number;
-      sad?: number;
-      angry?: number;
-    };
-  }> {
+    pageId?: string,
+    isVideo = false,
+  ): Promise<FacebookAnalyticsResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
     try {
+      const pageAccessToken = pageId
+        ? await this.getPageAccessToken(accessToken, pageId)
+        : accessToken;
       const response = await firstValueFrom(
         this.httpService.get(`${this.graphUrl}/${this.apiVersion}/${postId}`, {
           params: {
-            access_token: accessToken,
-            fields:
-              'reactions.summary(true),comments.summary(true),shares,insights.metric(post_impressions,post_engaged_users,post_clicks,post_video_views)',
+            access_token: pageAccessToken,
+            fields: isVideo
+              ? 'likes.summary(true),comments.summary(true),video_insights.metric(total_video_views)'
+              : 'reactions.summary(true),comments.summary(true),shares,insights.metric(post_media_view)',
           },
         }),
       );
-
-      const data = response.data;
-      if (
-        !data ||
-        typeof data !== 'object' ||
-        Array.isArray(data) ||
-        typeof data.id !== 'string' ||
-        data.id !== postId
-      )
-        throw new Error('malformed_provider_response');
-      const insights = data.insights?.data || [];
-
-      // Extract insights metrics
-      const getInsightValue = (metricName: string): number => {
-        const insight = (insights as FacebookInsight[]).find(
-          (i) => i.name === metricName,
-        );
-        return insight?.values?.[0]?.value || 0;
-      };
-
-      const impressions = getInsightValue('post_impressions');
-      const engagedUsers = getInsightValue('post_engaged_users');
-      const videoViews = getInsightValue('post_video_views');
-
-      // Calculate engagement rate
-      const engagementRate =
-        impressions > 0 ? (engagedUsers / impressions) * 100 : 0;
-
-      // Extract reaction breakdown
-      const reactions: Record<string, number> = {};
-      if (data.reactions?.data) {
-        (data.reactions.data as FacebookReaction[]).forEach((reaction) => {
-          const type = reaction.type.toLowerCase();
-          reactions[type] = (reactions[type] || 0) + 1;
-        });
-      }
-
-      const rawInsights = Object.fromEntries(
-        (insights as FacebookInsight[]).map((insight) => [
-          insight.name,
-          insight.values?.[0]?.value,
-        ]),
-      );
-      return {
-        learningMetrics: captureLearningMetrics(
-          {
-            post_impressions: rawInsights.post_impressions,
-            'reactions.summary.total_count':
-              data.reactions?.summary?.total_count,
-            'comments.summary.total_count': data.comments?.summary?.total_count,
-            'shares.count': data.shares?.count,
-          },
-          {
-            impressions: 'post_impressions',
-            likes: 'reactions.summary.total_count',
-            comments: 'comments.summary.total_count',
-            shares: 'shares.count',
-          },
-        ),
-        comments: data.comments?.summary?.total_count || 0,
-        engagementRate:
-          engagementRate > 0 ? Number(engagementRate.toFixed(2)) : undefined,
-        impressions: impressions || undefined,
-        likes: data.reactions?.summary?.total_count || 0,
-        reach: engagedUsers || undefined,
-        reactions: Object.keys(reactions).length > 0 ? reactions : undefined,
-        shares: data.shares?.count || 0,
-        views: videoViews || 0,
-      };
+      return parseFacebookAnalytics(response.data, postId, isVideo);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      const response =
-        error && typeof error === 'object' && 'response' in error
-          ? error.response
-          : null;
-      const status =
-        response &&
-        typeof response === 'object' &&
-        'status' in response &&
-        typeof response.status === 'number'
-          ? response.status
-          : null;
-      const graphCode = getMetaGraphErrorCode(error);
-      const rateLimited =
-        status === 429 ||
-        (graphCode !== undefined && [4, 17, 32, 613].includes(graphCode));
-      const unauthorized =
-        !rateLimited &&
-        (status === 401 ||
-          status === 403 ||
-          (graphCode !== undefined &&
-            [190, 102, 10, 200, 294].includes(graphCode)));
-      const permanent =
-        !rateLimited &&
-        (unauthorized || (status !== null && [404, 405, 410].includes(status)));
-      return {
-        learningMetrics: {
-          collection: {
-            version: 1,
-            outcome: permanent ? 'terminal_unavailable' : 'retryable_failure',
-            reasonCode: rateLimited
-              ? 'rate_limited'
-              : unauthorized
-                ? 'unauthorized'
-                : status === 404 || status === 410
-                  ? 'publication_unavailable'
-                  : status === 405
-                    ? 'unsupported_metric'
-                    : 'provider_fetch_failed',
-          },
-          metrics: {
-            impressions: { availability: 'failed', source: 'post_impressions' },
-            likes: { availability: 'failed', source: 'reactions.summary' },
-            comments: { availability: 'failed', source: 'comments.summary' },
-            shares: { availability: 'failed', source: 'shares.count' },
-          },
-        },
-        comments: 0,
-        likes: 0,
-        shares: 0,
-        views: 0,
-      };
+      return failedFacebookAnalytics(error, isVideo);
     }
   }
 

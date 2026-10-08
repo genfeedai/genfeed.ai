@@ -13,8 +13,6 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
-const GRAPH_URL = 'https://graph.facebook.com';
-const GRAPH_API_VERSION = 'v22.0';
 const DISCOVERY_MEDIA_LIMIT = 50;
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 50;
@@ -167,7 +165,7 @@ export class InstagramBusinessDiscoveryProvider
 
     const response = await firstValueFrom(
       this.httpService.get<InstagramBusinessDiscoveryResponse>(
-        `${GRAPH_URL}/${GRAPH_API_VERSION}/${credential.externalId}`,
+        `${this.instagramService.getGraphApiBaseUrl()}/${credential.externalId}`,
         {
           params: {
             access_token: accessToken,
