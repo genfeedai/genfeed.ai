@@ -1,3 +1,4 @@
+import type { BenchmarkData } from '@public/benchmark/benchmark-loader';
 import type { PublicModelCatalogItem } from '@public/models/models-loader';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -109,6 +110,45 @@ describe('free AI model selector', () => {
       screen.getByRole('heading', { name: 'Portrait Model' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Benchmark unavailable')).toBeInTheDocument();
+  });
+  it('distinguishes an unrun benchmark from recorded matches', () => {
+    const benchmark: BenchmarkData = {
+      contestants: [],
+      tasks: [],
+      season: {
+        id: 'season',
+        title: 'Image season',
+        medium: 'image',
+        state: 'announced',
+        announcedAt: '',
+        openedAt: null,
+        closedAt: null,
+        taskIds: [],
+        contestantIds: [],
+        matchCount: 0,
+        ladder: [],
+        updatedAt: '',
+      },
+    };
+    const { rerender } = render(
+      <AiModelSelectorContent benchmark={benchmark} models={models} />,
+    );
+    expect(
+      screen.getByText('Benchmark: no judged matches yet'),
+    ).toBeInTheDocument();
+    rerender(
+      <AiModelSelectorContent
+        benchmark={{
+          ...benchmark,
+          season: { ...benchmark.season, matchCount: 12 },
+        }}
+        models={models}
+      />,
+    );
+    expect(screen.getByText('12 judged image matches')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'View benchmark' }),
+    ).toHaveAttribute('href', '/benchmark');
   });
   it('distinguishes a catalog outage from an empty catalog', () => {
     const { rerender } = render(<AiModelSelectorContent models={null} />);

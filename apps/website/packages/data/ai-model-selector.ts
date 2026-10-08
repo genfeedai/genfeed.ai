@@ -10,10 +10,10 @@ export const MODEL_FORMATS = [
 ] as const;
 
 export const MODEL_PRIORITIES = [
-  { label: 'Default picks', value: 'default' },
-  { label: 'Lower cost', value: 'cost' },
-  { label: 'Faster drafts', value: 'speed' },
-  { label: 'Higher quality', value: 'quality' },
+  { label: 'Default', value: 'default' },
+  { label: 'Cost', value: 'cost' },
+  { label: 'Speed', value: 'speed' },
+  { label: 'Quality', value: 'quality' },
 ] as const;
 
 export type ModelFormat = (typeof MODEL_FORMATS)[number]['value'];
@@ -124,7 +124,7 @@ export const MODEL_EXAMPLES: Record<
     src: 'https://replicate.delivery/xezq/uTjeeWCfjuSJOJGTnewlGqXjFKVoR8nr4ep8oL7I3kff4YOaLA/tmpmlo3k05y.jpeg',
     source:
       'https://replicate.com/google/nano-banana-2-lite?prediction=erw1rfhng1rmy0cz383txf94rm',
-    alt: 'Nano Banana 2 Lite provider example: two bananas with model name lettering',
+    alt: 'Nano Banana 2 Lite provider example: a monkey portrait with model name lettering',
   },
   'black-forest-labs/flux-1.1-pro': {
     src: 'https://replicate.delivery/czjl/XetPfMnnBtnyLUNiNcnl2Hneyeo8AsfsOl2AG5Znql5f3VK9E/tmpuv7lgrx7.jpg',

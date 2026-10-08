@@ -92,11 +92,11 @@ export default function AiModelSelectorContent({
       <div className="grid gap-5 lg:grid-cols-2">
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">Create</legend>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1">
             {MODEL_FORMATS.map((option) => (
               <Button
                 aria-pressed={format === option.value}
-                className="min-h-11"
+                className="min-h-11 px-3"
                 key={option.value}
                 label={option.label}
                 onClick={() => {
@@ -115,11 +115,11 @@ export default function AiModelSelectorContent({
         </fieldset>
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">Prioritize</legend>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1">
             {MODEL_PRIORITIES.map((option) => (
               <Button
                 aria-pressed={priority === option.value}
-                className="min-h-11"
+                className="min-h-11 px-3"
                 key={option.value}
                 label={option.label}
                 onClick={() => {

@@ -31,10 +31,10 @@ export default async function AiModelSelectorPage(): Promise<React.ReactElement>
       <script type="application/ld+json">
         {stringifyJsonLd(modelSelectorJsonLd())}
       </script>
-      <div className="container mx-auto max-w-6xl px-6 py-10 sm:py-14">
+      <div className="container mx-auto max-w-6xl px-6 py-6 sm:py-10">
         <nav
           aria-label="Breadcrumb"
-          className="mb-6 flex flex-wrap gap-2 text-sm text-muted-foreground"
+          className="mb-4 flex flex-wrap gap-2 text-sm text-muted-foreground"
         >
           <Link className="underline-offset-4 hover:underline" href="/">
             Genfeed
@@ -46,7 +46,7 @@ export default async function AiModelSelectorPage(): Promise<React.ReactElement>
           <span aria-hidden="true">/</span>
           <span aria-current="page">AI model selector</span>
         </nav>
-        <header className="mb-8 max-w-3xl">
+        <header className="mb-6 max-w-3xl">
           <p className="mb-3 text-sm text-muted-foreground">
             Free tool · No signup · Instant matches
           </p>
