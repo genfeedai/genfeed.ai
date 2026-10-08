@@ -434,6 +434,27 @@ test('repository plan separates other execution lanes from broken-test quarantin
   assert.ok(plan.laneExcludedFiles.some(({ lane }) => lane === 'authed'));
 });
 
+test('every authenticated smoke spec belongs uniquely to its actual execution lane', () => {
+  const plan = buildPlaywrightE2eTierPlan();
+  const authenticatedSmokeFiles = plan.discoveredFiles.filter((file) =>
+    /\/smoke\/.+\.authed\.spec\.ts$/.test(file),
+  );
+  const authenticatedLaneFiles = plan.laneExcludedFiles
+    .filter(({ lane }) => lane === 'authed')
+    .map(({ file }) => file)
+    .sort();
+
+  assert.ok(authenticatedSmokeFiles.length > 0);
+  assert.deepEqual(authenticatedLaneFiles, authenticatedSmokeFiles);
+  for (const file of authenticatedSmokeFiles) {
+    assert.equal(plan.selectedFiles.includes(file), false);
+    assert.equal(
+      plan.quarantinedFiles.some((quarantine) => quarantine.file === file),
+      false,
+    );
+  }
+});
+
 test('core CLI and CI shard runner launch identical selectors with independent shard args', () => {
   const rootDir = createFixture([]);
   writeFileSync(
