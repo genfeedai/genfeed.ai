@@ -5,7 +5,10 @@ import {
 import { expect, type Page, type Response, test } from '@playwright/test';
 import { playwrightApiEndpoint } from '../../config/environment';
 import { setupStrictNetworkGuard } from '../../utils/network-guard';
-import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
+import {
+  assertNoErrorBoundaryFallback,
+  FRAMEWORK_ERROR_OVERLAY_SELECTOR,
+} from '../../utils/route-assertions';
 
 /**
  * Real-Better Auth authenticated route smoke.
@@ -33,7 +36,7 @@ async function assertRouteLoads(page: Page, route: string): Promise<void> {
     `${route} bounced to /login (real session not honored)`,
   ).not.toMatch(/\/login/);
   await expect(
-    page.locator('[data-nextjs-dialog]'),
+    page.locator(FRAMEWORK_ERROR_OVERLAY_SELECTOR),
     `${route} rendered a framework error overlay`,
   ).toHaveCount(0, { timeout: 1_000 });
 

@@ -8,7 +8,10 @@ import {
   buildReferralProgramMockBody,
   buildUnhandledApiMockBody,
 } from '../../utils/api-interceptor';
-import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
+import {
+  assertNoErrorBoundaryFallback,
+  FRAMEWORK_ERROR_OVERLAY_SELECTOR,
+} from '../../utils/route-assertions';
 
 const appRoot = path.join(process.cwd(), 'apps/app/app');
 const routeFilter = process.env.GENFEED_E2E_ROUTE_FILTER;
@@ -501,7 +504,7 @@ async function assertRouteLoads(
   await page.locator('body').waitFor({ state: 'attached', timeout: 10_000 });
 
   await expect(
-    page.locator('[data-nextjs-dialog]'),
+    page.locator(FRAMEWORK_ERROR_OVERLAY_SELECTOR),
     `${route} rendered a framework error overlay`,
   ).toHaveCount(0, { timeout: 1_000 });
 
