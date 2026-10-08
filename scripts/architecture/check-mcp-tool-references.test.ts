@@ -53,6 +53,8 @@ describe('literal MCP instruction contract', () => {
     'rate_content',
     'removed_action',
     'get_brannds',
+    'get__brands',
+    'mcp__genfeed__get__brands',
     'mcp__genfeed__get_brannds',
   ])('fails for unsupported %s instead of intersecting known names', (name) => {
     expect(

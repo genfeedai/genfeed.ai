@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 import { parseCatalogSource } from '../../packages/actions/scripts/report-curated-action-catalog';
 
 const CATALOG = 'packages/actions/src/registry/curated-action-catalog.ts';
-const TOKEN = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/u;
+const TOKEN = /^[a-z][a-z0-9_]*$/u;
 function isToolInstruction(line: string, offset: number): boolean {
   const before = line.slice(0, offset);
   const after = line.slice(offset).replace(/^`[^`]+`/u, '');
@@ -116,7 +116,7 @@ export function checkReferenceSources(
         }
       }
       for (const match of line.matchAll(
-        /\bmcp__genfeed__([a-z][a-z0-9]*(?:_[a-z0-9]+)*)\b/gu,
+        /\bmcp__genfeed__([a-z][a-z0-9_]*)\b/gu,
       ))
         candidates.add(match[1] ?? '');
       for (const field of fencedFields.get(index) ?? []) candidates.add(field);
