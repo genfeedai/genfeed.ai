@@ -1,6 +1,12 @@
 'use client';
 
 import {
+  ContextSidebarPanel,
+  useContextSidebar,
+} from '@contexts/ui/context-sidebar-context';
+import {
+  ButtonSize,
+  ButtonVariant,
   normalizeReviewDecision,
   type PageScope,
   PostRepurposeMode,
@@ -21,11 +27,13 @@ import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import EngagementPreview from '@ui/posts/engagement-preview/EngagementPreview';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
 import TargetPreview from '@ui/previews/TargetPreview';
+import { Button } from '@ui/primitives/button';
 import RecordFactLine from '@ui/record-detail/RecordFactLine';
 import {
   buildSourcePostVariationsHref,
   isSourcePostVariationPlatform,
 } from '@utils/url/desktop-loop-url.util';
+import { Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
@@ -123,6 +131,9 @@ export default function PostDetail({
     refreshPost,
   } = hookData;
   const [isScoringSeo, setIsScoringSeo] = useState(false);
+  const [isComposerPreview, setIsComposerPreview] = useState(false);
+  const contextSidebar = useContextSidebar();
+  const isStandalonePage = presentation === 'page' && !renderContextSidebar;
   const reviewSummary: PostReviewSummary | undefined = post
     ? {
         generationId: (post as { generationId?: string }).generationId,
@@ -262,6 +273,9 @@ export default function PostDetail({
     );
     return (
       <div className="space-y-3">
+        {isStandalonePage ? (
+          <RecordFactLine facts={buildPostDetailFacts(post, isPublished)} />
+        ) : null}
         <PostDetailSidebar
           post={post}
           credential={credential}
@@ -278,8 +292,12 @@ export default function PostDetail({
           onPublishViaTikTokApp={handlePublishViaTikTokApp}
           onScoreSeo={handleScoreSeo}
         />
-        {targetPreview ? <TargetPreview {...targetPreview} /> : null}
-        {!isPublished ? <EngagementPreview post={post} /> : null}
+        {!isStandalonePage && targetPreview ? (
+          <TargetPreview {...targetPreview} />
+        ) : null}
+        {!isStandalonePage && !isPublished ? (
+          <EngagementPreview post={post} />
+        ) : null}
       </div>
     );
   }, [
@@ -296,11 +314,13 @@ export default function PostDetail({
     isSavingSchedule,
     isScheduleDirty,
     isScoringSeo,
+    isStandalonePage,
     post,
     reviewSummary,
     scheduleDraft,
   ]);
-  const usesContextSidebar = Boolean(renderContextSidebar);
+  const usesShellSidebar = isStandalonePage && Boolean(contextSidebar);
+  const usesContextSidebar = Boolean(renderContextSidebar) || usesShellSidebar;
   const contextLabel =
     labelDraft?.trim() || post?.label?.trim() || 'Untitled post';
 
@@ -329,14 +349,29 @@ export default function PostDetail({
 
   return (
     <>
-      {usesContextSidebar && sidebar
-        ? renderContextSidebar?.(sidebar, contextLabel)
+      {renderContextSidebar && sidebar
+        ? renderContextSidebar(sidebar, contextLabel)
         : null}
+      {usesShellSidebar && post ? (
+        <ContextSidebarPanel
+          selection={{
+            id: post.id,
+            kind: 'post',
+            origin: 'automatic',
+            title: contextLabel,
+          }}
+        >
+          <div className="p-4" data-testid="post-detail-context">
+            {sidebar}
+          </div>
+        </ContextSidebarPanel>
+      ) : null}
       <div className={wrapperClassName}>
         {post ? (
           <>
             <PostDetailHeader
               headingLevel={isPagePresentation ? 1 : 2}
+              showViewModeToggle={!isStandalonePage}
               post={post}
               scope={scope}
               isPublished={isPublished}
@@ -359,10 +394,12 @@ export default function PostDetail({
               isSavingSchedule={isSavingSchedule}
             />
 
-            <RecordFactLine
-              className="mb-6"
-              facts={buildPostDetailFacts(post, isPublished)}
-            />
+            {!isStandalonePage ? (
+              <RecordFactLine
+                className="mb-6"
+                facts={buildPostDetailFacts(post, isPublished)}
+              />
+            ) : null}
 
             <PostDetailNeedsYou
               className="mb-6"
@@ -391,56 +428,125 @@ export default function PostDetail({
                 : 'grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]'
             }
           >
-            <PostDetailContent
-              post={post}
-              sortedChildren={sortedChildren}
-              scope={scope}
-              viewMode={viewMode}
-              descriptionDraft={descriptionDraft}
-              labelDraft={labelDraft}
-              childDescriptions={childDescriptions}
-              selectedIngredients={selectedIngredients}
-              focusedPostId={focusedPostId}
-              draggedPostId={draggedPostId}
-              dragOverDividerIndex={dragOverDividerIndex}
-              enhancingPostId={enhancingPostId}
-              enhancingAction={enhancingAction}
-              isSavingIngredients={isSavingIngredients}
-              isSavingDescription={isSavingDescription}
-              isTogglingGrok={isTogglingGrok}
-              isTogglingFirstComment={isTogglingFirstComment}
-              carouselValidation={carouselValidation}
-              publishedDisplay={publishedDisplay}
-              isContentDirty={isContentDirty}
-              canAddThread={canAddThread}
-              canAddFirstComment={canAddFirstComment}
-              hasFirstComment={hasFirstComment}
-              firstCommentPost={firstCommentPost}
-              isLastChildGrokTweet={isLastChildGrokTweet}
-              hasChildren={hasChildren}
-              setDescriptionDraft={setDescriptionDraft}
-              setLabelDraft={setLabelDraft}
-              setChildDescription={setChildDescription}
-              setFocusedPostId={setFocusedPostId}
-              setDragOverDividerIndex={setDragOverDividerIndex}
-              handleContentSave={handleContentSave}
-              handleAddToThread={handleAddToThread}
-              handleDeleteChild={handleDeleteChild}
-              handleSelectMedia={handleSelectMedia}
-              handleGenerateIllustration={handleGenerateIllustration}
-              handleQuickAction={handleQuickAction}
-              handlePerTweetEnhance={handlePerTweetEnhance}
-              handleDragStart={handleDragStart}
-              handleDragEnd={handleDragEnd}
-              handleDrop={handleDrop}
-              handleToggleGrokFeedback={handleToggleGrokFeedback}
-              handleToggleFirstComment={handleToggleFirstComment}
-              handleUpdateChild={handleUpdateChild}
-              autoSaveRefs={autoSaveRefs}
-              performAutoSaveForPost={performAutoSaveForPost}
-              getPostsService={getPostsService}
-              notificationsService={notificationsService}
-            />
+            <section aria-label="Post composer" className="min-w-0">
+              {isStandalonePage ? (
+                <div className="mb-3 flex shrink-0 items-center justify-between gap-3">
+                  <h2 className="text-sm font-medium">Content</h2>
+                  <Button
+                    aria-controls={`post-composer-content-${post.id} post-composer-preview-${post.id}`}
+                    aria-pressed={isComposerPreview}
+                    icon={<Eye className="size-4" />}
+                    onClick={() => setIsComposerPreview((current) => !current)}
+                    size={ButtonSize.SM}
+                    variant={
+                      isComposerPreview
+                        ? ButtonVariant.SECONDARY
+                        : ButtonVariant.GHOST
+                    }
+                    withWrapper={false}
+                  >
+                    {translate('header.preview')}
+                  </Button>
+                </div>
+              ) : null}
+              <div className="min-w-0">
+                <div
+                  hidden={isStandalonePage && isComposerPreview}
+                  id={`post-composer-content-${post.id}`}
+                >
+                  <PostDetailContent
+                    post={post}
+                    sortedChildren={sortedChildren}
+                    scope={scope}
+                    viewMode={viewMode}
+                    descriptionDraft={descriptionDraft}
+                    labelDraft={labelDraft}
+                    childDescriptions={childDescriptions}
+                    selectedIngredients={selectedIngredients}
+                    focusedPostId={focusedPostId}
+                    draggedPostId={draggedPostId}
+                    dragOverDividerIndex={dragOverDividerIndex}
+                    enhancingPostId={enhancingPostId}
+                    enhancingAction={enhancingAction}
+                    isSavingIngredients={isSavingIngredients}
+                    isSavingDescription={isSavingDescription}
+                    isTogglingGrok={isTogglingGrok}
+                    isTogglingFirstComment={isTogglingFirstComment}
+                    carouselValidation={carouselValidation}
+                    publishedDisplay={publishedDisplay}
+                    isContentDirty={isContentDirty}
+                    canAddThread={canAddThread}
+                    canAddFirstComment={canAddFirstComment}
+                    hasFirstComment={hasFirstComment}
+                    firstCommentPost={firstCommentPost}
+                    isLastChildGrokTweet={isLastChildGrokTweet}
+                    hasChildren={hasChildren}
+                    setDescriptionDraft={setDescriptionDraft}
+                    setLabelDraft={setLabelDraft}
+                    setChildDescription={setChildDescription}
+                    setFocusedPostId={setFocusedPostId}
+                    setDragOverDividerIndex={setDragOverDividerIndex}
+                    handleContentSave={handleContentSave}
+                    handleAddToThread={handleAddToThread}
+                    handleDeleteChild={handleDeleteChild}
+                    handleSelectMedia={handleSelectMedia}
+                    handleGenerateIllustration={handleGenerateIllustration}
+                    handleQuickAction={handleQuickAction}
+                    handlePerTweetEnhance={handlePerTweetEnhance}
+                    handleDragStart={handleDragStart}
+                    handleDragEnd={handleDragEnd}
+                    handleDrop={handleDrop}
+                    handleToggleGrokFeedback={handleToggleGrokFeedback}
+                    handleToggleFirstComment={handleToggleFirstComment}
+                    handleUpdateChild={handleUpdateChild}
+                    autoSaveRefs={autoSaveRefs}
+                    performAutoSaveForPost={performAutoSaveForPost}
+                    getPostsService={getPostsService}
+                    notificationsService={notificationsService}
+                  />
+                </div>
+                {isStandalonePage ? (
+                  <div
+                    className="space-y-4"
+                    hidden={!isComposerPreview}
+                    id={`post-composer-preview-${post.id}`}
+                  >
+                    {[post, ...sortedChildren].map((item, index) => {
+                      const description =
+                        index === 0
+                          ? descriptionDraft
+                          : (childDescriptions.get(item.id) ??
+                            item.description ??
+                            '');
+                      const preview = buildPostTargetPreview(
+                        {
+                          ...item,
+                          description,
+                          ...(index === 0
+                            ? {
+                                ingredients: selectedIngredients,
+                                label: labelDraft,
+                              }
+                            : {}),
+                          platform: item.platform ?? post.platform,
+                        },
+                        description,
+                        credential,
+                      );
+                      return preview ? (
+                        <TargetPreview key={item.id} {...preview} />
+                      ) : null;
+                    })}
+                    {!post.platform ? (
+                      <p className="text-sm text-muted-foreground">
+                        Choose a platform to preview this post.
+                      </p>
+                    ) : null}
+                    {!isPublished ? <EngagementPreview post={post} /> : null}
+                  </div>
+                ) : null}
+              </div>
+            </section>
 
             {!usesContextSidebar ? (
               <div className="space-y-4">{sidebar}</div>

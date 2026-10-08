@@ -1,7 +1,14 @@
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+  useContextSidebar,
+} from '@contexts/ui/context-sidebar-context';
 import { PageScope, Platform, PostStatus } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
+import type { TargetPreviewProps } from '@genfeedai/props/ui/previews.props';
 import PostDetail from '@pages/posts/detail/post-detail';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -50,7 +57,9 @@ vi.mock('@ui/posts/engagement-preview/EngagementPreview', () => ({
 }));
 
 vi.mock('@ui/previews/TargetPreview', () => ({
-  default: () => <div data-testid="target-preview" />,
+  default: ({ release }: TargetPreviewProps) => (
+    <div data-testid="target-preview" data-content={release.baseContent} />
+  ),
 }));
 
 function buildPost(overrides: Partial<IPost> = {}): IPost {
@@ -138,6 +147,24 @@ function buildHookData(overrides: Record<string, unknown> = {}) {
     viewMode: 'edit',
     ...overrides,
   };
+}
+
+function SidebarProbe() {
+  const sidebar = useContextSidebar();
+  return (
+    <div>
+      <output data-testid="sidebar-selection">
+        {sidebar?.selection?.id ?? 'none'}
+      </output>
+      <output data-testid="sidebar-open">{String(sidebar?.isOpen)}</output>
+      <button type="button" onClick={sidebar?.close}>
+        Close inspector
+      </button>
+      <button type="button" onClick={sidebar?.reveal}>
+        Reveal inspector
+      </button>
+    </div>
+  );
 }
 
 describe('PostDetail', () => {
@@ -304,5 +331,183 @@ describe('PostDetail', () => {
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
     expect(screen.getByTestId('target-preview')).toBeInTheDocument();
+  });
+});
+
+describe('PostDetail standalone composer', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUsePostDetail.mockReturnValue(
+      buildHookData({
+        post: buildPost({ platform: Platform.TWITTER }),
+      }),
+    );
+  });
+
+  it('portals metadata into the shell inspector and keeps the preview in the composer', () => {
+    render(
+      <ContextSidebarProvider>
+        <PostDetail postId="post-1" scope={PageScope.PUBLISHING} />
+        <ContextSidebarOutlet testId="inspector-outlet" />
+        <SidebarProbe />
+      </ContextSidebarProvider>,
+    );
+
+    const inspector = screen.getByTestId('inspector-outlet');
+    expect(within(inspector).getByTestId('post-sidebar')).toBeInTheDocument();
+    expect(
+      within(inspector).queryByTestId('target-preview'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', { name: 'Post composer' })).getByTestId(
+        'target-preview',
+      ),
+    ).not.toBeVisible();
+    expect(screen.getByTestId('sidebar-selection')).toHaveTextContent('post-1');
+    expect(screen.getByTestId('sidebar-open')).toHaveTextContent('true');
+  });
+
+  it('closes and reveals the same inspector without losing the post selection', async () => {
+    const user = userEvent.setup();
+    render(
+      <ContextSidebarProvider>
+        <PostDetail postId="post-1" scope={PageScope.PUBLISHING} />
+        <ContextSidebarOutlet testId="inspector-outlet" />
+        <SidebarProbe />
+      </ContextSidebarProvider>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Close inspector' }));
+    expect(screen.getByTestId('sidebar-open')).toHaveTextContent('false');
+    expect(screen.getByTestId('sidebar-selection')).toHaveTextContent('post-1');
+    await user.click(screen.getByRole('button', { name: 'Reveal inspector' }));
+    expect(screen.getByTestId('sidebar-open')).toHaveTextContent('true');
+  });
+
+  it('unregisters the inspector when the post route unmounts', () => {
+    const { rerender } = render(
+      <ContextSidebarProvider>
+        <PostDetail postId="post-1" scope={PageScope.PUBLISHING} />
+        <ContextSidebarOutlet testId="inspector-outlet" />
+        <SidebarProbe />
+      </ContextSidebarProvider>,
+    );
+    rerender(
+      <ContextSidebarProvider>
+        <ContextSidebarOutlet testId="inspector-outlet" />
+        <SidebarProbe />
+      </ContextSidebarProvider>,
+    );
+    expect(screen.getByTestId('sidebar-selection')).toHaveTextContent('none');
+    expect(
+      within(screen.getByTestId('inspector-outlet')).queryByTestId(
+        'post-sidebar',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it('toggles a published preview without remounting the content or enabling edits', async () => {
+    const user = userEvent.setup();
+    const hookData = buildHookData({
+      isPublished: true,
+      post: buildPost({
+        platform: Platform.TWITTER,
+        status: PostStatus.PUBLIC,
+      }),
+      viewMode: 'preview',
+    });
+    mockUsePostDetail.mockReturnValue(hookData);
+    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
+    const content = screen.getByTestId('post-content');
+    const button = screen.getByRole('button', { name: 'Preview', exact: true });
+    expect(content).toBeVisible();
+    await user.click(button);
+    expect(button).toHaveAttribute('aria-pressed', 'true');
+    expect(button).toHaveFocus();
+    expect(content).not.toBeVisible();
+    expect(screen.getByTestId('target-preview')).toBeVisible();
+    await user.keyboard('{Enter}');
+    expect(button).toHaveAttribute('aria-pressed', 'false');
+    expect(button).toHaveFocus();
+    expect(screen.getByTestId('post-content')).toBe(content);
+    expect(content).toBeVisible();
+    expect(hookData.setViewMode).not.toHaveBeenCalled();
+    expect(hookData.handleContentSave).not.toHaveBeenCalled();
+    expect(hookData.performAutoSaveForPost).not.toHaveBeenCalled();
+  });
+
+  it('previews the current parent and child drafts, including intentionally cleared text', async () => {
+    const user = userEvent.setup();
+    mockUsePostDetail.mockReturnValue(
+      buildHookData({
+        childDescriptions: new Map([['reply-1', 'Updated reply']]),
+        descriptionDraft: '',
+        post: buildPost({
+          description: 'Old body',
+          platform: Platform.TWITTER,
+        }),
+        sortedChildren: [
+          buildPost({ description: 'Old reply', id: 'reply-1' }),
+        ],
+      }),
+    );
+    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
+    await user.click(
+      screen.getByRole('button', { name: 'Preview', exact: true }),
+    );
+    const previews = within(
+      screen.getByRole('region', { name: 'Post composer' }),
+    ).getAllByTestId('target-preview');
+    expect(previews).toHaveLength(2);
+    expect(previews[0]).toHaveAttribute('data-content', '');
+    expect(previews[1]).toHaveAttribute('data-content', 'Updated reply');
+  });
+
+  it('keeps unresolved platform state inside the composer preview', async () => {
+    const user = userEvent.setup();
+    mockUsePostDetail.mockReturnValue(buildHookData());
+    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
+    await user.click(
+      screen.getByRole('button', { name: 'Preview', exact: true }),
+    );
+    expect(
+      within(screen.getByRole('region', { name: 'Post composer' })).getByText(
+        'Choose a platform to preview this post.',
+      ),
+    ).toBeVisible();
+  });
+
+  it('preserves the overlay sidebar and existing view-mode controls', () => {
+    render(
+      <PostDetail
+        postId="post-1"
+        scope={PageScope.PUBLISHING}
+        presentation="overlay"
+      />,
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Preview', exact: true }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('target-preview')).toBeVisible();
+    expect(screen.getByTestId('post-sidebar')).toBeVisible();
+  });
+
+  it('preserves custom sidebar hosts in embedded pages', () => {
+    render(
+      <PostDetail
+        postId="post-1"
+        scope={PageScope.PUBLISHING}
+        renderContextSidebar={(sidebar) => (
+          <aside aria-label="Embedded details">{sidebar}</aside>
+        )}
+      />,
+    );
+    expect(
+      within(
+        screen.getByRole('complementary', { name: 'Embedded details' }),
+      ).getByTestId('target-preview'),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'Preview', exact: true }),
+    ).not.toBeInTheDocument();
   });
 });

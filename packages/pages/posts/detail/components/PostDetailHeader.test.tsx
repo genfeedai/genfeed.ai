@@ -266,3 +266,16 @@ describe('PostDetailHeader', () => {
     expect(screen.getByRole('link', { name: 'Ask Agent' })).toBeInTheDocument();
   });
 });
+
+describe('PostDetailHeader composer preview ownership', () => {
+  it('omits the duplicate overflow preview while retaining draft actions', () => {
+    renderHeader({}, { showViewModeToggle: false });
+    expect(
+      screen.queryByRole('button', { name: 'Preview' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Publish now' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+  });
+});
