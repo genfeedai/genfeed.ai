@@ -437,3 +437,23 @@ export function captureLearningLoopPublication(
     learningMetrics: loopMetrics(),
   });
 }
+
+export async function enableLegacyLearningLoopLive(
+  database: LearningLoopDatabase,
+  target: LearningLoopTarget,
+) {
+  const account = await database.services.accounts.ensure(
+    target.organizationId,
+    target.credentialId,
+  );
+  return database.services.accounts.control(
+    { actorId: target.actorId, organizationId: target.organizationId },
+    target.credentialId,
+    {
+      action: 'live',
+      expectedRevision: account.revision,
+      requestId: randomUUID(),
+      reason: 'Integration acceptance of legacy control isolation',
+    },
+  );
+}

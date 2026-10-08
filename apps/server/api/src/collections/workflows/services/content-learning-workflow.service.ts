@@ -321,17 +321,33 @@ export class ContentLearningWorkflowService implements OnModuleInit {
           checkpointId: row.id,
           reason: 'publication_source_unavailable',
         };
-      // Rewards only; no ACCOUNT_REBUILD is queued while every logged
-      // decision is a baseline-arm control (plan revision 6, D-13).
       const reward = await this.rewards.commitForCheckpoint(
         organizationId,
         row.id,
       );
+      const executionId =
+        reward.status === 'committed' && reward.rewardStatus === 'valid'
+          ? await this.queue.queueSystemWorkflow(
+              {
+                actionType: CONTENT_LEARNING_ACTION_IDS.ACCOUNT_REBUILD,
+                canonicalId: CONTENT_LEARNING_ACTION_IDS.ACCOUNT_REBUILD,
+                organizationId,
+                inputValues: { credentialId, scopeKey: reward.scopeKey },
+                source: 'content-learning-reward',
+              },
+              `learning-account-rebuild-${reward.rewardId}`,
+              {
+                attempts: 3,
+                dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+              },
+            )
+          : null;
       return {
         status: 'completed',
         checkpointId: row.id,
         reason: preexisting ? 'already_observed' : collection.reasonCode,
         result: {
+          rebuild: { queued: executionId !== null },
           reward:
             reward.status === 'committed'
               ? {
