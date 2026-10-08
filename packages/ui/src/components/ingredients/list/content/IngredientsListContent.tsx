@@ -169,7 +169,7 @@ function IngredientLedgerAssetCell({
   const isAudio = isAudioIngredient(ingredient);
 
   return (
-    <div className="flex w-64 min-w-0 max-w-64 items-center gap-3">
+    <div className="flex w-40 min-w-0 max-w-40 items-center gap-2">
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span
           className="truncate text-sm font-medium"
@@ -330,7 +330,7 @@ export default function IngredientsListContent({
   const columns = useMemo(
     () => [
       {
-        className: 'w-14',
+        className: 'w-12',
         header: '',
         key: 'ingredientUrl',
         render: (ingredient: IIngredient) => (
@@ -338,7 +338,7 @@ export default function IngredientsListContent({
         ),
       },
       {
-        className: 'w-72',
+        className: 'w-44',
         header: translate('browser.columns.asset'),
         key: 'metadataLabel',
         render: (ingredient: IIngredient) => (
@@ -346,7 +346,7 @@ export default function IngredientsListContent({
         ),
       },
       {
-        className: 'w-40',
+        className: 'w-20',
         header: translate('browser.columns.type'),
         key: 'category',
         render: (ingredient: IIngredient) => {
@@ -367,7 +367,7 @@ export default function IngredientsListContent({
         },
       },
       {
-        className: 'w-28',
+        className: 'w-20',
         header: translate('browser.columns.origin'),
         key: 'origin',
         render: (ingredient: IIngredient) => (
@@ -375,18 +375,18 @@ export default function IngredientsListContent({
         ),
       },
       {
-        className: 'w-56',
+        className: 'w-16',
         header: translate('browser.columns.tags'),
         key: 'tags',
         render: (ingredient: IIngredient) =>
           ingredient.tags && ingredient.tags.length > 0 ? (
-            <IngredientTagChips tags={ingredient.tags} />
+            <IngredientTagChips max={1} tags={ingredient.tags} />
           ) : (
             <span className="text-foreground/35">—</span>
           ),
       },
       {
-        className: 'w-52',
+        className: 'w-24',
         header: translate('browser.columns.model'),
         key: 'model',
         render: (ingredient: IIngredient) => {
@@ -399,7 +399,7 @@ export default function IngredientsListContent({
           const providerLabel = getIngredientProviderLabel(ingredient);
 
           return (
-            <div className="flex w-44 min-w-0 max-w-44 flex-col">
+            <div className="flex w-20 min-w-0 max-w-20 flex-col">
               <span className="truncate text-sm" title={modelLabel}>
                 {modelLabel}
               </span>
@@ -413,7 +413,7 @@ export default function IngredientsListContent({
         },
       },
       {
-        className: 'w-28',
+        className: 'w-20',
         header: translate('browser.columns.size'),
         key: 'metadataSize',
         render: (ingredient: IIngredient) => {
@@ -424,14 +424,17 @@ export default function IngredientsListContent({
           }
 
           return (
-            <span className="text-sm tabular-nums text-foreground/70">
+            <span
+              className="block truncate text-xs tabular-nums text-foreground/70"
+              title={sizeLabel}
+            >
               {sizeLabel}
             </span>
           );
         },
       },
       {
-        className: 'w-28',
+        className: 'w-20',
         header: translate('browser.columns.created'),
         key: 'createdAt',
         render: (ingredient: IIngredient) => {
@@ -445,20 +448,21 @@ export default function IngredientsListContent({
 
           return (
             <time
-              className="text-sm tabular-nums text-foreground/70"
+              className="whitespace-nowrap text-xs tabular-nums text-foreground/70"
+              title={format(createdAt, 'd MMM yyyy')}
               dateTime={createdAt.toISOString()}
             >
-              {format(createdAt, 'd MMM yyyy')}
+              {format(createdAt, 'd MMM yy')}
             </time>
           );
         },
       },
       {
-        className: 'w-40',
+        className: 'w-32',
         header: translate('browser.columns.status'),
         key: 'status',
         render: (ingredient: IIngredient) => (
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <DropdownStatus
               entity={ingredient}
               onStatusChange={(_newStatus, updatedIngredient) => {
@@ -647,6 +651,8 @@ export default function IngredientsListContent({
 
       return (
         <AppTable
+          density="compact"
+          enableDragScroll
           items={filteredIngredients}
           isLoading={isLoading}
           columns={columns}
@@ -763,6 +769,8 @@ export default function IngredientsListContent({
                 {translate('otherAssets')}
               </h3>
               <AppTable
+                density="compact"
+                enableDragScroll
                 items={nonVisualIngredients}
                 isLoading={false}
                 columns={columns}
@@ -783,6 +791,8 @@ export default function IngredientsListContent({
 
     return (
       <AppTable
+        density="compact"
+        enableDragScroll
         items={filteredIngredients}
         isLoading={isLoading}
         columns={columns}

@@ -452,7 +452,7 @@ describe('IngredientsListContent', () => {
       screen.getByRole('columnheader', { name: 'Tags' }),
     ).toBeInTheDocument();
     expect(screen.getByText('S1E12')).toBeInTheDocument();
-    expect(screen.getByText('Launch')).toBeInTheDocument();
+    expect(screen.getByText('+1')).toHaveAttribute('title', 'Launch');
   });
 
   it('shows a dash instead of tags for an untagged row', () => {
@@ -1020,8 +1020,14 @@ describe('IngredientsListContent generation ledger columns', () => {
     expect(screen.getByText('genfeedai')).toBeInTheDocument();
     expect(screen.getByText('1920 × 1080')).toBeInTheDocument();
     expect(
-      screen.getByText(format(ledgerCreatedAt, 'd MMM yyyy')),
-    ).toBeInTheDocument();
+      screen.getByText(format(ledgerCreatedAt, 'd MMM yy')),
+    ).toHaveAttribute('title', format(ledgerCreatedAt, 'd MMM yyyy'));
+    expect(
+      screen.getByText(format(ledgerCreatedAt, 'd MMM yy')),
+    ).toHaveAttribute('datetime', ledgerCreatedAt.toISOString());
+    expect(
+      screen.getByRole('region', { name: 'Scroll table horizontally' }),
+    ).toHaveAttribute('tabindex', '0');
   });
 
   it('surfaces the failure reason for a FAILED asset', () => {
