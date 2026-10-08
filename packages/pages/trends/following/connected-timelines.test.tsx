@@ -124,9 +124,7 @@ describe('connected Following feeds and native action confirmation', () => {
     expect(await screen.findByText('Followed author')).toBeInTheDocument();
     expect(mocks.service.read).toHaveBeenCalledWith('brand-a');
     expect(mocks.service.refresh).not.toHaveBeenCalled();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Refresh', exact: true }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: /^Refresh$/ }));
     await waitFor(() =>
       expect(mocks.service.refresh).toHaveBeenCalledWith(
         'brand-a',
@@ -156,8 +154,9 @@ describe('connected Following feeds and native action confirmation', () => {
     });
     renderFollowing();
     await screen.findByText('Followed author');
-    fireEvent.click(screen.getByRole('button', { name: 'Like', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: /^Like$/ }));
     await screen.findByRole('button', { name: 'Check action confirmation' });
+    await waitFor(() => expect(mocks.service.act).toHaveBeenCalledTimes(1));
     const first = mocks.service.act.mock.calls[0];
     expect(first).toEqual([
       'brand-a',
@@ -168,9 +167,7 @@ describe('connected Following feeds and native action confirmation', () => {
         idempotencyKey: expect.any(String),
       }),
     ]);
-    expect(
-      screen.getByRole('button', { name: 'Like', exact: true }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^Like$/ })).toBeDisabled();
     fireEvent.click(
       screen.getByRole('button', { name: 'Check action confirmation' }),
     );
@@ -184,7 +181,7 @@ describe('connected Following feeds and native action confirmation', () => {
   it('shows the posting account and requires explicit publication of composed text', async () => {
     renderFollowing();
     await screen.findByText('Followed author');
-    fireEvent.click(screen.getByRole('button', { name: 'Reply', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: /^Reply$/ }));
     expect(screen.getByText('Reply as Selected account')).toBeInTheDocument();
     expect(mocks.service.act).not.toHaveBeenCalled();
     fireEvent.change(screen.getByRole('textbox', { name: 'Reply text' }), {
