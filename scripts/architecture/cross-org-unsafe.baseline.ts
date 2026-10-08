@@ -133,7 +133,7 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
     // #6120: platform admin trend corpus health.
     {
       file: 'apps/server/api/src/collections/trends/services/modules/trend-corpus-freshness.service.ts',
-      line: 227,
+      line: 222,
     },
     // #6120: superadmin purge of synthetic trend rows.
     {

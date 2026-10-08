@@ -14,6 +14,7 @@ import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Music, Play, TrendingUp } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 function formatDuration(seconds?: number): string {
   if (!seconds) {
@@ -31,6 +32,7 @@ export function TrendingSounds({
   onPlaySound,
   className = '',
 }: TrendingSoundsProps) {
+  const translate = useTranslations('ui.discovery');
   if (isLoading) {
     return (
       <div className={`space-y-4 ${className}`}>
@@ -73,7 +75,7 @@ export function TrendingSounds({
           </Badge>
         </h3>
         <p className="text-sm text-foreground/60">
-          Sounds observed in collected videos, with playable examples.
+          {translate('soundDescription')}
         </p>
       </div>
 
@@ -149,8 +151,8 @@ export function TrendingSounds({
                       <Play className="size-3.5" />
                       {formatCompactNumber(sound.usageCount)}{' '}
                       {sound.usageCountScope === 'observed'
-                        ? 'observed videos'
-                        : 'uses'}
+                        ? translate('observedVideos')
+                        : translate('uses')}
                     </span>
                     {sound.duration && (
                       <span className="tabular-nums">
@@ -164,7 +166,7 @@ export function TrendingSounds({
               <div className="relative z-10 flex items-center justify-between mt-3 pt-3 border-t border-border pointer-events-none">
                 <div className="flex items-center gap-1 text-sm">
                   {sound.usageCountScope === 'observed' ? (
-                    <span>Growth not measured</span>
+                    <span>{translate('growthMissing')}</span>
                   ) : (
                     <>
                       <TrendingUp
@@ -210,7 +212,7 @@ export function TrendingSounds({
             {sound.examples?.length ? (
               <div className="mt-3 space-y-3">
                 <p className="text-xs text-muted-foreground">
-                  Videos using this sound
+                  {translate('soundExamples')}
                 </p>
                 {sound.examples.map((video: TrendMediaExample) => (
                   <SocialMediaPlayer
@@ -225,7 +227,7 @@ export function TrendingSounds({
               </div>
             ) : (
               <p className="mt-3 text-xs text-muted-foreground">
-                No example videos recorded yet.
+                {translate('noSoundExamples')}
               </p>
             )}
           </Card>

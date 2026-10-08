@@ -1,12 +1,24 @@
 import { createHash } from 'node:crypto';
+import {
+  type SystemWorkflowActionRequest,
+  SystemWorkflowRunnerService,
+} from '@api/collections/workflows/system-workflow-runner.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
-import type { TimelineScope } from '@api/services/social-timeline/social-timeline.types';
+import type {
+  TimelineCollectedPost,
+  TimelineScope,
+} from '@api/services/social-timeline/social-timeline.types';
 import {
   classifyTimelineError,
   SocialTimelineProviderService,
   timelineCapability,
 } from '@api/services/social-timeline/social-timeline-provider.service';
+import {
+  buildSocialTimelineActionWorkflow,
+  SOCIAL_TIMELINE_ACTION_ID,
+  SOCIAL_TIMELINE_WORKFLOW_ID,
+} from '@api/services/social-timeline/social-timeline-workflow-definition';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ConnectedTimelineSyncStatus,
@@ -15,6 +27,7 @@ import {
   SocialSourceType,
   SourcePostNativeActionStatus,
   toPrismaCredentialPlatform,
+  WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
 import type {
   ISourcePost,
@@ -28,14 +41,60 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  type OnModuleInit,
 } from '@nestjs/common';
 
 @Injectable()
-export class SocialTimelineService {
+export class SocialTimelineService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly provider: SocialTimelineProviderService,
+    private readonly workflows: SystemWorkflowRunnerService,
   ) {}
+
+  onModuleInit(): void {
+    this.workflows.registerWorkflow(buildSocialTimelineActionWorkflow());
+    this.workflows.registerAction(SOCIAL_TIMELINE_ACTION_ID, (request) =>
+      this.runNativeAction(request),
+    );
+  }
+
+  private runNativeAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<SourcePostNativeActionResult> {
+    const input = readRecord(request.input.request);
+    const required = (key: string): string => {
+      const value = input[key];
+      if (typeof value !== 'string' || !value)
+        throw new BadRequestException(`Missing ${key}.`);
+      return value;
+    };
+    if (
+      required('organizationId') !== request.context.organizationId ||
+      required('userId') !== request.context.userId
+    )
+      throw new BadRequestException(
+        'The action scope does not match this workflow.',
+      );
+    const action = (
+      ['like', 'reply', 'repost', 'quote', 'comment'] as const
+    ).find((value) => value === input.action);
+    if (!action) throw new BadRequestException('Invalid native action.');
+    return this.actNative(
+      {
+        organizationId: request.context.organizationId,
+        userId: request.context.userId,
+        brandId: required('brandId'),
+      },
+      required('postId'),
+      {
+        action,
+        credentialId: required('credentialId'),
+        idempotencyKey: required('idempotencyKey'),
+        text: typeof input.text === 'string' ? input.text : undefined,
+      },
+    );
+  }
 
   async read(scope: TimelineScope): Promise<SocialTimelineResponse> {
     const credentials = await this.prisma.credential.findMany({
@@ -233,63 +292,7 @@ export class SocialTimelineService {
           credential.id,
           platform,
         );
-        await this.prisma.$transaction(
-          async (tx) => {
-            for (const post of posts) {
-              const data = {
-                ...post,
-                userId: scope.userId,
-                publishedAt: post.publishedAt
-                  ? new Date(post.publishedAt)
-                  : null,
-                collectedAt: new Date(),
-                metrics: (post.metrics ?? {}) as Prisma.InputJsonValue,
-                raw: {
-                  provenance: 'native-following',
-                  credentialId: credential.id,
-                },
-              };
-              // tenant-scope-ignore: source is resolved and reserved within the selected tenant; unique identity reactivates its own tombstone.
-              await tx.sourcePost.upsert({
-                where: {
-                  sourceId_externalId: {
-                    sourceId: resolvedSource.id,
-                    externalId: post.externalId,
-                  },
-                },
-                create: {
-                  ...data,
-                  organizationId: scope.organizationId,
-                  brandId: scope.brandId,
-                  sourceId: resolvedSource.id,
-                },
-                update: { ...data, isDeleted: false },
-              });
-            }
-            await tx.sourcePost.updateMany({
-              where: scopedWhere(scope.organizationId, {
-                brandId: scope.brandId,
-                sourceId: resolvedSource.id,
-                externalId: { notIn: posts.map((post) => post.externalId) },
-              }),
-              data: { isDeleted: true },
-            });
-            await tx.socialSource.updateMany({
-              where: scopedWhere(scope.organizationId, {
-                brandId: scope.brandId,
-                id: resolvedSource.id,
-              }),
-              data: {
-                lastSyncedAt: new Date(),
-                lastSyncStatus: posts.length
-                  ? ConnectedTimelineSyncStatus.READY
-                  : ConnectedTimelineSyncStatus.EMPTY,
-                lastSyncError: null,
-              },
-            });
-          },
-          { timeout: 30000 },
-        );
+        await this.saveSnapshot(scope, resolvedSource.id, credential.id, posts);
       } catch (error: unknown) {
         const failure = classifyTimelineError(error);
         await this.prisma.socialSource.updateMany({
@@ -307,7 +310,97 @@ export class SocialTimelineService {
     return this.read(scope);
   }
 
+  private async saveSnapshot(
+    scope: TimelineScope,
+    sourceId: string,
+    credentialId: string,
+    posts: TimelineCollectedPost[],
+  ): Promise<void> {
+    await this.prisma.$transaction(
+      async (tx) => {
+        for (const post of posts) {
+          const data = {
+            ...post,
+            userId: scope.userId,
+            publishedAt: post.publishedAt ? new Date(post.publishedAt) : null,
+            collectedAt: new Date(),
+            metrics: (post.metrics ?? {}) as Prisma.InputJsonValue,
+            raw: {
+              provenance: 'native-following',
+              credentialId: credentialId,
+            },
+          };
+          // tenant-scope-ignore: source is resolved and reserved within the selected tenant; unique identity reactivates its own tombstone.
+          await tx.sourcePost.upsert({
+            where: {
+              sourceId_externalId: {
+                sourceId: sourceId,
+                externalId: post.externalId,
+              },
+            },
+            create: {
+              ...data,
+              organizationId: scope.organizationId,
+              brandId: scope.brandId,
+              sourceId: sourceId,
+            },
+            update: { ...data, isDeleted: false },
+          });
+        }
+        await tx.sourcePost.updateMany({
+          where: scopedWhere(scope.organizationId, {
+            brandId: scope.brandId,
+            sourceId: sourceId,
+            externalId: { notIn: posts.map((post) => post.externalId) },
+          }),
+          data: { isDeleted: true },
+        });
+        await tx.socialSource.updateMany({
+          where: scopedWhere(scope.organizationId, {
+            brandId: scope.brandId,
+            id: sourceId,
+          }),
+          data: {
+            lastSyncedAt: new Date(),
+            lastSyncStatus: posts.length
+              ? ConnectedTimelineSyncStatus.READY
+              : ConnectedTimelineSyncStatus.EMPTY,
+            lastSyncError: null,
+          },
+        });
+      },
+      { timeout: 30000 },
+    );
+  }
+
   async act(
+    scope: TimelineScope,
+    postId: string,
+    input: SourcePostNativeActionInput,
+  ): Promise<SourcePostNativeActionResult> {
+    const { result } =
+      await this.workflows.runWorkflow<SourcePostNativeActionResult>({
+        canonicalId: SOCIAL_TIMELINE_WORKFLOW_ID,
+        actionType: SOCIAL_TIMELINE_WORKFLOW_ID,
+        organizationId: scope.organizationId,
+        userId: scope.userId,
+        source: 'SocialTimelineService.act',
+        trigger: WorkflowExecutionTrigger.API,
+        inputValues: {
+          request: {
+            ...scope,
+            postId,
+            action: input.action,
+            credentialId: input.credentialId,
+            idempotencyKey: input.idempotencyKey,
+            ...(input.text !== undefined ? { text: input.text } : {}),
+          },
+        },
+      });
+    return result;
+  }
+
+  private async actNative(
     scope: TimelineScope,
     postId: string,
     input: SourcePostNativeActionInput,

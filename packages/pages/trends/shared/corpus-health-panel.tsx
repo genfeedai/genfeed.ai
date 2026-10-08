@@ -1,33 +1,11 @@
 'use client';
 
-import type {
-  TrendRefreshHealth,
-  TrendRefreshReason,
-} from '@genfeedai/contracts/interfaces';
+import type { TrendRefreshHealth } from '@genfeedai/contracts/interfaces';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { CorpusHealthPanelProps } from '@props/trends/corpus-health-panel.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
-
-const REASONS: Record<TrendRefreshReason, string> = {
-  authentication_required:
-    'Reconnect the account or repair the provider credentials.',
-  access_required: 'The provider requires additional permission or API access.',
-  budget_exhausted: 'Provider credits or the collection budget are exhausted.',
-  rate_limited: 'The provider rate limit was reached. Retry later.',
-  native_unavailable: 'No native provider is available for this dataset.',
-  native_empty: 'The native provider returned no observations.',
-  native_failed: 'The native provider request failed.',
-  provider_failed: 'The collection provider request failed.',
-  persistence_failed: 'Collection could not be saved. Retry the refresh.',
-};
-
-const PREVIEW_REASONS = {
-  empty_source_preview: 'No source previews were observed.',
-  fallback_source_preview: 'Source previews use fallback data.',
-  stale_source_preview: 'Source previews are stale.',
-  refresh_failed: 'Collection failed.',
-};
+import { useTranslations } from 'next-intl';
 
 function timestamp(value?: string | null): string {
   if (!value) return 'Not recorded';
@@ -38,12 +16,12 @@ function timestamp(value?: string | null): string {
 }
 
 function receiptLabel(receipt: TrendRefreshHealth): string {
-  if (receipt.outcome.endsWith('available')) return 'Available';
-  if (receipt.outcome.endsWith('failed')) return 'Failed';
+  if (receipt.outcome.endsWith('available')) return 'availableTitle';
+  if (receipt.outcome.endsWith('failed')) return 'failedTitle';
   return receipt.reason === 'native_unavailable' &&
     receipt.outcome === 'native_empty'
-    ? 'Unsupported'
-    : 'No observations';
+    ? 'unsupportedTitle'
+    : 'noObservationsTitle';
 }
 
 export default function CorpusHealthPanel({
@@ -52,6 +30,7 @@ export default function CorpusHealthPanel({
   selectedPlatforms = [],
   scope = 'all',
 }: CorpusHealthPanelProps) {
+  const translate = useTranslations('ui.discovery');
   const receipts =
     health?.refreshHealth?.filter(
       (receipt) =>
@@ -71,9 +50,9 @@ export default function CorpusHealthPanel({
     receipt.outcome.endsWith('failed'),
   );
   return (
-    <section aria-label="Source health" className="mb-4">
+    <section aria-label={translate('health')} className="mb-4">
       <Card
-        label="Source health"
+        label={translate('health')}
         bodyClassName="space-y-3"
         headerAction={
           <Badge
@@ -88,14 +67,14 @@ export default function CorpusHealthPanel({
             }
           >
             {isUnavailable
-              ? 'Unavailable'
+              ? translate('unavailable')
               : !health
-                ? 'Checking collection'
+                ? translate('checking')
                 : failures.length
-                  ? `${failures.length} collection failures`
+                  ? translate('failures', { count: failures.length })
                   : receipts.length
-                    ? 'Collection recorded'
-                    : 'No collection recorded'}
+                    ? translate('collectionRecorded')
+                    : translate('noCollection')}
           </Badge>
         }
       >
@@ -119,12 +98,12 @@ export default function CorpusHealthPanel({
                 <span className="ml-1">
                   {platform === 'twitter' ? 'X' : platform} ·{' '}
                   {failed
-                    ? 'degraded'
+                    ? translate('degraded')
                     : available
-                      ? 'available'
+                      ? translate('available')
                       : rows.length
-                        ? 'no observations'
-                        : 'not recorded'}
+                        ? translate('noObservations')
+                        : translate('notRecorded')}
                 </span>
               </Badge>
             );
@@ -132,15 +111,15 @@ export default function CorpusHealthPanel({
         </div>
         {isUnavailable ? (
           <p className="text-xs text-muted-foreground">
-            Collection health could not be loaded. Reload to retry.
+            {translate('healthError')}
           </p>
         ) : null}
         <details>
           <summary className="cursor-pointer text-xs text-muted-foreground">
-            Collection details ·{' '}
+            {translate('collectionDetails')} ·{' '}
             {scope === 'global'
-              ? 'public market'
-              : 'public market and connected accounts'}
+              ? translate('publicMarket')
+              : translate('allScopes')}
           </summary>
           <ul className="mt-3 divide-y divide-border">
             {receipts.map((receipt) => (
@@ -152,12 +131,12 @@ export default function CorpusHealthPanel({
                   <span>
                     {receipt.platform} · {receipt.dataset} ·{' '}
                     {receipt.scope === 'global'
-                      ? 'Public market'
-                      : 'Connected account'}{' '}
+                      ? translate('publicMarketTitle')
+                      : translate('connectedAccount')}{' '}
                     ·{' '}
                     {receipt.outcome.startsWith('fallback')
-                      ? 'Apify fallback'
-                      : 'Native provider'}
+                      ? translate('fallbackProvider')
+                      : translate('nativeProvider')}
                   </span>
                   <Badge
                     variant={
@@ -168,17 +147,17 @@ export default function CorpusHealthPanel({
                           : 'ghost'
                     }
                   >
-                    {receiptLabel(receipt)}
+                    {translate(receiptLabel(receipt))}
                   </Badge>
                 </div>
                 {receipt.reason && !receipt.outcome.endsWith('available') ? (
                   <p className="text-xs text-muted-foreground">
-                    {REASONS[receipt.reason]}
+                    {translate(`reasons.${receipt.reason}`)}
                   </p>
                 ) : null}
                 <p className="text-xs text-muted-foreground">
-                  Last attempt {timestamp(receipt.lastAttemptAt)} · Last
-                  successful refresh{' '}
+                  {translate('lastAttempt')} {timestamp(receipt.lastAttemptAt)}{' '}
+                  · {translate('lastSuccess')}{' '}
                   {timestamp(receipt.lastSuccessfulRefreshAt)}
                 </p>
               </li>
@@ -186,7 +165,7 @@ export default function CorpusHealthPanel({
           </ul>
           {!receipts.length ? (
             <p className="py-3 text-xs text-muted-foreground">
-              No saved collection attempts for this scope.
+              {translate('noAttempts')}
             </p>
           ) : null}
         </details>
@@ -195,7 +174,7 @@ export default function CorpusHealthPanel({
         ) ? (
           <details>
             <summary className="cursor-pointer text-xs text-muted-foreground">
-              Source preview coverage
+              {translate('previewCoverage')}
             </summary>
             <ul className="mt-2 space-y-2">
               {health.providerFailures
@@ -211,7 +190,7 @@ export default function CorpusHealthPanel({
                     className="text-xs text-muted-foreground"
                   >
                     {failure.platform} · {failure.provider}:{' '}
-                    {PREVIEW_REASONS[failure.reason]} ·{' '}
+                    {translate(`previewReasons.${failure.reason}`)} ·{' '}
                     {timestamp(failure.latestObservedAt)}
                   </li>
                 ))}

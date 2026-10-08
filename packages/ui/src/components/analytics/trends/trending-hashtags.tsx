@@ -12,6 +12,7 @@ import {
   PLATFORM_CONFIGS_ARRAY,
 } from '@ui-constants/platform.constant';
 import { Hash, TrendingUp } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 const HASHTAG_PLATFORMS = ['tiktok', 'instagram', 'twitter'];
 
@@ -23,6 +24,7 @@ export function TrendingHashtags({
   onHashtagClick,
   className = '',
 }: TrendingHashtagsProps) {
+  const translate = useTranslations('ui.discovery');
   const filteredPlatforms = PLATFORM_CONFIGS_ARRAY.filter((p) =>
     HASHTAG_PLATFORMS.includes(p.id),
   );
@@ -165,7 +167,7 @@ export function TrendingHashtags({
                 <div className="flex items-center justify-between">
                   <span className="text-foreground/60">
                     {hashtag.postCountScope === 'observed'
-                      ? 'Observed posts'
+                      ? translate('observedPosts')
                       : 'Posts'}
                   </span>
                   <span className="font-medium tabular-nums">
@@ -195,7 +197,7 @@ export function TrendingHashtags({
                     }`}
                   >
                     {hashtag.growthMeasured === false
-                      ? 'Not measured'
+                      ? translate('notMeasured')
                       : `${hashtag.growthRate > 0 ? '+' : ''}${hashtag.growthRate.toFixed(0)}%`}
                   </span>
                 </div>

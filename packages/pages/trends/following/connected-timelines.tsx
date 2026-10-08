@@ -29,15 +29,9 @@ import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { AtSign, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-const ACTION_LABELS: Record<NativeSocialAction, string> = {
-  like: 'Like',
-  reply: 'Reply',
-  repost: 'Repost',
-  quote: 'Quote',
-  comment: 'Comment',
-};
 const PLATFORM_FEEDS: Record<string, string> = {
   twitter: 'https://x.com/home',
   youtube: 'https://www.youtube.com/feed/subscriptions',
@@ -51,6 +45,9 @@ const PLATFORM_FEEDS: Record<string, string> = {
 };
 
 function TimelinePost({ account, post, onAction }: ConnectedTimelinePostProps) {
+  const translate = useTranslations('ui.discovery');
+  const actionLabel = (action: NativeSocialAction) =>
+    translate(`actions.${action}`);
   const [composer, setComposer] = useState<NativeSocialAction | null>(null);
   const [text, setText] = useState('');
   const [request, setRequest] = useState<SourcePostNativeActionInput | null>(
@@ -79,7 +76,7 @@ function TimelinePost({ account, post, onAction }: ConnectedTimelinePostProps) {
         setComposer(null);
         setText('');
         setRequest(null);
-        setMessage(`${ACTION_LABELS[action]} completed as ${account.label}.`);
+        setMessage(`${actionLabel(action)} completed as ${account.label}.`);
       } else {
         setMessage(
           result.message ||
@@ -135,7 +132,7 @@ function TimelinePost({ account, post, onAction }: ConnectedTimelinePostProps) {
           rel="noopener noreferrer"
           className="text-xs text-muted-foreground"
         >
-          Open source
+          {translate('openSource')}
         </a>
       ) : null}
       <div className="flex flex-wrap gap-1">
@@ -155,18 +152,21 @@ function TimelinePost({ account, post, onAction }: ConnectedTimelinePostProps) {
             }}
           >
             {completed.has(action)
-              ? `${ACTION_LABELS[action]} complete`
-              : ACTION_LABELS[action]}
+              ? `${actionLabel(action)} complete`
+              : actionLabel(action)}
           </Button>
         ))}
       </div>
       {composer ? (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
-            {ACTION_LABELS[composer]} as {account.label}
+            {translate('asAccount', {
+              action: actionLabel(composer),
+              account: account.label,
+            })}
           </p>
           <Textarea
-            aria-label={`${ACTION_LABELS[composer]} text`}
+            aria-label={`${actionLabel(composer)} text`}
             value={text}
             onChange={(event) => setText(event.target.value)}
             maxLength={account.platform === 'twitter' ? 280 : 2000}
@@ -181,7 +181,9 @@ function TimelinePost({ account, post, onAction }: ConnectedTimelinePostProps) {
                 void send(composer);
               }}
             >
-              Publish {ACTION_LABELS[composer].toLowerCase()}
+              {translate('publishAction', {
+                action: actionLabel(composer).toLowerCase(),
+              })}
             </Button>
             <Button
               size={ButtonSize.SM}
@@ -189,7 +191,7 @@ function TimelinePost({ account, post, onAction }: ConnectedTimelinePostProps) {
               isDisabled={isBusy || Boolean(request)}
               onClick={() => setComposer(null)}
             >
-              Cancel
+              {translate('cancel')}
             </Button>
           </div>
         </div>
@@ -208,7 +210,7 @@ function TimelinePost({ account, post, onAction }: ConnectedTimelinePostProps) {
             void send(request.action);
           }}
         >
-          Check action confirmation
+          {translate('confirmation')}
         </Button>
       ) : null}
     </Card>
@@ -216,6 +218,7 @@ function TimelinePost({ account, post, onAction }: ConnectedTimelinePostProps) {
 }
 
 export default function ConnectedTimelines() {
+  const translate = useTranslations('ui.discovery');
   const scope = useCollectionScope();
   const brandId = scope.brandId ?? '';
   const { href } = useOrgUrl();
@@ -239,15 +242,14 @@ export default function ConnectedTimelines() {
   return (
     <>
       <SectionTopbar
-        title="Following"
-        subtitle="Your connected accounts’ curated feeds, together."
+        title={translate('following')}
+        subtitle={translate('followingDescription')}
         icon={AtSign}
       />
       <Container bodyClassName="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
-            Refresh to collect recent posts from the accounts you already
-            follow.
+            {translate('refreshDescription')}
           </p>
           <div className="flex gap-2">
             <Button
@@ -256,7 +258,7 @@ export default function ConnectedTimelines() {
               size={ButtonSize.SM}
             >
               <Link href={href(APP_ROUTES.SETTINGS.CONNECTED_ACCOUNTS)}>
-                Connected accounts
+                {translate('connectedAccounts')}
               </Link>
             </Button>
             <Button
@@ -270,22 +272,22 @@ export default function ConnectedTimelines() {
               }
               onClick={() => refresh.mutate(undefined)}
             >
-              Refresh feeds
+              {translate('refreshFeeds')}
             </Button>
           </div>
         </div>
         {query.isLoading ? (
-          <p role="status">Loading your connected feeds…</p>
+          <p role="status">{translate('loadingFeeds')}</p>
         ) : null}
         {query.error || refresh.error ? (
           <p role="alert" className="text-sm text-destructive">
-            Unable to load your feeds. Try refreshing.
+            {translate('feedError')}
           </p>
         ) : null}
         {query.data?.accounts.length === 0 ? (
-          <Card label="Connect an account">
+          <Card label={translate('connectAccount')}>
             <p className="text-sm text-muted-foreground">
-              Your connected social accounts appear here automatically.
+              {translate('automaticAccounts')}
             </p>
           </Card>
         ) : null}
@@ -320,7 +322,8 @@ export default function ConnectedTimelines() {
                 </p>
                 {account.lastSyncedAt ? (
                   <p className="text-xs text-muted-foreground">
-                    Updated {getRelativeTime(account.lastSyncedAt)}
+                    {translate('updated')}{' '}
+                    {getRelativeTime(account.lastSyncedAt)}
                   </p>
                 ) : null}
                 <div className="flex items-center gap-2">
@@ -331,7 +334,7 @@ export default function ConnectedTimelines() {
                       isDisabled={refresh.isPending}
                       onClick={() => refresh.mutate(account.credentialId)}
                     >
-                      Refresh
+                      {translate('refresh')}
                     </Button>
                   ) : null}
                   {PLATFORM_FEEDS[account.platform] ? (
@@ -341,7 +344,7 @@ export default function ConnectedTimelines() {
                       rel="noopener noreferrer"
                       className="text-xs text-muted-foreground"
                     >
-                      Open native feed
+                      {translate('openFeed')}
                     </a>
                   ) : null}
                 </div>

@@ -7,6 +7,7 @@ import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
 import { ExternalLink, Play } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 export default function SocialMediaPlayer({
@@ -14,6 +15,7 @@ export default function SocialMediaPlayer({
   className = '',
   ...source
 }: SocialMediaPlayerProps) {
+  const translate = useTranslations('ui.discovery');
   const { directUrl, embedUrl, thumbnail, sourceUrl } =
     getSocialMediaSource(source);
   const [isPlaying, setPlaying] = useState(false);
@@ -85,7 +87,7 @@ export default function SocialMediaPlayer({
             (directUrl || embedUrl) &&
             !hasError ? (
               <Button
-                aria-label={`Play ${title}`}
+                aria-label={translate('playVideo', { title })}
                 variant={ButtonVariant.UNSTYLED}
                 className="absolute inset-0 flex size-full items-center justify-center bg-background/30"
                 withWrapper={false}
@@ -99,7 +101,7 @@ export default function SocialMediaPlayer({
       </div>
       {hasError ? (
         <p className="text-xs text-muted-foreground">
-          Preview unavailable. Open the source to watch.
+          {translate('previewError')}
         </p>
       ) : null}
       {sourceUrl ? (
@@ -110,7 +112,7 @@ export default function SocialMediaPlayer({
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         >
           <ExternalLink className="size-3" />
-          Open source
+          {translate('openSource')}
         </a>
       ) : null}
     </div>

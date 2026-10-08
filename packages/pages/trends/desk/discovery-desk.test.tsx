@@ -239,7 +239,7 @@ describe('DiscoveryDesk', () => {
     render(<DiscoveryDesk />);
     expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
       'data-following-href',
-      '/org-1/brand-1/discovery/overview?source=following',
+      '/org-1/brand-1/discovery/following',
     );
     expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
       'data-publishing-href',

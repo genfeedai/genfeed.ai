@@ -12,20 +12,13 @@ vi.mock('next-intl', async () => {
 });
 
 const mocks = vi.hoisted(() => ({
-  cacheGet: vi.fn(),
-  cacheSet: vi.fn(),
   getCorpusFreshnessHealth: vi.fn(),
   getTrendsDiscovery: vi.fn(),
   getTrendingHashtags: vi.fn(),
   getTrendingSounds: vi.fn(),
-  getTrendingTopics: vi.fn(),
   getTrendsService: vi.fn(),
   getViralVideos: vi.fn(),
-  loggerError: vi.fn(),
-  loggerInfo: vi.fn(),
-  open: vi.fn(),
   push: vi.fn(),
-  viralVideoProps: vi.fn(),
 }));
 
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
@@ -35,13 +28,6 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
     isReady: true,
     organizationId: 'org-1',
     pageScope: 'brand',
-  }),
-}));
-
-vi.mock('@helpers/data/cache/cache.helper', () => ({
-  createLocalStorageCache: () => ({
-    get: mocks.cacheGet,
-    set: mocks.cacheSet,
   }),
 }));
 
@@ -77,13 +63,6 @@ vi.mock('@pages/trends/list/components/HookRemixModal', () => ({
     ) : null,
 }));
 
-vi.mock('@services/core/logger.service', () => ({
-  logger: {
-    error: mocks.loggerError,
-    info: mocks.loggerInfo,
-  },
-}));
-
 vi.mock('@services/social/trends.service', () => ({
   TrendsService: {
     getInstance: vi.fn(),
@@ -94,10 +73,12 @@ vi.mock('@ui/analytics/trends', () => ({
   TrendingHashtags: ({
     hashtags,
     onPlatformChange,
+    onHashtagClick,
     selectedPlatform,
   }: {
     hashtags: Array<{ hashtag: string }>;
     onPlatformChange: (platform: string) => void;
+    onHashtagClick: (hashtag: { hashtag: string }) => void;
     selectedPlatform: string;
   }) => (
     <section>
@@ -106,58 +87,31 @@ vi.mock('@ui/analytics/trends', () => ({
         Filter YouTube Hashtags
       </button>
       {hashtags.map((hashtag) => (
-        <span key={hashtag.hashtag}>{hashtag.hashtag}</span>
+        <button
+          key={hashtag.hashtag}
+          type="button"
+          onClick={() => onHashtagClick(hashtag)}
+        >
+          {hashtag.hashtag}
+        </button>
       ))}
     </section>
   ),
-  TrendingSounds: ({
-    onSoundClick,
-    sounds,
-  }: {
-    onSoundClick: (sound: { title: string }) => void;
-    sounds: Array<{ title: string }>;
-  }) => (
+  TrendingSounds: ({ sounds }: { sounds: Array<{ soundName: string }> }) => (
     <section>
       {sounds.map((sound) => (
-        <button
-          key={sound.title}
-          type="button"
-          onClick={() => onSoundClick(sound)}
-        >
-          {sound.title}
-        </button>
+        <span key={sound.soundName}>{sound.soundName}</span>
       ))}
     </section>
   ),
-  ViralVideoLeaderboard: (props: {
-    onTimeframeChange: (timeframe: Timeframe.D7) => void;
-    onVideoClick: (video: Record<string, unknown>) => void;
-    timeframe: string;
-    videos: Array<{ creatorHandle: string; title: string }>;
-  }) => {
-    mocks.viralVideoProps(props);
+}));
 
-    return (
-      <section>
-        <div>Video timeframe: {props.timeframe}</div>
-        <button
-          type="button"
-          onClick={() => props.onTimeframeChange(Timeframe.D7)}
-        >
-          Last 7 Days
-        </button>
-        {props.videos.map((video) => (
-          <button
-            key={video.title}
-            type="button"
-            onClick={() => props.onVideoClick(video)}
-          >
-            Open {video.title}
-          </button>
-        ))}
-      </section>
-    );
-  },
+vi.mock('@ui/analytics/trends/social-media-player', () => ({
+  default: ({ title, sourceUrl }: { title: string; sourceUrl?: string }) => (
+    <figure aria-label={title}>
+      {sourceUrl ? <a href={sourceUrl}>Open source</a> : null}
+    </figure>
+  ),
 }));
 
 vi.mock('@ui/card/Card', () => ({
@@ -291,6 +245,7 @@ function makeTrend(overrides: Record<string, unknown> = {}) {
 function makeViralVideo(overrides: Record<string, unknown> = {}) {
   return {
     creatorHandle: 'creator',
+    hashtags: ['AIAgents'],
     engagementRate: 8.5,
     id: 'viral-1',
     platform: Platform.TIKTOK,
@@ -308,6 +263,14 @@ function configureSuccessfulService() {
   mocks.getCorpusFreshnessHealth.mockResolvedValue({
     generatedAt: '2026-08-31T08:05:00.000Z',
     providerFailures: [],
+    refreshHealth: healthyPlatforms.map((platform) => ({
+      platform,
+      dataset: 'videos',
+      scope: 'global',
+      outcome: 'native_available',
+      lastAttemptAt: '2026-08-31T08:00:00.000Z',
+      lastSuccessfulRefreshAt: '2026-08-31T08:00:00.000Z',
+    })),
     segments: healthyPlatforms.map((platform) => ({
       id: `${platform}:native-api`,
       latestSeenAt: new Date().toISOString(),
@@ -338,31 +301,11 @@ function configureSuccessfulService() {
       }),
     ],
   });
-  mocks.getTrendingTopics.mockResolvedValue([
-    makeTrend(),
-    makeTrend({
-      id: 'topic-youtube',
-      mentions: 600,
-      platform: Platform.YOUTUBE,
-      topic: 'YouTube series',
-    }),
-    makeTrend({
-      id: 'topic-twitter',
-      mentions: 300,
-      platform: Platform.TWITTER,
-      topic: 'Launch thread',
-    }),
-    makeTrend({
-      id: 'topic-instagram',
-      mentions: 100,
-      platform: Platform.INSTAGRAM,
-      topic: 'Carousel hooks',
-    }),
-  ]);
   mocks.getViralVideos.mockResolvedValue([
     makeViralVideo(),
     makeViralVideo({
       id: undefined,
+      hashtags: ['other'],
       platform: Platform.YOUTUBE,
       title: 'External video',
       videoUrl: 'https://example.test/external-video',
@@ -372,22 +315,19 @@ function configureSuccessfulService() {
     { hashtag: '#AIAgents', platform: Platform.TIKTOK },
   ]);
   mocks.getTrendingSounds.mockResolvedValue([
-    { playUrl: 'https://example.test/sound', title: 'Launch audio' },
+    { playUrl: 'https://example.test/sound', soundName: 'Launch audio' },
   ]);
 }
 
 describe('DiscoveryTrends', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal('open', mocks.open);
     configureSuccessfulService();
-    mocks.cacheGet.mockReturnValue(null);
     mocks.getTrendsService.mockResolvedValue({
       getCorpusFreshnessHealth: mocks.getCorpusFreshnessHealth,
       getTrendsDiscovery: mocks.getTrendsDiscovery,
       getTrendingHashtags: mocks.getTrendingHashtags,
       getTrendingSounds: mocks.getTrendingSounds,
-      getTrendingTopics: mocks.getTrendingTopics,
       getViralVideos: mocks.getViralVideos,
     });
   });
@@ -423,8 +363,8 @@ describe('DiscoveryTrends', () => {
     expect(screen.getByText('#AIAgents')).toBeInTheDocument();
     expect(screen.getByText('Launch audio')).toBeInTheDocument();
     expect(screen.getByText(/Highest term volume:/)).toBeInTheDocument();
-    expect(screen.getByText('Trend corpus healthy')).toBeInTheDocument();
-    expect(screen.getByText('Youtube · healthy')).toBeInTheDocument();
+    expect(screen.getByText('Collection recorded')).toBeInTheDocument();
+    expect(screen.getByText('youtube · available')).toBeInTheDocument();
     expect(screen.queryByText(/Native Api/)).not.toBeInTheDocument();
 
     // A real anchor, not a click handler: the router prefetches the trend
@@ -437,39 +377,70 @@ describe('DiscoveryTrends', () => {
     // Market viral videos, not the brand's own uploads.
     await waitFor(() => {
       expect(mocks.getViralVideos).toHaveBeenCalledWith({
-        limit: 12,
+        limit: 100,
+        relevance: 'market',
         timeframe: Timeframe.H72,
       });
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Last 7 Days' }));
+    fireEvent.click(screen.getByRole('button', { name: '7 days' }));
     await waitFor(() => {
       expect(mocks.getViralVideos).toHaveBeenLastCalledWith({
-        limit: 12,
+        limit: 100,
+        relevance: 'market',
         timeframe: Timeframe.D7,
       });
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open Launch hook' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remix' }));
     expect(screen.getByTestId('remix-modal')).toHaveTextContent('Launch hook');
     fireEvent.click(screen.getByRole('button', { name: 'Close Remix' }));
     expect(screen.queryByTestId('remix-modal')).toBeNull();
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Open External video' }),
-    );
-    expect(mocks.open).toHaveBeenCalledWith(
-      'https://example.test/external-video',
-      '_blank',
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Launch audio' }));
-    expect(mocks.open).toHaveBeenCalledWith(
-      'https://example.test/sound',
-      '_blank',
-    );
+    expect(
+      screen
+        .getAllByRole('link', { name: 'Open source' })
+        .some(
+          (link) =>
+            link.getAttribute('href') === 'https://example.test/external-video',
+        ),
+    ).toBe(true);
   });
 
-  it('shows a degraded corpus instead of claiming the sync is live', async () => {
+  it('makes brand relevance explicit without changing the market default', async () => {
+    renderDiscoveryTrends();
+    await screen.findByText('AI video');
+    expect(mocks.getTrendsDiscovery).toHaveBeenCalledWith({
+      relevance: 'market',
+      signal: expect.any(AbortSignal),
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'For this brand' }));
+    await waitFor(() =>
+      expect(mocks.getViralVideos).toHaveBeenLastCalledWith({
+        limit: 100,
+        relevance: 'brand',
+        timeframe: Timeframe.H72,
+      }),
+    );
+    expect(mocks.getTrendsDiscovery).toHaveBeenLastCalledWith({
+      relevance: 'brand',
+      signal: expect.any(AbortSignal),
+    });
+  });
+
+  it('filters the content gallery by the selected hashtag', async () => {
+    renderDiscoveryTrends();
+    await screen.findByText('#AIAgents');
+    expect(await screen.findByText('External video')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '#AIAgents' }));
+    expect(screen.getByText('Launch hook')).toBeInTheDocument();
+    expect(screen.queryByText('External video')).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Clear hashtag filter' }),
+    );
+    expect(screen.getByText('External video')).toBeInTheDocument();
+  });
+
+  it('keeps missing collection evidence separate from preview warnings', async () => {
     mocks.getCorpusFreshnessHealth.mockResolvedValue({
       generatedAt: '2026-08-31T08:05:00.000Z',
       providerFailures: [
@@ -500,15 +471,15 @@ describe('DiscoveryTrends', () => {
     renderDiscoveryTrends();
 
     expect(
-      await screen.findByText('Trend corpus degraded'),
+      await screen.findByText('No collection recorded'),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Apify: Saved fallback previews are being used/),
+      screen.getByText(/Source previews use fallback data/),
     ).toBeInTheDocument();
     expect(screen.queryByText('Live sync')).not.toBeInTheDocument();
-    expect(screen.getAllByText('Last refresh').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Last attempt').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Not recorded').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText('No saved collection attempts for this scope.'),
+    ).toBeInTheDocument();
   });
 
   it('shows corpus health as unavailable when its request fails', async () => {
@@ -518,48 +489,40 @@ describe('DiscoveryTrends', () => {
 
     renderDiscoveryTrends();
 
+    expect(await screen.findByText('Unavailable')).toBeInTheDocument();
     expect(
-      await screen.findByText('Trend corpus unavailable'),
+      screen.getByText(/Collection health could not be loaded/),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Source health could not be loaded/),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Checking trend corpus')).not.toBeInTheDocument();
+    expect(screen.queryByText('Checking collection')).not.toBeInTheDocument();
   });
 
-  it('renders empty topic copy and falls back to cached hashtags and sounds', async () => {
-    mocks.getTrendsDiscovery.mockResolvedValue({ trends: [] });
-    mocks.getTrendingTopics.mockRejectedValue(new Error('topics failed'));
+  it('retains scoped query data when a reload fails and reports the failure', async () => {
+    const { queryClient } = renderDiscoveryTrends();
+    await screen.findByText('#AIAgents');
+    await screen.findByText('Launch audio');
+    mocks.getTrendsDiscovery.mockRejectedValue(new Error('topics failed'));
     mocks.getTrendingHashtags.mockRejectedValue(new Error('hashtags failed'));
     mocks.getTrendingSounds.mockRejectedValue(new Error('sounds failed'));
-    mocks.cacheGet.mockImplementation((key: string) => {
-      if (key.startsWith('hashtags:')) {
-        return [{ hashtag: '#CachedTag' }];
-      }
-      if (key.startsWith('sounds:')) {
-        return [{ title: 'Cached sound' }];
-      }
-      return null;
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'Reload data' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Some trend data could not be loaded.',
+    );
+    expect(screen.getByText('#AIAgents')).toBeInTheDocument();
+    expect(screen.getByText('Launch audio')).toBeInTheDocument();
+    expect(
+      queryClient.getQueryData(['discovery-hashtags', 'org-1', 'brand-1', '']),
+    ).toEqual([{ hashtag: '#AIAgents', platform: Platform.TIKTOK }]);
+  });
 
+  it('renders an empty observed topic state without requiring connections', async () => {
+    mocks.getTrendsDiscovery.mockResolvedValue({ trends: [] });
     renderDiscoveryTrends();
-
     expect(
       await screen.findByText('No trending topics available.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('#CachedTag')).toBeInTheDocument();
-    expect(screen.getByText('Cached sound')).toBeInTheDocument();
-    expect(mocks.loggerError).toHaveBeenCalledWith('GET /trends failed', {
-      error: expect.any(Error),
-    });
-    expect(mocks.loggerError).toHaveBeenCalledWith(
-      'Failed to fetch trending hashtags',
-      { error: expect.any(Error) },
-    );
-    expect(mocks.loggerError).toHaveBeenCalledWith(
-      'Failed to fetch trending sounds',
-      { error: expect.any(Error) },
-    );
+    expect(
+      screen.queryByText(/Connect your social accounts/),
+    ).not.toBeInTheDocument();
   });
 
   it('aborts the corpus health request across a Strict Mode remount', async () => {

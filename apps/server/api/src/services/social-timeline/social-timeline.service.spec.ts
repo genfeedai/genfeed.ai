@@ -1,3 +1,8 @@
+import type {
+  RunSystemWorkflowInput,
+  SystemWorkflowActionExecutor,
+  SystemWorkflowRunnerService,
+} from '@api/collections/workflows/system-workflow-runner.service';
 import { SocialTimelineService } from '@api/services/social-timeline/social-timeline.service';
 import type { SocialTimelineProviderService } from '@api/services/social-timeline/social-timeline-provider.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -30,12 +35,48 @@ describe('connected timeline isolation and action delivery', () => {
     $transaction: vi.fn(),
   };
   const provider = { collect: vi.fn(), execute: vi.fn() };
+  let executor: SystemWorkflowActionExecutor;
+  const workflows = {
+    registerWorkflow: vi.fn(),
+    registerAction: vi.fn(
+      (_id: string, action: SystemWorkflowActionExecutor) => {
+        executor = action;
+      },
+    ),
+    runWorkflow: vi.fn(),
+  };
   const service = new SocialTimelineService(
     prisma as unknown as PrismaService,
     provider as unknown as SocialTimelineProviderService,
+    workflows as unknown as SystemWorkflowRunnerService,
   );
   beforeEach(() => {
     vi.resetAllMocks();
+    workflows.registerAction.mockImplementation(
+      (_id: string, action: SystemWorkflowActionExecutor) => {
+        executor = action;
+      },
+    );
+    service.onModuleInit();
+    workflows.runWorkflow.mockImplementation(
+      async (request: RunSystemWorkflowInput) => ({
+        result: await executor({
+          input: request.inputValues ?? {},
+          context: {
+            organizationId: request.organizationId,
+            userId: request.userId ?? '',
+            workflowId: 'workflow',
+            workflowVersionId: 'version',
+            runId: 'run',
+          },
+          provenance: {
+            executionId: 'run',
+            workflowId: 'workflow',
+            workflowLabel: 'Following',
+          },
+        }),
+      }),
+    );
     prisma.credential.findMany.mockResolvedValue([]);
     prisma.socialSource.findMany.mockResolvedValue([]);
     prisma.sourcePost.findFirst.mockResolvedValue(post);
@@ -106,6 +147,13 @@ describe('connected timeline isolation and action delivery', () => {
       status: 'completed',
       externalId: 'published-reply-a',
     });
+    expect(workflows.runWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalId: 'social.timeline.native-action',
+        organizationId: scope.organizationId,
+        userId: scope.userId,
+      }),
+    );
     expect(prisma.sourcePost.findFirst).toHaveBeenCalledWith({
       where: expect.objectContaining({
         id: post.id,
@@ -137,6 +185,33 @@ describe('connected timeline isolation and action delivery', () => {
         }),
       }),
     );
+  });
+
+  it('rejects a workflow request whose actor or organization differs from its execution context', async () => {
+    workflows.runWorkflow.mockImplementationOnce(
+      async (request: RunSystemWorkflowInput) => ({
+        result: await executor({
+          input: request.inputValues ?? {},
+          context: {
+            organizationId: 'another-org',
+            userId: 'another-user',
+            workflowId: 'workflow',
+            workflowVersionId: 'version',
+            runId: 'run',
+          },
+          provenance: {
+            executionId: 'run',
+            workflowId: 'workflow',
+            workflowLabel: 'Following',
+          },
+        }),
+      }),
+    );
+    await expect(service.act(scope, post.id, input)).rejects.toThrow(
+      'scope does not match',
+    );
+    expect(prisma.sourcePostNativeAction.create).not.toHaveBeenCalled();
+    expect(provider.execute).not.toHaveBeenCalled();
   });
 
   it('does not execute the same request twice, including uncertain delivery', async () => {

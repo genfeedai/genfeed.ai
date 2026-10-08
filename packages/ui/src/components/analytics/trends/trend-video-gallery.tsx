@@ -7,6 +7,7 @@ import SocialMediaPlayer from '@ui/analytics/trends/social-media-player';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import { Button } from '@ui/primitives/button';
+import { useTranslations } from 'next-intl';
 
 export default function TrendVideoGallery({
   videos,
@@ -17,23 +18,25 @@ export default function TrendVideoGallery({
   selectedHashtag,
   onClearHashtag,
 }: TrendVideoGalleryProps) {
+  const translate = useTranslations('ui.discovery');
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">
-            Trending content{selectedHashtag ? ` · #${selectedHashtag}` : ''}
+            {translate('content')}
+            {selectedHashtag ? ` · #${selectedHashtag}` : ''}
           </h2>
           <p className="text-sm text-muted-foreground">
-            Observed videos from the selected publication window.
+            {translate('contentDescription')}
           </p>
         </div>
         <div className="flex gap-1">
           {(
             [
-              { label: '24 hours', value: Timeframe.H24 },
-              { label: '72 hours', value: Timeframe.H72 },
-              { label: '7 days', value: Timeframe.D7 },
+              { label: translate('hours24'), value: Timeframe.H24 },
+              { label: translate('hours72'), value: Timeframe.H72 },
+              { label: translate('days7'), value: Timeframe.D7 },
             ] as const
           ).map((option) => (
             <Button
@@ -57,16 +60,16 @@ export default function TrendVideoGallery({
           variant={ButtonVariant.GHOST}
           onClick={onClearHashtag}
         >
-          Clear hashtag filter
+          {translate('clearHashtag')}
         </Button>
       ) : null}
       {isLoading ? (
-        <p role="status">Loading content…</p>
+        <p role="status">{translate('loadingContent')}</p>
       ) : !videos.length ? (
         <p className="py-8 text-sm text-muted-foreground">
           {selectedHashtag
-            ? 'No observed videos match this hashtag in the selected window.'
-            : 'No observed videos in this window. Try 7 days or check source health.'}
+            ? translate('noHashtagContent')
+            : translate('noContent')}
         </p>
       ) : (
         <CollectionGrid maxColumns={3}>
@@ -91,9 +94,9 @@ export default function TrendVideoGallery({
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {formatCompactNumber(video.viewCount ?? video.views ?? 0)}{' '}
-                  views ·{' '}
+                  {translate('views')} ·{' '}
                   {formatCompactNumber(video.likeCount ?? video.likes ?? 0)}{' '}
-                  likes
+                  {translate('likes')}
                 </p>
               </div>
               {onVideoClick && video.id ? (
@@ -102,7 +105,7 @@ export default function TrendVideoGallery({
                   variant={ButtonVariant.SECONDARY}
                   onClick={() => onVideoClick(video)}
                 >
-                  Remix
+                  {translate('remix')}
                 </Button>
               ) : null}
             </Card>

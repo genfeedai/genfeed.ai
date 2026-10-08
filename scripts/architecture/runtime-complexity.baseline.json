@@ -186,12 +186,6 @@
     "symbol": "StripeService.createPaymentSession"
   },
   {
-    "actual": 1056,
-    "file": "apps/server/api/src/services/integrations/tiktok/services/tiktok.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/services/integrations/tiktok/services/tiktok.service.ts"
-  },
-  {
     "actual": 152,
     "file": "apps/server/api/src/services/integrations/youtube/services/modules/youtube-auth.service.ts",
     "metric": "method-lines",

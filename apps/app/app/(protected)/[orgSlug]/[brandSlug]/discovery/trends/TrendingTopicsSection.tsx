@@ -37,6 +37,7 @@ export default function TrendingTopicsSection({
   getRowLink,
 }: Props) {
   const translate = useTranslations('pages.analytics.trends');
+  const discovery = useTranslations('ui.discovery');
 
   const seen = new Set<string>();
   const examples = trendingTopics
@@ -175,7 +176,7 @@ export default function TrendingTopicsSection({
                   rel="noopener noreferrer"
                   className="text-xs underline"
                 >
-                  Open source
+                  {discovery('openSource')}
                 </a>
               )}
               <p className="line-clamp-6 whitespace-pre-wrap text-sm">

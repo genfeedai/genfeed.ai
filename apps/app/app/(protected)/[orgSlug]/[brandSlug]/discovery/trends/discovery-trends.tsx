@@ -18,6 +18,7 @@ import { useDiscoveryTrends } from './useDiscoveryTrends';
 
 export default function DiscoveryTrends() {
   const translate = useTranslations('pages.analytics.trends.page');
+  const discovery = useTranslations('ui.discovery');
   const {
     PLATFORM_CONFIG_LOOKUP,
     TRENDS_PLATFORMS,
@@ -62,11 +63,11 @@ export default function DiscoveryTrends() {
 
       <Container bodyClassName="space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <fieldset className="flex gap-1" aria-label="Trend relevance">
+          <fieldset className="flex gap-1" aria-label={discovery('relevance')}>
             {(
               [
-                { value: 'market', label: 'All trends' },
-                { value: 'brand', label: 'For this brand' },
+                { value: 'market', label: discovery('market') },
+                { value: 'brand', label: discovery('brand') },
               ] as const
             ).map((option) => (
               <Button
@@ -91,12 +92,12 @@ export default function DiscoveryTrends() {
               void reload();
             }}
           >
-            Reload data
+            {discovery('reload')}
           </Button>
         </div>
         {error ? (
           <p role="alert" className="text-sm text-destructive">
-            Some trend data could not be loaded. Reload to retry.
+            {discovery('loadError')}
           </p>
         ) : null}
         <TrendsPageHeader

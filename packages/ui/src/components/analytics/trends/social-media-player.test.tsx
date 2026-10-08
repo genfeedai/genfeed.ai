@@ -78,3 +78,13 @@ describe('interactive social media playback', () => {
     ).toContain('controls=1');
   });
 });
+
+vi.mock('next-intl', async () => {
+  const { createTranslateFromCatalog } = await import(
+    '@ui/tests/next-intl.stub'
+  );
+  const { default: ui } = await import(
+    '../../../../../../apps/app/messages/en/ui.json'
+  );
+  return { useTranslations: createTranslateFromCatalog({ ui }) };
+});
