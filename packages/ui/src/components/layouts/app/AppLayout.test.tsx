@@ -252,8 +252,8 @@ describe('AppLayout', () => {
       screen.getAllByTestId('rail-component')[0],
     );
     expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
-      '--desktop-rail-width': '40px',
-      '--shell-topbar-height': '40px',
+      '--desktop-rail-width': '48px',
+      '--shell-topbar-height': '48px',
     });
     // Desktop: the topbar sits on the chrome plane, outside the page.
     expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
@@ -424,7 +424,7 @@ describe('AppLayout', () => {
     const mobileRail = screen.getByTestId('mobile-app-rail');
     const drawer = mobileRail.parentElement?.parentElement;
 
-    // Clears the 40px fixed topbar that overlaps the top of the drawer.
+    // Clears the 48px fixed topbar that overlaps the top of the drawer.
     expect(mobileRail).toHaveClass('pt-[var(--shell-topbar-height)]');
     expect(drawer).toHaveClass('flex');
     // The drawer renders before the desktop rounded block, so the mobile menu
