@@ -52,6 +52,17 @@ describe('WorkflowEditorShell', () => {
     expect(screen.getByText('Modal Host')).toBeTruthy();
   });
 
+  it('uses the host page main landmark without nesting another', () => {
+    render(
+      <main>
+        <WorkflowEditorShell />
+      </main>,
+    );
+
+    expect(screen.getAllByRole('main')).toHaveLength(1);
+    expect(screen.getByText('Shared Workflow Canvas')).toBeTruthy();
+  });
+
   it('renders the canvas without a stacked toolbar slot', () => {
     render(<WorkflowEditorShell />);
 
