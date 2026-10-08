@@ -123,6 +123,41 @@ describe('ArticleDetail', () => {
     },
   });
 
+  it('uses the new article title as the page heading', () => {
+    render(<ArticleDetail />);
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'New Article' }),
+    ).toBeVisible();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+
+  it('uses the loaded article title as the page heading', () => {
+    useArticleDetailMock.mockReturnValue(savedArticleState('draft'));
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Launch notes' }),
+    ).toBeVisible();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+
+  it('uses the untitled fallback as the existing article page heading', () => {
+    const state = savedArticleState('draft');
+    useArticleDetailMock.mockReturnValue({
+      ...state,
+      form: { ...state.form, label: '' },
+    });
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Untitled Article' }),
+    ).toBeVisible();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+
   it('tells customer organizations their article is not hosted on genfeed.ai', () => {
     useArticleDetailMock.mockReturnValue(savedArticleState('draft'));
 
