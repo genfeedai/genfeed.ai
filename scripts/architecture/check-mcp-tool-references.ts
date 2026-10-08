@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 import { parseCatalogSource } from '../../packages/actions/scripts/report-curated-action-catalog';
 
 const CATALOG = 'packages/actions/src/registry/curated-action-catalog.ts';
-const TOKEN = /^(?:mcp__genfeed__)?[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/u;
+const TOKEN = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/u;
 function isToolInstruction(line: string, offset: number): boolean {
   const before = line.slice(0, offset);
   const after = line.slice(offset).replace(/^`[^`]+`/u, '');
@@ -107,16 +107,16 @@ export function checkReferenceSources(
           const token = match[1] ?? '';
           const name = token.replace(/^mcp__genfeed__/u, '');
           if (
-            TOKEN.test(token) &&
+            TOKEN.test(name) &&
             (token.startsWith('mcp__genfeed__') ||
               actions.has(name) ||
-              isToolInstruction(line, match.index ?? 0))
+              (name.includes('_') && isToolInstruction(line, match.index ?? 0)))
           )
             candidates.add(name);
         }
       }
       for (const match of line.matchAll(
-        /\bmcp__genfeed__([a-z][a-z0-9]*(?:_[a-z0-9]+)+)\b/gu,
+        /\bmcp__genfeed__([a-z][a-z0-9]*(?:_[a-z0-9]+)*)\b/gu,
       ))
         candidates.add(match[1] ?? '');
       for (const field of fencedFields.get(index) ?? []) candidates.add(field);

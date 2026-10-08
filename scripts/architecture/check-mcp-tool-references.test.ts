@@ -64,6 +64,21 @@ describe('literal MCP instruction contract', () => {
       }),
     ]);
   });
+  it('recognizes single-word curated and namespaced tools', () => {
+    writeFileSync(
+      catalog,
+      "export const CURATED_ACTION_CATALOG = [\n  { name: 'generate', surfaces: ['agent'] },\n] as const;\n",
+    );
+    expect(
+      checkReferenceSources(
+        catalog,
+        source('Use `generate`.\nmcp__genfeed__generate'),
+      ),
+    ).toEqual([
+      expect.objectContaining({ line: 1, name: 'generate', surface: 'agent' }),
+      expect.objectContaining({ line: 2, name: 'generate', surface: 'agent' }),
+    ]);
+  });
   it('reports multiline call fields at their original line', () => {
     expect(
       checkReferenceSources(
