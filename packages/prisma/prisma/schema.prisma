@@ -1762,6 +1762,7 @@ model OrganizationSetting {
   agentReplyStyle                AgentReplyStyle   @default(CONCISE)
   byokOpenrouterApiKey           String?
   defaultAvatarPhotoUrl          String?
+  defaultAvatarRef               Json?
   defaultAvatarIngredientId      String?
   defaultVoiceId                 String?
   defaultVoiceRef                Json?
@@ -2301,6 +2302,8 @@ model Ingredient {
   negativePrompt        String?
   /// Server-owned BYOK completion receipt, excluded from public serializers.
   generationBilling     Json?
+  /// Server-owned provider identity and connection receipt; excluded from serializers.
+  generationProvider    Json?
   generationSeed        Int?
   cfgScale              Float?
   generationSteps       Int?
@@ -6804,6 +6807,7 @@ model ClipResult {
   ingredientId   String?
   ingredient     Ingredient?  @relation("clip_result_ingredient", fields: [ingredientId], references: [id], onDelete: SetNull)
   providerJobId  String?
+  generationProvider Json?
   viralityScore  Float?
   status         String       @default("pending")
   mode           String       @default("avatar")

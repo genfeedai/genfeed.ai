@@ -25,13 +25,12 @@ const INSTAGRAM_SIGNAL_REQUEST_TIMEOUT_MS = 10_000;
 const INSTAGRAM_MEDIA_LIMIT = 20;
 
 const PROFILE_PROVIDER_FIELDS =
-  'id,username,name,biography,website,profile_picture_url,followers_count,follows_count,media_count,account_type';
+  'id,username,name,biography,website,profile_picture_url,followers_count,follows_count,media_count';
 const MEDIA_PROVIDER_FIELDS =
   'id,caption,media_type,media_product_type,timestamp,permalink,like_count,comments_count,shortcode';
-const MEDIA_INSIGHTS_FIELDS = `${MEDIA_PROVIDER_FIELDS},insights.metric(impressions,reach,saved,shares,total_interactions)`;
+const MEDIA_INSIGHTS_FIELDS = `${MEDIA_PROVIDER_FIELDS},insights.metric(views,reach,saved,shares,total_interactions)`;
 
 export interface InstagramUserResponse {
-  account_type?: unknown;
   biography?: unknown;
   followers_count?: unknown;
   follows_count?: unknown;
@@ -48,7 +47,11 @@ interface InstagramMediaNode {
   comments_count?: unknown;
   id?: unknown;
   insights?: {
-    data?: Array<{ name?: unknown; values?: Array<{ value?: unknown }> }>;
+    data?: Array<{
+      name?: unknown;
+      values?: Array<{ value?: unknown }>;
+      total_value?: { value?: unknown };
+    }>;
   };
   like_count?: unknown;
   media_product_type?: unknown;
@@ -115,7 +118,9 @@ function insightValue(
 ): number | undefined {
   const insights = Array.isArray(node.insights?.data) ? node.insights.data : [];
   const match = insights.find((item) => item.name === metric);
-  return readNonNegativeInteger(match?.values?.[0]?.value);
+  return readNonNegativeInteger(
+    match?.values?.[0]?.value ?? match?.total_value?.value,
+  );
 }
 
 /**
@@ -298,7 +303,7 @@ export class InstagramAuthorizedSignalsProvider {
     return {
       commentCount: readNonNegativeInteger(node.comments_count),
       id,
-      impressions: insightValue(node, 'impressions'),
+      views: insightValue(node, 'views'),
       likeCount: readNonNegativeInteger(node.like_count),
       reach: insightValue(node, 'reach'),
       saved: insightValue(node, 'saved'),

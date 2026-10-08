@@ -1,3 +1,7 @@
+import {
+  heyGenAvatarRefSchema,
+  savedVoiceRefSchema,
+} from '@api/services/integrations/heygen/heygen-identity.schema';
 import { VoiceProvider } from '@genfeedai/contracts';
 import type {
   AgentClipRunIdentity,
@@ -75,7 +79,12 @@ export function resolveClipIdentity({
   const explicitVoiceId = readOptionalString(requestedVoiceId);
   const brandRecord = readRecordOrUndefined(brand);
   const brandAgentConfig = readRecordOrUndefined(brandRecord?.agentConfig);
-  const brandAvatarId = readOptionalString(brandAgentConfig?.heygenAvatarId);
+  const brandAvatar = heyGenAvatarRefSchema.safeParse(
+    brandAgentConfig?.defaultAvatarRef,
+  );
+  const brandAvatarId =
+    (brandAvatar.success ? brandAvatar.data.lookId : undefined) ??
+    readOptionalString(brandAgentConfig?.heygenAvatarId);
   const brandVoiceId =
     readOptionalString(brandAgentConfig?.heygenVoiceId) ??
     readHeygenVoiceIdFromDefaultRef(brandAgentConfig?.defaultVoiceRef) ??
@@ -84,6 +93,12 @@ export function resolveClipIdentity({
       : undefined);
   const organizationSettingsRecord =
     readRecordOrUndefined(organizationSettings);
+  const organizationAvatar = heyGenAvatarRefSchema.safeParse(
+    organizationSettingsRecord?.defaultAvatarRef,
+  );
+  const organizationAvatarId = organizationAvatar.success
+    ? organizationAvatar.data.lookId
+    : undefined;
   const organizationVoiceId =
     readHeygenVoiceIdFromDefaultRef(
       organizationSettingsRecord?.defaultVoiceRef,
@@ -96,10 +111,11 @@ export function resolveClipIdentity({
       ? 'explicit'
       : brandAvatarId || brandVoiceId
         ? 'brand'
-        : organizationVoiceId
+        : organizationAvatarId || organizationVoiceId
           ? 'organization'
           : 'missing';
-  const resolvedAvatarId = explicitAvatarId ?? brandAvatarId;
+  const resolvedAvatarId =
+    explicitAvatarId ?? brandAvatarId ?? organizationAvatarId;
   const resolvedVoiceId =
     explicitVoiceId ?? brandVoiceId ?? organizationVoiceId;
   const missing: AgentClipRunIdentityField[] = [];
@@ -112,7 +128,22 @@ export function resolveClipIdentity({
     missing.push('voice');
   }
 
+  const avatarRef = !explicitAvatarId
+    ? brandAvatar.success
+      ? brandAvatar.data
+      : !brandAvatarId && organizationAvatar.success
+        ? organizationAvatar.data
+        : undefined
+    : undefined;
+  const voice = savedVoiceRefSchema.safeParse(
+    !explicitVoiceId
+      ? (brandAgentConfig?.defaultVoiceRef ??
+          organizationSettingsRecord?.defaultVoiceRef)
+      : undefined,
+  );
   return {
+    ...(avatarRef ? { avatarRef } : {}),
+    ...(voice.success ? { voiceRef: voice.data } : {}),
     avatarId: resolvedAvatarId,
     avatarProvider:
       readOptionalString(avatarProvider) ??
@@ -126,5 +157,13 @@ export function resolveClipIdentity({
     voiceProvider:
       readOptionalString(voiceProvider) ??
       (resolvedVoiceId ? VoiceProvider.HEYGEN : undefined),
+  };
+}
+
+export function clipGenerationIdentity(identity?: AgentClipRunIdentity) {
+  return {
+    avatarId: identity?.avatarId,
+    ...(identity?.avatarRef ? { avatarRef: identity.avatarRef } : {}),
+    ...(identity?.voiceRef ? { voiceRef: identity.voiceRef } : {}),
   };
 }

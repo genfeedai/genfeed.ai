@@ -14,7 +14,10 @@ describe('strict registered policy dimensions', () => {
 });
 
 import type { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
-import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
+import {
+  learningCanonicalHash,
+  learningHash,
+} from '@api/collections/content-learning/services/learning-operation.service';
 import { LearningPolicyService } from '@api/collections/content-learning/services/learning-policy.service';
 import { LearningScopeStateService } from '@api/collections/content-learning/services/learning-scope-state.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -69,7 +72,17 @@ function policyFixture() {
     state: 'active',
     synthetic: false,
     version: 1,
+    algorithm: 'ridge-epsilon-v1',
+    configVersion: descriptor.configVersion,
+    featureSchema: 'numeric-nine-v1',
   };
+  const experiment = {
+    id: 'experiment',
+    candidatePolicyId: policy.id,
+    spec: { schemaVersion: 1 },
+    specHash: learningCanonicalHash({ schemaVersion: 1 }),
+  };
+  const enrollment = { id: 'enrollment' };
   const decision = {
     ...account,
     id: 'decision',
@@ -123,10 +136,18 @@ function policyFixture() {
               ? null
               : policy,
         ),
-      create: vi
-        .fn()
-        .mockImplementation(({ data }) => ({ id: 'new-policy', ...data })),
+      create: vi.fn().mockImplementation(({ data }) => ({
+        id: 'new-policy',
+        algorithm: 'ridge-epsilon-v1',
+        ...data,
+      })),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
+    contentLearningExperiment: {
+      findMany: vi.fn().mockResolvedValue([experiment]),
+    },
+    contentLearningEnrollment: {
+      findFirst: vi.fn().mockResolvedValue(enrollment),
     },
     contentLearningDecision: {
       findFirst: vi.fn().mockResolvedValue(decision),
@@ -163,6 +184,8 @@ function policyFixture() {
     account,
     scope,
     policy,
+    experiment,
+    enrollment,
     decision,
     reward,
     tx,
@@ -229,7 +252,7 @@ describe('current epoch scope authority and rebuild', () => {
     f.tx.contentLearningPolicyVersion.findFirst.mockImplementation(
       ({ where }) =>
         where.id === 'new-policy'
-          ? { ...f.policy, id: 'new-policy', state: 'shadow' }
+          ? { ...f.policy, id: 'new-policy', version: 2, state: 'shadow' }
           : where.evidenceManifestHash
             ? null
             : f.policy,
@@ -275,6 +298,37 @@ describe('current epoch scope authority and rebuild', () => {
     await f.service.rebuild('org', 'credential', 'scope-key');
     expect(f.scope.revision).toBe(4);
     expect(f.tx.contentLearningScopeState.updateMany).toHaveBeenCalledTimes(1);
+  });
+  it.each(['absent', 'withdrawn', 'cancelled'])(
+    'keeps a live account policy shadow when the pilot is %s',
+    async (missing) => {
+      const f = policyFixture();
+      f.policy.state = 'shadow';
+      f.scope.activePolicyId = 'prior';
+      f.tx.contentLearningPolicyVersion.findFirst.mockResolvedValue(f.policy);
+      if (missing === 'withdrawn')
+        f.tx.contentLearningEnrollment.findFirst.mockResolvedValue(null);
+      else f.tx.contentLearningExperiment.findMany.mockResolvedValue([]);
+      expect(
+        await f.service.rebuild('org', 'credential', 'scope-key'),
+      ).toMatchObject({ state: 'shadow' });
+      expect(f.tx.contentLearningScopeState.updateMany).not.toHaveBeenCalled();
+    },
+  );
+  it('rejects a lower-version policy from a different candidate', async () => {
+    const f = policyFixture();
+    f.policy.state = 'shadow';
+    f.experiment.candidatePolicyId = 'newer-candidate';
+    f.tx.contentLearningPolicyVersion.findFirst.mockImplementation(
+      ({ where }) =>
+        where.id === 'newer-candidate'
+          ? { ...f.policy, id: 'newer-candidate', version: 2 }
+          : f.policy,
+    );
+    expect(
+      await f.service.rebuild('org', 'credential', 'scope-key'),
+    ).toMatchObject({ state: 'shadow' });
+    expect(f.tx.contentLearningScopeState.updateMany).not.toHaveBeenCalled();
   });
   it('rejects identical shadow candidates with legacy-null cell descriptors', async () => {
     const f = policyFixture();

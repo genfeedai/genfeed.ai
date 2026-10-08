@@ -98,6 +98,7 @@ describe('AgentStudioHandoffIdentityService', () => {
       type: 'avatar',
       useIdentity: true,
       voiceId: 'brand-voice-1',
+      voiceRef: { externalVoiceId: 'brand-voice-1', source: 'catalog' },
     });
   });
 

@@ -11,6 +11,8 @@ import type {
   ClipGenerationReference,
   ClipReferenceProvenance,
   ClipResultMode,
+  HeyGenAvatarRef,
+  IBrandAgentConfig,
   SupportedAvatarVideoProviderName,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -59,6 +61,8 @@ export interface ClipGenerationInput {
   mode?: ClipGenerationMode;
 
   // Avatar-mode inputs (required only when mode === 'avatar').
+  avatarRef?: HeyGenAvatarRef;
+  voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
   avatarId?: string;
   voiceId?: string;
   provider?: SupportedAvatarVideoProviderName;
@@ -253,8 +257,9 @@ export class ClipGenerationService implements OnModuleInit {
     const characterReferenceUrl = runReferences.find(
       (reference) => reference.role === 'character',
     )?.url;
-    const effectiveReferenceImageUrl =
-      referenceImageUrl ?? characterReferenceUrl;
+    const effectiveReferenceImageUrl = input.avatarRef
+      ? undefined
+      : (referenceImageUrl ?? characterReferenceUrl);
 
     return this.runGenerationLoop({
       dispatch: async ({ clipResultId, highlight }) => {
@@ -263,6 +268,8 @@ export class ClipGenerationService implements OnModuleInit {
 
         const result = await avatarProvider.generateVideo({
           avatarId: avatarId ?? '',
+          avatarRef: input.avatarRef,
+          voiceRef: input.voiceRef,
           callbackId: clipResultId,
           onJobCreated: async (job) => {
             await this.clipResultsService.patch(

@@ -1781,6 +1781,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     allFields: [
       'createdAt',
       'data',
+      'generationProvider',
       'id',
       'ingredient',
       'ingredientId',
@@ -3688,6 +3689,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'generationHarness',
       'generationProgress',
       'generationPrompt',
+      'generationProvider',
       'generationSeed',
       'generationSource',
       'generationStage',
@@ -5377,6 +5379,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'createdAt',
       'defaultAvatarIngredientId',
       'defaultAvatarPhotoUrl',
+      'defaultAvatarRef',
       'defaultImageModel',
       'defaultImageToVideoModel',
       'defaultLocale',

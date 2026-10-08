@@ -1,12 +1,45 @@
+import { DefaultAvatarRefDto } from '@api/shared/default-avatar-ref/default-avatar-ref.dto';
+import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsBoolean, IsIn, IsOptional, IsString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsBoolean,
+  IsIn,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 
 export const AVATAR_VIDEO_ASPECT_RATIOS = ['9:16', '16:9', '1:1'] as const;
 export type AvatarVideoAspectRatio =
   (typeof AVATAR_VIDEO_ASPECT_RATIOS)[number];
 
 export class CreateAvatarVideoDto {
+  @IsOptional()
+  @IsString()
+  @ApiProperty({ required: false, description: 'Authorized photo ingredient' })
+  readonly photoIngredientId?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DefaultAvatarRefDto)
+  @ApiProperty({ type: DefaultAvatarRefDto, required: false })
+  readonly avatarRef?: DefaultAvatarRefDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DefaultVoiceRefDto)
+  @ApiProperty({ type: DefaultVoiceRefDto, required: false })
+  readonly voiceRef?: DefaultVoiceRefDto;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    required: false,
+    description: 'Authorized saved narration ingredient',
+  })
+  readonly audioIngredientId?: string;
+
   @IsString()
   @IsOptional()
   @ApiProperty({

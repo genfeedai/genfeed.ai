@@ -170,7 +170,7 @@ describe('ThreadsController', () => {
       );
       expect(result).toEqual({
         url:
-          'https://threads.net/oauth/authorize' +
+          'https://threads.com/oauth/authorize' +
           '?client_id=threads-client-id' +
           '&redirect_uri=https%3A%2F%2Fapp.genfeed.ai%2Foauth%2Fthreads' +
           '&scope=threads_basic%2Cthreads_content_publish%2Cthreads_manage_insights%2Cthreads_manage_replies%2Cthreads_read_replies' +
@@ -250,7 +250,7 @@ describe('ThreadsController', () => {
 
       expect(result).toEqual({
         url:
-          'https://threads.net/oauth/authorize' +
+          'https://threads.com/oauth/authorize' +
           '?client_id=threads-client-id' +
           '&redirect_uri=https%3A%2F%2Fapp.genfeed.ai%2Foauth%2Fthreads' +
           '&scope=threads_basic%2Cthreads_content_publish%2Cthreads_manage_insights%2Cthreads_manage_replies%2Cthreads_read_replies' +
@@ -340,6 +340,16 @@ describe('ThreadsController', () => {
         'credential-id',
         'organization-id',
         expect.any(Object),
+      );
+      expect(mockHttpService.post).toHaveBeenCalledWith(
+        'https://graph.threads.net/oauth/access_token',
+        null,
+        expect.objectContaining({
+          params: expect.objectContaining({
+            code: 'auth-code',
+            grant_type: 'authorization_code',
+          }),
+        }),
       );
       expect(result).toEqual({ id: 'credential-id', isConnected: true });
     });

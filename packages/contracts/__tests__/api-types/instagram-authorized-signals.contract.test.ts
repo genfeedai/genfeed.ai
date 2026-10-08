@@ -3,6 +3,7 @@ import { CredentialPlatform } from '../../src';
 import {
   instagramAuthorizedSignalEvidenceKeys,
   instagramAuthorizedSignalsSnapshotSchema,
+  instagramMediaPerformanceSignalSchema,
 } from '../../src/api-types/contracts/instagram-authorized-signals.contract';
 
 function makeEvidence(
@@ -51,6 +52,20 @@ function makeSnapshot() {
 }
 
 describe('Instagram authorized signals contract', () => {
+  it('reads historical impression observations without reinterpreting them as views', () => {
+    const legacy = instagramMediaPerformanceSignalSchema.parse({
+      id: 'media-1',
+      impressions: 42,
+      likeCount: 3,
+    });
+    expect(legacy.impressions).toBe(42);
+    expect(legacy.views).toBeUndefined();
+    expect(
+      instagramMediaPerformanceSignalSchema.parse({ id: 'media-2', views: 9 })
+        .views,
+    ).toBe(9);
+  });
+
   it('accepts exactly the canonical platform and Genfeed evidence keys', () => {
     const parsed = instagramAuthorizedSignalsSnapshotSchema.parse(
       makeSnapshot(),

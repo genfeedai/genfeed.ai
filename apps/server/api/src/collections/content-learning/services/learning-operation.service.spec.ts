@@ -3,10 +3,12 @@ import { LearningControlDto } from '@api/collections/content-learning/dto/learni
 import { LearningQueryDto } from '@api/collections/content-learning/dto/learning-query.dto';
 import {
   LearningOperationService,
+  learningCanonicalHash,
   learningScopeKey,
 } from '@api/collections/content-learning/services/learning-operation.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
+import { sha256Hex, stableStringify } from '@libs/utils/canonical-hash.util';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it, vi } from 'vitest';
@@ -279,5 +281,25 @@ describe('membership lookup joins the explicit client without owning entry', () 
     f.prisma.member.findFirst.mockResolvedValue(null);
     await expect(f.service.assertMember(actor)).rejects.toThrow(message);
     expect(f.transaction.member.findFirst).not.toHaveBeenCalled();
+  });
+});
+
+describe('canonical learning spec hashes', () => {
+  it('uses the shared canonical JSON hash across nested key orders', () => {
+    const value = { z: [{ b: 2, a: 1 }], a: { d: false, c: 'value' } };
+    expect(learningCanonicalHash(value)).toBe(
+      sha256Hex(stableStringify(value)),
+    );
+    expect(learningCanonicalHash(value)).toBe(
+      learningCanonicalHash({
+        a: { c: 'value', d: false },
+        z: [{ a: 1, b: 2 }],
+      }),
+    );
+  });
+  it('preserves array order', () => {
+    expect(learningCanonicalHash({ values: [1, 2] })).not.toBe(
+      learningCanonicalHash({ values: [2, 1] }),
+    );
   });
 });

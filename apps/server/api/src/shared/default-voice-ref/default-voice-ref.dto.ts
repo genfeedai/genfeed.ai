@@ -1,9 +1,12 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { VoiceProvider } from '@genfeedai/contracts';
+import type { HeyGenConnectionRef } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsEnum,
+  IsIn,
+  IsObject,
   IsOptional,
   IsString,
   IsUrl,
@@ -27,6 +30,14 @@ export class DefaultVoiceRefDto {
     enum: VoiceProvider,
   })
   readonly provider!: VoiceProvider;
+
+  @IsOptional()
+  @IsIn(['private', 'public'])
+  readonly ownership?: 'private' | 'public';
+
+  @IsOptional()
+  @IsObject()
+  readonly connection?: HeyGenConnectionRef;
 
   @IsEntityId()
   @IsOptional()

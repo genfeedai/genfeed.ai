@@ -1,3 +1,7 @@
+import type {
+  HeyGenAvatarRef,
+  IBrandAgentConfig,
+} from '@genfeedai/contracts/interfaces';
 /**
  * AvatarVideoProvider — multi-provider abstraction for avatar video generation.
  *
@@ -16,6 +20,8 @@ export interface AvatarVideoJobCreated {
 }
 
 export interface AvatarVideoJobInput {
+  avatarRef?: HeyGenAvatarRef;
+  voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
   avatarId: string;
   callbackId: string;
   script: string;

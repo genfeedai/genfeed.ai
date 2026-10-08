@@ -21,6 +21,8 @@ export const managementTaskAttributes = createEntityAttributes([
   'linkedEntities',
   'elevenlabsVoiceId',
   'heygenAvatarId',
+  'avatarRef',
+  'voiceRef',
   'request',
   'outputType',
   'platforms',

@@ -1,4 +1,6 @@
 import type {
+  HeyGenAvatarRef,
+  IBrandAgentConfig,
   IWorkspaceInboxRead,
   IWorkspaceInboxReadState,
 } from '@genfeedai/contracts/interfaces';
@@ -98,6 +100,8 @@ export interface CreateTaskInput {
   goalId?: string;
   elevenlabsVoiceId?: string;
   heygenAvatarId?: string;
+  avatarRef?: HeyGenAvatarRef;
+  voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
   linkedEntities?: TaskLinkedEntity[];
   outputType?: TaskOutputType;
   parentId?: string;
@@ -152,6 +156,8 @@ export class Task {
   linkedEntities!: TaskLinkedEntity[];
   elevenlabsVoiceId?: string;
   heygenAvatarId?: string;
+  avatarRef?: HeyGenAvatarRef;
+  voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
 
   // AI execution fields
   request?: string;

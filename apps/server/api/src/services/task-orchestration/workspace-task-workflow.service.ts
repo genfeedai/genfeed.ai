@@ -3,6 +3,10 @@ import { AvatarVideoGenerationService } from '@api/collections/videos/services/a
 import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
 import type { SystemWorkflowActionRequest } from '@api/collections/workflows/system-workflow-runner.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import {
+  heyGenAvatarCandidateSchema,
+  savedVoiceRefSchema,
+} from '@api/services/integrations/heygen/heygen-identity.schema';
 import type {
   DecomposedSubtask,
   TaskDecompositionResult,
@@ -31,6 +35,8 @@ type AgentExecutionState = AgentExecutionItem & {
 type FacecamState = WorkspaceTaskWorkflowRequest & {
   externalId?: string;
   generation: {
+    avatarRef?: WorkspaceTaskWorkflowRequest['avatarRef'];
+    voiceRef?: WorkspaceTaskWorkflowRequest['voiceRef'];
     avatarId?: string;
     clonedVoiceId?: string;
     heygenVoiceId?: string;
@@ -293,18 +299,25 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
       throw new Error('Facecam task requires non-empty request text (script).');
     }
 
-    const hasExplicitAvatar = Boolean(input.heygenAvatarId);
+    const hasExplicitAvatar = Boolean(input.heygenAvatarId || input.avatarRef);
     const voiceProvider =
       input.voiceProvider || (input.voiceId ? 'heygen' : '');
-    const hasExplicitVoice = Boolean(input.voiceId && voiceProvider);
+    const hasExplicitVoice = Boolean(
+      input.voiceRef || (input.voiceId && voiceProvider),
+    );
     const generation: FacecamState['generation'] = {
-      ...(hasExplicitAvatar ? { avatarId: input.heygenAvatarId } : {}),
+      ...(input.avatarRef
+        ? { avatarRef: input.avatarRef }
+        : hasExplicitAvatar
+          ? { avatarId: input.heygenAvatarId }
+          : {}),
+      ...(input.voiceRef ? { voiceRef: input.voiceRef } : {}),
       text: input.request,
       useIdentity: !hasExplicitAvatar || !hasExplicitVoice,
     };
-    if (input.voiceId && voiceProvider === 'heygen') {
+    if (!input.voiceRef && input.voiceId && voiceProvider === 'heygen') {
       generation.heygenVoiceId = input.voiceId;
-    } else if (input.voiceId && voiceProvider) {
+    } else if (!input.voiceRef && input.voiceId && voiceProvider) {
       generation.clonedVoiceId = input.voiceId;
       generation.voiceProvider = voiceProvider;
     }
@@ -563,6 +576,16 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
       ...(externalId === undefined ? {} : { externalId }),
       generation: {
         ...(avatarId === undefined ? {} : { avatarId }),
+        ...(generation.avatarRef
+          ? {
+              avatarRef: heyGenAvatarCandidateSchema.parse(
+                generation.avatarRef,
+              ),
+            }
+          : {}),
+        ...(generation.voiceRef
+          ? { voiceRef: savedVoiceRefSchema.parse(generation.voiceRef) }
+          : {}),
         ...(clonedVoiceId === undefined ? {} : { clonedVoiceId }),
         ...(heygenVoiceId === undefined ? {} : { heygenVoiceId }),
         text: this.requiredString(generation.text, 'generation.text'),
@@ -603,6 +626,12 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
       ...(brandName === undefined ? {} : { brandName }),
       ...(elevenlabsVoiceId === undefined ? {} : { elevenlabsVoiceId }),
       ...(heygenAvatarId === undefined ? {} : { heygenAvatarId }),
+      ...(record.avatarRef
+        ? { avatarRef: heyGenAvatarCandidateSchema.parse(record.avatarRef) }
+        : {}),
+      ...(record.voiceRef
+        ? { voiceRef: savedVoiceRefSchema.parse(record.voiceRef) }
+        : {}),
       organizationId: this.requiredString(
         record.organizationId,
         'organizationId',

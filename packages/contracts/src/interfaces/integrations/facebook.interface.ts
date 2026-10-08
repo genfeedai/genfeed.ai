@@ -7,6 +7,7 @@
  */
 export interface FacebookPage {
   id: string;
+  instagram_business_account?: { id?: string };
   name?: string;
   access_token?: string;
   category?: string;
@@ -32,4 +33,17 @@ export interface FacebookInsight {
  */
 export interface FacebookReaction {
   type: string;
+}
+
+export interface MetaPageIdentity {
+  pageId?: string;
+  instagramAccountId?: string;
+}
+export interface MetaPageAccess {
+  pageId: string;
+  accessToken: string;
+}
+export interface MetaPageListResponse {
+  data?: FacebookPage[];
+  paging?: { cursors?: { after?: string }; next?: string };
 }

@@ -7,6 +7,10 @@ import type {
   IOrganization,
   IUser,
 } from '../index';
+import type {
+  HeyGenAvatarRef,
+  HeyGenConnectionRef,
+} from '../integrations/heygen.interface';
 import type { IBrandAgentPrompting } from './brand-profile.interface';
 import type { WatermarkPosition } from './watermark-export.interface';
 
@@ -156,8 +160,11 @@ export interface IBrandAgentConfig {
     externalVoiceId?: string;
     label?: string;
     preview?: string | null;
+    ownership?: 'private' | 'public';
+    connection?: HeyGenConnectionRef;
   } | null;
   defaultVoiceProvider?: string | null;
+  defaultAvatarRef?: HeyGenAvatarRef | null;
   defaultAvatarPhotoUrl?: string | null;
   defaultAvatarIngredientId?: string | null;
   heygenAvatarId?: string | null;

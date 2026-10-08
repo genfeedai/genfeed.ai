@@ -396,6 +396,8 @@ export class AgentPrepareToolHandler {
     identity: AgentClipRunIdentity,
   ): Record<string, unknown> {
     const values: Record<string, unknown> = {
+      avatarRef: identity.avatarRef,
+      voiceRef: identity.voiceRef,
       identitySource: identity.source,
       identityStatus: identity.isComplete ? 'ready' : 'missing_identity',
       missingIdentity: identity.missing,

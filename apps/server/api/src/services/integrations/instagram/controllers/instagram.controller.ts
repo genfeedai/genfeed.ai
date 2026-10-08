@@ -9,7 +9,6 @@ import {
   extractReconnectCredentialIdFromWarmupSignals,
 } from '@api/collections/credentials/services/credentials.service';
 import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oauth-callback-error.util';
-
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -28,6 +27,10 @@ import {
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
+import {
+  INSTAGRAM_OAUTH_SCOPES,
+  META_GRAPH_API_VERSION,
+} from '@genfeedai/integrations';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -56,17 +59,7 @@ export class InstagramController {
   private readonly redirectUri: string;
 
   private readonly apiVersion: string;
-  private readonly scope = [
-    'business_management',
-    'instagram_basic',
-    'pages_show_list',
-    'pages_read_engagement',
-    'instagram_content_publish',
-    'instagram_manage_insights',
-    'pages_manage_posts',
-    'public_profile',
-    'ads_management',
-  ];
+  private readonly scope = INSTAGRAM_OAUTH_SCOPES;
 
   constructor(
     private readonly configService: ConfigService,
@@ -80,7 +73,7 @@ export class InstagramController {
   ) {
     this.redirectUri = this.configService.get('INSTAGRAM_REDIRECT_URI') ?? '';
     this.apiVersion =
-      this.configService.get('INSTAGRAM_API_VERSION') || 'v26.0';
+      this.configService.get('INSTAGRAM_API_VERSION') || META_GRAPH_API_VERSION;
   }
 
   /**

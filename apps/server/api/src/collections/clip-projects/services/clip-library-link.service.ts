@@ -232,6 +232,9 @@ export class ClipLibraryLinkService {
         ...(brandId ? { brandId } : {}),
         category: IngredientCategory.VIDEO,
         generationCompletedAt: new Date(),
+        ...(clipResult.generationProvider
+          ? { generationProvider: clipResult.generationProvider }
+          : {}),
         generationPrompt: title,
         generationSource: clipResultGenerationSource(String(clipResult.id)),
         generationStage: this.readString(clipResult.mode) ?? 'avatar',

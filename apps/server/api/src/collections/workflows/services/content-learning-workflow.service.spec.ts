@@ -1293,6 +1293,7 @@ describe('A6 physical observation recovery and exact current source reporting', 
         checkpointId: f.publication.checkpoint.id,
         reason: preexisting ? 'already_observed' : null,
         result: {
+          rebuild: { queued: false },
           reward: {
             status: 'unavailable',
             rewardId: null,
@@ -1310,7 +1311,7 @@ describe('A6 physical observation recovery and exact current source reporting', 
       expect(f.publication.edges).toEqual(before);
     },
   );
-  it('commits the reward for a completed checkpoint and never queues a rebuild', async () => {
+  it('queues exactly one background rebuild for a valid committed reward', async () => {
     const f = await observedFixture();
     f.rewards.commitForCheckpoint.mockResolvedValue({
       status: 'committed',
@@ -1326,6 +1327,7 @@ describe('A6 physical observation recovery and exact current source reporting', 
     ).toMatchObject({
       status: 'completed',
       result: {
+        rebuild: { queued: true },
         reward: {
           status: 'committed',
           rewardId: 'reward',
@@ -1338,12 +1340,58 @@ describe('A6 physical observation recovery and exact current source reporting', 
       'org',
       f.publication.checkpoint.id,
     );
-    expect(
-      f.queue.queueSystemWorkflow.mock.calls.map(
-        ([request]) => request.actionType,
-      ),
-    ).not.toContain(CONTENT_LEARNING_ACTION_IDS.ACCOUNT_REBUILD);
+    expect(f.queue.queueSystemWorkflow).toHaveBeenCalledExactlyOnceWith(
+      {
+        actionType: CONTENT_LEARNING_ACTION_IDS.ACCOUNT_REBUILD,
+        canonicalId: CONTENT_LEARNING_ACTION_IDS.ACCOUNT_REBUILD,
+        organizationId: 'org',
+        inputValues: { credentialId: 'credential', scopeKey: 'scope' },
+        source: 'content-learning-reward',
+      },
+      'learning-account-rebuild-reward',
+      { attempts: 3, dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
+    );
     expect(f.policies.rebuild).not.toHaveBeenCalled();
+  });
+  it.each(['invalid_baseline', 'unavailable'] as const)(
+    'does not queue a rebuild for %s rewards',
+    async (status) => {
+      const f = await observedFixture();
+      f.rewards.commitForCheckpoint.mockResolvedValue(
+        status === 'unavailable'
+          ? { status: 'unavailable', reason: 'decision_unbound' }
+          : {
+              status: 'committed',
+              rewardId: 'reward',
+              rewardStatus: status,
+              decisionId: 'decision',
+              scopeKey: 'scope',
+            },
+      );
+      expect(
+        await f.service.execute(CONTENT_LEARNING_ACTION_IDS.CHECKPOINT, 'org', {
+          postId: 'post',
+        }),
+      ).toMatchObject({ result: { rebuild: { queued: false } } });
+      expect(f.queue.queueSystemWorkflow).not.toHaveBeenCalled();
+    },
+  );
+  it('propagates a rebuild queue rejection to the durable checkpoint retry', async () => {
+    const f = await observedFixture(),
+      error = new Error('queue unavailable');
+    f.rewards.commitForCheckpoint.mockResolvedValue({
+      status: 'committed',
+      rewardId: 'reward',
+      rewardStatus: 'valid',
+      decisionId: 'decision',
+      scopeKey: 'scope',
+    });
+    f.queue.queueSystemWorkflow.mockRejectedValue(error);
+    await expect(
+      f.service.execute(CONTENT_LEARNING_ACTION_IDS.CHECKPOINT, 'org', {
+        postId: 'post',
+      }),
+    ).rejects.toBe(error);
   });
   it('propagates a reward commit failure to the durable retry', async () => {
     const f = await observedFixture(),

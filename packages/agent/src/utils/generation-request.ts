@@ -104,6 +104,15 @@ export function buildAgentGenerationRequestBody({
     body.videoReferences = videoReferences;
   }
 
+  if (identity?.avatarRef) {
+    body.avatarRef = identity.avatarRef;
+    body.useIdentity = true;
+  }
+  if (identity?.voiceRef) {
+    body.voiceRef = identity.voiceRef;
+    body.useIdentity = true;
+  }
+
   if (identity?.avatarId) {
     body.avatarId = identity.avatarId;
     body.avatarProvider = identity.avatarProvider ?? 'heygen';

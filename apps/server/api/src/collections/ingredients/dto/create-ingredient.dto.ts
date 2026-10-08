@@ -15,6 +15,7 @@ import type {
   GenerationHarnessReceipt,
   IVideoMergeSettings,
 } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
@@ -329,4 +330,5 @@ export class CreateIngredientDto {
  */
 export type IngredientServerCreate = CreateIngredientDto & {
   readonly origin: IngredientOrigin;
+  readonly generationProvider?: Prisma.InputJsonValue;
 };

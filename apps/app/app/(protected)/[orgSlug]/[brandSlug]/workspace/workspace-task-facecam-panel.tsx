@@ -53,7 +53,11 @@ export function WorkspaceTaskFacecamPanel({
             </SelectTrigger>
             <SelectContent>
               {avatars.map((avatar) => (
-                <SelectItem key={avatar.id} value={avatar.id}>
+                <SelectItem
+                  key={avatar.id}
+                  value={avatar.id}
+                  disabled={avatar.disabled}
+                >
                   {avatar.label}
                 </SelectItem>
               ))}

@@ -1,9 +1,10 @@
 import '@testing-library/jest-dom/vitest';
-import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
-import {
-  clearRequestOrganizationId,
-  setRequestOrganizationId,
-} from '@services/core/interceptor.service';
+import { VoiceProvider } from '@genfeedai/contracts';
+import type {
+  HeyGenAvatarRef,
+  IBrandAgentConfig,
+} from '@genfeedai/contracts/interfaces';
+import { clearRequestOrganizationId } from '@services/core/interceptor.service';
 import {
   act,
   fireEvent,
@@ -28,7 +29,7 @@ const mocks = vi.hoisted(() => ({
       { id: 'brand-1', label: 'Moonrise Studio', name: null },
       { id: 'brand-2', label: 'Solar Studio', name: null },
     ],
-    organizationId: 'org-1',
+    organizationId: 'org-1' as string | null,
     selectedBrand: {
       agentConfig: {
         heygenAvatarId: 'avatar-default',
@@ -37,6 +38,11 @@ const mocks = vi.hoisted(() => ({
       id: 'brand-1',
       label: 'Moonrise Studio',
       name: null,
+    } as {
+      agentConfig?: IBrandAgentConfig;
+      id: string;
+      label: string;
+      name: null;
     },
   },
   clearContent: vi.fn(),
@@ -46,7 +52,8 @@ const mocks = vi.hoisted(() => ({
         onUpdate?: (props: { editor: { getJSON: () => unknown } }) => void;
       }
     | undefined,
-  fetch: vi.fn(),
+  fetchAvatars: vi.fn(),
+  fetchVoices: vi.fn(),
   getClonedVoices: vi.fn(),
   getToken: vi.fn(),
   loggerError: vi.fn(),
@@ -63,6 +70,44 @@ const mocks = vi.hoisted(() => ({
     | undefined,
   websocketPrompt: vi.fn(),
 }));
+
+const avatarRef: HeyGenAvatarRef = {
+  version: 1,
+  source: 'heygen-look',
+  provider: 'heygen',
+  lookId: 'avatar-default',
+  label: 'Default Avatar',
+  ownership: 'public',
+  groupId: null,
+  preview: null,
+  avatarType: 'avatar',
+  supportedEngines: ['AvatarIV'],
+  readiness: {
+    usable: true,
+    reason: null,
+    lookStatus: 'completed',
+    groupStatus: null,
+    consentStatus: null,
+  },
+  connection: { provider: 'heygen', kind: 'platform', organizationId: 'org-1' },
+};
+const voiceRef = {
+  source: 'catalog' as const,
+  provider: VoiceProvider.HEYGEN,
+  externalVoiceId: 'voice-default',
+  label: 'Default Voice',
+  preview: null,
+  ownership: 'public' as const,
+  connection: avatarRef.connection,
+};
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => getCatalogService,
+}));
+const getCatalogService = async () => ({
+  fetchAvatars: mocks.fetchAvatars,
+  fetchVoices: mocks.fetchVoices,
+});
 
 vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
@@ -341,8 +386,8 @@ describe('WorkspaceTaskComposer', () => {
       organizationId: 'org-1',
       selectedBrand: {
         agentConfig: {
-          heygenAvatarId: 'avatar-default',
-          heygenVoiceId: 'voice-default',
+          defaultAvatarRef: avatarRef,
+          defaultVoiceRef: voiceRef,
         },
         id: 'brand-1',
         label: 'Moonrise Studio',
@@ -367,45 +412,23 @@ describe('WorkspaceTaskComposer', () => {
         provider: 'elevenlabs',
       },
     ]);
-    mocks.fetch.mockImplementation((url: RequestInfo | URL) => {
-      const href = typeof url === 'string' ? url : url.toString();
-      if (href.endsWith('/heygen/avatars')) {
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              data: {
-                attributes: {
-                  avatars: [
-                    {
-                      avatarId: 'avatar-default',
-                      name: 'Default Avatar',
-                      preview: 'https://cdn.example.test/avatar.jpg',
-                    },
-                  ],
-                },
-              },
-            }),
-            { status: 200 },
-          ),
-        );
-      }
-      if (href.endsWith('/heygen/voices')) {
-        return Promise.resolve(
-          new Response(
-            JSON.stringify({
-              data: {
-                attributes: {
-                  voices: [{ name: 'Default Voice', voiceId: 'voice-default' }],
-                },
-              },
-            }),
-            { status: 200 },
-          ),
-        );
-      }
-      return Promise.resolve(new Response('{}', { status: 200 }));
-    });
-    vi.stubGlobal('fetch', mocks.fetch);
+    mocks.fetchAvatars.mockResolvedValue([
+      {
+        avatarId: avatarRef.lookId,
+        name: avatarRef.label,
+        preview: null,
+        avatarRef,
+      },
+    ]);
+    mocks.fetchVoices.mockResolvedValue([
+      {
+        voiceId: 'voice-default',
+        name: 'Default Voice',
+        preview: null,
+        ownership: 'public',
+        connection: avatarRef.connection,
+      },
+    ]);
   });
 
   it('validates, enhances, undoes, and creates a standard task', async () => {
@@ -506,12 +529,7 @@ describe('WorkspaceTaskComposer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
 
     await waitFor(() => {
-      expect(mocks.fetch).toHaveBeenCalledWith(
-        'https://api.example.test/heygen/avatars',
-        expect.objectContaining({
-          headers: { Authorization: 'Bearer api-token' },
-        }),
-      );
+      expect(mocks.fetchAvatars).toHaveBeenCalledWith(expect.any(AbortSignal));
       expect(mocks.getClonedVoices).toHaveBeenCalled();
     });
 
@@ -521,42 +539,38 @@ describe('WorkspaceTaskComposer', () => {
     await waitFor(() => {
       expect(mocks.createTask).toHaveBeenCalledWith(
         expect.objectContaining({
-          heygenAvatarId: 'avatar-default',
+          avatarRef,
           outputType: 'facecam',
           request: 'Record a facecam intro',
-          voiceId: 'voice-default',
-          voiceProvider: 'heygen',
+          voiceRef,
         }),
       );
       expect(mocks.brandUpdateAgentConfig).toHaveBeenCalledWith('brand-1', {
-        heygenAvatarId: 'avatar-default',
-        heygenVoiceId: 'voice-default',
+        defaultAvatarRef: avatarRef,
+        defaultVoiceRef: voiceRef,
       });
     });
   });
 
-  it('sends the routed organization header on both HeyGen catalog requests', async () => {
-    setRequestOrganizationId('org-a');
+  it('loads both catalogs and keeps the selected identity bound to its organization', async () => {
     renderComposer();
-
     fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
-
-    const expectedInit = expect.objectContaining({
-      headers: {
-        Authorization: 'Bearer api-token',
-        [ORGANIZATION_CONTEXT_HEADER]: 'org-a',
-      },
-    });
     await waitFor(() => {
-      expect(mocks.fetch).toHaveBeenCalledWith(
-        'https://api.example.test/heygen/avatars',
-        expectedInit,
-      );
-      expect(mocks.fetch).toHaveBeenCalledWith(
-        'https://api.example.test/heygen/voices',
-        expectedInit,
-      );
+      expect(mocks.fetchAvatars).toHaveBeenCalledWith(expect.any(AbortSignal));
+      expect(mocks.fetchVoices).toHaveBeenCalledWith(expect.any(AbortSignal));
     });
+    fillRequest('Record a bound intro');
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+    await waitFor(() =>
+      expect(mocks.createTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          avatarRef: expect.objectContaining({
+            connection: expect.objectContaining({ organizationId: 'org-1' }),
+          }),
+          voiceRef: expect.objectContaining({ provider: VoiceProvider.HEYGEN }),
+        }),
+      ),
+    );
   });
 
   it('targets a mentioned brand, clears it, and submits with Cmd+Enter', async () => {
@@ -631,9 +645,9 @@ describe('WorkspaceTaskComposer', () => {
     fillRequest('Record a cloned facecam intro');
     fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
 
-    await screen.findByText('[ElevenLabs] Narrator');
+    await screen.findByText('[elevenlabs] Narrator');
     fireEvent.change(screen.getAllByRole('combobox')[0], {
-      target: { value: 'avatar-default' },
+      target: { value: 'heygen:public:avatar-default' },
     });
     fireEvent.change(screen.getAllByRole('combobox')[1], {
       target: { value: 'voice-cloned' },
@@ -658,6 +672,7 @@ describe('WorkspaceTaskComposer', () => {
 
   it('surfaces auth, facecam load, enhancement, and create failures', async () => {
     mocks.resolveAuthToken.mockResolvedValueOnce(null);
+    mocks.fetchAvatars.mockRejectedValueOnce(new Error('catalog failed'));
     renderComposer();
     fillRequest('Create a product image');
 
@@ -667,10 +682,9 @@ describe('WorkspaceTaskComposer', () => {
     ).toBeVisible();
 
     mocks.resolveAuthToken.mockResolvedValue('api-token');
-    mocks.fetch.mockResolvedValueOnce(new Response('{}', { status: 500 }));
     fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
     expect(
-      await screen.findByText(/HeyGen API key missing or invalid/i),
+      await screen.findByText(/HeyGen identities could not be loaded/i),
     ).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: /enhance/i }));
@@ -685,6 +699,7 @@ describe('WorkspaceTaskComposer', () => {
     });
     expect(screen.getByRole('button', { name: /enhance/i })).toBeEnabled();
 
+    fireEvent.click(screen.getByRole('button', { name: 'Image' }));
     mocks.createTask.mockRejectedValueOnce(new Error('create failed'));
     fireEvent.click(screen.getByRole('button', { name: /create task/i }));
     expect(await screen.findByText('create failed')).toBeVisible();
@@ -726,42 +741,32 @@ describe('WorkspaceTaskComposer', () => {
     ).toBeVisible();
 
     mocks.resolveAuthToken.mockResolvedValue('api-token');
-    mocks.fetch
-      .mockResolvedValueOnce(new Response('{}', { status: 404 }))
-      .mockResolvedValueOnce(new Response('{}', { status: 403 }));
+    mocks.getClonedVoices.mockRejectedValueOnce(new Error('clone unavailable'));
     fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
-    expect(await screen.findByText('Avatars: 404, Voices: 403')).toBeVisible();
-
-    mocks.fetch.mockRejectedValueOnce(new Error('network failed'));
-    fireEvent.click(screen.getByRole('button', { name: 'Image' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
-    expect(await screen.findByText('network failed')).toBeVisible();
+    await waitFor(() => expect(mocks.getClonedVoices).toHaveBeenCalled());
+    expect(screen.getByRole('button', { name: /create task/i })).toBeEnabled();
   });
 
-  it('requires facecam identity when no avatar or voice defaults are available', async () => {
+  it('lets the server resolve organization defaults when the brand has no selected identity', async () => {
     mocks.brandContext = {
       ...mocks.brandContext,
-      selectedBrand: {
-        id: 'brand-1',
-        label: 'Moonrise Studio',
-        name: null,
-      },
+      selectedBrand: { id: 'brand-1', label: 'Moonrise Studio', name: null },
     };
-    mocks.fetch.mockResolvedValue(
-      new Response(JSON.stringify({}), { status: 200 }),
-    );
+    mocks.fetchAvatars.mockResolvedValue([]);
+    mocks.fetchVoices.mockResolvedValue([]);
     renderComposer();
     fillRequest('Record a facecam intro');
-
     fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
-    await waitFor(() => expect(mocks.fetch).toHaveBeenCalled());
+    await waitFor(() => expect(mocks.fetchAvatars).toHaveBeenCalled());
     fireEvent.click(screen.getByRole('button', { name: /create task/i }));
-
-    expect(
-      await screen.findByText(
-        'Select an avatar and voice, or configure brand identity defaults in Settings.',
+    await waitFor(() =>
+      expect(mocks.createTask).toHaveBeenCalledWith(
+        expect.objectContaining({ outputType: 'facecam' }),
       ),
-    ).toBeVisible();
+    );
+    const submitted = mocks.createTask.mock.calls[0][0];
+    expect(submitted.avatarRef).toBeUndefined();
+    expect(submitted.voiceRef).toBeUndefined();
   });
 
   it('covers brand mention helper and suggestion list behavior', () => {

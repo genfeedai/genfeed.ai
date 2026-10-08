@@ -3,6 +3,7 @@ import {
   MAX_SKILL_SLUG_LENGTH,
 } from '@api/collections/skills/constants/skill-validation.constant';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import { DefaultAvatarRefDto } from '@api/shared/default-avatar-ref/default-avatar-ref.dto';
 import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -498,6 +499,12 @@ export class UpdateBrandAgentConfigDto {
     type: DefaultVoiceRefDto,
   })
   defaultVoiceRef?: DefaultVoiceRefDto;
+
+  @ValidateNested()
+  @Type(() => DefaultAvatarRefDto)
+  @IsOptional()
+  @ApiProperty({ type: DefaultAvatarRefDto, required: false, nullable: true })
+  readonly defaultAvatarRef?: DefaultAvatarRefDto | null;
 
   @IsString()
   @IsOptional()

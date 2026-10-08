@@ -1,3 +1,4 @@
+import { BrandedGenerationBlockedException } from '@api/helpers/exceptions/branded-generation-blocked/branded-generation-blocked.exception';
 import { PersistedVideoGenerationException } from '@api/helpers/exceptions/persisted-video-generation/persisted-video-generation.exception';
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
 import { redactEmailTrackingUrl } from '@api/helpers/utils/email-tracking-url.util';
@@ -158,6 +159,10 @@ export class HttpExceptionFilter extends AllExceptionFilter {
     }
 
     this.writeJsonApiError(res, {
+      brandedGenerationReceiptId:
+        exception instanceof BrandedGenerationBlockedException
+          ? exception.brandedGenerationReceiptId
+          : undefined,
       code,
       detail,
       persistedVideoIngredientIds:

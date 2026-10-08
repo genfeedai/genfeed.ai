@@ -5,6 +5,8 @@ import {
   TASK_STATUSES,
 } from '@api/collections/tasks/schemas/task.schema';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import { DefaultAvatarRefDto } from '@api/shared/default-avatar-ref/default-avatar-ref.dto';
+import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -175,6 +177,16 @@ export class CreateTaskDto {
     type: String,
   })
   heygenAvatarId?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DefaultAvatarRefDto)
+  avatarRef?: DefaultAvatarRefDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DefaultVoiceRefDto)
+  voiceRef?: DefaultVoiceRefDto;
 
   @IsOptional()
   @IsString()

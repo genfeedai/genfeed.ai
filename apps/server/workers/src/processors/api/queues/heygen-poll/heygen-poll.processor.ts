@@ -60,17 +60,24 @@ export class HeygenPollProcessor extends WorkerHost {
       data.organizationId,
     );
 
-    if (result.status === 'processing' || result.status === 'queued') {
+    if (
+      result.status === 'processing' ||
+      result.status === 'queued' ||
+      result.status === 'unknown' ||
+      (result.status === 'completed' && !result.videoUrl)
+    ) {
       if (data.attempt >= HEYGEN_POLL_MAX_ATTEMPTS) {
+        // A polling ceiling is not proof of provider failure. Keep the hold
+        // and continuation unresolved for the existing recovery path.
         this.logger.error(
-          `${this.logContext}: polling timeout for continuation ${data.continuationId}`,
+          `${this.logContext}: unresolved provider status at polling ceiling`,
           {
             attempt: data.attempt,
             externalId: data.externalId,
             ingredientId: data.ingredientId,
+            status: result.status,
           },
         );
-        await this.finalizeFailure(data, 'HeyGen polling timeout');
         return;
       }
 
@@ -88,11 +95,12 @@ export class HeygenPollProcessor extends WorkerHost {
       return;
     }
 
-    // Terminal failure
-    await this.finalizeFailure(
-      data,
-      result.error ?? 'HeyGen generation failed without error message',
-    );
+    if (result.status === 'failed') {
+      await this.finalizeFailure(
+        data,
+        result.error ?? 'HeyGen generation failed without error message',
+      );
+    }
   }
 
   private async finalizeSuccess(

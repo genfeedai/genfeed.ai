@@ -2,19 +2,12 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateAvatarVideoDto } from '@api/collections/videos/dto/create-avatar-video.dto';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import {
-  CreditsGuard,
-  type CreditsGuardRequest,
-} from '@api/helpers/guards/credits/credits.guard';
+import { type CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { ActivitySource } from '@genfeedai/contracts';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import {
@@ -25,14 +18,12 @@ import {
   Post,
   Req,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('videos')
-@UseGuards(SubscriptionGuard, CreditsGuard)
-@UseInterceptors(CreditsInterceptor)
+@UseGuards(SubscriptionGuard)
 export class AvatarVideoController {
   constructor(
     private readonly avatarVideoGenerationService: AvatarVideoGenerationService,
@@ -40,16 +31,8 @@ export class AvatarVideoController {
   ) {}
 
   @Post('avatar')
-  @Credits({
-    // #5294 verified safe: AvatarVideoGenerationService independently
-    // resolves and passes the org's HeyGen key at dispatch.
-    allowByokBypass: true,
-    description: 'Avatar video generation',
-    modelKey: MODEL_KEYS.HEYGEN_AVATAR,
-    // Charged when the render completes, not when HeyGen accepts it (#5657).
-    settlement: 'completion',
-    source: ActivitySource.VIDEO_GENERATION,
-  })
+  // Admission and funding are owned by AvatarVideoGenerationService, so
+  // identity/readiness failures happen before a credit hold is opened.
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async createAvatarVideo(
     @Req() request: Request,
@@ -63,10 +46,14 @@ export class AvatarVideoController {
             aspectRatio: createAvatarVideoDto.aspectRatio,
             audioUrl: createAvatarVideoDto.audioUrl,
             avatarId: createAvatarVideoDto.avatarId,
+            avatarRef: createAvatarVideoDto.avatarRef,
+            voiceRef: createAvatarVideoDto.voiceRef,
+            audioIngredientId: createAvatarVideoDto.audioIngredientId,
             clonedVoiceId: createAvatarVideoDto.clonedVoiceId,
             elevenlabsVoiceId: createAvatarVideoDto.elevenlabsVoiceId,
             heygenVoiceId: createAvatarVideoDto.heygenVoiceId,
             photoUrl: createAvatarVideoDto.photoUrl,
+            photoIngredientId: createAvatarVideoDto.photoIngredientId,
             text: createAvatarVideoDto.text ?? '',
             useIdentity: createAvatarVideoDto.useIdentity,
             voiceProvider: createAvatarVideoDto.voiceProvider,

@@ -13,7 +13,13 @@ describe('ClipIdentityResolutionService', () => {
       findUnique: vi.fn(),
     },
   };
-  const service = new ClipIdentityResolutionService(prisma as never);
+  const service = new ClipIdentityResolutionService(
+    prisma as never,
+    {
+      avatarDefault: vi.fn(async (ref) => ref),
+      voiceDefault: vi.fn(async (ref) => ref),
+    } as never,
+  );
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -68,6 +74,12 @@ describe('ClipIdentityResolutionService', () => {
         externalVoiceId: 'org-voice-2',
         provider: 'heygen',
         source: 'catalog',
+        connection: {
+          provider: 'heygen',
+          kind: 'byok',
+          organizationId,
+          credentialVersionId: 'current',
+        },
       },
     });
 

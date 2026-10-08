@@ -16,6 +16,7 @@ import {
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import { THREADS_GRAPH_URL } from '@genfeedai/integrations';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -52,8 +53,7 @@ interface ThreadsLongLivedTokenResponse {
 export class ThreadsController {
   private readonly constructorName: string = String(this.constructor.name);
 
-  private readonly graphUrl: string = 'https://graph.threads.net';
-  private readonly apiVersion: string;
+  private readonly graphUrl: string;
 
   // Threads OAuth scopes
   private readonly scope = [
@@ -72,7 +72,8 @@ export class ThreadsController {
     private readonly threadsService: ThreadsService,
     private readonly loggerService: LoggerService,
   ) {
-    this.apiVersion = this.configService.get('THREADS_API_VERSION') || 'v1.0';
+    this.graphUrl =
+      this.configService.get('THREADS_GRAPH_URL') || THREADS_GRAPH_URL;
   }
 
   /**
@@ -134,7 +135,7 @@ export class ThreadsController {
 
     // Threads OAuth endpoint
     const authUrl =
-      `https://threads.net/oauth/authorize?client_id=${clientId}` +
+      `https://threads.com/oauth/authorize?client_id=${clientId}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
       `&scope=${encodeURIComponent(this.scope.join(','))}` +
       `&response_type=code&state=${encodeURIComponent(state)}`;
@@ -183,19 +184,15 @@ export class ThreadsController {
       let tokenRes: AxiosResponse<ThreadsShortLivedTokenResponse>;
       try {
         tokenRes = await firstValueFrom(
-          this.httpService.post(
-            `${this.graphUrl}/${this.apiVersion}/oauth/access_token`,
-            null,
-            {
-              params: {
-                client_id: clientId,
-                client_secret: clientSecret,
-                code,
-                grant_type: OAuthGrantType.AUTHORIZATION_CODE,
-                redirect_uri: redirectUri,
-              },
+          this.httpService.post(`${this.graphUrl}/oauth/access_token`, null, {
+            params: {
+              client_id: clientId,
+              client_secret: clientSecret,
+              code,
+              grant_type: OAuthGrantType.AUTHORIZATION_CODE,
+              redirect_uri: redirectUri,
             },
-          ),
+          }),
         );
       } catch (error: unknown) {
         const response = (

@@ -331,7 +331,7 @@ describe('AgentGenerationGatewayService decorator parity', () => {
     },
   );
 
-  it('hands avatar generation the request whose credits guard reserved the render', async () => {
+  it('hands avatar generation the request while service admission owns its credit hold', async () => {
     const generateAvatarVideo = vi.fn().mockResolvedValue({
       externalId: 'heygen-1',
       ingredientId: 'ingredient-1',
@@ -369,9 +369,8 @@ describe('AgentGenerationGatewayService decorator parity', () => {
 
     await descriptor.handle({ dto: {}, request, user } as never);
 
-    expect(descriptor.creditsConfig).toMatchObject({
-      settlement: 'completion',
-    });
+    expect(descriptor.creditsConfig).toBeUndefined();
+    expect(descriptor.hasCreditsInterceptor).toBeFalsy();
     expect(generateAvatarVideo.mock.calls.map(([, ctx]) => ctx)).toEqual([
       expect.objectContaining({ request }),
     ]);

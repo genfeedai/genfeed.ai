@@ -138,7 +138,7 @@ type TestContext = {
     listConversations: ReturnType<typeof vi.fn>;
     listMediaComments: ReturnType<typeof vi.fn>;
     replyToComment: ReturnType<typeof vi.fn>;
-    sendCommentReplyDm: ReturnType<typeof vi.fn>;
+    sendDirectMessage: ReturnType<typeof vi.fn>;
   };
   linkedInService: {
     listDirectMessages: ReturnType<typeof vi.fn>;
@@ -462,7 +462,7 @@ function createContext(): TestContext {
     listConversations: vi.fn(),
     listMediaComments: vi.fn(),
     replyToComment: vi.fn().mockResolvedValue({ commentId: 'ig-reply-1' }),
-    sendCommentReplyDm: vi.fn().mockResolvedValue('dm-1'),
+    sendDirectMessage: vi.fn().mockResolvedValue('dm-1'),
   };
   const twitterService = {
     buildTweetUrl: vi.fn(
@@ -1520,7 +1520,7 @@ describe('SocialInboxService', () => {
         .catch((error: unknown) => error),
     ]);
 
-    expect(instagramService.sendCommentReplyDm).toHaveBeenCalledTimes(1);
+    expect(instagramService.sendDirectMessage).toHaveBeenCalledTimes(1);
     expect(
       messages.filter(
         (message) => message.idempotencyKey === input.idempotencyKey,

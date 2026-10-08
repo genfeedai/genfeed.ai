@@ -2,6 +2,10 @@ import type { AgentAutonomyMode } from '../..';
 import type { AppLocale } from '../../constants';
 import type { IFleetEvaluationPolicy } from '../analytics/fleet-evaluation-policy.interface';
 import type { IBaseEntity } from '../index';
+import type {
+  HeyGenAvatarRef,
+  HeyGenConnectionRef,
+} from '../integrations/heygen.interface';
 import type { IOnboardingJourneyMissionState } from '../onboarding/onboarding-journey.interface';
 
 export type AgentPolicyQualityTier = 'budget' | 'balanced' | 'high_quality';
@@ -91,8 +95,11 @@ export interface IOrganizationSetting extends IBaseEntity {
     externalVoiceId?: string;
     label?: string;
     preview?: string | null;
+    ownership?: 'private' | 'public';
+    connection?: HeyGenConnectionRef;
   } | null;
   defaultVoiceProvider?: string | null;
+  defaultAvatarRef?: HeyGenAvatarRef | null;
   defaultAvatarPhotoUrl?: string | null;
   defaultAvatarIngredientId?: string | null;
 

@@ -14,6 +14,8 @@ const REQUEST_PROPERTIES = {
   brandName: STRING_SCHEMA,
   elevenlabsVoiceId: STRING_SCHEMA,
   heygenAvatarId: STRING_SCHEMA,
+  avatarRef: JSON_DOCUMENT_SCHEMA,
+  voiceRef: JSON_DOCUMENT_SCHEMA,
   organizationId: STRING_SCHEMA,
   outputType: STRING_SCHEMA,
   platforms: arraySchema(STRING_SCHEMA),

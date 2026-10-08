@@ -66,6 +66,7 @@ export class GenerationHoldRecoveryService {
       select: {
         id: true,
         status: true,
+        generationProvider: true,
         metadata: { select: { externalId: true } },
       },
     });
@@ -83,6 +84,7 @@ export class GenerationHoldRecoveryService {
             this.http,
             this.logger,
             10_000,
+            ingredient?.generationProvider,
           )
         : null;
     const isCompleted =

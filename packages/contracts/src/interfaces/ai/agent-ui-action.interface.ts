@@ -1,3 +1,5 @@
+import type { HeyGenAvatarRef } from '../integrations/heygen.interface';
+import type { IBrandAgentConfig } from '../organization/brand.interface';
 export type AgentUiActionType =
   | 'mutation_approval_card'
   | 'oauth_connect_card'
@@ -421,6 +423,8 @@ export type AgentClipRunIdentitySource =
   | 'organization';
 
 export interface AgentClipRunIdentity {
+  avatarRef?: HeyGenAvatarRef;
+  voiceRef?: NonNullable<IBrandAgentConfig['defaultVoiceRef']>;
   avatarId?: string;
   avatarProvider?: string;
   isComplete: boolean;
