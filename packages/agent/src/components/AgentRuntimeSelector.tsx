@@ -1,13 +1,18 @@
 'use client';
 
 import type { AgentRuntimeOption } from '@genfeedai/agent/models/agent-runtime.model';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { PROMPT_BAR_CHIP_CLASS } from '@ui/constants/shell-chrome.constant';
 import { Button } from '@ui/primitives/button';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@ui/primitives/popover';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
 import {
   ChevronsUpDown,
   Monitor,
@@ -16,7 +21,7 @@ import {
   Terminal,
   Zap,
 } from 'lucide-react';
-import { type ReactElement, useState } from 'react';
+import { Fragment, type ReactElement } from 'react';
 
 interface AgentRuntimeSelectorProps {
   environmentLabel: 'cloud' | 'local';
@@ -51,109 +56,90 @@ function RuntimeIcon({
   return <Sparkles className="size-3.5 text-primary" />;
 }
 
+function runtimeLabel(option: AgentRuntimeOption): string {
+  return option.category === 'auto' ? 'Default' : option.label;
+}
+
 export function AgentRuntimeSelector({
-  environmentLabel,
-  localToolSummary,
   options,
-  providerSummary,
   selectedRuntime,
   onRuntimeChange,
 }: AgentRuntimeSelectorProps): ReactElement {
-  const [open, setOpen] = useState(false);
+  const groups = [
+    {
+      label: '',
+      options: options.filter((option) => option.category === 'auto'),
+    },
+    {
+      label: 'This computer',
+      options: options.filter((option) => option.category === 'local'),
+    },
+    {
+      label: 'Cloud',
+      options: options.filter((option) => option.category === 'hosted'),
+    },
+  ].filter((group) => group.options.length > 0);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <Button
-          variant={ButtonVariant.UNSTYLED}
+          ariaLabel={`Run with ${runtimeLabel(selectedRuntime)}`}
+          className={PROMPT_BAR_CHIP_CLASS}
+          size={ButtonSize.SM}
+          textTransform="none"
+          tooltip={selectedRuntime.hint ?? selectedRuntime.description}
+          variant={ButtonVariant.GHOST}
           withWrapper={false}
-          className="gen-shell-control flex items-center gap-1.5 rounded-md px-2 py-1 text-left"
-          data-active={open ? 'true' : 'false'}
         >
-          <span className="sr-only">Runtime</span>
           <RuntimeIcon
             category={selectedRuntime.category}
             provider={selectedRuntime.provider}
           />
-          <span className="text-2xs font-medium text-foreground">
-            {selectedRuntime.label}
+          <span className="min-w-0 truncate">
+            {runtimeLabel(selectedRuntime)}
           </span>
           <ChevronsUpDown className="size-3.5 text-muted-foreground" />
         </Button>
-      </PopoverTrigger>
-
-      <PopoverContent
-        align="end"
-        side="bottom"
-        sideOffset={10}
-        className="w-[22rem] rounded-md p-2"
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="start"
+        side="top"
+        sideOffset={8}
+        className="w-56"
       >
-        <div className="mb-2 flex items-start justify-between gap-3 px-2.5 py-2">
-          <div>
-            <p className="text-2xs font-semibold uppercase tracking-[0.2em] text-foreground/42">
-              Runtime Routing
-            </p>
-            <p className="text-xs text-foreground/58">
-              {environmentLabel === 'local'
-                ? 'Local CLIs use your own subscription; hosted runtimes use Genfeed credits'
-                : 'Hosted runtimes only'}
-            </p>
-          </div>
-          <span
-            className="gen-shell-chip px-2.5 py-1 text-2xs font-semibold uppercase tracking-[0.16em]"
-            data-tone={environmentLabel === 'local' ? 'success' : 'info'}
-          >
-            {environmentLabel}
-          </span>
-        </div>
-
-        <div className="space-y-1">
-          {options.map((option) => {
-            const isSelected = option.key === selectedRuntime.key;
-
-            return (
-              <Button
-                key={option.key || 'auto'}
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={() => {
-                  onRuntimeChange(option);
-                  setOpen(false);
-                }}
-                className="gen-shell-surface flex w-full items-center gap-3 rounded-2xl p-3 text-left transition-colors"
-                data-active={isSelected ? 'true' : 'false'}
-              >
-                <RuntimeIcon
-                  category={option.category}
-                  provider={option.provider}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold tracking-[-0.01em] text-foreground">
-                    {option.label}
-                  </p>
-                  <p className="truncate text-xs text-foreground/56">
-                    {option.description}
-                  </p>
-                  {option.hint ? (
-                    <p className="truncate text-2xs text-success">
-                      {option.hint}
-                    </p>
-                  ) : null}
-                </div>
-              </Button>
-            );
-          })}
-        </div>
-
-        <div className="gen-shell-surface mt-3 rounded-2xl px-3 py-2.5">
-          <p className="text-xs text-foreground/66">{providerSummary}</p>
-          {environmentLabel === 'local' ? (
-            <p className="mt-1 text-xs text-foreground/48">
-              {localToolSummary}
-            </p>
-          ) : null}
-        </div>
-      </PopoverContent>
-    </Popover>
+        <DropdownMenuRadioGroup
+          value={selectedRuntime.key}
+          onValueChange={(key) => {
+            const option = options.find((option) => option.key === key);
+            if (option) onRuntimeChange(option);
+          }}
+        >
+          {groups.map((group, index) => (
+            <Fragment key={group.label}>
+              {index > 0 ? <DropdownMenuSeparator /> : null}
+              {group.label ? (
+                <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
+              ) : null}
+              {group.options.map((option) => (
+                <DropdownMenuRadioItem
+                  key={option.key || 'auto'}
+                  value={option.key}
+                  title={option.hint ?? option.description}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <RuntimeIcon
+                      category={option.category}
+                      provider={option.provider}
+                    />
+                    <span className="truncate">{runtimeLabel(option)}</span>
+                  </span>
+                </DropdownMenuRadioItem>
+              ))}
+            </Fragment>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -9,9 +9,7 @@ interface AgentDesktopRuntimeBarProps {
 }
 
 /**
- * Composer runtime picker shown in Genfeed Desktop when a local Claude Code
- * or Codex CLI is installed, with a plain statement of who pays for the turn
- * and how to update a CLI too old to run turns.
+ * Shared runtime picker for Desktop, with actionable CLI readiness warnings.
  */
 export function AgentDesktopRuntimeBar({
   selection,
@@ -21,7 +19,7 @@ export function AgentDesktopRuntimeBar({
 
   return (
     <div
-      className="flex min-w-0 items-center gap-2"
+      className="flex min-w-0 flex-col items-start gap-1"
       data-testid="agent-desktop-runtime-bar"
     >
       <AgentRuntimeSelector
@@ -32,15 +30,6 @@ export function AgentDesktopRuntimeBar({
         selectedRuntime={selectedRuntime}
         onRuntimeChange={onRuntimeChange}
       />
-      <p
-        className={
-          selectedRuntime.hint
-            ? 'min-w-0 truncate text-2xs text-success'
-            : 'min-w-0 truncate text-2xs text-foreground/48'
-        }
-      >
-        {selectedRuntime.hint ?? 'Runs on Genfeed — uses Genfeed credits'}
-      </p>
       {runtimeNotice ? (
         <p
           className="min-w-0 text-2xs text-warning"
