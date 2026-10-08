@@ -690,6 +690,10 @@ test('hostile release.json cannot choose the image or write publication outputs'
     616010185,
     checksumBytes,
   );
+  archiveAsset.created_at = fixture.release.assets[1].created_at;
+  archiveAsset.updated_at = fixture.release.assets[1].updated_at;
+  checksumAsset.created_at = fixture.release.assets[2].created_at;
+  checksumAsset.updated_at = fixture.release.assets[2].updated_at;
   fixture.release.assets[1] = archiveAsset;
   fixture.release.assets[2] = checksumAsset;
   fixture.expected.archiveAssetDigest = archiveAsset.digest;
