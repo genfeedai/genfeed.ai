@@ -12,7 +12,9 @@ import {
   validateRecoveryNpmPlan,
 } from './recovery-npm-plan-guard.mjs';
 import {
+  loadReleaseRecoveryQualifications,
   NPM_MASTER_ADVANCED_ERROR,
+  NPM_SOURCE_NOOP_CURRENT_FULL_SUITE_JOBS,
   NPM_SOURCE_NOOP_REQUIRED_FULL_SUITE_JOBS,
   NPM_SOURCE_NOOP_REQUIRED_SKIPPED_JOBS,
   RECOVERY_KIND_ATTACHMENT_FAILURE,
@@ -1134,8 +1136,8 @@ test('npm-source-noop accepts the historical master-advanced plan and frozen ins
     true,
   );
 
-  assert.equal(RELEASE_RECOVERY_QUALIFICATIONS.version, 1);
-  assert.equal(RELEASE_RECOVERY_QUALIFICATIONS.qualifications.length, 1);
+  assert.equal(RELEASE_RECOVERY_QUALIFICATIONS.version, 2);
+  assert.equal(RELEASE_RECOVERY_QUALIFICATIONS.qualifications.length, 2);
   assert.equal(
     createHash('sha256').update(readFileSync(NPM_BODY_PATH)).digest('hex'),
     ORIGINAL_RELEASE_BODY_SHA256,
@@ -1626,4 +1628,444 @@ test('npm-source-noop revalidates assets without rebuilding, redeploying, or pub
       }),
     /cannot publish pending npm packages/i,
   );
+});
+
+// Sanitized actual job/step/source shape of Release 37777911197. This fixture
+// is independent of the required-job profile so missing gates cannot self-pass.
+const CURRENT_NPM_JOB_RECEIPTS = [
+  [113313358906, 'Validate release and create draft', 'success'],
+  [
+    113314499482,
+    'Full Suite / Build & Boot Check / Server Bundle Boot Check',
+    'success',
+  ],
+  [
+    113314499609,
+    'Full Suite / E2E Suite / Serial Runtime Acceptance',
+    'success',
+  ],
+  [113314499629, 'Full Suite / E2E Suite / Isolated Publish E2E', 'success'],
+  [113314499686, 'Full Suite / E2E Suite / API E2E Full', 'success'],
+  [
+    113314499704,
+    'Full Suite / Connected Visual Acceptance / Actual runsc rendering and isolation',
+    'success',
+  ],
+  [113314499739, 'Full Suite / CI Gate / Plan', 'success'],
+  [113314499744, 'Full Suite / E2E Suite / API E2E Tests', 'success'],
+  [
+    113314499753,
+    'Full Suite / E2E Suite / E2E Route Reference Inventory',
+    'success',
+  ],
+  [
+    113314499819,
+    'Full Suite / E2E Suite / BRAND Receipt and Relocation Acceptance',
+    'success',
+  ],
+  [
+    113314499837,
+    'Full Suite / E2E Suite / Frontend E2E (Shard 3/4)',
+    'success',
+  ],
+  [
+    113314499859,
+    'Full Suite / E2E Suite / Frontend Authed E2E (real Better Auth)',
+    'success',
+  ],
+  [
+    113314499866,
+    'Full Suite / E2E Suite / Frontend E2E (Shard 1/4)',
+    'success',
+  ],
+  [
+    113314499922,
+    'Full Suite / E2E Suite / Frontend E2E (Shard 2/4)',
+    'success',
+  ],
+  [
+    113314499927,
+    'Full Suite / E2E Suite / Frontend E2E (Shard 4/4)',
+    'success',
+  ],
+  [
+    113314499976,
+    'Full Suite / E2E Suite / Proactive Production Turn Acceptance',
+    'success',
+  ],
+  [
+    113314500813,
+    'Full Suite / Build & Boot Check / Server Image / Resolve server image inputs',
+    'success',
+  ],
+  [113314631680, 'Full Suite / CI Gate / Static Checks', 'success'],
+  [113314631830, 'Full Suite / CI Gate / Spec Typecheck (pool-1)', 'success'],
+  [113314631875, 'Full Suite / CI Gate / Test App (shard 4/4)', 'success'],
+  [113314631891, 'Full Suite / CI Gate / Spec Typecheck (pool-2)', 'success'],
+  [113314631930, 'Full Suite / CI Gate / Test App (shard 1/4)', 'success'],
+  [113314631932, 'Full Suite / CI Gate / Test App (shard 2/4)', 'success'],
+  [113314631941, 'Full Suite / CI Gate / Cloud Tenant Guard Sweep', 'success'],
+  [113314631961, 'Full Suite / CI Gate / Spec Typecheck (pool-3)', 'success'],
+  [
+    113314632012,
+    'Full Suite / CI Gate / Test Workspaces (packages-1/4)',
+    'success',
+  ],
+  [113314632030, 'Full Suite / CI Gate / Build', 'success'],
+  [113314632041, 'Full Suite / CI Gate / Test API (shard 4/4)', 'success'],
+  [
+    113314632066,
+    'Full Suite / CI Gate / Test Workspaces (packages-4/4)',
+    'success',
+  ],
+  [113314632071, 'Full Suite / CI Gate / Test Workspaces (server)', 'success'],
+  [113314632113, 'Full Suite / CI Gate / Test App (shard 3/4)', 'success'],
+  [
+    113314632116,
+    'Full Suite / CI Gate / Test Workspaces (packages-2/4)',
+    'success',
+  ],
+  [
+    113314632119,
+    'Full Suite / CI Gate / Test Workspaces (packages-3/4)',
+    'success',
+  ],
+  [113314632125, 'Full Suite / CI Gate / Test API (shard 2/4)', 'success'],
+  [
+    113314632141,
+    'Full Suite / CI Gate / Test Workspaces (browser-extension)',
+    'success',
+  ],
+  [113314632143, 'Full Suite / CI Gate / Test API (shard 3/4)', 'success'],
+  [113314632197, 'Full Suite / CI Gate / Test API (shard 1/4)', 'success'],
+  [113314632216, 'Full Suite / CI Gate / Test Workspaces (web)', 'success'],
+  [
+    113314632783,
+    'Full Suite / Build & Boot Check / Server Image / Build & Push Server Image',
+    'success',
+  ],
+  [
+    113314633862,
+    `Full Suite / CI Gate / Setup Benchmark (\${{ matrix.mode }})`,
+    'skipped',
+  ],
+  [
+    113315162400,
+    'Full Suite / Connected Visual Acceptance / Connected runsc rendering and Library acceptance',
+    'success',
+  ],
+  [113317176570, 'Full Suite / E2E Suite / Merge E2E Reports', 'success'],
+  [113320322688, 'Full Suite / E2E Suite / E2E Gate (all shards)', 'success'],
+  [113320322709, 'Full Suite / E2E Suite / API E2E Full Gate', 'success'],
+  [
+    113320371321,
+    'Full Suite / E2E Suite / Record nightly E2E recovery',
+    'skipped',
+  ],
+  [
+    113320371793,
+    'Full Suite / E2E Suite / Report nightly E2E failure',
+    'skipped',
+  ],
+  [
+    113321194885,
+    'Full Suite / Build & Boot Check / Build & Boot Check',
+    'success',
+  ],
+  [113323867365, 'Full Suite / CI Gate / Tests Gate', 'skipped'],
+  [113323869947, 'Full Suite / Final Connected Acceptance', 'success'],
+  [113323870335, 'Full Suite / CI Gate / Master CI failure tracker', 'skipped'],
+  [113323916812, 'Full Suite / Master SHA Verdict', 'success'],
+  [113323975538, 'Deploy hosted SaaS / Validate public source', 'success'],
+  [
+    113323975762,
+    'Publish Community / Self-Hosted Build Verify / Build & Boot Check (Self-Hosted)',
+    'success',
+  ],
+  [113323976666, 'Verify recovered release assets', 'skipped'],
+  [
+    113324053337,
+    'Deploy hosted SaaS / Deploy hosted SaaS / Deploy ECS',
+    'success',
+  ],
+  [
+    113331536896,
+    'Deploy hosted SaaS / Deploy hosted SaaS / Deploy Vercel frontends / Deploy docs',
+    'success',
+  ],
+  [
+    113331536923,
+    'Deploy hosted SaaS / Deploy hosted SaaS / Deploy Vercel frontends / Deploy app',
+    'success',
+  ],
+  [
+    113331537201,
+    'Deploy hosted SaaS / Deploy hosted SaaS / Deploy Vercel frontends / Deploy web',
+    'success',
+  ],
+  [
+    113333699899,
+    'Publish Community / Build & Push Self-Hosted Image',
+    'success',
+  ],
+  [
+    113333903101,
+    'Deploy hosted SaaS / Deploy hosted SaaS / Post-deploy smoke',
+    'success',
+  ],
+  [
+    113333982666,
+    'Deploy hosted SaaS / Deploy hosted SaaS / Promote verified server image',
+    'success',
+  ],
+  [
+    113333984989,
+    'Deploy hosted SaaS / Deploy hosted SaaS / Report post-deploy smoke failure',
+    'skipped',
+  ],
+  [
+    113339037923,
+    'Publish Community / Publish & Smoke Public Install Artifact',
+    'success',
+  ],
+  [
+    113340266134,
+    'Publish npm Packages / Plan npm release from registry drift',
+    'failure',
+  ],
+  [
+    113340405795,
+    'Publish npm Packages / Preflight immutable package tarballs',
+    'skipped',
+  ],
+  [
+    113340419892,
+    'Publish npm Packages / Publish preflighted package tarballs',
+    'skipped',
+  ],
+  [113340442907, 'Promote Community release channels', 'skipped'],
+  [113340445545, 'Publish GitHub release', 'skipped'],
+];
+const CURRENT_NPM_BODY =
+  '\n## [0.2.5](https://github.com/genfeedai/genfeed.ai/releases/tag/v0.2.5) - 2026-10-08\n\n### Features\n\n- **api:** approved-brand receipts on direct post drafts ([#6482](https://github.com/genfeedai/genfeed.ai/pull/6482))\n- guard public MCP tool references ([#6496](https://github.com/genfeedai/genfeed.ai/pull/6496))\n- **ci:** emit executable guard wall-time diagnostics ([#6502](https://github.com/genfeedai/genfeed.ai/pull/6502))\n- **heygen:** save native identities and freeze submission provenance ([#6499](https://github.com/genfeedai/genfeed.ai/pull/6499))\n- **content-learning:** gate policy activation on pilot enrollment and queue rebuilds ([#6504](https://github.com/genfeedai/genfeed.ai/pull/6504))\n\n### Fixes\n\n- **studio:** refresh Library after polled generation failure ([#6489](https://github.com/genfeedai/genfeed.ai/pull/6489))\n- **workers:** preserve unresolved HeyGen generation holds ([#6488](https://github.com/genfeedai/genfeed.ai/pull/6488))\n- harmonize Meta v26 APIs and workflow contracts ([#6487](https://github.com/genfeedai/genfeed.ai/pull/6487))\n- **ci:** build contract exports before v0.2.5 checks ([#6491](https://github.com/genfeedai/genfeed.ai/pull/6491))\n- **api:** restrict organization member mutations to managers ([#6497](https://github.com/genfeedai/genfeed.ai/pull/6497))\n- **e2e:** report authenticated Motion in its actual lane ([#6500](https://github.com/genfeedai/genfeed.ai/pull/6500))\n\n### Tests\n\n- **api:** add real-database acceptance for the branded text seam ([#6481](https://github.com/genfeedai/genfeed.ai/pull/6481))\n- **content-learning:** add hosted generation loop acceptance ([#6503](https://github.com/genfeedai/genfeed.ai/pull/6503))\n\n### Dependencies\n\n- **deps:** refresh workspace packages and Action pins ([#6498](https://github.com/genfeedai/genfeed.ai/pull/6498))\n\n';
+const CURRENT_NPM_PLAN_STEPS = [
+  ['Set up job', 'success'],
+  ['Reject real publishes outside the release workflow', 'skipped'],
+  ['Require a master ref', 'success'],
+  ['Checkout the pinned commit', 'success'],
+  ['Validate pinned release source', 'failure'],
+  ['Setup Bun environment', 'skipped'],
+  ['Validate npm release enrollment', 'skipped'],
+  ['Resolve packages to publish', 'skipped'],
+  ['Checkout current release controller', 'skipped'],
+  ['Require an empty npm plan for historical recovery', 'skipped'],
+  ['Post Checkout the pinned commit', 'success'],
+  ['Complete job', 'success'],
+];
+const CURRENT_NPM_ARTIFACT_STEPS = [
+  ['Set up job', 'success'],
+  ['Checkout release source', 'success'],
+  ['Setup create package', 'success'],
+  ['Test and build create package', 'success'],
+  ['Build version-pinned release bundle', 'success'],
+  ['Smoke create against the release bundle', 'success'],
+  ['Anonymous exact-image pull and metadata check', 'success'],
+  ['Refuse pre-existing versioned install assets', 'skipped'],
+  ['Attach install bundle to draft GitHub release', 'success'],
+  ['Verify immutable install asset identities', 'success'],
+  ['Post Setup create package', 'success'],
+  ['Post Checkout release source', 'success'],
+  ['Complete job', 'success'],
+];
+const CURRENT_NPM_ERROR_LOG =
+  '2026-10-08T13:37:57.8885987Z ##[error]Master advanced after this release was dispatched. Run a new release from current master.\n2026-10-08T13:37:57.8895215Z ##[error]Process completed with exit code 1.';
+function currentNpmSourceNoopFixture() {
+  const fixture = npmSourceNoopFixture();
+  const qualification = RELEASE_RECOVERY_QUALIFICATIONS.qualifications.find(
+    (record) => record.runId === '37777911197',
+  );
+  fixture.requestedRunId = qualification.runId;
+  fixture.requestedTag = qualification.releaseTag;
+  Object.assign(fixture.run, {
+    id: Number(qualification.runId),
+    head_sha: qualification.releaseSha,
+    display_title: `Release ${qualification.releaseTag}`,
+  });
+  fixture.jobs = CURRENT_NPM_JOB_RECEIPTS.map(([id, name, conclusion]) => ({
+    id,
+    name,
+    conclusion,
+    status: 'completed',
+    head_sha: qualification.releaseSha,
+    ...(name === NPM_PLAN_JOB_NAME
+      ? { steps: namedSteps(CURRENT_NPM_PLAN_STEPS) }
+      : name === ARTIFACT_JOB_NAME
+        ? { steps: namedSteps(CURRENT_NPM_ARTIFACT_STEPS) }
+        : {}),
+  }));
+  fixture.npmPlanEvidence = npmPlanEvidence({ log: CURRENT_NPM_ERROR_LOG });
+  fixture.releases = [
+    {
+      id: Number(qualification.draftId),
+      tag_name: qualification.releaseTag,
+      name: qualification.draftTitle,
+      draft: true,
+      published_at: null,
+      target_commitish: qualification.releaseSha,
+      body: CURRENT_NPM_BODY,
+      assets: qualification.assets.map((asset) => ({
+        ...asset,
+        state: 'uploaded',
+      })),
+    },
+  ];
+  return fixture;
+}
+
+test('the exact v0.2.5 release shape qualifies all current matrix, connected, hosted and install gates', () => {
+  const fixture = currentNpmSourceNoopFixture();
+  const result = validateReleaseRecoveryEvidence(fixture);
+  assert.equal(result.releaseSha, 'beecff825d5ec220aa6ce949db187faeea2e1a36');
+  assert.equal(result.draftId, '406811369');
+  assert.equal(
+    result.imageDigest,
+    'sha256:9733e994b0e0741615d90b954669cce1a06a4d70839396f4e42a16eb1cc67c05',
+  );
+  assert.equal(result.artifactJobId, '113339037923');
+  assert.equal(
+    createHash('sha256').update(CURRENT_NPM_BODY).digest('hex'),
+    result.draftBodySha256,
+  );
+});
+
+test('every current mandatory gate rejects missing, red, skipped or duplicate evidence', () => {
+  for (const name of [
+    ...NPM_SOURCE_NOOP_CURRENT_FULL_SUITE_JOBS,
+    ...PUBLIC_SAAS_JOBS,
+    'Deploy hosted SaaS / Deploy hosted SaaS / Promote verified server image',
+  ]) {
+    for (const mutation of ['missing', 'failure', 'skipped', 'duplicate']) {
+      const fixture = currentNpmSourceNoopFixture();
+      const job = fixture.jobs.find((candidate) => candidate.name === name);
+      assert.ok(job, `actual receipt missing ${name}`);
+      if (mutation === 'missing')
+        fixture.jobs = fixture.jobs.filter((candidate) => candidate !== job);
+      else if (mutation === 'duplicate') fixture.jobs.push({ ...job });
+      else job.conclusion = mutation;
+      assert.throws(
+        () => validateReleaseRecoveryEvidence(fixture),
+        /requires exactly one|expected success|incomplete, failed, or wrong-SHA/,
+      );
+    }
+  }
+});
+
+test('current qualification rejects source, unfinished job, npm failure and draft/asset drift', () => {
+  const mutations = [
+    (fixture) => {
+      fixture.jobs[0].head_sha = 'a'.repeat(40);
+    },
+    (fixture) => {
+      fixture.jobs[0].status = 'in_progress';
+    },
+    (fixture) => {
+      fixture.jobs[0].conclusion = 'failure';
+    },
+    (fixture) => {
+      fixture.npmPlanEvidence = npmPlanEvidence({
+        log: '##[error]package publication failed',
+      });
+    },
+    (fixture) => {
+      fixture.jobs.find((job) =>
+        job.name.includes('Preflight immutable'),
+      ).conclusion = 'success';
+    },
+    (fixture) => {
+      fixture.run.head_sha = 'a'.repeat(40);
+      fixture.sourceIsAncestor = false;
+    },
+    (fixture) => {
+      fixture.remoteTagPresent = true;
+    },
+    (fixture) => {
+      fixture.releases[0].draft = false;
+    },
+    (fixture) => {
+      fixture.releases[0].body += 'changed';
+    },
+    (fixture) => {
+      fixture.releases[0].assets[0].updated_at = '2026-10-08T13:37:31Z';
+    },
+    (fixture) => {
+      fixture.releases[0].assets[0].id++;
+    },
+    (fixture) => {
+      fixture.releases[0].assets[0].size++;
+    },
+    (fixture) => {
+      fixture.releases[0].assets[0].digest = `sha256:${'a'.repeat(64)}`;
+    },
+  ];
+  for (const mutate of mutations) {
+    const fixture = currentNpmSourceNoopFixture();
+    mutate(fixture);
+    assert.throws(() => validateReleaseRecoveryEvidence(fixture));
+  }
+  assert.throws(
+    () =>
+      validateRecoveryNpmPlan({
+        hasPackages: 'true',
+        recoveryRunId: '37777911197',
+        validatedHistoricalRecovery: 'true',
+      }),
+    /cannot publish pending npm packages/,
+  );
+});
+
+test('qualification schema rejects unknown, missing, empty or duplicate identities and profiles', () => {
+  for (const profile of ['', 'unknown', null, ['ci-packages-sharded-v1']]) {
+    const table = structuredClone(RELEASE_RECOVERY_QUALIFICATIONS);
+    table.qualifications[1].jobProfile = profile;
+    assert.throws(() => loadReleaseRecoveryQualifications(table), /invalid/);
+  }
+  for (const mutate of [
+    (table) => {
+      delete table.qualifications[1].jobProfile;
+    },
+    (table) => {
+      table.qualifications[1].jobProfiles = [
+        'ci-packages-sharded-v1',
+        'ci-packages-sharded-v1',
+      ];
+    },
+    (table) => {
+      table.qualifications.push(structuredClone(table.qualifications[1]));
+    },
+    (table) => {
+      table.qualifications[1].assets.push(
+        structuredClone(table.qualifications[1].assets[0]),
+      );
+    },
+    (table) => {
+      table.qualifications[1].assets[1].name =
+        table.qualifications[1].assets[0].name;
+    },
+    (table) => {
+      delete table.qualifications[1].assets[0].digest;
+    },
+    (table) => {
+      table.qualifications[1].assets[0].extra = true;
+    },
+    (table) => {
+      table.jobProfiles = [];
+    },
+    (table) => {
+      table.version = 1;
+    },
+  ]) {
+    const table = structuredClone(RELEASE_RECOVERY_QUALIFICATIONS);
+    mutate(table);
+    assert.throws(() => loadReleaseRecoveryQualifications(table), /invalid/);
+  }
 });
