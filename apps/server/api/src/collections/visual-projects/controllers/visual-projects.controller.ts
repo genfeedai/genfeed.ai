@@ -164,7 +164,9 @@ export class VisualProjectsController {
       await this.projects.retry(user, id, input),
     );
   }
-  @Get(':id/revisions/:number/source') async source(
+  @TenantReadPolicy('owner')
+  @Get(':id/revisions/:number/source')
+  async source(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Param('number', ParseIntPipe) number: number,

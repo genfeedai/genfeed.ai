@@ -80,12 +80,13 @@ export class ContentEngineController {
    * before the caller picks a subset via `GenerateContentPlanDto.seeds`.
    * Declared before `plans/:planId` so `seeds` never matches that param.
    */
+  @TenantReadPolicy('selected')
   @Get('plans/seeds')
   async getPlanSeeds(
     @CurrentUser() user: User,
     @Param('brandId') brandId: string,
   ) {
-    const organization = user.organizationId;
+    const organization = resolveTenantReadScope(user).organizationId;
     return this.contentPlanSeedsService.buildPreview(organization, brandId);
   }
 

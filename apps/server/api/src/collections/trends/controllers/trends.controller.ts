@@ -231,11 +231,11 @@ export class TrendsController {
     };
   }
 
+  @TenantReadPolicy('selected')
   @Get('preferences')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getPreferences(@CurrentUser() user: User) {
-    const organizationId = user.organizationId;
-    const brandId = user.brandId;
+    const { organizationId, brandId } = resolveTenantReadScope(user);
 
     if (!organizationId) {
       return { preferences: null };

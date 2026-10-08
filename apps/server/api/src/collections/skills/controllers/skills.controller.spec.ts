@@ -1,19 +1,30 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { SkillsController } from '@api/collections/skills/controllers/skills.controller';
 import type { CreateSkillDto } from '@api/collections/skills/dto/skill.dto';
+import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
+import { getTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentSkillCategory, SkillSurface } from '@genfeedai/contracts';
+import type { Prisma } from '@genfeedai/prisma';
+import { SkillSerializer } from '@genfeedai/serializers';
+import { testId } from '@helpers/testing/test-id.helper';
+import { getTenantContext } from '@libs/prisma/tenant-context';
+import type { ExecutionContext } from '@nestjs/common';
 import { ForbiddenException, RequestMethod } from '@nestjs/common';
 import {
   GUARDS_METADATA,
   METHOD_METADATA,
   PATH_METADATA,
 } from '@nestjs/common/constants';
+import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
+import { defer, firstValueFrom } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('SkillsController', () => {
@@ -518,4 +529,296 @@ describe('SkillsController legacy write authorization', () => {
       { name: 'Copy' },
     );
   });
+});
+
+const selectedUser: User = {
+  id: testId('user'),
+  userId: testId('user'),
+  organizationId: testId('org'),
+  brandId: testId('brand'),
+  isSuperAdmin: true,
+};
+const selectedOrg = testId('org', 2),
+  selectedBrand = testId('brand', 2);
+const catalogSelections: Array<{
+  query: Record<string, string>;
+  organizationId: string;
+  brandId: string | undefined;
+}> = [
+  {
+    query: {},
+    organizationId: selectedUser.organizationId,
+    brandId: selectedUser.brandId,
+  },
+  {
+    query: { organizationId: selectedUser.organizationId },
+    organizationId: selectedUser.organizationId,
+    brandId: selectedUser.brandId,
+  },
+  {
+    query: { organizationId: selectedOrg },
+    organizationId: selectedOrg,
+    brandId: undefined,
+  },
+  {
+    query: { organizationId: selectedOrg, brandId: selectedBrand },
+    organizationId: selectedOrg,
+    brandId: selectedBrand,
+  },
+  {
+    query: { brandId: selectedBrand },
+    organizationId: selectedUser.organizationId,
+    brandId: selectedBrand,
+  },
+];
+function skillReadRequest(query: Record<string, string>) {
+  return {
+    method: 'GET',
+    query,
+    originalUrl: '/v1/skills',
+    user: selectedUser,
+    context: { ...selectedUser },
+  };
+}
+function skillListExecution(
+  req: ReturnType<typeof skillReadRequest>,
+): ExecutionContext {
+  return {
+    getClass: () => SkillsController,
+    getHandler: () => SkillsController.prototype.listSkills,
+    switchToHttp: () => ({ getRequest: () => req }),
+  } as unknown as ExecutionContext;
+}
+function listedSkill(
+  id: string,
+  overrides: Partial<SkillDocument> = {},
+): SkillDocument {
+  return {
+    id,
+    organizationId: selectedOrg,
+    brandId: null,
+    ownerKind: 'organization',
+    ownerUserId: null,
+    audience: 'private',
+    isQuarantined: false,
+    latestVersionNumber: 1,
+    revision: 1,
+    currentVersionId: `version-${id}`,
+    sharedVersionId: null,
+    publishedVersionId: null,
+    label: id,
+    config: {
+      source: 'custom',
+      name: id,
+      slug: id,
+      defaultInstructions: 'private body',
+    },
+    isDeleted: false,
+    createdAt: new Date('2026-10-07T00:00:00Z'),
+    updatedAt: new Date('2026-10-07T00:00:00Z'),
+    ...overrides,
+  };
+}
+describe('selected skill list actual controller and capability boundary', () => {
+  const interceptor = new TenantContextInterceptor(new Reflector());
+  it.each(catalogSelections)(
+    'forwards one selected scope without changing original identity: $query',
+    async ({ query, organizationId, brandId }) => {
+      const documents = [listedSkill('private')],
+        filtered = [listedSkill('filtered')];
+      const listAllForOrg = vi.fn(async () => {
+        await Promise.resolve();
+        expect(getTenantContext()?.organizationId).toBe(organizationId);
+        return documents;
+      });
+      const present = vi.fn(async () => {
+        await Promise.resolve();
+        expect(getTenantReadScope()).toEqual({
+          organizationId,
+          brandId,
+          isOrganizationOverride:
+            organizationId !== selectedUser.organizationId,
+        });
+        return filtered;
+      });
+      const controller = new SkillsController(
+        { listAllForOrg } as unknown as SkillsService,
+        { present } as unknown as SkillLibraryService,
+      );
+      const req = skillReadRequest(query),
+        context = req.context,
+        before = { ...context };
+      const result = await firstValueFrom(
+        interceptor.intercept(skillListExecution(req), {
+          handle: () =>
+            defer(() =>
+              controller.listSkills(
+                req as unknown as Request,
+                selectedUser,
+                'studio',
+              ),
+            ),
+        }),
+      );
+      expect(listAllForOrg).toHaveBeenCalledWith(
+        organizationId,
+        { surface: SkillSurface.STUDIO },
+        selectedUser.userId,
+      );
+      expect(present).toHaveBeenCalledWith(
+        { organizationId, brandId, userId: selectedUser.userId },
+        documents,
+      );
+      expect(result).toEqual(
+        serializeCollection(req as unknown as Request, SkillSerializer, {
+          docs: filtered,
+        }),
+      );
+      expect(req.user).toBe(selectedUser);
+      expect(req.context).toBe(context);
+      expect(req.context).toEqual(before);
+    },
+  );
+  it('isolates concurrent selected lists after asynchronous service suspension', async () => {
+    const listAllForOrg = vi.fn(async (organizationId: string) => {
+      await Promise.resolve();
+      expect(getTenantContext()?.organizationId).toBe(organizationId);
+      return [];
+    });
+    const present = vi.fn(
+      async (actor: Parameters<SkillLibraryService['present']>[0]) => {
+        await Promise.resolve();
+        expect(getTenantReadScope()?.organizationId).toBe(actor.organizationId);
+        return [];
+      },
+    );
+    const controller = new SkillsController(
+      { listAllForOrg } as unknown as SkillsService,
+      { present } as unknown as SkillLibraryService,
+    );
+    await Promise.all(
+      [selectedOrg, testId('org', 3)].map((organizationId) => {
+        const req = skillReadRequest({ organizationId });
+        return firstValueFrom(
+          interceptor.intercept(skillListExecution(req), {
+            handle: () =>
+              defer(() =>
+                controller.listSkills(req as unknown as Request, selectedUser),
+              ),
+          }),
+        );
+      }),
+    );
+    expect(
+      present.mock.calls.map(([actor]) => actor.organizationId).sort(),
+    ).toEqual([selectedOrg, testId('org', 3)].sort());
+  });
+  it.each([false, true])(
+    'refuses member or unverified API-key selection (%s) before real body',
+    (isApiKey) => {
+      const req = skillReadRequest({ organizationId: selectedOrg });
+      req.user = { ...selectedUser, isSuperAdmin: false, isApiKey };
+      req.context.isSuperAdmin = false;
+      const handle = vi.fn(() => defer(async () => []));
+      expect(() =>
+        interceptor.intercept(skillListExecution(req), { handle }),
+      ).toThrow(expect.objectContaining({ status: 403 }));
+      expect(handle).not.toHaveBeenCalled();
+    },
+  );
+  it.each([undefined, 'use_and_read'] as const)(
+    'does not inherit original membership and preserves legitimate grants (%s)',
+    async (access) => {
+      const hidden = listedSkill('hidden'),
+        granted = listedSkill('granted'),
+        global = listedSkill('global', {
+          ownerKind: 'system',
+          organizationId: null,
+          audience: 'public',
+          publishedVersionId: 'version-global',
+        }),
+        personal = listedSkill('personal', {
+          ownerKind: 'user',
+          organizationId: null,
+          ownerUserId: selectedUser.userId,
+        });
+      const documents = [hidden, granted, global, personal];
+      const member = vi.fn(async (query: Prisma.MemberFindFirstArgs) => {
+        expect(query.where?.organizationId).toBe(selectedOrg);
+        expect(query.where?.userId).toBe(selectedUser.userId);
+        expect(getTenantContext()?.organizationId).toBe(selectedOrg);
+        return null;
+      });
+      const grants = access
+        ? [
+            {
+              skillId: granted.id,
+              skillVersionId: 'version-granted',
+              access,
+              recipientKind: 'user',
+              recipientUserId: selectedUser.userId,
+              recipientOrganizationId: null,
+              recipientBrandId: null,
+              revokedAt: null,
+            },
+          ]
+        : [];
+      const prisma = {
+        member: { findFirst: member },
+        skillGrant: { findMany: vi.fn(async () => grants) },
+        skillAssignment: { findMany: vi.fn(async () => []) },
+        skillVersion: {
+          findMany: vi.fn(async () =>
+            documents.map((document) => ({
+              id: `version-${document.id}`,
+              skillId: document.id,
+              contentHash: `hash-${document.id}`,
+              instructionText: `body-${document.id}`,
+            })),
+          ),
+        },
+      };
+      const library = new SkillLibraryService(
+        prisma as unknown as PrismaService,
+      );
+      const present = vi.spyOn(library, 'present');
+      const service = { listAllForOrg: vi.fn(async () => documents) };
+      const controller = new SkillsController(
+        service as unknown as SkillsService,
+        library,
+      );
+      const req = skillReadRequest({ organizationId: selectedOrg });
+      const result = await firstValueFrom(
+        interceptor.intercept(skillListExecution(req), {
+          handle: () =>
+            defer(() =>
+              controller.listSkills(req as unknown as Request, selectedUser),
+            ),
+        }),
+      );
+      expect(member).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            organizationId: selectedOrg,
+            userId: selectedUser.userId,
+            isActive: true,
+            isDeleted: false,
+          },
+        }),
+      );
+      const visible: Awaited<ReturnType<SkillLibraryService['present']>> =
+        await present.mock.results[0].value;
+      expect(visible.map((document) => document.id)).toEqual(
+        access ? ['granted', 'global', 'personal'] : ['global', 'personal'],
+      );
+      expect(visible.some((document) => document.id === 'hidden')).toBe(false);
+      expect(result).toEqual(
+        serializeCollection(req as unknown as Request, SkillSerializer, {
+          docs: visible,
+        }),
+      );
+      expect(req.user).toBe(selectedUser);
+      expect(req.context.organizationId).toBe(selectedUser.organizationId);
+    },
+  );
 });

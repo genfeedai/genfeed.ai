@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { hasExplicitApiKeyAdminScope, MemberRole } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -29,6 +30,7 @@ export class AuthWhoamiController {
     private readonly logger: LoggerService,
   ) {}
 
+  @TenantReadPolicy('owner')
   @Get('whoami')
   async whoami(@Req() req: AuthWhoamiRequest) {
     const user = req.user;

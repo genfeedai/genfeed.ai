@@ -1,9 +1,19 @@
 import { AuthWhoamiController } from '@api/auth/controllers/auth-whoami.controller';
+import type { AuthenticatedUser as PolicyUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { testId } from '@helpers/testing/test-id.helper';
+import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
+import { getTenantReadScope } from '@api/helpers/interceptors/tenant-context/tenant-read-scope.context';
+import {
+  testId as policyTestId,
+  testId,
+} from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getTenantContext } from '@libs/prisma/tenant-context';
+import type { ExecutionContext } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { defer, firstValueFrom } from 'rxjs';
 
 const buildReq = (
   user?: Record<string, unknown> & {
@@ -13,6 +23,72 @@ const buildReq = (
 ) => ({ user });
 
 describe('AuthWhoamiController', () => {
+  it('keeps whoami original identity behind the real owner interceptor', async () => {
+    const owner: PolicyUser = {
+      id: policyTestId('user'),
+      userId: policyTestId('user'),
+      organizationId: policyTestId('org'),
+      brandId: policyTestId('brand'),
+      isSuperAdmin: true,
+      isApiKey: true,
+      scopes: ['read'],
+    };
+    const req = {
+      method: 'GET',
+      query: {} as Record<string, string>,
+      user: owner,
+      context: {
+        ...owner,
+        isSuperAdmin: true,
+        subscriptionTier: 'pro',
+        stripeSubscriptionStatus: 'active',
+        hydratedAt: 1,
+      },
+    };
+    const context = req.context;
+    const before = { ...context };
+    const execution = {
+      getClass: () => AuthWhoamiController,
+      getHandler: () => AuthWhoamiController.prototype.whoami,
+      switchToHttp: () => ({ getRequest: () => req }),
+    } as unknown as ExecutionContext;
+    const interceptor = new TenantContextInterceptor(new Reflector());
+    mockMembersService.findOne.mockResolvedValue({ role: { key: 'owner' } });
+    const handle = vi.fn(() =>
+      defer(async () => {
+        expect(getTenantContext()?.organizationId).toBe(owner.organizationId);
+        expect(getTenantReadScope()).toBeUndefined();
+        return controller.whoami(req);
+      }),
+    );
+    req.query = { organizationId: policyTestId('org', 2) };
+    expect(() => interceptor.intercept(execution, { handle })).toThrow(
+      expect.objectContaining({ status: 403 }),
+    );
+    expect(handle).not.toHaveBeenCalled();
+    expect(mockMembersService.findOne).not.toHaveBeenCalled();
+    const selections: Array<Record<string, string>> = [
+      {},
+      { organizationId: owner.organizationId },
+    ];
+    for (const query of selections) {
+      req.query = query;
+      const result = await firstValueFrom(
+        interceptor.intercept(execution, { handle }),
+      );
+      expect(mockMembersService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: owner.organizationId,
+          userId: owner.userId,
+        }),
+        expect.any(Array),
+      );
+      expect(result).toMatchObject({ data: { role: '' } });
+      expect(req.user).toBe(owner);
+      expect(req.context).toBe(context);
+      expect(req.context).toEqual(before);
+    }
+  });
   let controller: AuthWhoamiController;
   const mockMembersService = {
     findOne: vi.fn(),
@@ -116,14 +192,14 @@ describe('AuthWhoamiController', () => {
         }),
       );
 
-      expect(result.data.role).toBe('');
+      expect(result).toMatchObject({ data: { role: '' } });
     });
 
     it('skips the lookup and returns empty role when org or user is missing', async () => {
       const result = await controller.whoami(buildReq({ userId: 'user_1' }));
 
       expect(mockMembersService.findOne).not.toHaveBeenCalled();
-      expect(result.data.role).toBe('');
+      expect(result).toMatchObject({ data: { role: '' } });
     });
 
     it('never throws on a membership-lookup failure (returns empty role) and logs a warning', async () => {
@@ -136,7 +212,7 @@ describe('AuthWhoamiController', () => {
         }),
       );
 
-      expect(result.data.role).toBe('');
+      expect(result).toMatchObject({ data: { role: '' } });
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining('failed to resolve organization role'),
         expect.objectContaining({
@@ -163,7 +239,7 @@ describe('AuthWhoamiController', () => {
       expect(result.data.organization.id).toBe('org_def');
       expect(result.data.scopes).toEqual(['generate']);
       // No membership stubbed → role resolves to '' (deny-by-default downstream).
-      expect(result.data.role).toBe('');
+      expect(result).toMatchObject({ data: { role: '' } });
     });
 
     it('does not inherit org-admin membership for an API key without an admin scope', async () => {
@@ -179,7 +255,7 @@ describe('AuthWhoamiController', () => {
         }),
       );
 
-      expect(result.data.role).toBe('');
+      expect(result).toMatchObject({ data: { role: '' } });
       expect(result.data.scopes).toEqual(['videos:read']);
     });
 

@@ -1,5 +1,11 @@
+import {
+  schemaModels,
+  TENANT_EVIDENCE_OPERATIONS,
+} from './tenant-evidence-policy.mjs';
+
+export { TENANT_EVIDENCE_OPERATIONS } from './tenant-evidence-policy.mjs';
+
 import { randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
 import { validateCausalEvidence } from './causal-evidence.mjs';
 import { validateCpuEvidence } from './cpu-profile-evidence.mjs';
 import { validateMailStats } from './local-mail-stub.mjs';
@@ -889,41 +895,6 @@ function buildSetupEvidence(report) {
   };
 }
 
-export const TENANT_EVIDENCE_OPERATIONS = [
-  'aggregate',
-  'count',
-  'delete',
-  'deleteMany',
-  'findFirst',
-  'findFirstOrThrow',
-  'findMany',
-  'findUnique',
-  'findUniqueOrThrow',
-  'groupBy',
-  'update',
-  'updateMany',
-  'updateManyAndReturn',
-  'upsert',
-];
-let tenantModels;
-function schemaModels() {
-  if (!tenantModels) {
-    const schema = readFileSync(
-      new URL('../../../packages/prisma/prisma/schema.prisma', import.meta.url),
-      'utf8',
-    );
-    tenantModels = new Set(
-      [...schema.matchAll(/^model ([A-Za-z_][A-Za-z0-9_]*) \{/gm)].map(
-        (match) => match[1],
-      ),
-    );
-    if (!tenantModels.size) {
-      tenantModels = undefined;
-      throw new Error('Missing tenant diagnostic schema models');
-    }
-  }
-  return tenantModels;
-}
 function tenantClassification(message) {
   const text = typeof message === 'string' ? message : '';
   const match = text.match(
@@ -1061,6 +1032,11 @@ const STATIC_FAILURE_LABELS = new Map([
     'restricted-transport-refusal',
   ],
   ['Causal diagnostic evidence unavailable', 'causal-diagnostic-unavailable'],
+  [
+    'Tenant guard provenance unavailable',
+    'tenant-guard-provenance-unavailable',
+  ],
+  ['Tenant guard failures observed', 'tenant-guard-failures-observed'],
   [
     'CPU profile diagnostic evidence unavailable',
     'cpu-profile-diagnostic-unavailable',

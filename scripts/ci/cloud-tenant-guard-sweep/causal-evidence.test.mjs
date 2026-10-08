@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import {
   chmodSync,
@@ -8,7 +9,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { createApiObserver } from './api-observer-core.mjs';
 import {
@@ -445,6 +446,7 @@ test('database failure groups conserve native/legacy samples and overlapping win
     phases: options.phases,
   });
   const legacy = structuredClone(e);
+  delete legacy.database.failureWindows;
   delete legacy.database.failureAttributionAvailable;
   delete legacy.database.failureGroups;
   delete legacy.database.unfinishedSamples;
@@ -542,4 +544,850 @@ test('new lifecycle outcomes conserve every sample with legacy unknown/unavailab
   const current = joinCausalEvidence(f.report, f.records, options);
   assert.equal(current.quality, 'incomplete');
   assert.ok(current.reasons.samplerFailure > 0);
+});
+
+function temporalFixture(intervals = [[2000, 2200]]) {
+  const report = {
+    inventoryTemplates: ['/v1/fixed'],
+    requests: intervals.map(([start, end], index) => ({
+      sequence: index + 1,
+      sentAtEpochMs: start,
+      headerAtEpochMs: null,
+      endedAtEpochMs: end,
+      route: '/v1/fixed',
+      actor: 'M:A',
+      phase: 'memberAGets',
+      method: 'GET',
+    })),
+  };
+  const runtime = (start, end, lag) => ({
+    kind: 'runtime',
+    start,
+    end,
+    tickLagMs: lag,
+    eventLoopMaxMs: lag,
+    eventLoopP99Ms: lag,
+    cpuUserUs: 0,
+    cpuSystemUs: 0,
+    activeRequests: 0,
+    observerWriteMaxUs: 0,
+  });
+  const records = [
+    { kind: 'header', protocol: 1, startedAt: 100 },
+    runtime(400, 900, 3),
+    {
+      kind: 'database',
+      start: 500,
+      end: 1329,
+      outcome: 'error',
+      groups: [],
+      diagnostic: {
+        category: 'query-read-timeout',
+        name: 'Error',
+        code: 'NONE',
+      },
+      connectionStateAtStart: 'retained',
+      connectionGenerationBefore: 1,
+      connectionGenerationAfter: 1,
+    },
+    runtime(900, 1400, 4),
+    runtime(1600, 1900, 9999),
+    {
+      kind: 'footer',
+      endedAt: 2300,
+      unavailable: false,
+      records: 5,
+      ingress: 0,
+      pipelineEntries: 0,
+      finishes: 0,
+      closes: 0,
+      invalidSequences: 0,
+      duplicateSequences: 0,
+      runtimeSamples: 3,
+      databaseSamples: 1,
+      databaseIncomplete: 0,
+    },
+  ];
+  return { report, records };
+}
+function validateTemporal(e) {
+  return validateCausalEvidence(e, {
+    templates: ['/v1/fixed'],
+    actors: options.actors,
+    phases: options.phases,
+  });
+}
+test('real NDJSON retains the before-first failed window and only its overlapping runtime records', (context) => {
+  const f = temporalFixture();
+  const directory = mkdtempSync(join(tmpdir(), 'tenant-failure-windows-'));
+  chmodSync(directory, 0o700);
+  context.after(() => rmSync(directory, { recursive: true, force: true }));
+  writeFileSync(
+    join(directory, 'api-observations.ndjson'),
+    `${f.records.map((r) => JSON.stringify(r)).join('\n')}\n`,
+    { mode: 0o600 },
+  );
+  writeFileSync(join(directory, 'api-stopped'), 'stopped\n', { mode: 0o600 });
+  const { evidence: e } = collectCausalEvidence(f.report, directory, options);
+  assert.equal(e.quality, 'incomplete');
+  assert.equal(e.reasons.samplerFailure, 1);
+  assert.deepEqual(e.database.failureWindows, {
+    version: 1,
+    available: true,
+    firstClientStartOffsetMs: 1900,
+    lastClientEndOffsetMs: 2100,
+    windows: [
+      {
+        observationOrdinal: 1,
+        startOffsetMs: 400,
+        endOffsetMs: 1229,
+        durationMs: 829,
+        outcome: 'error',
+        category: 'query-read-timeout',
+        name: 'Error',
+        code: 'NONE',
+        connectionStateAtStart: 'retained',
+        generationBefore: 1,
+        generationAfter: 1,
+        relation: 'before-first-instrumented-attempt',
+        overlappingClientAttempts: 0,
+        runtimeWindowOrdinals: [1, 2],
+      },
+    ],
+    runtimeWindows: [
+      {
+        ordinal: 1,
+        startOffsetMs: 300,
+        endOffsetMs: 800,
+        tickLagMs: 3,
+        eventLoopMaxMs: 3,
+        eventLoopP99Ms: 3,
+      },
+      {
+        ordinal: 2,
+        startOffsetMs: 800,
+        endOffsetMs: 1300,
+        tickLagMs: 4,
+        eventLoopMaxMs: 4,
+        eventLoopP99Ms: 4,
+      },
+    ],
+  });
+  assert.equal(
+    Object.hasOwn(e.requestGroups[0].database, 'failureWindows'),
+    false,
+  );
+  assert.equal(
+    JSON.stringify(e.database.failureWindows).includes('9999'),
+    false,
+  );
+  validateTemporal(e);
+});
+for (const [intervals, relation, overlaps] of [
+  [[[1329, 1500]], 'overlaps-instrumented-attempt', 1],
+  [[[300, 500]], 'overlaps-instrumented-attempt', 1],
+  [
+    [
+      [600, 700],
+      [800, 900],
+    ],
+    'overlaps-instrumented-attempt',
+    2,
+  ],
+  [[[100, 499]], 'after-last-instrumented-attempt', 0],
+  [
+    [
+      [100, 499],
+      [1330, 1400],
+    ],
+    'between-instrumented-attempts',
+    0,
+  ],
+])
+  test(`failure temporal relation ${relation} ${JSON.stringify(intervals)} uses inclusive actual intervals`, () => {
+    const f = temporalFixture(intervals);
+    const e = joinCausalEvidence(f.report, f.records, options);
+    assert.equal(e.database.failureWindows.windows[0].relation, relation);
+    assert.equal(
+      e.database.failureWindows.windows[0].overlappingClientAttempts,
+      overlaps,
+    );
+    validateTemporal(e);
+  });
+test('missing client clocks stay unavailable while independently known failed sample times remain exact', () => {
+  for (const mutate of [
+    (f) => {
+      f.report.requests = [];
+    },
+    (f) => {
+      delete f.report.requests[0].sentAtEpochMs;
+    },
+    (f) => {
+      f.report.requests[0].endedAtEpochMs = 1;
+    },
+  ]) {
+    const f = temporalFixture();
+    mutate(f);
+    const e = joinCausalEvidence(f.report, f.records, options);
+    const p = e.database.failureWindows;
+    assert.equal(p.available, false);
+    assert.equal(p.firstClientStartOffsetMs, null);
+    assert.equal(p.lastClientEndOffsetMs, null);
+    assert.equal(p.windows[0].startOffsetMs, 400);
+    assert.equal(p.windows[0].durationMs, 829);
+    assert.equal(p.windows[0].relation, 'unavailable');
+    assert.equal(p.windows[0].overlappingClientAttempts, null);
+    assert.deepEqual(p.windows[0].runtimeWindowOrdinals, [1, 2]);
+    validateTemporal(e);
+  }
+});
+test('historical temporal absence remains readable and legacy lifecycle/diagnostic fields remain unknown', () => {
+  const f = temporalFixture();
+  delete f.records[2].diagnostic;
+  delete f.records[2].connectionStateAtStart;
+  delete f.records[2].connectionGenerationBefore;
+  delete f.records[2].connectionGenerationAfter;
+  const e = joinCausalEvidence(f.report, f.records, options);
+  const window = e.database.failureWindows.windows[0];
+  assert.equal(window.category, 'unavailable');
+  assert.equal(window.name, 'NONE');
+  assert.equal(window.code, 'NONE');
+  assert.equal(window.connectionStateAtStart, 'unknown');
+  assert.equal(window.generationBefore, null);
+  assert.equal(window.generationAfter, null);
+  delete e.database.failureWindows;
+  validateTemporal(e);
+});
+test('temporal projection rejects privacy, partial versions, bounds, references and nonconserved tuples', () => {
+  const f = temporalFixture();
+  const e = joinCausalEvidence(f.report, f.records, options);
+  assert.ok(e.database.failureWindows);
+  for (const mutate of [
+    (p) => {
+      p.version = 2;
+    },
+    (p) => {
+      delete p.available;
+    },
+    (p) => {
+      p.token = 'privacy-canary';
+    },
+    (p) => {
+      p.windows[0].sql = 'privacy-canary';
+    },
+    (p) => {
+      p.windows[0].observationOrdinal = 0;
+    },
+    (p) => {
+      p.windows[0].observationOrdinal = 2;
+    },
+    (p) => {
+      p.windows[0].startOffsetMs = -1;
+    },
+    (p) => {
+      p.windows[0].endOffsetMs++;
+    },
+    (p) => {
+      p.windows[0].durationMs++;
+    },
+    (p) => {
+      p.windows[0].code = 'private-code';
+    },
+    (p) => {
+      p.windows[0].generationAfter = 451;
+    },
+    (p) => {
+      p.windows[0].runtimeWindowOrdinals = [1, 1];
+    },
+    (p) => {
+      p.windows[0].runtimeWindowOrdinals = [3];
+    },
+    (p) => {
+      p.runtimeWindows[0].startOffsetMs = 2000;
+      p.runtimeWindows[0].endOffsetMs = 2100;
+    },
+    (p) => {
+      p.runtimeWindows.push({ ...p.runtimeWindows[0], ordinal: 3 });
+    },
+    (p) => {
+      p.runtimeWindows[0].ordinal = 0;
+    },
+    (p) => {
+      p.windows[0].relation = 'boot';
+    },
+    (p) => {
+      p.windows[0].overlappingClientAttempts = 1;
+    },
+    (p) => {
+      p.firstClientStartOffsetMs = 1;
+    },
+    (p) => {
+      p.windows = [];
+    },
+    (p) => {
+      p.available = false;
+    },
+  ]) {
+    const bad = structuredClone(e);
+    mutate(bad.database.failureWindows);
+    assert.throws(() => validateTemporal(bad));
+  }
+});
+test('healthy complete sources retain empty temporal windows without changing quality', () => {
+  const f = fixture();
+  const e = joinCausalEvidence(f.report, f.records, options);
+  assert.equal(e.quality, 'complete');
+  assert.deepEqual(e.database.failureWindows.windows, []);
+  assert.deepEqual(e.database.failureWindows.runtimeWindows, []);
+  validateCausalEvidence(e, {
+    templates: f.report.inventoryTemplates,
+    actors: options.actors,
+    phases: options.phases,
+  });
+});
+
+test('partial unavailable sample offsets retain every independently computable time', () => {
+  const f = temporalFixture();
+  f.records[2].start = 50;
+  const e = joinCausalEvidence(f.report, f.records, options);
+  const p = e.database.failureWindows;
+  assert.equal(p.available, false);
+  assert.equal(p.windows[0].startOffsetMs, null);
+  assert.equal(p.windows[0].endOffsetMs, 1229);
+  assert.equal(p.windows[0].durationMs, 1279);
+  assert.equal(p.windows[0].runtimeWindowOrdinals, null);
+  assert.deepEqual(p.runtimeWindows, []);
+  validateTemporal(e);
+});
+test('every error timeout busy record retains stable source ordinals and deduplicated runtime windows', () => {
+  const f = temporalFixture();
+  f.records.splice(2, 0, {
+    kind: 'database',
+    start: 450,
+    end: 900,
+    outcome: 'success',
+    groups: [],
+  });
+  f.records.splice(
+    4,
+    0,
+    {
+      kind: 'database',
+      start: 1000,
+      end: 1329,
+      outcome: 'timeout',
+      groups: [],
+      diagnostic: { category: 'query-canceled', name: 'Error', code: '57014' },
+    },
+    {
+      kind: 'database',
+      start: 1329,
+      end: 1329,
+      outcome: 'busy',
+      groups: [],
+      diagnostic: { category: 'busy', name: 'NONE', code: 'NONE' },
+    },
+  );
+  f.records.at(-1).records += 3;
+  f.records.at(-1).databaseSamples += 3;
+  const e = joinCausalEvidence(f.report, f.records, options);
+  const p = e.database.failureWindows;
+  assert.deepEqual(
+    p.windows.map((w) => w.observationOrdinal),
+    [2, 3, 4],
+  );
+  assert.deepEqual(
+    p.windows.map((w) => w.outcome),
+    ['error', 'timeout', 'busy'],
+  );
+  assert.deepEqual(
+    p.windows.map((w) => w.runtimeWindowOrdinals),
+    [[1, 2], [2], [2]],
+  );
+  assert.deepEqual(
+    p.runtimeWindows.map((r) => r.ordinal),
+    [1, 2],
+  );
+  assert.equal(e.reasons.samplerFailure, 3);
+  assert.equal(
+    p.windows.reduce((sum, w) => sum + w.durationMs, 0),
+    1158,
+  );
+  validateTemporal(e);
+  for (const mutate of [
+    (p) => {
+      p.windows[1].observationOrdinal = 2;
+    },
+    (p) => {
+      p.windows.reverse();
+    },
+    (p) => {
+      p.windows[0].runtimeWindowOrdinals = [2, 1];
+    },
+    (p) => {
+      p.runtimeWindows[0].ordinal = 901;
+    },
+    (p) => {
+      p.windows[0].overlappingClientAttempts = 2;
+    },
+    (p) => {
+      p.runtimeWindows = Array.from({ length: 901 }, () => p.runtimeWindows[0]);
+    },
+    (p) => {
+      p.windows = Array.from({ length: 451 }, () => p.windows[0]);
+    },
+  ]) {
+    const bad = structuredClone(e);
+    mutate(bad.database.failureWindows);
+    assert.throws(() => validateTemporal(bad));
+  }
+});
+test('empty runtime overlap remains known empty and malformed raw evidence is never salvaged', () => {
+  const f = temporalFixture();
+  f.records[2].start = 1450;
+  f.records[2].end = 1500;
+  f.records.splice(2, 1);
+  f.records.splice(3, 0, {
+    kind: 'database',
+    start: 1450,
+    end: 1500,
+    outcome: 'error',
+    groups: [],
+  });
+  const e = joinCausalEvidence(f.report, f.records, options);
+  assert.deepEqual(
+    e.database.failureWindows.windows[0].runtimeWindowOrdinals,
+    [],
+  );
+  assert.deepEqual(e.database.failureWindows.runtimeWindows, []);
+  validateTemporal(e);
+  f.records[3].secret = 'privacy-canary';
+  const invalid = joinCausalEvidence(f.report, f.records, options);
+  assert.equal(invalid.reasons.invalidSchema, 1);
+  assert.deepEqual(invalid.database.failureWindows.windows, []);
+  assert.equal(invalid.database.failureWindows.available, false);
+  assert.equal(JSON.stringify(invalid).includes('privacy-canary'), false);
+});
+
+function tenantFixture(events = []) {
+  const f = fixture();
+  f.records[0].tenantFailuresVersion = 1;
+  const footer = f.records.pop();
+  f.records.push(
+    ...events.map((event, i) => ({
+      kind: 'tenantFailure',
+      ordinal: i + 1,
+      sequence: 4,
+      at: 200,
+      model: 'Credential',
+      operation: 'findFirst',
+      reason: 'organization-id-mismatch',
+      ...event,
+    })),
+  );
+  footer.records = f.records.length;
+  footer.tenantFailures = events.length;
+  f.records.push(footer);
+  return f;
+}
+test('actual throws have conserved canonical groups independent of repeated log lines', () => {
+  const f = tenantFixture([{}, {}, { sequence: null }, { sequence: 99 }]);
+  f.report.apiLogHits = Array.from({ length: 6 }, () => ({
+    message: 'private log copy',
+  }));
+  const evidence = joinCausalEvidence(f.report, f.records, options);
+  assert.equal(evidence.quality, 'complete');
+  assert.deepEqual(evidence.tenantFailures, {
+    version: 1,
+    available: true,
+    total: 4,
+    attributed: 2,
+    unattributed: 2,
+    groups: [
+      {
+        actor: 'M:A',
+        phase: 'memberAGets',
+        method: 'GET',
+        route: '/v1/fixed/{id}',
+        model: 'Credential',
+        operation: 'findFirst',
+        reason: 'organization-id-mismatch',
+        count: 2,
+      },
+      {
+        actor: 'unknown',
+        phase: 'unknown',
+        method: 'other',
+        route: 'unknown',
+        model: 'Credential',
+        operation: 'findFirst',
+        reason: 'organization-id-mismatch',
+        count: 2,
+      },
+    ],
+  });
+  assert.equal(evidence.conservation.clientAttempts, 8);
+  assert.equal(
+    JSON.stringify(evidence.tenantFailures).includes('sequence'),
+    false,
+  );
+  validateCausalEvidence(evidence, {
+    ...options,
+    templates: f.report.inventoryTemplates,
+  });
+});
+test('legacy provenance is unavailable and current zero is explicit', () => {
+  const legacy = fixture();
+  assert.deepEqual(
+    joinCausalEvidence(legacy.report, legacy.records, options).tenantFailures,
+    {
+      version: 1,
+      available: false,
+      total: null,
+      attributed: null,
+      unattributed: null,
+      groups: [],
+    },
+  );
+  const current = tenantFixture();
+  assert.deepEqual(
+    joinCausalEvidence(current.report, current.records, options).tenantFailures,
+    {
+      version: 1,
+      available: true,
+      total: 0,
+      attributed: 0,
+      unattributed: 0,
+      groups: [],
+    },
+  );
+});
+for (const mutation of [
+  (f) => {
+    f.records.at(-2).ordinal = 2;
+  },
+  (f) => {
+    f.records.at(-1).tenantFailures = 2;
+  },
+  (f) => {
+    f.records.at(-2).model = 'private-canary';
+  },
+  (f) => {
+    f.records.at(-2).operation = 'private-canary';
+  },
+  (f) => {
+    f.records.at(-2).reason = 'private-canary';
+  },
+  (f) => {
+    f.records.at(-2).query = 'private-canary';
+  },
+  (f) => {
+    delete f.records[0].tenantFailuresVersion;
+  },
+  (f) => {
+    f.records.pop();
+  },
+])
+  test('malformed or incomplete producer cannot become provenance zero', () => {
+    const f = tenantFixture([{}]);
+    mutation(f);
+    const evidence = joinCausalEvidence(f.report, f.records, options);
+    assert.equal(evidence.tenantFailures.available, false);
+    assert.equal(evidence.tenantFailures.total, null);
+    assert.deepEqual(evidence.tenantFailures.groups, []);
+  });
+
+test('invalid partial client identity remains wholly uncorrelated', () => {
+  for (const mutation of [
+    (client) => {
+      client.actor = 'secret';
+    },
+    (client) => {
+      client.sweepPhase = 'secret';
+    },
+    (client) => {
+      client.method = 'secret';
+    },
+    (client) => {
+      client.route = '/v1/private-id';
+    },
+    (client) => {
+      client.endedAtEpochMs = 0;
+    },
+  ]) {
+    const f = tenantFixture([{}]);
+    mutation(f.report.requests[3]);
+    const projection = joinCausalEvidence(
+      f.report,
+      f.records,
+      options,
+    ).tenantFailures;
+    assert.equal(projection.available, true);
+    assert.equal(projection.attributed, 0);
+    assert.deepEqual(projection.groups[0], {
+      actor: 'unknown',
+      phase: 'unknown',
+      method: 'other',
+      route: 'unknown',
+      model: 'Credential',
+      operation: 'findFirst',
+      reason: 'organization-id-mismatch',
+      count: 1,
+    });
+    assert.doesNotMatch(JSON.stringify(projection), /secret|private-id/);
+  }
+  const f = tenantFixture([{}]);
+  f.report.requests.push({ ...f.report.requests[3] });
+  assert.equal(
+    joinCausalEvidence(f.report, f.records, options).tenantFailures.attributed,
+    0,
+  );
+});
+test('public projection rejects unsafe fields, enums, tuples and inconsistent counts', () => {
+  const f = tenantFixture([{}]);
+  const original = joinCausalEvidence(f.report, f.records, options);
+  for (const mutation of [
+    (p) => {
+      p.total = 2;
+    },
+    (p) => {
+      p.attributed = 0;
+    },
+    (p) => {
+      p.total = Number.MAX_SAFE_INTEGER + 1;
+    },
+    (p) => {
+      p.groups[0].count = 0;
+    },
+    (p) => {
+      p.groups[0].model = 'secret';
+    },
+    (p) => {
+      p.groups[0].operation = 'secret';
+    },
+    (p) => {
+      p.groups[0].reason = 'secret';
+    },
+    (p) => {
+      p.groups[0].sequence = 1;
+    },
+    (p) => {
+      p.groups[0].route = '/v1/private-id';
+    },
+    (p) => {
+      p.groups[0].actor = 'unknown';
+    },
+    (p) => {
+      p.available = false;
+    },
+  ]) {
+    const evidence = structuredClone(original);
+    mutation(evidence.tenantFailures);
+    assert.throws(() =>
+      validateCausalEvidence(evidence, {
+        ...options,
+        templates: f.report.inventoryTemplates,
+      }),
+    );
+  }
+  const historical = structuredClone(original);
+  delete historical.tenantFailures;
+  assert.equal(
+    validateCausalEvidence(historical, {
+      ...options,
+      templates: f.report.inventoryTemplates,
+    }),
+    historical,
+  );
+});
+
+test('independent sampler failure cannot erase valid actual-throw attribution', () => {
+  const f = tenantFixture([{}]);
+  const sample = f.records.find((record) => record.kind === 'database');
+  sample.outcome = 'error';
+  sample.groups = [];
+  const evidence = joinCausalEvidence(f.report, f.records, options);
+  assert.equal(evidence.quality, 'incomplete');
+  assert.equal(evidence.reasons.samplerFailure, 1);
+  assert.equal(evidence.reasons.observerUnavailable, 0);
+  assert.equal(evidence.tenantFailures.available, true);
+  assert.equal(evidence.tenantFailures.total, 1);
+  assert.equal(evidence.tenantFailures.attributed, 1);
+  assert.deepEqual(evidence.tenantFailures.groups, [
+    {
+      actor: 'M:A',
+      phase: 'memberAGets',
+      method: 'GET',
+      route: '/v1/fixed/{id}',
+      model: 'Credential',
+      operation: 'findFirst',
+      reason: 'organization-id-mismatch',
+      count: 1,
+    },
+  ]);
+});
+
+function writeIsolatedFixture(file, text, options = { mode: 0o600 }) {
+  const records = text
+      .trimEnd()
+      .split('\n')
+      .map((line) => JSON.parse(line)),
+    directory = dirname(file),
+    binding = {
+      version: 1,
+      producer: 'api',
+      runNonce: 'b'.repeat(32),
+      sourceSha: 'a'.repeat(40),
+    };
+  const header = { ...records[0], databaseSampler: binding },
+    footer = records.at(-1)?.kind === 'footer' ? records.at(-1) : null;
+  if (!footer) {
+    writeFileSync(
+      file,
+      `${JSON.stringify(header)}\n${records
+        .slice(1)
+        .map((r) => `${JSON.stringify(r)}\n`)
+        .join('')}`,
+      options,
+    );
+    return;
+  }
+  const dbRecords = records
+      .filter((r) => r.kind === 'database')
+      .map((r) => (r.outcome === 'success' ? { diagnostic: null, ...r } : r)),
+    apiRecords = records.slice(1, -1).filter((r) => r.kind !== 'database');
+  const apiFooter = {
+    ...footer,
+    records: footer.records - dbRecords.length,
+    databaseSamples: footer.databaseSamples - dbRecords.length,
+    databaseIncomplete: 0,
+    databaseWorker: {
+      readyObservedAt: header.startedAt,
+      stopRequestedAt: footer.endedAt,
+      stopCompletedAt: footer.endedAt,
+      state: 'complete',
+    },
+  };
+  const dbHeader = {
+    kind: 'header',
+    protocol: 1,
+    startedAt: header.startedAt,
+    tenantFailuresVersion: 1,
+    databaseSampler: { ...binding, producer: 'database' },
+  };
+  const dbFooter = {
+    ...footer,
+    records: dbRecords.length + 1,
+    ingress: 0,
+    pipelineEntries: 0,
+    finishes: 0,
+    closes: 0,
+    invalidSequences: 0,
+    duplicateSequences: 0,
+    runtimeSamples: 0,
+    databaseSamples: dbRecords.length,
+    tenantFailures: 0,
+  };
+  delete dbFooter.databaseWorker;
+  const dbText = `${[dbHeader, ...dbRecords, dbFooter]
+    .map((r) => JSON.stringify(r))
+    .join('\n')}\n`;
+  writeFileSync(join(directory, 'database-observations.ndjson'), dbText, {
+    mode: 0o600,
+  });
+  const seal = {
+    version: 1,
+    runNonce: binding.runNonce,
+    sourceSha: binding.sourceSha,
+    state: 'complete',
+    readyAt: header.startedAt,
+    stopReceivedAt: footer.endedAt,
+    sealedAt: footer.endedAt,
+    bytes: Buffer.byteLength(dbText),
+    records: dbRecords.length + 2,
+    sha256: createHash('sha256').update(dbText).digest('hex'),
+  };
+  writeFileSync(
+    join(directory, 'database-observations.seal.json'),
+    `${JSON.stringify(seal)}\n`,
+    { mode: 0o600 },
+  );
+  writeFileSync(
+    file,
+    `${[header, ...apiRecords, apiFooter]
+      .map((r) => JSON.stringify(r))
+      .join('\n')}\n`,
+    options,
+  );
+}
+
+test('current isolated proof conserves historical lifecycle and keeps private binding out of public evidence', (t) => {
+  const directory = mkdtempSync(join(tmpdir(), 'isolated-causal-'));
+  chmodSync(directory, 0o700);
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const f = fixture();
+  f.report.sourceSha = 'a'.repeat(40);
+  Object.assign(
+    f.records.find((r) => r.kind === 'database'),
+    {
+      connectionStateAtStart: 'initial',
+      connectionGenerationBefore: 0,
+      connectionGenerationAfter: 1,
+      diagnostic: null,
+    },
+  );
+  const file = join(directory, 'api-observations.ndjson');
+  writeIsolatedFixture(
+    file,
+    `${f.records.map((r) => JSON.stringify(r)).join('\n')}\n`,
+  );
+  writeFileSync(join(directory, 'api-stopped'), 'stopped\n', { mode: 0o600 });
+  const actual = collectCausalEvidence(f.report, directory, {
+    ...options,
+    requireIsolated: true,
+  });
+  assert.equal(actual.evidence.quality, 'complete');
+  assert.equal(actual.evidence.conservation.clientAttempts, 8);
+  assert.equal(actual.evidence.database.measuredSamples, 1);
+  const encoded = JSON.stringify(actual.evidence);
+  for (const forbidden of [
+    'runNonce',
+    'databaseWorker',
+    'databaseSampler',
+    'readyAt',
+    'stopReceivedAt',
+    'sha256',
+    directory,
+  ])
+    assert.equal(encoded.includes(forbidden), false);
+  f.report.sourceSha = 'c'.repeat(40);
+  assert.equal(
+    collectCausalEvidence(f.report, directory, {
+      ...options,
+      requireIsolated: true,
+    }).evidence.quality,
+    'incomplete',
+  );
+});
+test('explicit historical collector stays readable but current mode cannot promote inline evidence', (t) => {
+  const directory = mkdtempSync(join(tmpdir(), 'historical-causal-'));
+  chmodSync(directory, 0o700);
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const f = fixture();
+  writeFileSync(
+    join(directory, 'api-observations.ndjson'),
+    `${f.records.map((r) => JSON.stringify(r)).join('\n')}\n`,
+    { mode: 0o600 },
+  );
+  writeFileSync(join(directory, 'api-stopped'), 'stopped\n', { mode: 0o600 });
+  assert.equal(
+    collectCausalEvidence(f.report, directory, options).evidence.quality,
+    'complete',
+  );
+  const current = collectCausalEvidence(f.report, directory, {
+    ...options,
+    requireIsolated: true,
+  });
+  assert.equal(current.evidence.quality, 'incomplete');
+  assert.equal(current.evidence.reasons.invalidSchema, 1);
 });

@@ -1,4 +1,9 @@
+import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
+import { TENANT_READ_POLICY } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
+import { getTenantContext } from '@libs/prisma/tenant-context';
+import type { ExecutionContext } from '@nestjs/common';
+import { defer, firstValueFrom } from 'rxjs';
 
 vi.mock('@api/helpers/utils/credits/finalize-deferred-credits.util', () => ({
   finalizeDeferredTextCredits: vi.fn(),
@@ -140,6 +145,160 @@ describe('TrendsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('getPreferences tenant selection', () => {
+    const selectedOrg = testId('org', 2);
+    const selectedBrand = testId('brand', 2);
+    const actor: User = {
+      id: testId('user'),
+      userId: testId('user'),
+      organizationId: testId('org'),
+      brandId: testId('brand'),
+      isSuperAdmin: true,
+    };
+
+    function readPreferences(query: Record<string, string>, user = actor) {
+      const request = {
+        method: 'GET',
+        query,
+        user,
+        context: { ...user },
+      };
+      const originalContext = { ...request.context };
+      const context = {
+        getClass: () => TrendsController,
+        getHandler: () => TrendsController.prototype.getPreferences,
+        switchToHttp: () => ({ getRequest: () => request }),
+      } as unknown as ExecutionContext;
+      const handle = vi.fn(() => defer(() => controller.getPreferences(user)));
+      const result = firstValueFrom(
+        new TenantContextInterceptor().intercept(context, { handle }),
+      );
+      return { result, handle, request, originalContext };
+    }
+
+    it('marks the actual wrapped preferences handler selected', () => {
+      expect(
+        Reflect.getMetadata(
+          TENANT_READ_POLICY,
+          TrendsController.prototype.getPreferences,
+        ),
+      ).toBe('selected');
+    });
+
+    it.each<{
+      query: Record<string, string>;
+      org: string | undefined;
+      brand: string | undefined;
+    }>([
+      { query: {}, org: actor.organizationId, brand: actor.brandId },
+      {
+        query: { organizationId: testId('org') },
+        org: actor.organizationId,
+        brand: actor.brandId,
+      },
+      {
+        query: { organizationId: selectedOrg },
+        org: selectedOrg,
+        brand: undefined,
+      },
+      {
+        query: { organizationId: selectedOrg, brandId: selectedBrand },
+        org: selectedOrg,
+        brand: selectedBrand,
+      },
+      {
+        query: { brandId: selectedBrand },
+        org: actor.organizationId,
+        brand: selectedBrand,
+      },
+    ])(
+      'matches selected data and Prisma scope for $query',
+      async ({ query, org, brand }) => {
+        mockTrendPreferencesService.getPreferences.mockImplementation(
+          async (organizationId: string, brandId: string | undefined) => {
+            expect(getTenantContext()?.organizationId).toBe(organizationId);
+            expect(organizationId).toBe(org);
+            expect(brandId).toBe(brand);
+            return { categories: ['news'], autoRequeueWinners: false };
+          },
+        );
+        const { result, request, originalContext } = readPreferences(query);
+        await expect(result).resolves.toEqual({
+          preferences: {
+            autoRequeueWinners: false,
+            categories: ['news'],
+            hashtags: [],
+            keywords: [],
+            platforms: [],
+          },
+        });
+        expect(mockTrendPreferencesService.getPreferences).toHaveBeenCalledWith(
+          org,
+          brand,
+        );
+        expect(request.user).toBe(actor);
+        expect(request.context).toEqual(originalContext);
+      },
+    );
+
+    it('preserves missing organization without calling preferences', async () => {
+      const user: User = {
+        id: actor.id,
+        userId: actor.userId,
+        organizationId: '',
+        brandId: '',
+      };
+      await expect(readPreferences({}, user).result).resolves.toEqual({
+        preferences: null,
+      });
+      expect(mockTrendPreferencesService.getPreferences).not.toHaveBeenCalled();
+    });
+
+    it('preserves the organization-level null fallback', async () => {
+      mockTrendPreferencesService.getPreferences.mockResolvedValue(null);
+      await expect(
+        readPreferences({ organizationId: selectedOrg }).result,
+      ).resolves.toEqual({ preferences: null });
+      expect(mockTrendPreferencesService.getPreferences).toHaveBeenCalledWith(
+        selectedOrg,
+        undefined,
+      );
+    });
+
+    it('refuses a foreign preference selection for a member before downstream reads', () => {
+      const member: User = { ...actor, isSuperAdmin: false };
+      expect(() =>
+        readPreferences({ organizationId: selectedOrg }, member),
+      ).toThrow('Tenant selection is not allowed');
+      expect(mockTrendPreferencesService.getPreferences).not.toHaveBeenCalled();
+    });
+
+    it('isolates concurrent preferences without changing original identity', async () => {
+      const scopes: Array<[string, string | undefined]> = [];
+      mockTrendPreferencesService.getPreferences.mockImplementation(
+        async (organizationId: string, brandId: string | undefined) => {
+          await Promise.resolve();
+          expect(getTenantContext()?.organizationId).toBe(organizationId);
+          scopes.push([organizationId, brandId]);
+          return null;
+        },
+      );
+      await Promise.all([
+        readPreferences({ organizationId: selectedOrg, brandId: selectedBrand })
+          .result,
+        readPreferences({}).result,
+      ]);
+      expect(scopes).toEqual(
+        expect.arrayContaining([
+          [selectedOrg, selectedBrand],
+          [actor.organizationId, actor.brandId],
+        ]),
+      );
+      expect(actor.organizationId).toBe(testId('org'));
+      expect(actor.brandId).toBe(testId('brand'));
+    });
   });
 
   describe('getTrends', () => {

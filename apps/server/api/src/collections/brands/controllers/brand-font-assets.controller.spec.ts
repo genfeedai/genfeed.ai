@@ -1,11 +1,15 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandFontAssetsController } from '@api/collections/brands/controllers/brand-font-assets.controller';
+import { BrandFontAssetsQueryDto } from '@api/collections/brands/dto/brand-font-assets-query.dto';
 import { BrandFontAssetsService } from '@api/collections/brands/services/brand-font-assets.service';
 import { ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantContextInterceptor } from '@api/helpers/interceptors/tenant-context/tenant-context.interceptor';
+import { TENANT_READ_POLICY } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { MemberRole } from '@genfeedai/contracts';
-import type { INestApplication } from '@nestjs/common';
+import { testId } from '@helpers/testing/test-id.helper';
+import type { ExecutionContext, INestApplication } from '@nestjs/common';
 import {
   GUARDS_METADATA,
   HTTP_CODE_METADATA,
@@ -13,6 +17,7 @@ import {
 } from '@nestjs/common/constants';
 import { Test } from '@nestjs/testing';
 import type { NextFunction, Request, Response } from 'express';
+import { defer, firstValueFrom } from 'rxjs';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -113,6 +118,70 @@ describe('Font dedicated HTTP controller', () => {
       nextCursor: null,
     });
     expect(JSON.stringify(result.body)).not.toContain('private');
+  });
+  it('keeps font list owner-bound before dispatch while retaining original and equal actor scope', async () => {
+    const controller = app.get(BrandFontAssetsController);
+    const identity: AuthenticatedUser = { ...user, isSuperAdmin: true };
+    const context = {
+      organizationId: identity.organizationId,
+      brandId,
+      isSuperAdmin: true,
+    };
+    const original = { ...identity };
+    const req = { originalUrl: `/brands/${brandId}/font-assets` } as Request;
+    const makeCall = (query: Record<string, string | undefined>) => {
+      const incoming = { method: 'GET', user: identity, context, query };
+      const execution = {
+        getClass: () => BrandFontAssetsController,
+        getHandler: () => BrandFontAssetsController.prototype.list,
+        switchToHttp: () => ({ getRequest: () => incoming }),
+      } as unknown as ExecutionContext;
+      const next = {
+        handle: vi.fn(() =>
+          defer(() =>
+            controller.list(
+              req,
+              identity,
+              brandId,
+              new BrandFontAssetsQueryDto(),
+            ),
+          ),
+        ),
+      };
+      return { execution, next, incoming };
+    };
+    const foreign = makeCall({ organizationId: testId('org', 2) });
+    expect(() =>
+      new TenantContextInterceptor().intercept(foreign.execution, foreign.next),
+    ).toThrow(expect.objectContaining({ status: 403 }));
+    expect(foreign.next.handle).not.toHaveBeenCalled();
+    expect(fonts.list).not.toHaveBeenCalled();
+    expect(
+      Reflect.getMetadata(
+        TENANT_READ_POLICY,
+        BrandFontAssetsController.prototype.list,
+      ),
+    ).toBe('owner');
+    for (const query of [{}, { organizationId: user.organizationId }]) {
+      const call = makeCall(query);
+      await firstValueFrom(
+        new TenantContextInterceptor().intercept(call.execution, call.next),
+      );
+      expect(call.next.handle).toHaveBeenCalledOnce();
+      expect(call.incoming.user).toBe(identity);
+      expect(call.incoming.context).toBe(context);
+    }
+    expect(fonts.list).toHaveBeenCalledTimes(2);
+    expect(fonts.list).toHaveBeenLastCalledWith(
+      { organizationId: user.organizationId, actorId: user.userId, brandId },
+      new BrandFontAssetsQueryDto(),
+    );
+    expect(identity).toEqual(original);
+    expect(context).toEqual({
+      organizationId: user.organizationId,
+      brandId,
+      isSuperAdmin: true,
+    });
   });
   it('returns 201 then 200 replay and settles cancellation listener lifecycle', async () => {
     const buffer = Buffer.alloc(48);

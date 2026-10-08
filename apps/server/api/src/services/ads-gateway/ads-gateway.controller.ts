@@ -5,6 +5,7 @@ import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.d
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import { AdsGatewayRequestContextService } from '@api/services/ads-gateway/ads-gateway-request-context.service';
 import {
@@ -56,6 +57,7 @@ export class AdsGatewayController {
 
   // ─── Read Endpoints ──────────────────────────────────────────────────────
 
+  @TenantReadPolicy('owner')
   @Get('compare')
   @RolesDecorator(...ADS_READ_ROLES)
   @RequiredScopes(...ADS_READ_SCOPES)
@@ -113,6 +115,7 @@ export class AdsGatewayController {
     return this.adsGatewayService.comparePlatforms(contexts, insightsParams);
   }
 
+  @TenantReadPolicy('owner')
   @Get(':platform/accounts')
   @RolesDecorator(...ADS_READ_ROLES)
   @RequiredScopes(...ADS_READ_SCOPES)
@@ -140,6 +143,7 @@ export class AdsGatewayController {
     return adapter.getAdAccounts(ctx);
   }
 
+  @TenantReadPolicy('owner')
   @Get(':platform/campaigns')
   @RolesDecorator(...ADS_READ_ROLES)
   @RequiredScopes(...ADS_READ_SCOPES)
@@ -164,6 +168,7 @@ export class AdsGatewayController {
     return adapter.listCampaigns(ctx);
   }
 
+  @TenantReadPolicy('owner')
   @Get(':platform/campaigns/:campaignId/insights')
   @RolesDecorator(...ADS_READ_ROLES)
   @RequiredScopes(...ADS_READ_SCOPES)
@@ -197,6 +202,7 @@ export class AdsGatewayController {
     return adapter.getCampaignInsights(ctx, campaignId, insightsParams);
   }
 
+  @TenantReadPolicy('owner')
   @Get(':platform/adsets/:adSetId/insights')
   @RolesDecorator(...ADS_READ_ROLES)
   @RequiredScopes(...ADS_READ_SCOPES)
@@ -230,6 +236,7 @@ export class AdsGatewayController {
     return adapter.getAdSetInsights(ctx, adSetId, insightsParams);
   }
 
+  @TenantReadPolicy('owner')
   @Get(':platform/ads/:adId/insights')
   @RolesDecorator(...ADS_READ_ROLES)
   @RequiredScopes(...ADS_READ_SCOPES)
@@ -263,6 +270,7 @@ export class AdsGatewayController {
     return adapter.getAdInsights(ctx, adId, insightsParams);
   }
 
+  @TenantReadPolicy('owner')
   @Get(':platform/top-performers')
   @RolesDecorator(...ADS_READ_ROLES)
   @RequiredScopes(...ADS_READ_SCOPES)
@@ -294,6 +302,7 @@ export class AdsGatewayController {
     });
   }
 
+  @TenantReadPolicy('owner')
   @Get(':platform/adsets')
   @RolesDecorator(...ADS_READ_ROLES)
   @RequiredScopes(...ADS_READ_SCOPES)
@@ -319,6 +328,7 @@ export class AdsGatewayController {
     return adapter.listAdSets(ctx, campaignId);
   }
 
+  @TenantReadPolicy('owner')
   @Get(':platform/ads')
   @RolesDecorator(...ADS_READ_ROLES)
   @RequiredScopes(...ADS_READ_SCOPES)

@@ -8,7 +8,9 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { SocialSourcesService } from '@api/collections/social-sources/services/social-sources.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { SourceCollectionFailedException } from '@api/services/source-collector/source-collection-failed.exception';
+import type { SourceCollectorFailure } from '@api/services/source-collector/source-collector.types';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SocialSourcePlatform, SocialSourceType } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -628,6 +630,84 @@ describe('SocialSourcesService', () => {
         ),
       ).rejects.toThrow(/could not be resolved/);
       expect(sourcePostsService.upsertCollectedPosts).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      {
+        name: 'mixed absence and outage',
+        failures: [
+          { provider: 'brand-oauth', reason: 'not_found', status: 404 },
+          { provider: 'apify', reason: 'unavailable', status: 500 },
+        ],
+        status: HttpStatus.BAD_GATEWAY,
+      },
+      {
+        name: 'only access failures',
+        failures: [
+          { provider: 'brand-oauth', reason: 'unauthorized', status: 401 },
+          { provider: 'apify', reason: 'payment_required', status: 402 },
+        ],
+        status: HttpStatus.FAILED_DEPENDENCY,
+      },
+    ] satisfies {
+      name: string;
+      failures: SourceCollectorFailure[];
+      status: number;
+    }[])(
+      'preserves $name without any import writes',
+      async ({ failures, status }) => {
+        brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+        const failed = new SourceCollectionFailedException(
+          'Collection failed',
+          failures,
+        );
+        sourceCollector.collectPost.mockRejectedValue(failed);
+        await expect(
+          service.importPostScoped(
+            { url: 'https://x.com/openai/status/123' },
+            context,
+          ),
+        ).rejects.toBe(failed);
+        expect(failed.getStatus()).toBe(status);
+        expect(sourceCollector.collectPost).toHaveBeenCalledExactlyOnceWith(
+          expect.objectContaining({
+            postId: '123',
+            platform: SocialSourcePlatform.TWITTER,
+          }),
+          { brandId: 'brand-1', organizationId: 'org-1' },
+        );
+        expect(
+          sourcePostsService.findByExternalIdScoped,
+        ).not.toHaveBeenCalled();
+        expect(sourcePostsService.upsertCollectedPosts).not.toHaveBeenCalled();
+        expect(socialSource.findFirst).not.toHaveBeenCalled();
+        expect(socialSource.create).not.toHaveBeenCalled();
+        expect(socialSource.update).not.toHaveBeenCalled();
+      },
+    );
+
+    it('maps consistent provider absence to the existing actionable not-found response', async () => {
+      brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+      const failed = new SourceCollectionFailedException('Collection failed', [
+        { provider: 'brand-oauth', reason: 'not_found', status: 404 },
+        { provider: 'apify', reason: 'not_found', status: 404 },
+      ]);
+      sourceCollector.collectPost.mockRejectedValue(failed);
+      const error: unknown = await service
+        .importPostScoped({ url: 'https://x.com/openai/status/123' }, context)
+        .catch((failure: unknown) => failure);
+      expect(error).toBeInstanceOf(NotFoundException);
+      if (!(error instanceof NotFoundException))
+        throw new Error('Expected actionable not-found response');
+      expect(error.getStatus()).toBe(HttpStatus.NOT_FOUND);
+      expect(error.getResponse()).toEqual({
+        detail:
+          'Post could not be resolved — it may be deleted, private, or the link is wrong',
+        title: 'Resource Not Found',
+      });
+      expect(sourcePostsService.upsertCollectedPosts).not.toHaveBeenCalled();
+      expect(socialSource.create).not.toHaveBeenCalled();
+      expect(socialSource.update).not.toHaveBeenCalled();
     });
 
     it('surfaces provider failures as retryable errors, not empty success', async () => {

@@ -40,15 +40,24 @@ export class SkillsController {
     private readonly skillLibrary: SkillLibraryService,
   ) {}
 
+  @TenantReadPolicy('selected')
   @Get('skills')
   async listSkills(
     @Req() req: Request,
     @CurrentUser() user: User,
     @Query('surface') surface?: string,
   ) {
-    const organization = this.requireOrganizationId(user);
-
-    const actor = this.actor(user);
+    const originalOrganization = this.requireOrganizationId(user);
+    const scope = resolveTenantReadScope({
+      organizationId: originalOrganization,
+      brandId: user.brandId,
+    });
+    const organization = scope.organizationId;
+    const actor = {
+      ...this.actor(user),
+      organizationId: organization,
+      brandId: scope.brandId,
+    };
     const docs = await this.skillLibrary.present(
       actor,
       await this.skillsService.listAllForOrg(

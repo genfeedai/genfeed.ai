@@ -71,6 +71,7 @@ export function writeDiagnosticEvidence(
       const final = Boolean(report.finalLogScannedAt);
       const snapshot = collectCausalEvidence(report, directory, {
         final,
+        requireIsolated: true,
         actors: DIAGNOSTIC_ACTORS,
         phases: DIAGNOSTIC_PHASES,
       });
@@ -78,6 +79,12 @@ export function writeDiagnosticEvidence(
       report.causalEvidence = snapshot.evidence;
       if (final && snapshot.evidence.quality !== 'complete')
         fail(report, 'Causal diagnostic evidence unavailable');
+      if (final) {
+        if (snapshot.evidence.tenantFailures?.available !== true)
+          fail(report, 'Tenant guard provenance unavailable');
+        else if (snapshot.evidence.tenantFailures.total > 0)
+          fail(report, 'Tenant guard failures observed');
+      }
     }
     if (Reflect.get(process.env, 'CLOUD_SWEEP_CPU_PROFILE') === '1') {
       const final = Boolean(report.finalLogScannedAt);

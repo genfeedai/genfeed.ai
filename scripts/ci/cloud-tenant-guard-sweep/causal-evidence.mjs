@@ -17,7 +17,13 @@ import {
   validateObservationRecord,
   WAITS,
 } from './api-observer-core.mjs';
+import { readIsolatedSampler } from './database-sampler-core.mjs';
 import { validateRunDirectory } from './local-mail-stub.mjs';
+import {
+  MAX_TENANT_FAILURES,
+  schemaModels,
+  validateTenantFailure,
+} from './tenant-evidence-policy.mjs';
 export const CAUSAL_CLASSES = [
   'telemetryIncomplete',
   'noIngress',
@@ -193,6 +199,509 @@ function databaseAggregate(samples) {
       .map(([, g]) => g),
   };
 }
+const FAILURE_RELATIONS = [
+  'overlaps-instrumented-attempt',
+  'before-first-instrumented-attempt',
+  'after-last-instrumented-attempt',
+  'between-instrumented-attempts',
+  'unavailable',
+];
+function failureWindowProjection(samples, runtime, clients, origin) {
+  const offset = (at) =>
+    Number.isSafeInteger(origin) && Number.isSafeInteger(at) && at >= origin
+      ? at - origin
+      : null;
+  const clientClocks =
+    clients.length > 0 &&
+    clients.every(
+      (client) =>
+        offset(client.sentAtEpochMs) !== null &&
+        offset(client.endedAtEpochMs) !== null &&
+        client.endedAtEpochMs >= client.sentAtEpochMs &&
+        (client.headerAtEpochMs === null ||
+          (Number.isSafeInteger(client.headerAtEpochMs) &&
+            client.headerAtEpochMs >= client.sentAtEpochMs &&
+            client.headerAtEpochMs <= client.endedAtEpochMs)),
+    );
+  const sourceClocks = [...samples, ...runtime].every(
+    (sample) => offset(sample.start) !== null && offset(sample.end) !== null,
+  );
+  const available =
+    Number.isSafeInteger(origin) && clientClocks && sourceClocks;
+  const first = available
+    ? Math.min(...clients.map((c) => c.sentAtEpochMs))
+    : null;
+  const last = available
+    ? Math.max(...clients.map((c) => c.endedAtEpochMs))
+    : null;
+  const used = new Set();
+  const windows = samples.flatMap((sample, index) => {
+    if (sample.outcome === 'success') return [];
+    const startOffsetMs = offset(sample.start);
+    const endOffsetMs = offset(sample.end);
+    const knownRuntime =
+      startOffsetMs !== null &&
+      endOffsetMs !== null &&
+      runtime.every((r) => offset(r.start) !== null && offset(r.end) !== null);
+    const runtimeWindowOrdinals = knownRuntime
+      ? runtime.flatMap((record, ordinal) => {
+          if (record.end < sample.start || record.start > sample.end) return [];
+          used.add(ordinal + 1);
+          return [ordinal + 1];
+        })
+      : null;
+    const overlappingClientAttempts = available
+      ? clients.filter(
+          (c) =>
+            sample.end >= c.sentAtEpochMs && sample.start <= c.endedAtEpochMs,
+        ).length
+      : null;
+    const relation = !available
+      ? 'unavailable'
+      : overlappingClientAttempts > 0
+        ? 'overlaps-instrumented-attempt'
+        : sample.end < first
+          ? 'before-first-instrumented-attempt'
+          : sample.start > last
+            ? 'after-last-instrumented-attempt'
+            : 'between-instrumented-attempts';
+    return [
+      {
+        observationOrdinal: index + 1,
+        startOffsetMs,
+        endOffsetMs,
+        durationMs: safe(sample.end - sample.start),
+        outcome: sample.outcome,
+        ...(sample.diagnostic ?? {
+          category: 'unavailable',
+          name: 'NONE',
+          code: 'NONE',
+        }),
+        connectionStateAtStart: sample.connectionStateAtStart ?? 'unknown',
+        generationBefore: sample.connectionGenerationBefore ?? null,
+        generationAfter: sample.connectionGenerationAfter ?? null,
+        relation,
+        overlappingClientAttempts,
+        runtimeWindowOrdinals,
+      },
+    ];
+  });
+  return {
+    version: 1,
+    available,
+    firstClientStartOffsetMs: first === null ? null : offset(first),
+    lastClientEndOffsetMs: last === null ? null : offset(last),
+    windows,
+    runtimeWindows: runtime.flatMap((record, index) =>
+      used.has(index + 1)
+        ? [
+            {
+              ordinal: index + 1,
+              startOffsetMs: offset(record.start),
+              endOffsetMs: offset(record.end),
+              tickLagMs: record.tickLagMs,
+              eventLoopMaxMs: record.eventLoopMaxMs,
+              eventLoopP99Ms: record.eventLoopP99Ms,
+            },
+          ]
+        : [],
+    ),
+  };
+}
+function validateFailureWindowIdentity(window, sampleCount) {
+  exact(window, [
+    'observationOrdinal',
+    'startOffsetMs',
+    'endOffsetMs',
+    'durationMs',
+    'outcome',
+    'category',
+    'name',
+    'code',
+    'connectionStateAtStart',
+    'generationBefore',
+    'generationAfter',
+    'relation',
+    'overlappingClientAttempts',
+    'runtimeWindowOrdinals',
+  ]);
+  safe(window.observationOrdinal);
+  if (
+    !window.observationOrdinal ||
+    window.observationOrdinal > sampleCount ||
+    !['error', 'timeout', 'busy'].includes(window.outcome) ||
+    !CONNECTION_STATES.includes(window.connectionStateAtStart) ||
+    !FAILURE_RELATIONS.includes(window.relation)
+  )
+    throw new Error('Invalid database temporal identity');
+  if (window.category === 'unavailable') {
+    if (window.name !== 'NONE' || window.code !== 'NONE')
+      throw new Error('Invalid legacy temporal diagnostic');
+  } else
+    validateDatabaseDiagnostic(
+      {
+        category: window.category,
+        name: window.name,
+        code: window.code,
+      },
+      window.outcome,
+    );
+  const legacy =
+    window.generationBefore === null && window.generationAfter === null;
+  if (legacy) {
+    if (window.connectionStateAtStart !== 'unknown')
+      throw new Error('Invalid legacy temporal lifecycle');
+  } else {
+    for (const key of ['generationBefore', 'generationAfter']) {
+      safe(window[key]);
+      if (window[key] > 450) throw new Error('Invalid temporal generation');
+    }
+    if (
+      window.generationAfter < window.generationBefore ||
+      (window.connectionStateAtStart === 'initial' &&
+        window.generationBefore !== 0) ||
+      (['retained', 'reconnect'].includes(window.connectionStateAtStart) &&
+        window.generationBefore === 0) ||
+      (window.outcome === 'busy' && window.connectionStateAtStart !== 'unknown')
+    )
+      throw new Error('Inconsistent temporal generation');
+  }
+  safe(window.durationMs);
+  for (const key of ['startOffsetMs', 'endOffsetMs'])
+    if (window[key] !== null) safe(window[key]);
+  if (
+    window.startOffsetMs !== null &&
+    window.endOffsetMs !== null &&
+    window.endOffsetMs - window.startOffsetMs !== window.durationMs
+  )
+    throw new Error('Invalid temporal duration');
+}
+function validateFailureWindowRelation(window, projection, attempts) {
+  const first = projection.firstClientStartOffsetMs;
+  const last = projection.lastClientEndOffsetMs;
+  const count = window.overlappingClientAttempts;
+  if (!projection.available) {
+    if (window.relation !== 'unavailable' || count !== null)
+      throw new Error('Invalid unavailable temporal relation');
+    return;
+  }
+  safe(count);
+  if (
+    window.startOffsetMs === null ||
+    window.endOffsetMs === null ||
+    count > attempts ||
+    window.relation === 'unavailable'
+  )
+    throw new Error('Invalid available temporal relation');
+  const start = window.startOffsetMs,
+    end = window.endOffsetMs;
+  const valid = {
+    'overlaps-instrumented-attempt': count > 0 && end >= first && start <= last,
+    'before-first-instrumented-attempt': count === 0 && end < first,
+    'after-last-instrumented-attempt': count === 0 && start > last,
+    'between-instrumented-attempts':
+      count === 0 && end >= first && start <= last,
+  };
+  if (!valid[window.relation])
+    throw new Error('Inconsistent temporal relation');
+}
+function validateFailureWindowReferences(window, runtime, used) {
+  const refs = window.runtimeWindowOrdinals;
+  if (refs === null) {
+    if (
+      window.startOffsetMs !== null &&
+      window.endOffsetMs !== null &&
+      runtime.size
+    )
+      throw new Error('Unknown temporal references with known runtime');
+    return;
+  }
+  if (
+    !Array.isArray(refs) ||
+    refs.length > 900 ||
+    window.startOffsetMs === null
+  )
+    throw new Error('Invalid temporal references');
+  let previous = 0;
+  for (const ordinal of refs) {
+    safe(ordinal);
+    if (ordinal <= previous || !runtime.has(ordinal))
+      throw new Error('Duplicate or dangling temporal reference');
+    previous = ordinal;
+    used.add(ordinal);
+  }
+  for (const [ordinal, record] of runtime) {
+    const overlaps =
+      record.endOffsetMs >= window.startOffsetMs &&
+      record.startOffsetMs <= window.endOffsetMs;
+    if (refs.includes(ordinal) !== overlaps)
+      throw new Error('Inconsistent runtime temporal overlap');
+  }
+}
+function validateFailureWindows(projection, database, attempts) {
+  exact(projection, [
+    'version',
+    'available',
+    'firstClientStartOffsetMs',
+    'lastClientEndOffsetMs',
+    'windows',
+    'runtimeWindows',
+  ]);
+  if (
+    projection.version !== 1 ||
+    typeof projection.available !== 'boolean' ||
+    !Array.isArray(projection.windows) ||
+    projection.windows.length > 450 ||
+    projection.windows.length !== database.failedSamples ||
+    !Array.isArray(projection.runtimeWindows) ||
+    projection.runtimeWindows.length > 900 ||
+    !Array.isArray(database.failureGroups)
+  )
+    throw new Error('Invalid database temporal projection');
+  const first = projection.firstClientStartOffsetMs,
+    last = projection.lastClientEndOffsetMs;
+  if (projection.available) {
+    safe(first);
+    safe(last);
+    if (!attempts || last < first)
+      throw new Error('Invalid temporal client bounds');
+  } else if (first !== null || last !== null)
+    throw new Error('Invalid unavailable temporal bounds');
+  const runtime = new Map();
+  let previous = 0;
+  for (const record of projection.runtimeWindows) {
+    exact(record, [
+      'ordinal',
+      'startOffsetMs',
+      'endOffsetMs',
+      'tickLagMs',
+      'eventLoopMaxMs',
+      'eventLoopP99Ms',
+    ]);
+    for (const key of ['ordinal', 'startOffsetMs', 'endOffsetMs', 'tickLagMs'])
+      safe(record[key]);
+    for (const key of ['eventLoopMaxMs', 'eventLoopP99Ms'])
+      if (record[key] !== null) safe(record[key]);
+    if (
+      record.ordinal <= previous ||
+      record.ordinal > 900 ||
+      record.endOffsetMs < record.startOffsetMs
+    )
+      throw new Error('Invalid temporal runtime record');
+    previous = record.ordinal;
+    runtime.set(record.ordinal, record);
+  }
+  const groups = new Map(),
+    used = new Set();
+  previous = 0;
+  for (const window of projection.windows) {
+    validateFailureWindowIdentity(
+      window,
+      database.measuredSamples + database.failedSamples,
+    );
+    if (window.observationOrdinal <= previous)
+      throw new Error('Unsorted temporal window');
+    previous = window.observationOrdinal;
+    validateFailureWindowRelation(window, projection, attempts);
+    if (projection.available && window.runtimeWindowOrdinals === null)
+      throw new Error('Unknown available runtime references');
+    validateFailureWindowReferences(window, runtime, used);
+    const key = JSON.stringify([
+      window.outcome,
+      window.category,
+      window.name,
+      window.code,
+    ]);
+    const group = groups.get(key) ?? {
+      samples: 0,
+      durationMs: 0,
+      maxDurationMs: 0,
+    };
+    group.samples = safe(group.samples + 1);
+    group.durationMs = safe(group.durationMs + window.durationMs);
+    group.maxDurationMs = Math.max(group.maxDurationMs, window.durationMs);
+    groups.set(key, group);
+  }
+  if (
+    used.size !== runtime.size ||
+    groups.size !== database.failureGroups.length
+  )
+    throw new Error('Nonconserved temporal records');
+  for (const expected of database.failureGroups) {
+    const key = JSON.stringify([
+      expected.outcome,
+      expected.category,
+      expected.name,
+      expected.code,
+    ]);
+    const actual = groups.get(key);
+    if (
+      !actual ||
+      ['samples', 'durationMs', 'maxDurationMs'].some(
+        (k) => actual[k] !== expected[k],
+      )
+    )
+      throw new Error('Nonconserved temporal failure tuple');
+  }
+}
+
+function unavailableTenantFailures() {
+  return {
+    version: 1,
+    available: false,
+    total: null,
+    attributed: null,
+    unattributed: null,
+    groups: [],
+  };
+}
+function tenantFailureProjection(events, clients, templates, actors, phases) {
+  const candidates = new Map();
+  for (const client of clients) {
+    const list = candidates.get(client.sequence) ?? [];
+    list.push(client);
+    candidates.set(client.sequence, list);
+  }
+  const groups = new Map();
+  let attributed = 0;
+  for (const event of events) {
+    const matches = candidates.get(event.sequence) ?? [];
+    const client = matches.length === 1 ? matches[0] : undefined;
+    const phase =
+      client &&
+      (Object.hasOwn(client, 'sweepPhase') ? client.sweepPhase : client.phase);
+    const known =
+      event.sequence !== null &&
+      client &&
+      Number.isSafeInteger(client.sequence) &&
+      client.sequence > 0 &&
+      Number.isSafeInteger(client.sentAtEpochMs) &&
+      client.sentAtEpochMs >= 0 &&
+      Number.isSafeInteger(client.endedAtEpochMs) &&
+      client.endedAtEpochMs >= client.sentAtEpochMs &&
+      (client.headerAtEpochMs === null ||
+        (Number.isSafeInteger(client.headerAtEpochMs) &&
+          client.headerAtEpochMs >= client.sentAtEpochMs &&
+          client.headerAtEpochMs <= client.endedAtEpochMs)) &&
+      actors.includes(client.actor) &&
+      client.actor !== 'unknown' &&
+      phases.includes(phase) &&
+      phase !== 'unknown' &&
+      METHODS.includes(client.method) &&
+      client.method !== 'other' &&
+      templates.has(client.route);
+    const tuple = {
+      actor: known ? client.actor : 'unknown',
+      phase: known ? phase : 'unknown',
+      method: known ? client.method : 'other',
+      route: known ? client.route : 'unknown',
+      model: event.model,
+      operation: event.operation,
+      reason: event.reason,
+    };
+    const key = JSON.stringify(Object.values(tuple));
+    const group = groups.get(key) ?? { ...tuple, count: 0 };
+    group.count = safe(group.count + 1);
+    groups.set(key, group);
+    attributed += Number(Boolean(known));
+  }
+  return {
+    version: 1,
+    available: true,
+    total: events.length,
+    attributed,
+    unattributed: events.length - attributed,
+    groups: [...groups]
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([, group]) => group),
+  };
+}
+function validateTenantFailures(value, { templates, actors, phases }) {
+  exact(value, [
+    'version',
+    'available',
+    'total',
+    'attributed',
+    'unattributed',
+    'groups',
+  ]);
+  if (
+    value.version !== 1 ||
+    typeof value.available !== 'boolean' ||
+    !Array.isArray(value.groups) ||
+    value.groups.length > MAX_TENANT_FAILURES
+  )
+    throw new Error('Invalid tenant provenance');
+  if (!value.available) {
+    if (
+      value.total !== null ||
+      value.attributed !== null ||
+      value.unattributed !== null ||
+      value.groups.length
+    )
+      throw new Error('Unavailable tenant provenance has counts');
+    return;
+  }
+  schemaModels();
+  for (const n of [value.total, value.attributed, value.unattributed]) {
+    safe(n);
+    if (n > MAX_TENANT_FAILURES)
+      throw new Error('Tenant provenance capacity exceeded');
+  }
+  let total = 0,
+    attributed = 0,
+    previous;
+  for (const group of value.groups) {
+    exact(group, [
+      'actor',
+      'phase',
+      'method',
+      'route',
+      'model',
+      'operation',
+      'reason',
+      'count',
+    ]);
+    validateTenantFailure(group.model, group.operation, group.reason);
+    safe(group.count);
+    if (!group.count || group.count > MAX_TENANT_FAILURES)
+      throw new Error('Invalid tenant group count');
+    const known =
+      actors.includes(group.actor) &&
+      group.actor !== 'unknown' &&
+      phases.includes(group.phase) &&
+      group.phase !== 'unknown' &&
+      METHODS.includes(group.method) &&
+      group.method !== 'other' &&
+      templates.includes(group.route);
+    const unknown =
+      group.actor === 'unknown' &&
+      group.phase === 'unknown' &&
+      group.method === 'other' &&
+      group.route === 'unknown';
+    if (!known && !unknown) throw new Error('Unsafe tenant attribution');
+    const key = JSON.stringify([
+      group.actor,
+      group.phase,
+      group.method,
+      group.route,
+      group.model,
+      group.operation,
+      group.reason,
+    ]);
+    if (previous !== undefined && key <= previous)
+      throw new Error('Duplicate or unsorted tenant groups');
+    previous = key;
+    total = safe(total + group.count);
+    if (known) attributed = safe(attributed + group.count);
+  }
+  if (
+    total !== value.total ||
+    attributed !== value.attributed ||
+    value.total !== value.attributed + value.unattributed
+  )
+    throw new Error('Tenant provenance conservation failure');
+}
 export function joinCausalEvidence(
   report,
   records,
@@ -206,6 +715,7 @@ export function joinCausalEvidence(
 ) {
   const reasons = zeroReasons();
   const lifecycles = new Map();
+  const tenantEvents = [];
   let runtime = [],
     database = [],
     footer,
@@ -238,6 +748,15 @@ export function joinCausalEvidence(
       if (record.kind === 'footer') {
         if (i !== records.length - 1) throw new Error('Footer is not final');
         footer = record;
+        continue;
+      }
+      if (record.kind === 'tenantFailure') {
+        if (
+          records[0].tenantFailuresVersion !== 1 ||
+          record.ordinal !== tenantEvents.length + 1
+        )
+          throw new Error('Invalid tenant event ordinal');
+        tenantEvents.push(record);
         continue;
       }
       if (record.kind === 'runtime') {
@@ -292,6 +811,13 @@ export function joinCausalEvidence(
       throw new Error('Sample capacity exceeded');
     }
     if (footer) {
+      if (
+        Object.hasOwn(records[0], 'tenantFailuresVersion') !==
+          Object.hasOwn(footer, 'tenantFailures') ||
+        (Object.hasOwn(footer, 'tenantFailures') &&
+          footer.tenantFailures !== tenantEvents.length)
+      )
+        throw new Error('Tenant producer counter mismatch');
       if (
         footer.records !== records.length - 1 ||
         footer.ingress !== lifecycles.size ||
@@ -495,6 +1021,21 @@ export function joinCausalEvidence(
       classes,
     },
     requestGroups,
+    tenantFailures:
+      valid &&
+      footer &&
+      records[0].tenantFailuresVersion === 1 &&
+      !footer.unavailable &&
+      !footer.invalidSequences &&
+      !footer.duplicateSequences
+        ? tenantFailureProjection(
+            tenantEvents,
+            clients,
+            templates,
+            actors,
+            phases,
+          )
+        : unavailableTenantFailures(),
     runtime: {
       ...runtimeAggregate(runtime),
       cpuUserUs: runtime.reduce((sum, s) => safe(sum + s.cpuUserUs), 0),
@@ -503,6 +1044,12 @@ export function joinCausalEvidence(
     },
     database: {
       ...databaseAggregate(database),
+      failureWindows: failureWindowProjection(
+        database,
+        runtime,
+        clients,
+        valid ? records[0].startedAt : null,
+      ),
       unfinishedSamples: footer?.databaseIncomplete ?? null,
       missingWindows: missingDatabaseWindows,
     },
@@ -525,7 +1072,10 @@ export function validateCausalEvidence(
     'requestGroups',
     'runtime',
     'database',
+    ...(Object.hasOwn(value, 'tenantFailures') ? ['tenantFailures'] : []),
   ]);
+  if (Object.hasOwn(value, 'tenantFailures'))
+    validateTenantFailures(value.tenantFailures, { templates, actors, phases });
   if (
     value.version !== 1 ||
     !['partial', 'complete', 'incomplete'].includes(value.quality)
@@ -582,6 +1132,9 @@ export function validateCausalEvidence(
         ? ['lifecycleGroups', 'lifecycleAvailable']
         : []),
       ...(overall ? ['missingWindows'] : []),
+      ...(overall && Object.hasOwn(d, 'failureWindows')
+        ? ['failureWindows']
+        : []),
       ...(Object.hasOwn(d, 'failureAttributionAvailable') ||
       Object.hasOwn(d, 'failureGroups')
         ? ['failureAttributionAvailable', 'failureGroups']
@@ -747,6 +1300,12 @@ export function validateCausalEvidence(
   };
   validateRuntime(value.runtime, true);
   validateDatabase(value.database, true);
+  if (Object.hasOwn(value.database, 'failureWindows'))
+    validateFailureWindows(
+      value.database.failureWindows,
+      value.database,
+      value.conservation.clientAttempts,
+    );
   if (
     !Array.isArray(value.requestGroups) ||
     value.requestGroups.length > value.conservation.clientAttempts
@@ -835,6 +1394,26 @@ export function collectCausalEvidence(report, directory, options = {}) {
       .trimEnd()
       .split('\n')
       .map((line) => JSON.parse(line));
+    if (options.requireIsolated || records[0]?.databaseSampler) {
+      const isolated = readIsolatedSampler(
+        directory,
+        Buffer.from(text),
+        report.sourceSha,
+        { final: options.final },
+      );
+      const apiProof = joinCausalEvidence(report, isolated.api, {
+        ...options,
+        stopped: true,
+      });
+      if (
+        apiProof.reasons.invalidSchema ||
+        apiProof.reasons.clockRegression ||
+        apiProof.reasons.duplicateSequence ||
+        apiProof.reasons.capacityExceeded
+      )
+        throw new Error('Invalid API producer');
+      records = isolated.records;
+    }
   } catch {
     readFailure = true;
   }

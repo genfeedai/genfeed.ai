@@ -3,6 +3,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { TenantReadPolicy } from '@api/helpers/interceptors/tenant-context/tenant-read-policy.decorator';
 import {
   returnBadRequest,
   returnInternalServerError,
@@ -134,6 +135,7 @@ export class BeehiivController {
   /**
    * List publications for the connected Beehiiv account
    */
+  @TenantReadPolicy('owner')
   @Get('publications')
   async listPublications(
     @CurrentUser() user: User,
@@ -168,6 +170,7 @@ export class BeehiivController {
   /**
    * Get subscribers for the connected publication
    */
+  @TenantReadPolicy('owner')
   @Get('subscribers')
   async getSubscribers(
     @CurrentUser() user: User,

@@ -126,6 +126,7 @@ export class AdsResearchController {
     });
   }
 
+  @TenantReadPolicy('owner')
   @Get(':source/:id')
   async getAdDetail(
     @CurrentUser() user: User,

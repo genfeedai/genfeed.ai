@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   chmodSync,
   mkdtempSync,
@@ -8,7 +9,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
 
 import { writeDiagnosticEvidence } from './diagnostic-output.mjs';
@@ -597,3 +598,330 @@ test('final scanner subprocess keeps mandatory machine proof and fatal failure l
     /private-token-canary/,
   );
 });
+
+for (const failed of [false, true])
+  test(`real final scanner retains failed temporal projection and fatal sampler verdict (${failed})`, (context) => {
+    const directory = mkdtempSync(join(tmpdir(), 'tenant-temporal-final-'));
+    chmodSync(directory, 0o700);
+    context.after(() => rmSync(directory, { recursive: true, force: true }));
+    const proof = {
+      verificationRequired: true,
+      noUnverifiedSession: true,
+      acceptedMail: true,
+      verifiedAuthentication: true,
+    };
+    const mail = zeroMailStats();
+    for (const actor of Object.keys(mail.accepted)) mail.accepted[actor] = 2;
+    writeFileSync(join(directory, 'mail-stats.json'), JSON.stringify(mail), {
+      mode: 0o600,
+    });
+    writeFileSync(join(directory, 'api.log'), 'healthy\n', { mode: 0o600 });
+    const reportPath = join(directory, 'report.json');
+    writeFileSync(
+      reportPath,
+      JSON.stringify({
+        sourceSha: 'a'.repeat(40),
+        hasFailed: false,
+        failures: [],
+        fixtureProof: proof,
+        mailStats: mail,
+        inventoryTemplates: ['/v1/voices'],
+        requests: [
+          {
+            sequence: 1,
+            sentAtEpochMs: 2000,
+            endedAtEpochMs: 2200,
+            headerAtEpochMs: null,
+            actor: 'M:A',
+            phase: 'memberAGets',
+            method: 'GET',
+            route: '/v1/voices',
+            status: 200,
+          },
+        ],
+      }),
+      { mode: 0o600 },
+    );
+    const records = [
+      { kind: 'header', protocol: 1, startedAt: 100, tenantFailuresVersion: 1 },
+      {
+        kind: 'database',
+        start: 500,
+        end: 1329,
+        outcome: failed ? 'error' : 'success',
+        groups: [],
+        ...(failed
+          ? {
+              diagnostic: {
+                category: 'query-read-timeout',
+                name: 'Error',
+                code: 'NONE',
+              },
+            }
+          : {}),
+        connectionStateAtStart: 'retained',
+        connectionGenerationBefore: 1,
+        connectionGenerationAfter: 1,
+      },
+      {
+        kind: 'footer',
+        endedAt: 2300,
+        unavailable: false,
+        records: 2,
+        ingress: 0,
+        pipelineEntries: 0,
+        finishes: 0,
+        closes: 0,
+        invalidSequences: 0,
+        duplicateSequences: 0,
+        runtimeSamples: 0,
+        databaseSamples: 1,
+        databaseIncomplete: 0,
+        tenantFailures: 0,
+      },
+    ];
+    writeIsolatedFixture(
+      join(directory, 'api-observations.ndjson'),
+      `${records.map((r) => JSON.stringify(r)).join('\n')}\n`,
+      { mode: 0o600 },
+    );
+    writeFileSync(join(directory, 'api-stopped'), 'stopped\n', { mode: 0o600 });
+    const result = spawnSync(
+      process.execPath,
+      [new URL('./scan-log.mjs', import.meta.url).pathname],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          CLOUD_SWEEP_DIAGNOSTICS: '1',
+          CLOUD_SWEEP_CPU_PROFILE: '0',
+          CLOUD_SWEEP_RUN_DIR: directory,
+          CLOUD_SWEEP_API_LOG: join(directory, 'api.log'),
+          CLOUD_SWEEP_REPORT: reportPath,
+          CLOUD_SWEEP_API_BOOT_OUTCOME: 'success',
+        },
+      },
+    );
+    assert.equal(result.status, failed ? 1 : 0, result.stderr);
+    const summary = JSON.parse(
+      readFileSync(join(directory, 'diagnostic-summary.json'), 'utf8'),
+    );
+    const projection = summary.causalEvidence.database.failureWindows;
+    assert.equal(projection.available, true);
+    assert.equal(projection.windows.length, failed ? 1 : 0);
+    if (failed)
+      assert.equal(
+        projection.windows[0].relation,
+        'before-first-instrumented-attempt',
+      );
+    assert.deepEqual(
+      JSON.parse(readFileSync(reportPath, 'utf8')).causalEvidence.database
+        .failureWindows,
+      projection,
+    );
+    assert.equal(summary.causalEvidence.reasons.samplerFailure, failed ? 1 : 0);
+  });
+
+for (const mode of ['positive', 'legacy', 'zero', 'missing-worker'])
+  test(`real scanner retains guard provenance with fatal positive/unavailable (${mode})`, (context) => {
+    const directory = mkdtempSync(join(tmpdir(), 'tenant-provenance-final-'));
+    chmodSync(directory, 0o700);
+    context.after(() => rmSync(directory, { recursive: true, force: true }));
+    const proof = {
+      verificationRequired: true,
+      noUnverifiedSession: true,
+      acceptedMail: true,
+      verifiedAuthentication: true,
+    };
+    const mail = zeroMailStats();
+    for (const actor of Object.keys(mail.accepted)) mail.accepted[actor] = 2;
+    writeFileSync(join(directory, 'mail-stats.json'), JSON.stringify(mail), {
+      mode: 0o600,
+    });
+    writeFileSync(join(directory, 'api.log'), 'healthy\n', { mode: 0o600 });
+    const reportPath = join(directory, 'report.json');
+    writeFileSync(
+      reportPath,
+      JSON.stringify({
+        sourceSha: 'a'.repeat(40),
+        hasFailed: false,
+        failures: [],
+        fixtureProof: proof,
+        mailStats: mail,
+        requests: [],
+        inventoryTemplates: ['/v1/voices'],
+      }),
+      { mode: 0o600 },
+    );
+    const records = [
+      {
+        kind: 'header',
+        protocol: 1,
+        startedAt: 100,
+        ...(mode === 'legacy' ? {} : { tenantFailuresVersion: 1 }),
+      },
+    ];
+    if (mode === 'positive')
+      records.push({
+        kind: 'tenantFailure',
+        ordinal: 1,
+        sequence: null,
+        at: 101,
+        model: 'Credential',
+        operation: 'findFirst',
+        reason: 'organization-id-mismatch',
+      });
+    records.push({
+      kind: 'footer',
+      endedAt: 102,
+      unavailable: false,
+      records: records.length,
+      ingress: 0,
+      pipelineEntries: 0,
+      finishes: 0,
+      closes: 0,
+      invalidSequences: 0,
+      duplicateSequences: 0,
+      runtimeSamples: 0,
+      databaseSamples: 0,
+      databaseIncomplete: 0,
+      ...(mode === 'legacy'
+        ? {}
+        : { tenantFailures: mode === 'positive' ? 1 : 0 }),
+    });
+    writeIsolatedFixture(
+      join(directory, 'api-observations.ndjson'),
+      `${records.map((r) => JSON.stringify(r)).join('\n')}\n`,
+      { mode: 0o600 },
+    );
+    if (mode === 'missing-worker')
+      rmSync(join(directory, 'database-observations.seal.json'));
+    writeFileSync(join(directory, 'api-stopped'), 'stopped\n', { mode: 0o600 });
+    for (let repeat = 0; repeat < 2; repeat++) {
+      const result = spawnSync(
+        process.execPath,
+        [new URL('./scan-log.mjs', import.meta.url).pathname],
+        {
+          encoding: 'utf8',
+          env: {
+            ...process.env,
+            CLOUD_SWEEP_DIAGNOSTICS: '1',
+            CLOUD_SWEEP_CPU_PROFILE: '0',
+            CLOUD_SWEEP_RUN_DIR: directory,
+            CLOUD_SWEEP_API_LOG: join(directory, 'api.log'),
+            CLOUD_SWEEP_REPORT: reportPath,
+          },
+        },
+      );
+      assert.equal(result.status, mode === 'zero' ? 0 : 1, result.stderr);
+      const saved = JSON.parse(readFileSync(reportPath, 'utf8'));
+      const summary = JSON.parse(
+        readFileSync(join(directory, 'diagnostic-summary.json'), 'utf8'),
+      );
+      assert.equal(saved.hasFailed, mode !== 'zero');
+      assert.equal(
+        summary.causalEvidence.tenantFailures.total,
+        ['legacy', 'missing-worker'].includes(mode)
+          ? null
+          : mode === 'positive'
+            ? 1
+            : 0,
+      );
+      assert.equal(summary.tenantEvidence.logHits, 0);
+      assert.equal(summary.tenantEvidence.responseHits, 0);
+    }
+  });
+
+function writeIsolatedFixture(file, text, options = { mode: 0o600 }) {
+  const records = text
+      .trimEnd()
+      .split('\n')
+      .map((line) => JSON.parse(line)),
+    directory = dirname(file),
+    binding = {
+      version: 1,
+      producer: 'api',
+      runNonce: 'b'.repeat(32),
+      sourceSha: 'a'.repeat(40),
+    };
+  const header = { ...records[0], databaseSampler: binding },
+    footer = records.at(-1)?.kind === 'footer' ? records.at(-1) : null;
+  if (!footer) {
+    writeFileSync(
+      file,
+      `${JSON.stringify(header)}\n${records
+        .slice(1)
+        .map((r) => `${JSON.stringify(r)}\n`)
+        .join('')}`,
+      options,
+    );
+    return;
+  }
+  const dbRecords = records
+      .filter((r) => r.kind === 'database')
+      .map((r) => (r.outcome === 'success' ? { diagnostic: null, ...r } : r)),
+    apiRecords = records.slice(1, -1).filter((r) => r.kind !== 'database');
+  const apiFooter = {
+    ...footer,
+    records: footer.records - dbRecords.length,
+    databaseSamples: footer.databaseSamples - dbRecords.length,
+    databaseIncomplete: 0,
+    databaseWorker: {
+      readyObservedAt: header.startedAt,
+      stopRequestedAt: footer.endedAt,
+      stopCompletedAt: footer.endedAt,
+      state: 'complete',
+    },
+  };
+  const dbHeader = {
+    kind: 'header',
+    protocol: 1,
+    startedAt: header.startedAt,
+    tenantFailuresVersion: 1,
+    databaseSampler: { ...binding, producer: 'database' },
+  };
+  const dbFooter = {
+    ...footer,
+    records: dbRecords.length + 1,
+    ingress: 0,
+    pipelineEntries: 0,
+    finishes: 0,
+    closes: 0,
+    invalidSequences: 0,
+    duplicateSequences: 0,
+    runtimeSamples: 0,
+    databaseSamples: dbRecords.length,
+    tenantFailures: 0,
+  };
+  delete dbFooter.databaseWorker;
+  const dbText = `${[dbHeader, ...dbRecords, dbFooter]
+    .map((r) => JSON.stringify(r))
+    .join('\n')}\n`;
+  writeFileSync(join(directory, 'database-observations.ndjson'), dbText, {
+    mode: 0o600,
+  });
+  const seal = {
+    version: 1,
+    runNonce: binding.runNonce,
+    sourceSha: binding.sourceSha,
+    state: 'complete',
+    readyAt: header.startedAt,
+    stopReceivedAt: footer.endedAt,
+    sealedAt: footer.endedAt,
+    bytes: Buffer.byteLength(dbText),
+    records: dbRecords.length + 2,
+    sha256: createHash('sha256').update(dbText).digest('hex'),
+  };
+  writeFileSync(
+    join(directory, 'database-observations.seal.json'),
+    `${JSON.stringify(seal)}\n`,
+    { mode: 0o600 },
+  );
+  writeFileSync(
+    file,
+    `${[header, ...apiRecords, apiFooter]
+      .map((r) => JSON.stringify(r))
+      .join('\n')}\n`,
+    options,
+  );
+}

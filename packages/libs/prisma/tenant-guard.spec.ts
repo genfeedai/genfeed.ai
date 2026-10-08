@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   crossOrgUnsafe,
   registerBillingAccountScope,
   runWithTenantContext,
 } from './tenant-context';
+import * as tenantGuard from './tenant-guard';
 import {
   assertTenantScopedQuery,
   type TenantGuardArgs,
@@ -152,6 +153,334 @@ describe('assertTenantScopedQuery', () => {
         }),
       ),
     ).not.toThrow();
+  });
+});
+
+describe('tenant guard isolated CI failure observation', () => {
+  const observerSymbol = Symbol.for('genfeed.cloudTenantGuard.observer.v1');
+  const gates = {
+    CI: 'true',
+    CLOUD_SWEEP_DIAGNOSTICS: '1',
+    GENFEED_CLOUD: 'true',
+    GITHUB_ACTIONS: 'true',
+    NODE_ENV: 'test',
+  };
+  const tenantFailure = vi.fn();
+  const unavailable = vi.fn();
+  let previousObserver: PropertyDescriptor | undefined;
+
+  beforeEach(() => {
+    previousObserver = Object.getOwnPropertyDescriptor(
+      globalThis,
+      observerSymbol,
+    );
+    for (const [key, value] of Object.entries(gates)) vi.stubEnv(key, value);
+    vi.stubEnv('CLOUD_SWEEP_LOCAL', undefined);
+    tenantFailure.mockReset();
+    unavailable.mockReset();
+    Object.defineProperty(globalThis, observerSymbol, {
+      configurable: true,
+      value: { protocol: 1, tenantFailure, unavailable },
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+    if (previousObserver) {
+      Object.defineProperty(globalThis, observerSymbol, previousObserver);
+    } else {
+      Reflect.deleteProperty(globalThis, observerSymbol);
+    }
+  });
+
+  function intercept(
+    args: unknown = { where: { organizationId: 'private-org-canary' } },
+    model = 'Post',
+    isCloud = true,
+  ) {
+    const query = vi.fn(async (value: unknown) => value);
+    const extension = createTenantGuardExtension({
+      billingAccountModelNames: BILLING_ACCOUNT_MODEL_NAMES,
+      isCloud,
+      tenantModelNames: TENANT_MODEL_NAMES,
+    });
+    const result = runWithTenantContext(
+      { organizationId: 'private-context-canary' },
+      () =>
+        extension.query.$allModels.$allOperations({
+          args,
+          model,
+          operation: 'findFirst',
+          query,
+        }),
+    );
+    return { query, result };
+  }
+
+  it('observes the actual guard throw once, preserves its identity, and never dispatches the query', async () => {
+    const originalAssert = tenantGuard.assertTenantScopedQuery;
+    let actualError: unknown;
+    vi.spyOn(tenantGuard, 'assertTenantScopedQuery').mockImplementation(
+      (input) => {
+        try {
+          return originalAssert(input);
+        } catch (error) {
+          actualError = error;
+          throw error;
+        }
+      },
+    );
+    const { query, result } = intercept({
+      where: {
+        organizationId: 'private-org-canary',
+        token: 'private-token-canary',
+      },
+    });
+    const error: unknown = await result.catch((failure: unknown) => failure);
+    expect(error).toBe(actualError);
+    expect(error).toBeInstanceOf(TenantIsolationError);
+    expect(error).toMatchObject({
+      message:
+        'Tenant isolation: findFirst on Post used organizationId private-org-canary but the request tenant is private-context-canary.',
+      model: 'Post',
+      name: 'TenantIsolationError',
+      operation: 'findFirst',
+      reason: 'organization-id-mismatch',
+    });
+    expect(tenantFailure.mock.calls).toEqual([
+      ['Post', 'findFirst', 'organization-id-mismatch'],
+    ]);
+    expect(JSON.stringify(tenantFailure.mock.calls)).not.toContain('canary');
+    expect(unavailable).not.toHaveBeenCalled();
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it.each<[unknown, string, string]>([
+    [
+      { where: { id: 'private-row-canary' } },
+      'Post',
+      'missing-organization-id',
+    ],
+    [
+      { where: { billingAccountId: 'private-billing-canary' } },
+      'CreditBalance',
+      'billing-account-id-mismatch',
+    ],
+  ])(
+    'observes the existing %s failure without exposing arguments',
+    async (args, model, reason) => {
+      const { query, result } = intercept(args, model);
+      await expect(result).rejects.toMatchObject({
+        model,
+        operation: 'findFirst',
+        reason,
+      });
+      expect(tenantFailure.mock.calls).toEqual([[model, 'findFirst', reason]]);
+      expect(query).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(
+    Object.keys(gates).flatMap((key) =>
+      ['disabled', undefined].map((value) => ({ key, value })),
+    ),
+  )('never reads the hook when $key is $value', async ({ key, value }) => {
+    vi.stubEnv(key, value);
+    const getHook = vi.fn(() => {
+      throw new Error('hook must be dormant');
+    });
+    Object.defineProperty(globalThis, observerSymbol, {
+      configurable: true,
+      get: getHook,
+    });
+    const { query, result } = intercept();
+    await expect(result).rejects.toBeInstanceOf(TenantIsolationError);
+    expect(getHook).not.toHaveBeenCalled();
+    expect(query).not.toHaveBeenCalled();
+    expect(tenantFailure).not.toHaveBeenCalled();
+  });
+
+  it.each(['1', ''])(
+    'never reads the hook when CLOUD_SWEEP_LOCAL is defined as %s',
+    async (value) => {
+      vi.stubEnv('CLOUD_SWEEP_LOCAL', value);
+      const getHook = vi.fn(() => {
+        throw new Error('hook must be dormant');
+      });
+      Object.defineProperty(globalThis, observerSymbol, {
+        configurable: true,
+        get: getHook,
+      });
+      const { query, result } = intercept();
+      await expect(result).rejects.toBeInstanceOf(TenantIsolationError);
+      expect(getHook).not.toHaveBeenCalled();
+      expect(query).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    undefined,
+    null,
+    'private-observer-canary',
+    {},
+    { protocol: 2, tenantFailure, unavailable },
+    { protocol: 1, tenantFailure: 'not-callable', unavailable },
+    { protocol: 1, tenantFailure, unavailable: 'not-callable' },
+  ])(
+    'preserves the guard failure with malformed observer %s',
+    async (value) => {
+      Object.defineProperty(globalThis, observerSymbol, {
+        configurable: true,
+        value,
+      });
+      const { query, result } = intercept();
+      await expect(result).rejects.toMatchObject({
+        reason: 'organization-id-mismatch',
+      });
+      expect(tenantFailure).not.toHaveBeenCalled();
+      expect(query).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['protocol', 'tenantFailure', 'unavailable'])(
+    'preserves the guard error when observer %s getter throws',
+    async (field) => {
+      const observer = { protocol: 1, tenantFailure, unavailable };
+      Object.defineProperty(observer, field, {
+        get: () => {
+          throw new Error('private-getter-canary');
+        },
+      });
+      Object.defineProperty(globalThis, observerSymbol, {
+        configurable: true,
+        value: observer,
+      });
+      const { query, result } = intercept();
+      await expect(result).rejects.toMatchObject({
+        reason: 'organization-id-mismatch',
+      });
+      expect(tenantFailure).not.toHaveBeenCalled();
+      expect(query).not.toHaveBeenCalled();
+    },
+  );
+
+  it('preserves the guard error when the global symbol getter throws', async () => {
+    Object.defineProperty(globalThis, observerSymbol, {
+      configurable: true,
+      get: () => {
+        throw new Error('private-hook-canary');
+      },
+    });
+    const { query, result } = intercept();
+    await expect(result).rejects.toMatchObject({
+      reason: 'organization-id-mismatch',
+    });
+    expect(query).not.toHaveBeenCalled();
+    expect(tenantFailure).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])(
+    'preserves a guard failure when callback throws and unavailable throws=%s',
+    async (throwUnavailable) => {
+      tenantFailure.mockImplementation(() => {
+        throw new Error('private-callback-canary');
+      });
+      if (throwUnavailable)
+        unavailable.mockImplementation(() => {
+          throw new Error('private-unavailable-canary');
+        });
+      const { query, result } = intercept();
+      await expect(result).rejects.toMatchObject({
+        reason: 'organization-id-mismatch',
+      });
+      expect(tenantFailure.mock.calls).toEqual([
+        ['Post', 'findFirst', 'organization-id-mismatch'],
+      ]);
+      expect(unavailable).toHaveBeenCalledTimes(1);
+      expect(query).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not report or replace a non-Tenant assertion error', async () => {
+    const originalError = new Error('private-assertion-canary');
+    const args = {
+      get where() {
+        throw originalError;
+      },
+    };
+    const { query, result } = intercept(args);
+    await expect(result).rejects.toBe(originalError);
+    expect(tenantFailure).not.toHaveBeenCalled();
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it.each<[unknown, string, boolean]>([
+    [{ where: { organizationId: 'private-context-canary' } }, 'Post', true],
+    [{ where: { id: 'private-row-canary' } }, 'Post', false],
+    [{ where: { id: 'private-row-canary' } }, 'Organization', true],
+  ])(
+    'preserves allowed query dispatch for %s with model %s and cloud %s',
+    async (args, model, isCloud) => {
+      const { query, result } = intercept(args, model, isCloud);
+      await expect(result).resolves.toBe(args);
+      expect(query).toHaveBeenCalledExactlyOnceWith(args);
+      expect(tenantFailure).not.toHaveBeenCalled();
+    },
+  );
+
+  it('preserves crossOrgUnsafe dispatch without observation', async () => {
+    const args = { where: { organizationId: 'private-org-canary' } };
+    const query = vi.fn(async (value: unknown) => value);
+    const extension = createTenantGuardExtension({
+      isCloud: true,
+      tenantModelNames: TENANT_MODEL_NAMES,
+    });
+    const result = runWithTenantContext(
+      { organizationId: 'private-context-canary' },
+      () =>
+        crossOrgUnsafe(() =>
+          extension.query.$allModels.$allOperations({
+            args,
+            model: 'Post',
+            operation: 'findFirst',
+            query,
+          }),
+        ),
+    );
+    await expect(result).resolves.toBe(args);
+    expect(query).toHaveBeenCalledExactlyOnceWith(args);
+    expect(tenantFailure).not.toHaveBeenCalled();
+  });
+
+  it('does not observe or replace a downstream query rejection', async () => {
+    const originalError = new TenantIsolationError(
+      'Post',
+      'findFirst',
+      'organization-id-mismatch',
+      'private-query-canary',
+    );
+    const query = vi.fn(async () => {
+      throw originalError;
+    });
+    const extension = createTenantGuardExtension({
+      isCloud: true,
+      tenantModelNames: TENANT_MODEL_NAMES,
+    });
+    const args = { where: { organizationId: 'private-context-canary' } };
+    const result = runWithTenantContext(
+      { organizationId: 'private-context-canary' },
+      () =>
+        extension.query.$allModels.$allOperations({
+          args,
+          model: 'Post',
+          operation: 'findFirst',
+          query,
+        }),
+    );
+    await expect(result).rejects.toBe(originalError);
+    expect(query).toHaveBeenCalledExactlyOnceWith(args);
+    expect(tenantFailure).not.toHaveBeenCalled();
   });
 });
 

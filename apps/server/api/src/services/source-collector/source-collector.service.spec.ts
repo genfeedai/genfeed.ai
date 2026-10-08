@@ -1,5 +1,10 @@
 import { SourceCollectionFailedException } from '@api/services/source-collector/source-collection-failed.exception';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
+import type {
+  SourceCollectContext,
+  SourceCollectorFailure,
+  SourceCollectResult,
+} from '@api/services/source-collector/source-collector.types';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { HttpStatus, ServiceUnavailableException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -524,5 +529,312 @@ describe('SourceCollectorService', () => {
         url: 'https://x.com/a/status/123',
       }),
     ).rejects.toBe(denied);
+  });
+
+  describe('consistent absence across attempted collectors', () => {
+    const reference = {
+      authorHandle: 'openai',
+      platform: SocialSourcePlatform.TWITTER,
+      postId: '123',
+      url: 'https://x.com/openai/status/123',
+    };
+    const context: SourceCollectContext = {
+      brandId: 'context-brand-canary',
+      credentialId: 'context-credential-canary',
+      organizationId: 'context-org-canary',
+    };
+    const result: SourceCollectResult = {
+      handle: 'openai',
+      platform: SocialSourcePlatform.TWITTER,
+      posts: [
+        {
+          id: '123',
+          text: 'collected post',
+          platform: SocialSourcePlatform.TWITTER,
+        },
+      ],
+      provider: 'app-bearer',
+    };
+    const missing: SourceCollectorFailure = {
+      provider: 'brand-oauth',
+      reason: 'not_found',
+      status: 404,
+    };
+    const accessFailures: SourceCollectorFailure[] = [
+      { provider: 'app-bearer', reason: 'unauthorized', status: 401 },
+      { provider: 'app-bearer', reason: 'payment_required', status: 402 },
+      { provider: 'app-bearer', reason: 'forbidden', status: 403 },
+      { provider: 'app-bearer', reason: 'rate_limited', status: 429 },
+    ];
+    const cases: {
+      name: string;
+      failures: SourceCollectorFailure[];
+      status: number;
+    }[] = [
+      {
+        name: 'one absence',
+        failures: [missing],
+        status: HttpStatus.NOT_FOUND,
+      },
+      {
+        name: 'two absences',
+        failures: [
+          missing,
+          { provider: 'app-bearer', reason: 'not_found', status: 404 },
+        ],
+        status: HttpStatus.NOT_FOUND,
+      },
+      {
+        name: 'absence and unknown failure',
+        failures: [missing, { provider: 'app-bearer', reason: 'error' }],
+        status: HttpStatus.BAD_GATEWAY,
+      },
+      ...accessFailures.map((failure) => ({
+        name: `absence and ${failure.reason}`,
+        failures: [missing, failure],
+        status: HttpStatus.BAD_GATEWAY,
+      })),
+      {
+        name: 'only access failures',
+        failures: accessFailures,
+        status: HttpStatus.FAILED_DEPENDENCY,
+      },
+      {
+        name: 'no attempts',
+        failures: [],
+        status: HttpStatus.FAILED_DEPENDENCY,
+      },
+    ];
+
+    beforeEach(() => {
+      for (const provider of [brandOAuth, appBearer, apify]) {
+        provider.canCollect.mockReset().mockResolvedValue(false);
+        provider.collectPost.mockReset();
+        provider.collectTimeline.mockReset();
+      }
+    });
+
+    it.each(cases)(
+      'classifies $name without altering failures',
+      ({ failures, status }) => {
+        const failure = new SourceCollectionFailedException(
+          'Collection failed',
+          failures,
+        );
+        expect(failure.getStatus()).toBe(status);
+        expect(failure.failures).toBe(failures);
+        expect(failure.getResponse()).toEqual({
+          detail: failure.message,
+          failures,
+          title: 'Source collection failed',
+        });
+        expect(failure.name).toBe('SourceCollectionFailedException');
+      },
+    );
+
+    it.each([
+      { kind: 'post', first: 404, second: 500 },
+      { kind: 'post', first: 500, second: 404 },
+      { kind: 'timeline', first: 404, second: 500 },
+      { kind: 'timeline', first: 500, second: 404 },
+    ])(
+      'retains mixed $first/$second $kind failures as retryable',
+      async ({ kind, first, second }) => {
+        const upstream = (status: number) =>
+          Object.assign(new Error('not found'), {
+            status,
+            response: {
+              data: {
+                token: 'upstream-token-canary',
+                body: 'upstream-body-canary',
+              },
+            },
+          });
+        brandOAuth.canCollect.mockResolvedValue(true);
+        appBearer.canCollect.mockResolvedValue(true);
+        const methods =
+          kind === 'post'
+            ? [brandOAuth.collectPost, appBearer.collectPost]
+            : [brandOAuth.collectTimeline, appBearer.collectTimeline];
+        methods[0].mockRejectedValue(upstream(first));
+        methods[1].mockRejectedValue(upstream(second));
+        const collection =
+          kind === 'post'
+            ? service.collectPost(reference, context)
+            : service.collectTimeline(
+                SocialSourcePlatform.TWITTER,
+                'openai',
+                context,
+              );
+        const failure: unknown = await collection.catch(
+          (error: unknown) => error,
+        );
+        expect(failure).toBeInstanceOf(SourceCollectionFailedException);
+        if (!(failure instanceof SourceCollectionFailedException))
+          throw new Error('Expected collection failure');
+        const failures: SourceCollectorFailure[] = [
+          {
+            provider: 'brand-oauth',
+            reason: first === 404 ? 'not_found' : 'unavailable',
+            status: first,
+          },
+          {
+            provider: 'app-bearer',
+            reason: second === 404 ? 'not_found' : 'unavailable',
+            status: second,
+          },
+        ];
+        expect(failure.getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+        expect(failure.failures).toEqual(failures);
+        expect(failure.getResponse()).toEqual({
+          detail: failure.message,
+          failures,
+          title: 'Source collection failed',
+        });
+        for (const canary of [
+          'upstream-token-canary',
+          'upstream-body-canary',
+          ...Object.values(context),
+        ]) {
+          expect(
+            JSON.stringify({
+              message: failure.message,
+              response: failure.getResponse(),
+              failures: failure.failures,
+            }),
+          ).not.toContain(canary);
+        }
+        for (const provider of [brandOAuth, appBearer, apify]) {
+          expect(provider.canCollect).toHaveBeenCalledExactlyOnceWith(
+            SocialSourcePlatform.TWITTER,
+            context,
+          );
+        }
+        for (const method of methods) {
+          expect(method).toHaveBeenCalledExactlyOnceWith(
+            ...(kind === 'post'
+              ? [reference, context]
+              : [SocialSourcePlatform.TWITTER, 'openai', context]),
+          );
+        }
+        expect(apify.collectPost).not.toHaveBeenCalled();
+        expect(apify.collectTimeline).not.toHaveBeenCalled();
+      },
+    );
+
+    it('keeps skipped collectors out of a lone attempted absence', async () => {
+      appBearer.canCollect.mockResolvedValue(true);
+      appBearer.collectPost.mockRejectedValue(
+        Object.assign(new Error('not found'), { status: 404 }),
+      );
+      const failure: unknown = await service
+        .collectPost(reference, context)
+        .catch((error: unknown) => error);
+      expect(failure).toBeInstanceOf(SourceCollectionFailedException);
+      if (!(failure instanceof SourceCollectionFailedException))
+        throw new Error('Expected collection failure');
+      expect(failure.getStatus()).toBe(HttpStatus.NOT_FOUND);
+      expect(failure.failures).toEqual([
+        { provider: 'app-bearer', reason: 'not_found', status: 404 },
+      ]);
+      expect(brandOAuth.collectPost).not.toHaveBeenCalled();
+      expect(apify.collectPost).not.toHaveBeenCalled();
+    });
+
+    it('reports no attempts when every provider is skipped', async () => {
+      const failure: unknown = await service
+        .collectPost(reference, context)
+        .catch((error: unknown) => error);
+      expect(failure).toBeInstanceOf(SourceCollectionFailedException);
+      if (!(failure instanceof SourceCollectionFailedException))
+        throw new Error('Expected collection failure');
+      expect(failure.getStatus()).toBe(HttpStatus.FAILED_DEPENDENCY);
+      expect(failure.failures).toEqual([]);
+      for (const provider of [brandOAuth, appBearer, apify])
+        expect(provider.collectPost).not.toHaveBeenCalled();
+    });
+
+    it('clears an earlier absence on fallback success and stops collecting', async () => {
+      brandOAuth.canCollect.mockResolvedValue(true);
+      brandOAuth.collectPost.mockRejectedValue(
+        Object.assign(new Error('not found'), { status: 404 }),
+      );
+      appBearer.canCollect.mockResolvedValue(true);
+      appBearer.collectPost.mockResolvedValue(result);
+      apify.canCollect.mockResolvedValue(true);
+      await expect(service.collectPost(reference, context)).resolves.toEqual(
+        result,
+      );
+      expect(appBearer.collectPost).toHaveBeenCalledExactlyOnceWith(
+        reference,
+        context,
+      );
+      expect(apify.canCollect).not.toHaveBeenCalled();
+      expect(apify.collectPost).not.toHaveBeenCalled();
+    });
+
+    it('returns a successful empty timeline without falling back', async () => {
+      brandOAuth.canCollect.mockResolvedValue(true);
+      const empty = { ...result, posts: [], provider: 'brand-oauth' };
+      brandOAuth.collectTimeline.mockResolvedValue(empty);
+      await expect(
+        service.collectTimeline(
+          SocialSourcePlatform.TWITTER,
+          'openai',
+          context,
+        ),
+      ).resolves.toEqual(empty);
+      expect(brandOAuth.collectTimeline).toHaveBeenCalledExactlyOnceWith(
+        SocialSourcePlatform.TWITTER,
+        'openai',
+        context,
+      );
+      expect(appBearer.canCollect).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      { name: 'empty', posts: [] },
+      {
+        name: 'invalid',
+        posts: [
+          { id: ' ', text: 'invalid', platform: SocialSourcePlatform.TWITTER },
+        ],
+      },
+    ])('falls back after $name single-post output', async ({ posts }) => {
+      brandOAuth.canCollect.mockResolvedValue(true);
+      brandOAuth.collectPost.mockResolvedValue({ ...result, posts });
+      appBearer.canCollect.mockResolvedValue(true);
+      appBearer.collectPost.mockResolvedValue(result);
+      await expect(service.collectPost(reference, context)).resolves.toEqual(
+        result,
+      );
+      expect(appBearer.collectPost).toHaveBeenCalledExactlyOnceWith(
+        reference,
+        context,
+      );
+      expect(apify.canCollect).not.toHaveBeenCalled();
+    });
+
+    it('returns valid single-post rows and filters invalid rows without falling back', async () => {
+      brandOAuth.canCollect.mockResolvedValue(true);
+      const partial = {
+        ...result,
+        provider: 'brand-oauth',
+        posts: [
+          ...result.posts,
+          { id: '', text: 'invalid', platform: SocialSourcePlatform.TWITTER },
+        ],
+      };
+      brandOAuth.collectPost.mockResolvedValue(partial);
+      await expect(service.collectPost(reference, context)).resolves.toEqual({
+        ...partial,
+        posts: result.posts,
+      });
+      expect(brandOAuth.collectPost).toHaveBeenCalledExactlyOnceWith(
+        reference,
+        context,
+      );
+      expect(appBearer.canCollect).not.toHaveBeenCalled();
+    });
   });
 });
