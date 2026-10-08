@@ -129,6 +129,23 @@ function renderHeader(overrides: Partial<IPost> = {}, props = {}) {
 }
 
 describe('PostDetailHeader', () => {
+  it('renders the standalone page title as a level-one heading', () => {
+    renderHeader({}, { headingLevel: 1 });
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Launch announcement' }),
+    ).toBeInTheDocument();
+  });
+
+  it('retains a level-two title inside an overlay', () => {
+    renderHeader();
+
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Launch announcement' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+  });
+
   it('renders the post label as the heading', () => {
     renderHeader();
 

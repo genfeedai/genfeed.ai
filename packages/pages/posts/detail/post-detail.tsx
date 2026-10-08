@@ -336,6 +336,7 @@ export default function PostDetail({
         {post ? (
           <>
             <PostDetailHeader
+              headingLevel={isPagePresentation ? 1 : 2}
               post={post}
               scope={scope}
               isPublished={isPublished}
