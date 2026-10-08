@@ -80,7 +80,7 @@ export default function PostDetailCardBody({
           </div>
         </div>
 
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between mb-2">
             {publishedDisplay && (
               <span className="text-xs text-success">

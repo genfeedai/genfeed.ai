@@ -105,10 +105,10 @@ export default function PostEnhancementBar({
 
   return (
     <div
-      className={`sticky top-4 z-10 mt-4 flex items-center gap-2 bg-card p-2 shadow-border ${className}`}
+      className={`sticky top-4 z-10 mt-4 flex min-w-0 flex-wrap items-center gap-2 bg-card p-2 shadow-border ${className}`}
     >
       {/* Quick Actions - Icon only */}
-      <div className="flex items-center gap-1">
+      <div className="flex max-w-full flex-wrap items-center gap-1">
         {QUICK_ACTIONS.map((action) => {
           const isThisActionEnhancing =
             isEnhancing && enhancingAction === action.key;
@@ -189,7 +189,7 @@ export default function PostEnhancementBar({
       <PromptBarDivider />
 
       {/* Custom Prompt Input + Enhance Button */}
-      <div className="flex flex-1 items-center gap-2">
+      <div className="flex min-w-[12rem] flex-1 items-center gap-2">
         <Input
           type="text"
           value={prompt}
@@ -197,7 +197,7 @@ export default function PostEnhancementBar({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           isDisabled={isEnhancing}
-          className="h-9 min-h-0 flex-1"
+          className="h-9 min-h-0 min-w-0 flex-1"
         />
 
         <Button
