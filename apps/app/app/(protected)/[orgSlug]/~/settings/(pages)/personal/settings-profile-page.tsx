@@ -198,6 +198,7 @@ export default function SettingsProfilePage() {
           value={locale}
         >
           <SelectTrigger
+            aria-label="Language"
             id="personal-locale"
             className="w-full"
             data-testid="personal-locale-trigger"
