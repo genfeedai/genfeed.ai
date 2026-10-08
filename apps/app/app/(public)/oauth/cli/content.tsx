@@ -280,6 +280,28 @@ function CliAuthPageContent() {
   const port = validatePort(portParam);
   const callbackPath = `/oauth/cli${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
   const authHref = `/${authIntent === 'signup' ? 'sign-up' : 'login'}?callbackUrl=${encodeURIComponent(callbackPath)}`;
+  const flowScope = JSON.stringify([
+    isDesktopMode,
+    portParam,
+    desktopReturnTo,
+    desktopState,
+    codeChallenge,
+    codeChallengeMethod,
+    user?.id,
+  ]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: account/request scope and sign-in state own the handoff lifetime, independent of refreshed callback identities.
+  useEffect(() => {
+    // Session/profile refreshes must not cancel a handoff already in progress.
+    // A different account/request, sign-out, or unmount must cancel it.
+    flowControllerRef.current?.abort();
+    tokenRequestedRef.current = false;
+
+    return () => {
+      flowControllerRef.current?.abort();
+      tokenRequestedRef.current = false;
+    };
+  }, [flowScope, isSignedIn]);
 
   const requestTokenAndRedirect = useCallback(
     async (signal: AbortSignal) => {
@@ -414,7 +436,7 @@ function CliAuthPageContent() {
           }
 
           if (status === 'exchanged') {
-            setFlowState({ apiKey: data.code, error: null, step: 'success' });
+            setFlowState({ error: null, step: 'success' });
             return;
           }
 
@@ -548,10 +570,6 @@ function CliAuthPageContent() {
       const controller = new AbortController();
       flowControllerRef.current = controller;
       requestTokenAndRedirect(controller.signal);
-
-      return () => {
-        controller.abort();
-      };
     }
   }, [
     hasValidDesktopReturnTarget,
@@ -604,9 +622,11 @@ function CliAuthPageContent() {
           <h1 className="text-xl font-semibold tracking-tight mb-1.5 text-balance">
             {translate(isDesktopMode ? 'title.desktop' : 'title.cli')}
           </h1>
-          <p className="text-sm text-muted-foreground">
-            {translate(isDesktopMode ? 'subtitle.desktop' : 'subtitle.cli')}
-          </p>
+          {flowState.step !== 'success' && (
+            <p className="text-sm text-muted-foreground">
+              {translate(isDesktopMode ? 'subtitle.desktop' : 'subtitle.cli')}
+            </p>
+          )}
         </div>
 
         <Card className="shadow-border border-transparent">
@@ -716,14 +736,16 @@ function CliAuthPageContent() {
               <div className="space-y-6">
                 <StepDisplay
                   icon={<CircleCheck className="size-8 text-success" />}
-                  title={translate('success.title')}
+                  title={translate(
+                    isDesktopMode ? 'success.desktopTitle' : 'success.title',
+                  )}
                   description={translate(
                     isDesktopMode
                       ? 'success.description.desktop'
                       : 'success.description.cli',
                   )}
                 />
-                {flowState.apiKey && (
+                {!isDesktopMode && flowState.apiKey && (
                   <CopyKeyFallback
                     apiKey={flowState.apiKey}
                     copied={copied}
@@ -767,15 +789,17 @@ function CliAuthPageContent() {
           </CardContent>
         </Card>
 
-        <p className="mt-5 text-center text-2xs text-muted-foreground/50 leading-relaxed">
-          {translate(isDesktopMode ? 'footer.desktop' : 'footer.cli')}
-          {!isDesktopMode && (
-            <>
-              <br />
-              {translate('footer.noExternal')}
-            </>
-          )}
-        </p>
+        {flowState.step !== 'success' && (
+          <p className="mt-5 text-center text-2xs text-muted-foreground/50 leading-relaxed">
+            {translate(isDesktopMode ? 'footer.desktop' : 'footer.cli')}
+            {!isDesktopMode && (
+              <>
+                <br />
+                {translate('footer.noExternal')}
+              </>
+            )}
+          </p>
+        )}
       </div>
     </AuthFormLayout>
   );
