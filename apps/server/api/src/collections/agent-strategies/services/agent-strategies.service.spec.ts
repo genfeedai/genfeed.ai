@@ -283,6 +283,26 @@ describe('AgentStrategiesService budget and atomic run persistence', () => {
     });
   });
 
+  it('round-trips cadence controls and validates partial edits against stored settings', async () => {
+    const { service, row } = setup({
+      postsPerWeek: 7,
+      publishingCeilingPerWeek: 14,
+      readyDraftReserve: 3,
+    });
+    const updated = await service.patch('strategy', {
+      publishingCeilingPerWeek: 20,
+    });
+    expect(updated).toMatchObject({
+      postsPerWeek: 7,
+      publishingCeilingPerWeek: 20,
+      readyDraftReserve: 3,
+    });
+    await expect(
+      service.patch('strategy', { publishingCeilingPerWeek: 6 }),
+    ).rejects.toThrow('Validation Exception');
+    expect(row.config).toMatchObject({ publishingCeilingPerWeek: 20 });
+  });
+
   it('pins patch and config mutations to the request tenant in CLOUD mode', async () => {
     const { service, prisma } = setup();
 

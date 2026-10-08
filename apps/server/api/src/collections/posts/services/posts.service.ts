@@ -33,6 +33,10 @@ import {
   listPublicationInsights,
 } from '@api/collections/posts/services/post-publication-insights.read';
 import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
+import {
+  assertStrategyCadenceAdmission,
+  requiresStrategyCadenceAdmission,
+} from '@api/collections/posts/services/post-strategy-cadence-admission.util';
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -221,12 +225,24 @@ export class PostsService extends BaseService<
       prismaWriteData.scheduledDate = convertedDate;
     }
 
+    const cadenceAdmission =
+      !isChild && requiresStrategyCadenceAdmission(prismaWriteData);
     const created = isChild
       ? await this.createChildPost(prismaWriteData, populate)
-      : await super.create(
-          prismaWriteData as unknown as CreatePostDto,
-          populate,
-        );
+      : cadenceAdmission
+        ? await this.prisma.$transaction(async (tx) => {
+            await assertStrategyCadenceAdmission(tx, prismaWriteData);
+            return this.postLearningContext().createPost(
+              tx,
+              prismaWriteData,
+              populate,
+            );
+          })
+        : await super.create(
+            prismaWriteData as unknown as CreatePostDto,
+            populate,
+          );
+    if (cadenceAdmission) await this.invalidatePostMutationCache();
     if (childTimezoneLog) this.logger.log(childTimezoneLog);
     await this.bindScheduledPublish(created, dto.userId);
     return created;

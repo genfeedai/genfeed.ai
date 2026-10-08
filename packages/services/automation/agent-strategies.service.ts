@@ -126,6 +126,8 @@ export interface CreateAgentStrategyInput {
     value: string | number | boolean;
   }>;
   postsPerWeek?: number;
+  publishingCeilingPerWeek?: number;
+  readyDraftReserve?: number;
   publishPolicy?: Partial<AgentStrategyPublishPolicy>;
   qualityTier?: 'budget' | 'balanced' | 'high_quality';
   rankingPolicy?: Partial<AgentStrategyRankingPolicy>;
@@ -216,6 +218,8 @@ export class AgentStrategy {
     value: string | number | boolean;
   }>;
   postsPerWeek!: number;
+  publishingCeilingPerWeek?: number;
+  readyDraftReserve?: number;
   runFrequency!: string;
   timezone!: string;
   dailyCreditBudget!: number;

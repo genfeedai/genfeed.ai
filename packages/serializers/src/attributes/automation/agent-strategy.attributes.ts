@@ -37,6 +37,8 @@ export const agentStrategyAttributes = createEntityAttributes([
   'preferredWorkflowTemplateId',
   'workflowInputOverrides',
   'postsPerWeek',
+  'publishingCeilingPerWeek',
+  'readyDraftReserve',
   'preferredPostingTimes',
   'autoPublishConfidenceThreshold',
   'budgetPolicy',

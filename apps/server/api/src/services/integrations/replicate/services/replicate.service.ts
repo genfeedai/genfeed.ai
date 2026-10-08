@@ -585,7 +585,8 @@ export class ReplicateService {
     params: ReplicateStructuredTextParams<TResult>,
     apiKeyOverride?: string,
   ): Promise<TResult> {
-    const { input, onAttempt, prompt, schema, schemaName } = params;
+    const { input, beforeAttempt, onAttempt, prompt, schema, schemaName } =
+      params;
     const schemaPrompt = [
       prompt,
       `Answer with a single JSON document matching this JSON Schema named "${schemaName}":`,
@@ -604,6 +605,7 @@ export class ReplicateService {
               ].join('\n\n')
             : schemaPrompt,
         };
+        await beforeAttempt?.(attemptInput);
         const output = await this.generateTextCompletionSync(
           modelIdentifier,
           attemptInput,

@@ -3,6 +3,7 @@ import {
   correctedCategoryForLinkedMedia,
   toValidationMediaFromIngredients,
 } from '@api/collections/posts/services/channel-target-schedule-validation.util';
+import { assertStrategyCadenceAdmission } from '@api/collections/posts/services/post-strategy-cadence-admission.util';
 import {
   SERVER_TOKENS,
   type ServerLogger,
@@ -221,6 +222,16 @@ export class PostLifecycleService {
     }
 
     input = await this.applyScheduleValidation(transaction, target, input);
+    if (
+      input.nextState === TargetExecutionState.SCHEDULED ||
+      input.nextState === TargetExecutionState.PUBLISHING
+    ) {
+      await assertStrategyCadenceAdmission(transaction, {
+        ...target,
+        ...input.mutation,
+        targetExecutionState: input.nextState,
+      });
+    }
 
     if (currentState === input.nextState) {
       const updated = await this.updateIdempotentTarget(

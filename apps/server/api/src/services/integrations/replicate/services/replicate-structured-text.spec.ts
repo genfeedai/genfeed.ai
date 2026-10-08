@@ -119,4 +119,38 @@ describe('ReplicateService.generateStructuredTextSync', () => {
     ).rejects.toBeInstanceOf(LlmStructuredOutputError);
     expect(completion).toHaveBeenCalledTimes(2);
   });
+  it('rejects admission before any provider call', async () => {
+    await expect(
+      service.generateStructuredTextSync('owner/model', {
+        input: {},
+        prompt: 'Suggest hashtags',
+        schema,
+        schemaName: 'hashtags',
+        beforeAttempt: () => {
+          throw new Error('Budget exhausted');
+        },
+      }),
+    ).rejects.toThrow();
+    expect(completion).not.toHaveBeenCalled();
+  });
+  it('requires fresh admission for a repair after one billed attempt', async () => {
+    completion.mockResolvedValue('{"score":"invalid","suggested":[]}');
+    const admission = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('Budget exhausted'));
+    const onAttempt = vi.fn();
+    await expect(
+      service.generateStructuredTextSync('owner/model', {
+        input: {},
+        prompt: 'Suggest hashtags',
+        schema,
+        schemaName: 'hashtags',
+        beforeAttempt: admission,
+        onAttempt,
+      }),
+    ).rejects.toThrow();
+    expect(completion).toHaveBeenCalledOnce();
+    expect(onAttempt).toHaveBeenCalledOnce();
+  });
 });

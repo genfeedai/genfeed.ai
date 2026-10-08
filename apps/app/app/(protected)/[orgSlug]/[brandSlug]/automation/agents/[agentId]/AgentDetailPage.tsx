@@ -57,6 +57,7 @@ const AGENT_EXECUTION_PAGE_SIZE = 20;
 function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   const translate = useTranslations('common.automation.agentHub');
   const detail = useTranslations('common.automation.agentDetail');
+  const cadenceLabels = useTranslations('common.automation.cadence');
   const notificationsService = NotificationsService.getInstance();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -113,9 +114,29 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
         : agent;
     },
   });
+  const cadenceEnabled = Boolean(
+    strategy &&
+      (strategy.publishingCeilingPerWeek !== undefined ||
+        strategy.readyDraftReserve !== undefined),
+  );
+  const {
+    data: performance,
+    isError: isCadenceError,
+    refetch: refetchCadence,
+  } = useQuery({
+    queryKey: [
+      'agent-cadence',
+      collectionScope.organizationId,
+      collectionScope.brandId,
+      agentId,
+    ],
+    enabled: isReady && cadenceEnabled,
+    queryFn: async () => (await getService()).getPerformanceSnapshot(agentId),
+  });
   const refresh = useCallback(async () => {
     await refetch();
-  }, [refetch]);
+    if (cadenceEnabled) await refetchCadence();
+  }, [refetch, refetchCadence, cadenceEnabled]);
   useVisiblePolling(
     () => {
       void refresh();
@@ -398,6 +419,41 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
           strategy={strategy}
           onBound={refresh}
         />
+
+        {cadenceEnabled && performance?.cadence && (
+          <div className="space-y-2">
+            <KPISection
+              title={cadenceLabels('title')}
+              gridCols={{ desktop: 3, mobile: 1 }}
+              items={[
+                {
+                  label: cadenceLabels('scheduled'),
+                  value: performance.cadence.week,
+                  description: `${cadenceLabels('weeklyTarget')}: ${performance.cadence.weeklyTarget} · ${cadenceLabels('publishingCeiling')}: ${performance.cadence.publishingCeiling}`,
+                },
+                {
+                  label: cadenceLabels('ready'),
+                  value: performance.cadence.readyDrafts,
+                  description: `${cadenceLabels('draftReserve')}: ${performance.cadence.draftReserve}`,
+                },
+                {
+                  label: cadenceLabels('pending'),
+                  value: performance.cadence.pendingDrafts,
+                },
+              ]}
+            />
+            {performance.cadence.reasons.map((reason) => (
+              <p key={reason} className="text-sm text-muted-foreground">
+                {reason}
+              </p>
+            ))}
+          </div>
+        )}
+        {cadenceEnabled && isCadenceError && (
+          <p className="text-sm text-muted-foreground" role="status">
+            {cadenceLabels('unavailable')}
+          </p>
+        )}
 
         <KPISection
           title={detail('usage')}
