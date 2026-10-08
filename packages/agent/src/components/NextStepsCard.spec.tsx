@@ -1,5 +1,7 @@
+import { ButtonVariant } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { NextIntlClientProvider } from 'next-intl';
+import type { ReactElement, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/link', () => ({
@@ -21,6 +23,7 @@ vi.mock('@ui/primitives/button', () => ({
     asChild?: boolean;
     children?: ReactNode;
     onClick?: () => void;
+    variant?: ButtonVariant;
   }) {
     // asChild renders the anchor itself — mirror that so href CTAs stay links.
     if (props.asChild) {
@@ -28,7 +31,11 @@ vi.mock('@ui/primitives/button', () => ({
     }
 
     return (
-      <button type="button" onClick={props.onClick}>
+      <button
+        type="button"
+        data-variant={props.variant}
+        onClick={props.onClick}
+      >
         {props.children}
       </button>
     );
@@ -37,6 +44,19 @@ vi.mock('@ui/primitives/button', () => ({
 
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { NextStepsCard } from './NextStepsCard';
+
+function renderCard(ui: ReactElement) {
+  return render(ui, {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <NextIntlClientProvider
+        locale="en"
+        messages={{ agent: { nextSteps: { start: 'Start' } } }}
+      >
+        {children}
+      </NextIntlClientProvider>
+    ),
+  });
+}
 
 function buildAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
   return {
@@ -56,7 +76,7 @@ function buildAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
 
 describe('NextStepsCard', () => {
   it('renders every offered step as a control, not prose', () => {
-    render(
+    renderCard(
       <NextStepsCard
         action={buildAction({
           nextSteps: [
@@ -96,7 +116,7 @@ describe('NextStepsCard', () => {
   });
 
   it('points a navigation CTA at the owning page through the application Link', () => {
-    render(<NextStepsCard action={buildAction()} />);
+    renderCard(<NextStepsCard action={buildAction()} />);
 
     const link = screen.getByRole('link', { name: /Open brand settings/ });
     expect(link.getAttribute('href')).toBe('/settings/brands');
@@ -108,7 +128,7 @@ describe('NextStepsCard', () => {
   it('sends the follow-up prompt back into the conversation', () => {
     const onUiAction = vi.fn();
 
-    render(
+    renderCard(
       <NextStepsCard
         action={buildAction({
           nextSteps: [
@@ -129,15 +149,60 @@ describe('NextStepsCard', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue here' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
 
     expect(onUiAction).toHaveBeenCalledWith('send_prompt', {
       prompt: 'Walk me through brand setup.',
     });
   });
 
+  it('promotes Start ahead of saved navigation CTAs without changing prompts or links', () => {
+    const onUiAction = vi.fn();
+    const action = buildAction({
+      nextSteps: [
+        {
+          id: 'saved-step',
+          title: 'Brand setup',
+          ctas: [
+            { href: '/settings/brands', label: 'Open brand settings' },
+            {
+              action: 'send_prompt',
+              label: 'Do it here',
+              payload: { prompt: 'Walk me through brand setup.' },
+            },
+            { href: '/publishing/review', label: 'Open reviews' },
+          ],
+        },
+      ],
+    });
+    renderCard(<NextStepsCard action={action} onUiAction={onUiAction} />);
+    const start = screen.getByRole('button', { name: 'Start' });
+    const brandSettings = screen.getByRole('link', {
+      name: /Open brand settings/,
+    });
+    const reviews = screen.getByRole('link', { name: /Open reviews/ });
+    expect(
+      start.compareDocumentPosition(brandSettings) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      brandSettings.compareDocumentPosition(reviews) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(start.getAttribute('data-variant')).toBe(ButtonVariant.DEFAULT);
+    expect(brandSettings.getAttribute('href')).toBe('/settings/brands');
+    expect(reviews.getAttribute('href')).toBe('/publishing/review');
+    expect(screen.queryByText('Do it here')).toBeNull();
+    fireEvent.click(start);
+    expect(onUiAction).toHaveBeenCalledOnce();
+    expect(onUiAction).toHaveBeenCalledWith('send_prompt', {
+      prompt: 'Walk me through brand setup.',
+    });
+    expect(action.nextSteps?.[0]?.ctas[0]?.label).toBe('Open brand settings');
+  });
+
   it('renders nothing when the card carries no steps', () => {
-    const { container } = render(
+    const { container } = renderCard(
       <NextStepsCard action={buildAction({ nextSteps: [] })} />,
     );
 

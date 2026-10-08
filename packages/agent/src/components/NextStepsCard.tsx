@@ -11,6 +11,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 interface NextStepsCardProps {
@@ -18,20 +19,26 @@ interface NextStepsCardProps {
   onUiAction?: AgentUiActionHandler;
 }
 
+function isConversationCta(cta: AgentUiActionCta): boolean {
+  return !cta.href && cta.action === 'send_prompt';
+}
+
 function NextStepCtaButton({
   cta,
   isPrimary,
+  label,
   onUiAction,
 }: {
   cta: AgentUiActionCta;
   isPrimary: boolean;
+  label: string;
   onUiAction?: AgentUiActionHandler;
 }): ReactElement {
   // Navigation goes through Link inside Button so client-side routing is
   // preserved and global `a { color }` rules cannot paint unreadable text on
   // card chrome.
   const className = 'h-7 px-2.5 text-xs font-medium';
-  const variant = isPrimary ? ButtonVariant.SECONDARY : ButtonVariant.GHOST;
+  const variant = isPrimary ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY;
 
   if (cta.href) {
     const href = normalizeAgentAppHref(cta.href) ?? cta.href;
@@ -45,7 +52,7 @@ function NextStepCtaButton({
         withWrapper={false}
       >
         <Link href={href}>
-          {cta.label}
+          {label}
           <ArrowUpRight className="ml-1 size-3.5" />
         </Link>
       </Button>
@@ -65,7 +72,7 @@ function NextStepCtaButton({
         void onUiAction?.(cta.action, cta.payload);
       }}
     >
-      {cta.label}
+      {label}
     </Button>
   );
 }
@@ -79,6 +86,7 @@ export function NextStepsCard({
   action,
   onUiAction,
 }: NextStepsCardProps): ReactElement | null {
+  const translate = useTranslations('agent.nextSteps');
   const steps = action.nextSteps ?? [];
 
   if (steps.length === 0) {
@@ -121,16 +129,24 @@ export function NextStepsCard({
               ) : null}
             </div>
             <div className="flex shrink-0 flex-wrap gap-1.5">
-              {keyListItems(step.ctas, (cta) => JSON.stringify(cta)).map(
-                ({ item: cta, key }, index) => (
-                  <NextStepCtaButton
-                    key={key}
-                    cta={cta}
-                    isPrimary={index === 0}
-                    onUiAction={onUiAction}
-                  />
+              {keyListItems(
+                [...step.ctas].sort(
+                  (left, right) =>
+                    Number(isConversationCta(right)) -
+                    Number(isConversationCta(left)),
                 ),
-              )}
+                (cta) => JSON.stringify(cta),
+              ).map(({ item: cta, key }, index) => (
+                <NextStepCtaButton
+                  key={key}
+                  cta={cta}
+                  isPrimary={index === 0 && isConversationCta(cta)}
+                  label={
+                    isConversationCta(cta) ? translate('start') : cta.label
+                  }
+                  onUiAction={onUiAction}
+                />
+              ))}
             </div>
           </li>
         ))}

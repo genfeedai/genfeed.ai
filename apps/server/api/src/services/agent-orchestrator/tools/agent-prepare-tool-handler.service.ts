@@ -701,16 +701,16 @@ export class AgentPrepareToolHandler {
 
     const ctas: AgentUiActionCta[] = [];
 
-    if (destination) {
-      ctas.push({ href: destination.href, label: destination.ctaLabel });
-    }
-
     if (followUpPrompt) {
       ctas.push({
         action: 'send_prompt',
-        label: destination ? 'Do it here' : 'Continue here',
+        label: 'Start',
         payload: { prompt: followUpPrompt },
       });
+    }
+
+    if (destination) {
+      ctas.push({ href: destination.href, label: destination.ctaLabel });
     }
 
     return {
