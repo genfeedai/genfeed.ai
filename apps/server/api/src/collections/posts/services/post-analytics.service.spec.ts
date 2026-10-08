@@ -10,6 +10,7 @@ import { PostAnalyticsService } from '@api/collections/posts/services/post-analy
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { CONTENT_LEARNING_ACTION_IDS } from '@api/collections/workflows/templates/content-learning-workflows.template';
+import { TwitterResponseMapper } from '@api/services/integrations/twitter/services/twitter-response.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Platform } from '@genfeedai/contracts';
 import { captureLearningMetrics } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
@@ -195,6 +196,77 @@ describe('PostAnalyticsService.updateTodayAnalytics', () => {
 });
 
 describe('PostAnalyticsService provider metric mapping', () => {
+  it.each([undefined, 0, 12_000])(
+    'persists X impressions %s independently of unavailable views',
+    async (impressions) => {
+      const { service, upsert } = await createHarness({
+        brandId: 'brand_1',
+        id: 'post_1',
+        organizationId: 'org_1',
+        userId: 'user_1',
+      });
+      const analytics = new TwitterResponseMapper().mapAnalytics({
+        data: [{ organic_metrics: { impression_count: impressions } }],
+      });
+
+      await service.processTwitterAnalytics('post_1', analytics, {
+        organizationId: 'org_1',
+        brandId: 'brand_1',
+        credentialId: 'credential_1',
+      });
+
+      const expected = {
+        impressions: impressions ?? null,
+        totalViews: 0,
+        metricAvailability: {
+          impressions: impressions === undefined ? 'unavailable' : 'observed',
+          views: 'unavailable',
+        },
+      };
+      expect(upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining(expected),
+          update: expect.objectContaining(expected),
+          where: expect.objectContaining({
+            organizationId: 'org_1',
+            isDeleted: false,
+          }),
+        }),
+      );
+    },
+  );
+
+  it('preserves X eligibility flags and bookmarks through persistence', async () => {
+    const { service, upsert } = await createHarness({
+      brandId: 'brand_1',
+      id: 'post_1',
+      organizationId: 'org_1',
+      userId: 'user_1',
+    });
+    await service.processTwitterAnalytics(
+      'post_1',
+      {
+        ...new TwitterResponseMapper().mapAnalytics({
+          data: [{ public_metrics: { view_count: 25, bookmark_count: 4 } }],
+        }),
+        isPinned: true,
+        isPromoted: false,
+      },
+      {
+        organizationId: 'org_1',
+        brandId: 'brand_1',
+        credentialId: 'credential_1',
+      },
+    );
+    expect(upsert.mock.calls[0][0].create).toMatchObject({
+      isPinned: true,
+      isPromoted: false,
+      totalSaves: 4,
+      totalViews: 25,
+      metricAvailability: { views: 'observed', impressions: 'unavailable' },
+    });
+  });
+
   it.each([Platform.FACEBOOK, Platform.INSTAGRAM, Platform.THREADS])(
     'preserves missing versus observed-zero %s views through the persistence boundary',
     async (platform) => {
