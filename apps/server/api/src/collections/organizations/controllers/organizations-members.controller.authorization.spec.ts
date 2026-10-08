@@ -43,9 +43,13 @@ describe('Organization member mutations (real HTTP role guard)', () => {
   const brands = { findAll: vi.fn() };
 
   beforeAll(async () => {
-    vi.spyOn(MemberSerializer, 'serialize').mockImplementation((data) => ({
-      data: { attributes: data, id: otherMemberId, type: 'members' },
-    }));
+    vi.spyOn(MemberSerializer, 'serialize').mockReturnValue({
+      data: {
+        attributes: { organizationId },
+        id: otherMemberId,
+        type: 'member',
+      },
+    });
     const moduleRef = await Test.createTestingModule({
       controllers: [OrganizationsMembersController],
       providers: [
